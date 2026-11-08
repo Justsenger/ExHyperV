@@ -1,0 +1,641 @@
+<UserControl xmlns:properties="clr-namespace:ExHyperV.Properties" x:Class="ExHyperV.UI.Pages.VirtualMachines.Components.VmRamSettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             
+             
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d" 
+             d:DesignHeight="1550" d:DesignWidth="1000">
+
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/Assets/SettingsStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Style x:Key="ShutdownRequiredToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource SupportedSettingToggleStyle}">
+                <Style.Triggers>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding SelectedVm.MemoryCapabilities.OfflineSettings}" Value="False"/>
+                            <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
+                    </MultiDataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="EnlightenmentToggleStyle" TargetType="ui:ToggleSwitch" BasedOn="{StaticResource ShutdownRequiredToggleStyle}">
+                <Style.Triggers>
+                    <!-- 物理后端(BackingType=0)禁用内存增强提示、EPF 和压缩存储；切换为虚拟后端后可配置。 -->
+                    <DataTrigger Binding="{Binding SelectedVm.MemorySettings.BackingType}" Value="0">
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.VmRAMSettings_NeedVirtualBacking}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="ShutdownRequiredComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource SupportedSettingComboBoxStyle}">
+                <Style.Triggers>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding SelectedVm.MemoryCapabilities.OfflineSettings}" Value="False"/>
+                            <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
+                    </MultiDataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="MemoryTrackingPolicyComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource ShutdownRequiredComboBoxStyle}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingState}" Value="0">
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.VmRAMSettings_MemTrackingDisabledHint}"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingState}" Value="2">
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.VmRAMSettings_MemTrackingPerNodeHint}"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="ShutdownRequiredNumberBoxStyle" TargetType="ui:NumberBox" BasedOn="{StaticResource {x:Type ui:NumberBox}}">
+                <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+                <Setter Property="ToolTipService.InitialShowDelay" Value="50"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="{x:Null}">
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.Error_VerNotSupport}"/>
+                    </DataTrigger>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding SelectedVm.MemoryCapabilities.OfflineSettings}" Value="False"/>
+                            <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
+                    </MultiDataTrigger>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.5"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="ShutdownRequiredApplyButtonStyle" TargetType="ui:Button" BasedOn="{StaticResource SupportedSettingButtonStyle}">
+                <Style.Triggers>
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding SelectedVm.MemoryCapabilities.OfflineSettings}" Value="False"/>
+                            <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag, Converter={StaticResource NullableToBooleanConverter}}" Value="True"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter Property="IsEnabled" Value="False"/>
+                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_VmOffRequired}"/>
+                    </MultiDataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <Style x:Key="DynamicDependencyStyle" TargetType="FrameworkElement">
+                <Setter Property="Opacity" Value="1.0"/>
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding SelectedVm.MemoryCapabilities.DynamicLimits}" Value="False">
+                        <Setter Property="Opacity" Value="0.4"/>
+                        <Setter Property="IsEnabled" Value="False"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <x:Array x:Key="CommonMemoryValues" Type="sys:String">
+                <sys:String>512</sys:String>
+                <sys:String>1024</sys:String>
+                <sys:String>2048</sys:String>
+                <sys:String>4096</sys:String>
+                <sys:String>8192</sys:String>
+                <sys:String>16384</sys:String>
+            </x:Array>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="24,16,24,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <ui:FontIcon Glyph="&#xEEA0;" FontFamily="{DynamicResource SegoeFluentIcons}" FontSize="24" Margin="0,0,12,0" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                <TextBlock Text="{x:Static properties:Resources.Label_RamSettings}" FontSize="20" FontWeight="Regular" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+            </StackPanel>
+            <ui:Button Grid.Column="1" Appearance="Transparent" Padding="8" Command="{Binding GoBackToDashboardCommand}">
+                <ui:SymbolIcon Symbol="ArrowLeft24" FontSize="18"/>
+            </ui:Button>
+        </Grid>
+
+        <ProgressBar Grid.Row="1" IsIndeterminate="True" VerticalAlignment="Top" Height="2" Margin="0,-2,0,0"
+                     Visibility="{Binding IsLoadingSettings, Converter={StaticResource BoolToVis}}"/>
+
+        <ScrollViewer Grid.Row="2" Padding="24,12,24,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly"
+                      IsEnabled="{Binding IsLoadingSettings, Converter={StaticResource InverseBooleanConverter}}">
+            <StackPanel>
+                <TextBlock Text="{x:Static properties:Resources.Label_ComputeRes}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Margin="0,0,0,32">
+                    <StackPanel>
+                        <Grid Margin="24,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="1.5*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{x:Static properties:Resources.Label_StartRam}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+                                <ComboBox IsEditable="True" ItemsSource="{StaticResource CommonMemoryValues}"
+                                          Text="{Binding SelectedVm.MemorySettings.Startup, UpdateSourceTrigger=PropertyChanged}">
+                                    <ComboBox.Style>
+                                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                            <Setter Property="IsEnabled" Value="True"/>
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding SelectedVm.MemoryCapabilities.Startup}" Value="False" />
+                                                    </MultiDataTrigger.Conditions>
+                                                    <MultiDataTrigger.Setters>
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                        <Setter Property="ToolTip" Value="{x:Static properties:Resources.Warn_DynRamRunning}"/>
+                                                    </MultiDataTrigger.Setters>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ComboBox.Style>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="{x:Static properties:Resources.Label_RamWeight}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding SelectedVm.MemorySettings.Priority}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" HorizontalAlignment="Right"/>
+                                </Grid>
+                                <Slider Minimum="0" Maximum="100" Value="{Binding SelectedVm.MemorySettings.Priority, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.Label_EnableDynRam}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.Desc_DynRam}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Style="{StaticResource ShutdownRequiredToggleStyle}" Tag="True"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.DynamicMemoryEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="1.5*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0" Style="{StaticResource DynamicDependencyStyle}">
+                                <TextBlock Text="{x:Static properties:Resources.Label_MinRam}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+                                <ComboBox IsEditable="True" ItemsSource="{StaticResource CommonMemoryValues}" Text="{Binding SelectedVm.MemorySettings.Minimum, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Style="{StaticResource DynamicDependencyStyle}">
+                                <TextBlock Text="{x:Static properties:Resources.Label_MaxRam}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,8"/>
+                                <ComboBox IsEditable="True" ItemsSource="{StaticResource CommonMemoryValues}" Text="{Binding SelectedVm.MemorySettings.Maximum, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4" Style="{StaticResource DynamicDependencyStyle}">
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="{x:Static properties:Resources.Label_RamBuffer}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                    <TextBlock Text="{Binding SelectedVm.MemorySettings.Buffer, StringFormat='{}{0}%'}" FontSize="13" HorizontalAlignment="Right" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                </Grid>
+                                <Slider Minimum="5" Maximum="200" Value="{Binding SelectedVm.MemorySettings.Buffer, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <ui:Button Grid.Column="6" VerticalAlignment="Bottom" Content="{x:Static properties:Resources.Button_Apply}" Appearance="Primary" Padding="24,6" Command="{Binding ApplyMemorySettingsCommand}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_MmioSection}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
+                    <StackPanel>
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LowMmioSize}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LowMmioSizeDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:NumberBox Grid.Column="1"
+                                          Style="{StaticResource ShutdownRequiredNumberBoxStyle}"
+                                          Tag="{Binding SelectedVm.MmioSettings.LowSizeMiB}"
+                                          Value="{Binding SelectedVm.MmioSettings.LowSizeMiB, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          SmallChange="128" SpinButtonPlacementMode="Hidden"/>
+                            <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
+                                       Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
+                                       Tag="{Binding SelectedVm.MmioSettings.LowSizeMiB}"
+                                       Command="{Binding ApplyMmioSettingsCommand}" CommandParameter="LowSizeMiB" Appearance="Primary"/>
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_HighMmioSize}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_HighMmioSizeDesc}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:NumberBox Grid.Column="1"
+                                          Style="{StaticResource ShutdownRequiredNumberBoxStyle}"
+                                          Tag="{Binding SelectedVm.MmioSettings.HighSizeMiB}"
+                                          Value="{Binding SelectedVm.MmioSettings.HighSizeMiB, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          SmallChange="1024" SpinButtonPlacementMode="Hidden"/>
+                            <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
+                                       Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
+                                       Tag="{Binding SelectedVm.MmioSettings.HighSizeMiB}"
+                                       Command="{Binding ApplyMmioSettingsCommand}" CommandParameter="HighSizeMiB" Appearance="Primary"/>
+                        </Grid>
+
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_HighMmioBase}" FontSize="14" VerticalAlignment="Center" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            <ui:NumberBox Grid.Column="1"
+                                          Style="{StaticResource ShutdownRequiredNumberBoxStyle}"
+                                          Tag="{Binding SelectedVm.MmioSettings.HighBaseMiB}"
+                                          Value="{Binding SelectedVm.MmioSettings.HighBaseMiB, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          SmallChange="1024" SpinButtonPlacementMode="Hidden"/>
+                            <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.Button_Apply}" Margin="8,0,0,0" Width="72"
+                                       Style="{StaticResource ShutdownRequiredApplyButtonStyle}"
+                                       Tag="{Binding SelectedVm.MmioSettings.HighBaseMiB}"
+                                       Command="{Binding ApplyMmioSettingsCommand}" CommandParameter="HighBaseMiB" Appearance="Primary"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{x:Static properties:Resources.Label_MemoryPageManagement}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
+                    <StackPanel>
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.Label_RamPageSize}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.Desc_RamPageSize}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.BackingPageSize}"
+                                      ItemsSource="{Binding SelectedVm.MemorySettings.AvailablePageSizes}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.BackingPageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value"
+                                      DisplayMemberPath="Description" />
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="160"/>
+                                <ColumnDefinition Width="80"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelNumaBlockLimit}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescNumaBlockLimit}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <ui:NumberBox Grid.Column="1"
+                                          Value="{Binding SelectedVm.MemorySettings.MaxMemoryBlocksPerNumaNode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          Minimum="32" SmallChange="2" SpinButtonPlacementMode="Hidden"
+                                          IsEnabled="{Binding SelectedVm.MemoryCapabilities.OfflineSettings}"/>
+                            <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.VmRAMSettings_BtnApply}" Margin="8,0,0,0" Width="72"
+                                       Command="{Binding ApplyMemorySettingsCommand}" Appearance="Primary"
+                                       IsEnabled="{Binding SelectedVm.MemoryCapabilities.OfflineSettings}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="200"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelDynMemStep}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescDynMemStep}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" VerticalAlignment="Center"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.DynMemOperationAlignment}"
+                                      ItemsSource="{Binding DynamicMemoryAlignmentOptions}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.DynMemOperationAlignment, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Name" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{x:Static properties:Resources.Label_MemoryMapping}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
+                    <StackPanel>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelMemMappingMode}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescMemMappingMode}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" VerticalAlignment="Center"
+                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                      Tag="{Binding SelectedVm.MemorySettings.BackingType}"
+                      ItemsSource="{Binding BackingTypeOptions}"
+                      SelectedValue="{Binding SelectedVm.MemorySettings.BackingType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                      SelectedValuePath="Value" DisplayMemberPath="Name">
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                        <Setter Property="IsEnabled" Value="{Binding IsEnabled}"/>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_ToggleColdHint}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1"
+                                             Style="{StaticResource EnlightenmentToggleStyle}"
+                                             Tag="{Binding SelectedVm.MemorySettings.EnableColdHint}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.EnableColdHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_ToggleHotHint}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1"
+                                             Style="{StaticResource EnlightenmentToggleStyle}"
+                                             Tag="{Binding SelectedVm.MemorySettings.EnableHotHint}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.EnableHotHint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_ToggleEpf}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1"
+                                             Style="{StaticResource EnlightenmentToggleStyle}"
+                                             Tag="{Binding SelectedVm.MemorySettings.EnableEpf}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.EnableEpf, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_ToggleCompressStore}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1"
+                                             Style="{StaticResource EnlightenmentToggleStyle}"
+                                             Tag="{Binding SelectedVm.MemorySettings.EnablePrivateCompressionStore}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.EnablePrivateCompressionStore, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_TogglePhysicalPinning}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1"
+                                             Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                             Tag="{Binding SelectedVm.MemorySettings.EnableGpaPinning}"
+                                             IsChecked="{Binding SelectedVm.MemorySettings.EnableGpaPinning, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{x:Static properties:Resources.Label_MemoryAccessTracking}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32">
+                    <StackPanel>
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelMemAccessMonitor}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescMemAccessMonitor}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingState}"
+                                      ItemsSource="{Binding MemoryTrackingStateOptions}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingState, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Name">
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                        <Setter Property="IsEnabled" Value="{Binding IsEnabled}"/>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
+                            </ComboBox>
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,0"/>
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelMemAccessGranularity}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescMemAccessGranularity}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      Style="{StaticResource MemoryTrackingPolicyComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingPolicy}"
+                                      ItemsSource="{Binding MemoryByteGranularityOptions}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.MemoryAccessTrackingPolicy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value" DisplayMemberPath="Name" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock Text="{x:Static properties:Resources.Label_MemoryConfidentialComputing}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Margin" Value="0,0,0,12"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ShowIntelPlatformFeatures}" Value="False">
+                                    <Setter Property="Margin" Value="0,0,0,32"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <StackPanel>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="220"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.Label_MemEncrypt}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1"
+                                      VerticalAlignment="Center"
+                                      Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                      Tag="{Binding SelectedVm.MemorySettings.MemoryEncryptionPolicy}"
+                                      ItemsSource="{Binding MemoryEncryptionPolicyOptions}"
+                                      SelectedValue="{Binding SelectedVm.MemorySettings.MemoryEncryptionPolicy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                      SelectedValuePath="Value"
+                                      DisplayMemberPath="Name"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Intel SGX 设置仅在支持 SGX 的 x86 Intel 硬件上启用。 -->
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0" Margin="0,0,0,32"
+                        IsEnabled="{Binding IsIntelHost}"
+                        Visibility="{Binding ShowIntelPlatformFeatures, Converter={StaticResource BoolToVis}}">
+                        <StackPanel Margin="0,8">
+                            <Grid Margin="24,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="80"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelSgxComputing}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                    <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxComputing}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                                <ui:ToggleSwitch Grid.Column="1" VerticalAlignment="Center" Margin="0,0,12,0"
+                                                 Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                                 Tag="{Binding SelectedVm.MemorySettings.SgxEnabled}"
+                                                 IsChecked="{Binding SelectedVm.MemorySettings.SgxEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                                <ui:Button Grid.Column="2" Content="{x:Static properties:Resources.VmRAMSettings_BtnApply}"
+                                           VerticalAlignment="Center" Padding="24,6" HorizontalAlignment="Right"
+                                           Command="{Binding ApplyMemorySettingsCommand}" Appearance="Primary"/>
+                            </Grid>
+
+                            <StackPanel Margin="48,4,24,12" IsEnabled="{Binding SelectedVm.MemorySettings.SgxEnabled}">
+                                <Grid Margin="0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="380"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelSgxAuthMode}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxAuthMode}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <ComboBox Grid.Column="1"
+                                              Style="{StaticResource ShutdownRequiredComboBoxStyle}"
+                                              Tag="{Binding SelectedVm.MemorySettings.SgxLaunchControlMode}"
+                                              ItemsSource="{Binding SgxLaunchControlOptions}"
+                                              SelectedValue="{Binding SelectedVm.MemorySettings.SgxLaunchControlMode, Mode=TwoWay}"
+                                              SelectedValuePath="Value" DisplayMemberPath="Name" Margin="180,0,0,0"/>
+                                </Grid>
+
+                                <Grid Margin="0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="380"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelSgxMemSize}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxMemSize}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <ui:NumberBox Grid.Column="1"
+                                                  Value="{Binding SelectedVm.MemorySettings.SgxSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Minimum="2" ClearButtonEnabled="False"
+                                                  SpinButtonPlacementMode="Hidden" Margin="180,0,0,0"/>
+                                </Grid>
+
+                                <Grid Margin="0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="440"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelSgxMsrDefault}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescSgxMsrDefault}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                                    </StackPanel>
+                                    <ui:TextBox Grid.Column="1"
+                                                PlaceholderText="{x:Static properties:Resources.VmRAMSettings_PlaceholderSgxMsr}"
+                                                Text="{Binding SelectedVm.MemorySettings.SgxLaunchControlDefault, Mode=TwoWay}"/>
+                                </Grid>
+                            </StackPanel>
+                        </StackPanel>
+                </Border>
+
+                <TextBlock Text="{x:Static properties:Resources.Label_MemoryHardwareExtensions}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <Border Background="{ui:ThemeResource CardBackgroundFillColorDefaultBrush}" BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="0">
+                    <StackPanel>
+
+                        <Grid Margin="24,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_LabelCxlExtension}" FontSize="14" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,0,4"/>
+                                <TextBlock Text="{x:Static properties:Resources.VmRAMSettings_DescCxlExtension}" FontSize="12" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                            </StackPanel>
+                            <ui:ToggleSwitch Grid.Column="1" Content="{x:Static properties:Resources.VmRAMSettings_ToggleCxlSupport}"
+                                 Style="{StaticResource ShutdownRequiredToggleStyle}"
+                                 Tag="{Binding SelectedVm.MemorySettings.CxlEnabled}"
+                                 IsChecked="{Binding SelectedVm.MemorySettings.CxlEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

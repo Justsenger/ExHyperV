@@ -1,0 +1,31 @@
+{
+  "baseline": {
+    "wpfui": "9331240796d7a0509becd9af75f3dd2c52d50767",
+    "ExHyperV": "6a796f3b1fa7fdb07512474a27f77f4763cfde05"
+  },
+  "regular": {
+    "family": "FluentSystemIcons-Regular",
+    "version": "1.1.316",
+    "commit": "c4893bdd6702a7bd1ebbbfb9e4dfef257c0ba470",
+    "path": "src/Wpf.Ui/Resources/Fonts/FluentSystemIcons-Regular.ttf",
+    "localPath": "tools/fonts/sources/FluentSystemIcons-Regular.ttf",
+    "sha256": "4cde6c7c681332455c680cda7e8088c2c7826152b9f0cffb02f5f8773b8986bb",
+    "output": "src/Wpf.Ui/Resources/Fonts/FluentSystemIcons-Regular.ttf"
+  },
+  "filled": {
+    "family": "FluentSystemIcons-Filled",
+    "version": "1.1.316",
+    "commit": "c4893bdd6702a7bd1ebbbfb9e4dfef257c0ba470",
+    "path": "src/Wpf.Ui/Resources/Fonts/FluentSystemIcons-Filled.ttf",
+    "localPath": "tools/fonts/sources/FluentSystemIcons-Filled.ttf",
+    "sha256": "299bbcd4786071a9eb1696129f0b6e148b02548e9318bf0c849f09875d257131",
+    "output": "src/Wpf.Ui/Resources/Fonts/FluentSystemIcons-Filled.ttf"
+  },
+  "segoe": {
+    "family": "Segoe Fluent Icons",
+    "version": "1.53",
+    "source": "Windows Fonts/SegoeIcons.ttf (or --segoe-source)",
+    "sha256": "8e8be40f1b949a9e5a99ed71f024ebf82167dc5f3c01e1bc7557c6b096a2c82f",
+    "output": "tools/fonts/generated/SegoeIcons.ttf"
+  }
+}

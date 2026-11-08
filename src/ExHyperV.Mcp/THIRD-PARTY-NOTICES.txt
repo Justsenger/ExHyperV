@@ -1,0 +1,16 @@
+ExHyperV.Mcp uses the official Model Context Protocol C# SDK 2.3.0.
+Repository: https://github.com/modelcontextprotocol/csharp-sdk
+Package: https://www.nuget.org/packages/ModelContextProtocol/2.3.0
+HTTP package: https://www.nuget.org/packages/ModelContextProtocol.AspNetCore/2.3.0
+Tasks package: https://www.nuget.org/packages/ModelContextProtocol.Extensions.Tasks/2.3.0
+
+The Program.cs hosting pattern is adapted from:
+https://github.com/modelcontextprotocol/csharp-sdk/tree/v2.3.0/samples/QuickstartWeatherServer
+https://github.com/modelcontextprotocol/csharp-sdk/blob/v2.3.0/docs/concepts/transports/transports.md
+ExHyperV changes: Core project reference, Chinese tool metadata, typed Core calls,
+structured results, deployment handles, process shutdown cleanup, and authenticated HTTP hosting.
+
+Copyright (c) 2024-2026 Model Context Protocol a Series of LF Projects, LLC.
+The upstream licensing notice, Apache-2.0 terms, and retained MIT terms are
+reproduced in licenses/ModelContextProtocol.txt.
+SDK dependencies retain their respective NuGet package licenses.

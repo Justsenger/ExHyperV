@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DefaultItemExcludes>$(DefaultItemExcludes);external\**\runtimes\*\native\**</DefaultItemExcludes>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>2.0.0-Alpha</Version>
+    <RootNamespace>ExHyperV</RootNamespace>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- 文档生成器和可编译示例仅供维护，不编入管理库。 -->
+    <Compile Remove="Documentation\**\*.cs" />
+    <None Include="Documentation\**\*.cs" Exclude="Documentation\**\bin\**;Documentation\**\obj\**" />
+    <None Update="ThirdPartyNotices\SharpZipLib.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="external/freerdp/runtimes/win-arm64/console-native.zip" Condition="Exists('external/freerdp/runtimes/win-arm64/console-native.zip')" LogicalName="ExHyperV.ConsoleNative.win-arm64.zip" />
+    <EmbeddedResource Include="external/freerdp/runtimes/win-x64/console-native.zip" Condition="Exists('external/freerdp/runtimes/win-x64/console-native.zip')" LogicalName="ExHyperV.ConsoleNative.win-x64.zip" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <PackageReference Include="System.Management" Version="10.0.8" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+    <InternalsVisibleTo Include="ExHyperV.CoreChecks" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.7" />
+    <EmbeddedResource Include="Assets/pci.ids" LogicalName="ExHyperV.Assets.pci.ids" />
+    <COMReference Include="IMAPI2FS">
+      <WrapperTool>tlbimp</WrapperTool>
+      <VersionMinor>0</VersionMinor>
+      <VersionMajor>1</VersionMajor>
+      <Guid>2c941fd0-975b-59be-a960-9a2a262853a5</Guid>
+      <Lcid>0</Lcid>
+      <Isolated>false</Isolated>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <Target Name="ValidateConsoleNativePackages" BeforeTargets="PrepareForBuild;GenerateNuspec" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/external/freerdp/runtimes/win-arm64/console-native.zip')"
+           Text="Core 缺少 ARM64 FreeRDP 原生包：external/freerdp/runtimes/win-arm64/console-native.zip。请补齐后再构建或打包。" />
+    <Error Condition="!Exists('$(MSBuildProjectDirectory)/external/freerdp/runtimes/win-x64/console-native.zip')"
+           Text="Core 缺少 x64 FreeRDP 原生包：external/freerdp/runtimes/win-x64/console-native.zip。请补齐后再构建或打包。" />
+  </Target>
+</Project>

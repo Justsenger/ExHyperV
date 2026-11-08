@@ -1,0 +1,3941 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="Label_Version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="Label_Version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Assignabledevices" xml:space="preserve">
+    <value>可分配设备</value>
+  </data>
+  <data name="Common_Attention" xml:space="preserve">
+    <value>注意</value>
+  </data>
+  <data name="Warning_PCIeAssignment" xml:space="preserve">
+    <value>不恰当分配设备可能导致系统不稳定，请谨慎操作！</value>
+  </data>
+  <data name="Btn_Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="App_Tagline" xml:space="preserve">
+    <value>轻松玩转 Hyper-V 高级功能</value>
+  </data>
+  <data name="Section_System" xml:space="preserve">
+    <value>系统信息</value>
+  </data>
+  <data name="Label_Version" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="Label_Architecture" xml:space="preserve">
+    <value>架构</value>
+  </data>
+  <data name="Label_Cpu" xml:space="preserve">
+    <value>CPU 型号</value>
+  </data>
+  <data name="Memorycapacity" xml:space="preserve">
+    <value>内存容量</value>
+  </data>
+  <data name="Host" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="Host_Physical" xml:space="preserve">
+    <value>主机（物理机）</value>
+  </data>
+  <data name="PCIeService_SetShutdownToTurnOff" xml:space="preserve">
+    <value>修改虚拟机的关机动作为强制断电...</value>
+  </data>
+  <data name="Label_Class" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Instanceid" xml:space="preserve">
+    <value>实例ID</value>
+  </data>
+  <data name="Label_Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="Status_Dismounted" xml:space="preserve">
+    <value>#已卸除</value>
+  </data>
+  <data name="Status_MountingDevice" xml:space="preserve">
+    <value>挂载设备中...</value>
+  </data>
+  <data name="Action_EnableCpuCacheControl" xml:space="preserve">
+    <value>让虚拟机可管理CPU缓存...</value>
+  </data>
+  <data name="Disabledevice" xml:space="preserve">
+    <value>禁用设备中...</value>
+  </data>
+  <data name="Dismountdevice" xml:space="preserve">
+    <value>卸载设备中...</value>
+  </data>
+  <data name="Label_Manufacturer" xml:space="preserve">
+    <value>制造商</value>
+  </data>
+  <data name="Btn_Uninstall" xml:space="preserve">
+    <value>卸载</value>
+  </data>
+  <data name="Btn_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Btn_Confirm" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Theme_Title" xml:space="preserve">
+    <value>应用主题</value>
+  </data>
+  <data name="Theme_Switch" xml:space="preserve">
+    <value>切换浅色/深色模式</value>
+  </data>
+  <data name="Settings_PerformanceTitle" xml:space="preserve">
+    <value>轻量化</value>
+  </data>
+  <data name="Settings_PerformanceDesc" xml:space="preserve">
+    <value>关闭动画并减少内存占用</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>明亮</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>黑暗</value>
+  </data>
+  <data name="Theme_System" xml:space="preserve">
+    <value>跟随系统</value>
+  </data>
+  <data name="Lang_Title" xml:space="preserve">
+    <value>语言</value>
+  </data>
+  <data name="Lang_RestartHint" xml:space="preserve">
+    <value>更改语言会重启应用程序</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="About_FeedbackLink" xml:space="preserve">
+    <value>报告错误或提交意见</value>
+  </data>
+  <data name="About_ViewCode" xml:space="preserve">
+    <value>查看仓库</value>
+  </data>
+  <data name="Main" xml:space="preserve">
+    <value>首页</value>
+  </data>
+  <data name="Section_Host" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="PCIe" xml:space="preserve">
+    <value>PCIe 直通</value>
+  </data>
+  <data name="Status_EnablingDevice" xml:space="preserve">
+    <value>启用设备中...</value>
+  </data>
+  <data name="Error_Title" xml:space="preserve">
+    <value>错误</value>
+  </data>
+  <data name="Error_NotServerForPCIe" xml:space="preserve">
+    <value>主机系统非服务器版本，无法使用 PCIe 直通！</value>
+  </data>
+  <data name="VirtualSwitchList" xml:space="preserve">
+    <value>虚拟交换机列表</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>新增</value>
+  </data>
+  <data name="Uninstallswitch" xml:space="preserve">
+    <value>卸载此虚拟交换机</value>
+  </data>
+  <data name="NetMode" xml:space="preserve">
+    <value>网络模式</value>
+  </data>
+  <data name="Bridge" xml:space="preserve">
+    <value>桥接模式</value>
+  </data>
+  <data name="NAT" xml:space="preserve">
+    <value>NAT模式</value>
+  </data>
+  <data name="Isolate" xml:space="preserve">
+    <value>无上游</value>
+  </data>
+  <data name="Internet" xml:space="preserve">
+    <value>上游网络</value>
+  </data>
+  <data name="Hostconnected" xml:space="preserve">
+    <value>主机连接</value>
+  </data>
+  <data name="NetDraw" xml:space="preserve">
+    <value>网络拓扑</value>
+  </data>
+  <data name="Error_ExportLocalRegistryInfoFailed" xml:space="preserve">
+    <value>错误：导出本机注册表信息失败。</value>
+  </data>
+  <data name="Error_OfflineLoadVmRegistryFailed" xml:space="preserve">
+    <value>错误：离线加载虚拟机注册表失败。请确保程序以管理员权限运行。</value>
+  </data>
+  <data name="Error_NvidiaRegistryProcessingException" xml:space="preserve">
+    <value>错误：处理NVIDIA注册表时发生异常: {0}</value>
+  </data>
+  <data name="Error_NvidiaRegistryImportFailed" xml:space="preserve">
+    <value>错误：导入 NVIDIA 注册表信息失败（退出代码 {0}）。</value>
+  </data>
+  <data name="Error_CannotGetVmInfo" xml:space="preserve">
+    <value>无法获取虚拟机信息。</value>
+  </data>
+  <data name="Warning_LowMmioSpace_ConfirmExpand" xml:space="preserve">
+    <value>虚拟机“{0}”的MMIO空间当前为 {1}GB，低于推荐的 64GB。
+
+这可能导致显卡无法获得足够的内存空间。
+
+是否要关闭虚拟机并将其MMIO空间扩展到 64GB？</value>
+  </data>
+  <data name="Info_MmioSpaceSufficient" xml:space="preserve">
+    <value>MMIO空间充足。</value>
+  </data>
+  <data name="Error_GetNetworkInfoFailed" xml:space="preserve">
+    <value>获取网络信息时发生错误，请确保以管理员权限运行，并已安装Hyper-V模块。</value>
+  </data>
+  <data name="DisplayName_HostManagementOS" xml:space="preserve">
+    <value>主机</value>
+  </data>
+  <data name="Error_ExternalSwitchRequiresPhysicalAdapter" xml:space="preserve">
+    <value>外部交换机必须指定一个物理网卡。</value>
+  </data>
+  <data name="Error_CreateSwitchFailed" xml:space="preserve">
+    <value>创建交换机“{0}”失败：{1}</value>
+  </data>
+  <data name="Error_DeleteSwitchFailed" xml:space="preserve">
+    <value>删除交换机“{0}”失败。</value>
+  </data>
+  <data name="Btn_Create" xml:space="preserve">
+    <value>创建</value>
+  </data>
+  <data name="AddSwitch_DefaultName_External" xml:space="preserve">
+    <value>新外部交换机</value>
+  </data>
+  <data name="AddSwitch_DefaultName_NAT" xml:space="preserve">
+    <value>新NAT交换机</value>
+  </data>
+  <data name="AddSwitch_DefaultName_Internal" xml:space="preserve">
+    <value>新内部交换机</value>
+  </data>
+  <data name="AddSwitch_DefaultName_Generic" xml:space="preserve">
+    <value>新虚拟交换机</value>
+  </data>
+  <data name="AddSwitch_Placeholder_SelectAdapter" xml:space="preserve">
+    <value>请选择网卡...</value>
+  </data>
+  <data name="AddSwitch_Placeholder_NoAdaptersAvailable" xml:space="preserve">
+    <value>无可用的物理网卡</value>
+  </data>
+  <data name="AddSwitch_Validation_NameCannotBeEmpty" xml:space="preserve">
+    <value>交换机名称不能为空。</value>
+  </data>
+  <data name="AddSwitch_Validation_NameExists" xml:space="preserve">
+    <value>已存在名为“{0}”的交换机。</value>
+  </data>
+  <data name="AddSwitch_Validation_NoAdaptersForExternalOrNat" xml:space="preserve">
+    <value>无法创建外部或NAT交换机，因为没有可用的物理网卡。</value>
+  </data>
+  <data name="AddSwitch_Validation_AdapterRequiredForExternalOrNat" xml:space="preserve">
+    <value>外部或NAT交换机必须选择一个物理网卡。</value>
+  </data>
+  <data name="AddSwitch_Validation_OnlyOneNatAllowed" xml:space="preserve">
+    <value>系统只允许存在一个用户创建的NAT网络。</value>
+  </data>
+  <data name="PCIePage_Title_MmioSpaceTooSmall" xml:space="preserve">
+    <value>MMIO空间过小</value>
+  </data>
+  <data name="Button_Yes" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="Button_No" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="PCIePage_Error_UpdateMmioFailed" xml:space="preserve">
+    <value>更新MMIO空间失败。</value>
+  </data>
+  <data name="PCIePage_Error_CheckMmioGeneric" xml:space="preserve">
+    <value>检查MMIO空间时出错：{0}</value>
+  </data>
+  <data name="Dialog_Title_OperationFailed" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+  <data name="Error_DeviceNotAssignable" xml:space="preserve">
+    <value>此设备不支持直通分配。</value>
+  </data>
+  <data name="PCIePage_Title_LastGpuWarning" xml:space="preserve">
+    <value>警告：主机可能会失去视频输出！</value>
+  </data>
+  <data name="PCIePage_Msg_StorageHasSystemDisk" xml:space="preserve">
+    <value>该存储控制器挂着系统盘或启动盘：
+
+{0}
+
+无法直通（直通会使主机无法启动）。</value>
+  </data>
+  <data name="PCIePage_Title_StorageOffline" xml:space="preserve">
+    <value>脱机磁盘后直通</value>
+  </data>
+  <data name="PCIePage_Msg_StorageOffline" xml:space="preserve">
+    <value>该存储控制器挂着以下在线磁盘：
+
+{0}
+
+直通前需先将它们脱机（脱机后主机将无法访问这些盘）。是否继续？</value>
+  </data>
+  <data name="PCIePage_Msg_LastGpuWarning" xml:space="preserve">
+    <value>「{0}」是主机当前唯一的显卡。
+直通后主机将失去视频输出，物理屏幕可能黑屏。
+是否继续？</value>
+  </data>
+  <data name="PCIePage_Title_CompanionDevice" xml:space="preserve">
+    <value>关联设备确认</value>
+  </data>
+  <data name="PCIePage_Msg_CompanionDevice" xml:space="preserve">
+    <value>{0} 还关联以下设备：
+
+{1}
+
+是否同样连接到「{2}」？</value>
+  </data>
+  <data name="PCIePage_Error_ExecutionGeneric" xml:space="preserve">
+    <value>执行时遇到错误：
+
+{0}</value>
+  </data>
+  <data name="Auto" xml:space="preserve">
+    <value>自动适应</value>
+  </data>
+  <data name="Warning_CannotModifyDefaultSwitch" xml:space="preserve">
+    <value>默认交换机，无法修改设定</value>
+  </data>
+  <data name="Status_ConnectedTo" xml:space="preserve">
+    <value>已连接到：{0}</value>
+  </data>
+  <data name="Status_UpstreamNotConnected" xml:space="preserve">
+    <value>未连接上游网络</value>
+  </data>
+  <data name="Placeholder_SelectNetworkAdapter" xml:space="preserve">
+    <value>请选择网卡...</value>
+  </data>
+  <data name="Status_Unavailable" xml:space="preserve">
+    <value>不可用</value>
+  </data>
+  <data name="Title_AddVirtualSwitch" xml:space="preserve">
+    <value>新增虚拟交换机</value>
+  </data>
+  <data name="Error_CreationFailed" xml:space="preserve">
+    <value>创建失败</value>
+  </data>
+  <data name="Validation_InputInvalid" xml:space="preserve">
+    <value>输入无效</value>
+  </data>
+  <data name="Error_DeletionFailed" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="Info_NoSwitchesFound" xml:space="preserve">
+    <value>未找到任何 Hyper-V 虚拟交换机。
+
+请确保 Hyper-V 功能已安装并正在运行。</value>
+  </data>
+  <data name="Error_LoadNetworkInfoFailed" xml:space="preserve">
+    <value>加载网络信息时出错：{0}</value>
+  </data>
+  <data name="Error_ConfigurationConflict" xml:space="preserve">
+    <value>配置冲突</value>
+  </data>
+  <data name="Error_OnlyOneNatNetworkAllowed" xml:space="preserve">
+    <value>操作失败：系统只允许存在一个NAT网络。
+
+已有的NAT交换机是：“{0}”</value>
+  </data>
+  <data name="Error_PhysicalAdapterInUse" xml:space="preserve">
+    <value>操作失败：物理网卡“{0}”已被交换机“{1}”使用。</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>更新失败</value>
+  </data>
+  <data name="Error_UpdateSwitchConfigFailed" xml:space="preserve">
+    <value>更新交换机“{0}”配置失败：{1}</value>
+  </data>
+  <data name="Label_SwitchName" xml:space="preserve">
+    <value>交换机名称</value>
+  </data>
+  <data name="SwitchMode" xml:space="preserve">
+    <value>交换机类型</value>
+  </data>
+  <data name="External" xml:space="preserve">
+    <value>外部</value>
+  </data>
+  <data name="Noupstream" xml:space="preserve">
+    <value>无上游</value>
+  </data>
+  <data name="Label_PhysicalNetworkAdapter" xml:space="preserve">
+    <value>物理网卡</value>
+  </data>
+  <data name="Title_VirtualSwitch" xml:space="preserve">
+    <value>虚拟交换机</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="Error_NoAvailableDriveLetters" xml:space="preserve">
+    <value>没有可用的盘符</value>
+  </data>
+  <data name="Error_EmbeddedWpfResourceNotFound" xml:space="preserve">
+    <value>无法找到嵌入的 WPF 资源。</value>
+  </data>
+  <data name="Error_CheckForUpdateFailed" xml:space="preserve">
+    <value>检查更新失败，请检查网络连接。</value>
+  </data>
+  <data name="Error_SshCommandFailed" xml:space="preserve">
+    <value>[X] 命令执行失败。错误码: {0}): {1}</value>
+  </data>
+  <data name="Error_LocalDirectoryNotFound" xml:space="preserve">
+    <value>[X] 本地目录未找到: {0}</value>
+  </data>
+  <data name="Status_CheckingForUpdates" xml:space="preserve">
+    <value>正在检查更新...</value>
+  </data>
+  <data name="Info_NewVersionFound" xml:space="preserve">
+    <value>发现新版本: {0}</value>
+  </data>
+  <data name="Info_AlreadyLatestVersion" xml:space="preserve">
+    <value>已是最新版本</value>
+  </data>
+  <data name="Button_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Label_ConnectToLinuxVm" xml:space="preserve">
+    <value>连接到 Linux 虚拟机</value>
+  </data>
+  <data name="Label_HostIpAddress" xml:space="preserve">
+    <value>主机 IP 地址:</value>
+  </data>
+  <data name="Placeholder_IpAddressExample" xml:space="preserve">
+    <value>例如: 192.168.1.100</value>
+  </data>
+  <data name="Label_Port" xml:space="preserve">
+    <value>端口:</value>
+  </data>
+  <data name="Label_Username" xml:space="preserve">
+    <value>用户名:</value>
+  </data>
+  <data name="Label_Password" xml:space="preserve">
+    <value>口令:</value>
+  </data>
+  <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
+    <value>安装 OpenGL/Vulkan 图形驱动（更耗时）</value>
+  </data>
+  <data name="GroupBox_HttpProxyOptional" xml:space="preserve">
+    <value>HTTP 代理 (可选)</value>
+  </data>
+  <data name="Info_UseProxyForGitHub" xml:space="preserve">
+    <value>如果不能直连 GitHub.com，请使用稳定可靠的代理。</value>
+  </data>
+  <data name="Label_ProxyIpAddress" xml:space="preserve">
+    <value>代理 IP 地址:</value>
+  </data>
+  <data name="Button_Connect" xml:space="preserve">
+    <value>连接</value>
+  </data>
+  <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
+    <value>代理 IP 和端口必须同时填写或同时为空。</value>
+  </data>
+  <data name="ComputeResources" xml:space="preserve">
+    <value>计算资源</value>
+  </data>
+  <data name="VCpuCount" xml:space="preserve">
+    <value>核心数 (vCPU)</value>
+  </data>
+  <data name="ReservePercentage" xml:space="preserve">
+    <value>预留 (%)</value>
+  </data>
+  <data name="LimitPercentage" xml:space="preserve">
+    <value>限制 (%)</value>
+  </data>
+  <data name="Weight" xml:space="preserve">
+    <value>权重</value>
+  </data>
+  <data name="AdvancedFeatures" xml:space="preserve">
+    <value>高级功能</value>
+  </data>
+  <data name="NestedVirtualization" xml:space="preserve">
+    <value>嵌套虚拟化</value>
+  </data>
+  <data name="NestedVirtualizationDescription" xml:space="preserve">
+    <value>开启后透传虚拟化指令集，支持在虚拟机内运行虚拟机</value>
+  </data>
+  <data name="HostResourceProtection" xml:space="preserve">
+    <value>主机资源保护</value>
+  </data>
+  <data name="MigrationCompatibility" xml:space="preserve">
+    <value>迁移兼容性</value>
+  </data>
+  <data name="MigrationCompatibilityDescription" xml:space="preserve">
+    <value>屏蔽 CPU 指令集，以便在不同版本的主机间迁移</value>
+  </data>
+  <data name="Cpu_MigrationCompatibilityMode" xml:space="preserve">
+    <value>迁移兼容模式</value>
+  </data>
+  <data name="Cpu_MigrationCompatibilityModeDesc" xml:space="preserve">
+    <value>选择固定的最小特征集，或群集节点共同支持的特征集</value>
+  </data>
+  <data name="CpuEnum_Migration_MinimumFeatureSet" xml:space="preserve">
+    <value>最小特征集</value>
+  </data>
+  <data name="CpuEnum_Migration_CommonClusterFeatureSet" xml:space="preserve">
+    <value>群集公共特征集</value>
+  </data>
+  <data name="LegacySystemCompatibility" xml:space="preserve">
+    <value>旧系统兼容性</value>
+  </data>
+  <data name="LegacySystemCompatibilityDescription" xml:space="preserve">
+    <value>屏蔽 CPU 指令集，提高对老旧操作系统的兼容性</value>
+  </data>
+  <data name="VirtualMachineSmt" xml:space="preserve">
+    <value>虚拟机超线程</value>
+  </data>
+  <data name="VirtualMachineSmtDescription" xml:space="preserve">
+    <value>控制向虚拟机公开的每个核心硬件线程数</value>
+  </data>
+  <data name="CpuEnum_Smt_Inherit" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="CpuEnum_Smt_SingleThread" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="CpuEnum_Smt_MultiThread" xml:space="preserve">
+    <value>开启</value>
+  </data>
+  <data name="CpuBinding" xml:space="preserve">
+    <value>CPU 绑定</value>
+  </data>
+  <data name="DataLoading" xml:space="preserve">
+    <value>数据加载中...</value>
+  </data>
+  <data name="LimitVmBusCommunicationFrequency" xml:space="preserve">
+    <value>监控 VMBus 通信，防止中断风暴影响主机</value>
+  </data>
+  <data name="AddDisk_AutoAssign" xml:space="preserve">
+    <value>自动分配</value>
+  </data>
+  <data name="AddDisk_BlockSize" xml:space="preserve">
+    <value>块大小</value>
+  </data>
+  <data name="AddDisk_CapacityGB" xml:space="preserve">
+    <value>容量 (GB)</value>
+  </data>
+  <data name="AddDisk_DiskType" xml:space="preserve">
+    <value>磁盘类型</value>
+  </data>
+  <data name="AddDisk_Interface" xml:space="preserve">
+    <value>接口</value>
+  </data>
+  <data name="AddDisk_Location" xml:space="preserve">
+    <value>位置</value>
+  </data>
+  <data name="AddDisk_New" xml:space="preserve">
+    <value>新建</value>
+  </data>
+  <data name="AddDisk_NoAvailablePhysical" xml:space="preserve">
+    <value>无可用物理设备</value>
+  </data>
+  <data name="AddDisk_NoAvailableOptical" xml:space="preserve">
+    <value>无可用物理光驱</value>
+  </data>
+  <data name="AddDisk_Number" xml:space="preserve">
+    <value>编号</value>
+  </data>
+  <data name="AddDisk_Placeholder_PackageFolder" xml:space="preserve">
+    <value>请选择要打包的文件夹...</value>
+  </data>
+  <data name="AddDisk_Placeholder_ParentPath" xml:space="preserve">
+    <value>请指定父磁盘路径...</value>
+  </data>
+  <data name="AddDisk_Placeholder_VolumeLabel" xml:space="preserve">
+    <value>默认为文件夹名</value>
+  </data>
+  <data name="AddDisk_SectorFormat" xml:space="preserve">
+    <value>扇区格式</value>
+  </data>
+  <data name="AddDisk_SlotConfig" xml:space="preserve">
+    <value>插槽配置</value>
+  </data>
+  <data name="AddDisk_Source" xml:space="preserve">
+    <value>来源</value>
+  </data>
+  <data name="AddDisk_Source_Physical" xml:space="preserve">
+    <value>物理设备</value>
+  </data>
+  <data name="AddDisk_Source_VirtualFile" xml:space="preserve">
+    <value>虚拟文件</value>
+  </data>
+  <data name="AddDisk_Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="AddDisk_Type_HardDisk" xml:space="preserve">
+    <value>硬盘</value>
+  </data>
+  <data name="AddDisk_Type_OpticalDrive" xml:space="preserve">
+    <value>光盘</value>
+  </data>
+  <data name="AddDisk_VhdType_Differencing" xml:space="preserve">
+    <value>差异磁盘</value>
+  </data>
+  <data name="AddDisk_VhdType_Dynamic" xml:space="preserve">
+    <value>动态磁盘</value>
+  </data>
+  <data name="AddDisk_VhdType_Fixed" xml:space="preserve">
+    <value>固定磁盘</value>
+  </data>
+  <data name="AddDisk_WindowTitle" xml:space="preserve">
+    <value>添加存储设备</value>
+  </data>
+  <data name="Common_Browse" xml:space="preserve">
+    <value>浏览</value>
+  </data>
+  <data name="Common_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="Common_Disk" xml:space="preserve">
+    <value>磁盘</value>
+  </data>
+  <data name="Common_Select" xml:space="preserve">
+    <value>选择</value>
+  </data>
+  <data name="Common_Empty" xml:space="preserve">
+    <value>空</value>
+  </data>
+  <data name="Common_Modify" xml:space="preserve">
+    <value>修改</value>
+  </data>
+  <data name="Common_Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="Common_Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Storage_Settings" xml:space="preserve">
+    <value>存储设置</value>
+  </data>
+  <data name="Storage_Slot" xml:space="preserve">
+    <value>插槽</value>
+  </data>
+  <data name="Storage_PassthroughStale" xml:space="preserve">
+    <value>磁盘已联机，直通已失效。将磁盘脱机可恢复，或删除此项以移除直通。</value>
+  </data>
+  <data name="Storage_DiskStatus_Available" xml:space="preserve">
+    <value>可用</value>
+  </data>
+  <data name="Storage_DiskStatus_System" xml:space="preserve">
+    <value>系统/启动盘</value>
+  </data>
+  <data name="Storage_DiskStatus_Assigned" xml:space="preserve">
+    <value>已分配给 {0}</value>
+  </data>
+  <data name="Storage_DiskStatus_ReadOnly" xml:space="preserve">
+    <value>只读，不可直通</value>
+  </data>
+  <data name="Storage_DiskStatus_Usb" xml:space="preserve">
+    <value>USB，不支持直通</value>
+  </data>
+  <data name="Model_Drive_OpticalDrive" xml:space="preserve">
+    <value>光驱</value>
+  </data>
+  <data name="Model_Drive_SourcePhysical" xml:space="preserve">
+    <value>物理设备</value>
+  </data>
+  <data name="Model_Drive_SourceVirtual" xml:space="preserve">
+    <value>虚拟文件</value>
+  </data>
+  <data name="Model_Drive_VirtualDisk" xml:space="preserve">
+    <value>虚拟磁盘</value>
+  </data>
+  <data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
+    <value>虚拟硬盘</value>
+  </data>
+  <data name="Status_Msg_CurrentVer" xml:space="preserve">
+    <value>当前识别为</value>
+  </data>
+  <data name="Status_Title_Success" xml:space="preserve">
+    <value>操作成功</value>
+  </data>
+  <data name="Status_Msg_RestartNow" xml:space="preserve">
+    <value>系统标识已修改。是否立即重启以应用更改？</value>
+  </data>
+  <data name="Global_Restart" xml:space="preserve">
+    <value>立即重启</value>
+  </data>
+  <data name="Status_Title_Info" xml:space="preserve">
+    <value>提示</value>
+  </data>
+  <data name="Status_Edition_Server" xml:space="preserve">
+    <value>服务器版本 (ServerNT)</value>
+  </data>
+  <data name="Status_Edition_Workstation" xml:space="preserve">
+    <value>工作站版本 (WinNT)</value>
+  </data>
+  <data name="Menu_VM" xml:space="preserve">
+    <value>虚拟机</value>
+  </data>
+  <data name="Disk_Dynamic" xml:space="preserve">
+    <value>动态磁盘</value>
+  </data>
+  <data name="Disk_Fixed" xml:space="preserve">
+    <value>固定磁盘</value>
+  </data>
+  <data name="Disk_Differencing" xml:space="preserve">
+    <value>差异磁盘</value>
+  </data>
+  <data name="Disk_IsoImage" xml:space="preserve">
+    <value>光盘镜像</value>
+  </data>
+  <data name="Disk_Physical" xml:space="preserve">
+    <value>物理磁盘</value>
+  </data>
+  <data name="Disk_PhysicalDvd" xml:space="preserve">
+    <value>物理光驱</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="Common_UnknownPath" xml:space="preserve">
+    <value>未知路径</value>
+  </data>
+  <data name="Format_PartitionDesc" xml:space="preserve">
+    <value>[{0}] 分区 {1} ({2:F1} GB)</value>
+  </data>
+  <data name="Status_Unconnected" xml:space="preserve">
+    <value>未连接</value>
+  </data>
+  <data name="Msg_SettingsUpdated" xml:space="preserve">
+    <value>设置已更新</value>
+  </data>
+  <data name="Lang_Chinese" xml:space="preserve">
+    <value>中文</value>
+  </data>
+  <data name="Msg_Gpu_DismountingDisk" xml:space="preserve">
+    <value>[物理磁盘] 正在锁定并剥离磁盘 {0}...</value>
+  </data>
+  <data name="Error_Gpu_DiskNotFound" xml:space="preserve">
+    <value>无法剥离磁盘：未在虚拟机配置中找到该磁盘。</value>
+  </data>
+  <data name="Error_Gpu_MountVhdFailed" xml:space="preserve">
+    <value>虚拟磁盘挂载失败。</value>
+  </data>
+  <data name="Msg_Gpu_AssignTempDrive" xml:space="preserve">
+    <value>正在分配临时盘符 (磁盘 {0}, 分区 {1})...</value>
+  </data>
+  <data name="Error_Gpu_BitLocker" xml:space="preserve">
+    <value>目标分区已开启 BitLocker 保护，请先关闭 BitLocker。</value>
+  </data>
+  <data name="Error_Gpu_InvalidSystemPart" xml:space="preserve">
+    <value>安装中止：目标分区 ({0}) 不是有效的系统分区。</value>
+  </data>
+  <data name="Msg_Gpu_SyncingFiles" xml:space="preserve">
+    <value>正在同步驱动文件...</value>
+  </data>
+  <data name="Msg_Gpu_InjectingReg" xml:space="preserve">
+    <value>正在注入 NVIDIA 注册表项...</value>
+  </data>
+  <data name="Error_Gpu_InjectFailed" xml:space="preserve">
+    <value>注入失败: {0}</value>
+  </data>
+  <data name="Error_Gpu_AssignDriveLetterFailed" xml:space="preserve">
+    <value>无法分配临时盘符。</value>
+  </data>
+  <data name="GpuDriverPackage_InstanceMapFailed" xml:space="preserve">
+    <value>无法将所选 GPU-PV 实例映射到显示适配器类注册表项。</value>
+  </data>
+  <data name="GpuDriverPackage_DisplayClassKeyMissing" xml:space="preserve">
+    <value>所选显示适配器类注册表项不存在。</value>
+  </data>
+  <data name="GpuDriverPackage_PublishedInfMissing" xml:space="preserve">
+    <value>所选显示适配器未提供已发布 INF 名称。</value>
+  </data>
+  <data name="GpuDriverPackage_InvalidPackagePath" xml:space="preserve">
+    <value>无效的 DriverStore 驱动包路径：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_OutsideFileRepository" xml:space="preserve">
+    <value>SetupAPI 返回了 DriverStore\FileRepository 之外的路径：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_DriverVersionMissing" xml:space="preserve">
+    <value>所选显示适配器 INF 缺少 DriverVer：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_CompanionNotInstalled" xml:space="preserve">
+    <value>声明的配套驱动包 {0}（DriverVer {1}）未安装。</value>
+  </data>
+  <data name="GpuDriverPackage_CompanionAmbiguous" xml:space="preserve">
+    <value>找到多个名为 {0} 且 DriverVer 为 {1} 的配套驱动包。</value>
+  </data>
+  <data name="GpuDriverPackage_InfNotFound" xml:space="preserve">
+    <value>SetupAPI 返回的 INF 不存在：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_InvalidInfPath" xml:space="preserve">
+    <value>无效的 DriverStore INF 路径：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_OptionalOpenClWarning" xml:space="preserve">
+    <value>[GPU 驱动包] 未选择可选的 AMD OpenCL 驱动包：{0}</value>
+  </data>
+  <data name="GpuDriverPackage_OptionalWindowsSupportWarning" xml:space="preserve">
+    <value>[GPU 驱动包] 未选择可选的 AMD Windows 支持驱动包：{0}</value>
+  </data>
+  <data name="Msg_Gpu_Remounting" xml:space="preserve">
+    <value>正在执行物理磁盘安全回挂流程...</value>
+  </data>
+  <data name="Msg_Gpu_RemountSuccess" xml:space="preserve">
+    <value>物理磁盘已成功回挂至虚拟机。</value>
+  </data>
+  <data name="Error_Gpu_RemountFailed" xml:space="preserve">
+    <value>[严重警告] 物理磁盘自动回挂失败: {0}</value>
+  </data>
+  <data name="Msg_Gpu_Unmounting" xml:space="preserve">
+    <value>正在卸载虚拟磁盘...</value>
+  </data>
+  <data name="Error_Gpu_NoPartition" xml:space="preserve">
+    <value>该 GPU 不支持分区。</value>
+  </data>
+  <data name="Error_Common_NoPartitionSelected" xml:space="preserve">
+    <value>未选择分区</value>
+  </data>
+  <data name="Msg_Gpu_LinuxWaitingIp" xml:space="preserve">
+    <value>正在等待虚拟机网络就绪并获取 IP...</value>
+  </data>
+  <data name="Error_Gpu_SshTimeout" xml:space="preserve">
+    <value>SSH 连接超时，请检查虚拟机网络设置。</value>
+  </data>
+  <data name="Msg_Gpu_LinuxRemoteInit" xml:space="preserve">
+    <value>远程环境初始化完成，临时目录: {0}</value>
+  </data>
+  <data name="Status_Running" xml:space="preserve">
+    <value>正在运行</value>
+  </data>
+  <data name="Status_Off" xml:space="preserve">
+    <value>已关机</value>
+  </data>
+  <data name="Status_Saved" xml:space="preserve">
+    <value>已保存</value>
+  </data>
+  <data name="Status_Suspended" xml:space="preserve">
+    <value>已暂停</value>
+  </data>
+  <data name="Status_Starting" xml:space="preserve">
+    <value>正在启动</value>
+  </data>
+  <data name="Status_Saving" xml:space="preserve">
+    <value>正在保存</value>
+  </data>
+  <data name="Status_Stopping" xml:space="preserve">
+    <value>正在停止</value>
+  </data>
+  <data name="Status_Suspending" xml:space="preserve">
+    <value>正在暂停</value>
+  </data>
+  <data name="Status_Resuming" xml:space="preserve">
+    <value>正在恢复</value>
+  </data>
+  <data name="Status_UnknownCode" xml:space="preserve">
+    <value>未知状态 ({0})</value>
+  </data>
+  <data name="Error_Memory_VmNotFound" xml:space="preserve">
+    <value>找不到虚拟机实例。</value>
+  </data>
+  <data name="Msg_Memory_Applied" xml:space="preserve">
+    <value>内存设置已应用。</value>
+  </data>
+  <data name="Error_Net_VmNotFound" xml:space="preserve">
+    <value>[错误] 找不到名为 '{0}' 的虚拟机。请检查虚拟机名称是否正确。</value>
+  </data>
+  <data name="Common_NoName" xml:space="preserve">
+    <value>（无名称）</value>
+  </data>
+  <data name="Error_Net_AllocNotFound" xml:space="preserve">
+    <value>找不到分配对象</value>
+  </data>
+  <data name="Error_Net_ConfigObject" xml:space="preserve">
+    <value>无法定位配置对象或创建模板失败。</value>
+  </data>
+  <data name="Common_UnknownSwitch" xml:space="preserve">
+    <value>未知交换机</value>
+  </data>
+  <data name="Error_Cpu_ConfigNotFound" xml:space="preserve">
+    <value>找不到虚拟机或处理器配置。</value>
+  </data>
+  <data name="Scheduler_Classic" xml:space="preserve">
+    <value>经典调度器</value>
+  </data>
+  <data name="Scheduler_Core" xml:space="preserve">
+    <value>核心调度器</value>
+  </data>
+  <data name="Scheduler_Root" xml:space="preserve">
+    <value>根调度器</value>
+  </data>
+  <data name="Msg_Host_EnableHyperV" xml:space="preserve">
+    <value>正在启用 Hyper-V 服务，请稍候...</value>
+  </data>
+  <data name="Msg_Host_EnableSuccess" xml:space="preserve">
+    <value>Hyper-V 服务已启用，重启系统后生效。</value>
+  </data>
+  <data name="Error_Host_EnableFail" xml:space="preserve">
+    <value>启用 Hyper-V 服务失败，请尝试在“启用或关闭 Windows 功能”中手动开启。</value>
+  </data>
+  <data name="Msg_Host_SchedulerChanged" xml:space="preserve">
+    <value>调度器类型已更改，请重启系统生效。</value>
+  </data>
+  <data name="Msg_Host_NativeNvmeChanged" xml:space="preserve">
+    <value>NVMe 驱动设置已更改，请重启系统生效。</value>
+  </data>
+  <data name="Error_Host_SchedulerFail" xml:space="preserve">
+    <value>设置调度器类型失败。</value>
+  </data>
+  <data name="Label_Beta" xml:space="preserve">
+    <value>内测版本</value>
+  </data>
+  <data name="Error_Common_OpFail" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="Error_Common_LoadFail" xml:space="preserve">
+    <value>加载失败</value>
+  </data>
+  <data name="Error_Vm_StartFail" xml:space="preserve">
+    <value>启动失败</value>
+  </data>
+  <data name="Error_Common_ModFailShort" xml:space="preserve">
+    <value>修改失败</value>
+  </data>
+  <data name="Error_Common_NoPermission" xml:space="preserve">
+    <value>无法保存标签，请检查权限</value>
+  </data>
+  <data name="Error_Common_ApplyFail" xml:space="preserve">
+    <value>应用失败</value>
+  </data>
+  <data name="Error_Cpu_AffinityFail" xml:space="preserve">
+    <value>加载亲和性失败</value>
+  </data>
+  <data name="Msg_Cpu_AffinityApplied" xml:space="preserve">
+    <value>CPU 亲和性已应用。</value>
+  </data>
+  <data name="Msg_Cpu_AffinityQueued" xml:space="preserve">
+    <value>设定已排队</value>
+  </data>
+  <data name="Msg_Cpu_RootNotice" xml:space="preserve">
+    <value>当前为 Root 调度模式，亲和性已保存，将在虚拟机下次启动时自动生效。</value>
+  </data>
+  <data name="Error_Common_SaveFail" xml:space="preserve">
+    <value>保存失败</value>
+  </data>
+  <data name="Error_Cpu_ApplyFail" xml:space="preserve">
+    <value>无法应用设置，请检查 HCS 权限或调度器状态。</value>
+  </data>
+  <data name="Error_Storage_LoadFail" xml:space="preserve">
+    <value>加载存储失败</value>
+  </data>
+  <data name="Msg_Storage_Ejected" xml:space="preserve">
+    <value>光盘已弹出</value>
+  </data>
+  <data name="Button_EjectIso" xml:space="preserve">
+    <value>弹出 ISO</value>
+  </data>
+  <data name="Button_InsertIso" xml:space="preserve">
+    <value>插入 ISO</value>
+  </data>
+  <data name="Button_ReplaceIso" xml:space="preserve">
+    <value>更换 ISO</value>
+  </data>
+  <data name="Button_RemoveDvdDrive" xml:space="preserve">
+    <value>删除光驱</value>
+  </data>
+  <data name="Error_Storage_EjectFail" xml:space="preserve">
+    <value>弹出 ISO 失败</value>
+  </data>
+  <data name="Msg_Storage_Removed" xml:space="preserve">
+    <value>设备已移除</value>
+  </data>
+  <data name="Error_Storage_RemoveFail" xml:space="preserve">
+    <value>移除失败</value>
+  </data>
+  <data name="Error_Storage_PhysicalMod" xml:space="preserve">
+    <value>物理直通磁盘无法修改路径，请移除后重新添加。</value>
+  </data>
+  <data name="Error_Storage_VhdRunning" xml:space="preserve">
+    <value>无法在虚拟机运行时更换虚拟硬盘文件，请先关机。</value>
+  </data>
+  <data name="Filter_Iso" xml:space="preserve">
+    <value>镜像文件 (*.iso)|*.iso|所有文件 (*.*)|*.*</value>
+  </data>
+  <data name="Filter_Vhd" xml:space="preserve">
+    <value>虚拟磁盘 (*.vhdx;*.vhd)|*.vhdx;*.vhd|所有文件 (*.*)|*.*</value>
+  </data>
+  <data name="Title_SelectIso" xml:space="preserve">
+    <value>选择 ISO 镜像</value>
+  </data>
+  <data name="Title_SelectVhd" xml:space="preserve">
+    <value>选择虚拟磁盘文件</value>
+  </data>
+  <data name="Msg_Storage_PathUpdated" xml:space="preserve">
+    <value>存储路径已更新</value>
+  </data>
+  <data name="Placeholder_Vhd" xml:space="preserve">
+    <value>选择或输入 .vhdx / .vhd 文件路径</value>
+  </data>
+  <data name="Placeholder_Iso" xml:space="preserve">
+    <value>选择或输入 .iso 镜像文件路径，留空添加空光驱</value>
+  </data>
+  <data name="Button_SaveTo" xml:space="preserve">
+    <value>保存到...</value>
+  </data>
+  <data name="Button_Browse" xml:space="preserve">
+    <value>浏览...</value>
+  </data>
+  <data name="Error_Storage_Occupied" xml:space="preserve">
+    <value>该插槽已被占用，请选择其他位置。</value>
+  </data>
+  <data name="Error_Storage_SelectTarget" xml:space="preserve">
+    <value>请选择存储设备或文件。</value>
+  </data>
+  <data name="Error_Storage_FileNotExist" xml:space="preserve">
+    <value>找不到要挂载的文件，请检查路径是否正确。</value>
+  </data>
+  <data name="Error_Storage_FileExists" xml:space="preserve">
+    <value>目标文件已存在，请改用其他文件名或先删除它。</value>
+  </data>
+  <data name="Error_Storage_ParentRequired" xml:space="preserve">
+    <value>新建差异磁盘需指定存在的父磁盘文件。</value>
+  </data>
+  <data name="Error_Storage_IsoSource" xml:space="preserve">
+    <value>创建 ISO 时必须指定源文件夹。</value>
+  </data>
+  <data name="Error_Storage_IsoPath" xml:space="preserve">
+    <value>创建 ISO 时必须指定保存路径。</value>
+  </data>
+  <data name="Error_Storage_DirFail" xml:space="preserve">
+    <value>无法创建输出目录: {0}</value>
+  </data>
+  <data name="Error_Storage_SourceNoExist" xml:space="preserve">
+    <value>源文件夹不存在。</value>
+  </data>
+  <data name="Title_CreateVhd" xml:space="preserve">
+    <value>创建虚拟磁盘</value>
+  </data>
+  <data name="Filter_VhdExt" xml:space="preserve">
+    <value>虚拟磁盘 (*.vhdx)|*.vhdx|旧版虚拟磁盘 (*.vhd)|*.vhd</value>
+  </data>
+  <data name="Default_VhdName" xml:space="preserve">
+    <value>新建虚拟磁盘.vhdx</value>
+  </data>
+  <data name="Title_OpenVhd" xml:space="preserve">
+    <value>选择虚拟磁盘</value>
+  </data>
+  <data name="Filter_VhdOnly" xml:space="preserve">
+    <value>虚拟磁盘 (*.vhdx;*.vhd)|*.vhdx;*.vhd</value>
+  </data>
+  <data name="Filter_IsoOnly" xml:space="preserve">
+    <value>镜像文件 (*.iso)|*.iso</value>
+  </data>
+  <data name="Title_SaveIso" xml:space="preserve">
+    <value>保存 ISO 镜像文件</value>
+  </data>
+  <data name="Filter_IsoExt" xml:space="preserve">
+    <value>ISO 镜像 (*.iso)|*.iso</value>
+  </data>
+  <data name="Msg_Storage_Connected" xml:space="preserve">
+    <value>设备已连接到 {0} {1}:{2}</value>
+  </data>
+  <data name="Error_Storage_AddFail" xml:space="preserve">
+    <value>添加失败</value>
+  </data>
+  <data name="Error_Storage_OfflineFail" xml:space="preserve">
+    <value>脱机失败：该磁盘可能正被使用（有分区挂载中）。请先在磁盘管理中将其脱机，或选择其他磁盘。</value>
+  </data>
+  <data name="Error_Storage_Gen1Dvd" xml:space="preserve">
+    <value>第 1 代虚拟机的光盘无法在运行状态下添加（IDE 不支持热插拔）。请先关机。</value>
+  </data>
+  <data name="Error_Storage_Gen1IdeFull" xml:space="preserve">
+    <value>第 1 代虚拟机的 IDE 控制器已满，无法添加光盘。</value>
+  </data>
+  <data name="Error_Storage_NoScsiRunning" xml:space="preserve">
+    <value>运行中的虚拟机没有可用的 SCSI 插槽。</value>
+  </data>
+  <data name="Error_Storage_NoScsi" xml:space="preserve">
+    <value>没有可用的 SCSI 插槽。</value>
+  </data>
+  <data name="Error_Storage_NoSlots" xml:space="preserve">
+    <value>该虚拟机没有可用的存储插槽。</value>
+  </data>
+  <data name="Error_Storage_CtrlFull" xml:space="preserve">
+    <value>控制器 {0} #{1} 已满</value>
+  </data>
+  <data name="Error_Storage_ControllerNotFound" xml:space="preserve">
+    <value>未找到目标存储控制器。</value>
+  </data>
+  <data name="Error_Storage_DvdNotFound" xml:space="preserve">
+    <value>未找到目标光驱。</value>
+  </data>
+  <data name="Error_Storage_DiskNotFound" xml:space="preserve">
+    <value>未找到目标磁盘。</value>
+  </data>
+  <data name="Error_Storage_IdeHotAdd" xml:space="preserve">
+    <value>IDE 设备无法在虚拟机运行时添加，请先关机。</value>
+  </data>
+  <data name="Error_Storage_DvdHotRemove" xml:space="preserve">
+    <value>无法在虚拟机运行时移除 IDE 光驱，请先关机。</value>
+  </data>
+  <data name="Error_Storage_IdeHotRemove" xml:space="preserve">
+    <value>无法在虚拟机运行时移除 IDE 硬盘，请先关机。</value>
+  </data>
+  <data name="Error_Storage_ScsiHotAdd" xml:space="preserve">
+    <value>无法在虚拟机运行时添加新的 SCSI 控制器，请先关机。</value>
+  </data>
+  <data name="Error_Storage_Unknown" xml:space="preserve">
+    <value>发生未知存储错误。</value>
+  </data>
+  <data name="Error_Storage_IsoBuildFail" xml:space="preserve">
+    <value>创建 ISO 镜像失败：{0}</value>
+  </data>
+  <data name="VmPage_StartFail" xml:space="preserve">
+    <value>启动失败</value>
+  </data>
+  <data name="Error_Vm_NotFound" xml:space="preserve">
+    <value>未找到虚拟机 {0}。</value>
+  </data>
+  <data name="Error_Vm_NameEmpty" xml:space="preserve">
+    <value>虚拟机名称为空。</value>
+  </data>
+  <data name="Error_Vm_GetSettings" xml:space="preserve">
+    <value>无法获取虚拟机配置。</value>
+  </data>
+  <data name="Error_Vm_EnumResources" xml:space="preserve">
+    <value>无法枚举虚拟机资源。</value>
+  </data>
+  <data name="Error_Storage_PhysDiskNotFound" xml:space="preserve">
+    <value>在 Hyper-V 中未找到物理磁盘 {0}。</value>
+  </data>
+  <data name="Error_Storage_ResNotFound" xml:space="preserve">
+    <value>未找到目标存储资源。</value>
+  </data>
+  <data name="Error_Video_NoController" xml:space="preserve">
+    <value>未找到合成显示控制器。</value>
+  </data>
+  <data name="Net_Mode_Access" xml:space="preserve">
+    <value>接入</value>
+  </data>
+  <data name="Net_Mode_Trunk" xml:space="preserve">
+    <value>中继</value>
+  </data>
+  <data name="Net_Mode_Private" xml:space="preserve">
+    <value>专用</value>
+  </data>
+  <data name="Net_Pvlan_Isolated" xml:space="preserve">
+    <value>隔离</value>
+  </data>
+  <data name="Net_Pvlan_Community" xml:space="preserve">
+    <value>社区</value>
+  </data>
+  <data name="Net_Pvlan_Promiscuous" xml:space="preserve">
+    <value>混杂</value>
+  </data>
+  <data name="Common_Disabled" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="Net_Mirror_Source" xml:space="preserve">
+    <value>加入发送组</value>
+  </data>
+  <data name="Net_Mirror_Dest" xml:space="preserve">
+    <value>加入接收组</value>
+  </data>
+  <data name="Msg_Net_Added" xml:space="preserve">
+    <value>已添加新的网络适配器</value>
+  </data>
+  <data name="Msg_Net_CreateSwitchFirst" xml:space="preserve">
+    <value>请先创建虚拟交换机</value>
+  </data>
+  <data name="Error_Net_AddExc" xml:space="preserve">
+    <value>添加异常</value>
+  </data>
+  <data name="Msg_Net_AdapterRemoved" xml:space="preserve">
+    <value>网络适配器已移除</value>
+  </data>
+  <data name="Error_Net_RemoveExc" xml:space="preserve">
+    <value>移除异常</value>
+  </data>
+  <data name="Msg_Net_VlanApplied" xml:space="preserve">
+    <value>VLAN 设置已应用</value>
+  </data>
+  <data name="Msg_Net_MacApplied" xml:space="preserve">
+    <value>MAC 地址已应用</value>
+  </data>
+  <data name="Error_Net_MacInvalid" xml:space="preserve">
+    <value>MAC 地址格式不正确（需 12 位十六进制）。</value>
+  </data>
+  <data name="Msg_Net_QosApplied" xml:space="preserve">
+    <value>流量控制设置已应用</value>
+  </data>
+  <data name="Error_Net_Security" xml:space="preserve">
+    <value>安全设置应用失败: {0}</value>
+  </data>
+  <data name="Error_Net_Offload" xml:space="preserve">
+    <value>硬件加速设置应用失败: {0}</value>
+  </data>
+  <data name="Msg_Common_Applied" xml:space="preserve">
+    <value>设置已应用</value>
+  </data>
+  <data name="Error_Net_ApplyFail" xml:space="preserve">
+    <value>设置应用失败</value>
+  </data>
+  <data name="Error_Net_SecurityFail" xml:space="preserve">
+    <value>安全设置应用失败</value>
+  </data>
+  <data name="Error_Gpu_ReadInfo" xml:space="preserve">
+    <value>无法读取 GPU 配置信息: </value>
+  </data>
+  <data name="Error_Gpu_RefreshFail" xml:space="preserve">
+    <value>刷新显卡失败</value>
+  </data>
+  <data name="Msg_Gpu_PartitionRemoved" xml:space="preserve">
+    <value>GPU 分区已从虚拟机移除。</value>
+  </data>
+  <data name="Error_Gpu_RemoveFail" xml:space="preserve">
+    <value>未能成功移除 GPU 分区，请检查权限。</value>
+  </data>
+  <data name="Msg_Gpu_WorkStart" xml:space="preserve">
+    <value>&gt;&gt;&gt; 开始为虚拟机 [{0}] 配置 GPU 分区</value>
+  </data>
+  <data name="Msg_Gpu_Selected" xml:space="preserve">
+    <value>选中物理显卡: {0}</value>
+  </data>
+  <data name="Msg_Gpu_Path" xml:space="preserve">
+    <value>设备路径: {0}</value>
+  </data>
+  <data name="Task_Gpu_Prepare" xml:space="preserve">
+    <value>环境准备</value>
+  </data>
+  <data name="Msg_Gpu_PreparingHost" xml:space="preserve">
+    <value>正在准备主机环境...</value>
+  </data>
+  <data name="Task_Gpu_Power" xml:space="preserve">
+    <value>电源检查</value>
+  </data>
+  <data name="Msg_Gpu_CheckingPower" xml:space="preserve">
+    <value>检查虚拟机电源状态...</value>
+  </data>
+  <data name="Task_Gpu_Opt" xml:space="preserve">
+    <value>系统优化</value>
+  </data>
+  <data name="Msg_Gpu_Mmio" xml:space="preserve">
+    <value>正在配置 MMIO 地址空间...</value>
+  </data>
+  <data name="Task_Gpu_Assign" xml:space="preserve">
+    <value>分配显卡</value>
+  </data>
+  <data name="Msg_Gpu_Creating" xml:space="preserve">
+    <value>正在创建 GPU 分区...</value>
+  </data>
+  <data name="Task_Gpu_Driver" xml:space="preserve">
+    <value>驱动安装</value>
+  </data>
+  <data name="Msg_Gpu_WaitingScan" xml:space="preserve">
+    <value>等待扫描分区...</value>
+  </data>
+  <data name="Msg_Gpu_ExecTask" xml:space="preserve">
+    <value>正在执行: {0}...</value>
+  </data>
+  <data name="Msg_Gpu_Policy" xml:space="preserve">
+    <value>策略已成功应用。</value>
+  </data>
+  <data name="Msg_Gpu_ForceOff" xml:space="preserve">
+    <value>当前状态: {0}。正在强制关闭虚拟机...</value>
+  </data>
+  <data name="Msg_Gpu_Off" xml:space="preserve">
+    <value>虚拟机已关机。</value>
+  </data>
+  <data name="Msg_Gpu_MmioOk" xml:space="preserve">
+    <value>MMIO 地址空间配置完成。</value>
+  </data>
+  <data name="Error_Gpu_OptFail" xml:space="preserve">
+    <value>优化配置失败，将尝试继续。</value>
+  </data>
+  <data name="Msg_Gpu_AssignOk" xml:space="preserve">
+    <value>GPU 分区已成功创建。</value>
+  </data>
+  <data name="Warn_Gpu_RollbackAdapterNotIdentified" xml:space="preserve">
+    <value>[警告] 无法识别本次创建的 GPU 分区；如果后续步骤失败，将跳过自动回滚。</value>
+  </data>
+  <data name="Msg_Gpu_Scanning" xml:space="preserve">
+    <value>正在扫描所有挂载硬盘的分区...</value>
+  </data>
+  <data name="Error_Gpu_NoPartFound" xml:space="preserve">
+    <value>未能在任何硬盘上识别到有效分区。请确保系统已安装。</value>
+  </data>
+  <data name="Msg_Gpu_DetectWin" xml:space="preserve">
+    <value>检测到唯一的 Windows 系统分区，正在同步驱动...</value>
+  </data>
+  <data name="Msg_Gpu_DriverOk" xml:space="preserve">
+    <value>Windows 驱动安装成功。</value>
+  </data>
+  <data name="Msg_Gpu_ManualSelect" xml:space="preserve">
+    <value>请手动选择操作系统所在的分区...</value>
+  </data>
+  <data name="Msg_Gpu_TaskOk" xml:space="preserve">
+    <value>[成功] {0}: {1}</value>
+  </data>
+  <data name="Error_Format_FailMsg" xml:space="preserve">
+    <value>失败: {0}</value>
+  </data>
+  <data name="Error_Format_StageExc" xml:space="preserve">
+    <value>[错误] {0} 环节异常: {1}</value>
+  </data>
+  <data name="Error_Format_StageError" xml:space="preserve">
+    <value>{0} 环节出现异常</value>
+  </data>
+  <data name="Msg_Gpu_SyncingPart" xml:space="preserve">
+    <value>正在同步驱动至分区 {0}...</value>
+  </data>
+  <data name="Error_Gpu_Rollback" xml:space="preserve">
+    <value>[回滚] 驱动同步失败: {0}</value>
+  </data>
+  <data name="Msg_Gpu_LinuxVm" xml:space="preserve">
+    <value>检测到 Linux 分区，正在等待虚拟机启动...</value>
+  </data>
+  <data name="Msg_Gpu_IpSniff" xml:space="preserve">
+    <value>正在自动启动虚拟机以初始化网络...</value>
+  </data>
+  <data name="Msg_Gpu_IpScanning" xml:space="preserve">
+    <value>正在嗅探虚拟机 IP 地址...</value>
+  </data>
+  <data name="Msg_Gpu_IpOk" xml:space="preserve">
+    <value>成功获取 IP 地址: {0}</value>
+  </data>
+  <data name="Error_Gpu_IpManual" xml:space="preserve">
+    <value>未能自动获取到 IP，请手动输入。</value>
+  </data>
+  <data name="Msg_Gpu_SshConfirm" xml:space="preserve">
+    <value>请确认 SSH 凭据以开始部署...</value>
+  </data>
+  <data name="Error_Gpu_EnvFail" xml:space="preserve">
+    <value>环境获取失败</value>
+  </data>
+  <data name="Warn_Gpu_EnvExc" xml:space="preserve">
+    <value>[警告] 获取环境异常: {0}</value>
+  </data>
+  <data name="Msg_Gpu_DeployStart" xml:space="preserve">
+    <value>&gt;&gt;&gt; 开始 Linux 部署流程</value>
+  </data>
+  <data name="Msg_Gpu_UsingProxy" xml:space="preserve">
+    <value>使用代理: {0}:{1}</value>
+  </data>
+  <data name="Msg_Gpu_LinuxDeployDone" xml:space="preserve">
+    <value>&gt;&gt;&gt; Linux 部署任务全部完成。</value>
+  </data>
+  <data name="Error_Gpu_LinuxRollback" xml:space="preserve">
+    <value>[回滚] Linux 部署失败，正在移除 GPU 分区...</value>
+  </data>
+  <data name="Error_Gpu_DeployFatal" xml:space="preserve">
+    <value>&gt;&gt;&gt; [严重错误] Linux 部署失败: {0}</value>
+  </data>
+  <data name="Msg_Gpu_SelectPart" xml:space="preserve">
+    <value>请选择目标分区进行适配...</value>
+  </data>
+  <data name="Msg_Gpu_Ready" xml:space="preserve">
+    <value>{0} 已准备就绪</value>
+  </data>
+  <data name="Status_Restarting" xml:space="preserve">
+    <value>正在重启</value>
+  </data>
+  <data name="Status_StoppingPresent" xml:space="preserve">
+    <value>正在关闭</value>
+  </data>
+  <data name="Status_Processing" xml:space="preserve">
+    <value>正在处理</value>
+  </data>
+  <data name="Msg_Gpu_LogCopy" xml:space="preserve">
+    <value>配置日志已拷贝到剪贴板</value>
+  </data>
+  <data name="Mem_Standard" xml:space="preserve">
+    <value>4 KB</value>
+  </data>
+  <data name="Mem_Large" xml:space="preserve">
+    <value>2 MB</value>
+  </data>
+  <data name="Mem_Huge" xml:space="preserve">
+    <value>1 GB</value>
+  </data>
+  <data name="Common_None" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="Common_NoDisk" xml:space="preserve">
+    <value>无磁盘</value>
+  </data>
+  <data name="Format_VmSummary" xml:space="preserve">
+    <value>{0} 核 / {1:0.#} GB / {2}</value>
+  </data>
+  <data name="Menu_Env" xml:space="preserve">
+    <value>环境与设定</value>
+  </data>
+  <data name="HostPage_EnvironmentChecks" xml:space="preserve">
+    <value>环境检测</value>
+  </data>
+  <data name="HostPage_EnvironmentTab" xml:space="preserve">
+    <value>环境</value>
+  </data>
+  <data name="HostPage_GeneralTab" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="HostPage_AdvancedTab" xml:space="preserve">
+    <value>高级</value>
+  </data>
+  <data name="Menu_Runtime" xml:space="preserve">
+    <value>运行环境</value>
+  </data>
+  <data name="Label_ReqGeneral" xml:space="preserve">
+    <value>基本要求</value>
+  </data>
+  <data name="Label_ReqGpuPv" xml:space="preserve">
+    <value>GPU-PV 要求</value>
+  </data>
+  <data name="Label_ReqPcie" xml:space="preserve">
+    <value>PCIe 直通要求</value>
+  </data>
+  <data name="Menu_CpuVirt" xml:space="preserve">
+    <value>CPU 虚拟化</value>
+  </data>
+  <data name="Menu_Iommu" xml:space="preserve">
+    <value>IOMMU 状态</value>
+  </data>
+  <data name="Menu_Iommu_Smmu" xml:space="preserve">
+    <value>SMMU 状态</value>
+  </data>
+  <data name="Menu_HyperVService" xml:space="preserve">
+    <value>Hyper-V 服务</value>
+  </data>
+  <data name="Button_Enable" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="Label_SysVer" xml:space="preserve">
+    <value>系统版本：</value>
+  </data>
+  <data name="Label_ServerSys" xml:space="preserve">
+    <value>属于 Windows Server 系统</value>
+  </data>
+  <data name="Menu_Advanced" xml:space="preserve">
+    <value>高级设定</value>
+  </data>
+  <data name="Menu_Scheduler" xml:space="preserve">
+    <value>调度器类型</value>
+  </data>
+  <data name="Menu_NumaSpan" xml:space="preserve">
+    <value>允许 NUMA 跨越</value>
+  </data>
+  <data name="Desc_NumaSpan" xml:space="preserve">
+    <value>开启后虚拟机可跨物理节点分配内存</value>
+  </data>
+  <data name="Menu_UnlockHard" xml:space="preserve">
+    <value>解锁消费级硬件限制</value>
+  </data>
+  <data name="Desc_UnlockHard" xml:space="preserve">
+    <value>修复因硬件安全检查导致的问题</value>
+  </data>
+  <data name="Menu_NativeNvme" xml:space="preserve">
+    <value>启用主机原生 NVMe</value>
+  </data>
+  <data name="Desc_NativeNvme" xml:space="preserve">
+    <value>让主机 NVMe 存储使用原生多队列 I/O，绕过 SCSI 转换层</value>
+  </data>
+  <data name="Menu_OpenHclFirmwareFile" xml:space="preserve">
+    <value>从文件加载 OpenHCL 固件</value>
+  </data>
+  <data name="Desc_OpenHclFirmwareFile" xml:space="preserve">
+    <value>允许 Hyper-V 加载外部 IGVM 开发固件文件</value>
+  </data>
+  <data name="Error_Host_AzureFeatureSetRegistryUnavailable" xml:space="preserve">
+    <value>无法打开 Hyper-V 虚拟化注册表项。</value>
+  </data>
+  <data name="Error_Host_OpenHclRegistryUnavailable" xml:space="preserve">
+    <value>无法打开 Hyper-V 虚拟化注册表项。</value>
+  </data>
+  <data name="Error_Host_OpenHclRegistryChangeFailed" xml:space="preserve">
+    <value>无法更改 OpenHCL 固件加载策略：{0}</value>
+  </data>
+  <data name="Error_VmCreate_OpenHclIgvmPermission" xml:space="preserve">
+    <value>无法授予 Hyper-V 对所选 IGVM 文件的读取权限：{0}</value>
+  </data>
+  <data name="Menu_SwitchServer" xml:space="preserve">
+    <value>切换系统为服务器版本</value>
+  </data>
+  <data name="Desc_SwitchServer" xml:space="preserve">
+    <value>黑魔法，专业版/家庭版/企业版无效</value>
+  </data>
+  <data name="SwitchServer_ConfirmTitle" xml:space="preserve">
+    <value>切换系统为服务器版本？</value>
+  </data>
+  <data name="SwitchServer_ConfirmMsg" xml:space="preserve">
+    <value>切换为服务器版本后，部分驱动、应用程序可能出现异常，极端情况下可能导致系统无法正常启动，继续即表示你自愿承担相关风险。确定继续吗？</value>
+  </data>
+  <data name="SwitchServer_ConfirmBtn" xml:space="preserve">
+    <value>确认</value>
+  </data>
+  <data name="Menu_VMManagement" xml:space="preserve">
+    <value>虚拟机管理</value>
+  </data>
+  <data name="Desc_VMManagement" xml:space="preserve">
+    <value>创建、配置并运行 Hyper-V 虚拟机</value>
+  </data>
+  <data name="Menu_HostConfig" xml:space="preserve">
+    <value>环境与设定</value>
+  </data>
+  <data name="Desc_HostConfig" xml:space="preserve">
+    <value>检查主机运行环境及高级设定</value>
+  </data>
+  <data name="Menu_Pcie" xml:space="preserve">
+    <value>PCIe 直通</value>
+  </data>
+  <data name="Desc_Pcie" xml:space="preserve">
+    <value>将物理显卡等设备直接分配给虚拟机</value>
+  </data>
+  <data name="Menu_NetSwitch" xml:space="preserve">
+    <value>虚拟交换机</value>
+  </data>
+  <data name="Desc_NetSwitch" xml:space="preserve">
+    <value>管理虚拟交换机、网络模式和上游网络</value>
+  </data>
+  <data name="Label_Donate" xml:space="preserve">
+    <value>我很可爱，请给我钱</value>
+  </data>
+  <data name="Label_NoVmSelected" xml:space="preserve">
+    <value>未选择虚拟机</value>
+  </data>
+  <data name="Label_SelectVmStart" xml:space="preserve">
+    <value>请从左侧列表选择一个虚拟机以开始管理</value>
+  </data>
+  <data name="Label_DoubleClickConnect" xml:space="preserve">
+    <value>双击以连接</value>
+  </data>
+  <data name="Format_Generation" xml:space="preserve">
+    <value>{0} 代</value>
+  </data>
+  <data name="Format_Version" xml:space="preserve">
+    <value>配置版本 {0}</value>
+  </data>
+  <data name="Label_CopyIp" xml:space="preserve">
+    <value>点击复制完整 IP 地址</value>
+  </data>
+  <data name="Label_Console" xml:space="preserve">
+    <value>控制台</value>
+  </data>
+  <data name="Button_Start" xml:space="preserve">
+    <value>启动</value>
+  </data>
+  <data name="Button_ShutDown" xml:space="preserve">
+    <value>关机</value>
+  </data>
+  <data name="Button_Restart" xml:space="preserve">
+    <value>重启</value>
+  </data>
+  <data name="Button_Pause" xml:space="preserve">
+    <value>暂停</value>
+  </data>
+  <data name="Button_Save" xml:space="preserve">
+    <value>保存状态</value>
+  </data>
+  <data name="Button_TurnOff" xml:space="preserve">
+    <value>强制关闭</value>
+  </data>
+  <data name="Label_Progress" xml:space="preserve">
+    <value>配置进度</value>
+  </data>
+  <data name="Label_SelectPart" xml:space="preserve">
+    <value>请选择要安装驱动的分区</value>
+  </data>
+  <data name="Label_ConfigLog" xml:space="preserve">
+    <value>配置日志</value>
+  </data>
+  <data name="Button_CopyLog" xml:space="preserve">
+    <value>复制日志</value>
+  </data>
+  <data name="Label_AvailableGpu" xml:space="preserve">
+    <value>可用物理显卡</value>
+  </data>
+  <data name="Button_Next" xml:space="preserve">
+    <value>下一步</value>
+  </data>
+  <data name="Button_InstallDriver" xml:space="preserve">
+    <value>安装驱动</value>
+  </data>
+  <data name="Label_MediaSettings" xml:space="preserve">
+    <value>媒体设置</value>
+  </data>
+  <data name="Label_SourceFolder" xml:space="preserve">
+    <value>源文件夹</value>
+  </data>
+  <data name="Label_VolLabel" xml:space="preserve">
+    <value>卷标签</value>
+  </data>
+  <data name="Label_IsoSavePath" xml:space="preserve">
+    <value>ISO 保存路径</value>
+  </data>
+  <data name="Button_SaveAs" xml:space="preserve">
+    <value>保存为...</value>
+  </data>
+  <data name="Label_CpuAffinity" xml:space="preserve">
+    <value>CPU 绑定</value>
+  </data>
+  <data name="Label_SelectCores" xml:space="preserve">
+    <value>选择要绑定的主机核心 (按住左键拖动可多选)</value>
+  </data>
+  <data name="Button_Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="Error_VerNotSupport" xml:space="preserve">
+    <value>当前虚拟机配置版本不支持此功能</value>
+  </data>
+  <data name="Warn_VmOffRequired" xml:space="preserve">
+    <value>此设置项要求虚拟机处于关机状态</value>
+  </data>
+  <data name="Label_ProcessorSettings" xml:space="preserve">
+    <value>处理器设置</value>
+  </data>
+  <data name="Menu_ExposePmu" xml:space="preserve">
+    <value>暴露架构性能监控单元（Arch PMU）</value>
+  </data>
+  <data name="Desc_ExposePmu" xml:space="preserve">
+    <value>允许虚拟机访问架构性能监控计数器</value>
+  </data>
+  <data name="Menu_ExposeMsr" xml:space="preserve">
+    <value>暴露频率监视寄存器（ACOUNT/MCOUNT）</value>
+  </data>
+  <data name="Desc_ExposeMsr" xml:space="preserve">
+    <value>允许虚拟机读取 ACOUNT/MCOUNT 频率监视寄存器</value>
+  </data>
+  <data name="Menu_DisableSpectre" xml:space="preserve">
+    <value>禁用侧信道攻击缓解</value>
+  </data>
+  <data name="Desc_DisableSpectre" xml:space="preserve">
+    <value>禁用漏洞补丁 (如 Spectre)，提升性能但降低安全性</value>
+  </data>
+  <data name="Label_Experimental" xml:space="preserve">
+    <value>实验功能</value>
+  </data>
+  <data name="Desc_CpuAffinity" xml:space="preserve">
+    <value>配置虚拟机与物理核心的亲和性</value>
+  </data>
+  <data name="Button_ConfigAffinity" xml:space="preserve">
+    <value>配置亲和性</value>
+  </data>
+  <data name="Label_Processor" xml:space="preserve">
+    <value>处理器</value>
+  </data>
+  <data name="Desc_CpuMonitoring" xml:space="preserve">
+    <value>核心配置与实时监控</value>
+  </data>
+  <data name="Label_Memory" xml:space="preserve">
+    <value>内存</value>
+  </data>
+  <data name="Desc_MemoryMonitoring" xml:space="preserve">
+    <value>内存配置与使用趋势</value>
+  </data>
+  <data name="Label_MemoryTrends" xml:space="preserve">
+    <value>内存使用趋势</value>
+  </data>
+  <data name="Label_Storage" xml:space="preserve">
+    <value>存储</value>
+  </data>
+  <data name="Desc_StorageMonitoring" xml:space="preserve">
+    <value>磁盘空间与读写速率</value>
+  </data>
+  <data name="Warn_NoVhd" xml:space="preserve">
+    <value>未挂载虚拟磁盘</value>
+  </data>
+  <data name="Label_Gpu" xml:space="preserve">
+    <value>显卡</value>
+  </data>
+  <data name="Desc_GpuMonitoring" xml:space="preserve">
+    <value>GPU 配置与引擎负载</value>
+  </data>
+  <data name="Label_3DRender" xml:space="preserve">
+    <value>3D 渲染</value>
+  </data>
+  <data name="Label_CopyData" xml:space="preserve">
+    <value>数据复制</value>
+  </data>
+  <data name="Label_EncVideo" xml:space="preserve">
+    <value>视频编码</value>
+  </data>
+  <data name="Label_DecVideo" xml:space="preserve">
+    <value>视频解码</value>
+  </data>
+  <data name="Warn_GpuNoDriver" xml:space="preserve">
+    <value>显卡驱动未就绪</value>
+  </data>
+  <data name="Warn_VmNotStarted" xml:space="preserve">
+    <value>虚拟机未启动</value>
+  </data>
+  <data name="Warn_NoGpu" xml:space="preserve">
+    <value>未分配显卡</value>
+  </data>
+  <data name="Label_Net" xml:space="preserve">
+    <value>网络</value>
+  </data>
+  <data name="Desc_NetInfo" xml:space="preserve">
+    <value>网络设置与连接信息</value>
+  </data>
+  <data name="Warn_NoAdapter" xml:space="preserve">
+    <value>未配置网络适配器</value>
+  </data>
+  <data name="Label_GpuSettings" xml:space="preserve">
+    <value>显卡设置</value>
+  </data>
+  <data name="Button_Add" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="Button_Uninstall" xml:space="preserve">
+    <value>卸载</value>
+  </data>
+  <data name="Error_Storage_DiskChanged" xml:space="preserve">
+    <value>所选磁盘已发生变化，请刷新列表后重新选择。</value>
+  </data>
+  <data name="Error_Storage_DiskAlreadyAssigned" xml:space="preserve">
+    <value>该物理磁盘已分配给其他虚拟机。</value>
+  </data>
+  <data name="Button_UpdateDriver" xml:space="preserve">
+    <value>更新驱动</value>
+  </data>
+  <data name="Label_Manu" xml:space="preserve">
+    <value>制造商</value>
+  </data>
+  <data name="Label_Ram" xml:space="preserve">
+    <value>显存</value>
+  </data>
+  <data name="Label_DriverVer" xml:space="preserve">
+    <value>驱动程序版本</value>
+  </data>
+  <data name="Label_GpuPartitionId" xml:space="preserve">
+    <value>GPU分区ID</value>
+  </data>
+  <data name="Label_GpuPartitionPath" xml:space="preserve">
+    <value>GPU分区路径</value>
+  </data>
+  <data name="Label_NetSettings" xml:space="preserve">
+    <value>网络设置</value>
+  </data>
+  <data name="Label_BasicConnection" xml:space="preserve">
+    <value>基础连接</value>
+  </data>
+  <data name="Label_MacAddress" xml:space="preserve">
+    <value>MAC 地址</value>
+  </data>
+  <data name="Label_IpAddress" xml:space="preserve">
+    <value>IP 地址</value>
+  </data>
+  <data name="Label_VlanIsolate" xml:space="preserve">
+    <value>VLAN 与 隔离</value>
+  </data>
+  <data name="Label_Mode" xml:space="preserve">
+    <value>模式</value>
+  </data>
+  <data name="Label_NativeVlan" xml:space="preserve">
+    <value>本征 ID</value>
+  </data>
+  <data name="Label_AllowList" xml:space="preserve">
+    <value>允许列表</value>
+  </data>
+  <data name="Label_Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Label_PrimaryId" xml:space="preserve">
+    <value>主 ID</value>
+  </data>
+  <data name="Label_SecondaryId" xml:space="preserve">
+    <value>辅 ID</value>
+  </data>
+  <data name="Label_Qos" xml:space="preserve">
+    <value>流量控制 (QoS)</value>
+  </data>
+  <data name="Label_Limit" xml:space="preserve">
+    <value>上限 (Mbps)</value>
+  </data>
+  <data name="Label_Reserve" xml:space="preserve">
+    <value>下限 (Mbps)</value>
+  </data>
+  <data name="Label_Offload" xml:space="preserve">
+    <value>硬件加速</value>
+  </data>
+  <data name="Label_Sriov" xml:space="preserve">
+    <value>单根 I/O 虚拟化</value>
+  </data>
+  <data name="Desc_Sriov" xml:space="preserve">
+    <value>获得最高性能和最低延迟（需要虚拟交换机和对应的物理网卡支持并开启了 SR-IOV ）</value>
+  </data>
+  <data name="Label_Vmq" xml:space="preserve">
+    <value>虚拟机队列</value>
+  </data>
+  <data name="Desc_Vmq" xml:space="preserve">
+    <value>使用物理网卡 DMA 传输包到虚拟机内存，降低 CPU 开销</value>
+  </data>
+  <data name="Label_Ipsec" xml:space="preserve">
+    <value>IPsec 任务卸载</value>
+  </data>
+  <data name="Desc_Ipsec" xml:space="preserve">
+    <value>减轻主机 CPU 负担并提高网络吞吐量</value>
+  </data>
+  <data name="Label_Security" xml:space="preserve">
+    <value>安全与监控</value>
+  </data>
+  <data name="Label_MacSpoof" xml:space="preserve">
+    <value>允许 MAC 地址欺骗</value>
+  </data>
+  <data name="Desc_MacSpoof" xml:space="preserve">
+    <value>允许虚拟机更改源 MAC，用于负载均衡或嵌套虚拟化</value>
+  </data>
+  <data name="Label_DhcpGuard" xml:space="preserve">
+    <value>启用 DHCP 防护</value>
+  </data>
+  <data name="Desc_DhcpGuard" xml:space="preserve">
+    <value>防止未经授权的虚拟机充当 DHCP 服务器</value>
+  </data>
+  <data name="Label_RouterGuard" xml:space="preserve">
+    <value>启用 路由器防护</value>
+  </data>
+  <data name="Desc_RouterGuard" xml:space="preserve">
+    <value>防止未经授权的虚拟机发送路由器通告</value>
+  </data>
+  <data name="Label_PortMirror" xml:space="preserve">
+    <value>端口镜像</value>
+  </data>
+  <data name="Label_StormLimit" xml:space="preserve">
+    <value>风暴阈值</value>
+  </data>
+  <data name="Label_RamSettings" xml:space="preserve">
+    <value>内存设置</value>
+  </data>
+  <data name="Label_ComputeRes" xml:space="preserve">
+    <value>计算资源</value>
+  </data>
+  <data name="Label_StartRam" xml:space="preserve">
+    <value>启动内存 (MB)</value>
+  </data>
+  <data name="Warn_DynRamRunning" xml:space="preserve">
+    <value>启用动态内存时，无法在虚拟机运行时修改启动内存。</value>
+  </data>
+  <data name="Label_RamWeight" xml:space="preserve">
+    <value>内存权重 (%)</value>
+  </data>
+  <data name="Label_EnableDynRam" xml:space="preserve">
+    <value>启用动态内存</value>
+  </data>
+  <data name="Desc_DynRam" xml:space="preserve">
+    <value>在最小内存和最大内存之间动态调整</value>
+  </data>
+  <data name="Label_MinRam" xml:space="preserve">
+    <value>最小内存 (MB)</value>
+  </data>
+  <data name="Label_MaxRam" xml:space="preserve">
+    <value>最大内存 (MB)</value>
+  </data>
+  <data name="Label_RamBuffer" xml:space="preserve">
+    <value>内存缓冲区 (%)</value>
+  </data>
+  <data name="Label_RamPageSize" xml:space="preserve">
+    <value>内存页大小</value>
+  </data>
+  <data name="Desc_RamPageSize" xml:space="preserve">
+    <value>选择用于支持虚拟机内存的物理页大小</value>
+  </data>
+  <data name="Label_MemEncrypt" xml:space="preserve">
+    <value>内存加密策略</value>
+  </data>
+  <data name="Desc_MemEncrypt" xml:space="preserve">
+    <value>设置虚拟机内存的加密要求</value>
+  </data>
+  <data name="Button_OpenFolder" xml:space="preserve">
+    <value>打开所在文件夹</value>
+  </data>
+  <data name="Label_Controller" xml:space="preserve">
+    <value> 控制器 </value>
+  </data>
+  <data name="Label_Location" xml:space="preserve">
+    <value> - 位置 </value>
+  </data>
+  <data name="Placeholder_SearchVm" xml:space="preserve">
+    <value>搜索虚拟机...</value>
+  </data>
+  <data name="Status_Unknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="Status_Other" xml:space="preserve">
+    <value>其他</value>
+  </data>
+  <data name="Status_ShuttingDown" xml:space="preserve">
+    <value>正在关机</value>
+  </data>
+  <data name="Status_NotApplicable" xml:space="preserve">
+    <value>不适用</value>
+  </data>
+  <data name="Status_InTest" xml:space="preserve">
+    <value>测试中</value>
+  </data>
+  <data name="Status_Deferred" xml:space="preserve">
+    <value>已推迟</value>
+  </data>
+  <data name="Status_WaitingToStart" xml:space="preserve">
+    <value>等待启动</value>
+  </data>
+  <data name="Status_MergingDisks" xml:space="preserve">
+    <value>正在合并磁盘</value>
+  </data>
+  <data name="Status_Msg_GpuPvNotSupported" xml:space="preserve">
+    <value>（不支持 GPU-PV）</value>
+  </data>
+  <data name="Msg_Success" xml:space="preserve">
+    <value>成功</value>
+  </data>
+  <data name="VmMemory_ModFailed" xml:space="preserve">
+    <value>修改失败: {0}</value>
+  </data>
+  <data name="VmMemory_AdvSetException" xml:space="preserve">
+    <value>高级设置应用异常: {0}</value>
+  </data>
+  <data name="VmNet_AddSuccess" xml:space="preserve">
+    <value>添加网卡成功</value>
+  </data>
+  <data name="VmProcessor_Exception" xml:space="preserve">
+    <value>异常: {0}</value>
+  </data>
+  <data name="Utils_UnknownNetMode" xml:space="preserve">
+    <value>错误：未知的网络模式 '{0}'</value>
+  </data>
+  <data name="VmPage_RenameFail" xml:space="preserve">
+    <value>重命名失败</value>
+  </data>
+  <data name="VmPage_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="VmPage_SelectConfigDir" xml:space="preserve">
+    <value>选择虚拟机配置文件存放目录</value>
+  </data>
+  <data name="VmPage_SelectNewVhdPath" xml:space="preserve">
+    <value>选择新虚拟硬盘保存位置</value>
+  </data>
+  <data name="VmPage_VhdFilter" xml:space="preserve">
+    <value>虚拟硬盘文件|*.vhdx</value>
+  </data>
+  <data name="VmPage_SelectExistVhd" xml:space="preserve">
+    <value>选择现有虚拟硬盘</value>
+  </data>
+  <data name="VmPage_VhdFilterBoth" xml:space="preserve">
+    <value>虚拟硬盘文件|*.vhdx;*.avhdx</value>
+  </data>
+  <data name="VmPage_SelectIso" xml:space="preserve">
+    <value>选择操作系统 ISO 镜像</value>
+  </data>
+  <data name="VmPage_IsoFilter" xml:space="preserve">
+    <value>ISO 镜像文件|*.iso</value>
+  </data>
+  <data name="VmPage_CreateFail" xml:space="preserve">
+    <value>创建失败</value>
+  </data>
+  <data name="VmPage_NameEmpty" xml:space="preserve">
+    <value>虚拟机名称不能为空</value>
+  </data>
+  <data name="VmPage_SelectVhdSave" xml:space="preserve">
+    <value>请选择新硬盘的保存位置</value>
+  </data>
+  <data name="VmPage_SelectExistVhdPath" xml:space="preserve">
+    <value>请选择现有的虚拟硬盘文件 (.vhdx)</value>
+  </data>
+  <data name="VmPage_ExistVhdNotFound" xml:space="preserve">
+    <value>指定的现有虚拟硬盘文件不存在，请检查路径。</value>
+  </data>
+  <data name="VmPage_IsoNotFound" xml:space="preserve">
+    <value>指定的 ISO 镜像文件不存在</value>
+  </data>
+  <data name="VmPage_InvalidCpuCount" xml:space="preserve">
+    <value>处理器数量必须为大于 0 的整数</value>
+  </data>
+  <data name="VmPage_InvalidMemory" xml:space="preserve">
+    <value>启动内存必须为不小于 32 的整数（MB）</value>
+  </data>
+  <data name="VmPage_InvalidDiskSize" xml:space="preserve">
+    <value>磁盘容量必须为大于 0 的整数（GB）</value>
+  </data>
+  <data name="VmPage_CreateOptionsLoadFail" xml:space="preserve">
+    <value>加载创建选项时出错，部分默认值可能不准确</value>
+  </data>
+  <data name="VmPage_VmCreated" xml:space="preserve">
+    <value>虚拟机 {0} 已成功创建并配置。</value>
+  </data>
+  <data name="VmPage_DeleteFail" xml:space="preserve">
+    <value>删除失败</value>
+  </data>
+  <data name="Xaml_Rename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Xaml_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Xaml_CreateVm" xml:space="preserve">
+    <value>创建虚拟机</value>
+  </data>
+  <data name="Xaml_NewVm" xml:space="preserve">
+    <value>新建虚拟机</value>
+  </data>
+  <data name="Xaml_General" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="Xaml_Name" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Xaml_ConfigLoc" xml:space="preserve">
+    <value>配置文件位置</value>
+  </data>
+  <data name="Xaml_Browse" xml:space="preserve">
+    <value>浏览</value>
+  </data>
+  <data name="Xaml_VmVersion" xml:space="preserve">
+    <value>虚拟机版本</value>
+  </data>
+  <data name="Xaml_Generation" xml:space="preserve">
+    <value>代际</value>
+  </data>
+  <data name="Xaml_Gen1" xml:space="preserve">
+    <value>第 1 代 ( BIOS + MBR )</value>
+  </data>
+  <data name="Xaml_Gen2" xml:space="preserve">
+    <value>第 2 代 ( UEFI + GPT )</value>
+  </data>
+  <data name="Xaml_ComputeRes" xml:space="preserve">
+    <value>计算资源</value>
+  </data>
+  <data name="Xaml_ProcessorCores" xml:space="preserve">
+    <value>虚拟处理器数量</value>
+  </data>
+  <data name="Xaml_Core" xml:space="preserve">
+    <value>核心</value>
+  </data>
+  <data name="Xaml_StartupMem" xml:space="preserve">
+    <value>启动内存</value>
+  </data>
+  <data name="Xaml_DynamicMem" xml:space="preserve">
+    <value>动态内存</value>
+  </data>
+  <data name="Xaml_SecurityFeat" xml:space="preserve">
+    <value>安全特性</value>
+  </data>
+  <data name="Xaml_EnableSecureBoot" xml:space="preserve">
+    <value>启用安全启动</value>
+  </data>
+  <data name="Xaml_EnableTpm" xml:space="preserve">
+    <value>启用 TPM</value>
+  </data>
+  <data name="Xaml_ConfidentialCompute" xml:space="preserve">
+    <value>机密计算</value>
+  </data>
+  <data name="Xaml_StorageRes" xml:space="preserve">
+    <value>存储资源</value>
+  </data>
+  <data name="Xaml_VirtualDisk" xml:space="preserve">
+    <value>虚拟硬盘</value>
+  </data>
+  <data name="Xaml_NewDisk" xml:space="preserve">
+    <value>新建磁盘</value>
+  </data>
+  <data name="Xaml_ExistDisk" xml:space="preserve">
+    <value>现有磁盘</value>
+  </data>
+  <data name="Xaml_AttachLater" xml:space="preserve">
+    <value>稍后附加</value>
+  </data>
+  <data name="Xaml_CapacityGb" xml:space="preserve">
+    <value>容量 (GB)</value>
+  </data>
+  <data name="Xaml_SaveLoc" xml:space="preserve">
+    <value>保存位置</value>
+  </data>
+  <data name="Xaml_ExistDiskPath" xml:space="preserve">
+    <value>现有磁盘路径</value>
+  </data>
+  <data name="Xaml_CreateWithoutDisk" xml:space="preserve">
+    <value>虚拟机将在没有虚拟硬盘的情况下创建。您可以稍后手动添加。</value>
+  </data>
+  <data name="Xaml_InstallMedia" xml:space="preserve">
+    <value>安装介质</value>
+  </data>
+  <data name="Xaml_NetworkRes" xml:space="preserve">
+    <value>网络资源</value>
+  </data>
+  <data name="Xaml_VirtualSwitch" xml:space="preserve">
+    <value>虚拟交换机</value>
+  </data>
+  <data name="Xaml_StartAfterCreate" xml:space="preserve">
+    <value>创建后启动</value>
+  </data>
+  <data name="Xaml_SelectIsoSaveLoc" xml:space="preserve">
+    <value>选择 ISO 文件保存位置</value>
+  </data>
+  <data name="Xaml_Placeholder_VmName" xml:space="preserve">
+    <value>例如: Windows_Server_2025</value>
+  </data>
+  <data name="Xaml_Placeholder_NewVhdxLoc" xml:space="preserve">
+    <value>选择新 .vhdx 文件的存放位置</value>
+  </data>
+  <data name="Xaml_Placeholder_ExistVhd" xml:space="preserve">
+    <value>选择 .vhdx 或 .avhdx 文件</value>
+  </data>
+  <data name="Xaml_Placeholder_IsoOptional" xml:space="preserve">
+    <value>选择操作系统安装 ISO 镜像 (可选)</value>
+  </data>
+  <data name="Task_Gpu_Config" xml:space="preserve">
+    <value>配置检查</value>
+  </data>
+  <data name="Msg_Gpu_CheckingConfig" xml:space="preserve">
+    <value>检查虚拟机配置...</value>
+  </data>
+  <data name="Msg_Gpu_ConfigNeeded" xml:space="preserve">
+    <value>设置已完成。</value>
+  </data>
+  <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
+    <value>虚拟机设置OK。</value>
+  </data>
+  <data name="Msg_Skip" xml:space="preserve">
+    <value>已跳过。</value>
+  </data>
+  <data name="DiskParser_LogSector512" xml:space="preserve">
+    <value>[DiskParser] 自动识别扇区: 512 字节 (Standard/512e)</value>
+  </data>
+  <data name="DiskParser_LogSector4096" xml:space="preserve">
+    <value>[DiskParser] 自动识别扇区: 4096 字节 (Native 4Kn)</value>
+  </data>
+  <data name="DiskParser_LogErrGptNotFound" xml:space="preserve">
+    <value>[DiskParser] 错误: 无法在 512 或 4096 偏移处找到 GPT 签名</value>
+  </data>
+  <data name="DiskParser_LogErrReadFailed" xml:space="preserve">
+    <value>[DiskParser] 读取磁盘失败: {0}</value>
+  </data>
+  <data name="HyperVScheduler_LogEventLogQueryFail" xml:space="preserve">
+    <value>[HyperVSchedulerService] 查询事件日志失败: {0}</value>
+  </data>
+  <data name="VmGPUService_LogOnline" xml:space="preserve">
+    <value>[在线] {0}</value>
+  </data>
+  <data name="VmMemoryService_ErrReadConfig" xml:space="preserve">
+    <value>读取内存配置时发生严重异常: {0}</value>
+  </data>
+  <data name="ProcessAffinity_LogVmmemAcquireFail" xml:space="preserve">
+    <value>[ProcessAffinityManager] 找到匹配的 vmmem 进程 (PID: {0}) 但获取失败: {1}</value>
+  </data>
+  <data name="ProcessAffinity_LogVmmemQueryFail" xml:space="preserve">
+    <value>[ProcessAffinityManager] WMI 查询 vmmem 进程失败: {0}</value>
+  </data>
+  <data name="ProcessAffinity_LogGetAffinityFail" xml:space="preserve">
+    <value>[ProcessAffinityManager] 获取进程 {0} 的相关性失败: {1}</value>
+  </data>
+  <data name="ProcessAffinity_LogSetAffinityFail" xml:space="preserve">
+    <value>[ProcessAffinityManager] 设置失败: {0}</value>
+  </data>
+  <data name="ConsoleViewModel_EnterFullScreenHint" xml:space="preserve">
+    <value>进入全屏模式，按 Ctrl+Alt+Break 退出</value>
+  </data>
+  <data name="ConsoleViewModel_OperationFailed" xml:space="preserve">
+    <value>操作失败: {0}</value>
+  </data>
+  <data name="ConsoleViewModel_LogSendCadActivated" xml:space="preserve">
+    <value>[VM] SendCadCommand 激活，准备触发事件...</value>
+  </data>
+  <data name="ConsoleViewModel_BasicSession" xml:space="preserve">
+    <value>基本会话</value>
+  </data>
+  <data name="ConsoleViewModel_EnhancedSession" xml:space="preserve">
+    <value>增强会话</value>
+  </data>
+  <data name="HostPageViewModel_DisablingHyperV" xml:space="preserve">
+    <value>正在禁用 Hyper-V 组件...</value>
+  </data>
+  <data name="HostPageViewModel_DisableFailed" xml:space="preserve">
+    <value>禁用失败，请尝试手动执行或检查权限。</value>
+  </data>
+  <data name="HostPageViewModel_DisableSuccess" xml:space="preserve">
+    <value>Hyper-V 已成功禁用，需要重启电脑生效。</value>
+  </data>
+  <data name="HostPageViewModel_HypervisorInactive" xml:space="preserve">
+    <value>Hypervisor 未激活</value>
+  </data>
+  <data name="HostPageViewModel_VmmsMissing" xml:space="preserve">
+    <value>vmms 服务缺失</value>
+  </data>
+  <data name="HostPageViewModel_VmmsNotRunning" xml:space="preserve">
+    <value>vmms 未运行</value>
+  </data>
+  <data name="HostPageViewModel_WmiNamespaceMissing" xml:space="preserve">
+    <value>缺少 WMI 命名空间 root\virtualization\v2</value>
+  </data>
+  <data name="HostPageViewModel_MissingComponents" xml:space="preserve">
+    <value>缺失组件：{0}</value>
+  </data>
+  <data name="HostPageViewModel_StatusUnknown" xml:space="preserve">
+    <value>Hyper-V 状态未知</value>
+  </data>
+  <data name="VmPage_ErrConfigDirNotFound" xml:space="preserve">
+    <value>无法启动控制台: {0}</value>
+  </data>
+  <data name="VmPage_AffinityApplied" xml:space="preserve">
+    <value>[Affinity] 自动应用成功: {0}</value>
+  </data>
+  <data name="VmPage_AffinityApplyFailed" xml:space="preserve">
+    <value>[Affinity] 尝试应用失败 ({0}/5): {1} - 进程可能未就绪或无权限</value>
+  </data>
+  <data name="VmPage_AffinityApplyException" xml:space="preserve">
+    <value>[Affinity] 自动应用异常: {0}</value>
+  </data>
+  <data name="VmPage_GpuCheckDeploy" xml:space="preserve">
+    <value>请检查部署方案及主机IP</value>
+  </data>
+  <data name="VmPage_GpuUserRollback" xml:space="preserve">
+    <value>[User Reset] 检测到未完成的分区分配，正在回滚...</value>
+  </data>
+  <data name="VmPage_GpuUserRollbackDone" xml:space="preserve">
+    <value>[User Reset] 分区已成功移除。</value>
+  </data>
+  <data name="VmPage_GpuUserRollbackFail" xml:space="preserve">
+    <value>[User Reset] 回滚失败: {0}</value>
+  </data>
+  <data name="VmPage_GpuResetDone" xml:space="preserve">
+    <value>流程已重置</value>
+  </data>
+  <data name="VmPage_GpuResetDesc" xml:space="preserve">
+    <value>您可以重新选择显卡或修改配置参数</value>
+  </data>
+  <data name="ConsoleWindow_StartVm" xml:space="preserve">
+    <value>启动虚拟机</value>
+  </data>
+  <data name="ConsoleWindow_ShutDown" xml:space="preserve">
+    <value>关机</value>
+  </data>
+  <data name="ConsoleWindow_Restart" xml:space="preserve">
+    <value>重启</value>
+  </data>
+  <data name="ConsoleWindow_Pause" xml:space="preserve">
+    <value>暂停</value>
+  </data>
+  <data name="ConsoleWindow_SaveState" xml:space="preserve">
+    <value>保存状态</value>
+  </data>
+  <data name="ConsoleWindow_TurnOff" xml:space="preserve">
+    <value>强制关闭</value>
+  </data>
+  <data name="ConsoleWindow_SendCtrlAltDel" xml:space="preserve">
+    <value>发送 Ctrl+Alt+Del</value>
+  </data>
+  <data name="ConsoleWindow_FullScreen" xml:space="preserve">
+    <value>全屏模式 (Ctrl+Alt+Space)</value>
+  </data>
+  <data name="ConsoleWindow_ZoomAuto" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="ConsoleWindow_ZoomHint" xml:space="preserve">
+    <value>放大为拉伸画面、可能发虚（与微软控制台同理）。自动档按显示器缩放比例。</value>
+  </data>
+  <data name="HostPage_Disable" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="VmAddGpuProgress_ResetDeployment" xml:space="preserve">
+    <value>重置部署流程 (回到初始状态)</value>
+  </data>
+  <data name="VmAddGpuProgress_SelectScheme" xml:space="preserve">
+    <value>选择部署方案</value>
+  </data>
+  <data name="VmConsoleView_EstablishingSession" xml:space="preserve">
+    <value>正在建立 Hyper-V 安全会话...</value>
+  </data>
+  <data name="VmDashboard_TabBoot" xml:space="preserve">
+    <value>{Binding IpAddressDisplay, FallbackValue='获取中...'}</value>
+  </data>
+  <data name="BootOrderItem_FloppyDisk" xml:space="preserve">
+    <value>软盘</value>
+  </data>
+  <data name="BootOrderItem_OpticalDrive" xml:space="preserve">
+    <value>光驱</value>
+  </data>
+  <data name="BootOrderItem_IdeHardDisk" xml:space="preserve">
+    <value>IDE 硬盘</value>
+  </data>
+  <data name="BootOrderItem_PxeNetworkBoot" xml:space="preserve">
+    <value>PXE 网络引导</value>
+  </data>
+  <data name="BootOrderItem_ScsiHardDisk" xml:space="preserve">
+    <value>SCSI 硬盘</value>
+  </data>
+  <data name="BootOrderItem_UnknownDevice" xml:space="preserve">
+    <value>未知设备</value>
+  </data>
+  <data name="VmBootService_WindowsBootManager" xml:space="preserve">
+    <value>Windows 启动管理器</value>
+  </data>
+  <data name="VmBootService_SystemBuiltinBootEntry" xml:space="preserve">
+    <value>系统内置引导项</value>
+  </data>
+  <data name="VmSpacetimeService_NodeLabelOrigin" xml:space="preserve">
+    <value>起源</value>
+  </data>
+  <data name="VmSpacetimeService_NodeLabelCurrent" xml:space="preserve">
+    <value>当前</value>
+  </data>
+  <data name="VmSpacetimeService_ErrLookupFailed" xml:space="preserve">
+    <value>时空检索失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogWormholeDisk" xml:space="preserve">
+    <value>[Wormhole] 虫洞盘: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogWormholeMarkedOk" xml:space="preserve">
+    <value>[Wormhole] 标记成功: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogWormholeDetectFailed" xml:space="preserve">
+    <value>[Wormhole] 检测失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrWormholeAlreadyExists" xml:space="preserve">
+    <value>当前时空中已存在虫洞，请先关闭现有虫洞后再开启新的，否则将引发时空悖论</value>
+  </data>
+  <data name="VmSpacetimeService_ErrParentChainNode" xml:space="preserve">
+    <value>该节点是当前时空的父链节点，开启虫洞会导致时空悖论</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOnlySnapshotNode" xml:space="preserve">
+    <value>只能对快照节点开启虫洞</value>
+  </data>
+  <data name="VmSpacetimeService_ErrSnapshotPathInvalid" xml:space="preserve">
+    <value>快照磁盘路径无效</value>
+  </data>
+  <data name="VmSpacetimeService_ErrNodeHasWormhole" xml:space="preserve">
+    <value>该节点已有虫洞开启中</value>
+  </data>
+  <data name="VmSpacetimeService_ErrCannotDetermineDiskDir" xml:space="preserve">
+    <value>无法确定磁盘目录</value>
+  </data>
+  <data name="VmSpacetimeService_ErrNoScsiSlot" xml:space="preserve">
+    <value>没有可用的 SCSI 插槽</value>
+  </data>
+  <data name="VmSpacetimeService_ErrCreateDiffDiskFailed" xml:space="preserve">
+    <value>创建临时差分盘失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_MsgWormholeOpened" xml:space="preserve">
+    <value>虫洞已开启</value>
+  </data>
+  <data name="VmSpacetimeService_ErrSpacetimeException" xml:space="preserve">
+    <value>时空异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrNoActiveWormhole" xml:space="preserve">
+    <value>该节点没有开启虫洞</value>
+  </data>
+  <data name="VmSpacetimeService_MsgWormholeClosed" xml:space="preserve">
+    <value>虫洞已关闭，时间线恢复正常</value>
+  </data>
+  <data name="VmSpacetimeService_ErrCloseWormholeException" xml:space="preserve">
+    <value>关闭虫洞异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
+    <value>找不到 WMI 管理服务</value>
+  </data>
+  <data name="VmSpacetimeService_MsgNameUpdated" xml:space="preserve">
+    <value>名称已成功更新</value>
+  </data>
+  <data name="VmSpacetimeService_ErrUpdateWmiCode" xml:space="preserve">
+    <value>更新失败: WMI 错误代码: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrRenameException" xml:space="preserve">
+    <value>重命名服务异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOnlyHistoricalNode" xml:space="preserve">
+    <value>只能穿梭至历史快照点</value>
+  </data>
+  <data name="VmSpacetimeService_MsgTravelInitiated" xml:space="preserve">
+    <value>穿梭已启动，正在恢复运行状态...</value>
+  </data>
+  <data name="VmSpacetimeService_MsgTravelSucceeded" xml:space="preserve">
+    <value>穿梭成功，虚拟机已回到指定时空点（已关机）</value>
+  </data>
+  <data name="VmSpacetimeService_ErrTravelFailed" xml:space="preserve">
+    <value>穿梭失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrVmCarrierNotFound" xml:space="preserve">
+    <value>找不到指定的虚拟机载体</value>
+  </data>
+  <data name="VmSpacetimeService_ErrSpacetimeCollapse" xml:space="preserve">
+    <value>时空塌陷: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_MsgAnchorSet" xml:space="preserve">
+    <value>时空锚点已锚定</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOriginCurrentNoAnnihilate" xml:space="preserve">
+    <value>起源与当前节点不可湮灭</value>
+  </data>
+  <data name="VmSpacetimeService_MsgAnnihilated" xml:space="preserve">
+    <value>时空分支已彻底湮灭</value>
+  </data>
+  <data name="VmSpacetimeService_ErrAnnihilateFailed" xml:space="preserve">
+    <value>湮灭失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOriginCurrentNoConverge" xml:space="preserve">
+    <value>起源与当前节点不可收束</value>
+  </data>
+  <data name="VmSpacetimeService_MsgConverging" xml:space="preserve">
+    <value>时空收束中...</value>
+  </data>
+  <data name="VmSpacetimeService_ErrConvergeFailed" xml:space="preserve">
+    <value>收束失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogReadCheckpointFailed" xml:space="preserve">
+    <value>[Spacetime] 读取检查点状态失败: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrVmNotFound" xml:space="preserve">
+    <value>找不到虚拟机</value>
+  </data>
+  <data name="VmSpacetimeService_MsgCheckpointEnabled" xml:space="preserve">
+    <value>已启用检查点</value>
+  </data>
+  <data name="VmSpacetimeService_MsgCheckpointDisabled" xml:space="preserve">
+    <value>已禁用检查点</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOperationWmiCode" xml:space="preserve">
+    <value>操作失败: WMI 错误代码 {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOperationException" xml:space="preserve">
+    <value>操作异常: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogSnapshotScreenCleaned" xml:space="preserve">
+    <value>[Spacetime] 已清理快照截图: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogCleanScreenFailed" xml:space="preserve">
+    <value>[Spacetime] 清理截图失败: {0}</value>
+  </data>
+  <data name="VmMmio_LogFinalResult" xml:space="preserve">
+    <value>[MMIO] 最终计算结果:</value>
+  </data>
+  <data name="VmMmio_LogConfigApplied" xml:space="preserve">
+    <value>[MMIO] 最终配置已成功应用。</value>
+  </data>
+  <data name="VmMmio_LogError" xml:space="preserve">
+    <value>[MMIO] 错误: {0}</value>
+  </data>
+  <data name="SystemType_ErrInsufficientPermissions" xml:space="preserve">
+    <value>权限不足</value>
+  </data>
+  <data name="SystemType_ErrExportFailed" xml:space="preserve">
+    <value>导出失败:{0}</value>
+  </data>
+  <data name="SystemType_ErrOfflineModFailed" xml:space="preserve">
+    <value>离线修改失败</value>
+  </data>
+  <data name="SystemType_ErrReplaceFailed" xml:space="preserve">
+    <value>替换失败:{0}</value>
+  </data>
+  <data name="SystemType_ErrWorkFileLocked" xml:space="preserve">
+    <value>工作文件被占用:可能存在未重启的切换任务,或被安全软件锁定</value>
+  </data>
+  <data name="VmPage_CreatingVm" xml:space="preserve">
+    <value>正在创建虚拟机...</value>
+  </data>
+  <data name="VmPage_StartingVm" xml:space="preserve">
+    <value>正在启动虚拟机...</value>
+  </data>
+  <data name="VmPage_OpenFail" xml:space="preserve">
+    <value>打开失败</value>
+  </data>
+  <data name="VmPage_ConfigDirNotFound" xml:space="preserve">
+    <value>找不到虚拟机配置目录</value>
+  </data>
+  <data name="VmPage_CurrentUserUnavailable" xml:space="preserve">
+    <value>无法识别当前 Windows 用户。</value>
+  </data>
+  <data name="VmPage_FolderAccessFailed" xml:space="preserve">
+    <value>无法为当前用户授予虚拟机文件夹访问权限。</value>
+  </data>
+  <data name="VmPage_PurgeTitle" xml:space="preserve">
+    <value>彻底删除</value>
+  </data>
+  <data name="VmPage_PurgeConfirm" xml:space="preserve">
+    <value>下列目录与文件将永久删除且无法恢复：</value>
+  </data>
+  <data name="VmPage_PurgeBtn" xml:space="preserve">
+    <value>彻底删除</value>
+  </data>
+  <data name="VmPage_PurgeDoneDesc" xml:space="preserve">
+    <value>「{0}」已彻底清除</value>
+  </data>
+  <data name="VmPage_ModifyFail" xml:space="preserve">
+    <value>修改失败</value>
+  </data>
+  <data name="VmPage_BackingTypePhysical" xml:space="preserve">
+    <value>物理映射模式</value>
+  </data>
+  <data name="VmPage_BackingTypeVirtual" xml:space="preserve">
+    <value>虚拟映射模式</value>
+  </data>
+  <data name="VmPage_BackingTypeHybrid" xml:space="preserve">
+    <value>混合映射模式</value>
+  </data>
+  <data name="VmPage_MemGranularityAuto" xml:space="preserve">
+    <value>最佳</value>
+  </data>
+  <data name="VmPage_MemGranularityStandard" xml:space="preserve">
+    <value>4 KB</value>
+  </data>
+  <data name="VmPage_MemGranularityLarge" xml:space="preserve">
+    <value>2 MB</value>
+  </data>
+  <data name="VmPage_MemGranularityHuge" xml:space="preserve">
+    <value>1 GB</value>
+  </data>
+  <data name="VmPage_MemTrackingDisable" xml:space="preserve">
+    <value>关闭跟踪</value>
+  </data>
+  <data name="VmPage_MemTrackingEnable" xml:space="preserve">
+    <value>开启跟踪</value>
+  </data>
+  <data name="VmPage_MemTrackingPerNode" xml:space="preserve">
+    <value>按 NUMA 节点配置</value>
+  </data>
+  <data name="VmPage_MemEncryptionDisabled" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="VmPage_MemEncryptionIfSupported" xml:space="preserve">
+    <value>支持时启用</value>
+  </data>
+  <data name="VmPage_MemEncryptionAlways" xml:space="preserve">
+    <value>始终启用</value>
+  </data>
+  <data name="VmPage_SgxLaunchAccessDenied" xml:space="preserve">
+    <value>禁止访问</value>
+  </data>
+  <data name="VmPage_SgxLaunchReadOnly" xml:space="preserve">
+    <value>仅限读取</value>
+  </data>
+  <data name="VmPage_SgxLaunchReadWrite" xml:space="preserve">
+    <value>允许读写</value>
+  </data>
+  <data name="VmPage_OptimizeSuccessDesc" xml:space="preserve">
+    <value>虚拟磁盘空间已成功回收</value>
+  </data>
+  <data name="VmPage_OptimizeFail" xml:space="preserve">
+    <value>优化失败</value>
+  </data>
+  <data name="VmPage_OperationFail" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="VmPage_ErrRetrieveFailed2" xml:space="preserve">
+    <value>检索失败</value>
+  </data>
+  <data name="VmPage_MsgSpacetimeCreated2" xml:space="preserve">
+    <value>已成功创建时空</value>
+  </data>
+  <data name="VmPage_MsgTraveledTo2" xml:space="preserve">
+    <value>已穿梭至时空：{0}</value>
+  </data>
+  <data name="VmPage_MsgSpacetimeAnnihilated2" xml:space="preserve">
+    <value>该时空已湮灭</value>
+  </data>
+  <data name="VmPage_MsgConnectedTo2" xml:space="preserve">
+    <value>已连接到时空「{0}」</value>
+  </data>
+  <data name="VmPage_ErrOpenFailed4" xml:space="preserve">
+    <value>开启失败</value>
+  </data>
+  <data name="VmPage_MsgTimelineRestored2" xml:space="preserve">
+    <value>时间线已恢复正常</value>
+  </data>
+  <data name="VmPage_ErrCloseFailed2" xml:space="preserve">
+    <value>关闭失败</value>
+  </data>
+  <data name="VmPage_MsgSpacetimeConverged2" xml:space="preserve">
+    <value>时空已收束至上一节点</value>
+  </data>
+  <data name="VmPage_MsgRollingBackGpu2" xml:space="preserve">
+    <value>正在回滚 GPU 分配...</value>
+  </data>
+  <data name="VmPage_MsgRollbackComplete2" xml:space="preserve">
+    <value>回滚完成。</value>
+  </data>
+  <data name="VmPage_ErrRollbackFailed2" xml:space="preserve">
+    <value>回滚失败: {0}</value>
+  </data>
+  <data name="VmPage_BtnReset2" xml:space="preserve">
+    <value>重置</value>
+  </data>
+  <data name="VmPage_MsgProcessReset2" xml:space="preserve">
+    <value>流程已重置，请重新选择显卡。</value>
+  </data>
+  <data name="VmPage_MenuOpenFolder" xml:space="preserve">
+    <value>打开文件夹</value>
+  </data>
+  <data name="VmBootSettings_TitleBootOrder" xml:space="preserve">
+    <value>引导顺序</value>
+  </data>
+  <data name="VmBootSettings_HintDragToAdjust" xml:space="preserve">
+    <value>上下拖动以调整优先级</value>
+  </data>
+  <data name="VmCpuSettings_LabelCustomCpuName" xml:space="preserve">
+    <value>自定义 CPU 名称</value>
+  </data>
+  <data name="VmCpuSettings_WarnVmOffRequired" xml:space="preserve">
+    <value>此操作需要虚拟机处于关机状态</value>
+  </data>
+  <data name="VmDashboard_DescBoot" xml:space="preserve">
+    <value>引导</value>
+  </data>
+  <data name="VmDashboard_TabSpacetime" xml:space="preserve">
+    <value>引导顺序与设备列表</value>
+  </data>
+  <data name="VmDashboard_DescSpacetime" xml:space="preserve">
+    <value>时空</value>
+  </data>
+  <data name="VmDashboardView_SnapshotAndSpacetime" xml:space="preserve">
+    <value>快照管理与时空穿梭</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemMappingMode" xml:space="preserve">
+    <value>内存映射模式</value>
+  </data>
+  <data name="VmRAMSettings_DescMemMappingMode" xml:space="preserve">
+    <value>设置虚拟机使用的内存后端类型</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemAccessMonitor" xml:space="preserve">
+    <value>跟踪模式</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemAccessGranularity" xml:space="preserve">
+    <value>访问跟踪粒度</value>
+  </data>
+  <data name="VmRAMSettings_DescMemAccessMonitor" xml:space="preserve">
+    <value>记录虚拟机内存访问的方式</value>
+  </data>
+  <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
+    <value>Intel SGX 应用飞地</value>
+  </data>
+  <data name="VmRAMSettings_DescSgxComputing" xml:space="preserve">
+    <value>设置虚拟机是否启用 SGX 飞地内存</value>
+  </data>
+  <data name="VmRAMSettings_BtnApply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="VmRAMSettings_LabelSgxAuthMode" xml:space="preserve">
+    <value>授权控制模式</value>
+  </data>
+  <data name="VmRAMSettings_DescSgxAuthMode" xml:space="preserve">
+    <value>设置 SGX 飞地的启动授权和运行验证模式</value>
+  </data>
+  <data name="VmRAMSettings_LabelSgxMemSize" xml:space="preserve">
+    <value>机密内存大小（MB）</value>
+  </data>
+  <data name="VmRAMSettings_DescSgxMemSize" xml:space="preserve">
+    <value>设置分配给 SGX 飞地的内存总量</value>
+  </data>
+  <data name="VmRAMSettings_LabelSgxMsrDefault" xml:space="preserve">
+    <value>MSR 运行控制默认值</value>
+  </data>
+  <data name="VmRAMSettings_DescSgxMsrDefault" xml:space="preserve">
+    <value>设置 SGX 处理器特定寄存器的初始值</value>
+  </data>
+  <data name="VmRAMSettings_PlaceholderSgxMsr" xml:space="preserve">
+    <value>64位十六进制字符串</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemOptimization" xml:space="preserve">
+    <value>内存优化</value>
+  </data>
+  <data name="VmRAMSettings_ToggleColdHint" xml:space="preserve">
+    <value>冷内存页提示</value>
+  </data>
+  <data name="VmRAMSettings_DescColdHint" xml:space="preserve">
+    <value>启用冷内存页提示</value>
+  </data>
+  <data name="VmRAMSettings_ToggleHotHint" xml:space="preserve">
+    <value>热内存页提示</value>
+  </data>
+  <data name="VmRAMSettings_DescHotHint" xml:space="preserve">
+    <value>启用热内存页提示</value>
+  </data>
+  <data name="VmRAMSettings_NeedVirtualBacking" xml:space="preserve">
+    <value>此功能需虚拟内存后端（请将上方“内存映射模式”设为“虚拟”）</value>
+  </data>
+  <data name="VmRAMSettings_LabelHugePages" xml:space="preserve">
+    <value>巨页内存</value>
+  </data>
+  <data name="VmRAMSettings_DescHugePages" xml:space="preserve">
+    <value>使用 1GB 大页作为虚拟机内存的后备页</value>
+  </data>
+  <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
+    <value>半虚拟化缺页处理（EPF）</value>
+  </data>
+  <data name="VmRAMSettings_DescEpf" xml:space="preserve">
+    <value>允许虚拟机系统使用半虚拟化缺页处理接口</value>
+  </data>
+  <data name="VmRAMSettings_ToggleCompressStore" xml:space="preserve">
+    <value>专用内存压缩存储</value>
+  </data>
+  <data name="VmRAMSettings_DescCompressStore" xml:space="preserve">
+    <value>为此虚拟机启用独立的内存压缩存储</value>
+  </data>
+  <data name="VmRAMSettings_LabelNumaBlockLimit" xml:space="preserve">
+    <value>每节点最大内存 (MB)</value>
+  </data>
+  <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
+    <value>单个虚拟 NUMA 节点的最大内存</value>
+  </data>
+  <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
+    <value>动态内存页对齐</value>
+  </data>
+  <data name="VmRAMSettings_DescDynMemStep" xml:space="preserve">
+    <value>增减动态内存时使用的页对齐方式</value>
+  </data>
+  <data name="VmRAMSettings_LabelCxlExtension" xml:space="preserve">
+    <value>CXL 内存</value>
+  </data>
+  <data name="VmRAMSettings_DescCxlExtension" xml:space="preserve">
+    <value>设置虚拟机是否启用 CXL 内存支持</value>
+  </data>
+  <data name="VmRAMSettings_ToggleCxlSupport" xml:space="preserve">
+    <value>CXL支持</value>
+  </data>
+  <data name="VmRAMSettings_TogglePhysicalPinning" xml:space="preserve">
+    <value>允许虚拟机固定 GPA 页面</value>
+  </data>
+  <data name="VmRAMSettings_DescGpaPinning" xml:space="preserve">
+    <value>允许使用 GPA 固定功能</value>
+  </data>
+  <data name="VmSpacetimeSettings_TitleMgmt" xml:space="preserve">
+    <value>时空管理</value>
+  </data>
+  <data name="VmSpacetimeSettings_LabelCheckpoint" xml:space="preserve">
+    <value>检查点</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnExportTopology" xml:space="preserve">
+    <value>导出拓扑图</value>
+  </data>
+  <data name="VmSpacetimeSettings_MsgSyncing" xml:space="preserve">
+    <value>同步中...</value>
+  </data>
+  <data name="VmSpacetimeSettings_LabelDetails" xml:space="preserve">
+    <value>时空详情</value>
+  </data>
+  <data name="VmSpacetimeSettings_MsgNoAnchor" xml:space="preserve">
+    <value>未选择锚点</value>
+  </data>
+  <data name="VmSpacetimeSettings_LabelAction" xml:space="preserve">
+    <value>操作</value>
+  </data>
+  <data name="VmSpacetimeSettings_TypeContinuous" xml:space="preserve">
+    <value>连续时空</value>
+  </data>
+  <data name="VmSpacetimeSettings_DescContinuous" xml:space="preserve">
+    <value>保存磁盘和内存状态</value>
+  </data>
+  <data name="VmSpacetimeSettings_TypeStatic" xml:space="preserve">
+    <value>静止时空</value>
+  </data>
+  <data name="VmSpacetimeSettings_DescStatic" xml:space="preserve">
+    <value>保存磁盘状态</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnCreate" xml:space="preserve">
+    <value>创建时空</value>
+  </data>
+  <data name="VmSpacetimeSettings_StateWormholeActive" xml:space="preserve">
+    <value>虫洞干涉中</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnCloseWormhole" xml:space="preserve">
+    <value>关闭虫洞</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnTravel" xml:space="preserve">
+    <value>穿梭</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnOpenWormhole" xml:space="preserve">
+    <value>开启虫洞</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnConverge" xml:space="preserve">
+    <value>时空收束</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnDelete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="VmSpacetimeSettings_DlgExportTitle" xml:space="preserve">
+    <value>导出时空拓扑图</value>
+  </data>
+  <data name="VmSpacetimeSettings_DlgExportFilter" xml:space="preserve">
+    <value>PNG 图片|*.png</value>
+  </data>
+  <data name="VmSpacetimeSettings_LogAbnormalDelta" xml:space="preserve">
+    <value>[DRAG] !!! 异常位移 delta=({0},{1}) 已丢弃</value>
+  </data>
+  <data name="VmStorageSettings_BtnOptimizeDisk" xml:space="preserve">
+    <value>优化磁盘</value>
+  </data>
+  <data name="Net_DefaultAdapterName" xml:space="preserve">
+    <value>网络适配器</value>
+  </data>
+  <data name="Error_Net_TemplateNotFound" xml:space="preserve">
+    <value>无法获取网络适配器模板</value>
+  </data>
+  <data name="Status_FastSaved" xml:space="preserve">
+    <value>快速保存</value>
+  </data>
+  <data name="Status_FastSaving" xml:space="preserve">
+    <value>快速保存中</value>
+  </data>
+  <data name="Status_ForceShutdown" xml:space="preserve">
+    <value>强制关机中</value>
+  </data>
+  <data name="Status_ForceReboot" xml:space="preserve">
+    <value>强制重启中</value>
+  </data>
+  <data name="Status_Hibernated" xml:space="preserve">
+    <value>已休眠</value>
+  </data>
+  <data name="Status_Msg_RestartRequired" xml:space="preserve">
+    <value>请先重启系统，再进行此操作。</value>
+  </data>
+  <data name="Error_VmCreate_NoSystemPath" xml:space="preserve">
+    <value>DefineSystem 未返回 VM 路径</value>
+  </data>
+  <data name="Error_VmCreate_NoGuid" xml:space="preserve">
+    <value>无法获取新建 VM 的 GUID</value>
+  </data>
+  <data name="Error_VmCreate_RollbackFailed" xml:space="preserve">
+    <value>创建失败，且未能自动删除半成品虚拟机「{0}」，请手动删除。（回滚错误：{1}）</value>
+  </data>
+  <data name="Error_VmCreate_ArtifactCleanupFailed" xml:space="preserve">
+    <value>创建回滚未能删除以下文件或目录，请手动清理：{0}</value>
+  </data>
+  <data name="VmAdvanced_Title" xml:space="preserve">
+    <value>高级</value>
+  </data>
+  <data name="VmAdvanced_Hint" xml:space="preserve">
+    <value>显示设置与高级参数</value>
+  </data>
+  <data name="VmDashboard_DescAdvanced" xml:space="preserve">
+    <value>高级</value>
+  </data>
+  <data name="VmDashboard_HintAdvanced" xml:space="preserve">
+    <value>显示设置与高级参数</value>
+  </data>
+  <data name="VmAdvanced_ResolutionTitle" xml:space="preserve">
+    <value>基本会话默认分辨率</value>
+  </data>
+  <data name="VmAdvanced_ResolutionHint" xml:space="preserve">
+    <value>默认、预设或手动输入，宽高不可为奇数。</value>
+  </data>
+  <data name="VmAdvanced_ResolutionAuto" xml:space="preserve">
+    <value>默认（自适应）</value>
+  </data>
+  <data name="VmAdvanced_Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="VmAdvanced_ResolutionInvalid" xml:space="preserve">
+    <value>请输入有效分辨率，如 1280 x 720</value>
+  </data>
+  <data name="VmAdvanced_ConsoleTitle" xml:space="preserve">
+    <value>控制台支持</value>
+  </data>
+  <data name="VmAdvanced_NumLockTitle" xml:space="preserve">
+    <value>开机时启用数字小键盘</value>
+  </data>
+  <data name="VmAdvanced_ConsoleHint" xml:space="preserve">
+    <value>仅第 2 代虚拟机有效。关闭后无法经控制台访问，适合串流/RDP 直连。</value>
+  </data>
+  <data name="VmAdvanced_ConsoleDisabledHint" xml:space="preserve">
+    <value>该虚拟机已禁用控制台支持，请经串流或 RDP 访问。</value>
+  </data>
+  <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
+    <value>无法获取或创建 UntrustedGuardian</value>
+  </data>
+  <data name="Error_VmCreate_NoKeyProtector" xml:space="preserve">
+    <value>无法生成本地 KeyProtector</value>
+  </data>
+  <data name="Error_VmCreate_NoSecuritySettings" xml:space="preserve">
+    <value>无法找到 VM 的 SecuritySettingData</value>
+  </data>
+  <data name="Error_VmCreate_NoSecurityService" xml:space="preserve">
+    <value>无法找到 Msvm_SecurityService</value>
+  </data>
+  <data name="Error_VmCreate_SetKeyProtectorFail" xml:space="preserve">
+    <value>SetKeyProtector 失败，返回码：{0}</value>
+  </data>
+  <data name="Error_VmCreate_ModifySecuritySettingsFail" xml:space="preserve">
+    <value>ModifySecuritySettings 失败，返回码：{0}</value>
+  </data>
+  <data name="Error_VmCreate_TpmJobFail" xml:space="preserve">
+    <value>TPM Job 失败，状态：{0}</value>
+  </data>
+  <data name="Msg_PCIe_ShuttingDownVm" xml:space="preserve">
+    <value>正在关闭虚拟机...</value>
+  </data>
+  <data name="Error_PCIe_CannotShutdownVm" xml:space="preserve">
+    <value>无法关闭虚拟机，操作终止。</value>
+  </data>
+  <data name="Label_VlanId" xml:space="preserve">
+    <value>VLAN ID</value>
+  </data>
+  <data name="Error_Gpu_PowerOffTimeout" xml:space="preserve">
+    <value>等待虚拟机关机超时。</value>
+  </data>
+  <data name="Msg_Gpu_LinuxDetected" xml:space="preserve">
+    <value>检测到 Linux 系统，正在跳转到 SSH 设置…</value>
+  </data>
+  <data name="Msg_Gpu_LinuxAutoPrep" xml:space="preserve">
+    <value>检测到单个 Linux 分区，正在自动准备环境…</value>
+  </data>
+  <data name="VmSecurity_Title" xml:space="preserve">
+    <value>安全</value>
+  </data>
+  <data name="VmSecurity_Hint" xml:space="preserve">
+    <value>安全启动与加密防护</value>
+  </data>
+  <data name="VmSecurity_SecureBoot" xml:space="preserve">
+    <value>安全启动</value>
+  </data>
+  <data name="VmSecurity_Encryption" xml:space="preserve">
+    <value>加密支持</value>
+  </data>
+  <data name="VmSecurity_SecureBootDesc" xml:space="preserve">
+    <value>帮助防止启动时运行未经授权的代码</value>
+  </data>
+  <data name="VmSecurity_TpmDesc" xml:space="preserve">
+    <value>可为虚拟机提供加密服务的受信任的平台模块</value>
+  </data>
+  <data name="VmSecurity_Template" xml:space="preserve">
+    <value>安全模板</value>
+  </data>
+  <data name="VmSecurity_EncryptMigration" xml:space="preserve">
+    <value>加密状态和虚拟机迁移流量</value>
+  </data>
+  <data name="VmSecurity_EncryptMigrationDesc" xml:space="preserve">
+    <value>加密虚拟机的保存状态与实时迁移流量</value>
+  </data>
+  <data name="VmSecurity_PolicySection" xml:space="preserve">
+    <value>安全策略</value>
+  </data>
+  <data name="VmSecurity_Shielding" xml:space="preserve">
+    <value>启用防护</value>
+  </data>
+  <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
+    <value>将虚拟机标记为受防护，会强制启用 TPM 与加密</value>
+  </data>
+  <data name="Log_Gpu_SelectedScript" xml:space="preserve">
+    <value>[信息] 已选脚本：{0}</value>
+  </data>
+  <data name="Log_Gpu_Syncing" xml:space="preserve">
+    <value>正在同步：{0} -&gt; {1}</value>
+  </data>
+  <data name="Log_Gpu_StartingVm" xml:space="preserve">
+    <value>[ExHyperV] 正在启动虚拟机…</value>
+  </data>
+  <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
+    <value>正在上传驱动与 WSL 库…</value>
+  </data>
+  <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
+    <value>正在虚拟机内下载远程脚本：{0}</value>
+  </data>
+  <data name="Log_Gpu_ExecutingAttempt" xml:space="preserve">
+    <value>[第 {0} 次] 正在执行脚本…</value>
+  </data>
+  <data name="Log_Gpu_RebootRequired" xml:space="preserve">
+    <value>需要重启虚拟机，正在重启…</value>
+  </data>
+  <data name="Log_Gpu_VmBackOnline" xml:space="preserve">
+    <value>虚拟机已恢复在线，继续部署…</value>
+  </data>
+  <data name="Error_Gpu_NoMac" xml:space="preserve">
+    <value>未能获取虚拟机 MAC 地址。</value>
+  </data>
+  <data name="Error_Gpu_NoIpv4" xml:space="preserve">
+    <value>未找到有效的 IPv4 地址。</value>
+  </data>
+  <data name="Msg_Gpu_Cancelled" xml:space="preserve">
+    <value>已取消</value>
+  </data>
+  <data name="Error_Gpu_RebootNoResponse" xml:space="preserve">
+    <value>虚拟机重启后未能恢复在线。</value>
+  </data>
+  <data name="Error_Gpu_ScriptNoSuccess" xml:space="preserve">
+    <value>脚本执行失败（未收到成功信号）。</value>
+  </data>
+  <data name="Error_Gpu_MaxReboots" xml:space="preserve">
+    <value>已达最大重启次数。</value>
+  </data>
+  <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
+    <value>错误：{0}</value>
+  </data>
+  <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
+    <value>虫洞开启中，需先关闭虫洞才能创建 / 删除 / 收束时空。</value>
+  </data>
+  <data name="Cpu_ApicMode" xml:space="preserve">
+    <value>APIC 模式</value>
+  </data>
+  <data name="Cpu_ApicModeDesc" xml:space="preserve">
+    <value>切换虚拟机的中断控制器模式，影响兼容性与可扩展性</value>
+  </data>
+  <data name="Cpu_L3CacheWays" xml:space="preserve">
+    <value>L3 缓存路数</value>
+  </data>
+  <data name="Cpu_L3CacheWaysDesc" xml:space="preserve">
+    <value>设置虚拟机可见的 L3 缓存路数</value>
+  </data>
+  <data name="Cpu_L3DistPolicy" xml:space="preserve">
+    <value>L3 处理器分布策略</value>
+  </data>
+  <data name="Cpu_L3DistPolicyDesc" xml:space="preserve">
+    <value>设置虚拟处理器在 L3 缓存域之间的分布方式</value>
+  </data>
+  <data name="Cpu_PageShatter" xml:space="preserve">
+    <value>大页拆分</value>
+  </data>
+  <data name="Cpu_PageShatterDesc" xml:space="preserve">
+    <value>设置二级地址转换中大内存页的拆分方式</value>
+  </data>
+  <data name="Cpu_IgnoreHostMaxFreq" xml:space="preserve">
+    <value>忽略主机频率上限</value>
+  </data>
+  <data name="Cpu_IgnoreHostMaxFreqDesc" xml:space="preserve">
+    <value>允许虚拟机 CPU 忽略主机设置的最高频率</value>
+  </data>
+  <data name="Cpu_PerfmonPmu" xml:space="preserve">
+    <value>暴露性能监控单元（PMU）</value>
+  </data>
+  <data name="Cpu_PerfmonPmuDesc" xml:space="preserve">
+    <value>允许虚拟机访问通用硬件性能计数器</value>
+  </data>
+  <data name="Cpu_PerfmonPmuRequired" xml:space="preserve">
+    <value>请先开启“暴露性能监控单元（PMU）”。</value>
+  </data>
+  <data name="Cpu_PerfmonPmuInUse" xml:space="preserve">
+    <value>请先关闭 PEBS 和 Intel PT，再关闭 PMU。</value>
+  </data>
+  <data name="Cpu_PerfmonLbr" xml:space="preserve">
+    <value>暴露最后分支记录（LBR）</value>
+  </data>
+  <data name="Cpu_PerfmonLbrDesc" xml:space="preserve">
+    <value>允许虚拟机读取最近执行的分支记录</value>
+  </data>
+  <data name="Cpu_PerfmonPebs" xml:space="preserve">
+    <value>暴露精确事件采样（PEBS）</value>
+  </data>
+  <data name="Cpu_PerfmonPebsDesc" xml:space="preserve">
+    <value>允许虚拟机采集精确的性能事件样本，需要同时开启 PMU</value>
+  </data>
+  <data name="Cpu_PerfmonIpt" xml:space="preserve">
+    <value>暴露处理器追踪（Intel PT）</value>
+  </data>
+  <data name="Cpu_PerfmonIptDesc" xml:space="preserve">
+    <value>允许虚拟机记录处理器指令执行流，需要同时开启 PMU</value>
+  </data>
+  <data name="Cpu_FreqCap" xml:space="preserve">
+    <value>频率上限 (MHz)</value>
+  </data>
+  <data name="Cpu_FreqCapDesc" xml:space="preserve">
+    <value>设置虚拟机 CPU 可使用的最高频率</value>
+  </data>
+  <data name="Cpu_FreqMin" xml:space="preserve">
+    <value>频率下限 (MHz)</value>
+  </data>
+  <data name="Cpu_FreqMinDesc" xml:space="preserve">
+    <value>设置虚拟机 CPU 可使用的最低频率</value>
+  </data>
+  <data name="Cpu_FreqDesired" xml:space="preserve">
+    <value>目标频率 (MHz)</value>
+  </data>
+  <data name="Cpu_FreqDesiredDesc" xml:space="preserve">
+    <value>设置虚拟机 CPU 的目标运行频率</value>
+  </data>
+  <data name="Cpu_Epp" xml:space="preserve">
+    <value>能效偏好 (EPP)</value>
+  </data>
+  <data name="Cpu_EppDesc" xml:space="preserve">
+    <value>设置虚拟机 CPU 在性能和能效之间的偏好</value>
+  </data>
+  <data name="Cpu_ActivityWindow" xml:space="preserve">
+    <value>自动调频窗口</value>
+  </data>
+  <data name="Cpu_ActivityWindowDesc" xml:space="preserve">
+    <value>设置虚拟机 CPU 自动调节频率时的活动评估窗口</value>
+  </data>
+  <data name="Cpu_ExtVirtExt" xml:space="preserve">
+    <value>硬件隔离扩展</value>
+  </data>
+  <data name="Cpu_ExtVirtExtDesc" xml:space="preserve">
+    <value>允许虚拟机向嵌套虚拟机暴露硬件隔离扩展</value>
+  </data>
+  <data name="Cpu_MaxHwIsoGuests" xml:space="preserve">
+    <value>最大硬件隔离子机数</value>
+  </data>
+  <data name="Cpu_MaxHwIsoGuestsDesc" xml:space="preserve">
+    <value>设置允许创建的嵌套硬件隔离虚拟机数量上限</value>
+  </data>
+  <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
+    <value>每插槽最大处理器簇数</value>
+  </data>
+  <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
+    <value>设置每个虚拟 CPU 插槽允许包含的最大处理器簇数</value>
+  </data>
+  <data name="Cpu_MaxProcPerL3" xml:space="preserve">
+    <value>每 L3 处理器数</value>
+  </data>
+  <data name="Cpu_MaxProcPerL3Desc" xml:space="preserve">
+    <value>设置每个虚拟 L3 缓存包含的最大虚拟处理器数</value>
+  </data>
+  <data name="CpuEnum_Apic_Default" xml:space="preserve">
+    <value>自动</value>
+  </data>
+  <data name="CpuEnum_Apic_Legacy" xml:space="preserve">
+    <value>xAPIC</value>
+  </data>
+  <data name="CpuEnum_Apic_X2Apic" xml:space="preserve">
+    <value>x2APIC</value>
+  </data>
+  <data name="CpuEnum_Apic_Apic" xml:space="preserve">
+    <value>APIC</value>
+  </data>
+  <data name="CpuEnum_L3_SmallToLarge" xml:space="preserve">
+    <value>由小到大</value>
+  </data>
+  <data name="CpuEnum_L3_LargeToSmall" xml:space="preserve">
+    <value>由大到小</value>
+  </data>
+  <data name="CpuEnum_L3_EvenSmallToLarge" xml:space="preserve">
+    <value>均匀·由小到大</value>
+  </data>
+  <data name="CpuEnum_L3_EvenLargeToSmall" xml:space="preserve">
+    <value>均匀·由大到小</value>
+  </data>
+  <data name="CpuEnum_Shatter_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="CpuEnum_Shatter_AlwaysEnabled" xml:space="preserve">
+    <value>始终启用</value>
+  </data>
+  <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
+    <value>始终禁用</value>
+  </data>
+  <data name="Gpu_StalePathTitle" xml:space="preserve">
+    <value>检测到 GPU 路径变化</value>
+  </data>
+  <data name="Gpu_StalePathMessage" xml:space="preserve">
+    <value>虚拟机「{0}」的 GPU 仍在主机上，但设备路径已变化，导致无法开机。
+
+是否更新指向并重试？</value>
+  </data>
+  <data name="Gpu_StaleRebindConfirm" xml:space="preserve">
+    <value>更新并重试</value>
+  </data>
+  <data name="Gpu_StaleTitle" xml:space="preserve">
+    <value>检测到失效的 GPU 分区</value>
+  </data>
+  <data name="Gpu_StaleMessage" xml:space="preserve">
+    <value>虚拟机「{0}」存在残缺的 GPU 分区，或分配的 GPU 在当前主机已不存在，导致无法开机。
+
+是否清除并重试？</value>
+  </data>
+  <data name="Gpu_StaleRemoveConfirm" xml:space="preserve">
+    <value>清除并重试</value>
+  </data>
+  <data name="Gpu_StaleRepairFail" xml:space="preserve">
+    <value>修复失效 GPU 分区失败。</value>
+  </data>
+  <data name="Gpu_StaleRebound" xml:space="preserve">
+    <value>已更新 {0} 个 GPU 指向，正在重试开机…</value>
+  </data>
+  <data name="Gpu_StaleRemovedMsg" xml:space="preserve">
+    <value>已清除 {0} 个失效 GPU 分区，正在重试开机…</value>
+  </data>
+  <data name="Gpu_StaleRepaired" xml:space="preserve">
+    <value>已修复 GPU 配置，正在重试开机…</value>
+  </data>
+  <data name="Storage_StaleDiskTitle" xml:space="preserve">
+    <value>检测到失效的物理磁盘</value>
+  </data>
+  <data name="Storage_StaleDiskMessage" xml:space="preserve">
+    <value>虚拟机「{0}」直通的物理磁盘（{1}）已被拔出或从主机移除，导致无法开机。
+
+是否将其从存储中移除并重试开机？取消则可重新插入设备后再试。</value>
+  </data>
+  <data name="Storage_StaleDiskConfirm" xml:space="preserve">
+    <value>移除并启动</value>
+  </data>
+  <data name="Storage_StaleDiskRemoved" xml:space="preserve">
+    <value>已移除 {0} 块失效物理磁盘，正在重试开机…</value>
+  </data>
+  <data name="Storage_StaleDiskRemoveFail" xml:space="preserve">
+    <value>移除失效物理磁盘失败。</value>
+  </data>
+  <data name="Storage_PhysicalDiskNumbered" xml:space="preserve">
+    <value>物理磁盘 {0}</value>
+  </data>
+  <data name="Storage_PhysicalDisk" xml:space="preserve">
+    <value>失效的存储介质</value>
+  </data>
+  <data name="VmDelete_DestroyVerifyFail" xml:space="preserve">
+    <value>引擎报成功但虚拟机 '{0}' 仍在册（可能是保存态/受 TPM 保护，未能彻底销毁）</value>
+  </data>
+  <data name="VmDelete_TurnOffFail" xml:space="preserve">
+    <value>虚拟机 '{0}' 未能进入关机状态</value>
+  </data>
+  <data name="VmDelete_CleanupFailed" xml:space="preserve">
+    <value>虚拟机已注销，但部分文件或目录未能删除。请检查权限或占用情况，再手动清理以下残留项：
+{0}</value>
+  </data>
+  <data name="VmDelete_UnregisterUnconfirmed" xml:space="preserve">
+    <value>无法确认虚拟机是否已注销，已保留可重新导入的恢复副本：{0}
+{1}</value>
+  </data>
+  <data name="VmDelete_ConfigRootMissing" xml:space="preserve">
+    <value>无法确定虚拟机“{0}”的配置目录，因此不能保留可重新导入的完整配置。</value>
+  </data>
+  <data name="VmDelete_RestoreFailed" xml:space="preserve">
+    <value>虚拟机已从引擎注销，但可重新导入的配置未能恢复。恢复副本：{0}
+{1}</value>
+  </data>
+  <data name="GpuRepair_VmcxNotFound" xml:space="preserve">
+    <value>找不到该虚拟机的 .vmcx 配置文件。</value>
+  </data>
+  <data name="GpuRepair_VmRunning" xml:space="preserve">
+    <value>虚拟机正在运行,请先关机再修复。</value>
+  </data>
+  <data name="GpuRepair_ValidationFailed" xml:space="preserve">
+    <value>修复后结构校验未通过:</value>
+  </data>
+  <data name="GpuRepair_RepairFailed" xml:space="preserve">
+    <value>修复失败:</value>
+  </data>
+  <data name="VmConsole_TemplateNotFound" xml:space="preserve">
+    <value>未找到默认模板: {0} {1}</value>
+  </data>
+  <data name="Vmcx_DllLoadFail" xml:space="preserve">
+    <value>无法加载 VmDataStore.dll(需在 Hyper-V 主机上运行)</value>
+  </data>
+  <data name="Vmcx_CurrentNullNode" xml:space="preserve">
+    <value>Current 返回空节点</value>
+  </data>
+  <data name="Vmcx_ManifestEntryNotFound" xml:space="preserve">
+    <value>未找到 instance={0} 的 manifest 条目</value>
+  </data>
+  <data name="Vmcx_ManifestSizeReadFail" xml:space="preserve">
+    <value>manifest/size 读取失败</value>
+  </data>
+  <data name="Vmcx_SizeMismatch" xml:space="preserve">
+    <value>size={0} 与实际 vdev 数 {1} 不符</value>
+  </data>
+  <data name="Vmcx_ManifestGap" xml:space="preserve">
+    <value>manifest 编号空洞: vdev{0}</value>
+  </data>
+  <data name="Vmcx_OrphanNode" xml:space="preserve">
+    <value>孤儿数据节点: /_{0}_ 有残留数据但无 manifest 条目(真孤儿,应清除)</value>
+  </data>
+  <data name="Vmcx_GhostDevice" xml:space="preserve">
+    <value>幽灵设备: manifest vdev{0:D3}(instance={1})数据节点{2}(应为功能设备却无数据)→ VM 将无法启动(应删此条目)</value>
+  </data>
+  <data name="Vmcx_GhostMissing" xml:space="preserve">
+    <value>缺失</value>
+  </data>
+  <data name="Vmcx_GhostEmpty" xml:space="preserve">
+    <value>为空</value>
+  </data>
+  <data name="Vmcx_IncompleteDda" xml:space="preserve">
+    <value>残缺 DDA 设备: vdev{0:D3}(instance={1})缺 HostResources/HostResource/Instance → VM 将无法启动</value>
+  </data>
+  <data name="Vmcx_IncompleteGpuPv" xml:space="preserve">
+    <value>残缺 GPU 分区: vdev{0:D3}(instance={1})缺 InstanceGuid 或 VDEVVersion → VM 将无法启动</value>
+  </data>
+  <data name="Vmcx_OpFailHr" xml:space="preserve">
+    <value>{0} 失败 hr=0x{1}</value>
+  </data>
+  <data name="HostPageViewModel_ComponentSeparator" xml:space="preserve">
+    <value>；</value>
+  </data>
+  <data name="Xaml_Quantity" xml:space="preserve">
+    <value>数量</value>
+  </data>
+  <data name="VmPage_InvalidQuantity" xml:space="preserve">
+    <value>数量必须是不小于 1 的整数。</value>
+  </data>
+  <data name="VmPage_BatchNewDiskOnly" xml:space="preserve">
+    <value>批量创建仅支持新建磁盘。</value>
+  </data>
+  <data name="VmPage_BatchExistingDiskHint" xml:space="preserve">
+    <value>多个虚拟机将创建属于自己的磁盘，并共享所选的磁盘。</value>
+  </data>
+  <data name="VmPage_CreatingBatch" xml:space="preserve">
+    <value>正在批量创建 {0} 台虚拟机…</value>
+  </data>
+  <data name="VmPage_BatchAllOk" xml:space="preserve">
+    <value>已成功创建 {0} 台虚拟机。</value>
+  </data>
+  <data name="VmPage_BatchPartial" xml:space="preserve">
+    <value>创建完成：成功 {0} 台，失败 {1} 台。</value>
+  </data>
+  <data name="VmPage_BatchStartFail" xml:space="preserve">
+    <value>（{0} 台启动失败）</value>
+  </data>
+  <data name="VmPage_MultiDeleteTitle" xml:space="preserve">
+    <value>删除虚拟机</value>
+  </data>
+  <data name="VmPage_MultiDeleteConfirm" xml:space="preserve">
+    <value>确定删除选中的 {0} 台虚拟机吗？完整配置和磁盘文件都会保留，以便之后重新导入。</value>
+  </data>
+  <data name="VmPage_MultiDeleteDone" xml:space="preserve">
+    <value>已删除 {0} 台虚拟机。</value>
+  </data>
+  <data name="VmPage_MultiDeleteFail" xml:space="preserve">
+    <value>已删除 {0} 台，{1} 台失败。</value>
+  </data>
+  <data name="VmPage_MultiPurgeConfirm" xml:space="preserve">
+    <value>确定彻底删除选中的 {0} 台虚拟机吗？其配置与磁盘文件将永久删除且无法恢复：</value>
+  </data>
+  <data name="VmPage_MultiPurgeDone" xml:space="preserve">
+    <value>已彻底删除 {0} 台虚拟机。</value>
+  </data>
+  <data name="VmPage_MultiPurgeFail" xml:space="preserve">
+    <value>已彻底删除 {0} 台，{1} 台失败。</value>
+  </data>
+  <data name="Cpu_MaxProcessorsPerNumaNode" xml:space="preserve">
+    <value>每个 NUMA 节点的最大处理器数</value>
+  </data>
+  <data name="Cpu_MaxProcessorsPerNumaNodeDesc" xml:space="preserve">
+    <value>控制虚拟处理器的 NUMA 分组大小</value>
+  </data>
+  <data name="Cpu_MaxNumaNodesPerSocket" xml:space="preserve">
+    <value>每个插槽的最大 NUMA 节点数</value>
+  </data>
+  <data name="Cpu_MaxNumaNodesPerSocketDesc" xml:space="preserve">
+    <value>控制虚拟 CPU 插槽包含的 NUMA 分组数</value>
+  </data>
+  <data name="Cpu_PhysicalAddressWidth" xml:space="preserve">
+    <value>虚拟机地址位数</value>
+  </data>
+  <data name="Cpu_PhysicalAddressWidthDesc" xml:space="preserve">
+    <value>设置虚拟机可见的物理地址宽度</value>
+  </data>
+  <data name="Cpu_LpiMode" xml:space="preserve">
+    <value>ARM64 设备中断模式（LPI）</value>
+  </data>
+  <data name="Cpu_LpiModeDesc" xml:space="preserve">
+    <value>设置虚拟机使用 LPI 接收设备中断的方式</value>
+  </data>
+  <data name="CpuEnum_Lpi_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="CpuEnum_Lpi_Disabled" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="CpuEnum_Lpi_Enabled" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="VmPcie_Title" xml:space="preserve">
+    <value>PCIe</value>
+  </data>
+  <data name="VmPcie_Hint" xml:space="preserve">
+    <value>PCIe 拓扑与设备功能</value>
+  </data>
+  <data name="VmPcie_SystemSection" xml:space="preserve">
+    <value>PCIe 呈现方式</value>
+  </data>
+  <data name="VmPcie_EmulationTitle" xml:space="preserve">
+    <value>PCIe 仿真</value>
+  </data>
+  <data name="VmPcie_EmulationDesc" xml:space="preserve">
+    <value>让设备以标准 PCIe 设备的方式出现在虚拟机中</value>
+  </data>
+  <data name="VmPcie_Irreversible" xml:space="preserve">
+    <value>启用后无法通过 Hyper-V 管理接口关闭</value>
+  </data>
+  <data name="VmPcie_Enabled" xml:space="preserve">
+    <value>已启用</value>
+  </data>
+  <data name="VmPcie_Enable" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="VmPcie_TopologyTitle" xml:space="preserve">
+    <value>PCIe 拓扑</value>
+  </data>
+  <data name="VmPcie_TopologyDesc" xml:space="preserve">
+    <value>呈现设备的 PCIe 拓扑结构</value>
+  </data>
+  <data name="VmPcie_TopologyDefault" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="VmPcie_TopologyHost" xml:space="preserve">
+    <value>仿照主机</value>
+  </data>
+  <data name="VmPcie_Apply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="VmPcie_BootSection" xml:space="preserve">
+    <value>启动</value>
+  </data>
+  <data name="VmPcie_BootTitle" xml:space="preserve">
+    <value>启动阶段 vPCI</value>
+  </data>
+  <data name="VmPcie_BootDesc" xml:space="preserve">
+    <value>在 UEFI 中加载 vPCI 驱动，以识别受支持的设备（NVMe、AziHsm）</value>
+  </data>
+  <data name="VmPcie_DevicesSection" xml:space="preserve">
+    <value>已分配的 PCIe 设备</value>
+  </data>
+  <data name="VmPcie_DeviceModeTitle" xml:space="preserve">
+    <value>设备呈现方式</value>
+  </data>
+  <data name="VmPcie_DeviceModeDesc" xml:space="preserve">
+    <value>选择 Hyper-V 专用通道或标准 PCIe 设备</value>
+  </data>
+  <data name="VmPcie_Paravirtualized" xml:space="preserve">
+    <value>半虚拟化</value>
+  </data>
+  <data name="VmPcie_Emulated" xml:space="preserve">
+    <value>仿真</value>
+  </data>
+  <data name="VmPcie_NoDevices" xml:space="preserve">
+    <value>没有已分配的 PCIe 设备</value>
+  </data>
+  <data name="VmPcie_ConfirmTitle" xml:space="preserve">
+    <value>警告：PCIe 仿真无法关闭</value>
+  </data>
+  <data name="VmPcie_ConfirmMessage" xml:space="preserve">
+    <value>PCIe 仿真启用后，无法通过 Hyper-V 管理接口关闭。是否继续？</value>
+  </data>
+  <data name="VmPcie_EmulationEnabledMessage" xml:space="preserve">
+    <value>已启用 PCIe 仿真</value>
+  </data>
+  <data name="VmPcie_AppliedMessage" xml:space="preserve">
+    <value>已应用 PCIe 设置</value>
+  </data>
+  <data name="VmPcie_SettingsNotFound" xml:space="preserve">
+    <value>未找到虚拟机设置。</value>
+  </data>
+  <data name="VmRAMSettings_MmioSection" xml:space="preserve">
+    <value>MMIO 空间</value>
+  </data>
+  <data name="VmRAMSettings_LowMmioSize" xml:space="preserve">
+    <value>32 位 MMIO 空间（MB）</value>
+  </data>
+  <data name="VmRAMSettings_LowMmioSizeDesc" xml:space="preserve">
+    <value>提供给 4 GB 以下的 PCIe 设备使用的空间大小</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioSize" xml:space="preserve">
+    <value>64 位 MMIO 空间（MB）</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioSizeDesc" xml:space="preserve">
+    <value>提供给 4 GB 以上的 PCIe 设备使用的空间大小</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioBase" xml:space="preserve">
+    <value>64 位 MMIO 空间起始位置（MB）</value>
+  </data>
+  <data name="Common_ClassListSeparator" xml:space="preserve">
+    <value>、</value>
+  </data>
+  <data name="PCIePage_ClassWithChildTypes" xml:space="preserve">
+    <value>{0}（包含：{1}）</value>
+  </data>
+  <data name="VmAdvanced_FullScsiTitle" xml:space="preserve">
+    <value>完整 SCSI 命令集</value>
+  </data>
+  <data name="VmAdvanced_FullScsiDesc" xml:space="preserve">
+    <value>允许虚拟机向挂载的物理磁盘发送未经筛选的 SCSI 命令</value>
+  </data>
+  <data name="VmAdvanced_BatteryTitle" xml:space="preserve">
+    <value>电池状态透传</value>
+  </data>
+  <data name="VmAdvanced_BatteryDesc" xml:space="preserve">
+    <value>允许虚拟机读取主机的电池状态和剩余电量</value>
+  </data>
+  <data name="VmAdvanced_LockOnDisconnectTitle" xml:space="preserve">
+    <value>断开时锁定</value>
+  </data>
+  <data name="VmAdvanced_LockOnDisconnectDesc" xml:space="preserve">
+    <value>断开虚拟机控制台时锁定虚拟机系统</value>
+  </data>
+  <data name="VmAdvanced_TurnOffOnGuestRestartTitle" xml:space="preserve">
+    <value>重启时改为关机</value>
+  </data>
+  <data name="VmAdvanced_TurnOffOnGuestRestartDesc" xml:space="preserve">
+    <value>虚拟机系统请求重启时，关闭虚拟机而不是重新启动</value>
+  </data>
+  <data name="VmAdvanced_HibernationTitle" xml:space="preserve">
+    <value>虚拟机休眠（S4）</value>
+  </data>
+  <data name="VmAdvanced_HibernationDesc" xml:space="preserve">
+    <value>允许虚拟机使用 S4 休眠和快速启动</value>
+  </data>
+  <data name="Label_CpuInstructionSetCapabilities" xml:space="preserve">
+    <value>指令集能力</value>
+  </data>
+  <data name="Label_CpuInterruptControl" xml:space="preserve">
+    <value>中断控制</value>
+  </data>
+  <data name="Label_CpuProcessorTopology" xml:space="preserve">
+    <value>处理器拓扑</value>
+  </data>
+  <data name="Label_CpuPerformanceMonitoring" xml:space="preserve">
+    <value>性能监控</value>
+  </data>
+  <data name="Label_CpuFrequencyControl" xml:space="preserve">
+    <value>频率调节</value>
+  </data>
+  <data name="Label_CpuMemoryAddressing" xml:space="preserve">
+    <value>寻址与分页</value>
+  </data>
+  <data name="Label_CpuSecurityIsolation" xml:space="preserve">
+    <value>安全隔离</value>
+  </data>
+  <data name="Label_MemoryMapping" xml:space="preserve">
+    <value>内存映射</value>
+  </data>
+  <data name="Label_MemoryPageManagement" xml:space="preserve">
+    <value>内存拓扑</value>
+  </data>
+  <data name="Label_MemoryHardwareExtensions" xml:space="preserve">
+    <value>硬件扩展</value>
+  </data>
+  <data name="Label_MemoryConfidentialComputing" xml:space="preserve">
+    <value>机密计算</value>
+  </data>
+  <data name="Xaml_OpenHclImage" xml:space="preserve">
+    <value>OpenHCL IGVM 镜像</value>
+  </data>
+  <data name="Xaml_Placeholder_OpenHclIgvm" xml:space="preserve">
+    <value>选择 OpenHCL IGVM 固件镜像</value>
+  </data>
+  <data name="VmPage_SelectOpenHclIgvm" xml:space="preserve">
+    <value>选择 OpenHCL IGVM 镜像</value>
+  </data>
+  <data name="VmPage_OpenHclIgvmFilter" xml:space="preserve">
+    <value>IGVM 固件镜像 (*.bin;*.igvm)|*.bin;*.igvm|所有文件 (*.*)|*.*</value>
+  </data>
+  <data name="VmPage_OpenHclIgvmRequired" xml:space="preserve">
+    <value>OpenHCL 需要有效的 IGVM 镜像文件。</value>
+  </data>
+  <data name="VmPage_OpenHclRequiresV12" xml:space="preserve">
+    <value>OpenHCL 要求虚拟机配置版本不低于 12.0。</value>
+  </data>
+  <data name="VmPage_DynMemAlignmentDisabled" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="Label_MemoryAccessTracking" xml:space="preserve">
+    <value>内存访问跟踪</value>
+  </data>
+  <data name="VmRAMSettings_DescMemAccessGranularity" xml:space="preserve">
+    <value>设置内存访问记录所采用的区域大小</value>
+  </data>
+  <data name="VmRAMSettings_MemTrackingDisabledHint" xml:space="preserve">
+    <value>请先开启内存访问跟踪</value>
+  </data>
+  <data name="VmRAMSettings_MemTrackingPerNodeHint" xml:space="preserve">
+    <value>当前使用各 NUMA 节点自己的跟踪粒度</value>
+  </data>
+  <data name="Error_VmPower_WorkerNotFound" xml:space="preserve">
+    <value>虚拟机未能关机，并且无法确定其工作进程。</value>
+  </data>
+  <data name="Error_VmPower_InvalidWorkerProcess" xml:space="preserve">
+    <value>拒绝终止进程 {0}：该进程不是 Hyper-V 虚拟机工作进程。</value>
+  </data>
+  <data name="Error_VmPower_TerminateWorkerFailed" xml:space="preserve">
+    <value>无法终止虚拟机“{0}”的 Hyper-V 工作进程：{1}</value>
+  </data>
+  <data name="Error_VmPower_StillNotOff" xml:space="preserve">
+    <value>已终止虚拟机“{0}”的工作进程，但虚拟机仍未进入关机状态。</value>
+  </data>
+  <data name="Menu_EnhancedSessionMode" xml:space="preserve">
+    <value>允许增强会话模式</value>
+  </data>
+  <data name="Menu_DefaultVirtualMachinePath" xml:space="preserve">
+    <value>默认虚拟机位置</value>
+  </data>
+  <data name="Menu_DefaultVirtualHardDiskPath" xml:space="preserve">
+    <value>默认虚拟硬盘位置</value>
+  </data>
+  <data name="HostPage_SelectDefaultVirtualMachinePath" xml:space="preserve">
+    <value>选择默认虚拟机位置</value>
+  </data>
+  <data name="HostPage_SelectDefaultVirtualHardDiskPath" xml:space="preserve">
+    <value>选择默认虚拟硬盘位置</value>
+  </data>
+  <data name="Menu_HostPowerPlan" xml:space="preserve">
+    <value>电源方案</value>
+  </data>
+  <data name="Error_Host_PowerPlanFail" xml:space="preserve">
+    <value>无法切换主机电源方案：{0}</value>
+  </data>
+  <data name="Menu_DynamicMacAddressRange" xml:space="preserve">
+    <value>动态 MAC 地址范围</value>
+  </data>
+  <data name="Error_Host_DynamicMacRangeInvalid" xml:space="preserve">
+    <value>请输入两个有效的 MAC 地址，每个地址须包含 12 位十六进制字符。</value>
+  </data>
+  <data name="Error_Host_DynamicMacRangeOrder" xml:space="preserve">
+    <value>起始地址不能大于结束地址。</value>
+  </data>
+  <data name="Msg_Host_DynamicMacRangeApplied" xml:space="preserve">
+    <value>动态 MAC 地址范围已应用</value>
+  </data>
+  <data name="Menu_VolumeAutoMount" xml:space="preserve">
+    <value>自动为新卷分配盘符</value>
+  </data>
+  <data name="Desc_VolumeAutoMount" xml:space="preserve">
+    <value>启用 Windows 自动挂载，为新接入的基本卷分配盘符</value>
+  </data>
+  <data name="Error_Host_AutoMountChangeFailed" xml:space="preserve">
+    <value>无法更改卷自动挂载状态：{0}</value>
+  </data>
+  <data name="Error_Host_AutoMountProcessStartFailed" xml:space="preserve">
+    <value>无法启动 Windows 卷挂载工具。</value>
+  </data>
+  <data name="Error_Host_AutoMountStateMismatch" xml:space="preserve">
+    <value>Windows 未应用请求的卷自动挂载状态。</value>
+  </data>
+  <data name="VmExport_Menu" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="VmExport_Title" xml:space="preserve">
+    <value>导出虚拟机</value>
+  </data>
+  <data name="VmExport_TargetsSection" xml:space="preserve">
+    <value>导出列表</value>
+  </data>
+  <data name="VmExport_Destination" xml:space="preserve">
+    <value>导出位置</value>
+  </data>
+  <data name="VmExport_SelectDestination" xml:space="preserve">
+    <value>选择导出位置</value>
+  </data>
+  <data name="VmExport_Content" xml:space="preserve">
+    <value>导出内容</value>
+  </data>
+  <data name="VmExport_Configuration" xml:space="preserve">
+    <value>包括虚拟机配置</value>
+  </data>
+  <data name="VmExport_ConfigurationDescription" xml:space="preserve">
+    <value>导出虚拟机的配置文件</value>
+  </data>
+  <data name="VmExport_VirtualHardDisks" xml:space="preserve">
+    <value>包括虚拟硬盘</value>
+  </data>
+  <data name="VmExport_VirtualHardDisksDescription" xml:space="preserve">
+    <value>导出虚拟机连接的虚拟硬盘</value>
+  </data>
+  <data name="VmExport_Checkpoints" xml:space="preserve">
+    <value>包括检查点</value>
+  </data>
+  <data name="VmExport_CheckpointsDescription" xml:space="preserve">
+    <value>导出虚拟机的检查点</value>
+  </data>
+  <data name="VmExport_CheckpointModeAll" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="VmExport_CheckpointModeSingle" xml:space="preserve">
+    <value>单个</value>
+  </data>
+  <data name="VmExport_CheckpointDateFormat" xml:space="preserve">
+    <value>yyyy年M月d日 HH:mm</value>
+  </data>
+  <data name="VmExport_RuntimeState" xml:space="preserve">
+    <value>包括运行状态</value>
+  </data>
+  <data name="VmExport_RuntimeStateDescription" xml:space="preserve">
+    <value>导出虚拟机的保存状态，导入后可继续运行</value>
+  </data>
+  <data name="VmExport_Start" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="VmExport_Preparing" xml:space="preserve">
+    <value>正在准备导出……</value>
+  </data>
+  <data name="VmExport_Progress" xml:space="preserve">
+    <value>正在导出……{0}%</value>
+  </data>
+  <data name="VmExport_Completed" xml:space="preserve">
+    <value>导出完成</value>
+  </data>
+  <data name="VmExport_Failed" xml:space="preserve">
+    <value>导出失败：{0}</value>
+  </data>
+  <data name="VmExport_PathRequired" xml:space="preserve">
+    <value>请选择有效的导出位置。</value>
+  </data>
+  <data name="VmExport_TargetExists" xml:space="preserve">
+    <value>所选位置已经存在名为“{0}”的目录。</value>
+  </data>
+  <data name="VmExport_ConfigurationMissing" xml:space="preserve">
+    <value>Hyper-V 已完成虚拟机“{0}”（{1}）的导出，但未找到与其 ID 对应的当前配置文件，导出内容不完整。</value>
+  </data>
+  <data name="VmExport_ExportDirectoryMissing" xml:space="preserve">
+    <value>导出的虚拟机目录不存在。</value>
+  </data>
+  <data name="VmExport_PackageExists" xml:space="preserve">
+    <value>所选位置已经存在名为“{0}”的 ZIP 文件。</value>
+  </data>
+  <data name="VmExport_DiskSelectionCheckpointsConflict" xml:space="preserve">
+    <value>导出检查点时必须包括全部虚拟硬盘。</value>
+  </data>
+  <data name="VmExport_SelectDisksUnsupported" xml:space="preserve">
+    <value>当前系统不支持选择性导出虚拟硬盘。</value>
+  </data>
+  <data name="VmExport_CheckpointSelectionRequired" xml:space="preserve">
+    <value>请选择要导出的检查点。</value>
+  </data>
+  <data name="VmExport_CheckpointUnavailable" xml:space="preserve">
+    <value>所选检查点已不存在，或不属于这台虚拟机。</value>
+  </data>
+  <data name="VmExport_CheckpointSelectionUnsupported" xml:space="preserve">
+    <value>当前系统不支持导出指定的检查点。</value>
+  </data>
+  <data name="VmExport_PackageSection" xml:space="preserve">
+    <value>打包</value>
+  </data>
+  <data name="VmExport_CreatePackage" xml:space="preserve">
+    <value>打包选项</value>
+  </data>
+  <data name="VmExport_CreatePackageDescription" xml:space="preserve">
+    <value>将导出内容保存为单个 ZIP 文件</value>
+  </data>
+  <data name="VmExport_PackageStore" xml:space="preserve">
+    <value>存储（快）</value>
+  </data>
+  <data name="VmExport_PackageCompress" xml:space="preserve">
+    <value>压缩（慢）</value>
+  </data>
+  <data name="VmExport_PackageProgress" xml:space="preserve">
+    <value>正在打包… {0}%</value>
+  </data>
+  <data name="VmExport_PackageCompressing" xml:space="preserve">
+    <value>正在压缩 ZIP…</value>
+  </data>
+  <data name="VmExport_PackageStoring" xml:space="preserve">
+    <value>正在写入 ZIP…</value>
+  </data>
+  <data name="VmExport_PackageValidating" xml:space="preserve">
+    <value>正在校验 ZIP…</value>
+  </data>
+  <data name="VmExport_PackageFailed" xml:space="preserve">
+    <value>打包失败：{0}</value>
+  </data>
+  <data name="VmExport_PackageCleanupWarning" xml:space="preserve">
+    <value>ZIP 文件已创建，但无法删除原导出文件夹：{0}</value>
+  </data>
+  <data name="VmExport_PackageFileName" xml:space="preserve">
+    <value>ZIP 文件名</value>
+  </data>
+  <data name="VmExport_PackageFileNameInvalid" xml:space="preserve">
+    <value>请输入有效的 ZIP 文件名。</value>
+  </data>
+  <data name="VmExport_PackageValidationFailed" xml:space="preserve">
+    <value>ZIP 完整性校验失败，原始导出文件已保留。</value>
+  </data>
+  <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
+    <value>WMI 类“{0}”无法创建实例。</value>
+  </data>
+  <data name="VmImport_Menu" xml:space="preserve"><value>导入虚拟机</value></data>
+  <data name="VmImport_Title" xml:space="preserve"><value>导入虚拟机</value></data>
+  <data name="VmImport_Source" xml:space="preserve"><value>来源</value></data>
+  <data name="VmImport_SourceFolder" xml:space="preserve"><value>文件夹</value></data>
+  <data name="VmImport_SourceArchive" xml:space="preserve"><value>ZIP</value></data>
+  <data name="VmImport_ZipHint" xml:space="preserve"><value>预览会直接读取 ZIP 中的配置与虚拟硬盘元数据；开始导入后才会完整解压。</value></data>
+  <data name="VmImport_Placement" xml:space="preserve"><value>导入方式</value></data>
+  <data name="VmImport_HostDirectories" xml:space="preserve"><value>导入主机目录</value></data>
+  <data name="VmImport_HostDirectoriesDescription" xml:space="preserve"><value>将配置文件和虚拟硬盘复制到主机目录，然后注册虚拟机。</value></data>
+  <data name="VmImport_ExistingDirectory" xml:space="preserve"><value>使用现有目录</value></data>
+  <data name="VmImport_ExistingDirectoryDescription" xml:space="preserve"><value>使用选择的目录注册虚拟机。</value></data>
+  <data name="VmImport_Preview" xml:space="preserve"><value>导入预览</value></data>
+  <data name="VmImport_Name" xml:space="preserve"><value>名称</value></data>
+  <data name="VmImport_Guid" xml:space="preserve"><value>虚拟机 GUID</value></data>
+  <data name="VmImport_GuidRegenerated" xml:space="preserve"><value>已生成新的 GUID</value></data>
+  <data name="VmImport_Generation" xml:space="preserve"><value>代数</value></data>
+  <data name="VmImport_GenerationFormat" xml:space="preserve"><value>第 {0} 代</value></data>
+  <data name="VmImport_ConfigurationVersion" xml:space="preserve"><value>配置版本</value></data>
+  <data name="VmImport_Processor" xml:space="preserve"><value>虚拟处理器</value></data>
+  <data name="VmImport_Memory" xml:space="preserve"><value>内存</value></data>
+  <data name="VmImport_Created" xml:space="preserve"><value>创建时间</value></data>
+  <data name="VmImport_SavedState" xml:space="preserve"><value>保存状态</value></data>
+  <data name="VmImport_Yes" xml:space="preserve"><value>有</value></data>
+  <data name="VmImport_No" xml:space="preserve"><value>无</value></data>
+  <data name="VmImport_Disks" xml:space="preserve"><value>虚拟硬盘</value></data>
+  <data name="VmImport_Networks" xml:space="preserve"><value>网络适配器</value></data>
+  <data name="VmImport_Checkpoints" xml:space="preserve"><value>检查点</value></data>
+  <data name="VmImport_CountFormat" xml:space="preserve"><value> · {0}</value></data>
+  <data name="VmImport_Slot" xml:space="preserve"><value>控制器</value></data>
+  <data name="VmImport_Format" xml:space="preserve"><value>格式</value></data>
+  <data name="VmImport_CapacityUsage" xml:space="preserve"><value>容量 / 占用</value></data>
+  <data name="VmImport_OriginalSwitch" xml:space="preserve"><value>原交换机：{0}</value></data>
+  <data name="VmImport_Disconnected" xml:space="preserve"><value>未连接</value></data>
+  <data name="VmImport_Issues" xml:space="preserve"><value>兼容性问题</value></data>
+  <data name="VmImport_Start" xml:space="preserve"><value>导入</value></data>
+  <data name="VmImport_PreparingPreview" xml:space="preserve"><value>正在解析并校验虚拟机…</value></data>
+  <data name="VmImport_PreparingPreviewBatch" xml:space="preserve"><value>正在解析并校验虚拟机（{0}/{1}）…</value></data>
+  <data name="VmImport_PreparingFiles" xml:space="preserve"><value>正在导入虚拟机…</value></data>
+  <data name="VmImport_Validating" xml:space="preserve"><value>正在校验虚拟机…</value></data>
+  <data name="VmImport_Importing" xml:space="preserve"><value>正在注册虚拟机…</value></data>
+  <data name="VmImport_BatchStatusFormat" xml:space="preserve"><value>[{2}/{3}] {0}：{1}…</value></data>
+  <data name="VmImport_Failed" xml:space="preserve"><value>导入失败</value></data>
+  <data name="VmImport_PartialCompleted" xml:space="preserve"><value>已导入 {0}/{1} 台虚拟机，导入已停止。</value></data>
+  <data name="VmImport_PartialFailure" xml:space="preserve"><value>已导入 {0}/{1} 台虚拟机；导入“{2}”时失败：{3}</value></data>
+  <data name="VmImport_Completed" xml:space="preserve"><value>导入完成</value></data>
+  <data name="VmImport_Success" xml:space="preserve"><value>已导入虚拟机“{0}”。</value></data>
+  <data name="VmImport_SelectFolder" xml:space="preserve"><value>选择虚拟机导出文件夹</value></data>
+  <data name="VmImport_SelectZip" xml:space="preserve"><value>选择虚拟机导出包</value></data>
+  <data name="VmImport_ZipFilter" xml:space="preserve"><value>ZIP 文件 (*.zip)|*.zip</value></data>
+  <data name="VmImport_DiskFixed" xml:space="preserve"><value>固定</value></data>
+  <data name="VmImport_DiskDynamic" xml:space="preserve"><value>动态</value></data>
+  <data name="VmImport_DiskDifferencing" xml:space="preserve"><value>差分</value></data>
+  <data name="VmImport_StaticMemoryFormat" xml:space="preserve"><value>{0:N0} MB</value></data>
+  <data name="VmImport_DynamicMemoryFormat" xml:space="preserve"><value>{0:N0} MB（{1:N0}–{2:N0} MB）</value></data>
+  <data name="VmImport_NetworkAdapter" xml:space="preserve"><value>网络适配器</value></data>
+  <data name="VmImport_ProcessorMemoryFormat" xml:space="preserve"><value>{0} 核 / {1:0.#} GB</value></data>
+  <data name="Network_Applying" xml:space="preserve"><value>正在应用网络配置…</value></data>
+  <data name="Network_StateUnknown" xml:space="preserve"><value>无法确认网络状态：</value></data>
+  <data name="Network_UplinkConfigured" xml:space="preserve"><value>已配置上游：{0}</value></data>
+  <data name="Network_HotspotConflict" xml:space="preserve"><value>移动热点已开启或正在切换状态。请自行在 Windows 设置中关闭移动热点，再重试 NAT 配置。</value></data>
+  <data name="Network_HotspotUnknown" xml:space="preserve"><value>无法检查移动热点状态，尚未修改交换机：{0}</value></data>
+  <data name="Network_UpstreamMissing" xml:space="preserve"><value>所选网络适配器已不可用，请刷新后重新选择。</value></data>
+  <data name="Network_Restored" xml:space="preserve"><value>配置失败：{0}。已恢复原配置。</value></data>
+  <data name="Network_RestoreFailed" xml:space="preserve"><value>配置失败：{0}。恢复原配置也失败：{1}。网络可能处于部分配置状态，请检查当前状态。</value></data>
+  <data name="VmGroup_Create" xml:space="preserve"><value>新建分组</value></data>
+  <data name="VmGroup_Name" xml:space="preserve"><value>分组名称</value></data>
+  <data name="VmGroup_Delete" xml:space="preserve"><value>删除分组</value></data>
+  <data name="VmGroup_DeleteConfirm" xml:space="preserve"><value>删除“{0}”？它会从所有父组中移除，虚拟机和子组会保留，不删除任何文件。</value></data>
+  <data name="VmGroup_LoadFailed" xml:space="preserve"><value>无法读取原生分组。</value></data>
+  <data name="VmGroup_NoLongerExists" xml:space="preserve"><value>分组已不存在，请刷新后重试。</value></data>
+  <data name="VmGroup_OnlyVms" xml:space="preserve"><value>虚拟机组只能包含虚拟机。</value></data>
+  <data name="VmGroup_Cycle" xml:space="preserve"><value>该关系会形成循环，或不符合分组类型。</value></data>
+  <data name="VmGroup_VerifyFailed" xml:space="preserve"><value>未能确认分组状态，请刷新后重试。</value></data>
+  <data name="VmGroup_InvalidImportReference" xml:space="preserve"><value>无法核实缺失的分组引用，已停止导入。</value></data>
+  <data name="VmGroup_ImportRemoved" xml:space="preserve"><value>已清除 {0} 条失效的分组关系，仍存在的分组关系已保留。</value></data>
+  <data name="VmGroup_ImportCleanupDeferred" xml:space="preserve"><value>无法确认 Hyper-V 任务已结束，或待导入对象是否已移除。已停止自动清理并保留相关文件，请检查以下对象和路径后再重试：
+{0}</value></data>
+  <data name="HostPage_PreferencesTab" xml:space="preserve"><value>偏好</value></data>
+  <data name="Preferences_PowerAction" xml:space="preserve"><value>默认电源按钮动作</value></data>
+  <data name="Preferences_AutoOpenConsole" xml:space="preserve"><value>启动虚拟机后打开控制台</value></data>
+  <data name="Preferences_Save" xml:space="preserve"><value>保存</value></data>
+  <data name="Preferences_SaveFailed" xml:space="preserve"><value>无法保存偏好，已恢复为已保存的设置。</value></data>
+  <data name="VmGroup_RecoveryFailed" xml:space="preserve"><value>操作失败，原有分组关系未能完全恢复。请刷新并检查分组后再重试。</value></data>
+  <data name="ConsoleWindow_MoreActions" xml:space="preserve"><value>更多操作</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>打开 ExHyperV</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>退出</value></data>
+  <data name="Network_PortStateUnavailable" xml:space="preserve"><value>无法读取端口配置，请刷新后重试。</value></data>
+  <data name="Gpu_ConfirmPowerOff" xml:space="preserve"><value>部署 GPU 驱动需要关闭虚拟机。现在强制关机吗？来宾中未保存的数据可能丢失。</value></data>
+  <data name="Gpu_ConfirmWindowsInstall" xml:space="preserve"><value>要向 {0} 安装 GPU 驱动吗？这会写入所选 Windows 分区。</value></data>
+  <data name="Gpu_ConfirmLinuxStart" xml:space="preserve"><value>要启动此虚拟机，以便通过 SSH 继续安装 GPU 驱动吗？</value></data>
+  <data name="Gpu_DecisionExpired" xml:space="preserve"><value>此操作不适用于当前部署状态。请读取最新状态后重试。</value></data>
+  <data name="Gpu_InvalidPartition" xml:space="preserve"><value>所选分区不可用、已经变化，或不是支持的 Windows/Linux 系统分区。</value></data>
+  <data name="Gpu_InvalidSshPort" xml:space="preserve"><value>SSH 端口必须介于 1 和 65535 之间。</value></data>
+  <data name="Gpu_CleanupRequired" xml:space="preserve"><value>无法移除本次部署新增的 GPU 分配。请重试清理后再开始新的部署。</value></data>
+  <data name="ConsoleWindow_FrameStatistics" xml:space="preserve"><value>帧率统计</value></data>
+  <data name="ConsoleWindow_FrameStatisticsHint" xml:space="preserve"><value>切换接收帧率与窗口位图更新帧率。最大间隔和 ≥50 ms 间隔次数统计最近 5 秒，也包含仍在持续的间隔；静止画面更新少是正常现象。这不是显示器或远程桌面链路的实际帧率。</value></data>
+  <data name="ConsoleWindow_FrameStatisticsFormat" xml:space="preserve"><value>更新 {0:F1} FPS · 接收 {1:F1} FPS
+5秒最大 {2:F1} ms · ≥50 ms {3} 次</value></data>
+  <data name="PCIePage_Msg_ConfirmMmioUpdate" xml:space="preserve">
+    <value>更新 MMIO 会关闭虚拟机“{0}”。如果宿主没有已保存的上限，还会修改 MMIO 配置并启停虚拟机进行探测。结束后虚拟机保持关机；之后拒绝其他设备确认，不会撤销这些修改。是否继续？</value>
+  </data>
+</root>

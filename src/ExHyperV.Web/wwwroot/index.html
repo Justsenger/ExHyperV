@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ExHyperV.Web</title>
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="app-header"><strong>ExHyperV<span>.Web</span></strong><span class="local"><i></i>本机控制台</span></header>
+  <div class="workspace">
+    <aside>
+      <div class="list-heading"><h1>虚拟机 <small id="count">—</small></h1><button id="refresh" title="刷新列表" aria-label="刷新列表">↻</button></div>
+      <input id="search" type="search" placeholder="搜索虚拟机" aria-label="搜索虚拟机" autocomplete="off">
+      <div id="list-status" role="status">正在读取虚拟机…</div>
+      <nav id="vm-list" aria-label="虚拟机列表"></nav>
+      <footer>仅提供列表与控制台</footer>
+    </aside>
+    <main>
+      <div class="console-toolbar">
+        <div class="selected"><strong id="vm-name">控制台</strong><span id="connection-status" role="status">未连接</span></div>
+        <div class="actions">
+          <select id="mode" aria-label="连接方式" disabled><option value="">正在读取连接方式…</option></select>
+          <select id="quality" aria-label="传输画质" title="编码目标上限；实际码率随画面及网络变化">
+            <option value="low">节省 · 720p30 / 2 Mbps</option>
+            <option value="balanced">均衡 · 1080p60 / 4 Mbps</option>
+            <option value="high" selected>清晰 · 1080p60 / 8 Mbps</option>
+          </select>
+          <button id="connect" disabled>连接</button><button id="disconnect" disabled>断开</button>
+          <button id="cad" disabled title="发送到来宾">Ctrl + Alt + Del</button>
+          <label class="fps-toggle"><input id="show-stats" type="checkbox" checked>FPS</label>
+          <button id="fullscreen" aria-label="全屏显示控制台" title="全屏">⛶</button>
+        </div>
+      </div>
+      <section id="viewport" aria-label="虚拟机控制台">
+        <div id="canvas-container"></div>
+        <div id="placeholder"><div class="empty-icon">▣</div><h2>选择一台虚拟机</h2><p>点击左侧正在运行的虚拟机，连接它的控制台。</p></div>
+        <output id="stats" hidden>等待画面</output>
+        <div id="notice" hidden role="alert"></div>
+      </section>
+      <div class="console-footer"><span id="resolution">—</span><span>点击画面后输入 · Esc 退出全屏 · 失去焦点时释放按键</span></div>
+    </main>
+  </div>
+</body>
+</html>

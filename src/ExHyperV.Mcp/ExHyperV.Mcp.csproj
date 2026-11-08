@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Version>2.0.0-Alpha</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../ExHyperV.Core/ExHyperV.Core.csproj" AdditionalProperties="GenerateDocumentationFile=true" />
+    <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.3.0" />
+    <PackageReference Include="ModelContextProtocol.Extensions.Tasks" Version="2.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../ExHyperV.Core/API.md" LogicalName="Core.API.md" />
+    <EmbeddedResource Include="Api/Contracts.sha256" LogicalName="Core.Contracts.sha256" Condition="Exists('Api/Contracts.sha256')" />
+    <InternalsVisibleTo Include="ExHyperV.Mcp.Tests" />
+    <None Update="README.md;THIRD-PARTY-NOTICES.txt;licenses/**/*" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

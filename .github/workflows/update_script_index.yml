@@ -1,0 +1,53 @@
+name: Generate Script Index
+on:
+  push:
+    branches: ['2.0.0']
+    paths:
+      - 'src/ExHyperV.Core/Linux/script/*.sh'
+  workflow_dispatch:
+
+jobs:
+  build:
+    if: github.repository == 'Justsenger/ExHyperV' && github.ref == 'refs/heads/2.0.0'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate JSON
+        run: |
+          cd src/ExHyperV.Core/Linux/script
+          export LANG=C.UTF-8
+          export LC_ALL=C.UTF-8
+          echo "[]" > index.json
+          
+          for f in *.sh; do
+            if [ ! -f "$f" ] || [ "$f" == "index.json" ] || ! grep -q "@Name:" "$f"; then
+              continue
+            fi
+            
+            NAME=$(sed -n 's/^# @Name:[[:space:]]*//p' "$f" | tr -d '\r')
+            DESC=$(sed -n 's/^# @Description:[[:space:]]*//p' "$f" | tr -d '\r')
+            AUTH=$(sed -n 's/^# @Author:[[:space:]]*//p' "$f" | tr -d '\r')
+            VERS=$(sed -n 's/^# @Version:[[:space:]]*//p' "$f" | tr -d '\r')
+            
+            jq --arg fn "$f" \
+               --arg nm "${NAME:-$f}" \
+               --arg ds "${DESC:-}" \
+               --arg au "${AUTH:-Justsenger}" \
+               --arg ve "${VERS:-1.0.0}" \
+               '. += [{FileName: $fn, Name: $nm, Description: $ds, Author: $au, Version: $ve}]' \
+               index.json > index.tmp.json && mv index.tmp.json index.json
+          done
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/ExHyperV.Core/Linux/script/index.json
+          git commit -m "Auto-update script index.json" || exit 0
+          git pull --rebase origin 2.0.0
+          git push origin HEAD:refs/heads/2.0.0

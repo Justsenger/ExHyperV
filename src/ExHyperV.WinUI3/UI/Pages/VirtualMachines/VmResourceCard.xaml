@@ -1,0 +1,54 @@
+<UserControl x:Class="ExHyperV.WinUI3.UI.Pages.VirtualMachines.VmResourceCard"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <Border Background="{ThemeResource VmCardBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1" CornerRadius="4">
+  <StackPanel>
+   <Grid PointerEntered="OnHeaderPointerEntered" PointerExited="OnHeaderPointerExited">
+   <ToggleButton x:Name="HeaderButton" Click="OnToggle" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" BorderThickness="0" Background="Transparent" Padding="14,16,62,16" AutomationProperties.Name="展开或收起" AutomationProperties.ItemStatus="已收起" AutomationProperties.HelpText="激活可展开详细信息">
+    <ToggleButton.Template>
+     <ControlTemplate TargetType="ToggleButton">
+      <Border x:Name="HeaderSurface" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="4">
+       <VisualStateManager.VisualStateGroups>
+        <VisualStateGroup x:Name="CommonStates">
+         <VisualState x:Name="Normal"/>
+         <VisualState x:Name="PointerOver"><VisualState.Setters><Setter Target="HeaderSurface.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}"/></VisualState.Setters></VisualState>
+         <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="HeaderSurface.Background" Value="{ThemeResource SubtleFillColorTertiaryBrush}"/></VisualState.Setters></VisualState>
+         <VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="HeaderPresenter.Opacity" Value="0.4"/></VisualState.Setters></VisualState>
+         <VisualState x:Name="Checked"><VisualState.Setters><Setter Target="HeaderSurface.Background" Value="{ThemeResource VmHeaderCheckedBrush}"/><Setter Target="HeaderPresenter.Foreground" Value="{ThemeResource VmHeaderForegroundBrush}"/></VisualState.Setters></VisualState>
+         <VisualState x:Name="CheckedPointerOver"><VisualState.Setters><Setter Target="HeaderSurface.Background" Value="{ThemeResource VmHeaderCheckedHoverBrush}"/><Setter Target="HeaderPresenter.Foreground" Value="{ThemeResource VmHeaderForegroundBrush}"/></VisualState.Setters></VisualState>
+         <VisualState x:Name="CheckedPressed"><VisualState.Setters><Setter Target="HeaderSurface.Background" Value="{ThemeResource VmHeaderCheckedPressedBrush}"/><Setter Target="HeaderPresenter.Foreground" Value="{ThemeResource VmHeaderForegroundBrush}"/></VisualState.Setters></VisualState>
+         <VisualState x:Name="CheckedDisabled"><VisualState.Setters><Setter Target="HeaderPresenter.Opacity" Value="0.4"/><Setter Target="HeaderSurface.Background" Value="{ThemeResource VmHeaderCheckedBrush}"/><Setter Target="HeaderPresenter.Foreground" Value="{ThemeResource VmHeaderForegroundBrush}"/></VisualState.Setters></VisualState>
+        </VisualStateGroup>
+       </VisualStateManager.VisualStateGroups>
+       <ContentPresenter x:Name="HeaderPresenter" Foreground="{TemplateBinding Foreground}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
+      </Border>
+     </ControlTemplate>
+    </ToggleButton.Template>
+    <Grid>
+     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/></Grid.ColumnDefinitions>
+     <Grid MinHeight="38" Margin="8,0,12,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+       <FontIcon x:Name="Icon" FontFamily="Segoe Fluent Icons" FontSize="24" Margin="-5,0,12,0"/>
+       <StackPanel VerticalAlignment="Center" Spacing="2"><TextBlock x:Name="Heading" FontSize="16"/><TextBlock x:Name="DescriptionText" FontSize="12" Opacity="0.6"/></StackPanel>
+      </StackPanel>
+      <StackPanel x:Name="ValuePanel" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+       <TextBlock x:Name="ValueText" FontSize="20" FontWeight="Light" VerticalAlignment="Bottom"/>
+       <TextBlock x:Name="UnitText" FontSize="14" Opacity="0.8" Margin="2,0,0,3" VerticalAlignment="Bottom"/>
+       <StackPanel x:Name="SecondValuePanel" Orientation="Horizontal" Visibility="Collapsed">
+        <TextBlock x:Name="ValueSeparator" Text="/" FontSize="20" FontWeight="Light" Opacity="0.4" Margin="8,0,8,0" VerticalAlignment="Bottom" Visibility="Collapsed"/>
+        <TextBlock x:Name="SecondValueText" FontSize="20" FontWeight="Light" VerticalAlignment="Bottom"/>
+        <TextBlock x:Name="SecondUnitText" FontSize="14" Opacity="0.8" Margin="2,0,0,3" VerticalAlignment="Bottom"/>
+       </StackPanel>
+      </StackPanel>
+     </Grid>
+     <FontIcon x:Name="Chevron" Grid.Column="1" Glyph="&#xF2A4;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular" FontSize="16" RenderTransformOrigin="0.5,0.5"><FontIcon.RenderTransform><RotateTransform x:Name="ChevronRotation"/></FontIcon.RenderTransform></FontIcon>
+    </Grid>
+   </ToggleButton>
+   <Button x:Name="SettingsButton" Style="{StaticResource RoundIconButtonStyle}" HorizontalAlignment="Right" Margin="0,0,14,0" Click="OnSettingsClick" PointerEntered="OnGearPointerEntered" PointerExited="OnGearPointerExited">
+    <FontIcon Style="{StaticResource SettingsGearIconStyle}"/>
+   </Button>
+   </Grid>
+   <Border x:Name="DetailBorder" Visibility="Collapsed" Padding="9,11,9,11"><ContentControl x:Name="DetailHost" HorizontalContentAlignment="Stretch"/></Border>
+  </StackPanel>
+ </Border>
+</UserControl>

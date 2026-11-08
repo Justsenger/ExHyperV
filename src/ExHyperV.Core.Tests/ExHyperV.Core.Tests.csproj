@@ -1,0 +1,26 @@
+<Project Sdk="MSTest.Sdk/4.5.2">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TestingExtensionsProfile>None</TestingExtensionsProfile>
+    <EnableMicrosoftTestingExtensionsTrxReport>true</EnableMicrosoftTestingExtensionsTrxReport>
+    <IsPackable>false</IsPackable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+    <GenerateTestingPlatformApplicationHelper>true</GenerateTestingPlatformApplicationHelper>
+  </PropertyGroup>
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <EmbeddedResource Include="ResourceInspection/Page.html" />
+    <EmbeddedResource Include="TestPlanning/TestCatalog.json" />
+    <ProjectReference Include="../ExHyperV.Core/ExHyperV.Core.csproj" />
+    <PackageReference Include="coverlet.MTP" Version="10.1.0" />
+    <!-- Keep the existing diagnostic executable usable; share its verified scenarios. -->
+    <Compile Remove="Diagnostics/**;Tools/**" />
+    <Compile Include="Diagnostics/*Checks.cs"
+             Exclude="Diagnostics/NativeChecks.cs;Diagnostics/HostNetworkChecks.cs"
+             Link="Scenarios/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

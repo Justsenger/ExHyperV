@@ -1,0 +1,21 @@
+<Project Sdk="MSTest.Sdk/4.5.2">
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TestingExtensionsProfile>None</TestingExtensionsProfile>
+    <EnableMicrosoftTestingExtensionsTrxReport>true</EnableMicrosoftTestingExtensionsTrxReport>
+    <IsPackable>false</IsPackable>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../ExHyperV.Mcp/ExHyperV.Mcp.csproj" />
+  </ItemGroup>
+  <Target Name="CopyCoreApiDocumentation" AfterTargets="Build">
+    <ItemGroup>
+      <_McpAssembly Include="@(ReferenceCopyLocalPaths)" Condition="'%(Filename)' == 'ExHyperV.Mcp'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_McpAssembly->'%(RootDir)%(Directory)ExHyperV.Core.xml')" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

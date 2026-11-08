@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ExHyperV Core 测试</title>
+  <style nonce="__NONCE__">
+    :root{color-scheme:light;--ink:#202723;--muted:#6a726d;--line:#e2e7e3;--accent:#26734b}
+    *{box-sizing:border-box}body{margin:0;background:#f6f8f6;color:var(--ink);font:15px/1.65 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+    main{max-width:1100px;margin:0 auto;padding:44px 30px 64px}.brand{font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--muted)}
+    header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin:12px 0 20px}h1{font-size:30px;line-height:1.4;margin:0 0 8px;font-weight:650;letter-spacing:-.02em}p{margin:0;color:var(--muted)}
+    .actions{display:flex;gap:9px;flex-shrink:0}button{font:inherit;cursor:pointer;border:1px solid #cbd4ce;background:#fff;border-radius:7px;padding:8px 14px;color:var(--ink)}button.primary{background:var(--accent);border-color:var(--accent);color:white}button:disabled{opacity:.48;cursor:default}button:focus-visible,summary:focus-visible{outline:3px solid #78a78d;outline-offset:3px}
+    .overview{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:24px 0}.progress-label{display:flex;justify-content:space-between;gap:12px;font-weight:600}progress{display:block;width:100%;height:5px;border:none;margin:13px 0 15px;accent-color:var(--accent);border-radius:3px}progress::-webkit-progress-bar{background:#eaf0eb;border-radius:3px}progress::-webkit-progress-value{background:var(--accent);border-radius:3px}
+    .counts{display:flex;flex-wrap:wrap;gap:10px 25px;color:var(--muted);font-size:13px}.counts b{font-size:17px;font-weight:600;margin-right:5px;color:var(--ink)}.context{font-size:12px;margin-top:13px;color:var(--muted)}#notice{color:#963e26;font-size:14px;margin-top:10px;white-space:pre-wrap}
+    section{margin-top:29px}h2{font-size:16px;font-weight:650;margin:0 0 10px}.table{border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden}.row{display:grid;grid-template-columns:215px 102px 1fr;gap:18px;padding:16px 19px;border-top:1px solid var(--line);align-items:start}.row:first-child{border-top:0}.row-head{padding-top:9px;padding-bottom:9px;background:#fafcfa;font-size:12px;color:var(--muted)}.name{font-weight:600}.support{color:var(--muted);font-size:12px;margin-top:3px}.status{font-size:12px;display:inline-flex;padding:2px 9px;border-radius:5px;font-weight:600;white-space:nowrap}.ready{color:#21633f;background:#eaf4ed}.missing{color:#9e352a;background:#fbeeea}.pending{color:#87601d;background:#faf3df}.unavailable{color:#8d3b33;background:#f5e9e7}.waiting{color:#717972;background:#f0f2f0}.running{color:#2e628e;background:#eaf2fa}.detail{font-size:14px;overflow-wrap:anywhere}.requirement{color:var(--muted);font-size:12px;margin-top:5px}details{margin-top:8px}summary{cursor:pointer;color:var(--accent);font-size:12px;width:fit-content}ul{padding-left:19px;color:var(--muted);font-size:12px;margin:7px 0 0}li{margin:3px 0;overflow-wrap:anywhere}footer{color:var(--muted);font-size:12px;margin-top:28px}
+    @media(max-width:700px){main{padding:26px 16px 40px}header{display:block}h1{font-size:24px}.actions{margin-top:18px}.row{grid-template-columns:1fr auto;gap:9px;padding:14px}.row-head{display:none}.detail{grid-column:1/-1}.overview{padding:16px}.counts{gap:8px 18px}}
+    @media(prefers-reduced-motion:no-preference){.running{animation:pulse 1.6s infinite}@keyframes pulse{50%{opacity:.55}}}
+    [hidden]{display:none!important}.step-actions{display:flex;justify-content:flex-end;margin-top:24px}.plan-summary{display:flex;justify-content:space-between;align-items:center;gap:16px}.selection-count{font-size:17px;font-weight:600}
+    .test-item{padding:21px 24px;border-top:1px solid var(--line)}.test-item:first-child{border-top:0}.test-item:has(input:checked){box-shadow:inset 3px 0 var(--accent)}.test-item:has(input:not(:disabled)):hover{background:#fbfdfb}.test-item h3{font-size:16px;font-weight:650;line-height:1.6;margin:0}
+    .choice{display:flex;gap:12px;align-items:center;width:fit-content;cursor:pointer}.choice input{accent-color:var(--accent);width:18px;height:18px;flex-shrink:0;margin:0}.choice:has(input:disabled){cursor:default}.test-description{margin:7px 0 0 30px;color:#505d54;font-size:14px;line-height:1.85;overflow-wrap:anywhere}.test-reasons{margin:12px 0 0 30px;padding:9px 12px;background:#faf6ec;border-left:3px solid #d5bd86;color:#735825;font-size:13px;line-height:1.8;overflow-wrap:anywhere}.test-reasons strong{font-weight:600}input:focus-visible{outline:3px solid #78a78d;outline-offset:3px}
+    @media(max-width:700px){.plan-summary{flex-wrap:wrap}.plan-summary .actions{margin-top:0}.test-item{padding:18px 16px}.test-description,.test-reasons{margin-left:30px}.test-reasons{padding:8px 10px}}
+    header{position:sticky;top:0;z-index:5;background:#f6f8f6;padding:12px 0;flex-wrap:wrap}header .actions{flex-wrap:wrap}h1{font-size:27px}.result-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.result-detail{margin:10px 0 0;font-size:14px}.result-description{color:var(--muted);font-size:13px;margin-top:6px}.passed{color:#21633f;background:#eaf4ed}.failed{color:#9e352a;background:#fbeeea}.skipped,.cancelled{color:#78622f;background:#faf3df}.api-name{font:14px/1.8 Consolas,monospace;overflow-wrap:anywhere}.page-notice{color:#963e26;white-space:pre-wrap;font-size:14px;margin-top:12px}#execution-progress{font-weight:600}#execution-counts{margin-top:10px}
+    .plan-tools{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}.plan-tools input,.plan-tools select{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:white;color:#23382b}.plan-tools input{flex:1;min-width:230px}.plan-group{margin:12px 0;border:1px solid var(--line);border-radius:8px;background:white;overflow:hidden}.plan-group>summary{padding:14px 18px;font-size:14px;color:#23382b;cursor:pointer;overflow-wrap:anywhere}.plan-group>summary input{accent-color:var(--accent);margin:0 10px 0 6px}.plan-group .group-count{color:var(--muted);font:13px system-ui;margin-left:12px}.plan-group .test-item{border-top:1px solid var(--line)}.execution-readiness{font-size:13px;color:var(--muted);margin-top:8px}.test-context{margin:8px 0 0 30px}.pendingImplementation{color:#78622f;background:#faf3df}.api-name:empty{display:none}
+    .plan-group>summary{width:100%;font-size:16px;font-weight:600;padding-left:calc(18px + var(--group-depth,0)*14px)}.plan-group>summary input{width:17px;height:17px;vertical-align:middle}.plan-group .plan-group{border:0;border-top:1px solid var(--line);border-radius:0;margin:0}.plan-operation>summary{font-size:14px;font-weight:500}.plan-operation .test-item{padding-left:calc(28px + var(--group-depth,0)*14px)}.check-pending{background:#eef3f8;border-color:#9db6cc;color:#465d72}.selection-conditions{font-size:13px;color:var(--muted);margin-top:-12px}.test-context code{display:block;font:12px/1.7 Consolas,monospace;color:var(--muted);margin-top:8px;overflow-wrap:anywhere}.result-operation{font-size:13px;color:var(--muted);margin-bottom:6px}
+    .resource-form{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px}.resource-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}.resource-field{display:flex;flex-direction:column;gap:5px;min-width:0;font-weight:600;font-size:14px}.resource-field select{font:inherit;font-weight:400;padding:9px 12px;width:100%;min-width:0;border:1px solid #cbd4ce;border-radius:6px;background:#fff;color:var(--ink)}.resource-field small,.resource-help{font-weight:400;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.resource-field .cache-path{font:12px/1.7 Consolas,monospace}.device-choices{display:grid;gap:10px;margin-top:4px}.device-choices .choice{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:start;gap:10px;width:100%;font-weight:400}.device-choices input[type=checkbox]{width:18px;height:18px;margin:3px 0 0;padding:0}.device-choices span{min-width:0;overflow-wrap:anywhere}.device-choices small{display:block;font-size:11px}.resource-save-state{font-size:13px;white-space:pre-wrap;margin-top:16px}.resource-save-state.error{color:#963e26}.resource-save-state.saved{color:var(--accent)}
+  </style>
+</head>
+<body>
+<main>
+ <div id="update-notice" class="page-notice" role="status" hidden></div>
+ <div id="inspection-step">
+  <header><h1>第一步：资源清单检查</h1>
+    <div class="actions"><button id="download" disabled>下载清单</button><button id="rescan" disabled>重新检查</button><button id="save-resources" disabled>保存并检查</button><button id="next" class="primary" disabled>下一步</button></div>
+  </header>
+  <p id="deployment-summary" class="resource-help" hidden></p>
+  <div id="resource-form" class="resource-form">
+    <div class="resource-fields">
+      <label class="resource-field">测试虚拟机模板<select id="select-template"><option value="">请选择虚拟机</option></select><small>普通测试与 GPU 测试共用完整副本。运行中的模板会正常关闭，测试后恢复运行。</small></label>
+      <div class="resource-field">测试缓存<small>自动创建，用于存放虚拟机副本和测试文件。</small><small id="cache-directory" class="cache-path"></small></div>
+      <label class="resource-field">物理测试盘<select id="select-disk"><option value="">读取设备中…</option></select><small>选择用于脱机、挂接及恢复测试的闲置磁盘。测试期间宿主暂时释放该盘。</small><small id="disk-selection-status"></small></label>
+      <label class="resource-field">测试光驱<select id="select-optical"><option value="">读取设备中…</option></select><small>选择用于光驱挂接测试的设备；选择会保存。</small><small id="optical-selection-status"></small></label>
+      <div class="resource-field">PCIe 测试设备<small>勾选允许用于直通测试的设备；选择会保存。</small><div id="pcie-selection" class="device-choices"></div></div>
+    </div>
+    <p id="resource-save-state" class="resource-save-state" role="status">正在读取已保存的选择…</p>
+  </div>
+  <div class="overview">
+    <div class="progress-label" role="status" aria-live="polite"><span id="phase">正在连接检查程序…</span><span id="progress-text">—</span></div>
+    <progress id="progress" value="0" max="25" aria-label="资源检查进度"></progress>
+    <div class="counts" id="counts"></div><div class="context" id="context"></div><div id="notice" role="alert"></div>
+  </div>
+  <div id="groups"></div>
+  <footer>保存资源选择 · 测试将在第三步执行</footer>
+ </div>
+ <div id="selection-step" hidden>
+  <header><h1 tabindex="-1" id="selection-title">第二步：选择测试项目</h1><div class="actions"><button id="back">上一步</button><button class="primary" id="begin" disabled>下一步</button></div></header>
+  <div class="overview plan-summary">
+    <label class="choice selection-count"><input id="select-all" type="checkbox" aria-label="全选当前显示的检查点"><span id="selection-count" role="status" aria-live="polite"></span></label>
+    <span id="execution-readiness" class="execution-readiness"></span>
+  </div>
+  <p id="selection-conditions" class="selection-conditions"></p>
+  <div class="plan-tools"><input id="plan-search" type="search" aria-label="搜索测试项目" placeholder="搜索中文功能或测试内容"><select id="plan-filter" aria-label="筛选测试项目"><option value="all">全部项目</option><option value="ready">可执行</option><option value="resources">资源待准备</option><option value="checks">条件检查待接入</option><option value="implementation">执行代码待接入</option><option value="selected">已勾选</option></select></div>
+  <div id="selection-notice" class="page-notice" role="alert"></div>
+  <div id="plan-groups"></div>
+  <p id="plan-empty" class="context" hidden>当前筛选下没有项目。</p>
+ </div>
+ <div id="execution-step" hidden>
+  <header><h1 tabindex="-1" id="execution-title">第三步：执行 API 测试</h1><div class="actions"><button id="execution-back">返回选择</button><button id="download-test" disabled>下载结果</button><button id="stop-test" disabled>停止</button></div></header>
+  <div class="api-name" id="execution-api"></div>
+  <div class="overview">
+    <div id="execution-progress" role="status" aria-live="polite"></div>
+    <div class="counts" id="execution-counts"></div>
+    <div class="context" id="execution-context"></div>
+    <div class="page-notice" id="execution-notice" role="alert"></div>
+  </div>
+  <div class="table" id="test-results"></div>
+  <details id="omitted-tests" class="test-context" hidden><summary id="omitted-title"></summary><div id="omitted-list"></div></details>
+ </div>
+</main>
+<script nonce="__NONCE__">
+  const archivedReport = __REPORT__, archivedTest = __TEST_REPORT__, loadedSession = __SESSION__, token = '__NONCE__';
+  const labels = {waiting:'等待检查',running:'正在检查',ready:'已满足',missing:'未满足',pending:'待选择',unavailable:'无法检查'};
+  const testLabels = {waiting:'等待',running:'执行中',passed:'通过',failed:'失败',skipped:'跳过',cancelled:'已停止',pendingImplementation:'待接入'};
+  const elements = new Map(), choices = new Map(), results = new Map(), selection = new Set(), seenOptions = new Set(), planGroups = new Map();
+  let latest=null, latestTest=null, connected=false, planKey='', planRunId=null, testRunId=null, startBusy=false, scanBusy=false, stopBusy=false, currentStep=1, restoredView=null, registration=null, resourceDirty=false, resourceSaveBusy=false, resourceChoicesKey='';
+  if(!archivedReport){try{restoredView=JSON.parse(sessionStorage.getItem('inspection-view'));sessionStorage.removeItem('inspection-view');}catch{}}
+  const $ = id => document.getElementById(id);
+  const deployment=loadedSession?.deployment===true;
+  let deploymentFinished=false,deploymentReady=false;
+  if(deployment){document.querySelector('#inspection-step h1').textContent='部署：检查环境与选择资源';$('next').textContent='完成部署';$('deployment-summary').hidden=false;document.querySelector('#inspection-step footer').textContent='保存本机选择，后续任务自动检查并执行。';restoredView=null;}
+  function node(tag,className,text){const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=text;return n;}
+  function showStep(step){
+    currentStep=step;
+    $('inspection-step').hidden=step!==1;$('selection-step').hidden=step!==2;$('execution-step').hidden=step!==3;
+    window.scrollTo(0,0);
+    if(step>1)$(step===2?'selection-title':'execution-title').focus({preventScroll:true});
+  }
+  function reloadPage(){
+    // Preserve the current step and choices across page-template updates.
+    try{sessionStorage.setItem('inspection-view',JSON.stringify({runId:latest?.runId,step:currentStep,selection:[...selection]}));}catch{}
+    location.reload();
+  }
+  function restoreView(){
+    if(!restoredView)return;
+    if(restoredView.runId===latest?.runId){
+      selection.clear();for(const id of restoredView.selection||[])if(choices.get(id)?.eligible)selection.add(id);
+      updateSelection();
+      if(restoredView.step===2&&latest.plan.available)showStep(2);
+      else if(restoredView.step===3&&latestTest)showStep(3);
+      else showStep(1);
+    }
+    restoredView=null;
+  }
+  function controls(){
+    const running=latestTest?.running===true;
+    $('download').disabled=!latest||latest.running;
+    $('rescan').disabled=!!archivedReport||!connected||latest?.running||running||startBusy||scanBusy;
+    $('next').disabled=!latest?.plan?.available||scanBusy||startBusy||running||resourceDirty||resourceSaveBusy;
+    if(deployment)$('next').disabled=$('next').disabled||!deploymentReady||deploymentFinished;
+    $('begin').disabled=!!archivedReport||!connected||!latest?.plan?.available||selection.size===0||startBusy||running||resourceDirty||resourceSaveBusy;
+    const resourceBusy=!!archivedReport||!connected||latest?.running||running||resourceSaveBusy||scanBusy||startBusy||deploymentFinished;
+    $('save-resources').disabled=resourceBusy||!registration;
+    for(const input of $('resource-form').querySelectorAll('input,select,textarea'))input.disabled=resourceBusy;
+    for(const [id,source] of [['select-template','vms'],['select-disk','disks'],['select-optical','optical']])
+      $(id).disabled=resourceBusy||!resourceInventoryKnown(source)||(!$(id).value&&!resourceChoices(source).some(c=>!c.unavailableReason));
+    for(const input of $('pcie-selection').querySelectorAll('input'))input.disabled=resourceBusy||!resourceInventoryKnown('pcie');
+    $('rescan').disabled=$('rescan').disabled||resourceDirty||resourceSaveBusy||deploymentFinished;
+    $('back').disabled=startBusy||running;
+    const visibleEligible=[...choices].filter(([id,choice])=>choice.eligible&&!choice.row.hidden).map(([id])=>id),eligible=visibleEligible.length,visibleSelected=visibleEligible.filter(id=>selection.has(id)).length;
+    $('select-all').disabled=startBusy||running||eligible===0;
+    $('select-all').checked=eligible>0&&visibleSelected===eligible;
+    $('select-all').indeterminate=visibleSelected>0&&visibleSelected<eligible;
+    for(const [id,choice] of choices){choice.input.disabled=!choice.eligible||startBusy||running;choice.input.checked=choice.eligible&&selection.has(id);}
+    for(const group of planGroups.values()){
+      const visibleIds=group.ids.filter(id=>!choices.get(id).row.hidden),eligibleIds=visibleIds.filter(id=>choices.get(id)?.eligible),selectedCount=eligibleIds.filter(id=>selection.has(id)).length;
+      group.input.disabled=startBusy||running||eligibleIds.length===0;group.input.checked=eligibleIds.length>0&&selectedCount===eligibleIds.length;group.input.indeterminate=selectedCount>0&&selectedCount<eligibleIds.length;
+      group.count.textContent='已选 '+selectedCount+' / '+visibleIds.length;
+    }
+    $('execution-back').disabled=running||startBusy;
+    $('download-test').disabled=!latestTest||running;
+    $('stop-test').disabled=!!archivedReport||!connected||!running||stopBusy;
+  }
+  function updateSelection(){
+    $('selection-count').textContent='已选 '+selection.size+' 项';
+    const implemented=(latest?.plan?.items||[]).filter(i=>selection.has(i.id)&&i.implemented).length;
+    $('execution-readiness').textContent='所选 '+implemented+' 项将实际执行';
+    const items=latest?.plan?.items||[];
+    $('selection-conditions').textContent='可执行 '+items.filter(i=>i.eligible).length+' 项 · 已接入但资源待准备 '+items.filter(i=>i.implemented&&!i.eligible).length+' 项 · 执行代码待接入 '+items.filter(i=>!i.implemented).length+' 项';
+    filterPlan();
+  }
+  function filterPlan(){
+    const words=$('plan-search').value.trim().toLowerCase().split(/\s+/).filter(Boolean),filter=$('plan-filter').value;
+    for(const [id,choice] of choices)choice.row.hidden=words.some(word=>!choice.search.includes(word))||(filter==='ready'&&!choice.eligible)||(filter==='resources'&&!choice.resourcePending)||(filter==='checks'&&!choice.checkPending)||(filter==='implementation'&&choice.implemented)||(filter==='selected'&&!selection.has(id));
+    for(const group of planGroups.values()){group.section.hidden=group.ids.every(id=>choices.get(id).row.hidden);if((words.length||filter!=='all')&&!group.section.hidden)group.section.open=true;}
+    $('plan-empty').hidden=[...planGroups.values()].some(group=>!group.section.hidden);
+    controls();
+  }
+  function render(report){
+    latest=report;connected=true;
+    renderResourceChoices();
+    const completed=report.items.filter(i=>!['waiting','running'].includes(i.result.status)).length;
+    $('phase').textContent=report.running?'检查中':report.error?'检查中断':'检查完成';
+    $('progress-text').textContent=completed+' / '+report.items.length;
+    $('progress').max=report.items.length;$('progress').value=completed;
+    $('counts').replaceChildren(...['ready','missing','pending','unavailable'].map(key=>{const n=node('span');n.append(node('b','',String(report.items.filter(i=>i.result.status===key).length)),document.createTextNode(labels[key]));return n;}));
+    $('context').textContent=report.executionContext+' · '+new Date(report.started).toLocaleString('zh-CN',{hour12:false});
+    $('notice').textContent=report.error||'';
+    renderPlan(report.plan);
+    for(const item of report.items){
+      let ui=elements.get(item.check.id);
+      if(!ui){
+        let group=document.getElementById('group-'+item.check.group);
+        if(!group){const section=node('section');section.append(node('h2','',item.check.group));group=node('div','table');group.id='group-'+item.check.group;section.append(group);$('groups').append(section);}
+        const row=node('div','row'),title=node('div','name',item.check.name),badge=node('span','status'),badgeCell=node('div'),body=node('div','detail'),detail=node('div'),details=node('details'),summary=node('summary'),list=node('ul');
+        badgeCell.append(badge);details.append(summary,list);body.append(detail,details);row.append(title,badgeCell,body);group.append(row);
+        ui={badge,detail,details,summary,list,serialized:null};elements.set(item.check.id,ui);
+      }
+      ui.badge.className='status '+item.result.status;ui.badge.textContent=labels[item.result.status]||'无法检查';ui.detail.textContent=item.result.detail;
+      const serialized=JSON.stringify(item.result.items||[]);
+      if(ui.serialized!==serialized){const items=item.result.items||[];ui.details.hidden=!items.length;ui.summary.textContent='明细（'+items.length+'）';ui.list.replaceChildren(...items.map(text=>node('li','',text)));ui.serialized=serialized;}
+    }
+    controls();
+  }
+  function resourceMessage(text,error=false){$('resource-save-state').textContent=text;$('resource-save-state').className='resource-save-state '+(error?'error':'saved');}
+  function resourceResult(id){return latest?.items.find(item=>item.check.id===id)?.result;}
+  function resourceChoices(id){return resourceResult(id)?.choices||[];}
+  function resourceInventoryKnown(id){return ['ready','missing','pending'].includes(resourceResult(id)?.status);}
+  function savedSelectionMessage(id){return resourceInventoryKnown(id)?'已保存的选择已离开清单，请重新选择':resourceResult(id)?.status==='unavailable'?'清单读取失败，已保留选择':'等待清单读取，已保留选择';}
+  function renderResourceChoices(force=false){
+    for(const [elementId,id] of [['disk-selection-status','disks'],['optical-selection-status','optical']])
+      $(elementId).textContent=latest?.items.find(item=>item.check.id===id)?.result.detail||'正在检查…';
+    const key=JSON.stringify(['vms','pcie','disks','optical'].map(id=>[resourceResult(id)?.status,resourceChoices(id)]));if(!force&&key===resourceChoicesKey)return;resourceChoicesKey=key;
+    function options(elementId,source,empty){
+      const items=resourceChoices(source);
+      const select=$(elementId),value=select.value;select.replaceChildren(new Option(empty,''));
+      for(const item of items){const suffix=elementId==='select-template'?' · '+item.detail+' · '+item.id.slice(0,8):'';const option=new Option(item.name+suffix+(item.unavailableReason?' · '+item.unavailableReason:''),item.id);option.disabled=!!item.unavailableReason;select.append(option);}
+      if(value&&!items.some(item=>item.id.toLowerCase()===value.toLowerCase()))select.append(new Option(savedSelectionMessage(source)+' · '+value,value));
+      select.value=items.find(item=>item.id.toLowerCase()===value.toLowerCase())?.id||value;
+    }
+    options('select-template','vms','请选择虚拟机');
+    options('select-disk','disks','跳过物理磁盘测试');
+    options('select-optical','optical','跳过光驱测试');
+    const selected=new Set([...$('pcie-selection').querySelectorAll('input:checked')].map(input=>input.value));
+    $('pcie-selection').replaceChildren();
+    const devices=resourceChoices('pcie');
+    for(const device of devices){const label=node('label','choice'),input=node('input'),text=node('span','',device.name);input.type='checkbox';input.value=device.id;input.checked=selected.has(device.id);text.append(node('small','',device.id));label.append(input,text);$('pcie-selection').append(label);}
+    for(const id of selected)if(!devices.some(device=>device.id===id)){const label=node('label','choice'),input=node('input');input.type='checkbox';input.value=id;input.checked=true;label.append(input,node('span','',savedSelectionMessage('pcie')+' · '+id));$('pcie-selection').append(label);}
+    if(!devices.length&&!selected.size)$('pcie-selection').append(node('p','resource-help',resourceInventoryKnown('pcie')?'当前清单为空。':resourceResult('pcie')?.detail||'正在读取设备…'));
+  }
+  function applyRegistration(value){
+    registration=value;const config=value.configuration;
+    $('cache-directory').textContent=config.workDirectory||'正在准备缓存…';
+    for(const [elementId,id] of [['select-template',config.templateVmId],['select-disk',config.physicalDisk?.id],['select-optical',config.opticalDrive?.id]]){
+      const select=$(elementId);select.replaceChildren(new Option('已保存的选择',id||''));select.value=id||'';
+    }
+    $('pcie-selection').replaceChildren();for(const device of config.pcieDevices||[]){const input=node('input');input.type='checkbox';input.value=device.instanceId;input.checked=true;$('pcie-selection').append(input);}
+    renderResourceChoices(true);resourceDirty=false;
+    resourceMessage(config.templateVmId||config.pcieDevices?.length||config.physicalDisk||config.opticalDrive?'已带回保存的选择；修改后点“保存并检查”。':'选择模板或设备后点“保存并检查”，下次自动带回。');controls();
+  }
+  function planGroup(key,title,parent,operation=false,depth=0){
+    let group=planGroups.get(key);if(group)return group;
+    const section=node('details','plan-group'+(operation?' plan-operation':'')),summary=node('summary'),input=node('input'),count=node('span','group-count'),body=node('div');
+    section.style.setProperty('--group-depth',depth);section.open=depth===0;
+    input.type='checkbox';input.setAttribute('aria-label','选择 '+title);input.addEventListener('click',event=>event.stopPropagation());
+    summary.append(input,node('span','',title),count);section.append(summary,body);parent.append(section);
+    group={section,input,count,body,ids:[]};planGroups.set(key,group);
+    input.addEventListener('change',()=>{for(const id of group.ids)if(choices.get(id).eligible&&!choices.get(id).row.hidden){if(input.checked)selection.add(id);else selection.delete(id);}updateSelection();});
+    return group;
+  }
+  function renderPlan(plan){
+    if(!plan)return;
+    if(planRunId!==plan.runId){planRunId=plan.runId;selection.clear();seenOptions.clear();planKey='';showStep(1);}
+    if(!plan.available){selection.clear();seenOptions.clear();showStep(1);}
+    const key=JSON.stringify(plan);if(key===planKey)return;
+    planKey=key;choices.clear();planGroups.clear();$('plan-groups').replaceChildren();
+    for(const id of selection)if(!plan.items.some(item=>item.id===id&&item.eligible))selection.delete(id);
+    for(const item of plan.items){
+      if(plan.available&&item.eligible&&!seenOptions.has(item.id))selection.add(item.id);
+      if(plan.available)seenOptions.add(item.id);
+      const path=item.group.split(' / ');let parent=$('plan-groups');
+      for(let depth=0;depth<path.length;depth++){
+        const category=path.slice(0,depth+1).join(' / '),group=planGroup('category:'+category,path[depth],parent,false,depth);
+        group.section.dataset.category=category;group.ids.push(item.id);parent=group.body;
+      }
+      const operation=planGroup('operation:'+item.group+'|'+item.api,item.operation||item.name,parent,true,path.length);
+      operation.ids.push(item.id);
+      const row=node('article','test-item'),heading=node('h3'),label=node('label','choice'),input=node('input');
+      input.type='checkbox';input.dataset.testId=item.id;
+      label.append(input,node('span','',item.name));heading.append(label);
+      const description=node('p','test-description','通过标准：'+(item.expected||item.description||'待补充'));description.id='description-'+item.id;
+      input.setAttribute('aria-describedby',description.id);row.append(heading,description);
+      const resourceReasons=item.resourceReasons||(item.eligible?[]:item.reasons),pendingChecks=item.pendingChecks||[];
+      const descriptions=[description.id];
+      for(const [suffix,title,reasons,style] of [['resource','资源待准备',resourceReasons,''],['check','条件检查待实现',pendingChecks,' check-pending']]){
+        if(!reasons.length)continue;
+        const reason=node('div','test-reasons'+style),list=node('ul');reason.id=suffix+'-'+item.id;
+        list.append(...reasons.map(text=>node('li','',text.replace('：条件检查待实现',''))));reason.append(node('strong','',title),list);row.append(reason);descriptions.push(reason.id);
+      }
+      input.setAttribute('aria-describedby',descriptions.join(' '));
+      if(!item.implemented)row.append(node('p','test-description execution-readiness',item.reasons.filter(reason=>!resourceReasons.includes(reason)&&!pendingChecks.includes(reason)).join('；')));
+      const context=node('details','test-context'),contextList=node('ul');context.append(node('summary','','技术详情与收尾'),node('code','',item.api),contextList);
+      contextList.append(node('li','','条件：'+((item.conditions||[]).join('、')||'固定输入')),...(item.recovery||[]).map(text=>node('li','',text)));row.append(context);
+      input.addEventListener('change',()=>{if(input.disabled)return;if(input.checked)selection.add(item.id);else selection.delete(item.id);updateSelection();});
+      choices.set(item.id,{input,row,eligible:item.eligible,implemented:item.implemented,resourcePending:resourceReasons.length>0,checkPending:pendingChecks.length>0,search:[item.group,item.operation,item.api,item.name,item.expected,...(item.conditions||[]),...item.reasons].join(' ').toLowerCase()});operation.body.append(row);
+    }
+    updateSelection();
+  }
+  function renderTest(report){
+    if(!report||report.resourceRunId!==latest?.runId)return;
+    latestTest=report;
+    if(testRunId!==report.runId){testRunId=report.runId;selection.clear();for(const item of report.items)if(item.selected)selection.add(item.id);updateSelection();results.clear();$('test-results').replaceChildren();
+      const omitted=report.omitted||[];$('omitted-tests').hidden=omitted.length===0;$('omitted-title').textContent='本轮未执行 '+omitted.length+' 项 · 逐项原因';$('omitted-list').replaceChildren();
+      for(const item of omitted){const row=node('article','test-item'),list=node('ul');row.append(node('h3','',item.name),list);list.append(...item.reasons.map(reason=>node('li','',reason)));$('omitted-list').append(row);}showStep(3);}
+    $('execution-progress').textContent=report.phase;
+    $('execution-api').textContent=report.api;
+    $('execution-counts').replaceChildren(...Object.keys(testLabels).map(key=>{const n=node('span');n.append(node('b','',String(report.items.filter(i=>i.status===key).length)),document.createTextNode(testLabels[key]));return n;}));
+    $('execution-context').textContent='已记录 API 调用 '+report.apiCalls+' 次'+(report.apiMilliseconds===null?'':' · 各项累计 '+Math.round(report.apiMilliseconds)+' ms')+' · '+new Date(report.started).toLocaleString('zh-CN',{hour12:false});
+    if(report.environment)$('execution-context').textContent+=' · '+report.environment.windowsVersion+' · '+report.environment.hostArchitecture;
+    $('execution-notice').textContent=report.error||'';
+    for(const item of report.items){
+      let ui=results.get(item.id);
+      if(!ui){
+        const row=node('article','test-item'),heading=node('div','result-heading'),badge=node('span','status'),detail=node('p','result-detail'),details=node('details'),summary=node('summary'),list=node('ul');
+        row.dataset.testId=item.id;heading.append(node('h3','',item.name),badge);details.append(summary,list);
+        const option=latest?.plan?.items.find(option=>option.id===item.id),technical=node('details','test-context');
+        technical.append(node('summary','','技术详情'),node('code','',item.api||''));
+        row.append(node('p','result-operation',option?.operation||''),heading,node('p','result-description',item.description),detail,details,technical);$('test-results').append(row);
+        ui={badge,detail,details,summary,list,serialized:null};results.set(item.id,ui);
+      }
+      ui.badge.className='status '+item.status;ui.badge.textContent=testLabels[item.status]||item.status;ui.detail.textContent=item.detail;
+      const serialized=JSON.stringify(item.evidence);
+      if(ui.serialized!==serialized){ui.details.hidden=item.evidence.length===0;ui.summary.textContent='结果明细（'+item.evidence.length+'）';ui.list.replaceChildren(...item.evidence.map(text=>node('li','',text)));ui.serialized=serialized;}
+    }
+    controls();
+  }
+  async function getJson(path){const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw Error('读取状态失败：'+response.status);return response.json();}
+  async function post(path,body){
+    const response=await fetch(path,{method:'POST',headers:{'X-Inspection-Token':token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+    if(!response.ok){let message='请求失败：'+response.status;try{message=(await response.json()).error||message;}catch{}throw Error(message);}
+    return response;
+  }
+  async function refresh(){
+    try{
+      let pageChanged=false;
+      if(loadedSession){
+        const session=await getJson('/api/session');
+        if(session.instanceId!==loadedSession.instanceId){reloadPage();return;}
+        pageChanged=session.pageRevision!==loadedSession.pageRevision;
+        $('update-notice').textContent=session.updateError||(session.restarting?'正在更新程序…':'');
+        $('update-notice').hidden=!$('update-notice').textContent;
+      }
+      render(await getJson('/api/report'));if(!registration)applyRegistration(await getJson('/api/resources'));renderTest(await getJson('/api/tests'));restoreView();
+      if(deployment){const setup=await getJson('/api/deployment');deploymentReady=setup.issues.length===0;$('deployment-summary').textContent=latest.running?'正在检查测试条件…':deploymentReady?'当前可执行 '+setup.available+' 项；其余项目按资源条件跳过。选择会保存，后续自动复用。':setup.issues.join('；');controls();}
+      if(pageChanged&&!latest.running&&!latestTest?.running&&!startBusy&&!scanBusy&&!stopBusy&&!resourceDirty&&!resourceSaveBusy)reloadPage();
+    }
+    catch(error){if(!deploymentFinished){connected=false;$('phase').textContent='连接已断开';$('notice').textContent='显示上次结果，请检查后台程序。';$('execution-notice').textContent='连接已断开，显示上次测试状态。';controls();}}
+    finally{if(!deploymentFinished)setTimeout(refresh,1000);}
+  }
+  function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=node('a');a.href=url;a.download=name+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  $('resource-form').addEventListener('input',()=>{resourceDirty=true;resourceMessage('设置已修改，请点上方“保存并检查”。');controls();});
+  $('save-resources').addEventListener('click',async()=>{
+    if($('save-resources').disabled)return;resourceSaveBusy=true;controls();resourceMessage('正在保存并检查…');
+    try{
+      const response=await post('/api/resources',{revision:registration.revision,resourceRunId:latest.runId,templateVmId:$('select-template').value,pcieIds:[...$('pcie-selection').querySelectorAll('input:checked')].map(input=>input.value),physicalDiskId:$('select-disk').value,opticalDriveId:$('select-optical').value});
+      applyRegistration(await response.json());resourceMessage('已保存，正在按新选择检查资源；下次启动自动复用。');render(await getJson('/api/report'));
+    }catch(error){resourceMessage(error.message,true);}
+    finally{resourceSaveBusy=false;controls();}
+  });
+  $('rescan').addEventListener('click',async()=>{
+    scanBusy=true;controls();
+    try{await post('/api/scan');render(await getJson('/api/report'));}catch(error){$('notice').textContent=error.message;}
+    finally{scanBusy=false;controls();}
+  });
+  $('download').addEventListener('click',()=>{if(latest)download(latest,'资源清单-'+latest.runId);});
+  $('next').addEventListener('click',async()=>{
+    if($('next').disabled)return;
+    if(!deployment){showStep(2);return;}
+    startBusy=true;controls();
+    try{const response=await post('/api/deployment/complete');const result=await response.json();deploymentFinished=true;resourceMessage(result.message);$('next').textContent='已完成';$('phase').textContent='部署资源已确认';}
+    catch(error){resourceMessage(error.message,true);}
+    finally{startBusy=false;controls();}
+  });
+  $('back').addEventListener('click',()=>showStep(1));
+  $('select-all').addEventListener('change',()=>{for(const [id,choice] of choices)if(choice.eligible&&!choice.row.hidden){if($('select-all').checked)selection.add(id);else selection.delete(id);}updateSelection();});
+  $('plan-search').addEventListener('input',filterPlan);$('plan-filter').addEventListener('change',filterPlan);
+  $('begin').addEventListener('click',async()=>{
+    if($('begin').disabled)return;
+    startBusy=true;$('selection-notice').textContent='';controls();
+    try{const response=await post('/api/tests',{resourceRunId:latest.runId,requestId:crypto.randomUUID(),checkIds:[...selection]});renderTest(await response.json());showStep(3);}
+    catch(error){$('selection-notice').textContent=error.message;}
+    finally{startBusy=false;controls();}
+  });
+  $('execution-back').addEventListener('click',()=>showStep(2));
+  $('download-test').addEventListener('click',()=>{if(latestTest)download(latestTest,'API测试-'+latestTest.runId);});
+  $('stop-test').addEventListener('click',async()=>{
+    stopBusy=true;controls();
+    try{await post('/api/tests/'+encodeURIComponent(latestTest.runId)+'/cancel');renderTest(await getJson('/api/tests'));}
+    catch(error){$('execution-notice').textContent=error.message;}
+    finally{stopBusy=false;controls();}
+  });
+  if(archivedReport){
+    $('resource-form').hidden=true;$('save-resources').hidden=true;
+    render(archivedReport);$('rescan').hidden=true;$('selection-notice').textContent='这是保存的报告；实际执行请使用本机检查页面。';
+    renderTest(archivedTest);
+  }else refresh();
+</script>
+</body>
+</html>

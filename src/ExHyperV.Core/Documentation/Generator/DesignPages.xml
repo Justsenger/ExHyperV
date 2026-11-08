@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single source for the design pages. SVG figures are embedded in the generated HTML. -->
+<designs>
+  <page id="design-network" title="网络管理规划" status="draft">
+    <summary>网络配置分为二层连接、三层转发、应用服务：先说明接到哪里，再说明如何访问其他网络，最后选择地址分配与名称解析等服务。以现有 WMI／ICS 为起点，再接入 HCN；本页是规划，尚未替换现有网络接口。</summary>
+    <section id="connections" title="三部分：连接、转发、服务">
+      <p><strong>二层连接决定怎么接线，三层转发决定怎样访问其他 IP 网络，应用服务提供自动配置与名称解析。</strong> 三部分分别配置，并共同组成一个网络；它们不是三种互斥的交换机类型。</p>
+      <figure><div class="diagram-scroll" tabindex="0" role="region" aria-label="网络配置的三部分">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 270" role="img" aria-labelledby="net-layers-title net-layers-desc">
+          <title id="net-layers-title">二层连接、三层转发与应用服务</title>
+          <desc id="net-layers-desc">网络配置分为三个职责：二层连接管理网卡、交换机、上联与 VLAN；三层转发管理 IP 接口、路由及可选 NAT44；应用服务管理 DHCP 与 DNS。服务按需要启用，不是所有数据包必须经过的第三站。</desc>
+          <rect class="diagram-node diagram-emphasis" x="25" y="25" width="270" height="180" rx="4"/>
+          <text class="diagram-label" x="160" y="63">二层连接</text><text class="diagram-small" x="160" y="94">怎么接线？</text>
+          <text class="diagram-small" x="160" y="132">网卡 · 端口 · 交换机</text><text class="diagram-small" x="160" y="162">宿主接入 · 物理上联 · VLAN</text>
+          <rect class="diagram-node diagram-emphasis" x="315" y="25" width="270" height="180" rx="4"/>
+          <text class="diagram-label" x="450" y="63">三层转发</text><text class="diagram-small" x="450" y="94">怎样访问其他 IP 网络？</text>
+          <text class="diagram-small" x="450" y="132">IP 接口 · 网关 · 路由</text><text class="diagram-small" x="450" y="162">可选 NAT44 · 端口映射</text>
+          <rect class="diagram-node diagram-emphasis" x="605" y="25" width="270" height="180" rx="4"/>
+          <text class="diagram-label" x="740" y="63">应用服务</text><text class="diagram-small" x="740" y="94">提供哪些自动配置与解析服务？</text>
+          <text class="diagram-small" x="740" y="132">DHCP：地址与配置选项</text><text class="diagram-small" x="740" y="162">DNS：名称解析代理／转发</text>
+          <text class="diagram-small" x="450" y="246">分别配置、按需组合；实际支持范围由后端能力决定</text>
+        </svg>
+      </div><figcaption>这是配置职责划分。应用服务按需响应请求，不是普通业务流量必须串行经过的一站。</figcaption></figure>
+      <table><thead><tr><th>部分</th><th>典型内容</th><th>本项目现状与范围</th></tr></thead><tbody>
+        <tr><td>二层连接</td><td>物理／虚拟网卡、交换机与端口、接通与断开、宿主接入、物理上联、MAC、VLAN 接入／中继及专用 VLAN。</td><td>已有 WMI 实现，含来宾网卡组队许可。MTU／巨帧、宿主多上联与链路聚合另行核验；允许来宾组队不等于管理了宿主网卡组队。</td></tr>
+        <tr><td>三层转发</td><td>IP 地址与前缀、网关接口、转发开关、路由与下一跳／出口；可选 NAT44 出站转换，以及入站 TCP／UDP 端口映射。</td><td>当前共享上网由 ICS 组合提供；宿主 IPv4／网关配置只有现有流程中的捕获与恢复，尚无完整独立管理接口。路由、NAT 和映射需分别建模并验证。</td></tr>
+        <tr><td>应用服务</td><td>DHCPv4 地址池、租约、保留地址及下发选项；DNS 代理／转发、上游 DNS 和缓存能力。</td><td>现有 ICS 路径没有独立服务管理。HCN 的服务开关及可配置细节逐项验证；地址保留、租约管理、缓存管理不预先承诺可用。</td></tr>
+      </tbody></table>
+      <p><strong>NAT 在网关转发路径上，不属于交换机接线，也不是 DHCP／DNS 一类的应用服务。</strong> 内部交换机提供连接，宿主网关负责转发，并按配置执行 NAT；转发本身可以不做 NAT。常见共享上网还转换 TCP／UDP 端口，即 NAPT44，因此这里按功能归入三层转发，不表示它只处理 IP 首部。参见 <a href="https://www.rfc-editor.org/rfc/rfc3022.html">RFC 3022 对 NAT 与 NAPT 的区分</a>。</p>
+      <p>DHCP 可以只提供地址、不提供上网出口；NAT 可以配合手动地址。DHCP 下发网关与 DNS 地址，不等于已经配置好网关转发或启动 DNS 代理。DNS 服务也可以由外部现成服务器提供。</p>
+    </section>
+    <section id="implementation" title="Core 与后端如何对应">
+      <p>WPF、Web 和测试使用相同的模型与规则。交换机仍属于宿主，网卡仍属于虚拟机；以上三部分复用现有管理入口，Core 按资源归属与能力调用后端。</p>
+      <figure>
+        <div class="diagram-scroll" tabindex="0" role="region" aria-label="网络管理实现架构图">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 550" role="img" aria-labelledby="net-title net-desc">
+            <title id="net-title">网络管理的实现架构</title>
+            <desc id="net-desc">WPF、Web、测试调用 Core。Core 保留宿主网络管理和虚拟机网卡管理两个入口，共用网络身份、能力判断及操作协调。底层使用已有 WMI 和 ICS 实现，另接入 HCN。HCN 尚待实现和验证；箭头是调用关系，不是数据包路线。</desc>
+            <defs><marker id="net-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" class="diagram-arrow"/></marker></defs>
+            <rect class="diagram-node" x="175" y="20" width="550" height="65" rx="4"/>
+            <text class="diagram-label" x="450" y="59">WPF / Web / 测试 / 其他调用方</text>
+            <path class="diagram-edge" d="M450 85 V140" marker-end="url(#net-arrow)"/>
+            <rect class="diagram-zone" x="35" y="140" width="830" height="215" rx="4"/>
+            <text class="diagram-zone-title" x="60" y="174">ExHyperV.Core</text>
+            <rect class="diagram-node diagram-emphasis" x="65" y="194" width="365" height="82" rx="4"/>
+            <text class="diagram-label" x="247" y="226">宿主网络管理</text><text class="diagram-small" x="247" y="253">连接资源 · IP 转发 · 应用服务</text>
+            <rect class="diagram-node diagram-emphasis" x="470" y="194" width="365" height="82" rx="4"/>
+            <text class="diagram-label" x="652" y="226">虚拟机网卡管理</text><text class="diagram-small" x="652" y="253">增删网卡 · 接入网络 · 网卡设置</text>
+            <text class="diagram-small" x="450" y="321">共同使用：资源身份 · 能力与状态 · 校验和操作协调</text>
+            <path class="diagram-edge" d="M175 355 V415" marker-end="url(#net-arrow)"/>
+            <path class="diagram-edge" d="M450 355 V415" marker-end="url(#net-arrow)"/>
+            <path class="diagram-edge diagram-dashed" d="M725 355 V415" marker-end="url(#net-arrow)"/>
+            <rect class="diagram-node" x="35" y="415" width="260" height="100" rx="4"/>
+            <text class="diagram-label" x="165" y="447">WMI · 已有</text>
+            <text class="diagram-small" x="165" y="473">交换机、宿主连接</text><text class="diagram-small" x="165" y="495">现有虚拟机网卡与端口</text>
+            <rect class="diagram-node" x="320" y="415" width="260" height="100" rx="4"/>
+            <text class="diagram-label" x="450" y="447">ICS · 已有</text>
+            <text class="diagram-small" x="450" y="473">现有共享上网功能</text><text class="diagram-small" x="450" y="495">NAT 转发与应用服务组合</text>
+            <rect class="diagram-node diagram-proposed" x="605" y="415" width="260" height="100" rx="4"/>
+            <text class="diagram-label" x="735" y="447">HCN · 待接入</text>
+            <text class="diagram-small" x="735" y="473">系统托管网络的识别</text><text class="diagram-small" x="735" y="495">连接、转发与服务能力验证</text>
+          </svg>
+        </div>
+        <figcaption>箭头表示 Core 调用底层实现。WMI 与 ICS 可以共同完成一个网络的配置；虚线表示 HCN 尚待接入。实际网络流量由 Windows 处理，不经过 Core DLL 转发。</figcaption>
+      </figure>
+      <p>保留现有代码的主体，增加内部适配边界。无需新建项目、常驻服务或通用插件框架，也不以这次调整为由全面改造静态服务。</p>
+    </section>
+    <section id="model" title="统一模型包含什么">
+      <p>取消用一个“桥接／NAT／隔离”字段描述整个网络的做法。接口分别提供以下信息；界面仍可把常用组合呈现为快捷选项。</p>
+      <table><thead><tr><th>对象</th><th>回答的问题</th><th>内容</th></tr></thead><tbody>
+        <tr><td>交换机</td><td>宿主提供哪些网络接入点？</td><td>稳定身份、名称、宿主接入、物理上联，以及由谁管理、允许哪些修改。</td></tr>
+        <tr><td>网卡</td><td>哪台虚拟机通过哪张网卡联网？</td><td>所属虚拟机、设备身份、MAC、配置与运行信息；宿主网卡另按宿主资源查询。</td></tr>
+        <tr><td>连接</td><td>这张网卡连在哪里？</td><td>网卡与目标交换机的引用、接通状态、VLAN 和端口设置。断开连接保留网卡。</td></tr>
+        <tr><td>IP 接口与转发配置</td><td>用什么地址，经哪里访问其他网络？</td><td>IP 前缀、网关接口、路由／出口和可选 NAT44、端口映射。属于宿主转发配置，不改变交换机身份。</td></tr>
+        <tr><td>应用服务</td><td>怎样自动配置地址、解析名称？</td><td>DHCPv4 与 DNS 代理分别记录配置、支持范围及当前状态，关联服务的网络／网段和监听接口。</td></tr>
+      </tbody></table>
+      <p><strong>支持、配置和运行状态分别表达。</strong> “没有查到 NAT”不能自动写成“无 NAT”；“配置了 DHCP”也不能当作来宾已经取得地址。后端将服务捆绑提供时，明确列出不能独立开关的限制。</p>
+      <p>宿主 IP 配置只作用于相应宿主接口；来宾 IP 配置由来宾自身、DHCP 或明确支持的来宾配置通道完成。不能把 HCN 端点中的配置地址直接当作来宾已经使用的地址。</p>
+      <p>资源引用由查询返回，供后续修改使用；名称只用于显示。WMI 与 HCN 对同一资源的标识经确认后关联，不能按同名合并，也不假定两个 GUID 总是相同。Core 不另建一套脱离系统实际状态的网络数据库。</p>
+    </section>
+    <section id="supporting" title="配套策略与运行信息">
+      <p>下面这些内容也需要有明确归属。它们附着在接口、端口、转发规则或服务上，不再增加一层。</p>
+      <table><thead><tr><th>内容</th><th>归属与作用</th><th>当前状态</th></tr></thead><tbody>
+        <tr><td>访问控制与防护</td><td>端口 MAC 限制、DHCP Guard、路由通告防护；按需要扩展 IP／端口访问规则与防火墙策略。</td><td>已有 MAC 欺骗开关、DHCP／Router Guard、风暴限制。统一 ACL／防火墙规则尚未实现；NAT 与不同网段都不能代替访问控制。</td></tr>
+        <tr><td>流量管理</td><td>端口带宽上限、最低保留带宽与风暴限制。</td><td>已有配置入口，保留并回读；其他优先级或调度策略不自动纳入。</td></tr>
+        <tr><td>观测与诊断</td><td>连接状态、收发速率、端口镜像、地址发现，以及后续可取得的计数器和服务状态。</td><td>已有收发速率、镜像配置、来宾 IP／ARP 嗅探／IPv4 邻居缓存查询。地址发现是观测，不提供 DHCP，也不证明目标可达。</td></tr>
+        <tr><td>硬件加速</td><td>VMQ、SR-IOV、IPsec 卸载及相关设备能力。</td><td>已有配置入口；能设置不代表硬件已分配或实际生效。SR-IOV 完整状态与硬件验证另行补齐，卸载开关不等于配置 VPN。</td></tr>
+      </tbody></table>
+      <p>上述已有入口已对照当前 VmNetworkAdapter 与 VmNetworkService；微软的 <a href="https://learn.microsoft.com/en-us/windows/win32/hyperv_v2/msvm-ethernetswitchportsecuritysettingdata">端口安全设置</a>和 <a href="https://learn.microsoft.com/en-us/windows/win32/hyperv_v2/msvm-ethernetswitchportoffloadsettingdata">端口卸载设置</a>分别说明这些底层字段。DHCP Guard 阻止端口发送不应出现的 DHCP 服务报文，Router Guard 限制路由器通告，都不负责提供相应服务。</p>
+      <p><strong>IPv6 也有明确位置。</strong> IPv6 地址／路由、邻居发现（ND）、路由器通告（RA）与 SLAAC 属于 IP 配置及控制机制；DHCPv6 才归应用服务。<a href="https://www.rfc-editor.org/rfc/rfc4861.html">RA 是 ICMPv6 邻居发现机制的一部分</a>，不能因为它帮助自动配置地址就归到 DHCP 中。ARP／ND 负责相邻链路上的地址解析等工作，协议执行交给系统；Core 只管理或观测所需状态。</p>
+      <p>本轮不新增完整 IPv6 网关、RA／DHCPv6 服务、DHCP 中继、权威 DNS、动态路由、VPN 或 Overlay。这里明确的是它们的归属，并不扩大本轮交付范围。</p>
+    </section>
+    <section id="api" title="API 归属">
+      <p>继续使用现有四个入口。共享机制集中在本页说明，API 目录层级保持不变。</p>
+      <table><thead><tr><th>现有入口</th><th>职责</th></tr></thead><tbody>
+        <tr><td>管理层面 / 宿主 / 查询 / 网络</td><td>宿主网络资源、连接拓扑、IP 转发与应用服务状态、能力与管理归属。</td></tr>
+        <tr><td>管理层面 / 宿主 / 修改 / 网络</td><td>交换机、宿主接口、物理上联，以及后续接入的 IP 转发与应用服务配置。</td></tr>
+        <tr><td>管理层面 / 虚拟机 / 查询 / 网络</td><td>目标虚拟机的网卡、接入关系、配置及可获得的运行信息。</td></tr>
+        <tr><td>管理层面 / 虚拟机 / 修改 / 网络</td><td>添加和删除网卡、连接和断开、MAC、VLAN、带宽及现有端口设置。</td></tr>
+      </tbody></table>
+      <p>创建交换机、修改上联、配置 IP／路由、配置 NAT44、配置 DHCP、配置 DNS、连接网卡仍是不同操作，不合成一个巨大的“保存全部网络”接口。各操作只修改明确提交的字段，复用身份、归属、能力和冲突检查。</p>
+      <p>公开契约只传数据、配置请求与操作结果。WMI 对象、COM 对象、HCN JSON 和原生句柄留在内部。虚拟机后端与网络管理后端分别选择；以后 HCS 虚拟机接入时，只增加对应的网卡／连接适配，不复制整套宿主网络管理。</p>
+    </section>
+    <section id="scope" title="本轮交付范围">
+      <table><thead><tr><th>顺序</th><th>要做到的效果</th><th>范围</th></tr></thead><tbody>
+        <tr><td>先保留现有能力</td><td>虚拟机互通、与宿主通信、接入局域网、共享上网。</td><td>沿用 WMI／ICS，并保留现有 MAC、VLAN、带宽、安全与卸载设置。</td></tr>
+        <tr><td>补齐统一查询</td><td>同一份列表呈现 WMI 与 HCN 可见的网络，说明管理归属、接入能力和限制。</td><td>默认交换机及其他系统托管网络可识别；是否能接入、是否能修改分别判断。</td></tr>
+        <tr><td>验证转发与应用服务组合</td><td>只分配地址、只做 NAT44、地址分配配合 NAT44；DNS 代理另行配置。</td><td>以 HCN 为新增实现路线，按验证通过的组合开放；不支持的组合明确拒绝。</td></tr>
+      </tbody></table>
+      <p>模型允许多个网络，不把现有 ICS 的单共享限制写成所有网络的共同规则。多套 NAT、指定网段、固定出口和端口映射按后端能力验证后开放；本轮不预先承诺这些组合在所有 Windows 上可用。</p>
+      <p>DHCP 下发 DNS 服务器地址与启用宿主 DNS 代理是两项配置。NAT44 只描述 IPv4 转换，不代表禁用 IPv6，也不等于网络之间已经隔离。</p>
+      <p>NAT64／NAT66、Overlay、通用路由器、自研 DHCP／DNS 服务暂缓。HCS 虚拟机和 SR-IOV 保留接入边界，不在本轮补做完整实现。</p>
+    </section>
+    <section id="backends" title="后端怎么分工">
+      <table><thead><tr><th>实现</th><th>分工</th><th>采用方式</th></tr></thead><tbody>
+        <tr><td>Hyper-V WMI</td><td>现有普通交换机、宿主连接、WMI 虚拟机网卡与端口设置。</td><td>继续作为当前主线，将底层调用从混合配置流程中整理出来。</td></tr>
+        <tr><td>ICS COM</td><td>现有共享上网，组合提供 NAT 转发和相关应用服务。</td><td>保留已有功能，单独封装组合配置与恢复；不伪装成可任意拆分的 NAT／DHCP／DNS 后端。</td></tr>
+        <tr><td>公开 HCN API</td><td>HCN 管理的网络、端点及网络策略。</td><td>先只读识别，再验证创建及转发／应用服务组合；通过后接入统一操作。当前尚无本线实现。</td></tr>
+        <tr><td>独立 WinNAT / RRAS</td><td>本轮不增加另一套管理路径。</td><td>只有 HCN 的明确缺口确实需要它们时，才另行评估。</td></tr>
+      </tbody></table>
+      <p>一个网络可以由 WMI 创建交换机、ICS 提供共享；这不是三个互斥的“交换机类型”。HCN 管理的网络则按 HCN 的生命周期操作，不能因为 WMI 也能看见，就改用 WMI 删除。</p>
+      <p>已有资源按实际归属操作；新建时可选择实现或交给 Core 从已支持的实现中选择，并返回最终选择与限制。一次操作确定实现后，不因失败而偷偷切换后端或迁移网络。</p>
+      <p>微软将 <a href="https://learn.microsoft.com/en-us/windows-server/networking/technologies/hcn/hcn-top">HCN 定义为网络、端点和策略的管理 API</a>；<a href="https://learn.microsoft.com/en-us/virtualization/api/hcn/hns_schema#networkflags">公开 schema 包含 DHCP 服务和 DNS 代理标志</a>，但这些字段不足以证明普通虚拟机上的各组合都能工作。选择 HCN 作为新增路线是本方案的工程判断，具体开放范围以验证结果为准。</p>
+      <p><a href="https://learn.microsoft.com/en-us/windows/win32/api/netcon/nf-netcon-inetsharingconfiguration-enablesharing">ICS 启用公开共享可能停用已有共享，并允许系统确认通知</a>，因此不能把它当成没有副作用的 NAT 开关。兼容路径继续单独标明这一限制，不能承诺无界面调用。</p>
+    </section>
+    <section id="validation" title="按什么顺序落地">
+      <ol>
+        <li><strong>统一查询与身份。</strong> 从现有 SwitchInfo、VmNetworkAdapter 扩展到上述模型，补 HCN 只读发现、资源关联与能力说明。先让现有网络被正确识别，查询不修改网络。</li>
+        <li><strong>整理现有修改链路。</strong> 按稳定资源引用执行，分别表达连接、IP 转发与应用服务配置；ICS 暂按已支持的组合执行。现有创建、改配置、删除及网卡接入都接到共同校验。固定等待改为有期限的状态检查。</li>
+        <li><strong>补操作协调。</strong> 同一资源跨进程排队；ICS 宿主级共享资源单独协调。锁后重新核对归属和状态，只清理本次创建的资源；恢复失败或结果不明返回实际状态与剩余资源。</li>
+        <li><strong>验证 HCN 新能力。</strong> 在测试网络上逐项检验 WMI 虚拟机接入、仅 DHCP、仅 NAT44、组合服务、独立 DNS、端口映射及网络共存。每项留下明确的支持结果与限制；不因 JSON 被接受就宣称功能通过。</li>
+        <li><strong>适配调用方与文档。</strong> WPF 使用统一查询与配置请求，继续提供简洁的常用选项；Web、测试使用同一契约。按旧功能对照回归，新能力仅显示实际支持的选项。</li>
+      </ol>
+      <p>完成标准：旧功能效果一致；同名或改名不误选；系统托管网络不被越权删除；能力缺失有明确说明；失败后能说明哪些步骤已完成、哪些资源仍存在。HCN 未通过的组合列为限制，不用其他后端悄悄替换用户请求。</p>
+      <p>后端适配、模型拆分和调用协调属于工程选择。若验证结果要求关闭已有共享、改变既有网络的地址／出口，或新增会影响其他网络的行为，再单独提出具体选择。</p>
+      <p>当前实现入口：<api name="HyperVSwitchService"/>、<api name="VmNetworkService"/>、<api name="SwitchInfo"/>、<api name="SwitchConfigurationRules"/>。本页是改造计划，当前接口仍按参考页所述行为运行。</p>
+    </section>
+  </page>
+  <page id="design-core" title="Core 整体架构" status="current">
+    <summary>Core 是由调用程序在进程内使用的 DLL。界面负责交互与显示，Core 封装管理能力、分步流程和底层调用。</summary>
+    <section id="dependencies" title="调用与依赖">
+      <figure><div class="diagram-scroll" tabindex="0" role="region" aria-label="Core 与调用方的依赖图">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" role="img" aria-labelledby="core-title core-desc">
+          <title id="core-title">Core 与调用方的依赖方向</title><desc id="core-desc">WPF、Web 和其他调用程序引用 Core。Core 内管理能力调用 Windows 与 Hyper-V；交互能力通过内部 FreeRDP 适配连接虚拟机控制台。Core 不反向引用界面项目。</desc>
+          <defs><marker id="core-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" class="diagram-arrow"/></marker></defs>
+          <rect class="diagram-node" x="35" y="25" width="250" height="85" rx="4"/><text class="diagram-label" x="160" y="60">WPF</text><text class="diagram-small" x="160" y="87">窗口、交互、显示适配</text>
+          <rect class="diagram-node" x="325" y="25" width="250" height="85" rx="4"/><text class="diagram-label" x="450" y="60">Web</text><text class="diagram-small" x="450" y="87">请求、连接与前端呈现</text>
+          <rect class="diagram-node" x="615" y="25" width="250" height="85" rx="4"/><text class="diagram-label" x="740" y="60">测试 / 其他程序</text><text class="diagram-small" x="740" y="87">直接调用 DLL</text>
+          <path class="diagram-edge" d="M160 110 V180" marker-end="url(#core-arrow)"/><path class="diagram-edge" d="M450 110 V180" marker-end="url(#core-arrow)"/><path class="diagram-edge" d="M740 110 V180" marker-end="url(#core-arrow)"/>
+          <rect class="diagram-zone" x="35" y="180" width="830" height="225" rx="4"/><text class="diagram-zone-title" x="60" y="215">ExHyperV.Core · 进程内类库</text>
+          <rect class="diagram-node diagram-emphasis" x="65" y="240" width="355" height="95" rx="4"/><text class="diagram-label" x="242" y="278">管理能力</text><text class="diagram-small" x="242" y="307">宿主、虚拟机、文件工具与操作流程</text>
+          <rect class="diagram-node diagram-emphasis" x="480" y="240" width="355" height="95" rx="4"/><text class="diagram-label" x="657" y="278">连接与交互能力</text><text class="diagram-small" x="657" y="307">视频、音频、控制、剪贴板</text>
+          <text class="diagram-small" x="450" y="375">参数与结果 · 状态与决策 · 资源归属与清理</text>
+          <path class="diagram-edge" d="M242 405 V465" marker-end="url(#core-arrow)"/><path class="diagram-edge" d="M657 405 V465" marker-end="url(#core-arrow)"/>
+          <rect class="diagram-node" x="65" y="465" width="355" height="70" rx="4"/><text class="diagram-label" x="242" y="495">Windows / Hyper-V</text><text class="diagram-small" x="242" y="520">WMI、原生 API 与系统组件</text>
+          <rect class="diagram-node" x="480" y="465" width="355" height="70" rx="4"/><text class="diagram-label" x="657" y="495">FreeRDP 原生实现</text><text class="diagram-small" x="657" y="520">由 Core 内部适配并管理连接</text>
+        </svg>
+      </div><figcaption>箭头表示主要调用和依赖方向。图按职责概括，没有展示所有辅助类型，也不代表各调用方使用了全部能力。</figcaption></figure>
+    </section>
+    <section id="boundaries" title="职责边界">
+      <table><thead><tr><th>调用方</th><th>Core</th></tr></thead><tbody>
+        <tr><td>展示页面、绑定数据、处理用户输入。</td><td>查询和修改虚拟化资源，执行规则判断。</td></tr>
+        <tr><td>展示待确认事项，提交用户选择。</td><td>管理分步流程，返回当前状态和允许动作。</td></tr>
+        <tr><td>处理重连策略、布局及系统剪贴板。</td><td>提供连接、帧租约、输入和剪贴板协议能力。</td></tr>
+        <tr><td>决定对象何时创建与释放。</td><td>按接口约定完成在途操作和资源清理。</td></tr>
+      </tbody></table>
+      <p>定制 Wpf.Ui 属于 WPF 的界面依赖。Core 不引用 WPF 或 Web 项目，也没有统一的 Core 运行会话或独立工作进程。</p>
+      <p>宿主与虚拟机管理仍按查询、修改等现有入口组织。跨对象的机制图不改变 API 分类。</p>
+    </section>
+  </page>
+  <page id="design-console" title="连接与交互能力" status="current">
+    <summary>连接管理通信的建立、状态、断开与资源释放，提供视频、音频、控制、剪贴板四类能力入口。控制包含键盘和鼠标。</summary>
+    <section id="streams" title="连接与四类能力">
+      <figure><div class="diagram-scroll" tabindex="0" role="region" aria-label="连接与四类交互能力">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" role="img" aria-labelledby="console-title console-desc">
+          <title id="console-title">连接与交互能力的组合关系</title><desc id="console-desc">调用方通过连接管理生命周期，再使用视频、音频、控制和剪贴板接口。键盘与鼠标归入控制。当前 FreeRDP 实现视频、控制和增强会话剪贴板，音频仅定义接口。</desc>
+          <defs><marker id="console-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" class="diagram-arrow"/></marker></defs>
+          <rect class="diagram-node" x="40" y="25" width="820" height="65" rx="4"/><text class="diagram-label" x="450" y="65">WPF / Web / 其他调用方</text>
+          <path class="diagram-edge" d="M450 90 V150" marker-end="url(#console-arrow)"/>
+          <rect class="diagram-node diagram-emphasis" x="40" y="150" width="820" height="80" rx="4"/><text class="diagram-label" x="450" y="182">连接</text><text class="diagram-small" x="450" y="210">后端选择 · 建立与断开 · 状态 · 资源释放</text>
+          <path class="diagram-edge" d="M450 230 V270 M135 310 V270 H765 V310 M345 270 V310 M555 270 V310"/>
+          <rect class="diagram-node" x="40" y="310" width="190" height="100" rx="4"/><text class="diagram-label" x="135" y="342">视频</text><text class="diagram-small" x="135" y="370">画面、帧租约</text><text class="diagram-small" x="135" y="393">分辨率调整</text>
+          <rect class="diagram-node diagram-proposed" x="250" y="310" width="190" height="100" rx="4"/><text class="diagram-label" x="345" y="342">音频</text><text class="diagram-small" x="345" y="370">接收来宾声音</text><text class="diagram-small" x="345" y="393">后端尚未实现</text>
+          <rect class="diagram-node" x="460" y="310" width="190" height="100" rx="4"/><text class="diagram-label" x="555" y="342">控制</text><text class="diagram-small" x="555" y="370">键盘、鼠标</text><text class="diagram-small" x="555" y="393">共用 Input 接口</text>
+          <rect class="diagram-node" x="670" y="310" width="190" height="100" rx="4"/><text class="diagram-label" x="765" y="342">剪贴板</text><text class="diagram-small" x="765" y="370">双向数据交换</text><text class="diagram-small" x="765" y="393">需要来宾通道</text>
+          <path class="diagram-edge" d="M135 410 V495 M555 410 V495 M765 410 V495"/>
+          <rect class="diagram-node" x="40" y="495" width="820" height="70" rx="4"/><text class="diagram-label" x="450" y="525">Core 内部 FreeRDP 适配与原生库</text><text class="diagram-small" x="450" y="551">RdpBasic / RdpEnhanced</text>
+          <text class="diagram-small" x="450" y="597">能力按后端提供，接口存在不表示对应通道已就绪。</text>
+        </svg>
+      </div><figcaption>上半部表示连接提供的能力入口，下半部表示当前后端实现关系。音频接口已经定义，当前内置后端尚未实现。</figcaption></figure>
+      <p><api name="IConsoleConnection"/> 负责通信连接的生命周期、状态与断开原因；各能力接口负责具体数据和操作。这里的连接管理不表示网络的 OSI 链路层。</p>
+      <table><thead><tr><th>能力</th><th>数据方向与职责</th></tr></thead><tbody>
+        <tr><td>视频</td><td>来宾画面传给调用方；分辨率调整请求由调用方发送。</td></tr>
+        <tr><td>音频</td><td>接收来宾声音；当前仅有预留接口，后端尚未实现。</td></tr>
+        <tr><td>控制</td><td>调用方向来宾发送键盘和鼠标输入。</td></tr>
+        <tr><td>剪贴板</td><td>调用方与来宾双向交换数据，需要相应通道就绪。</td></tr>
+      </tbody></table>
+      <p>视频中的基本控制台缩略图、控制中的直接发送 Ctrl+Alt+Del 可独立调用。连接内取图使用该连接的画面，增强会话截图不能由 WMI 缩略图代替。宿主和虚拟机的控制台开关仍归管理层面。</p>
+    </section>
+    <section id="capture" title="单次取图与连续画面">
+      <table><thead><tr><th>画面来源</th><th>单次取图</th><th>连续接收</th></tr></thead><tbody>
+        <tr><td>基本连接</td><td><code>Video.CaptureFrame()</code>：本连接的基本控制台画面。</td><td><code>Video.FrameReceived</code></td></tr>
+        <tr><td>增强连接</td><td><code>Video.CaptureFrame()</code>：本连接的增强会话桌面。</td><td><code>Video.FrameReceived</code></td></tr>
+        <tr><td>Hyper-V WMI</td><td><api name="VmScreenshotSource"/>：无需连接的基本控制台缩略图。</td><td>不提供连续帧接口。</td></tr>
+      </tbody></table>
+      <p>单次取图与连续画面属于同一视频能力。连接内都使用 <api name="ConsoleFrame"/>，区别在取得方式和租约归属：事件借出帧；<code>CaptureFrame()</code> 返回由调用方释放的独立租约。</p>
+      <p>取图不等待新帧，静止画面也能读取。没有画面或已请求断开时返回 null，不切换来源。截图读取完整像素；如需长期保存，可复制后及时释放，避免占住帧池。图片编码由调用方完成。</p>
+    </section>
+    <section id="capabilities" title="当前连接方式">
+      <table><thead><tr><th>连接方式</th><th>当前范围</th></tr></thead><tbody>
+        <tr><td>RdpBasic</td><td>视频、控制（键盘和鼠标）。</td></tr>
+        <tr><td>RdpEnhanced</td><td>视频、控制、剪贴板；视频支持分辨率调整，需来宾相应通道支持。</td></tr>
+        <tr><td>Nimue</td><td>已列入目录，尚未接入；选择时明确返回不支持。</td></tr>
+      </tbody></table>
+      <p>当前两个 FreeRDP 选项没有实现音频能力。向来宾输入音视频不属于当前 Core 的实现范围。选择失败不会自动切换连接方式。</p>
+    </section>
+    <section id="leases" title="帧与连接的生命周期">
+      <ol><li>创建连接，订阅事件，然后启动。</li><li>帧回调只借出当前租约；异步保留时先调用 <code>Retain()</code>。</li><li>显示或处理结束后释放租约；只有需要独立副本时才调用 <code>CopyPixels()</code>。</li><li>等待连接断开或异步释放完成。重新连接时创建新对象。</li></ol>
+      <p>Core 传递帧租约可避免托管层重复复制整帧，但采集与 WPF 位图写入仍有复制；此图不代表端到端零拷贝。</p>
+      <p>相关接口：<api name="ConsoleService"/>、<api name="IConsoleConnection"/>、<api name="ConsoleFrame"/>。</p>
+    </section>
+  </page>
+  <page id="design-gpu" title="GPU 部署流程" status="current">
+    <summary>Core 负责步骤、判断和状态；调用方读取快照、展示待确认事项，再提交用户决定。一次部署可以多次暂停等待输入。</summary>
+    <section id="decisions" title="Core 与调用方怎样协作">
+      <figure><div class="diagram-scroll" tabindex="0" role="region" aria-label="GPU 部署中的状态与决定">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 550" role="img" aria-labelledby="gpu-title gpu-desc">
+          <title id="gpu-title">GPU 部署的交互循环</title><desc id="gpu-desc">Core 执行步骤并产生带请求身份的待确认事项。调用方展示当前快照，收集用户决定后提交。Core 检查请求是否仍有效，再执行后续步骤并发布新快照；部署结束或失败时返回最终状态。</desc>
+          <defs><marker id="gpu-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" class="diagram-arrow"/></marker></defs>
+          <rect class="diagram-zone" x="35" y="30" width="310" height="480" rx="4"/><text class="diagram-zone-title" x="60" y="68">调用方 · WPF / 其他程序</text>
+          <rect class="diagram-zone" x="450" y="30" width="415" height="480" rx="4"/><text class="diagram-zone-title" x="475" y="68">Core · GpuDeploymentSession</text>
+          <rect class="diagram-node diagram-emphasis" x="480" y="100" width="355" height="65" rx="4"/><text class="diagram-label" x="657" y="138">执行当前步骤与规则判断</text>
+          <path class="diagram-edge" d="M657 165 V220" marker-end="url(#gpu-arrow)"/><text class="diagram-small" x="727" y="198">需要决定时</text>
+          <rect class="diagram-node" x="480" y="220" width="355" height="80" rx="4"/><text class="diagram-label" x="657" y="252">等待用户决定</text><text class="diagram-small" x="657" y="279">PendingDecision / AllowedActions</text>
+          <rect class="diagram-node" x="65" y="220" width="250" height="80" rx="4"/><text class="diagram-label" x="190" y="252">读取快照、展示选项</text><text class="diagram-small" x="190" y="279">收集用户决定</text>
+          <path class="diagram-edge" d="M480 260 H315" marker-end="url(#gpu-arrow)"/><text class="diagram-small" x="397" y="241">快照</text>
+          <path class="diagram-edge" d="M190 300 V385 H480" marker-end="url(#gpu-arrow)"/><text class="diagram-small" x="397" y="349">提交决定</text><text class="diagram-small" x="397" y="372">请求 ID</text>
+          <rect class="diagram-node diagram-emphasis" x="480" y="350" width="355" height="70" rx="4"/><text class="diagram-label" x="657" y="379">核对请求与当前状态</text><text class="diagram-small" x="657" y="403">有效后继续执行</text>
+          <path class="diagram-edge" d="M835 385 H850 V133 H835" marker-end="url(#gpu-arrow)"/>
+          <text class="diagram-small" x="657" y="471">完成 / 失败 / 取消 / 等待清理</text>
+          <text class="diagram-small" x="190" y="471">展示实际结果与剩余资源</text>
+          <path class="diagram-edge" d="M480 466 H315" marker-end="url(#gpu-arrow)"/>
+        </svg>
+      </div><figcaption>图示交互循环，不是所有状态转换的穷举。只有需要决定的步骤才进入等待；无需用户输入的步骤由 Core 继续执行。</figcaption></figure>
+    </section>
+    <section id="steps" title="部署内容与调用约定">
+      <p>步骤包括宿主准备、配置检查、电源检查、所需优化、GPU 分配和驱动部署。实际执行哪些步骤由部署模式决定；更新已有驱动不等于再次分配 GPU。</p>
+      <p>调用方依据最新 <code>AllowedActions</code> 决定能否继续、取消或重试清理。提交决定必须匹配当前请求身份，过时的决定不能作用于后续步骤。</p>
+      <p><code>CleanupRequired</code> 表示需要检查清理结果，不自动代表允许重试；<code>OutcomeUnknown</code> 时先保留现场，不盲目重放原生操作。取消也不等于撤销所有已完成的配置。</p>
+      <p>相关接口：<api name="GpuDeploymentSession"/>、<api name="GpuDeploymentSnapshot"/>、<api name="GpuDecisionRequest"/>。</p>
+    </section>
+  </page>
+</designs>

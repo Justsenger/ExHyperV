@@ -1,0 +1,147 @@
+// This Source Code Form is subject to the terms of the MIT License.
+// If a copy of the MIT was not distributed with this file, You can obtain one at https://opensource.org/licenses/MIT.
+// Copyright (C) Leszek Pomianowski and WPF UI Contributors.
+// All Rights Reserved.
+
+namespace Wpf.Ui;
+
+/// <summary>
+/// Represents a UI application.
+/// </summary>
+public class UiApplication
+{
+    [ThreadStatic]
+    private static UiApplication? _uiApplication;
+
+    private readonly Application? _application;
+
+    private ResourceDictionary? _resources;
+
+    private Window? _mainWindow;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="UiApplication"/> class.
+    /// </summary>
+    public UiApplication(Application application)
+    {
+        if (application is null)
+        {
+            return;
+        }
+
+        if (!ApplicationHasResources(application))
+        {
+            return;
+        }
+
+        _application = application;
+
+        System.Diagnostics.Debug.WriteLine(
+            $"INFO | {typeof(UiApplication)} application is {_application}",
+            "Wpf.Ui"
+        );
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the application is running outside of the desktop app context.
+    /// </summary>
+    public bool IsApplication => _application is not null;
+
+    /// <summary>
+    /// Gets the current application.
+    /// </summary>
+    public static UiApplication Current
+    {
+        get
+        {
+            _uiApplication ??= new UiApplication(Application.Current);
+
+            return _uiApplication;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the application's main window.
+    /// </summary>
+    public Window? MainWindow
+    {
+        get => _application?.MainWindow ?? _mainWindow;
+        set
+        {
+            if (_application != null)
+            {
+                _application.MainWindow = value;
+            }
+
+            _mainWindow = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether <see cref="UiApplication" /> applies
+    /// system accent color when first accessing <see cref="Resources" /> property
+    /// </summary>
+    public bool ApplySystemAccentColor { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the application's resources.
+    /// </summary>
+    public ResourceDictionary Resources
+    {
+        get
+        {
+            if (_resources is null)
+            {
+                _resources = [];
+
+                try
+                {
+                    if (ApplySystemAccentColor)
+                    {
+                        Wpf.Ui.Appearance.ApplicationAccentColorManager.ApplySystemAccent();
+                    }
+
+                    var themesDictionary = new Markup.ThemesDictionary();
+                    var controlsDictionary = new Markup.ControlsDictionary();
+                    _resources.MergedDictionaries.Add(themesDictionary);
+                    _resources.MergedDictionaries.Add(controlsDictionary);
+                }
+                catch { }
+            }
+
+            return _application?.Resources ?? _resources;
+        }
+        set
+        {
+            _application?.Resources = value;
+            _resources = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the application's main window.
+    /// </summary>
+    public object TryFindResource(object resourceKey)
+    {
+        return Resources[resourceKey];
+    }
+
+    /// <summary>
+    /// Turns the application's into shutdown mode.
+    /// </summary>
+    public void Shutdown()
+    {
+        _application?.Shutdown();
+    }
+
+    private static bool ApplicationHasResources(Application application)
+    {
+        return application.Resources.MergedDictionaries.Any(e =>
+            e.Source?.ToString()
+                .Contains(
+                    Appearance.ApplicationThemeManager.LibraryNamespace,
+                    StringComparison.OrdinalIgnoreCase
+                ) == true
+        );
+    }
+}

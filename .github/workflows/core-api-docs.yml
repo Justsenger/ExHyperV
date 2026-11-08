@@ -1,0 +1,84 @@
+name: Publish Core API documentation
+
+on:
+  push:
+    branches: ['2.0.0']
+    paths:
+      - 'src/ExHyperV.Core/**'
+      - '.github/workflows/core-api-docs.yml'
+      - '**/Directory.Build.*'
+      - '**/global.json'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: core-api-docs
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'Justsenger/ExHyperV' && github.ref == 'refs/heads/2.0.0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Check and export API documentation without executing Core
+        shell: bash
+        run: |
+          # checkout uses an immutable SHA; name the checked-out source branch for provenance.
+          git switch -C 2.0.0
+          node src/ExHyperV.Core/Documentation/export-website.mjs "$RUNNER_TEMP/core-api" --require-clean
+      - name: Publish the generated bundle
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          set +e
+          git ls-remote --exit-code --heads origin api-docs > "$RUNNER_TEMP/api-docs-ref"
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            git fetch --depth=1 origin api-docs
+            git switch --force-create api-docs FETCH_HEAD
+          elif [ "$status" -eq 2 ]; then
+            git switch --orphan api-docs
+          else
+            echo 'Cannot read the API documentation branch.' >&2
+            exit "$status"
+          fi
+          cp "$RUNNER_TEMP/core-api/index.html" index.html
+          cp "$RUNNER_TEMP/core-api/API.md" API.md
+          cp "$RUNNER_TEMP/core-api/manifest.json" manifest.json
+          git add -- index.html API.md manifest.json
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: publish Core API for $GITHUB_SHA"
+            git push origin HEAD:refs/heads/api-docs
+          fi
+          echo "Published API documentation for Core $GITHUB_SHA." >> "$GITHUB_STEP_SUMMARY"
+      - name: Trigger the website Cloudflare build
+        shell: bash
+        env:
+          DEPLOY_HOOK: ${{ secrets.EXHYPERV_SITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo '::warning::API bundle published; configure EXHYPERV_SITE_DEPLOY_HOOK to update ExHyperV.com automatically.'
+            echo 'Cloudflare auto-update is not connected: EXHYPERV_SITE_DEPLOY_HOOK is missing.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          # Keep the secret URL out of command arguments and output.
+          node --input-type=module <<'JS'
+          const url = new URL(process.env.DEPLOY_HOOK);
+          if (url.protocol !== 'https:' || url.hostname !== 'api.cloudflare.com' || !url.pathname.startsWith('/client/v4/workers/builds/deploy_hooks/')) {
+            throw new Error('Expected a Cloudflare Workers Builds deploy hook URL.');
+          }
+          const response = await fetch(url, { method: 'POST', signal: AbortSignal.timeout(30_000), redirect: 'error' });
+          if (!response.ok) throw new Error(`Cloudflare deploy hook returned HTTP ${response.status}`);
+          console.log('Cloudflare website rebuild requested. Check the Cloudflare build for deployment status.');
+          JS

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="WebTemplate.html" />
+    <EmbeddedResource Include="WebStyles.css" />
+    <EmbeddedResource Include="Fonts/Comfortaa-Latin.woff2" LogicalName="Generator.Comfortaa.woff2" />
+    <EmbeddedResource Include="Fonts/Comfortaa-OFL.txt" LogicalName="Generator.Comfortaa-OFL.txt" />
+    <EmbeddedResource Include="DesignPages.xml" />
+    <EmbeddedResource Include="ConfigurationVersions.xml" />
+    <Reference Include="Microsoft.CodeAnalysis">
+      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp">
+      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

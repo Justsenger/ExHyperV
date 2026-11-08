@@ -1,0 +1,568 @@
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.RegularExpressions;
+using Microsoft.Win32;
+
+namespace ExHyperV.Tools;
+
+/// <summary>封装设备枚举、PnP 状态和离线注册表等 Windows 原生管理操作。</summary>
+/// <remarks>修改设备或 HKLM hive 通常需要相应管理员权限。此层提供原生能力，调用方仍负责业务校验、目标身份、资源所有权和失败恢复。</remarks>
+internal static class Win32Api
+{
+    /// <summary>根据系统发布的 INF 名称查询 DriverStore 中实际原始 INF 路径。</summary>
+    /// <returns>原始 INF 完整路径；空输入抛出 ArgumentException，SetupAPI 失败抛出 Win32Exception。</returns>
+    /// <param name="publishedInfName">系统发布的 INF 名称，例如 oem35.inf。</param>
+    public static string GetInfDriverStoreLocation(string publishedInfName)
+    {
+        if (string.IsNullOrWhiteSpace(publishedInfName))
+            throw new ArgumentException("Published INF name is required.", nameof(publishedInfName));
+
+        uint requiredSize = 0;
+        bool firstCall = NativeMethods.SetupGetInfDriverStoreLocation(
+            publishedInfName,
+            nint.Zero,
+            nint.Zero,
+            null,
+            0,
+            out requiredSize);
+        int firstError = Marshal.GetLastWin32Error();
+        const int ErrorInsufficientBuffer = 122;
+        if (firstCall || firstError != ErrorInsufficientBuffer || requiredSize == 0)
+            throw new System.ComponentModel.Win32Exception(
+                firstError,
+                $"Unable to resolve the DriverStore location for {publishedInfName}.");
+
+        var buffer = new StringBuilder(checked((int)requiredSize));
+        if (!NativeMethods.SetupGetInfDriverStoreLocation(
+                publishedInfName,
+                nint.Zero,
+                nint.Zero,
+                buffer,
+                (uint)buffer.Capacity,
+                out requiredSize))
+        {
+            throw new System.ComponentModel.Win32Exception(
+                Marshal.GetLastWin32Error(),
+                $"Unable to resolve the DriverStore location for {publishedInfName}.");
+        }
+
+        return buffer.ToString();
+    }
+
+    // ── PnP 设备控制 ──────────────────────────────────────────────
+
+    /// <summary>请求 Windows 启用指定 PnP 设备节点。</summary>
+    /// <returns>原生配置管理器响应；Code 为对应配置管理器结果码。</returns>
+    /// <param name="instanceId">完整 PnP 设备实例 ID，不是显示名称或 LocationPath。</param>
+    public static ApiResponse EnablePnpDevice(string instanceId)
+        => SetPnpDeviceState(instanceId, enable: true);
+
+    /// <summary>请求 Windows 禁用指定 PnP 设备节点，影响宿主对设备的访问。</summary>
+    /// <remarks>需要设备管理权限；重新启用设备须调用 EnablePnpDevice。</remarks>
+    /// <returns>原生配置管理器响应；设备不可禁用时返回失败。</returns>
+    /// <param name="instanceId">完整 PnP 设备实例 ID，不是显示名称或 LocationPath。</param>
+    public static ApiResponse DisablePnpDevice(string instanceId)
+        => SetPnpDeviceState(instanceId, enable: false);
+
+    private static ApiResponse SetPnpDeviceState(string instanceId, bool enable)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId))
+            return ApiResponse.Fail("InstanceId cannot be empty");
+
+        uint locateFlag = enable
+            ? NativeMethods.CM_LOCATE_DEVNODE_PHANTOM
+            : NativeMethods.CM_LOCATE_DEVNODE_NORMAL;
+
+        int cr = NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, locateFlag);
+        if (cr != NativeMethods.CR_SUCCESS)
+            return ApiResponse.Fail(
+                $"CM_Locate_DevNode failed for '{instanceId}'",
+                cr, ApiErrorSource.Win32);
+
+        cr = enable
+            ? NativeMethods.CM_Enable_DevNode(devInst, 0)
+            : NativeMethods.CM_Disable_DevNode(devInst, NativeMethods.CM_DISABLE_UI_NOT_OK);
+
+        if (cr == NativeMethods.CR_SUCCESS)
+            return ApiResponse.Ok();
+
+        // 设备本身不可禁用（USB4 主机路由器、板载老式 PCI 设备等）→ 无法从主机分离直通。
+        // 给出「不支持」提示，而非裸 CM_Disable_DevNode 失败名。
+        if (!enable && cr == NativeMethods.CR_NOT_DISABLEABLE)
+            return ApiResponse.Fail(Properties.Resources.Error_DeviceNotAssignable, cr, ApiErrorSource.Win32);
+
+        return ApiResponse.Fail(
+            $"{(enable ? "CM_Enable_DevNode" : "CM_Disable_DevNode")} failed for '{instanceId}'",
+            cr, ApiErrorSource.Win32);
+    }
+
+    /// <summary>读取 PnP 设备的父设备实例 ID。</summary>
+    /// <returns>父实例 ID；空输入、未找到或无法读取时返回空字符串。</returns>
+    /// <param name="instanceId">完整 PnP 设备实例 ID，不是显示名称或 LocationPath。</param>
+    public static string GetDeviceParent(string instanceId)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId)) return string.Empty;
+        if (NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_PHANTOM) != NativeMethods.CR_SUCCESS)
+            return string.Empty;
+        return GetDevNodeStringProperty(devInst, instanceId, new Guid("4340A6C5-93FA-4706-972C-7B648008A5A7"), 8); // DEVPKEY_Device_Parent
+    }
+
+    // ── PnP 设备枚举 ─────────────────────────────────────────────
+
+    /// <summary>枚举 PnP 设备身份、状态和位置路径，包含可识别的历史节点。</summary>
+    /// <returns>设备快照列表；调用方需根据 IsPresent、设备类别等筛选。</returns>
+    public static List<PciDeviceInfo> GetAllDevices()
+    {
+        var sw = Stopwatch.StartNew();
+
+        // Win32_PnPEntity：拿在线设备的 Name/PNPClass/Service/Manufacturer
+        var pnpEntityMap = new Dictionary<string, (string Name, string PnpClass, string Service, string Manufacturer)>(
+            StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            using var searcher = new System.Management.ManagementObjectSearcher(
+                @"root\cimv2",
+                "SELECT DeviceID, Name, PNPClass, Service, Manufacturer FROM Win32_PnPEntity");
+            using var collection = searcher.Get();
+            foreach (System.Management.ManagementObject obj in collection)
+            {
+                using (obj)
+                {
+                    string devId = obj["DeviceID"]?.ToString() ?? "";
+                    if (string.IsNullOrEmpty(devId)) continue;
+                    pnpEntityMap[devId] = (
+                        obj["Name"]?.ToString() ?? "",
+                        obj["PNPClass"]?.ToString() ?? "",
+                        obj["Service"]?.ToString() ?? "",
+                        obj["Manufacturer"]?.ToString() ?? "");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[Win32Api.GetAllDevices] Win32_PnPEntity failed: {ex.Message}");
+        }
+        Debug.WriteLine($"[Win32Api.GetAllDevices] Win32_PnPEntity: {pnpEntityMap.Count} ({sw.ElapsedMilliseconds}ms)");
+
+        // CM_Get_Device_ID_List：FILTER_NONE 枚举所有设备（含分配给VM的Unknown设备）
+        var allIds = GetDeviceIdList(NativeMethods.CM_GETIDLIST_FILTER_NONE);
+        Debug.WriteLine($"[Win32Api.GetAllDevices] CM all devices: {allIds.Count} ({sw.ElapsedMilliseconds}ms)");
+
+        // 并行查每个设备属性
+        var results = allIds.AsParallel().Select(instanceId =>
+        {
+            // NORMAL 只定位当前在位节点；失败后再用 PHANTOM 读取离线节点的元数据。
+            // Status=Unknown 不能代替“是否在位”：驱动异常的在位设备会是 Error，部分 phantom
+            // 节点也可能仍能读取状态。DDA 枚举必须保留这两个维度。
+            int lcr = NativeMethods.CM_Locate_DevNode(
+                out uint devInst,
+                instanceId,
+                NativeMethods.CM_LOCATE_DEVNODE_NORMAL);
+            bool isPresent = lcr == NativeMethods.CR_SUCCESS;
+            if (!isPresent)
+            {
+                lcr = NativeMethods.CM_Locate_DevNode(
+                    out devInst,
+                    instanceId,
+                    NativeMethods.CM_LOCATE_DEVNODE_PHANTOM);
+            }
+            if (lcr != NativeMethods.CR_SUCCESS)
+            {
+                Debug.WriteLine($"[Win32Api.GetAllDevices] CM_Locate_DevNode failed '{instanceId}' cr={lcr}");
+                return null;
+            }
+
+            // Status
+            string status;
+            lcr = NativeMethods.CM_Get_DevNode_Status(out uint dnStatus, out _, devInst, 0);
+            if (lcr != NativeMethods.CR_SUCCESS)
+                status = "Unknown";
+            else if ((dnStatus & NativeMethods.DN_HAS_PROBLEM) != 0)
+                status = "Error";
+            else
+                status = "OK";
+
+            // Name/Class/Service：优先 cfgmgr32 DEVPKEY（支持 Unknown 状态设备）
+            // Win32_PnPEntity 仅作为 fallback，Unknown 状态时该条目不存在
+            string systemName = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("B725F130-47EF-101A-A5F1-02608C9EEBAC"), 10); // DEVPKEY_NAME
+            string friendlyName = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 14); // DEVPKEY_Device_FriendlyName
+            if (string.IsNullOrEmpty(friendlyName))
+                friendlyName = GetDevNodeStringProperty(devInst, instanceId,
+                    new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 2);  // DEVPKEY_Device_DeviceDesc
+            string busReportedDescription = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("540B947E-8B40-45BC-A8A2-6A0B894CBDA2"), 4); // DEVPKEY_Device_BusReportedDeviceDesc
+            string pnpClass = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 9);  // DEVPKEY_Device_Class
+            string service = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 6);  // DEVPKEY_Device_Service
+            string manufacturer = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 13); // DEVPKEY_Device_Manufacturer
+            string parentInstanceId = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("4340A6C5-93FA-4706-972C-7B648008A5A7"), 8);  // DEVPKEY_Device_Parent
+            // cfgmgr32 拿不到时 fallback Win32_PnPEntity
+            if (pnpEntityMap.TryGetValue(instanceId, out var entityInfo))
+            {
+                friendlyName = string.IsNullOrEmpty(friendlyName) ? entityInfo.Name : friendlyName;
+                pnpClass = string.IsNullOrEmpty(pnpClass) ? entityInfo.PnpClass : pnpClass;
+                service = string.IsNullOrEmpty(service) ? entityInfo.Service : service;
+                manufacturer = string.IsNullOrEmpty(manufacturer) ? entityInfo.Manufacturer : manufacturer;
+            }
+
+            // LocationPaths
+            var locationPaths = GetDevNodeStringListProperty(devInst, instanceId,
+                new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 37);
+
+            return new PciDeviceInfo
+            {
+                InstanceId = instanceId,
+                SystemName = systemName,
+                FriendlyName = friendlyName,
+                Class = pnpClass,
+                Service = service,
+                Manufacturer = manufacturer,
+                ParentInstanceId = parentInstanceId,
+                Status = status,
+                IsPresent = isPresent,
+                LocationPaths = locationPaths,
+                CompatibleIds = GetDevNodeStringListProperty(devInst, instanceId,
+                    new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 4),
+                BusReportedDescription = busReportedDescription
+            };
+        }).Where(x => x != null).Cast<PciDeviceInfo>().ToList();
+
+        Debug.WriteLine($"[Win32Api.GetAllDevices] Done. {results.Count} ({sw.ElapsedMilliseconds}ms)");
+        return results;
+    }
+
+    /// <summary>枚举当前在位的显示类设备及驱动信息。</summary>
+    /// <returns>设备实例 ID、名称、厂商和驱动版本元组列表。</returns>
+    public static List<(string InstanceId, string Name, string Manufacturer, string DriverVersion)> GetPresentDisplayAdapters()
+    {
+        var result = new List<(string, string, string, string)>();
+        var ids = GetDeviceIdList(NativeMethods.CM_GETIDLIST_FILTER_PRESENT);
+
+        var common = new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"); // DEVPKEY_Device_* 公共 fmtid
+        foreach (var instanceId in ids)
+        {
+            string u = instanceId.ToUpperInvariant();
+            if (!u.StartsWith("PCI\\") && !u.Contains("ACPI")) continue;
+            if (NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_NORMAL) != NativeMethods.CR_SUCCESS) continue;
+            if (GetDevNodeStringProperty(devInst, instanceId, common, 9) != "Display") continue;          // Class
+            string name = GetDevNodeStringProperty(devInst, instanceId, common, 14);                       // FriendlyName
+            if (string.IsNullOrEmpty(name)) name = GetDevNodeStringProperty(devInst, instanceId, common, 2); // DeviceDesc
+            string manu = GetDevNodeStringProperty(devInst, instanceId, common, 13);                       // Manufacturer
+            string driverVersion = GetDevNodeStringProperty(devInst, instanceId,
+                new Guid("A8B865DD-2E3D-4094-AD97-E593A70C75D6"), 3);                                      // DEVPKEY_Device_DriverVersion
+            result.Add((instanceId, name, manu, driverVersion));
+        }
+        return result;
+    }
+
+    // CM_Get_Device_ID_List 两步式枚举在"取大小"与"取列表"之间存在竞态：空隙中设备树膨胀会返回
+    // CR_BUFFER_SMALL——本应用的 DDA 操作本身就触发设备重枚举，故按微软推荐循环重试而非放弃返回空。
+    private static List<string> GetDeviceIdList(uint filterFlags)
+    {
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            int cr = NativeMethods.CM_Get_Device_ID_List_Size(out uint bufferLen, null, filterFlags);
+            if (cr != NativeMethods.CR_SUCCESS || bufferLen == 0) return new List<string>();
+            char[] buf = new char[bufferLen];
+            cr = NativeMethods.CM_Get_Device_ID_List(null, buf, bufferLen, filterFlags);
+            if (cr == NativeMethods.CR_SUCCESS) return ParseMultiString(buf);
+            if (cr != NativeMethods.CR_BUFFER_SMALL) return new List<string>();
+        }
+        return new List<string>();
+    }
+
+    // ── cfgmgr32 属性查询 ─────────────────────────────────────────
+
+    private static string GetDevNodeStringProperty(uint devInst, string instanceId, Guid fmtid, uint pid)
+    {
+        var key = new NativeMethods.DEVPROPKEY { fmtid = fmtid, pid = pid };
+        uint propType = 0, bufSize = 0;
+        int cr = NativeMethods.CM_Get_DevNode_Property(devInst, ref key, out propType, null, ref bufSize, 0);
+        if (cr != NativeMethods.CR_BUFFER_SMALL && cr != NativeMethods.CR_SUCCESS) return "";
+        if (bufSize == 0) return "";
+        byte[] buf = new byte[bufSize];
+        cr = NativeMethods.CM_Get_DevNode_Property(devInst, ref key, out propType, buf, ref bufSize, 0);
+        if (cr != NativeMethods.CR_SUCCESS) return "";
+        return Encoding.Unicode.GetString(buf).TrimEnd('\0');
+    }
+
+    private static List<string> GetDevNodeStringListProperty(uint devInst, string instanceId, Guid fmtid, uint pid)
+    {
+        var key = new NativeMethods.DEVPROPKEY { fmtid = fmtid, pid = pid };
+        uint propType = 0, bufSize = 0;
+        int cr = NativeMethods.CM_Get_DevNode_Property(devInst, ref key, out propType, null, ref bufSize, 0);
+        if (cr != NativeMethods.CR_BUFFER_SMALL && cr != NativeMethods.CR_SUCCESS) return new List<string>();
+        if (bufSize == 0) return new List<string>();
+        byte[] buf = new byte[bufSize];
+        cr = NativeMethods.CM_Get_DevNode_Property(devInst, ref key, out propType, buf, ref bufSize, 0);
+        if (cr != NativeMethods.CR_SUCCESS) return new List<string>();
+        return ParseMultiString(Encoding.Unicode.GetString(buf).ToCharArray());
+    }
+
+    private static List<string> ParseMultiString(char[] buffer)
+    {
+        var result = new List<string>();
+        int start = 0;
+        for (int i = 0; i < buffer.Length; i++)
+        {
+            if (buffer[i] == '\0')
+            {
+                if (i > start) result.Add(new string(buffer, start, i - start));
+                else break;
+                start = i + 1;
+            }
+        }
+        return result;
+    }
+
+    // ── 离线注册表操作 ────────────────────────────────────────────
+
+    /// <summary>将离线注册表 hive 文件加载到 HKLM 下的指定子键。</summary>
+    /// <remarks>需要相应备份/还原特权；成功加载后由调用方配对 UnloadHive。</remarks>
+    /// <returns>RegLoadKey 操作响应。</returns>
+    /// <param name="subKeyName">相对于 HKEY_LOCAL_MACHINE 的子键路径。</param>
+    /// <param name="hivePath">离线 hive 文件完整路径。</param>
+    public static ApiResponse LoadHive(string subKeyName, string hivePath)
+    {
+        int ret = NativeMethods.RegLoadKey(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName, hivePath);
+        return ret == 0 ? ApiResponse.Ok() : ApiResponse.Fail($"RegLoadKey failed: {subKeyName}", ret, ApiErrorSource.Win32);
+    }
+
+    /// <summary>卸载先前加载到 HKLM 指定子键的离线 hive。</summary>
+    /// <remarks>调用前应关闭该 hive 的活动键句柄。</remarks>
+    /// <returns>RegUnLoadKey 操作响应。</returns>
+    /// <param name="subKeyName">相对于 HKEY_LOCAL_MACHINE 的子键路径。</param>
+    public static ApiResponse UnloadHive(string subKeyName)
+    {
+        int ret = NativeMethods.RegUnLoadKey(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName);
+        return ret == 0 ? ApiResponse.Ok() : ApiResponse.Fail($"RegUnLoadKey failed: {subKeyName}", ret, ApiErrorSource.Win32);
+    }
+
+    /// <summary>把 HKLM 指定子键保存为 hive 文件。</summary>
+    /// <remarks>需要相应备份特权；失败可能发生在旧目标文件已经删除之后。</remarks>
+    /// <returns>打开键或保存操作的响应。</returns>
+    /// <param name="subKeyName">相对于 HKEY_LOCAL_MACHINE 的子键路径。</param>
+    /// <param name="filePath">保存目标完整路径；若已有文件会先尝试删除。</param>
+    public static ApiResponse SaveHive(string subKeyName, string filePath)
+    {
+        try { if (File.Exists(filePath)) File.Delete(filePath); } catch { }
+        int openRet = NativeMethods.RegOpenKeyEx(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName, 0, (int)NativeMethods.KEY_READ, out nint hKey);
+        if (openRet != 0) return ApiResponse.Fail($"RegOpenKeyEx failed: {subKeyName}", openRet, ApiErrorSource.Win32);
+        try
+        {
+            int saveRet = NativeMethods.RegSaveKey(hKey, filePath, nint.Zero);
+            return saveRet == 0 ? ApiResponse.Ok() : ApiResponse.Fail("RegSaveKey failed", saveRet, ApiErrorSource.Win32);
+        }
+        finally { NativeMethods.RegCloseKey(hKey); }
+    }
+
+    /// <summary>提交 HKLM 子键对应 hive 的替换并指定备份路径。</summary>
+    /// <remarks>需要相应还原权限；不会自动重启，也不把错误码 5 一概解释成某一种业务状态。</remarks>
+    /// <returns>RegReplaceKey 原生响应；是否生效及是否需重启由系统处理。</returns>
+    /// <param name="subKeyName">相对于 HKEY_LOCAL_MACHINE 的子键路径。</param>
+    /// <param name="newHivePath">准备好的新 hive 完整路径。</param>
+    /// <param name="backupPath">旧 hive 的备份输出路径。</param>
+    public static ApiResponse ReplaceHive(string subKeyName, string newHivePath, string backupPath)
+    {
+        int ret = NativeMethods.RegReplaceKey(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName, newHivePath, backupPath);
+        return ret == 0 ? ApiResponse.Ok() : ApiResponse.Fail("RegReplaceKey failed", ret, ApiErrorSource.Win32);
+    }
+
+    /// <summary>在 HKLM 子键中写入并刷新字符串值。</summary>
+    /// <returns>打开键、写入和刷新操作的响应；刷新失败时值可能已经写入，响应会明确说明。</returns>
+    /// <param name="subKeyName">相对于 HKEY_LOCAL_MACHINE 的子键路径。</param>
+    /// <param name="valueName">注册表值名称。</param>
+    /// <param name="value">写入的 Unicode 文本；以 UTF-16 编码及结尾空字符传给原生接口。</param>
+    public static ApiResponse SetHiveStringValue(string subKeyName, string valueName, string value)
+    {
+        int openRet = NativeMethods.RegOpenKeyEx(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName, 0, (int)NativeMethods.KEY_SET_VALUE, out nint hKey);
+        if (openRet != 0) return ApiResponse.Fail($"RegOpenKeyEx failed: {subKeyName}", openRet, ApiErrorSource.Win32);
+        try
+        {
+            byte[] data = Encoding.Unicode.GetBytes(value + "\0");
+            int setRet = NativeMethods.RegSetValueEx(hKey, valueName, 0, NativeMethods.REG_SZ, data, data.Length);
+            if (setRet != 0) return ApiResponse.Fail($"RegSetValueEx failed: {valueName}", setRet, ApiErrorSource.Win32);
+            int flushRet = NativeMethods.RegFlushKey(hKey);
+            return flushRet == 0 ? ApiResponse.Ok()
+                : ApiResponse.Fail($"RegSetValueEx 已写入 {valueName}，但 RegFlushKey 失败。", flushRet,
+                    ApiErrorSource.Win32, kind: ApiErrorKind.OperationFailed);
+        }
+        finally { NativeMethods.RegCloseKey(hKey); }
+    }
+
+    /// <summary>读取 HKLM 子键中的 DWORD 数值。</summary>
+    /// <returns>数值响应；打开或读取失败时返回错误码。</returns>
+    /// <param name="subKeyName">相对于 HKEY_LOCAL_MACHINE 的子键路径。</param>
+    /// <param name="valueName">注册表值名称。</param>
+    public static ApiResponse<int> GetHiveDwordValue(string subKeyName, string valueName)
+    {
+        int openRet = NativeMethods.RegOpenKeyEx(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName, 0, (int)NativeMethods.KEY_READ, out nint hKey);
+        if (openRet != 0) return ApiResponse<int>.Fail($"RegOpenKeyEx failed: {subKeyName}", openRet, ApiErrorSource.Win32);
+        try
+        {
+            int type = 0, data = 0, size = 4;
+            int queryRet = NativeMethods.RegQueryValueEx(hKey, valueName, nint.Zero, ref type, ref data, ref size);
+            if (queryRet != 0)
+                return ApiResponse<int>.Fail($"RegQueryValueEx failed: {valueName}", queryRet, ApiErrorSource.Win32);
+            if (type != 4 || size != sizeof(int)) // REG_DWORD
+                return ApiResponse<int>.Fail($"注册表值 {valueName} 不是有效的 DWORD。", kind: ApiErrorKind.InvalidState);
+            return ApiResponse<int>.Ok(data);
+        }
+        finally { NativeMethods.RegCloseKey(hKey); }
+    }
+
+    /// <summary>关闭调用方交给本方法的 Windows 内核句柄。</summary>
+    /// <remarks>成功后不得继续使用或重复关闭该句柄。</remarks>
+    /// <returns>CloseHandle 原生结果。</returns>
+    /// <param name="handle">由调用方拥有、适合 CloseHandle 释放的句柄；不得用于套接字或借用句柄。</param>
+    public static bool CloseHandle(nint handle) => NativeMethods.CloseHandle(handle);
+}
+
+/// <summary>Windows PnP 枚举得到的设备快照；除 PCI 设备外也可能包含其他设备节点。</summary>
+internal class PciDeviceInfo
+{
+    /// <summary>完整 PnP 设备实例 ID，用于设备身份匹配。</summary>
+    public string InstanceId { get; set; } = "";
+    /// <summary>系统提供的设备名称。</summary>
+    public string SystemName { get; set; } = "";
+    /// <summary>友好显示名称，可能为空。</summary>
+    public string FriendlyName { get; set; } = "";
+    /// <summary>PnP 设备类别名称。</summary>
+    public string Class { get; set; } = "";
+    /// <summary>设备绑定的驱动服务名称。</summary>
+    public string Service { get; set; } = "";
+    /// <summary>Windows 提供的制造商说明。</summary>
+    public string Manufacturer { get; set; } = "";
+    /// <summary>父 PnP 节点实例 ID。</summary>
+    public string ParentInstanceId { get; set; } = "";
+    /// <summary>设备状态的显示文本，不是稳定数值错误码。</summary>
+    public string Status { get; set; } = "";
+    /// <summary>节点当前是否在位；与驱动状态独立。</summary>
+    public bool IsPresent { get; set; }
+    /// <summary>设备位置路径集合，用于拓扑或 DDA 操作。</summary>
+    public List<string> LocationPaths { get; set; } = new();
+    /// <summary>设备兼容 ID 集合。</summary>
+    public List<string> CompatibleIds { get; set; } = new();
+    /// <summary>总线驱动上报的设备说明。</summary>
+    public string BusReportedDescription { get; set; } = string.Empty;
+
+    /// <summary>位置路径集合中的首项，没有路径时为 null。</summary>
+    public string? FirstLocationPath =>
+        LocationPaths.FirstOrDefault(p =>
+            p.StartsWith("PCIROOT", StringComparison.OrdinalIgnoreCase))
+        ?? LocationPaths.FirstOrDefault();
+}
+
+internal static class NativeMethods
+{
+    public static readonly nint INVALID_HANDLE_VALUE = new(-1);
+    public static readonly nint HKEY_LOCAL_MACHINE = new(unchecked((int)0x80000002));
+
+    #region setupapi
+    public const uint DIGCF_PRESENT = 0x00000002;
+    public const uint DIGCF_ALLCLASSES = 0x00000004;
+    public const int DIF_PROPERTYCHANGE = 0x12;
+    public const uint DICS_ENABLE = 1;
+    public const uint DICS_DISABLE = 2;
+    public const uint DICS_FLAG_GLOBAL = 1;
+
+    [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    public static extern nint SetupDiGetClassDevs(nint classGuid, string? enumerator, nint hwndParent, uint flags);
+    [DllImport("setupapi.dll", SetLastError = true)]
+    public static extern bool SetupDiEnumDeviceInfo(nint deviceInfoSet, uint memberIndex, ref SP_DEVINFO_DATA deviceInfoData);
+    [DllImport("setupapi.dll", SetLastError = true)]
+    public static extern bool SetupDiSetClassInstallParams(nint deviceInfoSet, ref SP_DEVINFO_DATA deviceInfoData, ref SP_PROPCHANGE_PARAMS classInstallParams, uint classInstallParamsSize);
+    [DllImport("setupapi.dll", SetLastError = true)]
+    public static extern bool SetupDiCallClassInstaller(int installFunction, nint deviceInfoSet, ref SP_DEVINFO_DATA deviceInfoData);
+    [DllImport("setupapi.dll", SetLastError = true)]
+    public static extern bool SetupDiDestroyDeviceInfoList(nint deviceInfoSet);
+    [DllImport("setupapi.dll", EntryPoint = "SetupGetInfDriverStoreLocationW", CharSet = CharSet.Unicode,
+        SetLastError = true, ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetupGetInfDriverStoreLocation(
+        [MarshalAs(UnmanagedType.LPWStr)] string fileName,
+        nint alternatePlatformInfo,
+        nint localeName,
+        StringBuilder? returnBuffer,
+        uint returnBufferSize,
+        out uint requiredSize);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SP_DEVINFO_DATA { public uint cbSize; public Guid ClassGuid; public uint DevInst; public nint Reserved; }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SP_CLASSINSTALL_HEADER { public uint cbSize; public int InstallFunction; }
+    [StructLayout(LayoutKind.Sequential)]
+    public struct SP_PROPCHANGE_PARAMS { public SP_CLASSINSTALL_HEADER ClassInstallHeader; public uint StateChange; public uint Scope; public uint HwProfile; }
+    #endregion
+
+    #region cfgmgr32
+    public const int CR_SUCCESS = 0x00000000;
+    public const int CR_BUFFER_SMALL = 0x0000001A;
+    public const int CR_NOT_DISABLEABLE = 0x00000028; // 设备不可禁用 
+    public const uint CM_LOCATE_DEVNODE_NORMAL = 0x00000000;
+    public const uint CM_LOCATE_DEVNODE_PHANTOM = 0x00000001;
+    public const uint CM_DISABLE_UI_NOT_OK = 0x00000004;
+    public const uint CM_GETIDLIST_FILTER_NONE = 0x00000000;
+    public const uint CM_GETIDLIST_FILTER_PRESENT = 0x00000100;
+    public const uint CM_GETIDLIST_FILTER_ENUMERATOR = 0x00000002;
+    public const uint DN_HAS_PROBLEM = 0x00000400;
+
+    [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
+    public static extern int CM_Locate_DevNode(out uint pdnDevInst, string pDeviceID, uint ulFlags);
+    [DllImport("cfgmgr32.dll")]
+    public static extern int CM_Enable_DevNode(uint dnDevInst, uint ulFlags);
+    [DllImport("cfgmgr32.dll")]
+    public static extern int CM_Disable_DevNode(uint dnDevInst, uint ulFlags);
+    [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
+    public static extern int CM_Get_Device_ID_List_Size(out uint pulLen, string? pszFilter, uint ulFlags);
+    [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
+    public static extern int CM_Get_Device_ID_List(string? pszFilter, char[] Buffer, uint BufferLen, uint ulFlags);
+    [DllImport("cfgmgr32.dll")]
+    public static extern int CM_Get_DevNode_Status(out uint pulStatus, out uint pulProblemNumber, uint dnDevInst, uint ulFlags);
+    [DllImport("cfgmgr32.dll", CharSet = CharSet.Unicode)]
+    public static extern int CM_Get_DevNode_Property(uint dnDevInst, ref DEVPROPKEY PropertyKey, out uint PropertyType, byte[]? PropertyBuffer, ref uint PropertyBufferSize, uint ulFlags);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DEVPROPKEY { public Guid fmtid; public uint pid; }
+    #endregion
+
+    #region advapi32
+    public const uint KEY_READ = 0x20019;
+    public const uint KEY_SET_VALUE = 0x0002;
+    public const int REG_SZ = 1;
+
+    [DllImport("advapi32.dll", EntryPoint = "RegOpenKeyExW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern int RegOpenKeyEx(nint hKey, string lpSubKey, uint ulOptions, int samDesired, out nint phkResult);
+    [DllImport("advapi32.dll", EntryPoint = "RegSaveKeyW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern int RegSaveKey(nint hKey, string lpFile, nint lpSecurityAttributes);
+    [DllImport("advapi32.dll", EntryPoint = "RegReplaceKeyW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern int RegReplaceKey(nint hKey, string lpSubKey, string lpNewFile, string lpOldFile);
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern int RegCloseKey(nint hKey);
+    [DllImport("advapi32.dll", EntryPoint = "RegLoadKeyW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern int RegLoadKey(nint hKey, string lpSubKey, string lpFile);
+    [DllImport("advapi32.dll", EntryPoint = "RegUnLoadKeyW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern int RegUnLoadKey(nint hKey, string lpSubKey);
+    [DllImport("advapi32.dll", SetLastError = true)]
+    public static extern int RegFlushKey(nint hKey);
+    [DllImport("advapi32.dll", EntryPoint = "RegSetValueExW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern int RegSetValueEx(nint hKey, string lpValueName, int reserved, int dwType, byte[] lpData, int cbData);
+    [DllImport("advapi32.dll", EntryPoint = "RegQueryValueExW", ExactSpelling = true, SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern int RegQueryValueEx(nint hKey, string lpValueName, nint lpReserved, ref int lpType, ref int lpData, ref int lpcbData);
+
+    #endregion
+
+    #region kernel32
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern nint GetCurrentProcess();
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CloseHandle(nint hObject);
+    #endregion
+}

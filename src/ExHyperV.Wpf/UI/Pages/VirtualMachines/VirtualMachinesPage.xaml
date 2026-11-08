@@ -1,0 +1,887 @@
+<Page
+    x:Class="ExHyperV.UI.Pages.VirtualMachines.VirtualMachinesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
+    
+    xmlns:behaviors="clr-namespace:ExHyperV.UI.Shared.Behaviors"
+    xmlns:components="clr-namespace:ExHyperV.UI.Pages.VirtualMachines.Components"
+    Title="VirtualMachinesPage" mc:Ignorable="d" d:DesignHeight="750" d:DesignWidth="1100"
+    behaviors:ParentScrollLock.LockParentScroll="True"
+    x:Name="RootPage">
+
+    <Page.Resources>
+        
+        
+        <!-- 保底界面模板：未选择虚拟机时显示 -->
+        <DataTemplate x:Key="VmEmptyStateTemplate">
+            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                <StackPanel Opacity="0.6">
+                    <TextBlock Text="{x:Static properties:Resources.Label_NoVmSelected}" 
+                       FontSize="20" 
+                       FontWeight="SemiBold" 
+                       HorizontalAlignment="Center" 
+                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                       Margin="0,0,0,8"/>
+                    <TextBlock Text="{x:Static properties:Resources.Label_SelectVmStart}" 
+                       FontSize="14"
+                       HorizontalAlignment="Center" 
+                       Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- 纯白/纯空模板：用于创建模式下的底层占位 -->
+        <DataTemplate x:Key="VmBlankTemplate">
+            <Grid Background="Transparent"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="VmListItemTemplate">
+            <Border Background="Transparent" Padding="2,6" ToolTip="{Binding Name}"
+            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}">
+                <Border.InputBindings>
+                    <MouseBinding MouseAction="LeftDoubleClick" 
+                          Command="{Binding DataContext.RenameVmCommand, ElementName=RootPage}" 
+                          CommandParameter="{Binding}" />
+                </Border.InputBindings>
+                
+                <Border.ContextMenu>
+                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                        <!-- 多选电源：全部运行→关机，否则→启动。仅多选时显示。 -->
+                        <ui:MenuItem Header="{Binding PlacementTarget.Tag.MultiPowerToggleText, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             Command="{Binding PlacementTarget.Tag.MultiPowerCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             Visibility="{Binding PlacementTarget.Tag.IsMultiSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Power24" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <Separator Visibility="{Binding PlacementTarget.Tag.IsMultiSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}"/>
+
+                        <!-- 运行中显示关机，其余状态显示启动；多选时隐藏。 -->
+                        <ui:MenuItem Header="{Binding PowerToggleText}"
+             Command="{Binding ControlCommand}" CommandParameter="{Binding PowerToggleAction}"
+             Visibility="{Binding PlacementTarget.Tag.IsSingleOrNoneSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Power24" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <Separator Visibility="{Binding PlacementTarget.Tag.IsSingleOrNoneSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}"/>
+
+                        <ui:MenuItem Header="{x:Static properties:Resources.VmPage_MenuOpenFolder}"
+             Command="{Binding PlacementTarget.Tag.OpenVmFolderCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             CommandParameter="{Binding}"
+             Visibility="{Binding PlacementTarget.Tag.IsSingleOrNoneSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="FolderOpen24" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <ui:MenuItem Header="{x:Static properties:Resources.VmExport_Menu}"
+             Command="{Binding PlacementTarget.Tag.GoToExportVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             CommandParameter="{Binding}">
+                            <ui:MenuItem.Icon>
+                                <ui:FontIcon Glyph="&#xE2B4;"
+                                             FontFamily="{DynamicResource SystemSegoeFluentIcons}" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <Separator/>
+
+                        <!-- 重命名选项 -->
+                        <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Rename}"
+                             Command="{Binding PlacementTarget.Tag.RenameVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                             CommandParameter="{Binding}"
+                             Visibility="{Binding PlacementTarget.Tag.IsSingleOrNoneSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Rename24" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+
+                        <Separator Visibility="{Binding PlacementTarget.Tag.IsSingleOrNoneSelect, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource BoolToVis}}"/>
+                        <ui:MenuItem Header="{x:Static properties:Resources.VmPage_PurgeBtn}"
+             Command="{Binding PlacementTarget.Tag.PurgeVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+             CommandParameter="{Binding}"
+             Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="DeleteDismiss24" Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}"/>
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        
+                        <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Delete}" 
+                             Command="{Binding PlacementTarget.Tag.DeleteVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                             CommandParameter="{Binding}"
+                             Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Delete24" Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}" />
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                    </ContextMenu>
+                </Border.ContextMenu>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Width="6" Height="6" CornerRadius="3" VerticalAlignment="Center" Margin="6,0,8,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="{ui:ThemeResource TextFillColorTertiaryBrush}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                        <Setter Property="Background" Value="{ui:ThemeResource SystemFillColorSuccessBrush}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                    </Border>
+
+                    <ui:FontIcon Grid.Column="1" FontFamily="{DynamicResource SegoeFluentIcons}" 
+                         Glyph="{Binding Name, Converter={StaticResource VmNameToGlyphConverter}}" 
+                         FontSize="16" Margin="0,0,8,0"
+                         Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+
+                    <Grid Grid.Column="2">
+                        <TextBlock Text="{Binding Name}" VerticalAlignment="Center" FontSize="13" 
+                           TextTrimming="CharacterEllipsis" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Visibility" Value="{Binding IsEditing, Converter={StaticResource BoolToVis}, ConverterParameter=Invert, FallbackValue=Visible}"/>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+                        <ui:TextBox Text="{Binding EditedName, UpdateSourceTrigger=PropertyChanged}"
+                            behaviors:AutoFocus.IsFocused="{Binding IsEditing}"
+                            FontSize="12" MinHeight="24" Padding="4,2" Margin="-4,0,0,0">
+                            <ui:TextBox.Style>
+                                <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
+                                    <Setter Property="Visibility" Value="{Binding IsEditing, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}"/>
+                                </Style>
+                            </ui:TextBox.Style>
+                            <ui:TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding DataContext.CommitRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Esc" Command="{Binding DataContext.CancelRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
+                            </ui:TextBox.InputBindings>
+                            <behaviors:EventToCommand.EventName>LostFocus</behaviors:EventToCommand.EventName>
+                            <behaviors:EventToCommand.Command>
+                                <Binding Path="DataContext.CommitRenameCommand" ElementName="RootPage"/>
+                            </behaviors:EventToCommand.Command>
+                            <behaviors:EventToCommand.CommandParameter>
+                                <Binding/>
+                            </behaviors:EventToCommand.CommandParameter>
+                        </ui:TextBox>
+                    </Grid>
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <DataTemplate x:Key="VmGroupItemTemplate">
+            <Button Padding="10,8" Background="Transparent" BorderThickness="0" HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    AutomationProperties.Name="{Binding Name}"
+                    Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}"
+                    Command="{Binding DataContext.ToggleGroupCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                    CommandParameter="{Binding}">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+                <Button.ContextMenu>
+                    <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                        <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Rename}" CommandParameter="{Binding}"
+                                  Command="{Binding PlacementTarget.Tag.RenameGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                            <ui:MenuItem.Icon><ui:SymbolIcon Symbol="Rename24"/></ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <ui:MenuItem Header="{x:Static properties:Resources.VmGroup_Create}" CommandParameter="{Binding}"
+                                  Command="{Binding PlacementTarget.Tag.CreateGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  Visibility="{Binding CanContainGroups, Converter={StaticResource BoolToVis}}"
+                                  IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}">
+                            <ui:MenuItem.Icon><ui:SymbolIcon Symbol="Add24"/></ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                        <Separator/>
+                        <ui:MenuItem Header="{x:Static properties:Resources.Xaml_Delete}" CommandParameter="{Binding}"
+                                  Command="{Binding PlacementTarget.Tag.DeleteGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                  Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}">
+                            <ui:MenuItem.Icon>
+                                <ui:SymbolIcon Symbol="Delete24" Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}"/>
+                            </ui:MenuItem.Icon>
+                        </ui:MenuItem>
+                    </ContextMenu>
+                </Button.ContextMenu>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ui:SymbolIcon Symbol="LayerDiagonal24" FontSize="18" Margin="0,0,8,0"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"/>
+                    <Grid Grid.Column="1">
+                        <TextBlock x:Name="GroupNameText" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                    <Setter Property="Visibility" Value="{Binding NameEdit.IsEditing, Converter={StaticResource BoolToVis}, ConverterParameter=Invert, FallbackValue=Visible}"/>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <ui:TextBox Text="{Binding NameEdit.EditedName, UpdateSourceTrigger=PropertyChanged}"
+                                    behaviors:AutoFocus.IsFocused="{Binding NameEdit.IsEditing}"
+                                    FontSize="12" MinHeight="24" MaxLength="100" Padding="4,2" Margin="-4,0,0,0">
+                            <ui:TextBox.Style>
+                                <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
+                                    <Setter Property="Visibility" Value="{Binding NameEdit.IsEditing, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}"/>
+                                </Style>
+                            </ui:TextBox.Style>
+                            <ui:TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding DataContext.CommitGroupRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Esc" Command="{Binding DataContext.CancelGroupRenameCommand, ElementName=RootPage}" CommandParameter="{Binding}"/>
+                            </ui:TextBox.InputBindings>
+                            <behaviors:EventToCommand.EventName>LostFocus</behaviors:EventToCommand.EventName>
+                            <behaviors:EventToCommand.Command>
+                                <Binding Path="DataContext.CommitGroupRenameCommand" ElementName="RootPage"/>
+                            </behaviors:EventToCommand.Command>
+                            <behaviors:EventToCommand.CommandParameter><Binding/></behaviors:EventToCommand.CommandParameter>
+                        </ui:TextBox>
+                    </Grid>
+                    <ui:SymbolIcon Grid.Column="2" FontSize="12" Margin="8,0,0,0"
+                                   Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}"
+                                   Visibility="{Binding HasChildren, Converter={StaticResource BoolToVis}}">
+                        <ui:SymbolIcon.Style>
+                            <Style TargetType="ui:SymbolIcon">
+                                <Setter Property="Symbol" Value="ChevronRight24"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                        <Setter Property="Symbol" Value="ChevronDown24"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ui:SymbolIcon.Style>
+                    </ui:SymbolIcon>
+                </Grid>
+            </Button>
+        </DataTemplate>
+        <DataTemplate x:Key="VmNavigationItemTemplate">
+            <ContentControl Margin="{Binding Indent}" HorizontalContentAlignment="Stretch">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="Content" Value="{Binding Vm}"/>
+                        <Setter Property="ContentTemplate" Value="{StaticResource VmListItemTemplate}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsGroup}" Value="True">
+                                <Setter Property="Content" Value="{Binding}"/>
+                                <Setter Property="ContentTemplate" Value="{StaticResource VmGroupItemTemplate}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
+        </DataTemplate>
+        <DataTemplate x:Key="VmDetailTemplate">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Margin="24,12,24,0" 
+                Background="{ui:ThemeResource ControlFillColorSecondaryBrush}" 
+                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" 
+                CornerRadius="8" Padding="24" MinHeight="160">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="24"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 监视器/图标容器 -->
+                        <Grid Grid.Column="0" Width="120" Height="100" VerticalAlignment="Center">
+                            <Image RenderOptions.BitmapScalingMode="HighQuality"
+                           Width="100" Height="100" HorizontalAlignment="Center" VerticalAlignment="Center"
+                           Source="{Binding OsType, Converter={StaticResource OsTypeToImageConverter}}">
+                                <Image.Style>
+                                    <Style TargetType="Image">
+                                        <Setter Property="Visibility" Value="{Binding IsRunning, Converter={StaticResource BoolToVis}, ConverterParameter=Invert, FallbackValue=Visible}"/>
+                                    </Style>
+                                </Image.Style>
+                            </Image>
+
+                            <Border Background="#0B0B0B" CornerRadius="6" ClipToBounds="True"
+                            ToolTip="{x:Static properties:Resources.Label_DoubleClickConnect}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="{Binding IsRunning, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}"/>
+                                    </Style>
+                                </Border.Style>
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftDoubleClick"
+                                          Command="{Binding DataContext.OpenNativeConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
+                                </Border.InputBindings>
+                                <Viewbox Stretch="Uniform">
+                                    <Image Source="{Binding Thumbnail}"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                                </Viewbox>
+                            </Border>
+                        </Grid>
+
+                        <Grid Grid.Column="2" VerticalAlignment="Center">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="{Binding Name}" FontSize="28" 
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,16,0"/>
+
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <ui:Button Content="{x:Static properties:Resources.Label_Console}" Icon="Desktop24" Appearance="Secondary" 
+                                               Padding="16,6" Height="36" Margin="0,0,8,0" CornerRadius="8"
+                                               Command="{Binding DataContext.OpenNativeConnectCommand, RelativeSource={RelativeSource AncestorType=Page}}" />
+                                    <Border CornerRadius="8" ClipToBounds="True">
+                                        <Grid>
+                                            <ui:Button Content="{x:Static properties:Resources.Button_Start}" Icon="Play24" Appearance="Primary" 
+                                                       Padding="41,6" Height="36" CornerRadius="8" BorderThickness="0"
+                                                       HorizontalAlignment="Center" HorizontalContentAlignment="Center"
+                                                       Command="{Binding ControlCommand}" 
+                                                       CommandParameter="Start">
+                                                <ui:Button.Style>
+                                                    <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                                                        <Setter Property="Visibility" Value="{Binding IsRunning, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=False, FallbackValue=Collapsed}"/>
+                                                    </Style>
+                                                </ui:Button.Style>
+                                            </ui:Button>
+                                            <Grid>
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Visibility" Value="{Binding IsRunning, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}"/>
+                                                    </Style>
+                                                </Grid.Style>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <ui:Button Grid.Column="0" Content="{x:Static properties:Resources.Button_ShutDown}" Icon="Stop24" Appearance="Danger" Foreground="White"
+           Padding="24,0" Height="36" CornerRadius="8,0,0,8" BorderThickness="0" Margin="0" VerticalContentAlignment="Center"
+           Command="{Binding ControlCommand}" CommandParameter="Stop"/>
+                                                <ui:DropDownButton Grid.Column="1" Icon="ChevronDown24" Foreground="White"
+                   Background="{DynamicResource App.DangerBrush}"
+                   MouseOverBackground="{DynamicResource App.DangerBrushPointerOver}"
+                   PressedBackground="{DynamicResource App.DangerBrushPressed}"
+                   Padding="6,0,10,0" Height="36" CornerRadius="0,8,8,0" BorderThickness="0" Margin="0" VerticalContentAlignment="Center">
+                                                    <ui:DropDownButton.Flyout>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="{x:Static properties:Resources.Button_Restart}" Icon="{ui:SymbolIcon ArrowCounterclockwise24}"
+              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+              CommandParameter="Restart"/>
+                                                            <MenuItem Header="{x:Static properties:Resources.Button_Pause}" Icon="{ui:SymbolIcon Pause24}"
+              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+              CommandParameter="Suspend"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="{x:Static properties:Resources.Button_Save}" Icon="{ui:SymbolIcon Save24}"
+              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+              CommandParameter="Save"/>
+                                                            <MenuItem Header="{x:Static properties:Resources.Button_TurnOff}" Icon="{ui:SymbolIcon Power24}" Foreground="#E81123"
+              Command="{Binding PlacementTarget.DataContext.ControlCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}" 
+              CommandParameter="TurnOff"/>
+                                                        </ContextMenu>
+                                                    </ui:DropDownButton.Flyout>
+                                                </ui:DropDownButton>
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                                <ui:SymbolIcon Symbol="Pulse24" FontSize="16" Margin="0,1,6,0" 
+                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="{Binding State}" FontSize="14" 
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" Margin="0,0,12,0"/>
+
+                                <ui:SymbolIcon Symbol="Timer24" FontSize="16" Margin="0,1,6,0" 
+                                               Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                <TextBlock Text="{Binding Uptime}" FontSize="14" 
+                                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6" Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:FontIcon Glyph="&#xE81E;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding ConfigSummary}" TextTrimming="CharacterEllipsis" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6" Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:FontIcon Glyph="&#xE8C8;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{x:Static properties:Resources.Format_Generation}">
+                                                    <Binding Path="Generation" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:FontIcon Glyph="&#xE946;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}">
+                                            <TextBlock.Text>
+                                                <MultiBinding StringFormat="{x:Static properties:Resources.Format_Version}">
+                                                    <Binding Path="Version" />
+                                                </MultiBinding>
+                                            </TextBlock.Text>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Orientation="Horizontal">
+                                <ComboBox VerticalAlignment="Center"
+          ItemsSource="{Binding DataContext.AvailableOsTypes, Source={x:Reference RootPage}}"
+          SelectedItem="{Binding OsType, Mode=OneWay}"
+          SelectionChanged="OnOsTypeSelectionChanged"
+          MaxDropDownHeight="300"
+          Padding="10,6,4,6">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}" FontSize="13"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <Border Margin="8,0,0,0" VerticalAlignment="Center" 
+                                        Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6"
+                                        ToolTip="{Binding GpuDisplayLabel}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:FontIcon Glyph="&#xF211;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" 
+                                                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock FontSize="13" TextTrimming="CharacterEllipsis">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding GpuDisplayLabel}"/>
+                                                    <Setter Property="Foreground" Value="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasGpu}" Value="False">
+                                                            <Setter Property="Text" Value="{x:Static properties:Resources.Common_None}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Margin="8,0,0,0" VerticalAlignment="Center" 
+                                        Background="{ui:ThemeResource ControlFillColorTertiaryBrush}" 
+                                        BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="10,6"
+                                        ToolTip="{x:Static properties:Resources.Label_CopyIp}">
+                                    <Border.InputBindings>
+                                        <MouseBinding Gesture="LeftClick" 
+                                                      Command="{Binding DataContext.CopyToClipboardCommand, RelativeSource={RelativeSource AncestorType=Page}}" 
+                                                      CommandParameter="{Binding IpAddress}"/>
+                                    </Border.InputBindings>
+                                    <StackPanel Orientation="Horizontal">
+                                        <ui:FontIcon Glyph="&#xE839;" FontSize="14" FontFamily="{DynamicResource SegoeFluentIcons}" Margin="0,1,8,0" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                        <TextBlock Text="{Binding IpAddressDisplay}" FontSize="13" Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+
+                <Rectangle Grid.Row="1" Height="1" Fill="{ui:ThemeResource CardStrokeColorDefaultBrush}" Margin="24,12,24,0" Opacity="0.5"/>
+
+                <!-- 视图切换区 -->
+                <ContentControl Grid.Row="2" Content="{Binding DataContext, RelativeSource={RelativeSource AncestorType=Page}}">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate">
+                                <Setter.Value>
+                                    <DataTemplate>
+                                        <components:VmDashboardView/>
+                                    </DataTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="CpuSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmCpuSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="CpuAffinity">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmCpuAffinityView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="MemorySettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmRamSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="StorageSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmStorageSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="AddStorage">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmAddStorageView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="GpuSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmGpuSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="AddGpuSelect">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmAddGpuSelectView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="AddGpuProgress">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmAddGpuProgressView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="NetworkSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmNetSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="BootSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmBootSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="SpacetimeSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmSpacetimeSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="Advanced">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmAdvancedSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="Security">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmSecuritySettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="PcieSettings">
+                                    <Setter Property="ContentTemplate">
+                                        <Setter.Value>
+                                            <DataTemplate>
+                                                <components:VmPcieSettingsView/>
+                                            </DataTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                </ContentControl>
+
+                <Grid Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="100"
+              Background="{ui:ThemeResource ApplicationBackgroundBrush}" 
+              Visibility="{Binding DataContext.IsLoading, RelativeSource={RelativeSource AncestorType=Page}, Converter={StaticResource BoolToVis}}">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ui:ProgressRing IsIndeterminate="True" Width="40" Height="40" Margin="0,0,0,16"/>
+                        <TextBlock Text="{x:Static properties:Resources.DataLoading}" 
+                           Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+                           HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" MinWidth="160" MaxWidth="300"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="{ui:ThemeResource ControlFillColorDefaultBrush}" 
+                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="8" IsEnabled="{Binding IsVmListEnabled}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 搜索框容器 -->
+                    <Grid Grid.Column="0">
+                        <ui:TextBox x:Name="SearchBox"
+                PlaceholderText="{x:Static properties:Resources.Placeholder_SearchVm}" 
+                ClearButtonEnabled="True" MinHeight="28"
+                VerticalContentAlignment="Center"
+                Padding="10,0,32,0"
+                Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <ui:SymbolIcon Symbol="Search24" 
+                   HorizontalAlignment="Right" 
+                   VerticalAlignment="Center"
+                   Margin="0,0,8,0" 
+                   Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}" 
+                   IsHitTestVisible="False">
+                            <ui:SymbolIcon.Style>
+                                <Style TargetType="ui:SymbolIcon">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ui:SymbolIcon.Style>
+                        </ui:SymbolIcon>
+                    </Grid>
+                    <ui:Button Grid.Column="1"
+                               Margin="8,0,0,0"
+                               Padding="0"
+                               Width="24"
+                               Height="24"
+                               Appearance="Secondary"
+                               ToolTip="{x:Static properties:Resources.VmImport_Menu}"
+                               IsEnabled="{Binding IsVmListEnabled}"
+                               Command="{Binding OpenVmImportCommand}">
+                        <ui:FontIcon Glyph="&#xE2B3;" FontSize="15"
+                                     FontFamily="{DynamicResource SystemSegoeFluentIcons}"/>
+                    </ui:Button>
+                    <ui:DropDownButton Grid.Column="2" Style="{StaticResource DefaultUiButtonStyle}"
+               Margin="8,0,0,0" 
+               Padding="0" 
+               Width="24" 
+               Height="24"
+               Icon="{ui:SymbolIcon Symbol=Add24}"
+               Appearance="Secondary"
+               IsEnabled="{Binding IsVmListEnabled}"
+               ToolTip="{x:Static properties:Resources.Xaml_NewVm}" Tag="{Binding}">
+                        <ui:DropDownButton.Flyout>
+                            <ContextMenu>
+                                <MenuItem Header="{x:Static properties:Resources.Xaml_NewVm}"
+                                          Command="{Binding PlacementTarget.Tag.CreateVmCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                <MenuItem Header="{x:Static properties:Resources.VmGroup_Create}"
+                                          Command="{Binding PlacementTarget.Tag.CreateGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                          IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                            </ContextMenu>
+                        </ui:DropDownButton.Flyout>
+                    </ui:DropDownButton>
+                </Grid>
+                
+                <StackPanel Grid.Row="1">
+                <TextBlock Text="{Binding InventoryWarning}" TextWrapping="Wrap" Margin="8,0,8,4"
+                           MaxHeight="96" ToolTip="{Binding InventoryWarning}"
+                           Foreground="{ui:ThemeResource SystemFillColorCautionBrush}" FontSize="12">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding InventoryWarning}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Text="{Binding GroupLoadError}" TextWrapping="Wrap" Margin="8,0"
+                           Foreground="{ui:ThemeResource SystemFillColorCriticalBrush}" FontSize="12">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding GroupLoadError}" Value="">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                </StackPanel>
+                <ui:ListView Grid.Row="2" ItemsSource="{Binding NavigationItems}" SelectedItem="{Binding SelectedNavigationItem, Mode=TwoWay}"
+                             x:Name="NavigationList" AllowDrop="True"
+                             PreviewMouseMove="NavigationList_PreviewMouseMove" PreviewMouseLeftButtonUp="NavigationList_PreviewMouseLeftButtonUp"
+                             PreviewDragOver="NavigationList_DragOver" PreviewDrop="NavigationList_Drop" DragLeave="NavigationList_DragLeave"
+                             SelectionChanged="VmList_SelectionChanged"
+                             IsEnabled="{Binding IsVmListEnabled}"
+                             HorizontalContentAlignment="Stretch"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             Tag="{Binding}" ItemTemplate="{StaticResource VmNavigationItemTemplate}" Margin="4,0,4,4">
+                    <ui:ListView.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{x:Static properties:Resources.VmGroup_Create}"
+                                      Command="{Binding PlacementTarget.Tag.CreateGroupCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                      IsEnabled="{Binding PlacementTarget.Tag.CanEditGroups, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                            <MenuItem Header="{x:Static properties:Resources.Btn_Refresh}"
+                                      Command="{Binding PlacementTarget.Tag.RefreshGroupsCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                        </ContextMenu>
+                    </ui:ListView.ContextMenu>
+                    <ui:ListView.ItemContainerStyle>
+                        <Style TargetType="{x:Type ui:ListViewItem}"
+                               BasedOn="{StaticResource {x:Type ui:ListViewItem}}">
+                            <!-- 整行（包括文字右侧和相邻项边界）都参与命中测试。 -->
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="MinHeight" Value="40"/>
+                            <EventSetter Event="PreviewMouseLeftButtonDown" Handler="NavigationItem_PreviewMouseLeftButtonDown"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsGroup}" Value="True">
+                                    <Setter Property="Focusable" Value="False"/>
+                                    <Setter Property="IsTabStop" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ui:ListView.ItemContainerStyle>
+                </ui:ListView>
+            </Grid>
+        </Border>
+
+        <GridSplitter Grid.Column="1" Width="12" HorizontalAlignment="Stretch" Background="Transparent"/>
+
+        <Border Grid.Column="2" Background="{ui:ThemeResource LayerFillColorDefaultBrush}"
+                BorderBrush="{ui:ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" ClipToBounds="True">
+            <Grid>
+                <ContentControl Content="{Binding SelectedVm}">
+                    <ContentControl.Style>
+                        <Style TargetType="ContentControl">
+                            <Setter Property="ContentTemplate" Value="{StaticResource VmDetailTemplate}" />
+
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectedVm}" Value="{x:Null}">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource VmEmptyStateTemplate}" />
+                                </DataTrigger>
+
+                                <!-- 这样即使 SelectedVm 为空，也不会显示那行字 -->
+                                <DataTrigger Binding="{Binding DataContext.IsCreatingVm, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource VmBlankTemplate}" />
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding DataContext.IsVmImportViewVisible, RelativeSource={RelativeSource AncestorType=Page}}" Value="True">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource VmBlankTemplate}" />
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding DataContext.CurrentViewType, RelativeSource={RelativeSource AncestorType=Page}}" Value="Export">
+                                    <Setter Property="ContentTemplate" Value="{StaticResource VmBlankTemplate}" />
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+
+                                <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                    <Setter Property="Visibility" Value="Hidden"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ContentControl.Style>
+                </ContentControl>
+
+                <components:VmCreateView Visibility="{Binding IsCreatingVm, Converter={StaticResource BoolToVis}}"/>
+                <components:VmImportView Visibility="{Binding IsVmImportViewVisible, Converter={StaticResource BoolToVis}}"/>
+                <components:VmExportView>
+                    <components:VmExportView.Style>
+                        <Style TargetType="{x:Type components:VmExportView}">
+                            <Setter Property="Visibility" Value="{Binding CurrentViewType, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=Export, FallbackValue=Collapsed}"/>
+                        </Style>
+                    </components:VmExportView.Style>
+                </components:VmExportView>
+            </Grid>
+        </Border>
+        
+    </Grid>
+</Page>

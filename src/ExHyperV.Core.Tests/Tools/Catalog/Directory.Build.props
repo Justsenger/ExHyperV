@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)../../../../.artifacts/tests/core-catalog</ArtifactsPath>
+  </PropertyGroup>
+</Project>

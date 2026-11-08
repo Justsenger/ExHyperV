@@ -1,0 +1,32 @@
+<Window x:Class="ExHyperV.WinUI3.UI.Shell.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="ExHyperV">
+    <Window.SystemBackdrop><MicaBackdrop /></Window.SystemBackdrop>
+    <Grid x:Name="Root" Background="Transparent">
+        <Grid.RowDefinitions><RowDefinition Height="48" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <!-- Windows owns caption buttons and their snap/system-menu behavior. Only the title content is drawn here. -->
+        <Border BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <Grid x:Name="AppTitleBar" Background="Transparent">
+                <Grid.ColumnDefinitions><ColumnDefinition x:Name="TitleLeftInset" Width="0" /><ColumnDefinition Width="*" /><ColumnDefinition x:Name="TitleRightInset" Width="138" /></Grid.ColumnDefinitions>
+                <StackPanel x:Name="TitleContent" Grid.Column="1" Orientation="Horizontal" Spacing="14" Margin="14,0,0,0" VerticalAlignment="Center">
+                    <Image Width="24" Height="24">
+                        <Image.Source><BitmapImage UriSource="ms-appx:///Assets/AppIcon.png" DecodePixelWidth="64" /></Image.Source>
+                    </Image>
+                    <TextBlock x:Name="TitleText" Text="ExHyperV" FontSize="14" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+        <NavigationView x:Name="Navigation" Grid.Row="1" PaneDisplayMode="LeftCompact" IsPaneOpen="False" OpenPaneLength="220" CompactPaneLength="48"
+            IsTitleBarAutoPaddingEnabled="False" IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
+            SelectionChanged="OnSelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="虚拟机" Tag="virtual-machines"><NavigationViewItem.Icon><FontIcon Glyph="&#xF5ED;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem Content="宿主" Tag="host"><NavigationViewItem.Icon><FontIcon Glyph="&#xE90F;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
+            </NavigationView.MenuItems>
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem Content="应用设置" Tag="settings" Icon="Setting" />
+            </NavigationView.FooterMenuItems>
+            <ContentControl x:Name="PageContent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+        </NavigationView>
+    </Grid>
+</Window>

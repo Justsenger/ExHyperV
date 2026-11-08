@@ -1,0 +1,307 @@
+#!/bin/bash
+# @Name: Ubuntu-22.04-Official
+# @Description: CUDA√Mesa√
+# @Author: Justsenger
+# @Version: 1.1.1
+
+set -e
+
+# 辅助函数
+# 更新 /etc/environment 环境变量
+update_env() {
+    local key=$1
+    local val=$2
+    sudo sed -i "/^$key=/d" /etc/environment
+    sudo sed -i "/^export $key=/d" /etc/environment
+    echo "$key=$val" | sudo tee -a /etc/environment > /dev/null
+}
+
+retry_cmd() {
+    local n=1
+    local max=5
+    local delay=5
+    while true; do
+        if "$@"; then
+            break
+        else
+            if [[ $n -lt $max ]]; then
+                echo " -> [WARNING] 命令执行失败，等待 $delay 秒后进行第 $n 次重试: $*"
+                sleep $delay
+                ((n++))
+            else
+                echo " -> [ERROR] 已达到最大重试次数 ($max)，执行失败: $*"
+                return 1
+            fi
+        fi
+    done
+}
+
+# 参数解析
+ACTION=${1:-"deploy"}
+ENABLE_GRAPHICS=${2:-"true"}
+PROXY_URL=${3:-""}
+
+MACHINE_ARCH=$(uname -m)
+case "$MACHINE_ARCH" in
+    x86_64)
+        ARCH_DIR="x64"
+        ;;
+    aarch64|arm64)
+        ARCH_DIR="arm64"
+        ;;
+    *)
+        echo "[ERROR] Unsupported architecture: $MACHINE_ARCH"
+        exit 1
+        ;;
+esac
+echo "[+] Detected architecture: $MACHINE_ARCH (Library architecture: $ARCH_DIR)"
+
+
+DEPLOY_DIR="$(dirname $(realpath $0))"
+LIB_DIR="$DEPLOY_DIR/lib"
+
+# Use the libraries uploaded from the user's Windows/WSL installation.
+LIBS=("libd3d12.so" "libd3d12core.so" "libdxcore.so")
+for lib in "${LIBS[@]}"; do
+    if [ ! -s "$LIB_DIR/$lib" ]; then
+        echo "[ERROR] Required Windows/WSL library is missing: $LIB_DIR/$lib"
+        echo "Upload matching-architecture libraries from your Windows/WSL installation before deployment."
+        exit 1
+    fi
+done
+
+# 补丁的远程仓库基准地址
+PATCH_BASE_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/2.0.0/src/ExHyperV.Core/Linux/script/patches"
+
+if [ -n "$PROXY_URL" ]; then
+    export http_proxy="$PROXY_URL"
+    export https_proxy="$PROXY_URL"
+    echo "[+] Using proxy: $PROXY_URL"
+fi
+
+# 依赖安装
+echo "[STEP: Installing basic dependencies...]"
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq git curl dkms wget build-essential software-properties-common unzip aria2
+
+# 内核与头文件
+echo "[STEP: Checking Kernel Headers...]"
+TARGET_KERNEL_VERSION=$(uname -r)
+
+if [ ! -e "/lib/modules/$TARGET_KERNEL_VERSION/build" ]; then
+    echo " -> Kernel headers not found for $TARGET_KERNEL_VERSION. Attempting installation..."
+    if ! sudo apt-get install -y -qq "linux-headers-$TARGET_KERNEL_VERSION"; then
+        echo " -> Failed to find headers for current kernel. Installing a standard generic kernel instead..."
+        # 当前微版本没有匹配包时安装最新通用内核及头文件。
+        NEW_KERNEL_IMAGE=$(apt-cache search "^linux-image-[0-9]" | awk '{print $1}' | grep -E "generic$" | sort -V | tail -1)
+        NEW_KERNEL_VERSION=$(echo "$NEW_KERNEL_IMAGE" | sed 's/linux-image-//')
+        NEW_KERNEL_HEADERS="linux-headers-$NEW_KERNEL_VERSION"
+        sudo apt-get install -y -qq "$NEW_KERNEL_IMAGE" "$NEW_KERNEL_HEADERS"
+        echo "[STATUS: REBOOT_REQUIRED]"
+        exit 0
+    fi
+fi
+
+# dxgkrnl 模块编译与验证
+if lsmod | grep -q "dxgkrnl" || dkms status | grep -q "dxgkrnl"; then
+    echo " -> dxgkrnl is already installed or loaded."
+else
+    echo "[STEP: Preparing Pre-patched Source...]"
+    KERNEL_MAJOR=$(echo $TARGET_KERNEL_VERSION | cut -d. -f1)
+    KERNEL_MINOR=$(echo $TARGET_KERNEL_VERSION | cut -d. -f2)
+    
+    if [[ "$KERNEL_MAJOR" -eq 5 ]]; then
+        PKG_VER="5.15"
+    elif [[ "$KERNEL_MAJOR" -eq 6 ]]; then
+        if [[ "$KERNEL_MINOR" -le 6 ]]; then
+            PKG_VER="6.6"
+        else
+            # 6.7 及其以上版本（如 6.12, 6.17, 6.19）统一使用 6.12 适配包
+            PKG_VER="6.12"
+        fi
+    else
+        # 兼容未来的 7.x+
+        PKG_VER="6.12"
+    fi
+
+    PKG="dxgkrnl-${PKG_VER}-patched"
+    echo " -> Detected Kernel $TARGET_KERNEL_VERSION, using pre-patched assets: $PKG"
+
+    rm -rf /tmp/dxg-src /tmp/kernel_src.tar.gz /tmp/$PKG
+    
+    # 下载与内核版本匹配的预制源码包。
+    ZIP_URL="https://raw.githubusercontent.com/Justsenger/ExHyperV/kernel-assets/$PKG.tar.gz"
+    echo " -> Downloading from: $ZIP_URL"
+    retry_cmd aria2c -x 4 -s 4 --dir=/tmp --out=kernel_src.tar.gz "$ZIP_URL" --allow-overwrite
+    
+    tar -xzf /tmp/kernel_src.tar.gz -C /tmp/
+    
+    VERSION="custom"
+    sudo rm -rf /usr/src/dxgkrnl-$VERSION
+    # 将源码移至 DKMS 目录 (tar包内应包含 dxgkrnl-xx-patched 文件夹)
+    sudo cp -r /tmp/$PKG /usr/src/dxgkrnl-$VERSION
+
+    echo "[STEP: Compiling and Installing DXG Module...]"
+    
+    # 修改 Makefile 以支持独立模块编译和内部 include 路径。
+    sudo bash -c "cat > /usr/src/dxgkrnl-$VERSION/Makefile <<EOF
+obj-m := dxgkrnl.o
+dxgkrnl-y := dxgmodule.o hmgr.o misc.o dxgadapter.o ioctl.o dxgvmbus.o dxgprocess.o dxgsyncfile.o
+ccflags-y := -I\\\$(src)/include -D_MAIN_KERNEL_
+
+all:
+	make -C /lib/modules/\\\$(shell uname -r)/build M=\\\$(PWD) modules
+clean:
+	make -C /lib/modules/\\\$(shell uname -r)/build M=\\\$(PWD) clean
+EOF"
+    
+    sudo tee /usr/src/dxgkrnl-$VERSION/dkms.conf > /dev/null <<EOF
+PACKAGE_NAME="dxgkrnl"
+PACKAGE_VERSION="$VERSION"
+BUILT_MODULE_NAME="dxgkrnl"
+DEST_MODULE_LOCATION="/kernel/drivers/hv/dxgkrnl/"
+AUTOINSTALL="yes"
+EOF
+
+    sudo dkms add dxgkrnl/$VERSION
+    sudo dkms build dxgkrnl/$VERSION
+    sudo dkms install dxgkrnl/$VERSION --force
+fi
+
+echo "[STEP: Testing module load...]"
+if ! sudo modprobe dxgkrnl; then
+    echo " -> [WARNING] dxgkrnl could not be loaded. Check Secure Boot status."
+fi
+
+# 图形栈配置
+if [ "$ENABLE_GRAPHICS" == "true" ]; then
+    echo "[STEP: Configuring Graphics Stack...]"
+    # Ubuntu 专有逻辑：清理冲突 PPA 并锁定原生 GL 库
+    sudo apt-get install -y -qq ppa-purge
+    sudo ppa-purge -y ppa:kisak/turtle || true
+    sudo ppa-purge -y ppa:kisak/kisak-mesa || true
+    sudo rm -f /etc/apt/preferences.d/99-mesa-pinning /etc/apt/preferences.d/00-mesa-hold-gl
+
+    sudo bash -c 'cat > /etc/apt/preferences.d/00-mesa-hold-gl <<EOF
+Package: libgl1-mesa-dri libglapi-mesa libglx-mesa0 libgbm1
+Pin: release o=Ubuntu
+Pin-Priority: 1001
+EOF'
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --allow-downgrades libgl1-mesa-dri libglapi-mesa libglx-mesa0 libgbm1
+
+    # 安装 Mesa-D3D12 支持包
+    sudo add-apt-repository ppa:kisak/turtle -y
+    sudo apt-get update -qq
+    sudo bash -c 'cat > /etc/apt/preferences.d/99-mesa-pinning <<EOF
+Package: mesa-vulkan-drivers
+Pin: version *kisak*
+Pin-Priority: 900
+EOF'
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq mesa-vulkan-drivers mesa-utils vulkan-tools mesa-va-drivers vainfo
+fi
+
+# 系统配置与 WSL 库部署
+echo "[STEP: Deploying WSL Core Libraries...]"
+# Required libraries were verified before installing dependencies.
+
+
+if [ -f "$LIB_DIR/nvidia-smi" ]; then
+    echo "[+] Found nvidia-smi uploaded from host, deploying to /usr/bin..."
+    sudo cp "$LIB_DIR/nvidia-smi" /usr/bin/nvidia-smi
+    sudo chmod 755 /usr/bin/nvidia-smi
+fi
+
+
+sudo mkdir -p /usr/lib/wsl/drivers /usr/lib/wsl/lib
+sudo rm -rf /usr/lib/wsl/drivers/* /usr/lib/wsl/lib/*
+if [ -d "$DEPLOY_DIR/drivers" ]; then
+    sudo cp -r "$DEPLOY_DIR/drivers"/* /usr/lib/wsl/drivers/
+fi
+sudo cp -a "$LIB_DIR"/*.so* /usr/lib/wsl/lib/
+sudo ln -sf /usr/lib/wsl/lib/libd3d12core.so /usr/lib/wsl/lib/libD3D12Core.so
+sudo chmod -R 0555 /usr/lib/wsl
+sudo chown -R root:root /usr/lib/wsl
+echo "/usr/lib/wsl/lib" | sudo tee /etc/ld.so.conf.d/ld.wsl.conf > /dev/null
+sudo ldconfig
+
+# 内核模块延迟加载
+echo "[STEP: Configuring Kernel Modules Strategy (vgem & dxgkrnl)...]"
+
+echo "vgem" | sudo tee /etc/modules-load.d/vgem.conf > /dev/null
+sudo modprobe vgem
+
+# dxgkrnl 延后加载以避免启动冲突。
+echo "blacklist dxgkrnl" | sudo tee /etc/modprobe.d/blacklist-dxgkrnl.conf > /dev/null
+
+echo " -> Updating initramfs..."
+sudo update-initramfs -u
+
+echo " -> Creating late-load script..."
+sudo tee /usr/local/bin/load_dxg_driver.sh > /dev/null << 'EOF'
+#!/bin/bash
+modprobe dxgkrnl
+if [ -e /dev/dxg ]; then
+    chmod 666 /dev/dxg
+fi
+EOF
+sudo chmod +x /usr/local/bin/load_dxg_driver.sh
+
+sudo systemctl stop load-dxg-late.service 2>/dev/null || true
+sudo systemctl disable load-dxg-late.service 2>/dev/null || true
+sudo rm -f /etc/systemd/system/load-dxg-late.service
+
+sudo tee /etc/systemd/system/load-dxg-late.service > /dev/null << 'EOF'
+[Unit]
+Description=Late load dxgkrnl
+After=graphical.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/load_dxg_driver.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl unmask load-dxg-late.service
+sudo systemctl enable load-dxg-late.service
+sudo systemctl start load-dxg-late.service
+
+# 环境变量与权限
+if [ "$ENABLE_GRAPHICS" == "true" ]; then
+    echo "[STEP: Finalizing environment variables...]"
+    # Gallium D3D12 后端配置
+    update_env "GALLIUM_DRIVER" "d3d12"
+    update_env "DRI_PRIME" "1"
+    update_env "LIBVA_DRIVER_NAME" "d3d12"
+    
+    if ! grep -q "GALLIUM_DRIVER=d3d12" ~/.bashrc; then
+        cat >> ~/.bashrc <<EOF
+# GPU-PV Configuration
+export GALLIUM_DRIVER=d3d12
+export DRI_PRIME=1
+export LIBVA_DRIVER_NAME=d3d12
+EOF
+    fi
+    
+    # 授予当前用户渲染权限
+    sudo usermod -a -G video,render $USER
+    
+    # Hyper-V 的虚拟显卡通常是 card1，但很多旧程序只认 card0
+    echo " -> Fix permissions and symlinks for /dev/dri..."
+    sudo chmod 666 /dev/dri/* || true
+    if [ -e /dev/dri/card1 ]; then
+        sudo ln -sf /dev/dri/card1 /dev/dri/card0
+    fi
+fi
+
+# 清理
+echo "[STEP: Cleaning up deployment files...]"
+cd /
+sudo rm -rf "$DEPLOY_DIR"
+
+echo "[STATUS: SUCCESS]"

@@ -1,0 +1,3941 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="Label_Version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="Label_Version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Assignabledevices" xml:space="preserve">
+    <value>Assignable devices</value>
+  </data>
+  <data name="Common_Attention" xml:space="preserve">
+    <value>Attention</value>
+  </data>
+  <data name="Warning_PCIeAssignment" xml:space="preserve">
+    <value>Improperly assigning devices can cause system instability. Please proceed with caution.</value>
+  </data>
+  <data name="Btn_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="App_Tagline" xml:space="preserve">
+    <value>Easily use Hyper-V advanced features</value>
+  </data>
+  <data name="Section_System" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="Label_Version" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="Label_Architecture" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="Label_Cpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="Memorycapacity" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Host" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Host_Physical" xml:space="preserve">
+    <value>Host (physical)</value>
+  </data>
+  <data name="PCIeService_SetShutdownToTurnOff" xml:space="preserve">
+    <value>Change VM shutdown action to Hard Turn Off...</value>
+  </data>
+  <data name="Label_Class" xml:space="preserve">
+    <value>Class</value>
+  </data>
+  <data name="Instanceid" xml:space="preserve">
+    <value>InstanceId</value>
+  </data>
+  <data name="Label_Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Status_Dismounted" xml:space="preserve">
+    <value>#Dismounted</value>
+  </data>
+  <data name="Status_MountingDevice" xml:space="preserve">
+    <value>Mounting device...</value>
+  </data>
+  <data name="Action_EnableCpuCacheControl" xml:space="preserve">
+    <value>Enable virtual machines to manage CPU cache...</value>
+  </data>
+  <data name="Disabledevice" xml:space="preserve">
+    <value>Disabling device...</value>
+  </data>
+  <data name="Dismountdevice" xml:space="preserve">
+    <value>Dismounting devices...</value>
+  </data>
+  <data name="Label_Manufacturer" xml:space="preserve">
+    <value>Manufacturer</value>
+  </data>
+  <data name="Btn_Uninstall" xml:space="preserve">
+    <value>Uninstall</value>
+  </data>
+  <data name="Btn_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Btn_Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Theme_Title" xml:space="preserve">
+    <value>Application Theme</value>
+  </data>
+  <data name="Theme_Switch" xml:space="preserve">
+    <value>Switch between light/dark mode</value>
+  </data>
+  <data name="Settings_PerformanceTitle" xml:space="preserve">
+    <value>Lightweight</value>
+  </data>
+  <data name="Settings_PerformanceDesc" xml:space="preserve">
+    <value>Disable animations and reduce memory usage</value>
+  </data>
+  <data name="Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Theme_System" xml:space="preserve">
+    <value>Follow System</value>
+  </data>
+  <data name="Lang_Title" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Lang_RestartHint" xml:space="preserve">
+    <value>Changing the language will restart the application</value>
+  </data>
+  <data name="About_Title" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="About_FeedbackLink" xml:space="preserve">
+    <value>Report or feedback</value>
+  </data>
+  <data name="About_ViewCode" xml:space="preserve">
+    <value>View Code</value>
+  </data>
+  <data name="Main" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="Section_Host" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="PCIe" xml:space="preserve">
+    <value>PCIe Passthrough</value>
+  </data>
+  <data name="Status_EnablingDevice" xml:space="preserve">
+    <value>Enabling device...</value>
+  </data>
+  <data name="Error_Title" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Error_NotServerForPCIe" xml:space="preserve">
+    <value>The host system is not a server version, and the virtual machine with the PCIe Passthrough device added will not be able to start!</value>
+  </data>
+  <data name="VirtualSwitchList" xml:space="preserve">
+    <value>Virtual Switch List</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Uninstallswitch" xml:space="preserve">
+    <value>Uninstall this virtual switch</value>
+  </data>
+  <data name="NetMode" xml:space="preserve">
+    <value>Network Mode</value>
+  </data>
+  <data name="Bridge" xml:space="preserve">
+    <value>Bridge</value>
+  </data>
+  <data name="NAT" xml:space="preserve">
+    <value>NAT</value>
+  </data>
+  <data name="Isolate" xml:space="preserve">
+    <value>No Upstream</value>
+  </data>
+  <data name="Internet" xml:space="preserve">
+    <value>Upstream</value>
+  </data>
+  <data name="Hostconnected" xml:space="preserve">
+    <value>Host Connection</value>
+  </data>
+  <data name="NetDraw" xml:space="preserve">
+    <value>Network Topology</value>
+  </data>
+  <data name="Error_ExportLocalRegistryInfoFailed" xml:space="preserve">
+    <value>Error: Failed to export local registry information.</value>
+  </data>
+  <data name="Error_OfflineLoadVmRegistryFailed" xml:space="preserve">
+    <value>Error: Failed to load the virtual machine registry offline. Please ensure the program is run with administrator privileges.</value>
+  </data>
+  <data name="Error_NvidiaRegistryProcessingException" xml:space="preserve">
+    <value>Error: An exception occurred while processing the NVIDIA registry: {0}</value>
+  </data>
+  <data name="Error_NvidiaRegistryImportFailed" xml:space="preserve">
+    <value>Error: Failed to import the NVIDIA registry information (exit code {0}).</value>
+  </data>
+  <data name="Error_CannotGetVmInfo" xml:space="preserve">
+    <value>Failed to get virtual machine information.</value>
+  </data>
+  <data name="Warning_LowMmioSpace_ConfirmExpand" xml:space="preserve">
+    <value>The MMIO space for virtual machine '{0}' is currently {1}GB, which is below the recommended 64GB.
+
+This may prevent the graphics card from acquiring enough memory space.
+
+Do you want to shut down the virtual machine and expand its MMIO space to 64GB?</value>
+  </data>
+  <data name="Info_MmioSpaceSufficient" xml:space="preserve">
+    <value>MMIO space is sufficient.</value>
+  </data>
+  <data name="Error_GetNetworkInfoFailed" xml:space="preserve">
+    <value>Failed to get network information. Please ensure the program is run with administrator privileges and the Hyper-V module is installed.</value>
+  </data>
+  <data name="DisplayName_HostManagementOS" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Error_ExternalSwitchRequiresPhysicalAdapter" xml:space="preserve">
+    <value>A physical network adapter must be specified for an external switch.</value>
+  </data>
+  <data name="Error_CreateSwitchFailed" xml:space="preserve">
+    <value>Failed to create switch '{0}': {1}</value>
+  </data>
+  <data name="Error_DeleteSwitchFailed" xml:space="preserve">
+    <value>Failed to delete switch '{0}'.</value>
+  </data>
+  <data name="Btn_Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="AddSwitch_DefaultName_External" xml:space="preserve">
+    <value>New External Switch</value>
+  </data>
+  <data name="AddSwitch_DefaultName_NAT" xml:space="preserve">
+    <value>New NAT Switch</value>
+  </data>
+  <data name="AddSwitch_DefaultName_Internal" xml:space="preserve">
+    <value>New Internal Switch</value>
+  </data>
+  <data name="AddSwitch_DefaultName_Generic" xml:space="preserve">
+    <value>New Virtual Switch</value>
+  </data>
+  <data name="AddSwitch_Placeholder_SelectAdapter" xml:space="preserve">
+    <value>Please select a network adapter...</value>
+  </data>
+  <data name="AddSwitch_Placeholder_NoAdaptersAvailable" xml:space="preserve">
+    <value>No available physical network adapters</value>
+  </data>
+  <data name="AddSwitch_Validation_NameCannotBeEmpty" xml:space="preserve">
+    <value>Switch name cannot be empty.</value>
+  </data>
+  <data name="AddSwitch_Validation_NameExists" xml:space="preserve">
+    <value>A switch named '{0}' already exists.</value>
+  </data>
+  <data name="AddSwitch_Validation_NoAdaptersForExternalOrNat" xml:space="preserve">
+    <value>Cannot create an External or NAT switch because no physical network adapters are available.</value>
+  </data>
+  <data name="AddSwitch_Validation_AdapterRequiredForExternalOrNat" xml:space="preserve">
+    <value>An External or NAT switch must have a physical network adapter selected.</value>
+  </data>
+  <data name="AddSwitch_Validation_OnlyOneNatAllowed" xml:space="preserve">
+    <value>The system allows only one user-created NAT network.</value>
+  </data>
+  <data name="PCIePage_Title_MmioSpaceTooSmall" xml:space="preserve">
+    <value>MMIO Space Too Small</value>
+  </data>
+  <data name="Button_Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="Button_No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="PCIePage_Error_UpdateMmioFailed" xml:space="preserve">
+    <value>Failed to update MMIO space.</value>
+  </data>
+  <data name="PCIePage_Error_CheckMmioGeneric" xml:space="preserve">
+    <value>Error while checking MMIO space: {0}</value>
+  </data>
+  <data name="Dialog_Title_OperationFailed" xml:space="preserve">
+    <value>Operation Failed</value>
+  </data>
+  <data name="Error_Unknown" xml:space="preserve">
+    <value>Unknown error</value>
+  </data>
+  <data name="Error_DeviceNotAssignable" xml:space="preserve">
+    <value>This device does not support passthrough assignment.</value>
+  </data>
+  <data name="PCIePage_Title_LastGpuWarning" xml:space="preserve">
+    <value>Warning: Host May Lose Video Output!</value>
+  </data>
+  <data name="PCIePage_Msg_StorageHasSystemDisk" xml:space="preserve">
+    <value>This storage controller hosts the system or boot disk:
+
+{0}
+
+It cannot be passed through (doing so would make the host unbootable).</value>
+  </data>
+  <data name="PCIePage_Title_StorageOffline" xml:space="preserve">
+    <value>Take Disks Offline</value>
+  </data>
+  <data name="PCIePage_Msg_StorageOffline" xml:space="preserve">
+    <value>This storage controller hosts the following online disks:
+
+{0}
+
+They must be taken offline before passthrough (the host will lose access to them). Continue?</value>
+  </data>
+  <data name="PCIePage_Msg_LastGpuWarning" xml:space="preserve">
+    <value>{0} is the only graphics card on the host.
+After passthrough the host will lose video output and the physical display may go black.
+Continue?</value>
+  </data>
+  <data name="PCIePage_Title_CompanionDevice" xml:space="preserve">
+    <value>Confirm Companion Devices</value>
+  </data>
+  <data name="PCIePage_Msg_CompanionDevice" xml:space="preserve">
+    <value>{0} also has the following associated devices:
+
+{1}
+
+Connect them to "{2}" as well?</value>
+  </data>
+  <data name="PCIePage_Error_ExecutionGeneric" xml:space="preserve">
+    <value>An error occurred during execution:
+
+{0}</value>
+  </data>
+  <data name="Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Warning_CannotModifyDefaultSwitch" xml:space="preserve">
+    <value>This is a default switch and its settings cannot be modified.</value>
+  </data>
+  <data name="Status_ConnectedTo" xml:space="preserve">
+    <value>Connected to: {0}</value>
+  </data>
+  <data name="Status_UpstreamNotConnected" xml:space="preserve">
+    <value>Not connected to upstream network</value>
+  </data>
+  <data name="Placeholder_SelectNetworkAdapter" xml:space="preserve">
+    <value>Please select a network adapter...</value>
+  </data>
+  <data name="Status_Unavailable" xml:space="preserve">
+    <value>Unavailable</value>
+  </data>
+  <data name="Title_AddVirtualSwitch" xml:space="preserve">
+    <value>Add Virtual Switch</value>
+  </data>
+  <data name="Error_CreationFailed" xml:space="preserve">
+    <value>Creation Failed</value>
+  </data>
+  <data name="Validation_InputInvalid" xml:space="preserve">
+    <value>Invalid Input</value>
+  </data>
+  <data name="Error_DeletionFailed" xml:space="preserve">
+    <value>Deletion Failed</value>
+  </data>
+  <data name="Info_NoSwitchesFound" xml:space="preserve">
+    <value>No Hyper-V virtual switches were found.
+
+Please ensure the Hyper-V feature is installed and running.</value>
+  </data>
+  <data name="Error_LoadNetworkInfoFailed" xml:space="preserve">
+    <value>Failed to load network information: {0}</value>
+  </data>
+  <data name="Error_ConfigurationConflict" xml:space="preserve">
+    <value>Configuration Conflict</value>
+  </data>
+  <data name="Error_OnlyOneNatNetworkAllowed" xml:space="preserve">
+    <value>Operation failed: Only one NAT network is allowed.
+
+The existing NAT switch is: '{0}'</value>
+  </data>
+  <data name="Error_PhysicalAdapterInUse" xml:space="preserve">
+    <value>Operation failed: The physical network adapter '{0}' is already in use by the switch '{1}'.</value>
+  </data>
+  <data name="UpdateFailed" xml:space="preserve">
+    <value>Update Failed</value>
+  </data>
+  <data name="Error_UpdateSwitchConfigFailed" xml:space="preserve">
+    <value>Failed to update configuration for switch '{0}': {1}</value>
+  </data>
+  <data name="Label_SwitchName" xml:space="preserve">
+    <value>Switch Name</value>
+  </data>
+  <data name="SwitchMode" xml:space="preserve">
+    <value>Switch Mode</value>
+  </data>
+  <data name="External" xml:space="preserve">
+    <value>External</value>
+  </data>
+  <data name="Noupstream" xml:space="preserve">
+    <value>No Upstream</value>
+  </data>
+  <data name="Label_PhysicalNetworkAdapter" xml:space="preserve">
+    <value>Physical Adapter</value>
+  </data>
+  <data name="Title_VirtualSwitch" xml:space="preserve">
+    <value>Virtual Switch</value>
+  </data>
+  <data name="Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Error_NoAvailableDriveLetters" xml:space="preserve">
+    <value>No available drive letters.</value>
+  </data>
+  <data name="Error_EmbeddedWpfResourceNotFound" xml:space="preserve">
+    <value>Could not find the embedded WPF resource.</value>
+  </data>
+  <data name="Error_CheckForUpdateFailed" xml:space="preserve">
+    <value>Failed to check for updates. Please check your network connection.</value>
+  </data>
+  <data name="Error_SshCommandFailed" xml:space="preserve">
+    <value>[X] Command execution failed.Exit code: {0}): {1}</value>
+  </data>
+  <data name="Error_LocalDirectoryNotFound" xml:space="preserve">
+    <value>[X] Local directory not found: {0}</value>
+  </data>
+  <data name="Status_CheckingForUpdates" xml:space="preserve">
+    <value>Checking for updates...</value>
+  </data>
+  <data name="Info_NewVersionFound" xml:space="preserve">
+    <value>New version found: {0}</value>
+  </data>
+  <data name="Info_AlreadyLatestVersion" xml:space="preserve">
+    <value>You are already using the latest version.</value>
+  </data>
+  <data name="Button_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Label_ConnectToLinuxVm" xml:space="preserve">
+    <value>Connect to Linux Virtual Machine</value>
+  </data>
+  <data name="Label_HostIpAddress" xml:space="preserve">
+    <value>Host IP Address:</value>
+  </data>
+  <data name="Placeholder_IpAddressExample" xml:space="preserve">
+    <value>e.g., 192.168.1.100</value>
+  </data>
+  <data name="Label_Port" xml:space="preserve">
+    <value>Port:</value>
+  </data>
+  <data name="Label_Username" xml:space="preserve">
+    <value>Username:</value>
+  </data>
+  <data name="Label_Password" xml:space="preserve">
+    <value>Password:</value>
+  </data>
+  <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
+    <value>Install OpenGL/Vulkan graphics drivers (Need more time)</value>
+  </data>
+  <data name="GroupBox_HttpProxyOptional" xml:space="preserve">
+    <value>HTTP Proxy (Optional)</value>
+  </data>
+  <data name="Info_UseProxyForGitHub" xml:space="preserve">
+    <value>If you cannot connect directly to GitHub.com, please use a stable and reliable proxy.</value>
+  </data>
+  <data name="Label_ProxyIpAddress" xml:space="preserve">
+    <value>Proxy IP Address:</value>
+  </data>
+  <data name="Button_Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
+    <value>Proxy IP and Port must be either both filled or both empty.</value>
+  </data>
+  <data name="ComputeResources" xml:space="preserve">
+    <value>Compute Resources</value>
+  </data>
+  <data name="VCpuCount" xml:space="preserve">
+    <value>vCPU Count</value>
+  </data>
+  <data name="ReservePercentage" xml:space="preserve">
+    <value>Reserve (%)</value>
+  </data>
+  <data name="LimitPercentage" xml:space="preserve">
+    <value>Limit (%)</value>
+  </data>
+  <data name="Weight" xml:space="preserve">
+    <value>Weight</value>
+  </data>
+  <data name="AdvancedFeatures" xml:space="preserve">
+    <value>Advanced Features</value>
+  </data>
+  <data name="NestedVirtualization" xml:space="preserve">
+    <value>Nested Virtualization</value>
+  </data>
+  <data name="NestedVirtualizationDescription" xml:space="preserve">
+    <value>Enables nested virtualization.</value>
+  </data>
+  <data name="HostResourceProtection" xml:space="preserve">
+    <value>Host Resource Protection</value>
+  </data>
+  <data name="MigrationCompatibility" xml:space="preserve">
+    <value>Limit CPU features for migration</value>
+  </data>
+  <data name="MigrationCompatibilityDescription" xml:space="preserve">
+    <value>Allows migration across different CPUs.</value>
+  </data>
+  <data name="Cpu_MigrationCompatibilityMode" xml:space="preserve">
+    <value>Migration Compatibility Mode</value>
+  </data>
+  <data name="Cpu_MigrationCompatibilityModeDesc" xml:space="preserve">
+    <value>Selects the fixed minimum feature set or the feature set shared by cluster nodes.</value>
+  </data>
+  <data name="CpuEnum_Migration_MinimumFeatureSet" xml:space="preserve">
+    <value>Minimum Feature Set</value>
+  </data>
+  <data name="CpuEnum_Migration_CommonClusterFeatureSet" xml:space="preserve">
+    <value>Common Cluster Feature Set</value>
+  </data>
+  <data name="LegacySystemCompatibility" xml:space="preserve">
+    <value>Limit CPU features for legacy OS compatibility</value>
+  </data>
+  <data name="LegacySystemCompatibilityDescription" xml:space="preserve">
+    <value>Improves compatibility with older OS.</value>
+  </data>
+  <data name="VirtualMachineSmt" xml:space="preserve">
+    <value>Virtual Machine Hyper-Threading</value>
+  </data>
+  <data name="VirtualMachineSmtDescription" xml:space="preserve">
+    <value>Controls the number of hardware threads per core exposed to the virtual machine.</value>
+  </data>
+  <data name="CpuEnum_Smt_Inherit" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="CpuEnum_Smt_SingleThread" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="CpuEnum_Smt_MultiThread" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="CpuBinding" xml:space="preserve">
+    <value>Cpu Pinning</value>
+  </data>
+  <data name="DataLoading" xml:space="preserve">
+    <value>Loading data...</value>
+  </data>
+  <data name="LimitVmBusCommunicationFrequency" xml:space="preserve">
+    <value>VMBus monitoring (Prevents interrupt storms)</value>
+  </data>
+  <data name="AddDisk_AutoAssign" xml:space="preserve">
+    <value>Auto-Assign</value>
+  </data>
+  <data name="AddDisk_BlockSize" xml:space="preserve">
+    <value>Block Size</value>
+  </data>
+  <data name="AddDisk_CapacityGB" xml:space="preserve">
+    <value>Capacity (GB)</value>
+  </data>
+  <data name="AddDisk_DiskType" xml:space="preserve">
+    <value>Disk Type</value>
+  </data>
+  <data name="AddDisk_Interface" xml:space="preserve">
+    <value>Controller</value>
+  </data>
+  <data name="AddDisk_Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="AddDisk_New" xml:space="preserve">
+    <value>New</value>
+  </data>
+  <data name="AddDisk_NoAvailablePhysical" xml:space="preserve">
+    <value>No available physical devices</value>
+  </data>
+  <data name="AddDisk_NoAvailableOptical" xml:space="preserve">
+    <value>No physical optical drive available</value>
+  </data>
+  <data name="AddDisk_Number" xml:space="preserve">
+    <value>Number</value>
+  </data>
+  <data name="AddDisk_Placeholder_PackageFolder" xml:space="preserve">
+    <value>Select a folder to package...</value>
+  </data>
+  <data name="AddDisk_Placeholder_ParentPath" xml:space="preserve">
+    <value>Please specify parent disk path...</value>
+  </data>
+  <data name="AddDisk_Placeholder_VolumeLabel" xml:space="preserve">
+    <value>Defaults to folder name</value>
+  </data>
+  <data name="AddDisk_SectorFormat" xml:space="preserve">
+    <value>Sector Format</value>
+  </data>
+  <data name="AddDisk_SlotConfig" xml:space="preserve">
+    <value>Slot Configuration</value>
+  </data>
+  <data name="AddDisk_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="AddDisk_Source_Physical" xml:space="preserve">
+    <value>Physical Device</value>
+  </data>
+  <data name="AddDisk_Source_VirtualFile" xml:space="preserve">
+    <value>Virtual File</value>
+  </data>
+  <data name="AddDisk_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="AddDisk_Type_HardDisk" xml:space="preserve">
+    <value>Hard Disk</value>
+  </data>
+  <data name="AddDisk_Type_OpticalDrive" xml:space="preserve">
+    <value>Optical Drive</value>
+  </data>
+  <data name="AddDisk_VhdType_Differencing" xml:space="preserve">
+    <value>Differencing</value>
+  </data>
+  <data name="AddDisk_VhdType_Dynamic" xml:space="preserve">
+    <value>Dynamic</value>
+  </data>
+  <data name="AddDisk_VhdType_Fixed" xml:space="preserve">
+    <value>Fixed</value>
+  </data>
+  <data name="AddDisk_WindowTitle" xml:space="preserve">
+    <value>Add Storage Device</value>
+  </data>
+  <data name="Common_Browse" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="Common_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Common_Disk" xml:space="preserve">
+    <value>Disk</value>
+  </data>
+  <data name="Common_Select" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Common_Empty" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="Common_Modify" xml:space="preserve">
+    <value>Modify</value>
+  </data>
+  <data name="Common_Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Common_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Storage_Settings" xml:space="preserve">
+    <value>Storage Settings</value>
+  </data>
+  <data name="Storage_Slot" xml:space="preserve">
+    <value>Slot</value>
+  </data>
+  <data name="Storage_PassthroughStale" xml:space="preserve">
+    <value>Disk is online — pass-through is broken. Set the disk offline to restore, or delete this entry to remove it.</value>
+  </data>
+  <data name="Storage_DiskStatus_Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="Storage_DiskStatus_System" xml:space="preserve">
+    <value>System / boot disk</value>
+  </data>
+  <data name="Storage_DiskStatus_Assigned" xml:space="preserve">
+    <value>Assigned to {0}</value>
+  </data>
+  <data name="Storage_DiskStatus_ReadOnly" xml:space="preserve">
+    <value>Read-only</value>
+  </data>
+  <data name="Storage_DiskStatus_Usb" xml:space="preserve">
+    <value>USB (pass-through not supported)</value>
+  </data>
+  <data name="Model_Drive_OpticalDrive" xml:space="preserve">
+    <value>Optical Drive</value>
+  </data>
+  <data name="Model_Drive_SourcePhysical" xml:space="preserve">
+    <value>Physical Device</value>
+  </data>
+  <data name="Model_Drive_SourceVirtual" xml:space="preserve">
+    <value>Virtual File</value>
+  </data>
+  <data name="Model_Drive_VirtualDisk" xml:space="preserve">
+    <value>Virtual Disk</value>
+  </data>
+  <data name="Model_Drive_VirtualHardDisk" xml:space="preserve">
+    <value>Virtual Hard Disk</value>
+  </data>
+  <data name="Status_Msg_CurrentVer" xml:space="preserve">
+    <value>Current Version</value>
+  </data>
+  <data name="Status_Title_Success" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="Status_Msg_RestartNow" xml:space="preserve">
+    <value>System identifier modified. Restart now to apply changes?</value>
+  </data>
+  <data name="Global_Restart" xml:space="preserve">
+    <value>Restart Now</value>
+  </data>
+  <data name="Status_Title_Info" xml:space="preserve">
+    <value>Information</value>
+  </data>
+  <data name="Status_Edition_Server" xml:space="preserve">
+    <value>Server Edition (ServerNT)</value>
+  </data>
+  <data name="Status_Edition_Workstation" xml:space="preserve">
+    <value>Workstation Edition (WinNT)</value>
+  </data>
+  <data name="Menu_VM" xml:space="preserve">
+    <value>Virtual Machines</value>
+  </data>
+  <data name="Disk_Dynamic" xml:space="preserve">
+    <value>Dynamic Disk</value>
+  </data>
+  <data name="Disk_Fixed" xml:space="preserve">
+    <value>Fixed Disk</value>
+  </data>
+  <data name="Disk_Differencing" xml:space="preserve">
+    <value>Differencing Disk</value>
+  </data>
+  <data name="Disk_IsoImage" xml:space="preserve">
+    <value>ISO Image</value>
+  </data>
+  <data name="Disk_Physical" xml:space="preserve">
+    <value>Physical Disk</value>
+  </data>
+  <data name="Disk_PhysicalDvd" xml:space="preserve">
+    <value>Physical DVD Drive</value>
+  </data>
+  <data name="Common_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Common_UnknownPath" xml:space="preserve">
+    <value>Unknown Path</value>
+  </data>
+  <data name="Format_PartitionDesc" xml:space="preserve">
+    <value>[{0}] Partition {1} ({2:F1} GB)</value>
+  </data>
+  <data name="Status_Unconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="Msg_SettingsUpdated" xml:space="preserve">
+    <value>Settings Updated</value>
+  </data>
+  <data name="Lang_Chinese" xml:space="preserve">
+    <value>中文</value>
+  </data>
+  <data name="Msg_Gpu_DismountingDisk" xml:space="preserve">
+    <value>[Physical Disk] Locking and dismounting disk {0}...</value>
+  </data>
+  <data name="Error_Gpu_DiskNotFound" xml:space="preserve">
+    <value>Cannot dismount disk: Disk not found in VM config.</value>
+  </data>
+  <data name="Error_Gpu_MountVhdFailed" xml:space="preserve">
+    <value>Virtual disk mount failed.</value>
+  </data>
+  <data name="Msg_Gpu_AssignTempDrive" xml:space="preserve">
+    <value>Assigning temp drive letter (Disk {0}, Partition {1})...</value>
+  </data>
+  <data name="Error_Gpu_BitLocker" xml:space="preserve">
+    <value>Target partition is BitLocker protected. Please disable BitLocker first.</value>
+  </data>
+  <data name="Error_Gpu_InvalidSystemPart" xml:space="preserve">
+    <value>Installation aborted: ({0}) is not a valid system partition.</value>
+  </data>
+  <data name="Msg_Gpu_SyncingFiles" xml:space="preserve">
+    <value>Syncing driver files...</value>
+  </data>
+  <data name="Msg_Gpu_InjectingReg" xml:space="preserve">
+    <value>Injecting NVIDIA registry keys...</value>
+  </data>
+  <data name="Error_Gpu_InjectFailed" xml:space="preserve">
+    <value>Injection failed: {0}</value>
+  </data>
+  <data name="Error_Gpu_AssignDriveLetterFailed" xml:space="preserve">
+    <value>Failed to assign a temporary drive letter.</value>
+  </data>
+  <data name="GpuDriverPackage_InstanceMapFailed" xml:space="preserve">
+    <value>Unable to map the selected GPU-PV instance to its display-class registry key.</value>
+  </data>
+  <data name="GpuDriverPackage_DisplayClassKeyMissing" xml:space="preserve">
+    <value>The selected display-class registry key does not exist.</value>
+  </data>
+  <data name="GpuDriverPackage_PublishedInfMissing" xml:space="preserve">
+    <value>The selected display adapter does not provide a published INF name.</value>
+  </data>
+  <data name="GpuDriverPackage_InvalidPackagePath" xml:space="preserve">
+    <value>Invalid DriverStore package path: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_OutsideFileRepository" xml:space="preserve">
+    <value>SetupAPI returned a path outside DriverStore\FileRepository: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_DriverVersionMissing" xml:space="preserve">
+    <value>DriverVer is missing from the selected display INF: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_CompanionNotInstalled" xml:space="preserve">
+    <value>The declared companion package {0} with DriverVer {1} is not installed.</value>
+  </data>
+  <data name="GpuDriverPackage_CompanionAmbiguous" xml:space="preserve">
+    <value>Multiple companion packages named {0} with DriverVer {1} were found.</value>
+  </data>
+  <data name="GpuDriverPackage_InfNotFound" xml:space="preserve">
+    <value>The INF returned by SetupAPI does not exist: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_InvalidInfPath" xml:space="preserve">
+    <value>Invalid DriverStore INF path: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_OptionalOpenClWarning" xml:space="preserve">
+    <value>[GPU Package] Optional AMD OpenCL package was not selected: {0}</value>
+  </data>
+  <data name="GpuDriverPackage_OptionalWindowsSupportWarning" xml:space="preserve">
+    <value>[GPU Package] Optional AMD Windows-support package was not selected: {0}</value>
+  </data>
+  <data name="Msg_Gpu_Remounting" xml:space="preserve">
+    <value>Executing physical disk secure remount...</value>
+  </data>
+  <data name="Msg_Gpu_RemountSuccess" xml:space="preserve">
+    <value>Physical disk successfully remounted to VM.</value>
+  </data>
+  <data name="Error_Gpu_RemountFailed" xml:space="preserve">
+    <value>[Critical Warning] Passthrough disk remount failed: {0}</value>
+  </data>
+  <data name="Msg_Gpu_Unmounting" xml:space="preserve">
+    <value>Unmounting virtual disk...</value>
+  </data>
+  <data name="Error_Gpu_NoPartition" xml:space="preserve">
+    <value>This GPU does not support partitioning.</value>
+  </data>
+  <data name="Error_Common_NoPartitionSelected" xml:space="preserve">
+    <value>No partition selected</value>
+  </data>
+  <data name="Msg_Gpu_LinuxWaitingIp" xml:space="preserve">
+    <value>Waiting for VM network readiness and IP...</value>
+  </data>
+  <data name="Error_Gpu_SshTimeout" xml:space="preserve">
+    <value>SSH connection timed out. Check VM networking.</value>
+  </data>
+  <data name="Msg_Gpu_LinuxRemoteInit" xml:space="preserve">
+    <value>Remote environment initialized. Temp: {0}</value>
+  </data>
+  <data name="Status_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="Status_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Status_Saved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="Status_Suspended" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="Status_Starting" xml:space="preserve">
+    <value>Starting</value>
+  </data>
+  <data name="Status_Saving" xml:space="preserve">
+    <value>Saving</value>
+  </data>
+  <data name="Status_Stopping" xml:space="preserve">
+    <value>Stopping</value>
+  </data>
+  <data name="Status_Suspending" xml:space="preserve">
+    <value>Pausing</value>
+  </data>
+  <data name="Status_Resuming" xml:space="preserve">
+    <value>Resuming</value>
+  </data>
+  <data name="Status_UnknownCode" xml:space="preserve">
+    <value>Unknown ({0})</value>
+  </data>
+  <data name="Error_Memory_VmNotFound" xml:space="preserve">
+    <value>VM instance not found.</value>
+  </data>
+  <data name="Msg_Memory_Applied" xml:space="preserve">
+    <value>Memory settings applied.</value>
+  </data>
+  <data name="Error_Net_VmNotFound" xml:space="preserve">
+    <value>[Error] VM '{0}' not found. Check name.</value>
+  </data>
+  <data name="Common_NoName" xml:space="preserve">
+    <value>(No Name)</value>
+  </data>
+  <data name="Error_Net_AllocNotFound" xml:space="preserve">
+    <value>Allocation object not found</value>
+  </data>
+  <data name="Error_Net_ConfigObject" xml:space="preserve">
+    <value>Failed to locate config object or create template.</value>
+  </data>
+  <data name="Common_UnknownSwitch" xml:space="preserve">
+    <value>Unknown Switch</value>
+  </data>
+  <data name="Error_Cpu_ConfigNotFound" xml:space="preserve">
+    <value>VM or Processor config not found.</value>
+  </data>
+  <data name="Scheduler_Classic" xml:space="preserve">
+    <value>Classic</value>
+  </data>
+  <data name="Scheduler_Core" xml:space="preserve">
+    <value>Core</value>
+  </data>
+  <data name="Scheduler_Root" xml:space="preserve">
+    <value>Root</value>
+  </data>
+  <data name="Msg_Host_EnableHyperV" xml:space="preserve">
+    <value>Enabling Hyper-V services...</value>
+  </data>
+  <data name="Msg_Host_EnableSuccess" xml:space="preserve">
+    <value>Hyper-V enabled. Reboot required.</value>
+  </data>
+  <data name="Error_Host_EnableFail" xml:space="preserve">
+    <value>Failed to enable Hyper-V. Please enable manually in Windows Features.</value>
+  </data>
+  <data name="Msg_Host_SchedulerChanged" xml:space="preserve">
+    <value>Scheduler type changed. Reboot required.</value>
+  </data>
+  <data name="Msg_Host_NativeNvmeChanged" xml:space="preserve">
+    <value>NVMe driver setting changed. Reboot required.</value>
+  </data>
+  <data name="Error_Host_SchedulerFail" xml:space="preserve">
+    <value>Failed to set scheduler type.</value>
+  </data>
+  <data name="Label_Beta" xml:space="preserve">
+    <value>Beta</value>
+  </data>
+  <data name="Error_Common_OpFail" xml:space="preserve">
+    <value>Operation Failed</value>
+  </data>
+  <data name="Error_Common_LoadFail" xml:space="preserve">
+    <value>Load Failed</value>
+  </data>
+  <data name="Error_Vm_StartFail" xml:space="preserve">
+    <value>Start Failed</value>
+  </data>
+  <data name="Error_Common_ModFailShort" xml:space="preserve">
+    <value>Modify Failed</value>
+  </data>
+  <data name="Error_Common_NoPermission" xml:space="preserve">
+    <value>Cannot save tags. Check permissions.</value>
+  </data>
+  <data name="Error_Common_ApplyFail" xml:space="preserve">
+    <value>Apply Failed</value>
+  </data>
+  <data name="Error_Cpu_AffinityFail" xml:space="preserve">
+    <value>Failed to load affinity.</value>
+  </data>
+  <data name="Msg_Cpu_AffinityApplied" xml:space="preserve">
+    <value>CPU affinity applied.</value>
+  </data>
+  <data name="Msg_Cpu_AffinityQueued" xml:space="preserve">
+    <value>Setting Queued</value>
+  </data>
+  <data name="Msg_Cpu_RootNotice" xml:space="preserve">
+    <value>Root scheduler mode: affinity saved and will apply on next start.</value>
+  </data>
+  <data name="Error_Common_SaveFail" xml:space="preserve">
+    <value>Save Failed</value>
+  </data>
+  <data name="Error_Cpu_ApplyFail" xml:space="preserve">
+    <value>Cannot apply settings. Check HCS permissions.</value>
+  </data>
+  <data name="Error_Storage_LoadFail" xml:space="preserve">
+    <value>Failed to load storage</value>
+  </data>
+  <data name="Msg_Storage_Ejected" xml:space="preserve">
+    <value>DVD ejected</value>
+  </data>
+  <data name="Button_EjectIso" xml:space="preserve">
+    <value>Eject ISO</value>
+  </data>
+  <data name="Button_InsertIso" xml:space="preserve">
+    <value>Insert ISO</value>
+  </data>
+  <data name="Button_ReplaceIso" xml:space="preserve">
+    <value>Replace ISO</value>
+  </data>
+  <data name="Button_RemoveDvdDrive" xml:space="preserve">
+    <value>Remove DVD drive</value>
+  </data>
+  <data name="Error_Storage_EjectFail" xml:space="preserve">
+    <value>Failed to eject ISO</value>
+  </data>
+  <data name="Msg_Storage_Removed" xml:space="preserve">
+    <value>Device removed</value>
+  </data>
+  <data name="Error_Storage_RemoveFail" xml:space="preserve">
+    <value>Remove failed</value>
+  </data>
+  <data name="Error_Storage_PhysicalMod" xml:space="preserve">
+    <value>Passthrough disks cannot be modified. Remove and re-add.</value>
+  </data>
+  <data name="Error_Storage_VhdRunning" xml:space="preserve">
+    <value>Cannot change VHD while VM is running. Please shut down.</value>
+  </data>
+  <data name="Filter_Iso" xml:space="preserve">
+    <value>ISO Files (*.iso)|*.iso|All Files (*.*)|*.*</value>
+  </data>
+  <data name="Filter_Vhd" xml:space="preserve">
+    <value>Virtual Disk (*.vhdx;*.vhd)|*.vhdx;*.vhd|All Files (*.*)|*.*</value>
+  </data>
+  <data name="Title_SelectIso" xml:space="preserve">
+    <value>Select ISO Image</value>
+  </data>
+  <data name="Title_SelectVhd" xml:space="preserve">
+    <value>Select Virtual Disk File</value>
+  </data>
+  <data name="Msg_Storage_PathUpdated" xml:space="preserve">
+    <value>Storage path updated</value>
+  </data>
+  <data name="Placeholder_Vhd" xml:space="preserve">
+    <value>Select or enter .vhdx/.vhd path</value>
+  </data>
+  <data name="Placeholder_Iso" xml:space="preserve">
+    <value>Select or enter .iso path; leave blank for an empty DVD drive</value>
+  </data>
+  <data name="Button_SaveTo" xml:space="preserve">
+    <value>Save to...</value>
+  </data>
+  <data name="Button_Browse" xml:space="preserve">
+    <value>Browse...</value>
+  </data>
+  <data name="Error_Storage_Occupied" xml:space="preserve">
+    <value>Slot is occupied. Select another one.</value>
+  </data>
+  <data name="Error_Storage_SelectTarget" xml:space="preserve">
+    <value>Please select a storage device/file.</value>
+  </data>
+  <data name="Error_Storage_FileNotExist" xml:space="preserve">
+    <value>Cannot find the file to attach. Please check the path.</value>
+  </data>
+  <data name="Error_Storage_FileExists" xml:space="preserve">
+    <value>Target file already exists. Use a different name or delete it first.</value>
+  </data>
+  <data name="Error_Storage_ParentRequired" xml:space="preserve">
+    <value>A differencing disk requires an existing parent disk file.</value>
+  </data>
+  <data name="Error_Storage_IsoSource" xml:space="preserve">
+    <value>Source folder required for ISO creation.</value>
+  </data>
+  <data name="Error_Storage_IsoPath" xml:space="preserve">
+    <value>Save path required for ISO creation.</value>
+  </data>
+  <data name="Error_Storage_DirFail" xml:space="preserve">
+    <value>Failed to create directory: {0}</value>
+  </data>
+  <data name="Error_Storage_SourceNoExist" xml:space="preserve">
+    <value>Source folder does not exist.</value>
+  </data>
+  <data name="Title_CreateVhd" xml:space="preserve">
+    <value>Create Virtual Disk</value>
+  </data>
+  <data name="Filter_VhdExt" xml:space="preserve">
+    <value>Virtual Disk (*.vhdx)|*.vhdx|Legacy VHD (*.vhd)|*.vhd</value>
+  </data>
+  <data name="Default_VhdName" xml:space="preserve">
+    <value>New Virtual Disk.vhdx</value>
+  </data>
+  <data name="Title_OpenVhd" xml:space="preserve">
+    <value>Select Virtual Disk</value>
+  </data>
+  <data name="Filter_VhdOnly" xml:space="preserve">
+    <value>Virtual Disk (*.vhdx;*.vhd)|*.vhdx;*.vhd</value>
+  </data>
+  <data name="Filter_IsoOnly" xml:space="preserve">
+    <value>ISO Image (*.iso)|*.iso</value>
+  </data>
+  <data name="Title_SaveIso" xml:space="preserve">
+    <value>Save ISO Image</value>
+  </data>
+  <data name="Filter_IsoExt" xml:space="preserve">
+    <value>ISO Image (*.iso)|*.iso</value>
+  </data>
+  <data name="Msg_Storage_Connected" xml:space="preserve">
+    <value>Device connected to {0} {1}:{2}</value>
+  </data>
+  <data name="Error_Storage_AddFail" xml:space="preserve">
+    <value>Add Failed</value>
+  </data>
+  <data name="Error_Storage_OfflineFail" xml:space="preserve">
+    <value>Failed to take the disk offline — it may be in use (mounted volumes). Take it offline in Disk Management first, or choose another disk.</value>
+  </data>
+  <data name="Error_Storage_Gen1Dvd" xml:space="preserve">
+    <value>Gen1 VM DVD cannot be added while running (IDE no hot-swap).</value>
+  </data>
+  <data name="Error_Storage_Gen1IdeFull" xml:space="preserve">
+    <value>Gen1 IDE controller is full. Cannot add DVD.</value>
+  </data>
+  <data name="Error_Storage_NoScsiRunning" xml:space="preserve">
+    <value>No available SCSI slots while VM is running.</value>
+  </data>
+  <data name="Error_Storage_NoScsi" xml:space="preserve">
+    <value>No available SCSI slots.</value>
+  </data>
+  <data name="Error_Storage_NoSlots" xml:space="preserve">
+    <value>This VM has no available storage slots.</value>
+  </data>
+  <data name="Error_Storage_CtrlFull" xml:space="preserve">
+    <value>Controller {0} #{1} is full.</value>
+  </data>
+  <data name="Error_Storage_ControllerNotFound" xml:space="preserve">
+    <value>Target storage controller not found.</value>
+  </data>
+  <data name="Error_Storage_DvdNotFound" xml:space="preserve">
+    <value>Target DVD drive not found.</value>
+  </data>
+  <data name="Error_Storage_DiskNotFound" xml:space="preserve">
+    <value>Target disk not found.</value>
+  </data>
+  <data name="Error_Storage_IdeHotAdd" xml:space="preserve">
+    <value>IDE devices cannot be added while the VM is running. Please shut down the VM first.</value>
+  </data>
+  <data name="Error_Storage_DvdHotRemove" xml:space="preserve">
+    <value>Cannot remove an IDE DVD drive while the VM is running. Please shut down the VM first.</value>
+  </data>
+  <data name="Error_Storage_IdeHotRemove" xml:space="preserve">
+    <value>Cannot remove an IDE hard disk while the VM is running. Please shut down the VM first.</value>
+  </data>
+  <data name="Error_Storage_ScsiHotAdd" xml:space="preserve">
+    <value>Cannot add a new SCSI controller while the VM is running. Please shut down the VM first.</value>
+  </data>
+  <data name="Error_Storage_Unknown" xml:space="preserve">
+    <value>An unknown storage error occurred.</value>
+  </data>
+  <data name="Error_Storage_IsoBuildFail" xml:space="preserve">
+    <value>Failed to create ISO image: {0}</value>
+  </data>
+  <data name="VmPage_StartFail" xml:space="preserve">
+    <value>Failed to start</value>
+  </data>
+  <data name="Error_Vm_NotFound" xml:space="preserve">
+    <value>VM '{0}' not found.</value>
+  </data>
+  <data name="Error_Vm_NameEmpty" xml:space="preserve">
+    <value>VM name is empty.</value>
+  </data>
+  <data name="Error_Vm_GetSettings" xml:space="preserve">
+    <value>Cannot get VM settings.</value>
+  </data>
+  <data name="Error_Vm_EnumResources" xml:space="preserve">
+    <value>Cannot enumerate VM resources.</value>
+  </data>
+  <data name="Error_Storage_PhysDiskNotFound" xml:space="preserve">
+    <value>Physical disk {0} not found in Hyper-V.</value>
+  </data>
+  <data name="Error_Storage_ResNotFound" xml:space="preserve">
+    <value>Target storage resource not found.</value>
+  </data>
+  <data name="Error_Video_NoController" xml:space="preserve">
+    <value>Synthetic display controller not found.</value>
+  </data>
+  <data name="Net_Mode_Access" xml:space="preserve">
+    <value>Access</value>
+  </data>
+  <data name="Net_Mode_Trunk" xml:space="preserve">
+    <value>Trunk</value>
+  </data>
+  <data name="Net_Mode_Private" xml:space="preserve">
+    <value>Private</value>
+  </data>
+  <data name="Net_Pvlan_Isolated" xml:space="preserve">
+    <value>Isolated</value>
+  </data>
+  <data name="Net_Pvlan_Community" xml:space="preserve">
+    <value>Community</value>
+  </data>
+  <data name="Net_Pvlan_Promiscuous" xml:space="preserve">
+    <value>Promiscuous</value>
+  </data>
+  <data name="Common_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Net_Mirror_Source" xml:space="preserve">
+    <value>Join Send Group</value>
+  </data>
+  <data name="Net_Mirror_Dest" xml:space="preserve">
+    <value>Join Receive Group</value>
+  </data>
+  <data name="Msg_Net_Added" xml:space="preserve">
+    <value>New network adapter added.</value>
+  </data>
+  <data name="Msg_Net_CreateSwitchFirst" xml:space="preserve">
+    <value>Please create a virtual switch first.</value>
+  </data>
+  <data name="Error_Net_AddExc" xml:space="preserve">
+    <value>Add Exception</value>
+  </data>
+  <data name="Msg_Net_AdapterRemoved" xml:space="preserve">
+    <value>Network adapter removed.</value>
+  </data>
+  <data name="Error_Net_RemoveExc" xml:space="preserve">
+    <value>Remove Exception</value>
+  </data>
+  <data name="Msg_Net_VlanApplied" xml:space="preserve">
+    <value>VLAN settings applied</value>
+  </data>
+  <data name="Msg_Net_MacApplied" xml:space="preserve">
+    <value>MAC address applied</value>
+  </data>
+  <data name="Error_Net_MacInvalid" xml:space="preserve">
+    <value>Invalid MAC address (12 hex digits required).</value>
+  </data>
+  <data name="Msg_Net_QosApplied" xml:space="preserve">
+    <value>QoS settings applied</value>
+  </data>
+  <data name="Error_Net_Security" xml:space="preserve">
+    <value>Security settings fail: {0}</value>
+  </data>
+  <data name="Error_Net_Offload" xml:space="preserve">
+    <value>Offload settings fail: {0}</value>
+  </data>
+  <data name="Msg_Common_Applied" xml:space="preserve">
+    <value>Settings Applied</value>
+  </data>
+  <data name="Error_Net_ApplyFail" xml:space="preserve">
+    <value>Apply Failed</value>
+  </data>
+  <data name="Error_Net_SecurityFail" xml:space="preserve">
+    <value>Security Apply Failed</value>
+  </data>
+  <data name="Error_Gpu_ReadInfo" xml:space="preserve">
+    <value>Cannot read GPU config: </value>
+  </data>
+  <data name="Error_Gpu_RefreshFail" xml:space="preserve">
+    <value>GPU Refresh Failed</value>
+  </data>
+  <data name="Msg_Gpu_PartitionRemoved" xml:space="preserve">
+    <value>GPU partition removed from VM.</value>
+  </data>
+  <data name="Error_Gpu_RemoveFail" xml:space="preserve">
+    <value>Failed to remove GPU partition. Check permissions.</value>
+  </data>
+  <data name="Msg_Gpu_WorkStart" xml:space="preserve">
+    <value>&gt;&gt;&gt; Configuring GPU for VM [{0}]</value>
+  </data>
+  <data name="Msg_Gpu_Selected" xml:space="preserve">
+    <value>Selected GPU: {0}</value>
+  </data>
+  <data name="Msg_Gpu_Path" xml:space="preserve">
+    <value>Device Path: {0}</value>
+  </data>
+  <data name="Task_Gpu_Prepare" xml:space="preserve">
+    <value>Environment Prepare</value>
+  </data>
+  <data name="Msg_Gpu_PreparingHost" xml:space="preserve">
+    <value>Preparing host environment...</value>
+  </data>
+  <data name="Task_Gpu_Power" xml:space="preserve">
+    <value>Power Check</value>
+  </data>
+  <data name="Msg_Gpu_CheckingPower" xml:space="preserve">
+    <value>Checking VM power status...</value>
+  </data>
+  <data name="Task_Gpu_Opt" xml:space="preserve">
+    <value>Optimization</value>
+  </data>
+  <data name="Msg_Gpu_Mmio" xml:space="preserve">
+    <value>Configuring MMIO space...</value>
+  </data>
+  <data name="Task_Gpu_Assign" xml:space="preserve">
+    <value>Assign GPU</value>
+  </data>
+  <data name="Msg_Gpu_Creating" xml:space="preserve">
+    <value>Creating GPU partition...</value>
+  </data>
+  <data name="Task_Gpu_Driver" xml:space="preserve">
+    <value>Driver Install</value>
+  </data>
+  <data name="Msg_Gpu_WaitingScan" xml:space="preserve">
+    <value>Waiting for partition scan...</value>
+  </data>
+  <data name="Msg_Gpu_ExecTask" xml:space="preserve">
+    <value>Executing: {0}...</value>
+  </data>
+  <data name="Msg_Gpu_Policy" xml:space="preserve">
+    <value>Policy applied successfully.</value>
+  </data>
+  <data name="Msg_Gpu_ForceOff" xml:space="preserve">
+    <value>Current status: {0}. Forcing shut down...</value>
+  </data>
+  <data name="Msg_Gpu_Off" xml:space="preserve">
+    <value>VM is off.</value>
+  </data>
+  <data name="Msg_Gpu_MmioOk" xml:space="preserve">
+    <value>MMIO configuration done.</value>
+  </data>
+  <data name="Error_Gpu_OptFail" xml:space="preserve">
+    <value>Optimization failed. Continuing...</value>
+  </data>
+  <data name="Msg_Gpu_AssignOk" xml:space="preserve">
+    <value>GPU partition created.</value>
+  </data>
+  <data name="Warn_Gpu_RollbackAdapterNotIdentified" xml:space="preserve">
+    <value>[Warning] The GPU partition created by this operation could not be identified. If a later step fails, automatic rollback will be skipped.</value>
+  </data>
+  <data name="Msg_Gpu_Scanning" xml:space="preserve">
+    <value>Scanning all mounted disk partitions...</value>
+  </data>
+  <data name="Error_Gpu_NoPartFound" xml:space="preserve">
+    <value>No valid partitions found. Ensure OS is installed.</value>
+  </data>
+  <data name="Msg_Gpu_DetectWin" xml:space="preserve">
+    <value>Single Windows partition detected. Syncing drivers...</value>
+  </data>
+  <data name="Msg_Gpu_DriverOk" xml:space="preserve">
+    <value>Windows drivers installed.</value>
+  </data>
+  <data name="Msg_Gpu_ManualSelect" xml:space="preserve">
+    <value>Please select the OS partition manually...</value>
+  </data>
+  <data name="Msg_Gpu_TaskOk" xml:space="preserve">
+    <value>[Success] {0}: {1}</value>
+  </data>
+  <data name="Error_Format_FailMsg" xml:space="preserve">
+    <value>Failed: {0}</value>
+  </data>
+  <data name="Error_Format_StageExc" xml:space="preserve">
+    <value>[Error] {0} exception: {1}</value>
+  </data>
+  <data name="Error_Format_StageError" xml:space="preserve">
+    <value>Exception in {0}</value>
+  </data>
+  <data name="Msg_Gpu_SyncingPart" xml:space="preserve">
+    <value>Syncing drivers to partition {0}...</value>
+  </data>
+  <data name="Error_Gpu_Rollback" xml:space="preserve">
+    <value>[Rollback] Driver sync failed: {0}</value>
+  </data>
+  <data name="Msg_Gpu_LinuxVm" xml:space="preserve">
+    <value>Linux partition detected. Waiting for VM to start...</value>
+  </data>
+  <data name="Msg_Gpu_IpSniff" xml:space="preserve">
+    <value>Auto-starting VM to initialize network...</value>
+  </data>
+  <data name="Msg_Gpu_IpScanning" xml:space="preserve">
+    <value>Sniffing VM IP address...</value>
+  </data>
+  <data name="Msg_Gpu_IpOk" xml:space="preserve">
+    <value>Successfully got IP: {0}</value>
+  </data>
+  <data name="Error_Gpu_IpManual" xml:space="preserve">
+    <value>Failed to auto-get IP. Enter manually.</value>
+  </data>
+  <data name="Msg_Gpu_SshConfirm" xml:space="preserve">
+    <value>Confirm SSH credentials to start...</value>
+  </data>
+  <data name="Error_Gpu_EnvFail" xml:space="preserve">
+    <value>Env fetch failed</value>
+  </data>
+  <data name="Warn_Gpu_EnvExc" xml:space="preserve">
+    <value>[Warning] Env exception: {0}</value>
+  </data>
+  <data name="Msg_Gpu_DeployStart" xml:space="preserve">
+    <value>&gt;&gt;&gt; Starting Linux deployment</value>
+  </data>
+  <data name="Msg_Gpu_UsingProxy" xml:space="preserve">
+    <value>Using Proxy: {0}:{1}</value>
+  </data>
+  <data name="Msg_Gpu_LinuxDeployDone" xml:space="preserve">
+    <value>&gt;&gt;&gt; Linux deployment complete.</value>
+  </data>
+  <data name="Error_Gpu_LinuxRollback" xml:space="preserve">
+    <value>[Rollback] Linux deploy failed. Removing GPU...</value>
+  </data>
+  <data name="Error_Gpu_DeployFatal" xml:space="preserve">
+    <value>&gt;&gt;&gt; [Fatal Error] Linux deploy failed: {0}</value>
+  </data>
+  <data name="Msg_Gpu_SelectPart" xml:space="preserve">
+    <value>Select target partition...</value>
+  </data>
+  <data name="Msg_Gpu_Ready" xml:space="preserve">
+    <value>{0} is ready.</value>
+  </data>
+  <data name="Status_Restarting" xml:space="preserve">
+    <value>Restarting</value>
+  </data>
+  <data name="Status_StoppingPresent" xml:space="preserve">
+    <value>Shutting down</value>
+  </data>
+  <data name="Status_Processing" xml:space="preserve">
+    <value>Processing</value>
+  </data>
+  <data name="Msg_Gpu_LogCopy" xml:space="preserve">
+    <value>Log copied to clipboard</value>
+  </data>
+  <data name="Mem_Standard" xml:space="preserve">
+    <value>4 KB</value>
+  </data>
+  <data name="Mem_Large" xml:space="preserve">
+    <value>2 MB</value>
+  </data>
+  <data name="Mem_Huge" xml:space="preserve">
+    <value>1 GB</value>
+  </data>
+  <data name="Common_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Common_NoDisk" xml:space="preserve">
+    <value>No Disk</value>
+  </data>
+  <data name="Format_VmSummary" xml:space="preserve">
+    <value>{0} Cores / {1:0.#} GB / {2}</value>
+  </data>
+  <data name="Menu_Env" xml:space="preserve">
+    <value>Env &amp; Settings</value>
+  </data>
+  <data name="HostPage_EnvironmentChecks" xml:space="preserve">
+    <value>Environment Checks</value>
+  </data>
+  <data name="HostPage_EnvironmentTab" xml:space="preserve">
+    <value>Environment</value>
+  </data>
+  <data name="HostPage_GeneralTab" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="HostPage_AdvancedTab" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="Menu_Runtime" xml:space="preserve">
+    <value>Runtime Environment</value>
+  </data>
+  <data name="Label_ReqGeneral" xml:space="preserve">
+    <value>General requirements</value>
+  </data>
+  <data name="Label_ReqGpuPv" xml:space="preserve">
+    <value>GPU-PV requirements</value>
+  </data>
+  <data name="Label_ReqPcie" xml:space="preserve">
+    <value>PCIe passthrough requirements</value>
+  </data>
+  <data name="Menu_CpuVirt" xml:space="preserve">
+    <value>CPU Virtualization</value>
+  </data>
+  <data name="Menu_Iommu" xml:space="preserve">
+    <value>IOMMU Status</value>
+  </data>
+  <data name="Menu_Iommu_Smmu" xml:space="preserve">
+    <value>SMMU Status</value>
+  </data>
+  <data name="Menu_HyperVService" xml:space="preserve">
+    <value>Hyper-V Service</value>
+  </data>
+  <data name="Button_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Label_SysVer" xml:space="preserve">
+    <value>System Version:</value>
+  </data>
+  <data name="Label_ServerSys" xml:space="preserve">
+    <value>Windows Server Edition</value>
+  </data>
+  <data name="Menu_Advanced" xml:space="preserve">
+    <value>Advanced Settings</value>
+  </data>
+  <data name="Menu_Scheduler" xml:space="preserve">
+    <value>Scheduler Type</value>
+  </data>
+  <data name="Menu_NumaSpan" xml:space="preserve">
+    <value>Allow NUMA Spanning</value>
+  </data>
+  <data name="Desc_NumaSpan" xml:space="preserve">
+    <value>VMs can allocate memory across physical nodes</value>
+  </data>
+  <data name="Menu_UnlockHard" xml:space="preserve">
+    <value>Unlock Hardware Limits</value>
+  </data>
+  <data name="Desc_UnlockHard" xml:space="preserve">
+    <value>Fix issues caused by hardware security checks</value>
+  </data>
+  <data name="Menu_NativeNvme" xml:space="preserve">
+    <value>Enable Host Native NVMe</value>
+  </data>
+  <data name="Desc_NativeNvme" xml:space="preserve">
+    <value>Use native multi-queue I/O for host NVMe storage without the SCSI translation layer</value>
+  </data>
+  <data name="Menu_OpenHclFirmwareFile" xml:space="preserve">
+    <value>Load OpenHCL firmware from file</value>
+  </data>
+  <data name="Desc_OpenHclFirmwareFile" xml:space="preserve">
+    <value>Allow Hyper-V to load external IGVM development firmware files</value>
+  </data>
+  <data name="Error_Host_AzureFeatureSetRegistryUnavailable" xml:space="preserve">
+    <value>The Hyper-V virtualization registry key could not be opened.</value>
+  </data>
+  <data name="Error_Host_OpenHclRegistryUnavailable" xml:space="preserve">
+    <value>The Hyper-V virtualization registry key could not be opened.</value>
+  </data>
+  <data name="Error_Host_OpenHclRegistryChangeFailed" xml:space="preserve">
+    <value>Failed to change the OpenHCL firmware loading policy: {0}</value>
+  </data>
+  <data name="Error_VmCreate_OpenHclIgvmPermission" xml:space="preserve">
+    <value>Failed to grant Hyper-V read access to the selected IGVM file: {0}</value>
+  </data>
+  <data name="Menu_SwitchServer" xml:space="preserve">
+    <value>Switch to Server Edition</value>
+  </data>
+  <data name="Desc_SwitchServer" xml:space="preserve">
+    <value>Magic Tweak (Not available for Pro/Home/Ent editions)</value>
+  </data>
+  <data name="SwitchServer_ConfirmTitle" xml:space="preserve">
+    <value>Switch to Server Edition?</value>
+  </data>
+  <data name="SwitchServer_ConfirmMsg" xml:space="preserve">
+    <value>After switching to Server edition, some drivers and applications may not work correctly, and in extreme cases the system may fail to start normally; by continuing, you accept the associated risks. Continue?</value>
+  </data>
+  <data name="SwitchServer_ConfirmBtn" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Menu_VMManagement" xml:space="preserve">
+    <value>VM Management</value>
+  </data>
+  <data name="Desc_VMManagement" xml:space="preserve">
+    <value>Create, config and run VMs</value>
+  </data>
+  <data name="Menu_HostConfig" xml:space="preserve">
+    <value>Environment &amp; Settings</value>
+  </data>
+  <data name="Desc_HostConfig" xml:space="preserve">
+    <value>Check environment &amp; advanced settings</value>
+  </data>
+  <data name="Menu_Pcie" xml:space="preserve">
+    <value>PCIe Passthrough</value>
+  </data>
+  <data name="Desc_Pcie" xml:space="preserve">
+    <value>Assign physical GPUs and devices directly to VMs</value>
+  </data>
+  <data name="Menu_NetSwitch" xml:space="preserve">
+    <value>Virtual Switch</value>
+  </data>
+  <data name="Desc_NetSwitch" xml:space="preserve">
+    <value>Manage switches and network modes</value>
+  </data>
+  <data name="Label_Donate" xml:space="preserve">
+    <value>I'm cute, please send money</value>
+  </data>
+  <data name="Label_NoVmSelected" xml:space="preserve">
+    <value>No VM Selected</value>
+  </data>
+  <data name="Label_SelectVmStart" xml:space="preserve">
+    <value>Select a VM from the left list to start</value>
+  </data>
+  <data name="Label_DoubleClickConnect" xml:space="preserve">
+    <value>Double-click to connect</value>
+  </data>
+  <data name="Format_Generation" xml:space="preserve">
+    <value>Gen {0}</value>
+  </data>
+  <data name="Format_Version" xml:space="preserve">
+    <value>Config Version {0}</value>
+  </data>
+  <data name="Label_CopyIp" xml:space="preserve">
+    <value>Click to copy IP address</value>
+  </data>
+  <data name="Label_Console" xml:space="preserve">
+    <value>Console</value>
+  </data>
+  <data name="Button_Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Button_ShutDown" xml:space="preserve">
+    <value>Shutdown</value>
+  </data>
+  <data name="Button_Restart" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="Button_Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Button_Save" xml:space="preserve">
+    <value>Save State</value>
+  </data>
+  <data name="Button_TurnOff" xml:space="preserve">
+    <value>Turn Off</value>
+  </data>
+  <data name="Label_Progress" xml:space="preserve">
+    <value>Progress</value>
+  </data>
+  <data name="Label_SelectPart" xml:space="preserve">
+    <value>Select partition for drivers</value>
+  </data>
+  <data name="Label_ConfigLog" xml:space="preserve">
+    <value>Config Log</value>
+  </data>
+  <data name="Button_CopyLog" xml:space="preserve">
+    <value>Copy Log</value>
+  </data>
+  <data name="Label_AvailableGpu" xml:space="preserve">
+    <value>Available GPUs</value>
+  </data>
+  <data name="Button_Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Button_InstallDriver" xml:space="preserve">
+    <value>Install Driver</value>
+  </data>
+  <data name="Label_MediaSettings" xml:space="preserve">
+    <value>Media Settings</value>
+  </data>
+  <data name="Label_SourceFolder" xml:space="preserve">
+    <value>Source Folder</value>
+  </data>
+  <data name="Label_VolLabel" xml:space="preserve">
+    <value>Volume Label</value>
+  </data>
+  <data name="Label_IsoSavePath" xml:space="preserve">
+    <value>ISO Save Path</value>
+  </data>
+  <data name="Button_SaveAs" xml:space="preserve">
+    <value>Save as...</value>
+  </data>
+  <data name="Label_CpuAffinity" xml:space="preserve">
+    <value>CPU Affinity</value>
+  </data>
+  <data name="Label_SelectCores" xml:space="preserve">
+    <value>Select host cores to bind (drag to multi-select)</value>
+  </data>
+  <data name="Button_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Error_VerNotSupport" xml:space="preserve">
+    <value>Current config version does not support this.</value>
+  </data>
+  <data name="Warn_VmOffRequired" xml:space="preserve">
+    <value>Shut down VM to change this setting.</value>
+  </data>
+  <data name="Label_ProcessorSettings" xml:space="preserve">
+    <value>Processor Settings</value>
+  </data>
+  <data name="Menu_ExposePmu" xml:space="preserve">
+    <value>Expose Architectural Performance Monitoring Unit (Arch PMU)</value>
+  </data>
+  <data name="Desc_ExposePmu" xml:space="preserve">
+    <value>Allows the VM to access architectural performance monitoring counters</value>
+  </data>
+  <data name="Menu_ExposeMsr" xml:space="preserve">
+    <value>Expose Frequency Monitoring Registers (ACOUNT/MCOUNT)</value>
+  </data>
+  <data name="Desc_ExposeMsr" xml:space="preserve">
+    <value>Allows the VM to read the ACOUNT/MCOUNT frequency monitoring registers</value>
+  </data>
+  <data name="Menu_DisableSpectre" xml:space="preserve">
+    <value>Disable Spectre Mitigations</value>
+  </data>
+  <data name="Desc_DisableSpectre" xml:space="preserve">
+    <value>Improves performance but reduces security.</value>
+  </data>
+  <data name="Label_Experimental" xml:space="preserve">
+    <value>Experimental</value>
+  </data>
+  <data name="Desc_CpuAffinity" xml:space="preserve">
+    <value>Configure VM affinity to physical cores.</value>
+  </data>
+  <data name="Button_ConfigAffinity" xml:space="preserve">
+    <value>Configure Affinity</value>
+  </data>
+  <data name="Label_Processor" xml:space="preserve">
+    <value>Processor</value>
+  </data>
+  <data name="Desc_CpuMonitoring" xml:space="preserve">
+    <value>Config &amp; Real-time monitoring</value>
+  </data>
+  <data name="Label_Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Desc_MemoryMonitoring" xml:space="preserve">
+    <value>Config &amp; Usage trends</value>
+  </data>
+  <data name="Label_MemoryTrends" xml:space="preserve">
+    <value>Usage Trends</value>
+  </data>
+  <data name="Label_Storage" xml:space="preserve">
+    <value>Storage</value>
+  </data>
+  <data name="Desc_StorageMonitoring" xml:space="preserve">
+    <value>Space &amp; IO Speed</value>
+  </data>
+  <data name="Warn_NoVhd" xml:space="preserve">
+    <value>No VHD mounted</value>
+  </data>
+  <data name="Label_Gpu" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="Desc_GpuMonitoring" xml:space="preserve">
+    <value>Config &amp; Engine load</value>
+  </data>
+  <data name="Label_3DRender" xml:space="preserve">
+    <value>3D Render</value>
+  </data>
+  <data name="Label_CopyData" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Label_EncVideo" xml:space="preserve">
+    <value>Encode</value>
+  </data>
+  <data name="Label_DecVideo" xml:space="preserve">
+    <value>Decode</value>
+  </data>
+  <data name="Warn_GpuNoDriver" xml:space="preserve">
+    <value>GPU driver not ready</value>
+  </data>
+  <data name="Warn_VmNotStarted" xml:space="preserve">
+    <value>VM not started</value>
+  </data>
+  <data name="Warn_NoGpu" xml:space="preserve">
+    <value>No GPU assigned</value>
+  </data>
+  <data name="Label_Net" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="Desc_NetInfo" xml:space="preserve">
+    <value>Settings &amp; Connectivity</value>
+  </data>
+  <data name="Warn_NoAdapter" xml:space="preserve">
+    <value>No adapter configured</value>
+  </data>
+  <data name="Label_GpuSettings" xml:space="preserve">
+    <value>GPU Settings</value>
+  </data>
+  <data name="Button_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Button_Uninstall" xml:space="preserve">
+    <value>Uninstall</value>
+  </data>
+  <data name="Error_Storage_DiskChanged" xml:space="preserve">
+    <value>The selected disk has changed. Refresh the list and select it again.</value>
+  </data>
+  <data name="Error_Storage_DiskAlreadyAssigned" xml:space="preserve">
+    <value>This physical disk is already assigned to a virtual machine.</value>
+  </data>
+  <data name="Button_UpdateDriver" xml:space="preserve">
+    <value>Update Driver</value>
+  </data>
+  <data name="Label_Manu" xml:space="preserve">
+    <value>Manufacturer</value>
+  </data>
+  <data name="Label_Ram" xml:space="preserve">
+    <value>VRAM</value>
+  </data>
+  <data name="Label_DriverVer" xml:space="preserve">
+    <value>Driver Version</value>
+  </data>
+  <data name="Label_GpuPartitionId" xml:space="preserve">
+    <value>Partition ID</value>
+  </data>
+  <data name="Label_GpuPartitionPath" xml:space="preserve">
+    <value>Partition Path</value>
+  </data>
+  <data name="Label_NetSettings" xml:space="preserve">
+    <value>Network Settings</value>
+  </data>
+  <data name="Label_BasicConnection" xml:space="preserve">
+    <value>Basic Connection</value>
+  </data>
+  <data name="Label_MacAddress" xml:space="preserve">
+    <value>MAC Address</value>
+  </data>
+  <data name="Label_IpAddress" xml:space="preserve">
+    <value>IP Address</value>
+  </data>
+  <data name="Label_VlanIsolate" xml:space="preserve">
+    <value>VLAN &amp; Isolation</value>
+  </data>
+  <data name="Label_Mode" xml:space="preserve">
+    <value>Mode</value>
+  </data>
+  <data name="Label_NativeVlan" xml:space="preserve">
+    <value>Native ID</value>
+  </data>
+  <data name="Label_AllowList" xml:space="preserve">
+    <value>Allowed List</value>
+  </data>
+  <data name="Label_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Label_PrimaryId" xml:space="preserve">
+    <value>Primary</value>
+  </data>
+  <data name="Label_SecondaryId" xml:space="preserve">
+    <value>Secondary</value>
+  </data>
+  <data name="Label_Qos" xml:space="preserve">
+    <value>QoS</value>
+  </data>
+  <data name="Label_Limit" xml:space="preserve">
+    <value>Limit (Mbps)</value>
+  </data>
+  <data name="Label_Reserve" xml:space="preserve">
+    <value>Reserve (Mbps)</value>
+  </data>
+  <data name="Label_Offload" xml:space="preserve">
+    <value>Offload</value>
+  </data>
+  <data name="Label_Sriov" xml:space="preserve">
+    <value>SR-IOV</value>
+  </data>
+  <data name="Desc_Sriov" xml:space="preserve">
+    <value>Highest performance (Requires SR-IOV support on switch and host NIC)</value>
+  </data>
+  <data name="Label_Vmq" xml:space="preserve">
+    <value>VMQ</value>
+  </data>
+  <data name="Desc_Vmq" xml:space="preserve">
+    <value>Reduces CPU overhead via DMA to VM memory.</value>
+  </data>
+  <data name="Label_Ipsec" xml:space="preserve">
+    <value>IPsec Offload</value>
+  </data>
+  <data name="Desc_Ipsec" xml:space="preserve">
+    <value>Reduces CPU load and improves throughput.</value>
+  </data>
+  <data name="Label_Security" xml:space="preserve">
+    <value>Security &amp; Monitor</value>
+  </data>
+  <data name="Label_MacSpoof" xml:space="preserve">
+    <value>Allow MAC Spoofing</value>
+  </data>
+  <data name="Desc_MacSpoof" xml:space="preserve">
+    <value>Allows guest to change source MAC.</value>
+  </data>
+  <data name="Label_DhcpGuard" xml:space="preserve">
+    <value>Enable DHCP Guard</value>
+  </data>
+  <data name="Desc_DhcpGuard" xml:space="preserve">
+    <value>Prevents unauthorized DHCP servers.</value>
+  </data>
+  <data name="Label_RouterGuard" xml:space="preserve">
+    <value>Enable Router Guard</value>
+  </data>
+  <data name="Desc_RouterGuard" xml:space="preserve">
+    <value>Prevents unauthorized router advertisements.</value>
+  </data>
+  <data name="Label_PortMirror" xml:space="preserve">
+    <value>Port Mirroring</value>
+  </data>
+  <data name="Label_StormLimit" xml:space="preserve">
+    <value>Storm Limit</value>
+  </data>
+  <data name="Label_RamSettings" xml:space="preserve">
+    <value>Memory Settings</value>
+  </data>
+  <data name="Label_ComputeRes" xml:space="preserve">
+    <value>Compute Resources</value>
+  </data>
+  <data name="Label_StartRam" xml:space="preserve">
+    <value>Startup RAM (MB)</value>
+  </data>
+  <data name="Warn_DynRamRunning" xml:space="preserve">
+    <value>Cannot change startup RAM while running with Dynamic Memory.</value>
+  </data>
+  <data name="Label_RamWeight" xml:space="preserve">
+    <value>RAM Weight (%)</value>
+  </data>
+  <data name="Label_EnableDynRam" xml:space="preserve">
+    <value>Enable Dynamic Memory</value>
+  </data>
+  <data name="Desc_DynRam" xml:space="preserve">
+    <value>Dynamically adjust between the minimum and maximum memory values</value>
+  </data>
+  <data name="Label_MinRam" xml:space="preserve">
+    <value>Min RAM (MB)</value>
+  </data>
+  <data name="Label_MaxRam" xml:space="preserve">
+    <value>Max RAM (MB)</value>
+  </data>
+  <data name="Label_RamBuffer" xml:space="preserve">
+    <value>Buffer (%)</value>
+  </data>
+  <data name="Label_RamPageSize" xml:space="preserve">
+    <value>Page Size</value>
+  </data>
+  <data name="Desc_RamPageSize" xml:space="preserve">
+    <value>Select physical page size for VM memory.</value>
+  </data>
+  <data name="Label_MemEncrypt" xml:space="preserve">
+    <value>Memory Encryption Policy</value>
+  </data>
+  <data name="Desc_MemEncrypt" xml:space="preserve">
+    <value>Set the encryption requirements for VM memory</value>
+  </data>
+  <data name="Button_OpenFolder" xml:space="preserve">
+    <value>Open Folder</value>
+  </data>
+  <data name="Label_Controller" xml:space="preserve">
+    <value> Controller </value>
+  </data>
+  <data name="Label_Location" xml:space="preserve">
+    <value> - Location </value>
+  </data>
+  <data name="Placeholder_SearchVm" xml:space="preserve">
+    <value>Search...</value>
+  </data>
+  <data name="Status_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Status_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Status_ShuttingDown" xml:space="preserve">
+    <value>Shutting Down</value>
+  </data>
+  <data name="Status_NotApplicable" xml:space="preserve">
+    <value>Not Applicable</value>
+  </data>
+  <data name="Status_InTest" xml:space="preserve">
+    <value>In Test</value>
+  </data>
+  <data name="Status_Deferred" xml:space="preserve">
+    <value>Deferred</value>
+  </data>
+  <data name="Status_WaitingToStart" xml:space="preserve">
+    <value>Waiting to Start</value>
+  </data>
+  <data name="Status_MergingDisks" xml:space="preserve">
+    <value>Merging Disks</value>
+  </data>
+  <data name="Status_Msg_GpuPvNotSupported" xml:space="preserve">
+    <value> (GPU-PV Not Supported)</value>
+  </data>
+  <data name="Msg_Success" xml:space="preserve">
+    <value>Success</value>
+  </data>
+  <data name="VmMemory_ModFailed" xml:space="preserve">
+    <value>Modification failed: {0}</value>
+  </data>
+  <data name="VmMemory_AdvSetException" xml:space="preserve">
+    <value>Advanced settings application exception: {0}</value>
+  </data>
+  <data name="VmNet_AddSuccess" xml:space="preserve">
+    <value>Network adapter added successfully</value>
+  </data>
+  <data name="VmProcessor_Exception" xml:space="preserve">
+    <value>Exception: {0}</value>
+  </data>
+  <data name="Utils_UnknownNetMode" xml:space="preserve">
+    <value>Error: Unknown network mode '{0}'</value>
+  </data>
+  <data name="VmPage_RenameFail" xml:space="preserve">
+    <value>Rename failed</value>
+  </data>
+  <data name="VmPage_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="VmPage_SelectConfigDir" xml:space="preserve">
+    <value>Select Virtual Machine Configuration File Directory</value>
+  </data>
+  <data name="VmPage_SelectNewVhdPath" xml:space="preserve">
+    <value>Select Location to Save New Virtual Hard Disk</value>
+  </data>
+  <data name="VmPage_VhdFilter" xml:space="preserve">
+    <value>Virtual Hard Disk File|*.vhdx</value>
+  </data>
+  <data name="VmPage_SelectExistVhd" xml:space="preserve">
+    <value>Select Existing Virtual Hard Disk</value>
+  </data>
+  <data name="VmPage_VhdFilterBoth" xml:space="preserve">
+    <value>Virtual Hard Disk File|*.vhdx;*.avhdx</value>
+  </data>
+  <data name="VmPage_SelectIso" xml:space="preserve">
+    <value>Select OS ISO Image</value>
+  </data>
+  <data name="VmPage_IsoFilter" xml:space="preserve">
+    <value>ISO Image File|*.iso</value>
+  </data>
+  <data name="VmPage_CreateFail" xml:space="preserve">
+    <value>Creation Failed</value>
+  </data>
+  <data name="VmPage_NameEmpty" xml:space="preserve">
+    <value>Virtual machine name cannot be empty</value>
+  </data>
+  <data name="VmPage_SelectVhdSave" xml:space="preserve">
+    <value>Please select a save location for the new hard disk</value>
+  </data>
+  <data name="VmPage_SelectExistVhdPath" xml:space="preserve">
+    <value>Please select an existing virtual hard disk file (.vhdx)</value>
+  </data>
+  <data name="VmPage_ExistVhdNotFound" xml:space="preserve">
+    <value>The specified existing virtual hard disk file does not exist. Please check the path.</value>
+  </data>
+  <data name="VmPage_IsoNotFound" xml:space="preserve">
+    <value>The specified ISO image file does not exist</value>
+  </data>
+  <data name="VmPage_InvalidCpuCount" xml:space="preserve">
+    <value>Processor count must be an integer greater than 0</value>
+  </data>
+  <data name="VmPage_InvalidMemory" xml:space="preserve">
+    <value>Startup memory must be an integer no less than 32 (MB)</value>
+  </data>
+  <data name="VmPage_InvalidDiskSize" xml:space="preserve">
+    <value>Disk capacity must be an integer greater than 0 (GB)</value>
+  </data>
+  <data name="VmPage_CreateOptionsLoadFail" xml:space="preserve">
+    <value>Failed to load creation options; some defaults may be inaccurate</value>
+  </data>
+  <data name="VmPage_VmCreated" xml:space="preserve">
+    <value>Virtual machine {0} has been successfully created and configured.</value>
+  </data>
+  <data name="VmPage_DeleteFail" xml:space="preserve">
+    <value>Deletion failed</value>
+  </data>
+  <data name="Xaml_Rename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Xaml_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Xaml_CreateVm" xml:space="preserve">
+    <value>Create VM</value>
+  </data>
+  <data name="Xaml_NewVm" xml:space="preserve">
+    <value>New Virtual Machine</value>
+  </data>
+  <data name="Xaml_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Xaml_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Xaml_ConfigLoc" xml:space="preserve">
+    <value>Config Path</value>
+  </data>
+  <data name="Xaml_Browse" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="Xaml_VmVersion" xml:space="preserve">
+    <value>Virtual Machine Version</value>
+  </data>
+  <data name="Xaml_Generation" xml:space="preserve">
+    <value>Generation</value>
+  </data>
+  <data name="Xaml_Gen1" xml:space="preserve">
+    <value>Generation 1 (BIOS + MBR)</value>
+  </data>
+  <data name="Xaml_Gen2" xml:space="preserve">
+    <value>Generation 2 (UEFI + GPT)</value>
+  </data>
+  <data name="Xaml_ComputeRes" xml:space="preserve">
+    <value>Compute Resources</value>
+  </data>
+  <data name="Xaml_ProcessorCores" xml:space="preserve">
+    <value>Virtual Processor Count</value>
+  </data>
+  <data name="Xaml_Core" xml:space="preserve">
+    <value>Cores</value>
+  </data>
+  <data name="Xaml_StartupMem" xml:space="preserve">
+    <value>Startup Memory</value>
+  </data>
+  <data name="Xaml_DynamicMem" xml:space="preserve">
+    <value>Dynamic Memory</value>
+  </data>
+  <data name="Xaml_SecurityFeat" xml:space="preserve">
+    <value>Security Features</value>
+  </data>
+  <data name="Xaml_EnableSecureBoot" xml:space="preserve">
+    <value>Enable Secure Boot</value>
+  </data>
+  <data name="Xaml_EnableTpm" xml:space="preserve">
+    <value>Enable TPM</value>
+  </data>
+  <data name="Xaml_ConfidentialCompute" xml:space="preserve">
+    <value>Confidential Computing</value>
+  </data>
+  <data name="Xaml_StorageRes" xml:space="preserve">
+    <value>Storage Resources</value>
+  </data>
+  <data name="Xaml_VirtualDisk" xml:space="preserve">
+    <value>Virtual Hard Disk</value>
+  </data>
+  <data name="Xaml_NewDisk" xml:space="preserve">
+    <value>New Disk</value>
+  </data>
+  <data name="Xaml_ExistDisk" xml:space="preserve">
+    <value>Existing Disk</value>
+  </data>
+  <data name="Xaml_AttachLater" xml:space="preserve">
+    <value>Attach Later</value>
+  </data>
+  <data name="Xaml_CapacityGb" xml:space="preserve">
+    <value>Capacity (GB)</value>
+  </data>
+  <data name="Xaml_SaveLoc" xml:space="preserve">
+    <value>Save Location</value>
+  </data>
+  <data name="Xaml_ExistDiskPath" xml:space="preserve">
+    <value>Existing Disk Path</value>
+  </data>
+  <data name="Xaml_CreateWithoutDisk" xml:space="preserve">
+    <value>The virtual machine will be created without a virtual hard disk. You can add one manually later.</value>
+  </data>
+  <data name="Xaml_InstallMedia" xml:space="preserve">
+    <value>Installation Media</value>
+  </data>
+  <data name="Xaml_NetworkRes" xml:space="preserve">
+    <value>Network Resources</value>
+  </data>
+  <data name="Xaml_VirtualSwitch" xml:space="preserve">
+    <value>Virtual Switch</value>
+  </data>
+  <data name="Xaml_StartAfterCreate" xml:space="preserve">
+    <value>Start after creation</value>
+  </data>
+  <data name="Xaml_SelectIsoSaveLoc" xml:space="preserve">
+    <value>Select ISO file save location</value>
+  </data>
+  <data name="Xaml_Placeholder_VmName" xml:space="preserve">
+    <value>e.g., Windows_Server_2025</value>
+  </data>
+  <data name="Xaml_Placeholder_NewVhdxLoc" xml:space="preserve">
+    <value>Select location for the new .vhdx file</value>
+  </data>
+  <data name="Xaml_Placeholder_ExistVhd" xml:space="preserve">
+    <value>Select .vhdx or .avhdx file</value>
+  </data>
+  <data name="Xaml_Placeholder_IsoOptional" xml:space="preserve">
+    <value>Select OS installation ISO image (optional)</value>
+  </data>
+  <data name="Task_Gpu_Config" xml:space="preserve">
+    <value>Config check</value>
+  </data>
+  <data name="Msg_Gpu_CheckingConfig" xml:space="preserve">
+    <value>Checking VM configuration...</value>
+  </data>
+  <data name="Msg_Gpu_ConfigNeeded" xml:space="preserve">
+    <value>Settings configured.</value>
+  </data>
+  <data name="Msg_Gpu_ConfigOk" xml:space="preserve">
+    <value>VM config is OK.</value>
+  </data>
+  <data name="Msg_Skip" xml:space="preserve">
+    <value>Skipped.</value>
+  </data>
+  <data name="DiskParser_LogSector512" xml:space="preserve">
+    <value>[DiskParser] Auto-identified sector: 512 bytes (Standard/512e)</value>
+  </data>
+  <data name="DiskParser_LogSector4096" xml:space="preserve">
+    <value>[DiskParser] Auto-identified sector: 4096 bytes (Native 4Kn)</value>
+  </data>
+  <data name="DiskParser_LogErrGptNotFound" xml:space="preserve">
+    <value>[DiskParser] Error: GPT signature not found at 512 or 4096 offset</value>
+  </data>
+  <data name="DiskParser_LogErrReadFailed" xml:space="preserve">
+    <value>[DiskParser] Failed to read disk: {0}</value>
+  </data>
+  <data name="HyperVScheduler_LogEventLogQueryFail" xml:space="preserve">
+    <value>[HyperVSchedulerService] Failed to query event log: {0}</value>
+  </data>
+  <data name="VmGPUService_LogOnline" xml:space="preserve">
+    <value>[Online] {0}</value>
+  </data>
+  <data name="VmMemoryService_ErrReadConfig" xml:space="preserve">
+    <value>Critical exception occurred while reading memory config: {0}</value>
+  </data>
+  <data name="ProcessAffinity_LogVmmemAcquireFail" xml:space="preserve">
+    <value>[ProcessAffinityManager] Found matching vmmem process (PID: {0}) but failed to acquire: {1}</value>
+  </data>
+  <data name="ProcessAffinity_LogVmmemQueryFail" xml:space="preserve">
+    <value>[ProcessAffinityManager] WMI query for vmmem process failed: {0}</value>
+  </data>
+  <data name="ProcessAffinity_LogGetAffinityFail" xml:space="preserve">
+    <value>[ProcessAffinityManager] Failed to get affinity for process {0}: {1}</value>
+  </data>
+  <data name="ProcessAffinity_LogSetAffinityFail" xml:space="preserve">
+    <value>[ProcessAffinityManager] Set affinity failed: {0}</value>
+  </data>
+  <data name="ConsoleViewModel_EnterFullScreenHint" xml:space="preserve">
+    <value>Entering full screen, press Ctrl+Alt+Break to exit</value>
+  </data>
+  <data name="ConsoleViewModel_OperationFailed" xml:space="preserve">
+    <value>Operation failed: {0}</value>
+  </data>
+  <data name="ConsoleViewModel_LogSendCadActivated" xml:space="preserve">
+    <value>[VM] SendCadCommand activated, preparing to trigger event...</value>
+  </data>
+  <data name="ConsoleViewModel_BasicSession" xml:space="preserve">
+    <value>Basic Session</value>
+  </data>
+  <data name="ConsoleViewModel_EnhancedSession" xml:space="preserve">
+    <value>Enhanced Session</value>
+  </data>
+  <data name="HostPageViewModel_DisablingHyperV" xml:space="preserve">
+    <value>Disabling Hyper-V components...</value>
+  </data>
+  <data name="HostPageViewModel_DisableFailed" xml:space="preserve">
+    <value>Disable failed. Please try manually or check permissions.</value>
+  </data>
+  <data name="HostPageViewModel_DisableSuccess" xml:space="preserve">
+    <value>Hyper-V disabled successfully. Reboot required to take effect.</value>
+  </data>
+  <data name="HostPageViewModel_HypervisorInactive" xml:space="preserve">
+    <value>Hypervisor not active</value>
+  </data>
+  <data name="HostPageViewModel_VmmsMissing" xml:space="preserve">
+    <value>vmms service missing</value>
+  </data>
+  <data name="HostPageViewModel_VmmsNotRunning" xml:space="preserve">
+    <value>vmms not running</value>
+  </data>
+  <data name="HostPageViewModel_WmiNamespaceMissing" xml:space="preserve">
+    <value>WMI namespace root\virtualization\v2 missing</value>
+  </data>
+  <data name="HostPageViewModel_MissingComponents" xml:space="preserve">
+    <value>Missing components: {0}</value>
+  </data>
+  <data name="HostPageViewModel_StatusUnknown" xml:space="preserve">
+    <value>Hyper-V status unknown</value>
+  </data>
+  <data name="VmPage_ErrConfigDirNotFound" xml:space="preserve">
+    <value>Cannot start console: {0}</value>
+  </data>
+  <data name="VmPage_AffinityApplied" xml:space="preserve">
+    <value>[Affinity] Auto-applied successfully: {0}</value>
+  </data>
+  <data name="VmPage_AffinityApplyFailed" xml:space="preserve">
+    <value>[Affinity] Apply failed ({0}/5): {1} - Process not ready or no permission</value>
+  </data>
+  <data name="VmPage_AffinityApplyException" xml:space="preserve">
+    <value>[Affinity] Auto-apply exception: {0}</value>
+  </data>
+  <data name="VmPage_GpuCheckDeploy" xml:space="preserve">
+    <value>Please check deployment scheme and Host IP</value>
+  </data>
+  <data name="VmPage_GpuUserRollback" xml:space="preserve">
+    <value>[User Reset] Unfinished GPU partitioning detected, rolling back...</value>
+  </data>
+  <data name="VmPage_GpuUserRollbackDone" xml:space="preserve">
+    <value>[User Reset] Partition removed successfully.</value>
+  </data>
+  <data name="VmPage_GpuUserRollbackFail" xml:space="preserve">
+    <value>[User Reset] Rollback failed: {0}</value>
+  </data>
+  <data name="VmPage_GpuResetDone" xml:space="preserve">
+    <value>Process reset</value>
+  </data>
+  <data name="VmPage_GpuResetDesc" xml:space="preserve">
+    <value>You can re-select the GPU or modify parameters</value>
+  </data>
+  <data name="ConsoleWindow_StartVm" xml:space="preserve">
+    <value>Start VM</value>
+  </data>
+  <data name="ConsoleWindow_ShutDown" xml:space="preserve">
+    <value>Shut Down</value>
+  </data>
+  <data name="ConsoleWindow_Restart" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="ConsoleWindow_Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="ConsoleWindow_SaveState" xml:space="preserve">
+    <value>Save State</value>
+  </data>
+  <data name="ConsoleWindow_TurnOff" xml:space="preserve">
+    <value>Turn Off</value>
+  </data>
+  <data name="ConsoleWindow_SendCtrlAltDel" xml:space="preserve">
+    <value>Send Ctrl+Alt+Del</value>
+  </data>
+  <data name="ConsoleWindow_FullScreen" xml:space="preserve">
+    <value>Full Screen (Ctrl+Alt+Space)</value>
+  </data>
+  <data name="ConsoleWindow_ZoomAuto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="ConsoleWindow_ZoomHint" xml:space="preserve">
+    <value>Zoom stretches the image, so zooming in may look blurry (same as the native console). Auto follows the display scale.</value>
+  </data>
+  <data name="HostPage_Disable" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="VmAddGpuProgress_ResetDeployment" xml:space="preserve">
+    <value>Reset Deployment (Return to initial state)</value>
+  </data>
+  <data name="VmAddGpuProgress_SelectScheme" xml:space="preserve">
+    <value>Select Deployment Scheme</value>
+  </data>
+  <data name="VmConsoleView_EstablishingSession" xml:space="preserve">
+    <value>Establishing Hyper-V secure session...</value>
+  </data>
+  <data name="VmDashboard_TabBoot" xml:space="preserve">
+    <value>{Binding IpAddressDisplay, FallbackValue='Fetching...'}</value>
+  </data>
+  <data name="BootOrderItem_FloppyDisk" xml:space="preserve">
+    <value>Floppy Disk</value>
+  </data>
+  <data name="BootOrderItem_OpticalDrive" xml:space="preserve">
+    <value>Optical Drive</value>
+  </data>
+  <data name="BootOrderItem_IdeHardDisk" xml:space="preserve">
+    <value>IDE Hard Disk</value>
+  </data>
+  <data name="BootOrderItem_PxeNetworkBoot" xml:space="preserve">
+    <value>PXE Network Boot</value>
+  </data>
+  <data name="BootOrderItem_ScsiHardDisk" xml:space="preserve">
+    <value>SCSI Hard Disk</value>
+  </data>
+  <data name="BootOrderItem_UnknownDevice" xml:space="preserve">
+    <value>Unknown Device</value>
+  </data>
+  <data name="VmBootService_WindowsBootManager" xml:space="preserve">
+    <value>Windows Boot Manager</value>
+  </data>
+  <data name="VmBootService_SystemBuiltinBootEntry" xml:space="preserve">
+    <value>System Built-in Boot Entry</value>
+  </data>
+  <data name="VmSpacetimeService_NodeLabelOrigin" xml:space="preserve">
+    <value>Origin</value>
+  </data>
+  <data name="VmSpacetimeService_NodeLabelCurrent" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="VmSpacetimeService_ErrLookupFailed" xml:space="preserve">
+    <value>Spacetime lookup failed: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogWormholeDisk" xml:space="preserve">
+    <value>[Wormhole] Wormhole disk: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogWormholeMarkedOk" xml:space="preserve">
+    <value>[Wormhole] Marked successfully: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogWormholeDetectFailed" xml:space="preserve">
+    <value>[Wormhole] Detection failed: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrWormholeAlreadyExists" xml:space="preserve">
+    <value>A wormhole already exists in the current spacetime. Please close the existing wormhole before opening a new one, or a spacetime paradox will occur.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrParentChainNode" xml:space="preserve">
+    <value>This node is a parent-chain node of the current spacetime. Opening a wormhole would cause a spacetime paradox.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOnlySnapshotNode" xml:space="preserve">
+    <value>Wormholes can only be opened on snapshot nodes.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrSnapshotPathInvalid" xml:space="preserve">
+    <value>Snapshot disk path is invalid.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrNodeHasWormhole" xml:space="preserve">
+    <value>This node already has an active wormhole.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrCannotDetermineDiskDir" xml:space="preserve">
+    <value>Unable to determine the disk directory.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrNoScsiSlot" xml:space="preserve">
+    <value>No available SCSI slots.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrCreateDiffDiskFailed" xml:space="preserve">
+    <value>Failed to create temporary differencing disk: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_MsgWormholeOpened" xml:space="preserve">
+    <value>Wormhole opened</value>
+  </data>
+  <data name="VmSpacetimeService_ErrSpacetimeException" xml:space="preserve">
+    <value>Spacetime exception: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrNoActiveWormhole" xml:space="preserve">
+    <value>This node has no active wormhole.</value>
+  </data>
+  <data name="VmSpacetimeService_MsgWormholeClosed" xml:space="preserve">
+    <value>Wormhole closed. Timeline restored to normal.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrCloseWormholeException" xml:space="preserve">
+    <value>Exception while closing wormhole: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
+    <value>WMI management service not found</value>
+  </data>
+  <data name="VmSpacetimeService_MsgNameUpdated" xml:space="preserve">
+    <value>Name updated successfully</value>
+  </data>
+  <data name="VmSpacetimeService_ErrUpdateWmiCode" xml:space="preserve">
+    <value>Update failed: WMI error code: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrRenameException" xml:space="preserve">
+    <value>Rename service exception: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOnlyHistoricalNode" xml:space="preserve">
+    <value>Can only travel to historical snapshot points.</value>
+  </data>
+  <data name="VmSpacetimeService_MsgTravelInitiated" xml:space="preserve">
+    <value>Travel initiated, restoring running state...</value>
+  </data>
+  <data name="VmSpacetimeService_MsgTravelSucceeded" xml:space="preserve">
+    <value>Travel succeeded. VM has returned to the specified spacetime point (powered off).</value>
+  </data>
+  <data name="VmSpacetimeService_ErrTravelFailed" xml:space="preserve">
+    <value>Travel failed: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrVmCarrierNotFound" xml:space="preserve">
+    <value>Specified VM carrier not found.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrSpacetimeCollapse" xml:space="preserve">
+    <value>Spacetime collapse: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_MsgAnchorSet" xml:space="preserve">
+    <value>Spacetime anchor set.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOriginCurrentNoAnnihilate" xml:space="preserve">
+    <value>Origin and current nodes cannot be annihilated.</value>
+  </data>
+  <data name="VmSpacetimeService_MsgAnnihilated" xml:space="preserve">
+    <value>Spacetime branch fully annihilated.</value>
+  </data>
+  <data name="VmSpacetimeService_ErrAnnihilateFailed" xml:space="preserve">
+    <value>Annihilation failed: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOriginCurrentNoConverge" xml:space="preserve">
+    <value>Origin and current nodes cannot be converged.</value>
+  </data>
+  <data name="VmSpacetimeService_MsgConverging" xml:space="preserve">
+    <value>Converging spacetime...</value>
+  </data>
+  <data name="VmSpacetimeService_ErrConvergeFailed" xml:space="preserve">
+    <value>Convergence failed: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogReadCheckpointFailed" xml:space="preserve">
+    <value>[Spacetime] Failed to read checkpoint state: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrVmNotFound" xml:space="preserve">
+    <value>Virtual machine not found</value>
+  </data>
+  <data name="VmSpacetimeService_MsgCheckpointEnabled" xml:space="preserve">
+    <value>Checkpoint enabled</value>
+  </data>
+  <data name="VmSpacetimeService_MsgCheckpointDisabled" xml:space="preserve">
+    <value>Checkpoint disabled</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOperationWmiCode" xml:space="preserve">
+    <value>Operation failed: WMI error code {0}</value>
+  </data>
+  <data name="VmSpacetimeService_ErrOperationException" xml:space="preserve">
+    <value>Operation exception: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogSnapshotScreenCleaned" xml:space="preserve">
+    <value>[Spacetime] Snapshot screenshot cleaned: {0}</value>
+  </data>
+  <data name="VmSpacetimeService_LogCleanScreenFailed" xml:space="preserve">
+    <value>[Spacetime] Failed to clean screenshot: {0}</value>
+  </data>
+  <data name="VmMmio_LogFinalResult" xml:space="preserve">
+    <value>[MMIO] Final calculation result:</value>
+  </data>
+  <data name="VmMmio_LogConfigApplied" xml:space="preserve">
+    <value>[MMIO] Final configuration applied successfully.</value>
+  </data>
+  <data name="VmMmio_LogError" xml:space="preserve">
+    <value>[MMIO] Error: {0}</value>
+  </data>
+  <data name="SystemType_ErrInsufficientPermissions" xml:space="preserve">
+    <value>Insufficient permissions</value>
+  </data>
+  <data name="SystemType_ErrExportFailed" xml:space="preserve">
+    <value>Export failed: {0}</value>
+  </data>
+  <data name="SystemType_ErrOfflineModFailed" xml:space="preserve">
+    <value>Offline modification failed</value>
+  </data>
+  <data name="SystemType_ErrReplaceFailed" xml:space="preserve">
+    <value>Replacement failed: {0}</value>
+  </data>
+  <data name="SystemType_ErrWorkFileLocked" xml:space="preserve">
+    <value>The working file is in use: a switch awaiting restart may exist, or security software is holding it</value>
+  </data>
+  <data name="VmPage_CreatingVm" xml:space="preserve">
+    <value>Creating virtual machine...</value>
+  </data>
+  <data name="VmPage_StartingVm" xml:space="preserve">
+    <value>Starting virtual machine...</value>
+  </data>
+  <data name="VmPage_OpenFail" xml:space="preserve">
+    <value>Failed to open</value>
+  </data>
+  <data name="VmPage_ConfigDirNotFound" xml:space="preserve">
+    <value>VM configuration directory not found</value>
+  </data>
+  <data name="VmPage_CurrentUserUnavailable" xml:space="preserve">
+    <value>Unable to identify the current Windows user.</value>
+  </data>
+  <data name="VmPage_FolderAccessFailed" xml:space="preserve">
+    <value>Unable to grant the current user access to the virtual machine folder.</value>
+  </data>
+  <data name="VmPage_PurgeTitle" xml:space="preserve">
+    <value>Permanently Delete</value>
+  </data>
+  <data name="VmPage_PurgeConfirm" xml:space="preserve">
+    <value>The following directories and files will be permanently deleted and cannot be recovered:</value>
+  </data>
+  <data name="VmPage_PurgeBtn" xml:space="preserve">
+    <value>Permanently Delete</value>
+  </data>
+  <data name="VmPage_PurgeDoneDesc" xml:space="preserve">
+    <value>"{0}" has been permanently removed</value>
+  </data>
+  <data name="VmPage_ModifyFail" xml:space="preserve">
+    <value>Modification failed</value>
+  </data>
+  <data name="VmPage_BackingTypePhysical" xml:space="preserve">
+    <value>Physical Mapping Mode</value>
+  </data>
+  <data name="VmPage_BackingTypeVirtual" xml:space="preserve">
+    <value>Virtual Mapping Mode</value>
+  </data>
+  <data name="VmPage_BackingTypeHybrid" xml:space="preserve">
+    <value>Hybrid Mapping Mode</value>
+  </data>
+  <data name="VmPage_MemGranularityAuto" xml:space="preserve">
+    <value>Best</value>
+  </data>
+  <data name="VmPage_MemGranularityStandard" xml:space="preserve">
+    <value>4 KB</value>
+  </data>
+  <data name="VmPage_MemGranularityLarge" xml:space="preserve">
+    <value>2 MB</value>
+  </data>
+  <data name="VmPage_MemGranularityHuge" xml:space="preserve">
+    <value>1 GB</value>
+  </data>
+  <data name="VmPage_MemTrackingDisable" xml:space="preserve">
+    <value>Disable Tracking</value>
+  </data>
+  <data name="VmPage_MemTrackingEnable" xml:space="preserve">
+    <value>Enable Tracking</value>
+  </data>
+  <data name="VmPage_MemTrackingPerNode" xml:space="preserve">
+    <value>Configure per NUMA Node</value>
+  </data>
+  <data name="VmPage_MemEncryptionDisabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="VmPage_MemEncryptionIfSupported" xml:space="preserve">
+    <value>Enable If Supported</value>
+  </data>
+  <data name="VmPage_MemEncryptionAlways" xml:space="preserve">
+    <value>Always Enable</value>
+  </data>
+  <data name="VmPage_SgxLaunchAccessDenied" xml:space="preserve">
+    <value>Access Denied</value>
+  </data>
+  <data name="VmPage_SgxLaunchReadOnly" xml:space="preserve">
+    <value>Read Only</value>
+  </data>
+  <data name="VmPage_SgxLaunchReadWrite" xml:space="preserve">
+    <value>Read/Write</value>
+  </data>
+  <data name="VmPage_OptimizeSuccessDesc" xml:space="preserve">
+    <value>Virtual disk space reclaimed successfully</value>
+  </data>
+  <data name="VmPage_OptimizeFail" xml:space="preserve">
+    <value>Optimization failed</value>
+  </data>
+  <data name="VmPage_OperationFail" xml:space="preserve">
+    <value>Operation failed</value>
+  </data>
+  <data name="VmPage_ErrRetrieveFailed2" xml:space="preserve">
+    <value>Retrieval failed</value>
+  </data>
+  <data name="VmPage_MsgSpacetimeCreated2" xml:space="preserve">
+    <value>Spacetime created successfully</value>
+  </data>
+  <data name="VmPage_MsgTraveledTo2" xml:space="preserve">
+    <value>Traveled to spacetime: {0}</value>
+  </data>
+  <data name="VmPage_MsgSpacetimeAnnihilated2" xml:space="preserve">
+    <value>This spacetime has been annihilated.</value>
+  </data>
+  <data name="VmPage_MsgConnectedTo2" xml:space="preserve">
+    <value>Connected to spacetime "{0}"</value>
+  </data>
+  <data name="VmPage_ErrOpenFailed4" xml:space="preserve">
+    <value>Failed to open</value>
+  </data>
+  <data name="VmPage_MsgTimelineRestored2" xml:space="preserve">
+    <value>Timeline restored to normal</value>
+  </data>
+  <data name="VmPage_ErrCloseFailed2" xml:space="preserve">
+    <value>Failed to close</value>
+  </data>
+  <data name="VmPage_MsgSpacetimeConverged2" xml:space="preserve">
+    <value>Spacetime converged to the previous node</value>
+  </data>
+  <data name="VmPage_MsgRollingBackGpu2" xml:space="preserve">
+    <value>Rolling back GPU allocation...</value>
+  </data>
+  <data name="VmPage_MsgRollbackComplete2" xml:space="preserve">
+    <value>Rollback complete.</value>
+  </data>
+  <data name="VmPage_ErrRollbackFailed2" xml:space="preserve">
+    <value>Rollback failed: {0}</value>
+  </data>
+  <data name="VmPage_BtnReset2" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="VmPage_MsgProcessReset2" xml:space="preserve">
+    <value>Process reset. Please re-select the GPU.</value>
+  </data>
+  <data name="VmPage_MenuOpenFolder" xml:space="preserve">
+    <value>Open Folder</value>
+  </data>
+  <data name="VmBootSettings_TitleBootOrder" xml:space="preserve">
+    <value>Boot Order</value>
+  </data>
+  <data name="VmBootSettings_HintDragToAdjust" xml:space="preserve">
+    <value>Drag up/down to adjust priority</value>
+  </data>
+  <data name="VmCpuSettings_LabelCustomCpuName" xml:space="preserve">
+    <value>Custom CPU Name</value>
+  </data>
+  <data name="VmCpuSettings_WarnVmOffRequired" xml:space="preserve">
+    <value>This operation requires the VM to be powered off.</value>
+  </data>
+  <data name="VmDashboard_DescBoot" xml:space="preserve">
+    <value>Boot</value>
+  </data>
+  <data name="VmDashboard_TabSpacetime" xml:space="preserve">
+    <value>Boot Order and Device List</value>
+  </data>
+  <data name="VmDashboard_DescSpacetime" xml:space="preserve">
+    <value>Spacetime</value>
+  </data>
+  <data name="VmDashboardView_SnapshotAndSpacetime" xml:space="preserve">
+    <value>Snapshot Management and Spacetime Travel</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemMappingMode" xml:space="preserve">
+    <value>Memory Mapping Mode</value>
+  </data>
+  <data name="VmRAMSettings_DescMemMappingMode" xml:space="preserve">
+    <value>Set the memory backend type used by the virtual machine</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemAccessMonitor" xml:space="preserve">
+    <value>Tracking Mode</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemAccessGranularity" xml:space="preserve">
+    <value>Access Tracking Granularity</value>
+  </data>
+  <data name="VmRAMSettings_DescMemAccessMonitor" xml:space="preserve">
+    <value>How virtual machine memory access is recorded</value>
+  </data>
+  <data name="VmRAMSettings_LabelSgxComputing" xml:space="preserve">
+    <value>Intel SGX Application Enclaves</value>
+  </data>
+  <data name="VmRAMSettings_DescSgxComputing" xml:space="preserve">
+    <value>Set whether SGX enclave memory is enabled for the virtual machine</value>
+  </data>
+  <data name="VmRAMSettings_BtnApply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="VmRAMSettings_LabelSgxAuthMode" xml:space="preserve">
+    <value>Authorization Control Mode</value>
+  </data>
+  <data name="VmRAMSettings_DescSgxAuthMode" xml:space="preserve">
+    <value>Set the launch authorization and runtime verification mode for SGX enclaves</value>
+  </data>
+  <data name="VmRAMSettings_LabelSgxMemSize" xml:space="preserve">
+    <value>Confidential Memory Size (MB)</value>
+  </data>
+  <data name="VmRAMSettings_DescSgxMemSize" xml:space="preserve">
+    <value>Set the total memory allocated to SGX enclaves</value>
+  </data>
+  <data name="VmRAMSettings_LabelSgxMsrDefault" xml:space="preserve">
+    <value>MSR Runtime Control Default</value>
+  </data>
+  <data name="VmRAMSettings_DescSgxMsrDefault" xml:space="preserve">
+    <value>Set the initial value of the SGX processor-specific register</value>
+  </data>
+  <data name="VmRAMSettings_PlaceholderSgxMsr" xml:space="preserve">
+    <value>64-bit hexadecimal string</value>
+  </data>
+  <data name="VmRAMSettings_LabelMemOptimization" xml:space="preserve">
+    <value>Memory Optimization</value>
+  </data>
+  <data name="VmRAMSettings_ToggleColdHint" xml:space="preserve">
+    <value>Guest Cold-page Hint</value>
+  </data>
+  <data name="VmRAMSettings_DescColdHint" xml:space="preserve">
+    <value>Allow the VM operating system to submit low-activity memory page hints to the host</value>
+  </data>
+  <data name="VmRAMSettings_ToggleHotHint" xml:space="preserve">
+    <value>Guest Hot-page Hint</value>
+  </data>
+  <data name="VmRAMSettings_DescHotHint" xml:space="preserve">
+    <value>Allow the VM operating system to submit active memory page hints to the host</value>
+  </data>
+  <data name="VmRAMSettings_NeedVirtualBacking" xml:space="preserve">
+    <value>This feature requires virtual memory backing (set Memory Mapping Mode to Virtual above)</value>
+  </data>
+  <data name="VmRAMSettings_LabelHugePages" xml:space="preserve">
+    <value>Huge Pages</value>
+  </data>
+  <data name="VmRAMSettings_DescHugePages" xml:space="preserve">
+    <value>Use 1GB huge pages as the backing pages for VM memory</value>
+  </data>
+  <data name="VmRAMSettings_ToggleEpf" xml:space="preserve">
+    <value>Enlightened Page Fault Handling (EPF)</value>
+  </data>
+  <data name="VmRAMSettings_DescEpf" xml:space="preserve">
+    <value>Allow the VM operating system to use the enlightened page-fault interface</value>
+  </data>
+  <data name="VmRAMSettings_ToggleCompressStore" xml:space="preserve">
+    <value>Private Memory Compression Store</value>
+  </data>
+  <data name="VmRAMSettings_DescCompressStore" xml:space="preserve">
+    <value>Enable a separate memory compression store for this virtual machine</value>
+  </data>
+  <data name="VmRAMSettings_LabelNumaBlockLimit" xml:space="preserve">
+    <value>Max Memory Per Node (MB)</value>
+  </data>
+  <data name="VmRAMSettings_DescNumaBlockLimit" xml:space="preserve">
+    <value>Maximum memory for a single virtual NUMA node</value>
+  </data>
+  <data name="VmRAMSettings_LabelDynMemStep" xml:space="preserve">
+    <value>Dynamic Memory Page Alignment</value>
+  </data>
+  <data name="VmRAMSettings_DescDynMemStep" xml:space="preserve">
+    <value>Page alignment used when adding or removing dynamic memory</value>
+  </data>
+  <data name="VmRAMSettings_LabelCxlExtension" xml:space="preserve">
+    <value>CXL Memory</value>
+  </data>
+  <data name="VmRAMSettings_DescCxlExtension" xml:space="preserve">
+    <value>Set whether CXL memory support is enabled for the virtual machine</value>
+  </data>
+  <data name="VmRAMSettings_ToggleCxlSupport" xml:space="preserve">
+    <value>CXL Support</value>
+  </data>
+  <data name="VmRAMSettings_TogglePhysicalPinning" xml:space="preserve">
+    <value>Allow Guest GPA Page Pinning</value>
+  </data>
+  <data name="VmRAMSettings_DescGpaPinning" xml:space="preserve">
+    <value>Allow the VM operating system to request pinning or unpinning of GPA ranges at runtime</value>
+  </data>
+  <data name="VmSpacetimeSettings_TitleMgmt" xml:space="preserve">
+    <value>Spacetime Management</value>
+  </data>
+  <data name="VmSpacetimeSettings_LabelCheckpoint" xml:space="preserve">
+    <value>Checkpoint</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnExportTopology" xml:space="preserve">
+    <value>Export Topology Map</value>
+  </data>
+  <data name="VmSpacetimeSettings_MsgSyncing" xml:space="preserve">
+    <value>Syncing...</value>
+  </data>
+  <data name="VmSpacetimeSettings_LabelDetails" xml:space="preserve">
+    <value>Spacetime Details</value>
+  </data>
+  <data name="VmSpacetimeSettings_MsgNoAnchor" xml:space="preserve">
+    <value>No anchor selected</value>
+  </data>
+  <data name="VmSpacetimeSettings_LabelAction" xml:space="preserve">
+    <value>Action</value>
+  </data>
+  <data name="VmSpacetimeSettings_TypeContinuous" xml:space="preserve">
+    <value>Continuous Spacetime</value>
+  </data>
+  <data name="VmSpacetimeSettings_DescContinuous" xml:space="preserve">
+    <value>Save disk and memory state</value>
+  </data>
+  <data name="VmSpacetimeSettings_TypeStatic" xml:space="preserve">
+    <value>Static Spacetime</value>
+  </data>
+  <data name="VmSpacetimeSettings_DescStatic" xml:space="preserve">
+    <value>Save disk state</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnCreate" xml:space="preserve">
+    <value>Create Spacetime</value>
+  </data>
+  <data name="VmSpacetimeSettings_StateWormholeActive" xml:space="preserve">
+    <value>Wormhole Interfering</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnCloseWormhole" xml:space="preserve">
+    <value>Close Wormhole</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnTravel" xml:space="preserve">
+    <value>Travel</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnOpenWormhole" xml:space="preserve">
+    <value>Open Wormhole</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnConverge" xml:space="preserve">
+    <value>Spacetime Convergence</value>
+  </data>
+  <data name="VmSpacetimeSettings_BtnDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="VmSpacetimeSettings_DlgExportTitle" xml:space="preserve">
+    <value>Export Spacetime Topology Map</value>
+  </data>
+  <data name="VmSpacetimeSettings_DlgExportFilter" xml:space="preserve">
+    <value>PNG Image|*.png</value>
+  </data>
+  <data name="VmSpacetimeSettings_LogAbnormalDelta" xml:space="preserve">
+    <value>[DRAG] !!! Abnormal displacement delta=({0},{1}) discarded</value>
+  </data>
+  <data name="VmStorageSettings_BtnOptimizeDisk" xml:space="preserve">
+    <value>Optimize Disk</value>
+  </data>
+  <data name="Net_DefaultAdapterName" xml:space="preserve">
+    <value>Network Adapter</value>
+  </data>
+  <data name="Error_Net_TemplateNotFound" xml:space="preserve">
+    <value>Failed to get network adapter template</value>
+  </data>
+  <data name="Status_FastSaved" xml:space="preserve">
+    <value>Fast Saved</value>
+  </data>
+  <data name="Status_FastSaving" xml:space="preserve">
+    <value>Fast Saving</value>
+  </data>
+  <data name="Status_ForceShutdown" xml:space="preserve">
+    <value>Force Shutting Down</value>
+  </data>
+  <data name="Status_ForceReboot" xml:space="preserve">
+    <value>Force Rebooting</value>
+  </data>
+  <data name="Status_Hibernated" xml:space="preserve">
+    <value>Hibernated</value>
+  </data>
+  <data name="Status_Msg_RestartRequired" xml:space="preserve">
+    <value>A restart is required before making further changes.</value>
+  </data>
+  <data name="Error_VmCreate_NoSystemPath" xml:space="preserve">
+    <value>DefineSystem did not return VM path</value>
+  </data>
+  <data name="Error_VmCreate_NoGuid" xml:space="preserve">
+    <value>Failed to get GUID of newly created VM</value>
+  </data>
+  <data name="Error_VmCreate_RollbackFailed" xml:space="preserve">
+    <value>Creation failed and the half-created VM '{0}' could not be removed automatically — please delete it manually. (Rollback error: {1})</value>
+  </data>
+  <data name="Error_VmCreate_ArtifactCleanupFailed" xml:space="preserve">
+    <value>Creation rollback could not remove these files or directories; please clean them up manually: {0}</value>
+  </data>
+  <data name="VmAdvanced_Title" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="VmAdvanced_Hint" xml:space="preserve">
+    <value>Display settings and advanced parameters</value>
+  </data>
+  <data name="VmDashboard_DescAdvanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="VmDashboard_HintAdvanced" xml:space="preserve">
+    <value>Display settings and advanced parameters</value>
+  </data>
+  <data name="VmAdvanced_ResolutionTitle" xml:space="preserve">
+    <value>Basic Session Default Resolution</value>
+  </data>
+  <data name="VmAdvanced_ResolutionHint" xml:space="preserve">
+    <value>Default, preset, or manual entry; width and height must be even.</value>
+  </data>
+  <data name="VmAdvanced_ResolutionAuto" xml:space="preserve">
+    <value>Default (Auto)</value>
+  </data>
+  <data name="VmAdvanced_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="VmAdvanced_ResolutionInvalid" xml:space="preserve">
+    <value>Enter a valid resolution, e.g. 1280 x 720</value>
+  </data>
+  <data name="VmAdvanced_ConsoleTitle" xml:space="preserve">
+    <value>Console Support</value>
+  </data>
+  <data name="VmAdvanced_NumLockTitle" xml:space="preserve">
+    <value>Enable NumLock at boot</value>
+  </data>
+  <data name="VmAdvanced_ConsoleHint" xml:space="preserve">
+    <value>Generation 2 VMs only. When off, the VM cannot be accessed via the console — suitable for streaming/RDP.</value>
+  </data>
+  <data name="VmAdvanced_ConsoleDisabledHint" xml:space="preserve">
+    <value>Console support is disabled for this VM. Access it via streaming or RDP.</value>
+  </data>
+  <data name="Error_VmCreate_NoGuardian" xml:space="preserve">
+    <value>Failed to get or create UntrustedGuardian</value>
+  </data>
+  <data name="Error_VmCreate_NoKeyProtector" xml:space="preserve">
+    <value>Failed to generate local KeyProtector</value>
+  </data>
+  <data name="Error_VmCreate_NoSecuritySettings" xml:space="preserve">
+    <value>Failed to find SecuritySettingData for VM</value>
+  </data>
+  <data name="Error_VmCreate_NoSecurityService" xml:space="preserve">
+    <value>Failed to find Msvm_SecurityService</value>
+  </data>
+  <data name="Error_VmCreate_SetKeyProtectorFail" xml:space="preserve">
+    <value>SetKeyProtector failed, return code: {0}</value>
+  </data>
+  <data name="Error_VmCreate_ModifySecuritySettingsFail" xml:space="preserve">
+    <value>ModifySecuritySettings failed, return code: {0}</value>
+  </data>
+  <data name="Error_VmCreate_TpmJobFail" xml:space="preserve">
+    <value>TPM Job failed, state: {0}</value>
+  </data>
+  <data name="Msg_PCIe_ShuttingDownVm" xml:space="preserve">
+    <value>Shutting down virtual machine...</value>
+  </data>
+  <data name="Error_PCIe_CannotShutdownVm" xml:space="preserve">
+    <value>Cannot shut down virtual machine, operation aborted.</value>
+  </data>
+  <data name="Label_VlanId" xml:space="preserve">
+    <value>VLAN ID</value>
+  </data>
+  <data name="Error_Gpu_PowerOffTimeout" xml:space="preserve">
+    <value>Timed out waiting for the virtual machine to power off.</value>
+  </data>
+  <data name="Msg_Gpu_LinuxDetected" xml:space="preserve">
+    <value>Detecting Linux system, jumping to SSH setup...</value>
+  </data>
+  <data name="Msg_Gpu_LinuxAutoPrep" xml:space="preserve">
+    <value>Detected single Linux partition. Automating environment preparation...</value>
+  </data>
+  <data name="VmSecurity_Title" xml:space="preserve">
+    <value>Security</value>
+  </data>
+  <data name="VmSecurity_Hint" xml:space="preserve">
+    <value>Secure Boot and encryption protection</value>
+  </data>
+  <data name="VmSecurity_SecureBoot" xml:space="preserve">
+    <value>Secure Boot</value>
+  </data>
+  <data name="VmSecurity_Encryption" xml:space="preserve">
+    <value>Encryption Support</value>
+  </data>
+  <data name="VmSecurity_SecureBootDesc" xml:space="preserve">
+    <value>Help prevent unauthorized code from running at startup</value>
+  </data>
+  <data name="VmSecurity_TpmDesc" xml:space="preserve">
+    <value>Trusted Platform Module providing cryptographic services to the VM</value>
+  </data>
+  <data name="VmSecurity_Template" xml:space="preserve">
+    <value>Secure Boot Template</value>
+  </data>
+  <data name="VmSecurity_EncryptMigration" xml:space="preserve">
+    <value>Encrypt state and VM migration traffic</value>
+  </data>
+  <data name="VmSecurity_EncryptMigrationDesc" xml:space="preserve">
+    <value>Encrypt the VM's saved state and live-migration traffic</value>
+  </data>
+  <data name="VmSecurity_PolicySection" xml:space="preserve">
+    <value>Security Policy</value>
+  </data>
+  <data name="VmSecurity_Shielding" xml:space="preserve">
+    <value>Enable Shielding</value>
+  </data>
+  <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
+    <value>Mark the VM as shielded; forces TPM and encryption on</value>
+  </data>
+  <data name="Log_Gpu_SelectedScript" xml:space="preserve">
+    <value>[Info] Selected script: {0}</value>
+  </data>
+  <data name="Log_Gpu_Syncing" xml:space="preserve">
+    <value>Syncing: {0} -&gt; {1}</value>
+  </data>
+  <data name="Log_Gpu_StartingVm" xml:space="preserve">
+    <value>[ExHyperV] Starting VM...</value>
+  </data>
+  <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
+    <value>Uploading driver and WSL libraries...</value>
+  </data>
+  <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
+    <value>Downloading remote script inside VM: {0}</value>
+  </data>
+  <data name="Log_Gpu_ExecutingAttempt" xml:space="preserve">
+    <value>[Attempt {0}] Executing script...</value>
+  </data>
+  <data name="Log_Gpu_RebootRequired" xml:space="preserve">
+    <value>VM reboot required. Restarting now...</value>
+  </data>
+  <data name="Log_Gpu_VmBackOnline" xml:space="preserve">
+    <value>VM is back online. Resuming deployment...</value>
+  </data>
+  <data name="Error_Gpu_NoMac" xml:space="preserve">
+    <value>Failed to get VM MAC address.</value>
+  </data>
+  <data name="Error_Gpu_NoIpv4" xml:space="preserve">
+    <value>No valid IPv4 address found.</value>
+  </data>
+  <data name="Msg_Gpu_Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Error_Gpu_RebootNoResponse" xml:space="preserve">
+    <value>VM failed to come back online after reboot.</value>
+  </data>
+  <data name="Error_Gpu_ScriptNoSuccess" xml:space="preserve">
+    <value>Script execution failed (no success signal).</value>
+  </data>
+  <data name="Error_Gpu_MaxReboots" xml:space="preserve">
+    <value>Maximum reboot attempts reached.</value>
+  </data>
+  <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
+    <value>A wormhole is open — close it before you can create / delete / converge spacetimes.</value>
+  </data>
+  <data name="Cpu_ApicMode" xml:space="preserve">
+    <value>APIC Mode</value>
+  </data>
+  <data name="Cpu_ApicModeDesc" xml:space="preserve">
+    <value>Switches the VM's interrupt controller mode, affecting compatibility and scalability</value>
+  </data>
+  <data name="Cpu_L3CacheWays" xml:space="preserve">
+    <value>L3 Cache Ways</value>
+  </data>
+  <data name="Cpu_L3CacheWaysDesc" xml:space="preserve">
+    <value>Sets the number of L3 cache ways visible to the VM</value>
+  </data>
+  <data name="Cpu_L3DistPolicy" xml:space="preserve">
+    <value>L3 Processor Distribution Policy</value>
+  </data>
+  <data name="Cpu_L3DistPolicyDesc" xml:space="preserve">
+    <value>Sets how virtual processors are distributed across L3 cache domains</value>
+  </data>
+  <data name="Cpu_PageShatter" xml:space="preserve">
+    <value>Large-Page Shattering</value>
+  </data>
+  <data name="Cpu_PageShatterDesc" xml:space="preserve">
+    <value>Sets how large memory pages are split during second-level address translation</value>
+  </data>
+  <data name="Cpu_IgnoreHostMaxFreq" xml:space="preserve">
+    <value>Ignore Host Max Frequency</value>
+  </data>
+  <data name="Cpu_IgnoreHostMaxFreqDesc" xml:space="preserve">
+    <value>Allows the VM CPU to ignore the maximum frequency set by the host</value>
+  </data>
+  <data name="Cpu_PerfmonPmu" xml:space="preserve">
+    <value>Expose Performance Monitoring Unit (PMU)</value>
+  </data>
+  <data name="Cpu_PerfmonPmuDesc" xml:space="preserve">
+    <value>Allows the VM to access general hardware performance counters</value>
+  </data>
+  <data name="Cpu_PerfmonPmuRequired" xml:space="preserve">
+    <value>Enable “Expose Performance Monitoring Unit (PMU)” first.</value>
+  </data>
+  <data name="Cpu_PerfmonPmuInUse" xml:space="preserve">
+    <value>Turn off PEBS and Intel PT before disabling PMU.</value>
+  </data>
+  <data name="Cpu_PerfmonLbr" xml:space="preserve">
+    <value>Expose Last Branch Records (LBR)</value>
+  </data>
+  <data name="Cpu_PerfmonLbrDesc" xml:space="preserve">
+    <value>Allows the VM to read recently executed branch records</value>
+  </data>
+  <data name="Cpu_PerfmonPebs" xml:space="preserve">
+    <value>Expose Precise Event-Based Sampling (PEBS)</value>
+  </data>
+  <data name="Cpu_PerfmonPebsDesc" xml:space="preserve">
+    <value>Allows the VM to collect precise performance event samples; requires PMU</value>
+  </data>
+  <data name="Cpu_PerfmonIpt" xml:space="preserve">
+    <value>Expose Processor Trace (Intel PT)</value>
+  </data>
+  <data name="Cpu_PerfmonIptDesc" xml:space="preserve">
+    <value>Allows the VM to record the processor instruction execution flow; requires PMU</value>
+  </data>
+  <data name="Cpu_FreqCap" xml:space="preserve">
+    <value>Max Frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqCapDesc" xml:space="preserve">
+    <value>Sets the highest frequency available to the VM CPU</value>
+  </data>
+  <data name="Cpu_FreqMin" xml:space="preserve">
+    <value>Min Frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqMinDesc" xml:space="preserve">
+    <value>Sets the lowest frequency available to the VM CPU</value>
+  </data>
+  <data name="Cpu_FreqDesired" xml:space="preserve">
+    <value>Desired Frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqDesiredDesc" xml:space="preserve">
+    <value>Sets the target operating frequency of the VM CPU</value>
+  </data>
+  <data name="Cpu_Epp" xml:space="preserve">
+    <value>Energy/Perf Preference</value>
+  </data>
+  <data name="Cpu_EppDesc" xml:space="preserve">
+    <value>Sets the VM CPU preference between performance and energy efficiency</value>
+  </data>
+  <data name="Cpu_ActivityWindow" xml:space="preserve">
+    <value>Activity Window</value>
+  </data>
+  <data name="Cpu_ActivityWindowDesc" xml:space="preserve">
+    <value>Sets the activity evaluation window used for automatic VM CPU frequency scaling</value>
+  </data>
+  <data name="Cpu_ExtVirtExt" xml:space="preserve">
+    <value>Hardware Isolation Extensions</value>
+  </data>
+  <data name="Cpu_ExtVirtExtDesc" xml:space="preserve">
+    <value>Allows the VM to expose hardware-isolation extensions to nested VMs</value>
+  </data>
+  <data name="Cpu_MaxHwIsoGuests" xml:space="preserve">
+    <value>Max HW-Isolated Guests</value>
+  </data>
+  <data name="Cpu_MaxHwIsoGuestsDesc" xml:space="preserve">
+    <value>Sets the maximum number of nested hardware-isolated VMs that can be created</value>
+  </data>
+  <data name="Cpu_MaxClusterPerSocket" xml:space="preserve">
+    <value>Maximum Processor Clusters per Socket</value>
+  </data>
+  <data name="Cpu_MaxClusterPerSocketDesc" xml:space="preserve">
+    <value>Sets the maximum number of processor clusters allowed in each virtual CPU socket</value>
+  </data>
+  <data name="Cpu_MaxProcPerL3" xml:space="preserve">
+    <value>Processors per L3</value>
+  </data>
+  <data name="Cpu_MaxProcPerL3Desc" xml:space="preserve">
+    <value>Sets the maximum number of virtual processors in each virtual L3 cache</value>
+  </data>
+  <data name="CpuEnum_Apic_Default" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="CpuEnum_Apic_Legacy" xml:space="preserve">
+    <value>xAPIC</value>
+  </data>
+  <data name="CpuEnum_Apic_X2Apic" xml:space="preserve">
+    <value>x2APIC</value>
+  </data>
+  <data name="CpuEnum_Apic_Apic" xml:space="preserve">
+    <value>APIC</value>
+  </data>
+  <data name="CpuEnum_L3_SmallToLarge" xml:space="preserve">
+    <value>Small to Large</value>
+  </data>
+  <data name="CpuEnum_L3_LargeToSmall" xml:space="preserve">
+    <value>Large to Small</value>
+  </data>
+  <data name="CpuEnum_L3_EvenSmallToLarge" xml:space="preserve">
+    <value>Even, Small to Large</value>
+  </data>
+  <data name="CpuEnum_L3_EvenLargeToSmall" xml:space="preserve">
+    <value>Even, Large to Small</value>
+  </data>
+  <data name="CpuEnum_Shatter_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="CpuEnum_Shatter_AlwaysEnabled" xml:space="preserve">
+    <value>Always Enabled</value>
+  </data>
+  <data name="CpuEnum_Shatter_AlwaysDisabled" xml:space="preserve">
+    <value>Always Disabled</value>
+  </data>
+  <data name="Gpu_StalePathTitle" xml:space="preserve">
+    <value>GPU path changed</value>
+  </data>
+  <data name="Gpu_StalePathMessage" xml:space="preserve">
+    <value>The GPU assigned to VM "{0}" is still on the host, but its device path has changed, so it cannot start.
+
+Update the reference and retry?</value>
+  </data>
+  <data name="Gpu_StaleRebindConfirm" xml:space="preserve">
+    <value>Update and retry</value>
+  </data>
+  <data name="Gpu_StaleTitle" xml:space="preserve">
+    <value>Invalid GPU partition detected</value>
+  </data>
+  <data name="Gpu_StaleMessage" xml:space="preserve">
+    <value>VM "{0}" contains an incomplete GPU partition, or its assigned GPU no longer exists on this host, so it cannot start.
+
+Clear it and retry?</value>
+  </data>
+  <data name="Gpu_StaleRemoveConfirm" xml:space="preserve">
+    <value>Clear and retry</value>
+  </data>
+  <data name="Gpu_StaleRepairFail" xml:space="preserve">
+    <value>Failed to repair the invalid GPU partition.</value>
+  </data>
+  <data name="Gpu_StaleRebound" xml:space="preserve">
+    <value>Updated {0} GPU reference(s); retrying start…</value>
+  </data>
+  <data name="Gpu_StaleRemovedMsg" xml:space="preserve">
+    <value>Cleared {0} invalid GPU partition(s); retrying start…</value>
+  </data>
+  <data name="Gpu_StaleRepaired" xml:space="preserve">
+    <value>GPU configuration repaired; retrying start…</value>
+  </data>
+  <data name="Storage_StaleDiskTitle" xml:space="preserve">
+    <value>Physical disk not found</value>
+  </data>
+  <data name="Storage_StaleDiskMessage" xml:space="preserve">
+    <value>The pass-through physical disk(s) ({1}) attached to VM "{0}" have been unplugged or removed from the host, so it cannot start.
+
+Remove them from storage and retry? Cancel to re-plug the device and try again.</value>
+  </data>
+  <data name="Storage_StaleDiskConfirm" xml:space="preserve">
+    <value>Remove and start</value>
+  </data>
+  <data name="Storage_StaleDiskRemoved" xml:space="preserve">
+    <value>Removed {0} missing physical disk(s); retrying start…</value>
+  </data>
+  <data name="Storage_StaleDiskRemoveFail" xml:space="preserve">
+    <value>Failed to remove the missing physical disk.</value>
+  </data>
+  <data name="Storage_PhysicalDiskNumbered" xml:space="preserve">
+    <value>Physical disk {0}</value>
+  </data>
+  <data name="Storage_PhysicalDisk" xml:space="preserve">
+    <value>a failed storage device</value>
+  </data>
+  <data name="VmDelete_DestroyVerifyFail" xml:space="preserve">
+    <value>The engine reported success but VM '{0}' is still registered (may be in a saved state or TPM-protected, and was not fully destroyed).</value>
+  </data>
+  <data name="VmDelete_TurnOffFail" xml:space="preserve">
+    <value>VM '{0}' could not be turned off.</value>
+  </data>
+  <data name="VmDelete_CleanupFailed" xml:space="preserve">
+    <value>The VM was unregistered, but some files or directories could not be removed. Check permissions or whether they are in use, then remove the remaining items manually:
+{0}</value>
+  </data>
+  <data name="VmDelete_UnregisterUnconfirmed" xml:space="preserve">
+    <value>Could not confirm whether the VM was unregistered. Its recovery copy has been kept: {0}
+{1}</value>
+  </data>
+  <data name="VmDelete_ConfigRootMissing" xml:space="preserve">
+    <value>The configuration directory for VM “{0}” could not be determined, so its reusable configuration cannot be preserved.</value>
+  </data>
+  <data name="VmDelete_RestoreFailed" xml:space="preserve">
+    <value>The VM was unregistered, but its reusable configuration could not be restored. Recovery copy: {0}
+{1}</value>
+  </data>
+  <data name="GpuRepair_VmcxNotFound" xml:space="preserve">
+    <value>The .vmcx configuration file for this VM was not found.</value>
+  </data>
+  <data name="GpuRepair_VmRunning" xml:space="preserve">
+    <value>The VM is running. Shut it down before repairing.</value>
+  </data>
+  <data name="GpuRepair_ValidationFailed" xml:space="preserve">
+    <value>Structure validation failed after repair: </value>
+  </data>
+  <data name="GpuRepair_RepairFailed" xml:space="preserve">
+    <value>Repair failed: </value>
+  </data>
+  <data name="VmConsole_TemplateNotFound" xml:space="preserve">
+    <value>Default template not found: {0} {1}</value>
+  </data>
+  <data name="Vmcx_DllLoadFail" xml:space="preserve">
+    <value>Failed to load VmDataStore.dll (must run on a Hyper-V host).</value>
+  </data>
+  <data name="Vmcx_CurrentNullNode" xml:space="preserve">
+    <value>Current returned a null node.</value>
+  </data>
+  <data name="Vmcx_ManifestEntryNotFound" xml:space="preserve">
+    <value>No manifest entry found for instance={0}.</value>
+  </data>
+  <data name="Vmcx_ManifestSizeReadFail" xml:space="preserve">
+    <value>Failed to read manifest/size.</value>
+  </data>
+  <data name="Vmcx_SizeMismatch" xml:space="preserve">
+    <value>size={0} does not match the actual vdev count {1}.</value>
+  </data>
+  <data name="Vmcx_ManifestGap" xml:space="preserve">
+    <value>Manifest numbering gap: vdev{0}</value>
+  </data>
+  <data name="Vmcx_OrphanNode" xml:space="preserve">
+    <value>Orphan data node: /_{0}_ has leftover data but no manifest entry (a true orphan; should be removed).</value>
+  </data>
+  <data name="Vmcx_GhostDevice" xml:space="preserve">
+    <value>Ghost device: manifest vdev{0:D3} (instance={1}) data node {2} (should be a functional device but has no data) → the VM will fail to start (remove this entry).</value>
+  </data>
+  <data name="Vmcx_GhostMissing" xml:space="preserve">
+    <value>missing</value>
+  </data>
+  <data name="Vmcx_GhostEmpty" xml:space="preserve">
+    <value>empty</value>
+  </data>
+  <data name="Vmcx_IncompleteDda" xml:space="preserve">
+    <value>Incomplete DDA device: vdev{0:D3} (instance={1}) is missing HostResources/HostResource/Instance → the VM will fail to start.</value>
+  </data>
+  <data name="Vmcx_IncompleteGpuPv" xml:space="preserve">
+    <value>Incomplete GPU partition: vdev{0:D3} (instance={1}) is missing InstanceGuid or VDEVVersion → the VM will fail to start.</value>
+  </data>
+  <data name="Vmcx_OpFailHr" xml:space="preserve">
+    <value>{0} failed hr=0x{1}</value>
+  </data>
+  <data name="HostPageViewModel_ComponentSeparator" xml:space="preserve">
+    <value>; </value>
+  </data>
+  <data name="Xaml_Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="VmPage_InvalidQuantity" xml:space="preserve">
+    <value>Quantity must be an integer no less than 1.</value>
+  </data>
+  <data name="VmPage_BatchNewDiskOnly" xml:space="preserve">
+    <value>Batch creation supports new disks only.</value>
+  </data>
+  <data name="VmPage_BatchExistingDiskHint" xml:space="preserve">
+    <value>Multiple virtual machines will create their own disks and share the selected disk.</value>
+  </data>
+  <data name="VmPage_CreatingBatch" xml:space="preserve">
+    <value>Creating {0} virtual machines…</value>
+  </data>
+  <data name="VmPage_BatchAllOk" xml:space="preserve">
+    <value>Successfully created {0} virtual machines.</value>
+  </data>
+  <data name="VmPage_BatchPartial" xml:space="preserve">
+    <value>Done: {0} created, {1} failed.</value>
+  </data>
+  <data name="VmPage_BatchStartFail" xml:space="preserve">
+    <value> ({0} failed to start)</value>
+  </data>
+  <data name="VmPage_MultiDeleteTitle" xml:space="preserve">
+    <value>Delete Virtual Machines</value>
+  </data>
+  <data name="VmPage_MultiDeleteConfirm" xml:space="preserve">
+    <value>Delete the {0} selected virtual machines? Their complete configuration and disk files will be kept for later import.</value>
+  </data>
+  <data name="VmPage_MultiDeleteDone" xml:space="preserve">
+    <value>Deleted {0} virtual machines.</value>
+  </data>
+  <data name="VmPage_MultiDeleteFail" xml:space="preserve">
+    <value>Deleted {0}, {1} failed.</value>
+  </data>
+  <data name="VmPage_MultiPurgeConfirm" xml:space="preserve">
+    <value>Permanently delete the {0} selected virtual machines? Their config and disk files will be removed and cannot be recovered:</value>
+  </data>
+  <data name="VmPage_MultiPurgeDone" xml:space="preserve">
+    <value>Permanently deleted {0} virtual machines.</value>
+  </data>
+  <data name="VmPage_MultiPurgeFail" xml:space="preserve">
+    <value>Permanently deleted {0}, {1} failed.</value>
+  </data>
+  <data name="Cpu_MaxProcessorsPerNumaNode" xml:space="preserve">
+    <value>Maximum processors per NUMA node</value>
+  </data>
+  <data name="Cpu_MaxProcessorsPerNumaNodeDesc" xml:space="preserve">
+    <value>Controls the size of virtual processor NUMA groups</value>
+  </data>
+  <data name="Cpu_MaxNumaNodesPerSocket" xml:space="preserve">
+    <value>Maximum NUMA nodes per socket</value>
+  </data>
+  <data name="Cpu_MaxNumaNodesPerSocketDesc" xml:space="preserve">
+    <value>Controls how many NUMA groups each virtual CPU socket contains</value>
+  </data>
+  <data name="Cpu_PhysicalAddressWidth" xml:space="preserve">
+    <value>Virtual machine address bits</value>
+  </data>
+  <data name="Cpu_PhysicalAddressWidthDesc" xml:space="preserve">
+    <value>Sets the physical address width visible to the VM</value>
+  </data>
+  <data name="Cpu_LpiMode" xml:space="preserve">
+    <value>ARM64 device interrupt mode (LPI)</value>
+  </data>
+  <data name="Cpu_LpiModeDesc" xml:space="preserve">
+    <value>Sets how the VM uses LPI to receive device interrupts</value>
+  </data>
+  <data name="CpuEnum_Lpi_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="CpuEnum_Lpi_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="CpuEnum_Lpi_Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="VmPcie_Title" xml:space="preserve">
+    <value>PCIe</value>
+  </data>
+  <data name="VmPcie_Hint" xml:space="preserve">
+    <value>PCIe topology and device features</value>
+  </data>
+  <data name="VmPcie_SystemSection" xml:space="preserve">
+    <value>PCIe presentation</value>
+  </data>
+  <data name="VmPcie_EmulationTitle" xml:space="preserve">
+    <value>PCIe emulation</value>
+  </data>
+  <data name="VmPcie_EmulationDesc" xml:space="preserve">
+    <value>Present devices to the VM as standard PCIe devices</value>
+  </data>
+  <data name="VmPcie_Irreversible" xml:space="preserve">
+    <value>Once enabled, Hyper-V management interfaces cannot disable it</value>
+  </data>
+  <data name="VmPcie_Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="VmPcie_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="VmPcie_TopologyTitle" xml:space="preserve">
+    <value>PCIe topology</value>
+  </data>
+  <data name="VmPcie_TopologyDesc" xml:space="preserve">
+    <value>Present the PCIe topology of devices</value>
+  </data>
+  <data name="VmPcie_TopologyDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="VmPcie_TopologyHost" xml:space="preserve">
+    <value>Match host</value>
+  </data>
+  <data name="VmPcie_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="VmPcie_BootSection" xml:space="preserve">
+    <value>Startup</value>
+  </data>
+  <data name="VmPcie_BootTitle" xml:space="preserve">
+    <value>vPCI during startup</value>
+  </data>
+  <data name="VmPcie_BootDesc" xml:space="preserve">
+    <value>Load the vPCI driver in UEFI to discover supported devices (NVMe, AziHsm)</value>
+  </data>
+  <data name="VmPcie_DevicesSection" xml:space="preserve">
+    <value>Assigned PCIe devices</value>
+  </data>
+  <data name="VmPcie_DeviceModeTitle" xml:space="preserve">
+    <value>Device presentation</value>
+  </data>
+  <data name="VmPcie_DeviceModeDesc" xml:space="preserve">
+    <value>Choose the Hyper-V channel or a standard PCIe device</value>
+  </data>
+  <data name="VmPcie_Paravirtualized" xml:space="preserve">
+    <value>Paravirtualization</value>
+  </data>
+  <data name="VmPcie_Emulated" xml:space="preserve">
+    <value>Emulation</value>
+  </data>
+  <data name="VmPcie_NoDevices" xml:space="preserve">
+    <value>No PCIe devices are assigned</value>
+  </data>
+  <data name="VmPcie_ConfirmTitle" xml:space="preserve">
+    <value>Warning: PCIe emulation cannot be disabled</value>
+  </data>
+  <data name="VmPcie_ConfirmMessage" xml:space="preserve">
+    <value>After PCIe emulation is enabled, it cannot be disabled through Hyper-V management interfaces. Continue?</value>
+  </data>
+  <data name="VmPcie_EmulationEnabledMessage" xml:space="preserve">
+    <value>PCIe emulation enabled</value>
+  </data>
+  <data name="VmPcie_AppliedMessage" xml:space="preserve">
+    <value>PCIe settings applied</value>
+  </data>
+  <data name="VmPcie_SettingsNotFound" xml:space="preserve">
+    <value>Virtual machine settings were not found.</value>
+  </data>
+  <data name="VmRAMSettings_MmioSection" xml:space="preserve">
+    <value>MMIO space</value>
+  </data>
+  <data name="VmRAMSettings_LowMmioSize" xml:space="preserve">
+    <value>32-bit MMIO space (MB)</value>
+  </data>
+  <data name="VmRAMSettings_LowMmioSizeDesc" xml:space="preserve">
+    <value>Space size provided for PCIe devices below 4 GB</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioSize" xml:space="preserve">
+    <value>64-bit MMIO space (MB)</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioSizeDesc" xml:space="preserve">
+    <value>Space size provided for PCIe devices above 4 GB</value>
+  </data>
+  <data name="VmRAMSettings_HighMmioBase" xml:space="preserve">
+    <value>64-bit MMIO space start (MB)</value>
+  </data>
+  <data name="Common_ClassListSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
+  <data name="PCIePage_ClassWithChildTypes" xml:space="preserve">
+    <value>{0} (contains: {1})</value>
+  </data>
+  <data name="VmAdvanced_FullScsiTitle" xml:space="preserve">
+    <value>Full SCSI command set</value>
+  </data>
+  <data name="VmAdvanced_FullScsiDesc" xml:space="preserve">
+    <value>Allow the virtual machine to send unfiltered SCSI commands to attached physical disks</value>
+  </data>
+  <data name="VmAdvanced_BatteryTitle" xml:space="preserve">
+    <value>Battery status passthrough</value>
+  </data>
+  <data name="VmAdvanced_BatteryDesc" xml:space="preserve">
+    <value>Allows the virtual machine to read the host battery status and remaining charge</value>
+  </data>
+  <data name="VmAdvanced_LockOnDisconnectTitle" xml:space="preserve">
+    <value>Lock on disconnect</value>
+  </data>
+  <data name="VmAdvanced_LockOnDisconnectDesc" xml:space="preserve">
+    <value>Lock the virtual machine operating system when disconnecting from its console</value>
+  </data>
+  <data name="VmAdvanced_TurnOffOnGuestRestartTitle" xml:space="preserve">
+    <value>Turn restart into shutdown</value>
+  </data>
+  <data name="VmAdvanced_TurnOffOnGuestRestartDesc" xml:space="preserve">
+    <value>Turn off the virtual machine instead when its operating system requests a restart</value>
+  </data>
+  <data name="VmAdvanced_HibernationTitle" xml:space="preserve">
+    <value>Virtual machine hibernation (S4)</value>
+  </data>
+  <data name="VmAdvanced_HibernationDesc" xml:space="preserve">
+    <value>Allow the virtual machine to use S4 hibernation and fast startup</value>
+  </data>
+  <data name="Label_CpuInstructionSetCapabilities" xml:space="preserve">
+    <value>Instruction Set Capabilities</value>
+  </data>
+  <data name="Label_CpuInterruptControl" xml:space="preserve">
+    <value>Interrupt Control</value>
+  </data>
+  <data name="Label_CpuProcessorTopology" xml:space="preserve">
+    <value>Processor Topology</value>
+  </data>
+  <data name="Label_CpuPerformanceMonitoring" xml:space="preserve">
+    <value>Performance Monitoring</value>
+  </data>
+  <data name="Label_CpuFrequencyControl" xml:space="preserve">
+    <value>Frequency Control</value>
+  </data>
+  <data name="Label_CpuMemoryAddressing" xml:space="preserve">
+    <value>Addressing and Paging</value>
+  </data>
+  <data name="Label_CpuSecurityIsolation" xml:space="preserve">
+    <value>Security Isolation</value>
+  </data>
+  <data name="Label_MemoryMapping" xml:space="preserve">
+    <value>Memory Mapping</value>
+  </data>
+  <data name="Label_MemoryPageManagement" xml:space="preserve">
+    <value>Memory Topology</value>
+  </data>
+  <data name="Label_MemoryHardwareExtensions" xml:space="preserve">
+    <value>Hardware Extensions</value>
+  </data>
+  <data name="Label_MemoryConfidentialComputing" xml:space="preserve">
+    <value>Confidential Computing</value>
+  </data>
+  <data name="Xaml_OpenHclImage" xml:space="preserve">
+    <value>OpenHCL IGVM Image</value>
+  </data>
+  <data name="Xaml_Placeholder_OpenHclIgvm" xml:space="preserve">
+    <value>Select an OpenHCL IGVM firmware image</value>
+  </data>
+  <data name="VmPage_SelectOpenHclIgvm" xml:space="preserve">
+    <value>Select OpenHCL IGVM Image</value>
+  </data>
+  <data name="VmPage_OpenHclIgvmFilter" xml:space="preserve">
+    <value>IGVM Firmware Image (*.bin;*.igvm)|*.bin;*.igvm|All Files (*.*)|*.*</value>
+  </data>
+  <data name="VmPage_OpenHclIgvmRequired" xml:space="preserve">
+    <value>OpenHCL requires a valid IGVM image file.</value>
+  </data>
+  <data name="VmPage_OpenHclRequiresV12" xml:space="preserve">
+    <value>OpenHCL requires virtual machine configuration version 12.0 or later.</value>
+  </data>
+  <data name="VmPage_DynMemAlignmentDisabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Label_MemoryAccessTracking" xml:space="preserve">
+    <value>Memory Access Tracking</value>
+  </data>
+  <data name="VmRAMSettings_DescMemAccessGranularity" xml:space="preserve">
+    <value>Set the region size used for memory access records</value>
+  </data>
+  <data name="VmRAMSettings_MemTrackingDisabledHint" xml:space="preserve">
+    <value>Enable memory access tracking first</value>
+  </data>
+  <data name="VmRAMSettings_MemTrackingPerNodeHint" xml:space="preserve">
+    <value>Each NUMA node currently uses its own tracking granularity</value>
+  </data>
+  <data name="Error_VmPower_WorkerNotFound" xml:space="preserve">
+    <value>The virtual machine did not power off and its worker process could not be identified.</value>
+  </data>
+  <data name="Error_VmPower_InvalidWorkerProcess" xml:space="preserve">
+    <value>Refusing to terminate PID {0}: it is not a Hyper-V worker process.</value>
+  </data>
+  <data name="Error_VmPower_TerminateWorkerFailed" xml:space="preserve">
+    <value>Failed to terminate the Hyper-V worker process for '{0}': {1}</value>
+  </data>
+  <data name="Error_VmPower_StillNotOff" xml:space="preserve">
+    <value>The worker process for '{0}' was terminated, but the virtual machine still did not reach the off state.</value>
+  </data>
+  <data name="Menu_EnhancedSessionMode" xml:space="preserve">
+    <value>Allow Enhanced Session Mode</value>
+  </data>
+  <data name="Menu_DefaultVirtualMachinePath" xml:space="preserve">
+    <value>Default Virtual Machine Location</value>
+  </data>
+  <data name="Menu_DefaultVirtualHardDiskPath" xml:space="preserve">
+    <value>Default Virtual Hard Disk Location</value>
+  </data>
+  <data name="HostPage_SelectDefaultVirtualMachinePath" xml:space="preserve">
+    <value>Select the default virtual machine location</value>
+  </data>
+  <data name="HostPage_SelectDefaultVirtualHardDiskPath" xml:space="preserve">
+    <value>Select the default virtual hard disk location</value>
+  </data>
+  <data name="Menu_HostPowerPlan" xml:space="preserve">
+    <value>Power Plan</value>
+  </data>
+  <data name="Error_Host_PowerPlanFail" xml:space="preserve">
+    <value>Failed to change the host power plan: {0}</value>
+  </data>
+  <data name="Menu_DynamicMacAddressRange" xml:space="preserve">
+    <value>Dynamic MAC Address Range</value>
+  </data>
+  <data name="Error_Host_DynamicMacRangeInvalid" xml:space="preserve">
+    <value>Enter two valid MAC addresses, each containing 12 hexadecimal digits.</value>
+  </data>
+  <data name="Error_Host_DynamicMacRangeOrder" xml:space="preserve">
+    <value>The start address cannot be greater than the end address.</value>
+  </data>
+  <data name="Msg_Host_DynamicMacRangeApplied" xml:space="preserve">
+    <value>Dynamic MAC address range applied</value>
+  </data>
+  <data name="Menu_VolumeAutoMount" xml:space="preserve">
+    <value>Automatically Assign Drive Letters to New Volumes</value>
+  </data>
+  <data name="Desc_VolumeAutoMount" xml:space="preserve">
+    <value>Enable Windows automount to assign drive letters to newly added basic volumes</value>
+  </data>
+  <data name="Error_Host_AutoMountChangeFailed" xml:space="preserve">
+    <value>Failed to change automatic volume mounting: {0}</value>
+  </data>
+  <data name="Error_Host_AutoMountProcessStartFailed" xml:space="preserve">
+    <value>Unable to start the Windows volume mounting tool.</value>
+  </data>
+  <data name="Error_Host_AutoMountStateMismatch" xml:space="preserve">
+    <value>Windows did not apply the requested automatic volume mounting state.</value>
+  </data>
+  <data name="VmExport_Menu" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="VmExport_Title" xml:space="preserve">
+    <value>Export Virtual Machine</value>
+  </data>
+  <data name="VmExport_TargetsSection" xml:space="preserve">
+    <value>Export List</value>
+  </data>
+  <data name="VmExport_Destination" xml:space="preserve">
+    <value>Export Location</value>
+  </data>
+  <data name="VmExport_SelectDestination" xml:space="preserve">
+    <value>Select an export location</value>
+  </data>
+  <data name="VmExport_Content" xml:space="preserve">
+    <value>Export Contents</value>
+  </data>
+  <data name="VmExport_Configuration" xml:space="preserve">
+    <value>Include Virtual Machine Configuration</value>
+  </data>
+  <data name="VmExport_ConfigurationDescription" xml:space="preserve">
+    <value>Export the virtual machine configuration files</value>
+  </data>
+  <data name="VmExport_VirtualHardDisks" xml:space="preserve">
+    <value>Include Virtual Hard Disks</value>
+  </data>
+  <data name="VmExport_VirtualHardDisksDescription" xml:space="preserve">
+    <value>Export the virtual hard disks attached to the virtual machine</value>
+  </data>
+  <data name="VmExport_Checkpoints" xml:space="preserve">
+    <value>Include Checkpoints</value>
+  </data>
+  <data name="VmExport_CheckpointsDescription" xml:space="preserve">
+    <value>Export checkpoints of the virtual machine</value>
+  </data>
+  <data name="VmExport_CheckpointModeAll" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="VmExport_CheckpointModeSingle" xml:space="preserve">
+    <value>Single</value>
+  </data>
+  <data name="VmExport_CheckpointDateFormat" xml:space="preserve">
+    <value>yyyy-MM-dd HH:mm</value>
+  </data>
+  <data name="VmExport_RuntimeState" xml:space="preserve">
+    <value>Include Runtime State</value>
+  </data>
+  <data name="VmExport_RuntimeStateDescription" xml:space="preserve">
+    <value>Export the virtual machine saved state so it can resume after import</value>
+  </data>
+  <data name="VmExport_Start" xml:space="preserve">
+    <value>Export</value>
+  </data>
+  <data name="VmExport_Preparing" xml:space="preserve">
+    <value>Preparing export…</value>
+  </data>
+  <data name="VmExport_Progress" xml:space="preserve">
+    <value>Exporting… {0}%</value>
+  </data>
+  <data name="VmExport_Completed" xml:space="preserve">
+    <value>Export completed</value>
+  </data>
+  <data name="VmExport_Failed" xml:space="preserve">
+    <value>Export failed: {0}</value>
+  </data>
+  <data name="VmExport_PathRequired" xml:space="preserve">
+    <value>Select a valid export location.</value>
+  </data>
+  <data name="VmExport_TargetExists" xml:space="preserve">
+    <value>A folder named “{0}” already exists in the selected location.</value>
+  </data>
+  <data name="VmExport_ConfigurationMissing" xml:space="preserve">
+    <value>Hyper-V completed the export of “{0}” ({1}), but its matching current configuration file was not found. The export is incomplete.</value>
+  </data>
+  <data name="VmExport_ExportDirectoryMissing" xml:space="preserve">
+    <value>The exported virtual machine directory does not exist.</value>
+  </data>
+  <data name="VmExport_PackageExists" xml:space="preserve">
+    <value>A ZIP file named “{0}” already exists in the selected location.</value>
+  </data>
+  <data name="VmExport_DiskSelectionCheckpointsConflict" xml:space="preserve">
+    <value>All virtual hard disks must be included when checkpoints are exported.</value>
+  </data>
+  <data name="VmExport_SelectDisksUnsupported" xml:space="preserve">
+    <value>This system does not support exporting selected virtual hard disks.</value>
+  </data>
+  <data name="VmExport_CheckpointSelectionRequired" xml:space="preserve">
+    <value>Select a checkpoint to export.</value>
+  </data>
+  <data name="VmExport_CheckpointUnavailable" xml:space="preserve">
+    <value>The selected checkpoint no longer exists or does not belong to this virtual machine.</value>
+  </data>
+  <data name="VmExport_CheckpointSelectionUnsupported" xml:space="preserve">
+    <value>This system does not support exporting a selected checkpoint.</value>
+  </data>
+  <data name="VmExport_PackageSection" xml:space="preserve">
+    <value>Packaging</value>
+  </data>
+  <data name="VmExport_CreatePackage" xml:space="preserve">
+    <value>Package Options</value>
+  </data>
+  <data name="VmExport_CreatePackageDescription" xml:space="preserve">
+    <value>Save the exported contents as a single ZIP file</value>
+  </data>
+  <data name="VmExport_PackageStore" xml:space="preserve">
+    <value>Store (Fast)</value>
+  </data>
+  <data name="VmExport_PackageCompress" xml:space="preserve">
+    <value>Compress (Slow)</value>
+  </data>
+  <data name="VmExport_PackageProgress" xml:space="preserve">
+    <value>Packaging… {0}%</value>
+  </data>
+  <data name="VmExport_PackageCompressing" xml:space="preserve">
+    <value>Compressing ZIP…</value>
+  </data>
+  <data name="VmExport_PackageStoring" xml:space="preserve">
+    <value>Writing ZIP…</value>
+  </data>
+  <data name="VmExport_PackageValidating" xml:space="preserve">
+    <value>Validating ZIP…</value>
+  </data>
+  <data name="VmExport_PackageFailed" xml:space="preserve">
+    <value>Packaging failed: {0}</value>
+  </data>
+  <data name="VmExport_PackageCleanupWarning" xml:space="preserve">
+    <value>The ZIP file was created, but the exported folder could not be removed: {0}</value>
+  </data>
+  <data name="VmExport_PackageFileName" xml:space="preserve">
+    <value>ZIP file name</value>
+  </data>
+  <data name="VmExport_PackageFileNameInvalid" xml:space="preserve">
+    <value>Enter a valid ZIP file name.</value>
+  </data>
+  <data name="VmExport_PackageValidationFailed" xml:space="preserve">
+    <value>The ZIP package failed integrity validation. The original exported files have been preserved.</value>
+  </data>
+  <data name="Error_Wmi_CreateInstanceFailed" xml:space="preserve">
+    <value>WMI class “{0}” could not create an instance.</value>
+  </data>
+  <data name="VmImport_Menu" xml:space="preserve"><value>Import virtual machine</value></data>
+  <data name="VmImport_Title" xml:space="preserve"><value>Import virtual machine</value></data>
+  <data name="VmImport_Source" xml:space="preserve"><value>Source</value></data>
+  <data name="VmImport_SourceFolder" xml:space="preserve"><value>Folder</value></data>
+  <data name="VmImport_SourceArchive" xml:space="preserve"><value>ZIP</value></data>
+  <data name="VmImport_ZipHint" xml:space="preserve"><value>The preview reads configuration and virtual disk metadata directly from ZIP. The archive is fully extracted only after import starts.</value></data>
+  <data name="VmImport_Placement" xml:space="preserve"><value>Import method</value></data>
+  <data name="VmImport_HostDirectories" xml:space="preserve"><value>Import to host directories</value></data>
+  <data name="VmImport_HostDirectoriesDescription" xml:space="preserve"><value>Copy the configuration file and virtual disks to the host directories, then register the virtual machine.</value></data>
+  <data name="VmImport_ExistingDirectory" xml:space="preserve"><value>Use the existing directory</value></data>
+  <data name="VmImport_ExistingDirectoryDescription" xml:space="preserve"><value>Register the virtual machine from the selected directory.</value></data>
+  <data name="VmImport_Preview" xml:space="preserve"><value>Import preview</value></data>
+  <data name="VmImport_Name" xml:space="preserve"><value>Name</value></data>
+  <data name="VmImport_Guid" xml:space="preserve"><value>Virtual machine GUID</value></data>
+  <data name="VmImport_GuidRegenerated" xml:space="preserve"><value>New GUID generated</value></data>
+  <data name="VmImport_Generation" xml:space="preserve"><value>Generation</value></data>
+  <data name="VmImport_GenerationFormat" xml:space="preserve"><value>Generation {0}</value></data>
+  <data name="VmImport_ConfigurationVersion" xml:space="preserve"><value>Configuration version</value></data>
+  <data name="VmImport_Processor" xml:space="preserve"><value>Virtual processors</value></data>
+  <data name="VmImport_Memory" xml:space="preserve"><value>Memory</value></data>
+  <data name="VmImport_Created" xml:space="preserve"><value>Created</value></data>
+  <data name="VmImport_SavedState" xml:space="preserve"><value>Saved state</value></data>
+  <data name="VmImport_Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="VmImport_No" xml:space="preserve"><value>No</value></data>
+  <data name="VmImport_Disks" xml:space="preserve"><value>Virtual disks</value></data>
+  <data name="VmImport_Networks" xml:space="preserve"><value>Network adapters</value></data>
+  <data name="VmImport_Checkpoints" xml:space="preserve"><value>Checkpoints</value></data>
+  <data name="VmImport_CountFormat" xml:space="preserve"><value> · {0}</value></data>
+  <data name="VmImport_Slot" xml:space="preserve"><value>Controller</value></data>
+  <data name="VmImport_Format" xml:space="preserve"><value>Format</value></data>
+  <data name="VmImport_CapacityUsage" xml:space="preserve"><value>Capacity / used</value></data>
+  <data name="VmImport_OriginalSwitch" xml:space="preserve"><value>Original switch: {0}</value></data>
+  <data name="VmImport_Disconnected" xml:space="preserve"><value>Disconnected</value></data>
+  <data name="VmImport_Issues" xml:space="preserve"><value>Compatibility issues</value></data>
+  <data name="VmImport_Start" xml:space="preserve"><value>Import</value></data>
+  <data name="VmImport_PreparingPreview" xml:space="preserve"><value>Parsing and checking the virtual machine…</value></data>
+  <data name="VmImport_PreparingPreviewBatch" xml:space="preserve"><value>Parsing and checking virtual machine {0} of {1}…</value></data>
+  <data name="VmImport_PreparingFiles" xml:space="preserve"><value>Importing the virtual machine…</value></data>
+  <data name="VmImport_Validating" xml:space="preserve"><value>Validating the virtual machine…</value></data>
+  <data name="VmImport_Importing" xml:space="preserve"><value>Registering the virtual machine…</value></data>
+  <data name="VmImport_BatchStatusFormat" xml:space="preserve"><value>[{2}/{3}] {0}: {1}…</value></data>
+  <data name="VmImport_Failed" xml:space="preserve"><value>Import failed</value></data>
+  <data name="VmImport_PartialCompleted" xml:space="preserve"><value>Imported {0} of {1} virtual machines; import stopped.</value></data>
+  <data name="VmImport_PartialFailure" xml:space="preserve"><value>Imported {0} of {1} virtual machines. Import stopped at “{2}”: {3}</value></data>
+  <data name="VmImport_Completed" xml:space="preserve"><value>Import complete</value></data>
+  <data name="VmImport_Success" xml:space="preserve"><value>Virtual machine “{0}” was imported.</value></data>
+  <data name="VmImport_SelectFolder" xml:space="preserve"><value>Select a virtual machine export folder</value></data>
+  <data name="VmImport_SelectZip" xml:space="preserve"><value>Select a virtual machine export package</value></data>
+  <data name="VmImport_ZipFilter" xml:space="preserve"><value>ZIP files (*.zip)|*.zip</value></data>
+  <data name="VmImport_DiskFixed" xml:space="preserve"><value>Fixed</value></data>
+  <data name="VmImport_DiskDynamic" xml:space="preserve"><value>Dynamic</value></data>
+  <data name="VmImport_DiskDifferencing" xml:space="preserve"><value>Differencing</value></data>
+  <data name="VmImport_StaticMemoryFormat" xml:space="preserve"><value>{0:N0} MB</value></data>
+  <data name="VmImport_DynamicMemoryFormat" xml:space="preserve"><value>{0:N0} MB ({1:N0}–{2:N0} MB)</value></data>
+  <data name="VmImport_NetworkAdapter" xml:space="preserve"><value>Network adapter</value></data>
+  <data name="VmImport_ProcessorMemoryFormat" xml:space="preserve"><value>{0} cores / {1:0.#} GB</value></data>
+  <data name="Network_Applying" xml:space="preserve"><value>Applying network configuration…</value></data>
+  <data name="Network_StateUnknown" xml:space="preserve"><value>Unable to determine network state:</value></data>
+  <data name="Network_UplinkConfigured" xml:space="preserve"><value>Upstream configured: {0}</value></data>
+  <data name="Network_HotspotConflict" xml:space="preserve"><value>Mobile hotspot is enabled or changing state. Turn it off in Windows Settings, then retry NAT configuration.</value></data>
+  <data name="Network_HotspotUnknown" xml:space="preserve"><value>Unable to check mobile hotspot state. No switch changes were made: {0}</value></data>
+  <data name="Network_UpstreamMissing" xml:space="preserve"><value>The selected network adapter is no longer available. Refresh and select it again.</value></data>
+  <data name="Network_Restored" xml:space="preserve"><value>Configuration failed: {0}. The previous configuration was restored.</value></data>
+  <data name="Network_RestoreFailed" xml:space="preserve"><value>Configuration failed: {0}. Recovery also failed: {1}. The network may be partially configured; check its current state.</value></data>
+  <data name="VmGroup_Create" xml:space="preserve"><value>New group</value></data>
+  <data name="VmGroup_Name" xml:space="preserve"><value>Group name</value></data>
+  <data name="VmGroup_Delete" xml:space="preserve"><value>Delete group</value></data>
+  <data name="VmGroup_DeleteConfirm" xml:space="preserve"><value>Delete “{0}” from all parent groups? Virtual machines and child groups will be kept. No files will be deleted.</value></data>
+  <data name="VmGroup_LoadFailed" xml:space="preserve"><value>Could not load native groups.</value></data>
+  <data name="VmGroup_NoLongerExists" xml:space="preserve"><value>The group no longer exists. Refresh and retry.</value></data>
+  <data name="VmGroup_OnlyVms" xml:space="preserve"><value>A VM group can contain virtual machines only.</value></data>
+  <data name="VmGroup_Cycle" xml:space="preserve"><value>This membership would create a cycle or is not supported by this group type.</value></data>
+  <data name="VmGroup_VerifyFailed" xml:space="preserve"><value>The group state could not be confirmed. Refresh and retry.</value></data>
+  <data name="VmGroup_InvalidImportReference" xml:space="preserve"><value>The missing group reference could not be verified. Import was stopped.</value></data>
+  <data name="VmGroup_ImportRemoved" xml:space="preserve"><value>Removed {0} missing group reference(s). Existing groups were preserved.</value></data>
+  <data name="VmGroup_ImportCleanupDeferred" xml:space="preserve"><value>The Hyper-V task could not be confirmed as finished, or removal of the pending import could not be confirmed. Automatic cleanup was stopped and related files were kept. Check these objects and paths before retrying:
+{0}</value></data>
+  <data name="HostPage_PreferencesTab" xml:space="preserve"><value>Preferences</value></data>
+  <data name="Preferences_PowerAction" xml:space="preserve"><value>Default power button action</value></data>
+  <data name="Preferences_AutoOpenConsole" xml:space="preserve"><value>Open console after starting a virtual machine</value></data>
+  <data name="Preferences_Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Preferences_SaveFailed" xml:space="preserve"><value>Could not save preferences. The saved values have been restored.</value></data>
+  <data name="VmGroup_RecoveryFailed" xml:space="preserve"><value>The operation failed, and the original group relationships could not be fully restored. Refresh and check the groups before retrying.</value></data>
+  <data name="ConsoleWindow_MoreActions" xml:space="preserve"><value>More actions</value></data>
+  <data name="Tray_Open" xml:space="preserve"><value>Open ExHyperV</value></data>
+  <data name="Tray_Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Network_PortStateUnavailable" xml:space="preserve"><value>Port configuration is unavailable. Refresh to retry.</value></data>
+  <data name="Gpu_ConfirmPowerOff" xml:space="preserve"><value>GPU driver deployment requires the virtual machine to be off. Turn it off now? Unsaved guest data may be lost.</value></data>
+  <data name="Gpu_ConfirmWindowsInstall" xml:space="preserve"><value>Install GPU drivers to {0}? This will write files to the selected Windows partition.</value></data>
+  <data name="Gpu_ConfirmLinuxStart" xml:space="preserve"><value>Start this virtual machine to continue GPU driver installation over SSH?</value></data>
+  <data name="Gpu_DecisionExpired" xml:space="preserve"><value>This action is not available for the current deployment state. Read the latest state and try again.</value></data>
+  <data name="Gpu_InvalidPartition" xml:space="preserve"><value>The selected partition is unavailable, changed, or is not a supported Windows/Linux system partition.</value></data>
+  <data name="Gpu_InvalidSshPort" xml:space="preserve"><value>The SSH port must be between 1 and 65535.</value></data>
+  <data name="Gpu_CleanupRequired" xml:space="preserve"><value>The GPU assignment added by this deployment could not be removed. Retry cleanup before starting another deployment.</value></data>
+  <data name="ConsoleWindow_FrameStatistics" xml:space="preserve"><value>Frame statistics</value></data>
+  <data name="ConsoleWindow_FrameStatisticsHint" xml:space="preserve"><value>Toggle received FPS and completed window bitmap updates. Maximum interval and intervals ≥50 ms cover the last 5 seconds, including the ongoing interval. A static desktop produces few updates. These are not monitor or remote-desktop FPS.</value></data>
+  <data name="ConsoleWindow_FrameStatisticsFormat" xml:space="preserve"><value>UPDATE {0:F1} FPS · RECEIVE {1:F1} FPS
+5s MAX {2:F1} ms · ≥50 ms {3}</value></data>
+  <data name="PCIePage_Msg_ConfirmMmioUpdate" xml:space="preserve">
+    <value>Updating MMIO will turn off virtual machine “{0}”. If this host has no saved limit, the operation will also change MMIO settings and start and turn off the VM to probe the limit. The VM will remain off. Declining a later device confirmation will not undo these changes. Continue?</value>
+  </data>
+</root>

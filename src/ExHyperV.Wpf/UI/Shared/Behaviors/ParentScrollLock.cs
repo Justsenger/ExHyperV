@@ -1,0 +1,79 @@
+﻿using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+
+namespace ExHyperV.UI.Shared.Behaviors
+{
+    public static class ParentScrollLock
+    {
+        public static readonly DependencyProperty LockParentScrollProperty =
+            DependencyProperty.RegisterAttached(
+                "LockParentScroll",
+                typeof(bool),
+                typeof(ParentScrollLock),
+                new PropertyMetadata(false, OnLockParentScrollChanged));
+
+        public static void SetLockParentScroll(DependencyObject element, bool value) => element.SetValue(LockParentScrollProperty, value);
+        public static bool GetLockParentScroll(DependencyObject element) => (bool)element.GetValue(LockParentScrollProperty);
+        private static readonly DependencyProperty CachedScrollerProperty =
+            DependencyProperty.RegisterAttached("CachedScroller", typeof(ScrollViewer), typeof(ParentScrollLock), new PropertyMetadata(null));
+
+        private static readonly DependencyProperty OriginalVisibilityProperty =
+            DependencyProperty.RegisterAttached("OriginalVisibility", typeof(ScrollBarVisibility), typeof(ParentScrollLock), new PropertyMetadata(ScrollBarVisibility.Auto));
+
+        private static void OnLockParentScrollChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is Page page)
+            {
+                if ((bool)e.NewValue)
+                {
+                    page.Loaded += Page_Loaded;
+                    page.Unloaded += Page_Unloaded;
+                }
+                else
+                {
+                    page.Loaded -= Page_Loaded;
+                    page.Unloaded -= Page_Unloaded;
+                }
+            }
+        }
+
+        private static void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            var page = sender as Page;
+            if (page == null) return;
+            if (page.GetValue(CachedScrollerProperty) != null) return;   // 已锁就别再存原值:防重复 Loaded 把 Disabled 当原始值记下
+            var scroller = FindParent<ScrollViewer>(page);
+            if (scroller != null)
+            {
+                page.SetValue(CachedScrollerProperty, scroller);
+                page.SetValue(OriginalVisibilityProperty, scroller.VerticalScrollBarVisibility);
+                scroller.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            }
+        }
+
+        private static void Page_Unloaded(object sender, RoutedEventArgs e)
+        {
+            var page = sender as Page;
+            if (page == null) return;
+            var scroller = (ScrollViewer)page.GetValue(CachedScrollerProperty);
+            var originalValue = (ScrollBarVisibility)page.GetValue(OriginalVisibilityProperty);
+
+            if (scroller != null)
+            {
+                scroller.VerticalScrollBarVisibility = originalValue;
+                page.SetValue(CachedScrollerProperty, null);
+            }
+        }
+
+        private static T? FindParent<T>(DependencyObject? child) where T : DependencyObject
+        {
+            while (child != null)
+            {
+                if (child is T parent) return parent;
+                child = VisualTreeHelper.GetParent(child);
+            }
+            return null;
+        }
+    }
+}

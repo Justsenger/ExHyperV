@@ -1,0 +1,15 @@
+<!--Derived from ExHyperV.Wpf/Assets/VectorIcons.xaml; original project and third-party rights remain unchanged.-->
+<svg version="1.1" viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient x1="4" y1="4" x2="124" y2="124" id="paint1" gradientUnits="userSpaceOnUse" spreadMethod="pad" color-interpolation="sRGB">
+      <stop offset="0" stop-color="#46CAF9" stop-opacity="1" />
+      <stop offset="0.18" stop-color="#3EC2F5" stop-opacity="1" />
+      <stop offset="0.5" stop-color="#149AE4" stop-opacity="1" />
+      <stop offset="1" stop-color="#0276D1" stop-opacity="1" />
+    </linearGradient>
+  </defs>
+  <g opacity="1">
+    <path d="M0,0L128,0 128,128 0,128z" fill-rule="evenodd" fill="#FFFFFF" fill-opacity="0" />
+    <path d="M9,4L61,4 61,61 4,61 4,9A5,5,0,0,1,9,4z M67,4L119,4A5,5,0,0,1,124,9L124,61 67,61z M4,67L61,67 61,124 9,124A5,5,0,0,1,4,119z M67,67L124,67 124,119A5,5,0,0,1,119,124L67,124z" fill-rule="evenodd" fill="url(#paint1)" fill-opacity="1" />
+  </g>
+</svg>

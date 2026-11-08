@@ -1,0 +1,222 @@
+<Page
+    x:Class="ExHyperV.UI.Pages.Settings.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
+    
+    xmlns:vm="clr-namespace:ExHyperV.UI.Pages.Settings"
+    mc:Ignorable="d"
+    d:DataContext="{d:DesignInstance Type=vm:SettingsPageViewModel, IsDesignTimeCreatable=True}"
+    Title="Setting"
+    d:DesignHeight="700"
+    d:DesignWidth="1000">
+
+    <Page.Resources>
+    </Page.Resources>
+
+    <StackPanel Margin="15,15,15,24">
+        <ui:TextBlock
+            Margin="0,0,0,8"
+            FontTypography="BodyStrong"
+            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+            Text="{x:Static properties:Resources.Settings}" />
+
+        <ui:CardControl Margin="0,0,0,12">
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE790;" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.Theme_Title}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.Theme_Switch}" />
+                </Grid>
+            </ui:CardControl.Header>
+            <ComboBox
+                Grid.Column="1"
+                MinWidth="200"
+                ItemsSource="{Binding AvailableThemes}"
+                SelectedItem="{Binding SelectedTheme}" />
+        </ui:CardControl>
+
+        <ui:CardControl Margin="0,0,0,12">
+            <ui:CardControl.Icon>
+                <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE774;" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.Lang_Title}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.Lang_RestartHint}" />
+                </Grid>
+            </ui:CardControl.Header>
+            <ComboBox
+                Grid.Column="1"
+                MinWidth="200"
+                ItemsSource="{Binding AvailableLanguages}"
+                SelectedItem="{Binding SelectedLanguage}" />
+        </ui:CardControl>
+
+
+        <ui:CardControl Margin="0,0,0,12">
+            <ui:CardControl.Icon>
+                <ui:SymbolIcon Symbol="LeafTwo24" />
+            </ui:CardControl.Icon>
+            <ui:CardControl.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="{x:Static properties:Resources.Settings_PerformanceTitle}" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{x:Static properties:Resources.Settings_PerformanceDesc}" />
+                </Grid>
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding IsPerformanceMode}" />
+        </ui:CardControl>
+
+        <ui:TextBlock
+            Margin="0,24,0,8"
+            FontTypography="BodyStrong"
+            Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"
+            Text="{x:Static properties:Resources.About_Title}" />
+
+        <ui:CardExpander ContentPadding="0" IsExpanded="True">
+            <ui:CardExpander.Icon>
+                <ui:FontIcon FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE81E;" />
+            </ui:CardExpander.Icon>
+            <ui:CardExpander.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <ui:TextBlock Grid.Row="0" FontTypography="Body" Text="ExHyperV" />
+                    <ui:TextBlock Grid.Row="1" Foreground="{ui:ThemeResource TextFillColorSecondaryBrush}" Text="{Binding CopyrightInfo}" />
+                </Grid>
+            </ui:CardExpander.Header>
+            <StackPanel>
+                <ui:Anchor
+    Padding="16"
+    HorizontalAlignment="Stretch"
+    HorizontalContentAlignment="Stretch"
+    Background="Transparent"
+    BorderThickness="0,1,0,0"
+    CornerRadius="0"
+    Command="{Binding UpdateActionCommand}"
+    IsEnabled="{Binding IsUpdateActionEnabled}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse
+                Width="8"
+                Height="8"
+                Margin="0,0,8,0"
+                Visibility="{Binding ShowUpdateIndicator, Converter={StaticResource BoolToVis}}">
+                                <Ellipse.Fill>
+                                    <RadialGradientBrush>
+                                        <GradientStop Color="#FFFF4C4C" Offset="0.0" />
+                                        <GradientStop Color="#FFD62828" Offset="1.0" />
+                                    </RadialGradientBrush>
+                                </Ellipse.Fill>
+                            </Ellipse>
+                            <TextBlock
+                VerticalAlignment="Center"
+                Text="{Binding UpdateStatusText, FallbackValue=ExHyperV.Properties.Resources.Status_CheckingForUpdates}" />
+
+                        </StackPanel>
+                        <Grid Grid.Column="1">
+                            <ui:ProgressRing
+                Width="16" Height="16"
+                IsIndeterminate="True"
+                Visibility="{Binding IsCheckingForUpdate, Converter={StaticResource BoolToVis}}" />
+                            <ui:FontIcon
+                FontFamily="{DynamicResource SegoeFluentIcons}"
+                Glyph="{Binding UpdateActionIcon}">
+                                <ui:FontIcon.Style>
+                                    <Style TargetType="ui:FontIcon">
+                                        <Setter Property="Visibility" Value="{Binding IsCheckingForUpdate, Converter={StaticResource BoolToVis}, ConverterParameter=Invert, FallbackValue=Visible}" />
+                                    </Style>
+                                </ui:FontIcon.Style>
+                            </ui:FontIcon>
+                        </Grid>
+                    </Grid>
+                </ui:Anchor>
+                <ui:Anchor
+                    Padding="16"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0"
+                    NavigateUri="https://github.com/Justsenger/ExHyperV/issues">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.About_FeedbackLink}" />
+                        <ui:FontIcon
+                            Grid.Column="1"
+                            FontFamily="{DynamicResource SegoeFluentIcons}"
+                            Glyph="&#xE71B;" />
+                    </Grid>
+                </ui:Anchor>
+                <ui:Anchor
+                    Padding="16"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0"
+                    NavigateUri="https://github.com/Justsenger/ExHyperV">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.About_ViewCode}" />
+                        <ui:FontIcon
+                            Grid.Column="1"
+                            FontFamily="{DynamicResource SegoeFluentIcons}"
+                            Glyph="&#xE71B;" />
+                    </Grid>
+                </ui:Anchor>
+                <ui:Anchor
+                    Padding="16"
+                    HorizontalAlignment="Stretch"
+                    HorizontalContentAlignment="Stretch"
+                    Background="Transparent"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0"
+                    NavigateUri="https://afdian.com/a/saniye">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{x:Static properties:Resources.Label_Donate}" />
+                        <ui:FontIcon
+                            Grid.Column="1"
+                            FontFamily="{DynamicResource SegoeFluentIcons}"
+                            Glyph="&#xEB52;" 
+                            Foreground="#FF4A4A" />
+                    </Grid>
+                </ui:Anchor>
+                
+            </StackPanel>
+        </ui:CardExpander>
+    </StackPanel>
+</Page>

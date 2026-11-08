@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.22)
+project(ExHyperVFreeRdp LANGUAGES C)
+set(CMAKE_C_STANDARD 23)
+find_package(FreeRDP 3 REQUIRED CONFIG)
+find_package(FreeRDP-Client 3 REQUIRED CONFIG)
+find_package(WinPR 3 REQUIRED CONFIG)
+add_library(ExHyperV.FreeRdp SHARED console.c clipboard.c framebuffer.c frame.c)
+set_target_properties(ExHyperV.FreeRdp PROPERTIES PREFIX "")
+target_link_libraries(ExHyperV.FreeRdp PRIVATE freerdp freerdp-client winpr iphlpapi ws2_32 advapi32)
+target_compile_definitions(ExHyperV.FreeRdp PRIVATE WIN32_LEAN_AND_MEAN UNICODE _UNICODE __STDC_NO_THREADS__=1)
+target_compile_options(ExHyperV.FreeRdp PRIVATE -Wall -Wextra -Werror=implicit-function-declaration)
+option(EXHV_FRAME_DIAGNOSTICS "Count frame allocations and copies for offline performance checks" OFF)
+if(EXHV_FRAME_DIAGNOSTICS)
+  target_compile_definitions(ExHyperV.FreeRdp PRIVATE EXHV_FRAME_DIAGNOSTICS=1)
+endif()
+if(CMAKE_C_COMPILER_ID MATCHES "Clang|GNU")
+  # Keep diagnostic source names useful without publishing the build machine path.
+  target_compile_options(ExHyperV.FreeRdp PRIVATE
+    "-ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=ExHyperV.FreeRdp"
+    "-fdebug-prefix-map=${CMAKE_CURRENT_BINARY_DIR}=build")
+endif()
+add_executable(ExHyperV.FreeRdpChecks selftest.c)
+target_link_libraries(ExHyperV.FreeRdpChecks PRIVATE ExHyperV.FreeRdp)

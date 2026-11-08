@@ -1,0 +1,95 @@
+name: Update Image Manifest
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # 每周一运行一次
+  workflow_dispatch:   # 手动触发
+
+permissions:
+  contents: write      # 显式声明写权限
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get install -y jq curl
+
+      - name: Setup Quickget Environment
+        run: |
+          # 1. 伪造 quickemu 以通过环境检查
+          echo '#!/bin/bash' | sudo tee /usr/local/bin/quickemu
+          echo 'echo "4.9.6"' | sudo tee -a /usr/local/bin/quickemu
+          sudo chmod +x /usr/local/bin/quickemu
+          
+          # 2. 下载官方最新脚本
+          curl -LO https://raw.githubusercontent.com/quickemu-project/quickemu/master/quickget
+          chmod +x quickget
+
+      - name: Fetch All URLs (Pure Mode)
+        run: |
+          # 1. 获取完整 CSV 列表 (移除 tail -n 限制，保留所有行)
+          ./quickget --list-csv | tail -n +2 > raw.csv
+          
+          # 2. 定义处理函数
+          process_line() {
+            # 读取 CSV 行
+            IFS=',' read -r name os rel opt dl png svg <<< "$1"
+            
+            # Windows/macOS 链接有时效性，标记为动态
+            if [[ "$os" == "windows"* ]] || [[ "$os" == "macos" ]]; then
+              final_url="DYNAMIC_LINK"
+            else
+              # 核心抓取逻辑：
+              # OPERATION=show: 告诉脚本只显示信息不下载
+              # timeout 20s: 防止某个镜像站卡死拖累整体
+              # grep -oE: 只提取 http/https 开头的链接
+              raw_output=$(OPERATION=show timeout 20s ./quickget "$os" "$rel" "$opt" 2>/dev/null)
+              final_url=$(echo "$raw_output" | grep -oE 'https?://[^ ]+' | head -n 1)
+            fi
+            
+            # 写入结果 (如果 url 为空，就留空)
+            echo "$name,$os,$rel,$opt,$final_url,$png" >> results.tmp
+            
+            # 打印进度日志 (仅显示系统名，保持日志整洁)
+            echo "Checked: $name $rel"
+          }
+          export -f process_line
+          
+          # 3. 启动高并发抓取
+          # -P 20: 同时开启 20 个进程 (跑完 1000+ 条大约需要 5-8 分钟)
+          cat raw.csv | xargs -I {} -P 20 bash -c 'process_line "{}"'
+          
+          # 4. 生成 JSON
+          echo "DisplayName,OS,Release,Option,DownloadURL,Logo" > final.csv
+          cat results.tmp >> final.csv
+
+          # 使用 jq 生成纯净 JSON
+          # select(length >= 6): 确保数据列完整
+          jq -R -s '
+            split("\n") | .[1:-1] | map(split(",")) | map(select(length >= 6)) | map({
+              "DisplayName": .[0],
+              "OS": .[1],
+              "Release": .[2],
+              "Option": .[3],
+              "DownloadURL": .[4],
+              "Logo": .[5]
+            })
+          ' final.csv > images.json
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 检查文件是否有变化
+          git add images.json
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Update full image manifest"
+            git push
+          fi

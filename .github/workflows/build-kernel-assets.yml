@@ -1,0 +1,104 @@
+name: Dxgkrnl 构建
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy-to-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出 ExHyperV 仓库
+        uses: actions/checkout@v4
+
+      - name: 安装基础工具
+        run: sudo apt-get install -y patch git
+
+      - name: 构建驱动压缩包
+        run: |
+          set -e
+          mkdir -p output
+          
+          # 克隆 Locietta 补丁集
+          git clone --depth 1 https://github.com/Locietta/xanmod-kernel-WSL2.git l-patches
+          
+          # 物理剔除 Locietta 中与本地 0002 补丁冲突的项目
+          rm -f l-patches/patches/0003-drivers-hv-dxgkrnl-Remove-argument-in-eventfd_signal.patch
+
+          # 矩阵配置
+          VERSIONS=("linux-msft-wsl-5.15.y:5.15:false" "linux-msft-wsl-6.6.y:6.6:false" "linux-msft-wsl-6.6.y:6.12:true")
+
+          for item in "${VERSIONS[@]}"; do
+            IFS=':' read -r RAW_VER SHORT_VER USE_LOCIETTA <<< "$item"
+            BUILD_DIR="dxgkrnl-${SHORT_VER}-patched"
+            echo ">>> [开始构建] 版本: $SHORT_VER"
+
+            # 1. 提取官方源码
+            rm -rf ms-kernel && mkdir ms-kernel && cd ms-kernel
+            git init -q
+            git remote add origin https://github.com/microsoft/WSL2-Linux-Kernel.git
+            git config core.sparseCheckout true
+            echo "drivers/hv/dxgkrnl/" >> .git/info/sparse-checkout
+            echo "include/" >> .git/info/sparse-checkout
+            git pull --depth 1 origin "$RAW_VER" -q
+            cd ..
+
+            # 2. 应用本地基础补丁
+            LOCAL_PATCH_DIR="src/ExHyperV.Core/Linux/script/patches/linux-msft-wsl-${SHORT_VER}.y"
+            if [[ "$SHORT_VER" == "6.12" ]]; then
+                LOCAL_PATCH_DIR="src/ExHyperV.Core/Linux/script/patches/linux-msft-wsl-6.6.y"
+            fi
+
+            if [ -d "$LOCAL_PATCH_DIR" ]; then
+                echo " -> 应用本地基础补丁 ($LOCAL_PATCH_DIR)"
+                cd ms-kernel
+                # --no-backup-if-mismatch 杜绝 .orig 文件
+                ls ../$LOCAL_PATCH_DIR/*.patch | sort | while read -r p; do
+                    patch -p1 --no-backup-if-mismatch < "$p"
+                done
+                cd ..
+            fi
+
+            # 3. 执行 Locietta 升级 (仅 6.12)
+            if [[ "$USE_LOCIETTA" == "true" ]]; then
+                echo " -> 执行 6.12+ 适配升级..."
+                cd ms-kernel
+                find ../l-patches/patches -maxdepth 1 -name "*.patch" | grep -iE "dxgkrnl|d3d|fence" | sort | while read -r p; do
+                    echo "    Applying: $(basename "$p")"
+                    # 这里不再使用 || echo Skip，失败必须中断构建
+                    patch -p1 --ignore-whitespace --no-backup-if-mismatch < "$p"
+                done
+                cd ..
+            fi
+
+            # 4. 整理输出前清场
+            # 物理删除残留，确保 test.py 校验的是纯净代码
+            find ms-kernel -name "*.orig" -delete || true
+            find ms-kernel -name "*.rej" -delete || true
+
+            # 5. 整理输出结构
+            mkdir -p "$BUILD_DIR/include/linux"
+            mkdir -p "$BUILD_DIR/include/uapi/misc"
+            cp -r ms-kernel/drivers/hv/dxgkrnl/* "$BUILD_DIR/"
+            [ -f ms-kernel/include/linux/hyperv.h ] && cp ms-kernel/include/linux/hyperv.h "$BUILD_DIR/include/linux/"
+            [ -f ms-kernel/include/uapi/misc/d3dkmthk.h ] && cp ms-kernel/include/uapi/misc/d3dkmthk.h "$BUILD_DIR/include/uapi/misc/"
+
+            # 6. 打包
+            tar -czf "output/${BUILD_DIR}.tar.gz" "$BUILD_DIR"
+            echo ">>> [完成] $BUILD_DIR.tar.gz 构建成功"
+            rm -rf "$BUILD_DIR" ms-kernel
+          done
+
+      - name: 强制推送到独立资源分支
+        run: |
+          cd output
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "自动更新修复版驱动组件 $(date +'%Y-%m-%d %H:%M:%S')"
+          git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:refs/heads/kernel-assets --force

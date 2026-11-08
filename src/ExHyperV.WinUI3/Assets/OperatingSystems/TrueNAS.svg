@@ -1,0 +1,11 @@
+<!--Derived from ExHyperV.Wpf/Assets/VectorIcons.xaml; original project and third-party rights remain unchanged.-->
+<svg version="1.1" viewBox="0 0 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <defs />
+  <g opacity="1">
+    <path d="M0,0L128,0 128,128 0,128z" fill-rule="evenodd" fill="#FFFFFF" fill-opacity="0" />
+    <path d="M125,64C125,97.6893697396784 97.6893697396784,125 64,125 30.3106302603216,125 3,97.6893697396784 3,64 3,30.3106302603216 30.3106302603216,3 64,3 97.6893697396784,3 125,30.3106302603216 125,64z" fill-rule="evenodd" fill="#0095D5" fill-opacity="1" />
+    <g transform="matrix(2.7368 0 0 2.7368 31.158 31.158)" opacity="1">
+      <path d="M24,10.049L24,15.163 13.051,21.487 13.051,16.373z M0,10.049L0,15.163 10.956,21.487 10.956,16.373z M12.004,9.444L7.571,12.003 12.004,14.562 16.433,12.003z M22.956,8.237L13.051,2.514 13.051,7.632 18.524,10.796z M10.956,7.632L10.956,2.513 1.044,8.236 5.476,10.791z" fill-rule="nonzero" fill="#FFFFFF" fill-opacity="1" />
+    </g>
+  </g>
+</svg>

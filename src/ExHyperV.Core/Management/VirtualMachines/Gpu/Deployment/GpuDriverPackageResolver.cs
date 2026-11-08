@@ -1,0 +1,277 @@
+using System.IO;
+using System.Text.RegularExpressions;
+using ExHyperV.Tools;
+using Microsoft.Win32;
+
+namespace ExHyperV.Services;
+
+internal enum GpuDriverVendor
+{
+    Unknown,
+    Nvidia,
+    Intel,
+    Amd,
+    Qualcomm
+}
+
+/// <summary>
+/// 精确描述当前所选 GPU 的主包和映射依赖。
+/// 部署会镜像完整 FileRepository；这个计划只负责限定注册表与文件链接来源，
+/// 防止同名文件错误地链接到另一版本或另一块显卡的驱动包。
+/// </summary>
+internal sealed class GpuDriverPackagePlan
+{
+    public required GpuDriverVendor Vendor { get; init; }
+    public required string DisplayClassSubKeyName { get; init; }
+    public required string HostFileRepository { get; init; }
+    public required string PrimaryPackageName { get; init; }
+    public required IReadOnlyList<string> PackageNames { get; init; }
+    public IReadOnlyList<string> AmdOpenClPackageNames { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> AmdWinPackageNames { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> Warnings { get; init; } = Array.Empty<string>();
+
+    public IReadOnlyList<string> PrimaryPackageNames => new[] { PrimaryPackageName };
+}
+
+internal static class GpuDriverPackageResolver
+{
+    private const string DisplayClassGuid = "{4d36e968-e325-11ce-bfc1-08002be10318}";
+
+    public static GpuDriverPackagePlan Resolve(string gpuInstancePath, string gpuManufacturer)
+    {
+        using RegistryKey baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+        string classSubKeyName = GetSelectedDisplayClassSubKeyName(baseKey, gpuInstancePath);
+        if (string.IsNullOrWhiteSpace(classSubKeyName))
+            throw new InvalidOperationException(Properties.Resources.GpuDriverPackage_InstanceMapFailed);
+
+        using RegistryKey adapterKey = baseKey.OpenSubKey(
+            $@"SYSTEM\CurrentControlSet\Control\Class\{DisplayClassGuid}\{classSubKeyName}")
+            ?? throw new InvalidOperationException(Properties.Resources.GpuDriverPackage_DisplayClassKeyMissing);
+
+        string publishedInfName = adapterKey.GetValue("InfPath")?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(publishedInfName))
+            throw new InvalidOperationException(Properties.Resources.GpuDriverPackage_PublishedInfMissing);
+
+        string primaryInfPath = Win32Api.GetInfDriverStoreLocation(publishedInfName);
+        DirectoryInfo primaryDirectory = GetPackageDirectory(primaryInfPath);
+        DirectoryInfo fileRepository = primaryDirectory.Parent
+            ?? throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_InvalidPackagePath,
+                primaryDirectory.FullName));
+        if (!fileRepository.Name.Equals("FileRepository", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_OutsideFileRepository,
+                primaryInfPath));
+
+        GpuDriverVendor vendor = ResolveVendor(
+            gpuInstancePath,
+            gpuManufacturer,
+            adapterKey.GetValue("MatchingDeviceId")?.ToString(),
+            adapterKey.GetValue("ProviderName")?.ToString());
+
+        var packages = new List<DriverPackage>
+        {
+            new(primaryDirectory, new FileInfo(primaryInfPath))
+        };
+        IReadOnlyList<string> openClPackages = Array.Empty<string>();
+        IReadOnlyList<string> amdWinPackages = Array.Empty<string>();
+        var warnings = new List<string>();
+
+        // 完整 FileRepository 会在复制阶段统一进入来宾。此处仍要精确定位 AMD 映射实际消费的
+        // 两个独立软件组件包，供后续链接查找限定来源；CopyINF 中其他设备包无需建立 GPU 文件链接。
+        if (vendor == GpuDriverVendor.Amd)
+        {
+            HashSet<string> declaredDependencies = ReadCopyInfNames(packages[0].Inf)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            string? openClInfName = declaredDependencies.FirstOrDefault(name =>
+                name.Equals("amdocl.inf", StringComparison.OrdinalIgnoreCase));
+            string? amdWinInfName = declaredDependencies.FirstOrDefault(name =>
+                name.StartsWith("amdwin-", StringComparison.OrdinalIgnoreCase));
+
+            if (openClInfName != null)
+            {
+                try
+                {
+                    DriverPackage openCl = SelectExactCompanionPackage(
+                        fileRepository,
+                        packages[0],
+                        openClInfName);
+                    packages.Add(openCl);
+                    openClPackages = new[] { openCl.Directory.Name };
+                }
+                catch (InvalidOperationException ex)
+                {
+                    warnings.Add(string.Format(
+                        Properties.Resources.GpuDriverPackage_OptionalOpenClWarning,
+                        ex.Message));
+                }
+            }
+
+            if (amdWinInfName != null)
+            {
+                try
+                {
+                    DriverPackage amdWin = SelectExactCompanionPackage(
+                        fileRepository,
+                        packages[0],
+                        amdWinInfName);
+                    packages.Add(amdWin);
+                    amdWinPackages = new[] { amdWin.Directory.Name };
+                }
+                catch (InvalidOperationException ex)
+                {
+                    warnings.Add(string.Format(
+                        Properties.Resources.GpuDriverPackage_OptionalWindowsSupportWarning,
+                        ex.Message));
+                }
+            }
+        }
+
+        return new GpuDriverPackagePlan
+        {
+            Vendor = vendor,
+            DisplayClassSubKeyName = classSubKeyName,
+            HostFileRepository = fileRepository.FullName,
+            PrimaryPackageName = primaryDirectory.Name,
+            PackageNames = packages.Select(package => package.Directory.Name).ToArray(),
+            AmdOpenClPackageNames = openClPackages,
+            AmdWinPackageNames = amdWinPackages,
+            Warnings = warnings
+        };
+    }
+
+    private static DriverPackage SelectExactCompanionPackage(
+        DirectoryInfo fileRepository,
+        DriverPackage primaryPackage,
+        string dependencyInfName)
+    {
+        string primaryDriverVersion = ReadDriverVersion(primaryPackage.Inf)
+            ?? throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_DriverVersionMissing,
+                primaryPackage.Inf.FullName));
+        var candidates = new List<DriverPackage>();
+
+        foreach (DirectoryInfo directory in fileRepository.EnumerateDirectories())
+        {
+            if (!directory.Name.StartsWith($"{dependencyInfName}_", StringComparison.OrdinalIgnoreCase)) continue;
+
+            FileInfo[] matchingInfs;
+            try
+            {
+                matchingInfs = directory.GetFiles(dependencyInfName, SearchOption.AllDirectories);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                continue;
+            }
+            if (matchingInfs.Length != 1) continue;
+
+            FileInfo inf = matchingInfs[0];
+            string? driverVersion = ReadDriverVersion(inf);
+            if (string.Equals(driverVersion, primaryDriverVersion, StringComparison.OrdinalIgnoreCase))
+                candidates.Add(new DriverPackage(directory, inf));
+        }
+
+        return candidates.Count switch
+        {
+            1 => candidates[0],
+            0 => throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_CompanionNotInstalled,
+                dependencyInfName,
+                primaryDriverVersion)),
+            _ => throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_CompanionAmbiguous,
+                dependencyInfName,
+                primaryDriverVersion))
+        };
+    }
+
+    private static IReadOnlyList<string> ReadCopyInfNames(FileInfo inf)
+    {
+        using var document = new DriverInfFile(inf);
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // CopyINF 在驱动包导入时处理，保留全部节的声明，不按本机架构限定为单一安装节。
+        foreach (string[] fields in document.ReadAllFields("CopyINF"))
+        {
+            foreach (string entry in fields)
+            {
+                string path = entry.Trim().Replace('/', '\\');
+                string fileName = Path.GetFileName(path);
+                if (fileName.EndsWith(".inf", StringComparison.OrdinalIgnoreCase) &&
+                    fileName.IndexOfAny(Path.GetInvalidFileNameChars()) < 0)
+                {
+                    names.Add(fileName);
+                }
+            }
+        }
+        return names.ToArray();
+    }
+
+    private static string? ReadDriverVersion(FileInfo inf)
+    {
+        using var document = new DriverInfFile(inf);
+        // 匹配伴随包使用 INF 的包级版本，不读取其他安装节中的同名字段。
+        string[]? fields = document.ReadFields("Version", "DriverVer");
+        return fields == null ? null : Regex.Replace(string.Join(',', fields), @"\s+", string.Empty);
+    }
+
+    private static DirectoryInfo GetPackageDirectory(string infPath)
+    {
+        var inf = new FileInfo(infPath);
+        if (!inf.Exists)
+            throw new FileNotFoundException(string.Format(
+                Properties.Resources.GpuDriverPackage_InfNotFound,
+                infPath), infPath);
+        return inf.Directory
+            ?? throw new InvalidOperationException(string.Format(
+                Properties.Resources.GpuDriverPackage_InvalidInfPath,
+                infPath));
+    }
+
+    private static GpuDriverVendor ResolveVendor(
+        string gpuInstancePath,
+        string gpuManufacturer,
+        string? matchingDeviceId,
+        string? providerName)
+    {
+        string identity = string.Join('|', gpuInstancePath, gpuManufacturer, matchingDeviceId, providerName);
+        if (identity.Contains("VEN_10DE", StringComparison.OrdinalIgnoreCase) ||
+            identity.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase))
+            return GpuDriverVendor.Nvidia;
+        if (identity.Contains("VEN_8086", StringComparison.OrdinalIgnoreCase) ||
+            identity.Contains("Intel", StringComparison.OrdinalIgnoreCase))
+            return GpuDriverVendor.Intel;
+        if (identity.Contains("VEN_1002", StringComparison.OrdinalIgnoreCase) ||
+            identity.Contains("Advanced Micro Devices", StringComparison.OrdinalIgnoreCase) ||
+            Regex.IsMatch(identity, @"(^|\|)AMD($|\|)", RegexOptions.IgnoreCase))
+            return GpuDriverVendor.Amd;
+        if (identity.Contains("VEN_17CB", StringComparison.OrdinalIgnoreCase) ||
+            identity.Contains("QCOM", StringComparison.OrdinalIgnoreCase) ||
+            identity.Contains("Qualcomm", StringComparison.OrdinalIgnoreCase))
+            return GpuDriverVendor.Qualcomm;
+        return GpuDriverVendor.Unknown;
+    }
+
+    private static string GetSelectedDisplayClassSubKeyName(RegistryKey baseKey, string gpuInstancePath)
+    {
+        if (string.IsNullOrWhiteSpace(gpuInstancePath)) return string.Empty;
+
+        string normalized = gpuInstancePath.Trim();
+        if (normalized.StartsWith(@"\\?\", StringComparison.Ordinal)) normalized = normalized[4..];
+        int suffixIndex = normalized.IndexOf('{');
+        if (suffixIndex >= 0) normalized = normalized[..suffixIndex];
+        string deviceId = normalized.Replace('#', '\\').TrimEnd('\\');
+        if (string.IsNullOrWhiteSpace(deviceId)) return string.Empty;
+
+        using RegistryKey? deviceKey = baseKey.OpenSubKey($@"SYSTEM\CurrentControlSet\Enum\{deviceId}");
+        string driverKey = deviceKey?.GetValue("Driver")?.ToString() ?? string.Empty;
+        string displayClassPrefix = $@"{DisplayClassGuid}\";
+        if (!driverKey.StartsWith(displayClassPrefix, StringComparison.OrdinalIgnoreCase)) return string.Empty;
+
+        string subKeyName = driverKey[displayClassPrefix.Length..];
+        return subKeyName.Contains('\\') ? string.Empty : subKeyName;
+    }
+
+    private sealed record DriverPackage(DirectoryInfo Directory, FileInfo Inf);
+}

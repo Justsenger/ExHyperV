@@ -1,0 +1,25 @@
+<Page x:Class="ExHyperV.WinUI3.UI.Pages.Host.HostPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer>
+        <StackPanel Margin="32" Spacing="24">
+            <TextBlock Text="宿主" Style="{StaticResource PageTitleStyle}" />
+            <ProgressRing x:Name="LoadingIndicator" IsActive="True" Width="24" Height="24" HorizontalAlignment="Left" />
+            <InfoBar x:Name="QueryError" IsClosable="False" Severity="Error" Title="无法读取宿主信息" />
+            <Border x:Name="Details" Visibility="Collapsed" Style="{StaticResource SectionBorderStyle}">
+                <Grid ColumnSpacing="32" RowSpacing="20">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="100" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <TextBlock Text="操作系统" Style="{StaticResource DescriptionStyle}" />
+                    <TextBlock x:Name="OperatingSystem" Grid.Column="1" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Grid.Row="1" Text="处理器" Style="{StaticResource DescriptionStyle}" />
+                    <TextBlock x:Name="Processor" Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                    <TextBlock Grid.Row="2" Text="系统架构" Style="{StaticResource DescriptionStyle}" />
+                    <TextBlock x:Name="Architecture" Grid.Row="2" Grid.Column="1" />
+                    <TextBlock Grid.Row="3" Text="物理内存" Style="{StaticResource DescriptionStyle}" />
+                    <TextBlock x:Name="Memory" Grid.Row="3" Grid.Column="1" />
+                </Grid>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

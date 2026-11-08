@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configurationVersions versions="12.5 12.4 12.3 12.2 12.1 12.0 11.2 11.1 11.0 10.5 10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0 7.1 7.0 6.2 5.0">
+  <summary>Windows build 属于宿主系统，配置版本属于虚拟机。同一宿主可支持多个配置版本。</summary>
+  <host build="29639" system="Microsoft Host OS · Rubidium" channel="research" versions="12.5 12.4 12.3 12.2 12.1 12.0 11.2 11.1 11.0 10.5 10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="29617" system="Microsoft Host OS · Krypton" channel="research" versions="12.4 12.3 12.2 12.1 12.0 11.2 11.1 11.0 10.5 10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="28000" system="Windows 11 26H1" channel="release" versions="12.3 12.2 12.1 12.0 11.2 11.1 11.0 10.5 10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="26200" system="Windows 11 25H2" channel="release" versions="12.0 11.2 11.1 11.0 10.5 10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="26100" system="Windows 11 24H2 / Windows Server 2025" channel="release" versions="12.0 11.2 11.1 11.0 10.5 10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="22631" system="Windows 11 23H2" channel="release" versions="11.0 10.5 10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="22621" system="Windows 11 22H2" channel="release" versions="11.0 10.5 10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="22000" system="Windows 11 21H2" channel="release" versions="10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="20348" system="Windows Server 2022" channel="release" versions="10.0 9.3 9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="19045" system="Windows 10 22H2" channel="release" versions="9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="19044" system="Windows 10 21H2 / Enterprise LTSC 2021" channel="release" versions="9.2 9.1 9.0 8.3 8.2 8.1 8.0" />
+  <host build="17763" system="Windows Server 2019 / Windows 10 LTSC 2019" channel="release" versions="9.0 8.3 8.2 8.1 8.0 7.1 7.0 6.2 5.0" />
+  <host build="14393" system="Windows 10 1607 / Windows Server 2016" channel="release" versions="8.0 7.1 7.0 6.2 5.0" />
+  <source label="HyperV-WMI-Documentation · 版本矩阵（affa79a）" url="https://github.com/Justsenger/HyperV-WMI-Documentation/blob/affa79a5f60c48631f359940e7640c3b0b0c82f4/data/version_matrix.csv" />
+  <source label="微软 · 配置版本与宿主兼容性" url="https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/deploy/upgrade-virtual-machine-version-in-hyper-v-on-windows-or-windows-server" />
+  <source label="微软 · Windows 11 build" url="https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information" />
+  <source label="微软 · Windows 10 build" url="https://learn.microsoft.com/en-us/windows/release-health/release-information" />
+  <license>MIT License
+
+Copyright (c) 2026 Justsenger
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</license>
+</configurationVersions>
