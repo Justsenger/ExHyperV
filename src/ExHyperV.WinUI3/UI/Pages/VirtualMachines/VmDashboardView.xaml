@@ -89,12 +89,11 @@
     </StackPanel>
    </ScrollViewer>
    <Grid x:Name="SettingsArea" Grid.Row="3" Margin="24,0,24,24" Visibility="Collapsed" ColumnSpacing="16">
-    <Grid.ColumnDefinitions><ColumnDefinition Width="144"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-    <ListView x:Name="SettingsNavigation" SelectionMode="Single" HorizontalContentAlignment="Stretch" SelectionChanged="OnSettingsSelectionChanged"/>
-    <Grid Grid.Column="1" RowSpacing="8"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
-     <Button x:Name="SettingsBackButton" Visibility="Collapsed" HorizontalAlignment="Right" Style="{StaticResource RoundIconButtonStyle}" Click="OnSettingsBack" ToolTipService.ToolTip="返回处理器设置" AutomationProperties.Name="返回处理器设置"><FontIcon Glyph="&#xE72B;" FontSize="16"/></Button>
-     <ContentControl x:Name="SettingsHost" Grid.Row="1" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-     <ProgressBar x:Name="SettingsLoadingBar" Grid.RowSpan="2" Height="2" VerticalAlignment="Top" Margin="24,0,24,0"
+    <Grid.ColumnDefinitions><ColumnDefinition x:Name="SettingsNavigationColumn" Width="144"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+    <ListView x:Name="SettingsNavigation" SelectionMode="Single" HorizontalContentAlignment="Stretch" SelectionChanged="OnSettingsSelectionChanged" AutomationProperties.Name="设置分组"/>
+    <Grid Grid.Column="1">
+     <ContentControl x:Name="SettingsHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+     <ProgressBar x:Name="SettingsLoadingBar" Height="2" VerticalAlignment="Top" Margin="24,0,24,0"
          Foreground="{ThemeResource VmAccentBrush}" Background="Transparent" Visibility="Collapsed" IsHitTestVisible="False"
          AutomationProperties.Name="正在加载虚拟机设置"/>
     </Grid>

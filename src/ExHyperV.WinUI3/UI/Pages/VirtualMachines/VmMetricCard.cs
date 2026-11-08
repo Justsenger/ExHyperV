@@ -37,7 +37,16 @@ public sealed class VmMetricCard : Button
         ApplySelection();
     }
     public string Title { get => title.FullText; set { title.FullText = value; AutomationProperties.SetName(this, value); } }
-    public string Glyph { get => icon.Glyph; set => icon.Glyph = value; }
+    public string Glyph
+    {
+        get => icon.Glyph;
+        set
+        {
+            icon.Glyph = value;
+            icon.RenderTransformOrigin = new Point(.5, .5);
+            icon.RenderTransform = new RotateTransform { Angle = value == "\uF58E" ? 90 : 0 };
+        }
+    }
     public string Subtitle { get => subtitle.Text; set { subtitle.Text = value; UpdateSecondaryLine(); } }
     public string SecondaryReading { get => secondaryReading.Text; set { secondaryReading.Text = value; UpdateSecondaryLine(); } }
     private void UpdateSecondaryLine() => secondaryLine.Visibility = subtitle.Text.Length + secondaryReading.Text.Length > 0 ? Visibility.Visible : Visibility.Collapsed;

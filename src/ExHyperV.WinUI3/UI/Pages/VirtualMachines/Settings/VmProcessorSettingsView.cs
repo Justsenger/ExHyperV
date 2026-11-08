@@ -14,60 +14,38 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 public sealed class VmProcessorSettingsView : VmSettingsView
 {
     private readonly List<(SettingFieldEditor Editor, VmProcessorCapability Capability)> fields = [];
-    private readonly VmTabs tabs = new();
     private readonly List<(string Title, Border Content)> sections = [];
-    private readonly ContentControl sectionHost = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-    private readonly ScrollViewer scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-    private readonly Button applyResources = new() { Content = "应用", HorizontalAlignment = HorizontalAlignment.Right, IsEnabled = false };
-    private SettingFieldEditor[] resourceFields = [];
+    private readonly List<(SettingFieldEditor[] Fields, Button Apply, Button Revert)> groupActions = [];
+    private readonly Border affinitySection = new();
+    private VmCpuAffinitySettingsView? affinityView;
     private VmProcessorSettings? snapshot;
     private VmProcessorService.HostCapabilities? host;
     private bool poweredOff;
     private static readonly ConcurrentDictionary<Guid, byte> unknownOperations = new();
     private bool uncertain { get => unknownOperations.ContainsKey(VmId); set { if (value) unknownOperations.TryAdd(VmId, 0); } }
 
-    public event EventHandler? AffinityRequested;
-
     public VmProcessorSettingsView(Guid vmId) : base(vmId)
     {
-        var affinity = new Button { Content = "配置亲和性" };
-        affinity.Click += (_, _) => AffinityRequested?.Invoke(this, EventArgs.Empty);
-        var affinityRow = Row("CPU 绑定", "配置虚拟机与物理核心的亲和性", affinity);
-        affinityRow.Margin = new Thickness(0, 8, 0, 0);
-        applyResources.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
-        applyResources.Click += async (_, _) =>
-        {
-            if (Updating || IsBusy || IsStopped || snapshot == null || uncertain) return;
-            await RunAsync(() => ApplyAsync(resourceFields.Where(f => f.IsEnabled).ToArray()));
-        };
-        var resourceFooter = new StackPanel { Spacing = 12 };
-        resourceFooter.Children.Add(applyResources);
-        resourceFooter.Children.Add(affinityRow);
-        AddGroup("计算资源", "\uE9D9", resourceFooter,
+        AddGroup("计算资源",
             Number("核心数 (vCPU)", nameof(VmProcessorSettings.Count), VmProcessorCapability.ProcessorCount),
             Number("预留 (%)", nameof(VmProcessorSettings.Reservation), VmProcessorCapability.ResourceReservation, scale: 1000),
             Number("限制 (%)", nameof(VmProcessorSettings.Limit), VmProcessorCapability.ResourceLimit, scale: 1000),
             Number("权重", nameof(VmProcessorSettings.RelativeWeight), VmProcessorCapability.SchedulingWeight));
-        resourceFields = fields.Skip(1).Select(f => f.Editor).ToArray();
-        foreach (var field in resourceFields)
-        {
-            field.HideApplyButton();
-            field.ValueEdited += UpdateResourceApply;
-        }
-        AddGroup("指令集能力", "\uE8F1", null,
+        sections.Add(("核心绑定", affinitySection));
+        AddGroup("指令集能力",
             Toggle("嵌套虚拟化", nameof(VmProcessorSettings.ExposeVirtualizationExtensions), VmProcessorCapability.NestedVirtualization),
             Toggle("迁移兼容性", nameof(VmProcessorSettings.CompatibilityForMigrationEnabled), VmProcessorCapability.MigrationCompatibility),
             Choice("迁移功能集", nameof(VmProcessorSettings.CompatibilityForMigrationMode), VmProcessorCapability.MigrationFeatureSet,
                 Options((VmMigrationCompatibilityMode.MinimumFeatureSet, "最小功能集"), (VmMigrationCompatibilityMode.CommonClusterFeatureSet, "群集共同功能集"))),
             Toggle("旧操作系统兼容", nameof(VmProcessorSettings.CompatibilityForOlderOperatingSystemsEnabled), VmProcessorCapability.LegacyOperatingSystemCompatibility),
             Number("自定义 CPU 名称", nameof(VmProcessorSettings.CpuBrandString), VmProcessorCapability.ProcessorBrand));
-        AddGroup("中断控制", "\uE945", null,
+        AddGroup("中断控制",
             Choice("中断控制器模式", nameof(VmProcessorSettings.ApicMode), VmProcessorCapability.InterruptControllerMode,
                 Options((VmApicMode.Default, "默认"), (VmApicMode.Legacy, "xAPIC"), (VmApicMode.X2Apic, "x2APIC"), (VmApicMode.Apic, "APIC"))),
             Choice("局部外设中断（LPI）", nameof(VmProcessorSettings.LpiMode), VmProcessorCapability.LocalPeripheralInterruptMode,
                 Options((LpiMode.Default, "默认"), (LpiMode.Disabled, "禁用"), (LpiMode.Enabled, "启用"))),
             Toggle("主机资源保护", nameof(VmProcessorSettings.EnableHostResourceProtection), VmProcessorCapability.HostResourceProtection));
-        AddGroup("处理器拓扑", "\uE8D4", null,
+        AddGroup("处理器拓扑",
             Choice("同时多线程（SMT）", nameof(VmProcessorSettings.SmtMode), VmProcessorCapability.SimultaneousMultithreading,
                 Options((SmtMode.Inherit, "继承宿主"), (SmtMode.SingleThread, "单线程"), (SmtMode.MultiThread, "多线程"))),
             Number("每个插槽的最大 NUMA 节点数", nameof(VmProcessorSettings.MaxNumaNodesPerSocket), VmProcessorCapability.NumaNodesPerSocket),
@@ -78,75 +56,93 @@ public sealed class VmProcessorSettingsView : VmSettingsView
                     (L3DistributionPolicy.EvenSmallToLarge, "均匀，从小到大"), (L3DistributionPolicy.EvenLargeToSmall, "均匀，从大到小"))),
             Number("每个插槽的最大处理器簇数", nameof(VmProcessorSettings.MaxClusterCountPerSocket), VmProcessorCapability.ProcessorClustersPerSocket),
             Number("每个 L3 缓存域的最大处理器数", nameof(VmProcessorSettings.MaxProcessorCountPerL3), VmProcessorCapability.ProcessorsPerL3Domain));
-        AddGroup("性能监控", "\uE9D9", null,
+        AddGroup("性能监控",
             Toggle("性能监控单元（PMU）", nameof(VmProcessorSettings.EnablePerfmonPmu), VmProcessorCapability.PerformanceMonitoring),
             Toggle("体系结构性能监控单元", nameof(VmProcessorSettings.EnablePerfmonArchPmu), VmProcessorCapability.ArchitecturalPerformanceMonitoring),
             Toggle("ACNT / MCNT 计数器", nameof(VmProcessorSettings.AllowAcountMcount), VmProcessorCapability.ActivityCounters),
             Toggle("最后分支记录（LBR）", nameof(VmProcessorSettings.EnablePerfmonLbr), VmProcessorCapability.LastBranchRecording),
             Toggle("精确事件采样（PEBS）", nameof(VmProcessorSettings.EnablePerfmonPebs), VmProcessorCapability.PreciseEventSampling),
             Toggle("处理器跟踪（IPT）", nameof(VmProcessorSettings.EnablePerfmonIpt), VmProcessorCapability.InstructionTracing));
-        AddGroup("频率调节", "\uE945", null,
+        AddGroup("频率调节",
             Number("频率上限（MHz）", nameof(VmProcessorSettings.PerfCpuFreqCapMhz), VmProcessorCapability.FrequencyMaximum),
             Number("频率下限（MHz）", nameof(VmProcessorSettings.PerfCpuFreqMinMhz), VmProcessorCapability.FrequencyMinimum),
             Number("期望频率（MHz）", nameof(VmProcessorSettings.PerfCpuFreqDesiredMhz), VmProcessorCapability.DesiredFrequency, description: "留空恢复默认。"),
             Number("能效偏好", nameof(VmProcessorSettings.PerfCpuEnergyPerformancePreference), VmProcessorCapability.EnergyPerformancePreference, description: "原始编码；留空恢复默认。"),
             Number("自主活动窗口", nameof(VmProcessorSettings.PerfCpuAutonomousActivityWindow), VmProcessorCapability.AutonomousActivityWindow, description: "原始编码；留空恢复默认。"),
             Toggle("忽略宿主最大频率", nameof(VmProcessorSettings.PerfCpuIgnoreHostMaxFrequency), VmProcessorCapability.IgnoreHostFrequencyMaximum));
-        AddGroup("寻址与分页", "\uE8A5", null,
+        AddGroup("寻址与分页",
             Number("物理地址位宽", nameof(VmProcessorSettings.PhysicalAddressWidth), VmProcessorCapability.PhysicalAddressWidth),
             Choice("大页拆分缓解", nameof(VmProcessorSettings.PageShatterMode), VmProcessorCapability.LargePageMitigation,
                 Options((PageShatterMode.Default, "默认"), (PageShatterMode.AlwaysEnabled, "启用"), (PageShatterMode.AlwaysDisabled, "禁用"))));
-        AddGroup("安全隔离", "\uE72E", null,
+        AddGroup("安全隔离",
             Toggle("禁用推测执行控制", nameof(VmProcessorSettings.DisableSpeculationControls), VmProcessorCapability.SpeculationControlPolicy),
             Toggle("硬件隔离扩展", nameof(VmProcessorSettings.HardwareIsolationExtensionsEnabled), VmProcessorCapability.HardwareIsolation),
             Number("硬件隔离来宾上限", nameof(VmProcessorSettings.MaxHwIsolatedGuests), VmProcessorCapability.HardwareIsolatedGuestLimit));
 
-        var layout = new Grid { RowSpacing = 20 };
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        tabs.SetItems(sections.Select(s => s.Title).ToArray());
-        tabs.SelectionRequested += ShowSection;
-        scroll.Content = sectionHost;
-        Grid.SetRow(scroll, 1);
-        layout.Children.Add(tabs);
-        layout.Children.Add(scroll);
-        ShowSection(0);
-        SetBody(layout, handlesScrolling: true);
+        SetSectionedBody(sections);
+        BusyChanged += busy => { if (!busy) UpdateGroupActions(); };
     }
 
-    private void UpdateResourceApply()
+    protected override void OnSectionShown(int index)
     {
-        applyResources.IsEnabled = snapshot != null && !uncertain && resourceFields.Any(field => field.IsEnabled && field.HasPendingEdit);
+        if (index != 1 || affinityView != null || IsStopped) return;
+        affinityView = new VmCpuAffinitySettingsView(VmId);
+        affinityView.Changed += (_, _) => NotifyChanged();
+        affinityView.BusyChanged += SetNestedBusy;
+        affinitySection.Child = affinityView;
     }
 
-    private void ShowSection(int index)
+    public override async Task StopAsync()
     {
-        tabs.Select(index);
-        sectionHost.Content = sections[index].Content;
-        scroll.ChangeView(null, 0, null, disableAnimation: true);
+        if (affinityView != null) await affinityView.StopAsync();
+        await base.StopAsync();
     }
 
-    private void AddGroup(string title, string glyph, UIElement? footer, params Grid[] editors)
+    private void UpdateGroupActions()
     {
-        var content = new StackPanel { Spacing = 20 };
-        var heading = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        heading.Children.Add(new FontIcon { Glyph = glyph, FontSize = 16 });
-        heading.Children.Add(new TextBlock { Text = title, FontSize = 14 });
-        content.Children.Add(heading);
+        foreach (var group in groupActions)
+        {
+            group.Apply.IsEnabled = snapshot != null && !uncertain && group.Fields.Any(f => f.IsEnabled && f.HasPendingEdit);
+            group.Revert.IsEnabled = group.Fields.Any(f => f.HasPendingEdit);
+        }
+    }
+
+    private void AddGroup(string title, params Grid[] editors)
+    {
+        var grouped = editors.Select(row => (SettingFieldEditor)row.Tag).ToArray();
+        var apply = SettingsActionButton.Create("应用本页修改", "\uE73E", primary: true, iconSize: 24);
+        var revert = SettingsActionButton.Create("撤销本页修改", "\uE7A7");
+        apply.IsEnabled = revert.IsEnabled = false;
+        apply.Click += async (_, _) =>
+        {
+            if (Updating || IsBusy || IsStopped || snapshot == null || uncertain) return;
+            var submitted = grouped.Where(f => f.IsEnabled && f.HasPendingEdit).ToArray();
+            await RunAsync(() => ApplyAsync(submitted));
+        };
+        revert.Click += (_, _) =>
+        {
+            foreach (var field in grouped) field.Revert();
+            UpdateGroupActions();
+        };
+        groupActions.Add((grouped, apply, revert));
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10, Margin = new Thickness(0, 2, 0, 0) };
+        actions.Children.Add(revert);
+        actions.Children.Add(apply);
         var grid = new SettingsFieldPanel();
         foreach (var editor in editors) grid.Children.Add(editor);
+        var content = new StackPanel { Spacing = 16 };
         content.Children.Add(grid);
-        if (footer != null) content.Children.Add(footer);
-        sections.Add((title, new Border
-        {
-            Background = Brush("CardBackgroundFillColorDefaultBrush"),
-            BorderBrush = Brush("CardStrokeColorDefaultBrush"), BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(8), Padding = new Thickness(20), Margin = new Thickness(0, 0, 0, 24), Child = content
-        }));
+        content.Children.Add(actions);
+        sections.Add((title, new Border { Child = content, Margin = new Thickness(0, 0, 0, 16) }));
     }
 
     private static string? DescriptionFor(string property) => property switch
     {
+        nameof(VmProcessorSettings.Count) => "虚拟机可见的逻辑处理器数量；可修改范围以宿主能力和虚拟机状态为准",
+        nameof(VmProcessorSettings.Reservation) => "为虚拟机预留的处理器资源比例",
+        nameof(VmProcessorSettings.Limit) => "虚拟机可使用的处理器资源上限",
+        nameof(VmProcessorSettings.RelativeWeight) => "多个虚拟机竞争处理器资源时使用的相对调度权重",
+        nameof(VmProcessorSettings.CpuBrandString) => "修改向来宾公开的 CPU 名称",
         nameof(VmProcessorSettings.ExposeVirtualizationExtensions) => "开启后透传虚拟化指令集，支持在虚拟机内运行虚拟机",
         nameof(VmProcessorSettings.CompatibilityForMigrationEnabled) => "屏蔽 CPU 指令集，以便在不同版本的主机间迁移",
         nameof(VmProcessorSettings.CompatibilityForMigrationMode) => "选择固定的最小特征集，或群集节点共同支持的特征集",
@@ -187,31 +183,25 @@ public sealed class VmProcessorSettingsView : VmSettingsView
     private Grid Choice(string title, string property, VmProcessorCapability capability, SettingOption[] options) => Add(title, property, capability, SettingEditorKind.Choice, options);
     private Grid Add(string title, string property, VmProcessorCapability capability, SettingEditorKind kind, SettingOption[]? options = null, decimal scale = 1, string? description = null)
     {
-        var field = new SettingFieldEditor(typeof(VmProcessorSettings).GetProperty(property)!, kind, options, scale);
-        field.SubmitRequested += async (_, _) =>
-        {
-            if (Updating || IsBusy || IsStopped || !IsLoaded || snapshot == null || uncertain) return;
-            await RunAsync(() => ApplyAsync(field));
-        };
+        var field = new SettingFieldEditor(typeof(VmProcessorSettings).GetProperty(property)!, kind, options, scale, deferred: true);
+        field.HideApplyButton();
+        if (kind == SettingEditorKind.Text && field.Property.PropertyType != typeof(string)) field.UseNumericStepper(title);
+        field.ValueEdited += UpdateGroupActions;
         fields.Add((field, capability));
-        field.UseAvailableWidth();
-        var row = new Grid { RowSpacing = 8, ColumnSpacing = 12, MinHeight = 56 };
-        var label = SettingLabel(title, string.Join("\n", new[] { DescriptionFor(property), description }.Where(s => !string.IsNullOrWhiteSpace(s))), field);
-        if (kind == SettingEditorKind.Toggle)
+        var row = FieldRow(title, string.Join("\n", new[] { DescriptionFor(property), description }.Where(s => !string.IsNullOrWhiteSpace(s))), field, kind);
+        row.Tag = field;
+        row.Background = Brush("CardBackgroundFillColorDefaultBrush");
+        row.BorderBrush = Brush("CardStrokeColorDefaultBrush");
+        row.BorderThickness = new Thickness(1);
+        row.CornerRadius = new CornerRadius(8);
+        row.Padding = new Thickness(17);
+        row.MinHeight = kind == SettingEditorKind.Toggle ? 96 : 128;
+        row.RowSpacing = 16;
+        if (kind != SettingEditorKind.Toggle)
         {
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            Grid.SetColumn(field, 1);
+            row.RowDefinitions[0].Height = new GridLength(1, GridUnitType.Star);
+            field.VerticalAlignment = VerticalAlignment.Bottom;
         }
-        else
-        {
-            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            Grid.SetRow(field, 1);
-        }
-        row.Children.Add(label);
-        row.Children.Add(field);
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(field, title);
         return row;
     }
 
@@ -220,11 +210,11 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         snapshot = null;
         foreach (var field in fields) field.Editor.IsEnabled = false;
         var settingsTask = VmProcessorService.GetVmProcessorAsync(VmId);
-        var hostTask = VmProcessorService.GetHostCapabilitiesAsync();
+        var hostTask = ReadHostCapabilitiesAsync();
         var contextTask = ReadContextAsync();
         await Task.WhenAll(settingsTask, hostTask, contextTask);
         var settings = (await settingsTask).RequireData();
-        host = (await hostTask).RequireData();
+        host = await hostTask;
         poweredOff = (await contextTask).State == VmState.PoweredOff;
         if (IsStopped) return;
         snapshot = settings;
@@ -245,7 +235,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
             }
         }
         finally { Updating = false; }
-        UpdateResourceApply();
+        UpdateGroupActions();
         if (uncertain) ShowError("此前的处理器修改结果尚未确认，本次程序内已暂停对此虚拟机继续提交。请核对底层操作的最终状态。");
     }
 
@@ -264,6 +254,8 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         if (changed.Count == 0) return;
         if (VmProcessorService.GetChangeError(snapshot, proposed, poweredOff, host) is { } error)
             throw new InvalidOperationException(error);
+        var otherDrafts = fields.Select(f => f.Editor).Where(f => f.HasPendingEdit && !submitted.Contains(f))
+            .Select(f => (Field: f, Draft: f.CaptureDraft())).ToArray();
         ApiResponse? result = null;
         Exception? failure = null;
         try
@@ -275,6 +267,8 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         catch (Exception ex) { failure = ex; if (ex is CoreOperationException core && core.Result.ErrorKind == ApiErrorKind.OutcomeUnknown) uncertain = true; }
         try { await LoadAsync(); }
         catch (Exception ex) { failure ??= ex; }
+        foreach (var draft in otherDrafts) draft.Field.RestoreDraft(draft.Draft);
+        UpdateGroupActions();
         if (result is { Success: false }) throw new InvalidOperationException(result.Error
             + (uncertain ? "\n结果尚未确认，本页已停止继续提交。" : "")
             + (failure == null ? "" : "\n重新读取配置也未完成：" + failure.Message));
@@ -302,18 +296,27 @@ internal sealed class SettingFieldEditor : UserControl
     private readonly ToggleSwitch? toggle;
     private readonly ComboBox? choice;
     private readonly Button? apply;
+    private readonly bool deferred;
+    private object? loadedValue;
+    private Button? decrease;
+    private Button? increase;
+    private decimal minimum;
+    private decimal? maximum;
     private string loadedText = "";
     private bool loading;
     public PropertyInfo Property { get; }
     public event EventHandler? SubmitRequested;
     public event Action<string?>? AvailabilityChanged;
     public event Action? ValueEdited;
-    public bool HasPendingEdit => text != null && text.Text != loadedText;
+    public bool HasPendingEdit => text != null ? text.Text != loadedText
+        : toggle != null ? toggle.IsOn != (loadedValue is true)
+        : choice != null && !Equals((choice.SelectedItem as ComboBoxItem)?.Tag, loadedValue);
 
-    public SettingFieldEditor(PropertyInfo property, SettingEditorKind kind, SettingOption[]? options = null, decimal scale = 1)
+    public SettingFieldEditor(PropertyInfo property, SettingEditorKind kind, SettingOption[]? options = null, decimal scale = 1, bool deferred = false)
     {
         Property = property;
         this.scale = scale;
+        this.deferred = deferred;
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         Content = layout;
@@ -321,14 +324,14 @@ internal sealed class SettingFieldEditor : UserControl
         if (kind == SettingEditorKind.Toggle)
         {
             toggle = new ToggleSwitch { OnContent = "", OffContent = "", MinWidth = 0 };
-            toggle.Toggled += (_, _) => { if (!loading) SubmitRequested?.Invoke(this, EventArgs.Empty); };
+            toggle.Toggled += (_, _) => EditedSelection();
             layout.Children.Add(toggle);
         }
         else if (kind == SettingEditorKind.Choice)
         {
             choice = new ComboBox { MinWidth = 160, MaxWidth = 280 };
             SetOptions(options ?? []);
-            choice.SelectionChanged += (_, _) => { if (!loading && choice.SelectedItem is ComboBoxItem { IsEnabled: true }) SubmitRequested?.Invoke(this, EventArgs.Empty); };
+            choice.SelectionChanged += (_, _) => { if (choice.SelectedItem is ComboBoxItem { IsEnabled: true }) EditedSelection(); };
             layout.Children.Add(choice);
         }
         else
@@ -339,6 +342,7 @@ internal sealed class SettingFieldEditor : UserControl
             {
                 if (loading) return;
                 apply.IsEnabled = HasPendingEdit;
+                UpdateStepper();
                 ValueEdited?.Invoke();
             };
             apply.Click += (_, _) => SubmitRequested?.Invoke(this, EventArgs.Empty);
@@ -346,6 +350,71 @@ internal sealed class SettingFieldEditor : UserControl
             Grid.SetColumn(apply, 1);
             layout.Children.Add(apply);
         }
+    }
+
+    private void EditedSelection()
+    {
+        if (loading) return;
+        ValueEdited?.Invoke();
+        if (!deferred) SubmitRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    public object? CaptureDraft() => text != null ? text.Text : toggle != null ? toggle.IsOn : (choice?.SelectedItem as ComboBoxItem)?.Tag;
+
+    public void RestoreDraft(object? value)
+    {
+        loading = true;
+        try
+        {
+            if (text != null) text.Text = value as string ?? "";
+            if (toggle != null) toggle.IsOn = value is true;
+            if (choice != null) choice.SelectedItem = choice.Items.OfType<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, value));
+        }
+        finally { loading = false; }
+        if (apply != null) apply.IsEnabled = HasPendingEdit;
+        UpdateStepper();
+        ValueEdited?.Invoke();
+    }
+
+    public void Revert() => RestoreDraft(text != null ? loadedText : loadedValue);
+
+    public void UseNumericStepper(string title)
+    {
+        if (text == null || Property.PropertyType == typeof(string)) return;
+        minimum = Property.Name is nameof(VmProcessorSettings.Count) or nameof(VmProcessorSettings.RelativeWeight) ? 1 : 0;
+        maximum = scale == 1000 ? 100 : null;
+        HideApplyButton();
+        layout.ColumnSpacing = 6;
+        layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        text.FontSize = 28;
+        text.Padding = new Thickness(2, 0, 2, 0);
+        text.BorderThickness = new Thickness(0);
+        text.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        text.MinWidth = 0;
+        text.MinHeight = 44;
+        text.VerticalContentAlignment = VerticalAlignment.Center;
+        text.PlaceholderText = Nullable.GetUnderlyingType(Property.PropertyType) != null ? "默认" : "";
+        decrease = SettingsActionButton.Create("减少" + title, "\uE738", size: 40, iconSize: 16);
+        increase = SettingsActionButton.Create("增加" + title, "\uE710", size: 40, iconSize: 16);
+        decrease.Click += (_, _) => Step(-1);
+        increase.Click += (_, _) => Step(1);
+        Grid.SetColumn(decrease, 1);
+        Grid.SetColumn(increase, 2);
+        layout.Children.Add(decrease);
+        layout.Children.Add(increase);
+    }
+
+    private void Step(int direction)
+    {
+        if (text != null && SettingsNumericStep.TryGetValue(text.Text, Property.PropertyType, scale, direction, minimum, maximum, out var value))
+            text.Text = value;
+    }
+
+    private void UpdateStepper()
+    {
+        if (text == null || decrease == null || increase == null) return;
+        decrease.IsEnabled = SettingsNumericStep.TryGetValue(text.Text, Property.PropertyType, scale, -1, minimum, maximum, out _);
+        increase.IsEnabled = SettingsNumericStep.TryGetValue(text.Text, Property.PropertyType, scale, 1, minimum, maximum, out _);
     }
 
     public void HideApplyButton()
@@ -380,6 +449,7 @@ internal sealed class SettingFieldEditor : UserControl
         loading = true;
         try
         {
+            loadedValue = value;
             if (toggle != null) toggle.IsOn = value is true;
             if (text != null)
             {
@@ -402,6 +472,7 @@ internal sealed class SettingFieldEditor : UserControl
             AvailabilityChanged?.Invoke(reason);
         }
         finally { loading = false; }
+        UpdateStepper();
     }
 
     public object? Read()

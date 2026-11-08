@@ -19,9 +19,12 @@ public sealed class VmCpuAffinitySettingsView : VmSettingsView
     private static readonly ConcurrentDictionary<Guid, byte> unknownOperations = new();
     private readonly Grid processors = new() { ColumnSpacing = 8, RowSpacing = 8 };
     private readonly List<(int Index, CpuAffinityTile Choice)> choices = [];
-    private readonly SettingInfoButton source = new("CPU 绑定", "按住左键拖动可多选。全部取消选择表示解除绑定。");
+    private readonly SettingInfoButton source = new("核心绑定", "按住左键拖动可多选。全部取消选择表示解除绑定。");
     private readonly TextBlock model = new() { FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis };
-    private readonly Button save = new() { Content = "应用", IsEnabled = false };
+    private readonly Button save = SettingsActionButton.Create("应用核心绑定", "\uE73E", primary: true, iconSize: 24);
+    private readonly Button revert = SettingsActionButton.Create("撤销核心绑定修改", "\uE7A7");
+    private HashSet<int> initialSelection = [];
+    private bool initialReselectionRequired;
     private bool validRead;
     private bool reselectionRequired;
     private uint? dragPointer;
@@ -33,16 +36,16 @@ public sealed class VmCpuAffinitySettingsView : VmSettingsView
 
     public VmCpuAffinitySettingsView(Guid vmId) : base(vmId)
     {
-        save.Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"];
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        save.IsEnabled = revert.IsEnabled = false;
+        var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 10 };
+        actions.Children.Add(revert);
         actions.Children.Add(save);
-        var content = new StackPanel { Margin = new Thickness(24, 12, 24, 24), Spacing = 16 };
+        var content = new StackPanel { Margin = new Thickness(17), Spacing = 16 };
         var heading = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        heading.Children.Add(new TextBlock { Text = "CPU 绑定", FontSize = 20, VerticalAlignment = VerticalAlignment.Center });
+        heading.Children.Add(model);
         heading.Children.Add(source);
         content.Children.Add(heading);
         model.Foreground = Brush("TextFillColorSecondaryBrush");
-        content.Children.Add(model);
         content.Children.Add(processors);
         content.Children.Add(actions);
         SetBody(content);
@@ -52,6 +55,12 @@ public sealed class VmCpuAffinitySettingsView : VmSettingsView
         processors.PointerCanceled += EndSelection;
         processors.PointerCaptureLost += (_, _) => { dragPointer = null; lastToggled = null; };
         save.Click += async (_, _) => await RunAsync(SaveAsync);
+        revert.Click += (_, _) =>
+        {
+            foreach (var (index, choice) in choices) choice.Selected = initialSelection.Contains(index);
+            reselectionRequired = initialReselectionRequired;
+            UpdateActions();
+        };
     }
 
     private void Toggle(CpuAffinityTile tile)
@@ -98,7 +107,10 @@ public sealed class VmCpuAffinitySettingsView : VmSettingsView
     private void UpdateActions()
     {
         bool editable = validRead && !HasUnknownOperation(VmId) && !IsStopped;
-        save.IsEnabled = editable && !reselectionRequired;
+        bool pending = !initialSelection.SetEquals(choices.Where(p => p.Choice.Selected).Select(p => p.Index))
+            || initialReselectionRequired && !reselectionRequired;
+        save.IsEnabled = editable && !reselectionRequired && pending;
+        revert.IsEnabled = editable && pending;
         foreach (var (_, choice) in choices) choice.IsEnabled = editable;
     }
 
@@ -117,6 +129,8 @@ public sealed class VmCpuAffinitySettingsView : VmSettingsView
         reselectionRequired = state.AppliedProcessors == null && state.SavedPreferenceStatus is
             CpuAffinityService.PreferenceStatus.EnvironmentChanged or CpuAffinityService.PreferenceStatus.EnvironmentUnverified or CpuAffinityService.PreferenceStatus.InvalidConfiguration;
         var selected = state.AppliedProcessors ?? (reselectionRequired ? [] : state.SavedProcessors ?? []);
+        initialSelection = selected.ToHashSet();
+        initialReselectionRequired = reselectionRequired;
         string description = state.AppliedProcessors != null ? "选择处理器 · 当前实际亲和性。"
             : "选择处理器 · 下次启动时应用的偏好。尚不表示已应用到运行中的虚拟机。";
         description += "\n按住左键拖动可多选；每进入一个新格子切换选择。全部不选表示解除绑定。";

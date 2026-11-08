@@ -11,17 +11,27 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 public abstract class VmSettingsView : UserControl
 {
     private CancellationTokenSource cancellation = new();
-    private readonly InfoBar message = new() { IsOpen = false, IsClosable = true, Margin = new Thickness(24, 0, 24, 12) };
+    private readonly InfoBar message = new() { IsOpen = false, Visibility = Visibility.Collapsed, IsClosable = true, Margin = new Thickness(24, 0, 24, 12) };
     private readonly ContentControl body = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
     private Task running = Task.CompletedTask;
     private Task? stopping;
     private readonly List<string> stopFailures = [];
+    private VmProcessorService.HostCapabilities? hostCapabilities;
+    private bool changedDuringOperation;
     private bool loaded;
     private bool stopped;
+    private bool operationBusy;
+    private bool nestedBusy;
+    private (string Title, Border Content)[] sections = [];
+    private ContentControl? sectionHost;
+    private ScrollViewer? sectionScroll;
 
     protected VmSettingsView(Guid vmId)
     {
         VmId = vmId;
+        // A closed InfoBar must not reserve its bottom margin above the settings.
+        message.RegisterPropertyChangedCallback(InfoBar.IsOpenProperty, (_, _) =>
+            message.Visibility = message.IsOpen ? Visibility.Visible : Visibility.Collapsed);
         var layout = new Grid();
         layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
@@ -40,37 +50,48 @@ public abstract class VmSettingsView : UserControl
 
     public Guid VmId { get; }
     internal bool HandlesScrolling { get; private set; }
+    internal IEnumerable<string> SectionTitles => sections.Select(section => section.Title);
     internal event Action<bool>? BusyChanged;
     public event EventHandler? Changed;
     protected bool Updating { get; set; }
     protected bool IsStopped => stopped;
-    protected bool IsBusy { get; private set; }
+    protected bool IsBusy => operationBusy || nestedBusy;
     protected CancellationToken CancellationToken => cancellation.Token;
     protected void SetBody(UIElement element, bool handlesScrolling = false)
     {
         HandlesScrolling = handlesScrolling;
         body.Content = element;
     }
-    protected void SetVirtualizedBody(StackPanel panel)
+    protected void SetSectionedBody(IEnumerable<(string Title, Border Content)> items)
     {
-        // Give the list a bounded viewport so off-screen sections do not instantiate
-        // every editor template or participate in the first layout pass.
-        var sections = panel.Children.ToArray();
-        panel.Children.Clear();
-        var list = new ListView
-        {
-            ItemsSource = sections, Margin = panel.Margin, Padding = new Thickness(0),
-            SelectionMode = ListViewSelectionMode.None, IsItemClickEnabled = false, IsTabStop = false,
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            ItemContainerStyle = (Style)Application.Current.Resources["SettingsSectionItemStyle"],
-            ItemsPanel = (ItemsPanelTemplate)Application.Current.Resources["SettingsSectionsPanel"]
-        };
-        ScrollViewer.SetHorizontalScrollBarVisibility(list, ScrollBarVisibility.Disabled);
-        HandlesScrolling = true;
-        body.Content = list;
+        sections = items.ToArray();
+        sectionHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        sectionScroll = new ScrollViewer { Content = sectionHost, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        ShowSection(0);
+        SetBody(sectionScroll, handlesScrolling: true);
+    }
+
+    internal void ShowSection(int index)
+    {
+        if (sectionHost == null || index < 0 || index >= sections.Length) return;
+        sectionHost.Content = sections[index].Content;
+        sectionScroll!.ChangeView(null, 0, null, disableAnimation: true);
+        OnSectionShown(index);
+    }
+    protected virtual void OnSectionShown(int index) { }
+    protected void SetNestedBusy(bool busy)
+    {
+        nestedBusy = busy;
+        body.IsEnabled = !stopped && !IsBusy;
+        BusyChanged?.Invoke(IsBusy);
     }
     protected abstract Task LoadAsync();
-    protected void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    protected void NotifyChanged()
+    {
+        // Finish the settings read-back before the dashboard starts its broader queries.
+        if (IsBusy) changedDuringOperation = true;
+        else Changed?.Invoke(this, EventArgs.Empty);
+    }
 
     public virtual Task StopAsync()
     {
@@ -107,7 +128,7 @@ public abstract class VmSettingsView : UserControl
 
     private async Task RunOperationAsync(Func<Task> operation)
     {
-        IsBusy = true;
+        operationBusy = true;
         body.IsEnabled = false;
         BusyChanged?.Invoke(true);
         message.IsOpen = false;
@@ -116,11 +137,16 @@ public abstract class VmSettingsView : UserControl
         catch (Exception ex) { ShowError(ex.Message); }
         finally
         {
-            IsBusy = false;
-            BusyChanged?.Invoke(false);
+            operationBusy = false;
             if (!stopped)
             {
-                body.IsEnabled = true;
+                body.IsEnabled = !IsBusy;
+            }
+            BusyChanged?.Invoke(IsBusy);
+            if (changedDuringOperation)
+            {
+                changedDuringOperation = false;
+                Changed?.Invoke(this, EventArgs.Empty);
             }
         }
     }
@@ -184,6 +210,16 @@ public abstract class VmSettingsView : UserControl
         return (state.Generation, state.State, state.IsRunning);
     }
 
+    protected async Task<VmProcessorService.HostCapabilities> ReadHostCapabilitiesAsync()
+    {
+        // Hardware capabilities only guide this page's editors. Core revalidates writes
+        // against the current host; reopening the page also reads a fresh snapshot.
+        if (hostCapabilities != null) return hostCapabilities;
+        var result = await VmProcessorService.GetHostCapabilitiesAsync();
+        if (!result.HasData) throw new InvalidOperationException(result.Error);
+        return hostCapabilities = result.Data!;
+    }
+
     protected static Brush Brush(string key) => (Brush)Microsoft.UI.Xaml.Application.Current.Resources[key];
 
     protected static ToggleSwitch Switch() => new()
@@ -221,6 +257,44 @@ public abstract class VmSettingsView : UserControl
         if (editor is SettingFieldEditor field)
             field.AvailabilityChanged += reason => info.SetDescription(string.Join("\n\n", new[] { description, reason }.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct()));
         return label;
+    }
+
+    private protected static Grid FieldRow(string title, string? description, SettingFieldEditor field, SettingEditorKind kind)
+    {
+        field.UseAvailableWidth();
+        var row = new Grid { RowSpacing = 8, ColumnSpacing = 12, MinHeight = 44 };
+        if (kind == SettingEditorKind.Toggle)
+        {
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            Grid.SetColumn(field, 1);
+        }
+        else
+        {
+            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetRow(field, 1);
+        }
+        row.Children.Add(SettingLabel(title, description, field));
+        row.Children.Add(field);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(field, title);
+        return row;
+    }
+
+    protected static Border FieldCard(string title, IEnumerable<Grid> editors, UIElement? footer = null)
+    {
+        var content = new StackPanel { Spacing = 12 };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(content, title);
+        var grid = new SettingsFieldPanel();
+        foreach (var editor in editors) grid.Children.Add(editor);
+        content.Children.Add(grid);
+        if (footer != null) content.Children.Add(footer);
+        return new Border
+        {
+            Background = Brush("CardBackgroundFillColorDefaultBrush"),
+            BorderBrush = Brush("CardStrokeColorDefaultBrush"), BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8), Padding = new Thickness(16), Margin = new Thickness(0, 0, 0, 16), Child = content
+        };
     }
 
     protected static Border Card(params UIElement[] rows)

@@ -6,7 +6,7 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 /// <summary>设置项按行分成两列；空间不足时保持输入控件完整并改为单列。</summary>
 internal sealed class SettingsFieldPanel : Panel
 {
-    private const double Gap = 20;
+    private const double Gap = 16;
     private const double MinimumColumnWidth = 210;
 
     private static int Columns(double width) => width >= MinimumColumnWidth * 2 + Gap ? 2 : 1;

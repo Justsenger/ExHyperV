@@ -71,8 +71,26 @@ public sealed partial class VmDashboardView : UserControl
     public async Task<bool> SelectAsync(VmListItem? vm)
     {
         int version = ++selectionVersion;
+        int pageIndex = PageTabs.SelectedIndex;
+        int sectionIndex = SettingsNavigation.SelectedIndex;
         if (!await TryCloseSettingsAsync()) return false;
-        if (version == selectionVersion) Select(vm);
+        if (version == selectionVersion)
+        {
+            Select(vm);
+            if (vm != null && pageIndex > 0 && pageIndex <= settingsKeys.Length)
+            {
+                OpenSettings(settingsKeys[pageIndex - 1]);
+                if (sectionedSettings != null && SettingsNavigation.Items.Count > 0)
+                {
+                    int restored = Math.Clamp(sectionIndex, 0, SettingsNavigation.Items.Count - 1);
+                    selectingSettings = true;
+                    try { SettingsNavigation.SelectedIndex = restored; }
+                    finally { selectingSettings = false; }
+                    sectionedSettings.ShowSection(restored);
+                }
+            }
+            else PageTabs.Select(0);
+        }
         return true;
     }
 
@@ -115,7 +133,6 @@ public sealed partial class VmDashboardView : UserControl
         diskRates.Clear(); networkRates.Clear(); Array.Clear(gpuValues);
         foreach (var chart in gpuCharts) chart.Clear();
         ResetDeviceSelection();
-        PageTabs.Select(0);
         memoryChart.Clear();
         if (cache?.GetSnapshot(vm.Id) is { } cached)
         {
