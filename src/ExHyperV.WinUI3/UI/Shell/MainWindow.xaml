@@ -16,7 +16,9 @@
                 </StackPanel>
             </Grid>
         </Border>
-        <NavigationView x:Name="Navigation" Grid.Row="1" PaneDisplayMode="LeftCompact" IsPaneOpen="False" OpenPaneLength="220" CompactPaneLength="48"
+        <!-- Keep labels visible in wide windows; use the native compact/minimal modes below these DIP thresholds. -->
+        <NavigationView x:Name="Navigation" Grid.Row="1" PaneDisplayMode="Auto" IsPaneOpen="True" OpenPaneLength="212" CompactPaneLength="48"
+            CompactModeThresholdWidth="820" ExpandedModeThresholdWidth="1080"
             IsTitleBarAutoPaddingEnabled="False" IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
             SelectionChanged="OnSelectionChanged">
             <NavigationView.MenuItems>

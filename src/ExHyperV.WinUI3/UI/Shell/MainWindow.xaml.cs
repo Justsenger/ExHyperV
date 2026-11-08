@@ -26,6 +26,8 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        Navigation.DisplayModeChanged += OnNavigationDisplayModeChanged;
+        UpdateNavigationContentInset();
         Title = TitleText.Text = ((App)Application.Current).Product.DisplayName;
         AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
         themeSettings = ThemeSettings.CreateForWindowId(AppWindow.Id);
@@ -96,6 +98,15 @@ public sealed partial class MainWindow : Window
     private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args) => UpdateTitleBar();
     private void OnActivated(object sender, WindowActivatedEventArgs args)
         => TitleContent.Opacity = args.WindowActivationState == WindowActivationState.Deactivated ? .55 : 1;
+
+    private void OnNavigationDisplayModeChanged(NavigationView sender, NavigationViewDisplayModeChangedEventArgs args)
+        => UpdateNavigationContentInset();
+
+    private void UpdateNavigationContentInset()
+    {
+        // Minimal mode puts the toggle above the content instead of reserving a left rail.
+        PageContent.Margin = new Thickness(0, Navigation.DisplayMode == NavigationViewDisplayMode.Minimal ? 48 : 0, 0, 0);
+    }
 
     private void UpdateTitleBar()
     {
@@ -169,6 +180,7 @@ public sealed partial class MainWindow : Window
         Root.ActualThemeChanged -= OnThemeChanged;
         AppWindow.Changed -= OnAppWindowChanged;
         Activated -= OnActivated;
+        Navigation.DisplayModeChanged -= OnNavigationDisplayModeChanged;
         foreach (var page in pages.Values.OfType<VirtualMachinesPage>()) page.ViewModel.Cancel();
         pages.Clear();
     }
