@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.System;
+using ExHyperV.WinUI3.Composition;
 
 namespace ExHyperV.WinUI3.UI.Shell;
 
@@ -20,10 +21,12 @@ public sealed partial class MainWindow : Window
     private bool restoringNavigation;
     private int navigationVersion;
     private object? activeNavigationItem;
+    private readonly Dictionary<string, ProductPageDefinition> productPages = new();
 
     public MainWindow()
     {
         InitializeComponent();
+        Title = TitleText.Text = ((App)Application.Current).Product.DisplayName;
         AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
         themeSettings = ThemeSettings.CreateForWindowId(AppWindow.Id);
         themeSettings.Changed += OnSystemThemeChanged;
@@ -38,6 +41,18 @@ public sealed partial class MainWindow : Window
         Root.ActualThemeChanged += OnThemeChanged;
         AppWindow.Changed += OnAppWindowChanged;
         Activated += OnActivated;
+        foreach (var page in ((App)Application.Current).Product.Pages)
+        {
+            if (string.IsNullOrWhiteSpace(page.Id) || string.IsNullOrWhiteSpace(page.Title) || page.Create is null)
+                throw new ArgumentException("产品页面需要有效的标识、名称和创建函数。");
+            var route = "product." + page.Id;
+            productPages.Add(route, page);
+            Navigation.MenuItems.Add(new NavigationViewItem
+            {
+                Content = page.Title, Tag = route,
+                Icon = new FontIcon { Glyph = page.Glyph, FontSize = 18 }
+            });
+        }
         Navigation.SelectedItem = Navigation.MenuItems[0];
         AppWindow.Closing += OnClosing;
         Closed += OnClosed;
@@ -123,7 +138,9 @@ public sealed partial class MainWindow : Window
                 "virtual-machines" => new VirtualMachinesPage(),
                 "settings" => new SettingsPage(),
                 "host" => new HostPage(),
-                _ => throw new InvalidOperationException($"Unknown page: {route}")
+                _ => productPages.TryGetValue(route, out var definition)
+                    ? definition.Create(new ProductPageContext(AppWindow.Id))
+                    : throw new InvalidOperationException($"Unknown page: {route}")
             };
             pages.Add(route, page);
         }
@@ -133,6 +150,18 @@ public sealed partial class MainWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        // Window.Close() can bypass AppWindow.Closing. The native product windows
+        // still need releasing; normal title-bar closure already did this above.
+        if (!closeAfterCleanup)
+        {
+            foreach (var page in pages.Values.OfType<IProductPageLifetime>())
+            {
+                try { page.Dispose(); }
+                catch (Exception error) { System.Diagnostics.Trace.TraceError("Product page cleanup failed: {0}", error); }
+            }
+            try { ((App)Application.Current).Product.DesktopWindows?.CloseAll(); }
+            catch (Exception error) { System.Diagnostics.Trace.TraceError("Product desktop cleanup failed after shell closure: {0}", error); }
+        }
         ((App)Application.Current).Appearance.Changed -= OnAppearanceChanged;
         themeSettings.Changed -= OnSystemThemeChanged;
         if (titleBarRoot != null) titleBarRoot.Changed -= OnXamlRootChanged;
@@ -149,7 +178,6 @@ public sealed partial class MainWindow : Window
         if (closeAfterCleanup) return;
         if (cleanupInProgress) { args.Cancel = true; return; }
         var active = pages.Values.OfType<VirtualMachinesPage>().ToArray();
-        if (active.Length == 0) return;
         args.Cancel = true;
         cleanupInProgress = true;
         Root.IsHitTestVisible = false;
@@ -157,6 +185,9 @@ public sealed partial class MainWindow : Window
         try
         {
             await Task.WhenAll(active.Select(page => page.StopAsync()));
+            foreach (var page in pages.Values.OfType<IProductPageLifetime>()) await page.StopAsync();
+            ((App)Application.Current).Product.DesktopWindows?.CloseAll();
+            foreach (var page in pages.Values.OfType<IProductPageLifetime>()) page.Dispose();
             closeAfterCleanup = true;
             Close();
         }

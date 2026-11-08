@@ -96,3 +96,13 @@ Core 含 COM 引用，因此构建完整项目使用 Visual Studio MSBuild。解
 输出位于 `bin/<架构>/Debug/net10.0-windows10.0.26100.0/win-<架构>/ExHyperV.WinUI3.exe`。以管理员权限运行，保留同目录所有依赖。Windows App SDK 与 .NET 均采用自包含文件夹部署；当前不是单文件 EXE，也不需要安装 MSIX。正式发布方式在交付阶段确定。
 
 技术依据：[Windows App SDK 稳定通道](https://learn.microsoft.com/windows/apps/windows-app-sdk/release-channels)、[自包含部署](https://learn.microsoft.com/windows/apps/package-and-deploy/self-contained-deploy/deploy-self-contained-apps)。
+
+## 可选产品组合
+
+`ProductIntegrationTargets` 是显式的构建期导入点。外部产品可通过该 targets 链入 `App.ConfigureProduct` 的 partial 实现，提供 `ProductConfiguration`、`IDesktopWindowProvider` 和可选的 `Pages`。普通构建不设置此属性，不加载外部模块，也不显示产品页面。原有 Core 管理 API 和页面保持共用；当前连接入口由产品自己的页面承载，虚拟机管理页不添加产品专用按钮。
+
+`ProductPageDefinition` 提供标识、标题、图标和页面工厂；产品入口追加在宿主导航之后。页面首次访问时创建，导航切换保留实例；`ProductPageContext.OwnerWindowId` 用于归属文件选择器等窗口。需要后台工作回收的页面实现 `IProductPageLifetime`：正常关闭先等待 `StopAsync` 再 `Dispose`，程序直接关闭窗口时由 `Closed` 补做 `Dispose`。失败后保留窗口的页面必须允许再次操作和重试清理。页面的实际业务留在产品侧，开源壳不引用其类型或本地 DLL。
+
+窗口提供者负责打开、重复打开和关闭所属桌面；所有调用在 WinUI 主线程。主壳关闭时调用 `CloseAll`，回收失败则保留主壳并显示错误。此组合点不是稳定的二进制插件 ABI，更新上游后需要重新构建验证。
+
+`IDesktopWindowProvider` 只表示桌面窗口能力，不等于 `IConsoleConnection` 或可消费的图像/音频流。产品不能仅因能够打开窗口，就把 Core 中尚未实现的 Nimue 帧后端标记为可用。授权校验与商业实现应由外部产品负责。

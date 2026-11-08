@@ -36,4 +36,6 @@
     <None Remove="Assets\Fonts\*.ttf;Assets\Fonts\*-LICENSE.txt" />
     <Content Include="Assets\Fonts\*.ttf;Assets\Fonts\*-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- Explicit build-time composition; never scan or load arbitrary plugin directories. -->
+  <Import Project="$(ProductIntegrationTargets)" Condition="'$(ProductIntegrationTargets)' != ''" />
 </Project>
