@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "coreSource": {
+    "revision": "fc59df6e6c52f251fe4e1598a470c5eeedb66b65",
+    "contentSha256": "1deb297182b1d92c0c31f92c5335cc9006526249b89195e27f1ee7d58d6a6ed8"
+  },
+  "source": {
+    "repository": "Justsenger/ExHyperV",
+    "branch": "2.0.0",
+    "revision": "fc59df6e6c52f251fe4e1598a470c5eeedb66b65",
+    "dirty": false
+  },
+  "version": "2.0.0-Alpha",
+  "generatedAt": "2026-11-08T09:29:47.179Z",
+  "types": 316,
+  "members": 1986,
+  "files": {
+    "index.html": {
+      "sha256": "3bff57494cd022c5d617240af33eab14a633ac0982e3928e0945edcd134b45c8",
+      "bytes": 4511400
+    },
+    "API.md": {
+      "sha256": "8ac632f1ef7604b4a7efd0c06f4c90a74acf40c0cbe17a14142c5e8d23715c3c",
+      "bytes": 1280050
+    }
+  }
+}
