@@ -2,6 +2,27 @@
 
 独立测试项目，通过项目引用同步编译当前 Core。与 `ExHyperV.Core`、`ExHyperV.WinUI3` 并列，入口已加入 `src/ExHyperV.sln`。
 
+## 目录
+
+```text
+ExHyperV.Core.Tests/
+├─ Program.cs                程序入口，分发页面、工作进程和回归测试
+├─ ResourceInspection/      第一步：资源检查、资源选择和测试页面
+├─ TestPlanning/            第二步：API 测试清单、条件判断和分类
+├─ TestExecution/           第三步：API 执行、结果记录和资源恢复
+├─ Automation/              Runner 接单后的执行与进度保存
+├─ Regression/
+│  ├─ Core/                 Core 规则、接口约定与缺陷回归
+│  └─ Framework/            测试程序自身的筛选、执行与恢复检查
+├─ Integration/             Windows 组件与原生库的离线测试
+├─ Diagnostics/             复用检查场景与独立诊断入口
+├─ Properties/              测试程序集设置
+├─ Tools/                   API 清单维护工具
+└─ *.ps1                    启动、更新和命令行执行入口
+```
+
+页面里选择的 API 实机测试由 `TestExecution/` 执行。`Regression/` 和 `Integration/` 中的 MSTest 用例通过 Visual Studio 或 `Test-Core.ps1` 运行，结果单独统计。目录整理保持测试类名、命名空间和筛选名称一致。
+
 ## 打开测试页面
 
 在仓库根目录运行，兼容 Windows PowerShell 5.1 和 PowerShell 7：
