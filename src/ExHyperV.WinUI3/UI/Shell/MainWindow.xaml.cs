@@ -112,8 +112,19 @@ public sealed partial class MainWindow : Window
     {
         double scale = Root.XamlRoot?.RasterizationScale ?? 1;
         bool dark = Root.ActualTheme == ElementTheme.Dark;
-        TitleLeftInset.Width = new GridLength(AppWindow.TitleBar.LeftInset / scale);
-        TitleRightInset.Width = new GridLength(AppWindow.TitleBar.RightInset / scale);
+        double leftInset = AppWindow.TitleBar.LeftInset / scale;
+        double rightInset = AppWindow.TitleBar.RightInset / scale;
+        // Minimize/restore can briefly report negative caption insets. Preserve
+        // the last valid layout until a subsequent window/DPI change refreshes it.
+        // GridLength rejects negative, NaN and infinite values; letting that
+        // exception escape AppWindow.Changed terminates the process.
+        if (double.IsFinite(scale) && scale > 0 &&
+            double.IsFinite(leftInset) && leftInset >= 0 &&
+            double.IsFinite(rightInset) && rightInset >= 0)
+        {
+            TitleLeftInset.Width = new GridLength(leftInset);
+            TitleRightInset.Width = new GridLength(rightInset);
+        }
         if (TitleText.Foreground is SolidColorBrush foreground)
         {
             AppWindow.TitleBar.ButtonForegroundColor = foreground.Color;
