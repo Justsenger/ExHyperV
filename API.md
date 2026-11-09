@@ -81,7 +81,7 @@ public static async Task<VmQueryResult> ReadSelectedFieldsAsync(Guid vmId)
 
 `VmQueryRequest` 的第一个参数是字段，第二个参数是虚拟机 GUID 集合。省略目标会查询全部虚拟机；传入空集合会返回空结果。重复目标和字段自动去重。没有找到的指定目标列在 `MissingVmIds` 中。
 
-字段页的“查询时使用”就是请求中应放入的对象，例如 `VmMemoryFields.Startup`。页面的“数据类型”指成功读取后 `Value` 的类型。需要按配置动态选择字段时，可从 `VmQueryFields.All` 枚举，或用 `VmQueryFields.Find("Memory.Startup")` 按字段标识查找。
+字段页的“成员”是请求中使用的对象，例如 `VmMemoryFields.Startup`；“类型”是成功读取后 `Value` 的 C# 类型。需要动态选择字段时，可从 `VmQueryFields.All` 枚举，或用 `VmQueryFields.Find("Memory.Startup")` 按标识查找。
 
 ### 读取结果
 
@@ -527,7 +527,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: 1deb297182b1d92c0c31f92c5335cc9006526249b89195e27f1ee7d58d6a6ed8 -->
+<!-- source-sha256: b3c2d50f7c3d786b840b59526908d41dc7f32211cae5f32d261e7c8d22af704e -->
 
 程序集：`ExHyperV.Core.dll` · 版本：`2.0.0-Alpha`。
 
@@ -572,9 +572,16 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 **查询 / 额外元数据**
 
+**Core 已使用的键**
+
+| 键名 | 用途 | 保存内容 |
+| --- | --- | --- |
+| ` ExHyperV.CpuAffinity ` | CPU 亲和性配置 | JSON 文本，记录所选处理器、使用的后端、宿主及处理器拓扑标识。 |
+| ` ExHyperV.OSType ` | 操作系统分类 | 操作系统类型名称，例如 Linux，用于界面识别和图标显示。 |
+
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` VmMetadataFields `](#api-46296dc54cee191f) | ` ExHyperV.Services ` | 额外元数据的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
+| [` VmMetadataFields `](#api-46296dc54cee191f) | ` ExHyperV.Services ` | 随虚拟机配置保存的自定义数据，以键和值组成一项。 |
 | [` VmMetadataService `](#api-76ce30bc80984d54) | ` ExHyperV.Services ` | 通过 Hyper-V HostOnlyItems 读取和保存随虚拟机配置携带的字符串元数据。 |
 
 **查询 / 处理器**
@@ -711,6 +718,13 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmEditService `](#api-3152e140f9edbf4b) | ` ExHyperV.Services ` | 校验和修改虚拟机显示名称。 |
 
 **修改 / 额外元数据**
+
+**Core 已使用的键**
+
+| 键名 | 用途 | 保存内容 |
+| --- | --- | --- |
+| ` ExHyperV.CpuAffinity ` | CPU 亲和性配置 | JSON 文本，记录所选处理器、使用的后端、宿主及处理器拓扑标识。 |
+| ` ExHyperV.OSType ` | 操作系统分类 | 操作系统类型名称，例如 Linux，用于界面识别和图标显示。 |
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
@@ -965,9 +979,9 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` HostCpuGroupInfo `](#api-e73baff26ca9c0f9) | ` ExHyperV.Services ` | 宿主 CPU 组的只读快照；修改组策略会影响该组的全部实际使用者。 |
-| [` HostCpuGroupMember `](#api-d87f4f08ed1246c8) | ` ExHyperV.Services ` | CPU 组在本次读取中绑定的一台 WMI 可见 Hyper-V 虚拟机；不包含检查点的历史绑定。 |
-| [` HostCpuGroupService `](#api-0333bc67cb65a850) | ` ExHyperV.Services ` | 查询和单独修改宿主 CPU 组策略；每次修改影响该组全部实际使用者。 |
+| [` HostCpuGroupInfo `](#api-e73baff26ca9c0f9) | ` ExHyperV.Services ` | 宿主 CPU 组的处理器、调度策略与成员快照。 |
+| [` HostCpuGroupMember `](#api-d87f4f08ed1246c8) | ` ExHyperV.Services ` | 绑定到 CPU 组的 Hyper-V 虚拟机。 |
+| [` HostCpuGroupService `](#api-0333bc67cb65a850) | ` ExHyperV.Services ` | 查询宿主 CPU 组，修改配额、优先级、空闲处理器保留数量和相对权重。 |
 
 **查询 / 内存**
 
@@ -980,7 +994,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` HostDiskInfo `](#api-4999a42e73dce6e6) | ` ExHyperV.Models ` | 宿主存储提供程序枚举的磁盘，以及本次物理盘直通候选判断；可能包含已挂载的虚拟磁盘。 |
+| [` HostDiskInfo `](#api-4999a42e73dce6e6) | ` ExHyperV.Models ` | 宿主磁盘的身份、容量与直通候选状态，包含已挂载的虚拟磁盘。 |
 | [` HostOpticalDriveInfo `](#api-b89e91519a465463) | ` ExHyperV.Models ` | 具有 PnP 身份的宿主光驱查询结果；物理光驱配置用于第 1 代虚拟机，第 2 代使用 ISO 映像。 |
 | [` HostDiskMountResult `](#api-2dc1cd9f66ce73d2) | ` ExHyperV.Services ` | 映像挂载结果，分别表达挂载状态、磁盘发现和清理责任。 |
 | [` HostDiskReference `](#api-b7abecd5b9d2180e) | ` ExHyperV.Services ` | 查询时选中的宿主磁盘身份；修改时原样回传，不以磁盘编号单独确认设备。 |
@@ -995,8 +1009,8 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
 | [` SwitchEndpointInfo `](#api-4c71af5310c751ad) | ` ExHyperV.Models ` | 交换机端点的显示摘要：虚拟机网卡或宿主网卡。 |
-| [` SwitchInfo `](#api-920c0d414c414611) | ` ExHyperV.Models ` | Hyper-V 虚拟交换机的数据模型（HyperVSwitchService 查询产出，构造后不可变）。 |
-| [` SwitchMode `](#api-84f5dcdc201f39f8) | ` ExHyperV.Models ` | 现有 WMI/ICS 组合接口使用的配置模式；不是覆盖全部宿主网络实现的交换机类型。 |
+| [` SwitchInfo `](#api-920c0d414c414611) | ` ExHyperV.Models ` | 虚拟交换机的连接模式、上游网卡与宿主接入状态。 |
+| [` SwitchMode `](#api-84f5dcdc201f39f8) | ` ExHyperV.Models ` | Hyper-V 交换机的桥接、ICS NAT 和隔离配置模式。 |
 | [` SwitchUpstreamAdapter `](#api-2cff6962c24db25a) | ` ExHyperV.Models ` | 可用的上游物理网卡；使用连接 GUID 和设备标识匹配，不依赖显示名称。 |
 | [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置快照。 |
 | [` HyperVSwitchService `](#api-0f66c11c037b51ce) | ` ExHyperV.Services ` | 读取和配置本机 Hyper-V 虚拟交换机及 ICS 上游共享关系。 |
@@ -1014,7 +1028,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` PcieDeviceInfo `](#api-f5ca6ddfa1385521) | ` ExHyperV.Models ` | 具有 DDA 位置路径的 PCIe 设备候选及当前识别的归属；列出不表示已经通过设备分配能力检查。 |
+| [` PcieDeviceInfo `](#api-f5ca6ddfa1385521) | ` ExHyperV.Models ` | 具有 DDA 位置路径的 PCIe 设备及其当前归属。 |
 | [` ControllerDisk `](#api-300a4de29fad713b) | ` ExHyperV.Services ` | PCIe 存储控制器名下的物理磁盘，用于直通前确认能否脱机。 |
 | [` HostPcieService `](#api-35590b81f811c4b0) | ` ExHyperV.Services ` | 读取宿主 PCIe/DDA 分配状态并执行设备转移。 |
 | [` PcieHostInfo `](#api-8c62d8d2a672175b) | ` ExHyperV.Services ` | 宿主 PCIe 设备归属和可分配虚拟机的同次查询快照。 |
@@ -1045,10 +1059,10 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` HyperVHostService `](#api-d765f6dc004e22df) | ` ExHyperV.Services ` | 检测本机 Hyper-V 环境，并提交 Windows 功能及引导配置变更。 |
 | [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置快照。 |
 | [` HyperVHostSettingsService `](#api-7d8a2f197b518ae9) | ` ExHyperV.Services ` | 读取宿主 Hyper-V 配置快照，修改新建虚拟机的默认配置目录。 |
-| [` VmHostDefaultPaths `](#api-4b902ac18bf9c3fd) | ` ExHyperV.Services ` | Hyper-V 宿主报告的默认虚拟机目录。 |
-| [` VmmsImageInfo `](#api-406890c926a27d9e) | ` ExHyperV.Services ` | 只读的 VMMS 程序路径诊断；文件存在不证明内容完整或可以执行。 |
+| [` VmHostDefaultPaths `](#api-4b902ac18bf9c3fd) | ` ExHyperV.Services ` | 宿主创建虚拟机和虚拟硬盘时使用的默认目录。 |
+| [` VmmsImageInfo `](#api-406890c926a27d9e) | ` ExHyperV.Services ` | VMMS 程序文件的路径与存在状态。 |
 | [` VmmsImageState `](#api-897673c08040ffe4) | ` ExHyperV.Services ` | VMMS 程序路径的诊断状态。 |
-| [` VmmsServiceInfo `](#api-7f0ea6f367307b55) | ` ExHyperV.Services ` | VMMS 服务的一次只读快照，辅助字段不作为运行通过的额外条件。 |
+| [` VmmsServiceInfo `](#api-7f0ea6f367307b55) | ` ExHyperV.Services ` | VMMS Windows 服务的状态、启动配置与程序信息。 |
 
 **查询 / 控制台**
 
@@ -1063,8 +1077,8 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmGroup `](#api-4eb8163b9d96a53e) | ` ExHyperV.Models ` | Hyper-V 分组及其成员快照。 |
 | [` VmGroupKind `](#api-7009c707c715a19c) | ` ExHyperV.Models ` | Hyper-V 原生分组允许包含的成员类别。 |
 | [` VmGroupSnapshot `](#api-5ae62ce278562650) | ` ExHyperV.Models ` | 原生分组的成员关系构成图结构；同一虚拟机或分组可以属于多个父分组。 |
-| [` VmGroupFields `](#api-e8293dd4c364f26d) | ` ExHyperV.Services ` | 所属分组的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
-| [` VmGroupMoveResult `](#api-cc37958683c518ee) | ` ExHyperV.Services ` | 分组移动成功后的实际目标身份；空目标表示仅移除请求中指定的源关系，其他父组关系仍可保留。 |
+| [` VmGroupFields `](#api-e8293dd4c364f26d) | ` ExHyperV.Services ` | 虚拟机直接所属分组的查询成员。 |
+| [` VmGroupMoveResult `](#api-cc37958683c518ee) | ` ExHyperV.Services ` | 分组移动后的目标标识，以及目标组是否发生重建。 |
 | [` VmGroupService `](#api-99e3f6668ba1efe6) | ` ExHyperV.Services ` | 通过 Hyper-V 分组接口读取及修改分组；本进程内串行执行写入。 |
 
 **查询 / ARP 嗅探**
@@ -1096,7 +1110,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` HostCpuGroupService `](#api-0333bc67cb65a850) | ` ExHyperV.Services ` | 查询和单独修改宿主 CPU 组策略；每次修改影响该组全部实际使用者。 |
+| [` HostCpuGroupService `](#api-0333bc67cb65a850) | ` ExHyperV.Services ` | 查询宿主 CPU 组，修改配额、优先级、空闲处理器保留数量和相对权重。 |
 
 **修改 / 内存**
 
@@ -1218,9 +1232,9 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 ##### 连接
 
-管理与虚拟机的通信连接，提供视频、音频、控制和剪贴板的能力入口。
+选择后端，建立和关闭虚拟机通信连接。
 
-连接负责后端选择、建立与断开、连接状态和资源释放。各能力的数据格式和操作分别见对应分类；控制包含键盘和鼠标。
+连接对象提供状态通知和视频、控制、剪贴板等接口。控制包含键盘和鼠标，音频为预留接口。
 
 
 
@@ -1238,7 +1252,7 @@ RdpBasic 已提供视频和键鼠；RdpEnhanced 还提供剪贴板和分辨率�
 | --- | --- | --- |
 | [` ConsoleBackendInfo `](#api-0bbffb055adaf595) | ` ExHyperV.Services ` | 一个控制台后端的名称、实现状态和功能列表。 |
 | [` ConsoleCapabilities `](#api-a7effae4ff578e31) | ` ExHyperV.Services ` | 控制台后端实现的功能，可使用按位运算组合和检查。 |
-| [` ConsoleConnectionOptions `](#api-e62d45486843fafd) | ` ExHyperV.Services ` | 连接哪台虚拟机，以及连接时请求的桌面尺寸、缩放比例和等待时间。 |
+| [` ConsoleConnectionOptions `](#api-e62d45486843fafd) | ` ExHyperV.Services ` | 连接目标、初始桌面尺寸、缩放比例和连接超时。 |
 | [` ConsoleConnectionState `](#api-ea5482a340e8774c) | ` ExHyperV.Services ` | 控制台连接当前处于连接中、已连接还是断开阶段。 |
 | [` ConsoleDisconnectInfo `](#api-29568228a14c6559) | ` ExHyperV.Services ` | 连接结束时提供的诊断信息，用于显示原因或记录日志。 |
 | [` ConsoleService `](#api-78a7a0c2e5b1433b) | ` ExHyperV.Services ` | 选择连接方式，创建用于查看和操作虚拟机桌面的控制台连接。 |
@@ -1270,15 +1284,11 @@ RdpBasic 已提供视频和键鼠；RdpEnhanced 还提供剪贴板和分辨率�
 
 来宾声音接收；当前尚未实现。
 
-RdpBasic、RdpEnhanced 均未接入音频。现有音频类型仅为预留契约，不表示已经提供可用功能。
+接收方向为“来宾 → 调用方”，数据格式为 PCM；播放由调用方负责。RdpBasic 和 RdpEnhanced 尚未接入音频。
 
 
 
-此处的接收方向为“来宾 → 调用方”，播放设备由调用方管理。 向来宾输入音视频不属于当前 Core 的实现范围。
-
-
-
-音频使用未压缩 PCM，格式计算示例见 `ConsoleAudioFormat` 和 `ConsoleAudioPacket`。 这些数据类型不代表后端已经能够采集或传输声音。
+采样格式和数据包约定见 `ConsoleAudioFormat`、`ConsoleAudioPacket`。向来宾输入音视频不属于当前实现范围。
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
@@ -1656,6 +1666,13 @@ public string DiskPath { get; set; } = string.Empty;
 
 虚拟磁盘文件路径；物理直通盘则为十进制磁盘编号字符串。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 分区所属的磁盘。 |
+| 取值与默认 | 虚拟磁盘使用宿主文件路径，例如 `D:\VMs\Disk.vhdx`；物理直通盘使用十进制磁盘编号，例如 `2`。结合 `IsPhysicalDisk` 区分。 |
+
 <a id="api-9548137ae215094d"></a>
 
 ##### DisplayName · 属性
@@ -1676,6 +1693,13 @@ public bool IsBitLocker { get; set; }
 
 是否检测到 BitLocker 分区首扇区签名；为 true 时 GPU 部署要求先解锁。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 根据分区首扇区识别 BitLocker；GPU 部署前需要解锁此类分区。 |
+| 取值与默认 | `true`：检测到 BitLocker 签名；`false`：未检测到。 |
+
 <a id="api-647582ff53c828ac"></a>
 
 ##### IsPhysicalDisk · 属性
@@ -1685,6 +1709,13 @@ public bool IsPhysicalDisk { get; set; }
 ```
 
 是否为物理直通磁盘上的分区。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 所属磁盘的来源类型。 |
+| 取值与默认 | `true`：物理直通盘；`false`：虚拟磁盘文件。 |
 
 <a id="api-5069018406e6b2a1"></a>
 
@@ -1706,6 +1737,13 @@ public int PartitionNumber { get; }
 
 扫描器按分区表位置分配的编号；GPT 条目和 MBR 主分区从 1 开始，MBR 逻辑分区从 5 开始。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 分区在磁盘分区表中的编号。 |
+| 取值与默认 | GPT 条目和 MBR 主分区从 1 开始；MBR 逻辑分区从 5 开始。 |
+
 <a id="api-d8e53eb0ec0a56dc"></a>
 
 ##### SizeGiB · 属性
@@ -1716,6 +1754,13 @@ public double SizeGiB { get; }
 
 按 1024&#179; 字节换算的分区容量，单位为 GiB。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 换算为 GiB 的分区容量。 |
+| 取值与默认 | 单位为 GiB，1 GiB = 1,073,741,824 字节。 |
+
 <a id="api-c987017560b2fd61"></a>
 
 ##### SizeInBytes · 属性
@@ -1725,6 +1770,13 @@ public ulong SizeInBytes { get; }
 ```
 
 分区容量，单位为字节。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 分区容量。 |
+| 取值与默认 | 非负整数，单位为字节。 |
 
 <a id="api-073e32b33cc09bcf"></a>
 
@@ -3762,7 +3814,7 @@ public bool Restored { get; init; }
 
 ### `HostDiskInfo` 类
 
-宿主存储提供程序枚举的磁盘，以及本次物理盘直通候选判断；可能包含已挂载的虚拟磁盘。
+宿主磁盘的身份、容量与直通候选状态，包含已挂载的虚拟磁盘。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -3778,15 +3830,15 @@ public bool Restored { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public bool CanPassthrough { get; init; } `](#api-5ac578ba27641fe5) | 本次未识别为系统/启动盘或已分配磁盘时为 true；仅表示可进入后续检查，不保证脱机、身份校验或 Hyper-V 分配成功。 |
-| [` public string FriendlyName { get; init; } = string.Empty `](#api-053d1df35fd1010f) | 磁盘型号或友好名称，用于显示。 |
-| [` public int Number { get; init; } `](#api-4eca52c525a05420) | 宿主操作系统中的物理磁盘编号。 |
-| [` public Services.HostDiskReference Reference { get; } `](#api-5efe5d6c8a849a78) | 当前磁盘的身份摘要；修改联机、只读或分区盘符时原样回传，不要重新用旧编号取得替代磁盘的身份。 |
-| [` public string SerialNumber { get; init; } = string.Empty `](#api-6a3a85fd2d5f0097) | 磁盘序列号；无法取得时为空字符串。 |
-| [` public long SizeBytes { get; init; } `](#api-2aeb9591a84bfc27) | 磁盘容量，单位为字节。 |
-| [` public double SizeGiB { get; init; } `](#api-0610ab0863bf51f6) | 以 1024&#179; 字节换算并保留两位小数的显示容量，单位为 GiB；精确计算使用 SizeBytes。 |
-| [` public string Status { get; init; } = string.Empty `](#api-3a3337f1422acde5) | 按系统盘、已分配、只读等优先级生成的本地化标签，不是完整磁盘状态或可解析的错误码。 |
-| [` public string UniqueId { get; init; } = string.Empty `](#api-3e55cc8acf07c4a9) | 存储系统返回的磁盘唯一标识。 |
+| [` public bool CanPassthrough { get; init; } `](#api-5ac578ba27641fe5) | 该磁盘是否可以进入直通前的进一步检查。 |
+| [` public string FriendlyName { get; init; } = string.Empty `](#api-053d1df35fd1010f) | 磁盘型号或友好名称。 |
+| [` public int Number { get; init; } `](#api-4eca52c525a05420) | Windows 为该磁盘分配的编号。 |
+| [` public Services.HostDiskReference Reference { get; } `](#api-5efe5d6c8a849a78) | 该磁盘的身份摘要，用于后续联机、只读和分区盘符修改。 |
+| [` public string SerialNumber { get; init; } = string.Empty `](#api-6a3a85fd2d5f0097) | 磁盘的硬件序列号。 |
+| [` public long SizeBytes { get; init; } `](#api-2aeb9591a84bfc27) | 磁盘的总容量。 |
+| [` public double SizeGiB { get; init; } `](#api-0610ab0863bf51f6) | 以 GiB 表示的磁盘容量。 |
+| [` public string Status { get; init; } = string.Empty `](#api-3a3337f1422acde5) | 磁盘的主要状态说明，按系统盘、已分配、只读等优先级选取。 |
+| [` public string UniqueId { get; init; } = string.Empty `](#api-3e55cc8acf07c4a9) | 存储系统提供的磁盘标识，用于核对修改目标。 |
 
 #### 详细说明
 
@@ -3804,7 +3856,14 @@ public class HostDiskInfo
 public bool CanPassthrough { get; init; }
 ```
 
-本次未识别为系统/启动盘或已分配磁盘时为 true；仅表示可进入后续检查，不保证脱机、身份校验或 Hyper-V 分配成功。
+该磁盘是否可以进入直通前的进一步检查。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 该磁盘是否可以进入直通前的进一步检查。 |
+| 取值与默认 | true：未识别为系统盘、启动盘或已分配磁盘；false：被上述条件排除。 |
 
 <a id="api-053d1df35fd1010f"></a>
 
@@ -3814,7 +3873,13 @@ public bool CanPassthrough { get; init; }
 public string FriendlyName { get; init; } = string.Empty;
 ```
 
-磁盘型号或友好名称，用于显示。
+磁盘型号或友好名称。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 磁盘型号或友好名称。 |
 
 <a id="api-4eca52c525a05420"></a>
 
@@ -3824,7 +3889,14 @@ public string FriendlyName { get; init; } = string.Empty;
 public int Number { get; init; }
 ```
 
-宿主操作系统中的物理磁盘编号。
+Windows 为该磁盘分配的编号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | Windows 为该磁盘分配的编号。 |
+| 取值与默认 | 非负整数，例如 0 表示磁盘 0。 |
 
 <a id="api-5efe5d6c8a849a78"></a>
 
@@ -3834,7 +3906,13 @@ public int Number { get; init; }
 public Services.HostDiskReference Reference { get; }
 ```
 
-当前磁盘的身份摘要；修改联机、只读或分区盘符时原样回传，不要重新用旧编号取得替代磁盘的身份。
+该磁盘的身份摘要，用于后续联机、只读和分区盘符修改。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 该磁盘的身份摘要，用于后续联机、只读和分区盘符修改。 |
 
 <a id="api-6a3a85fd2d5f0097"></a>
 
@@ -3844,7 +3922,14 @@ public Services.HostDiskReference Reference { get; }
 public string SerialNumber { get; init; } = string.Empty;
 ```
 
-磁盘序列号；无法取得时为空字符串。
+磁盘的硬件序列号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 磁盘的硬件序列号。 |
+| 取值与默认 | 序列号文本；未取得时为空字符串。 |
 
 <a id="api-2aeb9591a84bfc27"></a>
 
@@ -3854,7 +3939,14 @@ public string SerialNumber { get; init; } = string.Empty;
 public long SizeBytes { get; init; }
 ```
 
-磁盘容量，单位为字节。
+磁盘的总容量。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 磁盘的总容量。 |
+| 取值与默认 | 单位为字节。 |
 
 <a id="api-0610ab0863bf51f6"></a>
 
@@ -3864,7 +3956,14 @@ public long SizeBytes { get; init; }
 public double SizeGiB { get; init; }
 ```
 
-以 1024&#179; 字节换算并保留两位小数的显示容量，单位为 GiB；精确计算使用 SizeBytes。
+以 GiB 表示的磁盘容量。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 以 GiB 表示的磁盘容量。 |
+| 取值与默认 | 1 GiB = 1,073,741,824 字节，保留两位小数。精确字节数见 SizeBytes。 |
 
 <a id="api-3a3337f1422acde5"></a>
 
@@ -3874,7 +3973,14 @@ public double SizeGiB { get; init; }
 public string Status { get; init; } = string.Empty;
 ```
 
-按系统盘、已分配、只读等优先级生成的本地化标签，不是完整磁盘状态或可解析的错误码。
+磁盘的主要状态说明，按系统盘、已分配、只读等优先级选取。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 磁盘的主要状态说明，按系统盘、已分配、只读等优先级选取。 |
+| 取值与默认 | 本地化文本。 |
 
 <a id="api-3e55cc8acf07c4a9"></a>
 
@@ -3884,7 +3990,13 @@ public string Status { get; init; } = string.Empty;
 public string UniqueId { get; init; } = string.Empty;
 ```
 
-存储系统返回的磁盘唯一标识。
+存储系统提供的磁盘标识，用于核对修改目标。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 存储系统提供的磁盘标识，用于核对修改目标。 |
 
 <a id="api-7e834c339070727a"></a>
 
@@ -3906,13 +4018,13 @@ public string UniqueId { get; init; } = string.Empty;
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string DriverVersion { get; init; } = string.Empty `](#api-e1ee4e8ca70cc78f) | 宿主当前安装的驱动版本字符串。 |
-| [` public string InstanceId { get; init; } = string.Empty `](#api-6df3f93066275072) | 当前显示适配器的 PnP 设备实例 ID。 |
-| [` public bool IsPartitionable { get; } `](#api-79d05e2a353b1f39) | 本次查询是否找到与该设备身份匹配的可分区资源；不表示尚有空闲分区或分配一定成功。 |
-| [` public string Manu { get; init; } = string.Empty `](#api-be44e243c7ce20c1) | Windows 设备属性提供的制造商说明；缺失时使用 PCI 厂商查询结果，不保证是芯片商名称。 |
-| [` public ulong? MemoryBytes { get; set; } `](#api-49d88ae65e6ad164) | DXGI 报告的专用显存容量，单位为字节，不包含共享或专用系统内存；null 表示未取得，0 是有效容量。 |
-| [` public string Name { get; init; } = string.Empty `](#api-b00e9a6e237303b8) | 显示适配器的设备名称。 |
-| [` public string Vendor { get; init; } = string.Empty `](#api-0bbab15e5270b874) | 优先按 PCI 子系统厂商识别的名称，未匹配时回退到 PCI 厂商或 Windows 制造商说明。 |
+| [` public string DriverVersion { get; init; } = string.Empty `](#api-e1ee4e8ca70cc78f) | 宿主为该 GPU 安装的驱动版本。 |
+| [` public string InstanceId { get; init; } = string.Empty `](#api-6df3f93066275072) | 显示适配器的 PnP 设备实例标识，用于匹配 GPU。 |
+| [` public bool IsPartitionable { get; } `](#api-79d05e2a353b1f39) | 当前是否找到与该 GPU 对应的可分区资源。 |
+| [` public string Manu { get; init; } = string.Empty `](#api-be44e243c7ce20c1) | 显示适配器的制造商名称，由 Windows 设备属性或 PCI 厂商信息提供。 |
+| [` public ulong? MemoryBytes { get; set; } `](#api-49d88ae65e6ad164) | GPU 的专用显存容量。 |
+| [` public string Name { get; init; } = string.Empty `](#api-b00e9a6e237303b8) | 宿主显示适配器的设备名称。 |
+| [` public string Vendor { get; init; } = string.Empty `](#api-0bbab15e5270b874) | 板卡厂商名称，优先使用 PCI 子系统厂商信息。 |
 
 #### 详细说明
 
@@ -3930,7 +4042,14 @@ public class HostGpuInfo
 public string DriverVersion { get; init; } = string.Empty;
 ```
 
-宿主当前安装的驱动版本字符串。
+宿主为该 GPU 安装的驱动版本。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主为该 GPU 安装的驱动版本。 |
+| 取值与默认 | 版本字符串。 |
 
 <a id="api-6df3f93066275072"></a>
 
@@ -3940,7 +4059,13 @@ public string DriverVersion { get; init; } = string.Empty;
 public string InstanceId { get; init; } = string.Empty;
 ```
 
-当前显示适配器的 PnP 设备实例 ID。
+显示适配器的 PnP 设备实例标识，用于匹配 GPU。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 显示适配器的 PnP 设备实例标识，用于匹配 GPU。 |
 
 <a id="api-79d05e2a353b1f39"></a>
 
@@ -3950,7 +4075,14 @@ public string InstanceId { get; init; } = string.Empty;
 public bool IsPartitionable { get; }
 ```
 
-本次查询是否找到与该设备身份匹配的可分区资源；不表示尚有空闲分区或分配一定成功。
+当前是否找到与该 GPU 对应的可分区资源。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前是否找到与该 GPU 对应的可分区资源。 |
+| 取值与默认 | true：存在可分区资源；false：未找到。 |
 
 <a id="api-be44e243c7ce20c1"></a>
 
@@ -3960,7 +4092,13 @@ public bool IsPartitionable { get; }
 public string Manu { get; init; } = string.Empty;
 ```
 
-Windows 设备属性提供的制造商说明；缺失时使用 PCI 厂商查询结果，不保证是芯片商名称。
+显示适配器的制造商名称，由 Windows 设备属性或 PCI 厂商信息提供。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 显示适配器的制造商名称，由 Windows 设备属性或 PCI 厂商信息提供。 |
 
 <a id="api-49d88ae65e6ad164"></a>
 
@@ -3970,7 +4108,14 @@ Windows 设备属性提供的制造商说明；缺失时使用 PCI 厂商查询�
 public ulong? MemoryBytes { get; set; }
 ```
 
-DXGI 报告的专用显存容量，单位为字节，不包含共享或专用系统内存；null 表示未取得，0 是有效容量。
+GPU 的专用显存容量。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | GPU 的专用显存容量。 |
+| 取值与默认 | 单位为字节；0 表示没有专用显存，null 表示未取得。 |
 
 <a id="api-b00e9a6e237303b8"></a>
 
@@ -3980,7 +4125,13 @@ DXGI 报告的专用显存容量，单位为字节，不包含共享或专用系
 public string Name { get; init; } = string.Empty;
 ```
 
-显示适配器的设备名称。
+宿主显示适配器的设备名称。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主显示适配器的设备名称。 |
 
 <a id="api-0bbab15e5270b874"></a>
 
@@ -3990,7 +4141,13 @@ public string Name { get; init; } = string.Empty;
 public string Vendor { get; init; } = string.Empty;
 ```
 
-优先按 PCI 子系统厂商识别的名称，未匹配时回退到 PCI 厂商或 Windows 制造商说明。
+板卡厂商名称，优先使用 PCI 子系统厂商信息。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 板卡厂商名称，优先使用 PCI 子系统厂商信息。 |
 
 <a id="api-b89e91519a465463"></a>
 
@@ -4012,9 +4169,9 @@ public string Vendor { get; init; } = string.Empty;
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string Drive { get; init; } = string.Empty `](#api-44884fe943e7c151) | 宿主光驱盘符，例如 E:，仅用于显示。 |
-| [` public string Model { get; init; } = string.Empty `](#api-88cdc9d34d8169aa) | 光驱型号或系统返回的显示名称。 |
-| [` public string PnpDeviceId { get; init; } = string.Empty `](#api-e3d943338e63f090) | 物理光驱的 PnP 标识，用于直通配置的 HostResource。 |
+| [` public string Drive { get; init; } = string.Empty `](#api-44884fe943e7c151) | 宿主为光驱分配的盘符。 |
+| [` public string Model { get; init; } = string.Empty `](#api-88cdc9d34d8169aa) | 光驱型号或设备显示名称。 |
+| [` public string PnpDeviceId { get; init; } = string.Empty `](#api-e3d943338e63f090) | 物理光驱的 PnP 设备标识，用于第 1 代虚拟机的光驱直通。 |
 
 #### 详细说明
 
@@ -4032,7 +4189,14 @@ public class HostOpticalDriveInfo
 public string Drive { get; init; } = string.Empty;
 ```
 
-宿主光驱盘符，例如 E:，仅用于显示。
+宿主为光驱分配的盘符。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主为光驱分配的盘符。 |
+| 取值与默认 | 字母与冒号，例如 E:。 |
 
 <a id="api-88cdc9d34d8169aa"></a>
 
@@ -4042,7 +4206,13 @@ public string Drive { get; init; } = string.Empty;
 public string Model { get; init; } = string.Empty;
 ```
 
-光驱型号或系统返回的显示名称。
+光驱型号或设备显示名称。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 光驱型号或设备显示名称。 |
 
 <a id="api-e3d943338e63f090"></a>
 
@@ -4052,7 +4222,13 @@ public string Model { get; init; } = string.Empty;
 public string PnpDeviceId { get; init; } = string.Empty;
 ```
 
-物理光驱的 PnP 标识，用于直通配置的 HostResource。
+物理光驱的 PnP 设备标识，用于第 1 代虚拟机的光驱直通。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 物理光驱的 PnP 设备标识，用于第 1 代虚拟机的光驱直通。 |
 
 <a id="api-6307fae9394bbacf"></a>
 
@@ -4505,7 +4681,7 @@ public byte Value { get; set; }
 
 ### `PcieDeviceInfo` 类
 
-具有 DDA 位置路径的 PCIe 设备候选及当前识别的归属；列出不表示已经通过设备分配能力检查。
+具有 DDA 位置路径的 PCIe 设备及其当前归属。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -4521,13 +4697,13 @@ public byte Value { get; set; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public PcieAssignmentTarget Assignment { get; set; } = PcieAssignmentTarget.Unassigned `](#api-e6315f7c1d691a07) | 本次识别的宿主、未分配或虚拟机归属；修改此模型属性只发出变更通知，不执行设备转移。 |
-| [` public string ClassType { get; init; } = string.Empty `](#api-8cf16802c6bcef3c) | Windows 驱动提供的原始 PnP 类别，供直通逻辑判断。 |
-| [` public string DisplayClassType { get; init; } = string.Empty `](#api-eb1caba95827d988) | 界面类别；System 设备可附带其非 PCI 子设备的类别集合。 |
+| [` public PcieAssignmentTarget Assignment { get; set; } = PcieAssignmentTarget.Unassigned `](#api-e6315f7c1d691a07) | 设备当前归属的宿主、虚拟机或未分配状态。 |
+| [` public string ClassType { get; init; } = string.Empty `](#api-8cf16802c6bcef3c) | Windows 驱动提供的 PnP 设备类别，用于设备类型判断。 |
+| [` public string DisplayClassType { get; init; } = string.Empty `](#api-eb1caba95827d988) | 用于显示的设备类别；系统设备可附带其非 PCI 子设备的类别。 |
 | [` public string FriendlyName { get; init; } = string.Empty `](#api-125d55e58d165a64) | PCIe 设备的友好名称。 |
-| [` public string InstanceId { get; init; } = string.Empty `](#api-2996d719dac0c695) | PCIe 设备的 PnP 实例 ID。 |
-| [` public string Path { get; init; } = string.Empty `](#api-5777150ec481d057) | DDA 使用的设备位置路径；描述拓扑位置，换卡后可能复用，应与同次查询的 InstanceId 一起使用。 |
-| [` public string Vendor { get; init; } = string.Empty `](#api-5d9fa510299579b6) | 设备制造商的显示名称。 |
+| [` public string InstanceId { get; init; } = string.Empty `](#api-2996d719dac0c695) | PCIe 设备的 PnP 实例标识，用于核对设备身份。 |
+| [` public string Path { get; init; } = string.Empty `](#api-5777150ec481d057) | DDA 分配使用的 PCIe 位置路径。 |
+| [` public string Vendor { get; init; } = string.Empty `](#api-5d9fa510299579b6) | PCIe 设备制造商名称。 |
 
 #### 详细说明
 
@@ -4545,7 +4721,7 @@ public partial class PcieDeviceInfo : ObservableObject
 public PcieAssignmentTarget Assignment { get; set; } = PcieAssignmentTarget.Unassigned;
 ```
 
-本次识别的宿主、未分配或虚拟机归属；修改此模型属性只发出变更通知，不执行设备转移。
+设备当前归属的宿主、虚拟机或未分配状态。实际转移通过 HostPcieService 执行。
 
 <a id="api-8cf16802c6bcef3c"></a>
 
@@ -4555,7 +4731,14 @@ public PcieAssignmentTarget Assignment { get; set; } = PcieAssignmentTarget.Unas
 public string ClassType { get; init; } = string.Empty;
 ```
 
-Windows 驱动提供的原始 PnP 类别，供直通逻辑判断。
+Windows 驱动提供的 PnP 设备类别，用于设备类型判断。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | Windows 驱动提供的 PnP 设备类别，用于设备类型判断。 |
+| 取值与默认 | 设备类别文本，例如 Display、Net、USB。 |
 
 <a id="api-eb1caba95827d988"></a>
 
@@ -4565,7 +4748,13 @@ Windows 驱动提供的原始 PnP 类别，供直通逻辑判断。
 public string DisplayClassType { get; init; } = string.Empty;
 ```
 
-界面类别；System 设备可附带其非 PCI 子设备的类别集合。
+用于显示的设备类别；系统设备可附带其非 PCI 子设备的类别。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 用于显示的设备类别；系统设备可附带其非 PCI 子设备的类别。 |
 
 <a id="api-125d55e58d165a64"></a>
 
@@ -4577,6 +4766,12 @@ public string FriendlyName { get; init; } = string.Empty;
 
 PCIe 设备的友好名称。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | PCIe 设备的友好名称。 |
+
 <a id="api-2996d719dac0c695"></a>
 
 ##### InstanceId · 属性
@@ -4585,7 +4780,13 @@ PCIe 设备的友好名称。
 public string InstanceId { get; init; } = string.Empty;
 ```
 
-PCIe 设备的 PnP 实例 ID。
+PCIe 设备的 PnP 实例标识，用于核对设备身份。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | PCIe 设备的 PnP 实例标识，用于核对设备身份。 |
 
 <a id="api-5777150ec481d057"></a>
 
@@ -4595,7 +4796,13 @@ PCIe 设备的 PnP 实例 ID。
 public string Path { get; init; } = string.Empty;
 ```
 
-DDA 使用的设备位置路径；描述拓扑位置，换卡后可能复用，应与同次查询的 InstanceId 一起使用。
+DDA 分配使用的 PCIe 位置路径。操作时与同次查询的 InstanceId 一起传入，以匹配位置上的设备。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | DDA 分配使用的 PCIe 位置路径。操作时与同次查询的 InstanceId 一起传入，以匹配位置上的设备。 |
 
 <a id="api-5d9fa510299579b6"></a>
 
@@ -4605,7 +4812,13 @@ DDA 使用的设备位置路径；描述拓扑位置，换卡后可能复用，�
 public string Vendor { get; init; } = string.Empty;
 ```
 
-设备制造商的显示名称。
+PCIe 设备制造商名称。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | PCIe 设备制造商名称。 |
 
 <a id="api-9943890d17e165f0"></a>
 
@@ -5442,9 +5655,9 @@ public string Username { get; set; } = string.Empty;
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string IpAddress { get; set; } = string.Empty `](#api-d4bc1493450d5098) | 从已取得的地址中择优显示的一个 IPv4 地址；不是完整地址清单，也不证明当前可达。 |
-| [` public string MacAddress { get; set; } = string.Empty `](#api-dce2f0a6b8e68881) | 该端点的 MAC 地址。 |
-| [` public string Name { get; set; } = string.Empty `](#api-391ceb9ea467d698) | 虚拟机名称或宿主管理操作系统的显示名称。 |
+| [` public string IpAddress { get; set; } = string.Empty `](#api-d4bc1493450d5098) | 从已取得的地址中选出的端点 IPv4 地址。 |
+| [` public string MacAddress { get; set; } = string.Empty `](#api-dce2f0a6b8e68881) | 交换机端点的 MAC 地址。 |
+| [` public string Name { get; set; } = string.Empty `](#api-391ceb9ea467d698) | 接入交换机的虚拟机名称或宿主管理操作系统名称。 |
 
 #### 详细说明
 
@@ -5462,7 +5675,14 @@ public class SwitchEndpointInfo
 public string IpAddress { get; set; } = string.Empty;
 ```
 
-从已取得的地址中择优显示的一个 IPv4 地址；不是完整地址清单，也不证明当前可达。
+从已取得的地址中选出的端点 IPv4 地址。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 从已取得的地址中选出的端点 IPv4 地址。 |
+| 取值与默认 | IPv4 地址文本，例如 192.168.1.10；未取得时为空字符串。 |
 
 <a id="api-dce2f0a6b8e68881"></a>
 
@@ -5472,7 +5692,13 @@ public string IpAddress { get; set; } = string.Empty;
 public string MacAddress { get; set; } = string.Empty;
 ```
 
-该端点的 MAC 地址。
+交换机端点的 MAC 地址。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 交换机端点的 MAC 地址。 |
 
 <a id="api-391ceb9ea467d698"></a>
 
@@ -5482,13 +5708,19 @@ public string MacAddress { get; set; } = string.Empty;
 public string Name { get; set; } = string.Empty;
 ```
 
-虚拟机名称或宿主管理操作系统的显示名称。
+接入交换机的虚拟机名称或宿主管理操作系统名称。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 接入交换机的虚拟机名称或宿主管理操作系统名称。 |
 
 <a id="api-920c0d414c414611"></a>
 
 ### `SwitchInfo` 类
 
-Hyper-V 虚拟交换机的数据模型（HyperVSwitchService 查询产出，构造后不可变）。
+虚拟交换机的连接模式、上游网卡与宿主接入状态。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -5504,12 +5736,12 @@ Hyper-V 虚拟交换机的数据模型（HyperVSwitchService 查询产出，构�
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public bool AllowManagementOS { get; init; } `](#api-f66af83af4474e53) | 本次是否发现交换机的宿主内部端口；桥接、ICS NAT 和隔离模式都可能具有宿主连接。 |
-| [` public string Id { get; init; } = string.Empty `](#api-4954dc10325e1ac2) | Hyper-V 返回的交换机标识。 |
-| [` public string? StateError { get; init; } `](#api-62ff4d69c0c5a24f) | 查询或识别交换机状态时的错误说明；null 表示没有记录错误。 |
-| [` public string SwitchName { get; init; } = string.Empty `](#api-c60ae6f392da42db) | 虚拟交换机名称。 |
-| [` public SwitchMode SwitchType { get; init; } `](#api-1d4a2ead57e1b5b9) | 按 WMI 外部端口和经典 ICS 关系识别的模式；StateError 非空时不能将此值当作已确认状态。 |
-| [` public SwitchUpstreamAdapter? Upstream { get; init; } `](#api-bbc6b7edd6b75f00) | 上游宿主网卡；没有上游或未解析成功时为 null。 |
+| [` public bool AllowManagementOS { get; init; } `](#api-f66af83af4474e53) | 宿主是否通过内部端口接入该交换机。 |
+| [` public string Id { get; init; } = string.Empty `](#api-4954dc10325e1ac2) | 虚拟交换机的唯一标识，用于查询和修改交换机。 |
+| [` public string? StateError { get; init; } `](#api-62ff4d69c0c5a24f) | 本次查询或识别交换机状态时的错误。 |
+| [` public string SwitchName { get; init; } = string.Empty `](#api-c60ae6f392da42db) | 虚拟交换机的显示名称。 |
+| [` public SwitchMode SwitchType { get; init; } `](#api-1d4a2ead57e1b5b9) | 按物理上联和 ICS 共享关系识别的交换机模式。 |
+| [` public SwitchUpstreamAdapter? Upstream { get; init; } `](#api-bbc6b7edd6b75f00) | 交换机使用的宿主上游网卡。 |
 
 #### 详细说明
 
@@ -5527,7 +5759,14 @@ public class SwitchInfo
 public bool AllowManagementOS { get; init; }
 ```
 
-本次是否发现交换机的宿主内部端口；桥接、ICS NAT 和隔离模式都可能具有宿主连接。
+宿主是否通过内部端口接入该交换机。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主是否通过内部端口接入该交换机。 |
+| 取值与默认 | true：已发现宿主端口；false：未发现。 |
 
 <a id="api-4954dc10325e1ac2"></a>
 
@@ -5537,7 +5776,14 @@ public bool AllowManagementOS { get; init; }
 public string Id { get; init; } = string.Empty;
 ```
 
-Hyper-V 返回的交换机标识。
+虚拟交换机的唯一标识，用于查询和修改交换机。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 虚拟交换机的唯一标识，用于查询和修改交换机。 |
+| 取值与默认 | GUID 字符串。 |
 
 <a id="api-62ff4d69c0c5a24f"></a>
 
@@ -5547,7 +5793,14 @@ Hyper-V 返回的交换机标识。
 public string? StateError { get; init; }
 ```
 
-查询或识别交换机状态时的错误说明；null 表示没有记录错误。
+本次查询或识别交换机状态时的错误。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 本次查询或识别交换机状态时的错误。 |
+| 取值与默认 | 错误说明；未记录错误时为 null。 |
 
 <a id="api-c60ae6f392da42db"></a>
 
@@ -5557,7 +5810,13 @@ public string? StateError { get; init; }
 public string SwitchName { get; init; } = string.Empty;
 ```
 
-虚拟交换机名称。
+虚拟交换机的显示名称。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 虚拟交换机的显示名称。 |
 
 <a id="api-1d4a2ead57e1b5b9"></a>
 
@@ -5567,7 +5826,13 @@ public string SwitchName { get; init; } = string.Empty;
 public SwitchMode SwitchType { get; init; }
 ```
 
-按 WMI 外部端口和经典 ICS 关系识别的模式；StateError 非空时不能将此值当作已确认状态。
+按物理上联和 ICS 共享关系识别的交换机模式。StateError 非空时表示本次识别未完整成功。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 按物理上联和 ICS 共享关系识别的交换机模式。StateError 非空时表示本次识别未完整成功。 |
 
 <a id="api-bbc6b7edd6b75f00"></a>
 
@@ -5577,13 +5842,20 @@ public SwitchMode SwitchType { get; init; }
 public SwitchUpstreamAdapter? Upstream { get; init; }
 ```
 
-上游宿主网卡；没有上游或未解析成功时为 null。
+交换机使用的宿主上游网卡。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 交换机使用的宿主上游网卡。 |
+| 取值与默认 | 网卡信息；无上游或未解析成功时为 null。 |
 
 <a id="api-84f5dcdc201f39f8"></a>
 
 ### `SwitchMode` 枚举
 
-现有 WMI/ICS 组合接口使用的配置模式；不是覆盖全部宿主网络实现的交换机类型。
+Hyper-V 交换机的桥接、ICS NAT 和隔离配置模式。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -5695,7 +5967,7 @@ public sealed record SwitchUpstreamAdapter(Guid ConnectionId, string DeviceId, s
 | `Name` | 用户可修改的连接显示名称。 |
 | `LinkUp` | 查询时物理链路是否已连接。 |
 
-调用约定：桥接修改须直接使用当前查询返回的实例，它还携带内部外部端口身份；仅用公开构造参数重建或反序列化的实例不能替代该查询结果。链路已连接不证明具有互联网访问能力。
+调用约定：桥接修改须使用当前查询返回的实例，其中还保存了桥接所需的端口身份；通过公开构造器重建或反序列化的实例不包含该信息。
 
 #### 构造函数说明
 
@@ -6563,12 +6835,12 @@ Hyper-V 分组及其成员快照。成员集合仍可修改；修改模型集合
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public HashSet<Guid> ChildIds { get; } = [] `](#api-8b6b9ca0a0ae084a) | 子分组 GUID 的可变集合。 |
+| [` public HashSet<Guid> ChildIds { get; } = [] `](#api-8b6b9ca0a0ae084a) | 直接属于该组的子分组标识集合。 |
 | [` public Guid Id { get; init; } `](#api-a7349d348f3ba4e8) | 分组 GUID。 |
-| [` public bool IsEmpty { get; } `](#api-4819035fa448ce06) | 虚拟机成员和子分组成员均为空时为 true。 |
+| [` public bool IsEmpty { get; } `](#api-4819035fa448ce06) | 分组中是否没有虚拟机或子分组。 |
 | [` public VmGroupKind Kind { get; init; } `](#api-26c25d04e4844b75) | 分组允许包含的成员类别。 |
 | [` public string Name { get; init; } `](#api-dc227f7a8acbdc41) | 分组名称。 |
-| [` public HashSet<Guid> VmIds { get; } = [] `](#api-542edef03aaba4b3) | 虚拟机成员 GUID 的可变集合。 |
+| [` public HashSet<Guid> VmIds { get; } = [] `](#api-542edef03aaba4b3) | 直接属于该组的虚拟机标识集合。 |
 
 #### 详细说明
 
@@ -6608,7 +6880,14 @@ public VmGroup(Guid Id, string Name, VmGroupKind Kind);
 public HashSet<Guid> ChildIds { get; } = [];
 ```
 
-子分组 GUID 的可变集合。
+直接属于该组的子分组标识集合。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 直接属于该组的子分组标识集合。 |
+| 取值与默认 | GUID 集合；修改集合仅改变本地快照。 |
 
 <a id="api-a7349d348f3ba4e8"></a>
 
@@ -6628,7 +6907,14 @@ public Guid Id { get; init; }
 public bool IsEmpty { get; }
 ```
 
-虚拟机成员和子分组成员均为空时为 true。
+分组中是否没有虚拟机或子分组。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 分组中是否没有虚拟机或子分组。 |
+| 取值与默认 | true：两类成员均为空；false：至少包含一项成员。 |
 
 <a id="api-26c25d04e4844b75"></a>
 
@@ -6658,7 +6944,14 @@ public string Name { get; init; }
 public HashSet<Guid> VmIds { get; } = [];
 ```
 
-虚拟机成员 GUID 的可变集合。
+直接属于该组的虚拟机标识集合。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 直接属于该组的虚拟机标识集合。 |
+| 取值与默认 | GUID 集合；修改集合仅改变本地快照。 |
 
 <a id="api-7009c707c715a19c"></a>
 
@@ -8193,7 +8486,7 @@ public byte? BackingType { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 选择承载虚拟机内存的后备方式。此项与后备页大小、冷热提示及压缩存储有联动。 |
-| 单位与表示 | Byte 可空值。类型编码，不是内存大小。 |
+| 单位与表示 | 类型编码，不是内存大小。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.BackingType`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.BackingType`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8224,7 +8517,6 @@ public bool? CxlEnabled { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 虚拟机内存配置中的 CXL 开关。此入口只修改 CxlEnabled，不枚举、分配或直通具体 CXL 设备。 |
-| 单位与表示 | Boolean 可空值。布尔值。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.CxlEnabled`；该处为本字段的完整说明。 |
 | 适用条件 | 保留显式写入，不以试写探测支持，也不按研究风险版本拦截。调用方应先展示 `ExHyperV.Services.VmMemoryFields.CxlEnabled` 中的服务崩溃风险、版本范围及关闭操作可能失败的限制。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8245,7 +8537,7 @@ public uint? DynMemOperationAlignment { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 动态内存调整所使用的对齐配置；与决定内存后备页面类型的 BackingPageSize 是不同字段。 |
-| 单位与表示 | UInt32 可空值。对齐选项编码，不是直接以字节传入的对齐量。 |
+| 单位与表示 | 对齐选项编码，不是直接以字节传入的对齐量。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.DynMemOperationAlignment`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.DynMemOperationAlignment`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8276,7 +8568,6 @@ public bool? EnableColdHint { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 控制内存配置中的冷提示开关。此入口不负责提交某段内存的冷热信息。 |
-| 单位与表示 | Boolean 可空值。布尔值。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnableColdHint`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.EnableColdHint`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8297,7 +8588,6 @@ public bool? EnableEpf { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 保留 Hyper-V 的 EnableEpf 配置开关。缩写全称及功能用途尚未确认，因此不将它解释成某种已知内存优化。 |
-| 单位与表示 | Boolean 可空值。布尔值。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnableEpf`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.EnableEpf`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8318,7 +8608,6 @@ public bool? EnableGpaPinning { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 来宾物理地址（GPA）固定配置的开关。Core 目前读取并提交对应属性，不提供指定 GPA 范围的独立操作。 |
-| 单位与表示 | Boolean 可空值。布尔值。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnableGpaPinning`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.EnableGpaPinning`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8339,7 +8628,6 @@ public bool? EnableHotHint { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 控制内存配置中的热提示开关。此入口不负责提交某段内存的冷热信息。 |
-| 单位与表示 | Boolean 可空值。布尔值。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnableHotHint`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.EnableHotHint`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8360,7 +8648,6 @@ public bool? EnablePrivateCompressionStore { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 内存配置中的专用压缩存储开关。当前入口仅传递配置，不返回压缩量或压缩率。 |
-| 单位与表示 | Boolean 可空值。布尔值。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnablePrivateCompressionStore`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.EnablePrivateCompressionStore`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8381,7 +8668,7 @@ public ulong? MaxMemoryBlocksPerNumaNode { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 限制来宾可见的单个虚拟 NUMA 节点的内存容量。底层名称虽然包含 Blocks，调用时仍按内存容量理解。 |
-| 单位与表示 | UInt64 可空值。MiB。表示容量，不是页面数，也不是 NUMA 节点数。 |
+| 单位与表示 | MiB。表示容量，不是页面数，也不是 NUMA 节点数。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.MaxMemoryBlocksPerNumaNode`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.MaxMemoryBlocksPerNumaNode`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8412,7 +8699,7 @@ public byte? MemoryAccessTrackingPolicy { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 配置内存访问跟踪的粒度策略。跟踪是否开启由 MemoryAccessTrackingState 单独配置。 |
-| 单位与表示 | Byte 可空值。跟踪策略编码；不能与 BackingPageSize 的编码互换。 |
+| 单位与表示 | 跟踪策略编码；不能与 BackingPageSize 的编码互换。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingPolicy`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingPolicy`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8433,7 +8720,7 @@ public byte? MemoryAccessTrackingState { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 配置是否启用内存访问跟踪，或交给逐 NUMA 节点配置决定。此值是配置，不是一次访问采样结果。 |
-| 单位与表示 | Byte 可空值。状态编码。 |
+| 单位与表示 | 状态编码。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingState`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingState`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8454,7 +8741,7 @@ public byte? MemoryEncryptionPolicy { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 请求虚拟机内存采用的加密策略。此字段表示配置，不能用它单独证明运行中的内存已经加密。 |
-| 单位与表示 | Byte 可空值。策略编码。 |
+| 单位与表示 | 策略编码。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.MemoryEncryptionPolicy`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.MemoryEncryptionPolicy`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8485,7 +8772,6 @@ public bool? SgxEnabled { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 请求为虚拟机启用 SGX 支持。SGX 内存容量由 SgxSize 配置；启用配置本身不表示来宾已能使用 SGX。 |
-| 单位与表示 | Boolean 可空值。布尔值。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.SgxEnabled`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.SgxEnabled`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8506,7 +8792,7 @@ public string? SgxLaunchControlDefault { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | SGX 默认启动控制配置的原始文本。当前 Core 不解析、生成或改写其中的内容。 |
-| 单位与表示 | String 可空值。原始字符串。 |
+| 单位与表示 | 原始字符串。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlDefault`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlDefault`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8527,7 +8813,7 @@ public uint? SgxLaunchControlMode { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | SGX 启动控制的访问模式配置，与虚拟机的普通引导顺序无关。 |
-| 单位与表示 | UInt32 可空值。模式编码。 |
+| 单位与表示 | 模式编码。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlMode`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlMode`。没有额外的实验功能总开关。 |
 | 缺测与错误 | 读取未取得值时为 null，不能当作关闭或默认值；提交 null 时忽略该选择，不表示清空，也不触发该字段的联动；其他非空选择的必要联动仍按对应字段说明执行。 |
@@ -8548,7 +8834,7 @@ public double? SgxSize { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 为虚拟机配置的 SGX EPC 内存容量，与普通启动内存分开。 |
-| 单位与表示 | Double 可空值。MiB；Core 的容量单位。底层属性为 UInt64，当前公开模型以 Double 表示，不提供小数 MiB 的写入精度。 |
+| 单位与表示 | MiB；Core 的容量单位。底层属性为 UInt64，当前公开模型以 Double 表示，不提供小数 MiB 的写入精度。 |
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.SgxSize`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性读写能力；宿主和功能条件见 `ExHyperV.Services.VmMemoryFields.SgxSize`。没有额外的实验功能总开关。 |
 | 缺测与错误 | GetVmMemorySettingsAsync 未取得底层容量时保留 null，实际读到的 0 保留为 0；需要区分属性不存在、缺值与读取失败时，使用自由查询的对应字段状态。 |
@@ -8569,7 +8855,7 @@ public long Startup { get; set; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 虚拟机配置的启动内存。动态内存启用后，运行时分配量可以改变；此字段不表示当前已分配内存，也不表示来宾程序已经使用的内存。 |
-| 单位与表示 | MiB，1 MiB 为 1,048,576 字节；类型为 Int64。 |
+| 单位与表示 | MiB，1 MiB = 1,048,576 字节。 |
 | 取值与默认 | 读取当前配置值。可接受的设置范围及版本差异待核实；不能将模型初始值 0 解释为有效配置。 |
 | 适用条件 | 这是配置量，不随动态内存的每次分配变化。具体版本、代数及运行状态组合的验证范围待补充。 |
 | 缺测与错误 | 当前 MapMemory 在底层值为空时回退到 0；此设置模型的本属性没有独立有效性标记，读取失败由服务响应报告。需要字段级缺测状态时，使用 VmQueryService.QueryAsync 选择 VmMemoryFields.Startup。 |
@@ -10451,10 +10737,10 @@ public bool Supports(VmProcessorCapability capability);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public int Height { get; } `](#api-303b9cfcb76974ee) | 图像高度，单位为像素。 |
-| [` public bool IsEncoded { get; } `](#api-b9ae04ef49079b14) | true 表示保存的是编码图片字节，false 表示从上到下的 RGB565 原始像素。 |
-| [` public int Stride { get; } `](#api-bf981ee5c71326cf) | 原始 RGB565 图像每行的字节数；编码图像为 0。 |
-| [` public int Width { get; } `](#api-0b3eb7c06cf7b62d) | 图像宽度，单位为像素。 |
+| [` public int Height { get; } `](#api-303b9cfcb76974ee) | 截图的高度。 |
+| [` public bool IsEncoded { get; } `](#api-b9ae04ef49079b14) | 图像字节是否保存为编码图片。 |
+| [` public int Stride { get; } `](#api-bf981ee5c71326cf) | 原始像素图每行占用的字节数。 |
+| [` public int Width { get; } `](#api-0b3eb7c06cf7b62d) | 截图的宽度。 |
 
 **静态方法**
 
@@ -10488,7 +10774,14 @@ public sealed class VmScreenshotImage
 public int Height { get; }
 ```
 
-图像高度，单位为像素。
+截图的高度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 截图的高度。 |
+| 取值与默认 | 正整数，单位为像素。 |
 
 <a id="api-b9ae04ef49079b14"></a>
 
@@ -10498,7 +10791,14 @@ public int Height { get; }
 public bool IsEncoded { get; }
 ```
 
-true 表示保存的是编码图片字节，false 表示从上到下的 RGB565 原始像素。
+图像字节是否保存为编码图片。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 图像字节是否保存为编码图片。 |
+| 取值与默认 | true：图片文件字节；false：从上到下排列的小端 RGB565 像素，每像素 2 字节。 |
 
 <a id="api-bf981ee5c71326cf"></a>
 
@@ -10508,7 +10808,14 @@ true 表示保存的是编码图片字节，false 表示从上到下的 RGB565 �
 public int Stride { get; }
 ```
 
-原始 RGB565 图像每行的字节数；编码图像为 0。
+原始像素图每行占用的字节数。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 原始像素图每行占用的字节数。 |
+| 取值与默认 | RGB565 图像为 Width &#215; 2；编码图片为 0。 |
 
 <a id="api-0b3eb7c06cf7b62d"></a>
 
@@ -10518,7 +10825,14 @@ public int Stride { get; }
 public int Width { get; }
 ```
 
-图像宽度，单位为像素。
+截图的宽度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 截图的宽度。 |
+| 取值与默认 | 正整数，单位为像素。 |
 
 #### 静态方法说明
 
@@ -10558,7 +10872,7 @@ public static VmScreenshotImage FromRgb565(byte[] data, int width, int height);
 
 返回：拥有独立字节副本的图像，IsEncoded 为 false。
 
-调用约定：构造后可复用原数组。建议只传入图像所需的字节；当前实现会复制整个输入数组，包括多余的尾部字节。
+调用约定：构造后可复用原数组。整个数组都会被复制，多余的尾部字节也会由 CopyBytes 原样返回。
 
 - 异常 `ArgumentException`：宽高不是正数，或数组长度不足。
 - 异常 `OverflowException`：计算行长度或图像长度时超出整数范围。
@@ -11102,7 +11416,7 @@ public sealed unsafe class ArpSnoopService : IDisposable
 
 
 
-Start 重复调用不会重复创建资源。启动失败或 Dispose 后，同一实例不能重新启动；通过 `ArpSnoopService.IsAvailable` 和 `ArpSnoopService.LastFailure` 检查状态与原因。缓存映射的有效期为五分钟；没有记录不等于设备没有 IP。
+Start 可重复调用；启动失败或 Dispose 后，同一实例不能重新启动。状态见 `ArpSnoopService.IsAvailable`，错误见 `ArpSnoopService.LastFailure`。每条缓存记录有效期为 5 分钟。
 
 
 
@@ -11110,7 +11424,7 @@ Start 重复调用不会重复创建资源。启动失败或 Dispose 后，同�
 
 
 
-缓存只保留每个 MAC 最近观察到的一个 IPv4 地址，没有交换机、VLAN 或接口维度；跨网络重用 MAC 时可能互相覆盖。ARP 报文是地址观测，不证明虚拟机身份或网络连通。
+缓存按 MAC 保存最近观察到的一个 IPv4 地址，跨交换机或 VLAN 使用相同 MAC 时会相互覆盖。
 
 #### 属性说明
 
@@ -11144,7 +11458,7 @@ public ApiResponse? LastFailure { get; }
 
 首次捕获或清理失败的诊断；尚未失败时为 null。Code 为 HRESULT，ErrorKind 区分权限不足、不支持和执行失败。
 
-调用约定：初始化失败不会由 Start 抛出。正常 Dispose 不产生失败；本属性保留失败原因供宿主展示或记录，不代表可以在同一实例重试。
+调用约定：Start 初始化失败通过此属性报告，正常 Dispose 不产生错误。
 
 #### 方法说明
 
@@ -11213,9 +11527,9 @@ public bool TryGetIp(string? mac, out string ip);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public int Channels { get; init; } `](#api-29daddd109f93a79) | 声道数，例如 1 为单声道、2 为双声道；应大于零。 |
-| [` public ConsoleAudioSampleFormat SampleFormat { get; init; } `](#api-dbde7700b3d73cf0) | 每个声道的一个采样占多少字节、如何解释数值，见 ConsoleAudioSampleFormat。 |
-| [` public int SampleRate { get; init; } `](#api-18d9057a80f614d6) | 每个声道每秒的采样数，例如 48000 表示 48 kHz；应大于零。 |
+| [` public int Channels { get; init; } `](#api-29daddd109f93a79) | 每个采样时刻的声道数量。 |
+| [` public ConsoleAudioSampleFormat SampleFormat { get; init; } `](#api-dbde7700b3d73cf0) | PCM 中单个声道采样值的编码格式。 |
+| [` public int SampleRate { get; init; } `](#api-18d9057a80f614d6) | 每个声道每秒的采样数。 |
 
 #### 详细说明
 
@@ -11225,11 +11539,11 @@ public sealed record ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAud
 
 | 参数 | 说明 |
 | --- | --- |
-| `SampleRate` | 每个声道每秒的采样数，例如 48000 表示 48 kHz；应大于零。 |
-| `Channels` | 声道数，例如 1 为单声道、2 为双声道；应大于零。 |
-| `SampleFormat` | 每个声道的一个采样占多少字节、如何解释数值，见 ConsoleAudioSampleFormat。 |
+| `SampleRate` | 每个声道每秒的采样数。 |
+| `Channels` | 每个采样时刻的声道数量。 |
+| `SampleFormat` | PCM 中单个声道采样值的编码格式。 |
 
-调用约定：采样按声道交错排列：双声道依次保存“第 1 次采样的左、右声道，第 2 次采样的左、右声道……”。 同一采样时刻的所有声道合称一个“采样帧”，与视频的一帧画面不同。
+调用约定：采样按声道交错排列：双声道依次保存“第 1 次采样的左、右声道，第 2 次采样的左、右声道……”。 同一采样时刻的全部声道组成一个采样帧。
 
 
 
@@ -11251,9 +11565,9 @@ public ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat
 
 | 参数 | 说明 |
 | --- | --- |
-| `SampleRate` | 每个声道每秒的采样数，例如 48000 表示 48 kHz；应大于零。 |
-| `Channels` | 声道数，例如 1 为单声道、2 为双声道；应大于零。 |
-| `SampleFormat` | 每个声道的一个采样占多少字节、如何解释数值，见 ConsoleAudioSampleFormat。 |
+| `SampleRate` | 每个声道每秒的采样数。 |
+| `Channels` | 每个采样时刻的声道数量。 |
+| `SampleFormat` | PCM 中单个声道采样值的编码格式。 |
 
 #### 属性说明
 
@@ -11265,7 +11579,14 @@ public ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat
 public int Channels { get; init; }
 ```
 
-声道数，例如 1 为单声道、2 为双声道；应大于零。
+每个采样时刻的声道数量。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 每个采样时刻的声道数量。 |
+| 取值与默认 | 正整数。例如 1 为单声道，2 为双声道。 |
 
 <a id="api-dbde7700b3d73cf0"></a>
 
@@ -11275,7 +11596,13 @@ public int Channels { get; init; }
 public ConsoleAudioSampleFormat SampleFormat { get; init; }
 ```
 
-每个声道的一个采样占多少字节、如何解释数值，见 ConsoleAudioSampleFormat。
+PCM 中单个声道采样值的编码格式。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | PCM 中单个声道采样值的编码格式。 |
 
 <a id="api-18d9057a80f614d6"></a>
 
@@ -11285,7 +11612,14 @@ public ConsoleAudioSampleFormat SampleFormat { get; init; }
 public int SampleRate { get; init; }
 ```
 
-每个声道每秒的采样数，例如 48000 表示 48 kHz；应大于零。
+每个声道每秒的采样数。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 每个声道每秒的采样数。 |
+| 取值与默认 | 正整数，单位为 Hz。例如 48000 为 48 kHz。 |
 
 <a id="api-dca91d63ad5a1a97"></a>
 
@@ -11313,10 +11647,10 @@ public int SampleRate { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public ConsoleAudioFormat Format { get; } `](#api-13883892ef8a1bac) | 解释本包 Samples 时使用的采样率、声道数和数值格式。 |
-| [` public ReadOnlySpan<byte> Samples { get; } `](#api-e594e516c61cdf5a) | 本包保存的原始 PCM 采样，只读；与构造时传入的内存互不影响。 |
-| [` public long Sequence { get; } `](#api-42025f5d02f86b6d) | 本音频流中的包序号，用于记录和检查接收顺序，不与视频帧序号对应。 |
-| [` public TimeSpan Timestamp { get; } `](#api-6938bca8c47d1496) | 本包在音频流中的相对时间。 |
+| [` public ConsoleAudioFormat Format { get; } `](#api-13883892ef8a1bac) | 解释当前采样数据所使用的音频格式。 |
+| [` public ReadOnlySpan<byte> Samples { get; } `](#api-e594e516c61cdf5a) | 音频包独立持有的原始 PCM 采样。 |
+| [` public long Sequence { get; } `](#api-42025f5d02f86b6d) | 当前音频流中的包序号。 |
+| [` public TimeSpan Timestamp { get; } `](#api-6938bca8c47d1496) | 当前音频流中的相对时间。 |
 
 #### 详细说明
 
@@ -11381,7 +11715,13 @@ public ConsoleAudioPacket(ConsoleAudioFormat format, ReadOnlySpan<byte> samples,
 public ConsoleAudioFormat Format { get; }
 ```
 
-解释本包 Samples 时使用的采样率、声道数和数值格式。
+解释当前采样数据所使用的音频格式。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 解释当前采样数据所使用的音频格式。 |
 
 <a id="api-e594e516c61cdf5a"></a>
 
@@ -11391,7 +11731,16 @@ public ConsoleAudioFormat Format { get; }
 public ReadOnlySpan<byte> Samples { get; }
 ```
 
-本包保存的原始 PCM 采样，只读；与构造时传入的内存互不影响。
+音频包独立持有的原始 PCM 采样。
+
+调用约定：构造时已复制，可在回调结束和连接关闭后继续读取。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 音频包独立持有的原始 PCM 采样。 |
+| 取值与默认 | 按声道交错排列；字节数为“声道数 &#215; 每采样字节数”的整数倍，可为空。 |
 
 <a id="api-42025f5d02f86b6d"></a>
 
@@ -11401,7 +11750,14 @@ public ReadOnlySpan<byte> Samples { get; }
 public long Sequence { get; }
 ```
 
-本音频流中的包序号，用于记录和检查接收顺序，不与视频帧序号对应。
+当前音频流中的包序号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前音频流中的包序号。 |
+| 取值与默认 | 非负整数，由生产者安排；与视频帧序号分别计数。 |
 
 <a id="api-6938bca8c47d1496"></a>
 
@@ -11411,9 +11767,16 @@ public long Sequence { get; }
 public TimeSpan Timestamp { get; }
 ```
 
-本包在音频流中的相对时间。
+当前音频流中的相对时间。
 
-调用约定：待确定：当前音频后端尚未接入，时间零点以及该值对应首个采样还是采集时刻尚未约定。 不能据此实现音画同步；后续接入音频后端时需补齐计时说明。现有构造器仅要求该值非负。
+调用约定：音频后端尚未接入，时间零点和采样时刻的对应关系尚未约定，当前不能用于音画同步。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前音频流中的相对时间。 |
+| 取值与默认 | 非负时间间隔。 |
 
 <a id="api-bfefa55b473f5a20"></a>
 
@@ -11444,7 +11807,7 @@ PCM 音频中每个采样数值的编码方式。
 public enum ConsoleAudioSampleFormat
 ```
 
-调用约定：这里只描述未压缩的采样值，不包含 WAV 文件头、AAC 等压缩编码或播放设备信息。
+调用约定：采样按小端字节序存储，以 ConsoleAudioFormat 指定的声道顺序交错排列。
 
 #### 枚举值说明
 
@@ -11494,11 +11857,11 @@ Signed16LittleEndian = 0
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string BackendId { get; init; } `](#api-871059250bcef465) | 程序选择后端时使用的标识：RdpBasic、RdpEnhanced 或 Nimue；区分大小写。 |
-| [` public ConsoleCapabilities Capabilities { get; init; } `](#api-e8cfb4ea6a1af103) | 此后端实现的功能，可按位检查视频、键鼠、剪贴板等能力。 |
+| [` public string BackendId { get; init; } `](#api-871059250bcef465) | 创建连接时用于选择后端的标识。 |
+| [` public ConsoleCapabilities Capabilities { get; init; } `](#api-e8cfb4ea6a1af103) | 后端已实现的交互能力，可按位组合。 |
 | [` public bool IsImplemented { get; init; } `](#api-b5211152e6ae9611) | 当前 Core 是否实现了此后端。 |
-| [` public string Name { get; init; } `](#api-afac97bdb3e82f59) | 供用户查看的名称，例如 RDP Basic。 |
-| [` public string? UnavailableReason { get; init; } `](#api-25f4b7669d43238c) | 尚未实现的原因；已实现时为 null。 |
+| [` public string Name { get; init; } `](#api-afac97bdb3e82f59) | 后端的显示名称。 |
+| [` public string? UnavailableReason { get; init; } `](#api-25f4b7669d43238c) | 后端尚未实现的原因。 |
 
 #### 详细说明
 
@@ -11509,11 +11872,11 @@ public sealed record ConsoleBackendInfo(string BackendId, string Name, bool IsIm
 
 | 参数 | 说明 |
 | --- | --- |
-| `BackendId` | 程序选择后端时使用的标识：RdpBasic、RdpEnhanced 或 Nimue；区分大小写。 |
-| `Name` | 供用户查看的名称，例如 RDP Basic。 |
-| `IsImplemented` | 当前 Core 是否实现了此后端。true 表示可以尝试创建连接，不代表目标虚拟机一定能连接。 |
-| `Capabilities` | 此后端实现的功能，可按位检查视频、键鼠、剪贴板等能力。 |
-| `UnavailableReason` | 尚未实现的原因；已实现时为 null。 |
+| `BackendId` | 创建连接时用于选择后端的标识。 |
+| `Name` | 后端的显示名称。 |
+| `IsImplemented` | 当前 Core 是否实现了此后端。 |
+| `Capabilities` | 后端已实现的交互能力，可按位组合。 |
+| `UnavailableReason` | 后端尚未实现的原因。 |
 
 调用约定：这些信息来自内置目录，适合用来展示连接方式。 剪贴板等功能是否已经可以使用，还要在创建连接后查看相应接口的 IsAvailable。
 
@@ -11529,11 +11892,11 @@ public ConsoleBackendInfo(string BackendId, string Name, bool IsImplemented, Con
 
 | 参数 | 说明 |
 | --- | --- |
-| `BackendId` | 程序选择后端时使用的标识：RdpBasic、RdpEnhanced 或 Nimue；区分大小写。 |
-| `Name` | 供用户查看的名称，例如 RDP Basic。 |
-| `IsImplemented` | 当前 Core 是否实现了此后端。true 表示可以尝试创建连接，不代表目标虚拟机一定能连接。 |
-| `Capabilities` | 此后端实现的功能，可按位检查视频、键鼠、剪贴板等能力。 |
-| `UnavailableReason` | 尚未实现的原因；已实现时为 null。 |
+| `BackendId` | 创建连接时用于选择后端的标识。 |
+| `Name` | 后端的显示名称。 |
+| `IsImplemented` | 当前 Core 是否实现了此后端。 |
+| `Capabilities` | 后端已实现的交互能力，可按位组合。 |
+| `UnavailableReason` | 后端尚未实现的原因。 |
 
 #### 属性说明
 
@@ -11545,7 +11908,14 @@ public ConsoleBackendInfo(string BackendId, string Name, bool IsImplemented, Con
 public string BackendId { get; init; }
 ```
 
-程序选择后端时使用的标识：RdpBasic、RdpEnhanced 或 Nimue；区分大小写。
+创建连接时用于选择后端的标识。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 创建连接时用于选择后端的标识。 |
+| 取值与默认 | `RdpBasic`、`RdpEnhanced`、`Nimue`；区分大小写。 |
 
 <a id="api-e8cfb4ea6a1af103"></a>
 
@@ -11555,7 +11925,13 @@ public string BackendId { get; init; }
 public ConsoleCapabilities Capabilities { get; init; }
 ```
 
-此后端实现的功能，可按位检查视频、键鼠、剪贴板等能力。
+后端已实现的交互能力，可按位组合。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 后端已实现的交互能力，可按位组合。 |
 
 <a id="api-b5211152e6ae9611"></a>
 
@@ -11565,7 +11941,14 @@ public ConsoleCapabilities Capabilities { get; init; }
 public bool IsImplemented { get; init; }
 ```
 
-当前 Core 是否实现了此后端。true 表示可以尝试创建连接，不代表目标虚拟机一定能连接。
+当前 Core 是否实现了此后端。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前 Core 是否实现了此后端。 |
+| 取值与默认 | true：可以创建连接；false：仅登记标识。实际连接结果由目标虚拟机和通道状态决定。 |
 
 <a id="api-afac97bdb3e82f59"></a>
 
@@ -11575,7 +11958,14 @@ public bool IsImplemented { get; init; }
 public string Name { get; init; }
 ```
 
-供用户查看的名称，例如 RDP Basic。
+后端的显示名称。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 后端的显示名称。 |
+| 取值与默认 | 例如 `RDP Basic`。 |
 
 <a id="api-25f4b7669d43238c"></a>
 
@@ -11585,7 +11975,14 @@ public string Name { get; init; }
 public string? UnavailableReason { get; init; }
 ```
 
-尚未实现的原因；已实现时为 null。
+后端尚未实现的原因。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 后端尚未实现的原因。 |
+| 取值与默认 | 文字说明；已实现时为 null。 |
 
 <a id="api-a7effae4ff578e31"></a>
 
@@ -11721,7 +12118,7 @@ Video = 1
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public IReadOnlyList<ConsoleClipboardFormat> Formats { get; init; } `](#api-e1fcb60beaee51c4) | 同一份内容的格式列表，例如一段网页内容同时提供纯文本和 HTML。 |
+| [` public IReadOnlyList<ConsoleClipboardFormat> Formats { get; init; } `](#api-e1fcb60beaee51c4) | 同一份剪贴板内容提供的格式列表。 |
 
 #### 详细说明
 
@@ -11731,13 +12128,13 @@ public sealed record ConsoleClipboardData(IReadOnlyList<ConsoleClipboardFormat> 
 
 | 参数 | 说明 |
 | --- | --- |
-| `Formats` | 同一份内容的格式列表，例如一段网页内容同时提供纯文本和 HTML。最多 3 种受支持且不重复的格式；空列表表示没有可提供的内容。 |
+| `Formats` | 同一份剪贴板内容提供的格式列表。 |
 
-调用约定：格式列表不是多个文件或多次复制操作的集合。接收方从中选择自己能处理的格式。
+调用约定：例如同一段网页内容可同时提供纯文本和 HTML，接收方选择能处理的格式。
 
 
 
-每种格式的数据最多 16 MiB，加上格式编号、名称和长度信息后的总传输数据最多 32 MiB。 构造这个记录不会验证或复制集合；SetClipboard 在发送时检查并复制。提交期间不要修改集合或其数据。
+构造记录时保存原集合；SetClipboard 在发送时检查并复制。提交期间保持集合及数据不变。
 
 
 
@@ -11755,7 +12152,7 @@ public ConsoleClipboardData(IReadOnlyList<ConsoleClipboardFormat> Formats);
 
 | 参数 | 说明 |
 | --- | --- |
-| `Formats` | 同一份内容的格式列表，例如一段网页内容同时提供纯文本和 HTML。最多 3 种受支持且不重复的格式；空列表表示没有可提供的内容。 |
+| `Formats` | 同一份剪贴板内容提供的格式列表。 |
 
 #### 属性说明
 
@@ -11767,7 +12164,14 @@ public ConsoleClipboardData(IReadOnlyList<ConsoleClipboardFormat> Formats);
 public IReadOnlyList<ConsoleClipboardFormat> Formats { get; init; }
 ```
 
-同一份内容的格式列表，例如一段网页内容同时提供纯文本和 HTML。最多 3 种受支持且不重复的格式；空列表表示没有可提供的内容。
+同一份剪贴板内容提供的格式列表。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 同一份剪贴板内容提供的格式列表。 |
+| 取值与默认 | 0～3 种受支持且不重复的格式。每种数据最多 16 MiB，连同编号、名称、长度信息的传输总量最多 32 MiB。 |
 
 <a id="api-30176205ed3087ed"></a>
 
@@ -11795,9 +12199,9 @@ public IReadOnlyList<ConsoleClipboardFormat> Formats { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public ReadOnlyMemory<byte> Data { get; init; } `](#api-48b6ea504a18d284) | 该格式的原始字节。 |
-| [` public uint Id { get; init; } `](#api-bdb8a6ee908a44c5) | 13 表示 Unicode 文本，8 表示 DIB 位图；HTML 使用 0xC000～0xFFFF 范围的注册格式编号。 |
-| [` public string? Name { get; init; } `](#api-30821a3c68534000) | HTML 必须使用精确名称 HTML Format；文本和 DIB 使用 null 或空字符串。 |
+| [` public ReadOnlyMemory<byte> Data { get; init; } `](#api-48b6ea504a18d284) | 该格式的原始字节，只读视图保留调用方提供的内存。 |
+| [` public uint Id { get; init; } `](#api-bdb8a6ee908a44c5) | 剪贴板格式的编号。 |
+| [` public string? Name { get; init; } `](#api-30821a3c68534000) | 注册剪贴板格式的名称。 |
 
 #### 详细说明
 
@@ -11807,19 +12211,11 @@ public sealed record ConsoleClipboardFormat(uint Id, string? Name, ReadOnlyMemor
 
 | 参数 | 说明 |
 | --- | --- |
-| `Id` | 13 表示 Unicode 文本，8 表示 DIB 位图；HTML 使用 0xC000～0xFFFF 范围的注册格式编号。 |
-| `Name` | HTML 必须使用精确名称 HTML Format；文本和 DIB 使用 null 或空字符串。 |
-| `Data` | 该格式的原始字节。记录保存只读视图，不复制底层内存；文本、位图和 HTML 的具体布局见下方说明。 |
+| `Id` | 剪贴板格式的编号。 |
+| `Name` | 注册剪贴板格式的名称。 |
+| `Data` | 该格式的原始字节，只读视图保留调用方提供的内存。 |
 
-调用约定：文本：使用 UTF-16LE，结尾包含一个空字符，即两个零字节。例如 Encoding.Unicode.GetBytes(text + &quot;\0&quot;)。
-
-
-
-位图：使用 CF_DIB 的内存布局，包含位图信息头和像素等数据。它不是 PNG、JPEG，也不是包含 BMP 文件头的整份 BMP 文件。
-
-
-
-HTML：使用 Windows 的 CF_HTML 格式，包含描述片段范围的头和 UTF-8 内容；头中的偏移量按字节计算。 不能只把普通 HTML 字符串的字节放入 Data。具体布局见 [HTML Clipboard Format](https://learn.microsoft.com/en-us/windows/win32/dataxchg/html-clipboard-format)。
+调用约定：CF_DIB 包含位图信息头和像素数据，不含 BMP 文件头。CF_HTML 包含片段范围头和 UTF-8 内容，头中的偏移量按字节计算。 HTML 布局见 [HTML Clipboard Format](https://learn.microsoft.com/en-us/windows/win32/dataxchg/html-clipboard-format)。
 
 
 
@@ -11837,9 +12233,9 @@ public ConsoleClipboardFormat(uint Id, string? Name, ReadOnlyMemory<byte> Data);
 
 | 参数 | 说明 |
 | --- | --- |
-| `Id` | 13 表示 Unicode 文本，8 表示 DIB 位图；HTML 使用 0xC000～0xFFFF 范围的注册格式编号。 |
-| `Name` | HTML 必须使用精确名称 HTML Format；文本和 DIB 使用 null 或空字符串。 |
-| `Data` | 该格式的原始字节。记录保存只读视图，不复制底层内存；文本、位图和 HTML 的具体布局见下方说明。 |
+| `Id` | 剪贴板格式的编号。 |
+| `Name` | 注册剪贴板格式的名称。 |
+| `Data` | 该格式的原始字节，只读视图保留调用方提供的内存。 |
 
 #### 属性说明
 
@@ -11851,7 +12247,14 @@ public ConsoleClipboardFormat(uint Id, string? Name, ReadOnlyMemory<byte> Data);
 public ReadOnlyMemory<byte> Data { get; init; }
 ```
 
-该格式的原始字节。记录保存只读视图，不复制底层内存；文本、位图和 HTML 的具体布局见下方说明。
+该格式的原始字节，只读视图保留调用方提供的内存。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 该格式的原始字节，只读视图保留调用方提供的内存。 |
+| 取值与默认 | Unicode 文本使用 UTF-16LE 并以两个零字节结束；位图使用 CF_DIB 布局；HTML 使用含头部的 CF_HTML 布局。单种数据最多 16 MiB。 |
 
 <a id="api-bdb8a6ee908a44c5"></a>
 
@@ -11861,7 +12264,14 @@ public ReadOnlyMemory<byte> Data { get; init; }
 public uint Id { get; init; }
 ```
 
-13 表示 Unicode 文本，8 表示 DIB 位图；HTML 使用 0xC000～0xFFFF 范围的注册格式编号。
+剪贴板格式的编号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 剪贴板格式的编号。 |
+| 取值与默认 | 13：Unicode 文本；8：DIB 位图；0xC000～0xFFFF：HTML 使用的注册格式编号。 |
 
 <a id="api-30821a3c68534000"></a>
 
@@ -11871,13 +12281,20 @@ public uint Id { get; init; }
 public string? Name { get; init; }
 ```
 
-HTML 必须使用精确名称 HTML Format；文本和 DIB 使用 null 或空字符串。
+注册剪贴板格式的名称。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 注册剪贴板格式的名称。 |
+| 取值与默认 | HTML 使用 `HTML Format`，区分大小写；文本和 DIB 使用 null 或空字符串。 |
 
 <a id="api-e62d45486843fafd"></a>
 
 ### `ConsoleConnectionOptions` record 类
 
-连接哪台虚拟机，以及连接时请求的桌面尺寸、缩放比例和等待时间。
+连接目标、初始桌面尺寸、缩放比例和连接超时。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -11893,11 +12310,11 @@ HTML 必须使用精确名称 HTML Format；文本和 DIB 使用 null 或空字�
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2) `](#api-7763df3391afb936) | 等待底层连接建立的最长时间，默认 2 秒。 |
-| [` public uint DesktopScale { get; init; } = 100 `](#api-83de64b0ed6709f2) | 桌面缩放百分比，范围 100 至 500，默认 100。 |
-| [` public int Height { get; init; } = 768 `](#api-9588f922040c059c) | 请求的桌面高度，单位为像素，默认 768。 |
-| [` public Guid VmId { get; init; } `](#api-30f96f6a247d12d1) | 目标虚拟机的 GUID，不能为 Guid.Empty。 |
-| [` public int Width { get; init; } = 1024 `](#api-8dd0fb25967f65e6) | 请求的桌面宽度，单位为像素，默认 1024。 |
+| [` public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2) `](#api-7763df3391afb936) | 等待底层连接建立的最长时间。 |
+| [` public uint DesktopScale { get; init; } = 100 `](#api-83de64b0ed6709f2) | 请求的来宾桌面缩放比例。 |
+| [` public int Height { get; init; } = 768 `](#api-9588f922040c059c) | 请求的来宾桌面高度。 |
+| [` public Guid VmId { get; init; } `](#api-30f96f6a247d12d1) | 要连接的本机虚拟机标识。 |
+| [` public int Width { get; init; } = 1024 `](#api-8dd0fb25967f65e6) | 请求的来宾桌面宽度。 |
 
 #### 详细说明
 
@@ -11905,7 +12322,7 @@ HTML 必须使用精确名称 HTML Format；文本和 DIB 使用 null 或空字�
 public sealed record ConsoleConnectionOptions
 ```
 
-调用约定：后端由 `ConsoleService.CreateConnection` 的 backendId 参数选择。 目前两个 RDP 后端都连接本机 Hyper-V 虚拟机，不需要窗口句柄；本类型也不接收来宾用户名或密码。
+调用约定：后端由 `ConsoleService.CreateConnection` 的 backendId 参数选择。 当前 RDP 后端连接本机 Hyper-V 虚拟机。
 
 
 
@@ -11921,9 +12338,16 @@ Width、Height、DesktopScale 是请求值，实际画面尺寸以收到的 `Con
 public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2);
 ```
 
-等待底层连接建立的最长时间，默认 2 秒。
+等待底层连接建立的最长时间。
 
-调用约定：必须大于零且不超过 2 分钟。当前从原生连接对象创建完成后开始计时， 不包含原生库初始化、来宾登录或断开清理的时间，因此不是整个 Start 过程的总时限。 超时通过 Disconnected 事件报告。
+调用约定：从原生连接对象创建完成后计时；不包含原生库初始化、来宾登录和断开清理。超时由 Disconnected 事件报告。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 等待底层连接建立的最长时间。 |
+| 取值与默认 | 大于零、不超过 2 分钟，默认 2 秒。 |
 
 <a id="api-83de64b0ed6709f2"></a>
 
@@ -11933,7 +12357,14 @@ public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2);
 public uint DesktopScale { get; init; } = 100;
 ```
 
-桌面缩放百分比，范围 100 至 500，默认 100。
+请求的来宾桌面缩放比例。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 请求的来宾桌面缩放比例。 |
+| 取值与默认 | 100～500%，默认 100%。 |
 
 <a id="api-9588f922040c059c"></a>
 
@@ -11943,9 +12374,14 @@ public uint DesktopScale { get; init; } = 100;
 public int Height { get; init; } = 768;
 ```
 
-请求的桌面高度，单位为像素，默认 768。
+请求的来宾桌面高度。
 
-调用约定：范围为 200～8192；还需满足 Width 中说明的整帧内存限制。
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 请求的来宾桌面高度。 |
+| 取值与默认 | 200～8192 像素，默认 768。Width &#215; Height &#215; 4 不超过 64 MiB 减 64 字节。 |
 
 <a id="api-30f96f6a247d12d1"></a>
 
@@ -11955,7 +12391,14 @@ public int Height { get; init; } = 768;
 public Guid VmId { get; init; }
 ```
 
-目标虚拟机的 GUID，不能为 Guid.Empty。
+要连接的本机虚拟机标识。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 要连接的本机虚拟机标识。 |
+| 取值与默认 | 非空 GUID，例如 `6f0c2e91-8a45-4b37-9d60-c1257e3a8f42`。 |
 
 <a id="api-8dd0fb25967f65e6"></a>
 
@@ -11965,9 +12408,14 @@ public Guid VmId { get; init; }
 public int Width { get; init; } = 1024;
 ```
 
-请求的桌面宽度，单位为像素，默认 1024。
+请求的来宾桌面宽度。
 
-调用约定：范围为 200～8192。Width &#215; Height &#215; 4 不得超过 64 MiB 减 64 字节，限制的是一帧 BGRA32 像素占用的内存。
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 请求的来宾桌面宽度。 |
+| 取值与默认 | 200～8192 像素，默认 1024。Width &#215; Height &#215; 4 不超过 64 MiB 减 64 字节。 |
 
 <a id="api-ea5482a340e8774c"></a>
 
@@ -12070,8 +12518,8 @@ Disconnecting = 3
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string? Error { get; init; } `](#api-72416d12389513d4) | 附加的错误说明；没有文字说明时为 null。 |
-| [` public uint ErrorCode { get; init; } `](#api-da32a13ed43b2bb4) | 后端诊断码。 |
+| [` public string? Error { get; init; } `](#api-72416d12389513d4) | 连接结束时附带的错误说明。 |
+| [` public uint ErrorCode { get; init; } `](#api-da32a13ed43b2bb4) | 连接结束时的后端诊断码。 |
 
 #### 详细说明
 
@@ -12081,10 +12529,10 @@ public sealed record ConsoleDisconnectInfo(uint ErrorCode, string? Error)
 
 | 参数 | 说明 |
 | --- | --- |
-| `ErrorCode` | 后端诊断码。当前 RDP 后端可能返回 FreeRDP 或 Win32 错误码，另用 0xFFFFFFFF 表示托管异常、0xFFFFFFFE 表示连接超时；0 表示未报告错误。 |
-| `Error` | 附加的错误说明；没有文字说明时为 null。 |
+| `ErrorCode` | 连接结束时的后端诊断码。 |
+| `Error` | 连接结束时附带的错误说明。 |
 
-调用约定：目前没有统一的断开原因枚举。记录诊断时同时保留连接的 BackendId、ErrorCode 和 Error； 不能只凭一个非零数值推断为网络故障，也不能把不同后端的相同数值视为同一原因。 当前主动断开通常返回 0，单凭 0 也不能区分主动关闭和远端正常结束。
+调用约定：诊断码按后端解释，记录时一并保留 BackendId 和 Error。主动关闭和远端正常结束都可能返回 0。
 
 #### 构造函数说明
 
@@ -12098,8 +12546,8 @@ public ConsoleDisconnectInfo(uint ErrorCode, string? Error);
 
 | 参数 | 说明 |
 | --- | --- |
-| `ErrorCode` | 后端诊断码。当前 RDP 后端可能返回 FreeRDP 或 Win32 错误码，另用 0xFFFFFFFF 表示托管异常、0xFFFFFFFE 表示连接超时；0 表示未报告错误。 |
-| `Error` | 附加的错误说明；没有文字说明时为 null。 |
+| `ErrorCode` | 连接结束时的后端诊断码。 |
+| `Error` | 连接结束时附带的错误说明。 |
 
 #### 属性说明
 
@@ -12111,7 +12559,14 @@ public ConsoleDisconnectInfo(uint ErrorCode, string? Error);
 public string? Error { get; init; }
 ```
 
-附加的错误说明；没有文字说明时为 null。
+连接结束时附带的错误说明。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 连接结束时附带的错误说明。 |
+| 取值与默认 | 文字说明；未提供时为 null。 |
 
 <a id="api-da32a13ed43b2bb4"></a>
 
@@ -12121,7 +12576,14 @@ public string? Error { get; init; }
 public uint ErrorCode { get; init; }
 ```
 
-后端诊断码。当前 RDP 后端可能返回 FreeRDP 或 Win32 错误码，另用 0xFFFFFFFF 表示托管异常、0xFFFFFFFE 表示连接超时；0 表示未报告错误。
+连接结束时的后端诊断码。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 连接结束时的后端诊断码。 |
+| 取值与默认 | 当前 RDP 后端使用 FreeRDP 或 Win32 错误码；`0xFFFFFFFF` 为托管异常，`0xFFFFFFFE` 为连接超时，0 为未报告错误。 |
 
 <a id="api-972d5767e28038af"></a>
 
@@ -12149,15 +12611,15 @@ public uint ErrorCode { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public long BaseSequence { get; } `](#api-ffd9b3afb8291670) | 本次变化区域所依据的上一帧序号。 |
-| [` public int ByteLength { get; } `](#api-0dd98558052c2c13) | 此帧完整像素缓冲区的字节数。 |
-| [` public ConsoleFrameRegion Damage { get; } `](#api-c0ca95b63fdbbdea) | 相对 BaseSequence 那一帧发生变化的矩形，坐标和尺寸均为桌面像素。 |
-| [` public bool HasFullDamage { get; } `](#api-f3cf8f02d41f9263) | true 表示应刷新整个桌面，例如首帧或尺寸变化后的画面。 |
-| [` public int Height { get; } `](#api-616a1e77beb8c421) | 完整桌面高度，单位为物理像素。 |
-| [` public ReadOnlySpan<byte> Pixels { get; } `](#api-0f916becd52bb8d3) | 只读像素视图；仅在当前租约尚未释放时有效。 |
-| [` public long Sequence { get; } `](#api-7ed89a64cc88291b) | 正数帧序号；控制台后端按本连接生成画面的顺序递增。 |
-| [` public int Stride { get; } `](#api-15bad73304b82dfa) | 完整像素图每行的字节数；连接产出的 BGRA32 帧为 Width &#215; 4。 |
-| [` public int Width { get; } `](#api-d082eed74a45c63e) | 完整桌面宽度，单位为物理像素。 |
+| [` public long BaseSequence { get; } `](#api-ffd9b3afb8291670) | Damage 所依据的前一帧序号。 |
+| [` public int ByteLength { get; } `](#api-0dd98558052c2c13) | 整帧像素缓冲区的长度。 |
+| [` public ConsoleFrameRegion Damage { get; } `](#api-c0ca95b63fdbbdea) | 相对 BaseSequence 发生变化的桌面区域。 |
+| [` public bool HasFullDamage { get; } `](#api-f3cf8f02d41f9263) | 本次画面是否需要全量刷新。 |
+| [` public int Height { get; } `](#api-616a1e77beb8c421) | 完整来宾桌面的高度。 |
+| [` public ReadOnlySpan<byte> Pixels { get; } `](#api-0f916becd52bb8d3) | 当前帧的只读像素内存。 |
+| [` public long Sequence { get; } `](#api-7ed89a64cc88291b) | 本连接生成画面时递增的帧序号。 |
+| [` public int Stride { get; } `](#api-15bad73304b82dfa) | 像素缓冲区每行占用的字节数。 |
+| [` public int Width { get; } `](#api-d082eed74a45c63e) | 完整来宾桌面的宽度。 |
 
 **方法**
 
@@ -12265,9 +12727,16 @@ public ConsoleFrame(int width, int height, int stride, ReadOnlyMemory<byte> pixe
 public long BaseSequence { get; }
 ```
 
-本次变化区域所依据的上一帧序号。
+Damage 所依据的前一帧序号。
 
-调用约定：例如 BaseSequence 为 41、Sequence 为 42，Damage 表示从第 41 帧到第 42 帧的变化。 如果显示端还停在第 40 帧，直接刷新第 42 帧的全部像素即可避免遗漏变化。
+调用约定：显示端缺少该帧或尺寸不一致时，应合并中间变化或刷新完整画面。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | Damage 所依据的前一帧序号。 |
+| 取值与默认 | 非负整数。例如 BaseSequence 为 41、Sequence 为 42，Damage 描述第 41 帧到第 42 帧的变化。 |
 
 <a id="api-0dd98558052c2c13"></a>
 
@@ -12277,7 +12746,14 @@ public long BaseSequence { get; }
 public int ByteLength { get; }
 ```
 
-此帧完整像素缓冲区的字节数。
+整帧像素缓冲区的长度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 整帧像素缓冲区的长度。 |
+| 取值与默认 | 字节数，等于 Stride &#215; Height。 |
 
 <a id="api-c0ca95b63fdbbdea"></a>
 
@@ -12287,9 +12763,16 @@ public int ByteLength { get; }
 public ConsoleFrameRegion Damage { get; }
 ```
 
-相对 BaseSequence 那一帧发生变化的矩形，坐标和尺寸均为桌面像素。
+相对 BaseSequence 发生变化的桌面区域。
 
-调用约定：用于减少显示端的写入量。它不裁剪 Pixels，Pixels 仍包含完整图像。
+调用约定：用于局部刷新；Pixels 始终保存完整画面。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 相对 BaseSequence 发生变化的桌面区域。 |
+| 取值与默认 | 以桌面左上角为原点的像素矩形。 |
 
 <a id="api-f3cf8f02d41f9263"></a>
 
@@ -12299,7 +12782,14 @@ public ConsoleFrameRegion Damage { get; }
 public bool HasFullDamage { get; }
 ```
 
-true 表示应刷新整个桌面，例如首帧或尺寸变化后的画面。
+本次画面是否需要全量刷新。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 本次画面是否需要全量刷新。 |
+| 取值与默认 | true：刷新整个桌面；false：可根据 BaseSequence 和 Damage 局部刷新。 |
 
 <a id="api-616a1e77beb8c421"></a>
 
@@ -12309,7 +12799,14 @@ true 表示应刷新整个桌面，例如首帧或尺寸变化后的画面。
 public int Height { get; }
 ```
 
-完整桌面高度，单位为物理像素。
+完整来宾桌面的高度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 完整来宾桌面的高度。 |
+| 取值与默认 | 正整数，单位为物理像素。 |
 
 <a id="api-0f916becd52bb8d3"></a>
 
@@ -12319,9 +12816,18 @@ public int Height { get; }
 public ReadOnlySpan<byte> Pixels { get; }
 ```
 
-只读像素视图；仅在当前租约尚未释放时有效。
+当前帧的只读像素内存。
+
+调用约定：只在当前租约未释放时有效。读取期间保持租约有效，不得同时由另一线程释放。
 
 - 异常 `ObjectDisposedException`：此租约已经释放。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前帧的只读像素内存。 |
+| 取值与默认 | 从上到下排列的 BGRA32：每像素依次为蓝、绿、红、Alpha 四个字节；行长度为 Stride，完整长度为 ByteLength。连接生成的帧包含远端光标，Alpha 为 255。 |
 
 <a id="api-7ed89a64cc88291b"></a>
 
@@ -12331,9 +12837,14 @@ public ReadOnlySpan<byte> Pixels { get; }
 public long Sequence { get; }
 ```
 
-正数帧序号；控制台后端按本连接生成画面的顺序递增。
+本连接生成画面时递增的帧序号。
 
-调用约定：不是来宾渲染次数或时间戳；同一画面被多次 CaptureFrame 取得时序号不变。
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 本连接生成画面时递增的帧序号。 |
+| 取值与默认 | 正整数；重复获取同一画面时序号不变。 |
 
 <a id="api-15bad73304b82dfa"></a>
 
@@ -12343,7 +12854,14 @@ public long Sequence { get; }
 public int Stride { get; }
 ```
 
-完整像素图每行的字节数；连接产出的 BGRA32 帧为 Width &#215; 4。
+像素缓冲区每行占用的字节数。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 像素缓冲区每行占用的字节数。 |
+| 取值与默认 | 4 的倍数，不小于 Width &#215; 4；连接生成的帧为 Width &#215; 4，自行构造时可包含行尾填充。 |
 
 <a id="api-d082eed74a45c63e"></a>
 
@@ -12353,7 +12871,14 @@ public int Stride { get; }
 public int Width { get; }
 ```
 
-完整桌面宽度，单位为物理像素。
+完整来宾桌面的宽度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 完整来宾桌面的宽度。 |
+| 取值与默认 | 正整数，单位为物理像素。 |
 
 #### 方法说明
 
@@ -12428,11 +12953,11 @@ public ConsoleFrame Retain();
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public int Height { get; init; } `](#api-1acbdb407b0a10e2) | 区域高度。 |
-| [` public bool IsEmpty { get; } `](#api-de55acb7c12efa21) | 宽度或高度为零时返回 true，表示没有需要更新的像素。 |
-| [` public int Width { get; init; } `](#api-85e0631a66a0b36f) | 区域宽度。 |
-| [` public int X { get; init; } `](#api-88895926f6d0094f) | 左边界相对桌面左上角的横坐标。 |
-| [` public int Y { get; init; } `](#api-6ed9dcdf84d2fd37) | 上边界相对桌面左上角的纵坐标。 |
+| [` public int Height { get; init; } `](#api-1acbdb407b0a10e2) | 区域的高度。 |
+| [` public bool IsEmpty { get; } `](#api-de55acb7c12efa21) | 区域是否不包含像素。 |
+| [` public int Width { get; init; } `](#api-85e0631a66a0b36f) | 区域的宽度。 |
+| [` public int X { get; init; } `](#api-88895926f6d0094f) | 区域左边界相对桌面左上角的横坐标。 |
+| [` public int Y { get; init; } `](#api-6ed9dcdf84d2fd37) | 区域上边界相对桌面左上角的纵坐标。 |
 
 **方法**
 
@@ -12448,10 +12973,10 @@ public readonly record struct ConsoleFrameRegion(int X, int Y, int Width, int He
 
 | 参数 | 说明 |
 | --- | --- |
-| `X` | 左边界相对桌面左上角的横坐标。 |
-| `Y` | 上边界相对桌面左上角的纵坐标。 |
-| `Width` | 区域宽度。 |
-| `Height` | 区域高度。 |
+| `X` | 区域左边界相对桌面左上角的横坐标。 |
+| `Y` | 区域上边界相对桌面左上角的纵坐标。 |
+| `Width` | 区域的宽度。 |
+| `Height` | 区域的高度。 |
 
 调用约定：右边界 X + Width 和下边界 Y + Height 不计入区域。 例如 (10, 20, 2, 1) 包含 (10, 20)、(11, 20) 两个像素。 自行构造时请提供非负坐标和尺寸；此记录的构造器不检查是否越出桌面。
 
@@ -12467,10 +12992,10 @@ public ConsoleFrameRegion(int X, int Y, int Width, int Height);
 
 | 参数 | 说明 |
 | --- | --- |
-| `X` | 左边界相对桌面左上角的横坐标。 |
-| `Y` | 上边界相对桌面左上角的纵坐标。 |
-| `Width` | 区域宽度。 |
-| `Height` | 区域高度。 |
+| `X` | 区域左边界相对桌面左上角的横坐标。 |
+| `Y` | 区域上边界相对桌面左上角的纵坐标。 |
+| `Width` | 区域的宽度。 |
+| `Height` | 区域的高度。 |
 
 #### 属性说明
 
@@ -12482,7 +13007,14 @@ public ConsoleFrameRegion(int X, int Y, int Width, int Height);
 public int Height { get; init; }
 ```
 
-区域高度。
+区域的高度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 区域的高度。 |
+| 取值与默认 | 非负整数，单位为像素；0 表示空区域。 |
 
 <a id="api-de55acb7c12efa21"></a>
 
@@ -12492,7 +13024,14 @@ public int Height { get; init; }
 public bool IsEmpty { get; }
 ```
 
-宽度或高度为零时返回 true，表示没有需要更新的像素。
+区域是否不包含像素。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 区域是否不包含像素。 |
+| 取值与默认 | 宽度或高度为 0 时为 true，否则为 false。 |
 
 <a id="api-85e0631a66a0b36f"></a>
 
@@ -12502,7 +13041,14 @@ public bool IsEmpty { get; }
 public int Width { get; init; }
 ```
 
-区域宽度。
+区域的宽度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 区域的宽度。 |
+| 取值与默认 | 非负整数，单位为像素；0 表示空区域。 |
 
 <a id="api-88895926f6d0094f"></a>
 
@@ -12512,7 +13058,14 @@ public int Width { get; init; }
 public int X { get; init; }
 ```
 
-左边界相对桌面左上角的横坐标。
+区域左边界相对桌面左上角的横坐标。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 区域左边界相对桌面左上角的横坐标。 |
+| 取值与默认 | 非负整数，单位为像素。 |
 
 <a id="api-6ed9dcdf84d2fd37"></a>
 
@@ -12522,7 +13075,14 @@ public int X { get; init; }
 public int Y { get; init; }
 ```
 
-上边界相对桌面左上角的纵坐标。
+区域上边界相对桌面左上角的纵坐标。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 区域上边界相对桌面左上角的纵坐标。 |
+| 取值与默认 | 非负整数，单位为像素。 |
 
 #### 方法说明
 
@@ -12572,9 +13132,9 @@ public ConsoleFrameRegion Union(ConsoleFrameRegion other);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public bool Down { get; init; } `](#api-9dda0a7e66ef6c82) | true 为按下，false 为释放。 |
-| [` public bool Extended { get; init; } `](#api-7eb7c66facc0c4a1) | 是否带 E0 前缀。 |
-| [` public ushort ScanCode { get; init; } `](#api-11ff40b969784eda) | PC 扫描码，1～255。 |
+| [` public bool Down { get; init; } `](#api-9dda0a7e66ef6c82) | 按键事件的动作。 |
+| [` public bool Extended { get; init; } `](#api-7eb7c66facc0c4a1) | 扫描码是否带 E0 前缀。 |
+| [` public ushort ScanCode { get; init; } `](#api-11ff40b969784eda) | 键盘按键的 PC 扫描码。 |
 
 #### 详细说明
 
@@ -12584,9 +13144,9 @@ public readonly record struct ConsoleKeyEvent(ushort ScanCode, bool Extended, bo
 
 | 参数 | 说明 |
 | --- | --- |
-| `ScanCode` | PC 扫描码，1～255。 |
-| `Extended` | 是否带 E0 前缀。 |
-| `Down` | true 为按下，false 为释放。 |
+| `ScanCode` | 键盘按键的 PC 扫描码。 |
+| `Extended` | 扫描码是否带 E0 前缀。 |
+| `Down` | 按键事件的动作。 |
 
 #### 构造函数说明
 
@@ -12600,9 +13160,9 @@ public ConsoleKeyEvent(ushort ScanCode, bool Extended, bool Down);
 
 | 参数 | 说明 |
 | --- | --- |
-| `ScanCode` | PC 扫描码，1～255。 |
-| `Extended` | 是否带 E0 前缀。 |
-| `Down` | true 为按下，false 为释放。 |
+| `ScanCode` | 键盘按键的 PC 扫描码。 |
+| `Extended` | 扫描码是否带 E0 前缀。 |
+| `Down` | 按键事件的动作。 |
 
 #### 属性说明
 
@@ -12614,7 +13174,14 @@ public ConsoleKeyEvent(ushort ScanCode, bool Extended, bool Down);
 public bool Down { get; init; }
 ```
 
-true 为按下，false 为释放。
+按键事件的动作。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 按键事件的动作。 |
+| 取值与默认 | true：按下；false：释放。 |
 
 <a id="api-7eb7c66facc0c4a1"></a>
 
@@ -12624,7 +13191,14 @@ true 为按下，false 为释放。
 public bool Extended { get; init; }
 ```
 
-是否带 E0 前缀。
+扫描码是否带 E0 前缀。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 扫描码是否带 E0 前缀。 |
+| 取值与默认 | true：带 E0 前缀；false：普通扫描码。 |
 
 <a id="api-11ff40b969784eda"></a>
 
@@ -12634,7 +13208,14 @@ public bool Extended { get; init; }
 public ushort ScanCode { get; init; }
 ```
 
-PC 扫描码，1～255。
+键盘按键的 PC 扫描码。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 键盘按键的 PC 扫描码。 |
+| 取值与默认 | 1～255。例如 A 键为 `0x1E`；实际字符由来宾键盘布局和修饰键决定。 |
 
 <a id="api-2583c9fa0f39f88e"></a>
 
@@ -12668,7 +13249,7 @@ PC 扫描码，1～255。
 public enum ConsoleKeyboardToggleState : uint
 ```
 
-调用约定：供 SynchronizeKeyboard 使用。它描述开启或关闭的状态，不是一次按键事件；Core 不自动读取宿主的锁定键状态。
+调用约定：由调用方读取锁定状态，再交给 SynchronizeKeyboard 同步到来宾。
 
 #### 枚举值说明
 
@@ -12824,9 +13405,9 @@ Right = 2
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public const string NimueBackendId = "Nimue" `](#api-e3c713c57eff5656) | Nimue 连接标识；当前版本尚未接入。 |
-| [` public const string RdpBasicBackendId = "RdpBasic" `](#api-67820999b25792f3) | RDP 基本会话的连接标识；当前由 FreeRDP 实现，提供视频和键鼠输入。 |
-| [` public const string RdpEnhancedBackendId = "RdpEnhanced" `](#api-f88e5239b9fd534c) | RDP 增强会话的连接标识；当前由 FreeRDP 实现，另提供剪贴板和桌面尺寸调整，需要来宾支持相应通道。 |
+| [` public const string NimueBackendId = "Nimue" `](#api-e3c713c57eff5656) | Nimue 的预留后端标识，当前尚未接入。 |
+| [` public const string RdpBasicBackendId = "RdpBasic" `](#api-67820999b25792f3) | RDP 基本会话的后端标识，提供视频和键鼠输入。 |
+| [` public const string RdpEnhancedBackendId = "RdpEnhanced" `](#api-f88e5239b9fd534c) | RDP 增强会话的后端标识，另提供剪贴板和分辨率调整，需要来宾支持增强会话。 |
 
 #### 详细说明
 
@@ -12889,7 +13470,14 @@ public static IReadOnlyList<ConsoleBackendInfo> GetBackends();
 public const string NimueBackendId = "Nimue";
 ```
 
-Nimue 连接标识；当前版本尚未接入。
+Nimue 的预留后端标识，当前尚未接入。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | Nimue 的预留后端标识，当前尚未接入。 |
+| 取值与默认 | `Nimue`。 |
 
 <a id="api-67820999b25792f3"></a>
 
@@ -12899,7 +13487,14 @@ Nimue 连接标识；当前版本尚未接入。
 public const string RdpBasicBackendId = "RdpBasic";
 ```
 
-RDP 基本会话的连接标识；当前由 FreeRDP 实现，提供视频和键鼠输入。
+RDP 基本会话的后端标识，提供视频和键鼠输入。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | RDP 基本会话的后端标识，提供视频和键鼠输入。 |
+| 取值与默认 | `RdpBasic`。 |
 
 <a id="api-f88e5239b9fd534c"></a>
 
@@ -12909,7 +13504,14 @@ RDP 基本会话的连接标识；当前由 FreeRDP 实现，提供视频和键�
 public const string RdpEnhancedBackendId = "RdpEnhanced";
 ```
 
-RDP 增强会话的连接标识；当前由 FreeRDP 实现，另提供剪贴板和桌面尺寸调整，需要来宾支持相应通道。
+RDP 增强会话的后端标识，另提供剪贴板和分辨率调整，需要来宾支持增强会话。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | RDP 增强会话的后端标识，另提供剪贴板和分辨率调整，需要来宾支持增强会话。 |
+| 取值与默认 | `RdpEnhanced`。 |
 
 <a id="api-300a4de29fad713b"></a>
 
@@ -13941,7 +14543,7 @@ public async Task<GpuDeploymentSnapshot> SubmitDecisionAsync(GpuDeploymentDecisi
 | 成员 | 说明 |
 | --- | --- |
 | [` public uint? CoreId { get; init; } `](#api-7f19eabd3e42cdc9) | HCS 返回的物理核心标识；未提供时为 null。 |
-| [` public CpuCoreType CoreType { get; init; } `](#api-31f7b62392a2eea0) | 核心性能类别；无法可靠映射时为 Unknown，不按 HCS 编号猜测 Windows 编号。 |
+| [` public CpuCoreType CoreType { get; init; } `](#api-31f7b62392a2eea0) | 核心性能类别；未识别时为 Unknown。 |
 | [` public int Index { get; init; } `](#api-02974389d90ac361) | 原样传给 CpuAffinityService.SaveAsync 的编号；Classic/Core 为 HCS LpIndex，Root 为唯一 Windows 处理器组内的编号。 |
 | [` public uint? NumaNode { get; init; } `](#api-8ca3741d2305ec4d) | HCS 返回的 NUMA 节点；未提供时为 null。 |
 | [` public uint? PackageId { get; init; } `](#api-00af2ba1d9b9a2b4) | HCS 返回的插槽标识；Root 枚举未提供时为 null。 |
@@ -13958,7 +14560,7 @@ public sealed record HostAffinityProcessor(int Index, uint? PackageId, uint? Cor
 | `PackageId` | HCS 返回的插槽标识；Root 枚举未提供时为 null。 |
 | `CoreId` | HCS 返回的物理核心标识；未提供时为 null。 |
 | `NumaNode` | HCS 返回的 NUMA 节点；未提供时为 null。 |
-| `CoreType` | 核心性能类别；无法可靠映射时为 Unknown，不按 HCS 编号猜测 Windows 编号。 |
+| `CoreType` | 核心性能类别；未识别时为 Unknown。 |
 
 #### 构造函数说明
 
@@ -13976,7 +14578,7 @@ public HostAffinityProcessor(int Index, uint? PackageId, uint? CoreId, uint? Num
 | `PackageId` | HCS 返回的插槽标识；Root 枚举未提供时为 null。 |
 | `CoreId` | HCS 返回的物理核心标识；未提供时为 null。 |
 | `NumaNode` | HCS 返回的 NUMA 节点；未提供时为 null。 |
-| `CoreType` | 核心性能类别；无法可靠映射时为 Unknown，不按 HCS 编号猜测 Windows 编号。 |
+| `CoreType` | 核心性能类别；未识别时为 Unknown。 |
 
 #### 属性说明
 
@@ -13998,7 +14600,7 @@ HCS 返回的物理核心标识；未提供时为 null。
 public CpuCoreType CoreType { get; init; }
 ```
 
-核心性能类别；无法可靠映射时为 Unknown，不按 HCS 编号猜测 Windows 编号。
+核心性能类别；未识别时为 Unknown。
 
 <a id="api-02974389d90ac361"></a>
 
@@ -14076,13 +14678,13 @@ public static Task<ApiResponse> SetEnhancedSessionModeEnabledAsync(bool enabled)
 
 返回：Hyper-V 配置提交响应。
 
-调用约定：读取当前配置使用 HyperVHostSettingsService.GetAsync 的 EnhancedSessionModeEnabled。设置宿主许可不建立控制台连接，也不配置来宾远程桌面服务。
+调用约定：当前配置见 HyperVHostSettingsService.GetAsync 返回的 EnhancedSessionModeEnabled；连接还需要来宾支持增强会话。
 
 <a id="api-e73baff26ca9c0f9"></a>
 
 ### `HostCpuGroupInfo` 类
 
-宿主 CPU 组的只读快照；修改组策略会影响该组的全部实际使用者。
+宿主 CPU 组的处理器、调度策略与成员快照。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -14098,17 +14700,17 @@ public static Task<ApiResponse> SetEnhancedSessionModeEnabledAsync(bool enabled)
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public uint? CpuCap { get; } `](#api-6f83e15a54d26153) | 组总 CPU 配额原始值，0 至 65536；65536 为满额。 |
-| [` public Guid GroupId { get; } `](#api-807408604f6ed511) | 宿主 CPU 组的稳定 GUID；不是虚拟机 GUID，也不是 Windows 处理器组编号。 |
-| [` public uint? IdleProcessorReserve { get; } `](#api-8628048aeb43a221) | 组内保留的空闲逻辑处理器数量；底层未提供时为 null。 |
-| [` public IReadOnlyList<uint>? LogicalProcessors { get; } `](#api-84fac401947dbf57) | 该组实际包含的 HCS 宿主逻辑处理器编号；底层未提供时为 null。 |
-| [` public IReadOnlyList<HostCpuGroupMember> Members { get; } `](#api-f55ef5b3c4d9e75a) | 本次已确认绑定该组的 WMI 可见 Hyper-V 虚拟机；MembersComplete=false 时，此列表可能不完整。 |
-| [` public bool MembersComplete { get; } `](#api-40ee0b271a505f0c) | 是否成功枚举并核对本次 WMI 可见 Hyper-V 虚拟机的当前 CPU 组绑定；不表示已枚举其他 HCS 使用者。 |
-| [` public string? MembersError { get; } `](#api-f05a5a292ed5dbb8) | 成员清单不完整的原因；完整时为 null。 |
-| [` public DateTimeOffset ObservedAtUtc { get; } `](#api-dfa7c8acca704b08) | 本次采集结束的 UTC 时间；不是全部来源的原子快照时间。 |
-| [` public uint? Priority { get; } `](#api-25ad75dbd43bcd5f) | 组调度优先级原始值，0 至 7；底层未提供时为 null。 |
-| [` public uint? RelativeWeight { get; } `](#api-04b452c65c1a651b) | 组相对调度权重，1 至 65535；底层未提供时为 null。 |
-| [` public string? Revision { get; } `](#api-5f2b565866dd6d2f) | 组完整属性和成员身份的版本摘要，修改时原样传回；不能确认身份或成员时为 null。 |
+| [` public uint? CpuCap { get; } `](#api-6f83e15a54d26153) | CPU 组的总算力配额，由组内所有成员共同使用。 |
+| [` public Guid GroupId { get; } `](#api-807408604f6ed511) | CPU 组的唯一标识，用于查询和修改该组。 |
+| [` public uint? IdleProcessorReserve { get; } `](#api-8628048aeb43a221) | 组空闲时仍为本组保留、不出借给其他组的逻辑处理器数量。 |
+| [` public IReadOnlyList<uint>? LogicalProcessors { get; } `](#api-84fac401947dbf57) | 该 CPU 组包含的宿主逻辑处理器。 |
+| [` public IReadOnlyList<HostCpuGroupMember> Members { get; } `](#api-f55ef5b3c4d9e75a) | 本次已确认绑定到该组的 Hyper-V 虚拟机。 |
+| [` public bool MembersComplete { get; } `](#api-40ee0b271a505f0c) | 是否已读全 WMI 可见虚拟机的 CPU 组绑定。 |
+| [` public string? MembersError { get; } `](#api-f05a5a292ed5dbb8) | 成员列表未读全的原因。 |
+| [` public DateTimeOffset ObservedAtUtc { get; } `](#api-dfa7c8acca704b08) | 本次 CPU 组采集完成的时间。 |
+| [` public uint? Priority { get; } `](#api-25ad75dbd43bcd5f) | CPU 组在竞争调度时的优先级，数值越大优先级越高。 |
+| [` public uint? RelativeWeight { get; } `](#api-04b452c65c1a651b) | CPU 组竞争处理器时间时使用的相对权重。 |
+| [` public string? Revision { get; } `](#api-5f2b565866dd6d2f) | 组配置与成员的版本摘要，用于在修改前检测变化。 |
 
 #### 详细说明
 
@@ -14116,9 +14718,7 @@ public static Task<ApiResponse> SetEnhancedSessionModeEnabledAsync(bool enabled)
 public sealed class HostCpuGroupInfo
 ```
 
-调用约定：多个底层来源分别采集，不保证跨来源原子一致。策略缺失不推断默认值；成员仅列出 WMI 可见 Hyper-V 虚拟机，不包含其他 HCS 客户端或根分区的使用者；清单为空不等于没有使用者。成员清单不完整时不可修改。此接口不把组策略写入各虚拟机的 HostOnlyItems。
-
-`CpuAffinityService` 的 Classic/Core 新分配为每台虚拟机独立建组；既有共享绑定在该虚拟机下次保存亲和性时拆分。宿主也可能存在外部程序创建的共享组。可通过 `HostCpuGroupService.GetAllAsync` 返回的 Members 中的 VmId 查找虚拟机所属组，也可使用 亲和性保存结果中的 `CurrentGroupId`。读取最新快照后，将 Revision 原样传入组策略修改方法。Root 进程亲和性不使用这四项组策略。
+调用约定：组策略适用于 Classic/Core 调度器，修改会影响该组全部使用者。成员列表覆盖 WMI 可见的 Hyper-V 虚拟机；其他 HCS 使用者不在此列表中。修改时将最新快照的 Revision 原样传回 `HostCpuGroupService`。
 
 #### 属性说明
 
@@ -14130,17 +14730,14 @@ public sealed class HostCpuGroupInfo
 public uint? CpuCap { get; }
 ```
 
-组总 CPU 配额原始值，0 至 65536；65536 为满额。底层未提供时为 null。
+CPU 组的总算力配额，由组内所有成员共同使用。
 
 **字段说明**
 
 | 项目 | 说明 |
 | --- | --- |
-| 详细含义 | CPU 组的总配额；存在多个成员时，所有成员共同受限；不是每台虚拟机各自拥有的比例。 |
-| 单位与表示 | 原始整数；65536 对应满额。 |
-| 取值与默认 | 0 至 65536；新组观测值为 65536。32768 表示该组处理器总容量的 50%。 |
-| 适用条件 | 写入适用于 Classic/Core 调度器，并要求系统实际返回该属性；其他版本或拓扑可能拒绝具体修改。 |
-| 缺测与错误 | 属性未提供时为 null，不补默认值；读取失败通过外层响应报告。 |
+| 详细含义 | CPU 组的总算力配额，由组内所有成员共同使用。 |
+| 取值与默认 | 0 至 65536；65536 为满额，32768 为 50%。未取得时为 null。 |
 | 修改对应 | 已提供修改入口；输入：cpuCap；提交方式：单字段修改并回读。`HostCpuGroupService.SetCpuCapAsync`。 |
 
 <a id="api-807408604f6ed511"></a>
@@ -14151,7 +14748,14 @@ public uint? CpuCap { get; }
 public Guid GroupId { get; }
 ```
 
-宿主 CPU 组的稳定 GUID；不是虚拟机 GUID，也不是 Windows 处理器组编号。
+CPU 组的唯一标识，用于查询和修改该组。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | CPU 组的唯一标识，用于查询和修改该组。 |
+| 取值与默认 | GUID 文本由 32 个十六进制字符和 4 个连字符组成，按 8-4-4-4-12 分组。 |
 
 <a id="api-8628048aeb43a221"></a>
 
@@ -14161,17 +14765,14 @@ public Guid GroupId { get; }
 public uint? IdleProcessorReserve { get; }
 ```
 
-组内保留的空闲逻辑处理器数量；底层未提供时为 null。
+组空闲时仍为本组保留、不出借给其他组的逻辑处理器数量。
 
 **字段说明**
 
 | 项目 | 说明 |
 | --- | --- |
-| 详细含义 | 即使组处于空闲状态，仍不出借给其他组或来宾的逻辑处理器数量；可能减少其他工作负载可用的处理器。属于组策略，不是百分比。 |
-| 单位与表示 | 逻辑处理器个数。 |
-| 取值与默认 | Core 支持 0 至 min(255,组逻辑处理器数)；新组观测值为 0。SMT 和各资源域的容量可能进一步限制取值，由系统校验。 |
-| 适用条件 | 写入适用于 Classic/Core 调度器，并要求系统实际返回该属性；其他版本或拓扑可能拒绝具体修改。 |
-| 缺测与错误 | 属性未提供时为 null，不补默认值；读取失败通过外层响应报告。 |
+| 详细含义 | 组空闲时仍为本组保留、不出借给其他组的逻辑处理器数量。 |
+| 取值与默认 | 单位为个；0 至组内逻辑处理器数量，最多 255。SMT 和资源域容量还可能限制可用数量。未取得时为 null。 |
 | 修改对应 | 已提供修改入口；输入：count；提交方式：单字段修改并回读。`HostCpuGroupService.SetIdleProcessorReserveAsync`。 |
 
 <a id="api-84fac401947dbf57"></a>
@@ -14182,7 +14783,14 @@ public uint? IdleProcessorReserve { get; }
 public IReadOnlyList<uint>? LogicalProcessors { get; }
 ```
 
-该组实际包含的 HCS 宿主逻辑处理器编号；底层未提供时为 null。
+该 CPU 组包含的宿主逻辑处理器。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 该 CPU 组包含的宿主逻辑处理器。 |
+| 取值与默认 | HCS 逻辑处理器编号列表；未取得时为 null。 |
 
 <a id="api-f55ef5b3c4d9e75a"></a>
 
@@ -14192,7 +14800,14 @@ public IReadOnlyList<uint>? LogicalProcessors { get; }
 public IReadOnlyList<HostCpuGroupMember> Members { get; }
 ```
 
-本次已确认绑定该组的 WMI 可见 Hyper-V 虚拟机；MembersComplete=false 时，此列表可能不完整。
+本次已确认绑定到该组的 Hyper-V 虚拟机。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 本次已确认绑定到该组的 Hyper-V 虚拟机。 |
+| 取值与默认 | 成员列表；MembersComplete 为 false 时可能不完整。 |
 
 <a id="api-40ee0b271a505f0c"></a>
 
@@ -14202,7 +14817,14 @@ public IReadOnlyList<HostCpuGroupMember> Members { get; }
 public bool MembersComplete { get; }
 ```
 
-是否成功枚举并核对本次 WMI 可见 Hyper-V 虚拟机的当前 CPU 组绑定；不表示已枚举其他 HCS 使用者。
+是否已读全 WMI 可见虚拟机的 CPU 组绑定。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否已读全 WMI 可见虚拟机的 CPU 组绑定。 |
+| 取值与默认 | true：读取完整；false：读取不完整，原因见 MembersError。 |
 
 <a id="api-f05a5a292ed5dbb8"></a>
 
@@ -14212,7 +14834,14 @@ public bool MembersComplete { get; }
 public string? MembersError { get; }
 ```
 
-成员清单不完整的原因；完整时为 null。
+成员列表未读全的原因。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 成员列表未读全的原因。 |
+| 取值与默认 | 说明文本；列表完整时为 null。 |
 
 <a id="api-dfa7c8acca704b08"></a>
 
@@ -14222,7 +14851,14 @@ public string? MembersError { get; }
 public DateTimeOffset ObservedAtUtc { get; }
 ```
 
-本次采集结束的 UTC 时间；不是全部来源的原子快照时间。
+本次 CPU 组采集完成的时间。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 本次 CPU 组采集完成的时间。 |
+| 取值与默认 | UTC 时间，偏移量为 +00:00。 |
 
 <a id="api-25ad75dbd43bcd5f"></a>
 
@@ -14232,17 +14868,14 @@ public DateTimeOffset ObservedAtUtc { get; }
 public uint? Priority { get; }
 ```
 
-组调度优先级原始值，0 至 7；底层未提供时为 null。
+CPU 组在竞争调度时的优先级，数值越大优先级越高。
 
 **字段说明**
 
 | 项目 | 说明 |
 | --- | --- |
-| 详细含义 | CPU 组调度优先级；数值越大，调度优先级越高，但不表示固定时间份额。作用于整个 CPU 组。 |
-| 单位与表示 | 原始整数。 |
-| 取值与默认 | 0 至 7；新组观测值为 1。数值越大优先级越高。 |
-| 适用条件 | 写入适用于 Classic/Core 调度器，并要求系统实际返回该属性；其他版本或拓扑可能拒绝具体修改。 |
-| 缺测与错误 | 属性未提供时为 null，不补默认值；读取失败通过外层响应报告。 |
+| 详细含义 | CPU 组在竞争调度时的优先级，数值越大优先级越高。 |
+| 取值与默认 | 0 至 7；未取得时为 null。 |
 | 修改对应 | 已提供修改入口；输入：priority；提交方式：单字段修改并回读。`HostCpuGroupService.SetPriorityAsync`。 |
 
 <a id="api-04b452c65c1a651b"></a>
@@ -14253,17 +14886,14 @@ public uint? Priority { get; }
 public uint? RelativeWeight { get; }
 ```
 
-组相对调度权重，1 至 65535；底层未提供时为 null。不是 CPU 百分比。
+CPU 组竞争处理器时间时使用的相对权重。此名称对应尚未公开命名的 HCS 属性 0x40000。
 
 **字段说明**
 
 | 项目 | 说明 |
 | --- | --- |
-| 详细含义 | Core 根据底层调度计算采用的描述性名称；影响竞争调度中的相对权重，不承诺任何负载下固定的算力占比。 |
-| 单位与表示 | 原始相对权重。 |
-| 取值与默认 | 1 至 65535；新组观测默认值为 100，不用它填补缺失属性。 |
-| 适用条件 | 写入适用于 Classic/Core 调度器，并要求系统实际返回该属性；其他版本或拓扑可能拒绝具体修改。 |
-| 缺测与错误 | 属性未提供时为 null，不补默认值；读取失败通过外层响应报告。 |
+| 详细含义 | CPU 组竞争处理器时间时使用的相对权重。此名称对应尚未公开命名的 HCS 属性 0x40000。 |
+| 取值与默认 | 1 至 65535；未取得时为 null。 |
 | 修改对应 | 已提供修改入口；输入：weight；提交方式：单字段修改并回读。`HostCpuGroupService.SetRelativeWeightAsync`。 |
 
 <a id="api-5f2b565866dd6d2f"></a>
@@ -14274,13 +14904,20 @@ public uint? RelativeWeight { get; }
 public string? Revision { get; }
 ```
 
-组完整属性和成员身份的版本摘要，修改时原样传回；不能确认身份或成员时为 null。此值不是锁或授权凭据。
+组配置与成员的版本摘要，用于在修改前检测变化。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 组配置与成员的版本摘要，用于在修改前检测变化。 |
+| 取值与默认 | 修改时原样传回；无法确认组身份、属性或成员时为 null。 |
 
 <a id="api-d87f4f08ed1246c8"></a>
 
 ### `HostCpuGroupMember` record 类
 
-CPU 组在本次读取中绑定的一台 WMI 可见 Hyper-V 虚拟机；不包含检查点的历史绑定。
+绑定到 CPU 组的 Hyper-V 虚拟机。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -14302,9 +14939,9 @@ CPU 组在本次读取中绑定的一台 WMI 可见 Hyper-V 虚拟机；不包�
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string? Name { get; init; } `](#api-1e5e484a49dbfa84) | 本次读取的显示名称，缺失时为 null；不能用作写入身份。 |
-| [` public VmState State { get; init; } `](#api-3ea2cc1f76f079e1) | 本次读取的虚拟机状态；未识别时为 Unknown。 |
-| [` public Guid VmId { get; init; } `](#api-db38839d7c548906) | 虚拟机稳定 GUID。 |
+| [` public string? Name { get; init; } `](#api-1e5e484a49dbfa84) | 虚拟机显示名称；未取得时为 null。 |
+| [` public VmState State { get; init; } `](#api-3ea2cc1f76f079e1) | 本次查询的虚拟机运行状态。 |
+| [` public Guid VmId { get; init; } `](#api-db38839d7c548906) | 虚拟机 GUID。 |
 
 #### 详细说明
 
@@ -14314,9 +14951,9 @@ public sealed record HostCpuGroupMember(Guid VmId, string? Name, VmState State)
 
 | 参数 | 说明 |
 | --- | --- |
-| `VmId` | 虚拟机稳定 GUID。 |
-| `Name` | 本次读取的显示名称，缺失时为 null；不能用作写入身份。 |
-| `State` | 本次读取的虚拟机状态；未识别时为 Unknown。 |
+| `VmId` | 虚拟机 GUID。 |
+| `Name` | 虚拟机显示名称；未取得时为 null。 |
+| `State` | 本次查询的虚拟机运行状态。 |
 
 #### 构造函数说明
 
@@ -14330,9 +14967,9 @@ public HostCpuGroupMember(Guid VmId, string? Name, VmState State);
 
 | 参数 | 说明 |
 | --- | --- |
-| `VmId` | 虚拟机稳定 GUID。 |
-| `Name` | 本次读取的显示名称，缺失时为 null；不能用作写入身份。 |
-| `State` | 本次读取的虚拟机状态；未识别时为 Unknown。 |
+| `VmId` | 虚拟机 GUID。 |
+| `Name` | 虚拟机显示名称；未取得时为 null。 |
+| `State` | 本次查询的虚拟机运行状态。 |
 
 #### 属性说明
 
@@ -14344,7 +14981,7 @@ public HostCpuGroupMember(Guid VmId, string? Name, VmState State);
 public string? Name { get; init; }
 ```
 
-本次读取的显示名称，缺失时为 null；不能用作写入身份。
+虚拟机显示名称；未取得时为 null。
 
 <a id="api-3ea2cc1f76f079e1"></a>
 
@@ -14354,7 +14991,7 @@ public string? Name { get; init; }
 public VmState State { get; init; }
 ```
 
-本次读取的虚拟机状态；未识别时为 Unknown。
+本次查询的虚拟机运行状态。
 
 <a id="api-db38839d7c548906"></a>
 
@@ -14364,13 +15001,13 @@ public VmState State { get; init; }
 public Guid VmId { get; init; }
 ```
 
-虚拟机稳定 GUID。
+虚拟机 GUID。
 
 <a id="api-0333bc67cb65a850"></a>
 
 ### `HostCpuGroupService` 类
 
-查询和单独修改宿主 CPU 组策略；每次修改影响该组全部实际使用者。
+查询宿主 CPU 组，修改配额、优先级、空闲处理器保留数量和相对权重。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -14389,9 +15026,9 @@ public Guid VmId { get; init; }
 | [` public static async Task<ApiResponse<IReadOnlyList<HostCpuGroupInfo>>> GetAllAsync(CancellationToken cancellationToken = default) `](#api-32c813c114a6b666) | 读取全部宿主 CPU 组及其当前成员；没有 CPU 组时返回成功空列表。 |
 | [` public static async Task<ApiResponse<HostCpuGroupInfo>> GetAsync(Guid groupId, CancellationToken cancellationToken = default) `](#api-087122f4aea3c833) | 读取指定宿主 CPU 组的策略、成员及修改所需的版本摘要。 |
 | [` public static Task<ApiResponse<HostCpuGroupInfo>> SetCpuCapAsync(Guid groupId, uint cpuCap, string expectedRevision, CancellationToken cancellationToken = default) `](#api-92b992cf83f14692) | 修改 CPU 组的总配额，并确认实际回读值；影响该组全部成员。 |
-| [` public static Task<ApiResponse<HostCpuGroupInfo>> SetIdleProcessorReserveAsync(Guid groupId, uint count, string expectedRevision, CancellationToken cancellationToken = default) `](#api-5d2ba3e9d3e27fe2) | 修改 CPU 组即使空闲也不出借给其他组或来宾的逻辑处理器数量；可能减少其他工作负载可用的处理器。 |
+| [` public static Task<ApiResponse<HostCpuGroupInfo>> SetIdleProcessorReserveAsync(Guid groupId, uint count, string expectedRevision, CancellationToken cancellationToken = default) `](#api-5d2ba3e9d3e27fe2) | 修改 CPU 组在空闲时保留的逻辑处理器数量。 |
 | [` public static Task<ApiResponse<HostCpuGroupInfo>> SetPriorityAsync(Guid groupId, uint priority, string expectedRevision, CancellationToken cancellationToken = default) `](#api-26ca8631196e09c1) | 修改 CPU 组的调度优先级，影响该组全部成员。 |
-| [` public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid groupId, uint weight, string expectedRevision, CancellationToken cancellationToken = default) `](#api-5979acdc912b88eb) | 修改 CPU 组的相对调度权重；它不是 CPU 百分比。 |
+| [` public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid groupId, uint weight, string expectedRevision, CancellationToken cancellationToken = default) `](#api-5979acdc912b88eb) | 修改 CPU 组竞争处理器时间时的相对权重。 |
 
 #### 详细说明
 
@@ -14399,19 +15036,11 @@ public Guid VmId { get; init; }
 public static class HostCpuGroupService
 ```
 
-调用约定：用 `HostCpuGroupService.GetAllAsync` 读取全部处理器组，用 `HostCpuGroupService.GetAsync` 按组 GUID 读取一个组。两种入口均返回包含策略与成员的 `HostCpuGroupInfo` 快照，页面列出的身份、配额、优先级等项都从快照取得。
+调用约定：修改适用于 Classic/Core 调度器。先读取组快照，将非空 Revision 原样提交；配置或成员已经变化时返回 Conflict。修改影响该组全部使用者，成功后返回新的快照与 Revision。
 
 
 
-结果附带 `HostCpuGroupInfo.MembersComplete`（成员是否读全）、`HostCpuGroupInfo.MembersError`（未读全的原因）、`HostCpuGroupInfo.Revision`（配置与成员的版本摘要）和 `HostCpuGroupInfo.ObservedAtUtc`（采集时间）。这些是结果说明，不是四次额外查询。
-
-
-
-提交修改时原样传回非空 Revision；成功结果带回新的快照和 Revision。成员清单仅覆盖 WMI 可见 Hyper-V 虚拟机，不代表所有 HCS 使用者，清单为空不等于无人使用。
-
-
-
-修改适用于 Classic/Core 调度器，使用与虚拟机亲和性相同的跨进程协调锁。锁不约束外部工具，版本检查与原生写入也不是系统原子操作。此服务不创建或删除组，不修改成员绑定，不替各虚拟机保存 HostOnlyItems，也不承诺跨宿主重启恢复组策略。
+Core 调用之间按宿主排队。成员列表仅覆盖 WMI 可见虚拟机。原生提交后等待结果与回读；无法确认结果时返回 OutcomeUnknown，重新查询后再决定后续操作。
 
 #### 静态方法说明
 
@@ -14469,7 +15098,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetCpuCapAsync(Guid groupId, u
 | 参数 | 说明 |
 | --- | --- |
 | `groupId` | 待修改的宿主 CPU 组 GUID。 |
-| `cpuCap` | 原始整数，0 至 65536；65536 表示组满额，不是每台 VM 各自的百分比。 |
+| `cpuCap` | 组总配额，0 至 65536；65536 为满额，32768 为 50%。 |
 | `expectedRevision` | GetAsync 或 GetAllAsync 返回的非空 Revision；过期时在任何写入前返回 Conflict。 |
 | `cancellationToken` | 仅在原生提交前取消；提交后等待返回及回读，不自动撤销请求。 |
 
@@ -14485,7 +15114,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetIdleProcessorReserveAsync(G
 
 功能归属：管理层面 / 宿主 / 修改 / 处理器组。
 
-修改 CPU 组即使空闲也不出借给其他组或来宾的逻辑处理器数量；可能减少其他工作负载可用的处理器。
+修改 CPU 组在空闲时保留的逻辑处理器数量。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -14527,7 +15156,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid gr
 
 功能归属：管理层面 / 宿主 / 修改 / 处理器组。
 
-修改 CPU 组的相对调度权重；它不是 CPU 百分比。
+修改 CPU 组竞争处理器时间时的相对权重。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -14538,7 +15167,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid gr
 
 返回：修改后经确认的组快照；系统未提供该属性时返回 Unsupported。
 
-调用约定：RelativeWeight 是 Core 根据底层计算采用的描述性名称；属性 0x40000 尚未在微软公开 HCS schema 中命名。不承诺任何负载下的固定算力占比。
+调用约定：RelativeWeight 对应 HCS 属性 0x40000，其名称与语义尚未纳入微软公开接口约定。
 
 <a id="api-f899a0c126136eb7"></a>
 
@@ -14626,7 +15255,7 @@ public Task<ApiResponse> ReleaseAsync();
 
 结束使用，清理本次建立的挂载并归还使用权；原先已有的挂载保留。重复调用等待同一次清理，不重复卸载。
 
-返回：清理及资源锁释放结果。无法确认挂载归属或卸载失败时报告失败，不把它表示为已经卸载。
+返回：清理与资源锁释放结果；无法确认挂载归属或卸载失败时返回错误。
 
 调用约定：调用前需等待使用此映像的任务结束。此方法不接受取消令牌，避免业务取消中断必要的收尾；失败后也会释放锁，后续调用必须重新读取实际状态。
 
@@ -14656,14 +15285,14 @@ public Task<ApiResponse> ReleaseAsync();
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string AccessError { get; init; } `](#api-5cad90cdbac309ba) | 无法查询实际访问模式的原因；不会用请求值代替未知的实际模式。 |
+| [` public string AccessError { get; init; } `](#api-5cad90cdbac309ba) | 未能取得实际访问模式的原因；查询成功时为空字符串。 |
 | [` public bool CreatedByCall { get; init; } `](#api-cd92e28cb9158a3e) | 挂载是否由本次调用建立；公开挂载入口返回的使用期对象负责在释放时清理，原有挂载不会自动卸载。 |
 | [` public int? DiskNumber { get; init; } `](#api-80c2e43b88f4eb89) | 已发现的宿主磁盘编号；未知为 null。 |
 | [` public string Error { get; init; } `](#api-d1351a2f5399c02c) | 挂载或发现失败说明；为空表示完整成功。 |
 | [` public string ImagePath { get; init; } `](#api-8d0c23b7f84ee6eb) | 映像完整路径。 |
 | [` public bool? IsMounted { get; init; } `](#api-3ce6c2cbb067258d) | 已确认挂载为 true，已确认未挂载为 false，无法确认时为 null。 |
-| [` public bool? IsReadOnly { get; init; } `](#api-05da7786b48066a8) | 取得使用期时，宿主磁盘实际只读状态的快照：true 只读，false 读写，null 未取得。 |
-| [` public bool RequiresInspection { get; } `](#api-457200a6fe554249) | 挂载状态无法确认，需要重新查询；可能是初始查询失败，也可能已提交挂载，不能据此判断有无副作用。 |
+| [` public bool? IsReadOnly { get; init; } `](#api-05da7786b48066a8) | 宿主磁盘的实际访问模式：true 只读，false 读写，null 未取得。 |
+| [` public bool RequiresInspection { get; } `](#api-457200a6fe554249) | 挂载状态是否未知；为 true 时需重新查询映像状态。 |
 | [` public bool Success { get; } `](#api-c43e0ce425dcf08c) | 挂载及宿主磁盘发现均成功；实际访问模式独立由 IsReadOnly 表示，未知模式不会改写此状态。 |
 
 #### 详细说明
@@ -14680,8 +15309,8 @@ public sealed record HostDiskMountResult(string ImagePath, bool? IsMounted, int?
 | `DiskNumber` | 已发现的宿主磁盘编号；未知为 null。 |
 | `CreatedByCall` | 挂载是否由本次调用建立；公开挂载入口返回的使用期对象负责在释放时清理，原有挂载不会自动卸载。 |
 | `Error` | 挂载或发现失败说明；为空表示完整成功。 |
-| `IsReadOnly` | 取得使用期时，宿主磁盘实际只读状态的快照：true 只读，false 读写，null 未取得。读取 MSFT_Disk.IsReadOnly，不反推最初的挂载参数；已有状态可以与请求不同。这不代表磁盘联机、卷权限或所有写入都可成功。 |
-| `AccessError` | 无法查询实际访问模式的原因；不会用请求值代替未知的实际模式。 |
+| `IsReadOnly` | 宿主磁盘的实际访问模式：true 只读，false 读写，null 未取得。已有挂载沿用原模式，可能与请求不同。 |
+| `AccessError` | 未能取得实际访问模式的原因；查询成功时为空字符串。 |
 
 #### 构造函数说明
 
@@ -14700,8 +15329,8 @@ public HostDiskMountResult(string ImagePath, bool? IsMounted, int? DiskNumber, b
 | `DiskNumber` | 已发现的宿主磁盘编号；未知为 null。 |
 | `CreatedByCall` | 挂载是否由本次调用建立；公开挂载入口返回的使用期对象负责在释放时清理，原有挂载不会自动卸载。 |
 | `Error` | 挂载或发现失败说明；为空表示完整成功。 |
-| `IsReadOnly` | 取得使用期时，宿主磁盘实际只读状态的快照：true 只读，false 读写，null 未取得。读取 MSFT_Disk.IsReadOnly，不反推最初的挂载参数；已有状态可以与请求不同。这不代表磁盘联机、卷权限或所有写入都可成功。 |
-| `AccessError` | 无法查询实际访问模式的原因；不会用请求值代替未知的实际模式。 |
+| `IsReadOnly` | 宿主磁盘的实际访问模式：true 只读，false 读写，null 未取得。已有挂载沿用原模式，可能与请求不同。 |
+| `AccessError` | 未能取得实际访问模式的原因；查询成功时为空字符串。 |
 
 #### 属性说明
 
@@ -14713,7 +15342,7 @@ public HostDiskMountResult(string ImagePath, bool? IsMounted, int? DiskNumber, b
 public string AccessError { get; init; }
 ```
 
-无法查询实际访问模式的原因；不会用请求值代替未知的实际模式。
+未能取得实际访问模式的原因；查询成功时为空字符串。
 
 <a id="api-cd92e28cb9158a3e"></a>
 
@@ -14773,7 +15402,7 @@ public bool? IsMounted { get; init; }
 public bool? IsReadOnly { get; init; }
 ```
 
-取得使用期时，宿主磁盘实际只读状态的快照：true 只读，false 读写，null 未取得。读取 MSFT_Disk.IsReadOnly，不反推最初的挂载参数；已有状态可以与请求不同。这不代表磁盘联机、卷权限或所有写入都可成功。
+宿主磁盘的实际访问模式：true 只读，false 读写，null 未取得。已有挂载沿用原模式，可能与请求不同。
 
 <a id="api-457200a6fe554249"></a>
 
@@ -14783,7 +15412,7 @@ public bool? IsReadOnly { get; init; }
 public bool RequiresInspection { get; }
 ```
 
-挂载状态无法确认，需要重新查询；可能是初始查询失败，也可能已提交挂载，不能据此判断有无副作用。
+挂载状态是否未知；为 true 时需重新查询映像状态。
 
 <a id="api-c43e0ce425dcf08c"></a>
 
@@ -14839,7 +15468,7 @@ public sealed record HostDiskReference(int Number, string UniqueId, string Seria
 | `SerialNumber` | 磁盘序列号，未提供时为空。 |
 | `SizeBytes` | 查询时的容量，单位为字节。 |
 
-调用约定：由 HostDiskInfo.Reference 或 GetDiskReferenceAsync 取得。仅核对设备身份，不比较联机、只读等旧设置。标识为空或设备信息不匹配时拒绝修改；无法识别标识和容量完全相同的克隆，也不是授权凭证。
+调用约定：由 HostDiskInfo.Reference 或 GetDiskReferenceAsync 取得，修改时原样传回。设备标识或容量已变化时拒绝修改；联机、只读状态的变化不影响身份核对。
 
 #### 构造函数说明
 
@@ -14926,8 +15555,8 @@ public string UniqueId { get; init; }
 | [` public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync() `](#api-5a5ea3d7d36f9c7c) | 读取宿主磁盘身份、容量及物理盘直通候选状态。 |
 | [` public static async Task<ApiResponse<List<HostOpticalDriveInfo>>> GetHostOpticalDrivesAsync() `](#api-b1850ace8b2b1346) | 读取具有 PnP 设备身份的宿主光驱。 |
 | [` public static async Task<ApiResponse<HostPartitionReference>> GetPartitionReferenceAsync(HostDiskReference disk, int partitionNumber) `](#api-76a9aa8a22314f9f) | 读取所选磁盘上的分区身份，供添加或移除盘符使用。 |
-| [` public static Task<HostDiskMountLease> MountDiskImageAsync(string imagePath, CancellationToken cancellationToken = default) `](#api-492a94e1ef00d54d) | 取得映像的独占使用权，通过 Windows 存储接口挂载；释放使用期时清理本次挂载，保留已有挂载。 |
-| [` public static Task<HostDiskMountLease> MountVhdxAsync(string imagePath, bool readOnly = false, CancellationToken cancellationToken = default) `](#api-21c619753396b0cf) | 取得虚拟磁盘映像的独占使用权，通过 Hyper-V 挂载；使用和清理完成后才允许下一个 Core 调用者进入。 |
+| [` public static Task<HostDiskMountLease> MountDiskImageAsync(string imagePath, CancellationToken cancellationToken = default) `](#api-492a94e1ef00d54d) | 挂载宿主磁盘映像，并取得独占使用期。 |
+| [` public static Task<HostDiskMountLease> MountVhdxAsync(string imagePath, bool readOnly = false, CancellationToken cancellationToken = default) `](#api-21c619753396b0cf) | 通过 Hyper-V 挂载虚拟磁盘，并取得独占使用期。 |
 | [` public static async Task<ApiResponse> RemovePartitionAccessPathAsync(HostPartitionReference partition, char driveLetter) `](#api-7a8872188e88f69d) | 移除宿主分区的指定盘符访问路径，不删除分区。 |
 | [` public static Task<ApiResponse> SetDefaultVirtualHardDiskPathAsync(string path) `](#api-c920f159d7c59109) | 修改新建虚拟磁盘的宿主默认目录，不移动已有磁盘。 |
 | [` public static async Task<ApiResponse> SetDiskOfflineStatusAsync(HostDiskReference disk, bool isOffline) `](#api-6d08c05be488f81a) | 将宿主磁盘置为脱机或联机，立即影响该磁盘在宿主的可访问性。 |
@@ -14939,7 +15568,7 @@ public string UniqueId { get; init; }
 public static partial class HostDiskService
 ```
 
-调用约定：修改操作作用于宿主存储，需要相应管理员/存储管理权限。同一磁盘编号或同一映像文件的写操作在参与此协议的 Core 进程间串行；不同资源可并行。映像按卷和文件身份协调，无法取得身份时拒绝修改；返回失败不能一概视为主机未发生任何变化。
+调用约定：修改需要宿主存储管理权限。Core 对同一磁盘或映像的写操作跨进程排队，不同资源可并行；映像通过卷和文件身份匹配。实际完成情况见各操作结果。
 
 #### 静态方法说明
 
@@ -14958,7 +15587,7 @@ public static async Task<ApiResponse<char>> AssignPartitionDriveLetterAsync(Host
 | 参数 | 说明 |
 | --- | --- |
 | `partition` | 查询时选中的分区身份，含所属磁盘；身份不匹配时拒绝修改。 |
-| `driveLetter` | 盘符字母，不带冒号或反斜杠。 |
+| `driveLetter` | 单个盘符字母 A 至 Z，不带冒号或反斜杠。 |
 
 返回：成功响应包含盘符；查询和修改失败保留错误。
 
@@ -14996,7 +15625,7 @@ public static async Task<ApiResponse<HostDiskReference>> GetDiskReferenceAsync(i
 
 | 参数 | 说明 |
 | --- | --- |
-| `diskNumber` | 当前宿主磁盘编号；不要在提交旧选择时用此方法重新确认替代设备。 |
+| `diskNumber` | 当前宿主磁盘编号，例如 0 表示磁盘 0。 |
 
 返回：磁盘身份；不存在或无法取得有效标识时失败。
 
@@ -15012,7 +15641,7 @@ public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync();
 
 读取宿主磁盘身份、容量及物理盘直通候选状态。
 
-返回：按磁盘编号排序的清单；Hyper-V 归属查询或存储查询失败时返回错误。本结果不包含分区列表。
+返回：按磁盘编号排序的磁盘清单；存储或归属查询失败时返回错误。
 
 <a id="api-b1850ace8b2b1346"></a>
 
@@ -15057,7 +15686,7 @@ public static Task<HostDiskMountLease> MountDiskImageAsync(string imagePath, Can
 
 功能归属：管理层面 / 宿主 / 修改 / 存储。
 
-取得映像的独占使用权，通过 Windows 存储接口挂载；释放使用期时清理本次挂载，保留已有挂载。
+挂载宿主磁盘映像，并取得独占使用期。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -15078,7 +15707,7 @@ public static Task<HostDiskMountLease> MountVhdxAsync(string imagePath, bool rea
 
 功能归属：管理层面 / 宿主 / 修改 / 存储。
 
-取得虚拟磁盘映像的独占使用权，通过 Hyper-V 挂载；使用和清理完成后才允许下一个 Core 调用者进入。
+通过 Hyper-V 挂载虚拟磁盘，并取得独占使用期。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -15088,7 +15717,7 @@ public static Task<HostDiskMountLease> MountVhdxAsync(string imagePath, bool rea
 
 返回：需释放的使用期对象。Result 失败也需释放；本次建立的挂载自动清理，已有挂载保留。
 
-调用约定：先检查 Result.Success 及 Result.IsReadOnly，再执行文件访问；已有模式与请求不符仍接受。完成全部访问后释放使用期，不再按 CreatedByCall 自行调用 DismountVhdxAsync。不同映像可并行，等待可取消；不保证排队的先后顺序。取得使用权前的文件身份、锁或取消错误直接传播，不返回使用期对象。
+调用约定：已有挂载沿用原访问模式，见 Result.IsReadOnly。完成文件访问后释放使用期：本次建立的挂载自动卸载，已有挂载保留；其他 Core 调用者等待到清理完成。取得使用权前发生的文件身份、锁或取消异常直接抛出。
 
 示例：
 
@@ -15204,7 +15833,7 @@ public static async Task<ApiResponse> SetDiskReadOnlyAsync(HostDiskReference dis
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static ApiResponse<bool> GetAssignmentRestrictionsRelaxed() `](#api-f98b9400716fd8af) | 读取允许非标准 GPU 分配的两个主机策略值。 |
+| [` public static ApiResponse<bool> GetAssignmentRestrictionsRelaxed() `](#api-f98b9400716fd8af) | 读取宿主是否已放宽 GPU 分配限制。 |
 | [` public static async Task<ApiResponse<IReadOnlyList<HostGpuInfo>>> GetHostGpusAsync() `](#api-e3d65bd68b3e9065) | 读取当前在位的 PCI/ACPI 显示适配器，并关联 Hyper-V 可分区资源。 |
 | [` public static bool IsGpuPartitioningVersionSupported(int? buildNumber = null) `](#api-9d62ac5622edf619) | 按应用规则检查 Windows 构建号是否达到 GPU 分区功能的版本门槛。 |
 | [` public static ApiResponse SetAssignmentRestrictionsRelaxed(bool relaxed) `](#api-b627bf14aaea7eda) | 设置是否放宽宿主 GPU 分配限制。 |
@@ -15227,7 +15856,7 @@ public static ApiResponse<bool> GetAssignmentRestrictionsRelaxed();
 
 功能归属：管理层面 / 宿主 / 查询 / GPU。
 
-读取允许非标准 GPU 分配的两个主机策略值。
+读取宿主是否已放宽 GPU 分配限制。
 
 返回：成功时两个策略均为 DWORD 0 才返回 true；未配置或其他值返回 false，读取异常返回失败。
 
@@ -15245,7 +15874,7 @@ public static async Task<ApiResponse<IReadOnlyList<HostGpuInfo>>> GetHostGpusAsy
 
 返回：GPU 清单或查询错误；专用显存为 null 表示未取得，0 是有效容量。原生设备枚举的部分失败可能表现为缺项或空清单。
 
-调用约定：GPU 分区的现有系统版本条件为 Windows build ≥ 17134，可用 `HostGpuService.IsGpuPartitioningVersionSupported` 判断。此条件属于分区功能的适用说明，不是独立设备属性；还应检查返回设备的 IsPartitionable，满足版本条件不等于设备一定能够分配。GPU 分配限制策略由 `HostGpuService.SetAssignmentRestrictionsRelaxed` 单独控制。
+调用约定：GPU 分区要求 Windows build ≥ 17134，并由设备的 IsPartitionable 表示当前是否存在可分区资源。宿主分配限制通过 SetAssignmentRestrictionsRelaxed 配置。
 
 <a id="api-9d62ac5622edf619"></a>
 
@@ -15367,7 +15996,7 @@ public static (string? Minimum, string? Maximum, string? Error) ValidateDynamicM
 
 返回：规范化上下界及错误；Error=null 表示校验通过。
 
-调用约定：只检查格式和数值顺序，不检查单播位、保留地址或与现有网卡的冲突；通过此校验不表示 Hyper-V 一定接受。
+调用约定：检查范围为输入格式与上下界顺序；地址分配限制由 Hyper-V 在提交时校验。
 
 <a id="api-d11d60064e518797"></a>
 
@@ -15415,7 +16044,7 @@ public static ApiResponse<bool> IsNativeNvmeEnabled();
 
 返回：成功时覆盖 DWORD 为 1 返回 true，不存在或其他值返回 false；读取失败返回错误。
 
-调用约定：开关的版本条件由 `HostNvmeService.IsNativeNvmeSupported` 判断。Core 在修改前检查本机 build，低于 26100 时拒绝修改且不访问注册表。读取现有配置不受这一修改门槛限制。通过 `HostNvmeService.SetNativeNvmeEnabled` 提交开关状态；配置由系统在重启后采用，此处读取的不是当前存储驱动的运行状态。
+调用约定：读取保存的启用配置；修改通过 SetNativeNvmeEnabled 提交，重启后由系统采用。
 
 <a id="api-2d5d02a14a51e2e8"></a>
 
@@ -15435,7 +16064,7 @@ public static bool IsNativeNvmeSupported(int? buildNumber = null);
 
 返回：构建号至少为 26100 时为 true。
 
-调用约定：这是 Core 允许修改覆盖值的构建号门槛，未核对系统版本、累计更新或实际存储驱动是否支持该功能。启用和恢复默认操作也检查同一条件。
+调用约定：此结果只检查构建号；驱动实际采用情况由 Windows 决定。
 
 <a id="api-a688764490341628"></a>
 
@@ -15453,7 +16082,7 @@ public static ApiResponse SetNativeNvmeEnabled(bool enabled);
 | --- | --- |
 | `enabled` | true 写入启用配置；false 删除启用配置并恢复系统默认，不强制关闭系统可能默认启用的功能。 |
 
-返回：注册表写入成功或包含失败原因的响应；成功不表示系统已无需重启。
+返回：配置写入结果；修改后需要重启。
 
 调用约定：可用条件为 Windows build ≥ 26100；Core 在访问注册表前执行检查。不满足时抛出 PlatformNotSupportedException；注册表操作失败通过响应返回。配置需重启后由系统采用。
 
@@ -15522,7 +16151,7 @@ public static (bool Success, string Error) SetFirmwareLoadFromFileEnabled(bool e
 
 返回：成功标志及失败时的错误消息。
 
-调用约定：修改主机 HKLM 的 64 位策略值；不选择固件文件，也不证明固件与目标虚拟机兼容。关闭仅删除该覆盖值，不恢复此前自定义值。
+调用约定：这是宿主策略。关闭时删除启用配置，恢复系统默认；虚拟机的固件文件路径需另行配置。
 
 <a id="api-7c77af8af6b14c8a"></a>
 
@@ -15551,7 +16180,7 @@ public static (bool Success, string Error) SetFirmwareLoadFromFileEnabled(bool e
 | 成员 | 说明 |
 | --- | --- |
 | [` public HostDiskReference Disk { get; init; } `](#api-9ae1f8e0cf1b659e) | 所属磁盘的查询身份。 |
-| [` public string ObjectId { get; init; } `](#api-0fcb9bb70c5a0ffe) | 存储提供程序返回的不透明分区标识，不是可调用的 WMI 路径。 |
+| [` public string ObjectId { get; init; } `](#api-0fcb9bb70c5a0ffe) | 存储系统提供的分区标识，查询后原样保留。 |
 | [` public Guid? PartitionGuid { get; init; } `](#api-9014b2928a6bf591) | GPT 分区 GUID；MBR 等不提供 GUID 的分区为 null。 |
 | [` public int PartitionNumber { get; init; } `](#api-c9d685e3e8b28aba) | 查询时的分区编号。 |
 
@@ -15565,10 +16194,10 @@ public sealed record HostPartitionReference(HostDiskReference Disk, int Partitio
 | --- | --- |
 | `Disk` | 所属磁盘的查询身份。 |
 | `PartitionNumber` | 查询时的分区编号。 |
-| `ObjectId` | 存储提供程序返回的不透明分区标识，不是可调用的 WMI 路径。 |
+| `ObjectId` | 存储系统提供的分区标识，查询后原样保留。 |
 | `PartitionGuid` | GPT 分区 GUID；MBR 等不提供 GUID 的分区为 null。 |
 
-调用约定：通过 GetPartitionReferenceAsync 取得。盘符和访问路径不参与比较，因此其他调用方修改这些设置不会使选择失效。提供程序复用完全相同身份的重建无法区分。
+调用约定：通过 GetPartitionReferenceAsync 取得，修改时原样传回。盘符和访问路径的变化不影响分区身份核对。
 
 #### 构造函数说明
 
@@ -15584,7 +16213,7 @@ public HostPartitionReference(HostDiskReference Disk, int PartitionNumber, strin
 | --- | --- |
 | `Disk` | 所属磁盘的查询身份。 |
 | `PartitionNumber` | 查询时的分区编号。 |
-| `ObjectId` | 存储提供程序返回的不透明分区标识，不是可调用的 WMI 路径。 |
+| `ObjectId` | 存储系统提供的分区标识，查询后原样保留。 |
 | `PartitionGuid` | GPT 分区 GUID；MBR 等不提供 GUID 的分区为 null。 |
 
 #### 属性说明
@@ -15607,7 +16236,7 @@ public HostDiskReference Disk { get; init; }
 public string ObjectId { get; init; }
 ```
 
-存储提供程序返回的不透明分区标识，不是可调用的 WMI 路径。
+存储系统提供的分区标识，查询后原样保留。
 
 <a id="api-9014b2928a6bf591"></a>
 
@@ -15651,7 +16280,7 @@ public int PartitionNumber { get; init; }
 | --- | --- |
 | [` public static Task<ApiResponse> ExecutePCIeOperationAsync(PcieAssignmentTarget target, PcieAssignmentTarget current, string instanceId, string path, IProgress<string>? progress = null) `](#api-eb34f8cd58d15275) | 按当前归属和稳定目标执行 PCIe 设备卸除、分配或归还。 |
 | [` public static async Task<ApiResponse<List<ControllerDisk>>> GetControllerDisksAsync(string controllerInstanceId) `](#api-88c7ff45292a6a7b) | 查询指定 PCIe 存储控制器关联的宿主物理磁盘。 |
-| [` public static Task<ApiResponse<PcieHostInfo>> GetPCIeInfoAsync() `](#api-0a177d811cc97019) | 合并在位宿主设备与 Hyper-V 可分配设备，读取当前 PCIe 归属及虚拟机稳定身份。 |
+| [` public static Task<ApiResponse<PcieHostInfo>> GetPCIeInfoAsync() `](#api-0a177d811cc97019) | 读取宿主 PCIe 设备、当前归属与可选虚拟机目标。 |
 
 #### 详细说明
 
@@ -15707,7 +16336,7 @@ public static async Task<ApiResponse<List<ControllerDisk>>> GetControllerDisksAs
 | --- | --- |
 | `controllerInstanceId` | 控制器的完整 PnP InstanceId。 |
 
-返回：按磁盘 PnP 直接父节点匹配到的磁盘及系统、启动、脱机标志；没有匹配时列表为空，不代表已排除间接下属磁盘。查询失败返回错误。
+返回：直接连接到控制器的磁盘及系统、启动、脱机标志；不包含间接下属磁盘。没有匹配时列表为空，查询失败返回错误。
 
 <a id="api-0a177d811cc97019"></a>
 
@@ -15719,7 +16348,7 @@ public static Task<ApiResponse<PcieHostInfo>> GetPCIeInfoAsync();
 
 功能归属：管理层面 / 宿主 / 查询 / PCIe。
 
-合并在位宿主设备与 Hyper-V 可分配设备，读取当前 PCIe 归属及虚拟机稳定身份。
+读取宿主 PCIe 设备、当前归属与可选虚拟机目标。
 
 返回：设备与稳定 GUID 目标快照；显式 WMI 查询失败返回错误，原生 PnP 枚举的部分失败仍可能表现为设备缺项或空清单。
 
@@ -15844,7 +16473,7 @@ public static Guid? GetActivePowerPlanId();
 
 读取宿主当前活动电源计划的 GUID。
 
-返回：活动计划 GUID；原生接口失败或没有返回计划句柄时为 null，不能据此认定系统没有活动计划。
+返回：活动计划的 GUID；未能取得时为 null。
 
 <a id="api-acc29645411c8b3d"></a>
 
@@ -15973,7 +16602,7 @@ Unknown = 0
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static Architecture GetArchitecture() `](#api-90dabe8c67dc82a3) | 读取宿主操作系统的原生架构，例如 X64 或 Arm64。 |
+| [` public static Architecture GetArchitecture() `](#api-90dabe8c67dc82a3) | 读取宿主操作系统的原生架构。 |
 | [` public static async Task<ApiResponse<IReadOnlyList<string>>> GetManufacturersAsync(CancellationToken cancellationToken = default) `](#api-d217e6dd6337030b) | 读取宿主处理器的厂商标识，例如 GenuineIntel、AuthenticAMD 或系统报告的其他厂商。 |
 
 #### 详细说明
@@ -15992,11 +16621,9 @@ public static class HostProcessorPlatformService
 public static Architecture GetArchitecture();
 ```
 
-读取宿主操作系统的原生架构，例如 X64 或 Arm64。
+读取宿主操作系统的原生架构。
 
-返回：系统原生架构，采用 .NET Architecture 枚举；与当前进程的运行架构分开。
-
-调用约定：直接读取 RuntimeInformation.OSArchitecture，不发起 WMI 查询，也不读取厂商。ARM64 Windows 上的 x64 模拟进程仍返回 Arm64。此值表示操作系统所运行的架构，不是处理器厂商或产品型号。
+返回：Architecture 枚举值，例如 X64、Arm64。ARM64 Windows 中的 x64 模拟进程仍返回 Arm64。
 
 <a id="api-d217e6dd6337030b"></a>
 
@@ -16014,7 +16641,7 @@ public static async Task<ApiResponse<IReadOnlyList<string>>> GetManufacturersAsy
 
 返回：成功时返回只读厂商清单；多个处理器的相同标识只保留一项。没有处理器记录时返回成功空结果，读取失败或记录缺少厂商时返回失败。
 
-调用约定：读取全部 Win32_Processor 记录的 Manufacturer 字段，去除首尾空白，忽略大小写去重并排序；保留系统报告的标识，不将 ARM64 当作厂商，也不限制厂商种类。完整的非空结果在进程内缓存，并发调用共用一次成功查询；失败和空结果不缓存。
+调用约定：厂商标识去除首尾空白，忽略大小写去重并排序。完整的非空结果在进程内缓存；失败和空结果在下次调用时重新查询。
 
 - 异常 `OperationCanceledException`：调用方已请求取消。
 
@@ -16060,7 +16687,7 @@ public static async Task<ApiResponse<IReadOnlyList<HostAffinityProcessor>>> GetA
 
 返回：Classic/Core 返回 HCS 真实编号与拓扑；Root 返回唯一 Windows 处理器组的活动编号，多组宿主返回 Unsupported。查询失败不生成替代编号。
 
-调用约定：编号只在当前宿主和后端内有意义。不要用列表位置代替 Index，也不要把 HCS Index 当作 Windows 处理器组掩码位。
+调用约定：保存亲和性时使用返回项的 Index：Classic/Core 为 HCS 逻辑处理器编号，Root 为 Windows 处理器组内编号。
 
 <a id="api-5e4d7f06de4c8c7b"></a>
 
@@ -16175,7 +16802,7 @@ public string TargetType { get; init; }
 | [` public static HostProductTypeSwitchResult ApplySwitch(bool toServer) `](#api-b6b86ecb2adae1f9) | 准备并提交实验性 SYSTEM hive 产品类型替换，不重启宿主。 |
 | [` public static bool CanApplySwitch(HostProductTypePendingSwitch? pending) `](#api-6a0f2cd3f00229e6) | 仅根据已经成功读取的挂起信息判断是否允许尝试提交；执行仍会重新检查并获取跨进程锁。 |
 | [` public static ApiResponse<HostProductTypePendingSwitch> GetPendingSwitch() `](#api-46651c2ef821b281) | 读取此前提交的挂起标记，并检查遗留恢复文件是否仍被占用。 |
-| [` public static bool IsServerSystem() `](#api-dc41fee6c57a4513) | 读取当前 ProductType 是否属于非 WinNT 产品类型。 |
+| [` public static bool IsServerSystem() `](#api-dc41fee6c57a4513) | 读取宿主是否属于服务器产品类型。 |
 
 #### 详细说明
 
@@ -16183,7 +16810,7 @@ public string TargetType { get; init; }
 public static class HostProductTypeService
 ```
 
-调用约定：此功能不证明当前 Windows 版本、授权或系统组件支持产品类型转换。需要管理员及备份/还原特权；每次在当前用户 LocalApplicationData/ExHyperV/Recovery 下使用独立工作目录和独立挂载键，保留恢复材料，并拒绝跨进程并行提交。备份/还原特权仅在当前有效身份的令牌副本上临时启用，操作与失败清理在独立线程内完成，不修改调用方或进程令牌，不请求 UAC。挂起替换使用的文件必须保留至系统完成重启及核对。
+调用约定：此功能为实验性 Windows 产品类型修改，需要管理员及备份、还原特权。每次使用独立工作目录，恢复材料保存在当前用户的 LocalApplicationData/ExHyperV/Recovery 下。挂起替换所用文件需保留到重启完成并核对结果；同一宿主禁止并行提交。
 
 #### 静态方法说明
 
@@ -16205,7 +16832,7 @@ public static HostProductTypeSwitchResult ApplySwitch(bool toServer);
 
 返回：结构化提交状态；失败仍携带恢复路径和已知挂载残留，不删除旧备份。
 
-调用约定：跨进程忙时立即失败且不创建工作文件。发现已确认的挂起替换时直接返回其目标，即使与 toServer 请求不同也不改写。新提交还会在切换为 ServerNT 时禁用关机事件跟踪，切换为 WinNT 时删除该策略覆盖值；不恢复此前自定义策略。只有替换、策略写入和挂起标记均完成时才报告完整提交，系统调用错误 5 不等同已挂起。权限准备失败时不创建工作文件；临时身份清理失败仍保留已提交事实及原操作错误。
+调用约定：其他进程正在提交时立即失败。已有确认的挂起替换时返回其目标，保留原请求。切换为 ServerNT 时同时禁用关机事件跟踪，切换为 WinNT 时删除该策略覆盖。替换提交、策略写入和挂起标记全部完成才报告成功；部分完成或清理失败时，结果保留已提交状态和恢复材料。
 
 <a id="api-6a0f2cd3f00229e6"></a>
 
@@ -16249,9 +16876,9 @@ public static bool IsServerSystem();
 
 功能归属：管理层面 / 宿主 / 查询 / 系统产品类型。
 
-读取当前 ProductType 是否属于非 WinNT 产品类型。
+读取宿主是否属于服务器产品类型。
 
-返回：非 WinNT 值为 true；工作站、缺失值或读取失败时为 false，不代表切换能力。
+返回：ProductType 为非 WinNT 值时返回 true；工作站、未取得或读取失败时返回 false。
 
 <a id="api-9f55bd406a2d2ac3"></a>
 
@@ -16273,14 +16900,14 @@ public static bool IsServerSystem();
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string? MountedHiveKey { get; } `](#api-fcc1530392390b11) | 未能卸载的 HKLM 临时键名；null 表示没有已知挂载残留。 |
-| [` public IReadOnlyList<string> RecoveryPaths { get; } `](#api-2ecd2417589a3f45) | 本次分配或已有的恢复目录、工作 hive 和备份路径；失败较早时部分文件可能尚未产生。 |
-| [` public bool ReplacementSubmitted { get; } `](#api-2f3613c080792b7a) | 本次调用是否已确认 RegReplaceKey 成功；后续失败不撤销该事实。 |
-| [` public bool RequiresRestart { get; } `](#api-e52876918ffe7147) | 本次或此前已确认有等待重启的替换；本方法不会重启宿主。 |
-| [` public ApiResponse Response { get; } `](#api-c940dca16f656ccc) | 结构化成功或失败信息；清理失败不会报告成功。 |
-| [` public HostProductTypeSwitchState State { get; } `](#api-5d45638fa89b519d) | 提交、挂起或清理状态。 |
-| [` public bool Success { get; } `](#api-a3c0dadf47882c7e) | 本次已完整提交或已确认存在挂起替换；失败及待清理时为 false。 |
-| [` public string TargetType { get; } `](#api-747a596aac716aa2) | 本次请求的目标 WinNT/ServerNT，或已确认的挂起目标。 |
+| [` public string? MountedHiveKey { get; } `](#api-fcc1530392390b11) | 清理时未能卸载的临时注册表键。 |
+| [` public IReadOnlyList<string> RecoveryPaths { get; } `](#api-2ecd2417589a3f45) | 切换使用的恢复目录、工作注册表文件和备份路径。 |
+| [` public bool ReplacementSubmitted { get; } `](#api-2f3613c080792b7a) | 本次调用是否已成功提交系统注册表替换。 |
+| [` public bool RequiresRestart { get; } `](#api-e52876918ffe7147) | 是否已有等待宿主重启的产品类型替换。 |
+| [` public ApiResponse Response { get; } `](#api-c940dca16f656ccc) | 切换操作的结果及错误信息。 |
+| [` public HostProductTypeSwitchState State { get; } `](#api-5d45638fa89b519d) | 产品类型切换的提交与清理状态。 |
+| [` public bool Success { get; } `](#api-a3c0dadf47882c7e) | 产品类型替换是否完整提交，或已确认此前有待重启的替换。 |
+| [` public string TargetType { get; } `](#api-747a596aac716aa2) | 本次切换的目标产品类型；已有挂起替换时为其目标类型。 |
 
 #### 详细说明
 
@@ -16298,7 +16925,14 @@ public sealed class HostProductTypeSwitchResult
 public string? MountedHiveKey { get; }
 ```
 
-未能卸载的 HKLM 临时键名；null 表示没有已知挂载残留。
+清理时未能卸载的临时注册表键。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 清理时未能卸载的临时注册表键。 |
+| 取值与默认 | HKLM 下的键名；无已知残留时为 null。 |
 
 <a id="api-2ecd2417589a3f45"></a>
 
@@ -16308,7 +16942,14 @@ public string? MountedHiveKey { get; }
 public IReadOnlyList<string> RecoveryPaths { get; }
 ```
 
-本次分配或已有的恢复目录、工作 hive 和备份路径；失败较早时部分文件可能尚未产生。
+切换使用的恢复目录、工作注册表文件和备份路径。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 切换使用的恢复目录、工作注册表文件和备份路径。 |
+| 取值与默认 | 宿主路径列表；在早期失败时，部分路径对应的文件可能尚未创建。 |
 
 <a id="api-2f3613c080792b7a"></a>
 
@@ -16318,7 +16959,14 @@ public IReadOnlyList<string> RecoveryPaths { get; }
 public bool ReplacementSubmitted { get; }
 ```
 
-本次调用是否已确认 RegReplaceKey 成功；后续失败不撤销该事实。
+本次调用是否已成功提交系统注册表替换。后续步骤失败时仍保留提交结果。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 本次调用是否已成功提交系统注册表替换。后续步骤失败时仍保留提交结果。 |
+| 取值与默认 | true：已提交；false：未确认提交成功。 |
 
 <a id="api-e52876918ffe7147"></a>
 
@@ -16328,7 +16976,14 @@ public bool ReplacementSubmitted { get; }
 public bool RequiresRestart { get; }
 ```
 
-本次或此前已确认有等待重启的替换；本方法不会重启宿主。
+是否已有等待宿主重启的产品类型替换。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否已有等待宿主重启的产品类型替换。 |
+| 取值与默认 | true：本次或此前已提交替换；false：尚未确认提交。 |
 
 <a id="api-c940dca16f656ccc"></a>
 
@@ -16338,7 +16993,13 @@ public bool RequiresRestart { get; }
 public ApiResponse Response { get; }
 ```
 
-结构化成功或失败信息；清理失败不会报告成功。
+切换操作的结果及错误信息。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 切换操作的结果及错误信息。 |
 
 <a id="api-5d45638fa89b519d"></a>
 
@@ -16348,7 +17009,13 @@ public ApiResponse Response { get; }
 public HostProductTypeSwitchState State { get; }
 ```
 
-提交、挂起或清理状态。
+产品类型切换的提交与清理状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 产品类型切换的提交与清理状态。 |
 
 <a id="api-a3c0dadf47882c7e"></a>
 
@@ -16358,7 +17025,14 @@ public HostProductTypeSwitchState State { get; }
 public bool Success { get; }
 ```
 
-本次已完整提交或已确认存在挂起替换；失败及待清理时为 false。
+产品类型替换是否完整提交，或已确认此前有待重启的替换。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 产品类型替换是否完整提交，或已确认此前有待重启的替换。 |
+| 取值与默认 | true：完整提交或此前已挂起；false：提交失败或仍有清理事项。 |
 
 <a id="api-747a596aac716aa2"></a>
 
@@ -16368,7 +17042,14 @@ public bool Success { get; }
 public string TargetType { get; }
 ```
 
-本次请求的目标 WinNT/ServerNT，或已确认的挂起目标。
+本次切换的目标产品类型；已有挂起替换时为其目标类型。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 本次切换的目标产品类型；已有挂起替换时为其目标类型。 |
+| 取值与默认 | WinNT：工作站；ServerNT：服务器。 |
 
 <a id="api-2ced745c4ac2dd94"></a>
 
@@ -16485,7 +17166,7 @@ public static Task<SystemInfo> GetSystemInfoAsync();
 
 返回：包含四项显示文本的基本信息汇总，对应 Caption、OSArchitecture、CpuModel 和 MemCap。
 
-调用约定：首次调用执行实际查询，后续调用复用进程内缓存。各项不可用时返回 N/A 等回退文本，首次回退结果也会被缓存。此入口不查询使用率、设备清单或 Hyper-V 配置。
+调用约定：首次调用执行实际查询，后续调用复用进程内缓存。各项不可用时返回 N/A 等回退文本，首次回退结果也会被缓存。
 
 <a id="api-0f0119c09ea17f4b"></a>
 
@@ -16515,8 +17196,8 @@ public static Task<SystemInfo> GetSystemInfoAsync();
 | --- | --- |
 | [` public string Caption { get; init; } `](#api-73e472fbb2e84308) | 操作系统名称及构建号，例如 Windows 11 Pro (Build 26100)。 |
 | [` public string CpuModel { get; init; } `](#api-a092b8e0d2442c5f) | 处理器型号的显示文本；可能附带频率，多处理器时还附带数量。 |
-| [` public string MemCap { get; init; } `](#api-119f8498a4982334) | 已安装物理内存的容量文本；当前按 1024&#179; 字节换算后附带 GB 标签，不是可直接计算的字节数。 |
-| [` public string OSArchitecture { get; init; } `](#api-56eebd10b2654851) | 系统报告的位数文本，例如 64 位；不能据此区分 x64 与 ARM64。 |
+| [` public string MemCap { get; init; } `](#api-119f8498a4982334) | 已安装物理内存的容量文本，按 1,073,741,824 字节换算，标签为 GB。 |
+| [` public string OSArchitecture { get; init; } `](#api-56eebd10b2654851) | 操作系统的位数文本，例如 64 位。 |
 
 #### 详细说明
 
@@ -16531,9 +17212,9 @@ public record SystemInfo(
 | 参数 | 说明 |
 | --- | --- |
 | `Caption` | 操作系统名称及构建号，例如 Windows 11 Pro (Build 26100)。 |
-| `OSArchitecture` | 系统报告的位数文本，例如 64 位；不能据此区分 x64 与 ARM64。 |
+| `OSArchitecture` | 操作系统的位数文本，例如 64 位。处理器指令集见 HostProcessorPlatformService.GetArchitecture。 |
 | `CpuModel` | 处理器型号的显示文本；可能附带频率，多处理器时还附带数量。 |
-| `MemCap` | 已安装物理内存的容量文本；当前按 1024&#179; 字节换算后附带 GB 标签，不是可直接计算的字节数。 |
+| `MemCap` | 已安装物理内存的容量文本，按 1,073,741,824 字节换算，标签为 GB。 |
 
 #### 构造函数说明
 
@@ -16550,9 +17231,9 @@ public SystemInfo(string Caption, string OSArchitecture, string CpuModel, string
 | 参数 | 说明 |
 | --- | --- |
 | `Caption` | 操作系统名称及构建号，例如 Windows 11 Pro (Build 26100)。 |
-| `OSArchitecture` | 系统报告的位数文本，例如 64 位；不能据此区分 x64 与 ARM64。 |
+| `OSArchitecture` | 操作系统的位数文本，例如 64 位。处理器指令集见 HostProcessorPlatformService.GetArchitecture。 |
 | `CpuModel` | 处理器型号的显示文本；可能附带频率，多处理器时还附带数量。 |
-| `MemCap` | 已安装物理内存的容量文本；当前按 1024&#179; 字节换算后附带 GB 标签，不是可直接计算的字节数。 |
+| `MemCap` | 已安装物理内存的容量文本，按 1,073,741,824 字节换算，标签为 GB。 |
 
 #### 属性说明
 
@@ -16590,7 +17271,7 @@ public string MemCap { get; init; }
 
 功能归属：管理层面 / 宿主 / 查询 / 内存。
 
-已安装物理内存的容量文本；当前按 1024&#179; 字节换算后附带 GB 标签，不是可直接计算的字节数。
+已安装物理内存的容量文本，按 1,073,741,824 字节换算，标签为 GB。
 
 <a id="api-56eebd10b2654851"></a>
 
@@ -16602,7 +17283,7 @@ public string OSArchitecture { get; init; }
 
 功能归属：管理层面 / 宿主 / 查询 / 基本信息。
 
-系统报告的位数文本，例如 64 位；不能据此区分 x64 与 ARM64。
+操作系统的位数文本，例如 64 位。处理器指令集见 HostProcessorPlatformService.GetArchitecture。
 
 <a id="api-4d32cc978f36178b"></a>
 
@@ -16624,7 +17305,7 @@ public string OSArchitecture { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static ApiResponse<bool> GetState() `](#api-6e13cb9b828103f1) | 直接查询 Mount Manager 的宿主自动挂载策略，不触发磁盘挂载。 |
+| [` public static ApiResponse<bool> GetState() `](#api-6e13cb9b828103f1) | 读取宿主是否自动挂载新卷。 |
 | [` public static async Task<ApiResponse> SetEnabledAsync(bool enabled) `](#api-f2bf468124100c28) | 直接设置 Mount Manager 的宿主全局自动挂载策略，并重新查询确认。 |
 
 #### 详细说明
@@ -16645,9 +17326,9 @@ public static ApiResponse<bool> GetState();
 
 功能归属：管理层面 / 宿主 / 查询 / 存储。
 
-直接查询 Mount Manager 的宿主自动挂载策略，不触发磁盘挂载。
+读取宿主是否自动挂载新卷。
 
-返回：成功数据表示是否启用；读取失败返回错误，不能解释为已禁用。原生失败保留 Win32 错误码。
+返回：true 已启用，false 已禁用；读取失败返回 Win32 错误。
 
 <a id="api-f2bf468124100c28"></a>
 
@@ -16667,7 +17348,7 @@ public static async Task<ApiResponse> SetEnabledAsync(bool enabled);
 
 返回：成功表示设置后查询值与请求一致；原生失败保留 Win32 错误码。已写入但复核失败时为 OutcomeUnknown，复核值不一致时为 Conflict；失败不保证设置未改变。
 
-调用约定：需要宿主管理权限；这是持久设置，会影响其他程序使用的新卷，不仅影响本 DLL。同一宿主的 Core 写入及复核按资源锁排队；锁不阻止外部工具修改。退出程序不恢复此开关。
+调用约定：这是宿主全局的持久设置，退出程序后仍生效。Core 的写入和复核按宿主排队。
 
 <a id="api-3df2cf54f9233c21"></a>
 
@@ -16697,7 +17378,7 @@ public static async Task<ApiResponse> SetEnabledAsync(bool enabled);
 | --- | --- |
 | [` public HyperVDiagnosticKind DiagnosticKind { get; init; } `](#api-4a7361d12f813ad0) | 可供程序分支判断的诊断类别。 |
 | [` public ApiFailure? Failure { get; init; } `](#api-1334b348163eb5da) | 原始接口错误的类别、来源和数值；没有原始错误时为 null。 |
-| [` public string Message { get; init; } `](#api-2f585e2547fc334c) | 面向人的说明，不能用来替代结构化类别。 |
+| [` public string Message { get; init; } `](#api-2f585e2547fc334c) | 本阶段检查结论的文字说明。 |
 | [` public HyperVCheckStage Stage { get; init; } `](#api-7dfe815332359fc5) | 检查阶段。 |
 | [` public HyperVCheckState State { get; init; } `](#api-fcd4f1cc9cf30149) | 通过、未就绪、未知或未检查。 |
 
@@ -16713,7 +17394,7 @@ public sealed record HyperVCheckResult(HyperVCheckStage Stage, HyperVCheckState 
 | `Stage` | 检查阶段。 |
 | `State` | 通过、未就绪、未知或未检查。 |
 | `DiagnosticKind` | 可供程序分支判断的诊断类别。 |
-| `Message` | 面向人的说明，不能用来替代结构化类别。 |
+| `Message` | 本阶段检查结论的文字说明。 |
 | `Failure` | 原始接口错误的类别、来源和数值；没有原始错误时为 null。 |
 
 #### 构造函数说明
@@ -16731,7 +17412,7 @@ public HyperVCheckResult(HyperVCheckStage Stage, HyperVCheckState State, HyperVD
 | `Stage` | 检查阶段。 |
 | `State` | 通过、未就绪、未知或未检查。 |
 | `DiagnosticKind` | 可供程序分支判断的诊断类别。 |
-| `Message` | 面向人的说明，不能用来替代结构化类别。 |
+| `Message` | 本阶段检查结论的文字说明。 |
 | `Failure` | 原始接口错误的类别、来源和数值；没有原始错误时为 null。 |
 
 #### 属性说明
@@ -16764,7 +17445,7 @@ public ApiFailure? Failure { get; init; }
 public string Message { get; init; }
 ```
 
-面向人的说明，不能用来替代结构化类别。
+本阶段检查结论的文字说明。
 
 <a id="api-7dfe815332359fc5"></a>
 
@@ -16947,7 +17628,7 @@ Unknown = 3
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public PerformanceSampleInfo VirtualMachineIdentitySample { get; } `](#api-dc2b76bf911dccac) | 最近一次虚拟机身份与处理器配置查询的状态；Valid 且没有虚拟机行表示成功取得空清单，查询失败不等于清单为空。 |
+| [` public PerformanceSampleInfo VirtualMachineIdentitySample { get; } `](#api-dc2b76bf911dccac) | 最近一次虚拟机身份与处理器配置查询的采样状态。 |
 
 **静态方法**
 
@@ -16977,7 +17658,7 @@ public class HyperVCpuMonitorService : IDisposable, IAsyncDisposable
 
 
 
-用完调用 `HyperVCpuMonitorService.DisposeAsync`，或用 await using 管理实例。释放会停止本实例的后台维护并释放计数器；它不是修改宿主处理器配置，已释放实例不能继续采样。
+用完调用 `HyperVCpuMonitorService.DisposeAsync`，或用 await using 管理实例。释放会停止后台维护并释放计数器，之后不能继续采样。
 
 #### 构造函数说明
 
@@ -17001,9 +17682,9 @@ public HyperVCpuMonitorService();
 public PerformanceSampleInfo VirtualMachineIdentitySample { get; }
 ```
 
-最近一次虚拟机身份与处理器配置查询的状态；Valid 且没有虚拟机行表示成功取得空清单，查询失败不等于清单为空。
+最近一次虚拟机身份与处理器配置查询的采样状态。
 
-调用约定：这是后台维护的不可变状态快照。首次读取前为 NotSampled；失败时尚未取得任何 GUID 的虚拟机无法出现在 GetCpuUsage 的结果中，可通过本属性识别该失败。
+调用约定：首次查询前为 NotSampled。未能取得身份的虚拟机不会出现在 GetCpuUsage 中；本状态用于说明身份查询是否完成或失败。
 
 #### 静态方法说明
 
@@ -17023,7 +17704,7 @@ public static CpuCoreType GetCoreType(int coreId);
 
 返回：存在不同 EfficiencyClass 时，最高类别为 Performance，其余为 Efficient；同类核心、编号未找到或探测失败时为 Unknown。
 
-调用约定：这是相对性能类别的二分结果，不识别厂商核心型号，也不保留三种以上的性能等级。拓扑变化后不会自动刷新此缓存。
+调用约定：根据 Windows EfficiencyClass 分为性能和能效两类；首次探测结果在进程内缓存。
 
 #### 方法说明
 
@@ -17059,7 +17740,7 @@ public List<VmCpuCoreMetric> GetCpuUsage();
 
 返回：按核心列出的数值及 Sample 状态；仅 IsValid 样本可用于更新显示或计算平均值。宿主由 IsHost 区分，虚拟机由 VmId 区分。尚未取得任何虚拟机身份时，不返回无法归属的虚拟机样本。
 
-调用约定：每次调用推进计数器采样，使用率是相邻计数器采样之间的运行时间比例，后台每两秒维护实例而非固定采样。按最近成功取得的 GUID 清单唯一匹配计数器名称；歧义、身份查询失败、预热和采样失败均以 Sample 表明无效，不能将占位数值当作零负载。多个调用方共享同一实例时也共享采样间隔。外部在查询后改名或重建的瞬间不具备原子快照保证。
+调用约定：使用率按相邻两次调用之间的处理器运行时间计算，同一实例的调用者共享采样间隔。后台每两秒维护计数器清单。预热、身份查询失败或采样失败时 Sample.IsValid 为 false，此次数值不参与显示更新或计算。
 
 - 异常 `ObjectDisposedException`：本实例已经开始最终释放。
 
@@ -17257,8 +17938,8 @@ Hyper-V 运行环境的结构化检查结果；按阶段顺序遇到首个问题
 | --- | --- |
 | [` public HyperVCheckResult? FirstIssue { get; } `](#api-11035cbb2f7efdca) | 按监控程序、VMMS、WMI 顺序遇到的首个未通过结果；全部通过时为 null。 |
 | [` public HyperVCheckResult Hypervisor { get; } `](#api-ba82d55a46e226f5) | 本系统监控程序的检查结果。 |
-| [` public bool? IsInstalled { get; } `](#api-6a8fe1b5ea30a7ab) | 是否确认存在 VMMS 服务；明确不存在为 false，未检查或查询失败为 null。 |
-| [` public bool IsReady { get; } `](#api-061fa6b7bc324734) | 三项检查是否都已通过。 |
+| [` public bool? IsInstalled { get; } `](#api-6a8fe1b5ea30a7ab) | 是否已查到宿主的 VMMS 服务。 |
+| [` public bool IsReady { get; } `](#api-061fa6b7bc324734) | 监控程序、VMMS 服务和 WMI 管理接口是否均已通过运行检查。 |
 | [` public string StatusText { get; } `](#api-cb44fa30cf482a5e) | 首个问题的显示说明；全部通过时为空。 |
 | [` public HyperVCheckResult Vmms { get; } `](#api-26c01bbec370913b) | VMMS 服务检查结果。 |
 | [` public VmmsServiceInfo? VmmsService { get; } `](#api-313b359863164567) | 成功查到 VMMS 时的服务信息；未检查、查询失败或不存在时为 null。 |
@@ -17270,7 +17951,7 @@ Hyper-V 运行环境的结构化检查结果；按阶段顺序遇到首个问题
 public sealed class HyperVEnvironmentStatus
 ```
 
-调用约定：不是整机健康证明，不保证每个虚拟机或管理操作都能成功。NotChecked 表示本次没有执行，不是失败或不存在。
+调用约定：检查顺序为监控程序、VMMS 服务、WMI 管理接口；遇到首个问题后，剩余阶段标为 NotChecked。
 
 #### 属性说明
 
@@ -17302,7 +17983,14 @@ public HyperVCheckResult Hypervisor { get; }
 public bool? IsInstalled { get; }
 ```
 
-是否确认存在 VMMS 服务；明确不存在为 false，未检查或查询失败为 null。此值不证明组件文件齐全。
+是否已查到宿主的 VMMS 服务。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否已查到宿主的 VMMS 服务。 |
+| 取值与默认 | true：服务存在；false：已确认服务不存在；null：未检查或查询失败。 |
 
 <a id="api-061fa6b7bc324734"></a>
 
@@ -17312,7 +18000,14 @@ public bool? IsInstalled { get; }
 public bool IsReady { get; }
 ```
 
-三项检查是否都已通过。
+监控程序、VMMS 服务和 WMI 管理接口是否均已通过运行检查。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 监控程序、VMMS 服务和 WMI 管理接口是否均已通过运行检查。 |
+| 取值与默认 | true：三项全部通过；false：至少一项未通过或未检查。 |
 
 <a id="api-cb44fa30cf482a5e"></a>
 
@@ -17375,13 +18070,13 @@ Hyper-V WMI 管理服务查询结果。
 | 成员 | 说明 |
 | --- | --- |
 | [` public static Task<HyperVEnvironmentStatus> GetHyperVDiagnosticsAsync() `](#api-6e83f00a27983f48) | 取得 Hyper-V 运行环境的结构化检查结果，按监控程序、VMMS、WMI 顺序报告首个问题。 |
-| [` public static async Task<(bool IsReady, bool IsInstalled, string StatusText)> GetHyperVStatusAsync() `](#api-eb7d67479cd7d470) | 取得 Hyper-V 运行环境的兼容摘要；准确的三态和错误码使用 GetHyperVDiagnosticsAsync。 |
-| [` public static int GetVmmsStatus() `](#api-850ddcb6b6c173ca) | 查询本机 VMMS 服务状态的兼容摘要；需要区分失败与不存在时使用 GetHyperVDiagnosticsAsync。 |
+| [` public static async Task<(bool IsReady, bool IsInstalled, string StatusText)> GetHyperVStatusAsync() `](#api-eb7d67479cd7d470) | 读取 Hyper-V 环境是否就绪、是否查到 VMMS 及首个问题说明。 |
+| [` public static int GetVmmsStatus() `](#api-850ddcb6b6c173ca) | 读取宿主 VMMS 服务的运行状态代码。 |
 | [` public static bool IsHyperVWmiNamespaceAvailable() `](#api-71d57df0e8be1547) | 检测本机 Hyper-V WMI 管理服务是否可连接且存在。 |
 | [` public static bool IsHypervisorPresent() `](#api-12b38ef2a7a8f6a3) | 检测系统是否上报存在监控程序。 |
 | [` public static bool IsIommuEnabled() `](#api-606e6a9775f1bea2) | 检查 Device Guard 的可用安全属性中是否包含 DMA 保护。 |
-| [` public static bool IsVirtualizationEnabled() `](#api-620a3d50b8f9a3f1) | 按当前架构的固件、处理器或 WMI 信息判断虚拟化扩展是否可用。 |
-| [` public static async Task<ApiResponse> SetHyperVEnabledAsync(bool enabled) `](#api-fc59d5a50ad2e8a7) | 设置是否启用 Hyper-V；关闭时保留已安装的组件。 |
+| [` public static bool IsVirtualizationEnabled() `](#api-620a3d50b8f9a3f1) | 检查宿主是否具备已启用的硬件虚拟化扩展。 |
+| [` public static async Task<ApiResponse> SetHyperVEnabledAsync(bool enabled) `](#api-fc59d5a50ad2e8a7) | 启用或停用宿主 Hyper-V。 |
 
 #### 详细说明
 
@@ -17403,9 +18098,9 @@ public static Task<HyperVEnvironmentStatus> GetHyperVDiagnosticsAsync();
 
 取得 Hyper-V 运行环境的结构化检查结果，按监控程序、VMMS、WMI 顺序报告首个问题。
 
-返回：包含各项检查状态、首个问题、原始失败信息及可获得的 VMMS 服务详情。未执行的检查明确标记，不据此推断服务不存在。
+返回：各阶段状态、首个问题、原始错误和 VMMS 服务详情；未执行的阶段为 NotChecked。
 
-调用约定：每项读取最多等待十秒；前项未通过时不继续后项。超时只结束调用方等待，不声称已取消原生查询；同一仍在执行的原生查询由重复调用共享。只查询，不启用功能、不修复系统、不重启。IsInstalled 为 null 表示服务存在性尚未确认。
+调用约定：每阶段最多等待 10 秒，前一阶段未通过时停止后续检查。超时结束等待，底层查询继续；重复调用共用仍在进行的查询。
 
 <a id="api-eb7d67479cd7d470"></a>
 
@@ -17417,11 +18112,11 @@ public static async Task<(bool IsReady, bool IsInstalled, string StatusText)> Ge
 
 功能归属：管理层面 / 宿主 / 查询 / Hyper-V。
 
-取得 Hyper-V 运行环境的兼容摘要；准确的三态和错误码使用 GetHyperVDiagnosticsAsync。
+读取 Hyper-V 环境是否就绪、是否查到 VMMS 及首个问题说明。
 
 返回：IsReady 表示三项均通过；IsInstalled 只在本次确认 VMMS 存在时为 true，未检查、查询失败和不存在均为 false。StatusText 只报告首个问题，正常就绪时为空。
 
-调用约定：保留既有调用形式；摘要布尔值不适合作为安装或自动修复的依据。详细入口保留 NotChecked、Unknown、原始错误及服务诊断。
+调用约定：需要区分未检查、查询失败与服务不存在时，使用 GetHyperVDiagnosticsAsync。
 
 <a id="api-850ddcb6b6c173ca"></a>
 
@@ -17433,9 +18128,9 @@ public static int GetVmmsStatus();
 
 功能归属：管理层面 / 宿主 / 查询 / Hyper-V。
 
-查询本机 VMMS 服务状态的兼容摘要；需要区分失败与不存在时使用 GetHyperVDiagnosticsAsync。
+读取宿主 VMMS 服务的运行状态代码。
 
-返回：1 表示 Running；2 表示查到服务但不是 Running；0 表示未找到或无法查询。等待有界，不用于安装决策。
+返回：0：未找到或无法查询；1：Running；2：服务存在但未运行。详细诊断见 GetHyperVDiagnosticsAsync。
 
 <a id="api-71d57df0e8be1547"></a>
 
@@ -17479,7 +18174,7 @@ public static bool IsIommuEnabled();
 
 返回：检测为可用时为 true；不满足条件或读取异常时为 false。
 
-调用约定：依据 AvailableSecurityProperties 的值 3，不是当前 IOMMU 运行状态或某个设备可直通的证明。
+调用约定：以 Windows Device Guard 上报的 DMA 保护能力判断。
 
 <a id="api-620a3d50b8f9a3f1"></a>
 
@@ -17491,7 +18186,7 @@ public static bool IsVirtualizationEnabled();
 
 功能归属：管理层面 / 宿主 / 查询 / Hyper-V。
 
-按当前架构的固件、处理器或 WMI 信息判断虚拟化扩展是否可用。
+检查宿主是否具备已启用的硬件虚拟化扩展。
 
 返回：检测为可用时为 true；不满足条件或读取异常时为 false。
 
@@ -17505,35 +18200,19 @@ public static async Task<ApiResponse> SetHyperVEnabledAsync(bool enabled);
 
 功能归属：管理层面 / 宿主 / 修改 / Hyper-V。
 
-设置是否启用 Hyper-V；关闭时保留已安装的组件。
+启用或停用宿主 Hyper-V。
 
 | 参数 | 说明 |
 | --- | --- |
-| `enabled` | true 启用所需 Windows 功能并将监控程序启动配置设为 Auto；false 仅将启动配置设为 Off。 |
+| `enabled` | true 启用所需 Windows 功能并允许监控程序启动；false 停用监控程序启动，保留已安装组件。 |
 
-返回：成功表示配置已确认且需要重启，或无需重启时已完成相应检查。RequiresRestart 与 RestartReasons 保留已确认的重启要求及原因，失败也可能带有这些信息；Steps 保留每个步骤的结果及重启原因。
+返回：配置与运行检查的结果。RequiresRestart 和 RestartReasons 表示重启要求；Steps 保留各步骤结果。后续步骤失败时，已完成的变更和重启要求仍保留。
 
-调用约定：开启按功能识别、必要功能状态、启用结果、BCD 读写顺序执行；组件失败或待完成时不写 BCD。已经为目标值时不重复写入。没有重启要求时，再按监控程序、VMMS、WMI 检查运行状态；不将 Enabled 当作运行就绪。
-
-
-
-BCD 未设置时不推定为 Off 或 Auto，而是按明确请求写入目标值。写入成功本身不等于需要重启：当前监控程序已处于目标运行状态时，不增加启动配置重启要求；状态无法确认时报告未知。组件操作已要求的重启仍保留。
+调用约定：开启时先启用必要组件，再修改引导配置；组件失败或尚待完成时停止后续修改。确认家庭版缺少功能时，尝试登记适用的本机 Hyper-V 安装包。无需重启时继续检查监控程序、VMMS 和 WMI 是否就绪。
 
 
 
-仅确认家庭版且功能明确未知时，尝试登记适用的本机 Hyper-V MUM 一次，随后重查；仍未知、查询失败或缺少必要功能均停止。查询异常不触发补装，不转换 SKU，不执行整机修复，也不承诺联网补齐缺失资源。原生 DISM 的 LimitAccess 不作为本地与联网的两级策略。
-
-
-
-所需功能按客户端或服务器选择；待完成与异常状态分别报告，不把任意 pending 都当成需要重启。3010 等明确重启要求跨后续失败保留；DISM 操作与清理结果分别记录，清理失败不自动重试。
-
-
-
-Steps 的 AddHomePackage、EnableFeature 分别记录候选 MUM 及功能名称；原生 DISM 操作、清理步骤保留诊断；ReadLaunchType、SetLaunchType、AwaitLaunchType、VerifyRuntime 记录后续阶段。AwaitLaunchType 表示已确认的目标启动配置尚待在运行状态中采用；BCD 读回失败不代表未写入。
-
-
-
-需要管理员权限；遵循相同宿主资源锁的 Core 请求跨进程串行执行，不协调外部工具。不关闭虚拟机、不自动重启、不请求交互式提权。
+需要管理员权限，同一宿主的 Core 请求串行执行。此方法不关闭虚拟机、不自动重启；调用方根据 RequiresRestart 安排重启。
 
 <a id="api-4ad42a943b9e96dd"></a>
 
@@ -17561,11 +18240,11 @@ Steps 的 AddHomePackage、EnableFeature 分别记录候选 MUM 及功能名称�
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string DefaultVirtualHardDiskPath { get; init; } `](#api-2d5cdc4b60e14dc2) | 新虚拟磁盘默认目录，未取得时为空字符串。 |
-| [` public string DefaultVirtualMachinePath { get; init; } `](#api-e8d144acf92447f6) | 新虚拟机配置默认目录，未取得时为空字符串。 |
-| [` public bool EnhancedSessionModeEnabled { get; init; } `](#api-d0cf76593d92c868) | 是否允许增强会话；当前读取对缺失属性使用 false。 |
-| [` public string MaximumMacAddress { get; init; } `](#api-3a451f5dfea52c5c) | 动态 MAC 池上界的原始字符串，未取得时为空。 |
-| [` public string MinimumMacAddress { get; init; } `](#api-83e60d0ccfb563fc) | 动态 MAC 池下界的原始字符串，未取得时为空。 |
+| [` public string DefaultVirtualHardDiskPath { get; init; } `](#api-2d5cdc4b60e14dc2) | 创建虚拟硬盘时使用的宿主默认目录；未取得时为空字符串。 |
+| [` public string DefaultVirtualMachinePath { get; init; } `](#api-e8d144acf92447f6) | 创建虚拟机时使用的默认配置目录，位于宿主文件系统；未取得时为空字符串。 |
+| [` public bool EnhancedSessionModeEnabled { get; init; } `](#api-d0cf76593d92c868) | 宿主是否允许虚拟机增强会话。 |
+| [` public string MaximumMacAddress { get; init; } `](#api-3a451f5dfea52c5c) | 宿主分配动态 MAC 地址的范围上界；未取得时为空字符串。 |
+| [` public string MinimumMacAddress { get; init; } `](#api-83e60d0ccfb563fc) | 宿主分配动态 MAC 地址的范围下界；未取得时为空字符串。 |
 
 #### 详细说明
 
@@ -17580,11 +18259,11 @@ public sealed record HyperVHostSettings(
 
 | 参数 | 说明 |
 | --- | --- |
-| `EnhancedSessionModeEnabled` | 是否允许增强会话；当前读取对缺失属性使用 false。 |
-| `DefaultVirtualMachinePath` | 新虚拟机配置默认目录，未取得时为空字符串。 |
-| `DefaultVirtualHardDiskPath` | 新虚拟磁盘默认目录，未取得时为空字符串。 |
-| `MinimumMacAddress` | 动态 MAC 池下界的原始字符串，未取得时为空。 |
-| `MaximumMacAddress` | 动态 MAC 池上界的原始字符串，未取得时为空。 |
+| `EnhancedSessionModeEnabled` | 宿主是否允许虚拟机增强会话。true 允许；false 不允许或系统未提供此项。 |
+| `DefaultVirtualMachinePath` | 创建虚拟机时使用的默认配置目录，位于宿主文件系统；未取得时为空字符串。 |
+| `DefaultVirtualHardDiskPath` | 创建虚拟硬盘时使用的宿主默认目录；未取得时为空字符串。 |
+| `MinimumMacAddress` | 宿主分配动态 MAC 地址的范围下界；未取得时为空字符串。 |
+| `MaximumMacAddress` | 宿主分配动态 MAC 地址的范围上界；未取得时为空字符串。 |
 
 #### 构造函数说明
 
@@ -17600,11 +18279,11 @@ public HyperVHostSettings(bool EnhancedSessionModeEnabled, string DefaultVirtual
 
 | 参数 | 说明 |
 | --- | --- |
-| `EnhancedSessionModeEnabled` | 是否允许增强会话；当前读取对缺失属性使用 false。 |
-| `DefaultVirtualMachinePath` | 新虚拟机配置默认目录，未取得时为空字符串。 |
-| `DefaultVirtualHardDiskPath` | 新虚拟磁盘默认目录，未取得时为空字符串。 |
-| `MinimumMacAddress` | 动态 MAC 池下界的原始字符串，未取得时为空。 |
-| `MaximumMacAddress` | 动态 MAC 池上界的原始字符串，未取得时为空。 |
+| `EnhancedSessionModeEnabled` | 宿主是否允许虚拟机增强会话。true 允许；false 不允许或系统未提供此项。 |
+| `DefaultVirtualMachinePath` | 创建虚拟机时使用的默认配置目录，位于宿主文件系统；未取得时为空字符串。 |
+| `DefaultVirtualHardDiskPath` | 创建虚拟硬盘时使用的宿主默认目录；未取得时为空字符串。 |
+| `MinimumMacAddress` | 宿主分配动态 MAC 地址的范围下界；未取得时为空字符串。 |
+| `MaximumMacAddress` | 宿主分配动态 MAC 地址的范围上界；未取得时为空字符串。 |
 
 #### 属性说明
 
@@ -17618,7 +18297,7 @@ public string DefaultVirtualHardDiskPath { get; init; }
 
 功能归属：管理层面 / 宿主 / 查询 / 存储。
 
-新虚拟磁盘默认目录，未取得时为空字符串。
+创建虚拟硬盘时使用的宿主默认目录；未取得时为空字符串。
 
 <a id="api-e8d144acf92447f6"></a>
 
@@ -17630,7 +18309,7 @@ public string DefaultVirtualMachinePath { get; init; }
 
 功能归属：管理层面 / 宿主 / 查询 / Hyper-V。
 
-新虚拟机配置默认目录，未取得时为空字符串。
+创建虚拟机时使用的默认配置目录，位于宿主文件系统；未取得时为空字符串。
 
 <a id="api-d0cf76593d92c868"></a>
 
@@ -17642,7 +18321,7 @@ public bool EnhancedSessionModeEnabled { get; init; }
 
 功能归属：管理层面 / 宿主 / 查询 / 控制台。
 
-是否允许增强会话；当前读取对缺失属性使用 false。
+宿主是否允许虚拟机增强会话。true 允许；false 不允许或系统未提供此项。
 
 <a id="api-3a451f5dfea52c5c"></a>
 
@@ -17654,7 +18333,7 @@ public string MaximumMacAddress { get; init; }
 
 功能归属：管理层面 / 宿主 / 查询 / 网络。
 
-动态 MAC 池上界的原始字符串，未取得时为空。
+宿主分配动态 MAC 地址的范围上界；未取得时为空字符串。
 
 <a id="api-83e60d0ccfb563fc"></a>
 
@@ -17666,7 +18345,7 @@ public string MinimumMacAddress { get; init; }
 
 功能归属：管理层面 / 宿主 / 查询 / 网络。
 
-动态 MAC 池下界的原始字符串，未取得时为空。
+宿主分配动态 MAC 地址的范围下界；未取得时为空字符串。
 
 <a id="api-7d8a2f197b518ae9"></a>
 
@@ -17774,7 +18453,7 @@ public static async Task<ApiResponse<bool>> GetNumaSpanningEnabledAsync();
 
 读取宿主是否允许跨 NUMA 节点分配。
 
-返回：成功数据为已读取配置；查询失败或没有设置对象时返回错误。当前映射将对象中缺失或非布尔的属性视为 false。
+返回：true 允许跨 NUMA 节点分配内存；false 不允许或系统未提供有效设置值。查询失败时返回错误。
 
 <a id="api-e07705a213e3134c"></a>
 
@@ -17794,7 +18473,7 @@ public static async Task<ApiResponse> SetNumaSpanningEnabledAsync(bool enabled);
 
 返回：成功标志与失败说明。
 
-调用约定：需要 Hyper-V 管理权限；改变主机策略，不直接迁移已有 VM 的内存。
+调用约定：设置宿主后续的内存分配策略，已有虚拟机的内存保持原位置。
 
 <a id="api-631237297addc003"></a>
 
@@ -17817,7 +18496,7 @@ public static async Task<ApiResponse> SetNumaSpanningEnabledAsync(bool enabled);
 | 成员 | 说明 |
 | --- | --- |
 | [` public static HyperVSchedulerType GetConfiguredSchedulerType() `](#api-bb62581e3974b990) | 读取后续启动采用的调度器配置，不表示当前已经切换。 |
-| [` public static HyperVSchedulerType GetSchedulerType() `](#api-e4d7f01e1b9f7594) | 读取当前运行的 Hyper-V 调度器，不使用尚未生效的引导配置推测。 |
+| [` public static HyperVSchedulerType GetSchedulerType() `](#api-e4d7f01e1b9f7594) | 读取宿主当前运行的 Hyper-V 调度器。 |
 | [` public static Task<ApiResponse> SetSchedulerTypeAsync(HyperVSchedulerType type) `](#api-86bcce3a5339cc53) | 写入宿主引导配置中的 Hyper-V 调度器选择。 |
 
 #### 详细说明
@@ -17842,7 +18521,7 @@ public static HyperVSchedulerType GetConfiguredSchedulerType();
 
 返回：明确配置或按当前系统推定的启动调度器；无法确定时为 Unknown。
 
-调用约定：通过 BCD WMI Provider 读取当前启动项；仅在确认配置元素未设置时，按当前系统产品类型和构建号推定默认值。该默认推定不涵盖尚未生效的系统产品类型切换等后续变化，也不表示监控程序一定会启动。读取失败、值未知或默认依据不足时返回 Unknown。与 GetSchedulerType 的结果可以不同；设置成功后通常需要重启才生效。
+调用约定：读取当前启动项的 BCD 配置；未配置时按当前系统产品类型和构建号确定默认值，无法确定时返回 Unknown。此配置可能与正在运行的调度器不同。
 
 <a id="api-e4d7f01e1b9f7594"></a>
 
@@ -17854,11 +18533,11 @@ public static HyperVSchedulerType GetSchedulerType();
 
 功能归属：管理层面 / 宿主 / 查询 / 调度器。
 
-读取当前运行的 Hyper-V 调度器，不使用尚未生效的引导配置推测。
+读取宿主当前运行的 Hyper-V 调度器。
 
 返回：当前识别出的调度器；未运行或无法确定时为 Unknown。
 
-调用约定：优先读取 Windows 10 1903 及以后内核的 SystemHypervisorInformation；其中调度器字段未文档化，长度、字段或取值不符时回退到已核对本次启动边界的事件日志。内核明确报告没有监控程序时不再回退。日志不可用、边界不确定或无法识别时返回 Unknown，不替换成 Classic。此结果用于选择当前亲和性后端，不证明当前系统具有根分区身份。引导配置请使用 GetConfiguredSchedulerType。
+调用约定：优先查询内核运行信息，无法识别时读取本次启动的事件日志。内核调度器字段未文档化；两种来源均无法确认时返回 Unknown。下次启动配置见 GetConfiguredSchedulerType。
 
 <a id="api-86bcce3a5339cc53"></a>
 
@@ -17878,7 +18557,7 @@ public static Task<ApiResponse> SetSchedulerTypeAsync(HyperVSchedulerType type);
 
 返回：引导配置写入及读回结果；Unknown 或未定义的枚举值不会提交。失败信息区分写入失败、结果未知和写入成功后读回失败。
 
-调用约定：通过 BCD WMI Provider 使用当前身份写入，需要系统管理及备份、还原特权；不请求交互式提权，通常在宿主重启后生效，不自动重启。写后读取同一元素复核，读回成功不表示本次运行已切换。
+调用约定：通过 BCD WMI Provider 写入并回读，需要管理员及备份、还原特权。修改供后续启动采用，不自动重启宿主。
 
 <a id="api-0e00c4ef25825f2b"></a>
 
@@ -17977,7 +18656,7 @@ Unknown = 3
 | [` public static Task DeleteSwitchAsync(Guid switchId) `](#api-531ce12c38ad235d) | 按稳定 GUID 关闭相关 ICS 并删除交换机，默认交换机受保护。 |
 | [` public static Task DeleteSwitchAsync(string switchName) `](#api-e5862bc792ac1326) | 关闭相关 ICS 后删除指定交换机；默认交换机受规则保护。 |
 | [` public static async Task<List<SwitchUpstreamAdapter>> GetBridgeableAdaptersAsync() `](#api-0bbb050d21026f1b) | 筛选已找到 Hyper-V 外部端口的宿主物理网卡。 |
-| [` public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsync(string switchName) `](#api-e555b97da5c034ee) | 按显示名称读取交换机的宿主及虚拟机端点摘要。 |
+| [` public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsync(string switchName) `](#api-e555b97da5c034ee) | 读取接入指定交换机的宿主和虚拟机网卡。 |
 | [` public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> PhysicalAdapters)> GetNetworkInfoAsync() `](#api-42c59a83cabc1075) | 读取交换机、连接模式和可用物理上游网卡快照。 |
 | [` public static Task UpdateSwitchConfigurationAsync(Guid switchId, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS) `](#api-a7b99da342b381d5) | 按稳定 GUID 修改交换机端口和 ICS 共享；在宿主网络锁内重新校验配置。 |
 | [` public static Task UpdateSwitchConfigurationAsync(string switchName, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS) `](#api-e456b7c7d3550d57) | 按唯一名称解析交换机身份，再切换连接模式。 |
@@ -18072,7 +18751,7 @@ public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsyn
 
 功能归属：管理层面 / 宿主 / 查询 / 网络。
 
-按显示名称读取交换机的宿主及虚拟机端点摘要。
+读取接入指定交换机的宿主和虚拟机网卡。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -18080,7 +18759,7 @@ public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsyn
 
 返回：已读取的端点列表；失败可能被省略或转为空列表，不能将空列表当作已确认没有端点。
 
-调用约定：结果只有名称、MAC 和一个择优 IPv4 地址，不是完整拓扑或连通性检查；宿主端点还按显示名称关联。
+调用约定：每个端点返回显示名称、MAC 和一个择优 IPv4 地址。
 
 <a id="api-42c59a83cabc1075"></a>
 
@@ -18158,8 +18837,8 @@ public static Task UpdateSwitchConfigurationAsync(string switchName, SwitchMode 
 
 | 成员 | 说明 |
 | --- | --- |
-| [` ConsoleAudioFormat? Format { get; } `](#api-324de9ff89aa2d92) | 当前接受的采样格式；尚未协商或不可用时为 null。 |
-| [` bool IsAvailable { get; } `](#api-1c918d04411dba90) | 音频发送通道当前是否就绪，断开后为 false。 |
+| [` ConsoleAudioFormat? Format { get; } `](#api-324de9ff89aa2d92) | 发送通道当前接受的采样格式。 |
+| [` bool IsAvailable { get; } `](#api-1c918d04411dba90) | 音频发送通道是否已就绪。 |
 
 **事件**
 
@@ -18179,11 +18858,7 @@ public static Task UpdateSwitchConfigurationAsync(string switchName, SwitchMode 
 public interface IConsoleAudioInput
 ```
 
-调用约定：当前内置后端的 AudioInput 始终为 null。下列成员仅记录现有预留签名的约定，不表示提供发送能力或承诺接入。
-
-
-
-Core 不采集宿主麦克风，不部署来宾音频设备。预留契约中的 Format 描述采样格式， AvailabilityChanged 表示可用状态或格式变化；当前没有实现这些通知的内置后端。
+调用约定：当前内置后端的 AudioInput 为 null。以下成员保留采样格式、就绪通知和提交 PCM 的约定。
 
 #### 属性说明
 
@@ -18195,7 +18870,14 @@ Core 不采集宿主麦克风，不部署来宾音频设备。预留契约中的
 ConsoleAudioFormat? Format { get; }
 ```
 
-当前接受的采样格式；尚未协商或不可用时为 null。
+发送通道当前接受的采样格式。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 发送通道当前接受的采样格式。 |
+| 取值与默认 | 尚未协商或通道不可用时为 null。 |
 
 <a id="api-1c918d04411dba90"></a>
 
@@ -18205,7 +18887,14 @@ ConsoleAudioFormat? Format { get; }
 bool IsAvailable { get; }
 ```
 
-音频发送通道当前是否就绪，断开后为 false。
+音频发送通道是否已就绪。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 音频发送通道是否已就绪。 |
+| 取值与默认 | true：就绪；false：未就绪或已断开。 |
 
 #### 事件说明
 
@@ -18262,7 +18951,7 @@ bool SendAudio(ConsoleAudioFormat format, ReadOnlySpan<byte> samples);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` bool IsAvailable { get; } `](#api-761e37d9a061b591) | 音频接收通道当前是否就绪。 |
+| [` bool IsAvailable { get; } `](#api-761e37d9a061b591) | 音频接收通道是否已就绪。 |
 
 **事件**
 
@@ -18277,7 +18966,7 @@ bool SendAudio(ConsoleAudioFormat format, ReadOnlySpan<byte> samples);
 public interface IConsoleAudioOutput
 ```
 
-调用约定：当前内置后端尚未实现此能力，连接的 AudioOutput 为 null。 接口约定通过 AudioReceived 交付 PCM 音频包；调用方根据每包的 Format 解释采样，并自行选择播放设备或编码方式。
+调用约定：连接的 AudioOutput 当前为 null。接口约定通过 AudioReceived 交付 PCM 音频包，由调用方播放或编码。
 
 #### 属性说明
 
@@ -18289,7 +18978,14 @@ public interface IConsoleAudioOutput
 bool IsAvailable { get; }
 ```
 
-音频接收通道当前是否就绪。
+音频接收通道是否已就绪。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 音频接收通道是否已就绪。 |
+| 取值与默认 | true：就绪；false：未就绪或已断开。 |
 
 #### 事件说明
 
@@ -18335,7 +19031,7 @@ event Action<bool>? AvailabilityChanged;
 
 | 成员 | 说明 |
 | --- | --- |
-| [` bool IsAvailable { get; } `](#api-0df8d1c1e7561dfc) | 连接和剪贴板通道都已就绪、可以尝试发送时为 true。 |
+| [` bool IsAvailable { get; } `](#api-0df8d1c1e7561dfc) | 连接与剪贴板通道是否已就绪。 |
 
 **事件**
 
@@ -18411,9 +19107,16 @@ public static class ClipboardExample
 bool IsAvailable { get; }
 ```
 
-连接和剪贴板通道都已就绪、可以尝试发送时为 true。
+连接与剪贴板通道是否已就绪。
 
-调用约定：连接断开或通道状态变化后可能变为 false。RdpEnhanced 读取某种远端格式超过 30 秒未获应答时， 暂停剪贴板并将此值设为 false，视频和控制继续运行。迟到的应答被丢弃，随后恢复读取最新内容； 应答一直未到时，需要重建连接。发送时仍检查 SetClipboard 的返回值。
+调用约定：RdpEnhanced 读取远端格式超过 30 秒未获应答时暂停剪贴板，视频和控制继续运行。迟到应答被丢弃后恢复读取最新内容；始终没有应答时需要重建连接。提交时以 SetClipboard 返回值为准。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 连接与剪贴板通道是否已就绪。 |
+| 取值与默认 | true：可以提交内容；false：通道尚未就绪、已暂停或连接已断开。 |
 
 #### 事件说明
 
@@ -18479,13 +19182,13 @@ bool SetClipboard(ConsoleClipboardData clipboard);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` IConsoleAudioInput? AudioInput { get; } `](#api-6d2ef8efd8158d4f) | 历史预留的音频输入入口，不属于当前功能范围；内置后端始终返回 null。 |
-| [` IConsoleAudioOutput? AudioOutput { get; } `](#api-b533977aa46e1380) | 接收来宾声音的接口；当前内置后端均未实现，返回 null。 |
-| [` string BackendId { get; } `](#api-f5c787e1964eb9c0) | 此连接使用的后端标识，与 ConsoleService.GetBackends 中的 BackendId 对应。 |
-| [` IConsoleClipboard? Clipboard { get; } `](#api-83526b9be88d1f35) | 剪贴板能力；支持此能力时还须检查其 IsAvailable。 |
-| [` IConsoleInput? Input { get; } `](#api-6c119e309cccccce) | 键鼠输入能力；不接受输入时为 null。 |
-| [` ConsoleConnectionState State { get; } `](#api-7d05ee4a9643ebbf) | 当前连接状态；Connected 不表示用户已经登录，也不表示所有可选通道已就绪。 |
-| [` IConsoleVideoSource? Video { get; } `](#api-2b97e161fb617c87) | 画面能力；不提供画面时为 null。 |
+| [` IConsoleAudioInput? AudioInput { get; } `](#api-6d2ef8efd8158d4f) | 历史预留的音频输入接口，不属于当前功能范围。 |
+| [` IConsoleAudioOutput? AudioOutput { get; } `](#api-b533977aa46e1380) | 接收来宾声音的预留接口。 |
+| [` string BackendId { get; } `](#api-f5c787e1964eb9c0) | 当前连接使用的后端标识。 |
+| [` IConsoleClipboard? Clipboard { get; } `](#api-83526b9be88d1f35) | 收发来宾剪贴板内容的接口。 |
+| [` IConsoleInput? Input { get; } `](#api-6c119e309cccccce) | 向来宾发送键盘和鼠标输入的接口。 |
+| [` ConsoleConnectionState State { get; } `](#api-7d05ee4a9643ebbf) | 当前连接所处的阶段。 |
+| [` IConsoleVideoSource? Video { get; } `](#api-2b97e161fb617c87) | 接收来宾桌面画面的接口。 |
 
 **事件**
 
@@ -18562,7 +19265,14 @@ public static class ConnectionExample
 IConsoleAudioInput? AudioInput { get; }
 ```
 
-历史预留的音频输入入口，不属于当前功能范围；内置后端始终返回 null。
+历史预留的音频输入接口，不属于当前功能范围。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 历史预留的音频输入接口，不属于当前功能范围。 |
+| 取值与默认 | 当前内置后端均返回 null。 |
 
 <a id="api-b533977aa46e1380"></a>
 
@@ -18572,7 +19282,14 @@ IConsoleAudioInput? AudioInput { get; }
 IConsoleAudioOutput? AudioOutput { get; }
 ```
 
-接收来宾声音的接口；当前内置后端均未实现，返回 null。
+接收来宾声音的预留接口。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 接收来宾声音的预留接口。 |
+| 取值与默认 | 当前内置后端均返回 null，尚未实现。 |
 
 <a id="api-f5c787e1964eb9c0"></a>
 
@@ -18582,7 +19299,14 @@ IConsoleAudioOutput? AudioOutput { get; }
 string BackendId { get; }
 ```
 
-此连接使用的后端标识，与 ConsoleService.GetBackends 中的 BackendId 对应。
+当前连接使用的后端标识。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前连接使用的后端标识。 |
+| 取值与默认 | `RdpBasic` 或 `RdpEnhanced`；与 ConsoleService.GetBackends 返回的 BackendId 对应。 |
 
 <a id="api-83526b9be88d1f35"></a>
 
@@ -18592,7 +19316,14 @@ string BackendId { get; }
 IConsoleClipboard? Clipboard { get; }
 ```
 
-剪贴板能力；支持此能力时还须检查其 IsAvailable。
+收发来宾剪贴板内容的接口。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 收发来宾剪贴板内容的接口。 |
+| 取值与默认 | RdpBasic 为 null；RdpEnhanced 提供接口，通道就绪后 IsAvailable 为 true。 |
 
 <a id="api-6c119e309cccccce"></a>
 
@@ -18602,7 +19333,14 @@ IConsoleClipboard? Clipboard { get; }
 IConsoleInput? Input { get; }
 ```
 
-键鼠输入能力；不接受输入时为 null。
+向来宾发送键盘和鼠标输入的接口。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 向来宾发送键盘和鼠标输入的接口。 |
+| 取值与默认 | 未提供输入能力时为 null。 |
 
 <a id="api-7d05ee4a9643ebbf"></a>
 
@@ -18612,7 +19350,15 @@ IConsoleInput? Input { get; }
 ConsoleConnectionState State { get; }
 ```
 
-当前连接状态；Connected 不表示用户已经登录，也不表示所有可选通道已就绪。
+当前连接所处的阶段。
+
+调用约定：Connected 表示底层连接建立；来宾登录和剪贴板通道就绪分别由相应事件通知。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前连接所处的阶段。 |
 
 <a id="api-2b97e161fb617c87"></a>
 
@@ -18622,7 +19368,14 @@ ConsoleConnectionState State { get; }
 IConsoleVideoSource? Video { get; }
 ```
 
-画面能力；不提供画面时为 null。
+接收来宾桌面画面的接口。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 接收来宾桌面画面的接口。 |
+| 取值与默认 | 未提供视频能力时为 null。 |
 
 #### 事件说明
 
@@ -18708,10 +19461,10 @@ void Start();
 
 | 成员 | 说明 |
 | --- | --- |
-| [` bool ReleaseAllInputs() `](#api-c8aa9f0307a29a7d) | 结束此连接通过 Core 发起的所有按键和鼠标按住状态，适合失去焦点或结束拖动时调用。 |
+| [` bool ReleaseAllInputs() `](#api-c8aa9f0307a29a7d) | 释放本连接记录的全部按键和鼠标按住状态，用于失焦或结束输入。 |
 | [` bool SendClick(ushort x, ushort y, ConsolePointerButton button = ConsolePointerButton.Left) `](#api-373036b38bdb9c13) | 一次提交一个鼠标按键的按下和释放，两项一起进入 Core 队列。 |
 | [` bool SendKey(ushort scanCode, bool extended, bool down) `](#api-c68d794c15be61cb) | 发送一个按键的按下或释放事件。 |
-| [` bool SendKeys(IReadOnlyList<ConsoleKeyEvent> events) `](#api-639a7aa82964b0c0) | 一次接受整组按键事件，按提供的顺序发送；适合普通按键或组合键的按下、释放序列。 |
+| [` bool SendKeys(IReadOnlyList<ConsoleKeyEvent> events) `](#api-639a7aa82964b0c0) | 一次提交整组按键事件，按顺序发送。 |
 | [` bool SendPause() `](#api-0a7414405be7d2d5) | 发送 Pause 键所需的特殊扫描码序列。 |
 | [` bool SendPointer(ushort x, ushort y, ConsolePointerButton button = ConsolePointerButton.None, bool down = false, short wheel = 0) `](#api-34b94c2751265ca5) | 发送一次鼠标移动、按下、释放或垂直滚轮输入。 |
 | [` bool SynchronizeKeyboard(ConsoleKeyboardToggleState flags) `](#api-b63d7c0166496c27) | 让来宾的键盘锁定状态与调用方提供的状态一致。 |
@@ -18740,7 +19493,7 @@ bool ReleaseAllInputs();
 
 功能归属：业务层面 / 控制 / 键盘。
 
-结束此连接通过 Core 发起的所有按键和鼠标按住状态，适合失去焦点或结束拖动时调用。
+释放本连接记录的全部按键和鼠标按住状态，用于失焦或结束输入。
 
 返回：连接可用且 Core 已接收释放请求时为 true；未连接或正在断开时为 false。
 
@@ -18815,7 +19568,7 @@ bool SendKeys(IReadOnlyList<ConsoleKeyEvent> events);
 
 功能归属：业务层面 / 控制 / 键盘。
 
-一次接受整组按键事件，按提供的顺序发送；适合普通按键或组合键的按下、释放序列。
+一次提交整组按键事件，按顺序发送。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -18841,7 +19594,7 @@ bool SendPause();
 
 返回：序列被接受到发送队列时为 true；未连接或队列无法接收时为 false。
 
-调用约定：Pause 使用特殊前缀和序列，不能当作一个普通扫描码交给 SendKey。调用一次即可发送此接口定义的序列。
+调用约定：一次调用发送完整的 Pause 特殊扫描码序列。
 
 <a id="api-34b94c2751265ca5"></a>
 
@@ -18936,7 +19689,7 @@ bool SynchronizeKeyboard(ConsoleKeyboardToggleState flags);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` bool SupportsResize { get; } `](#api-d113bc976ef6bc1b) | 当前后端是否支持调整桌面尺寸。 |
+| [` bool SupportsResize { get; } `](#api-d113bc976ef6bc1b) | 后端是否提供桌面分辨率和缩放调整能力。 |
 
 **事件**
 
@@ -18958,11 +19711,11 @@ bool SynchronizeKeyboard(ConsoleKeyboardToggleState flags);
 public interface IConsoleVideoSource
 ```
 
-调用约定：从连接的 Video 属性取得此接口，在 Start 前订阅 FrameReceived。 每次收到的 ConsoleFrame 都能读取完整画面；最简单的显示方式是每次刷新整张图像。
+调用约定：从连接的 Video 属性取得此接口，在 Start 前订阅 FrameReceived。 每帧包含完整画面，可整帧绘制，也可根据 Damage 局部刷新。
 
 
 
-画面是从上到下排列的 BGRA32 像素，已经包含远端鼠标光标，可供桌面程序绘制或 Web 服务编码。 Core 不提供压缩视频码流，也不保证按固定帧率触发事件。
+画面以 BGRA32 原始像素交付，包含远端光标；按画面更新触发事件，帧率随更新频率变化。
 
 
 
@@ -19003,9 +19756,16 @@ public static class VideoExample
 bool SupportsResize { get; }
 ```
 
-当前后端是否支持调整桌面尺寸。当前 RdpEnhanced 为 true，RdpBasic 为 false。
+后端是否提供桌面分辨率和缩放调整能力。
 
-调用约定：true 表示有此功能；连接和显示通道就绪后才能提交请求，仍需检查 Resize 的返回值。
+调用约定：此值表示功能支持；连接及显示通道就绪后才能提交 Resize 请求。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 后端是否提供桌面分辨率和缩放调整能力。 |
+| 取值与默认 | RdpEnhanced 为 true，RdpBasic 为 false。 |
 
 #### 事件说明
 
@@ -19047,7 +19807,7 @@ ConsoleFrame? CaptureFrame();
 
 返回：完整 BGRA32 画面的独立租约，包含远端光标；尚未连接、尚无画面或已请求断开时返回 null。
 
-调用约定：不请求来宾重新绘制、不等待下一帧、不改变订阅关系；静止桌面也可取得已有画面。 图像仅来自此连接：增强会话取增强桌面，基本会话取基本控制台，不调用 WMI 截图作为回退。
+调用约定：立即返回此连接缓存的最近画面，静止桌面也可获取。增强会话取增强桌面，基本会话取基本控制台。
 
 
 
@@ -19055,7 +19815,7 @@ ConsoleFrame? CaptureFrame();
 
 
 
-取得的是后端最近生成的画面，可能尚未被界面绘制。截图应读取完整 Pixels，不能只处理 Damage； Sequence 只在本连接内有意义。此方法不缩放、不编码图片。
+画面可能尚未被界面绘制。截图读取完整 Pixels，尺寸和格式保持原样；Sequence 仅在本连接内有效。
 
 <a id="api-d3b8251b0e40130c"></a>
 
@@ -20030,7 +20790,7 @@ public sealed record PcieHostInfo(IReadOnlyList<PcieDeviceInfo> Devices,
 | `Devices` | PCIe 设备快照及稳定归属身份。 |
 | `VirtualMachines` | 带 GUID 与显示名称的虚拟机目标；同名虚拟机作为不同目标保留。 |
 
-调用约定：设备、VM 配置和 PnP 状态分步读取，不保证原子一致；只读列表中的设备元素仍可修改。
+调用约定：设备与归属分步采集；执行转移时会重新核对设备身份和实际归属。
 
 #### 构造函数说明
 
@@ -20407,7 +21167,7 @@ public static readonly VmQueryField<int> ProcessId;
 
 Root 亲和性后端关联的虚拟机工作进程编号。
 
-**单位与格式：** PID
+**取值说明：** Windows 进程编号（PID），正整数。
 
 **适用条件：** 适用于 Root 亲和性后端，与 ProcessCreationTime 一起标识工作进程。
 
@@ -20437,8 +21197,6 @@ public static readonly VmQueryField<CpuAffinityService.PreferenceStatus> SavedPr
 
 判断保存偏好能否复用；与实际是否已经应用亲和性分开。
 
-**单位与格式：** CpuAffinityService.PreferenceStatus 枚举。
-
 **适用条件：** 旧编号数组和版本 1 非空记录缺少环境摘要，需要重新选择并保存。当前查询不自动应用或删除选择。
 
 <a id="api-4ca7e94106e13c41"></a>
@@ -20451,7 +21209,7 @@ public static readonly VmQueryField<IReadOnlyList<int>> SavedProcessors;
 
 为虚拟机保存的宿主逻辑处理器选择列表。
 
-**单位与格式：** 处理器编号列表
+**取值说明：** 宿主逻辑处理器编号的只读列表，例如 `[0, 1, 2, 3]`。
 
 **适用条件：** 两种后端均返回保存的选择。旧宿主或旧后端的编号也保留，使用前检查 SavedPreferenceStatus；不能把它直接当成当前宿主的可选编号。当前应用状态由 AppliedProcessors 提供。
 
@@ -20603,9 +21361,9 @@ public static readonly VmQueryField<string> Name;
 public static readonly VmQueryField<int> Order;
 ```
 
-启动项在固件启动顺序中的位置，从 0 开始。
+启动项在固件启动顺序中的位置。
 
-**单位与格式：** 序号
+**取值说明：** 从 `0` 开始的整数序号。
 
 <a id="api-56cb0e13eca6ab99"></a>
 
@@ -20646,6 +21404,8 @@ public static readonly VmQueryField<bool> NumLock;
 ```
 
 虚拟机启动时是否启用数字键盘锁定。
+
+**取值说明：** `true`：启动时开启 Num Lock；`false`：关闭。
 
 <a id="api-6b0a3fdedb6f2091"></a>
 
@@ -20859,7 +21619,7 @@ public static readonly VmQueryField<DateTime> CreatedDate;
 
 检查点或当前配置节点的创建时间。
 
-**单位与格式：** DateTime；由 WMI 日期转换
+**单位与格式：** 日期与时间
 
 **取值说明：** 通过 ManagementDateTimeConverter.ToDateTime 将 WMI CreationTime 转为 DateTime。
 
@@ -20873,8 +21633,6 @@ public static readonly VmQueryField<IReadOnlyList<string>> DiskPaths;
 
 当前节点直接关联的全部存储介质路径，可能包含光驱镜像；不展开虚拟磁盘父链。
 
-**单位与格式：** 路径字符串列表
-
 **取值说明：** 返回本节点存储分配记录中的全部介质路径；没有关联路径时为空列表。
 
 <a id="api-3e2477b6cfc585c4"></a>
@@ -20886,8 +21644,6 @@ public static readonly VmQueryField<string> Id;
 ```
 
 后端 ConfigurationID。当前配置也使用真实配置标识，不使用 SpacetimeNode.CurrentId；此查询不生成 Genesis 逻辑节点。
-
-**单位与格式：** 配置标识字符串
 
 <a id="api-383c3e1be4986062"></a>
 
@@ -20910,6 +21666,8 @@ public static readonly VmQueryField<bool> IsWormhole;
 ```
 
 是否检测到该节点历史磁盘的临时挂接。
+
+**取值说明：** `true`：检测到历史磁盘的临时挂接；`false`：未检测到。
 
 <a id="api-f3a3bd8cf760b53f"></a>
 
@@ -20940,8 +21698,6 @@ public static readonly VmQueryField<string> ParentId;
 ```
 
 在本次节点集合中解析出的父配置标识；空字符串也可能表示父配置未包含在结果中。
-
-**单位与格式：** 配置标识字符串
 
 <a id="api-6d7251fc824bd58c"></a>
 
@@ -20982,6 +21738,8 @@ public static readonly VmQueryField<bool> Enabled;
 ```
 
 UserSnapshotType 不为 2 时返回 true；这是检查点策略的有损开关视图，不区分生产、标准及后备策略。
+
+**取值说明：** `true`：允许创建检查点；`false`：禁止创建检查点。
 
 <a id="api-4c35b7ba174517dd"></a>
 
@@ -21174,6 +21932,8 @@ public static readonly VmQueryField<bool> BasicEnabled;
 
 根据虚拟机配置中是否存在合成显示控制器判断基本控制台配置状态。实际连接状态由控制台连接接口提供。
 
+**取值说明：** `true`：配置了合成显示控制器；`false`：未配置。
+
 <a id="api-378a903d86ea7534"></a>
 
 ##### EnhancedAvailable · 字段
@@ -21195,6 +21955,8 @@ public static readonly VmQueryField<bool> LockOnDisconnect;
 ```
 
 是否配置在控制台断开连接时锁定来宾系统。
+
+**取值说明：** `true`：断开时锁定；`false`：不自动锁定。
 
 <a id="api-a83163a3d74dba4b"></a>
 
@@ -22411,7 +23173,7 @@ public static readonly VmQueryField<int> Height;
 
 虚拟显示控制器配置的垂直分辨率，单位为像素。
 
-**单位与格式：** 像素
+**取值说明：** 整数，单位为像素；例如 `1920` 表示 1920 像素。
 
 <a id="api-84ecc62c3b275b65"></a>
 
@@ -22437,7 +23199,7 @@ public static readonly VmQueryField<int> Width;
 
 虚拟显示控制器配置的水平分辨率，单位为像素。
 
-**单位与格式：** 像素
+**取值说明：** 整数，单位为像素；例如 `1920` 表示 1920 像素。
 
 <a id="api-e3e41eea722e9f8f"></a>
 
@@ -23881,8 +24643,6 @@ public static readonly VmQueryField<string> DriverVersion;
 
 关联宿主 GPU 当前安装的驱动版本。
 
-**单位与格式：** 版本字符串
-
 <a id="api-94f32b210b07d29a"></a>
 
 ##### HostDeviceInstanceId · 字段
@@ -23892,8 +24652,6 @@ public static readonly VmQueryField<string> HostDeviceInstanceId;
 ```
 
 当前 GPU 分区关联的宿主 GPU 设备标识。
-
-**单位与格式：** 设备标识字符串
 
 <a id="api-3c665de5fd0cb2da"></a>
 
@@ -23915,7 +24673,7 @@ public static readonly VmQueryField<ulong> MemoryBytes;
 
 当前 GPU 分区所关联宿主 GPU 的专用显存容量，不包含共享或专用系统内存，也不是进程预算。0 是有效容量；未取得时字段状态为 Unavailable。虚拟机分区的显存配额由 GPU 分区设置提供。
 
-**单位与格式：** 字节
+**取值说明：** 单位为字节；`1073741824` 表示 1 GiB，`0` 是有效容量。
 
 <a id="api-00de41d78f54b325"></a>
 
@@ -24036,6 +24794,8 @@ public static readonly VmQueryField<bool> IsDriverBound;
 ```
 
 存在匹配的引擎实例即为 true，即使使用率为 0%；不证明来宾驱动已安装、正常工作或正在执行 GPU 负载。
+
+**取值说明：** `true`：找到匹配的 GPU 引擎实例；`false`：未找到。
 
 <a id="api-f4ea588e1d3931d7"></a>
 
@@ -24763,7 +25523,7 @@ public async Task<ApiResponse> SyncWindowsDriversAsync(Guid vmId, string gpuInst
 
 ### `VmGroupFields` 类
 
-所属分组的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。
+虚拟机直接所属分组的查询成员。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -24798,7 +25558,9 @@ public static class VmGroupFields
 public static readonly VmQueryField<Guid> Id;
 ```
 
-虚拟机直接所属分组的稳定标识。
+虚拟机直接所属分组的唯一标识。
+
+**取值说明：** GUID 文本由 32 个十六进制字符和 4 个连字符组成，按 8-4-4-4-12 分组。
 
 <a id="api-a3cdbe318d0b22ba"></a>
 
@@ -24814,7 +25576,7 @@ public static readonly VmQueryField<string> Name;
 
 ### `VmGroupMoveResult` record 类
 
-分组移动成功后的实际目标身份；空目标表示仅移除请求中指定的源关系，其他父组关系仍可保留。
+分组移动后的目标标识，以及目标组是否发生重建。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -24838,7 +25600,7 @@ public static readonly VmQueryField<string> Name;
 | --- | --- |
 | [` public Guid? RequestedTargetId { get; init; } `](#api-314de8a5e29225d8) | 调用方最初指定的目标分组 GUID；未指定目标组时为 null。 |
 | [` public Guid? TargetId { get; init; } `](#api-d458e42ed8c3bae9) | 实际接收成员的分组 GUID；目标空组发生类型转换时可能与原 GUID 不同。 |
-| [` public bool TargetRecreated { get; } `](#api-f4e319be55d78543) | 目标组是否为适配成员类型而重建；为 true 时，用 TargetId 替换原 RequestedTargetId 的引用。 |
+| [` public bool TargetRecreated { get; } `](#api-f4e319be55d78543) | 目标组是否因成员类型改变而重建。 |
 
 #### 详细说明
 
@@ -24896,7 +25658,14 @@ public Guid? TargetId { get; init; }
 public bool TargetRecreated { get; }
 ```
 
-目标组是否为适配成员类型而重建；为 true 时，用 TargetId 替换原 RequestedTargetId 的引用。
+目标组是否因成员类型改变而重建。重建后使用 TargetId 作为新的目标标识。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 目标组是否因成员类型改变而重建。重建后使用 TargetId 作为新的目标标识。 |
+| 取值与默认 | true：目标组已重建；false：目标组标识保持不变。 |
 
 <a id="api-cafcb4c2db564ebe"></a>
 
@@ -24966,7 +25735,7 @@ public static bool CanMove(VmGroupSnapshot snapshot, IReadOnlyList<VmGroupMove> 
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static async Task<Guid> CreateAsync(string name, VmGroupKind kind, Guid? parentId) `](#api-62c865a8bbe08991) | 在进程内串行写入范围中创建分组，并按需加入父分组。 |
+| [` public static async Task<Guid> CreateAsync(string name, VmGroupKind kind, Guid? parentId) `](#api-62c865a8bbe08991) | 创建虚拟机分组或管理分组，并按需加入父分组。 |
 | [` public static async Task DeleteAsync(Guid id) `](#api-aeb342d87c9d6bac) | 删除指定分组及其父子成员关系，保留成员虚拟机和子分组本身。 |
 | [` public static async Task<VmGroupMoveResult> MoveAsync(IReadOnlyList<VmGroupMove> moves, Guid? targetId) `](#api-7bab9d8de671d5ae) | 串行修改虚拟机或子分组归属，并在失败时尝试恢复已执行的变更。 |
 | [` public static Task<VmGroupSnapshot> ReadAsync() `](#api-736e5ab8fa340994) | 读取当前虚拟机分组、成员及层级关系。 |
@@ -24990,11 +25759,11 @@ public static async Task<Guid> CreateAsync(string name, VmGroupKind kind, Guid? 
 
 功能归属：管理层面 / 宿主 / 修改 / 分组。
 
-在进程内串行写入范围中创建分组，并按需加入父分组。
+创建虚拟机分组或管理分组，并按需加入父分组。
 
 | 参数 | 说明 |
 | --- | --- |
-| `name` | 对象显示名称。 |
+| `name` | 分组显示名称。 |
 | `kind` | 组类型：容纳虚拟机的集合组或容纳子组的管理组。 |
 | `parentId` | 可选父分组 GUID；null 表示创建顶层分组。 |
 
@@ -25018,7 +25787,7 @@ public static async Task DeleteAsync(Guid id);
 
 | 参数 | 说明 |
 | --- | --- |
-| `id` | 目标对象的稳定标识。 |
+| `id` | 目标分组 GUID。 |
 
 - 异常 `CoreOperationException`：删除或恢复成员关系的结果尚未确认；停止后续补偿，需先核对实际状态。
 
@@ -25073,8 +25842,8 @@ public static async Task RenameAsync(Guid id, string name);
 
 | 参数 | 说明 |
 | --- | --- |
-| `id` | 目标对象的稳定标识。 |
-| `name` | 对象显示名称。 |
+| `id` | 目标分组 GUID。 |
+| `name` | 分组显示名称。 |
 
 - 异常 `CoreOperationException`：重命名结果尚未确认；不能将其视为没有修改。
 
@@ -25082,7 +25851,7 @@ public static async Task RenameAsync(Guid id, string name);
 
 ### `VmHostDefaultPaths` record 类
 
-Hyper-V 宿主报告的默认虚拟机目录。
+宿主创建虚拟机和虚拟硬盘时使用的默认目录。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -25105,7 +25874,7 @@ Hyper-V 宿主报告的默认虚拟机目录。
 | 成员 | 说明 |
 | --- | --- |
 | [` public string DefaultVhdPath { get; init; } `](#api-c5cdadbe97152f05) | 默认虚拟硬盘目录，宿主未提供时为空字符串。 |
-| [` public string DefaultVmPath { get; init; } `](#api-3a8df0d2a923b9a7) | 默认配置根目录。 |
+| [` public string DefaultVmPath { get; init; } `](#api-3a8df0d2a923b9a7) | 新虚拟机配置文件的宿主默认存放目录。 |
 
 #### 详细说明
 
@@ -25115,7 +25884,7 @@ public sealed record VmHostDefaultPaths(string DefaultVmPath, string DefaultVhdP
 
 | 参数 | 说明 |
 | --- | --- |
-| `DefaultVmPath` | 默认配置根目录。 |
+| `DefaultVmPath` | 新虚拟机配置文件的宿主默认存放目录。 |
 | `DefaultVhdPath` | 默认虚拟硬盘目录，宿主未提供时为空字符串。 |
 
 #### 构造函数说明
@@ -25130,7 +25899,7 @@ public VmHostDefaultPaths(string DefaultVmPath, string DefaultVhdPath);
 
 | 参数 | 说明 |
 | --- | --- |
-| `DefaultVmPath` | 默认配置根目录。 |
+| `DefaultVmPath` | 新虚拟机配置文件的宿主默认存放目录。 |
 | `DefaultVhdPath` | 默认虚拟硬盘目录，宿主未提供时为空字符串。 |
 
 #### 属性说明
@@ -25153,7 +25922,7 @@ public string DefaultVhdPath { get; init; }
 public string DefaultVmPath { get; init; }
 ```
 
-默认配置根目录。
+新虚拟机配置文件的宿主默认存放目录。
 
 <a id="api-49c4513fba39b777"></a>
 
@@ -25325,8 +26094,6 @@ public static readonly VmQueryField<string> RuntimeStateFilePath;
 虚拟机 VMRS 运行状态文件（.vmrs）在宿主上的完整路径。
 
 **取值说明：** Windows 完整文件路径，扩展名为 `.vmrs`。例如 `D:\VMs\Demo\Virtual Machines\example.vmrs`。
-
-**适用条件：** 使用 VMCX 配置格式的虚拟机。
 
 <a id="api-70634d256d750078"></a>
 
@@ -26518,7 +27285,7 @@ public static async Task<ApiResponse> SendCtrlAltDelAsync(Guid vmId);
 | --- | --- |
 | `vmId` | 目标虚拟机的 GUID。 |
 
-返回：Hyper-V 接受或拒绝请求的结果；查看 Success 判断是否成功，失败时读取错误信息。
+返回：按键请求的执行结果，失败时包含 Hyper-V 返回的原因。
 
 调用约定：不需要先建立 RDP 连接，也不需要窗口获得焦点。成功表示底层按键请求已执行，不表示来宾已完成登录。
 
@@ -27181,9 +27948,9 @@ public static class VmMemoryFields
 public static readonly VmQueryField<long> AssignedMiB;
 ```
 
-Hyper-V 当前分配给运行中虚拟机的内存大小，单位为 MiB。
+Hyper-V 当前分配给运行中虚拟机的内存大小。
 
-**单位与格式：** MiB
+**取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
 
 <a id="api-5ba20292feb21228"></a>
 
@@ -27210,8 +27977,6 @@ public static readonly VmQueryField<byte> BackingPageSize;
 ```
 
 承载虚拟机内存所使用的页面类型：标准页、大页或巨页。
-
-**单位与格式：** 页面类型编码
 
 **取值说明：** 0：4 KiB 标准页；1：2 MiB 大页；2：1 GiB 巨页。0 是明确的标准页请求，不表示自动或未设置。
 
@@ -27288,6 +28053,8 @@ public static readonly VmQueryField<bool> DynamicMemoryEnabled;
 ```
 
 是否启用动态内存。启用后，Hyper-V 可以按需调整虚拟机的内存分配。
+
+**取值说明：** `true`：启用动态内存；`false`：使用静态内存。
 
 <a id="api-020c8373f6ba8090"></a>
 
@@ -27383,9 +28150,9 @@ public static readonly VmQueryField<ulong> MaxMemoryBlocksPerNumaNode;
 public static readonly VmQueryField<long> Maximum;
 ```
 
-动态内存允许分配的最高内存大小，单位为 MiB。
+动态内存允许分配的最高内存大小。
 
-**单位与格式：** MiB
+**取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
 
 **适用条件：** 动态内存启用时作为内存分配上限。
 
@@ -27415,8 +28182,6 @@ public static readonly VmQueryField<byte> MemoryAccessTrackingState;
 
 配置是否启用内存访问跟踪，或交给逐 NUMA 节点配置决定。此值是配置，不是一次访问采样结果。
 
-**单位与格式：** 状态编码。
-
 **取值说明：** 现有选项映射为 0：关闭；1：开启；2：按 NUMA 节点配置。
 
 **适用条件：** 实验性读写能力。当前入口没有提供编码 2 所需的逐节点配置。保留该编码读写不表示配套能力完整。 修改前需使虚拟机退出活动状态；宿主最终决定是否接受配置。
@@ -27431,8 +28196,6 @@ public static readonly VmQueryField<byte> MemoryEncryptionPolicy;
 
 请求虚拟机内存采用的加密策略。此字段表示配置，不能用它单独证明运行中的内存已经加密。
 
-**单位与格式：** 策略编码。
-
 **取值说明：** 现有选项映射为 0：禁用；1：支持时启用；2：始终启用。Core 原样传递编码。
 
 **适用条件：** 实验性读写能力。需要宿主提供 MemoryEncryptionPolicy；当前入口不探测完整的机密计算能力，也不更改安全启动或 vTPM。 修改前需使虚拟机退出活动状态；宿主最终决定是否接受配置。
@@ -27445,9 +28208,9 @@ public static readonly VmQueryField<byte> MemoryEncryptionPolicy;
 public static readonly VmQueryField<long> Minimum;
 ```
 
-动态内存允许分配的最低内存大小，单位为 MiB。
+动态内存允许分配的最低内存大小。
 
-**单位与格式：** MiB
+**取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
 
 **适用条件：** 动态内存启用时参与内存分配；关闭时仍可读取保存的配置。
 
@@ -27475,8 +28238,6 @@ public static readonly VmQueryField<string> SgxLaunchControlDefault;
 
 SGX 默认启动控制配置的原始文本。当前 Core 不解析、生成或改写其中的内容。
 
-**单位与格式：** 原始字符串。
-
 **取值说明：** 宿主返回的文本原样保留。格式、允许的内容、空字符串是否有效及默认值尚未确认。
 
 **适用条件：** 实验性读写能力。属于 SGX 扩展配置；与 SgxLaunchControlMode 的配合要求尚未验证。 修改前需使虚拟机退出活动状态；宿主最终决定是否接受配置。
@@ -27490,8 +28251,6 @@ public static readonly VmQueryField<uint> SgxLaunchControlMode;
 ```
 
 SGX 启动控制的访问模式配置，与虚拟机的普通引导顺序无关。
-
-**单位与格式：** 模式编码。
 
 **取值说明：** 现有选项映射为 0：禁止访问；1：仅限读取；2：允许读写。Core 原样传递该编码。
 
@@ -27523,9 +28282,9 @@ public static readonly VmQueryField<double> SgxSize;
 public static readonly VmQueryField<long> Startup;
 ```
 
-为虚拟机启动配置的内存大小，单位为 MiB。
+虚拟机启动时使用的内存容量。启用动态内存后，运行期间实际分配的内存可以变化。
 
-**单位与格式：** MiB
+**取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
 
 <a id="api-8eb7156ab5917a0f"></a>
 
@@ -27537,7 +28296,7 @@ public static readonly VmQueryField<uint> Weight;
 
 宿主内存发生竞争时，虚拟机参与内存分配的优先权重。
 
-**单位与格式：** Hyper-V 原始 Weight，无单位换算
+**取值说明：** 无符号整数权重；数值越大，内存竞争时的相对优先级越高。
 
 <a id="api-699a5f0f3788cfe2"></a>
 
@@ -27665,7 +28424,7 @@ public static async Task<ApiResponse> SetVmMemorySettingsAsync(Guid vmId, VmMemo
 | `vmId` | 目标虚拟机 GUID。 |
 | `newSettings` | 本次请求值；只读取 changedProperties 中的属性，容量单位为 MiB，Weight 为原始权重。 |
 | `isVmRunning` | 兼容参数；执行时重新查询实际运行状态。 |
-| `changedProperties` | 非空属性名集合，使用 nameof；支持模型全部公开可写属性。不比较旧值或版本，同字段按本次请求覆盖。CPU 与内存设置在同一虚拟机上跨 Core 进程串行；锁覆盖读取、vNUMA 联动和写入，不阻止外部工具修改。 |
+| `changedProperties` | 要提交的属性名集合，不能为空。例如仅修改启动内存时包含 `nameof(VmMemorySettings.Startup)`；支持模型全部公开可写属性。不比较旧值或版本，同字段按本次请求覆盖。CPU 与内存设置在同一虚拟机上跨 Core 进程串行；锁覆盖读取、vNUMA 联动和写入，不阻止外部工具修改。 |
 
 返回：应用结果；Steps 按顺序记录已执行的 DisableVirtualNuma、Memory、EnableVirtualNuma 步骤，含各步骤的状态与原始错误。不需要或未开始的步骤不列出。
 
@@ -27682,6 +28441,27 @@ public static async Task<ApiResponse> SetVmMemorySettingsAsync(Guid vmId, VmMemo
 
 
 成功仅表示本次配置调用完成，不证明实际页粒度、提示投递、压缩或加密已经生效；同值请求也不能用来验证字段可写。Core 不新增基于研究风险或版本的开关拦截，调用方应展示字段文档中的风险。尤其不得通过试写 CxlEnabled 来探测 CXL 支持，已确认版本可能在保存时导致 VMMS 崩溃，详见 `VmMemoryFields.CxlEnabled`。
+
+示例：
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using ExHyperV.Models;
+using ExHyperV.Services;
+
+public static class MemoryFieldExample
+{
+    public static async Task SetStartupAsync(Guid vmId)
+    {
+        var settings = new VmMemorySettings { Startup = 4096 };
+        var result = await VmMemoryService.SetVmMemorySettingsAsync(
+            vmId, settings, isVmRunning: false,
+            changedProperties: [nameof(VmMemorySettings.Startup)]);
+        if (!result.Success) throw new InvalidOperationException(result.Error);
+    }
+}
+```
 
 <a id="api-87d4c54605ffd52f"></a>
 
@@ -27777,7 +28557,7 @@ public bool Startup { get; init; }
 
 ### `VmMetadataFields` 类
 
-额外元数据的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。
+随虚拟机配置保存的自定义数据，以键和值组成一项。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -27812,7 +28592,9 @@ public static class VmMetadataFields
 public static readonly VmQueryField<string> Key;
 ```
 
-虚拟机 HostOnlyItems 元数据项的键名。
+每项自定义数据的名称，用于读取、修改或删除该项。数据保存在虚拟机配置的 HostOnlyItems 中。
+
+**取值说明：** 非空字符串，区分大小写，例如 `MyApp.Environment`。
 
 <a id="api-df80cf1bf4e6b9c0"></a>
 
@@ -27822,7 +28604,9 @@ public static readonly VmQueryField<string> Key;
 public static readonly VmQueryField<string> Value;
 ```
 
-同一元数据项的字符串值，通过键名关联。
+指定键对应的字符串内容。每个键保存一个值，内容格式由使用该键的程序约定。
+
+**取值说明：** 字符串，可以为空；可保存普通文本或 JSON 等结构化文本。
 
 <a id="api-76ce30bc80984d54"></a>
 
@@ -28030,7 +28814,7 @@ public static readonly VmQueryField<ulong> HighBaseMiB;
 
 高位 MMIO 地址空间的起始地址，以 MiB 表示。
 
-**单位与格式：** MiB
+**取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
 
 <a id="api-9febb14fd2b978b6"></a>
 
@@ -28040,9 +28824,9 @@ public static readonly VmQueryField<ulong> HighBaseMiB;
 public static readonly VmQueryField<ulong> HighSizeMiB;
 ```
 
-为设备预留的高位 MMIO 地址空间大小，单位为 MiB。
+为设备预留的高位 MMIO 地址空间大小。
 
-**单位与格式：** MiB
+**取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
 
 <a id="api-864c62caf7888cdb"></a>
 
@@ -28052,9 +28836,9 @@ public static readonly VmQueryField<ulong> HighSizeMiB;
 public static readonly VmQueryField<ulong> LowSizeMiB;
 ```
 
-为设备预留的低位 MMIO 地址空间大小，单位为 MiB。
+为设备预留的低位 MMIO 地址空间大小。
 
-**单位与格式：** MiB
+**取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
 
 <a id="api-8782e1daccf68c59"></a>
 
@@ -28204,7 +28988,7 @@ public static async Task<ApiResponse> SetSettingAsync(Guid vmId, VmMmioSettings 
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
 | `settings` | 所选字段的新值，单位 MiB；null 属性不提供可写数值。 |
-| `propertyName` | 只写入的 VmMmioSettings 属性名：LowSizeMiB、HighSizeMiB 或 HighBaseMiB。 |
+| `propertyName` | 要写入的 VmMmioSettings 属性名：LowSizeMiB、HighSizeMiB 或 HighBaseMiB。例如修改高位 MMIO 起始地址时传入 `nameof(VmMmioSettings.HighBaseMiB)`，只读取 settings 中该属性的值。 |
 
 返回：WMI 修改结果；无效属性名或执行失败通过错误响应报告。
 
@@ -28706,7 +29490,7 @@ public static readonly VmQueryField<int> AccessVlanId;
 
 接入模式下，网卡端口所属的 VLAN 编号。
 
-**单位与格式：** VLAN 编号
+**取值说明：** VLAN 的整数编号。
 
 **适用条件：** 适用于 Access 模式。
 
@@ -28718,9 +29502,9 @@ public static readonly VmQueryField<int> AccessVlanId;
 public static readonly VmQueryField<ulong> BandwidthLimitBitsPerSecond;
 ```
 
-为虚拟网卡配置的带宽上限，单位为 bit/s。
+为虚拟网卡配置的带宽上限。
 
-**单位与格式：** bit/s
+**取值说明：** 单位为 bit/s；例如 `1000000000` 表示 1 Gbit/s。
 
 <a id="api-ab817df85355b2ce"></a>
 
@@ -28730,9 +29514,9 @@ public static readonly VmQueryField<ulong> BandwidthLimitBitsPerSecond;
 public static readonly VmQueryField<ulong> BandwidthReservationBitsPerSecond;
 ```
 
-为虚拟网卡配置的带宽保留量，单位为 bit/s。
+为虚拟网卡配置的带宽保留量。
 
-**单位与格式：** bit/s
+**取值说明：** 单位为 bit/s；例如 `1000000000` 表示 1 Gbit/s。
 
 <a id="api-6f1114eefd22e5da"></a>
 
@@ -28744,6 +29528,8 @@ public static readonly VmQueryField<Guid> DeviceId;
 
 虚拟网卡的标识，与虚拟机标识共同定位该网卡。
 
+**取值说明：** GUID，常用文本格式为 36 个字符，按 `8-4-4-4-12` 分组。
+
 <a id="api-02308e69979a2b8c"></a>
 
 ##### DhcpGuardEnabled · 字段
@@ -28754,6 +29540,8 @@ public static readonly VmQueryField<bool> DhcpGuardEnabled;
 
 是否阻止来宾通过此网卡发送 DHCP Offer 报文。
 
+**取值说明：** `true`：阻止 DHCP Offer；`false`：不启用此保护。
+
 <a id="api-980b92bca0dfd7ed"></a>
 
 ##### IpAddressSource · 字段
@@ -28763,8 +29551,6 @@ public static readonly VmQueryField<string> IpAddressSource;
 ```
 
 本次 IP 地址列表采用的数据来源。
-
-**单位与格式：** 来源名称字符串
 
 **取值说明：** HostArp：宿主嗅探；Guest：来宾上报；NeighborCache：系统邻居缓存；None：暂无来源。
 
@@ -28777,8 +29563,6 @@ public static readonly VmQueryField<IReadOnlyList<string>> IpAddresses;
 ```
 
 关联到虚拟网卡的 IP 地址列表，优先采用已有宿主 ARP 嗅探结果。
-
-**单位与格式：** IP 地址字符串列表
 
 **取值说明：** 按宿主 ARP 嗅探、来宾上报、系统邻居缓存的顺序，采用首个有有效地址的来源。
 
@@ -28806,6 +29590,8 @@ public static readonly VmQueryField<bool> IsConnected;
 
 虚拟网卡连接资源的启用状态。网络可达性需要调用方另行探测。
 
+**取值说明：** `true`：连接资源已启用；`false`：未启用。
+
 <a id="api-3fbde5f0e1ac8801"></a>
 
 ##### IsStaticMac · 字段
@@ -28815,6 +29601,8 @@ public static readonly VmQueryField<bool> IsStaticMac;
 ```
 
 虚拟网卡是否使用手动指定的静态 MAC 地址。
+
+**取值说明：** `true`：静态 MAC；`false`：动态 MAC。
 
 <a id="api-46429eccaf2cf253"></a>
 
@@ -28826,8 +29614,6 @@ public static readonly VmQueryField<string> MacAddress;
 
 虚拟网卡当前配置的 MAC 地址。
 
-**单位与格式：** MAC 地址字符串
-
 <a id="api-01350d39eaa70d45"></a>
 
 ##### MacSpoofingAllowed · 字段
@@ -28837,6 +29623,8 @@ public static readonly VmQueryField<bool> MacSpoofingAllowed;
 ```
 
 是否允许来宾使用与 Hyper-V 配置不同的源 MAC 地址发送数据。
+
+**取值说明：** `true`：允许不同的源 MAC；`false`：禁止。
 
 <a id="api-da43c78e52a5c947"></a>
 
@@ -28868,7 +29656,7 @@ public static readonly VmQueryField<int> NativeVlanId;
 
 干线模式下，用于未标记流量的本征 VLAN 编号。
 
-**单位与格式：** VLAN 编号
+**取值说明：** VLAN 的整数编号。
 
 **适用条件：** 适用于 Trunk 模式。
 
@@ -28894,7 +29682,7 @@ public static readonly VmQueryField<int> PvlanPrimaryId;
 
 专用 VLAN 的主 VLAN 编号。
 
-**单位与格式：** VLAN 编号
+**取值说明：** VLAN 的整数编号。
 
 **适用条件：** 适用于 Private 模式。
 
@@ -28908,7 +29696,7 @@ public static readonly VmQueryField<int> PvlanSecondaryId;
 
 专用 VLAN 的次 VLAN 编号。
 
-**单位与格式：** VLAN 编号
+**取值说明：** VLAN 的整数编号。
 
 **适用条件：** 适用于 Private 模式。
 
@@ -28920,9 +29708,9 @@ public static readonly VmQueryField<int> PvlanSecondaryId;
 public static readonly VmQueryField<ulong> ReceiveBytesPerSecond;
 ```
 
-虚拟网卡当前的接收速率，单位为字节每秒。
+虚拟网卡当前的接收速率。
 
-**单位与格式：** 字节/秒
+**取值说明：** 单位为字节/秒；例如 `1048576` 表示 1 MiB/s。
 
 <a id="api-b8470bcae457c28e"></a>
 
@@ -28934,6 +29722,8 @@ public static readonly VmQueryField<bool> RouterGuardEnabled;
 
 是否阻止来宾通过此网卡发送路由器通告及重定向报文。
 
+**取值说明：** `true`：阻止路由器通告和重定向；`false`：不启用此保护。
+
 <a id="api-ee4797e5bcfa0bac"></a>
 
 ##### SendBytesPerSecond · 字段
@@ -28942,9 +29732,9 @@ public static readonly VmQueryField<bool> RouterGuardEnabled;
 public static readonly VmQueryField<ulong> SendBytesPerSecond;
 ```
 
-虚拟网卡当前的发送速率，单位为字节每秒。
+虚拟网卡当前的发送速率。
 
-**单位与格式：** 字节/秒
+**取值说明：** 单位为字节/秒；例如 `1048576` 表示 1 MiB/s。
 
 <a id="api-f2afcfc8f9cb39b0"></a>
 
@@ -28968,9 +29758,7 @@ public static readonly VmQueryField<uint> StormLimit;
 
 广播和组播流量每秒允许通过的包数量上限。
 
-**单位与格式：** 包/秒
-
-**取值说明：** 0 表示未配置风暴速率限制。
+**取值说明：** 单位为包/秒；`0` 表示未配置风暴速率限制。
 
 <a id="api-9934f8fff203ab07"></a>
 
@@ -28981,6 +29769,8 @@ public static readonly VmQueryField<Guid> SwitchId;
 ```
 
 虚拟网卡连接的交换机标识。
+
+**取值说明：** GUID，常用文本格式为 36 个字符，按 `8-4-4-4-12` 分组。
 
 **缺测与错误：** 未配置目标交换机时返回 NotApplicable。
 
@@ -29004,6 +29794,8 @@ public static readonly VmQueryField<bool> TeamingAllowed;
 
 是否允许来宾将此网卡加入网卡组合。
 
+**取值说明：** `true`：允许来宾网卡组合；`false`：禁止。
+
 <a id="api-3f5ce919cc0f73c7"></a>
 
 ##### TrunkAllowedVlanIds · 字段
@@ -29014,7 +29806,7 @@ public static readonly VmQueryField<IReadOnlyList<int>> TrunkAllowedVlanIds;
 
 干线模式下，网卡端口允许通过的 VLAN 编号列表。
 
-**单位与格式：** VLAN 编号列表
+**取值说明：** VLAN 整数编号的只读列表，例如 `[10, 20]`。
 
 **适用条件：** 适用于 Trunk 模式。
 
@@ -29122,7 +29914,7 @@ public static Task<ApiResponse> ApplyBandwidthSettingsAsync(Guid vmId, VmNetwork
 | --- | --- |
 | `vmId` | 目标虚拟机 GUID。 |
 | `adapter` | 查询所得网卡，承载设备身份与本次请求值；未选择的属性不回写。 |
-| `changedProperties` | 非空属性名集合，使用 nameof；支持本接口所属带宽字段，其他名称在任何查询或写入前拒绝。 |
+| `changedProperties` | 要提交的带宽属性名集合，不能为空。例如仅修改带宽上限时包含 `nameof(VmNetworkAdapter.BandwidthLimitBitsPerSecond)`，带宽保留值保持不变；其他类别的属性名在任何查询或写入前拒绝。 |
 
 返回：成功或带原因的失败响应。
 
@@ -29222,7 +30014,7 @@ public static Task<ApiResponse> ApplyVlanSettingsAsync(Guid vmId, VmNetworkAdapt
 | --- | --- |
 | `vmId` | 目标虚拟机 GUID。 |
 | `adapter` | 查询所得网卡，承载设备身份与本次请求值；未选择的属性不回写。 |
-| `changedProperties` | 非空属性名集合，使用 nameof；支持本接口所属VLAN字段，其他名称在任何查询或写入前拒绝。 |
+| `changedProperties` | 要提交的 VLAN 属性名集合，使用 nameof，不能为空。切换模式时同时包含 VlanMode 和目标模式所需的字段；其他类别的属性名在任何查询或写入前拒绝。 |
 
 返回：成功或带原因的失败响应。切换 VLAN 模式时清理不兼容的旧模式字段。
 
@@ -29968,8 +30760,6 @@ public static readonly VmQueryField<string> DeviceInstanceId;
 
 已分配 PCIe 设备的宿主设备标识。
 
-**单位与格式：** 设备标识字符串
-
 <a id="api-109b9a81b03f00ae"></a>
 
 ##### GuestMode · 字段
@@ -30054,6 +30844,8 @@ public static readonly VmQueryField<bool> BootPciExpress;
 
 是否启用通过 PCI Express 设备启动的支持。
 
+**取值说明：** `true`：启用 PCIe 启动；`false`：关闭。
+
 **适用条件：** 配置开关，不是具体控制器的引导能力检测。ARM64 固件 26100.4202、28000.1 对小于 4 KiB 的有效 64 位内存 BAR 存在零页计算缺陷；28000.1450 样本已修正此项。NVMe 类码、其他 BAR 条件和实际固件仍影响启动，不能仅凭版本或开关为 true 判断可引导；Core 保留写入入口。
 
 <a id="api-32d8b006b9045266"></a>
@@ -30065,6 +30857,8 @@ public static readonly VmQueryField<bool> EmulationEnabled;
 ```
 
 是否为虚拟机启用 PCIe 仿真。
+
+**取值说明：** `true`：启用 PCIe 仿真；`false`：关闭。
 
 <a id="api-f73c293c723344f0"></a>
 
@@ -30244,6 +31038,8 @@ public static readonly VmQueryField<bool> BatteryEnabled;
 
 虚拟机是否配置了虚拟电池组件。
 
+**取值说明：** `true`：配置了虚拟电池；`false`：未配置。
+
 **缺测与错误：** 宿主未提供虚拟电池默认模板时返回 Unsupported。
 
 <a id="api-4fa3e0232f69e89e"></a>
@@ -30256,6 +31052,8 @@ public static readonly VmQueryField<bool> EnableHibernation;
 
 是否为虚拟机启用来宾休眠支持。
 
+**取值说明：** `true`：允许来宾休眠；`false`：不允许。
+
 **适用条件：** 这是来宾休眠许可配置，不是来宾能力或当前电源状态。Windows 来宾仍需支持 S4，并具有完整型休眠文件。
 
 <a id="api-ab3184fc24bff95e"></a>
@@ -30267,6 +31065,8 @@ public static readonly VmQueryField<bool> TurnOffOnGuestRestart;
 ```
 
 是否将来宾的重启请求处理为关闭虚拟机。
+
+**取值说明：** `true`：来宾重启时关闭虚拟机；`false`：执行重启。
 
 <a id="api-a82fe27a02230e33"></a>
 
@@ -31055,6 +31855,8 @@ public static readonly VmQueryField<bool> AllowAcountMcount;
 
 是否允许来宾访问 ACNT/MCNT 活动计数器。
 
+**取值说明：** `true`：允许访问 ACNT/MCNT；`false`：不允许。
+
 <a id="api-9706ef8e59c814a3"></a>
 
 ##### ApicMode · 字段
@@ -31074,6 +31876,8 @@ public static readonly VmQueryField<bool> CompatibilityForMigrationEnabled;
 ```
 
 是否限制向来宾公开的处理器功能，以提高跨处理器迁移的兼容性。
+
+**取值说明：** `true`：启用迁移兼容模式；`false`：关闭。
 
 <a id="api-547d4560e71ca43d"></a>
 
@@ -31095,6 +31899,8 @@ public static readonly VmQueryField<bool> CompatibilityForOlderOperatingSystemsE
 
 是否限制来宾可见的 CPUID 功能，以兼容较旧的操作系统。
 
+**取值说明：** `true`：启用旧系统兼容限制；`false`：关闭。
+
 <a id="api-ceaf7a2d2850f9bb"></a>
 
 ##### Count · 字段
@@ -31105,7 +31911,7 @@ public static readonly VmQueryField<int> Count;
 
 分配给虚拟机的虚拟处理器数量。
 
-**单位与格式：** 个
+**取值说明：** 正整数，例如 `4` 表示 4 个虚拟处理器。
 
 <a id="api-bd5f865f174b18bc"></a>
 
@@ -31127,6 +31933,8 @@ public static readonly VmQueryField<bool> DisableSpeculationControls;
 
 是否禁用虚拟机的推测执行控制。
 
+**取值说明：** `true`：禁用推测执行控制；`false`：不禁用。
+
 <a id="api-90827e650cb9c32c"></a>
 
 ##### EnableHostResourceProtection · 字段
@@ -31136,6 +31944,8 @@ public static readonly VmQueryField<bool> EnableHostResourceProtection;
 ```
 
 是否启用宿主资源保护，以限制来宾工作负载对宿主资源的影响。
+
+**取值说明：** `true`：启用宿主资源保护；`false`：关闭。
 
 <a id="api-7661e50b8f81a26a"></a>
 
@@ -31147,6 +31957,8 @@ public static readonly VmQueryField<bool> EnablePerfmonArchPmu;
 
 是否向来宾提供体系结构性能监测单元。
 
+**取值说明：** `true`：开放体系结构 PMU；`false`：不开放。
+
 <a id="api-17818d016186987a"></a>
 
 ##### EnablePerfmonIpt · 字段
@@ -31156,6 +31968,8 @@ public static readonly VmQueryField<bool> EnablePerfmonIpt;
 ```
 
 是否向来宾开放 IPT 处理器指令跟踪功能。
+
+**取值说明：** `true`：开放 IPT；`false`：不开放。
 
 <a id="api-ce347aba41283394"></a>
 
@@ -31167,6 +31981,8 @@ public static readonly VmQueryField<bool> EnablePerfmonLbr;
 
 是否向来宾开放 LBR 最近分支记录功能。
 
+**取值说明：** `true`：开放 LBR；`false`：不开放。
+
 <a id="api-227c36bad72b2c5b"></a>
 
 ##### EnablePerfmonPebs · 字段
@@ -31176,6 +31992,8 @@ public static readonly VmQueryField<bool> EnablePerfmonPebs;
 ```
 
 是否向来宾开放 PEBS 精确事件采样功能。
+
+**取值说明：** `true`：开放 PEBS；`false`：不开放。
 
 <a id="api-db7c4ef1ab5f1cd3"></a>
 
@@ -31187,6 +32005,8 @@ public static readonly VmQueryField<bool> EnablePerfmonPmu;
 
 是否向来宾开放 PMU 性能监测功能。
 
+**取值说明：** `true`：开放 PMU；`false`：不开放。
+
 <a id="api-7eb4dbb6aee60d25"></a>
 
 ##### ExposeVirtualizationExtensions · 字段
@@ -31196,6 +32016,8 @@ public static readonly VmQueryField<bool> ExposeVirtualizationExtensions;
 ```
 
 是否向来宾公开硬件虚拟化扩展，用于运行嵌套虚拟机。
+
+**取值说明：** `true`：公开硬件虚拟化扩展；`false`：不公开。
 
 <a id="api-612c54fbf24f38eb"></a>
 
@@ -31207,6 +32029,8 @@ public static readonly VmQueryField<bool> HardwareIsolationExtensionsEnabled;
 
 是否为虚拟机启用硬件隔离扩展。
 
+**取值说明：** `true`：启用硬件隔离扩展；`false`：关闭。
+
 <a id="api-e5de188a99e9b3fa"></a>
 
 ##### L3CacheWays · 字段
@@ -31215,9 +32039,9 @@ public static readonly VmQueryField<bool> HardwareIsolationExtensionsEnabled;
 public static readonly VmQueryField<uint> L3CacheWays;
 ```
 
-向来宾呈现的三级缓存相联路数；0 表示采用默认配置。
+向来宾呈现的三级缓存相联路数。
 
-**单位与格式：** 路
+**取值说明：** 整数，单位为路；`0` 表示采用默认配置。
 
 <a id="api-7f7d227fb79af1fd"></a>
 
@@ -31237,9 +32061,9 @@ public static readonly VmQueryField<L3DistributionPolicy> L3DistributionPolicy;
 public static readonly VmQueryField<ulong> Limit;
 ```
 
-虚拟机可使用的处理器资源上限，单位为 0.001%；100000 表示 100%。
+虚拟机可使用的处理器资源上限。
 
-**单位与格式：** 0.001%
+**取值说明：** 单位为 0.001%；`100000` 表示 100%，`50000` 表示 50%。
 
 <a id="api-233e7f8a17b04416"></a>
 
@@ -31261,7 +32085,7 @@ public static readonly VmQueryField<uint> MaxClusterCountPerSocket;
 
 每个虚拟处理器插槽可包含的处理器簇数量上限。
 
-**单位与格式：** 个
+**取值说明：** 整数数量，单位为个。
 
 <a id="api-99dbf0f12abe80d0"></a>
 
@@ -31273,7 +32097,7 @@ public static readonly VmQueryField<uint> MaxHwIsolatedGuests;
 
 配置允许的硬件隔离来宾数量上限。
 
-**单位与格式：** 个
+**取值说明：** 整数数量，单位为个。
 
 <a id="api-a6d84f5d95a89163"></a>
 
@@ -31285,7 +32109,7 @@ public static readonly VmQueryField<ulong> MaxNumaNodesPerSocket;
 
 每个虚拟处理器插槽可包含的 NUMA 节点数量上限。
 
-**单位与格式：** 个
+**取值说明：** 整数数量，单位为个。
 
 <a id="api-9c0edfec76125559"></a>
 
@@ -31297,7 +32121,7 @@ public static readonly VmQueryField<uint> MaxProcessorCountPerL3;
 
 每个虚拟三级缓存域可包含的虚拟处理器数量上限。
 
-**单位与格式：** 个
+**取值说明：** 整数数量，单位为个。
 
 <a id="api-6886f7e908319659"></a>
 
@@ -31309,7 +32133,7 @@ public static readonly VmQueryField<ulong> MaxProcessorsPerNumaNode;
 
 每个虚拟 NUMA 节点可包含的虚拟处理器数量上限。
 
-**单位与格式：** 个
+**取值说明：** 整数数量，单位为个。
 
 <a id="api-82c0f5f41a88be4d"></a>
 
@@ -31353,9 +32177,9 @@ public static readonly VmQueryField<uint> PerfCpuEnergyPerformancePreference;
 public static readonly VmQueryField<uint> PerfCpuFreqCapMhz;
 ```
 
-为虚拟机配置的处理器频率上限，单位为 MHz。
+为虚拟机配置的处理器频率上限。
 
-**单位与格式：** MHz
+**取值说明：** 整数，单位为 MHz；例如 `2400` 表示 2.4 GHz。
 
 <a id="api-936da64e603b6013"></a>
 
@@ -31365,9 +32189,9 @@ public static readonly VmQueryField<uint> PerfCpuFreqCapMhz;
 public static readonly VmQueryField<uint> PerfCpuFreqDesiredMhz;
 ```
 
-为虚拟机配置的期望处理器频率，单位为 MHz。
+为虚拟机配置的期望处理器频率。
 
-**单位与格式：** MHz
+**取值说明：** 整数，单位为 MHz；例如 `2400` 表示 2.4 GHz。
 
 <a id="api-cc6cae1a2adaf234"></a>
 
@@ -31377,9 +32201,9 @@ public static readonly VmQueryField<uint> PerfCpuFreqDesiredMhz;
 public static readonly VmQueryField<uint> PerfCpuFreqMinMhz;
 ```
 
-为虚拟机配置的处理器频率下限，单位为 MHz。
+为虚拟机配置的处理器频率下限。
 
-**单位与格式：** MHz
+**取值说明：** 整数，单位为 MHz；例如 `2400` 表示 2.4 GHz。
 
 <a id="api-a3d1ef26892f4c97"></a>
 
@@ -31391,6 +32215,8 @@ public static readonly VmQueryField<bool> PerfCpuIgnoreHostMaxFrequency;
 
 虚拟机的处理器频率策略是否忽略宿主最大频率限制。
 
+**取值说明：** `true`：忽略宿主最大频率限制；`false`：遵循限制。
+
 <a id="api-1a26fc728b5d630c"></a>
 
 ##### PhysicalAddressWidth · 字段
@@ -31399,9 +32225,9 @@ public static readonly VmQueryField<bool> PerfCpuIgnoreHostMaxFrequency;
 public static readonly VmQueryField<uint> PhysicalAddressWidth;
 ```
 
-向来宾呈现的物理地址宽度，单位为位。
+向来宾呈现的物理地址宽度。
 
-**单位与格式：** 位
+**取值说明：** 整数，单位为位（bit）。
 
 <a id="api-d2a54696124167d3"></a>
 
@@ -31413,7 +32239,7 @@ public static readonly VmQueryField<int> RelativeWeight;
 
 处理器资源发生竞争时，虚拟机参与资源分配的相对权重。
 
-**单位与格式：** 相对权重
+**取值说明：** 整数权重；数值越大，资源竞争时的相对优先级越高。
 
 <a id="api-a4a7c3a0f2a21f4b"></a>
 
@@ -31423,9 +32249,9 @@ public static readonly VmQueryField<int> RelativeWeight;
 public static readonly VmQueryField<ulong> Reservation;
 ```
 
-为虚拟机保留的处理器资源比例，单位为 0.001%；100000 表示 100%。
+为虚拟机保留的处理器资源比例。
 
-**单位与格式：** 0.001%
+**取值说明：** 单位为 0.001%；`100000` 表示 100%，`50000` 表示 50%。
 
 <a id="api-3739187f27c50490"></a>
 
@@ -31447,7 +32273,7 @@ public static readonly VmQueryField<double> UsagePercent;
 
 本次取得的各虚拟处理器使用率的算术平均值；不是全宿主 CPU 的占用比例。
 
-**单位与格式：** %
+**取值说明：** 百分数；例如 `25` 表示 25%。
 
 **适用条件：** 适用于运行中的虚拟机；全部预期虚拟处理器样本有效时生成平均值。
 
@@ -31492,9 +32318,9 @@ public static class VmProcessorMetricFields
 public static readonly VmQueryField<int> Index;
 ```
 
-虚拟机内的虚拟处理器编号，从 0 开始。
+虚拟机内的虚拟处理器编号。
 
-**单位与格式：** 编号
+**取值说明：** 从 `0` 开始的整数编号。
 
 <a id="api-448c0c57fd4269d3"></a>
 
@@ -31504,9 +32330,9 @@ public static readonly VmQueryField<int> Index;
 public static readonly VmQueryField<double> UsagePercent;
 ```
 
-单个虚拟处理器的运行时间占采样时间的比例，单位为 %。
+单个虚拟处理器的运行时间占采样时间的比例。
 
-**单位与格式：** %
+**取值说明：** 百分数；例如 `25` 表示 25%。
 
 **适用条件：** 适用于运行中的虚拟机。
 
@@ -31756,11 +32582,31 @@ public static async Task<ApiResponse> SetVmProcessorAsync(Guid vmId, VmProcessor
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
 | `newSettings` | 目标处理器配置；仅取 changedProperties 列出的属性；资源比例采用 0.001% 原始单位。 |
-| `changedProperties` | 本次修改的属性名集合，使用 nameof；不能为空。未选择字段保持取得虚拟机设置锁后读到的值。同字段按本次值覆盖，不比较旧值或版本。CPU 与内存设置在同一虚拟机上跨 Core 进程串行；不阻止外部工具修改。 |
+| `changedProperties` | 要提交的属性名集合，不能为空。例如仅修改处理器数量时包含 `nameof(VmProcessorSettings.Count)`。未选择字段保持取得虚拟机设置锁后读到的值。同字段按本次值覆盖，不比较旧值或版本。CPU 与内存设置在同一虚拟机上跨 Core 进程串行；不阻止外部工具修改。 |
 
 返回：成功响应或包含校验/原生执行原因的失败响应。页拆分和 L3 缓存路数写入后会再次读取，无法取得实际值时返回 OutcomeUnknown，读回值不同为 Conflict；不据空值推断该字段不受支持。
 
 调用约定：可空字段的 null 通常忽略，不写入。例外：CpuBrandString 的 null 清为空字符串；PerfCpuFreqDesiredMhz、PerfCpuEnergyPerformancePreference、PerfCpuAutonomousActivityWindow、MaxClusterCountPerSocket 和 MaxProcessorCountPerL3 的 null 写入底层未设置编码以恢复默认。未选择的字段始终不作为请求。全部选择均被忽略或与当前值相同则不提交配置。
+
+示例：
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using ExHyperV.Models;
+using ExHyperV.Services;
+
+public static class ProcessorFieldExample
+{
+    public static async Task SetCountAsync(Guid vmId)
+    {
+        var settings = new VmProcessorSettings { Count = 4 };
+        var result = await VmProcessorService.SetVmProcessorAsync(
+            vmId, settings, [nameof(VmProcessorSettings.Count)]);
+        if (!result.Success) throw new InvalidOperationException(result.Error);
+    }
+}
+```
 
 <a id="api-726a953ed0783af6"></a>
 
@@ -33618,11 +34464,7 @@ public static async Task<VmScreenshotImage?> CaptureAsync(Guid vmId, int desired
 
 
 
-读取的是虚拟机当前配置对应的基本控制台画面，不是任意已登录的增强会话桌面。 此接口不会建立 RDP 连接，也不能用作增强会话截图失败时的回退。
-
-
-
-无法唯一确定当前配置、返回数据长度不符或图像过大时也返回 null； 当前接口不会进一步区分这些失败原因。
+无法确定当前配置、图像数据不完整或图像过大时返回 null，与没有画面使用同一返回值。
 
 示例：
 
@@ -33686,6 +34528,8 @@ public static readonly VmQueryField<bool> EncryptEnabled;
 
 是否对虚拟机的保存状态和迁移流量启用加密。
 
+**取值说明：** `true`：启用保存状态和迁移流量加密；`false`：关闭。
+
 <a id="api-28e557e48799bcb7"></a>
 
 ##### SecureBootEnabled · 字段
@@ -33695,6 +34539,8 @@ public static readonly VmQueryField<bool> SecureBootEnabled;
 ```
 
 是否启用安全启动，在启动过程中验证引导组件的签名。
+
+**取值说明：** `true`：启用安全启动；`false`：关闭。
 
 <a id="api-7f6bd57a186d1944"></a>
 
@@ -33706,8 +34552,6 @@ public static readonly VmQueryField<string> SecureBootTemplateId;
 
 安全启动所使用的信任模板标识。
 
-**单位与格式：** 模板标识字符串
-
 <a id="api-2a3449d9451ad422"></a>
 
 ##### Shielded · 字段
@@ -33718,6 +34562,8 @@ public static readonly VmQueryField<bool> Shielded;
 
 ShieldingRequested 配置标记；不证明来宾已通过证明或保护已生效。
 
+**取值说明：** `true`：请求屏蔽保护；`false`：未请求。
+
 <a id="api-8f8a2903c0a49b71"></a>
 
 ##### TpmEnabled · 字段
@@ -33727,6 +34573,8 @@ public static readonly VmQueryField<bool> TpmEnabled;
 ```
 
 是否为虚拟机启用虚拟 TPM。
+
+**取值说明：** `true`：启用虚拟 TPM；`false`：关闭。
 
 <a id="api-4b2f79ff06e9f37a"></a>
 
@@ -35069,8 +35917,6 @@ public static readonly VmQueryField<string> AttachmentId;
 
 存储挂接槽位的标识，用于关联本次查询中的设备记录。
 
-**单位与格式：** 字符串标识
-
 <a id="api-4b1182beb09d2a44"></a>
 
 ##### CapacityBytes · 字段
@@ -35081,7 +35927,7 @@ public static readonly VmQueryField<long> CapacityBytes;
 
 磁盘向来宾提供的容量，单位为字节；物理直通盘返回对应宿主磁盘容量。
 
-**单位与格式：** 字节
+**取值说明：** 单位为字节；例如 `1073741824` 表示 1 GiB。
 
 **适用条件：** 适用于虚拟磁盘和物理直通盘；空槽位返回 NotApplicable。
 
@@ -35093,9 +35939,9 @@ public static readonly VmQueryField<long> CapacityBytes;
 public static readonly VmQueryField<int> ControllerLocation;
 ```
 
-设备在所属控制器上的槽位编号，从 0 开始。
+设备在所属控制器上的槽位编号。
 
-**单位与格式：** 编号
+**取值说明：** 从 `0` 开始的整数编号。
 
 <a id="api-6dec1c0b93401211"></a>
 
@@ -35105,9 +35951,9 @@ public static readonly VmQueryField<int> ControllerLocation;
 public static readonly VmQueryField<int> ControllerNumber;
 ```
 
-同类存储控制器中的编号，从 0 开始。
+同类存储控制器中的编号。
 
-**单位与格式：** 编号
+**取值说明：** 从 `0` 开始的整数编号。
 
 <a id="api-a9cb687d9fa61d81"></a>
 
@@ -35117,7 +35963,9 @@ public static readonly VmQueryField<int> ControllerNumber;
 public static readonly VmQueryField<string> ControllerType;
 ```
 
-挂接槽位所属的控制器类型，例如 IDE 或 SCSI。
+挂接槽位所属的控制器类型。
+
+**取值说明：** `IDE` 或 `SCSI`。
 
 <a id="api-d9e0b68e39f5d623"></a>
 
@@ -35141,7 +35989,7 @@ public static readonly VmQueryField<int> DiskNumber;
 
 物理直通盘对应的宿主磁盘编号。
 
-**单位与格式：** 磁盘编号
+**取值说明：** 非负整数，例如 `2` 对应宿主的磁盘 2。
 
 **适用条件：** 适用于物理直通盘。目标当前是否仍存在可读取 IsPassthroughStale。
 
@@ -35179,7 +36027,7 @@ public static readonly VmQueryField<long> FileSizeBytes;
 
 映像文件的当前长度，可用于展示文件大小；文件系统实际分配空间需另行查询。
 
-**单位与格式：** 字节
+**取值说明：** 单位为字节；例如 `1073741824` 表示 1 GiB。
 
 **适用条件：** 适用于虚拟磁盘文件。
 
@@ -35192,6 +36040,8 @@ public static readonly VmQueryField<bool> IsPassthroughStale;
 ```
 
 当前物理磁盘挂接目标是否已从 Hyper-V 物理磁盘清单中消失。
+
+**取值说明：** `true`：目标磁盘已不在宿主清单中；`false`：仍在清单中。
 
 **适用条件：** 适用于物理直通盘。
 
@@ -35207,8 +36057,6 @@ public static readonly VmQueryField<string> Path;
 
 槽位当前挂接的映像文件路径或宿主设备引用。
 
-**单位与格式：** 路径或设备引用字符串
-
 **取值说明：** 空槽位返回空字符串。
 
 <a id="api-a620c20cce4cdaff"></a>
@@ -35221,8 +36069,6 @@ public static readonly VmQueryField<string> PnpDeviceId;
 
 物理直通盘对应的宿主 PnP 设备标识。
 
-**单位与格式：** 设备标识字符串
-
 **适用条件：** 适用于物理直通盘。
 
 <a id="api-537997a327a2db1c"></a>
@@ -35233,9 +36079,9 @@ public static readonly VmQueryField<string> PnpDeviceId;
 public static readonly VmQueryField<long> ReadBytesPerSecond;
 ```
 
-磁盘当前的读取速率，单位为字节每秒。
+磁盘当前的读取速率。
 
-**单位与格式：** 字节/秒
+**取值说明：** 单位为字节/秒；例如 `1048576` 表示 1 MiB/s。
 
 <a id="api-f136f8ff301b9625"></a>
 
@@ -35269,9 +36115,9 @@ public static readonly VmQueryField<string> VirtualDiskType;
 public static readonly VmQueryField<long> WriteBytesPerSecond;
 ```
 
-磁盘当前的写入速率，单位为字节每秒。
+磁盘当前的写入速率。
 
-**单位与格式：** 字节/秒
+**取值说明：** 单位为字节/秒；例如 `1048576` 表示 1 MiB/s。
 
 <a id="api-7599034e4f313f52"></a>
 
@@ -35312,6 +36158,8 @@ public static readonly VmQueryField<bool> AllowFullScsiCommandSet;
 ```
 
 是否为整台虚拟机开放完整 SCSI 命令集。
+
+**取值说明：** `true`：开放完整 SCSI 命令集；`false`：不开放。
 
 **适用条件：** 虚拟机级全局配置，通过虚拟机记录读取。
 
@@ -36060,7 +36908,7 @@ public bool SupportsOptical { get; init; }
 
 ### `VmmsImageInfo` record 类
 
-只读的 VMMS 程序路径诊断；文件存在不证明内容完整或可以执行。
+VMMS 程序文件的路径与存在状态。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -36083,7 +36931,7 @@ public bool SupportsOptical { get; init; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public ApiFailure? Failure { get; init; } `](#api-0b2286b6783ae330) | 读取失败的原始信息；路径无法解析且没有系统错误时为 null。 |
-| [` public string? ResolvedPath { get; init; } `](#api-abaf3c9b5b5544dd) | 安全解析出的本机绝对路径；无法确定时为 null。 |
+| [` public string? ResolvedPath { get; init; } `](#api-abaf3c9b5b5544dd) | VMMS 程序文件在宿主上的完整路径；未能解析时为 null。 |
 | [` public VmmsImageState State { get; init; } `](#api-e667643b7f77bccf) | 路径检查结论。 |
 
 #### 详细说明
@@ -36095,7 +36943,7 @@ public sealed record VmmsImageInfo(VmmsImageState State, string? ResolvedPath, A
 | 参数 | 说明 |
 | --- | --- |
 | `State` | 路径检查结论。 |
-| `ResolvedPath` | 安全解析出的本机绝对路径；无法确定时为 null。 |
+| `ResolvedPath` | VMMS 程序文件在宿主上的完整路径；未能解析时为 null。 |
 | `Failure` | 读取失败的原始信息；路径无法解析且没有系统错误时为 null。 |
 
 #### 构造函数说明
@@ -36111,7 +36959,7 @@ public VmmsImageInfo(VmmsImageState State, string? ResolvedPath, ApiFailure? Fai
 | 参数 | 说明 |
 | --- | --- |
 | `State` | 路径检查结论。 |
-| `ResolvedPath` | 安全解析出的本机绝对路径；无法确定时为 null。 |
+| `ResolvedPath` | VMMS 程序文件在宿主上的完整路径；未能解析时为 null。 |
 | `Failure` | 读取失败的原始信息；路径无法解析且没有系统错误时为 null。 |
 
 #### 属性说明
@@ -36134,7 +36982,7 @@ public ApiFailure? Failure { get; init; }
 public string? ResolvedPath { get; init; }
 ```
 
-安全解析出的本机绝对路径；无法确定时为 null。
+VMMS 程序文件在宿主上的完整路径；未能解析时为 null。
 
 <a id="api-e667643b7f77bccf"></a>
 
@@ -36223,7 +37071,7 @@ Unknown = 3
 
 ### `VmmsServiceInfo` record 类
 
-VMMS 服务的一次只读快照，辅助字段不作为运行通过的额外条件。
+VMMS Windows 服务的状态、启动配置与程序信息。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -36247,11 +37095,11 @@ VMMS 服务的一次只读快照，辅助字段不作为运行通过的额外条
 | --- | --- |
 | [` public uint? ExitCode { get; init; } `](#api-9183c4c4e75c0be4) | Win32\_Service.ExitCode 原始值；未上报时为 null。 |
 | [` public VmmsImageInfo Image { get; init; } `](#api-a3d1b0d95ed74a60) | 程序路径解析及文件查询结果。 |
-| [` public string? PathName { get; init; } `](#api-e0eacebe04f64745) | 服务配置上报的原始程序命令行，不执行此内容。 |
-| [` public uint? ProcessId { get; init; } `](#api-327d8285176a95c2) | 服务进程标识；未上报时为 null，0 不单独用作故障判据。 |
+| [` public string? PathName { get; init; } `](#api-e0eacebe04f64745) | VMMS 服务配置的程序命令行，包含程序路径及启动参数。 |
+| [` public uint? ProcessId { get; init; } `](#api-327d8285176a95c2) | VMMS 进程编号；未取得时为 null。 |
 | [` public uint? ServiceSpecificExitCode { get; init; } `](#api-36b6a5de1d3e3095) | 服务特定退出码；未上报时为 null。 |
 | [` public string? StartMode { get; init; } `](#api-9f1a87a0897acaf6) | 启动类型，例如 Auto、Manual、Disabled。 |
-| [` public string? State { get; init; } `](#api-efa1c3d700396342) | Windows 服务状态；未返回时为 null，不能当成 Stopped。 |
+| [` public string? State { get; init; } `](#api-efa1c3d700396342) | Windows 服务状态，例如 Running、Stopped；未取得时为 null。 |
 
 #### 详细说明
 
@@ -36262,12 +37110,12 @@ public sealed record VmmsServiceInfo(string? State, string? StartMode, uint? Exi
 
 | 参数 | 说明 |
 | --- | --- |
-| `State` | Windows 服务状态；未返回时为 null，不能当成 Stopped。 |
+| `State` | Windows 服务状态，例如 Running、Stopped；未取得时为 null。 |
 | `StartMode` | 启动类型，例如 Auto、Manual、Disabled。 |
 | `ExitCode` | Win32_Service.ExitCode 原始值；未上报时为 null。 |
 | `ServiceSpecificExitCode` | 服务特定退出码；未上报时为 null。 |
-| `ProcessId` | 服务进程标识；未上报时为 null，0 不单独用作故障判据。 |
-| `PathName` | 服务配置上报的原始程序命令行，不执行此内容。 |
+| `ProcessId` | VMMS 进程编号；未取得时为 null。 |
+| `PathName` | VMMS 服务配置的程序命令行，包含程序路径及启动参数。 |
 | `Image` | 程序路径解析及文件查询结果。 |
 
 #### 构造函数说明
@@ -36282,12 +37130,12 @@ public VmmsServiceInfo(string? State, string? StartMode, uint? ExitCode, uint? S
 
 | 参数 | 说明 |
 | --- | --- |
-| `State` | Windows 服务状态；未返回时为 null，不能当成 Stopped。 |
+| `State` | Windows 服务状态，例如 Running、Stopped；未取得时为 null。 |
 | `StartMode` | 启动类型，例如 Auto、Manual、Disabled。 |
 | `ExitCode` | Win32_Service.ExitCode 原始值；未上报时为 null。 |
 | `ServiceSpecificExitCode` | 服务特定退出码；未上报时为 null。 |
-| `ProcessId` | 服务进程标识；未上报时为 null，0 不单独用作故障判据。 |
-| `PathName` | 服务配置上报的原始程序命令行，不执行此内容。 |
+| `ProcessId` | VMMS 进程编号；未取得时为 null。 |
+| `PathName` | VMMS 服务配置的程序命令行，包含程序路径及启动参数。 |
 | `Image` | 程序路径解析及文件查询结果。 |
 
 #### 属性说明
@@ -36320,7 +37168,7 @@ public VmmsImageInfo Image { get; init; }
 public string? PathName { get; init; }
 ```
 
-服务配置上报的原始程序命令行，不执行此内容。
+VMMS 服务配置的程序命令行，包含程序路径及启动参数。
 
 <a id="api-327d8285176a95c2"></a>
 
@@ -36330,7 +37178,7 @@ public string? PathName { get; init; }
 public uint? ProcessId { get; init; }
 ```
 
-服务进程标识；未上报时为 null，0 不单独用作故障判据。
+VMMS 进程编号；未取得时为 null。
 
 <a id="api-36b6a5de1d3e3095"></a>
 
@@ -36360,7 +37208,7 @@ public string? StartMode { get; init; }
 public string? State { get; init; }
 ```
 
-Windows 服务状态；未返回时为 null，不能当成 Stopped。
+Windows 服务状态，例如 Running、Stopped；未取得时为 null。
 
 <a id="api-972639a130eb0cc2"></a>
 
@@ -37811,6 +38659,13 @@ public string FilePath { get; }
 
 源文件绝对路径。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 读取的 VMCX 配置文件在宿主上的完整路径。 |
+| 取值与默认 | Windows 文件路径，扩展名为 `.vmcx`。 |
+
 <a id="api-13d25c257292c603"></a>
 
 ##### Root · 属性
@@ -37831,6 +38686,13 @@ public long SourceLength { get; }
 
 源文件字节数。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 读取时源文件的大小。 |
+| 取值与默认 | 单位为字节；读取入口支持最大 256 MiB 的文件。 |
+
 <a id="api-f356a6e29b4b6ee9"></a>
 
 ##### SourceSha256 · 属性
@@ -37840,6 +38702,13 @@ public string SourceSha256 { get; }
 ```
 
 读取时整份源文件的 SHA-256。提交必须仍匹配此值。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 读取时计算的文件指纹。提交修改前用它检查源文件是否发生变化。 |
+| 取值与默认 | 64 个大写十六进制字符（`0–9`、`A–F`）。 |
 
 #### 静态方法说明
 
@@ -38424,6 +39293,13 @@ public int Id { get; }
 
 节点在当前文档内的唯一标识。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 节点在当前文档及其编辑批次中的身份，用于精确定位同名节点。 |
+| 取值与默认 | 整数；仅在当前文档及编辑批次内有效。 |
+
 <a id="api-a2b82066b617aa85"></a>
 
 ##### IsContainer · 属性
@@ -38464,6 +39340,13 @@ public int? ParentId { get; }
 
 父节点标识；根节点为 null。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 直接父节点的身份。 |
+| 取值与默认 | 与父节点的 `Id` 相同；根节点为 `null`。 |
+
 <a id="api-cb105f8580cb5735"></a>
 
 ##### Path · 属性
@@ -38474,6 +39357,13 @@ public string Path { get; }
 
 用于展示和搜索的路径；同名容器或值可使路径不唯一。
 
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 节点在 VMCX 内部的逻辑路径，用于展示和搜索。同名节点可以具有相同路径。 |
+| 取值与默认 | 以 `/` 分隔层级，例如 `/configuration/manifest`。 |
+
 <a id="api-e2239934656a5019"></a>
 
 ##### Value · 属性
@@ -38483,6 +39373,13 @@ public VmcxValue? Value { get; }
 ```
 
 值节点的类型和值；容器为 null。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 值节点保存的数据。 |
+| 取值与默认 | 值节点返回 `VmcxValue`；容器节点为 `null`。 |
 
 <a id="api-3156373219b7a844"></a>
 
@@ -38609,6 +39506,13 @@ public string Text { get; }
 ```
 
 不随区域设置变化的文本表示；Raw 为 Base64，Boolean 为 True/False。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前类型值的文本表示，格式不随区域设置变化。 |
+| 取值与默认 | 整数和浮点数使用十进制；字符串保留原文；二进制数据使用 Base64；布尔值为 `True` 或 `False`。 |
 
 <a id="api-dfdc3182e9b498bc"></a>
 
