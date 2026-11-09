@@ -30,15 +30,15 @@
       <p>DHCP 可以只提供地址、不提供上网出口；NAT 可以配合手动地址。DHCP 下发网关与 DNS 地址，不等于已经配置好网关转发或启动 DNS 代理。DNS 服务也可以由外部现成服务器提供。</p>
     </section>
     <section id="implementation" title="Core 与后端如何对应">
-      <p>WPF、Web 和测试使用相同的模型与规则。交换机仍属于宿主，网卡仍属于虚拟机；以上三部分复用现有管理入口，Core 按资源归属与能力调用后端。</p>
+      <p>WinUI 3、Web 和测试使用相同的模型与规则。交换机仍属于宿主，网卡仍属于虚拟机；以上三部分复用现有管理入口，Core 按资源归属与能力调用后端。</p>
       <figure>
         <div class="diagram-scroll" tabindex="0" role="region" aria-label="网络管理实现架构图">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 550" role="img" aria-labelledby="net-title net-desc">
             <title id="net-title">网络管理的实现架构</title>
-            <desc id="net-desc">WPF、Web、测试调用 Core。Core 保留宿主网络管理和虚拟机网卡管理两个入口，共用网络身份、能力判断及操作协调。底层使用已有 WMI 和 ICS 实现，另接入 HCN。HCN 尚待实现和验证；箭头是调用关系，不是数据包路线。</desc>
+            <desc id="net-desc">WinUI 3、Web、测试调用 Core。Core 保留宿主网络管理和虚拟机网卡管理两个入口，共用网络身份、能力判断及操作协调。底层使用已有 WMI 和 ICS 实现，另接入 HCN。HCN 尚待实现和验证；箭头是调用关系，不是数据包路线。</desc>
             <defs><marker id="net-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" class="diagram-arrow"/></marker></defs>
             <rect class="diagram-node" x="175" y="20" width="550" height="65" rx="4"/>
-            <text class="diagram-label" x="450" y="59">WPF / Web / 测试 / 其他调用方</text>
+            <text class="diagram-label" x="450" y="59">WinUI 3 / Web / 测试 / 其他调用方</text>
             <path class="diagram-edge" d="M450 85 V140" marker-end="url(#net-arrow)"/>
             <rect class="diagram-zone" x="35" y="140" width="830" height="215" rx="4"/>
             <text class="diagram-zone-title" x="60" y="174">ExHyperV.Core</text>
@@ -129,7 +129,7 @@
         <li><strong>整理现有修改链路。</strong> 按稳定资源引用执行，分别表达连接、IP 转发与应用服务配置；ICS 暂按已支持的组合执行。现有创建、改配置、删除及网卡接入都接到共同校验。固定等待改为有期限的状态检查。</li>
         <li><strong>补操作协调。</strong> 同一资源跨进程排队；ICS 宿主级共享资源单独协调。锁后重新核对归属和状态，只清理本次创建的资源；恢复失败或结果不明返回实际状态与剩余资源。</li>
         <li><strong>验证 HCN 新能力。</strong> 在测试网络上逐项检验 WMI 虚拟机接入、仅 DHCP、仅 NAT44、组合服务、独立 DNS、端口映射及网络共存。每项留下明确的支持结果与限制；不因 JSON 被接受就宣称功能通过。</li>
-        <li><strong>适配调用方与文档。</strong> WPF 使用统一查询与配置请求，继续提供简洁的常用选项；Web、测试使用同一契约。按旧功能对照回归，新能力仅显示实际支持的选项。</li>
+        <li><strong>适配调用方与文档。</strong> WinUI 3 使用统一查询与配置请求，继续提供简洁的常用选项；Web、测试使用同一契约。按旧功能对照回归，新能力仅显示实际支持的选项。</li>
       </ol>
       <p>完成标准：旧功能效果一致；同名或改名不误选；系统托管网络不被越权删除；能力缺失有明确说明；失败后能说明哪些步骤已完成、哪些资源仍存在。HCN 未通过的组合列为限制，不用其他后端悄悄替换用户请求。</p>
       <p>后端适配、模型拆分和调用协调属于工程选择。若验证结果要求关闭已有共享、改变既有网络的地址／出口，或新增会影响其他网络的行为，再单独提出具体选择。</p>
@@ -141,9 +141,9 @@
     <section id="dependencies" title="调用与依赖">
       <figure><div class="diagram-scroll" tabindex="0" role="region" aria-label="Core 与调用方的依赖图">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" role="img" aria-labelledby="core-title core-desc">
-          <title id="core-title">Core 与调用方的依赖方向</title><desc id="core-desc">WPF、Web 和其他调用程序引用 Core。Core 内管理能力调用 Windows 与 Hyper-V；交互能力通过内部 FreeRDP 适配连接虚拟机控制台。Core 不反向引用界面项目。</desc>
+          <title id="core-title">Core 与调用方的依赖方向</title><desc id="core-desc">WinUI 3、Web 和其他调用程序引用 Core。Core 内管理能力调用 Windows 与 Hyper-V；交互能力通过内部 FreeRDP 适配连接虚拟机控制台。Core 不反向引用界面项目。</desc>
           <defs><marker id="core-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10z" class="diagram-arrow"/></marker></defs>
-          <rect class="diagram-node" x="35" y="25" width="250" height="85" rx="4"/><text class="diagram-label" x="160" y="60">WPF</text><text class="diagram-small" x="160" y="87">窗口、交互、显示适配</text>
+          <rect class="diagram-node" x="35" y="25" width="250" height="85" rx="4"/><text class="diagram-label" x="160" y="60">WinUI 3</text><text class="diagram-small" x="160" y="87">窗口、交互、显示适配</text>
           <rect class="diagram-node" x="325" y="25" width="250" height="85" rx="4"/><text class="diagram-label" x="450" y="60">Web</text><text class="diagram-small" x="450" y="87">请求、连接与前端呈现</text>
           <rect class="diagram-node" x="615" y="25" width="250" height="85" rx="4"/><text class="diagram-label" x="740" y="60">测试 / 其他程序</text><text class="diagram-small" x="740" y="87">直接调用 DLL</text>
           <path class="diagram-edge" d="M160 110 V180" marker-end="url(#core-arrow)"/><path class="diagram-edge" d="M450 110 V180" marker-end="url(#core-arrow)"/><path class="diagram-edge" d="M740 110 V180" marker-end="url(#core-arrow)"/>
@@ -164,7 +164,7 @@
         <tr><td>处理重连策略、布局及系统剪贴板。</td><td>提供连接、帧租约、输入和剪贴板协议能力。</td></tr>
         <tr><td>决定对象何时创建与释放。</td><td>按接口约定完成在途操作和资源清理。</td></tr>
       </tbody></table>
-      <p>定制 Wpf.Ui 属于 WPF 的界面依赖。Core 不引用 WPF 或 Web 项目，也没有统一的 Core 运行会话或独立工作进程。</p>
+      <p>WinUI 3 的控件属于桌面界面依赖。Core 不引用 WinUI 3 或 Web 项目，也没有统一的 Core 运行会话或独立工作进程。</p>
       <p>宿主与虚拟机管理仍按查询、修改等现有入口组织。跨对象的机制图不改变 API 分类。</p>
     </section>
   </page>
@@ -175,7 +175,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 610" role="img" aria-labelledby="console-title console-desc">
           <title id="console-title">连接与交互能力的组合关系</title><desc id="console-desc">调用方通过连接管理生命周期，再使用视频、音频、控制和剪贴板接口。键盘与鼠标归入控制。当前 FreeRDP 实现视频、控制和增强会话剪贴板，音频仅定义接口。</desc>
           <defs><marker id="console-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" class="diagram-arrow"/></marker></defs>
-          <rect class="diagram-node" x="40" y="25" width="820" height="65" rx="4"/><text class="diagram-label" x="450" y="65">WPF / Web / 其他调用方</text>
+          <rect class="diagram-node" x="40" y="25" width="820" height="65" rx="4"/><text class="diagram-label" x="450" y="65">WinUI 3 / Web / 其他调用方</text>
           <path class="diagram-edge" d="M450 90 V150" marker-end="url(#console-arrow)"/>
           <rect class="diagram-node diagram-emphasis" x="40" y="150" width="820" height="80" rx="4"/><text class="diagram-label" x="450" y="182">连接</text><text class="diagram-small" x="450" y="210">后端选择 · 建立与断开 · 状态 · 资源释放</text>
           <path class="diagram-edge" d="M450 230 V270 M135 310 V270 H765 V310 M345 270 V310 M555 270 V310"/>
@@ -216,7 +216,7 @@
     </section>
     <section id="leases" title="帧与连接的生命周期">
       <ol><li>创建连接，订阅事件，然后启动。</li><li>帧回调只借出当前租约；异步保留时先调用 <code>Retain()</code>。</li><li>显示或处理结束后释放租约；只有需要独立副本时才调用 <code>CopyPixels()</code>。</li><li>等待连接断开或异步释放完成。重新连接时创建新对象。</li></ol>
-      <p>Core 传递帧租约可避免托管层重复复制整帧，但采集与 WPF 位图写入仍有复制；此图不代表端到端零拷贝。</p>
+      <p>Core 传递帧租约可避免托管层重复复制整帧，但采集仍有复制，调用方显示适配也可能需要复制；此图不代表端到端零拷贝。</p>
       <p>相关接口：<api name="ConsoleService"/>、<api name="IConsoleConnection"/>、<api name="ConsoleFrame"/>。</p>
     </section>
   </page>
@@ -227,7 +227,7 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 550" role="img" aria-labelledby="gpu-title gpu-desc">
           <title id="gpu-title">GPU 部署的交互循环</title><desc id="gpu-desc">Core 执行步骤并产生带请求身份的待确认事项。调用方展示当前快照，收集用户决定后提交。Core 检查请求是否仍有效，再执行后续步骤并发布新快照；部署结束或失败时返回最终状态。</desc>
           <defs><marker id="gpu-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10z" class="diagram-arrow"/></marker></defs>
-          <rect class="diagram-zone" x="35" y="30" width="310" height="480" rx="4"/><text class="diagram-zone-title" x="60" y="68">调用方 · WPF / 其他程序</text>
+          <rect class="diagram-zone" x="35" y="30" width="310" height="480" rx="4"/><text class="diagram-zone-title" x="60" y="68">调用方 · WinUI 3 / 其他程序</text>
           <rect class="diagram-zone" x="450" y="30" width="415" height="480" rx="4"/><text class="diagram-zone-title" x="475" y="68">Core · GpuDeploymentSession</text>
           <rect class="diagram-node diagram-emphasis" x="480" y="100" width="355" height="65" rx="4"/><text class="diagram-label" x="657" y="138">执行当前步骤与规则判断</text>
           <path class="diagram-edge" d="M657 165 V220" marker-end="url(#gpu-arrow)"/><text class="diagram-small" x="727" y="198">需要决定时</text>

@@ -1,6 +1,6 @@
 # ExHyperV.WinUI3
 
-使用 WinUI 3 重建 ExHyperV 桌面界面。WPF 版本继续保留，既是可用的产品，也是迁移期间的功能验收基准。两者独立启动，共用 Core，不互相引用。
+使用 WinUI 3 重建 ExHyperV 桌面界面，直接引用 Core。2.0 分支已移除 WPF 客户端及其定制控件库；早期实现可在 Git 历史中查阅。移除旧客户端不表示 WinUI 已完成全部功能迁移。
 
 ## 当前范围
 
@@ -16,24 +16,22 @@ ARM64 已实际检查处理器、亲和性、内存、存储、GPU 选择和网�
 
 处理器设置按计算资源、指令集能力、中断控制、处理器拓扑、性能监控、频率调节、寻址与分页、安全隔离分成八个页签，空间不足时自动换行。每次只显示当前分区，编辑值在切换页签时保留。说明收进可悬停或点击的 `i`，不可修改的原因也可从这里查看。CPU 绑定使用独立页面，按宿主实际逻辑处理器编号排列核心格子，支持点击及鼠标拖动选择；全部取消选择后应用表示解除绑定。
 
-应用设置支持浅色／深色／跟随系统，以及默认蓝色、常用色、自定义颜色和关闭主题色。自定义选色采用 WinUI `ColorPicker`，点击“应用”才保存；关闭后保留原选色，选中卡片改用灰色。设置独立保存在当前用户本地应用数据的 `ExHyperV/WinUI3/appearance.json`，重启后恢复，不修改 Windows 或 WPF 的设置。
+应用设置支持浅色／深色／跟随系统，以及默认蓝色、常用色、自定义颜色和关闭主题色。自定义选色采用 WinUI `ColorPicker`，点击“应用”才保存；关闭后保留原选色，选中卡片改用灰色。设置独立保存在当前用户本地应用数据的 `ExHyperV/WinUI3/appearance.json`，重启后恢复，不修改 Windows 设置。
 
 启动时不读取全量宿主信息、不预热所有页面、不启动 ARP／USB 等后台能力。进入虚拟机页后才查询列表需要的字段。
 
 ## 项目边界
 
 ```text
-ExHyperV.Wpf ──────┐
-                  ├── ExHyperV.Core ── 虚拟化引擎、设备与通信后端
-ExHyperV.WinUI3 ───┘
+ExHyperV.WinUI3 ─── ExHyperV.Core ── 虚拟化引擎、设备与通信后端
 ```
 
 - Core 负责业务判断、原生调用、资源归属和长流程状态机。
 - WinUI 负责窗口、导航、输入、显示、确认对话框和界面状态。
 - ViewModel 直接组合 Core 的公开接口。先不增加一套转发所有 Core 方法的服务层、接口层或全局运行会话。
-- WPF 的布局、操作顺序、文案和行为可作参考；不直接复用 WPF 控件、窗口类型或 ViewModel。
-- 定制 Wpf.Ui 留在 WPF 项目。WinUI 使用原生控件；只有原生控件不能满足实际需求时才增加局部定制。
-- WPF 与 WinUI 的窗口状态、外观等客户端设置分别保存。Core 管理的虚拟机元数据仍由 Core 读写。
+- 历史 WPF 的布局、操作顺序、文案和行为可作参考；不依赖 WPF 控件、窗口类型或 ViewModel。
+- WinUI 使用原生控件；只有原生控件不能满足实际需求时才增加局部定制。
+- 窗口状态、外观等客户端设置由 WinUI 保存。Core 管理的虚拟机元数据仍由 Core 读写。
 
 ## 目录与命名
 
@@ -78,7 +76,7 @@ ExHyperV.WinUI3/
 
 第 1 阶段应尽早完成。控制台显示效率、原生窗口和输入焦点若不能达到要求，先解决这些问题，再投入大量配置页迁移；WinUI 本身不保证比 WPF 更快。
 
-验收时两套界面使用同一版 Core、相同虚拟机和相同测试条件。普通只读页面可以并排比较；会修改同一资源的操作顺序执行。每个功能记录“未迁移／已实现待验收／已验收”，WPF 在整体替换验收完成前不删除。
+验收以当前 Core 契约和实际虚拟机状态为准。历史 WPF 版本可用于对照操作效果，但不再跟随当前 Core 构建。每个功能记录“未迁移／已实现待验收／已验收”，未迁移的功能不显示占位入口。
 
 ## 构建与运行
 
@@ -91,7 +89,7 @@ msbuild src/ExHyperV.WinUI3/ExHyperV.WinUI3.csproj /restore /t:Build /p:Configur
 msbuild src/ExHyperV.WinUI3/ExHyperV.WinUI3.csproj /restore /t:Build /p:Configuration=Debug /p:Platform=x64
 ```
 
-Core 含 COM 引用，因此构建完整项目使用 Visual Studio MSBuild。解决方案已列出 WPF 和 WinUI；将 WinUI 项目设为启动项目，选对应架构。Any CPU 配置下 WinUI 映射为 x64；ARM64 使用专用配置，不提供 x86 版本。
+Core 含 COM 引用，因此构建完整项目使用 Visual Studio MSBuild。将 WinUI 项目设为启动项目，选对应架构。Any CPU 配置下 WinUI 映射为 x64；ARM64 使用专用配置，不提供 x86 版本。
 
 输出位于 `bin/<架构>/Debug/net10.0-windows10.0.26100.0/win-<架构>/ExHyperV.WinUI3.exe`。以管理员权限运行，保留同目录所有依赖。Windows App SDK 与 .NET 均采用自包含文件夹部署；当前不是单文件 EXE，也不需要安装 MSIX。正式发布方式在交付阶段确定。
 

@@ -11,7 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <ProjectReference Include="../ExHyperV.Core/ExHyperV.Core.csproj" AdditionalProperties="GenerateDocumentationFile=true" />
+    <ProjectReference Include="../ExHyperV.Core/ExHyperV.Core.csproj" />
     <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.3.0" />
     <PackageReference Include="ModelContextProtocol.Extensions.Tasks" Version="2.3.0" />

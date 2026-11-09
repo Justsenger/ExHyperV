@@ -33,9 +33,9 @@ ExHyperV 通过深入研究 Hyper-V 文档、 [WMI](https://github.com/Justsenge
 
 ## 🎨 界面一览
 
-ExHyperV 使用 [WPF-UI](https://github.com/lepoco/wpfui) 框架，提供流畅现代的用户界面体验和科幻的视觉效果。支持黑色主题和白色主题，并且会根据系统主题自动切换。
+2.0 分支使用 WinUI 3 构建桌面客户端，支持浅色、深色和跟随系统主题。原 WPF 客户端及其定制 Wpf.Ui 依赖已从本分支移除，可在 Git 历史中查阅。
 
-目前支持的语言：简体中文、英文。
+下方截图来自早期 WPF 版本。当前实现范围和待完成内容见 [WinUI 3 项目说明](src/ExHyperV.WinUI3/README.md)。
 
 ![主界面](img/01.png)
 
@@ -51,20 +51,20 @@ ExHyperV 使用 [WPF-UI](https://github.com/lepoco/wpfui) 框架，提供流畅�
 ---
 ### 1. 下载与运行
 - **下载**: 前往 [Releases 页面](https://github.com/Justsenger/ExHyperV/releases/latest)下载最新版本。
-- **运行**: 普通便携 EXE 需要对应架构的 .NET 10 桌面运行时；自包含安装包已携带运行时，无需单独安装。
+- **运行**: 下载版本请遵循对应发布说明。2.0 WinUI 客户端目前从源码构建，采用自包含文件夹部署，运行时须保留 EXE 旁的全部文件。
 ---
 ### 2. 构建 (可选)
-1. 安装 [Visual Studio 2026](https://visualstudio.microsoft.com/vs/)（18.x 或更新版本）、.NET 10 SDK，并勾选 .NET 桌面开发。应用、验证项目和定制 Wpf.Ui 均以 .NET 10 为目标。
+1. 安装 [Visual Studio 2026](https://visualstudio.microsoft.com/vs/)（18.x 或更新版本）、.NET 10 SDK、.NET 桌面开发、WinUI 开发工具和 Windows SDK 10.0.26100。
 2. 使用 GitHub Desktop 或 Git 克隆本仓库。
 3. 使用 Visual Studio 打开 `/src/ExHyperV.sln` 文件，即可编译。
 
-定制 Wpf.Ui 源码随仓库保存在 `src/ExHyperV.Wpf/external/wpfui/`，构建时自动编译，不需要拉取子模块或手工复制 DLL。
+将 `ExHyperV.WinUI3` 设为启动项目，选择 ARM64 或 x64。解决方案同时构建 Core、Web、MCP 及测试项目。原 WPF 发布和安装包管线已移除，WinUI 正式发布打包尚未配置。
 
 也可在 Visual Studio 开发者 PowerShell 中执行（Core 使用 COM 引用，需要 Visual Studio 的 MSBuild）：
 ```pwsh
-msbuild src\ExHyperV.sln /restore /p:Configuration=Release /p:RuntimeIdentifier=win-arm64
+msbuild src\ExHyperV.sln /restore /p:Configuration=Release /p:Platform=ARM64
 ```
-构建 x64 版本时，将 `win-arm64` 换成 `win-x64`。
+构建 x64 版本时，将 `ARM64` 换成 `x64`。
 
 项目职责、维护约定和已知限制见 [架构说明](doc/architecture.md)。
 

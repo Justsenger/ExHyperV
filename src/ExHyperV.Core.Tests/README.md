@@ -1,6 +1,6 @@
 # Core 测试
 
-独立测试项目，通过项目引用同步编译当前 Core。与 `ExHyperV.Core`、`ExHyperV.Wpf` 并列，入口已加入 `src/ExHyperV.sln`。
+独立测试项目，通过项目引用同步编译当前 Core。与 `ExHyperV.Core`、`ExHyperV.WinUI3` 并列，入口已加入 `src/ExHyperV.sln`。
 
 ## 打开测试页面
 

@@ -8,6 +8,8 @@
     <Version>2.0.0-Alpha</Version>
     <RootNamespace>ExHyperV</RootNamespace>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- Keep one build configuration for all consumers; MCP also reads these API comments. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>

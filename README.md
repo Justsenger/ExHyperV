@@ -35,9 +35,9 @@ Features will be gradually improved over time. If there is a specific feature yo
 
 ## 🎨 Interface Overview
 
-ExHyperV uses the [WPF-UI](https://github.com/lepoco/wpfui) framework to provide a smooth, modern user interface experience with sci-fi visual effects. It supports both dark and light themes and automatically switches based on the system theme.
+The 2.0 branch uses WinUI 3 for the desktop client, with light, dark and system themes. The former WPF client and its customized Wpf.Ui dependency have been removed from this branch; they remain available in Git history.
 
-Supported languages: Simplified Chinese & English.
+The screenshots below show the earlier WPF release. See the [WinUI 3 project](src/ExHyperV.WinUI3/README.md) for the current implementation and remaining work.
 
 ![Main Interface](img/01.png)
 
@@ -53,20 +53,20 @@ Supported languages: Simplified Chinese & English.
 ---
 ### 1. Download and Run
 - **Download**: Go to the [Releases page](https://github.com/Justsenger/ExHyperV/releases/latest) to download the latest version.
-- **Run**: The portable EXE requires the .NET 10 Desktop Runtime for its architecture. The self-contained installer includes the runtime, so no separate runtime installation is needed.
+- **Run**: Follow the instructions for the downloaded release. The 2.0 WinUI client is currently built from source and uses self-contained folder deployment; keep all files beside the EXE.
 ---
 ### 2. Build (Optional)
-1. Install [Visual Studio 2026](https://visualstudio.microsoft.com/vs/) (18.x or later), the .NET 10 SDK, and the .NET desktop development workload. The application, verification projects, and customized Wpf.Ui all target .NET 10.
+1. Install [Visual Studio 2026](https://visualstudio.microsoft.com/vs/) (18.x or later), the .NET 10 SDK, the .NET desktop development workload, WinUI development tools and Windows SDK 10.0.26100.
 2. Clone this repository using GitHub Desktop or Git.
 3. Open the `/src/ExHyperV.sln` file with Visual Studio to compile.
 
-The customized Wpf.Ui sources are included under `src/ExHyperV.Wpf/external/wpfui/` and built automatically. No submodule checkout or manual DLL copying is required.
+Set `ExHyperV.WinUI3` as the startup project and select ARM64 or x64. The solution also builds Core, Web, MCP and the test projects. The former WPF release and installer pipeline has been removed; WinUI release packaging is not yet configured.
 
 Alternatively, run this in Visual Studio Developer PowerShell (Core's COM references require Visual Studio MSBuild):
 ```pwsh
-msbuild src\ExHyperV.sln /restore /p:Configuration=Release /p:RuntimeIdentifier=win-arm64
+msbuild src\ExHyperV.sln /restore /p:Configuration=Release /p:Platform=ARM64
 ```
-For an x64 build, replace `win-arm64` with `win-x64`.
+For an x64 build, replace `ARM64` with `x64`.
 
 See [Architecture and maintenance contracts (Chinese)](doc/architecture.md) for project responsibilities and known limitations.
 
