@@ -20,4 +20,19 @@ public sealed class PacketCaptureAvailabilityTests
     [DataRow("", 0, "", 0, false)]
     public void OnlyConfirmedStoppedCaptureWithEmptyFiltersIsAvailable(string status, int code, string filters, int filterCode, bool expected)
         => Assert.AreEqual(expected, PacketCaptureAvailability.IsIdle(status, code, filters, filterCode));
+
+    [TestMethod]
+    public void FailedOrUnknownQueriesAreDistinctFromBusyCapture()
+    {
+        Assert.AreEqual(InspectionStatus.Unavailable, PacketCaptureAvailability.Describe("拒绝访问", 1, "", 1).Status);
+        Assert.AreEqual(InspectionStatus.Unavailable, PacketCaptureAvailability.Describe("new format", 0, "None", 0).Status);
+        var active = PacketCaptureAvailability.Describe("收集的数据:\n  计数器", 0, "数据包筛选器:\n  1 <empty> ARP", 0);
+        Assert.AreEqual(InspectionStatus.Missing, active.Status);
+        StringAssert.Contains(active.Detail, "正在采集");
+        StringAssert.Contains(active.Detail, "ARP");
+        var retained = PacketCaptureAvailability.Describe("Stopped", 0, "Packet Filters:\n  1 <empty> ARP", 0);
+        StringAssert.Contains(retained.Detail, "已停止");
+        Assert.AreEqual(InspectionStatus.Missing, retained.Status);
+        Assert.AreEqual(InspectionStatus.Ready, PacketCaptureAvailability.Describe("Stopped", 0, "None", 0).Status);
+    }
 }

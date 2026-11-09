@@ -48,9 +48,9 @@ powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Test
 
 报告同时列出本轮省略的全部项目及具体原因，区分资源缺项、平台限制、已知故障隔离和执行代码缺口。每项开始和结束时原子保存进度，进程异常退出后可核对已完成项及最后执行目标；恢复前先核对在途操作的实际结果。每轮保存 Windows Build、架构、Core 版本及 DLL 的 SHA-256、资源快照、逐项证据，供跨 Build 对照。高级配置的属性存在仅代表可读取，成功写入仍需实测；已复现的宿主崩溃项按 Build 和架构隔离，原失败报告保留。
 
-模板按虚拟机 ID 保存。普通测试和 GPU 测试共用这一选择，使用完整副本和独立磁盘，结束后清理副本。复制前核验模板处于关机状态、磁盘链完整，并核验缓存容量；导出当前状态后生成独立磁盘，源模板的检查点保留。GPU 部署在完整副本上执行；普通检查点测试另建空白虚拟机。
+模板按虚拟机 ID 保存。普通测试和 GPU 测试共用这一选择，使用完整副本和独立磁盘，结束后清理副本。实际复制时，程序会正常关闭运行中的模板，复制完成后立即恢复运行；正常关机被拒绝时跳过该项，电源操作结果未知时保留现场。复制前核验磁盘链和缓存容量；导出当前状态后生成独立磁盘，源模板的检查点保留。GPU 部署在完整副本上执行；普通检查点测试另建空白虚拟机。
 
-资源登记默认位于 `%LOCALAPPDATA%/ExHyperV.Core.Tests/resources.json`；同账户 Runner 可复用，其他账户可用 `-Configuration <路径>` 指定。需要进入虚拟机的项目，通过当前账户保存的 `%LOCALAPPDATA%/ExHyperV.Core.Tests/Credentials/<模板 GUID>.clixml` 获取凭据。使用本机 `Get-Credential | Export-Clixml -LiteralPath <路径>` 创建该文件，凭据受 Windows DPAPI 保护；报告仅记录其就绪状态。Windows 使用 PowerShell Direct，Linux 使用 SSH 并核对副本 BIOS 身份。
+资源登记默认位于 `%LOCALAPPDATA%/ExHyperV.Core.Tests/resources.json`；同账户 Runner 可复用，其他账户可用 `-Configuration <路径>` 指定。在第一步填写虚拟机账号和密码，点击“保存登录信息”，凭据会使用 Windows DPAPI 加密保存到 `%LOCALAPPDATA%/ExHyperV.Core.Tests/Credentials/<模板 GUID>.clixml`，报告仅记录就绪状态。Windows 使用 PowerShell Direct，Linux 使用 SSH 并核对副本 BIOS 身份。在线资源默认使用当前 Windows 系统代理。
 
 页面文件修改后自动刷新并保留选择。C# 修改后，用下面的命令请求现有启动器重新编译、重启，浏览器自动重连：
 
@@ -91,7 +91,7 @@ powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Test
     -Revision $revision -RunId $run -RunDirectory "C:\ProgramData\ExHyperV.TestLab\runs\$run"
 ```
 
-入口构建当前提交的 Core 与测试项目，先运行离线回归，再将固定载荷交给独立工作进程。工作进程读取登记资源，自动选择条件齐备的 API 项，持续保存 `status.json` 和逐项报告。若已选模板正在运行，先正常关闭；测试结束后恢复原运行状态。正常关闭失败、写入结果未知或恢复失败时保留记录，暂停后续写入。
+入口构建当前提交的 Core 与测试项目，先运行离线回归，再将固定载荷交给独立工作进程。工作进程读取登记资源，自动选择条件齐备的 API 项，持续保存 `status.json` 和逐项报告。模板电源管理与页面执行共用同一流程，仅在创建副本时临时关机。写入结果未知或恢复失败时保留记录，暂停后续写入。
 
 `-Configuration` 指定本机资源文件；`-CheckId` 限定检查点；`-SkipTemplatePreparation` 保留模板当前电源状态。默认范围为常规测试，`-IncludeRebootTests` 加入宿主重启项，每次仍由操作者确认并手动重启。重复提交相同轮次只返回现有目录，恢复中的记录会阻止另一轮启动。
 

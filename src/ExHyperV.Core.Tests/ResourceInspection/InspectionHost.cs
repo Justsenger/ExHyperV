@@ -65,11 +65,12 @@ internal static class InspectionHost
             var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { Args = [] });
             builder.Configuration.Sources.Clear(); // A machine-wide URL setting cannot expose inventory externally.
             builder.Logging.ClearProviders();
-            builder.WebHost.ConfigureKestrel(server => server.Listen(IPAddress.Loopback, port));
+            builder.WebHost.ConfigureKestrel(server => { server.Listen(IPAddress.Loopback, port); server.Limits.MaxRequestBodySize = 65536; });
             await using var app = builder.Build();
             var testRunner = new VmQueryTestRunner(reports, workspaceProvider: () => registration.Read().Configuration.WorkDirectory!, inspectionPort: port);
             var operationGate = new object();
             var restartRequested = false;
+            var credentialSaveBusy = false;
             var deploymentFinished = false;
             var page = new InspectionPageSource(pagePath);
             var instanceId = Guid.NewGuid().ToString("N");
@@ -108,7 +109,7 @@ internal static class InspectionHost
                 lock (operationGate)
                 {
                     if (!supervised) return Results.Conflict(new { error = "请通过启动脚本接入自动更新。" });
-                    if (restartRequested || scanner.Snapshot().Running || testRunner.Snapshot()?.Running == true)
+                    if (restartRequested || credentialSaveBusy || scanner.Snapshot().Running || testRunner.Snapshot()?.Running == true)
                         return Results.Conflict(new { error = "当前任务执行中，请完成后更新。" });
                     restartRequested = true;
                     context.Response.OnCompleted(() => { app.Lifetime.StopApplication(); return Task.CompletedTask; });
@@ -117,6 +118,43 @@ internal static class InspectionHost
             });
             app.MapGet("/api/report", () => Results.Json(scanner.Snapshot(), InspectionJson.Options));
             app.MapGet("/api/resources", () => Results.Json(registration.Read(), InspectionJson.Options));
+            app.MapPost("/api/credentials", async (HttpContext context) =>
+            {
+                if (context.Request.Headers["X-Inspection-Token"] != token || context.Request.Headers.Origin != url)
+                    return Results.StatusCode(403);
+                var limit = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+                if (limit is { IsReadOnly: false }) limit.MaxRequestBodySize = 16384;
+                SaveVmCredentialsRequest? request;
+                try { request = await context.Request.ReadFromJsonAsync<SaveVmCredentialsRequest>(InspectionJson.Options); }
+                catch (System.Text.Json.JsonException) { return Results.BadRequest(new { error = "登录信息格式错误。" }); }
+                if (request is null) return Results.BadRequest(new { error = "请填写登录信息。" });
+                Guid id;
+                lock (operationGate)
+                {
+                    if (restartRequested || credentialSaveBusy || scanner.Snapshot().Running || testRunner.Snapshot()?.Running == true)
+                        return Results.Conflict(new { error = "请等当前检查或测试结束后保存。" });
+                    try { id = VmCredentialStore.Validate(request, registration.Read(), scanner.Snapshot()); }
+                    catch (Exception error) when (error is ArgumentException or InvalidOperationException)
+                    { return Results.Conflict(new { error = error.Message }); }
+                    credentialSaveBusy = true;
+                }
+                bool saved = false;
+                try
+                {
+                    await new VmCredentialStore().SaveAsync(id, request.UserName, request.Password);
+                    saved = true;
+                    return Results.Ok(new { message = "登录信息已加密保存。" });
+                }
+                catch (Exception) { return Results.BadRequest(new { error = "保存登录信息失败，请重试。" }); }
+                finally
+                {
+                    lock (operationGate)
+                    {
+                        credentialSaveBusy = false;
+                        if (saved) scanner.TryStart(app.Lifetime.ApplicationStopping);
+                    }
+                }
+            });
             app.MapGet("/api/deployment", () => Results.Json(new
             {
                 issues = Automation.DeploymentSetup.GetIssues(scanner.Snapshot()),
@@ -130,6 +168,7 @@ internal static class InspectionHost
                 lock (operationGate)
                 {
                     if (!deployment) return Results.NotFound();
+                    if (credentialSaveBusy) return Results.Conflict(new { error = "登录信息正在保存。" });
                     var report = scanner.Snapshot();
                     var issues = Automation.DeploymentSetup.GetIssues(report);
                     if (issues.Length > 0) return Results.Conflict(new { error = string.Join("；", issues) });
@@ -159,7 +198,7 @@ internal static class InspectionHost
                 if (request is null) return Results.BadRequest(new { error = "请填写资源设置。" });
                 lock (operationGate)
                 {
-                    if (restartRequested || scanner.Snapshot().Running || testRunner.Snapshot()?.Running == true)
+                    if (restartRequested || credentialSaveBusy || scanner.Snapshot().Running || testRunner.Snapshot()?.Running == true)
                         return Results.Conflict(new { error = "请等当前检查或测试结束后保存。" });
                     try
                     {
@@ -183,7 +222,7 @@ internal static class InspectionHost
                     return Results.StatusCode(403);
                 lock (operationGate)
                 {
-                    if (restartRequested || testRunner.Snapshot()?.Running == true) return Results.Conflict();
+                    if (restartRequested || credentialSaveBusy || testRunner.Snapshot()?.Running == true) return Results.Conflict();
                     return scanner.TryStart(app.Lifetime.ApplicationStopping) ? Results.Accepted() : Results.Conflict();
                 }
             });
@@ -198,7 +237,7 @@ internal static class InspectionHost
                 if (request is null) return Results.BadRequest(new { error = "测试请求为空。" });
                 lock (operationGate)
                 {
-                    if (restartRequested) return Results.Conflict(new { error = "正在更新程序。" });
+                    if (restartRequested || credentialSaveBusy) return Results.Conflict(new { error = "正在更新程序或保存登录信息。" });
                     if (!testRunner.TryStart(scanner.Snapshot(), request, app.Lifetime.ApplicationStopping, out var reason))
                         return Results.Conflict(new { error = reason });
                     return Results.Json(testRunner.Snapshot(), InspectionJson.Options, statusCode: 202);
@@ -247,8 +286,8 @@ internal static class InspectionPage
     internal static string Label(InspectionStatus status) => status switch
     {
         InspectionStatus.Waiting => "等待检查", InspectionStatus.Running => "正在检查",
-        InspectionStatus.Ready => "已满足", InspectionStatus.Missing => "未满足",
-        InspectionStatus.Pending => "待选择", _ => "无法检查"
+        InspectionStatus.Ready => "已满足", InspectionStatus.Missing => "未就绪",
+        InspectionStatus.Pending => "待选择", _ => "检查失败"
     };
 
     internal static string ReadTemplate()

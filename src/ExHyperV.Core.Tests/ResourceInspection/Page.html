@@ -30,6 +30,7 @@
     progress::-webkit-progress-bar{background:var(--tblr-border-color)}progress::-webkit-progress-value{background:var(--tblr-primary)}progress::-moz-progress-bar{background:var(--tblr-primary)}
     .setup-layout{display:grid;grid-template-columns:minmax(280px,1fr) minmax(0,2fr);gap:1.5rem;align-items:start}
     .resource-form{position:sticky;top:1rem}.resource-fields{display:grid;gap:1.25rem}
+    #credential-fields{gap:.5rem}
     .resource-field{display:block;min-width:0;margin:0}.resource-field .form-label{margin-bottom:.5rem}
     .resource-field small{display:block;color:var(--tblr-secondary);margin-top:.5rem;font-weight:400;overflow-wrap:anywhere}
     .device-choices{display:grid;gap:.75rem}.choice{display:flex;align-items:flex-start;gap:.625rem;margin:0;font-weight:400}
@@ -118,6 +119,13 @@
           <div class="card-header"><h2 class="card-title">测试资源</h2></div>
           <div class="card-body resource-fields">
             <label class="resource-field"><span class="form-label">虚拟机模板</span><select class="form-select" id="select-template" title="复制模板用于测试，结束后恢复模板运行状态。"><option value="">请选择虚拟机</option></select></label>
+            <div id="credential-fields" class="resource-fields">
+              <div class="d-flex justify-content-between"><span class="form-label mb-0">虚拟机登录</span><small id="credential-state" class="text-secondary"></small></div>
+              <input id="credential-user" class="form-control" placeholder="账号" aria-label="虚拟机账号" autocomplete="off" maxlength="256">
+              <input id="credential-password" class="form-control" type="password" placeholder="密码" aria-label="虚拟机密码" autocomplete="new-password" maxlength="4096">
+              <button id="save-credentials" class="btn" disabled>保存登录信息</button>
+              <small id="credential-message" class="text-secondary" role="status">加密保存在本机，仅用于所选模板的副本。</small>
+            </div>
             <label class="resource-field"><span class="form-label">物理测试盘</span><select class="form-select" id="select-disk" title="选择闲置磁盘，测试期间宿主临时释放。"><option value="">读取中…</option></select><small id="disk-selection-status"></small></label>
             <label class="resource-field"><span class="form-label">光驱</span><select class="form-select" id="select-optical"><option value="">读取中…</option></select><small id="optical-selection-status"></small></label>
             <div class="resource-field"><div class="form-label">PCIe 设备</div><div id="pcie-selection" class="device-choices"></div></div>
@@ -154,11 +162,12 @@
 </div>
 <script nonce="__NONCE__">
   const archivedReport = __REPORT__, archivedTest = __TEST_REPORT__, loadedSession = __SESSION__, token = '__NONCE__';
-  const labels = {waiting:'等待检查',running:'正在检查',ready:'已满足',missing:'未满足',pending:'待选择',unavailable:'无法检查'};
+  const labels = {waiting:'等待检查',running:'正在检查',ready:'已满足',missing:'未就绪',pending:'待选择',unavailable:'检查失败'};
   const testLabels = {waiting:'等待',running:'执行中',passed:'通过',failed:'失败',skipped:'跳过',cancelled:'已停止',pendingImplementation:'待接入'};
   const elements = new Map(), choices = new Map(), results = new Map(), selection = new Set(), seenOptions = new Set(), planGroups = new Map();
   const resourceSections=[],resourceColumnsMedia=window.matchMedia?.('(min-width:1200px)');
   let resourceLayoutKey='';
+  let credentialBusy=false,credentialDirty=false;
   let latest=null, latestTest=null, connected=false, planKey='', planRunId=null, testRunId=null, startBusy=false, scanBusy=false, stopBusy=false, currentStep=1, restoredView=null, registration=null, resourceDirty=false, resourceSaveBusy=false, resourceChoicesKey='';
   if(!archivedReport){try{restoredView=JSON.parse(sessionStorage.getItem('inspection-view'));sessionStorage.removeItem('inspection-view');}catch{}}
   const $ = id => document.getElementById(id);
@@ -240,13 +249,19 @@
     $('next').disabled=!latest?.plan?.available||scanBusy||startBusy||running||resourceDirty||resourceSaveBusy;
     if(deployment)$('next').disabled=$('next').disabled||!deploymentReady||deploymentFinished;
     $('begin').disabled=!!archivedReport||!connected||!latest?.plan?.available||selection.size===0||startBusy||running||resourceDirty||resourceSaveBusy;
-    const resourceBusy=!!archivedReport||!connected||latest?.running||running||resourceSaveBusy||scanBusy||startBusy||deploymentFinished;
+    const resourceBusy=!!archivedReport||!connected||latest?.running||running||resourceSaveBusy||scanBusy||startBusy||credentialBusy||deploymentFinished;
     $('save-resources').disabled=resourceBusy||!registration;
     for(const input of $('resource-form').querySelectorAll('input,select,textarea'))input.disabled=resourceBusy;
     for(const [id,source] of [['select-template','vms'],['select-disk','disks'],['select-optical','optical']])
       $(id).disabled=resourceBusy||!resourceInventoryKnown(source)||(!$(id).value&&!resourceChoices(source).some(c=>!c.unavailableReason));
     for(const input of $('pcie-selection').querySelectorAll('input'))input.disabled=resourceBusy||!resourceInventoryKnown('pcie');
-    $('rescan').disabled=$('rescan').disabled||resourceDirty||resourceSaveBusy||deploymentFinished;
+    const credentialEnabled=!resourceBusy&&!resourceDirty&&!!registration?.configuration.templateVmId;
+    $('credential-user').disabled=!credentialEnabled;$('credential-password').disabled=!credentialEnabled;
+    $('save-credentials').disabled=!credentialEnabled||!$('credential-user').value.trim()||!$('credential-password').value;
+    $('credential-state').textContent=resourceDirty?'先保存模板':resourceResult('vm-credentials')?.status==='ready'?'已保存':'待填写';
+    $('next').disabled=$('next').disabled||credentialBusy||credentialDirty;
+    $('begin').disabled=$('begin').disabled||credentialBusy||credentialDirty;
+    $('rescan').disabled=$('rescan').disabled||resourceDirty||resourceSaveBusy||credentialBusy||deploymentFinished;
     $('back').disabled=startBusy||running;
     const visibleEligible=[...choices].filter(([id,choice])=>choice.eligible&&!choice.row.hidden).map(([id])=>id),eligible=visibleEligible.length,visibleSelected=visibleEligible.filter(id=>selection.has(id)).length;
     $('select-all').disabled=startBusy||running||eligible===0;
@@ -487,7 +502,7 @@
       }
       render(await getJson('/api/report'));if(!registration)applyRegistration(await getJson('/api/resources'));renderTest(await getJson('/api/tests'));restoreView();
       if(deployment){const setup=await getJson('/api/deployment');deploymentReady=setup.issues.length===0;$('deployment-summary').textContent=latest.running?'正在检查测试条件…':deploymentReady?'当前可执行 '+setup.available+' 项；其余项目按资源条件跳过。选择会保存，后续自动复用。':setup.issues.join('；');controls();}
-      if(pageChanged&&!latest.running&&!latestTest?.running&&!startBusy&&!scanBusy&&!stopBusy&&!resourceDirty&&!resourceSaveBusy)reloadPage();
+      if(pageChanged&&!latest.running&&!latestTest?.running&&!startBusy&&!scanBusy&&!stopBusy&&!resourceDirty&&!resourceSaveBusy&&!credentialBusy&&!credentialDirty)reloadPage();
     }
     catch(error){if(!deploymentFinished){connected=false;$('phase').textContent='连接已断开';$('notice').textContent='显示上次结果，请检查后台程序。';$('execution-notice').textContent='连接已断开，显示上次测试状态。';controls();}}
     finally{if(!deploymentFinished)setTimeout(refresh,1000);}
@@ -497,7 +512,20 @@
   $('nav-selection').addEventListener('click',()=>{if(!$('nav-selection').disabled)showStep(2);});
   $('nav-results').addEventListener('click',()=>{if(!$('nav-results').disabled)showStep(3);});
   $('result-search').addEventListener('input',filterResults);$('result-filter').addEventListener('change',filterResults);
-  $('resource-form').addEventListener('input',()=>{resourceDirty=true;resourceMessage('待保存');controls();});
+  $('resource-form').addEventListener('input',event=>{
+    if($('credential-fields').contains(event.target)){credentialDirty=!!$('credential-user').value||!!$('credential-password').value;controls();return;}
+    if(event.target.id==='select-template'){$('credential-user').value='';$('credential-password').value='';credentialDirty=false;}
+    resourceDirty=true;resourceMessage('待保存');controls();
+  });
+  $('save-credentials').addEventListener('click',async()=>{
+    if($('save-credentials').disabled)return;credentialBusy=true;controls();$('credential-message').textContent='保存中…';
+    try{
+      const response=await post('/api/credentials',{revision:registration.revision,resourceRunId:latest.runId,templateVmId:registration.configuration.templateVmId,userName:$('credential-user').value,password:$('credential-password').value});
+      $('credential-user').value='';$('credential-password').value='';credentialDirty=false;
+      $('credential-message').textContent=(await response.json()).message;render(await getJson('/api/report'));
+    }catch(error){$('credential-message').textContent=error.message;}
+    finally{credentialBusy=false;controls();}
+  });
   $('save-resources').addEventListener('click',async()=>{
     if($('save-resources').disabled)return;resourceSaveBusy=true;controls();resourceMessage('保存中…');
     try{

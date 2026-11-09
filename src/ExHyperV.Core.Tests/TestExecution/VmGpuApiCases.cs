@@ -228,7 +228,7 @@ internal static class VmGpuApiCases
     }
     private static async Task ScriptsAsync(ApiCaseContext c, VmGpuService service)
     {
-        const string url = "https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/index.json";
+        const string url = ResourceInspection.TestNetwork.ScriptIndexUrl;
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) }; string json;
         try { json = await client.GetStringAsync(url, c.Token); } catch (HttpRequestException e) { throw new ApiCheckSkippedException("在线脚本索引暂不可达：" + e.Message); }
         var expected = JsonSerializer.Deserialize<LinuxGpuDeploymentScript[]>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;

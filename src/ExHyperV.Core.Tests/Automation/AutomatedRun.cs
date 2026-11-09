@@ -57,7 +57,8 @@ internal static class AutomatedRun
                 throw new InvalidOperationException("本轮须由原登记账户继续执行。");
             // A startup task may inherit a retired desktop proxy address. Clear
             // overrides so Windows supplies its current proxy for this process.
-            foreach (string key in new[] { "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY" }) Environment.SetEnvironmentVariable(key, null);
+            TestNetwork.Initialize(request.DirectNetwork);
+            Environment.SetEnvironmentVariable("EXHYPERV_TEST_PREPARE_TEMPLATE", request.PrepareTemplate ? "1" : "0");
             Environment.SetEnvironmentVariable("NO_PROXY", request.DirectNetwork ? "*" : "localhost,127.0.0.1,::1");
             if (!new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator))
                 throw new InvalidOperationException("自动实机测试需要已具备管理员权限的执行账户。");
@@ -85,7 +86,7 @@ internal static class AutomatedRun
             {
                 Save("preparing", "检查模板与本机资源");
                 var configuration = InspectionConfiguration.Read(request.ConfigurationPath);
-                await TemplatePowerLease.PrepareAsync(root, configuration, request.PrepareTemplate);
+                if (TemplatePowerLease.HasPendingChange(root)) throw new IOException("旧轮次的模板电源记录待核对，保留原恢复现场。");
                 var scanner = new ResourceScanner(request.ReportsRoot, request.ConfigurationPath);
                 scanner.TryStart(CancellationToken.None);
                 await scanner.Completion;

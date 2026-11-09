@@ -83,11 +83,15 @@ internal sealed class TemporaryVm : IAsyncDisposable
         """, new { id = templateId }, 60, mayMutate: false);
 
     internal static async Task<TemporaryVm> CopyTemplateAsync(ApiCaseContext context)
+        => await Automation.TemplatePowerLease.CopyAsync(context.DirectoryPath, context.Configuration,
+            () => CopyStoppedTemplateAsync(context));
+
+    private static async Task<TemporaryVm> CopyStoppedTemplateAsync(ApiCaseContext context)
     {
         if (!Guid.TryParse(context.Configuration.TemplateVmId, out var templateId))
             throw new ApiCheckSkippedException("第一步尚未指定测试虚拟机模板。");
         var facts = await ReadTemplateFactsAsync(templateId);
-        if (facts.GetProperty("state").GetString() != "Off") throw new ApiCheckSkippedException("指定模板当前处于活动状态；制作完整副本前请将模板正常关闭。");
+        if (facts.GetProperty("state").GetString() != "Off") throw new ApiCheckSkippedException("模板状态已变化，本项完整副本测试跳过。");
         if (facts.GetProperty("disks").GetInt32() == 0) throw new ApiCheckSkippedException("指定模板尚未连接可启动的系统磁盘。");
         if (new[] { "physical", "dda", "gpu" }.Any(key => facts.GetProperty(key).GetInt32() > 0))
             throw new ApiCheckSkippedException("模板已挂接物理盘、PCIe 或 GPU；请使用仅含完整虚拟磁盘的干净模板，设备由各项测试按已登记资源分配。");
@@ -202,11 +206,12 @@ internal sealed class TemporaryVm : IAsyncDisposable
         foreach (var directory in Directory.GetDirectories(root))
         {
             if (!Guid.TryParseExact(Path.GetFileName(directory), "N", out _)) continue;
-            bool hasJournal = new[] { JournalName, "host-state.json", "cpu-groups.json", "pcie-device.json", "switch-case.json", "recovery-hold.txt" }.Any(name => File.Exists(Path.Combine(directory, name))) || Directory.Exists(Path.Combine(directory, "vms")) || Directory.Exists(Path.Combine(directory, "switches")) || Directory.Exists(Path.Combine(directory, "groups"));
+            bool hasJournal = new[] { JournalName, "template-power.json", "host-state.json", "cpu-groups.json", "pcie-device.json", "switch-case.json", "recovery-hold.txt" }.Any(name => File.Exists(Path.Combine(directory, name))) || Directory.Exists(Path.Combine(directory, "vms")) || Directory.Exists(Path.Combine(directory, "switches")) || Directory.Exists(Path.Combine(directory, "groups"));
             if (!hasJournal) continue;
             if (File.Exists(Path.Combine(directory, "recovery-hold.txt"))) throw new IOException("存在待核实的原生任务，请先处理保留现场：" + directory);
             await PcieApiCases.RestoreAsync(directory);
             await CleanupAsync(directory);
+            await Automation.TemplatePowerLease.RestoreAsync(directory, ownsHostLease: true);
             await TemporaryDisk.CleanupMountsAsync(directory);
             await TemporaryCpuGroups.CleanupAsync(directory);
             await SwitchApiCases.RestoreAsync(directory);

@@ -4,6 +4,9 @@ internal static class Program
 {
     public static Task<int> Main(string[] args)
     {
+        if (args.FirstOrDefault() is "--resource-probe" or "--inspect-resources" or "--api-test-worker"
+            or "--run-api-suite" or "--resume-reboot-tests")
+            ResourceInspection.TestNetwork.Initialize();
         // The configuration concurrency scenario starts isolated copies of this executable.
         // Workers never launch the test runner or touch the user's configuration.
         if (args.Length > 0 && args[0] == "--configuration-worker")

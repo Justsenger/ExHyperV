@@ -101,6 +101,7 @@ internal static class ApiCaseWorker
             if (File.Exists(Path.Combine(directory, "recovery-hold.txt"))) throw new IOException(File.ReadAllText(Path.Combine(directory, "recovery-hold.txt")));
             await PcieApiCases.RestoreAsync(directory);
             await TemporaryVm.CleanupAsync(directory);
+            await Automation.TemplatePowerLease.RestoreAsync(directory, ownsHostLease: true);
             await TemporaryDisk.CleanupMountsAsync(directory);
             await TemporaryCpuGroups.CleanupAsync(directory);
             await SwitchApiCases.RestoreAsync(directory);

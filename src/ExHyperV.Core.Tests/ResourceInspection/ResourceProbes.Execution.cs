@@ -10,7 +10,7 @@ internal static partial class ResourceProbes
 {
     private static ResourceCheck[] ExecutionChecks =>
     [
-        new("template-copy", "虚拟机", "完整副本条件", "模板关机、磁盘链可读取、缓存容量够用", "依赖系统模板的测试"),
+        new("template-copy", "虚拟机", "完整副本条件", "模板可正常关机、磁盘链可读取、缓存容量够用", "依赖系统模板的测试"),
         new("vm-credentials", "虚拟机", "虚拟机登录凭据", "当前账户保存的加密凭据可读取", "磁盘与网络负载、Linux SSH"),
         new("config-isolation", "执行条件", "配置文件独占", "共用配置的桌面程序已退出", "配置写入与恢复"),
         new("sharing-idle", "执行条件", "网络共享空闲", "宿主当前无 ICS 共享", "交换机创建、修改与删除"),
@@ -30,21 +30,25 @@ internal static partial class ResourceProbes
             case "template-copy":
                 if (!Guid.TryParse(config.TemplateVmId, out var vmId)) return Pending("先选择测试虚拟机模板。");
                 var facts = await TemporaryVm.ReadTemplateFactsAsync(vmId);
-                if (facts.GetProperty("state").GetString() != "Off") return Missing("请先正常关闭模板，测试将复制完整磁盘。");
+                if (facts.GetProperty("state").GetString() is not ("Off" or "Running")) return Missing("模板处于暂停、保存或切换状态；请恢复运行或正常关机。");
+                if (facts.GetProperty("state").GetString() == "Running" && Environment.GetEnvironmentVariable("EXHYPERV_TEST_PREPARE_TEMPLATE") == "0")
+                    return Missing("本轮已关闭模板自动关机，完整副本测试暂时跳过。");
                 if (facts.GetProperty("disks").GetInt32() == 0) return Missing("模板尚未挂接系统磁盘。");
                 if (new[] { "physical", "dda", "gpu" }.Any(key => facts.GetProperty(key).GetInt32() > 0)) return Missing("模板已挂接物理盘、PCIe 或 GPU；请选择干净模板，设备由各项测试分配。");
                 long required = checked(facts.GetProperty("bytes").GetInt64() * 2 + 2L * 1024 * 1024 * 1024);
                 long free = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(config.WorkDirectory!))!).AvailableFreeSpace;
-                return free >= required ? Ready($"完整复制需要约 {required / 1073741824d:F1} GiB，缓存可用 {free / 1073741824d:F1} GiB")
+                return free >= required ? Ready(facts.GetProperty("state").GetString() == "Running"
+                    ? "测试时自动正常关机，复制完成后恢复运行。"
+                    : "模板已关机，测试时创建完整副本。", $"完整复制需要约 {required / 1073741824d:F1} GiB，缓存可用 {free / 1073741824d:F1} GiB")
                     : Missing($"完整复制需要约 {required / 1073741824d:F1} GiB，缓存现有 {free / 1073741824d:F1} GiB。");
             case "vm-credentials":
                 if (!Guid.TryParse(config.TemplateVmId, out var template)) return Pending("先选择测试虚拟机模板。");
-                string credential = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ExHyperV.Core.Tests", "Credentials", template.ToString("D") + ".clixml");
-                if (!File.Exists(credential)) return Missing("请以测试执行账户在本机保存模板登录凭据：Get-Credential | Export-Clixml -LiteralPath '" + credential.Replace("'", "''") + "'（先创建 Credentials 目录）。");
+                string credential = new VmCredentialStore().PathFor(template);
+                if (!File.Exists(credential)) return Missing("请在左侧填写虚拟机账号和密码，再保存登录信息。");
                 var secret = await WindowsTestCommand.RunAsync("$v=Import-Clixml -LiteralPath $a.path;@{valid=($v -is [PSCredential] -and $v.UserName.Length -gt 0 -and $v.Password.Length -gt 0)}|ConvertTo-Json", new { path = credential }, 10);
                 return secret.GetProperty("valid").GetBoolean() ? Ready("加密凭据可读取；连接将在完整副本内核验") : Missing("凭据文件应为当前执行账户导出的 PSCredential。");
             case "config-isolation":
-                foreach (var process in Process.GetProcessesByName("ExHyperV")) using (process) return Missing("请先退出 ExHyperV 桌面程序，测试期间独占当前账户配置。");
+                foreach (var process in Process.GetProcessesByName("ExHyperV")) using (process) return Missing("ExHyperV 正在运行；从托盘退出后点“重新检查”。");
                 return Ready("桌面程序已退出；每项写入前备份，结束后恢复");
             case "sharing-idle":
                 var sharing = await ComApi.GetConnectionsAsync();
@@ -65,14 +69,21 @@ internal static partial class ResourceProbes
             case "console-audio":
                 return Missing("当前 Core 的两个 RDP 后端均未提供音频输入通道。");
             case "capture-idle":
-                var packet = await WindowsTestCommand.RunAsync("$s=pktmon status 2>&1;$ec=$LASTEXITCODE;$f=pktmon filter list 2>&1;@{status=($s -join \"`n\");filters=($f -join \"`n\");code=$ec;filterCode=$LASTEXITCODE}|ConvertTo-Json", timeoutSeconds: 10);
-                bool idle = PacketCaptureAvailability.IsIdle(packet.GetProperty("status").GetString()!, packet.GetProperty("code").GetInt32(),
+                var packet = await WindowsTestCommand.RunAsync("$s=pktmon status 2>&1;$ec=$LASTEXITCODE;$f=pktmon filter list 2>&1;@{status=($s -join \"`n\");filters=($f -join \"`n\");code=$ec;filterCode=$LASTEXITCODE}|ConvertTo-Json", timeoutSeconds: 10, mayMutate: false);
+                return PacketCaptureAvailability.Describe(packet.GetProperty("status").GetString()!, packet.GetProperty("code").GetInt32(),
                     packet.GetProperty("filters").GetString()!, packet.GetProperty("filterCode").GetInt32());
-                return idle ? Ready("PktMon 空闲且筛选器为空") : Missing("PktMon 已有捕获、筛选器，或状态读取失败；留待空闲后测试。");
             case "online-resources":
                 using (var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) })
-                using (var response = await client.GetAsync("https://raw.githubusercontent.com/Justsenger/ExHyperV/main/src/Linux/script/index.json", HttpCompletionOption.ResponseHeadersRead))
-                    return response.IsSuccessStatusCode ? Ready("脚本索引可访问") : Missing("脚本索引返回 HTTP " + (int)response.StatusCode);
+                {
+                    try
+                    {
+                        using var response = await client.GetAsync(TestNetwork.ScriptIndexUrl, HttpCompletionOption.ResponseHeadersRead);
+                        return response.IsSuccessStatusCode ? Ready("GitHub 脚本索引可访问")
+                            : new(InspectionStatus.Unavailable, "GitHub 脚本索引返回 HTTP " + (int)response.StatusCode);
+                    }
+                    catch (Exception error) when (error is HttpRequestException or TaskCanceledException)
+                    { return new(InspectionStatus.Unavailable, "GitHub 脚本索引连接失败，请检查系统代理或网络。", [error.Message]); }
+                }
             case "nvme-hardware":
                 if (Environment.OSVersion.Version.Build < 26100) return Missing("原生 NVMe 开关要求 Build 26100 及以上。");
                 var nvme = await WindowsTestCommand.RunAsync("@(Get-Disk|Where-Object BusType -eq 'NVMe').Count|ConvertTo-Json", timeoutSeconds: 15, mayMutate: false);
