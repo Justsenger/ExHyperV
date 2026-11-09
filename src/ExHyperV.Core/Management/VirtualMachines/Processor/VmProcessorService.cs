@@ -174,17 +174,14 @@ public static partial class VmProcessorService
 
         var results = await WmiApi.QueryAsync(query, vmEntry =>
         {
-            var allSettings = vmEntry.GetRelated("Msvm_VirtualSystemSettingData")
-                .Cast<ManagementObject>().ToList();
-
-            var settingData =
-                allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Realized")
-             ?? allSettings.FirstOrDefault(s => s["VirtualSystemType"]?.ToString() == "Microsoft:Hyper-V:System:Definition");
-
+            using var settingData = WmiApi.GetVmSettings(vmEntry);
             if (settingData == null) return null;
 
-            using var procData = settingData.GetRelated("Msvm_ProcessorSettingData")
-                .Cast<ManagementObject>().FirstOrDefault();
+            // Restrict association traversal to the current configuration's resources.
+            // An unqualified traversal also visits snapshot/capability relationships.
+            using var processors = settingData.GetRelated("Msvm_ProcessorSettingData",
+                "Msvm_VirtualSystemSettingDataComponent", null, null, null, null, false, null);
+            using var procData = processors.Cast<ManagementObject>().FirstOrDefault();
             if (procData == null) return null;
 
             return MapProcessor(procData);

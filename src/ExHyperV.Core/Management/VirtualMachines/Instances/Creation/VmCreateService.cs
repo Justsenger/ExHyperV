@@ -92,7 +92,7 @@ namespace ExHyperV.Services
             if (!capability.HasData)
                 return ApiResponse<List<T>>.Fail("未找到 Hyper-V 宿主管理能力。", kind: ApiErrorKind.NotFound);
             return await WmiApi.QueryAsync(
-                $"ASSOCIATORS OF {{{capability.Data}}} WHERE ResultClass = Msvm_VirtualSystemSettingData", map);
+                $"ASSOCIATORS OF {{{capability.Data}}} WHERE AssocClass = Msvm_SettingsDefineCapabilities ResultClass = Msvm_VirtualSystemSettingData", map);
         }
 
         private static ApiResponse<T> CreationQueryFailure<T, TSource>(ApiResponse<TSource> response) =>
