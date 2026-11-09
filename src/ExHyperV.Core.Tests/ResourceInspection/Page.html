@@ -38,6 +38,7 @@
     .resource-save-state{padding:.75rem 1.25rem;margin:0;border-top:1px solid var(--tblr-border-color);font-size:.75rem}
     .resource-save-state.error{color:var(--tblr-red)}.resource-save-state.saved{color:var(--tblr-secondary)}
     #groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;align-items:start}
+    .resource-column{display:grid;gap:1rem;align-content:start;min-width:0}
     .resource-card .card-header{min-height:3rem;padding-block:.75rem}.card-icon{width:1.25rem;height:1.25rem;flex-shrink:0;color:var(--tblr-secondary)}
     .resource-row{padding:.625rem 1.25rem;border-top:1px solid var(--tblr-border-color)}.resource-row:first-child{border-top:0}
     .resource-row>summary{display:flex;align-items:center;gap:.5rem;justify-content:space-between;list-style:none;color:inherit}
@@ -156,6 +157,8 @@
   const labels = {waiting:'等待检查',running:'正在检查',ready:'已满足',missing:'未满足',pending:'待选择',unavailable:'无法检查'};
   const testLabels = {waiting:'等待',running:'执行中',passed:'通过',failed:'失败',skipped:'跳过',cancelled:'已停止',pendingImplementation:'待接入'};
   const elements = new Map(), choices = new Map(), results = new Map(), selection = new Set(), seenOptions = new Set(), planGroups = new Map();
+  const resourceSections=[],resourceColumnsMedia=window.matchMedia?.('(min-width:1200px)');
+  let resourceLayoutKey='';
   let latest=null, latestTest=null, connected=false, planKey='', planRunId=null, testRunId=null, startBusy=false, scanBusy=false, stopBusy=false, currentStep=1, restoredView=null, registration=null, resourceDirty=false, resourceSaveBusy=false, resourceChoicesKey='';
   if(!archivedReport){try{restoredView=JSON.parse(sessionStorage.getItem('inspection-view'));sessionStorage.removeItem('inspection-view');}catch{}}
   const $ = id => document.getElementById(id);
@@ -292,7 +295,7 @@
       let ui=elements.get(item.check.id);
       if(!ui){
         let group=document.getElementById('group-'+item.check.group);
-        if(!group){const section=node('section','card resource-card'),header=node('div','card-header gap-2'),heading=node('h2','card-title',item.check.group);header.append(categoryIcon(item.check.group),heading);section.append(header);group=node('div','resource-list');group.id='group-'+item.check.group;section.append(group);$('groups').append(section);}
+        if(!group){const section=node('section','card resource-card'),header=node('div','card-header gap-2'),heading=node('h2','card-title',item.check.group);header.append(categoryIcon(item.check.group),heading);section.append(header);group=node('div','resource-list');group.id='group-'+item.check.group;section.append(group);resourceSections.push(section);$('groups').append(section);}
         const row=node('details','resource-row'),header=node('summary'),title=node('span','name',item.check.name),badge=node('span','badge'),body=node('div','detail'),detail=node('div'),details=node('details'),summary=node('summary'),list=node('ul');
         const detailDisclosure=node('details','resource-detail'),detailSummary=node('summary'),fullDetail=node('div','full-detail');detailDisclosure.append(detailSummary,fullDetail);
         header.append(title,badge);details.append(summary,list);body.append(detail,detailDisclosure,details);row.append(header,body);group.append(row);
@@ -307,8 +310,20 @@
       const serialized=JSON.stringify(item.result.items||[]);
       if(ui.serialized!==serialized){const items=item.result.items||[];ui.details.hidden=!items.length;ui.summary.textContent='明细（'+items.length+'）';ui.list.replaceChildren(...items.map(text=>node('li','',text)));ui.serialized=serialized;}
     }
-    controls();
+    layoutResourceGroups();controls();
   }
+  function layoutResourceGroups(){
+    const wide=resourceColumnsMedia?.matches===true,key=wide+':'+resourceSections.length;
+    if(resourceLayoutKey===key)return;resourceLayoutKey=key;
+    const focused=$('groups').contains(document.activeElement)?document.activeElement:null;
+    // Independent stacks prevent a tall card from leaving a hole in its neighbouring column.
+    if(wide){
+      const columns=[node('div','resource-column'),node('div','resource-column')];
+      resourceSections.forEach((section,index)=>columns[index%2].append(section));$('groups').replaceChildren(...columns);
+    }else $('groups').replaceChildren(...resourceSections);
+    focused?.focus({preventScroll:true});
+  }
+  resourceColumnsMedia?.addEventListener('change',layoutResourceGroups);
   function resourceMessage(text,error=false){$('resource-save-state').textContent=text;$('resource-save-state').className='resource-save-state '+(error?'error':'saved');$('resource-save-state').hidden=!text;}
   function briefDetail(text){
     // Keep the actual reason; longer instructions remain available in the disclosure.
