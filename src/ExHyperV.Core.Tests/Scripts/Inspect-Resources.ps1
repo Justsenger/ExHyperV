@@ -11,11 +11,14 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+$OutputEncoding = [Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = $OutputEncoding
 $projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
-# A repeated interactive launch opens this checkout's existing page.
-if (!$BuildOnly -and !$ReportOnly -and !$Deployment -and !$Configuration -and !$NoBrowser -and !$Elevated) {
-    $session = $null
+$pagePath = [IO.Path]::GetFullPath((Join-Path $projectDirectory 'ResourceInspection/Page.html'))
+$defaultConfiguration = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'ExHyperV.Core.Tests/resources.json'
+$expectedConfiguration = if ($Configuration) { [IO.Path]::GetFullPath($Configuration) } else { $defaultConfiguration }
+function Get-InspectionSession {
     try {
         $request = [Net.WebRequest]::Create("http://127.0.0.1:$Port/api/session")
         $request.Proxy = $null
@@ -24,16 +27,23 @@ if (!$BuildOnly -and !$ReportOnly -and !$Deployment -and !$Configuration -and !$
         $response = $request.GetResponse()
         try {
             $reader = [IO.StreamReader]::new($response.GetResponseStream())
-            try { $session = $reader.ReadToEnd() | ConvertFrom-Json }
+            try { return ($reader.ReadToEnd() | ConvertFrom-Json) }
             finally { $reader.Dispose() }
         } finally { $response.Dispose() }
-    } catch { }
-    $pagePath = Join-Path $projectDirectory 'ResourceInspection/Page.html'
-    if ($session -and $session.supervised -and !$session.deployment -and
-        [string]::Equals($session.pagePath, $pagePath, [StringComparison]::OrdinalIgnoreCase)) {
-        Start-Process "http://127.0.0.1:$Port/"
-        exit 0
-    }
+    } catch { return $null }
+}
+function Test-InspectionSession($Session) {
+    if (!$Session -or !$Session.supervised -or ([bool]$Session.deployment -ne [bool]$Deployment) -or
+        ![string]::Equals($Session.pagePath, $pagePath, [StringComparison]::OrdinalIgnoreCase)) { return $false }
+    # Older default launches predate the configuration identity in session metadata.
+    $actualConfiguration = if ($Session.configurationPath) { $Session.configurationPath } else { $defaultConfiguration }
+    return [string]::Equals($actualConfiguration, $expectedConfiguration, [StringComparison]::OrdinalIgnoreCase)
+}
+# A repeated interactive launch opens this checkout's existing page.
+if (!$BuildOnly -and !$ReportOnly -and !$Deployment -and !$Configuration -and !$Elevated -and
+    (Test-InspectionSession (Get-InspectionSession))) {
+    if (!$NoBrowser) { Start-Process "http://127.0.0.1:$Port/" }
+    exit 0
 }
 # Interactive inspection owns an elevated supervisor, so updates retain the same token.
 # Build-only and report-only calls keep the caller's identity for automation.
@@ -64,10 +74,26 @@ if (!$BuildOnly -and !$ReportOnly) {
         }
         $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
         Write-Host '正在请求管理员启动，请在 Windows 提示中选择“是”…'
-        Start-Process -FilePath (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') `
-            -Verb RunAs -WindowStyle Hidden -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-EncodedCommand', $encoded) | Out-Null
-        Write-Host "管理员启动已交接，日志：$logPath"
-        exit 0
+        $worker = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') `
+            -Verb RunAs -WindowStyle Hidden -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'RemoteSigned', '-EncodedCommand', $encoded) -PassThru
+        Write-Host '正在准备测试页面，首次编译可能需要几分钟，请保留此窗口…'
+        $started = [DateTime]::UtcNow
+        try {
+            while ($true) {
+                if (Test-InspectionSession (Get-InspectionSession)) {
+                    Write-Progress -Activity '正在启动 Core 测试' -Completed
+                    Write-Host "测试页面已就绪：http://127.0.0.1:$Port/"
+                    exit 0
+                }
+                if ($worker.HasExited) { throw "启动进程已退出，请查看日志：$logPath" }
+                $elapsed = [int]([DateTime]::UtcNow - $started).TotalSeconds
+                Write-Progress -Activity '正在启动 Core 测试' -Status "正在编译并启动页面，已等待 $elapsed 秒"
+                Start-Sleep -Milliseconds 500
+            }
+        } finally {
+            Write-Progress -Activity '正在启动 Core 测试' -Completed
+            $worker.Dispose()
+        }
     }
 }
 # Windows PowerShell uses .NET Framework. Read the native architecture without
@@ -87,6 +113,32 @@ try { $buildKey = ([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]:
 finally { $hasher.Dispose() }
 $build = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) "ExHyperV.Core.Tests/Build/$buildKey/$runtime"
 $reports = Join-Path $repo '.artifacts/resource-inspection/reports'
+$launchLock = $null
+try {
+if (!$BuildOnly -and !$ReportOnly) {
+    # Hold this stream for the complete supervisor lifetime, including rebuilds.
+    # Different ports use separate output slots; a crashed process releases its lock.
+    $build = Join-Path $build "page-$Port"
+    $null = New-Item -ItemType Directory -Path $build -Force
+    $lockPath = Join-Path $build 'launcher.lock'
+    while (!$launchLock) {
+        if (Test-InspectionSession (Get-InspectionSession)) {
+            if (!$NoBrowser) { Start-Process "http://127.0.0.1:$Port/" }
+            exit 0
+        }
+        try { $launchLock = [IO.File]::Open($lockPath, 'OpenOrCreate', 'ReadWrite', 'None') }
+        catch [IO.IOException] {
+            if (($_.Exception.HResult -band 0xffff) -notin @(32, 33)) { throw }
+            Write-Progress -Activity '正在启动 Core 测试' -Status '首次启动正在进行，等待页面就绪…'
+            Start-Sleep -Milliseconds 500
+        }
+    }
+    # The first launcher can publish its session between the probe and lock acquisition.
+    if (Test-InspectionSession (Get-InspectionSession)) {
+        if (!$NoBrowser) { Start-Process "http://127.0.0.1:$Port/" }
+        exit 0
+    }
+}
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 if (!(Test-Path -LiteralPath $vswhere)) { throw '未找到 Visual Studio 安装器。请先准备 VS 2026 / Build Tools。' }
 $msbuild = @(& $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -find 'MSBuild\Current\Bin\MSBuild.exe') | Select-Object -First 1
@@ -132,4 +184,8 @@ while ($true) {
     if ($ReportOnly -or $runExit -ne 75) { exit $runExit }
     $firstStart = $false
     Write-Host '正在更新测试程序，浏览器将自动恢复连接…'
+}
+} finally {
+    Write-Progress -Activity '正在启动 Core 测试' -Completed
+    if ($launchLock) { $launchLock.Dispose() }
 }

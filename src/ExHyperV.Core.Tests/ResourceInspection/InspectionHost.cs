@@ -90,7 +90,7 @@ internal static class InspectionHost
             });
             object Session(InspectionPageTemplate template) => new
             {
-                instanceId, pageRevision = template.Revision, pagePath, supervised, deployment,
+                instanceId, pageRevision = template.Revision, pagePath, supervised, deployment, configurationPath = configuration,
                 restarting = restartRequested, updateError = updateError ?? template.Error
             };
             app.MapGet("/", () =>
