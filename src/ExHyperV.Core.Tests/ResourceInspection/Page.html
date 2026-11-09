@@ -33,29 +33,29 @@
     <div class="appbar-actions"><span id="connection-state" class="connection" role="status">正在连接</span><button id="theme-toggle" class="btn-quiet" aria-label="切换到浅色模式">浅色模式</button></div>
   </div>
   <ol class="workflow" aria-label="测试步骤">
-    <li data-step="1" class="active" aria-current="step"><span class="step-number">1</span><span><strong>资源检查</strong><small>确认环境与设备</small></span></li>
-    <li data-step="2"><span class="step-number">2</span><span><strong>选择测试</strong><small>按条件勾选项目</small></span></li>
-    <li data-step="3"><span class="step-number">3</span><span><strong>执行与结果</strong><small>跟踪进度与问题</small></span></li>
+    <li data-step="1" class="active" aria-current="step"><span class="step-number">1</span><strong>资源检查</strong></li>
+    <li data-step="2"><span class="step-number">2</span><strong>选择测试</strong></li>
+    <li data-step="3"><span class="step-number">3</span><strong>执行与结果</strong></li>
   </ol>
 </div>
 <main>
  <div id="update-notice" class="page-notice" role="status" hidden></div>
  <div id="inspection-step">
-  <header><div><div class="eyebrow">准备测试环境</div><h1>第一步：资源清单检查</h1></div>
+  <header><h1>第一步：资源清单检查</h1>
     <div class="actions"><button id="download" disabled>下载清单</button><button id="rescan" disabled>重新检查</button><button id="save-resources" disabled>保存并检查</button><button id="next" class="primary" disabled>下一步 →</button></div>
   </header>
   <p id="deployment-summary" class="resource-help" hidden></p>
   <div class="setup-layout">
    <div id="resource-form" class="resource-form card">
-    <div class="card-header"><div class="card-heading"><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 4h16v12H4zM8 20h8M12 16v4"/></svg><h2>测试资源</h2></div><span class="resource-help">选择自动保留</span></div>
+    <div class="card-header"><div class="card-heading"><svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 4h16v12H4zM8 20h8M12 16v4"/></svg><h2>测试资源</h2></div></div>
     <div class="card-body resource-fields">
-      <label class="resource-field wide">测试虚拟机模板<select id="select-template"><option value="">请选择虚拟机</option></select><small>普通与 GPU 测试共用完整副本；模板正常关闭后复制，测试结束恢复运行。</small></label>
-      <label class="resource-field">物理测试盘<select id="select-disk"><option value="">读取设备中…</option></select><small>选择闲置磁盘，测试期间宿主临时释放。</small><small id="disk-selection-status"></small></label>
-      <label class="resource-field">测试光驱<select id="select-optical"><option value="">读取设备中…</option></select><small>用于光驱挂接测试。</small><small id="optical-selection-status"></small></label>
-      <div class="resource-field wide">PCIe 测试设备<small>勾选允许用于直通测试的设备。</small><div id="pcie-selection" class="device-choices"></div></div>
-      <div class="resource-field wide cache-panel">测试缓存<small id="cache-directory" class="cache-path"></small><small>自动创建，存放测试副本与文件。</small></div>
+      <label class="resource-field wide">虚拟机模板<select id="select-template" title="复制模板用于测试，结束后恢复模板运行状态。"><option value="">请选择虚拟机</option></select></label>
+      <label class="resource-field">物理测试盘<select id="select-disk" title="选择闲置磁盘，测试期间宿主临时释放。"><option value="">读取中…</option></select><small id="disk-selection-status"></small></label>
+      <label class="resource-field">光驱<select id="select-optical"><option value="">读取中…</option></select><small id="optical-selection-status"></small></label>
+      <div class="resource-field wide">PCIe 设备<div id="pcie-selection" class="device-choices"></div></div>
+      <div class="resource-field wide cache-panel">缓存目录<small id="cache-directory" class="cache-path"></small></div>
     </div>
-    <p id="resource-save-state" class="resource-save-state" role="status">正在读取已保存的选择…</p>
+    <p id="resource-save-state" class="resource-save-state" role="status">加载中…</p>
    </div>
    <div class="overview">
     <div class="progress-label" role="status" aria-live="polite"><span id="phase">正在连接检查程序…</span><span id="progress-text">—</span></div>
@@ -64,13 +64,11 @@
    </div>
   </div>
   <div id="groups"></div>
-  <footer>资源选择将用于后续测试。</footer>
  </div>
  <div id="selection-step" hidden>
-  <header><div><div class="eyebrow">安排本轮测试</div><h1 tabindex="-1" id="selection-title">第二步：选择测试项目</h1></div><div class="actions"><button id="back">← 上一步</button><button class="primary" id="begin" disabled>下一步：开始测试 →</button></div></header>
+  <header><h1 tabindex="-1" id="selection-title">第二步：选择测试项目</h1><div class="actions"><button id="back">← 上一步</button><button class="primary" id="begin" disabled>下一步：开始测试 →</button></div></header>
   <div class="overview plan-summary">
     <label class="choice selection-count"><input id="select-all" type="checkbox" aria-label="全选当前显示的检查点"><span id="selection-count" role="status" aria-live="polite"></span></label>
-    <span id="execution-readiness" class="execution-readiness"></span>
   </div>
   <p id="selection-conditions" class="selection-conditions"></p>
   <div class="plan-tools"><input id="plan-search" type="search" aria-label="搜索测试项目" placeholder="搜索功能、API 或测试内容…"><select id="plan-filter" aria-label="筛选测试项目"><option value="all">全部项目</option><option value="ready">可执行</option><option value="resources">资源待准备</option><option value="checks">条件检查待接入</option><option value="implementation">执行代码待接入</option><option value="selected">已勾选</option></select></div>
@@ -79,7 +77,7 @@
   <p id="plan-empty" class="empty-state" hidden>当前筛选下没有项目。</p>
  </div>
  <div id="execution-step" hidden>
-  <header><div><div class="eyebrow">本轮测试</div><h1 tabindex="-1" id="execution-title">第三步：执行 API 测试</h1></div><div class="actions"><button id="execution-back">← 返回选择</button><button id="download-test" disabled>下载结果</button><button id="stop-test" disabled>停止测试</button></div></header>
+  <header><h1 tabindex="-1" id="execution-title">第三步：执行 API 测试</h1><div class="actions"><button id="execution-back">← 返回选择</button><button id="download-test" disabled>下载结果</button><button id="stop-test" disabled>停止测试</button></div></header>
   <div class="overview execution-overview">
     <div class="completion-ring" aria-hidden="true"><svg viewBox="0 0 120 120"><circle class="ring-track" cx="60" cy="60" r="50"/><circle id="execution-ring" class="ring-value" cx="60" cy="60" r="50"/></svg><span class="ring-label"><b id="execution-percent">0%</b>已结束</span></div>
     <div>
@@ -108,7 +106,7 @@
   const $ = id => document.getElementById(id);
   const deployment=loadedSession?.deployment===true;
   let deploymentFinished=false,deploymentReady=false;
-  if(deployment){document.querySelector('#inspection-step h1').textContent='部署：检查环境与选择资源';$('next').textContent='完成部署';$('deployment-summary').hidden=false;document.querySelector('#inspection-step footer').textContent='保存本机选择，后续任务自动检查并执行。';restoredView=null;}
+  if(deployment){document.querySelector('#inspection-step h1').textContent='部署：选择资源';$('next').textContent='完成部署';$('deployment-summary').hidden=false;restoredView=null;}
   function node(tag,className,text){const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=text;return n;}
   function applyTheme(theme){
     document.documentElement.dataset.bsTheme=theme;
@@ -197,8 +195,6 @@
   }
   function updateSelection(){
     $('selection-count').textContent='已选 '+selection.size+' 项';
-    const implemented=(latest?.plan?.items||[]).filter(i=>selection.has(i.id)&&i.implemented).length;
-    $('execution-readiness').textContent='点击下一步执行 '+implemented+' 项';
     const items=latest?.plan?.items||[];
     $('selection-conditions').textContent='全部 '+items.length+' 项 · 条件齐备 '+items.filter(i=>i.eligible).length+' 项 · 资源待准备 '+items.filter(i=>i.implemented&&!i.eligible).length+' 项'+(items.some(i=>!i.implemented)?' · 执行代码待接入 '+items.filter(i=>!i.implemented).length+' 项':'');
     filterPlan();
@@ -236,7 +232,7 @@
     }
     controls();
   }
-  function resourceMessage(text,error=false){$('resource-save-state').textContent=text;$('resource-save-state').className='resource-save-state '+(error?'error':'saved');}
+  function resourceMessage(text,error=false){$('resource-save-state').textContent=text;$('resource-save-state').className='resource-save-state '+(error?'error':'saved');$('resource-save-state').hidden=!text;}
   function resourceResult(id){return latest?.items.find(item=>item.check.id===id)?.result;}
   function resourceChoices(id){return resourceResult(id)?.choices||[];}
   function resourceInventoryKnown(id){return ['ready','missing','pending'].includes(resourceResult(id)?.status);}
@@ -248,18 +244,18 @@
     function options(elementId,source,empty){
       const items=resourceChoices(source);
       const select=$(elementId),value=select.value;select.replaceChildren(new Option(empty,''));
-      for(const item of items){const suffix=elementId==='select-template'?' · '+item.detail+' · '+item.id.slice(0,8):'';const option=new Option(item.name+suffix+(item.unavailableReason?' · '+item.unavailableReason:''),item.id);option.disabled=!!item.unavailableReason;select.append(option);}
-      if(value&&!items.some(item=>item.id.toLowerCase()===value.toLowerCase()))select.append(new Option(savedSelectionMessage(source)+' · '+value,value));
+      for(const item of items){const option=new Option(elementId==='select-template'?item.name:item.name+(item.unavailableReason?' · '+item.unavailableReason:''),item.id);option.disabled=!!item.unavailableReason;option.title=item.unavailableReason||'';select.append(option);}
+      if(value&&!items.some(item=>item.id.toLowerCase()===value.toLowerCase())){const option=new Option(savedSelectionMessage(source),value);option.title=value;select.append(option);}
       select.value=items.find(item=>item.id.toLowerCase()===value.toLowerCase())?.id||value;
     }
     options('select-template','vms','请选择虚拟机');
-    options('select-disk','disks','跳过物理磁盘测试');
-    options('select-optical','optical','跳过光驱测试');
+    options('select-disk','disks','跳过');
+    options('select-optical','optical','跳过');
     const selected=new Set([...$('pcie-selection').querySelectorAll('input:checked')].map(input=>input.value));
     $('pcie-selection').replaceChildren();
     const devices=resourceChoices('pcie');
-    for(const device of devices){const label=node('label','choice'),input=node('input'),text=node('span','',device.name);input.type='checkbox';input.value=device.id;input.checked=selected.has(device.id);text.append(node('small','',device.id));label.append(input,text);$('pcie-selection').append(label);}
-    for(const id of selected)if(!devices.some(device=>device.id===id)){const label=node('label','choice'),input=node('input');input.type='checkbox';input.value=id;input.checked=true;label.append(input,node('span','',savedSelectionMessage('pcie')+' · '+id));$('pcie-selection').append(label);}
+    for(const device of devices){const label=node('label','choice'),input=node('input'),text=node('span','',device.name);input.type='checkbox';input.value=device.id;input.checked=selected.has(device.id);label.title=device.id;label.append(input,text);$('pcie-selection').append(label);}
+    for(const id of selected)if(!devices.some(device=>device.id===id)){const label=node('label','choice'),input=node('input');input.type='checkbox';input.value=id;input.checked=true;label.title=id;label.append(input,node('span','',savedSelectionMessage('pcie')));$('pcie-selection').append(label);}
     if(!devices.length&&!selected.size)$('pcie-selection').append(node('p','resource-help',resourceInventoryKnown('pcie')?'当前清单为空。':resourceResult('pcie')?.detail||'正在读取设备…'));
   }
   function applyRegistration(value){
@@ -270,7 +266,7 @@
     }
     $('pcie-selection').replaceChildren();for(const device of config.pcieDevices||[]){const input=node('input');input.type='checkbox';input.value=device.instanceId;input.checked=true;$('pcie-selection').append(input);}
     renderResourceChoices(true);resourceDirty=false;
-    resourceMessage(config.templateVmId||config.pcieDevices?.length||config.physicalDisk||config.opticalDrive?'已载入保存的选择。':'选择完成后，点击上方“保存并检查”。');controls();
+    resourceMessage('');controls();
   }
   function planGroup(key,title,parent,operation=false,depth=0){
     let group=planGroups.get(key);if(group)return group;
@@ -394,12 +390,12 @@
   }
   function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=node('a');a.href=url;a.download=name+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   $('result-search').addEventListener('input',filterResults);$('result-filter').addEventListener('change',filterResults);
-  $('resource-form').addEventListener('input',()=>{resourceDirty=true;resourceMessage('设置已修改，请点上方“保存并检查”。');controls();});
+  $('resource-form').addEventListener('input',()=>{resourceDirty=true;resourceMessage('待保存');controls();});
   $('save-resources').addEventListener('click',async()=>{
-    if($('save-resources').disabled)return;resourceSaveBusy=true;controls();resourceMessage('正在保存并检查…');
+    if($('save-resources').disabled)return;resourceSaveBusy=true;controls();resourceMessage('保存中…');
     try{
       const response=await post('/api/resources',{revision:registration.revision,resourceRunId:latest.runId,templateVmId:$('select-template').value,pcieIds:[...$('pcie-selection').querySelectorAll('input:checked')].map(input=>input.value),physicalDiskId:$('select-disk').value,opticalDriveId:$('select-optical').value});
-      applyRegistration(await response.json());resourceMessage('已保存，正在按新选择检查资源；下次启动自动复用。');render(await getJson('/api/report'));
+      applyRegistration(await response.json());resourceMessage('已保存，检查中…');render(await getJson('/api/report'));
     }catch(error){resourceMessage(error.message,true);}
     finally{resourceSaveBusy=false;controls();}
   });
