@@ -235,6 +235,14 @@ internal static class InspectionHost
 
 internal static class InspectionPage
 {
+    private static readonly Lazy<string> TablerStyles = new(() =>
+    {
+        using var stream = typeof(InspectionPage).Assembly.GetManifestResourceStream("ExHyperV.Core.Tests.ResourceInspection.Assets.Tabler.tabler.min.css")
+            ?? throw new InvalidOperationException("测试页面样式未打包。");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
+    });
+
     internal static string Label(InspectionStatus status) => status switch
     {
         InspectionStatus.Waiting => "等待检查", InspectionStatus.Running => "正在检查",
@@ -253,7 +261,8 @@ internal static class InspectionPage
     internal static string Render(string? reportJson = null, string token = "", string? testJson = null,
         string? template = null, string? sessionJson = null)
     {
-        return (template ?? ReadTemplate()).Replace("__NONCE__", token, StringComparison.Ordinal)
+        return (template ?? ReadTemplate()).Replace("__TABLER_CSS__", TablerStyles.Value, StringComparison.Ordinal)
+            .Replace("__NONCE__", token, StringComparison.Ordinal)
             .Replace("__REPORT__", reportJson ?? "null", StringComparison.Ordinal)
             .Replace("__TEST_REPORT__", testJson ?? "null", StringComparison.Ordinal)
             .Replace("__SESSION__", sessionJson ?? "null", StringComparison.Ordinal);

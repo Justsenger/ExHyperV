@@ -133,6 +133,10 @@ public sealed class ResourceInspectionTests
         var saved = InspectionPage.Render("{}");
         Assert.IsTrue(saved.Contains("loadedSession = null", StringComparison.Ordinal));
         Assert.IsFalse(saved.Contains("__SESSION__", StringComparison.Ordinal));
+        Assert.IsFalse(live.Contains("__TABLER_CSS__", StringComparison.Ordinal));
+        Assert.IsFalse(saved.Contains("__TABLER_CSS__", StringComparison.Ordinal));
+        Assert.IsTrue(live.Contains("--tblr-", StringComparison.Ordinal));
+        Assert.IsTrue(saved.Contains("--tblr-", StringComparison.Ordinal));
     }
 
     [TestMethod]
