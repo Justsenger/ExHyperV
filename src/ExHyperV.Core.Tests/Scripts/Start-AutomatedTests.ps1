@@ -20,7 +20,8 @@ $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
 if (!([Security.Principal.WindowsPrincipal]::new($identity)).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
     throw '自动测试需要已具备管理员权限的执行账户。请先完成本机部署。'
 }
-$repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+$projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
 $root = [IO.Path]::GetFullPath($RunDirectory)
 $parent = Split-Path $root -Parent
 $null = New-Item -ItemType Directory -Path $parent -Force
@@ -65,7 +66,7 @@ if (!(Test-Path -LiteralPath $vswhere)) { throw '请先准备 Visual Studio 2026
 $msbuild = @(& $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -find 'MSBuild\Current\Bin\MSBuild.exe') | Select-Object -First 1
 if (!$msbuild) { throw '缺少 VS 2026 MSBuild。' }
 $build = Join-Path $root 'build'
-Push-Location $PSScriptRoot
+Push-Location $projectDirectory
 try {
     & $msbuild ExHyperV.Core.Tests.csproj /restore /t:Build /nologo /nr:false /p:Configuration=Release `
         "/p:RuntimeIdentifier=$runtime" /p:UseArtifactsOutput=true "/p:ArtifactsPath=$build" /p:RestoreLockedMode=true `

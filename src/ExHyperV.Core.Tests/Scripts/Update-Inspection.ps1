@@ -3,10 +3,11 @@
 param([ValidateRange(1024, 65535)][int]$Port = 5187)
 
 $ErrorActionPreference = 'Stop'
+$projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $url = "http://127.0.0.1:$Port"
 try { $session = Invoke-RestMethod "$url/api/session" -TimeoutSec 5 }
 catch { throw '当前服务尚未接入自动更新。请首次运行新版 Inspect-Resources.ps1。' }
-$pagePath = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'ResourceInspection/Page.html'))
+$pagePath = [IO.Path]::GetFullPath((Join-Path $projectDirectory 'ResourceInspection/Page.html'))
 if (!$session.supervised -or ![string]::Equals($session.pagePath, $pagePath, [StringComparison]::OrdinalIgnoreCase)) {
     throw '端口上的服务并非由本项目的启动器管理。'
 }

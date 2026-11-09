@@ -2,10 +2,13 @@
 
 独立测试项目，通过项目引用同步编译当前 Core。与 `ExHyperV.Core`、`ExHyperV.WinUI3` 并列，入口已加入 `src/ExHyperV.sln`。
 
+**双击本目录的「启动测试.cmd」**，确认管理员提示，等待浏览器自动打开。页面依次完成资源选择、测试项目选择和执行。已启动时再次双击，会重新打开同一个页面。
+
 ## 目录
 
 ```text
 ExHyperV.Core.Tests/
+├─ 启动测试.cmd             双击启动
 ├─ Program.cs                程序入口，分发页面、工作进程和回归测试
 ├─ ResourceInspection/      第一步：资源检查、资源选择和测试页面
 ├─ TestPlanning/            第二步：API 测试清单、条件判断和分类
@@ -18,17 +21,17 @@ ExHyperV.Core.Tests/
 ├─ Diagnostics/             复用检查场景与独立诊断入口
 ├─ Properties/              测试程序集设置
 ├─ Tools/                   API 清单维护工具
-└─ *.ps1                    启动、更新和命令行执行入口
+└─ Scripts/                 命令行、Runner 和维护脚本
 ```
 
 页面里选择的 API 实机测试由 `TestExecution/` 执行。`Regression/` 和 `Integration/` 中的 MSTest 用例通过 Visual Studio 或 `Test-Core.ps1` 运行，结果单独统计。目录整理保持测试类名、命名空间和筛选名称一致。
 
 ## 打开测试页面
 
-在仓库根目录运行，兼容 Windows PowerShell 5.1 和 PowerShell 7：
+日常使用直接双击「启动测试.cmd」，使用系统自带的 PowerShell 5.1。命令行启动方式保留在 `Scripts/`：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Inspect-Resources.ps1
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Scripts/Inspect-Resources.ps1
 ```
 
 需要 .NET 10 SDK、Visual Studio 2026 / Build Tools 及 .NET 桌面工作负载。普通终端启动页面时，脚本会请求管理员权限；确认 Windows 提示后自动编译、打开 `http://127.0.0.1:5187/`，后续更新沿用同一权限。提权启动日志保存在 `.artifacts/resource-inspection/launcher-*.log`。`-BuildOnly` 和 `-ReportOnly` 保持调用者身份，便于自动化运行；Runner 使用已具备权限的账户执行。
@@ -50,7 +53,7 @@ powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Test
 页面文件修改后自动刷新并保留选择。C# 修改后，用下面的命令请求现有启动器重新编译、重启，浏览器自动重连：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Update-Inspection.ps1
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Scripts/Update-Inspection.ps1
 ```
 
 执行中的任务结束后才允许更新。构建失败时恢复上一版；结果文件保留。启动参数还包括 `-ReportOnly`（只保存资源报告）、`-BuildOnly`（只编译）、`-NoBrowser`、`-Port`。
@@ -62,9 +65,9 @@ powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Test
 先启动资源检查程序并保存资源选择，再运行以下命令。脚本兼容 PowerShell 5.1，使用与页面“下一步”相同的执行器，默认提交条件齐备的全部检查点：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Run-ApiTests.ps1
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Scripts/Run-ApiTests.ps1
 # 收集当前轮次，适合终端重连或由自动化接管进度
-powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Run-ApiTests.ps1 -Attach
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Scripts/Run-ApiTests.ps1 -Attach
 ```
 
 `-CheckId <编号>` 可只执行指定回归项，`-OutputDirectory <目录>` 指定机器可读报告位置。终端显示状态变化，并保存 `results.json`、`summary.json`；退出码 0 表示完成且有通过项，1 表示失败、取消或执行异常，2 表示零通过项。省略和跳过原因随结果保留，测试失败也能取得完整报告。退出收集脚本后页面中的任务继续运行，可用 `-Attach` 接回。
@@ -82,7 +85,7 @@ powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Test
 ```powershell
 $revision = git rev-parse HEAD
 $run = [guid]::NewGuid().ToString('N')
-powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Start-AutomatedTests.ps1 `
+powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Tests/Scripts/Start-AutomatedTests.ps1 `
     -Revision $revision -RunId $run -RunDirectory "C:\ProgramData\ExHyperV.TestLab\runs\$run"
 ```
 
@@ -99,8 +102,8 @@ powershell -NoProfile -ExecutionPolicy RemoteSigned -File src/ExHyperV.Core.Test
 以下脚本使用 PowerShell 7，先核对 API 清单，再以 Visual Studio MSBuild 构建 Core 与测试项目，最后运行 MSTest：
 
 ```powershell
-pwsh -File src/ExHyperV.Core.Tests/Test-Core.ps1
-pwsh -File src/ExHyperV.Core.Tests/Test-Core.ps1 -Suite All -LockedRestore
+pwsh -File src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1
+pwsh -File src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1 -Suite All -LockedRestore
 ```
 
 | 套件 | 测试范围 | 使用的资源 |

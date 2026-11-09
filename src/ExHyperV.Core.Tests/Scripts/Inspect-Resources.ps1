@@ -11,7 +11,30 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+$projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
+# A repeated interactive launch opens this checkout's existing page.
+if (!$BuildOnly -and !$ReportOnly -and !$Deployment -and !$Configuration -and !$NoBrowser -and !$Elevated) {
+    $session = $null
+    try {
+        $request = [Net.WebRequest]::Create("http://127.0.0.1:$Port/api/session")
+        $request.Proxy = $null
+        $request.Timeout = 2000
+        $request.ReadWriteTimeout = 2000
+        $response = $request.GetResponse()
+        try {
+            $reader = [IO.StreamReader]::new($response.GetResponseStream())
+            try { $session = $reader.ReadToEnd() | ConvertFrom-Json }
+            finally { $reader.Dispose() }
+        } finally { $response.Dispose() }
+    } catch { }
+    $pagePath = Join-Path $projectDirectory 'ResourceInspection/Page.html'
+    if ($session -and $session.supervised -and !$session.deployment -and
+        [string]::Equals($session.pagePath, $pagePath, [StringComparison]::OrdinalIgnoreCase)) {
+        Start-Process "http://127.0.0.1:$Port/"
+        exit 0
+    }
+}
 # Interactive inspection owns an elevated supervisor, so updates retain the same token.
 # Build-only and report-only calls keep the caller's identity for automation.
 if (!$BuildOnly -and !$ReportOnly) {
@@ -31,6 +54,14 @@ if (!$BuildOnly -and !$ReportOnly) {
         if ($NoBrowser) { $command += ' -NoBrowser' }
         if ($Deployment) { $command += ' -Deployment' }
         $command += " *> '" + $logPath.Replace("'", "''") + "'"
+        if (!$NoBrowser) {
+            $safeLog = $logPath.Replace("'", "''")
+            $message = "启动失败，请查看日志：`n$logPath".Replace("'", "''")
+            $command = "try { $command; if (`$LASTEXITCODE -ne 0) { throw ('启动进程退出：' + `$LASTEXITCODE) } } " +
+                "catch { `$_ | Out-String | Add-Content -LiteralPath '$safeLog'; " +
+                "Add-Type -AssemblyName System.Windows.Forms; " +
+                "[System.Windows.Forms.MessageBox]::Show('$message', 'Core 测试启动失败') | Out-Null; exit 1 }"
+        }
         $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
         Write-Host '正在请求管理员启动，请在 Windows 提示中选择“是”…'
         Start-Process -FilePath (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') `
@@ -69,7 +100,7 @@ while ($true) {
     # Separate slots keep the last working build intact if an update fails.
     $output = if ($BuildOnly -or $ReportOnly) { $build } else { Join-Path $build "host-$slot" }
     Write-Host '正在编译最新 Core 和测试程序…'
-    Push-Location $PSScriptRoot
+    Push-Location $projectDirectory
     try {
         & $msbuild 'ExHyperV.Core.Tests.csproj' /restore /t:Build /nologo /nr:false `
             /p:Configuration=Release "/p:RuntimeIdentifier=$runtime" /p:UseArtifactsOutput=true "/p:ArtifactsPath=$output" '/clp:ErrorsOnly;Summary'
@@ -93,7 +124,7 @@ while ($true) {
     if ($Configuration) { $arguments += @('--configuration', $Configuration) }
     if ($NoBrowser -or !$firstStart) { $arguments += '--no-browser' }
     if ($ReportOnly) { $arguments += '--report-only' }
-    else { $arguments += @('--supervised', '--page', (Join-Path $PSScriptRoot 'ResourceInspection/Page.html')) }
+    else { $arguments += @('--supervised', '--page', (Join-Path $projectDirectory 'ResourceInspection/Page.html')) }
     if ($updateError) { $arguments += @('--update-error', $updateError) }
     if ($Deployment) { $arguments += '--deployment' }
     & $module @arguments

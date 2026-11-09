@@ -37,7 +37,7 @@ try {
     }
     $runId = $run.runId
     if (!$OutputDirectory) {
-        $OutputDirectory = Join-Path $PSScriptRoot ('../../.artifacts/api-runs/' + $runId)
+        $OutputDirectory = Join-Path $PSScriptRoot ('../../../.artifacts/api-runs/' + $runId)
     }
     $null = New-Item -ItemType Directory -Force -Path $OutputDirectory
     $output = [IO.Path]::GetFullPath($OutputDirectory)

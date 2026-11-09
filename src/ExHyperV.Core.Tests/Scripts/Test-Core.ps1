@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 [CmdletBinding()]
 param(
     [ValidateSet('Regression', 'Windows', 'All')]
@@ -12,8 +12,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
-$repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-$projectDirectory = $PSScriptRoot
+$projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
 $artifactRoot = Join-Path $repo '.artifacts/1x/core-tests'
 $buildRoot = Join-Path $artifactRoot "build/$Runtime"
 $runId = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
@@ -27,7 +27,7 @@ if (!$msbuild) { throw 'Visual Studio 2026 MSBuild was not found. dotnet build c
 $dotnet = (Get-Command dotnet -ErrorAction Stop).Source
 
 # Check the maintained test plan against the current public API before building.
-& $dotnet run --project (Join-Path $PSScriptRoot 'Tools/Catalog') -- --audit-tests $repo
+& $dotnet run --project (Join-Path $projectDirectory 'Tools/Catalog') -- --audit-tests $repo
 if ($LASTEXITCODE -ne 0) { throw '公开 API 缺少测试计划，请更新 TestPlanning/TestCatalog.json。' }
 
 $environmentBefore = @{}

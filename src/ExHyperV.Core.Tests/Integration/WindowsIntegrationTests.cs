@@ -14,7 +14,7 @@ public sealed class WindowsIntegrationTests
     public void RequireExplicitOptIn()
     {
         if (Environment.GetEnvironmentVariable("EXHYPERV_TEST_WINDOWS") != "1")
-            Assert.Inconclusive("Run src/ExHyperV.Core.Tests/Test-Core.ps1 -Suite Windows to enable offline native integration tests.");
+            Assert.Inconclusive("Run src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1 -Suite Windows to enable offline native integration tests.");
     }
 
     [TestMethod]
