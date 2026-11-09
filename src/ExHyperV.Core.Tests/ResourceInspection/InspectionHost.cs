@@ -85,7 +85,8 @@ internal static class InspectionHost
                 context.Response.Headers.CacheControl = "no-store";
                 context.Response.Headers.XContentTypeOptions = "nosniff";
                 context.Response.Headers["Referrer-Policy"] = "no-referrer";
-                context.Response.Headers.ContentSecurityPolicy = $"default-src 'self'; script-src 'nonce-{token}'; style-src 'nonce-{token}'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'";
+                // Tabler embeds select arrows and checkbox marks as data-URL SVG images.
+                context.Response.Headers.ContentSecurityPolicy = $"default-src 'self'; img-src 'self' data:; script-src 'nonce-{token}'; style-src 'nonce-{token}'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'";
                 await next();
             });
             object Session(InspectionPageTemplate template) => new
