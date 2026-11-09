@@ -57,6 +57,8 @@
     .plan-toolbar,.result-tools{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
     .plan-tools{display:flex;gap:.5rem;margin-left:auto}.plan-tools input,.result-tools input{width:260px}.plan-tools select,.result-tools select{width:155px}
     .selection-count{align-items:center;font-weight:500;white-space:nowrap}.selection-count input{margin:0}
+    #selection-step .form-check-input:indeterminate{background-color:var(--tblr-primary);border-color:var(--tblr-primary);background-image:none}
+    #selection-step .form-check-input:indeterminate::before{opacity:0}
     .selection-conditions{margin:0 0 1rem}
     .plan-group{scroll-margin-top:1rem}.plan-group>summary{display:flex;align-items:center;gap:.625rem;list-style:none;padding:1rem 1.25rem;min-width:0;font-weight:500}
     .plan-group>summary::-webkit-details-marker{display:none}.plan-group>summary::before{content:"›";color:var(--tblr-secondary);font-size:1.125rem}
@@ -264,11 +266,11 @@
     const visibleChoices=[...choices].filter(([id,choice])=>!choice.row.hidden),visibleEligible=visibleChoices.filter(([id,choice])=>choice.eligible).map(([id])=>id),eligible=visibleEligible.length,visibleSelected=visibleEligible.filter(id=>selection.has(id)).length;
     $('select-all').disabled=startBusy||running||eligible===0;
     $('select-all').checked=visibleChoices.length>0&&visibleSelected===visibleChoices.length;
-    $('select-all').indeterminate=false;
+    $('select-all').indeterminate=visibleSelected>0&&visibleSelected<visibleChoices.length;
     for(const [id,choice] of choices){choice.input.disabled=!choice.eligible||startBusy||running;choice.input.checked=choice.eligible&&selection.has(id);}
     for(const group of planGroups.values()){
       const visibleIds=group.ids.filter(id=>!choices.get(id).row.hidden),eligibleIds=visibleIds.filter(id=>choices.get(id)?.eligible),selectedCount=eligibleIds.filter(id=>selection.has(id)).length;
-      group.input.disabled=startBusy||running||eligibleIds.length===0;group.input.checked=visibleIds.length>0&&selectedCount===visibleIds.length;group.input.indeterminate=false;
+      group.input.disabled=startBusy||running||eligibleIds.length===0;group.input.checked=visibleIds.length>0&&selectedCount===visibleIds.length;group.input.indeterminate=selectedCount>0&&selectedCount<visibleIds.length;
       group.count.textContent=selectedCount+' / '+visibleIds.length;
     }
     $('execution-back').disabled=running||startBusy;
