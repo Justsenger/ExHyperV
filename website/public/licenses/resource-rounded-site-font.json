@@ -1,0 +1,18 @@
+{
+  "family": "Resource Han Rounded CN",
+  "css_family": "ExHyperV Resource Rounded CN",
+  "native_weight": 500,
+  "source": "https://github.com/CyanoHao/Resource-Han-Rounded/releases/download/v0.990/RHR-CN-0.990.7z",
+  "source_file": "ResourceHanRoundedCN-Medium.ttf",
+  "source_sha256": "b2ec1727fbc04b70255db6cb71be0eca3b7a7167ef11655059c5576cc920143f",
+  "license": "SIL OFL 1.1",
+  "copyright": [
+    "Copyright © 2018—2019 Cyano Hao. Portions © 2014, 2015, 2018 Adobe (http://www.adobe.com/)."
+  ],
+  "conversion": "Original TTF compressed to WOFF2 with fontTools 4.68.0; no subsetting or font name changes.",
+  "total_characters": 30887,
+  "total_glyphs": 31032,
+  "file": "resource-han-rounded-cn-medium.woff2",
+  "bytes": 4974796,
+  "sha256": "42d73bc48bf5d5d62a6e2cb5d6f5aeb2d875236be43a9d54c7800504aa06c479"
+}

@@ -1,0 +1,27 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+---
+<SiteLayout module="docs" title="文档">
+  <section class="documents-index">
+    <h1 data-i18n="docs">文档</h1>
+    <div class="documents-grid">
+      <a class="document-card" href="/api/" data-astro-reload>
+        <span class="document-card-name">API</span>
+        <svg class="document-card-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>
+      </a>
+    </div>
+  </section>
+</SiteLayout>
+
+<style>
+  .documents-index { max-width: 1200px; margin: 0 auto; padding: 44px 32px; }
+  h1 { margin: 0 0 28px; font-size: 28px; line-height: 1.5; font-weight: 600; }
+  .documents-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .document-card { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; min-height: 240px; padding: 32px; border: 1px solid var(--ui-border); border-radius: 18px; background: var(--surface-raised); transition: border-color .18s, background-color .18s; }
+  .document-card-name { font-size: 36px; line-height: 1.2; }
+  .document-card-arrow { width: 28px; height: 28px; margin-bottom: 4px; fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .document-card:hover { border-color: var(--accent); background: var(--surface-hover); }
+  .document-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+  @media (max-width: 700px) { .documents-index { padding: 28px 20px; } .documents-grid { grid-template-columns: minmax(0, 1fr); } .document-card { min-height: 220px; padding: 28px; } }
+  @media (prefers-reduced-motion: reduce) { .document-card { transition: none; } }
+</style>

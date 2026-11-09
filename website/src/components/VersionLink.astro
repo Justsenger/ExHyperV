@@ -1,0 +1,8 @@
+---
+import { versionLabel } from '../data/navigation-labels';
+const { record, selectedId, prefixes = [], parentName = '', singleProduct = false, labelOverride } = Astro.props;
+---
+<a id={`version-label-${record.codename}`} href={`/os/${record.codename}/`} data-version={record.codename} data-full-name={record.name} data-architecture={record.architectures?.join(' ') || record.architecture} aria-label={record.name}
+   class:list={['devilist', { 'single-product-link': singleProduct, 'router-link-active': record.codename === selectedId, 'router-link-exact-active': record.codename === selectedId }]}
+   aria-current={record.codename === selectedId ? 'page' : undefined}><span class="nav-label">{labelOverride || versionLabel(record.name, prefixes, parentName)}</span></a>
+<button class="name-info" type="button" data-name-for={`version-label-${record.codename}`} data-full-name-label={record.name} aria-label={`查看完整名称：${record.name}`} hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10v1" /></svg></button>

@@ -1,6 +1,8 @@
-# 发布官网 API 文档
+# 网站与 API 文档
 
-`ExHyperV.com/api/` 直接使用本目录生成器的 HTML，内容仍以 Core 的 XML 注释、`API.md`、示例及 Generator 模板为准。
+网站已合入 ExHyperV 主仓库的 `website/`。首页、系统图鉴和文档入口由 Astro 构建，`/api/` 直接使用本目录生成器的 HTML，内容以 Core 的 XML 注释、`API.md`、示例及 Generator 模板为准。
+
+日常在主仓库双击 `启动文档.cmd`，或运行 `node website/scripts/start.mjs`。只启动一个网站服务，地址为 `http://localhost:5189/`；API、系统图鉴和其他页面共用此地址。启动时自动更新 API.md 的生成区块，之后监听 Core 文档材料变化、重新生成并刷新页面。需要 Node.js 24.19+（24.x）、pnpm 11.25.0 和 .NET 10 SDK。
 
 “配置版本”字段内的宿主 build 对照来自 `Generator/ConfigurationVersions.xml`，由同一份数据生成 Markdown 表和网页中的版本矩阵。数据源链接固定到参考库提交，Windows 发行名与 build 按微软发行记录校正；更新时修改此数据文件，重新生成即可。它只参与文档展示，不作为 Core 的运行时兼容性规则。文件字段可使用 `<fielddoc><format>` 提供单独的“文件格式”说明。
 
@@ -16,11 +18,9 @@ node src/ExHyperV.Core/Documentation/export-website.mjs "$env:TEMP/ExHyperV-core
 
 输出 `index.html`、`API.md`、`manifest.json`。导出只分析源码，既不执行 Core，也不执行示例。API.md 过期时失败；先按下方“更新和检查”更新文档。`--require-clean` 禁止导出未提交的 Core 内容，供发布使用。
 
-`.github/workflows/core-api-docs.yml` 在 `2.0.0` 的 Core 变更后自动导出，将产物发布至 `api-docs` 分支，然后请求 Cloudflare Workers Builds 重建官网。需在主仓库配置 Actions Secret `EXHYPERV_SITE_DEPLOY_HOOK`，内容为官网 Worker 的完整 Deploy Hook URL。无 Hook 时仍发布产物，但会明确警告官网自动更新未接通。
+`website` 中执行 `pnpm build` 会直接调用同一工作区的生成器，将校验后的 API HTML、Markdown 和 manifest 放进 `public/api/`，再构建整站到 `website/dist/`。API.md 过期时构建失败；提交前使用启动入口或 `pnpm api:sync --write` 更新，并审核差异。CI 只检查已提交内容，不自动改写源码。
 
-网站构建拉取 `api-docs` 的单个提交，验证完整性后原样提供 HTML。`manifest.json` 保存源提交和内容哈希，便于排查线上文档版本。官网构建环境无需 .NET，不引用本机路径。推送触发的更新有构建延迟；本地未提交内容仅用于预览。
-
-首次上线必须一起提交当前生成器和文档源；只提交此脚本不能保证远程旧版生成器支持同样的网页输出。官网仓库 `docs/core-api-sync.md` 记录完整接入步骤。
+`.github/workflows/website.yml` 统一构建网站与 API 文档。默认只校验、保存整站构建产物；配置 Cloudflare 凭据并启用部署后，直接将整站发送给一个 Cloudflare Worker。无需独立官网仓库、文档产物分支或跨仓库 Hook。访问 `/api/` 不会跳到 GitHub 或另一个服务。主仓库的 `website/docs/core-api-sync.md` 记录本地使用和 Cloudflare 接入步骤。
 
 ## 维护内容和示例
 

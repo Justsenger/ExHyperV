@@ -12,12 +12,12 @@ internal static class VmTestAccess
     internal static string CredentialPath(ApiCaseContext c)
     {
         if (!Guid.TryParse(c.Configuration.TemplateVmId, out var id)) throw new ApiCheckSkippedException("第一步尚未选择测试虚拟机模板。");
-        return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ExHyperV.Core.Tests", "Credentials", id.ToString("D") + ".clixml");
+        return new ResourceInspection.VmCredentialStore().PathFor(id);
     }
     internal static void RequireCredentials(ApiCaseContext c)
     {
         string path = CredentialPath(c);
-        if (!File.Exists(path)) throw new ApiCheckSkippedException("虚拟机内负载需要当前执行账户保存的登录凭据：" + path + "。请在本机用 Get-Credential | Export-Clixml 保存；测试报告仅记录文件是否存在。");
+        if (!File.Exists(path)) throw new ApiCheckSkippedException("请在第一步填写虚拟机账号和密码，再保存登录信息。");
     }
     internal static async Task<JsonElement> WindowsAsync(ApiCaseContext c, TemporaryVm vm, string script, object? payload = null, int seconds = 120, bool mayMutate = true)
     {

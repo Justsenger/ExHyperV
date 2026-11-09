@@ -1,0 +1,124 @@
+{
+  "checked_on": "2026-10-23",
+  "meaning": "WDDM model supported by the operating-system version; not a guest display-adapter driver measurement.",
+  "records": {
+    "windows-11-21h2": {
+      "wddm": "3.0",
+      "basis": "Microsoft explicit Windows 11 21H2 mapping",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/what-s-new-for-windows-11-display-and-graphics-drivers"
+      ]
+    },
+    "windows-11-22h2": {
+      "wddm": "3.1",
+      "basis": "Microsoft explicit Windows 11 22H2 mapping",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/what-s-new-for-windows-11-display-and-graphics-drivers"
+      ]
+    },
+    "windows-11-23h2": {
+      "wddm": "3.1",
+      "basis": "Microsoft states WDDM did not change from 22H2",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/what-s-new-for-windows-11-display-and-graphics-drivers"
+      ]
+    },
+    "windows-11-24h2": {
+      "wddm": "3.2",
+      "basis": "Microsoft explicit Windows 11 24H2 mapping",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/what-s-new-for-windows-11-display-and-graphics-drivers"
+      ]
+    },
+    "windows-11-25h2": {
+      "wddm": "3.2",
+      "basis": "25H2 driver development targets the 26100 WDK; WDDM 3.2 is the platform model introduced in 24H2.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/what-s-new-for-windows-11-display-and-graphics-drivers",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/driver-changes-for-windows-11-version-25h2"
+      ]
+    },
+    "windows-11-26h2": {
+      "wddm": "3.2",
+      "basis": "26H2 shares the 24H2/25H2 core and identical system files through the enablement package.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/what-s-new-for-windows-11-display-and-graphics-drivers",
+        "https://support.microsoft.com/en-us/servicing/os/windows-11/2026/09/kb5121794-feature-update-to-windows-11-version-26h2"
+      ]
+    },
+    "windows-11-26h1": {
+      "wddm": "3.2",
+      "basis": "Verified official SDK 10.0.28000.2526 shared d3dukmdt.h. Highest official DXGKDDI_INTERFACE_VERSION_WDDM definition is 3.2 (0x11008). The driver-development page identifies 28000.2526 as the 26H1 WDK.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/what-s-new-in-driver-development",
+        "https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.cpp/10.0.28000.2526/microsoft.windows.sdk.cpp.10.0.28000.2526.nupkg"
+      ],
+      "sdk_header": {
+        "package_url": "https://api.nuget.org/v3-flatcontainer/microsoft.windows.sdk.cpp/10.0.28000.2526/microsoft.windows.sdk.cpp.10.0.28000.2526.nupkg",
+        "entry": "c/Include/10.0.28000.0/shared/d3dukmdt.h",
+        "header_sha256": "ae8dbc0865224146642a54483a1dd7ece0d13b457779edc37070cd458ebc81c2",
+        "official_wddm_definitions": [
+          {
+            "version": "1.3",
+            "constant": "0x4002"
+          },
+          {
+            "version": "2.0",
+            "constant": "0x5023"
+          },
+          {
+            "version": "2.1",
+            "constant": "0x6003"
+          },
+          {
+            "version": "2.2",
+            "constant": "0x700A"
+          },
+          {
+            "version": "2.3",
+            "constant": "0x8001"
+          },
+          {
+            "version": "2.4",
+            "constant": "0x9006"
+          },
+          {
+            "version": "2.5",
+            "constant": "0xA00B"
+          },
+          {
+            "version": "2.6",
+            "constant": "0xB004"
+          },
+          {
+            "version": "2.7",
+            "constant": "0xC004"
+          },
+          {
+            "version": "2.8",
+            "constant": "0xD001"
+          },
+          {
+            "version": "2.9",
+            "constant": "0xE003"
+          },
+          {
+            "version": "3.0",
+            "constant": "0xF003"
+          },
+          {
+            "version": "3.1",
+            "constant": "0x10004"
+          },
+          {
+            "version": "3.2",
+            "constant": "0x11008"
+          }
+        ],
+        "highest_interface_version": "3.2",
+        "package_bytes": 160886794,
+        "header_bytes": 113732
+      }
+    }
+  }
+}

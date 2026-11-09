@@ -1,0 +1,2125 @@
+{
+  "checked_on": "2026-10-23",
+  "definition": "Base OS build; string for a single base, array only for a product family spanning multiple documented bases. Product version, SKU suite number and ADK package version are not substituted for OS build.",
+  "summary": {
+    "checked_on": "2026-10-23",
+    "definition": "Base OS build; string for a single base, array only for a product family spanning multiple documented bases. Product version, SKU suite number and ADK package version are not substituted for OS build.",
+    "windows_records": 196,
+    "visible_windows_records": 131,
+    "pe10_base_builds": [
+      "28000",
+      "26100",
+      "25398",
+      "22621",
+      "22000",
+      "20348",
+      "19041",
+      "18362",
+      "17763",
+      "17134",
+      "16299",
+      "15063",
+      "14393",
+      "10586",
+      "10240"
+    ],
+    "known_build_records": 186,
+    "unverified_build_ids": [
+      "windows-3-0a",
+      "windows-3-0",
+      "windows-2-11",
+      "windows-2-1",
+      "windows-2-03",
+      "windows-2-01",
+      "windows-1-04",
+      "windows-1-03",
+      "windows-1-02",
+      "windows-1-01"
+    ],
+    "documented_installation_ids": [
+      "windows-3-2",
+      "windows-for-workgroups-3-11",
+      "windows-3-11",
+      "windows-for-workgroups-3-1",
+      "windows-3-1",
+      "windows-nt-3-1-service-pack-3",
+      "windows-nt-3-1-service-pack-2"
+    ],
+    "protected_scope": "Server navigation remains ten mainline/R2 entries; 65 hidden Server records remain hidden. IoT Core names/architectures/directory and all Ubuntu data are unchanged. No image/Hyper-V-test relation model is introduced."
+  },
+  "records": [
+    {
+      "id": "windows-11-26h2",
+      "name": "Windows 11 26H2",
+      "build_number": "26300",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+      ]
+    },
+    {
+      "id": "windows-11-26h1",
+      "name": "Windows 11 26H1",
+      "build_number": "28000",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+      ]
+    },
+    {
+      "id": "windows-11-25h2",
+      "name": "Windows 11 25H2",
+      "build_number": "26200",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+      ]
+    },
+    {
+      "id": "windows-11-24h2",
+      "name": "Windows 11 24H2",
+      "build_number": "26100",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+      ]
+    },
+    {
+      "id": "windows-11-23h2",
+      "name": "Windows 11 23H2",
+      "build_number": "22631",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+      ]
+    },
+    {
+      "id": "windows-10-22h2",
+      "name": "Windows 10 22H2",
+      "build_number": "19045",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-11-22h2",
+      "name": "Windows 11 22H2",
+      "build_number": "22621",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+      ]
+    },
+    {
+      "id": "windows-10-21h2",
+      "name": "Windows 10 21H2",
+      "build_number": "19044",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-11-21h2",
+      "name": "Windows 11 21H2",
+      "build_number": "22000",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows11-release-information"
+      ]
+    },
+    {
+      "id": "windows-10-21h1",
+      "name": "Windows 10 21H1",
+      "build_number": "19043",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-20h2",
+      "name": "Windows 10 20H2",
+      "build_number": "19042",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-2004",
+      "name": "Windows 10 2004",
+      "build_number": "19041",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1909",
+      "name": "Windows 10 1909",
+      "build_number": "18363",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1903",
+      "name": "Windows 10 1903",
+      "build_number": "18362",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1809",
+      "name": "Windows 10 1809",
+      "build_number": "17763",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1803",
+      "name": "Windows 10 1803",
+      "build_number": "17134",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1709",
+      "name": "Windows 10 1709",
+      "build_number": "16299",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1703",
+      "name": "Windows 10 1703",
+      "build_number": "15063",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1607",
+      "name": "Windows 10 1607",
+      "build_number": "14393",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1511",
+      "name": "Windows 10 1511",
+      "build_number": "10586",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-10-1507",
+      "name": "Windows 10 1507",
+      "build_number": "10240",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/release-information"
+      ]
+    },
+    {
+      "id": "windows-8-1",
+      "name": "Windows 8.1",
+      "build_number": "9600",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-8",
+      "name": "Windows 8",
+      "build_number": "9200",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-7-service-pack-1",
+      "name": "Windows 7 Service Pack 1",
+      "build_number": "7601",
+      "status": "confirmed",
+      "sources": [
+        "https://support.microsoft.com/en-us/servicing/os/windows/2012/07/ms12-048-vulnerability-in-windows-shell-could-allow-remote-code-execution-july-10-2012"
+      ]
+    },
+    {
+      "id": "windows-7",
+      "name": "Windows 7",
+      "build_number": "7600",
+      "status": "confirmed",
+      "sources": [
+        "https://support.microsoft.com/en-us/servicing/os/windows/2012/07/ms12-048-vulnerability-in-windows-shell-could-allow-remote-code-execution-july-10-2012"
+      ]
+    },
+    {
+      "id": "windows-vista-service-pack-2",
+      "name": "Windows Vista Service Pack 2",
+      "build_number": "6002",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-xp-service-pack-3",
+      "name": "Windows XP Service Pack 3",
+      "build_number": "2600",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Windows XP service packs share the main OS build 2600; the existing SP directory entries remain distinct."
+    },
+    {
+      "id": "windows-vista-service-pack-1",
+      "name": "Windows Vista Service Pack 1",
+      "build_number": "6001",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-vista",
+      "name": "Windows Vista",
+      "build_number": "6000",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-xp-service-pack-2",
+      "name": "Windows XP Service Pack 2",
+      "build_number": "2600",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Windows XP service packs share the main OS build 2600; the existing SP directory entries remain distinct."
+    },
+    {
+      "id": "windows-xp-service-pack-1a",
+      "name": "Windows XP Service Pack 1a",
+      "build_number": "2600",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Windows XP service packs share the main OS build 2600; the existing SP directory entries remain distinct."
+    },
+    {
+      "id": "windows-xp-service-pack-1",
+      "name": "Windows XP Service Pack 1",
+      "build_number": "2600",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Windows XP service packs share the main OS build 2600; the existing SP directory entries remain distinct."
+    },
+    {
+      "id": "windows-xp",
+      "name": "Windows XP",
+      "build_number": "2600",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Windows XP service packs share the main OS build 2600; the existing SP directory entries remain distinct."
+    },
+    {
+      "id": "windows-2000-professional",
+      "name": "Windows 2000 Professional",
+      "build_number": "2195",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-2000-professional-service-pack-4",
+      "name": "Windows 2000 Professional Service Pack 4",
+      "build_number": "2195",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-2000-professional-service-pack-3",
+      "name": "Windows 2000 Professional Service Pack 3",
+      "build_number": "2195",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-2000-professional-service-pack-2",
+      "name": "Windows 2000 Professional Service Pack 2",
+      "build_number": "2195",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-2000-professional-service-pack-1",
+      "name": "Windows 2000 Professional Service Pack 1",
+      "build_number": "2195",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-xp-professional-x64-edition-service-pack-2",
+      "name": "Windows XP Professional x64 Edition Service Pack 2",
+      "build_number": "3790",
+      "status": "confirmed",
+      "sources": [
+        "https://spec.org/cpu2006/results/res2009q1/cpu2006-20090316-06723.pdf"
+      ]
+    },
+    {
+      "id": "windows-xp-professional-x64-edition",
+      "name": "Windows XP Professional x64 Edition",
+      "build_number": "3790",
+      "status": "confirmed",
+      "sources": [
+        "https://spec.org/cpu2006/results/res2009q1/cpu2006-20090316-06723.pdf"
+      ]
+    },
+    {
+      "id": "windows-8-1-update",
+      "name": "Windows 8.1 Update",
+      "build_number": "9600",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-10-iot-core-ltsc",
+      "name": "Windows 10 IoT Core LTSC",
+      "build_number": "17763",
+      "status": "confirmed",
+      "sources": [
+        "https://github.com/microsoft/Windows-iotcore-samples/blob/develop/Samples/EdgeModules/SerialWin32/CS/README.md"
+      ],
+      "note": "Build metadata only. Existing IoT Core names, architecture choices and directory entries are unchanged."
+    },
+    {
+      "id": "windows-10-iot-core-1809",
+      "name": "Windows 10 IoT Core 1809",
+      "build_number": "17763",
+      "status": "confirmed",
+      "sources": [
+        "https://github.com/microsoft/Windows-iotcore-samples/blob/develop/Samples/EdgeModules/SerialWin32/CS/README.md"
+      ],
+      "note": "Build metadata only. Existing IoT Core names, architecture choices and directory entries are unchanged."
+    },
+    {
+      "id": "windows-10-iot-core-1803",
+      "name": "Windows 10 IoT Core 1803",
+      "build_number": "17134",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/de-de/answers/questions/2850013/windows-10-iot-core-installation-auf-raspberry-pi"
+      ],
+      "note": "Build metadata only. Existing IoT Core names, architecture choices and directory entries are unchanged."
+    },
+    {
+      "id": "windows-10-iot-core-1709",
+      "name": "Windows 10 IoT Core 1709",
+      "build_number": "16299",
+      "status": "confirmed",
+      "sources": [
+        "https://github.com/MicrosoftDocs/windows-iotcore-docs/blob/main/windows-iotcore/secure-your-device/UnifiedWriteFilter.md"
+      ],
+      "note": "Build metadata only. Existing IoT Core names, architecture choices and directory entries are unchanged."
+    },
+    {
+      "id": "windows-10-iot-core-1703",
+      "name": "Windows 10 IoT Core 1703",
+      "build_number": "15063",
+      "status": "confirmed",
+      "sources": [
+        "https://www.microsoft.com/en-us/download/details.aspx?id=55031"
+      ],
+      "note": "Build metadata only. Existing IoT Core names, architecture choices and directory entries are unchanged."
+    },
+    {
+      "id": "windows-10-iot-core-1607",
+      "name": "Windows 10 IoT Core 1607",
+      "build_number": "14393",
+      "status": "confirmed",
+      "sources": [
+        "https://www.microsoft.com/en-us/download/details.aspx?id=53898"
+      ],
+      "note": "Build metadata only. Existing IoT Core names, architecture choices and directory entries are unchanged."
+    },
+    {
+      "id": "windows-10-iot-core-1511",
+      "name": "Windows 10 IoT Core 1511",
+      "build_number": "10586",
+      "status": "confirmed",
+      "sources": [
+        "https://blogs.windows.com/windowsdeveloper/2016/06/01/june-2016-evaluation-windows-developer-virtual-machines/"
+      ],
+      "note": "Build metadata only. Existing IoT Core names, architecture choices and directory entries are unchanged."
+    },
+    {
+      "id": "windows-10-iot-core-original",
+      "name": "Windows 10 IoT Core",
+      "build_number": "10240",
+      "status": "confirmed",
+      "sources": [
+        "https://download.microsoft.com/download/7/E/7/7E728D59-38B2-4485-8DF1-ADB6791FE571/IOT-B304.pdf"
+      ],
+      "note": "Build metadata only. Existing IoT Core names, architecture choices and directory entries are unchanged."
+    },
+    {
+      "id": "windows-server-iot-2025",
+      "name": "Windows Server IoT 2025",
+      "build_number": "26100",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-manufacturer-section"
+      ]
+    },
+    {
+      "id": "server-2025",
+      "name": "Windows Server 2025",
+      "build_number": "26100",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-manufacturer-section"
+      ]
+    },
+    {
+      "id": "windows-server-version-23h2",
+      "name": "Windows Server, version 23H2",
+      "build_number": "25398",
+      "status": "mapped_base",
+      "sources": [
+        "https://support.microsoft.com/en-us/servicing/os/windows-server/2026/01/january-13-2026-kb5073450-os-build-25398-2092"
+      ]
+    },
+    {
+      "id": "windows-server-iot-2022",
+      "name": "Windows Server IoT 2022",
+      "build_number": "20348",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "server-2022",
+      "name": "Windows Server 2022",
+      "build_number": "20348",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "windows-server-version-20h2",
+      "name": "Windows Server, version 20H2",
+      "build_number": "19042",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/iddcx-versions"
+      ]
+    },
+    {
+      "id": "windows-server-version-2004",
+      "name": "Windows Server, version 2004",
+      "build_number": "19041",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-manufacturer-section"
+      ],
+      "note": "Server SAC version 2004 shares the 19041 OS base; primary INF table names the matching client release."
+    },
+    {
+      "id": "windows-server-version-1909",
+      "name": "Windows Server, version 1909",
+      "build_number": "18363",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/iddcx-versions"
+      ]
+    },
+    {
+      "id": "windows-server-version-1903",
+      "name": "Windows Server, version 1903",
+      "build_number": "18362",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-manufacturer-section"
+      ],
+      "note": "Server SAC version 1903 shares the 18362 OS base; primary INF table names the matching client release."
+    },
+    {
+      "id": "windows-server-iot-2019-for-storage",
+      "name": "Windows Server IoT 2019 for Storage",
+      "build_number": "17763",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "windows-server-iot-2019",
+      "name": "Windows Server IoT 2019",
+      "build_number": "17763",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "server-2019",
+      "name": "Windows Server 2019",
+      "build_number": "17763",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "hyper-v-server-2019",
+      "name": "Hyper-V Server 2019",
+      "build_number": "17763",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "windows-server-version-1809",
+      "name": "Windows Server, version 1809",
+      "build_number": "17763",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "windows-server-version-1803",
+      "name": "Windows Server, version 1803",
+      "build_number": "17134",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-manufacturer-section"
+      ]
+    },
+    {
+      "id": "windows-server-version-1709",
+      "name": "Windows Server, version 1709",
+      "build_number": "16299",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/install/inf-manufacturer-section"
+      ]
+    },
+    {
+      "id": "windows-storage-server-2016",
+      "name": "Windows Storage Server 2016",
+      "build_number": "14393",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "server-2016",
+      "name": "Windows Server 2016",
+      "build_number": "14393",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "hyper-v-server-2016",
+      "name": "Hyper-V Server 2016",
+      "build_number": "14393",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/release-health/windows-server-release-info"
+      ]
+    },
+    {
+      "id": "windows-storage-server-2012-r2",
+      "name": "Windows Storage Server 2012 R2",
+      "build_number": "9600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Windows Server 2012 R2 is NT 6.3, same 9600 base as Windows 8.1. No OS build increment for the R2 Update servicing release."
+    },
+    {
+      "id": "windows-server-2012-r2",
+      "name": "Windows Server 2012 R2",
+      "build_number": "9600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Windows Server 2012 R2 is NT 6.3, same 9600 base as Windows 8.1. No OS build increment for the R2 Update servicing release."
+    },
+    {
+      "id": "hyper-v-server-2012-r2",
+      "name": "Hyper-V Server 2012 R2",
+      "build_number": "9600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Windows Server 2012 R2 is NT 6.3, same 9600 base as Windows 8.1. No OS build increment for the R2 Update servicing release."
+    },
+    {
+      "id": "windows-storage-server-2012",
+      "name": "Windows Storage Server 2012",
+      "build_number": "9200",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "server-2012",
+      "name": "Windows Server 2012",
+      "build_number": "9200",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-multipoint-server-2012",
+      "name": "Windows MultiPoint Server 2012",
+      "build_number": "9200",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "hyper-v-server-2012",
+      "name": "Hyper-V Server 2012",
+      "build_number": "9200",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-home-server-2011",
+      "name": "Windows Home Server 2011",
+      "build_number": "7601",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/answers/questions/2529260/windows-home-server-2011-%28cannot-retrieve-activati?forum=windows-windows_other-windows_install&page=3",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106"
+      ],
+      "note": "OS kernel 7601 (R2 SP1); do not use Home Server Solutions package build 8400/8800 as the OS build. Q&A is a first-hand diagnostic log, not an official product specification."
+    },
+    {
+      "id": "windows-multipoint-server-2011",
+      "name": "Windows MultiPoint Server 2011",
+      "build_number": "7601",
+      "status": "mapped_base",
+      "sources": [
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ],
+      "note": "Microsoft book explicitly says MultiPoint 2011 is based on Server 2008 R2 SP1."
+    },
+    {
+      "id": "hyper-v-server-2008-r2-service-pack-1",
+      "name": "Hyper-V Server 2008 R2 Service Pack 1",
+      "build_number": "7601",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ]
+    },
+    {
+      "id": "windows-small-business-server-2011",
+      "name": "Windows Small Business Server 2011",
+      "build_number": [
+        "7600",
+        "7601"
+      ],
+      "status": "mapped_base",
+      "sources": [
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://techcommunity.microsoft.com/blog/sbs/why-is-there-an-upgrade-option-when-running-the-sbs-2011-standard-setup/397878"
+      ],
+      "note": "Current generic family label contains distinct RTM OS bases. Standard shipped before R2 SP1 and can be upgraded to 7601; Essentials shipped with SP1. Do not substitute suite build 7900/8800.",
+      "build_variants": [
+        {
+          "product": "Windows Small Business Server 2011 Standard (original release)",
+          "build_number": "7600"
+        },
+        {
+          "product": "Windows Small Business Server 2011 Essentials (original release)",
+          "build_number": "7601"
+        }
+      ]
+    },
+    {
+      "id": "windows-storage-server-2008-r2-service-pack-1",
+      "name": "Windows Storage Server 2008 R2 Service Pack 1",
+      "build_number": "7601",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ]
+    },
+    {
+      "id": "windows-server-2008-r2-service-pack-1",
+      "name": "Windows Server 2008 R2 Service Pack 1",
+      "build_number": "7601",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ]
+    },
+    {
+      "id": "windows-hpc-server-2008-r2-service-pack-1",
+      "name": "Windows HPC Server 2008 R2 Service Pack 1",
+      "build_number": "7601",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ]
+    },
+    {
+      "id": "windows-storage-server-2008-r2",
+      "name": "Windows Storage Server 2008 R2",
+      "build_number": "7600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ],
+      "note": "7600 describes initial Storage Server R2 Standard/Workgroup generation. The separately named 2011 Essentials product uses 7601 and is not explicitly named by this catalog entry. Do not silently treat this field as an exhaustive family build list."
+    },
+    {
+      "id": "windows-hpc-server-2008-r2",
+      "name": "Windows HPC Server 2008 R2",
+      "build_number": "7600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ]
+    },
+    {
+      "id": "windows-multipoint-server-2010",
+      "name": "Windows MultiPoint Server 2010",
+      "build_number": "7600",
+      "status": "mapped_base",
+      "sources": [
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ],
+      "note": "Microsoft book explicitly says MultiPoint 2010 is based on Server 2008 R2 (not R2 SP1)."
+    },
+    {
+      "id": "windows-server-2008-r2",
+      "name": "Windows Server 2008 R2",
+      "build_number": "7600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ]
+    },
+    {
+      "id": "hyper-v-server-2008-r2",
+      "name": "Hyper-V Server 2008 R2",
+      "build_number": "7600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://techcommunity.microsoft.com/blog/sbs/windows-server-2008-r2-sp1-should-be-installed-on-sbs-2011/398106",
+        "https://download.microsoft.com/download/7/1/B/71B9C665-6D2B-4154-AB7E-9CDC40647B57/697737_ebook_mobile_TechPreview.pdf"
+      ]
+    },
+    {
+      "id": "windows-storage-server-2008-service-pack-2",
+      "name": "Windows Storage Server 2008 Service Pack 2",
+      "build_number": "6002",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://i.dell.com/sites/csdocuments/Business_solutions_whitepapers_Documents/en/pvaul-nx3000-performance-whitepaper-with-equallogic-ps4000-en.pdf"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-storage-server-2008-embedded",
+      "name": "Windows Storage Server 2008 Embedded",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://i.dell.com/sites/csdocuments/Business_solutions_whitepapers_Documents/en/pvaul-nx3000-performance-whitepaper-with-equallogic-ps4000-en.pdf"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers. Embedded licensing SKU identified by Microsoft lifecycle; exact original SKU media was not inspected."
+    },
+    {
+      "id": "windows-storage-server-2008",
+      "name": "Windows Storage Server 2008",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://i.dell.com/sites/csdocuments/Business_solutions_whitepapers_Documents/en/pvaul-nx3000-performance-whitepaper-with-equallogic-ps4000-en.pdf"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-web-server-2008-service-pack-2",
+      "name": "Windows Web Server 2008 Service Pack 2",
+      "build_number": "6002",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-web-server-2008-service-pack-1",
+      "name": "Windows Web Server 2008 Service Pack 1",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-server-2008-for-windows-essential-server-solutions-service-pack-2",
+      "name": "Windows Server 2008 for Windows Essential Server Solutions Service Pack 2",
+      "build_number": "6002",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-server-2008-service-pack-2",
+      "name": "Windows Server 2008 Service Pack 2",
+      "build_number": "6002",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-hpc-server-2008-service-pack-2",
+      "name": "Windows HPC Server 2008 Service Pack 2",
+      "build_number": "6002",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-server-2008-for-windows-essential-server-solutions",
+      "name": "Windows Server 2008 for Windows Essential Server Solutions",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-hpc-server-2008",
+      "name": "Windows HPC Server 2008",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "hyper-v-server-2008",
+      "name": "Hyper-V Server 2008",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-essential-business-server-2008",
+      "name": "Windows Essential Business Server 2008",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-small-business-server-2008",
+      "name": "Windows Small Business Server 2008",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-web-server-2008",
+      "name": "Windows Web Server 2008",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "server-2008",
+      "name": "Windows Server 2008",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "Original Windows Server 2008 already uses 6001 / SP1 codebase, not Vista RTM 6000. SP2 uses 6002. Product-wrapper versions such as SBS 5601/EBS 5700 are not kernel build numbers."
+    },
+    {
+      "id": "windows-home-server",
+      "name": "Windows Home Server",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://download.microsoft.com/documents/France/windowsembedded/2009/doc/MSFT_EmbSvrGuide_v3.pdf"
+      ],
+      "note": "Original Home Server uses Server 2003 OS base 3790; suite build 1500 is not its kernel build. SP2 base revision 3959 is corroborated in contemporary documentation but not needed in build_number."
+    },
+    {
+      "id": "windows-storage-server-2003-r2-service-pack-2",
+      "name": "Windows Storage Server 2003 R2 Service Pack 2",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "SP2 changes the revision, not the base OS build 3790."
+    },
+    {
+      "id": "windows-server-2003-service-pack-2",
+      "name": "Windows Server 2003 Service Pack 2",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "SP2 changes the revision, not the base OS build 3790."
+    },
+    {
+      "id": "windows-server-2003-r2-service-pack-2",
+      "name": "Windows Server 2003 R2 Service Pack 2",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "SP2 changes the revision, not the base OS build 3790."
+    },
+    {
+      "id": "microsoft-windows-small-business-server-2003-r2",
+      "name": "Microsoft Windows Small Business Server 2003 R2",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "R2 is based on Server 2003 SP1 (3790.1830), with a separate R2 component disc/version. SP1 changes revision, not base build."
+    },
+    {
+      "id": "windows-storage-server-2003-r2",
+      "name": "Windows Storage Server 2003 R2",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "R2 is based on Server 2003 SP1 (3790.1830), with a separate R2 component disc/version. SP1 changes revision, not base build."
+    },
+    {
+      "id": "windows-server-2003-r2",
+      "name": "Windows Server 2003 R2",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "R2 is based on Server 2003 SP1 (3790.1830), with a separate R2 component disc/version. SP1 changes revision, not base build."
+    },
+    {
+      "id": "microsoft-windows-small-business-server-2003-service-pack-1",
+      "name": "Microsoft Windows Small Business Server 2003 Service Pack 1",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "R2 is based on Server 2003 SP1 (3790.1830), with a separate R2 component disc/version. SP1 changes revision, not base build."
+    },
+    {
+      "id": "windows-server-2003-service-pack-1",
+      "name": "Windows Server 2003 Service Pack 1",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ],
+      "note": "R2 is based on Server 2003 SP1 (3790.1830), with a separate R2 component disc/version. SP1 changes revision, not base build."
+    },
+    {
+      "id": "microsoft-windows-small-business-server-2003",
+      "name": "Microsoft Windows Small Business Server 2003",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "server-2003",
+      "name": "Windows Server 2003",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-storage-server-2003",
+      "name": "Windows Storage Server 2003",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-small-business-server-2000",
+      "name": "Windows Small Business Server 2000",
+      "build_number": "2195",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values",
+        "https://news.microsoft.com/source/2001/02/21/microsoft-announces-availability-of-small-business-server-2000/"
+      ],
+      "note": "SBS 2000 contains Windows 2000 Server. 2195 is the underlying OS build; SBS suite build 1343 must not be substituted."
+    },
+    {
+      "id": "windows-2000-datacenter-server",
+      "name": "Windows 2000 Datacenter Server",
+      "build_number": "2195",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-2000-server",
+      "name": "Windows 2000 Server",
+      "build_number": "2195",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-2000-advanced-server",
+      "name": "Windows 2000 Advanced Server",
+      "build_number": "2195",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows/win32/msi/operating-system-property-values"
+      ]
+    },
+    {
+      "id": "windows-nt-server-4-0-terminal-server-edition",
+      "name": "Windows NT Server 4.0 Terminal Server Edition",
+      "build_number": "1381",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03"
+      ]
+    },
+    {
+      "id": "windows-nt-server-4-0-enterprise-edition",
+      "name": "Windows NT Server 4.0 Enterprise Edition",
+      "build_number": "1381",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03"
+      ]
+    },
+    {
+      "id": "windows-nt-server-4-0",
+      "name": "Windows NT Server 4.0",
+      "build_number": "1381",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03"
+      ]
+    },
+    {
+      "id": "windows-nt-server-3-51",
+      "name": "Windows NT Server 3.51",
+      "build_number": "1057",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03"
+      ]
+    },
+    {
+      "id": "windows-nt-server-3-5",
+      "name": "Windows NT Server 3.5",
+      "build_number": "807",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03"
+      ]
+    },
+    {
+      "id": "windows-nt-advanced-server-3-1",
+      "name": "Windows NT Advanced Server 3.1",
+      "build_number": [
+        "511",
+        "528"
+      ],
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://jeffpar.github.io/kbarchive/kb/105/Q105473/"
+      ],
+      "note": "Generic product entry spans original 511 and later 528 media; do not pretend 528 is its sole original build. Archived original Microsoft KB Q105473 lists 528 Advanced Server CD contents.",
+      "build_variants": [
+        {
+          "product": "Windows NT Advanced Server 3.1 original x86 release",
+          "build_number": "511"
+        },
+        {
+          "product": "Windows NT Advanced Server 3.1 revised media / service-pack generation",
+          "build_number": "528"
+        }
+      ]
+    },
+    {
+      "id": "windows-nt-3-1",
+      "name": "Windows NT 3.1",
+      "build_number": [
+        "511",
+        "528"
+      ],
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://jeffpar.github.io/kbarchive/kb/105/Q105476/",
+        "https://jeffpar.github.io/kbarchive/kb/105/Q105397/"
+      ],
+      "note": "July 1993 original retail media is 511. September 1993 second media set is 528; 528 is not exclusive to SP3. A single scalar 511 means the first release and cannot describe all NT3.1 RTM media.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-3-1-service-pack-1",
+      "name": "Windows NT 3.1 Service Pack 1",
+      "build_number": "528",
+      "status": "confirmed",
+      "sources": [
+        "https://helparchive.huntertur.net/document/51886"
+      ],
+      "note": "Original Microsoft KB Q106409 explicitly identifies U.S. SP1 media as CSD002/528. Do not copy internet tables claiming SP1 remains 511.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-3-1-service-pack-2",
+      "name": "Windows NT 3.1 Service Pack 2",
+      "build_number": "528",
+      "status": "documented_installation",
+      "sources": [
+        "https://betawiki.net/wiki/Windows_NT_3.1_build_528_(SP2)",
+        "https://betawiki.net/wiki/Windows_NT_3.1_build_528_(SP3)",
+        "https://jeffpar.github.io/kbarchive/kb/110/Q110381/",
+        "https://helparchive.huntertur.net/document/50606"
+      ],
+      "note": "Installation/boot/about galleries identify 528 for SP2/SP3. The opened Microsoft KB/readme establishes the SP identity but does not itself print the build. This is weaker than the direct SP1 primary KB proof.",
+      "evidence_kind": "preserved-installation-research-with-screenshot-gallery",
+      "verification_limit": "Published installation/media research; original media and screenshot pixels were not independently inspected in this audit."
+    },
+    {
+      "id": "windows-nt-3-1-service-pack-3",
+      "name": "Windows NT 3.1 Service Pack 3",
+      "build_number": "528",
+      "status": "documented_installation",
+      "sources": [
+        "https://betawiki.net/wiki/Windows_NT_3.1_build_528_(SP2)",
+        "https://betawiki.net/wiki/Windows_NT_3.1_build_528_(SP3)",
+        "https://jeffpar.github.io/kbarchive/kb/110/Q110381/",
+        "https://helparchive.huntertur.net/document/50606"
+      ],
+      "note": "Installation/boot/about galleries identify 528 for SP2/SP3. The opened Microsoft KB/readme establishes the SP identity but does not itself print the build. This is weaker than the direct SP1 primary KB proof.",
+      "evidence_kind": "preserved-installation-research-with-screenshot-gallery",
+      "verification_limit": "Published installation/media research; original media and screenshot pixels were not independently inspected in this audit."
+    },
+    {
+      "id": "windows-nt-workstation-3-5",
+      "name": "Windows NT Workstation 3.5",
+      "build_number": "807",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://jeffpar.github.io/kbarchive/kb/134/Q134957/",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "SP label is independent from base build; Microsoft directly calls NT3.5 SP2 build 807. Do not invent a different build for every SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-5-service-pack-3",
+      "name": "Windows NT Workstation 3.5 Service Pack 3",
+      "build_number": "807",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://jeffpar.github.io/kbarchive/kb/134/Q134957/",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "SP label is independent from base build; Microsoft directly calls NT3.5 SP2 build 807. Do not invent a different build for every SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-5-service-pack-2",
+      "name": "Windows NT Workstation 3.5 Service Pack 2",
+      "build_number": "807",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://jeffpar.github.io/kbarchive/kb/134/Q134957/",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "SP label is independent from base build; Microsoft directly calls NT3.5 SP2 build 807. Do not invent a different build for every SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-5-service-pack-1",
+      "name": "Windows NT Workstation 3.5 Service Pack 1",
+      "build_number": "807",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://jeffpar.github.io/kbarchive/kb/134/Q134957/",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "SP label is independent from base build; Microsoft directly calls NT3.5 SP2 build 807. Do not invent a different build for every SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-51",
+      "name": "Windows NT Workstation 3.51",
+      "build_number": "1057",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. Component suffixes such as 1057.2 through .6 are not new base OS builds.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-51-service-pack-5",
+      "name": "Windows NT Workstation 3.51 Service Pack 5",
+      "build_number": "1057",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. Component suffixes such as 1057.2 through .6 are not new base OS builds.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-51-service-pack-4",
+      "name": "Windows NT Workstation 3.51 Service Pack 4",
+      "build_number": "1057",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. Component suffixes such as 1057.2 through .6 are not new base OS builds.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-51-service-pack-3",
+      "name": "Windows NT Workstation 3.51 Service Pack 3",
+      "build_number": "1057",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. Component suffixes such as 1057.2 through .6 are not new base OS builds.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-51-service-pack-2",
+      "name": "Windows NT Workstation 3.51 Service Pack 2",
+      "build_number": "1057",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. Component suffixes such as 1057.2 through .6 are not new base OS builds.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-3-51-service-pack-1",
+      "name": "Windows NT Workstation 3.51 Service Pack 1",
+      "build_number": "1057",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. Component suffixes such as 1057.2 through .6 are not new base OS builds.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-4-0",
+      "name": "Windows NT Workstation 4.0",
+      "build_number": "1381",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. A particular kernel or DLL's final revision is not a universal revision for the entire SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-4-0-service-pack-6a",
+      "name": "Windows NT Workstation 4.0 Service Pack 6a",
+      "build_number": "1381",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. A particular kernel or DLL's final revision is not a universal revision for the entire SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-4-0-service-pack-6",
+      "name": "Windows NT Workstation 4.0 Service Pack 6",
+      "build_number": "1381",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. A particular kernel or DLL's final revision is not a universal revision for the entire SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-4-0-service-pack-5",
+      "name": "Windows NT Workstation 4.0 Service Pack 5",
+      "build_number": "1381",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. A particular kernel or DLL's final revision is not a universal revision for the entire SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-4-0-service-pack-4",
+      "name": "Windows NT Workstation 4.0 Service Pack 4",
+      "build_number": "1381",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. A particular kernel or DLL's final revision is not a universal revision for the entire SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-4-0-service-pack-3",
+      "name": "Windows NT Workstation 4.0 Service Pack 3",
+      "build_number": "1381",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. A particular kernel or DLL's final revision is not a universal revision for the entire SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-4-0-service-pack-2",
+      "name": "Windows NT Workstation 4.0 Service Pack 2",
+      "build_number": "1381",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. A particular kernel or DLL's final revision is not a universal revision for the entire SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-nt-workstation-4-0-service-pack-1",
+      "name": "Windows NT Workstation 4.0 Service Pack 1",
+      "build_number": "1381",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/sysinternals/resources/archive/v02n03",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/hardware/network/ff562410(v=vs.85)",
+        "https://jeffpar.github.io/kbarchive/kb/132/Q132475/"
+      ],
+      "note": "Keep service-pack level separate. A particular kernel or DLL's final revision is not a universal revision for the entire SP.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-95",
+      "name": "Windows 95",
+      "build_number": "950",
+      "status": "confirmed",
+      "sources": [
+        "https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/158/238.HTM"
+      ],
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-95-osr1",
+      "name": "Windows 95 OSR1",
+      "build_number": "950",
+      "status": "confirmed",
+      "sources": [
+        "https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/158/238.HTM"
+      ],
+      "note": "A is a release identifier; preserve it as product/version metadata, not a new numeric base build.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-95-osr2",
+      "name": "Windows 95 OSR2",
+      "build_number": "1111",
+      "status": "confirmed",
+      "sources": [
+        "https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/158/238.HTM"
+      ],
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-95-osr2-1",
+      "name": "Windows 95 OSR2.1",
+      "build_number": "1111",
+      "status": "confirmed",
+      "sources": [
+        "https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/158/238.HTM"
+      ],
+      "note": "Microsoft states only updated USB/WDM files receive 4.03.1212-1214, and other files retain corresponding OSR2 versions. Therefore use 1111 as OSR2 base; retain USB component versions separately. Do not use 1212/1214/1216 as a universal OS build. Preserve OSR2.1/2.5 entries as requested.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-95-osr2-5",
+      "name": "Windows 95 OSR2.5",
+      "build_number": "1111",
+      "status": "confirmed",
+      "sources": [
+        "https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/158/238.HTM"
+      ],
+      "note": "Microsoft states only updated USB/WDM files receive 4.03.1212-1214, and other files retain corresponding OSR2 versions. Therefore use 1111 as OSR2 base; retain USB component versions separately. Do not use 1212/1214/1216 as a universal OS build. Preserve OSR2.1/2.5 entries as requested.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-98",
+      "name": "Windows 98",
+      "build_number": "1998",
+      "status": "confirmed",
+      "sources": [
+        "https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/158/238.HTM"
+      ],
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-98-second-edition",
+      "name": "Windows 98 Second Edition",
+      "build_number": "2222",
+      "status": "confirmed",
+      "sources": [
+        "https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/158/238.HTM"
+      ],
+      "note": "A is retained in full version metadata.",
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-me",
+      "name": "Windows Me",
+      "build_number": "3000",
+      "status": "confirmed",
+      "sources": [
+        "https://ftp.zx.net.nz/pub/archive/ftp.microsoft.com/MISC/KB/en-us/158/238.HTM"
+      ],
+      "evidence_kind": "microsoft-documentation-or-preserved-kb"
+    },
+    {
+      "id": "windows-1-01",
+      "name": "Windows 1.01",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-1-02",
+      "name": "Windows 1.02",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-1-03",
+      "name": "Windows 1.03",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-1-04",
+      "name": "Windows 1.04",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-2-01",
+      "name": "Windows 2.01",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-2-03",
+      "name": "Windows 2.03",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-2-1",
+      "name": "Windows 2.1",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-2-11",
+      "name": "Windows 2.11",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-3-0",
+      "name": "Windows 3.0",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-3-0a",
+      "name": "Windows 3.0a",
+      "build_number": null,
+      "status": "unverified",
+      "sources": [],
+      "note": "The catalog entries identify product releases, not independently numbered builds. No trustworthy independent base-build number was established in this research. Do not copy 1.01/2.11/3.00a into build_number, or invent 101/211/300. Retain product_version separately and explicitly mark build status. This does not claim no internal build ever existed.",
+      "evidence_kind": "not-established"
+    },
+    {
+      "id": "windows-3-1",
+      "name": "Windows 3.1",
+      "build_number": "103",
+      "status": "documented_installation",
+      "sources": [
+        "https://betawiki.net/wiki/Windows_3.1_build_103",
+        "https://www.pcjs.org/software/pcx86/sys/windows/3.10/"
+      ],
+      "note": "English RTM conventionally 103; localized/reissued Windows3.1 can have other builds. Microsoft PCjs-preserved original disk listing identifies March10,1992 media but does not print 103, so the numeric evidence is the installation/debug-build observation, not the disk listing.",
+      "evidence_kind": "preserved-installation-research-with-screenshot-gallery",
+      "verification_limit": "Published installation/media research; original media and screenshot pixels were not independently inspected in this audit."
+    },
+    {
+      "id": "windows-for-workgroups-3-1",
+      "name": "Windows for Workgroups 3.1",
+      "build_number": "102",
+      "status": "documented_installation",
+      "sources": [
+        "https://betawiki.net/wiki/Windows_for_Workgroups_3.1_build_102"
+      ],
+      "note": "Documented installed/debug RTM build, full version sometimes written 3.10.2.102. Not a numeric transformation of product name 3.1.",
+      "evidence_kind": "preserved-installation-research-with-screenshot-gallery",
+      "verification_limit": "Published installation/media research; original media and screenshot pixels were not independently inspected in this audit."
+    },
+    {
+      "id": "windows-for-workgroups-3-11",
+      "name": "Windows for Workgroups 3.11",
+      "build_number": "300",
+      "status": "documented_installation",
+      "sources": [
+        "https://betawiki.net/wiki/Windows_for_Workgroups_3.11_build_300",
+        "https://www.thecollectionbook.info/windows/for-workgroups-311/50"
+      ],
+      "note": "RTM base300. Do not use412: older lists took the highest component version as the build.",
+      "evidence_kind": "preserved-installation-research-with-screenshot-gallery",
+      "verification_limit": "Published installation/media research; original media and screenshot pixels were not independently inspected in this audit."
+    },
+    {
+      "id": "windows-3-11",
+      "name": "Windows 3.11",
+      "build_number": "002",
+      "status": "documented_installation",
+      "sources": [
+        "https://betawiki.net/wiki/Windows_3.11_build_002",
+        "https://jeffpar.github.io/kbarchive/kb/114/Q114301/"
+      ],
+      "note": "Plain3.11 is distinct from WfW3.11. Numeric002 is from installed-media analysis; MicrosoftKB establishes refresh relationship but not002. Preserve leading zeros in string. Do not substitute WfW build300 or component117.",
+      "evidence_kind": "preserved-installation-research-with-screenshot-gallery",
+      "verification_limit": "Published installation/media research; original media and screenshot pixels were not independently inspected in this audit."
+    },
+    {
+      "id": "windows-3-2",
+      "name": "Windows 3.2",
+      "build_number": "153",
+      "status": "documented_installation",
+      "sources": [
+        "https://betawiki.net/wiki/Windows_3.2_build_153",
+        "https://jeffpar.github.io/kbarchive/kb/129/Q129451/"
+      ],
+      "note": "SimplifiedChinese3.2 RTM. MicrosoftKB confirms Chinese-only3.1 upgrade; number153 is from installed-media analysis. Do not convert product3.2 into build320.",
+      "evidence_kind": "preserved-installation-research-with-screenshot-gallery",
+      "verification_limit": "Published installation/media research; original media and screenshot pixels were not independently inspected in this audit."
+    },
+    {
+      "id": "windows-pe-1-0",
+      "name": "Windows PE 1.0",
+      "build_number": "2600",
+      "status": "mapped_base",
+      "sources": [
+        "https://download.microsoft.com/documents/uk/technet/downloads/technetmagazine/issue2/36_39_get_started.pdf",
+        "https://mskb.pkisolutions.com/kb/828217"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-1-1",
+      "name": "Windows PE 1.1",
+      "build_number": "2600",
+      "status": "mapped_base",
+      "sources": [
+        "https://download.microsoft.com/documents/uk/technet/downloads/technetmagazine/issue2/36_39_get_started.pdf",
+        "https://mskb.pkisolutions.com/kb/828217"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-1-2",
+      "name": "Windows PE 1.2",
+      "build_number": "2600",
+      "status": "mapped_base",
+      "sources": [
+        "https://mskb.pkisolutions.com/kb/828217",
+        "https://download.microsoft.com/documents/uk/technet/downloads/technetmagazine/issue2/36_39_get_started.pdf"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected.",
+      "build_variants": [
+        {
+          "build_number": "2600",
+          "basis": "XP SP1 (default CD per KB828217)"
+        },
+        {
+          "build_number": "3790",
+          "basis": "Server2003 RTM (permitted mkimg source)"
+        }
+      ]
+    },
+    {
+      "id": "windows-pe-1-5",
+      "name": "Windows PE 1.5",
+      "build_number": "2600",
+      "status": "mapped_base",
+      "sources": [
+        "https://download.microsoft.com/documents/uk/technet/downloads/technetmagazine/issue2/36_39_get_started.pdf"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected.",
+      "build_variants": [
+        {
+          "build_number": "2600",
+          "basis": "XP SP2"
+        },
+        {
+          "build_number": "3790",
+          "basis": "Server2003 RTM permitted source"
+        }
+      ]
+    },
+    {
+      "id": "windows-pe-1-6",
+      "name": "Windows PE 1.6",
+      "build_number": "3790",
+      "status": "mapped_base",
+      "sources": [
+        "https://download.microsoft.com/documents/uk/technet/downloads/technetmagazine/issue2/36_39_get_started.pdf",
+        "https://www.bootix.de/support/documentation/windows_pe_2005_boot_image_creator.pdf",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-7/dd349350(v=ws.10)"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected.",
+      "build_variants": [
+        {
+          "build_number": "3790",
+          "basis": "Server2003 SP1"
+        },
+        {
+          "build_number": "2600",
+          "basis": "XP SP2 permitted source;RAMDisk/UFD features differ"
+        }
+      ]
+    },
+    {
+      "id": "windows-pe-2-0",
+      "name": "Windows PE 2.0",
+      "build_number": "6000",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-vista/cc766093(v=ws.10)"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-2-1",
+      "name": "Windows PE 2.1",
+      "build_number": "6001",
+      "status": "mapped_base",
+      "sources": [
+        "https://www.microsoft.com/en-us/download/details.aspx?id=9085",
+        "https://mskb.pkisolutions.com/kb/2323366"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-3-0",
+      "name": "Windows PE 3.0",
+      "build_number": "7600",
+      "status": "mapped_base",
+      "sources": [
+        "https://www.microsoft.com/en-us/download/details.aspx?id=5188",
+        "https://support.microsoft.com/en-us/topic/driver-load-times-are-much-longer-in-windows-pe-3-0-than-in-windows-pe-2-1-on-a-computer-that-is-running-windows-7-or-windows-server-2008-r2-772b7a2f-dfe2-fec3-8e21-af83b661d617"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-3-1",
+      "name": "Windows PE 3.1",
+      "build_number": "7601",
+      "status": "mapped_base",
+      "sources": [
+        "https://www.microsoft.com/en-us/download/details.aspx?id=5188",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-7/dd349350(v=ws.10)",
+        "https://software.fujitsu.com/jp/manual/manualfiles/m200011/j2x18136/02enz203/j2x1-8136-02enz0.pdf"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-4-0",
+      "name": "Windows PE 4.0",
+      "build_number": "9200",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-8.1-and-8/hh825071(v=win.10)"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-5-0",
+      "name": "Windows PE 5.0",
+      "build_number": "9600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-8.1-and-8/dn613859(v=win.10)",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-8.1-and-8/hh825071(v=win.10)"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-5-1",
+      "name": "Windows PE 5.1",
+      "build_number": "9600",
+      "status": "mapped_base",
+      "sources": [
+        "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-8.1-and-8/dn613859(v=win.10)",
+        "https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-8.1-and-8/hh825071(v=win.10)"
+      ],
+      "note": "Numeric base build mapped from the Microsoft-documented source OS; revision is not asserted. Individual historical WIM headers were not inspected."
+    },
+    {
+      "id": "windows-pe-10-0-28000",
+      "name": "Windows PE 10.0.28000",
+      "build_number": "28000",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/2472e9a0-7c74-4ffd-a3e4-27ed1fa30d30/adkwinpeaddons/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-26100",
+      "name": "Windows PE 10.0.26100",
+      "build_number": "26100",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/a4a79e7a-f085-41c4-aebf-2538fd000790/adkwinpeaddons/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-25398",
+      "name": "Windows PE 10.0.25398",
+      "build_number": "25398",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/4/7/6/47653b91-4dc7-46f3-ad00-e665f6ac8105/ADKWINPEADDONS/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-22621",
+      "name": "Windows PE 10.0.22621",
+      "build_number": "22621",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/17ac4263-5816-4f1b-8131-87c4d5a3331f/adkwinpeaddons/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-22000",
+      "name": "Windows PE 10.0.22000",
+      "build_number": "22000",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/5/5/e/55e3e34a-5708-46cd-a90d-92044c29336b/adkwinpeaddons/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-20348",
+      "name": "Windows PE 10.0.20348",
+      "build_number": "20348",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/7ac54d34-b7b7-44f8-9c9b-e2f8db79995a/adkwinpeaddons/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-19041",
+      "name": "Windows PE 10.0.19041",
+      "build_number": "19041",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/058b9477-7235-48ec-a700-73c5ccf9c286/adkwinpeaddons/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-18362",
+      "name": "Windows PE 10.0.18362",
+      "build_number": "18362",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/E/F/A/EFA17CF0-7140-4E92-AC0A-D89366EBD79E/adkwinpeaddons/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-17763",
+      "name": "Windows PE 10.0.17763",
+      "build_number": "17763",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/57bd2de4-4de2-4042-8a81-29d442073941/adkwinpeaddons/adkwinpesetup.exe",
+        "https://download.microsoft.com/download/D/7/E/D7E22261-D0B3-4ED6-8151-5E002C7F823D/adkwinpeaddons/adkwinpesetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-17134",
+      "name": "Windows PE 10.0.17134",
+      "build_number": "17134",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/6/8/9/689E62E5-C50F-407B-9C3C-B7F00F8C93C0/adk/adksetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-16299",
+      "name": "Windows PE 10.0.16299",
+      "build_number": "16299",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/3/1/E/31EC1AAF-3501-4BB4-B61C-8BD8A07B4E8A/adk/adksetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-15063",
+      "name": "Windows PE 10.0.15063",
+      "build_number": "15063",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/5/D/9/5D915042-FCAA-4859-A1C3-29E198690493/adk/adksetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-14393",
+      "name": "Windows PE 10.0.14393",
+      "build_number": "14393",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/b53d3b97-9f7f-49df-b373-10138ee34d00/adk/adksetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0-10586",
+      "name": "Windows PE 10.0.10586",
+      "build_number": "10586",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/3/8/B/38BBCA6A-ADC9-4245-BCD8-DAA136F63C8B/adk/adksetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    },
+    {
+      "id": "windows-pe-10-0",
+      "name": "Windows PE 10.0.10240",
+      "build_number": "10240",
+      "status": "confirmed",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install",
+        "https://download.microsoft.com/download/8/1/9/8197FEB9-FABE-48FD-A537-7D8709586715/adk/adksetup.exe"
+      ],
+      "note": "Base WinPE OS build. ADK package version and later servicing revision are separate; no image/boot-test association is created."
+    }
+  ]
+}

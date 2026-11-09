@@ -527,7 +527,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: b3c2d50f7c3d786b840b59526908d41dc7f32211cae5f32d261e7c8d22af704e -->
+<!-- source-sha256: 632e68415f749f7c625cd74a88fc7b6b1041c975bd166a4775c54a5659f71057 -->
 
 程序集：`ExHyperV.Core.dll` · 版本：`2.0.0-Alpha`。
 

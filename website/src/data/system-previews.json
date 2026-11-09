@@ -1,0 +1,4791 @@
+{
+  "windows-11-26h2": {
+    "x64": {
+      "image": null,
+      "build_number": "26300",
+      "wddm": "3.2",
+      "description": "",
+      "wddm_scope": "os-supported"
+    },
+    "arm64": {
+      "image": "/screenshots/Windows-11-26H2-ARM64.png",
+      "image_width": 1531,
+      "image_height": 1151,
+      "build_number": "26300",
+      "wddm": "3.2",
+      "description": "",
+      "wddm_scope": "os-supported"
+    }
+  },
+  "windows-11-26h1": {
+    "x64": {
+      "image": null,
+      "build_number": "28000",
+      "wddm": "3.2",
+      "description": "",
+      "wddm_scope": "os-supported"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "28000",
+      "wddm": "3.2",
+      "description": "",
+      "wddm_scope": "os-supported"
+    }
+  },
+  "windows-11-25h2": {
+    "x64": {
+      "image": null,
+      "build_number": "26200",
+      "wddm": "3.2",
+      "description": "",
+      "wddm_scope": "os-supported"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "26200",
+      "wddm": "3.2",
+      "description": "",
+      "wddm_scope": "os-supported"
+    }
+  },
+  "windows-11-24h2": {
+    "x64": {
+      "image": null,
+      "build_number": "26100",
+      "wddm": "3.2",
+      "description": "",
+      "wddm_scope": "os-supported"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "26100",
+      "wddm": "3.2",
+      "description": "",
+      "wddm_scope": "os-supported"
+    }
+  },
+  "windows-11-23h2": {
+    "x64": {
+      "image": null,
+      "build_number": "22631",
+      "wddm": "3.1",
+      "description": "",
+      "wddm_scope": "os-supported"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "22631",
+      "wddm": "3.1",
+      "description": "",
+      "wddm_scope": "os-supported"
+    }
+  },
+  "windows-10-22h2": {
+    "x86": {
+      "image": null,
+      "build_number": "19045",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-22h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "19045",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-22h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "19045",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-22h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    }
+  },
+  "windows-11-22h2": {
+    "x64": {
+      "image": null,
+      "build_number": "22621",
+      "wddm": "3.1",
+      "description": "",
+      "wddm_scope": "os-supported"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "22621",
+      "wddm": "3.1",
+      "description": "",
+      "wddm_scope": "os-supported"
+    }
+  },
+  "windows-10-21h2": {
+    "x86": {
+      "image": null,
+      "build_number": "19044",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-21h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "19044",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-21h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "19044",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-21h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    }
+  },
+  "windows-11-21h2": {
+    "x64": {
+      "image": null,
+      "build_number": "22000",
+      "wddm": "3.0",
+      "description": "",
+      "wddm_scope": "os-supported"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "22000",
+      "wddm": "3.0",
+      "description": "",
+      "wddm_scope": "os-supported"
+    }
+  },
+  "windows-10-21h1": {
+    "x86": {
+      "image": null,
+      "build_number": "19043",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-21h1",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "19043",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-21h1",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "19043",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-21h1",
+      "display_model_evidence_status": "shared-core-mapping"
+    }
+  },
+  "windows-10-20h2": {
+    "x86": {
+      "image": null,
+      "build_number": "19042",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-20h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "19042",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-20h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "19042",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-20h2",
+      "display_model_evidence_status": "shared-core-mapping"
+    }
+  },
+  "windows-10-2004": {
+    "x86": {
+      "image": null,
+      "build_number": "19041",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-2004",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "19041",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-2004",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "19041",
+      "wddm": "2.7",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-2004",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-10-1909": {
+    "x86": {
+      "image": null,
+      "build_number": "18363",
+      "wddm": "2.6",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1909",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "18363",
+      "wddm": "2.6",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1909",
+      "display_model_evidence_status": "shared-core-mapping"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "18363",
+      "wddm": "2.6",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1909",
+      "display_model_evidence_status": "shared-core-mapping"
+    }
+  },
+  "windows-10-1903": {
+    "x86": {
+      "image": null,
+      "build_number": "18362",
+      "wddm": "2.6",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1903",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "18362",
+      "wddm": "2.6",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1903",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "18362",
+      "wddm": "2.6",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1903",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-10-1809": {
+    "x86": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": "2.5",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1809",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": "2.5",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1809",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": "2.5",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1809",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-10-1803": {
+    "x86": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": "2.4",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1803",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": "2.4",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1803",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": "2.4",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1803",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-10-1709": {
+    "x86": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": "2.3",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1709",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": "2.3",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1709",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": "2.3",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1709",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-10-1703": {
+    "x86": {
+      "image": null,
+      "build_number": "15063",
+      "wddm": "2.2",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1703",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "15063",
+      "wddm": "2.2",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1703",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "15063",
+      "wddm": "2.2",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1703",
+      "display_model_evidence_status": "release-platform-inference"
+    }
+  },
+  "windows-10-1607": {
+    "x86": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": "2.1",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1607",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": "2.1",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1607",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-10-1511": {
+    "x86": {
+      "image": null,
+      "build_number": "10586",
+      "wddm": "2.0",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1511",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "10586",
+      "wddm": "2.0",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1511",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "10586",
+      "wddm": "2.0",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1511",
+      "display_model_evidence_status": "release-platform-inference"
+    }
+  },
+  "windows-10-1507": {
+    "x86": {
+      "image": null,
+      "build_number": "10240",
+      "wddm": "2.0",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1507",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "10240",
+      "wddm": "2.0",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-10-1507",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-8-1": {
+    "x86": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": "1.3",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-8-1",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": "1.3",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-8-1",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-8": {
+    "x86": {
+      "image": null,
+      "build_number": "9200",
+      "wddm": "1.2",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-8",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "9200",
+      "wddm": "1.2",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-8",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-7-service-pack-1": {
+    "x86": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": "1.1",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-7-service-pack-1",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": "1.1",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-7-service-pack-1",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-7": {
+    "x86": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": "1.1",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-7",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": "1.1",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-7",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-vista-service-pack-2": {
+    "x86": {
+      "image": null,
+      "build_number": "6002",
+      "wddm": "1.05",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-vista-service-pack-2",
+      "display_model_evidence_status": "inherited-sp1-extension"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "6002",
+      "wddm": "1.05",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-vista-service-pack-2",
+      "display_model_evidence_status": "inherited-sp1-extension"
+    }
+  },
+  "windows-xp-service-pack-3": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-xp-service-pack-3",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-vista-service-pack-1": {
+    "x86": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": "1.05",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-vista-service-pack-1",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": "1.05",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-vista-service-pack-1",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-vista": {
+    "x86": {
+      "image": null,
+      "build_number": "6000",
+      "wddm": "1.0",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-vista",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "6000",
+      "wddm": "1.0",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-vista",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-xp-service-pack-2": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-xp-service-pack-2",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-xp-service-pack-1a": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-xp-service-pack-1a",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-xp-service-pack-1": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-xp-service-pack-1",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-xp": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-xp",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-me": {
+    "x86": {
+      "image": null,
+      "build_number": "3000",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2000-professional": {
+    "x86": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-2000-professional",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-98-second-edition": {
+    "x86": {
+      "image": null,
+      "build_number": "2222",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-98": {
+    "x86": {
+      "image": null,
+      "build_number": "1998",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-95-osr2-5": {
+    "x86": {
+      "image": null,
+      "build_number": "1111",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-95-osr2-1": {
+    "x86": {
+      "image": null,
+      "build_number": "1111",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-95-osr2": {
+    "x86": {
+      "image": null,
+      "build_number": "1111",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-4-0": {
+    "x86": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-95-osr1": {
+    "x86": {
+      "image": null,
+      "build_number": "950",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-95": {
+    "x86": {
+      "image": null,
+      "build_number": "950",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-51": {
+    "x86": {
+      "image": null,
+      "build_number": "1057",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-5": {
+    "x86": {
+      "image": null,
+      "build_number": "807",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-3-2": {
+    "x86": {
+      "image": null,
+      "build_number": "153",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-for-workgroups-3-11": {
+    "x86": {
+      "image": null,
+      "build_number": "300",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-3-11": {
+    "x86": {
+      "image": null,
+      "build_number": "002",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-3-1": {
+    "x86": {
+      "image": null,
+      "build_number": [
+        "511",
+        "528"
+      ],
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-for-workgroups-3-1": {
+    "x86": {
+      "image": null,
+      "build_number": "102",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-3-1": {
+    "x86": {
+      "image": null,
+      "build_number": "103",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-3-0a": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-3-0": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2-11": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2-03": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2-01": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-1-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-1-03": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-1-02": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-1-01": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2000-professional-service-pack-4": {
+    "x86": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-2000-professional-service-pack-4",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-2000-professional-service-pack-3": {
+    "x86": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-2000-professional-service-pack-3",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-2000-professional-service-pack-2": {
+    "x86": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-2000-professional-service-pack-2",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-2000-professional-service-pack-1": {
+    "x86": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-2000-professional-service-pack-1",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-xp-professional-x64-edition-service-pack-2": {
+    "x64": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-xp-professional-x64-edition-service-pack-2",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-xp-professional-x64-edition": {
+    "x64": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": "",
+      "xddm": true,
+      "xddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-xp-professional-x64-edition",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-8-1-update": {
+    "x86": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": "1.3",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-8-1-update",
+      "display_model_evidence_status": "confirmed-release-model"
+    },
+    "x64": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": "1.3",
+      "description": "",
+      "wddm_scope": "os-supported",
+      "display_model_evidence": "windows-display-model-evidence.json#records/windows-8-1-update",
+      "display_model_evidence_status": "confirmed-release-model"
+    }
+  },
+  "windows-nt-workstation-4-0-service-pack-6a": {
+    "x86": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-4-0-service-pack-6": {
+    "x86": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-4-0-service-pack-5": {
+    "x86": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-4-0-service-pack-4": {
+    "x86": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-4-0-service-pack-3": {
+    "x86": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-4-0-service-pack-2": {
+    "x86": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-4-0-service-pack-1": {
+    "x86": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-51-service-pack-5": {
+    "x86": {
+      "image": null,
+      "build_number": "1057",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-51-service-pack-4": {
+    "x86": {
+      "image": null,
+      "build_number": "1057",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-51-service-pack-3": {
+    "x86": {
+      "image": null,
+      "build_number": "1057",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-51-service-pack-2": {
+    "x86": {
+      "image": null,
+      "build_number": "1057",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-51-service-pack-1": {
+    "x86": {
+      "image": null,
+      "build_number": "1057",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-5-service-pack-3": {
+    "x86": {
+      "image": null,
+      "build_number": "807",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-5-service-pack-2": {
+    "x86": {
+      "image": null,
+      "build_number": "807",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-workstation-3-5-service-pack-1": {
+    "x86": {
+      "image": null,
+      "build_number": "807",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-3-1-service-pack-3": {
+    "x86": {
+      "image": null,
+      "build_number": "528",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-3-1-service-pack-2": {
+    "x86": {
+      "image": null,
+      "build_number": "528",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-3-1-service-pack-1": {
+    "x86": {
+      "image": null,
+      "build_number": "528",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-iot-2025": {
+    "default": {
+      "image": null,
+      "build_number": "26100",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "server-2025": {
+    "x64": {
+      "image": null,
+      "build_number": "26100",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-version-23h2": {
+    "default": {
+      "image": null,
+      "build_number": "25398",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-iot-2022": {
+    "default": {
+      "image": null,
+      "build_number": "20348",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "server-2022": {
+    "x64": {
+      "image": null,
+      "build_number": "20348",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-version-20h2": {
+    "default": {
+      "image": null,
+      "build_number": "19042",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-version-2004": {
+    "default": {
+      "image": null,
+      "build_number": "19041",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-version-1909": {
+    "default": {
+      "image": null,
+      "build_number": "18363",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-version-1903": {
+    "default": {
+      "image": null,
+      "build_number": "18362",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-iot-2019-for-storage": {
+    "default": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-iot-2019": {
+    "default": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "server-2019": {
+    "x64": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "hyper-v-server-2019": {
+    "default": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-version-1809": {
+    "default": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-version-1803": {
+    "default": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-version-1709": {
+    "default": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2016": {
+    "default": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "server-2016": {
+    "x64": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "hyper-v-server-2016": {
+    "default": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2012-r2": {
+    "default": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2012-r2": {
+    "x64": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "hyper-v-server-2012-r2": {
+    "default": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2012": {
+    "default": {
+      "image": null,
+      "build_number": "9200",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "server-2012": {
+    "x64": {
+      "image": null,
+      "build_number": "9200",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-multipoint-server-2012": {
+    "default": {
+      "image": null,
+      "build_number": "9200",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "hyper-v-server-2012": {
+    "default": {
+      "image": null,
+      "build_number": "9200",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-home-server-2011": {
+    "default": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-multipoint-server-2011": {
+    "default": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "hyper-v-server-2008-r2-service-pack-1": {
+    "default": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-small-business-server-2011": {
+    "default": {
+      "image": null,
+      "build_number": [
+        "7600",
+        "7601"
+      ],
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2008-r2-service-pack-1": {
+    "default": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2008-r2-service-pack-1": {
+    "default": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-hpc-server-2008-r2-service-pack-1": {
+    "default": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2008-r2": {
+    "default": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-hpc-server-2008-r2": {
+    "default": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-multipoint-server-2010": {
+    "default": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2008-r2": {
+    "x64": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "hyper-v-server-2008-r2": {
+    "default": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2008-service-pack-2": {
+    "default": {
+      "image": null,
+      "build_number": "6002",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2008-embedded": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2008": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-web-server-2008-service-pack-2": {
+    "default": {
+      "image": null,
+      "build_number": "6002",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-web-server-2008-service-pack-1": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2008-for-windows-essential-server-solutions-service-pack-2": {
+    "default": {
+      "image": null,
+      "build_number": "6002",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2008-service-pack-2": {
+    "default": {
+      "image": null,
+      "build_number": "6002",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-hpc-server-2008-service-pack-2": {
+    "default": {
+      "image": null,
+      "build_number": "6002",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2008-for-windows-essential-server-solutions": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-hpc-server-2008": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "hyper-v-server-2008": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-essential-business-server-2008": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-small-business-server-2008": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-web-server-2008": {
+    "default": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "server-2008": {
+    "x86": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-home-server": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2003-r2-service-pack-2": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2003-service-pack-2": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2003-r2-service-pack-2": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "microsoft-windows-small-business-server-2003-r2": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2003-r2": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2003-r2": {
+    "x86": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "microsoft-windows-small-business-server-2003-service-pack-1": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-server-2003-service-pack-1": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "microsoft-windows-small-business-server-2003": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "server-2003": {
+    "x86": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-storage-server-2003": {
+    "default": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-small-business-server-2000": {
+    "default": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2000-datacenter-server": {
+    "default": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2000-server": {
+    "default": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-2000-advanced-server": {
+    "default": {
+      "image": null,
+      "build_number": "2195",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-server-4-0-terminal-server-edition": {
+    "default": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-server-4-0-enterprise-edition": {
+    "default": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-server-4-0": {
+    "default": {
+      "image": null,
+      "build_number": "1381",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-server-3-51": {
+    "default": {
+      "image": null,
+      "build_number": "1057",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-server-3-5": {
+    "default": {
+      "image": null,
+      "build_number": "807",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-nt-advanced-server-3-1": {
+    "default": {
+      "image": null,
+      "build_number": [
+        "511",
+        "528"
+      ],
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-28000": {
+    "x64": {
+      "image": null,
+      "build_number": "28000",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "28000",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-26100": {
+    "x64": {
+      "image": null,
+      "build_number": "26100",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "26100",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-25398": {
+    "x64": {
+      "image": null,
+      "build_number": "25398",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "25398",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-22621": {
+    "x64": {
+      "image": null,
+      "build_number": "22621",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "22621",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-22000": {
+    "x86": {
+      "image": null,
+      "build_number": "22000",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "22000",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "22000",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-20348": {
+    "x86": {
+      "image": null,
+      "build_number": "20348",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "20348",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-19041": {
+    "x86": {
+      "image": null,
+      "build_number": "19041",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "19041",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "19041",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-18362": {
+    "x86": {
+      "image": null,
+      "build_number": "18362",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "18362",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "18362",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-17763": {
+    "x86": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-17134": {
+    "x86": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-16299": {
+    "x86": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-15063": {
+    "x86": {
+      "image": null,
+      "build_number": "15063",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "15063",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-14393": {
+    "x86": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0-10586": {
+    "x86": {
+      "image": null,
+      "build_number": "10586",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "10586",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-10-0": {
+    "x86": {
+      "image": null,
+      "build_number": "10240",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "10240",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-5-1": {
+    "x86": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-5-0": {
+    "x86": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "9600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-4-0": {
+    "x86": {
+      "image": null,
+      "build_number": "9200",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "9200",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-3-1": {
+    "x86": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "7601",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-3-0": {
+    "x86": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "7600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-2-1": {
+    "x86": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "6001",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-2-0": {
+    "x86": {
+      "image": null,
+      "build_number": "6000",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "6000",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-1-6": {
+    "x86": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "3790",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-1-5": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-1-2": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-1-1": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-pe-1-0": {
+    "x86": {
+      "image": null,
+      "build_number": "2600",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-10-iot-core-ltsc": {
+    "x86": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-10-iot-core-1809": {
+    "x86": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "17763",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-10-iot-core-1803": {
+    "x86": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "17134",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-10-iot-core-1709": {
+    "x86": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "16299",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-10-iot-core-1703": {
+    "x86": {
+      "image": null,
+      "build_number": "15063",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "15063",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-10-iot-core-1607": {
+    "x86": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": "14393",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-10-iot-core-1511": {
+    "x86": {
+      "image": null,
+      "build_number": "10586",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "windows-10-iot-core-original": {
+    "x86": {
+      "image": null,
+      "build_number": "10240",
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-26-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-26-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-26-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-25-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-25-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-24-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-24-04-5": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-24-04-4": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-24-04-3": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-24-04-2": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-24-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-24-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-23-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-23-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-22-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-22-04-5": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-22-04-4": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-22-04-3": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-22-04-2": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-22-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-22-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-21-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-21-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-20-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-20-04-6": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-20-04-5": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-20-04-4": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-20-04-3": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-20-04-2": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-20-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-20-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-19-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-19-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-18-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-18-04-6": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-18-04-5": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-18-04-4": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-18-04-3": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-18-04-2": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-18-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-18-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-17-10-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-17-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-17-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-04-7": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-04-6": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-04-5": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-16-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-15-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-15-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-14-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-14-04-6": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-14-04-5": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-14-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-14-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-14-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-14-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-14-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-13-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-13-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-12-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-12-04-5": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-12-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-12-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-12-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-12-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-12-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-11-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-11-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-10-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-10-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-10-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-10-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-10-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-10-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-9-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-9-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-8-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-8-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-8-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-8-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-8-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-8-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-7-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-7-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-6-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-6-06-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-6-06-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-6-06": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-server-5-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-26-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-26-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-26-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-25-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-25-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-24-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-24-04-5-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-24-04-5": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-24-04-4": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-24-04-3": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "arm64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-24-04-2": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-24-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-24-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-23-10-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-23-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-23-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-22-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-22-04-5": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-22-04-4": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-22-04-3": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-22-04-2": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-22-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-22-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-21-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-21-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-20-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-20-04-6": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-20-04-5": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-20-04-4": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-20-04-3": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-20-04-2": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-20-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-20-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-19-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-19-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-18-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-18-04-6": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-18-04-5": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-18-04-4": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-18-04-3": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-18-04-2": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-18-04-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-18-04": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-17-10-1": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-17-10": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-17-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-04-7": {
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-04-6": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-04-5": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-16-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-15-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-15-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-14-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-14-04-6": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-14-04-5": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-14-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-14-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-14-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-14-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-14-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-13-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-13-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-12-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-12-04-5": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-12-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-12-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-12-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-12-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-12-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-11-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-11-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-10-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-10-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-10-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-10-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-10-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-10-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-9-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-9-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-8-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-8-04-4": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-8-04-3": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-8-04-2": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-8-04-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-8-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-7-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-7-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-6-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-6-06-1": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-6-06": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-5-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-5-04": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  },
+  "ubuntu-4-10": {
+    "x86": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    },
+    "x64": {
+      "image": null,
+      "build_number": null,
+      "wddm": null,
+      "description": ""
+    }
+  }
+}

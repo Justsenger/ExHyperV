@@ -1,0 +1,243 @@
+{
+  "checked_on": "2026-10-24",
+  "site": "https://www.pc528.net/",
+  "scope": "原版站内检索前两页、Windows 10 前三页及 Windows 11 21H2/22H2 分类页。未完成全站穷尽。",
+  "verification_limits": "直接 HTTP 请求返回 403，已通过正常浏览器公开正文及分类页核对。未登录、付费、下载镜像或验证启动。",
+  "summary": {
+    "added_panels": 13,
+    "article_and_file_metadata_checked": 9,
+    "category_metadata_only": 4,
+    "architectures": [
+      "x64"
+    ]
+  },
+  "imports": [
+    {
+      "version_id": "windows-11-26h2",
+      "architecture": "x64",
+      "build_number": "26300.9711",
+      "url": "https://www.pc528.net/26300-ge_release.html",
+      "title": "【原版】Windows11 26H2 (26300.9711）x64 [8.26G] (2026.10.18)",
+      "media_variant": "source_claimed_original",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/26300-ge_release.html",
+      "declared_file": {
+        "name": "26300.9711.261009-2244.26H2_GE_RELEASE_SVC_PROD1_CLIENTPRO_OEMRET_X64FRE_ZH-CN.ISO",
+        "size_bytes": 8874778624,
+        "md5": "169344C8B4CAA16B41472132C2D4EF05",
+        "sha1": "4A629CCC5F1DC1DFCC2485C7FB3F1CF36A825B92",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。“原版、未精简、未优化”为站方说明，不代表已独立确认是微软原始发行介质。"
+    },
+    {
+      "version_id": "windows-11-23h2",
+      "architecture": "x64",
+      "build_number": "22631.7652",
+      "url": "https://www.pc528.net/22631uup.html",
+      "title": "【原版】Windows11 23H2 (22631.7652) X64 [7.08G]（2026.10.18）",
+      "media_variant": "source_claimed_original",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/22631uup.html",
+      "declared_file": {
+        "name": "22631.7652.261013-0540.23H2_NI_RELEASE_SVC_PROD1_CLIENTPRO_OEMRET_X64FRE_ZH-CN.ISO",
+        "size_bytes": 7605254144,
+        "md5": "7EEB1CE2694DF992948BCE828A48E15F",
+        "sha1": "71CE4B7AFA56942C3AFD6F886A96F0E11DB08F5D",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。“原版、未精简、未优化”为站方说明，不代表已独立确认是微软原始发行介质。"
+    },
+    {
+      "version_id": "windows-11-25h2",
+      "architecture": "x64",
+      "build_number": "26200.9711",
+      "url": "https://www.pc528.net/windows11-25h2-y.html",
+      "title": "【原版】Windows11 25H2 (26200.9711）x64 [8.25G] (2026.10.17)",
+      "media_variant": "source_claimed_original",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/windows11-25h2-y.html",
+      "declared_file": {
+        "name": "26200.9711.261009-2244.25H2_GE_RELEASE_SVC_PROD1_CLIENTPRO_OEMRET_X64FRE_ZH-CN.ISO",
+        "size_bytes": 8862214144,
+        "md5": "4E61DF5EA9AD0F8D296C7C99874FF238",
+        "sha1": "476226086C19E96B10321A2C63394F4E67AA78F6",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。“原版、未精简、未优化”为站方说明，不代表已独立确认是微软原始发行介质。"
+    },
+    {
+      "version_id": "windows-11-26h1",
+      "architecture": "x64",
+      "build_number": "28000.3086",
+      "url": "https://www.pc528.net/windows11-26h1-y.html",
+      "title": "【原版】Windows11 26H1 (28000.3086）x64 [7.41G] (2026.9.26)",
+      "media_variant": "source_claimed_original",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/windows11-26h1-y.html",
+      "declared_file": {
+        "name": "28000.3086.260917-1739.BR_RELEASE_SVC_PROD3_CLIENTPRO_OEMRET_X64FRE_ZH-CN.ISO",
+        "size_bytes": 7961640960,
+        "md5": "C22AA8755326EE6F26D6DD8245A6A8D2",
+        "sha1": "3A3A0286503D9BF7D03C7C98334DF1CC15A3600A",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。“原版、未精简、未优化”为站方说明，不代表已独立确认是微软原始发行介质。"
+    },
+    {
+      "version_id": "windows-11-24h2",
+      "architecture": "x64",
+      "build_number": "26100.9711",
+      "url": "https://www.pc528.net/26100-zh-cn.html",
+      "title": "【原版】Windows11 24H2 (26100.9711) X64 [8.25G]（2026.10.16）",
+      "media_variant": "source_claimed_original",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/26100-zh-cn.html",
+      "declared_file": {
+        "name": "26100.9711.261009-2244.GE_RELEASE_SVC_PROD1_CLIENTPRO_OEMRET_X64FRE_ZH-CN.ISO",
+        "size_bytes": 8861227008,
+        "md5": "533301176E2DAB8A61A38387DEBBD826",
+        "sha1": "5C6A786B6A81775F8ACB1E59053701E36ECF60B9",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。“原版、未精简、未优化”为站方说明，不代表已独立确认是微软原始发行介质。"
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "x64",
+      "build_number": "19045.7807",
+      "url": "https://www.pc528.net/19045y.html",
+      "title": "【原版系统】Windows10 22H2 (19045.7807) X64 [6.1G] (2026.10.15)",
+      "media_variant": "source_claimed_original",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/19045y.html",
+      "declared_file": {
+        "name": "19045.7807.261013-0444.22H2_RELEASE_SVC_PROD1_CLIENTPRO_OEMRET_X64FRE_ZH-CN.ISO",
+        "size_bytes": 6554963968,
+        "md5": "FACD0D1E974686FD219047562C2493CA",
+        "sha1": "350433F5CB475EC38EEB59DB2EF10C0DEC825CD0",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。“原版、未精简、未优化”为站方说明，不代表已独立确认是微软原始发行介质。"
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "x64",
+      "build_number": "19044.7807",
+      "url": "https://www.pc528.net/windows-10-ltsc2021-x64-zh-cn.html",
+      "title": "【原版系统】Windows10 LTSC2021 x64 (19044.7807) [5.84G] 2026.10.14",
+      "media_variant": "source_claimed_original",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/windows-10-ltsc2021-x64-zh-cn.html",
+      "declared_file": {
+        "name": "19044.7807_zh-cn_windows_10_enterprise_ltsc_2021_x64_dvd.iso",
+        "size_bytes": 6273957888,
+        "md5": "E70082055B8D19B5C728AD54A929556F",
+        "sha1": "C2B7ECCC35AC8141614CBBAFD3B583602F9357C3",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。该页面提供 LTSC 镜像，按用户只关注基础 Build 的目录规则分别对应 21H2 / 1809，不增加 LTSC 独立目录。“原版、未精简、未优化”为站方说明，不代表已独立确认是微软原始发行介质。"
+    },
+    {
+      "version_id": "windows-10-1809",
+      "architecture": "x64",
+      "build_number": "17763.8880",
+      "url": "https://www.pc528.net/ltsc2019y.html",
+      "title": "【原版系统】Windows 10 LTSC2019 企业版 X64 （17763.8880）",
+      "media_variant": "source_claimed_original",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/ltsc2019y.html",
+      "declared_file": {
+        "name": "17763.8880_zh-cn_windows_10_enterprise_ltsc_2019_x64_dvd.iso",
+        "size_bytes": 5606178816,
+        "md5": "E829D8870EB1588C4BD4733D3AAD2EB6",
+        "sha1": "F7D5A8B7BF6AA82977FDA71FF599CADF6CE9C369",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。该页面提供 LTSC 镜像，按用户只关注基础 Build 的目录规则分别对应 21H2 / 1809，不增加 LTSC 独立目录。“原版、未精简、未优化”为站方说明，不代表已独立确认是微软原始发行介质。"
+    },
+    {
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x64",
+      "build_number": "7601.28117",
+      "url": "https://www.pc528.net/2023092110837.html",
+      "title": "【原版系统】 Windows7专业版 SP1（7601.28117）X64 集成驱动 无精简 无优化 IE11[4.65G] (2026.5.3) 终版-不忘初心系统博客",
+      "media_variant": "driver_integrated",
+      "verification_status": "page_accessible",
+      "evidence_url": "https://www.pc528.net/2023092110837.html",
+      "declared_file": {
+        "name": "【原版系统】Windows7专业版_SP1_7601.28117_IE8集成驱动[4.65G](2026.5.3).iso",
+        "size_bytes": 4998496256,
+        "md5": "A58BFB61BA5AEE7AD588CA6526192804",
+        "sha1": "01D13149DD3BCB9EE65BBFEE44363833C791D41D",
+        "hashes_verified": false
+      },
+      "notes": "已通过浏览器核对文章正文、x64 标识、基础 Build 和页面声明的 ISO 文件信息；下载区要求注册登录。仅保存文章页入口，未登录、未付费、未下载镜像，未核验散列或 Hyper-V 启动。标题虽称原版，正文说明集成驱动、运行库及补丁，界面标为集成版。标题和文件信息为 7601.28117，前言还残留 7601.26816，均属基础 Build 7601；未把修订号差异当成独立版本。"
+    },
+    {
+      "version_id": "windows-11-22h2",
+      "architecture": "x64",
+      "build_number": "22621.5335",
+      "url": "https://www.pc528.net/windows11-22621.html",
+      "title": "【不忘初心】 Windows11 22H2 (22621.5335) X64 可更新[纯净精简版][3.83G](2025.5.22)",
+      "media_variant": "slimmed",
+      "verification_status": "search_metadata_verified",
+      "evidence_url": "https://www.pc528.net/windows11/22621",
+      "declared_file": null,
+      "notes": "精简修改版候选。仅核对到公开分类页的文章标题、摘要和链接，未验证下载区或实际 ISO；不标为微软原版，不宣称已下载或在 Hyper-V 中实测。"
+    },
+    {
+      "version_id": "windows-11-21h2",
+      "architecture": "x64",
+      "build_number": "22000.3260",
+      "url": "https://www.pc528.net/win11-21h2-22000k.html",
+      "title": "【不忘初心】Windows11 21H2 22000.3260 X64 可更新 [纯净精简版][3.01G](2025.10.13) 初代WIN11",
+      "media_variant": "slimmed",
+      "verification_status": "search_metadata_verified",
+      "evidence_url": "https://www.pc528.net/windows11/22000",
+      "declared_file": null,
+      "notes": "精简修改版候选。仅核对到公开分类页的文章标题、摘要和链接，未验证下载区或实际 ISO；不标为微软原版，不宣称已下载或在 Hyper-V 中实测。"
+    },
+    {
+      "version_id": "windows-10-1909",
+      "architecture": "x64",
+      "build_number": "18363.2274",
+      "url": "https://www.pc528.net/202307131938.html",
+      "title": "【不忘初心】Windows10 1909 (18363.2274) X64 [珍藏极限精简版][960M](2023.7.13)",
+      "media_variant": "slimmed",
+      "verification_status": "search_metadata_verified",
+      "evidence_url": "https://www.pc528.net/windows10/page/3",
+      "declared_file": null,
+      "notes": "精简修改版候选。仅核对到公开分类页的文章标题、摘要和链接，未验证下载区或实际 ISO；不标为微软原版，不宣称已下载或在 Hyper-V 中实测。这是站方标记的珍藏极限精简版，不是微软原始镜像。"
+    },
+    {
+      "version_id": "windows-10-1607",
+      "architecture": "x64",
+      "build_number": "14393.7259",
+      "url": "https://www.pc528.net/ltsb2016w.html",
+      "title": "【不忘初心】Windows10 LTSB2016 长期服务版 14393.7259 NET4.8 X64 无更新[纯净精简版][1.79G](2024.8.28) 超低进程，2-6代老机器强力推荐",
+      "media_variant": "slimmed",
+      "verification_status": "search_metadata_verified",
+      "evidence_url": "https://www.pc528.net/windows10/page/2",
+      "declared_file": null,
+      "notes": "精简修改版候选。仅核对到公开分类页的文章标题、摘要和链接，未验证下载区或实际 ISO；不标为微软原版，不宣称已下载或在 Hyper-V 中实测。LTSB 2016 对应基础 Build 14393，合并到现有 1607 页面。"
+    }
+  ],
+  "deferred": [
+    {
+      "url": "https://www.pc528.net/windows11-ltsc2024-zh-cn.html",
+      "reason": "与 24H2 具有相同基础 Build，已有该来源的普通 24H2 入口，按每来源一个入口规则不重复添加。"
+    },
+    {
+      "url": "https://www.pc528.net/windows10/page/4",
+      "reason": "浏览器连接失败，未取得可核对的条目。"
+    },
+    {
+      "url": "https://www.pc528.net/windows10/page/5",
+      "reason": "浏览器连接失败，未取得可核对的条目。"
+    }
+  ],
+  "status": "withdrawn_by_user",
+  "withdrawn_on": "2026-10-24",
+  "withdrawal_note": "此站来源已从全部系统页面撤下，记录仅保留调研历史。"
+}

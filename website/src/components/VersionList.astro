@@ -1,0 +1,7 @@
+---
+import VersionLink from './VersionLink.astro';
+const { records, selectedId, collection = false, prefixes = [], parentName = '' } = Astro.props;
+---
+<ul class:list={['version-list', { 'collection-versions': collection }]}>
+  {records.map((record: any) => <li><VersionLink record={record} selectedId={selectedId} prefixes={prefixes} parentName={parentName} /></li>)}
+</ul>

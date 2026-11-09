@@ -14,6 +14,7 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <EmbeddedResource Include="ResourceInspection/Page.html" />
+    <EmbeddedResource Include="ResourceInspection/Assets/Tabler/tabler.min.css" />
     <EmbeddedResource Include="TestPlanning/TestCatalog.json" />
     <ProjectReference Include="../ExHyperV.Core/ExHyperV.Core.csproj" />
     <PackageReference Include="coverlet.MTP" Version="10.1.0" />

@@ -1,0 +1,41 @@
+---
+import { selectImageSources, sourceHref, isEligibleSource } from '../data/image-source-selection.js';
+import { isBlockedSource } from '../data/image-source-policy.js';
+const { sources = [] } = Astro.props;
+const selectedSources = selectImageSources(sources);
+const label = source => source.match === 'search_candidate'
+  ? `${source.displayLabel} 检索` : source.displayLabel;
+// Only ship fields needed to select a link; research notes stay out of the page.
+const compact = source => ({
+  url: source.url, source_page_url: source.source_page_url, display_eligible: source.display_eligible,
+  origin_provider: source.origin_provider, kind: source.kind, match: source.match,
+  media_format: source.media_format, language: source.language,
+  declared_file: source.declared_file?.name ? { name: source.declared_file.name } : undefined,
+  verification: source.verification ? { status: source.verification.status, final_url: source.verification.final_url } : undefined,
+  variants: source.variants?.filter(variant => !isBlockedSource(variant)).map(variant => compact(variant)),
+});
+const clientSources = JSON.stringify(sources.filter(isEligibleSource).map(compact)).replaceAll('<', '\\u003c');
+---
+<div class="image-sources" data-image-sources hidden={!selectedSources.length}>
+  <span class="sources-label" data-i18n="imageSources">镜像来源</span>
+  <ul class="sources-list">
+    {selectedSources.map(source => <li><a href={sourceHref(source)} target="_blank" rel="noopener noreferrer" hreflang={source.language === 'und' ? undefined : source.language} data-source-provider={source.provider} data-source-language={source.language} data-source-match={source.match} data-source-status={source.verification?.status || 'not_checked'}>
+      <span>{label(source)}</span>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg>
+    </a></li>)}
+  </ul>
+  <template data-image-source-template><li><a target="_blank" rel="noopener noreferrer"><span></span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></a></li></template>
+  <script type="application/json" data-image-source-options is:inline set:html={clientSources}></script>
+</div>
+
+<style>
+  .image-sources { margin-top: 16px; font-size: 12px; line-height: 1.5; }
+  .sources-label { display: block; margin-bottom: 9px; color: var(--muted); }
+  .sources-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .sources-list li { display: flex; }
+  .sources-list a { display: inline-flex; align-items: center; gap: 10px; min-height: 35px; padding: 7px 12px; border: 1px solid var(--ui-border); border-radius: 9px; color: var(--text); font-size: 12px; line-height: 19px; text-decoration: none; transition: color .15s, border-color .15s, background-color .15s; }
+  .sources-list svg { flex: 0 0 auto; opacity: .55; }
+  .sources-list a:hover { color: var(--accent); border-color: var(--accent); background: var(--surface-hover); }
+  .sources-list a:hover svg { opacity: 1; }
+  .sources-list a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+</style>

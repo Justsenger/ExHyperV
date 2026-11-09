@@ -1,0 +1,10 @@
+---
+import SystemIcon from './SystemIcon.astro';
+const { label, fullName = label, id, icon, open = false } = Astro.props;
+---
+<button id={`${id}-label`} class="collapsible-header" type="button" data-full-name={fullName} aria-label={fullName} aria-expanded={String(open)} aria-controls={id}>
+  {icon && <SystemIcon name={icon} />}
+  <span class="nav-label">{label}</span>
+  <svg class="dropdown-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5z" /></svg>
+</button>
+<button class="name-info" type="button" data-name-for={`${id}-label`} data-full-name-label={fullName} aria-label={`查看完整名称：${fullName}`} hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 11v6m0-10v1" /></svg></button>

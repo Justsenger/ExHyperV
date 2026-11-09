@@ -1,0 +1,8 @@
+/* Resource Han Rounded CN Medium 0.990: complete original font, WOFF2 container. */
+@font-face {
+  font-family: 'ExHyperV Resource Rounded CN';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./resource-han-rounded-cn-medium.woff2') format('woff2');
+}

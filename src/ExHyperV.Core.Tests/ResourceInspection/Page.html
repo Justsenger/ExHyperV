@@ -1,98 +1,228 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-bs-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
   <title>ExHyperV Core 测试</title>
+  <script nonce="__NONCE__">try{if(localStorage.getItem('exhyperv-tests-theme')==='light')document.documentElement.dataset.bsTheme='light';}catch{}</script>
+  <style nonce="__NONCE__">__TABLER_CSS__</style>
   <style nonce="__NONCE__">
-    :root{color-scheme:light;--ink:#202723;--muted:#6a726d;--line:#e2e7e3;--accent:#26734b}
-    *{box-sizing:border-box}body{margin:0;background:#f6f8f6;color:var(--ink);font:15px/1.65 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
-    main{max-width:1100px;margin:0 auto;padding:44px 30px 64px}.brand{font-size:12px;font-weight:600;letter-spacing:.12em;color:var(--muted)}
-    header{display:flex;justify-content:space-between;align-items:center;gap:20px;margin:12px 0 20px}h1{font-size:30px;line-height:1.4;margin:0 0 8px;font-weight:650;letter-spacing:-.02em}p{margin:0;color:var(--muted)}
-    .actions{display:flex;gap:9px;flex-shrink:0}button{font:inherit;cursor:pointer;border:1px solid #cbd4ce;background:#fff;border-radius:7px;padding:8px 14px;color:var(--ink)}button.primary{background:var(--accent);border-color:var(--accent);color:white}button:disabled{opacity:.48;cursor:default}button:focus-visible,summary:focus-visible{outline:3px solid #78a78d;outline-offset:3px}
-    .overview{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin:24px 0}.progress-label{display:flex;justify-content:space-between;gap:12px;font-weight:600}progress{display:block;width:100%;height:5px;border:none;margin:13px 0 15px;accent-color:var(--accent);border-radius:3px}progress::-webkit-progress-bar{background:#eaf0eb;border-radius:3px}progress::-webkit-progress-value{background:var(--accent);border-radius:3px}
-    .counts{display:flex;flex-wrap:wrap;gap:10px 25px;color:var(--muted);font-size:13px}.counts b{font-size:17px;font-weight:600;margin-right:5px;color:var(--ink)}.context{font-size:12px;margin-top:13px;color:var(--muted)}#notice{color:#963e26;font-size:14px;margin-top:10px;white-space:pre-wrap}
-    section{margin-top:29px}h2{font-size:16px;font-weight:650;margin:0 0 10px}.table{border:1px solid var(--line);border-radius:9px;background:#fff;overflow:hidden}.row{display:grid;grid-template-columns:215px 102px 1fr;gap:18px;padding:16px 19px;border-top:1px solid var(--line);align-items:start}.row:first-child{border-top:0}.row-head{padding-top:9px;padding-bottom:9px;background:#fafcfa;font-size:12px;color:var(--muted)}.name{font-weight:600}.support{color:var(--muted);font-size:12px;margin-top:3px}.status{font-size:12px;display:inline-flex;padding:2px 9px;border-radius:5px;font-weight:600;white-space:nowrap}.ready{color:#21633f;background:#eaf4ed}.missing{color:#9e352a;background:#fbeeea}.pending{color:#87601d;background:#faf3df}.unavailable{color:#8d3b33;background:#f5e9e7}.waiting{color:#717972;background:#f0f2f0}.running{color:#2e628e;background:#eaf2fa}.detail{font-size:14px;overflow-wrap:anywhere}.requirement{color:var(--muted);font-size:12px;margin-top:5px}details{margin-top:8px}summary{cursor:pointer;color:var(--accent);font-size:12px;width:fit-content}ul{padding-left:19px;color:var(--muted);font-size:12px;margin:7px 0 0}li{margin:3px 0;overflow-wrap:anywhere}footer{color:var(--muted);font-size:12px;margin-top:28px}
-    @media(max-width:700px){main{padding:26px 16px 40px}header{display:block}h1{font-size:24px}.actions{margin-top:18px}.row{grid-template-columns:1fr auto;gap:9px;padding:14px}.row-head{display:none}.detail{grid-column:1/-1}.overview{padding:16px}.counts{gap:8px 18px}}
-    @media(prefers-reduced-motion:no-preference){.running{animation:pulse 1.6s infinite}@keyframes pulse{50%{opacity:.55}}}
-    [hidden]{display:none!important}.step-actions{display:flex;justify-content:flex-end;margin-top:24px}.plan-summary{display:flex;justify-content:space-between;align-items:center;gap:16px}.selection-count{font-size:17px;font-weight:600}
-    .test-item{padding:21px 24px;border-top:1px solid var(--line)}.test-item:first-child{border-top:0}.test-item:has(input:checked){box-shadow:inset 3px 0 var(--accent)}.test-item:has(input:not(:disabled)):hover{background:#fbfdfb}.test-item h3{font-size:16px;font-weight:650;line-height:1.6;margin:0}
-    .choice{display:flex;gap:12px;align-items:center;width:fit-content;cursor:pointer}.choice input{accent-color:var(--accent);width:18px;height:18px;flex-shrink:0;margin:0}.choice:has(input:disabled){cursor:default}.test-description{margin:7px 0 0 30px;color:#505d54;font-size:14px;line-height:1.85;overflow-wrap:anywhere}.test-reasons{margin:12px 0 0 30px;padding:9px 12px;background:#faf6ec;border-left:3px solid #d5bd86;color:#735825;font-size:13px;line-height:1.8;overflow-wrap:anywhere}.test-reasons strong{font-weight:600}input:focus-visible{outline:3px solid #78a78d;outline-offset:3px}
-    @media(max-width:700px){.plan-summary{flex-wrap:wrap}.plan-summary .actions{margin-top:0}.test-item{padding:18px 16px}.test-description,.test-reasons{margin-left:30px}.test-reasons{padding:8px 10px}}
-    header{position:sticky;top:0;z-index:5;background:#f6f8f6;padding:12px 0;flex-wrap:wrap}header .actions{flex-wrap:wrap}h1{font-size:27px}.result-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.result-detail{margin:10px 0 0;font-size:14px}.result-description{color:var(--muted);font-size:13px;margin-top:6px}.passed{color:#21633f;background:#eaf4ed}.failed{color:#9e352a;background:#fbeeea}.skipped,.cancelled{color:#78622f;background:#faf3df}.api-name{font:14px/1.8 Consolas,monospace;overflow-wrap:anywhere}.page-notice{color:#963e26;white-space:pre-wrap;font-size:14px;margin-top:12px}#execution-progress{font-weight:600}#execution-counts{margin-top:10px}
-    .plan-tools{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}.plan-tools input,.plan-tools select{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:6px;background:white;color:#23382b}.plan-tools input{flex:1;min-width:230px}.plan-group{margin:12px 0;border:1px solid var(--line);border-radius:8px;background:white;overflow:hidden}.plan-group>summary{padding:14px 18px;font-size:14px;color:#23382b;cursor:pointer;overflow-wrap:anywhere}.plan-group>summary input{accent-color:var(--accent);margin:0 10px 0 6px}.plan-group .group-count{color:var(--muted);font:13px system-ui;margin-left:12px}.plan-group .test-item{border-top:1px solid var(--line)}.execution-readiness{font-size:13px;color:var(--muted);margin-top:8px}.test-context{margin:8px 0 0 30px}.pendingImplementation{color:#78622f;background:#faf3df}.api-name:empty{display:none}
-    .plan-group>summary{width:100%;font-size:16px;font-weight:600;padding-left:calc(18px + var(--group-depth,0)*14px)}.plan-group>summary input{width:17px;height:17px;vertical-align:middle}.plan-group .plan-group{border:0;border-top:1px solid var(--line);border-radius:0;margin:0}.plan-operation>summary{font-size:14px;font-weight:500}.plan-operation .test-item{padding-left:calc(28px + var(--group-depth,0)*14px)}.check-pending{background:#eef3f8;border-color:#9db6cc;color:#465d72}.selection-conditions{font-size:13px;color:var(--muted);margin-top:-12px}.test-context code{display:block;font:12px/1.7 Consolas,monospace;color:var(--muted);margin-top:8px;overflow-wrap:anywhere}.result-operation{font-size:13px;color:var(--muted);margin-bottom:6px}
-    .resource-form{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px 20px}.resource-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}.resource-field{display:flex;flex-direction:column;gap:5px;min-width:0;font-weight:600;font-size:14px}.resource-field select{font:inherit;font-weight:400;padding:9px 12px;width:100%;min-width:0;border:1px solid #cbd4ce;border-radius:6px;background:#fff;color:var(--ink)}.resource-field small,.resource-help{font-weight:400;color:var(--muted);font-size:12px;overflow-wrap:anywhere}.resource-field .cache-path{font:12px/1.7 Consolas,monospace}.device-choices{display:grid;gap:10px;margin-top:4px}.device-choices .choice{display:grid;grid-template-columns:18px minmax(0,1fr);align-items:start;gap:10px;width:100%;font-weight:400}.device-choices input[type=checkbox]{width:18px;height:18px;margin:3px 0 0;padding:0}.device-choices span{min-width:0;overflow-wrap:anywhere}.device-choices small{display:block;font-size:11px}.resource-save-state{font-size:13px;white-space:pre-wrap;margin-top:16px}.resource-save-state.error{color:#963e26}.resource-save-state.saved{color:var(--accent)}
+
+    [hidden]{display:none!important}
+    body{font-family:var(--tblr-font-sans-serif),"Microsoft YaHei",sans-serif}
+    button,summary,label.choice{cursor:pointer}button:disabled{cursor:default}
+    :focus-visible{outline:2px solid var(--tblr-primary);outline-offset:3px}h1:focus{outline:0}
+    .app-navbar .container-xl{min-height:56px}.brand-icon{margin-right:.5rem}
+    .workflow{gap:1.5rem}.workflow .nav-link{gap:.5rem;border:0;background:transparent}
+    .workflow .nav-link:disabled{opacity:.45}.workflow .active .nav-link{color:var(--tblr-primary)}
+    .step-number{font-size:.75rem;opacity:.65;font-variant-numeric:tabular-nums}
+    .connection{display:flex;align-items:center;gap:.5rem;font-size:.75rem;color:var(--tblr-secondary)}
+    .connection::before{content:"";width:.45rem;height:.45rem;border-radius:50%;background:var(--tblr-yellow)}
+    .connection.online::before{background:var(--tblr-green)}.connection.offline::before{background:var(--tblr-red)}
+    .page-header{padding-block:1.5rem;margin:0}.page-header .actions{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+    .counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+    .metric .card-body{display:flex;align-items:center;gap:1rem}.metric b{display:block;font-size:1.5rem;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums}
+    .metric-label{color:var(--tblr-secondary);font-size:.75rem}.metric .avatar{box-shadow:none;flex-shrink:0}
+    .inspection-summary{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-block:1rem}
+    .inspection-summary progress{width:140px}.inspection-summary .context{margin-left:auto}
+    progress{appearance:none;height:4px;border:0;border-radius:1rem;overflow:hidden;background:var(--tblr-border-color);accent-color:var(--tblr-primary)}
+    progress::-webkit-progress-bar{background:var(--tblr-border-color)}progress::-webkit-progress-value{background:var(--tblr-primary)}progress::-moz-progress-bar{background:var(--tblr-primary)}
+    .setup-layout{display:grid;grid-template-columns:minmax(280px,1fr) minmax(0,2fr);gap:1.5rem;align-items:start}
+    .resource-form{position:sticky;top:1rem}.resource-fields{display:grid;gap:1.25rem}
+    #credential-fields{gap:.5rem}
+    .resource-field{display:block;min-width:0;margin:0}.resource-field .form-label{margin-bottom:.5rem}
+    .resource-field small{display:block;color:var(--tblr-secondary);margin-top:.5rem;font-weight:400;overflow-wrap:anywhere}
+    .device-choices{display:grid;gap:.75rem}.choice{display:flex;align-items:flex-start;gap:.625rem;margin:0;font-weight:400}
+    .choice input{flex-shrink:0;margin-top:.125rem}.choice span{min-width:0;overflow-wrap:anywhere}
+    .choice:has(input:disabled){cursor:default}.cache-path{font-size:.75rem;overflow-wrap:anywhere;color:var(--tblr-secondary)}
+    .resource-save-state{padding:.75rem 1.25rem;margin:0;border-top:1px solid var(--tblr-border-color);font-size:.75rem}
+    .resource-save-state.error{color:var(--tblr-red)}.resource-save-state.saved{color:var(--tblr-secondary)}
+    #groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;align-items:start}
+    .resource-column{display:grid;gap:1rem;align-content:start;min-width:0}
+    .resource-card .card-header{min-height:3rem;padding-block:.75rem}.card-icon{width:1.25rem;height:1.25rem;flex-shrink:0;color:var(--tblr-secondary)}
+    .resource-row{padding:.625rem 1.25rem;border-top:1px solid var(--tblr-border-color)}.resource-row:first-child{border-top:0}
+    .resource-row>summary{display:flex;align-items:center;gap:.5rem;justify-content:space-between;list-style:none;color:inherit}
+    .resource-row>summary::-webkit-details-marker{display:none}.resource-row>summary::after{content:"›";color:var(--tblr-secondary);font-size:1.1rem}
+    .resource-row[open]>summary::after{transform:rotate(90deg)}.resource-row .name{flex:1;font-size:.8125rem}
+    .resource-row .detail{padding-top:.5rem;font-size:.75rem;color:var(--tblr-secondary);overflow-wrap:anywhere}
+    .resource-detail>summary{color:var(--tblr-body-color)}.resource-detail .full-detail{margin-top:.5rem;color:var(--tblr-secondary)}
+    .resource-row .detail details{margin-top:.375rem}.resource-row[data-status=missing],.resource-row[data-status=unavailable]{border-left:2px solid var(--tblr-red)}
+    .resource-row[data-status=pending]{border-left:2px solid var(--tblr-yellow)}.resource-row .badge{font-weight:500;white-space:nowrap;font-size:.6875rem}
+    .context,.selection-conditions{font-size:.75rem;color:var(--tblr-secondary)}
+    .page-notice,#notice{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--tblr-red);font-size:.8125rem;margin-block:.75rem}
+    .page-notice:empty,#notice:empty{display:none}
+    details>summary{cursor:pointer}details>summary:focus-visible{outline-offset:-2px}
+    ul{padding-left:1.25rem;margin:.5rem 0 0}li{overflow-wrap:anywhere}
+    .plan-toolbar,.result-tools{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+    .plan-tools{display:flex;gap:.5rem;margin-left:auto}.plan-tools input,.result-tools input{width:260px}.plan-tools select,.result-tools select{width:155px}
+    .selection-count{align-items:center;font-weight:500;white-space:nowrap}.selection-count input{margin:0}
+    #selection-step .form-check-input:indeterminate{background-color:var(--tblr-primary);border-color:var(--tblr-primary);background-image:none}
+    #selection-step .form-check-input:indeterminate::before{opacity:0}
+    .selection-conditions{margin:0 0 1rem}
+    .plan-group{scroll-margin-top:1rem}.plan-group>summary{display:flex;align-items:center;gap:.625rem;list-style:none;padding:1rem 1.25rem;min-width:0;font-weight:500}
+    .plan-group>summary::-webkit-details-marker{display:none}.plan-group>summary::before{content:"›";color:var(--tblr-secondary);font-size:1.125rem}
+    .plan-group[open]>summary::before{transform:rotate(90deg)}.plan-group>summary .group-count{margin-left:auto;font-size:.75rem;color:var(--tblr-secondary);white-space:nowrap}
+    .plan-group>summary input{flex-shrink:0}.plan-group>summary:hover{background:var(--tblr-bg-surface-secondary)}
+    .plan-group .plan-group{border-top:1px solid var(--tblr-border-color)}.plan-group .plan-group>summary{padding-block:.75rem;font-size:.8125rem;padding-left:calc(1.25rem + var(--group-depth)*.75rem)}
+    #plan-groups>.plan-group{margin-bottom:1rem}.group-icon{display:inline-flex}
+    .test-item{padding:1rem 1.25rem;border-top:1px solid var(--tblr-border-color)}.test-item h3{font-size:.875rem;line-height:1.5;margin:0;font-weight:500}
+    .plan-operation .test-item{padding-left:2.5rem}.test-item:has(input:checked){box-shadow:inset 2px 0 var(--tblr-primary)}
+    .test-description,.test-context,.test-reasons{font-size:.8125rem;margin:.5rem 0 0 1.625rem;color:var(--tblr-secondary)}
+    .test-reasons{color:var(--tblr-yellow);padding-left:.75rem;border-left:2px solid currentColor}
+    .test-reasons ul{margin:0}.test-reasons li:only-child{list-style:none;margin-left:-1.25rem}
+    .test-context summary,.result-extra summary{font-size:.75rem;color:var(--tblr-secondary)}
+    .test-context code{display:block;font-size:.75rem;margin-top:.5rem;overflow-wrap:anywhere}
+    .execution-counts{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}.execution-counts .metric .avatar{display:none}
+    .execution-counts .metric .card-body{padding:1rem}.execution-counts .metric b{font-size:1.375rem}
+    .execution-overview .progress-label{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+    .execution-overview progress{display:block;width:100%;margin:.75rem 0}.api-name{font-family:var(--tblr-font-monospace);font-size:.75rem;color:var(--tblr-secondary);overflow-wrap:anywhere}
+    .api-name:empty{display:none}.result-tools input{flex:1}.result-tools #execution-filter-count{font-size:.75rem;color:var(--tblr-secondary)}
+    .result-row{position:relative}.result-heading{display:flex;justify-content:space-between;gap:1rem;align-items:start;padding-right:3rem}.result-operation{font-size:.75rem;color:var(--tblr-secondary);margin:0 0 .25rem}
+    .result-detail{font-size:.8125rem;margin:.375rem 0 0;overflow-wrap:anywhere;white-space:pre-wrap}.result-description,.result-extra{font-size:.8125rem;color:var(--tblr-secondary);margin:.5rem 0 0}
+    .result-extra{margin:0}.result-extra>summary{position:absolute;top:1rem;right:1.25rem}.result-extra[open]{margin-top:.75rem}.result-extra .test-context{margin-left:0}.results-list .test-item:first-child{border-top:0}.results-list .test-item[data-status=failed]{border-left:3px solid var(--tblr-red)}
+    .results-list .test-item[data-status=running]{border-left:3px solid var(--tblr-primary);background:var(--tblr-bg-surface-secondary)}
+    .results-list .test-item[data-status=waiting] .result-heading h3{color:var(--tblr-secondary)}
+    #omitted-tests{padding:1rem 1.25rem}#omitted-list .test-item{padding-inline:0;margin-top:1rem;font-size:.8125rem}
+    .deployment .workflow{display:none}.deployment #deployment-summary{margin-bottom:1rem}
+    @media(max-width:1199px){.setup-layout{grid-template-columns:minmax(260px,1fr) minmax(0,1.6fr)}#groups{grid-template-columns:1fr}}
+    @media(max-width:767px){.workflow{flex-direction:row;gap:.5rem;justify-content:space-between;width:100%}.workflow .nav-link{padding:.75rem .25rem}.app-navbar .connection{display:none}.page-header{padding-block:1rem}.page-header .actions{margin-top:1rem}.counts{grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.setup-layout{grid-template-columns:1fr}.resource-form{position:static}.plan-tools,.result-tools{width:100%;margin-left:0}.plan-tools input{flex:1;min-width:0}.plan-tools select,.result-tools select{width:130px}.plan-toolbar{gap:.75rem}.plan-group>summary{padding:1rem}.plan-group>summary .group-count{font-size:.6875rem}.plan-operation .test-item{padding-left:1.25rem}.inspection-summary .context{margin-left:0;width:100%}.execution-counts{grid-template-columns:repeat(3,minmax(0,1fr))}.result-tools input{min-width:0}.result-tools #execution-filter-count{width:100%}.page-title{font-size:1.125rem}}
+    @media(max-width:767px){.page-header .row{display:block}.page-header .actions{justify-content:flex-end}}
+    @media print{.app-navbar,.workflow-navbar,.actions,.plan-tools,.result-tools{display:none!important}.resource-form{position:static}.page-wrapper{margin:0}}
   </style>
 </head>
 <body>
-<main>
- <div id="update-notice" class="page-notice" role="status" hidden></div>
- <div id="inspection-step">
-  <header><h1>第一步：资源清单检查</h1>
-    <div class="actions"><button id="download" disabled>下载清单</button><button id="rescan" disabled>重新检查</button><button id="save-resources" disabled>保存并检查</button><button id="next" class="primary" disabled>下一步</button></div>
-  </header>
-  <p id="deployment-summary" class="resource-help" hidden></p>
-  <div id="resource-form" class="resource-form">
-    <div class="resource-fields">
-      <label class="resource-field">测试虚拟机模板<select id="select-template"><option value="">请选择虚拟机</option></select><small>普通测试与 GPU 测试共用完整副本。运行中的模板会正常关闭，测试后恢复运行。</small></label>
-      <div class="resource-field">测试缓存<small>自动创建，用于存放虚拟机副本和测试文件。</small><small id="cache-directory" class="cache-path"></small></div>
-      <label class="resource-field">物理测试盘<select id="select-disk"><option value="">读取设备中…</option></select><small>选择用于脱机、挂接及恢复测试的闲置磁盘。测试期间宿主暂时释放该盘。</small><small id="disk-selection-status"></small></label>
-      <label class="resource-field">测试光驱<select id="select-optical"><option value="">读取设备中…</option></select><small>选择用于光驱挂接测试的设备；选择会保存。</small><small id="optical-selection-status"></small></label>
-      <div class="resource-field">PCIe 测试设备<small>勾选允许用于直通测试的设备；选择会保存。</small><div id="pcie-selection" class="device-choices"></div></div>
+<div class="page">
+  <header class="navbar navbar-expand-md app-navbar d-print-none">
+    <div class="container-xl">
+      <div class="navbar-brand"><svg class="icon brand-icon text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 5h16v11H4zM8 20h8M12 16v4M8 10l3 3 5-5"/></svg>ExHyperV<span class="badge bg-blue-lt ms-2">Core 测试</span></div>
+      <div class="navbar-nav flex-row align-items-center gap-3"><span id="connection-state" class="connection" role="status">连接中</span><button id="theme-toggle" class="btn btn-icon btn-ghost-secondary" aria-label="切换到浅色模式" title="切换主题"></button></div>
     </div>
-    <p id="resource-save-state" class="resource-save-state" role="status">正在读取已保存的选择…</p>
-  </div>
-  <div class="overview">
-    <div class="progress-label" role="status" aria-live="polite"><span id="phase">正在连接检查程序…</span><span id="progress-text">—</span></div>
-    <progress id="progress" value="0" max="25" aria-label="资源检查进度"></progress>
-    <div class="counts" id="counts"></div><div class="context" id="context"></div><div id="notice" role="alert"></div>
-  </div>
-  <div id="groups"></div>
-  <footer>保存资源选择 · 测试将在第三步执行</footer>
- </div>
- <div id="selection-step" hidden>
-  <header><h1 tabindex="-1" id="selection-title">第二步：选择测试项目</h1><div class="actions"><button id="back">上一步</button><button class="primary" id="begin" disabled>下一步</button></div></header>
-  <div class="overview plan-summary">
-    <label class="choice selection-count"><input id="select-all" type="checkbox" aria-label="全选当前显示的检查点"><span id="selection-count" role="status" aria-live="polite"></span></label>
-    <span id="execution-readiness" class="execution-readiness"></span>
-  </div>
-  <p id="selection-conditions" class="selection-conditions"></p>
-  <div class="plan-tools"><input id="plan-search" type="search" aria-label="搜索测试项目" placeholder="搜索中文功能或测试内容"><select id="plan-filter" aria-label="筛选测试项目"><option value="all">全部项目</option><option value="ready">可执行</option><option value="resources">资源待准备</option><option value="checks">条件检查待接入</option><option value="implementation">执行代码待接入</option><option value="selected">已勾选</option></select></div>
-  <div id="selection-notice" class="page-notice" role="alert"></div>
-  <div id="plan-groups"></div>
-  <p id="plan-empty" class="context" hidden>当前筛选下没有项目。</p>
- </div>
- <div id="execution-step" hidden>
-  <header><h1 tabindex="-1" id="execution-title">第三步：执行 API 测试</h1><div class="actions"><button id="execution-back">返回选择</button><button id="download-test" disabled>下载结果</button><button id="stop-test" disabled>停止</button></div></header>
-  <div class="api-name" id="execution-api"></div>
-  <div class="overview">
-    <div id="execution-progress" role="status" aria-live="polite"></div>
-    <div class="counts" id="execution-counts"></div>
-    <div class="context" id="execution-context"></div>
-    <div class="page-notice" id="execution-notice" role="alert"></div>
-  </div>
-  <div class="table" id="test-results"></div>
-  <details id="omitted-tests" class="test-context" hidden><summary id="omitted-title"></summary><div id="omitted-list"></div></details>
- </div>
-</main>
+  </header>
+  <nav class="navbar navbar-expand-md workflow-navbar" aria-label="测试步骤">
+    <div class="container-xl"><ul class="navbar-nav flex-row workflow">
+      <li data-step="1" class="nav-item active" aria-current="step"><button class="nav-link" id="nav-resources"><span class="step-number">01</span>资源检查</button></li>
+      <li data-step="2" class="nav-item"><button class="nav-link" id="nav-selection" disabled><span class="step-number">02</span>选择测试</button></li>
+      <li data-step="3" class="nav-item"><button class="nav-link" id="nav-results" disabled><span class="step-number">03</span>执行与结果</button></li>
+    </ul></div>
+  </nav>
+  <div class="page-wrapper"><main class="container-xl pb-5">
+    <div id="update-notice" class="page-notice" role="status" hidden></div>
+    <section id="inspection-step">
+      <header class="page-header"><div class="row align-items-center"><div class="col"><h1 class="page-title">第一步：资源清单检查</h1></div><div class="col-auto ms-auto actions"><button class="btn" id="download" disabled>导出</button><button class="btn" id="rescan" disabled>重新检查</button><button class="btn" id="save-resources" disabled>保存并检查</button><button class="btn btn-primary" id="next" disabled>下一步 <span aria-hidden="true">→</span></button></div></div></header>
+      <p id="deployment-summary" class="text-secondary" hidden></p>
+      <div class="counts" id="counts"></div>
+      <div class="inspection-summary"><span id="phase" role="status" aria-live="polite">连接中</span><span id="progress-text" class="text-secondary">—</span><progress id="progress" value="0" max="25" aria-label="资源检查进度"></progress><span class="context" id="context"></span></div>
+      <div id="notice" role="alert"></div>
+      <div class="setup-layout">
+        <section id="resource-form" class="resource-form card">
+          <div class="card-header"><h2 class="card-title">测试资源</h2></div>
+          <div class="card-body resource-fields">
+            <label class="resource-field"><span class="form-label">虚拟机模板</span><select class="form-select" id="select-template" title="复制模板用于测试，结束后恢复模板运行状态。"><option value="">请选择虚拟机</option></select></label>
+            <div id="credential-fields" class="resource-fields">
+              <div class="d-flex justify-content-between"><span class="form-label mb-0">虚拟机登录</span><small id="credential-state" class="text-secondary"></small></div>
+              <input id="credential-user" class="form-control" placeholder="账号" aria-label="虚拟机账号" autocomplete="off" maxlength="256">
+              <input id="credential-password" class="form-control" type="password" placeholder="密码" aria-label="虚拟机密码" autocomplete="new-password" maxlength="4096">
+              <button id="save-credentials" class="btn" disabled>保存登录信息</button>
+              <small id="credential-message" class="text-secondary" role="status">加密保存在本机，仅用于所选模板的副本。</small>
+            </div>
+            <label class="resource-field"><span class="form-label">物理测试盘</span><select class="form-select" id="select-disk" title="选择闲置磁盘，测试期间宿主临时释放。"><option value="">读取中…</option></select><small id="disk-selection-status"></small></label>
+            <label class="resource-field"><span class="form-label">光驱</span><select class="form-select" id="select-optical"><option value="">读取中…</option></select><small id="optical-selection-status"></small></label>
+            <div class="resource-field"><div class="form-label">PCIe 设备</div><div id="pcie-selection" class="device-choices"></div></div>
+          </div>
+          <div class="card-footer"><div class="text-secondary small mb-1">缓存目录</div><div id="cache-directory" class="cache-path"></div></div>
+          <p id="resource-save-state" class="resource-save-state" role="status">加载中…</p>
+        </section>
+        <div id="groups"></div>
+      </div>
+    </section>
+    <section id="selection-step" hidden>
+      <header class="page-header"><div class="row align-items-center"><div class="col"><h1 class="page-title" tabindex="-1" id="selection-title">第二步：选择测试项目</h1></div><div class="col-auto ms-auto actions"><button class="btn" id="back">上一步</button><button class="btn btn-primary" id="begin" disabled>开始测试 <span aria-hidden="true">→</span></button></div></div></header>
+      <div class="card mb-3"><div class="card-body plan-toolbar"><label class="choice selection-count"><input class="form-check-input" id="select-all" type="checkbox" aria-label="全选当前显示的检查点"><span id="selection-count" role="status" aria-live="polite"></span></label><div class="plan-tools"><input class="form-control" id="plan-search" type="search" aria-label="搜索测试项目" placeholder="搜索测试…"><select class="form-select" id="plan-filter" aria-label="筛选测试项目"><option value="all">全部项目</option><option value="ready">可执行</option><option value="resources">缺少资源</option><option value="checks">检查待接入</option><option value="implementation">执行待接入</option><option value="selected">已勾选</option></select></div></div></div>
+      <p id="selection-conditions" class="selection-conditions"></p>
+      <div id="selection-notice" class="page-notice" role="alert"></div>
+      <div id="plan-groups"></div><div id="plan-empty" class="empty" hidden><p class="empty-title">没有匹配项目</p></div>
+    </section>
+    <section id="execution-step" hidden>
+      <header class="page-header"><div class="row align-items-center"><div class="col"><h1 class="page-title" tabindex="-1" id="execution-title">第三步：执行 API 测试</h1></div><div class="col-auto ms-auto actions"><button class="btn" id="execution-back">返回选择</button><button class="btn" id="download-test" disabled>导出结果</button><button class="btn btn-outline-danger" id="stop-test" disabled>停止</button></div></div></header>
+      <div class="counts execution-counts mb-3" id="execution-counts"></div>
+      <div class="card execution-overview mb-3"><div class="card-body">
+        <div class="progress-label"><span id="execution-progress" role="status" aria-live="polite"></span><span><strong id="execution-percent">0%</strong><span class="text-secondary ms-3" id="execution-total"></span></span></div>
+        <progress id="test-progress" value="0" max="1" aria-label="测试执行进度"></progress>
+        <div class="api-name" id="execution-api"></div>
+        <details class="mt-2"><summary class="text-secondary small">运行信息</summary><div class="context mt-2" id="execution-context"></div></details>
+        <div class="page-notice" id="execution-notice" role="alert"></div>
+      </div></div>
+      <div class="card"><div class="card-header result-tools"><input class="form-control" id="result-search" type="search" aria-label="搜索测试结果" placeholder="搜索结果…"><select class="form-select" id="result-filter" aria-label="筛选测试结果"><option value="all">全部结果</option><option value="running">执行中</option><option value="failed">失败</option><option value="skipped">跳过</option><option value="passed">通过</option><option value="waiting">等待</option><option value="cancelled">已停止</option><option value="pendingImplementation">待接入</option></select><span id="execution-filter-count"></span></div>
+        <div class="results-list" id="test-results"></div><div id="results-empty" class="empty" hidden><p class="empty-title">没有匹配结果</p></div>
+      </div>
+      <details id="omitted-tests" class="card mt-3" hidden><summary id="omitted-title"></summary><div id="omitted-list"></div></details>
+    </section>
+  </main></div>
+</div>
 <script nonce="__NONCE__">
   const archivedReport = __REPORT__, archivedTest = __TEST_REPORT__, loadedSession = __SESSION__, token = '__NONCE__';
-  const labels = {waiting:'等待检查',running:'正在检查',ready:'已满足',missing:'未满足',pending:'待选择',unavailable:'无法检查'};
+  const labels = {waiting:'等待检查',running:'正在检查',ready:'已满足',missing:'未就绪',pending:'待选择',unavailable:'检查失败'};
   const testLabels = {waiting:'等待',running:'执行中',passed:'通过',failed:'失败',skipped:'跳过',cancelled:'已停止',pendingImplementation:'待接入'};
   const elements = new Map(), choices = new Map(), results = new Map(), selection = new Set(), seenOptions = new Set(), planGroups = new Map();
+  const resourceSections=[],resourceColumnsMedia=window.matchMedia?.('(min-width:1200px)');
+  let resourceLayoutKey='';
+  let credentialBusy=false,credentialDirty=false;
   let latest=null, latestTest=null, connected=false, planKey='', planRunId=null, testRunId=null, startBusy=false, scanBusy=false, stopBusy=false, currentStep=1, restoredView=null, registration=null, resourceDirty=false, resourceSaveBusy=false, resourceChoicesKey='';
   if(!archivedReport){try{restoredView=JSON.parse(sessionStorage.getItem('inspection-view'));sessionStorage.removeItem('inspection-view');}catch{}}
   const $ = id => document.getElementById(id);
   const deployment=loadedSession?.deployment===true;
   let deploymentFinished=false,deploymentReady=false;
-  if(deployment){document.querySelector('#inspection-step h1').textContent='部署：检查环境与选择资源';$('next').textContent='完成部署';$('deployment-summary').hidden=false;document.querySelector('#inspection-step footer').textContent='保存本机选择，后续任务自动检查并执行。';restoredView=null;}
+  if(deployment){document.querySelector('#inspection-step h1').textContent='部署：选择资源';$('next').textContent='完成部署';$('deployment-summary').hidden=false;restoredView=null;}
   function node(tag,className,text){const n=document.createElement(tag);if(className)n.className=className;if(text!==undefined)n.textContent=text;return n;}
+  function applyTheme(theme){
+    document.documentElement.dataset.bsTheme=theme;
+    const label=theme==='dark'?'浅色模式':'暗黑模式';
+    $('theme-toggle').replaceChildren(symbol(theme==='dark'?'sun':'moon'));
+    $('theme-toggle').setAttribute('aria-label','切换到'+label);$('theme-toggle').title=label;
+  }
+  let preferredTheme='dark';
+  try{if(localStorage.getItem('exhyperv-tests-theme')==='light')preferredTheme='light';}catch{}
+  applyTheme(preferredTheme);
+  $('theme-toggle').addEventListener('click',()=>{
+    const theme=document.documentElement.dataset.bsTheme==='dark'?'light':'dark';applyTheme(theme);
+    try{localStorage.setItem('exhyperv-tests-theme',theme);}catch{}
+  });
+  if(deployment)document.body.classList.add('deployment');
+  function statusColor(status){return ['ready','passed'].includes(status)?'green':['missing','failed','unavailable'].includes(status)?'red':['pending','skipped','cancelled','pendingImplementation'].includes(status)?'yellow':status==='running'?'blue':'secondary';}
+  function symbol(name){
+    const paths={sun:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5',moon:'M20 15.5A9 9 0 0 1 8.5 4a9 9 0 1 0 11.5 11.5z',check:'m5 12 4 4L19 6',cross:'m6 6 12 12M6 18 18 6',pending:'M9 9a3 3 0 1 1 5 2c-2 1-2 2-2 3M12 17v.01M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18',clock:'M12 7v5l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18'};
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'),path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    for(const [key,value] of Object.entries({viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.7','stroke-linecap':'round','stroke-linejoin':'round',class:'icon','aria-hidden':'true'}))svg.setAttribute(key,value);
+    path.setAttribute('d',paths[name]||paths.clock);svg.append(path);return svg;
+  }
+  function metric(status,label,count){
+    const element=node('div','card metric'),body=node('div','card-body'),icon=node('span','avatar bg-'+statusColor(status)+'-lt'),text=node('div');element.dataset.status=status;
+    icon.append(symbol(['ready','passed'].includes(status)?'check':['missing','failed','unavailable'].includes(status)?'cross':status==='pending'?'pending':'clock'));
+    text.append(node('b','text-'+statusColor(status),String(count)),node('span','metric-label',label));body.append(icon,text);element.append(body);return element;
+  }
+  function categoryIcon(title){
+    const paths=title.includes('宿主')||title.includes('虚拟机')?'M4 4h16v12H4zM8 20h8M12 16v4':
+      title.includes('网络')?'M9 3h6v5H9zM3 16h6v5H3zM15 16h6v5h-6zM12 8v4M6 16v-4h12v4':
+      title.includes('编译')||title.includes('配置')?'m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16':
+      title.includes('容量')||title.includes('存储')?'M4 4h16v16H4zM4 14h16M7 17h.01M10 17h.01':
+      title.includes('设备')||title.includes('GPU')?'M7 7h10v10H7zM4 9h3M4 15h3M17 9h3M17 15h3M9 4v3M15 4v3M9 17v3M15 17v3':
+      'M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z';
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'),path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    for(const [key,value] of Object.entries({viewBox:'0 0 24 24',fill:'none',stroke:'currentColor','stroke-width':'1.6','stroke-linecap':'round','stroke-linejoin':'round','aria-hidden':'true',class:'card-icon'}))svg.setAttribute(key,value);
+    path.setAttribute('d',paths);svg.append(path);return svg;
+  }
   function showStep(step){
     currentStep=step;
+    for(const item of document.querySelectorAll('.workflow li')){
+      const value=Number(item.dataset.step);item.classList.toggle('active',value===step);item.classList.toggle('visited',value<step);
+      if(value===step)item.setAttribute('aria-current','step');else item.removeAttribute('aria-current');
+    }
     $('inspection-step').hidden=step!==1;$('selection-step').hidden=step!==2;$('execution-step').hidden=step!==3;
+    for(const tab of document.querySelectorAll('.workflow li'))tab.querySelector('button').classList.toggle('active',Number(tab.dataset.step)===step);
     window.scrollTo(0,0);
     if(step>1)$(step===2?'selection-title':'execution-title').focus({preventScroll:true});
+    controls();
   }
   function reloadPage(){
     // Preserve the current step and choices across page-template updates.
@@ -112,39 +242,49 @@
   }
   function controls(){
     const running=latestTest?.running===true;
+    $('connection-state').className='connection '+(archivedReport?'':connected?'online':'offline');
+    $('connection-state').textContent=archivedReport?'已保存的报告':connected?'已连接':'已断开';
     $('download').disabled=!latest||latest.running;
     $('rescan').disabled=!!archivedReport||!connected||latest?.running||running||startBusy||scanBusy;
     $('next').disabled=!latest?.plan?.available||scanBusy||startBusy||running||resourceDirty||resourceSaveBusy;
     if(deployment)$('next').disabled=$('next').disabled||!deploymentReady||deploymentFinished;
     $('begin').disabled=!!archivedReport||!connected||!latest?.plan?.available||selection.size===0||startBusy||running||resourceDirty||resourceSaveBusy;
-    const resourceBusy=!!archivedReport||!connected||latest?.running||running||resourceSaveBusy||scanBusy||startBusy||deploymentFinished;
+    const resourceBusy=!!archivedReport||!connected||latest?.running||running||resourceSaveBusy||scanBusy||startBusy||credentialBusy||deploymentFinished;
     $('save-resources').disabled=resourceBusy||!registration;
     for(const input of $('resource-form').querySelectorAll('input,select,textarea'))input.disabled=resourceBusy;
     for(const [id,source] of [['select-template','vms'],['select-disk','disks'],['select-optical','optical']])
       $(id).disabled=resourceBusy||!resourceInventoryKnown(source)||(!$(id).value&&!resourceChoices(source).some(c=>!c.unavailableReason));
     for(const input of $('pcie-selection').querySelectorAll('input'))input.disabled=resourceBusy||!resourceInventoryKnown('pcie');
-    $('rescan').disabled=$('rescan').disabled||resourceDirty||resourceSaveBusy||deploymentFinished;
+    const credentialEnabled=!resourceBusy&&!resourceDirty&&!!registration?.configuration.templateVmId;
+    $('credential-user').disabled=!credentialEnabled;$('credential-password').disabled=!credentialEnabled;
+    $('save-credentials').disabled=!credentialEnabled||!$('credential-user').value.trim()||!$('credential-password').value;
+    $('credential-state').textContent=resourceDirty?'先保存模板':resourceResult('vm-credentials')?.status==='ready'?'已保存':'待填写';
+    $('next').disabled=$('next').disabled||credentialBusy||credentialDirty;
+    $('begin').disabled=$('begin').disabled||credentialBusy||credentialDirty;
+    $('rescan').disabled=$('rescan').disabled||resourceDirty||resourceSaveBusy||credentialBusy||deploymentFinished;
     $('back').disabled=startBusy||running;
-    const visibleEligible=[...choices].filter(([id,choice])=>choice.eligible&&!choice.row.hidden).map(([id])=>id),eligible=visibleEligible.length,visibleSelected=visibleEligible.filter(id=>selection.has(id)).length;
+    const visibleChoices=[...choices].filter(([id,choice])=>!choice.row.hidden),visibleEligible=visibleChoices.filter(([id,choice])=>choice.eligible).map(([id])=>id),eligible=visibleEligible.length,visibleSelected=visibleEligible.filter(id=>selection.has(id)).length;
     $('select-all').disabled=startBusy||running||eligible===0;
-    $('select-all').checked=eligible>0&&visibleSelected===eligible;
-    $('select-all').indeterminate=visibleSelected>0&&visibleSelected<eligible;
+    $('select-all').checked=visibleChoices.length>0&&visibleSelected===visibleChoices.length;
+    $('select-all').indeterminate=visibleSelected>0&&visibleSelected<visibleChoices.length;
     for(const [id,choice] of choices){choice.input.disabled=!choice.eligible||startBusy||running;choice.input.checked=choice.eligible&&selection.has(id);}
     for(const group of planGroups.values()){
       const visibleIds=group.ids.filter(id=>!choices.get(id).row.hidden),eligibleIds=visibleIds.filter(id=>choices.get(id)?.eligible),selectedCount=eligibleIds.filter(id=>selection.has(id)).length;
-      group.input.disabled=startBusy||running||eligibleIds.length===0;group.input.checked=eligibleIds.length>0&&selectedCount===eligibleIds.length;group.input.indeterminate=selectedCount>0&&selectedCount<eligibleIds.length;
-      group.count.textContent='已选 '+selectedCount+' / '+visibleIds.length;
+      group.input.disabled=startBusy||running||eligibleIds.length===0;group.input.checked=visibleIds.length>0&&selectedCount===visibleIds.length;group.input.indeterminate=selectedCount>0&&selectedCount<visibleIds.length;
+      group.count.textContent=selectedCount+' / '+visibleIds.length;
     }
     $('execution-back').disabled=running||startBusy;
     $('download-test').disabled=!latestTest||running;
     $('stop-test').disabled=!!archivedReport||!connected||!running||stopBusy;
+    $('nav-resources').disabled=running||startBusy;
+    $('nav-selection').disabled=deployment||$('next').disabled;
+    $('nav-results').disabled=deployment||!latestTest||latestTest.resourceRunId!==latest?.runId;
+    for(const tab of document.querySelectorAll('.workflow li'))tab.querySelector('button').classList.toggle('active',Number(tab.dataset.step)===currentStep);
   }
   function updateSelection(){
     $('selection-count').textContent='已选 '+selection.size+' 项';
-    const implemented=(latest?.plan?.items||[]).filter(i=>selection.has(i.id)&&i.implemented).length;
-    $('execution-readiness').textContent='所选 '+implemented+' 项将实际执行';
     const items=latest?.plan?.items||[];
-    $('selection-conditions').textContent='可执行 '+items.filter(i=>i.eligible).length+' 项 · 已接入但资源待准备 '+items.filter(i=>i.implemented&&!i.eligible).length+' 项 · 执行代码待接入 '+items.filter(i=>!i.implemented).length+' 项';
+    $('selection-conditions').textContent='全部 '+items.length+' 项 · 条件齐备 '+items.filter(i=>i.eligible).length+' 项 · 资源待准备 '+items.filter(i=>i.implemented&&!i.eligible).length+' 项'+(items.some(i=>!i.implemented)?' · 执行代码待接入 '+items.filter(i=>!i.implemented).length+' 项':'');
     filterPlan();
   }
   function filterPlan(){
@@ -161,7 +301,7 @@
     $('phase').textContent=report.running?'检查中':report.error?'检查中断':'检查完成';
     $('progress-text').textContent=completed+' / '+report.items.length;
     $('progress').max=report.items.length;$('progress').value=completed;
-    $('counts').replaceChildren(...['ready','missing','pending','unavailable'].map(key=>{const n=node('span');n.append(node('b','',String(report.items.filter(i=>i.result.status===key).length)),document.createTextNode(labels[key]));return n;}));
+    $('counts').replaceChildren(...['ready','missing','pending','unavailable'].map(key=>metric(key,labels[key],report.items.filter(i=>i.result.status===key).length)));
     $('context').textContent=report.executionContext+' · '+new Date(report.started).toLocaleString('zh-CN',{hour12:false});
     $('notice').textContent=report.error||'';
     renderPlan(report.plan);
@@ -169,42 +309,68 @@
       let ui=elements.get(item.check.id);
       if(!ui){
         let group=document.getElementById('group-'+item.check.group);
-        if(!group){const section=node('section');section.append(node('h2','',item.check.group));group=node('div','table');group.id='group-'+item.check.group;section.append(group);$('groups').append(section);}
-        const row=node('div','row'),title=node('div','name',item.check.name),badge=node('span','status'),badgeCell=node('div'),body=node('div','detail'),detail=node('div'),details=node('details'),summary=node('summary'),list=node('ul');
-        badgeCell.append(badge);details.append(summary,list);body.append(detail,details);row.append(title,badgeCell,body);group.append(row);
-        ui={badge,detail,details,summary,list,serialized:null};elements.set(item.check.id,ui);
+        if(!group){const section=node('section','card resource-card'),header=node('div','card-header gap-2'),heading=node('h2','card-title',item.check.group);header.append(categoryIcon(item.check.group),heading);section.append(header);group=node('div','resource-list');group.id='group-'+item.check.group;section.append(group);resourceSections.push(section);$('groups').append(section);}
+        const row=node('details','resource-row'),header=node('summary'),title=node('span','name',item.check.name),badge=node('span','badge'),body=node('div','detail'),detail=node('div'),details=node('details'),summary=node('summary'),list=node('ul');
+        const detailDisclosure=node('details','resource-detail'),detailSummary=node('summary'),fullDetail=node('div','full-detail');detailDisclosure.append(detailSummary,fullDetail);
+        header.append(title,badge);details.append(summary,list);body.append(detail,detailDisclosure,details);row.append(header,body);group.append(row);
+        ui={row,badge,detail,detailDisclosure,detailSummary,fullDetail,details,summary,list,serialized:null,lastStatus:null};elements.set(item.check.id,ui);
       }
-      ui.badge.className='status '+item.result.status;ui.badge.textContent=labels[item.result.status]||'无法检查';ui.detail.textContent=item.result.detail;
+      const status=item.result.status;
+      if(ui.lastStatus!==status){ui.row.open=['missing','pending','unavailable'].includes(status);ui.lastStatus=status;}
+      ui.row.dataset.status=status;ui.badge.className='badge bg-'+statusColor(status)+'-lt';ui.badge.textContent=labels[status]||'无法检查';
+      const full=item.result.detail||'',brief=briefDetail(full);
+      ui.detail.textContent=full;ui.detail.hidden=brief!==full;ui.detailDisclosure.hidden=brief===full;
+      ui.detailSummary.textContent=brief;ui.fullDetail.textContent=full;
       const serialized=JSON.stringify(item.result.items||[]);
       if(ui.serialized!==serialized){const items=item.result.items||[];ui.details.hidden=!items.length;ui.summary.textContent='明细（'+items.length+'）';ui.list.replaceChildren(...items.map(text=>node('li','',text)));ui.serialized=serialized;}
     }
-    controls();
+    layoutResourceGroups();controls();
   }
-  function resourceMessage(text,error=false){$('resource-save-state').textContent=text;$('resource-save-state').className='resource-save-state '+(error?'error':'saved');}
+  function layoutResourceGroups(){
+    const wide=resourceColumnsMedia?.matches===true,key=wide+':'+resourceSections.length;
+    if(resourceLayoutKey===key)return;resourceLayoutKey=key;
+    const focused=$('groups').contains(document.activeElement)?document.activeElement:null;
+    // Independent stacks prevent a tall card from leaving a hole in its neighbouring column.
+    if(wide){
+      const columns=[node('div','resource-column'),node('div','resource-column')];
+      resourceSections.forEach((section,index)=>columns[index%2].append(section));$('groups').replaceChildren(...columns);
+    }else $('groups').replaceChildren(...resourceSections);
+    focused?.focus({preventScroll:true});
+  }
+  resourceColumnsMedia?.addEventListener('change',layoutResourceGroups);
+  function resourceMessage(text,error=false){$('resource-save-state').textContent=text;$('resource-save-state').className='resource-save-state '+(error?'error':'saved');$('resource-save-state').hidden=!text;}
+  function briefDetail(text){
+    // Keep the actual reason; longer instructions remain available in the disclosure.
+    if(text.length<=48)return text;
+    const first=text.split(/[：:；;。\r\n]/,1)[0];
+    return first.length>=8&&first.length<=48?first:text.slice(0,46)+'…';
+  }
   function resourceResult(id){return latest?.items.find(item=>item.check.id===id)?.result;}
   function resourceChoices(id){return resourceResult(id)?.choices||[];}
   function resourceInventoryKnown(id){return ['ready','missing','pending'].includes(resourceResult(id)?.status);}
   function savedSelectionMessage(id){return resourceInventoryKnown(id)?'已保存的选择已离开清单，请重新选择':resourceResult(id)?.status==='unavailable'?'清单读取失败，已保留选择':'等待清单读取，已保留选择';}
   function renderResourceChoices(force=false){
-    for(const [elementId,id] of [['disk-selection-status','disks'],['optical-selection-status','optical']])
-      $(elementId).textContent=latest?.items.find(item=>item.check.id===id)?.result.detail||'正在检查…';
+    for(const [elementId,id] of [['disk-selection-status','disks'],['optical-selection-status','optical']]){
+      const result=resourceResult(id);$(elementId).textContent=result?.detail||'读取中…';
+      $(elementId).hidden=!['missing','pending','unavailable'].includes(result?.status);
+    }
     const key=JSON.stringify(['vms','pcie','disks','optical'].map(id=>[resourceResult(id)?.status,resourceChoices(id)]));if(!force&&key===resourceChoicesKey)return;resourceChoicesKey=key;
     function options(elementId,source,empty){
       const items=resourceChoices(source);
       const select=$(elementId),value=select.value;select.replaceChildren(new Option(empty,''));
-      for(const item of items){const suffix=elementId==='select-template'?' · '+item.detail+' · '+item.id.slice(0,8):'';const option=new Option(item.name+suffix+(item.unavailableReason?' · '+item.unavailableReason:''),item.id);option.disabled=!!item.unavailableReason;select.append(option);}
-      if(value&&!items.some(item=>item.id.toLowerCase()===value.toLowerCase()))select.append(new Option(savedSelectionMessage(source)+' · '+value,value));
+      for(const item of items){const option=new Option(elementId==='select-template'?item.name:item.name+(item.unavailableReason?' · '+item.unavailableReason:''),item.id);option.disabled=!!item.unavailableReason;option.title=item.unavailableReason||'';select.append(option);}
+      if(value&&!items.some(item=>item.id.toLowerCase()===value.toLowerCase())){const option=new Option(savedSelectionMessage(source),value);option.title=value;select.append(option);}
       select.value=items.find(item=>item.id.toLowerCase()===value.toLowerCase())?.id||value;
     }
     options('select-template','vms','请选择虚拟机');
-    options('select-disk','disks','跳过物理磁盘测试');
-    options('select-optical','optical','跳过光驱测试');
+    options('select-disk','disks','跳过');
+    options('select-optical','optical','跳过');
     const selected=new Set([...$('pcie-selection').querySelectorAll('input:checked')].map(input=>input.value));
     $('pcie-selection').replaceChildren();
     const devices=resourceChoices('pcie');
-    for(const device of devices){const label=node('label','choice'),input=node('input'),text=node('span','',device.name);input.type='checkbox';input.value=device.id;input.checked=selected.has(device.id);text.append(node('small','',device.id));label.append(input,text);$('pcie-selection').append(label);}
-    for(const id of selected)if(!devices.some(device=>device.id===id)){const label=node('label','choice'),input=node('input');input.type='checkbox';input.value=id;input.checked=true;label.append(input,node('span','',savedSelectionMessage('pcie')+' · '+id));$('pcie-selection').append(label);}
-    if(!devices.length&&!selected.size)$('pcie-selection').append(node('p','resource-help',resourceInventoryKnown('pcie')?'当前清单为空。':resourceResult('pcie')?.detail||'正在读取设备…'));
+    for(const device of devices){const label=node('label','choice'),input=node('input'),text=node('span','',device.name);input.type='checkbox';input.classList.add('form-check-input');input.value=device.id;input.checked=selected.has(device.id);label.title=device.id;label.append(input,text);$('pcie-selection').append(label);}
+    for(const id of selected)if(!devices.some(device=>device.id===id)){const label=node('label','choice'),input=node('input');input.type='checkbox';input.classList.add('form-check-input');input.value=id;input.checked=true;label.title=id;label.append(input,node('span','',savedSelectionMessage('pcie')));$('pcie-selection').append(label);}
+    if(!devices.length&&!selected.size)$('pcie-selection').append(node('p','resource-help',resourceInventoryKnown('pcie')?'暂无设备':resourceResult('pcie')?.detail||'正在读取设备…'));
   }
   function applyRegistration(value){
     registration=value;const config=value.configuration;
@@ -212,18 +378,18 @@
     for(const [elementId,id] of [['select-template',config.templateVmId],['select-disk',config.physicalDisk?.id],['select-optical',config.opticalDrive?.id]]){
       const select=$(elementId);select.replaceChildren(new Option('已保存的选择',id||''));select.value=id||'';
     }
-    $('pcie-selection').replaceChildren();for(const device of config.pcieDevices||[]){const input=node('input');input.type='checkbox';input.value=device.instanceId;input.checked=true;$('pcie-selection').append(input);}
+    $('pcie-selection').replaceChildren();for(const device of config.pcieDevices||[]){const input=node('input');input.type='checkbox';input.classList.add('form-check-input');input.value=device.instanceId;input.checked=true;$('pcie-selection').append(input);}
     renderResourceChoices(true);resourceDirty=false;
-    resourceMessage(config.templateVmId||config.pcieDevices?.length||config.physicalDisk||config.opticalDrive?'已带回保存的选择；修改后点“保存并检查”。':'选择模板或设备后点“保存并检查”，下次自动带回。');controls();
+    resourceMessage('');controls();
   }
   function planGroup(key,title,parent,operation=false,depth=0){
     let group=planGroups.get(key);if(group)return group;
-    const section=node('details','plan-group'+(operation?' plan-operation':'')),summary=node('summary'),input=node('input'),count=node('span','group-count'),body=node('div');
+    const section=node('details','plan-group'+(depth===0?' card':'')+(operation?' plan-operation':'')),summary=node('summary'),input=node('input'),count=node('span','group-count'),body=node('div');
     section.style.setProperty('--group-depth',depth);section.open=depth===0;
-    input.type='checkbox';input.setAttribute('aria-label','选择 '+title);input.addEventListener('click',event=>event.stopPropagation());
-    summary.append(input,node('span','',title),count);section.append(summary,body);parent.append(section);
+    input.type='checkbox';input.classList.add('form-check-input');input.setAttribute('aria-label','选择 '+title);input.addEventListener('click',event=>event.stopPropagation());
+    summary.append(input);if(depth===0){const icon=node('span','group-icon');icon.append(categoryIcon(title));summary.append(icon);}summary.append(node('span','',title),count);section.append(summary,body);parent.append(section);
     group={section,input,count,body,ids:[]};planGroups.set(key,group);
-    input.addEventListener('change',()=>{for(const id of group.ids)if(choices.get(id).eligible&&!choices.get(id).row.hidden){if(input.checked)selection.add(id);else selection.delete(id);}updateSelection();});
+    input.addEventListener('change',()=>{const ids=group.ids.filter(id=>choices.get(id).eligible&&!choices.get(id).row.hidden),select=ids.some(id=>!selection.has(id));for(const id of ids){if(select)selection.add(id);else selection.delete(id);}updateSelection();});
     return group;
   }
   function renderPlan(plan){
@@ -244,7 +410,7 @@
       const operation=planGroup('operation:'+item.group+'|'+item.api,item.operation||item.name,parent,true,path.length);
       operation.ids.push(item.id);
       const row=node('article','test-item'),heading=node('h3'),label=node('label','choice'),input=node('input');
-      input.type='checkbox';input.dataset.testId=item.id;
+      input.type='checkbox';input.classList.add('form-check-input');input.dataset.testId=item.id;
       label.append(input,node('span','',item.name));heading.append(label);
       const description=node('p','test-description','通过标准：'+(item.expected||item.description||'待补充'));description.id='description-'+item.id;
       input.setAttribute('aria-describedby',description.id);row.append(heading,description);
@@ -253,11 +419,11 @@
       for(const [suffix,title,reasons,style] of [['resource','资源待准备',resourceReasons,''],['check','条件检查待实现',pendingChecks,' check-pending']]){
         if(!reasons.length)continue;
         const reason=node('div','test-reasons'+style),list=node('ul');reason.id=suffix+'-'+item.id;
-        list.append(...reasons.map(text=>node('li','',text.replace('：条件检查待实现',''))));reason.append(node('strong','',title),list);row.append(reason);descriptions.push(reason.id);
+        list.append(...reasons.map(text=>node('li','',text.replace('：条件检查待实现',''))));reason.append(list);row.append(reason);descriptions.push(reason.id);
       }
       input.setAttribute('aria-describedby',descriptions.join(' '));
       if(!item.implemented)row.append(node('p','test-description execution-readiness',item.reasons.filter(reason=>!resourceReasons.includes(reason)&&!pendingChecks.includes(reason)).join('；')));
-      const context=node('details','test-context'),contextList=node('ul');context.append(node('summary','','技术详情与收尾'),node('code','',item.api),contextList);
+      const context=node('details','test-context'),contextList=node('ul');context.append(node('summary','','API 与收尾'),node('code','',item.api),contextList);
       contextList.append(node('li','','条件：'+((item.conditions||[]).join('、')||'固定输入')),...(item.recovery||[]).map(text=>node('li','',text)));row.append(context);
       input.addEventListener('change',()=>{if(input.disabled)return;if(input.checked)selection.add(item.id);else selection.delete(item.id);updateSelection();});
       choices.set(item.id,{input,row,eligible:item.eligible,implemented:item.implemented,resourcePending:resourceReasons.length>0,checkPending:pendingChecks.length>0,search:[item.group,item.operation,item.api,item.name,item.expected,...(item.conditions||[]),...item.reasons].join(' ').toLowerCase()});operation.body.append(row);
@@ -267,30 +433,51 @@
   function renderTest(report){
     if(!report||report.resourceRunId!==latest?.runId)return;
     latestTest=report;
-    if(testRunId!==report.runId){testRunId=report.runId;selection.clear();for(const item of report.items)if(item.selected)selection.add(item.id);updateSelection();results.clear();$('test-results').replaceChildren();
-      const omitted=report.omitted||[];$('omitted-tests').hidden=omitted.length===0;$('omitted-title').textContent='本轮未执行 '+omitted.length+' 项 · 逐项原因';$('omitted-list').replaceChildren();
-      for(const item of omitted){const row=node('article','test-item'),list=node('ul');row.append(node('h3','',item.name),list);list.append(...item.reasons.map(reason=>node('li','',reason)));$('omitted-list').append(row);}showStep(3);}
+    const showExecution=report.running||startBusy||!!archivedReport;
+    if(testRunId!==report.runId){testRunId=report.runId;if(showExecution){selection.clear();for(const item of report.items)if(item.selected)selection.add(item.id);updateSelection();}results.clear();$('test-results').replaceChildren();
+      const omitted=report.omitted||[];$('omitted-tests').hidden=omitted.length===0;$('omitted-title').textContent='未执行 '+omitted.length+' 项';$('omitted-list').replaceChildren();
+      for(const item of omitted){const row=node('article','test-item'),list=node('ul');row.append(node('h3','',item.name),list);list.append(...item.reasons.map(reason=>node('li','',reason)));$('omitted-list').append(row);}if(showExecution)showStep(3);}
     $('execution-progress').textContent=report.phase;
     $('execution-api').textContent=report.api;
-    $('execution-counts').replaceChildren(...Object.keys(testLabels).map(key=>{const n=node('span');n.append(node('b','',String(report.items.filter(i=>i.status===key).length)),document.createTextNode(testLabels[key]));return n;}));
+    const selectedItems=report.items.filter(item=>item.selected!==false);
+    const ended=selectedItems.filter(item=>['passed','failed','skipped','cancelled','pendingImplementation'].includes(item.status)).length;
+    const percent=selectedItems.length?Math.round(ended/selectedItems.length*100):0;
+    $('execution-percent').textContent=percent+'%';$('execution-total').textContent=ended+' / '+selectedItems.length+' 项已结束';
+    $('test-progress').max=Math.max(1,selectedItems.length);$('test-progress').value=ended;
+
+    $('execution-counts').replaceChildren(...Object.keys(testLabels).map(key=>metric(key,testLabels[key],selectedItems.filter(i=>i.status===key).length)));
     $('execution-context').textContent='已记录 API 调用 '+report.apiCalls+' 次'+(report.apiMilliseconds===null?'':' · 各项累计 '+Math.round(report.apiMilliseconds)+' ms')+' · '+new Date(report.started).toLocaleString('zh-CN',{hour12:false});
     if(report.environment)$('execution-context').textContent+=' · '+report.environment.windowsVersion+' · '+report.environment.hostArchitecture;
     $('execution-notice').textContent=report.error||'';
-    for(const item of report.items){
+    for(const item of selectedItems){
       let ui=results.get(item.id);
       if(!ui){
-        const row=node('article','test-item'),heading=node('div','result-heading'),badge=node('span','status'),detail=node('p','result-detail'),details=node('details'),summary=node('summary'),list=node('ul');
+        const row=node('article','test-item result-row'),heading=node('div','result-heading'),badge=node('span','badge'),detail=node('p','result-detail'),fullOutcome=node('p','result-detail'),details=node('details'),summary=node('summary'),list=node('ul');
         row.dataset.testId=item.id;heading.append(node('h3','',item.name),badge);details.append(summary,list);
-        const option=latest?.plan?.items.find(option=>option.id===item.id),technical=node('details','test-context');
-        technical.append(node('summary','','技术详情'),node('code','',item.api||''));
-        row.append(node('p','result-operation',option?.operation||''),heading,node('p','result-description',item.description),detail,details,technical);$('test-results').append(row);
-        ui={badge,detail,details,summary,list,serialized:null};results.set(item.id,ui);
+        const option=latest?.plan?.items.find(option=>option.id===item.id),technical=node('details','test-context'),extra=node('details','result-extra');
+        technical.append(node('summary','','API 详情'),node('code','',item.api||''));
+        extra.append(node('summary','','详情'),node('p','result-operation',option?.operation||''),fullOutcome,node('p','result-description',item.description),details,technical);
+        row.append(heading,detail,extra);$('test-results').append(row);
+        ui={row,badge,detail,fullOutcome,details,summary,list,serialized:null,search:'',status:''};results.set(item.id,ui);
       }
-      ui.badge.className='status '+item.status;ui.badge.textContent=testLabels[item.status]||item.status;ui.detail.textContent=item.detail;
+      ui.row.dataset.status=item.status;ui.status=item.status;
+      ui.search=[item.name,item.api,item.description,item.detail,...item.evidence].join(' ').toLowerCase();
+      ui.badge.className='badge bg-'+statusColor(item.status)+'-lt';ui.badge.textContent=testLabels[item.status]||item.status;ui.detail.textContent=briefDetail(item.detail||'');ui.fullOutcome.textContent=item.detail;
+      ui.detail.hidden=['passed','waiting'].includes(item.status)||!item.detail;
       const serialized=JSON.stringify(item.evidence);
       if(ui.serialized!==serialized){ui.details.hidden=item.evidence.length===0;ui.summary.textContent='结果明细（'+item.evidence.length+'）';ui.list.replaceChildren(...item.evidence.map(text=>node('li','',text)));ui.serialized=serialized;}
     }
-    controls();
+    filterResults();controls();
+  }
+  function filterResults(){
+    const words=$('result-search').value.trim().toLowerCase().split(/\s+/).filter(Boolean),filter=$('result-filter').value;
+    let visible=0;
+    for(const ui of results.values()){
+      ui.row.hidden=(filter!=='all'&&ui.status!==filter)||words.some(word=>!ui.search.includes(word));
+      if(!ui.row.hidden)visible++;
+    }
+    $('execution-filter-count').textContent='显示 '+visible+' / '+results.size+' 项';
+    $('results-empty').hidden=visible>0;$('test-results').hidden=visible===0;
   }
   async function getJson(path){const response=await fetch(path,{cache:'no-store'});if(!response.ok)throw Error('读取状态失败：'+response.status);return response.json();}
   async function post(path,body){
@@ -310,18 +497,35 @@
       }
       render(await getJson('/api/report'));if(!registration)applyRegistration(await getJson('/api/resources'));renderTest(await getJson('/api/tests'));restoreView();
       if(deployment){const setup=await getJson('/api/deployment');deploymentReady=setup.issues.length===0;$('deployment-summary').textContent=latest.running?'正在检查测试条件…':deploymentReady?'当前可执行 '+setup.available+' 项；其余项目按资源条件跳过。选择会保存，后续自动复用。':setup.issues.join('；');controls();}
-      if(pageChanged&&!latest.running&&!latestTest?.running&&!startBusy&&!scanBusy&&!stopBusy&&!resourceDirty&&!resourceSaveBusy)reloadPage();
+      if(pageChanged&&!latest.running&&!latestTest?.running&&!startBusy&&!scanBusy&&!stopBusy&&!resourceDirty&&!resourceSaveBusy&&!credentialBusy&&!credentialDirty)reloadPage();
     }
     catch(error){if(!deploymentFinished){connected=false;$('phase').textContent='连接已断开';$('notice').textContent='显示上次结果，请检查后台程序。';$('execution-notice').textContent='连接已断开，显示上次测试状态。';controls();}}
     finally{if(!deploymentFinished)setTimeout(refresh,1000);}
   }
   function download(value,name){const url=URL.createObjectURL(new Blob([JSON.stringify(value,null,2)],{type:'application/json'}));const a=node('a');a.href=url;a.download=name+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-  $('resource-form').addEventListener('input',()=>{resourceDirty=true;resourceMessage('设置已修改，请点上方“保存并检查”。');controls();});
+  $('nav-resources').addEventListener('click',()=>{if(!$('nav-resources').disabled)showStep(1);});
+  $('nav-selection').addEventListener('click',()=>{if(!$('nav-selection').disabled)showStep(2);});
+  $('nav-results').addEventListener('click',()=>{if(!$('nav-results').disabled)showStep(3);});
+  $('result-search').addEventListener('input',filterResults);$('result-filter').addEventListener('change',filterResults);
+  $('resource-form').addEventListener('input',event=>{
+    if($('credential-fields').contains(event.target)){credentialDirty=!!$('credential-user').value||!!$('credential-password').value;controls();return;}
+    if(event.target.id==='select-template'){$('credential-user').value='';$('credential-password').value='';credentialDirty=false;}
+    resourceDirty=true;resourceMessage('待保存');controls();
+  });
+  $('save-credentials').addEventListener('click',async()=>{
+    if($('save-credentials').disabled)return;credentialBusy=true;controls();$('credential-message').textContent='保存中…';
+    try{
+      const response=await post('/api/credentials',{revision:registration.revision,resourceRunId:latest.runId,templateVmId:registration.configuration.templateVmId,userName:$('credential-user').value,password:$('credential-password').value});
+      $('credential-user').value='';$('credential-password').value='';credentialDirty=false;
+      $('credential-message').textContent=(await response.json()).message;render(await getJson('/api/report'));
+    }catch(error){$('credential-message').textContent=error.message;}
+    finally{credentialBusy=false;controls();}
+  });
   $('save-resources').addEventListener('click',async()=>{
-    if($('save-resources').disabled)return;resourceSaveBusy=true;controls();resourceMessage('正在保存并检查…');
+    if($('save-resources').disabled)return;resourceSaveBusy=true;controls();resourceMessage('保存中…');
     try{
       const response=await post('/api/resources',{revision:registration.revision,resourceRunId:latest.runId,templateVmId:$('select-template').value,pcieIds:[...$('pcie-selection').querySelectorAll('input:checked')].map(input=>input.value),physicalDiskId:$('select-disk').value,opticalDriveId:$('select-optical').value});
-      applyRegistration(await response.json());resourceMessage('已保存，正在按新选择检查资源；下次启动自动复用。');render(await getJson('/api/report'));
+      applyRegistration(await response.json());resourceMessage('已保存，检查中…');render(await getJson('/api/report'));
     }catch(error){resourceMessage(error.message,true);}
     finally{resourceSaveBusy=false;controls();}
   });
@@ -340,7 +544,7 @@
     finally{startBusy=false;controls();}
   });
   $('back').addEventListener('click',()=>showStep(1));
-  $('select-all').addEventListener('change',()=>{for(const [id,choice] of choices)if(choice.eligible&&!choice.row.hidden){if($('select-all').checked)selection.add(id);else selection.delete(id);}updateSelection();});
+  $('select-all').addEventListener('change',()=>{const ids=[...choices].filter(([id,choice])=>choice.eligible&&!choice.row.hidden).map(([id])=>id),select=ids.some(id=>!selection.has(id));for(const id of ids){if(select)selection.add(id);else selection.delete(id);}updateSelection();});
   $('plan-search').addEventListener('input',filterPlan);$('plan-filter').addEventListener('change',filterPlan);
   $('begin').addEventListener('click',async()=>{
     if($('begin').disabled)return;

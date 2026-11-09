@@ -6,7 +6,7 @@ on:
       - 'src/ExHyperV.Core/**'
       - 'src/ExHyperV.Core.Tests/**'
       - 'src/ExHyperV.sln'
-      - 'src/ExHyperV.Core.Tests/Test-Core.ps1'
+      - 'src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1'
       - '.github/workflows/core-tests.yml'
       - '**/Directory.Build.*'
       - '**/Directory.Packages.props'
@@ -17,7 +17,7 @@ on:
       - 'src/ExHyperV.Core/**'
       - 'src/ExHyperV.Core.Tests/**'
       - 'src/ExHyperV.sln'
-      - 'src/ExHyperV.Core.Tests/Test-Core.ps1'
+      - 'src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1'
       - '.github/workflows/core-tests.yml'
       - '**/Directory.Build.*'
       - '**/Directory.Packages.props'
@@ -54,7 +54,7 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Run regression and offline Windows integration tests
         shell: pwsh
-        run: ./src/ExHyperV.Core.Tests/Test-Core.ps1 -Runtime ${{ matrix.runtime }} -Suite All -LockedRestore
+        run: ./src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1 -Runtime ${{ matrix.runtime }} -Suite All -LockedRestore
       - name: Summarize results
         if: always()
         shell: pwsh

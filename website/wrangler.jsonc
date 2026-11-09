@@ -1,0 +1,6 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "exhyperv-site",
+  "compatibility_date": "2026-10-22",
+  "assets": { "directory": "./dist" }
+}

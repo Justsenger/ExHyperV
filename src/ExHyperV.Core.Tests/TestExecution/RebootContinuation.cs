@@ -14,7 +14,11 @@ internal static class RebootContinuation
         string[] CheckIds, int Index, string CoreHash, ApiTestReport Report, InspectionReport Resources,
         VmBefore[]? Machines = null, bool MachinesStopped = false, int Restarts = 0, bool Completed = false, bool Started = false,
         string? WaitingForBoot = null, int InspectionPort = 5187);
-    internal static InspectionReport? LatestResources(string reports) => LatestBatch(reports)?.Resources;
+    internal static InspectionReport? LatestResources(string reports)
+    {
+        var batch = LatestBatch(reports);
+        return batch is { Completed: false, Report.Running: true } ? batch.Resources : null;
+    }
     internal static ApiTestReport? LatestReport(string reports) => LatestBatch(reports)?.Report;
     private static Batch? LatestBatch(string reports)
     {
