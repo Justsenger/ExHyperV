@@ -57,9 +57,7 @@
     .plan-toolbar,.result-tools{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
     .plan-tools{display:flex;gap:.5rem;margin-left:auto}.plan-tools input,.result-tools input{width:260px}.plan-tools select,.result-tools select{width:155px}
     .selection-count{align-items:center;font-weight:500;white-space:nowrap}.selection-count input{margin:0}
-    .selection-conditions{margin:0 0 1rem}.plan-layout{display:grid;grid-template-columns:190px minmax(0,1fr);gap:1.5rem;align-items:start}
-    .plan-nav{position:sticky;top:1rem;gap:.25rem;flex-direction:column}.plan-nav .nav-link{display:flex;align-items:center;gap:.625rem;text-align:left;min-width:0;border:0;white-space:normal}
-    .plan-nav .nav-link span:last-child{margin-left:auto;font-size:.75rem;opacity:.65}
+    .selection-conditions{margin:0 0 1rem}
     .plan-group{scroll-margin-top:1rem}.plan-group>summary{display:flex;align-items:center;gap:.625rem;list-style:none;padding:1rem 1.25rem;min-width:0;font-weight:500}
     .plan-group>summary::-webkit-details-marker{display:none}.plan-group>summary::before{content:"›";color:var(--tblr-secondary);font-size:1.125rem}
     .plan-group[open]>summary::before{transform:rotate(90deg)}.plan-group>summary .group-count{margin-left:auto;font-size:.75rem;color:var(--tblr-secondary);white-space:nowrap}
@@ -86,9 +84,9 @@
     #omitted-tests{padding:1rem 1.25rem}#omitted-list .test-item{padding-inline:0;margin-top:1rem;font-size:.8125rem}
     .deployment .workflow{display:none}.deployment #deployment-summary{margin-bottom:1rem}
     @media(max-width:1199px){.setup-layout{grid-template-columns:minmax(260px,1fr) minmax(0,1.6fr)}#groups{grid-template-columns:1fr}}
-    @media(max-width:767px){.workflow{flex-direction:row;gap:.5rem;justify-content:space-between;width:100%}.workflow .nav-link{padding:.75rem .25rem}.app-navbar .connection{display:none}.page-header{padding-block:1rem}.page-header .actions{margin-top:1rem}.counts{grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.setup-layout,.plan-layout{grid-template-columns:1fr}.resource-form,.plan-nav{position:static}.plan-nav{flex-direction:row;overflow-x:auto;flex-wrap:nowrap}.plan-nav .nav-link{flex-shrink:0}.plan-tools,.result-tools{width:100%;margin-left:0}.plan-tools input{flex:1;min-width:0}.plan-tools select,.result-tools select{width:130px}.plan-toolbar{gap:.75rem}.plan-group>summary{padding:1rem}.plan-group>summary .group-count{font-size:.6875rem}.plan-operation .test-item{padding-left:1.25rem}.inspection-summary .context{margin-left:0;width:100%}.execution-counts{grid-template-columns:repeat(3,minmax(0,1fr))}.result-tools input{min-width:0}.result-tools #execution-filter-count{width:100%}.page-title{font-size:1.125rem}}
-    @media(max-width:767px){.page-header .row{display:block}.page-header .actions{justify-content:flex-end}.plan-nav{max-width:100%;min-width:0}}
-    @media print{.app-navbar,.workflow-navbar,.actions,.plan-tools,.result-tools,.plan-nav{display:none!important}.resource-form{position:static}.plan-layout{display:block}.page-wrapper{margin:0}}
+    @media(max-width:767px){.workflow{flex-direction:row;gap:.5rem;justify-content:space-between;width:100%}.workflow .nav-link{padding:.75rem .25rem}.app-navbar .connection{display:none}.page-header{padding-block:1rem}.page-header .actions{margin-top:1rem}.counts{grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem}.setup-layout{grid-template-columns:1fr}.resource-form{position:static}.plan-tools,.result-tools{width:100%;margin-left:0}.plan-tools input{flex:1;min-width:0}.plan-tools select,.result-tools select{width:130px}.plan-toolbar{gap:.75rem}.plan-group>summary{padding:1rem}.plan-group>summary .group-count{font-size:.6875rem}.plan-operation .test-item{padding-left:1.25rem}.inspection-summary .context{margin-left:0;width:100%}.execution-counts{grid-template-columns:repeat(3,minmax(0,1fr))}.result-tools input{min-width:0}.result-tools #execution-filter-count{width:100%}.page-title{font-size:1.125rem}}
+    @media(max-width:767px){.page-header .row{display:block}.page-header .actions{justify-content:flex-end}}
+    @media print{.app-navbar,.workflow-navbar,.actions,.plan-tools,.result-tools{display:none!important}.resource-form{position:static}.page-wrapper{margin:0}}
   </style>
 </head>
 <body>
@@ -141,7 +139,7 @@
       <div class="card mb-3"><div class="card-body plan-toolbar"><label class="choice selection-count"><input class="form-check-input" id="select-all" type="checkbox" aria-label="全选当前显示的检查点"><span id="selection-count" role="status" aria-live="polite"></span></label><div class="plan-tools"><input class="form-control" id="plan-search" type="search" aria-label="搜索测试项目" placeholder="搜索测试…"><select class="form-select" id="plan-filter" aria-label="筛选测试项目"><option value="all">全部项目</option><option value="ready">可执行</option><option value="resources">缺少资源</option><option value="checks">检查待接入</option><option value="implementation">执行待接入</option><option value="selected">已勾选</option></select></div></div></div>
       <p id="selection-conditions" class="selection-conditions"></p>
       <div id="selection-notice" class="page-notice" role="alert"></div>
-      <div class="plan-layout"><nav id="plan-nav" class="nav nav-pills plan-nav" aria-label="测试分类"></nav><div><div id="plan-groups"></div><div id="plan-empty" class="empty" hidden><p class="empty-title">没有匹配项目</p></div></div></div>
+      <div id="plan-groups"></div><div id="plan-empty" class="empty" hidden><p class="empty-title">没有匹配项目</p></div>
     </section>
     <section id="execution-step" hidden>
       <header class="page-header"><div class="row align-items-center"><div class="col"><h1 class="page-title" tabindex="-1" id="execution-title">第三步：执行 API 测试</h1></div><div class="col-auto ms-auto actions"><button class="btn" id="execution-back">返回选择</button><button class="btn" id="download-test" disabled>导出结果</button><button class="btn btn-outline-danger" id="stop-test" disabled>停止</button></div></div></header>
@@ -263,16 +261,15 @@
     $('begin').disabled=$('begin').disabled||credentialBusy||credentialDirty;
     $('rescan').disabled=$('rescan').disabled||resourceDirty||resourceSaveBusy||credentialBusy||deploymentFinished;
     $('back').disabled=startBusy||running;
-    const visibleEligible=[...choices].filter(([id,choice])=>choice.eligible&&!choice.row.hidden).map(([id])=>id),eligible=visibleEligible.length,visibleSelected=visibleEligible.filter(id=>selection.has(id)).length;
+    const visibleChoices=[...choices].filter(([id,choice])=>!choice.row.hidden),visibleEligible=visibleChoices.filter(([id,choice])=>choice.eligible).map(([id])=>id),eligible=visibleEligible.length,visibleSelected=visibleEligible.filter(id=>selection.has(id)).length;
     $('select-all').disabled=startBusy||running||eligible===0;
-    $('select-all').checked=eligible>0&&visibleSelected===eligible;
-    $('select-all').indeterminate=visibleSelected>0&&visibleSelected<eligible;
+    $('select-all').checked=visibleChoices.length>0&&visibleSelected===visibleChoices.length;
+    $('select-all').indeterminate=false;
     for(const [id,choice] of choices){choice.input.disabled=!choice.eligible||startBusy||running;choice.input.checked=choice.eligible&&selection.has(id);}
     for(const group of planGroups.values()){
       const visibleIds=group.ids.filter(id=>!choices.get(id).row.hidden),eligibleIds=visibleIds.filter(id=>choices.get(id)?.eligible),selectedCount=eligibleIds.filter(id=>selection.has(id)).length;
-      group.input.disabled=startBusy||running||eligibleIds.length===0;group.input.checked=eligibleIds.length>0&&selectedCount===eligibleIds.length;group.input.indeterminate=selectedCount>0&&selectedCount<eligibleIds.length;
+      group.input.disabled=startBusy||running||eligibleIds.length===0;group.input.checked=visibleIds.length>0&&selectedCount===visibleIds.length;group.input.indeterminate=false;
       group.count.textContent=selectedCount+' / '+visibleIds.length;
-      if(group.link){group.link.hidden=group.section.hidden;group.total.textContent=String(visibleIds.length);}
     }
     $('execution-back').disabled=running||startBusy;
     $('download-test').disabled=!latestTest||running;
@@ -390,11 +387,7 @@
     input.type='checkbox';input.classList.add('form-check-input');input.setAttribute('aria-label','选择 '+title);input.addEventListener('click',event=>event.stopPropagation());
     summary.append(input);if(depth===0){const icon=node('span','group-icon');icon.append(categoryIcon(title));summary.append(icon);}summary.append(node('span','',title),count);section.append(summary,body);parent.append(section);
     group={section,input,count,body,ids:[]};planGroups.set(key,group);
-    if(depth===0){
-      const link=node('button','nav-link'),total=node('span');link.type='button';link.append(categoryIcon(title),node('span','',title),total);$('plan-nav').append(link);group.link=link;group.total=total;
-      link.addEventListener('click',()=>{section.open=true;section.scrollIntoView({behavior:'instant',block:'start'});for(const entry of planGroups.values())entry.link?.classList.toggle('active',entry===group);});
-    }
-    input.addEventListener('change',()=>{for(const id of group.ids)if(choices.get(id).eligible&&!choices.get(id).row.hidden){if(input.checked)selection.add(id);else selection.delete(id);}updateSelection();});
+    input.addEventListener('change',()=>{const ids=group.ids.filter(id=>choices.get(id).eligible&&!choices.get(id).row.hidden),select=ids.some(id=>!selection.has(id));for(const id of ids){if(select)selection.add(id);else selection.delete(id);}updateSelection();});
     return group;
   }
   function renderPlan(plan){
@@ -402,7 +395,7 @@
     if(planRunId!==plan.runId){planRunId=plan.runId;selection.clear();seenOptions.clear();planKey='';showStep(1);}
     if(!plan.available){selection.clear();seenOptions.clear();showStep(1);}
     const key=JSON.stringify(plan);if(key===planKey)return;
-    planKey=key;choices.clear();planGroups.clear();$('plan-groups').replaceChildren();$('plan-nav').replaceChildren();
+    planKey=key;choices.clear();planGroups.clear();$('plan-groups').replaceChildren();
     for(const id of selection)if(!plan.items.some(item=>item.id===id&&item.eligible))selection.delete(id);
     for(const item of plan.items){
       if(plan.available&&item.eligible&&!seenOptions.has(item.id))selection.add(item.id);
@@ -549,7 +542,7 @@
     finally{startBusy=false;controls();}
   });
   $('back').addEventListener('click',()=>showStep(1));
-  $('select-all').addEventListener('change',()=>{for(const [id,choice] of choices)if(choice.eligible&&!choice.row.hidden){if($('select-all').checked)selection.add(id);else selection.delete(id);}updateSelection();});
+  $('select-all').addEventListener('change',()=>{const ids=[...choices].filter(([id,choice])=>choice.eligible&&!choice.row.hidden).map(([id])=>id),select=ids.some(id=>!selection.has(id));for(const id of ids){if(select)selection.add(id);else selection.delete(id);}updateSelection();});
   $('plan-search').addEventListener('input',filterPlan);$('plan-filter').addEventListener('change',filterPlan);
   $('begin').addEventListener('click',async()=>{
     if($('begin').disabled)return;
