@@ -71,6 +71,34 @@ public sealed class ApiExecutionTests
     }
 
     [TestMethod]
+    [DataRow(false, true, true)]
+    [DataRow(true, false, false)]
+    [DataRow(true, true, false)]
+    [DataRow(false, false, false)]
+    public async Task OnlyActiveRebootWorkRestoresItsResourceSnapshot(bool completed, bool running, bool restoreResources)
+    {
+        await InDirectory(directory =>
+        {
+            var now = DateTimeOffset.Now;
+            var resources = new InspectionReport("resources", now, now, false, "检查完成", null, []);
+            var report = new ApiTestReport("run", resources.RunId, "request", "reboot", now,
+                running ? null : now, running, "fixture", 0, null, []);
+            var state = Path.Combine(directory, "state.json");
+            var marker = Path.Combine(directory, "reboot-active.json");
+            DurableJson.Write(state, new { directory, completed, report, resources });
+            DurableJson.Write(marker, state);
+            var stateBytes = File.ReadAllBytes(state);
+            var markerBytes = File.ReadAllBytes(marker);
+
+            Assert.AreEqual(restoreResources, RebootContinuation.LatestResources(directory) is not null);
+            Assert.AreEqual(report.RunId, RebootContinuation.LatestReport(directory)!.RunId);
+            CollectionAssert.AreEqual(stateBytes, File.ReadAllBytes(state));
+            CollectionAssert.AreEqual(markerBytes, File.ReadAllBytes(marker));
+            return Task.CompletedTask;
+        });
+    }
+
+    [TestMethod]
     [DataRow(1)]
     [DataRow(2)]
     public async Task WaitingForManualRebootCannotAdvanceOnTheSameBoot(int number)

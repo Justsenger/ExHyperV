@@ -267,9 +267,10 @@
   function renderTest(report){
     if(!report||report.resourceRunId!==latest?.runId)return;
     latestTest=report;
-    if(testRunId!==report.runId){testRunId=report.runId;selection.clear();for(const item of report.items)if(item.selected)selection.add(item.id);updateSelection();results.clear();$('test-results').replaceChildren();
+    const showExecution=report.running||startBusy||!!archivedReport;
+    if(testRunId!==report.runId){testRunId=report.runId;if(showExecution){selection.clear();for(const item of report.items)if(item.selected)selection.add(item.id);updateSelection();}results.clear();$('test-results').replaceChildren();
       const omitted=report.omitted||[];$('omitted-tests').hidden=omitted.length===0;$('omitted-title').textContent='本轮未执行 '+omitted.length+' 项 · 逐项原因';$('omitted-list').replaceChildren();
-      for(const item of omitted){const row=node('article','test-item'),list=node('ul');row.append(node('h3','',item.name),list);list.append(...item.reasons.map(reason=>node('li','',reason)));$('omitted-list').append(row);}showStep(3);}
+      for(const item of omitted){const row=node('article','test-item'),list=node('ul');row.append(node('h3','',item.name),list);list.append(...item.reasons.map(reason=>node('li','',reason)));$('omitted-list').append(row);}if(showExecution)showStep(3);}
     $('execution-progress').textContent=report.phase;
     $('execution-api').textContent=report.api;
     $('execution-counts').replaceChildren(...Object.keys(testLabels).map(key=>{const n=node('span');n.append(node('b','',String(report.items.filter(i=>i.status===key).length)),document.createTextNode(testLabels[key]));return n;}));
