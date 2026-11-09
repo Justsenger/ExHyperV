@@ -1,0 +1,54 @@
+---
+import ArchitectureOptions from './ArchitectureOptions.astro';
+import ImageSources from './ImageSources.astro';
+import SystemParameters from './SystemParameters.astro';
+import previews from '../data/system-previews.json';
+import imageSources from '../data/image-sources.json';
+const { version, selectedArchitecture = '' } = Astro.props;
+const architectures: string[] = version.architectures || [];
+const current = architectures.includes(selectedArchitecture) ? selectedArchitecture : version.default_architecture || architectures[0] || 'default';
+const content = previews[version.codename];
+const panels = architectures.length ? architectures : ['default'];
+const labels: Record<string, string> = { x86: 'x86', x64: 'x64', arm64: 'ARM64', default: '' };
+const fullName = version.family === 'Ubuntu' ? version.name.replace('Ubuntu', `Ubuntu ${version.branch}`) : version.name;
+const buildLabel = value => Array.isArray(value) ? value.join(' / ') : value;
+const sources = imageSources.records[version.codename] || {};
+---
+<section class="system-preview" data-os-preview>
+  {architectures.length > 0 && <div class="version-toolbar">
+    <ArchitectureOptions version={version} selected={current} />
+  </div>}
+  {panels.map(architecture => <div class="preview-layout" data-detailed-parameters={version.codename === 'windows-11-26h2' || undefined} data-architecture-preview={architecture} hidden={architecture !== current}>
+    <div class="image-column">
+      {content[architecture].image ? <img class="system-image" src={content[architecture].image} data-os-image-name={`${fullName}${labels[architecture] ? ` ${labels[architecture]}` : ''}`} alt={`${fullName}${labels[architecture] ? ` ${labels[architecture]}` : ''} 系统截图`} width={content[architecture].image_width || 1024} height={content[architecture].image_height || 768} loading={architecture === current ? 'eager' : 'lazy'} decoding="async" /> :
+        <figure class="system-placeholder" data-placeholder-architecture={architecture}>
+          <img class="system-image" src="/images/system-placeholder.svg" alt="" aria-hidden="true" width="1024" height="768" loading={architecture === current ? 'eager' : 'lazy'} decoding="async" />
+          <figcaption><span data-placeholder-name>{fullName}{labels[architecture] ? ` ${labels[architecture]}` : ''}</span><span class="visually-hidden" data-i18n="imagePlaceholder"> 图片占位</span></figcaption>
+        </figure>}
+      <ImageSources sources={sources[architecture] || []} />
+    </div>
+    <div class="version-copy">
+      {(buildLabel(content[architecture].build_number) || content[architecture].wddm || content[architecture].xddm) && <div class="version-tags" data-architecture-tags={architecture}>
+        <SystemParameters descriptiveLabels={version.codename === 'windows-11-26h2'} build={buildLabel(content[architecture].build_number)} wddm={content[architecture].wddm} xddm={content[architecture].xddm} />
+      </div>}
+      {content[architecture].description && <p class="version-description">{content[architecture].description}</p>}
+    </div>
+  </div>)}
+</section>
+
+<style>
+  .system-preview { max-width: 1600px; margin: 0 auto; padding: 32px; container-type: inline-size; }
+  .version-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 16px 20px; margin-bottom: 24px; }
+  .version-toolbar :global(.architecture-options) { padding: 0; }
+  .preview-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+  .preview-layout[data-detailed-parameters] { grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); }
+  .system-image { display: block; width: 100%; height: auto; aspect-ratio: auto 4 / 3; border: 1px solid var(--ui-border); border-radius: 14px; }
+  .image-column { min-width: 0; container-type: inline-size; }
+  .system-placeholder { position: relative; margin: 0; }
+  .system-placeholder figcaption { position: absolute; top: 54.5%; left: 7%; width: 86%; color: #8fa497; text-align: center; font-size: clamp(12px, 2.74cqi, 28px); font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .version-copy { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  .version-description { margin: 0; font-size: 15px; line-height: 1.9; overflow-wrap: anywhere; }
+  @container (max-width: 620px) { .preview-layout, .preview-layout[data-detailed-parameters] { grid-template-columns: minmax(0, 1fr); gap: 20px; } }
+  @media (max-width: 640px) { .system-preview { padding: 20px 16px; } }
+</style>

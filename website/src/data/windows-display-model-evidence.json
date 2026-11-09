@@ -1,0 +1,467 @@
+{
+  "checked_on": "2026-10-24",
+  "scope": "Windows Desktop operating-system-supported display models. Windows11 retains its separately verified data. No guest-driver measurements.",
+  "records": {
+    "windows-10-22h2": {
+      "wddm": "2.7",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "shared-core-mapping",
+      "basis": "2004 mapping plus Microsoft documented common core for2004 through22H2.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide",
+        "https://support.microsoft.com/en-us/servicing/os/windows-10/2022/06/kb5015684-featured-update-to-windows-10-version-22h2-by-using-an-enablement-package"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-21h2": {
+      "wddm": "2.7",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "shared-core-mapping",
+      "basis": "2004 mapping plus Microsoft documented common core for2004 through22H2.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide",
+        "https://support.microsoft.com/en-us/servicing/os/windows-10/2022/06/kb5015684-featured-update-to-windows-10-version-22h2-by-using-an-enablement-package"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-21h1": {
+      "wddm": "2.7",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "shared-core-mapping",
+      "basis": "2004 mapping plus Microsoft documented common core for2004 through22H2.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide",
+        "https://support.microsoft.com/en-us/servicing/os/windows-10/2022/06/kb5015684-featured-update-to-windows-10-version-22h2-by-using-an-enablement-package"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-20h2": {
+      "wddm": "2.7",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "shared-core-mapping",
+      "basis": "2004 mapping plus Microsoft documented common core for2004 through22H2.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide",
+        "https://support.microsoft.com/en-us/servicing/os/windows-10/2022/06/kb5015684-featured-update-to-windows-10-version-22h2-by-using-an-enablement-package"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-2004": {
+      "wddm": "2.7",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft official release-to-WDDM mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-1909": {
+      "wddm": "2.6",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "shared-core-mapping",
+      "basis": "1903 mapping plus Microsoft documented common core for1903/1909.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide",
+        "https://support.microsoft.com/en-au/servicing/os/windows-10/2019/11/feature-update-via-windows-10-version-1909-enablement-package"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-1903": {
+      "wddm": "2.6",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft official release-to-WDDM mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-1809": {
+      "wddm": "2.5",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft official release-to-WDDM mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-1803": {
+      "wddm": "2.4",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft official release-to-WDDM mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-1709": {
+      "wddm": "2.3",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft official release-to-WDDM mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-1703": {
+      "wddm": "2.2",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft official release-to-WDDM mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {
+        "arm64": "Mapped from the matching release platform; no binary-level inspection of the internal ARM64 build graphics stack or guest-driver measurement."
+      }
+    },
+    "windows-10-1607": {
+      "wddm": "2.1",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft official release-to-WDDM mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-10-1511": {
+      "wddm": "2.0",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "WDDM2.1 documentation describes the change after build10586;1511 remains2.0.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-2-1-features"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {
+        "arm64": "Mapped from the matching release platform; no binary-level inspection of the internal ARM64 build graphics stack or guest-driver measurement."
+      }
+    },
+    "windows-10-1507": {
+      "wddm": "2.0",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft official release-to-WDDM mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-8-1": {
+      "wddm": "1.3",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Windows8.1 model; Update does not introduce a new WDDM model.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-8": {
+      "wddm": "1.2",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft explicit Windows8 mapping.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-7-service-pack-1": {
+      "wddm": "1.1",
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Windows7 WDDM1.1; Microsoft also explicitly lists legacy XDDM availability through Windows7.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-7": {
+      "wddm": "1.1",
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Windows7 WDDM1.1; Microsoft also explicitly lists legacy XDDM availability through Windows7.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-vista-service-pack-2": {
+      "wddm": "1.05",
+      "xddm": true,
+      "xddm_version": null,
+      "status": "inherited-sp1-extension",
+      "basis": "Microsoft legacy table distinguishes Vista1.0 and VistaSP1 extension1.05; XDDM also remains available.SP2 inherits the SP1 extension; the table directly names SP1, not SP2.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-xp-service-pack-3": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-vista-service-pack-1": {
+      "wddm": "1.05",
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft legacy table distinguishes Vista1.0 and VistaSP1 extension1.05; XDDM also remains available.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-vista": {
+      "wddm": "1.0",
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft legacy table distinguishes Vista1.0 and VistaSP1 extension1.05; XDDM also remains available.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-xp-service-pack-2": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-xp-service-pack-1a": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-xp-service-pack-1": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-xp": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-2000-professional": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-2000-professional-service-pack-4": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-2000-professional-service-pack-3": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-2000-professional-service-pack-2": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-2000-professional-service-pack-1": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-xp-professional-x64-edition-service-pack-2": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-xp-professional-x64-edition": {
+      "wddm": null,
+      "xddm": true,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Microsoft names Windows2000/XP Display Driver Model as XDDM; no numeric XDDM version is invented.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/wddm-in-windows-8",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    },
+    "windows-8-1-update": {
+      "wddm": "1.3",
+      "xddm": false,
+      "xddm_version": null,
+      "status": "confirmed-release-model",
+      "basis": "Windows8.1 model; Update does not introduce a new WDDM model.",
+      "sources": [
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/d3dkmddi/ne-d3dkmddi-_dxgk_wddmversion",
+        "https://learn.microsoft.com/en-us/windows-hardware/drivers/display/windows-vista-display-driver-model-design-guide"
+      ],
+      "scope": "os-supported, not a measurement of the installed Hyper-V display adapter",
+      "architecture_notes": {}
+    }
+  },
+  "limits": [
+    "XDDM is a model name without an invented numeric version.",
+    "VistaSP1 extension1.05 is directly documented;SP2 inheritance is marked separately.",
+    "Windows1.x/2.x/3.x/9x/Me/NT3.x/NT4 are not automatically labeled XDDM.",
+    "PE/IoT and hidden Server records are not populated by simply copying desktop model numbers from their base builds.",
+    "WDDM2.8 is an Insider Manganese model;2.9 is explicitly mapped to Server2022, not Windows10 20H2/21H1."
+  ]
+}

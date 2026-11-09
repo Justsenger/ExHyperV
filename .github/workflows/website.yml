@@ -1,0 +1,81 @@
+name: Website and API documentation
+
+on:
+  push:
+    branches: ['2.0.0']
+    paths:
+      - 'website/**'
+      - 'src/ExHyperV.Core/**'
+      - '.github/workflows/website.yml'
+      - '**/Directory.Build.*'
+      - '**/global.json'
+  pull_request:
+    branches: ['2.0.0']
+    paths:
+      - 'website/**'
+      - 'src/ExHyperV.Core/**'
+      - '.github/workflows/website.yml'
+      - '**/Directory.Build.*'
+      - '**/global.json'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy the complete site to the configured Cloudflare Worker
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: website/.node-version
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: website/package.json
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '10.0.x'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm verify
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: exhyperv-website
+          path: website/dist/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Validate deployment configuration
+        if: github.repository == 'Justsenger/ExHyperV' && github.ref == 'refs/heads/2.0.0' && ((github.event_name == 'workflow_dispatch' && inputs.deploy) || (github.event_name == 'push' && vars.WEBSITE_DEPLOY_ENABLED == 'true'))
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_NAME: ${{ vars.CLOUDFLARE_WORKER_NAME }}
+        run: |
+          node --input-type=module <<'JS'
+          for (const name of ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'WORKER_NAME']) {
+            if (!process.env[name]) throw new Error(`Missing ${name}`);
+          }
+          if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(process.env.WORKER_NAME)) throw new Error('Invalid Worker name');
+          JS
+      - name: Deploy the complete static website
+        if: github.repository == 'Justsenger/ExHyperV' && github.ref == 'refs/heads/2.0.0' && ((github.event_name == 'workflow_dispatch' && inputs.deploy) || (github.event_name == 'push' && vars.WEBSITE_DEPLOY_ENABLED == 'true'))
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: website
+          command: deploy --name ${{ vars.CLOUDFLARE_WORKER_NAME }}

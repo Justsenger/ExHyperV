@@ -1,0 +1,24 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Topbar from '../components/Topbar.astro';
+import Sidebar from '../components/Sidebar.astro';
+import '../styles/site.css';
+import '../styles/brand.css';
+const { module = 'wiki', selectedId = '', navigationId = selectedId, title = '系统图鉴', family = '', branch = '' } = Astro.props;
+const isWiki = module === 'wiki';
+---
+<!doctype html><html lang="zh-CN"><head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#fbfdf8" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#191c1a" media="(prefers-color-scheme: dark)" />
+  <link rel="stylesheet" href="/typefaces/resource-rounded.css" />
+  <title>{module === 'home' ? 'ExHyperV' : `${title} | ExHyperV${selectedId ? ' 系统图鉴' : ''}`}</title>
+  <ClientRouter />
+</head><body class:list={[{ 'module-empty': !isWiki }]} data-module={module} data-page-title={title} transition:animate="none">
+  <Topbar module={module} />
+  {isWiki && <Sidebar selectedId={navigationId} />}
+  {isWiki && <button class="wiki-backdrop" id="wiki-backdrop" aria-label="关闭分类" data-i18n-aria="closeCategories" hidden />}
+  <main id="wiki-content" data-version={selectedId} data-navigation-version={navigationId} data-family={family} data-branch={branch} aria-label={`${title}${selectedId ? ' ' : ''}内容`}><slot /></main>
+  <div id="full-name-popup" class="full-name-popup" role="tooltip" hidden></div>
+  <script>import '../scripts/site.js';</script>
+</body></html>

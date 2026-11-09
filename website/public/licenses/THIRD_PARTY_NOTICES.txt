@@ -1,0 +1,48 @@
+ExHyperV third-party notices
+Reviewed: 2026-10-22
+
+1. Astro
+   Astro 7.4.2 is used to build static HTML and the client navigation bundle.
+   Astro's complete license notices accompany this deployment in Astro-LICENSE.txt.
+   https://github.com/withastro/astro
+
+2. Ubuntu symbol
+   The SVG path retained from the previous preview was sourced from Simple Icons.
+   Simple Icons' CC0 dedication does not remove Canonical's trademark rights.
+   https://github.com/simple-icons/simple-icons
+   https://canonical.com/legal/intellectual-property-policy
+   Canonical's policy permits discussion/commentary about Ubuntu without implied
+   endorsement, subject to its brand guidelines. This site makes no claim of
+   Canonical affiliation, authorization, or endorsement.
+
+3. Windows symbol
+   The retained four-pane SVG is used as a Windows category identifier.
+   Windows and associated brand assets are Microsoft's property. This repository
+   does not grant a trademark license. Microsoft's published guidelines generally
+   require express licensing for logos and product icons. The Windows-specific
+   guidelines also describe permitted symbol layouts for small-space and platform
+   identification uses; those layout provisions should not be mistaken for a
+   blanket trademark license. Permission for this site's use has NOT been established.
+   A text-only category is the conservative
+   alternative if no applicable permission is established before publication.
+   https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks
+   https://cdn-dynmedia-1.microsoft.com/is/content/microsoftcorp/microsoft/mscle/documents/presentations/Windows_Trademark_Guidelines_2026.pdf
+
+4. Reference-site assets
+   The generated site no longer distributes the reference site's app.js,
+   vendor.js, styles.css, Materialize bundle, or HarmonyOS Sans files. Styling
+   and accordion behavior are implemented in this project's source files.
+
+5. Rounded fonts
+   The main site uses locally bundled Comfortaa at weight 700 for its wordmark
+   and 600 for interface text. Chinese uses Resource Han Rounded CN Medium
+   at native weight 500; system fonts provide missing-character fallback.
+   Resource Han Rounded's OFL license is in Resource-Han-Rounded-OFL.txt.
+   The original CN Medium TTF from the author's v0.990 release is compressed
+   to one complete WOFF2 file. Glyphs, font names and copyright notices are retained.
+   Full character coverage, file hashes and source details are recorded in
+   resource-rounded-site-font.json. No character subsetting is applied.
+   Comfortaa's complete license accompanies this deployment in Comfortaa-OFL.txt.
+
+These notices record sources and unresolved permissions; they are not a grant
+of rights by Microsoft, Canonical, or any other third party.

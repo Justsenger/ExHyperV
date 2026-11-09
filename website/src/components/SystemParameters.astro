@@ -1,0 +1,26 @@
+---
+const { build, wddm, xddm = false, descriptiveLabels = false } = Astro.props;
+---
+<dl class="readonly-parameters" data-parameters-readonly data-parameter-descriptive={descriptiveLabels || undefined} aria-label="系统参数">
+  {build && <div class="parameter-pair"><dt>Build</dt><dd data-build-number={build}>{build}</dd></div>}
+  {wddm && <div class="parameter-pair"><dt>WDDM</dt><dd data-wddm-version>{wddm}</dd></div>}
+  {xddm && <div class="parameter-pair"><dt class="visually-hidden">显示驱动模型</dt><dd data-xddm>XDDM</dd></div>}
+</dl>
+
+<style>
+  .readonly-parameters { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 28px; max-width: 100%; margin: 0; padding: 0; border: 0; background: none; color: var(--text); cursor: text; user-select: text; -webkit-user-select: text; font-weight: 600; line-height: 1.5; }
+  .parameter-pair { position: relative; display: flex; align-items: baseline; gap: 8px; margin: 0; white-space: nowrap; }
+  dt, dd { margin: 0; padding: 0; font-weight: inherit; cursor: text; user-select: text; -webkit-user-select: text; }
+  dt { color: var(--muted); font-size: 12px; }
+  dd { color: var(--text); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+  .readonly-parameters { width: max-content; padding: 11px 13px; gap: 12px 22px; border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .readonly-parameters .parameter-pair { gap: 7px; }
+  .readonly-parameters dt { font-size: 11px; }
+  [data-parameter-descriptive] { flex-direction: row; flex-wrap: nowrap; align-items: baseline; gap: 20px; padding: 0; border: 0; background: none; }
+  [data-parameter-descriptive] .parameter-pair { gap: 8px; padding: 10px; border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  [data-parameter-descriptive] dt, [data-parameter-descriptive] dd { font-size: 15px; }
+  @media (max-width: 360px) { [data-parameter-descriptive] { gap: 10px; } [data-parameter-descriptive] .parameter-pair { padding-inline: 6px; } }
+
+</style>

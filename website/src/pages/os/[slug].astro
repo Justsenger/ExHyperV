@@ -1,0 +1,13 @@
+---
+import SiteLayout from '../../layouts/SiteLayout.astro';
+import SystemPreview from '../../components/SystemPreview.astro';
+import { versions, versionRoutes } from '../../data/catalog';
+export function getStaticPaths() {
+  return versionRoutes.map(version => ({ params: { slug: version.codename }, props: { version } }));
+}
+const { version } = Astro.props;
+const base: any = version.base_version_id ? versions.find(v => v.codename === version.base_version_id) : version;
+---
+<SiteLayout module="wiki" title={base.name} selectedId={version.codename} navigationId={base.codename} family={base.family} branch={base.branch}>
+  <SystemPreview version={base} selectedArchitecture={version.base_version_id ? version.architecture : ''} />
+</SiteLayout>

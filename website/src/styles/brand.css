@@ -1,0 +1,21 @@
+@font-face {
+  font-family: 'ExHyperV Brand';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('@fontsource-variable/comfortaa/files/comfortaa-latin-wght-normal.woff2') format('woff2');
+}
+
+/* Chinese faces have only native weight 500. Disable synthesized bold so the
+   600-weight interface selects Comfortaa 600 and Resource Rounded Medium 500. */
+:root {
+  font-synthesis: none;
+}
+
+/* One shared wordmark font for every main-site module. */
+.site-brand {
+  font-family: 'ExHyperV Brand', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0;
+  font-synthesis: none;
+}

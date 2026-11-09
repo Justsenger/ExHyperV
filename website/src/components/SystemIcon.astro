@@ -1,0 +1,5 @@
+---
+import icons from '../data/system-icons.json';
+const { name } = Astro.props;
+---
+<svg class="system-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" data-system={name}><path d={icons[name as keyof typeof icons]} /></svg>

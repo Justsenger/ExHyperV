@@ -1,0 +1,24 @@
+---
+import Disclosure from './Disclosure.astro';
+import VersionLink from './VersionLink.astro';
+import { relativeName } from '../data/navigation-labels';
+const { nodes, records, selectedId, idPrefix, level = 0, prefixes = ['Windows Server', 'Windows'], parentName = '' } = Astro.props;
+const byId = new Map(records.map((record: any) => [record.codename, record]));
+function hasSelected(node: any): boolean {
+  return node.version_id === selectedId || !!node.children?.some(hasSelected);
+}
+---
+<ul class="collapsible collapsible-accordion version-collections navigation-tree" style={`--tree-depth:${level}`}>
+  {nodes.map((node: any, index: number) => {
+    const id = `${idPrefix}-node-${index}`;
+    const open = hasSelected(node);
+    return <li class:list={[{active: open && !!node.children}]} data-collection={node.key}>
+      {node.version_id ? <VersionLink record={byId.get(node.version_id)} selectedId={selectedId} labelOverride={node.label} prefixes={prefixes} parentName={parentName} singleProduct /> : <>
+        <Disclosure label={node.label || relativeName(node.name, prefixes)} fullName={node.name} id={id} open={open} />
+        <div class="collapsible-body" id={id} hidden={!open}>
+          <Astro.self nodes={node.children} records={records} selectedId={selectedId} idPrefix={id} level={level + 1} prefixes={[node.name, ...prefixes]} parentName={node.name} />
+        </div>
+      </>}
+    </li>;
+  })}
+</ul>

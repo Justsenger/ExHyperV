@@ -25,6 +25,8 @@
 
 ---
 
+官网和 API 文档统一在本仓库的 [website/](website/README.md) 中维护。Windows 双击根目录 `启动文档.cmd`，或运行 `node website/scripts/start.mjs`，即可在 `http://localhost:5189/` 查看首页、系统图鉴和 API 文档。需要 Node.js 24、pnpm 11.25.0 和 .NET 10 SDK；Core 文档修改后自动重新生成，无需另外下载或启动官网仓库。
+
 ExHyperV 通过深入研究 Hyper-V 文档、 [WMI](https://github.com/Justsenger/HyperV-WMI-Documentation) 以及 [HCS](https://learn.microsoft.com/en-us/virtualization/api/hcs/overview) 等技术细节，旨在为用户提供一个图形化的、易于使用的 Hyper-V 高级功能配置工具。
 
 由于个人时间和精力有限，项目可能存在未经测试的场景或错误。如果您在使用中遇到任何关于硬件/软件的问题，欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 提出！

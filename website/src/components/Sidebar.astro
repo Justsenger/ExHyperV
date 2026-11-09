@@ -1,0 +1,62 @@
+---
+import { categories } from '../data/catalog';
+import Disclosure from './Disclosure.astro';
+import VersionList from './VersionList.astro';
+import VersionLink from './VersionLink.astro';
+import NavigationTree from './NavigationTree.astro';
+import { relativeName } from '../data/navigation-labels';
+const { selectedId = '' } = Astro.props;
+---
+<aside id="slide-out" class="sidenav" aria-label="系统分类" data-i18n-aria="categories" transition:persist>
+  <div class="sidebar">
+    <div class="rounded searchbar"><div class="search-wrapper">
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 20-5-5m2-6a6 6 0 1 1-12 0 6 6 0 0 1 12 0" /></svg>
+      <input id="version-search" type="search" aria-label="搜索版本" data-i18n-aria="searchVersions" placeholder="搜索..." data-i18n-placeholder="search" autocomplete="off" />
+    </div></div>
+    <ul id="version-categories" class="collapsible collapsible-accordion">
+      {categories.map((category, familyIndex) => {
+        const familyOpen = category.groups.some(group => group.devices.some(v => v.codename === selectedId));
+        const familyId = `family-${familyIndex}`;
+        return <li class:list={[{ active: familyOpen }]} data-family={category.name}>
+          <Disclosure label={category.name} icon={category.icon} id={familyId} open={familyOpen} />
+          <div class="collapsible-body" id={familyId} hidden={!familyOpen}>
+            <ul class="collapsible collapsible-accordion system-subcategories">
+              {category.groups.map((rawGroup, groupIndex) => {
+                const group: any = rawGroup;
+                const groupOpen = group.devices.some((v: any) => v.codename === selectedId);
+                const groupId = `${familyId}-group-${groupIndex}`;
+                const byId = new Map(group.devices.map((v: any) => [v.codename, v]));
+                const primary = group.primary_ids ? group.primary_ids.map((id: string) => byId.get(id)) : group.devices;
+                return <li class:list={[{ active: groupOpen }]} data-group={group.key} data-group-name={group.name}>
+                  <Disclosure label={group.name} id={groupId} open={groupOpen} />
+                  <div class="collapsible-body" id={groupId} hidden={!groupOpen}>
+                    {group.navigation ? <NavigationTree nodes={group.navigation} records={group.devices} selectedId={selectedId} idPrefix={groupId} /> : <>
+                    {primary.length > 0 && <VersionList records={primary} selectedId={selectedId} prefixes={[group.name, category.name]} />}
+                    {group.collections && <ul class="collapsible collapsible-accordion version-collections">
+                      {group.collections.map((collection: any, index: number) => {
+                        const open = collection.version_ids.includes(selectedId);
+                        const id = `${groupId}-collection-${index}`;
+                        const single = collection.version_ids.length === 1;
+                        return <li class:list={[{ active: open && !single }]} data-collection={collection.key}>
+                          {single ? <VersionLink record={byId.get(collection.version_ids[0])} selectedId={selectedId} prefixes={[group.name, category.name]} singleProduct /> : <>
+                          <Disclosure label={relativeName(collection.name, [group.name, category.name])} fullName={collection.name} id={id} open={open} />
+                          <div class="collapsible-body" id={id} hidden={!open}>
+                            {collection.navigation ? <NavigationTree nodes={collection.navigation} records={group.devices} selectedId={selectedId} idPrefix={id} level={1} prefixes={[collection.name, group.name, category.name]} /> : <>
+                              <VersionList records={collection.version_ids.map((key: string) => byId.get(key))} selectedId={selectedId} collection prefixes={[collection.name, group.name, category.name]} parentName={collection.name} />
+                            </>}
+                          </div>
+                          </>}
+                        </li>;
+                      })}
+                    </ul>}
+                    </>}
+                  </div>
+                </li>;
+              })}
+            </ul>
+          </div>
+        </li>;
+      })}
+    </ul>
+  </div>
+</aside>

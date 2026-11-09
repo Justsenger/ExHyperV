@@ -1,0 +1,13 @@
+---
+const { version, selected = '' } = Astro.props;
+const architectures: string[] = version.architectures || [];
+const labels: Record<string, string> = { x86: 'x86', x64: 'x64', arm64: 'ARM64' };
+const current = architectures.includes(selected) ? selected : version.default_architecture;
+const href = (architecture: string) => `/os/${version.codename}/?arch=${architecture}`;
+---
+{architectures.length > 0 && <nav class="architecture-options" aria-label="系统架构" data-i18n-aria="architectures" data-architecture-options data-default-architecture={current}>
+  <span class="architecture-label" data-i18n="architecture">架构</span>
+  {architectures.map(architecture => architectures.length === 1
+    ? <span class="architecture-choice architecture-only" data-architecture-static={architecture}>{labels[architecture]}</span>
+    : <a class="architecture-choice" data-architecture-choice={architecture} href={href(architecture)} aria-current={architecture === current ? 'true' : undefined}>{labels[architecture]}</a>)}
+</nav>}

@@ -1,0 +1,3560 @@
+{
+  "imported_on": "2026-10-25",
+  "review_date": "2026-10-24",
+  "audit_sha256": "ee6ca9ae235c76e622d2eb081a690e03b23ef3f7547e3cd81306547da9e4711c",
+  "baseline_sha256": "6debb72a4b715522276f6c1e6c058cd26e6b8e043367c0e8a9d6d342ab74ee01",
+  "source_data_before_sha256": "7ce4a23cfe7360f94b283e564831e5b46963c81e61ea8a6fbb78298136f5fa82",
+  "changes": [
+    {
+      "change_id": "WDL-001",
+      "status": "applied",
+      "version_id": "windows-11-26h2",
+      "architecture": "x64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-002",
+      "status": "applied",
+      "version_id": "windows-11-26h2",
+      "architecture": "x64",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-11-26h2-from-microsoft"
+    },
+    {
+      "change_id": "WDL-003",
+      "status": "skipped_user_instruction",
+      "reason": "当前收录规则中26H2不显示Microsoft来源；不恢复该来源。"
+    },
+    {
+      "change_id": "WDL-004",
+      "status": "applied",
+      "version_id": "windows-11-26h2",
+      "architecture": "arm64",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-11-26h2-from-microsoft"
+    },
+    {
+      "change_id": "WDL-005",
+      "status": "applied",
+      "version_id": "windows-11-26h2",
+      "architecture": "arm64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-006",
+      "status": "skipped_user_instruction",
+      "reason": "当前收录规则中26H2不显示Microsoft来源；不恢复该来源。"
+    },
+    {
+      "change_id": "WDL-007",
+      "status": "applied",
+      "version_id": "windows-11-26h1",
+      "architecture": "x64",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en-us_windows_11_business_editions_version_26h1_updated_april_2026_x64_dvd_ac820afd.iso"
+    },
+    {
+      "change_id": "WDL-008",
+      "status": "applied",
+      "version_id": "windows-11-26h1",
+      "architecture": "x64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-009",
+      "status": "applied",
+      "version_id": "windows-11-26h1",
+      "architecture": "x64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-010",
+      "status": "applied",
+      "version_id": "windows-11-26h1",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/windows_11_version_26h1"
+    },
+    {
+      "change_id": "WDL-011",
+      "status": "applied",
+      "version_id": "windows-11-26h1",
+      "architecture": "arm64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-012",
+      "status": "applied",
+      "version_id": "windows-11-26h1",
+      "architecture": "arm64",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows_11_version_26h1"
+    },
+    {
+      "change_id": "WDL-013",
+      "status": "applied",
+      "version_id": "windows-11-26h1",
+      "architecture": "arm64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-014",
+      "status": "applied",
+      "version_id": "windows-11-25h2",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-015",
+      "status": "applied",
+      "version_id": "windows-11-24h2",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Windows-11-build-26300"
+    },
+    {
+      "change_id": "WDL-016",
+      "status": "applied",
+      "version_id": "windows-11-24h2",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-11/win11-24h2/"
+    },
+    {
+      "change_id": "WDL-017",
+      "status": "applied",
+      "version_id": "windows-11-24h2",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-018",
+      "status": "applied",
+      "version_id": "windows-11-24h2",
+      "architecture": "arm64",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-11-enterprise-24h2-arm64-ingles"
+    },
+    {
+      "change_id": "WDL-019",
+      "status": "applied",
+      "version_id": "windows-11-23h2",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-020",
+      "status": "applied",
+      "version_id": "windows-11-23h2",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-11/win11-23h2/"
+    },
+    {
+      "change_id": "WDL-021",
+      "status": "applied",
+      "version_id": "windows-11-23h2",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-022",
+      "status": "applied",
+      "version_id": "windows-11-22h2",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-11/win11-22h2/"
+    },
+    {
+      "change_id": "WDL-023",
+      "status": "applied",
+      "version_id": "windows-11-22h2",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-024",
+      "status": "applied",
+      "version_id": "windows-11-21h2",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-11/win11-21h2/"
+    },
+    {
+      "change_id": "WDL-025",
+      "status": "applied",
+      "version_id": "windows-11-21h2",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-026",
+      "status": "applied",
+      "version_id": "windows-10-22h2",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-22h2/"
+    },
+    {
+      "change_id": "WDL-027",
+      "status": "applied",
+      "version_id": "windows-10-22h2",
+      "architecture": "x64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-028",
+      "status": "applied",
+      "version_id": "windows-10-22h2",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-22h2/"
+    },
+    {
+      "change_id": "WDL-029",
+      "status": "applied",
+      "version_id": "windows-10-22h2",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-030",
+      "status": "applied",
+      "version_id": "windows-10-21h2",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-21h2/"
+    },
+    {
+      "change_id": "WDL-031",
+      "status": "applied",
+      "version_id": "windows-10-21h2",
+      "architecture": "x64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-032",
+      "status": "applied",
+      "version_id": "windows-10-21h2",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-21h2/"
+    },
+    {
+      "change_id": "WDL-033",
+      "status": "applied",
+      "version_id": "windows-10-21h2",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-034",
+      "status": "applied",
+      "version_id": "windows-10-21h1",
+      "architecture": "x86",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-035",
+      "status": "applied",
+      "version_id": "windows-10-21h1",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-21h1/"
+    },
+    {
+      "change_id": "WDL-036",
+      "status": "applied",
+      "version_id": "windows-10-21h1",
+      "architecture": "x64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-037",
+      "status": "applied",
+      "version_id": "windows-10-21h1",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-21h1/"
+    },
+    {
+      "change_id": "WDL-038",
+      "status": "applied",
+      "version_id": "windows-10-21h1",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-039",
+      "status": "applied",
+      "version_id": "windows-10-20h2",
+      "architecture": "x86",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-040",
+      "status": "applied",
+      "version_id": "windows-10-20h2",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-20h2/"
+    },
+    {
+      "change_id": "WDL-041",
+      "status": "applied",
+      "version_id": "windows-10-20h2",
+      "architecture": "x64",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-10-version-2004-20h2-21h1-and-21h2-japanese-x64"
+    },
+    {
+      "change_id": "WDL-042",
+      "status": "applied",
+      "version_id": "windows-10-20h2",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-20h2/"
+    },
+    {
+      "change_id": "WDL-043",
+      "status": "applied",
+      "version_id": "windows-10-20h2",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-044",
+      "status": "applied",
+      "version_id": "windows-10-20h2",
+      "architecture": "arm64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-045",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "x86",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/fr_windows_10_consumer_editions_version_2004_updated_may_2020_x64_dvd_46ea156e"
+    },
+    {
+      "change_id": "WDL-046",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "x86",
+      "operation": "replace",
+      "new_source": false,
+      "source_page_url": "https://uupdump.net/selectlang.php?id=0dbf0ce9-e3de-4421-bbae-d01c6a59fbd9"
+    },
+    {
+      "change_id": "WDL-047",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "x86",
+      "operation": "replace",
+      "new_source": false,
+      "source_page_url": "https://uupdump.net/selectlang.php?id=53ea5350-f777-4e75-8bc8-1d474f60d4c4"
+    },
+    {
+      "change_id": "WDL-048",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-2004/"
+    },
+    {
+      "change_id": "WDL-049",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-050",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "x64",
+      "operation": "replace",
+      "new_source": false,
+      "source_page_url": "https://uupdump.net/selectlang.php?id=12ef1ff9-8242-4afe-bd62-294db74ad4c2"
+    },
+    {
+      "change_id": "WDL-051",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "x64",
+      "operation": "replace",
+      "new_source": false,
+      "source_page_url": "https://uupdump.net/selectlang.php?id=9daa0999-5f97-42cd-bcb3-69bdf9c203a5"
+    },
+    {
+      "change_id": "WDL-052",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-2004/"
+    },
+    {
+      "change_id": "WDL-053",
+      "status": "applied",
+      "version_id": "windows-10-2004",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-054",
+      "status": "applied",
+      "version_id": "windows-10-1909",
+      "architecture": "x86",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-055",
+      "status": "applied",
+      "version_id": "windows-10-1909",
+      "architecture": "x86",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-056",
+      "status": "applied",
+      "version_id": "windows-10-1909",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1909/"
+    },
+    {
+      "change_id": "WDL-057",
+      "status": "applied",
+      "version_id": "windows-10-1909",
+      "architecture": "x64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-058",
+      "status": "applied",
+      "version_id": "windows-10-1909",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1909/"
+    },
+    {
+      "change_id": "WDL-059",
+      "status": "applied",
+      "version_id": "windows-10-1909",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-060",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x86",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-061",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x86",
+      "operation": "replace",
+      "new_source": false,
+      "source_page_url": "https://uupdump.net/selectlang.php?id=44dafad1-8d8c-47ca-a495-8133cf2d0d36"
+    },
+    {
+      "change_id": "WDL-062",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x86",
+      "operation": "replace",
+      "new_source": false,
+      "source_page_url": "https://uupdump.net/selectlang.php?id=ccdea219-4d69-414c-96fa-c7cbf561a378"
+    },
+    {
+      "change_id": "WDL-063",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1903/"
+    },
+    {
+      "change_id": "WDL-064",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-065",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x64",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-066",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x64",
+      "operation": "replace",
+      "new_source": false,
+      "source_page_url": "https://uupdump.net/selectlang.php?id=ef893bef-db68-466c-9443-6b03ce55df5c"
+    },
+    {
+      "change_id": "WDL-067",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x64",
+      "operation": "replace",
+      "new_source": false,
+      "source_page_url": "https://uupdump.net/selectlang.php?id=4bab3a2a-188f-4781-97ed-8882b6dbd259"
+    },
+    {
+      "change_id": "WDL-068",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1903/"
+    },
+    {
+      "change_id": "WDL-069",
+      "status": "applied",
+      "version_id": "windows-10-1903",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-070",
+      "status": "applied",
+      "version_id": "windows-10-1809",
+      "architecture": "x86",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-071",
+      "status": "applied",
+      "version_id": "windows-10-1809",
+      "architecture": "x86",
+      "operation": "remove",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-072",
+      "status": "applied",
+      "version_id": "windows-10-1809",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1809/"
+    },
+    {
+      "change_id": "WDL-073",
+      "status": "applied",
+      "version_id": "windows-10-1809",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-074",
+      "status": "applied",
+      "version_id": "windows-10-1809",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-075",
+      "status": "applied",
+      "version_id": "windows-10-1809",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/el-gr_windows_10_business_editions_version_1809_updated_aug_2021_x64_dvd_d7192cc3"
+    },
+    {
+      "change_id": "WDL-076",
+      "status": "applied",
+      "version_id": "windows-10-1809",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-077",
+      "status": "applied",
+      "version_id": "windows-10-1803",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1803/"
+    },
+    {
+      "change_id": "WDL-078",
+      "status": "applied",
+      "version_id": "windows-10-1803",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-079",
+      "status": "applied",
+      "version_id": "windows-10-1803",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-080",
+      "status": "applied",
+      "version_id": "windows-10-1803",
+      "architecture": "arm64",
+      "operation": "update_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-081",
+      "status": "applied",
+      "version_id": "windows-10-1709",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1709/"
+    },
+    {
+      "change_id": "WDL-082",
+      "status": "applied",
+      "version_id": "windows-10-1709",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1709/"
+    },
+    {
+      "change_id": "WDL-083",
+      "status": "applied",
+      "version_id": "windows-10-1709",
+      "architecture": "arm64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-084",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "x86",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-085",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "x86",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-086",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1703/"
+    },
+    {
+      "change_id": "WDL-087",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-088",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-089",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-090",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-091",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1703/"
+    },
+    {
+      "change_id": "WDL-092",
+      "status": "applied",
+      "version_id": "windows-10-1703",
+      "architecture": "arm64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-093",
+      "status": "applied",
+      "version_id": "windows-10-1607",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1607/"
+    },
+    {
+      "change_id": "WDL-094",
+      "status": "applied",
+      "version_id": "windows-10-1607",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-095",
+      "status": "applied",
+      "version_id": "windows-10-1607",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1607/"
+    },
+    {
+      "change_id": "WDL-096",
+      "status": "applied",
+      "version_id": "windows-10-1511",
+      "architecture": "x86",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-097",
+      "status": "applied",
+      "version_id": "windows-10-1511",
+      "architecture": "x86",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1511/"
+    },
+    {
+      "change_id": "WDL-098",
+      "status": "applied",
+      "version_id": "windows-10-1511",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-099",
+      "status": "applied",
+      "version_id": "windows-10-1511",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-100",
+      "status": "applied",
+      "version_id": "windows-10-1511",
+      "architecture": "x64",
+      "operation": "add",
+      "new_source": true,
+      "source_page_url": "https://www.imsdn.cn/windows-10/win10-1511/"
+    },
+    {
+      "change_id": "WDL-101",
+      "status": "applied",
+      "version_id": "windows-10-1507",
+      "architecture": "x86",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows_10_version_1507"
+    },
+    {
+      "change_id": "WDL-102",
+      "status": "applied",
+      "version_id": "windows-10-1507",
+      "architecture": "x64",
+      "operation": "update",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows_10_version_1507"
+    },
+    {
+      "change_id": "WDL-103",
+      "status": "applied",
+      "version_id": "windows-8-1-update",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows8.1-update1-spanish"
+    },
+    {
+      "change_id": "WDL-104",
+      "status": "applied",
+      "version_id": "windows-8-1-update",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Win8.1EnterpriseCHT"
+    },
+    {
+      "change_id": "WDL-105",
+      "status": "applied",
+      "version_id": "windows-8-1-update",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows8.1-update1-spanish"
+    },
+    {
+      "change_id": "WDL-106",
+      "status": "applied",
+      "version_id": "windows-8-1-update",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Win8.1EnterpriseCHT"
+    },
+    {
+      "change_id": "WDL-107",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en-gb_windows_8_1_n_x86_dvd_2707897"
+    },
+    {
+      "change_id": "WDL-108",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_8_1_pro_vl_x86_dvd_2972633_202107"
+    },
+    {
+      "change_id": "WDL-109",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x86",
+      "operation": "reclassify_version",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-110",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x86",
+      "operation": "reclassify_version",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-111",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/8_1/rtm/#pro-vl-x86"
+    },
+    {
+      "change_id": "WDL-112",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_8_1_enterprise_x64_dvd_2971902_202107"
+    },
+    {
+      "change_id": "WDL-113",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x64",
+      "operation": "reclassify_version",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-114",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x64",
+      "operation": "reclassify_version",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-115",
+      "status": "applied",
+      "version_id": "windows-8-1",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/8_1/rtm/#pro-vl-x64"
+    },
+    {
+      "change_id": "WDL-116",
+      "status": "applied",
+      "version_id": "windows-8",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_8_pro_vl_x86_dvd_917830"
+    },
+    {
+      "change_id": "WDL-117",
+      "status": "applied",
+      "version_id": "windows-8",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-8-pro-rtm-english-isos"
+    },
+    {
+      "change_id": "WDL-118",
+      "status": "applied",
+      "version_id": "windows-8",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows8-pro"
+    },
+    {
+      "change_id": "WDL-119",
+      "status": "applied",
+      "version_id": "windows-8",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/8/rtm/#consumer-editions-x86"
+    },
+    {
+      "change_id": "WDL-120",
+      "status": "applied",
+      "version_id": "windows-8",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_8_pro_vl_x64_dvd_917699"
+    },
+    {
+      "change_id": "WDL-121",
+      "status": "applied",
+      "version_id": "windows-8",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows8-pro"
+    },
+    {
+      "change_id": "WDL-122",
+      "status": "applied",
+      "version_id": "windows-8",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/8/rtm/#consumer-editions-x64"
+    },
+    {
+      "change_id": "WDL-123",
+      "status": "applied",
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/win7-ult-sp1-english"
+    },
+    {
+      "change_id": "WDL-124",
+      "status": "applied",
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x86",
+      "operation": "qualify_originality",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-125",
+      "status": "applied",
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/7/sp1/#ultimate-x86"
+    },
+    {
+      "change_id": "WDL-126",
+      "status": "applied",
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/win7-ult-sp1-english"
+    },
+    {
+      "change_id": "WDL-127",
+      "status": "applied",
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x64",
+      "operation": "qualify_originality",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-128",
+      "status": "applied",
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/7/sp1/#ultimate-x64"
+    },
+    {
+      "change_id": "WDL-129",
+      "status": "applied",
+      "version_id": "windows-7",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_7_ultimate_x86_dvd_x15-65921_201907"
+    },
+    {
+      "change_id": "WDL-130",
+      "status": "applied",
+      "version_id": "windows-7",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Win7EnterpriseRTMCHS"
+    },
+    {
+      "change_id": "WDL-131",
+      "status": "applied",
+      "version_id": "windows-7",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Win7ProRTMCHT"
+    },
+    {
+      "change_id": "WDL-132",
+      "status": "applied",
+      "version_id": "windows-7",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/7/rtm/#ultimate-x86"
+    },
+    {
+      "change_id": "WDL-133",
+      "status": "applied",
+      "version_id": "windows-7",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows7UltimateRTMx64"
+    },
+    {
+      "change_id": "WDL-134",
+      "status": "applied",
+      "version_id": "windows-7",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Win7EnterpriseRTMCHS"
+    },
+    {
+      "change_id": "WDL-135",
+      "status": "applied",
+      "version_id": "windows-7",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Win7ProRTMCHT"
+    },
+    {
+      "change_id": "WDL-136",
+      "status": "applied",
+      "version_id": "windows-7",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/7/rtm/#ultimate-x64"
+    },
+    {
+      "change_id": "WDL-137",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows-Vista-Collection"
+    },
+    {
+      "change_id": "WDL-138",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_vista_sp2_x86_dvd_342266"
+    },
+    {
+      "change_id": "WDL-139",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/vista/sp2/#sp2-x86"
+    },
+    {
+      "change_id": "WDL-140",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/WinVistaEnterpriseSP2x64"
+    },
+    {
+      "change_id": "WDL-141",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows-Vista-Collection"
+    },
+    {
+      "change_id": "WDL-142",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/WinVistaSP2AIOCHSx86x64"
+    },
+    {
+      "change_id": "WDL-143",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/vista/sp2/#sp2-x64"
+    },
+    {
+      "change_id": "WDL-144",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows-Vista-Collection"
+    },
+    {
+      "change_id": "WDL-145",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_vista_with_service_pack_1_x86_dvd_x14-29594_202010"
+    },
+    {
+      "change_id": "WDL-146",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/windows-vista-with-service-pack-1-simplified-chinese"
+    },
+    {
+      "change_id": "WDL-147",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/vista/sp1/#sp1-x86"
+    },
+    {
+      "change_id": "WDL-148",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows-Vista-Collection"
+    },
+    {
+      "change_id": "WDL-149",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_vista_with_service_pack_1_x64_dvd_x14-29595_202010"
+    },
+    {
+      "change_id": "WDL-150",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/windows-vista-with-service-pack-1-simplified-chinese"
+    },
+    {
+      "change_id": "WDL-151",
+      "status": "applied",
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/vista/sp1/#sp1-x64"
+    },
+    {
+      "change_id": "WDL-152",
+      "status": "applied",
+      "version_id": "windows-vista",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows-Vista-Collection"
+    },
+    {
+      "change_id": "WDL-153",
+      "status": "applied",
+      "version_id": "windows-vista",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/WindowsVistaBusinessRTMx86"
+    },
+    {
+      "change_id": "WDL-154",
+      "status": "applied",
+      "version_id": "windows-vista",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/vista/rtm/#vista-x86"
+    },
+    {
+      "change_id": "WDL-155",
+      "status": "applied",
+      "version_id": "windows-vista",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows-Vista-Collection"
+    },
+    {
+      "change_id": "WDL-156",
+      "status": "applied",
+      "version_id": "windows-vista",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-vista-business-x64-oem"
+    },
+    {
+      "change_id": "WDL-157",
+      "status": "applied",
+      "version_id": "windows-vista",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/vista/rtm/#vista-x64"
+    },
+    {
+      "change_id": "WDL-158",
+      "status": "applied",
+      "version_id": "windows-xp-professional-x64-edition-service-pack-2",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_win_xp_pro_x64_with_sp2"
+    },
+    {
+      "change_id": "WDL-159",
+      "status": "applied",
+      "version_id": "windows-xp-professional-x64-edition-service-pack-2",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-xp-all-sp-msdn-iso-files-en-de-ru-tr-x86-x64"
+    },
+    {
+      "change_id": "WDL-160",
+      "status": "applied",
+      "version_id": "windows-xp-professional-x64-edition",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/en_windows_xp_professional_x64"
+    },
+    {
+      "change_id": "WDL-161",
+      "status": "applied",
+      "version_id": "windows-xp-professional-x64-edition",
+      "architecture": "x64",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-xp-all-sp-msdn-iso-files-en-de-ru-tr-x86-x64"
+    },
+    {
+      "change_id": "WDL-162",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-3",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/WinXPProSP3x86"
+    },
+    {
+      "change_id": "WDL-163",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-3",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-xp-all-sp-msdn-iso-files-en-de-ru-tr-x86-x64"
+    },
+    {
+      "change_id": "WDL-164",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-3",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/WinXPProSP3SimplifiedChinese"
+    },
+    {
+      "change_id": "WDL-165",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-3",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/xp/sp3/#professional-x86-vl"
+    },
+    {
+      "change_id": "WDL-166",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-2",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-xp-all-sp-msdn-iso-files-en-de-ru-tr-x86-x64"
+    },
+    {
+      "change_id": "WDL-167",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-2",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/xp/sp2/#professional-x86-vl"
+    },
+    {
+      "change_id": "WDL-168",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-1a",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/WinXPProSP1aVLEnglish"
+    },
+    {
+      "change_id": "WDL-169",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-1",
+      "architecture": "x86",
+      "operation": "downgrade_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-170",
+      "status": "applied",
+      "version_id": "windows-xp-service-pack-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-xp-all-sp-msdn-iso-files-en-de-ru-tr-x86-x64"
+    },
+    {
+      "change_id": "WDL-171",
+      "status": "applied",
+      "version_id": "windows-xp",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/5.1.2600-windowsxp-rtm-en-us"
+    },
+    {
+      "change_id": "WDL-172",
+      "status": "applied",
+      "version_id": "windows-xp",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-xp-all-sp-msdn-iso-files-en-de-ru-tr-x86-x64"
+    },
+    {
+      "change_id": "WDL-173",
+      "status": "applied",
+      "version_id": "windows-xp",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://mirror.winx.run/windows/xp/rtm/#professional-x86"
+    },
+    {
+      "change_id": "WDL-174",
+      "status": "applied",
+      "version_id": "windows-me",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windowsmeisoandbootdisk"
+    },
+    {
+      "change_id": "WDL-175",
+      "status": "applied",
+      "version_id": "windows-me",
+      "architecture": "x86",
+      "operation": "mark_access_limited",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-176",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-4",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows2000_en-us"
+    },
+    {
+      "change_id": "WDL-177",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-4",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/enwin2000prosp4_202001"
+    },
+    {
+      "change_id": "WDL-178",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-4",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c38361-6518-c39a-11c3-a4e284a2c3a5"
+    },
+    {
+      "change_id": "WDL-179",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-3",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Win2000ProSP3Russian"
+    },
+    {
+      "change_id": "WDL-180",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-3",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows2000_en-us"
+    },
+    {
+      "change_id": "WDL-181",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-3",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c380c3-96e2-80a6-18c3-9a11c3a4efbf"
+    },
+    {
+      "change_id": "WDL-182",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-2",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows2000_en-us"
+    },
+    {
+      "change_id": "WDL-183",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-2",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/microsoft-windows-2000-professional-oem-x05-07175"
+    },
+    {
+      "change_id": "WDL-184",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-2",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c389c2-bdc2-ae18-c39a-11c3a4e284a2"
+    },
+    {
+      "change_id": "WDL-185",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows2000ProfessionalSP1OEMFinnish"
+    },
+    {
+      "change_id": "WDL-186",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows2000_en-us"
+    },
+    {
+      "change_id": "WDL-187",
+      "status": "applied",
+      "version_id": "windows-2000-professional-service-pack-1",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c38b04-e280-9318-c39a-11c3a4e284a2"
+    },
+    {
+      "change_id": "WDL-188",
+      "status": "applied",
+      "version_id": "windows-2000-professional",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows2000_en-us"
+    },
+    {
+      "change_id": "WDL-189",
+      "status": "applied",
+      "version_id": "windows-98-second-edition",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/win98se_201607"
+    },
+    {
+      "change_id": "WDL-190",
+      "status": "applied",
+      "version_id": "windows-95-osr2-5",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/win95osr2.5_ja"
+    },
+    {
+      "change_id": "WDL-191",
+      "status": "applied",
+      "version_id": "windows-95-osr2-5",
+      "architecture": "x86",
+      "operation": "mark_access_limited",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-192",
+      "status": "applied",
+      "version_id": "windows-95-osr2-5",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Win95CCHS"
+    },
+    {
+      "change_id": "WDL-193",
+      "status": "applied",
+      "version_id": "windows-95-osr2-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Win95OSR2.1ESP"
+    },
+    {
+      "change_id": "WDL-194",
+      "status": "applied",
+      "version_id": "windows-95-osr2-1",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/Win95OSR2.1CHS"
+    },
+    {
+      "change_id": "WDL-195",
+      "status": "applied",
+      "version_id": "windows-95-osr2",
+      "architecture": "x86",
+      "operation": "reclassify_candidate",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-196",
+      "status": "applied",
+      "version_id": "windows-95-osr2",
+      "architecture": "x86",
+      "operation": "mark_access_limited",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-197",
+      "status": "applied",
+      "version_id": "windows-95-osr2",
+      "architecture": "x86",
+      "operation": "pin_exact_source_page",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/48373a22-25c3-8911-c3a6-e280947e5254"
+    },
+    {
+      "change_id": "WDL-198",
+      "status": "applied",
+      "version_id": "windows-95-osr1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Win95ACHS"
+    },
+    {
+      "change_id": "WDL-199",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-6a",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/f0ce02e5-cca7-11e7-a73f-fa163e9022f0"
+    },
+    {
+      "change_id": "WDL-200",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-6",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-201",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-5",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-202",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-5",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/4c83d3f4-de24-11e7-a562-fa163e9022f0"
+    },
+    {
+      "change_id": "WDL-203",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-4",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-204",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-4",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/ae1bb322-0f46-11e8-a755-fa163e9022f0"
+    },
+    {
+      "change_id": "WDL-205",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-3",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-206",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-3",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/ce504422-dedd-11e7-a562-fa163e9022f0"
+    },
+    {
+      "change_id": "WDL-207",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-2",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-208",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-2",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/a61c43dc-dedc-11e7-a562-fa163e9022f0"
+    },
+    {
+      "change_id": "WDL-209",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-1",
+      "architecture": "x86",
+      "operation": "downgrade_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-210",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-1",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-211",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0-service-pack-1",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c38ec3-9137-18c3-9a11-c3a4e284a2ef"
+    },
+    {
+      "change_id": "WDL-212",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-4-0",
+      "architecture": "x86",
+      "operation": "downgrade_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-213",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51-service-pack-5",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-214",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51-service-pack-5",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c2b563-1f18-c39a-11c3-a4e284a2c3a5"
+    },
+    {
+      "change_id": "WDL-215",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51-service-pack-4",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-216",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51-service-pack-4",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c2bfe2-8098-3418-c39a-11c3a4e284a2"
+    },
+    {
+      "change_id": "WDL-217",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51-service-pack-3",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-218",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51-service-pack-3",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c38c48-5018-c39a-11c3-a4e284a2c3a5"
+    },
+    {
+      "change_id": "WDL-219",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51-service-pack-2",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-220",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51-service-pack-2",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c38dc5-bd3f-18c3-9a11-c3a4e284a2ef"
+    },
+    {
+      "change_id": "WDL-221",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51",
+      "architecture": "x86",
+      "operation": "remove_from_matching_sources",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-222",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-51",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/ntwks351_iso"
+    },
+    {
+      "change_id": "WDL-223",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-5-service-pack-3",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-224",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-5-service-pack-3",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c38733-e280-9e18-c39a-11c3a4e284a2"
+    },
+    {
+      "change_id": "WDL-225",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-5-service-pack-2",
+      "architecture": "x86",
+      "operation": "correct_media_role",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-nt-3.5-us-service-pack-2"
+    },
+    {
+      "change_id": "WDL-226",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-5-service-pack-1",
+      "architecture": "x86",
+      "operation": "correct_media_role",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/nt35sp1"
+    },
+    {
+      "change_id": "WDL-227",
+      "status": "applied",
+      "version_id": "windows-nt-workstation-3-5-service-pack-1",
+      "architecture": "x86",
+      "operation": "correct_media_role",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-nt-3.5-sp-1"
+    },
+    {
+      "change_id": "WDL-228",
+      "status": "applied",
+      "version_id": "windows-nt-3-1-service-pack-3",
+      "architecture": "x86",
+      "operation": "pin_update_file",
+      "new_source": false,
+      "source_page_url": "https://sdfox7.com/winntsp.htm"
+    },
+    {
+      "change_id": "WDL-229",
+      "status": "applied",
+      "version_id": "windows-nt-3-1-service-pack-3",
+      "architecture": "x86",
+      "operation": "structure_media_role",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/41c385c3-ae38-18c3-9a11-c3a4e284a2ef"
+    },
+    {
+      "change_id": "WDL-230",
+      "status": "applied",
+      "version_id": "windows-nt-3-1-service-pack-2",
+      "architecture": "x86",
+      "operation": "correct_media_role",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/disk-01_20260830_1935"
+    },
+    {
+      "change_id": "WDL-231",
+      "status": "applied",
+      "version_id": "windows-nt-3-1-service-pack-2",
+      "architecture": "x86",
+      "operation": "correct_media_role",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-nt-3.1-build-528-sp-2-3.5-1.44-update.-7z"
+    },
+    {
+      "change_id": "WDL-232",
+      "status": "applied",
+      "version_id": "windows-nt-3-1-service-pack-1",
+      "architecture": "x86",
+      "operation": "correct_media_role",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-nt-3.1-build-528-sp-1-csd-002-setup.-7z"
+    },
+    {
+      "change_id": "WDL-233",
+      "status": "applied",
+      "version_id": "windows-nt-3-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windowsnt31cd"
+    },
+    {
+      "change_id": "WDL-234",
+      "status": "applied",
+      "version_id": "windows-3-2",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/win32c"
+    },
+    {
+      "change_id": "WDL-235",
+      "status": "applied",
+      "version_id": "windows-3-2",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoft-windows-3.2-simpl-chinese-3.5"
+    },
+    {
+      "change_id": "WDL-236",
+      "status": "applied",
+      "version_id": "windows-for-workgroups-3-11",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows-for-Workgroups-3.11"
+    },
+    {
+      "change_id": "WDL-237",
+      "status": "applied",
+      "version_id": "windows-3-11",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows_3.11_en-de-ru-tr_with_ms-dos_6.22_eng."
+    },
+    {
+      "change_id": "WDL-238",
+      "status": "applied",
+      "version_id": "windows-3-11",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoft-windows-3.11-retail-full-3.5.-7z"
+    },
+    {
+      "change_id": "WDL-239",
+      "status": "applied",
+      "version_id": "windows-for-workgroups-3-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-for-workgroups-3.1"
+    },
+    {
+      "change_id": "WDL-240",
+      "status": "applied",
+      "version_id": "windows-3-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/Windows3.1_201906"
+    },
+    {
+      "change_id": "WDL-241",
+      "status": "applied",
+      "version_id": "windows-3-0a",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-3.0a-1.44-mb-disks"
+    },
+    {
+      "change_id": "WDL-242",
+      "status": "applied",
+      "version_id": "windows-3-0",
+      "architecture": "x86",
+      "operation": "correct_media_role",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-243",
+      "status": "applied",
+      "version_id": "windows-3-0",
+      "architecture": "x86",
+      "operation": "pin_exact_source_page",
+      "new_source": false,
+      "source_page_url": "https://winworldpc.com/download/4ac38344-36c2-b254-11c3-a4c2ac5a5404"
+    },
+    {
+      "change_id": "WDL-244",
+      "status": "applied",
+      "version_id": "windows-3-0",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoft-windows-3.0-.-7z"
+    },
+    {
+      "change_id": "WDL-245",
+      "status": "applied",
+      "version_id": "windows-2-11",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/microsoft-windows-2.11-286-huvi-retro-gt"
+    },
+    {
+      "change_id": "WDL-246",
+      "status": "applied",
+      "version_id": "windows-2-11",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/MSWIN2.11_3.5"
+    },
+    {
+      "change_id": "WDL-247",
+      "status": "applied",
+      "version_id": "windows-2-1",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/microsoft-windows-2.10-386-espanol-huvi-retro-gt"
+    },
+    {
+      "change_id": "WDL-248",
+      "status": "applied",
+      "version_id": "windows-2-03",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/microsoft-windows-2.03-3.5"
+    },
+    {
+      "change_id": "WDL-249",
+      "status": "applied",
+      "version_id": "windows-2-01",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/MSWIN2.01"
+    },
+    {
+      "change_id": "WDL-250",
+      "status": "applied",
+      "version_id": "windows-1-04",
+      "architecture": "x86",
+      "operation": "qualify_originality",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-251",
+      "status": "applied",
+      "version_id": "windows-1-04",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/MSWIN1.04_1987-05-11"
+    },
+    {
+      "change_id": "WDL-252",
+      "status": "applied",
+      "version_id": "windows-1-03",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/mswin103"
+    },
+    {
+      "change_id": "WDL-253",
+      "status": "applied",
+      "version_id": "windows-1-02",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/MSWIN1.02"
+    },
+    {
+      "change_id": "WDL-254",
+      "status": "applied",
+      "version_id": "windows-1-01",
+      "architecture": "x86",
+      "operation": "pin_exact_files",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/windows-1.01-1985"
+    },
+    {
+      "change_id": "WDL-255",
+      "status": "applied",
+      "version_id": "windows-1-01",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/MSWIN1.01"
+    },
+    {
+      "change_id": "WDL-256",
+      "status": "applied",
+      "version_id": "server-2022",
+      "architecture": "x64",
+      "operation": "clarify_license_and_build",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-257",
+      "status": "applied",
+      "version_id": "server-2016",
+      "architecture": "x64",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/cn_windows_server_2016_updated_feb_2018_x64_dvd_11636703"
+    },
+    {
+      "change_id": "WDL-258",
+      "status": "applied",
+      "version_id": "windows-server-2012-r2",
+      "architecture": "x64",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/cn_windows_server_2012_r2_vl_with_update_x64_dvd_6052729"
+    },
+    {
+      "change_id": "WDL-259",
+      "status": "applied",
+      "version_id": "server-2012",
+      "architecture": "x64",
+      "operation": "update_availability",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-260",
+      "status": "applied",
+      "version_id": "server-2012",
+      "architecture": "x64",
+      "operation": "disable_unavailable_link",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-261",
+      "status": "applied",
+      "version_id": "server-2012",
+      "architecture": "x64",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/cn_windows_server_2012_vl_x64_dvd_917962"
+    },
+    {
+      "change_id": "WDL-262",
+      "status": "applied",
+      "version_id": "windows-server-2008-r2",
+      "architecture": "x64",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/WinServer2008R2RTMx64CHS"
+    },
+    {
+      "change_id": "WDL-263",
+      "status": "applied",
+      "version_id": "server-2008",
+      "architecture": "x86",
+      "operation": "clarify_archive_contents",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-264",
+      "status": "applied",
+      "version_id": "server-2008",
+      "architecture": "x86",
+      "operation": "update_availability",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-265",
+      "status": "applied",
+      "version_id": "server-2008",
+      "architecture": "x86",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/windows-server-2008-rtm-simplified-chinese"
+    },
+    {
+      "change_id": "WDL-266",
+      "status": "applied",
+      "version_id": "server-2008",
+      "architecture": "x64",
+      "operation": "update_availability",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-267",
+      "status": "applied",
+      "version_id": "server-2008",
+      "architecture": "x64",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/windows-server-2008-rtm-simplified-chinese"
+    },
+    {
+      "change_id": "WDL-268",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2",
+      "architecture": "x86",
+      "operation": "refine_exact_source",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-269",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2",
+      "architecture": "x86",
+      "operation": "qualify_collection",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-270",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2",
+      "architecture": "x86",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-271",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2",
+      "architecture": "x86",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/WinServer2003R2EnterpriseSP1CHS"
+    },
+    {
+      "change_id": "WDL-272",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2",
+      "architecture": "x64",
+      "operation": "remove_from_wrong_architecture",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-273",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2",
+      "architecture": "x64",
+      "operation": "qualify_collection",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-274",
+      "status": "applied",
+      "version_id": "server-2003",
+      "architecture": "x86",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/sc_windows_server_2003_standard"
+    },
+    {
+      "change_id": "WDL-275",
+      "status": "applied",
+      "version_id": "server-2003",
+      "architecture": "x64",
+      "operation": "update_availability",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-276",
+      "status": "applied",
+      "version_id": "windows-pe-10-0-10586",
+      "architecture": "x86",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-277",
+      "status": "applied",
+      "version_id": "windows-pe-10-0-10586",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoft-windows-assessment-and-deployment-toolkit-windows-10-version-1511-build-10586"
+    },
+    {
+      "change_id": "WDL-278",
+      "status": "applied",
+      "version_id": "windows-pe-10-0-10586",
+      "architecture": "x64",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-279",
+      "status": "applied",
+      "version_id": "windows-pe-10-0-10586",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoft-windows-assessment-and-deployment-toolkit-windows-10-version-1511-build-10586"
+    },
+    {
+      "change_id": "WDL-280",
+      "status": "applied",
+      "version_id": "windows-pe-10-0",
+      "architecture": "x86",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-281",
+      "status": "applied",
+      "version_id": "windows-pe-10-0",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoft-windows-assessment-and-deployment-kit-windows-10-version-1507-build-10240-10.0.26624.0"
+    },
+    {
+      "change_id": "WDL-282",
+      "status": "applied",
+      "version_id": "windows-pe-10-0",
+      "architecture": "x64",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-283",
+      "status": "applied",
+      "version_id": "windows-pe-10-0",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoft-windows-assessment-and-deployment-kit-windows-10-version-1507-build-10240-10.0.26624.0"
+    },
+    {
+      "change_id": "WDL-284",
+      "status": "applied",
+      "version_id": "windows-pe-4-0",
+      "architecture": "x86",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-285",
+      "status": "applied",
+      "version_id": "windows-pe-4-0",
+      "architecture": "x86",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-286",
+      "status": "applied",
+      "version_id": "windows-pe-4-0",
+      "architecture": "x64",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-287",
+      "status": "applied",
+      "version_id": "windows-pe-4-0",
+      "architecture": "x64",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-288",
+      "status": "applied",
+      "version_id": "windows-pe-3-1",
+      "architecture": "x86",
+      "operation": "remove_from_exact_sources",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-289",
+      "status": "applied",
+      "version_id": "windows-pe-3-1",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://www.microsoft.com/zh-cn/download/details.aspx?id=5188"
+    },
+    {
+      "change_id": "WDL-290",
+      "status": "applied",
+      "version_id": "windows-pe-3-1",
+      "architecture": "x64",
+      "operation": "remove_from_exact_sources",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-291",
+      "status": "applied",
+      "version_id": "windows-pe-3-1",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://www.microsoft.com/zh-cn/download/details.aspx?id=5188"
+    },
+    {
+      "change_id": "WDL-292",
+      "status": "applied",
+      "version_id": "windows-pe-3-0",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://www.microsoft.com/zh-cn/download/details.aspx?id=5753"
+    },
+    {
+      "change_id": "WDL-293",
+      "status": "applied",
+      "version_id": "windows-pe-3-0",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://www.microsoft.com/zh-cn/download/details.aspx?id=5753"
+    },
+    {
+      "change_id": "WDL-294",
+      "status": "applied",
+      "version_id": "windows-pe-2-1",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://www.microsoft.com/zh-cn/download/details.aspx?id=9085"
+    },
+    {
+      "change_id": "WDL-295",
+      "status": "applied",
+      "version_id": "windows-pe-2-1",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://www.microsoft.com/zh-cn/download/details.aspx?id=9085"
+    },
+    {
+      "change_id": "WDL-296",
+      "status": "applied",
+      "version_id": "windows-pe-2-0",
+      "architecture": "x86",
+      "operation": "pin_file",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/WinPE2.0"
+    },
+    {
+      "change_id": "WDL-297",
+      "status": "applied",
+      "version_id": "windows-pe-2-0",
+      "architecture": "x64",
+      "operation": "pin_file",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/WinPE2.0"
+    },
+    {
+      "change_id": "WDL-298",
+      "status": "applied",
+      "version_id": "windows-pe-1-6",
+      "architecture": "x86",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-299",
+      "status": "applied",
+      "version_id": "windows-pe-1-6",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoftwindowspreinstallationenvironment1.62005en"
+    },
+    {
+      "change_id": "WDL-300",
+      "status": "applied",
+      "version_id": "windows-pe-1-6",
+      "architecture": "x64",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-301",
+      "status": "applied",
+      "version_id": "windows-pe-1-5",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoftwindowspreinstallationenvironment1.62005en"
+    },
+    {
+      "change_id": "WDL-302",
+      "status": "applied",
+      "version_id": "windows-pe-1-2",
+      "architecture": "x86",
+      "operation": "pin_file",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/X09-70549"
+    },
+    {
+      "change_id": "WDL-303",
+      "status": "applied",
+      "version_id": "windows-pe-1-2",
+      "architecture": "x86",
+      "operation": "pin_file",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/X09-70550"
+    },
+    {
+      "change_id": "WDL-304",
+      "status": "applied",
+      "version_id": "windows-pe-1-2",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoftwindowspreinstallationenvironment1.62005en"
+    },
+    {
+      "change_id": "WDL-305",
+      "status": "applied",
+      "version_id": "windows-pe-1-1",
+      "architecture": "x86",
+      "operation": "pin_file",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/X09-12224"
+    },
+    {
+      "change_id": "WDL-306",
+      "status": "applied",
+      "version_id": "windows-pe-1-1",
+      "architecture": "x86",
+      "operation": "pin_file",
+      "new_source": false,
+      "source_page_url": "https://archive.org/details/X09-12226"
+    },
+    {
+      "change_id": "WDL-307",
+      "status": "applied",
+      "version_id": "windows-pe-1-1",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoftwindowspreinstallationenvironment1.62005en"
+    },
+    {
+      "change_id": "WDL-308",
+      "status": "applied",
+      "version_id": "windows-pe-1-0",
+      "architecture": "x86",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-309",
+      "status": "applied",
+      "version_id": "windows-pe-1-0",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoftwindowspreinstallationenvironment1.62005en"
+    },
+    {
+      "change_id": "WDL-310",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-ltsc",
+      "architecture": "x86",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-311",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-ltsc",
+      "architecture": "x86",
+      "operation": "downgrade_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-312",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-ltsc",
+      "architecture": "x64",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-313",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-ltsc",
+      "architecture": "x64",
+      "operation": "downgrade_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-314",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1809",
+      "architecture": "x86",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-315",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1809",
+      "architecture": "x86",
+      "operation": "downgrade_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-316",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1809",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://files.rg-adguard.net/file/683bc61e-4f51-abb8-818d-78a0d8fc46bb"
+    },
+    {
+      "change_id": "WDL-317",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1809",
+      "architecture": "x64",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-318",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1809",
+      "architecture": "x64",
+      "operation": "downgrade_verification",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-319",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1809",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://files.rg-adguard.net/file/683bc61e-4f51-abb8-818d-78a0d8fc46bb"
+    },
+    {
+      "change_id": "WDL-320",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1803",
+      "architecture": "x86",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-321",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1803",
+      "architecture": "x64",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-322",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1709",
+      "architecture": "x86",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-323",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1709",
+      "architecture": "x86",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/w10-iotuap-16299.125-multiarch-multilang-uup"
+    },
+    {
+      "change_id": "WDL-324",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1709",
+      "architecture": "x64",
+      "operation": "mark_unavailable",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-325",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1709",
+      "architecture": "x64",
+      "operation": "add_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/w10-iotuap-16299.125-multiarch-multilang-uup"
+    },
+    {
+      "change_id": "WDL-326",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1703",
+      "architecture": "x86",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-327",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1703",
+      "architecture": "x64",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-328",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1607",
+      "architecture": "x86",
+      "operation": "remove_from_exact_sources",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-329",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1607",
+      "architecture": "x86",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-330",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1607",
+      "architecture": "x64",
+      "operation": "remove_from_exact_sources",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-331",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1607",
+      "architecture": "x64",
+      "operation": "correct_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-332",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-1511",
+      "architecture": "x86",
+      "operation": "remove_from_version",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-333",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-original",
+      "architecture": "x86",
+      "operation": "remove_from_version",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-334",
+      "status": "applied",
+      "version_id": "windows-10-iot-core-original",
+      "architecture": "x86",
+      "operation": "remove_from_version",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-335",
+      "status": "applied",
+      "version_id": "windows-server-version-20h2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-336",
+      "status": "applied",
+      "version_id": "windows-server-version-20h2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-337",
+      "status": "applied",
+      "version_id": "windows-server-version-1903",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/windows_10_version_1903"
+    },
+    {
+      "change_id": "WDL-338",
+      "status": "applied",
+      "version_id": "hyper-v-server-2019",
+      "architecture": "default",
+      "operation": "correct_product_label",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-339",
+      "status": "applied",
+      "version_id": "hyper-v-server-2016",
+      "architecture": "default",
+      "operation": "correct_product_label",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-340",
+      "status": "applied",
+      "version_id": "hyper-v-server-2012-r2",
+      "architecture": "default",
+      "operation": "correct_product_label",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-341",
+      "status": "applied",
+      "version_id": "windows-storage-server-2012",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://www.microsoft.com/en-us/download/details.aspx?id=34592"
+    },
+    {
+      "change_id": "WDL-342",
+      "status": "applied",
+      "version_id": "windows-storage-server-2012",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://www.microsoft.com/zh-cn/download/details.aspx?id=34592"
+    },
+    {
+      "change_id": "WDL-343",
+      "status": "applied",
+      "version_id": "windows-multipoint-server-2012",
+      "architecture": "default",
+      "operation": "disable_unavailable_link",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-344",
+      "status": "applied",
+      "version_id": "hyper-v-server-2012",
+      "architecture": "default",
+      "operation": "correct_product_label",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-345",
+      "status": "applied",
+      "version_id": "hyper-v-server-2008-r2-service-pack-1",
+      "architecture": "default",
+      "operation": "attach_verified_direct_download",
+      "new_source": false,
+      "source_page_url": "https://www.microsoft.com/en-sg/download/details.aspx?id=20196"
+    },
+    {
+      "change_id": "WDL-346",
+      "status": "applied",
+      "version_id": "windows-storage-server-2008-r2-service-pack-1",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-347",
+      "status": "applied",
+      "version_id": "windows-server-2008-r2-service-pack-1",
+      "architecture": "default",
+      "operation": "qualify_originality",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-348",
+      "status": "applied",
+      "version_id": "windows-server-2008-r2-service-pack-1",
+      "architecture": "default",
+      "operation": "qualify_originality",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-349",
+      "status": "applied",
+      "version_id": "windows-server-2008-r2-service-pack-1",
+      "architecture": "default",
+      "operation": "restrict_to_matching_file",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-350",
+      "status": "applied",
+      "version_id": "windows-server-2008-r2-service-pack-1",
+      "architecture": "default",
+      "operation": "disable_unavailable_link",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-351",
+      "status": "applied",
+      "version_id": "windows-server-2008-r2-service-pack-1",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/wserver2008r2"
+    },
+    {
+      "change_id": "WDL-352",
+      "status": "applied",
+      "version_id": "windows-hpc-server-2008-r2-service-pack-1",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/cn_windows_server_2008_r2_hpc_edition_with_service_pack_1_x64_dvd_700632"
+    },
+    {
+      "change_id": "WDL-353",
+      "status": "applied",
+      "version_id": "windows-storage-server-2008-r2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-354",
+      "status": "applied",
+      "version_id": "windows-storage-server-2008-r2",
+      "architecture": "default",
+      "operation": "move_to_correct_release",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-355",
+      "status": "applied",
+      "version_id": "windows-hpc-server-2008-r2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-356",
+      "status": "applied",
+      "version_id": "windows-hpc-server-2008-r2",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/cn_windows_server_2008_r2_hpc_x64_dvd_552764"
+    },
+    {
+      "change_id": "WDL-357",
+      "status": "applied",
+      "version_id": "windows-essential-business-server-2008",
+      "architecture": "default",
+      "operation": "clarify_media_set",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-358",
+      "status": "applied",
+      "version_id": "windows-essential-business-server-2008",
+      "architecture": "default",
+      "operation": "clarify_media_set",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-359",
+      "status": "applied",
+      "version_id": "windows-essential-business-server-2008",
+      "architecture": "default",
+      "operation": "clarify_media_set",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-360",
+      "status": "applied",
+      "version_id": "windows-small-business-server-2008",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-361",
+      "status": "applied",
+      "version_id": "windows-small-business-server-2008",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-362",
+      "status": "applied",
+      "version_id": "windows-web-server-2008",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-363",
+      "status": "applied",
+      "version_id": "windows-home-server",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-364",
+      "status": "applied",
+      "version_id": "windows-home-server",
+      "architecture": "default",
+      "operation": "clarify_release",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-365",
+      "status": "applied",
+      "version_id": "windows-server-2003-service-pack-2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-366",
+      "status": "applied",
+      "version_id": "windows-server-2003-service-pack-2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-367",
+      "status": "applied",
+      "version_id": "windows-server-2003-service-pack-2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-368",
+      "status": "applied",
+      "version_id": "windows-server-2003-service-pack-2",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/microsoft-windows-server-2003-web-edition-with-service-pack-2-volume-license-eng"
+    },
+    {
+      "change_id": "WDL-369",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2-service-pack-2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-370",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2-service-pack-2",
+      "architecture": "default",
+      "operation": "qualify_collection",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-371",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2-service-pack-2",
+      "architecture": "default",
+      "operation": "qualify_collection",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-372",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2-service-pack-2",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/WinSrv2003R2CHS"
+    },
+    {
+      "change_id": "WDL-373",
+      "status": "applied",
+      "version_id": "windows-server-2003-r2-service-pack-2",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/cn_win_srv_2003_r2_standard_with_sp2_vl_cd1_X13-46532"
+    },
+    {
+      "change_id": "WDL-374",
+      "status": "applied",
+      "version_id": "windows-storage-server-2003-r2",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-375",
+      "status": "applied",
+      "version_id": "microsoft-windows-small-business-server-2003-service-pack-1",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/armlfpp-sbs2003-licensing"
+    },
+    {
+      "change_id": "WDL-376",
+      "status": "applied",
+      "version_id": "windows-server-2003-service-pack-1",
+      "architecture": "default",
+      "operation": "refine_exact_source",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-377",
+      "status": "applied",
+      "version_id": "windows-server-2003-service-pack-1",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-378",
+      "status": "applied",
+      "version_id": "windows-server-2003-service-pack-1",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-379",
+      "status": "applied",
+      "version_id": "windows-server-2003-service-pack-1",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/sc_ws_2003_std_with_sp1"
+    },
+    {
+      "change_id": "WDL-380",
+      "status": "applied",
+      "version_id": "microsoft-windows-small-business-server-2003",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-381",
+      "status": "applied",
+      "version_id": "windows-storage-server-2003",
+      "architecture": "default",
+      "operation": "move_to_correct_release",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-382",
+      "status": "applied",
+      "version_id": "windows-small-business-server-2000",
+      "architecture": "default",
+      "operation": "clarify_release",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-383",
+      "status": "applied",
+      "version_id": "windows-2000-datacenter-server",
+      "architecture": "default",
+      "operation": "clarify_release",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-384",
+      "status": "applied",
+      "version_id": "windows-2000-server",
+      "architecture": "default",
+      "operation": "qualify_collection",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-385",
+      "status": "applied",
+      "version_id": "windows-2000-advanced-server",
+      "architecture": "default",
+      "operation": "qualify_collection",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-386",
+      "status": "applied",
+      "version_id": "windows-nt-server-4-0-enterprise-edition",
+      "architecture": "default",
+      "operation": "add_verified_source",
+      "new_source": true,
+      "source_page_url": "https://archive.org/details/ms-winnt40-entsrv"
+    },
+    {
+      "change_id": "WDL-387",
+      "status": "applied",
+      "version_id": "windows-nt-server-4-0",
+      "architecture": "default",
+      "operation": "reclassify",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-388",
+      "status": "applied",
+      "version_id": "windows-nt-server-4-0",
+      "architecture": "default",
+      "operation": "refine_source_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-389",
+      "status": "applied",
+      "version_id": "windows-nt-server-4-0",
+      "architecture": "default",
+      "operation": "refine_source_metadata",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-390",
+      "status": "applied",
+      "version_id": "windows-nt-server-3-51",
+      "architecture": "default",
+      "operation": "correct_language",
+      "new_source": false,
+      "source_page_url": null
+    },
+    {
+      "change_id": "WDL-391",
+      "status": "applied",
+      "version_id": "windows-nt-server-3-51",
+      "architecture": "default",
+      "operation": "qualify_originality",
+      "new_source": false,
+      "source_page_url": null
+    }
+  ],
+  "moved_candidates": [
+    {
+      "change_id": "WDL-109",
+      "destination_version_id": "windows-8-1-update",
+      "architecture": "x86"
+    },
+    {
+      "change_id": "WDL-110",
+      "destination_version_id": "windows-8-1-update",
+      "architecture": "x86"
+    },
+    {
+      "change_id": "WDL-113",
+      "destination_version_id": "windows-8-1-update",
+      "architecture": "x64"
+    },
+    {
+      "change_id": "WDL-114",
+      "destination_version_id": "windows-8-1-update",
+      "architecture": "x64"
+    },
+    {
+      "change_id": "WDL-354",
+      "destination_version_id": "windows-storage-server-2008-r2-service-pack-1",
+      "architecture": "default"
+    },
+    {
+      "change_id": "WDL-381",
+      "destination_version_id": "windows-storage-server-2003-r2",
+      "architecture": "default"
+    }
+  ],
+  "summary": {
+    "total_changes": 391,
+    "applied_changes": 389,
+    "skipped_user_instructions": 2,
+    "added_sources": 106,
+    "moved_candidates": 6,
+    "candidate_references_after": 2170
+  }
+}

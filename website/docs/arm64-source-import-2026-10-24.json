@@ -1,0 +1,903 @@
+{
+  "imported_on": "2026-10-24",
+  "catalog_url": null,
+  "catalog_source": "本地归档索引 windows-arm-curated-index.json（未公开）",
+  "catalog_recorded_date": "2026-10-20",
+  "scope": "首批仅补入已有版本和架构的 ISO/ESD。后续按基础 Build 收录规则，在 followups 中补记 ZIP、UUP 及对应架构选项；未新增分类或系统版本。",
+  "summary": {
+    "imported_panels": 15,
+    "formats": {
+      "ISO": 2,
+      "ESD": 13
+    },
+    "retired_candidates": 24,
+    "resolved_review_findings": 11
+  },
+  "imports": [
+    {
+      "version_id": "windows-10-1709",
+      "system": "Windows 10 1709",
+      "architecture": "ARM64",
+      "build": "16299.15",
+      "format": "ISO",
+      "url": "https://archive.org/details/windows_10_version_1709",
+      "download_url": "https://archive.org/download/windows_10_version_1709/Windows%2010%2C%20version%201709%20%5B16299.15%5D/16299.15.170928-1534.rs3_release_CLIENTMULTI_RET_A64FRE_en-us.iso",
+      "source_page": "https://archive.org/details/windows_10_version_1709",
+      "filename": "Windows 10, version 1709 [16299.15]/16299.15.170928-1534.rs3_release_CLIENTMULTI_RET_A64FRE_en-us.iso",
+      "http_status": 200,
+      "size_bytes": 4322199552,
+      "catalog_record_id": "ROUND4-011"
+    },
+    {
+      "version_id": "windows-10-1803",
+      "system": "Windows 10 1803",
+      "architecture": "ARM64",
+      "build": "17134.112",
+      "format": "ESD",
+      "url": "http://fg.ds.b1.download.windowsupdate.com/d/Upgr/2018/07/17134.112.180619-1212.rs4_release_svc_refresh_clientconsumer_ret_a64fre_zh-cn_ed51ac39f0bdd1cc02beeed7a1323e6a62269e22.esd",
+      "download_url": "http://fg.ds.b1.download.windowsupdate.com/d/Upgr/2018/07/17134.112.180619-1212.rs4_release_svc_refresh_clientconsumer_ret_a64fre_zh-cn_ed51ac39f0bdd1cc02beeed7a1323e6a62269e22.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "17134.112.180619-1212.rs4_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3125044844,
+      "catalog_record_id": "IMG-01672"
+    },
+    {
+      "version_id": "windows-10-1809",
+      "system": "Windows 10 1809",
+      "architecture": "ARM64",
+      "build": "17763.379",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/ed44422c-9414-42fd-827c-2d05fb806f06/17763.379.190312-0539.rs5_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/ed44422c-9414-42fd-827c-2d05fb806f06/17763.379.190312-0539.rs5_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "17763.379.190312-0539.rs5_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3224066403,
+      "catalog_record_id": "IMG-01604"
+    },
+    {
+      "version_id": "windows-10-1903",
+      "system": "Windows 10 1903",
+      "architecture": "ARM64",
+      "build": "18362.356",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/5a4065e1-1d95-4909-b8cb-16d3ca2f0ec2/18362.356.190909-1636.19h1_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/5a4065e1-1d95-4909-b8cb-16d3ca2f0ec2/18362.356.190909-1636.19h1_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "18362.356.190909-1636.19h1_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3107279965,
+      "catalog_record_id": "IMG-01536"
+    },
+    {
+      "version_id": "windows-10-1909",
+      "system": "Windows 10 1909",
+      "architecture": "ARM64",
+      "build": "18363.592",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/00caa319-c54c-4a1c-a51f-56ea9cb1d603/18363.592.200109-2016.19h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/00caa319-c54c-4a1c-a51f-56ea9cb1d603/18363.592.200109-2016.19h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "18363.592.200109-2016.19h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3156105220,
+      "catalog_record_id": "IMG-01458"
+    },
+    {
+      "version_id": "windows-10-2004",
+      "system": "Windows 10 2004",
+      "architecture": "ARM64",
+      "build": "19041.508",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/2c0f2f29-8d82-42be-af33-d01c7d77fded/19041.508.200907-0256.vb_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/2c0f2f29-8d82-42be-af33-d01c7d77fded/19041.508.200907-0256.vb_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "19041.508.200907-0256.vb_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3263213628,
+      "catalog_record_id": "IMG-01392"
+    },
+    {
+      "version_id": "windows-10-20h2",
+      "system": "Windows 10 20H2",
+      "architecture": "ARM64",
+      "build": "19042.631",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/2a0a61d3-86cf-454a-9ca3-ad015791ce25/19042.631.201119-0144.20h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/2a0a61d3-86cf-454a-9ca3-ad015791ce25/19042.631.201119-0144.20h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "19042.631.201119-0144.20h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3849696158,
+      "catalog_record_id": "IMG-01318"
+    },
+    {
+      "version_id": "windows-10-21h1",
+      "system": "Windows 10 21H1",
+      "architecture": "ARM64",
+      "build": "19043.1288",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/4ae496b7-6a81-47ac-b030-cb83c706c27a/19043.1288.211006-0459.21h1_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/4ae496b7-6a81-47ac-b030-cb83c706c27a/19043.1288.211006-0459.21h1_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "19043.1288.211006-0459.21h1_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3618553286,
+      "catalog_record_id": "IMG-01230"
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "system": "Windows 10 21H2",
+      "architecture": "ARM64",
+      "build": "19044.1288",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9c03260d-d2a7-4eaf-8a4c-62c964ea6988/19044.1288.211006-0501.21h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9c03260d-d2a7-4eaf-8a4c-62c964ea6988/19044.1288.211006-0501.21h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "19044.1288.211006-0501.21h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3615405826,
+      "catalog_record_id": "IMG-01157"
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "system": "Windows 10 22H2",
+      "architecture": "ARM64",
+      "build": "19045.3803",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/bd6b5fe4-348a-4fb1-97e9-297c9136dfc2/19045.3803.231204-0204.22h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/bd6b5fe4-348a-4fb1-97e9-297c9136dfc2/19045.3803.231204-0204.22h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "19045.3803.231204-0204.22h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 3819160148,
+      "catalog_record_id": "IMG-00922"
+    },
+    {
+      "version_id": "windows-11-21h2",
+      "system": "Windows 11 21H2",
+      "architecture": "ARM64",
+      "build": "22000.318",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9aa03b11-bb6a-4e5a-8da5-4eb4d888cf64/22000.318.211104-1236.co_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9aa03b11-bb6a-4e5a-8da5-4eb4d888cf64/22000.318.211104-1236.co_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "22000.318.211104-1236.co_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 4088683630,
+      "catalog_record_id": "IMG-00838"
+    },
+    {
+      "version_id": "windows-11-22h2",
+      "system": "Windows 11 22H2",
+      "architecture": "ARM64",
+      "build": "22621.1702",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/3f43acb1-1e83-4d09-ade4-a9d500f8a87c/22621.1702.230505-1222.ni_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/3f43acb1-1e83-4d09-ade4-a9d500f8a87c/22621.1702.230505-1222.ni_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "22621.1702.230505-1222.ni_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 4534038108,
+      "catalog_record_id": "IMG-00689"
+    },
+    {
+      "version_id": "windows-11-23h2",
+      "system": "Windows 11 23H2",
+      "architecture": "ARM64",
+      "build": "22631.2861",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9d328c2c-2bca-4b77-a0a5-150c805d346b/22631.2861.231204-0538.23H2_NI_RELEASE_SVC_REFRESH_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9d328c2c-2bca-4b77-a0a5-150c805d346b/22631.2861.231204-0538.23H2_NI_RELEASE_SVC_REFRESH_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "22631.2861.231204-0538.23H2_NI_RELEASE_SVC_REFRESH_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 5424658203,
+      "catalog_record_id": "IMG-00569"
+    },
+    {
+      "version_id": "windows-11-24h2",
+      "system": "Windows 11 24H2",
+      "architecture": "ARM64",
+      "build": "26100.4349",
+      "format": "ESD",
+      "url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/e8cb0820-53b3-437e-b13d-e4f133a4a686/26100.4349.250607-1500.ge_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "download_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/e8cb0820-53b3-437e-b13d-e4f133a4a686/26100.4349.250607-1500.ge_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "source_page": "https://worproject.com/esd",
+      "filename": "26100.4349.250607-1500.ge_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd",
+      "http_status": 200,
+      "size_bytes": 4734426500,
+      "catalog_record_id": "IMG-00333"
+    },
+    {
+      "version_id": "windows-11-25h2",
+      "system": "Windows 11 25H2",
+      "architecture": "ARM64",
+      "build": "26200.6584",
+      "format": "ISO",
+      "url": "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENT_CONSUMER_A64FRE_zh-cn.iso",
+      "download_url": "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENT_CONSUMER_A64FRE_zh-cn.iso",
+      "source_page": "https://github.com/massgravel/massgrave.dev/blob/main/docs/windows_arm_links.md",
+      "filename": "26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENT_CONSUMER_A64FRE_zh-cn.iso",
+      "http_status": 200,
+      "size_bytes": 7575801856,
+      "catalog_record_id": "IMG-00037"
+    }
+  ],
+  "retired_candidates": [
+    {
+      "version_id": "windows-10-1709",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/windows-10-1709",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/windows-10-1709",
+          "final_url": "https://archive.org/metadata/windows-10-1709",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 1709 AIO。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/windows-10-1709",
+          "https://archive.org/details/windows-10-1709"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1709",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/windows-10-1709-32-64-bits-espanol",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/windows-10-1709-32-64-bits-espanol",
+          "final_url": "https://archive.org/metadata/windows-10-1709-32-64-bits-espanol",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 1709 32/64 Bits Español。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/windows-10-1709-32-64-bits-espanol",
+          "https://archive.org/details/windows-10-1709-32-64-bits-espanol"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1803",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/windows_10_build_17133.1_arm64_simplified_chinese_zh-cn_uups",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/windows_10_build_17133.1_arm64_simplified_chinese_zh-cn_uups",
+          "final_url": "https://archive.org/metadata/windows_10_build_17133.1_arm64_simplified_chinese_zh-cn_uups",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Feature update to Windows 10, version 1803 (17133.1) arm64 Simplified Chinese 简体中文 UUPs（附kb4100375,可升级17133.73）。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/windows_10_build_17133.1_arm64_simplified_chinese_zh-cn_uups",
+          "https://archive.org/details/windows_10_build_17133.1_arm64_simplified_chinese_zh-cn_uups"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1803",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/windows-10-1803",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/windows-10-1803",
+          "final_url": "https://archive.org/metadata/windows-10-1803",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 1803。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/windows-10-1803",
+          "https://archive.org/details/windows-10-1803"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1809",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/microsoft-windows-software-development-kit-windows-10-version-1809-build-17763.132-10.1.17763.132",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/microsoft-windows-software-development-kit-windows-10-version-1809-build-17763.132-10.1.17763.132",
+          "final_url": "https://archive.org/metadata/microsoft-windows-software-development-kit-windows-10-version-1809-build-17763.132-10.1.17763.132",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Microsoft Windows Software Development Kit - Windows 10 version 1809 (build 17763.132 10.1.17763.132)。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/microsoft-windows-software-development-kit-windows-10-version-1809-build-17763.132-10.1.17763.132",
+          "https://archive.org/details/microsoft-windows-software-development-kit-windows-10-version-1809-build-17763.132-10.1.17763.132"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1809",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/el-gr_windows_10_business_editions_version_1809_updated_aug_2021_x64_dvd_d7192cc3",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/el-gr_windows_10_business_editions_version_1809_updated_aug_2021_x64_dvd_d7192cc3",
+          "final_url": "https://archive.org/metadata/el-gr_windows_10_business_editions_version_1809_updated_aug_2021_x64_dvd_d7192cc3",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：el-gr_windows_10_business_editions_version_1809_updated_aug_2021_x64_dvd_d7192cc3。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/el-gr_windows_10_business_editions_version_1809_updated_aug_2021_x64_dvd_d7192cc3",
+          "https://archive.org/details/el-gr_windows_10_business_editions_version_1809_updated_aug_2021_x64_dvd_d7192cc3"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1903",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/en_windows_10_business_editions_version_1903_updated_nov_2019_x64_dvd_7d866010_202001",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/en_windows_10_business_editions_version_1903_updated_nov_2019_x64_dvd_7d866010_202001",
+          "final_url": "https://archive.org/metadata/en_windows_10_business_editions_version_1903_updated_nov_2019_x64_dvd_7d866010_202001",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：en_windows_10_business_editions_version_1903_updated_nov_2019_x64_dvd_7d866010。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/en_windows_10_business_editions_version_1903_updated_nov_2019_x64_dvd_7d866010_202001",
+          "https://archive.org/details/en_windows_10_business_editions_version_1903_updated_nov_2019_x64_dvd_7d866010_202001"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1903",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/windows-10-1903-32-64-bits",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/windows-10-1903-32-64-bits",
+          "final_url": "https://archive.org/metadata/windows-10-1903-32-64-bits",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 1903 32/64 Bits Español。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/windows-10-1903-32-64-bits",
+          "https://archive.org/details/windows-10-1903-32-64-bits"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1909",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/ar_windows_10_consumer_editions_version_1909_updated_march_2020_x64_dvd_218bb1be_by_zyzoom",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/ar_windows_10_consumer_editions_version_1909_updated_march_2020_x64_dvd_218bb1be_by_zyzoom",
+          "final_url": "https://archive.org/metadata/ar_windows_10_consumer_editions_version_1909_updated_march_2020_x64_dvd_218bb1be_by_zyzoom",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：ar_windows_10_consumer_editions_version_1909_updated_march_2020_x64_dvd_218bb1be_by_zyzoom。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/ar_windows_10_consumer_editions_version_1909_updated_march_2020_x64_dvd_218bb1be_by_zyzoom",
+          "https://archive.org/details/ar_windows_10_consumer_editions_version_1909_updated_march_2020_x64_dvd_218bb1be_by_zyzoom"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-1909",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/windows-10-1909",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/windows-10-1909",
+          "final_url": "https://archive.org/metadata/windows-10-1909",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 1909 AIO。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/windows-10-1909",
+          "https://archive.org/details/windows-10-1909"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-2004",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/win-10-2004-english-x-64_20250829",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/win-10-2004-english-x-64_20250829",
+          "final_url": "https://archive.org/metadata/win-10-2004-english-x-64_20250829",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 Pro 2004。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/win-10-2004-english-x-64_20250829",
+          "https://archive.org/details/win-10-2004-english-x-64_20250829"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-2004",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/fr_windows_10_consumer_editions_version_2004_updated_may_2020_x64_dvd_46ea156e",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/fr_windows_10_consumer_editions_version_2004_updated_may_2020_x64_dvd_46ea156e",
+          "final_url": "https://archive.org/metadata/fr_windows_10_consumer_editions_version_2004_updated_may_2020_x64_dvd_46ea156e",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：fr_windows_10_consumer_editions_version_2004_updated_may_2020_x64_dvd_46ea156e。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/fr_windows_10_consumer_editions_version_2004_updated_may_2020_x64_dvd_46ea156e",
+          "https://archive.org/details/fr_windows_10_consumer_editions_version_2004_updated_may_2020_x64_dvd_46ea156e"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-21h1",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/media-creation-tool-21-h-1_202108",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/media-creation-tool-21-h-1_202108",
+          "final_url": "https://archive.org/metadata/media-creation-tool-21-h-1_202108",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 21H1 (English)。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/media-creation-tool-21-h-1_202108",
+          "https://archive.org/details/media-creation-tool-21-h-1_202108"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-21h1",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/el_windows_10_consumer_editions_version_21h1_x64_dvd_57185458",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/el_windows_10_consumer_editions_version_21h1_x64_dvd_57185458",
+          "final_url": "https://archive.org/metadata/el_windows_10_consumer_editions_version_21h1_x64_dvd_57185458",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 Consumer Business Editions 21H1 Greek。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/el_windows_10_consumer_editions_version_21h1_x64_dvd_57185458",
+          "https://archive.org/details/el_windows_10_consumer_editions_version_21h1_x64_dvd_57185458"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/acer-aspire-5-a-515-51-usb-recovery-image",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/acer-aspire-5-a-515-51-usb-recovery-image",
+          "final_url": "https://archive.org/metadata/acer-aspire-5-a-515-51-usb-recovery-image",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Acer Aspire 5 A515-51 - Windows 10 Home 21H2 - USB Recovery Image。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/acer-aspire-5-a-515-51-usb-recovery-image",
+          "https://archive.org/details/acer-aspire-5-a-515-51-usb-recovery-image"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/better-than-vanilla-21-h-2",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/better-than-vanilla-21-h-2",
+          "final_url": "https://archive.org/metadata/better-than-vanilla-21-h-2",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 IoT 21H2 Aug 2025。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/better-than-vanilla-21-h-2",
+          "https://archive.org/details/better-than-vanilla-21-h-2"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/intel-graphics-driver-32.0.101.9030-beta-for-windows-10-22h2-11-21h2-and-above",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/intel-graphics-driver-32.0.101.9030-beta-for-windows-10-22h2-11-21h2-and-above",
+          "final_url": "https://archive.org/metadata/intel-graphics-driver-32.0.101.9030-beta-for-windows-10-22h2-11-21h2-and-above",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Intel Graphics Driver 32.0.101.9030 Beta for Windows 10 22H2-11 21H2 and above。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/intel-graphics-driver-32.0.101.9030-beta-for-windows-10-22h2-11-21h2-and-above",
+          "https://archive.org/details/intel-graphics-driver-32.0.101.9030-beta-for-windows-10-22h2-11-21h2-and-above"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/pt-br_windows_10_consumer_editions_version_22h2_x86_dvd_79cd5eea",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/pt-br_windows_10_consumer_editions_version_22h2_x86_dvd_79cd5eea",
+          "final_url": "https://archive.org/metadata/pt-br_windows_10_consumer_editions_version_22h2_x86_dvd_79cd5eea",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 10 22H2 Multi-Edition Pt-Br 32 bits DVD 79cd5eea。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/pt-br_windows_10_consumer_editions_version_22h2_x86_dvd_79cd5eea",
+          "https://archive.org/details/pt-br_windows_10_consumer_editions_version_22h2_x86_dvd_79cd5eea"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-11-21h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/win-11-english-x-64v-1_202112",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/win-11-english-x-64v-1_202112",
+          "final_url": "https://archive.org/metadata/win-11-english-x-64v-1_202112",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 11 English 21H2。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/win-11-english-x-64v-1_202112",
+          "https://archive.org/details/win-11-english-x-64v-1_202112"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-11-21h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/windows-11-21-h-2.7znbab",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/windows-11-21-h-2.7znbab",
+          "final_url": "https://archive.org/metadata/windows-11-21-h-2.7znbab",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 11 21H2 for Qemu。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/windows-11-21-h-2.7znbab",
+          "https://archive.org/details/windows-11-21-h-2.7znbab"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-11-22h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/22621.675.221008-0001.-ni-release-svc-im-clientmulti-x-64-fre-en-us",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/22621.675.221008-0001.-ni-release-svc-im-clientmulti-x-64-fre-en-us",
+          "final_url": "https://archive.org/metadata/22621.675.221008-0001.-ni-release-svc-im-clientmulti-x-64-fre-en-us",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 11, version 22H2 Moment 1 (build 22621.675)。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/22621.675.221008-0001.-ni-release-svc-im-clientmulti-x-64-fre-en-us",
+          "https://archive.org/details/22621.675.221008-0001.-ni-release-svc-im-clientmulti-x-64-fre-en-us"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-11-22h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/win-11-22-h-2-brazillian-portuguese",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/win-11-22-h-2-brazillian-portuguese",
+          "final_url": "https://archive.org/metadata/win-11-22-h-2-brazillian-portuguese",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 11 Versão 22H2 (PT-BR)。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/win-11-22-h-2-brazillian-portuguese",
+          "https://archive.org/details/win-11-22-h-2-brazillian-portuguese"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-11-23h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 1",
+        "url": "https://archive.org/details/win-11-23-h-2-game-edition",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/win-11-23-h-2-game-edition",
+          "final_url": "https://archive.org/metadata/win-11-23-h-2-game-edition",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 11 23H2 Game Edition。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/win-11-23-h-2-game-edition",
+          "https://archive.org/details/win-11-23-h-2-game-edition"
+        ],
+        "original_label": "Internet Archive"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    },
+    {
+      "version_id": "windows-11-23h2",
+      "architecture": "ARM64",
+      "source": {
+        "label": "Internet Archive 2",
+        "url": "https://archive.org/details/windows-11_202408",
+        "kind": "archive_collection",
+        "match": "exact_version",
+        "verification": {
+          "url": "https://archive.org/metadata/windows-11_202408",
+          "final_url": "https://archive.org/metadata/windows-11_202408",
+          "http_status": 200,
+          "content_type": "application/json",
+          "content_length": null,
+          "status": "metadata_verified",
+          "checked_on": "2026-10-23",
+          "method": "Internet Archive metadata API"
+        },
+        "notes": "归档条目：Windows 11 23H2。需要人工核对架构、原版完整性及具体文件。只核对条目元数据，未下载镜像或验证其启动。",
+        "evidence_urls": [
+          "https://archive.org/metadata/windows-11_202408",
+          "https://archive.org/details/windows-11_202408"
+        ],
+        "original_label": "Internet Archive 2"
+      },
+      "reason": "尚未确认匹配该页 ARM64 架构或基础 Build；用本轮明确标注 ARM64、Build 对应的来源替换。"
+    }
+  ],
+  "verification_limit": "只检查目录与 HEAD，未下载完整 ISO/ESD、验证哈希、执行转换或测试 Hyper-V 启动。",
+  "source_delivery": "页面来源按钮使用公共上游链接，未将内网目录地址作为公众下载入口。",
+  "followups": [
+    {
+      "version_id": "windows-10-1511",
+      "architecture": "ARM64",
+      "build": "10586.1078",
+      "format": "ZIP",
+      "url": "https://archive.org/details/10586-th2-bnb-arm64-full",
+      "filename": "10586.1078.th2_bnb_arm64.zip",
+      "http_status": 200,
+      "size_bytes": 5046784899,
+      "reason": "按相同基础 Build 补入已有 1511 页面；原首批只导入 ISO/ESD。新增一个 ARM64 选项，没有新增版本或分类。",
+      "boot_tested": false
+    },
+    {
+      "version_id": "windows-10-1703",
+      "architecture": "ARM64",
+      "build": "15063.313",
+      "format": "UUP",
+      "url": "https://uupdump.net/selectlang.php?id=be89586f-808b-484f-8d56-5a5646809c82",
+      "reason": "已确认有 15063 ARM64 UUP；按 Build 收录，撤销仅以通用 ISO/ESD 为准的导入限制。",
+      "boot_tested": false
+    }
+  ]
+}

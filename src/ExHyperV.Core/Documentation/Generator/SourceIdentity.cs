@@ -24,7 +24,7 @@ internal static partial class ApiDocument
             string relative = Path.GetRelativePath(root, file).Replace('\\', '/');
             string text = File.ReadAllText(file).Replace("\r\n", "\n");
             if (relative == "API.md")
-                text = Regex.Replace(text, @"<!-- api-(reference|examples):start -->.*?<!-- api-\1:end -->", "", RegexOptions.Singleline);
+                text = Regex.Replace(text, @"<!-- api-(reference|examples|example-[\w-]+):start -->.*?<!-- api-\1:end -->", "", RegexOptions.Singleline);
             byte[] content = Encoding.UTF8.GetBytes(text);
             hash.AppendData(Encoding.UTF8.GetBytes(relative + "\0" + content.Length + "\0"));
             hash.AppendData(content);

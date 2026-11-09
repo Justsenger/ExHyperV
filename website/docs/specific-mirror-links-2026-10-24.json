@@ -1,0 +1,1366 @@
+{
+  "checked_on": "2026-10-24",
+  "scope": "仅本地。移除 HelloWindows 与迅雷网盘并持久黑名单；Bob Pony/Massgrave 改成具体文件，按用户语言挑选。未推送、未发布。",
+  "summary": {
+    "removed_old_entries": {
+      "bobpony": 80,
+      "hellowindows": 52,
+      "massgrave": 35
+    },
+    "source_groups": 113,
+    "media_language_variants": 504,
+    "providers": {
+      "bobpony": 79,
+      "massgrave": 34
+    },
+    "default_chinese_groups": 12,
+    "default_english_groups": 94
+  },
+  "language_behavior": "先正确匹配版本和架构；再首选用户语言，其次中文、英文、其他已确认语言、未知语言。同一来源只显示一个链接。中文、繁体中文和英文界面可手动切换；自动模式跟随浏览器语言，其他语种界面回退英文但镜像仍优先该语种。",
+  "verification_limits": "All output URLs are specific file URLs or single-file download pages; no homepage, category or multi-file table is used as the target. No complete image downloaded, no ISO hash or boot validation.",
+  "exclusions": [
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_datacenter_with_sp2_vl_cd1_x13-46616.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_datacenter_with_sp2_vl_cd2_x13-49318.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_datacenter_x64_with_sp2_vl_cd1_x13-47474.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_datacenter_x64_with_sp2_vl_cd2_x13-49386.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_enterprise_with_sp2_vl_cd1_x13-48610.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_enterprise_with_sp2_vl_cd2_x13-68584.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_enterprise_x64_with_sp2_vl_cd1_x13-48614.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_enterprise_x64_with_sp2_vl_cd2_x13-68588.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_standard_with_sp2_vl_cd1x13-46600.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_standard_with_sp2_vl_cd2_x13-68583.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_standard_x64_with_sp2_vl_cd1_x13-47808.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "en_win_srv_2003_r2_standard_x64_with_sp2_vl_cd2_x13-68587.iso",
+      "evidence_url": "https://massgrave.dev/windows-server-links",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "massgrave",
+      "filename": "26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENT_CONSUMER_A64FRE_nl-nl.iso",
+      "evidence_url": "https://massgrave.dev/windows_arm_links",
+      "reason": "The source table itself marks this exact link as not working."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_debug_checked_build_x64_dvd_917558.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_debug_checked_build_x86_dvd_917560.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_enterprise_debug_checked_build_x64_dvd_917527.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_enterprise_debug_checked_build_x86_dvd_917529.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_enterprise_n_debug_checked_build_x64_dvd_917531.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_enterprise_n_debug_checked_build_x86_dvd_917534.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_n_debug_checked_build_x64_dvd_917562.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_n_debug_checked_build_x86_dvd_917564.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "mu_windows_8_language_pack_x64_dvd_917544.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "mu_windows_8_language_pack_x86_dvd_917546.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.0/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "Windows 8.1 with Bing 32 bit.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "The filename does not establish the Windows 8.1 Update level or image language; a named English normal release is already available for this panel."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "Windows 8.1 with Bing 64 bit.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "The filename does not establish the Windows 8.1 Update level or image language; a named English normal release is already available for this panel."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_1_debug_checked_x64_dvd_2707208.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_1_debug_checked_x86_dvd_2707387.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_1_enterprise_debug_checked_x64_dvd_2756358.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_1_enterprise_debug_checked_x86_dvd_2756359.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_1_enterprise_n_debug_checked_x64_dvd_2942525.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_1_enterprise_n_debug_checked_x86_dvd_2942527.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_1_n_debug_checked_x64_dvd_2707894.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_8_1_n_debug_checked_x86_dvd_2707893.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "mu_windows_8.1_language_pack_with_update_x64_dvd_6066963.iso",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "mu_windows_8_1_language_pack_x64_dvd_2706084.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "mu_windows_8_1_language_pack_x86_dvd_2706085.iso.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/8.x/8.1/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_win_srv_2003_r2_datacenter_x64_with_sp2_vl_cd1_cd2.zip",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2003r2/",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_win_srv_2003_r2_enterprise_x64_with_sp2_cd1_cd2.zip",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2003r2/",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_win_srv_2003_r2_enterprise_x64_with_sp2_vl.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2003r2/",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_win_srv_2003_r2_standard_x64_with_sp2_cd1_cd2.zip",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2003r2/",
+      "reason": "Server 2003 SP2 material is not added to a separately named Origin/R2 release without an accurate SP mapping."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_enterprise_checked_x64_dvd_72462-020.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_enterprise_checked_x86_dvd_72149.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_for_itanium-based_systems_checked_ia64_dvd_72151-017.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_for_itanium_based_systems_sp2_checked_build_ia64_dvd_342436-022.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_with_sp2_debug_checked_build_x64_dvd_342435-026.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_with_sp2_debug_checked_build_x86_dvd_342434.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_r2_for_itanium_based_systems_debug_checked_build_ia64_dvd_408074-008.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008r2/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_r2_standard_enterprise_datacenter_and_web_debug_checked_build_x64_dvd_408075-012.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008r2/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_r2_standard_enterprise_datacenter_and_web_with_sp1_debug_checked_build_x64_dvd_619600-019.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008r2/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2008_r2_with_sp1_for_itanium_based_systems_debug_checked_build_ia64_dvd_619599-011.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2008r2/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_microsoft_hyper-v_server_2012_debug_checked_build_x64_dvd_917521.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2012/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "en_windows_server_2012_debug_checked_build_x64_dvd_917505-004.7z",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2012/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "mu_windows_server_2012_language_pack_x64_dvd_917551.iso",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2012/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    },
+    {
+      "provider": "bobpony",
+      "filename": "mu_windows_server_2012_r2_language_pack_with_update_x64_dvd_6066969-001.iso",
+      "evidence_url": "https://dl.bobpony.com/windows/server/2012r2/",
+      "reason": "Excluded modified/recovery/debug/component/conversion material rather than a complete normal release image."
+    }
+  ],
+  "imports": [
+    {
+      "version_id": "server-2003",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/server/2003/en_windows_server_2003_standard_x64.7z",
+      "filename": "en_windows_server_2003_standard_x64.7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2008",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/server/2008/en_windows_server_2008_x64_dvd_x14-26714-021.7z",
+      "filename": "en_windows_server_2008_x64_dvd_x14-26714-021.7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2008",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/server/2008/en_windows_web_server_2008_x86_dvd_x14-26678.iso",
+      "filename": "en_windows_web_server_2008_x86_dvd_x14-26678.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2012",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/server/2012/en_windows_server_2012_vl_x64_dvd_917758-005.iso",
+      "filename": "en_windows_server_2012_vl_x64_dvd_917758-005.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2016",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/server/2016/en_windows_server_2016_updated_feb_2018_x64_dvd_11636692.iso",
+      "filename": "en_windows_server_2016_updated_feb_2018_x64_dvd_11636692.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2016",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/8z7837t3v61l",
+      "filename": "en_windows_server_2016_vl_x64_dvd_11636701.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2019",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/server/2019/en-us_windows_server_2019_updated_aug_2021_x64_dvd_a6431a28.iso",
+      "filename": "en-us_windows_server_2019_updated_aug_2021_x64_dvd_a6431a28.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2019",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://buzzheavier.com/sqddwet2qb3j",
+      "filename": "zh-cn_windows_server_2019_x64_dvd_19d65722.iso",
+      "language_variants": 18
+    },
+    {
+      "version_id": "server-2022",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/server/2022/en-us_windows_server_2022_updated_june_2026_x64_dvd_dda28eeb.iso",
+      "filename": "en-us_windows_server_2022_updated_june_2026_x64_dvd_dda28eeb.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2022",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://zerofs.link/f/GE5sD3M8Ly-C4EobAr-a-Rb21SdCDCFez8dfMdTzi2ioFV0/",
+      "filename": "zh-cn_windows_server_2022_updated_oct_2026_x64_dvd_3fc7f935.iso",
+      "language_variants": 18
+    },
+    {
+      "version_id": "server-2025",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/server/2025/en-us_windows_server_2025_updated_june_2026_x64_dvd_a2d68429.iso",
+      "filename": "en-us_windows_server_2025_updated_june_2026_x64_dvd_a2d68429.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "server-2025",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://zerofs.link/f/yCSsC0cgJteYPgjLabIpg27EbyzLTrtWtWrvXxy9OKEZ5jU/",
+      "filename": "zh-cn_windows_server_2025_updated_oct_2026_x64_dvd_005af0c9.iso",
+      "language_variants": 18
+    },
+    {
+      "version_id": "windows-1-04",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/1.x/Windows%201.04%20English%205.25.zip",
+      "filename": "Windows 1.04 English 5.25.zip",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1507",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1507/en_windows_10_multiple_editions_x64_dvd_6846432.iso",
+      "filename": "en_windows_10_multiple_editions_x64_dvd_6846432.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1507",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/bmfv0akebifm",
+      "filename": "en_windows_10_enterprise_2015_ltsb_x64_dvd_6848446.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1507",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1507/en_windows_10_multiple_editions_x86_dvd_6848465.iso",
+      "filename": "en_windows_10_multiple_editions_x86_dvd_6848465.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1507",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/gp4u6hbn0yvg",
+      "filename": "en_windows_10_enterprise_2015_ltsb_x86_dvd_6848454.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1511",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1511/en_windows_10_multiple_editions_version_1511_updated_apr_2016_x64_dvd_8705583.iso",
+      "filename": "en_windows_10_multiple_editions_version_1511_updated_apr_2016_x64_dvd_8705583.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1511",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1511/en_windows_10_multiple_editions_version_1511_updated_apr_2016_x86_dvd_8735185.iso",
+      "filename": "en_windows_10_multiple_editions_version_1511_updated_apr_2016_x86_dvd_8735185.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1607",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1607/en_windows_10_multiple_editions_version_1607_updated_jan_2017_x64_dvd_9714399.iso",
+      "filename": "en_windows_10_multiple_editions_version_1607_updated_jan_2017_x64_dvd_9714399.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1607",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/ae46jbvqybiz",
+      "filename": "en_windows_10_enterprise_2016_ltsb_x64_dvd_9059483.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1607",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1607/en_windows_10_multiple_editions_version_1607_updated_jan_2017_x86_dvd_9714393.iso",
+      "filename": "en_windows_10_multiple_editions_version_1607_updated_jan_2017_x86_dvd_9714393.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1607",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/kym06wh8mo3o",
+      "filename": "en_windows_10_enterprise_2016_ltsb_x86_dvd_9060010.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1703",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1703/en_windows_10_multiple_editions_version_1703_updated_july_2017_x64_dvd_10925340.iso",
+      "filename": "en_windows_10_multiple_editions_version_1703_updated_july_2017_x64_dvd_10925340.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1703",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1703/en_windows_10_multiple_editions_version_1703_updated_july_2017_x86_dvd_10925404.iso",
+      "filename": "en_windows_10_multiple_editions_version_1703_updated_july_2017_x86_dvd_10925404.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1709",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1709/en_windows_10_multi-edition_version_1709_updated_dec_2017_x64_dvd_100406711.iso",
+      "filename": "en_windows_10_multi-edition_version_1709_updated_dec_2017_x64_dvd_100406711.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1709",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1709/en_windows_10_multi-edition_version_1709_updated_dec_2017_x86_dvd_100406359.iso",
+      "filename": "en_windows_10_multi-edition_version_1709_updated_dec_2017_x86_dvd_100406359.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1803",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1803/en_windows_10_consumer_editions_version_1803_updated_aug_2019_x64_dvd_b663e13e.iso",
+      "filename": "en_windows_10_consumer_editions_version_1803_updated_aug_2019_x64_dvd_b663e13e.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1803",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1803/en_windows_10_consumer_editions_version_1803_updated_aug_2019_x86_dvd_e67c4a6d.iso",
+      "filename": "en_windows_10_consumer_editions_version_1803_updated_aug_2019_x86_dvd_e67c4a6d.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1809",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1809/en_windows_10_business_editions_version_1809_updated_may_2021_x64_dvd_7ecf15de.iso",
+      "filename": "en_windows_10_business_editions_version_1809_updated_may_2021_x64_dvd_7ecf15de.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1809",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/kmr0i1zoz8g8",
+      "filename": "en_windows_10_enterprise_ltsc_2019_x64_dvd_5795bb03.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1809",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1809/en_windows_10_business_editions_version_1809_updated_may_2021_x86_dvd_a6d0c331.iso",
+      "filename": "en_windows_10_business_editions_version_1809_updated_may_2021_x86_dvd_a6d0c331.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1809",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/9es30p2w8fsb",
+      "filename": "en_windows_10_enterprise_ltsc_2019_x86_dvd_892869c9.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1903",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1903/en_windows_10_business_editions_version_1903_updated_july_2020_x64_dvd_7c95f7e0.iso",
+      "filename": "en_windows_10_business_editions_version_1903_updated_july_2020_x64_dvd_7c95f7e0.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1903",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1903/en_windows_10_business_editions_version_1903_updated_july_2020_x86_dvd_a1391059.iso",
+      "filename": "en_windows_10_business_editions_version_1903_updated_july_2020_x86_dvd_a1391059.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1909",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1909/en_windows_10_business_editions_version_1909_updated_july_2020_x64_dvd_1ca84e91.iso",
+      "filename": "en_windows_10_business_editions_version_1909_updated_july_2020_x64_dvd_1ca84e91.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-1909",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/1909/en_windows_10_business_editions_version_1909_updated_july_2020_x86_dvd_9588cbe4.iso",
+      "filename": "en_windows_10_business_editions_version_1909_updated_july_2020_x86_dvd_9588cbe4.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-2004",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/2004/en_windows_10_business_editions_version_2004_updated_april_2021_x64_dvd_6ffb5872.iso",
+      "filename": "en_windows_10_business_editions_version_2004_updated_april_2021_x64_dvd_6ffb5872.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-2004",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/10/archive/2004/en_windows_10_business_editions_version_2004_updated_april_2021_x86_dvd_113f07e7.iso",
+      "filename": "en_windows_10_business_editions_version_2004_updated_april_2021_x86_dvd_113f07e7.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "arm64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/10/en-us_windows_10_iot_enterprise_ltsc_2021_arm64_dvd_e8d4fc46.iso",
+      "filename": "en-us_windows_10_iot_enterprise_ltsc_2021_arm64_dvd_e8d4fc46.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "arm64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/4ib5kvl31k4c",
+      "filename": "en-us_windows_10_iot_enterprise_ltsc_2021_arm64_dvd_e8d4fc46.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/10/en-us_windows_10_enterprise_ltsc_2021_x64_dvd_d289cf96.iso",
+      "filename": "en-us_windows_10_enterprise_ltsc_2021_x64_dvd_d289cf96.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://buzzheavier.com/h1yn52aj10ft",
+      "filename": "zh-cn_windows_10_enterprise_ltsc_2021_x64_dvd_033b7312.iso",
+      "language_variants": 38
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/10/en-us_windows_10_enterprise_ltsc_2021_x86_dvd_9f4aa95f.iso",
+      "filename": "en-us_windows_10_enterprise_ltsc_2021_x86_dvd_9f4aa95f.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://buzzheavier.com/qiwl1ddy721v",
+      "filename": "zh-cn_windows_10_enterprise_ltsc_2021_x86_dvd_30600d9c.iso",
+      "language_variants": 38
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "arm64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/10/en-us_windows_10_22h2_arm64.iso",
+      "filename": "en-us_windows_10_22h2_arm64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "arm64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/uhqlfsstpxex",
+      "filename": "en-us_windows_10_iot_enterprise_version_22h2_arm64_dvd_39566b6b.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/10/en-us_windows_10_22h2_x64.iso",
+      "filename": "en-us_windows_10_22h2_x64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://buzzheavier.com/h4zeh5r6vtjq",
+      "filename": "zh-cn_windows_10_consumer_editions_version_22h2_updated_oct_2025_x64_dvd_38efd00d.iso",
+      "language_variants": 38
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/10/en-us_windows_10_22h2_x86.iso",
+      "filename": "en-us_windows_10_22h2_x86.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://buzzheavier.com/e30zxw5wto68",
+      "filename": "zh-cn_windows_10_consumer_editions_version_22h2_updated_oct_2025_x86_dvd_38efd00d.iso",
+      "language_variants": 38
+    },
+    {
+      "version_id": "windows-11-22h2",
+      "architecture": "arm64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_22h2_arm64.iso",
+      "filename": "en-us_windows_11_22h2_arm64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-22h2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_22h2_x64.iso",
+      "filename": "en-us_windows_11_22h2_x64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-23h2",
+      "architecture": "arm64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_23h2_arm64.iso",
+      "filename": "en-us_windows_11_23h2_arm64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-23h2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_23h2_x64.iso",
+      "filename": "en-us_windows_11_23h2_x64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-24h2",
+      "architecture": "arm64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_24h2_arm64.iso",
+      "filename": "en-us_windows_11_24h2_arm64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-24h2",
+      "architecture": "arm64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/i44xrak0z5o5",
+      "filename": "en-us_windows_11_iot_enterprise_ltsc_2024_arm64_dvd_ec517836.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-24h2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_24h2_x64.iso",
+      "filename": "en-us_windows_11_24h2_x64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-24h2",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://buzzheavier.com/k2laem70enbn",
+      "filename": "zh-cn_windows_11_enterprise_ltsc_2024_x64_dvd_cff9cd2d.iso",
+      "language_variants": 38
+    },
+    {
+      "version_id": "windows-11-25h2",
+      "architecture": "arm64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_25h2_arm64.iso",
+      "filename": "en-us_windows_11_25h2_arm64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-25h2",
+      "architecture": "arm64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENT_CONSUMER_A64FRE_zh-cn.iso",
+      "filename": "26200.6584.250915-1905.25h2_ge_release_svc_refresh_CLIENT_CONSUMER_A64FRE_zh-cn.iso",
+      "language_variants": 37
+    },
+    {
+      "version_id": "windows-11-25h2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_25h2_x64.iso",
+      "filename": "en-us_windows_11_25h2_x64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-26h1",
+      "architecture": "arm64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_26h1_arm64.iso",
+      "filename": "en-us_windows_11_26h1_arm64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-26h1",
+      "architecture": "arm64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://zerofs.link/f/FpKGhBwoGJWBjHUjVh8f97ZZfu0fxp7Ycn5Cz-7M3xHWOyo/",
+      "filename": "zh-cn_windows_11_consumer_editions_version_26h1_updated_oct_2026_arm64_dvd_921ccd7c.iso",
+      "language_variants": 38
+    },
+    {
+      "version_id": "windows-11-26h1",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/11/en-us_windows_11_26h1_x64.iso",
+      "filename": "en-us_windows_11_26h1_x64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-26h1",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://zerofs.link/f/v9YFG_nz8HVf64hWssT5AMFhWgYGg1PIRMtvEYKHcAj8Tr0/",
+      "filename": "zh-cn_windows_11_consumer_editions_version_26h1_updated_oct_2026_x64_dvd_921ccd7c.iso",
+      "language_variants": 38
+    },
+    {
+      "version_id": "windows-11-26h2",
+      "architecture": "arm64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://zerofs.link/f/tuxjCKLfy7QK9xFWOoLo44bxM9iGxtZaU8QlORvjH8bMFec/",
+      "filename": "en-us_windows_11_iot_enterprise_version_26h2_arm64_dvd_28350d72.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-11-26h2",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "zh-CN",
+      "url": "https://zerofs.link/f/cdwnwjSac16F8yvpLHl-FOAew7gnp_CMq8ovKl-j8fi4cFw/",
+      "filename": "zh-cn_windows_11_consumer_editions_version_26h2_x64_dvd_3622091b.iso",
+      "language_variants": 38
+    },
+    {
+      "version_id": "windows-2-01",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/2.x/Microsoft%20Windows%202.01%20%5BEnglish%5D%20%285.25%27%27%29.7z",
+      "filename": "Microsoft Windows 2.01 [English] (5.25'').7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-2-03",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/2.x/Microsoft%20Windows%202.03%20%5BEnglish%5D%20%283.5%27%27%29.7z",
+      "filename": "Microsoft Windows 2.03 [English] (3.5'').7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-2-1",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/2.x/Microsoft%20Windows%202.10%20%5BEnglish%5D%20%283.5%27%27%29.7z",
+      "filename": "Microsoft Windows 2.10 [English] (3.5'').7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-2-11",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/2.x/Microsoft%20Windows%202.11%20%5BEnglish%5D%20%283.5%27%27%29.7z",
+      "filename": "Microsoft Windows 2.11 [English] (3.5'').7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-2000-professional",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en-US",
+      "url": "https://dl.bobpony.com/windows/2000/5.00.2195.1_x86fre_client-professional_retail_en-us.7z",
+      "filename": "5.00.2195.1_x86fre_client-professional_retail_en-us.7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-3-1",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/3.x/Microsoft%20Windows%203.1%20English%203.5.7z",
+      "filename": "Microsoft Windows 3.1 English 3.5.7z",
+      "language_variants": 2
+    },
+    {
+      "version_id": "windows-3-11",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/3.x/Microsoft%20Windows%203.11%20English%203.5.7z",
+      "filename": "Microsoft Windows 3.11 English 3.5.7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/7/en_windows_7_with_sp1_x64.iso",
+      "filename": "en_windows_7_with_sp1_x64.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/jncf1brbtf1a",
+      "filename": "en_windows_7_professional_with_sp1_x64_dvd_u_676939.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/7/en_windows_7_with_sp1_x86.iso",
+      "filename": "en_windows_7_with_sp1_x86.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-7-service-pack-1",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/86v1lheibyhr",
+      "filename": "en_windows_7_professional_with_sp1_x86_dvd_u_677056.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-8",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/8.x/8.0/en_windows_8_pro_vl_x64_dvd_917699.iso.7z",
+      "filename": "en_windows_8_pro_vl_x64_dvd_917699.iso.7z",
+      "language_variants": 2
+    },
+    {
+      "version_id": "windows-8",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/dn0bb0ozyxup",
+      "filename": "en_windows_8_x64_dvd_915440.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-8",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/8.x/8.0/en_windows_8_pro_vl_x86_dvd_917830.iso.7z",
+      "filename": "en_windows_8_pro_vl_x86_dvd_917830.iso.7z",
+      "language_variants": 2
+    },
+    {
+      "version_id": "windows-8",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/4uh1amj71817",
+      "filename": "en_windows_8_x86_dvd_915417.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-8-1",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/8.x/8.1/en_windows_8_1_pro_vl_x64_dvd_2971948.iso.7z",
+      "filename": "en_windows_8_1_pro_vl_x64_dvd_2971948.iso.7z",
+      "language_variants": 2
+    },
+    {
+      "version_id": "windows-8-1",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/8.x/8.1/en_windows_8_1_pro_vl_x86_dvd_2972633.iso.7z",
+      "filename": "en_windows_8_1_pro_vl_x86_dvd_2972633.iso.7z",
+      "language_variants": 2
+    },
+    {
+      "version_id": "windows-8-1-update",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/8.x/8.1/en_windows_8.1_with_update_x64_dvd_6051480.iso",
+      "filename": "en_windows_8.1_with_update_x64_dvd_6051480.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-8-1-update",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/2i65axai8pao",
+      "filename": "en_windows_8.1_with_update_x64_dvd_6051480.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-8-1-update",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/8.x/8.1/en_windows_8.1_with_update_x86_dvd_6051550.iso",
+      "filename": "en_windows_8.1_with_update_x86_dvd_6051550.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-8-1-update",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/ddhrb4eax1x1",
+      "filename": "en_windows_8.1_with_update_x86_dvd_6051550.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-95",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "und",
+      "url": "https://dl.bobpony.com/windows/9x/95/Microsoft%20Windows%2095%20%284.00.950%29.zip",
+      "filename": "Microsoft Windows 95 (4.00.950).zip",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-95-osr2",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "und",
+      "url": "https://dl.bobpony.com/windows/9x/95/Microsoft%20Windows%2095B%20%284.00.1111.osr2%29.zip",
+      "filename": "Microsoft Windows 95B (4.00.1111.osr2).zip",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-95-osr2-5",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "und",
+      "url": "https://dl.bobpony.com/windows/9x/95/Microsoft%20Windows%2095C%20%284.03.1216.osr2.5%29.zip",
+      "filename": "Microsoft Windows 95C (4.03.1216.osr2.5).zip",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-for-workgroups-3-11",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/3.x/Microsoft%20Windows%20For%20Workgroups%203.11%20English%203.5.7z",
+      "filename": "Microsoft Windows For Workgroups 3.11 English 3.5.7z",
+      "language_variants": 2
+    },
+    {
+      "version_id": "windows-me",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/9x/me/Windows%20Me_en.zip",
+      "filename": "Windows Me_en.zip",
+      "language_variants": 3
+    },
+    {
+      "version_id": "windows-nt-3-1",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "und",
+      "url": "https://dl.bobpony.com/windows/nt/Microsoft%20Windows%20NT%203.1%20Workstation%20%283.10.511.1%29.rar",
+      "filename": "Microsoft Windows NT 3.1 Workstation (3.10.511.1).rar",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-nt-workstation-3-5",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "und",
+      "url": "https://dl.bobpony.com/windows/nt/Microsoft%20Windows%20NT%203.5%20Workstation%20%283.50.807%29.rar",
+      "filename": "Microsoft Windows NT 3.5 Workstation (3.50.807).rar",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-nt-workstation-3-51",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "und",
+      "url": "https://dl.bobpony.com/windows/nt/Microsoft%20Windows%20NT%203.51%20Workstation%20%283.51.1057.1%29%20%283.5%29.rar",
+      "filename": "Microsoft Windows NT 3.51 Workstation (3.51.1057.1) (3.5).rar",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-nt-workstation-4-0-service-pack-1",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "und",
+      "url": "https://dl.bobpony.com/windows/nt/Microsoft%20Windows%20NT%204.0%20Workstation%20%284.00.1381.1.sp1%29.rar",
+      "filename": "Microsoft Windows NT 4.0 Workstation (4.00.1381.1.sp1).rar",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-server-2008-r2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/server/2008r2/en_windows_server_2008_r2_vl_build_x64_dvd_x15-59754-017.7z",
+      "filename": "en_windows_server_2008_r2_vl_build_x64_dvd_x15-59754-017.7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-server-2012-r2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/server/2012r2/en_windows_server_2012_r2_vl_with_update_x64_dvd_6052766-003.iso",
+      "filename": "en_windows_server_2012_r2_vl_with_update_x64_dvd_6052766-003.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-server-2012-r2",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/kyuqt9v2erqr",
+      "filename": "en_windows_server_2012_r2_vl_with_update_x64_dvd_6052766.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-vista",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/vista/en_windows_vista_x86_dvd_x12-34293.7z",
+      "filename": "en_windows_vista_x86_dvd_x12-34293.7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/vista/en_windows_vista_with_service_pack_1_x64_dvd_x14-29595.7z",
+      "filename": "en_windows_vista_with_service_pack_1_x64_dvd_x14-29595.7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-vista-service-pack-1",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/vista/en_windows_vista_with_service_pack_1_x86_dvd_x14-29594.7z",
+      "filename": "en_windows_vista_with_service_pack_1_x86_dvd_x14-29594.7z",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/vista/en_windows_vista_sp2_x64_dvd_342267.iso",
+      "filename": "en_windows_vista_sp2_x64_dvd_342267.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/goby1okwv117",
+      "filename": "en_windows_vista_sp2_x64_dvd_342267.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/vista/en_windows_vista_with_sp2_x86_dvd_342266.iso",
+      "filename": "en_windows_vista_with_sp2_x86_dvd_342266.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-vista-service-pack-2",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/kb51ht343gg1",
+      "filename": "en_windows_vista_with_sp2_x86_dvd_342266.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-xp-professional-x64-edition",
+      "architecture": "x64",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/xp/professional/en_win_xp_pro_x64_vl.iso",
+      "filename": "en_win_xp_pro_x64_vl.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-xp-professional-x64-edition-service-pack-2",
+      "architecture": "x64",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/akh52ycfxwfy",
+      "filename": "en_win_xp_pro_x64_with_sp2_vl_x13-41611.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-xp-service-pack-2",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/xp/professional/en_win_xp_pro_with_sp2_vl.iso",
+      "filename": "en_win_xp_pro_with_sp2_vl.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-xp-service-pack-3",
+      "architecture": "x86",
+      "provider": "bobpony",
+      "default_language": "en",
+      "url": "https://dl.bobpony.com/windows/xp/professional/en_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73974.iso",
+      "filename": "en_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73974.iso",
+      "language_variants": 1
+    },
+    {
+      "version_id": "windows-xp-service-pack-3",
+      "architecture": "x86",
+      "provider": "massgrave",
+      "default_language": "en-US",
+      "url": "https://buzzheavier.com/nar2zwokpo9t",
+      "filename": "en_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73974.iso",
+      "language_variants": 1
+    }
+  ]
+}

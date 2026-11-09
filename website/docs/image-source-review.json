@@ -1,0 +1,211 @@
+{
+  "reviewed_on": "2026-10-24",
+  "state": "partially_resolved",
+  "scope": "来源链接核对记录。标记 source_replaced 表示旧候选已撤下并补入对应 Build/ARM64 来源；不表示镜像已经通过安装或启动实测。",
+  "findings": [
+    {
+      "version_id": "windows-11-23h2",
+      "system": "Windows 11 23H2",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/win-11-23-h-2-game-edition",
+      "issue": "Internet Archive 条目为第三方精简 Game Edition，架构未确认。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9d328c2c-2bca-4b77-a0a5-150c805d346b/22631.2861.231204-0538.23H2_NI_RELEASE_SVC_REFRESH_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-10-22h2",
+      "system": "Windows 10 22H2",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/intel-graphics-driver-32.0.101.9030-beta-for-windows-10-22h2-11-21h2-and-above",
+      "issue": "Internet Archive 条目实际提供 Intel 显卡驱动，不是系统镜像。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/bd6b5fe4-348a-4fb1-97e9-297c9136dfc2/19045.3803.231204-0204.22h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-11-22h2",
+      "system": "Windows 11 22H2",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/22621.675.221008-0001.-ni-release-svc-im-clientmulti-x-64-fre-en-us",
+      "issue": "Internet Archive 归档列出的镜像为 x86/x64，未提供所选 ARM64 架构。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/3f43acb1-1e83-4d09-ade4-a9d500f8a87c/22621.1702.230505-1222.ni_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-10-21h2",
+      "system": "Windows 10 21H2",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/acer-aspire-5-a-515-51-usb-recovery-image",
+      "issue": "Internet Archive 条目为 Acer 设备恢复备份，未确认 ARM64。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9c03260d-d2a7-4eaf-8a4c-62c964ea6988/19044.1288.211006-0501.21h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-11-21h2",
+      "system": "Windows 11 21H2",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/win-11-english-x-64v-1_202112",
+      "issue": "Internet Archive 归档列出的镜像为 x86/x64，未提供所选 ARM64 架构。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/9aa03b11-bb6a-4e5a-8da5-4eb4d888cf64/22000.318.211104-1236.co_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-10-21h1",
+      "system": "Windows 10 21H1",
+      "architecture": "x86",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/microsoft-diagnostics-and-recovery-toolset-dart-win10-21h1-bootiso-far2here",
+      "issue": "Internet Archive 选中了 DaRT 修复盘和混合工具合集。",
+      "status": "open"
+    },
+    {
+      "version_id": "windows-10-21h1",
+      "system": "Windows 10 21H1",
+      "architecture": "x64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/microsoft-diagnostics-and-recovery-toolset-dart-win10-21h1-bootiso-far2here",
+      "issue": "Internet Archive 选中了 DaRT 修复盘和混合工具合集。",
+      "status": "open"
+    },
+    {
+      "version_id": "windows-10-2004",
+      "system": "Windows 10 2004",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/win-10-2004-english-x-64_20250829",
+      "issue": "Internet Archive 归档列出的镜像为 x86/x64，未提供所选 ARM64 架构。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/2c0f2f29-8d82-42be-af33-d01c7d77fded/19041.508.200907-0256.vb_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-10-1909",
+      "system": "Windows 10 1909",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/ar_windows_10_consumer_editions_version_1909_updated_march_2020_x64_dvd_218bb1be_by_zyzoom",
+      "issue": "Internet Archive 归档列出的镜像为 x86/x64，未提供所选 ARM64 架构。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/00caa319-c54c-4a1c-a51f-56ea9cb1d603/18363.592.200109-2016.19h2_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-10-1903",
+      "system": "Windows 10 1903",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/en_windows_10_business_editions_version_1903_updated_nov_2019_x64_dvd_7d866010_202001",
+      "issue": "Internet Archive 归档列出的镜像为 x86/x64，未提供所选 ARM64 架构。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/5a4065e1-1d95-4909-b8cb-16d3ca2f0ec2/18362.356.190909-1636.19h1_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-10-1809",
+      "system": "Windows 10 1809",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/microsoft-windows-software-development-kit-windows-10-version-1809-build-17763.132-10.1.17763.132",
+      "issue": "Internet Archive 条目实际提供 SDK，不是系统镜像。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://dl.delivery.mp.microsoft.com/filestreamingservice/files/ed44422c-9414-42fd-827c-2d05fb806f06/17763.379.190312-0539.rs5_release_svc_refresh_CLIENTCONSUMER_RET_A64FRE_zh-cn.esd"
+    },
+    {
+      "version_id": "windows-10-1803",
+      "system": "Windows 10 1803",
+      "architecture": "x64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/02EG546",
+      "issue": "Internet Archive 条目为 Lenovo/Dell 设备恢复盘，尚未核对是否适合作为通用 Hyper-V 安装介质。",
+      "status": "open"
+    },
+    {
+      "version_id": "windows-10-1803",
+      "system": "Windows 10 1803",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/windows_10_build_17133.1_arm64_simplified_chinese_zh-cn_uups",
+      "issue": "Internet Archive 条目为 Build 17133.1，页面主 Build 为 17134。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "http://fg.ds.b1.download.windowsupdate.com/d/Upgr/2018/07/17134.112.180619-1212.rs4_release_svc_refresh_clientconsumer_ret_a64fre_zh-cn_ed51ac39f0bdd1cc02beeed7a1323e6a62269e22.esd"
+    },
+    {
+      "version_id": "windows-10-1709",
+      "system": "Windows 10 1709",
+      "architecture": "ARM64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/windows-10-1709",
+      "issue": "Internet Archive 归档列出的镜像为 x86/x64，未提供所选 ARM64 架构。",
+      "status": "source_replaced",
+      "resolved_on": "2026-10-24",
+      "replacement_url": "https://archive.org/details/windows_10_version_1709"
+    },
+    {
+      "version_id": "windows-10-1703",
+      "system": "Windows 10 1703",
+      "architecture": "x64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/gt-9-vna-00-w-10x-64-row-home-v-6-20180220-1025",
+      "issue": "Internet Archive 条目为 Lenovo/Dell 设备恢复盘，尚未核对是否适合作为通用 Hyper-V 安装介质。",
+      "status": "open"
+    },
+    {
+      "version_id": "windows-10-1511",
+      "system": "Windows 10 1511",
+      "architecture": "x64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/01FY493",
+      "issue": "Internet Archive 条目为 Lenovo/Dell 设备恢复盘，尚未核对是否适合作为通用 Hyper-V 安装介质。",
+      "status": "open"
+    },
+    {
+      "version_id": "windows-pe-1-6",
+      "system": "Windows PE 1.6",
+      "architecture": "x86",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/WinPE_1.6",
+      "issue": "Internet Archive 条目为集成 Ghost 等工具的自制救援盘，版本与架构依据不足。",
+      "status": "open"
+    },
+    {
+      "version_id": "windows-pe-1-6",
+      "system": "Windows PE 1.6",
+      "architecture": "x64",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/WinPE_1.6",
+      "issue": "Internet Archive 条目为集成 Ghost 等工具的自制救援盘，版本与架构依据不足。",
+      "status": "open"
+    },
+    {
+      "version_id": "windows-pe-1-0",
+      "system": "Windows PE 1.0",
+      "architecture": "x86",
+      "provider": "Internet Archive",
+      "url": "https://archive.org/details/windows-pe-smol",
+      "issue": "Internet Archive 条目为第三方极限精简 Smol 版。",
+      "status": "open"
+    }
+  ],
+  "additional_limitations": [
+    "NT 3.51 SP1、NT 4.0 SP6：已定位条目，BetaArchive 下载权限受限。",
+    "Server 2019、2012、2008 R2、2008、2003 R2：旧访问记录未能确认至少一个所选精确版本来源可访问；不表示地址永久失效。",
+    "PE 10.0.10240、10586：旧 ADK 下载地址访问探测未成功。",
+    "IoT Core 8 个条目混有板卡 FFU、组件包、VMware 预装包，尚未核对如何用于 Hyper-V。",
+    "SP 更新包和官方 PE 工具包本身可作为来源保留，但需要说明用途。"
+  ],
+  "summary": {
+    "open_findings": 8,
+    "replaced_findings": 11
+  }
+}

@@ -27,6 +27,8 @@
 
 ---
 
+The website and API documentation live in this repository under [website/](website/README.md). Run `node website/scripts/start.mjs` (or double-click `启动文档.cmd` on Windows) to preview everything at `http://localhost:5189/`. Requires Node.js 24, pnpm 11.25.0 and .NET 10 SDK. Core documentation changes are regenerated automatically; a separate website checkout is no longer needed.
+
 ExHyperV aims to provide a graphical, easy-to-use configuration tool for advanced Hyper-V features by delving into technical details such as Hyper-V documentation, [WMI](https://github.com/Justsenger/HyperV-WMI-Documentation), and [HCS](https://learn.microsoft.com/en-us/virtualization/api/hcs/overview).
 
 Due to limited personal time and energy, the project may contain untested scenarios or bugs. If you encounter any hardware/software issues during use, please feel free to report them via [Issues](https://github.com/Justsenger/ExHyperV/issues)!

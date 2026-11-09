@@ -1,0 +1,60 @@
+{
+  "reviewed_on": "2026-10-24",
+  "criterion": "架构是否存在与是否已取得完整可安装镜像分别记录。未找到介质不能推出架构不存在。",
+  "versions": [
+    {
+      "version_id": "windows-10-1507",
+      "base_build": "10240",
+      "state": "bootloader_evidence_only",
+      "architecture_evidence_url": "https://raw.githubusercontent.com/microsoft/secureboot_objects/main/Archived/dbx_info_uefi_org_7_18_23.csv",
+      "bootloader_records": [
+        {
+          "Filename": "bootaa64.efi",
+          "Architecture": "64-bit ARM",
+          "Partner": "Microsoft",
+          "CVEs": "Black Lotus Microsoft Windows 10 version 1507",
+          "SHA 256 FLAT": "2674036BC5EE2446739FBBBE21F8480DA23AD5E98A6768754B4C9B9FC37EF2E2"
+        },
+        {
+          "Filename": "bootmgfw.efi",
+          "Architecture": "64-bit ARM",
+          "Partner": "Microsoft",
+          "CVEs": "Black Lotus Microsoft Windows 10 version 1507",
+          "SHA 256 FLAT": "85C838E95601A4B1CFA64600FC4A16330CB50D575FB2E89ECAA08D6B12B50CDF"
+        },
+        {
+          "Filename": "bootaa64.efi",
+          "Architecture": "64-bit ARM",
+          "Partner": "Microsoft",
+          "CVEs": "Black Lotus Microsoft Windows 10 version 1507",
+          "SHA 256 FLAT": "A7CEA30E7B024C8710F9AE5C1302545CEEAF23B8DEBE362FB26562ACDD807325"
+        },
+        {
+          "Filename": "bootmgfw.efi",
+          "Architecture": "64-bit ARM",
+          "Partner": "Microsoft",
+          "CVEs": "Black Lotus Microsoft Windows 10 version 1507",
+          "SHA 256 FLAT": "C334B9CA48819E7E408A3A3418879978828AA302BAA3ED86DE64D8AE5ACA0EAB"
+        }
+      ],
+      "reason": "微软 DBX 清单列出 Windows 10 version 1507 的 64-bit ARM 引导文件。没有从现有清单定位对应完整系统介质或 UUP，因此暂未增加系统架构选项；不据此断言 ARM64 系统不存在。"
+    },
+    {
+      "version_id": "windows-10-1607",
+      "base_build": "14393",
+      "state": "system_media_not_located",
+      "reason": "现有内网清单未定位对应 Build 的 ARM64 完整系统介质或 UUP。不是不存在或不能运行的结论。"
+    },
+    {
+      "version_id": "windows-10-1703",
+      "base_build": "15063",
+      "state": "uup_architecture_added",
+      "build": "15063.313",
+      "architecture": "ARM64",
+      "source_url": "https://uupdump.net/selectlang.php?id=be89586f-808b-484f-8d56-5a5646809c82",
+      "metadata_url": "https://api.uupdump.net/listid.php?search=15063%20arm64",
+      "branch": "rs2_release_svc_d_shub",
+      "boot_tested": false
+    }
+  ]
+}
