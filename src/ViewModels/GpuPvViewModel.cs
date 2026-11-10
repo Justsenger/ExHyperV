@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Interaction;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Tools;
 using ExHyperV.Views;
 
 namespace ExHyperV.ViewModels
@@ -76,6 +77,7 @@ namespace ExHyperV.ViewModels
                 var vms = await _queryService.GetVmListAsync();
 
                 var assignments = new List<GpuPvAssignment>();
+                var vmsWithAssignments = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var vm in vms)
                 {
                     List<(string Id, string InstancePath)> adapters;
@@ -92,7 +94,7 @@ namespace ExHyperV.ViewModels
                     foreach (var adapter in adapters)
                     {
                         var matched = MatchHostGpu(gpus, adapter.InstancePath);
-                        assignments.Add(new GpuPvAssignment
+                        var assignment = new GpuPvAssignment
                         {
                             VmName = vm.Name,
                             AdapterId = adapter.Id,
@@ -102,7 +104,9 @@ namespace ExHyperV.ViewModels
                             DriverVersion = matched?.DriverVersion ?? string.Empty,
                             MemoryBytes = matched?.MemoryBytes ?? 0,
                             HostGpu = matched,
-                        });
+                        };
+                        assignment.ShowVmMaintenance = vmsWithAssignments.Add(vm.Name);
+                        assignments.Add(assignment);
                     }
                 }
 
@@ -166,10 +170,11 @@ namespace ExHyperV.ViewModels
             IsUiEnabled = false;
             try
             {
-                var (success, message) = await _gpuService.AssignGpuPartitionAsync(vmName, item.PartitionableGpuPath);
+                var (success, message) = await _gpuService.AssignGpuPartitionAsync(
+                    vmName, item.PartitionableGpuPath, dialog.SelectedSharePercent);
                 if (success)
                 {
-                    ShowSuccess($"已为「{vmName}」分配 {item.Name} 分区。驱动需要在来宾内单独复制。");
+                    ShowSuccess($"已为「{vmName}」分配 {item.Name} 分区（份额 {dialog.SelectedSharePercent}%）。驱动需要在来宾内单独复制。");
                     await LoadAsync();
                 }
                 else
@@ -267,6 +272,128 @@ namespace ExHyperV.ViewModels
 
         [RelayCommand]
         private void CloseDriverOverlay() => IsDriverBusy = false;
+
+        [RelayCommand]
+        private async Task MmioCheckAsync(GpuPvAssignment? item)
+        {
+            if (item == null) return;
+            if (!await EnsureVmPoweredOffAsync(item.VmName)) return;
+
+            VmMmioSettings? current;
+            try
+            {
+                current = await VmMmioService.GetSettingsAsync(item.VmName);
+            }
+            catch (Exception ex)
+            {
+                ShowError("读取 MMIO 设置失败：" + ex.Message);
+                return;
+            }
+
+            if (current == null)
+            {
+                ShowError("读取 MMIO 设置失败：WMI 未返回虚拟机配置。");
+                return;
+            }
+
+            var cachedPlan = VmMmioService.ComputeMmioPlan();
+            bool ceilingKnown = cachedPlan.HasValue;
+            var target = cachedPlan ?? new VmMmioService.MmioPlan(
+                current.HighBaseMb ?? 0,
+                VmMmioService.DefaultHighSizeMb,
+                current.LowSizeMb ?? 3584);
+
+            bool alreadyOptimal = ceilingKnown
+                ? current.HighSizeMb == target.HighSizeMb &&
+                  current.HighBaseMb == target.BaseMb &&
+                  current.LowSizeMb == target.LowSizeMb
+                : current.HighSizeMb == target.HighSizeMb;
+            if (alreadyOptimal)
+            {
+                ShowSuccess($"「{item.VmName}」的 MMIO 间隙已是推荐值，无需修正。");
+                return;
+            }
+
+            var dialog = new GpuMmioDialog(item.VmName, current, target, ceilingKnown);
+            if (!await Dialogs.ShowContentDialogAsync("MMIO 体检与修正", dialog, "应用修正")) return;
+
+            IsUiEnabled = false;
+            try
+            {
+                ApiResponse response;
+                if (!ceilingKnown && current.HighBaseMb == null)
+                {
+                    var settings = current.Clone();
+                    settings.HighSizeMb = target.HighSizeMb;
+                    response = await VmMmioService.SetSettingAsync(
+                        item.VmName, settings, nameof(VmMmioSettings.HighSizeMb));
+                }
+                else
+                {
+                    response = await VmMmioService.ApplyAsync(item.VmName, target);
+                }
+
+                if (response.Success)
+                {
+                    ShowSuccess(
+                        $"已写入 MMIO：基址 {target.BaseMb} MB / 高位 {target.HighSizeMb} MB / 低位 {target.LowSizeMb} MB，GuestControlledCacheTypes 已启用。");
+                }
+                else
+                {
+                    ShowError(string.IsNullOrWhiteSpace(response.Error) ? "MMIO 写入失败。" : response.Error);
+                }
+            }
+            finally
+            {
+                IsUiEnabled = true;
+            }
+        }
+
+        [RelayCommand]
+        private async Task RepairAsync(GpuPvAssignment? item)
+        {
+            if (item == null) return;
+            if (!await EnsureVmPoweredOffAsync(item.VmName)) return;
+
+            List<VmGpuRepairService.StaleGpuPartition> stale;
+            try
+            {
+                stale = await VmGpuRepairService.FindStaleGpuPartitionsAsync(item.VmName);
+            }
+            catch (Exception ex)
+            {
+                ShowError("检测幽灵分区失败：" + ex.Message);
+                return;
+            }
+
+            if (stale.Count == 0)
+            {
+                ShowSuccess($"「{item.VmName}」未发现幽灵/失配 GPU 分区。");
+                return;
+            }
+
+            var dialog = new GpuRepairDialog(item.VmName, stale);
+            if (!await Dialogs.ShowContentDialogAsync("修复幽灵分区", dialog, "备份并修复")) return;
+
+            IsUiEnabled = false;
+            try
+            {
+                var (success, message, rebound, removed) = await VmGpuRepairService.RepairAsync(item.VmName, stale);
+                if (success)
+                {
+                    ShowSuccess($"已修复「{item.VmName}」：重指 {rebound} 个、删除 {removed} 个。{message}");
+                    await LoadAsync();
+                }
+                else
+                {
+                    ShowError(message);
+                }
+            }
+            finally
+            {
+                IsUiEnabled = true;
+            }
+        }
 
         private async Task<PartitionInfo?> PromptPartitionAsync(string vmName, string title, string primaryText)
         {

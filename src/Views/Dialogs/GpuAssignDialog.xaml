@@ -20,6 +20,16 @@
         <TextBlock Text="目标虚拟机" Margin="0,0,0,6"/>
         <ComboBox x:Name="VmCombo" MinHeight="32"/>
 
+        <TextBlock Text="GPU 份额（可用性能上限）" Margin="0,14,0,6"/>
+        <ComboBox x:Name="ShareCombo"
+                  MinHeight="32"
+                  DisplayMemberPath="Label"
+                  SelectionChanged="ShareCombo_SelectionChanged"/>
+        <TextBlock x:Name="ShareHint"
+                   TextWrapping="Wrap"
+                   Opacity="0.75"
+                   Margin="0,6,0,0"/>
+
         <TextBlock x:Name="EmptyHint"
                    Text="没有处于关机状态的虚拟机。请先关闭目标虚拟机再分配。"
                    TextWrapping="Wrap"

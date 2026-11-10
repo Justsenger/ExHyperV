@@ -51,6 +51,9 @@ namespace ExHyperV.Models
         /// <summary>匹配到的宿主显卡；驱动复制需要它的 PartitionableGpuPath 与厂商。</summary>
         public GpuInfo? HostGpu { get; init; }
 
+        /// <summary>同一台虚拟机只在第一行显示 MMIO/幽灵分区等整机维护入口。</summary>
+        public bool ShowVmMaintenance { get; set; }
+
         public string MemoryDisplay
         {
             get

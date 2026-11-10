@@ -178,6 +178,20 @@
                                     <TextBlock Grid.Row="3" Grid.Column="0" Text="实例路径" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding InstancePath}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,8" TextTrimming="CharacterEllipsis"/>
                                 </Grid>
+
+                                <StackPanel Orientation="Horizontal"
+                                            Margin="0,8,0,0"
+                                            Visibility="{Binding ShowVmMaintenance, Converter={StaticResource BoolToVis}}">
+                                    <ui:Button Content="MMIO 体检与修正"
+                                               Margin="0,0,8,0"
+                                               IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               Command="{Binding DataContext.MmioCheckCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}"/>
+                                    <ui:Button Content="修复幽灵分区"
+                                               IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               Command="{Binding DataContext.RepairCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}"/>
+                                </StackPanel>
                             </StackPanel>
                         </ui:CardExpander>
                     </DataTemplate>
