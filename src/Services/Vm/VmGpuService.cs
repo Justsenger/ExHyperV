@@ -18,29 +18,6 @@ namespace ExHyperV.Services
         private readonly AsyncLocal<ConcurrentQueue<string>?> _linkWarnings = new();
         private readonly AsyncLocal<GpuDriverPackagePlan?> _activeDriverPackagePlan = new();
 
-        private static readonly string[] IntelGpuRuntimeRegistryValueNames =
-        {
-            "OpenCLDriverName",
-            "OpenCLDriverNameWow",
-            "LevelZeroDriverPath",
-            "DriverStorePathForComputeRuntime",
-            "DriverStorePathForMediaSDK",
-            "DriverStorePathForVPL",
-            "DriverStorePathForMDF",
-            "VulkanDriverName",
-            "VulkanDriverNameWow",
-            "OpenGLDriverName",
-            "OpenGLDriverNameWow",
-            "OpenGLFlags",
-            "OpenGLFlagsWow",
-            "OpenGLInstalled",
-            "OpenGLVersion",
-            "OpenGLVersionWow",
-            "ContentProtectionDriverName",
-            "ControlApiPath",
-            "ControlApiPath32"
-        };
-
         private enum FilePromotionMode
         {
             PreserveExisting,
@@ -589,21 +566,43 @@ namespace ExHyperV.Services
                         "候选位置：\r\n" + DescribeCleanupCandidates(repositoryPath));
                 }
 
-                Log("已找到注入标记，开始删除 HostDriverStore\\FileRepository …");
-                if (Directory.Exists(repositoryPath))
+                Log("已找到注入标记，开始清理本工具复制的驱动包 …");
+                var markerPackages = ReadMarkerPackages(markerPath);
+                int removedPackages = 0;
+                if (markerPackages.Count > 0 && Directory.Exists(repositoryPath))
                 {
+                    foreach (string packageName in markerPackages)
+                    {
+                        if (!string.Equals(Path.GetFileName(packageName), packageName, StringComparison.Ordinal)) continue;
+                        string packagePath = Path.Combine(repositoryPath, packageName);
+                        if (!Directory.Exists(packagePath)) continue;
+
+                        RemoveReadOnlyAttribute(packagePath);
+                        Directory.Delete(packagePath, true);
+                        removedPackages++;
+                        Log($"已删除驱动包 {packageName}。");
+                    }
+
+                    if (!Directory.EnumerateFileSystemEntries(repositoryPath).Any())
+                        Directory.Delete(repositoryPath);
+                }
+                else if (Directory.Exists(repositoryPath))
+                {
+                    // 旧版标记没有包列表：HostDriverStore\FileRepository 是 GPU-PV 专用目录，整体删除
                     RemoveReadOnlyAttribute(repositoryPath);
                     Directory.Delete(repositoryPath, true);
-                    Log("已删除来宾内的 FileRepository。");
+                    Log("已删除来宾内的 HostDriverStore\\FileRepository。");
                 }
                 else
                 {
-                    Log("标记存在但 FileRepository 已不存在，仅清理标记文件。");
+                    Log("标记存在但 HostDriverStore\\FileRepository 已不存在，仅清理标记文件。");
                 }
 
                 File.Delete(markerPath);
                 Log("已删除注入标记。");
-                return (true, "清理完成：已删除本工具复制的 FileRepository 与标记文件。注册表与服务项未回滚，如需完全还原请使用虚拟机检查点。");
+                return (true,
+                    $"清理完成：已删除本工具复制的 {removedPackages} 个驱动包与标记文件。" +
+                    "System32/SysWOW64 下的驱动文件不在本次清理范围（与参考实现一致，重新推送驱动会覆盖）。");
             }
             catch (Exception ex)
             {
@@ -657,6 +656,29 @@ namespace ExHyperV.Services
             }
         }
 
+        /// <summary>读取注入标记里记录的驱动包目录名；旧版标记没有该字段时返回空列表。</summary>
+        private static List<string> ReadMarkerPackages(string markerPath)
+        {
+            try
+            {
+                using var document = System.Text.Json.JsonDocument.Parse(File.ReadAllText(markerPath));
+                if (document.RootElement.TryGetProperty("driverPackages", out var element) &&
+                    element.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    return element.EnumerateArray()
+                        .Select(item => item.GetString())
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Select(name => name!)
+                        .ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[GPU Marker] 读取注入标记失败: {ex.Message}");
+            }
+            return new List<string>();
+        }
+
         private static void WriteInjectionMarker(
             string assignedDriveLetter,
             string gpuInstancePath,
@@ -678,6 +700,7 @@ namespace ExHyperV.Services
                         gpuManu,
                         vendor = packagePlan.Vendor.ToString(),
                         fileRepository = @"Windows\System32\HostDriverStore\FileRepository",
+                        driverPackages = packagePlan.PackageNames,
                     },
                     new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(markerPath, payload, new System.Text.UTF8Encoding(false));
@@ -765,34 +788,28 @@ namespace ExHyperV.Services
                 Directory.CreateDirectory(destFolder);
 
                 Log(Properties.Resources.Msg_Gpu_SyncingFiles);
-                await CopyDriverRepositoryAsync(packagePlan.HostFileRepository, destFolder, Log);
+                await CopyDriverPackagesAsync(
+                    packagePlan.HostFileRepository,
+                    destFolder,
+                    packagePlan.PackageNames,
+                    Log);
 
-                // 同步重活（注册表提取 + 各厂商 Promote*：内部对每个文件 spawn cmd.exe 并同步 WaitForExit 几十~上百次）
+                // 同步重活（注册表文件提取 + 各厂商 Promote*：内部对每个文件 spawn cmd.exe 并同步 WaitForExit 几十~上百次）
                 // 挪到后台线程——否则作为 robocopy await 之后的续体跑在 UI 线程上，会冻结主界面（转圈/窗口都卡死）。
                 // Log 回调仍在 UI 续体里执行（这些 Task.Run 之间的代码在 UI 线程），更新 task.Description 安全、无需 Dispatcher。
-                await Task.Run(() => PromoteRegistryDefinedFiles(assignedDriveLetter, packagePlan)); // 微软注册表文件提取
+                await Task.Run(() => PromoteRegistryDefinedFiles(assignedDriveLetter, packagePlan)); // 只读宿主注册表，用于挑选需要带到来宾的文件
 
                 try
                 {
                     if (packagePlan.Vendor == GpuDriverVendor.Nvidia)
                     {
-                        Log(Properties.Resources.Msg_Gpu_InjectingReg);
-                        string nvidiaRegResult = await Task.Run(() =>
-                        {
-                            string result = PatchNvidiaServiceRegistry(assignedDriveLetter, packagePlan);
-                            PromoteNvidiaFiles(assignedDriveLetter);
-                            return result;
-                        });
-                        if (!string.Equals(nvidiaRegResult, "OK", StringComparison.Ordinal))
-                            Log(nvidiaRegResult);
+                        // GPU-PV 的来宾驱动完全由文件组成：写入 HostDriverStore 并链接到 System32 即可，
+                        // 不做任何离线注册表写入（参考实现同样不写注册表）。
+                        await Task.Run(() => PromoteNvidiaFiles(assignedDriveLetter));
                     }
                     else if (packagePlan.Vendor == GpuDriverVendor.Intel)
                     {
-                        await Task.Run(() =>
-                        {
-                            PromoteIntelGpuFiles(assignedDriveLetter);
-                            PromoteIntelGpuRuntimeRegistry(assignedDriveLetter, packagePlan.DisplayClassSubKeyName);
-                        });
+                        await Task.Run(() => PromoteIntelGpuFiles(assignedDriveLetter));
                     }
                     else if (packagePlan.Vendor == GpuDriverVendor.Amd)
                     {
@@ -873,31 +890,47 @@ namespace ExHyperV.Services
             }
         }
 
-        private static async Task CopyDriverRepositoryAsync(
+        /// <summary>
+        /// 只把当前显卡实际引用的驱动包目录复制到来宾 HostDriverStore\FileRepository：
+        /// 包目录名（INF 内容哈希）保持不变，目录层级与文件属性原样保留。
+        /// 与参考实现一致，不再镜像宿主整个 FileRepository，避免把其它显卡/旧版本的包也带进来。
+        /// </summary>
+        private static async Task CopyDriverPackagesAsync(
             string hostFileRepository,
             string guestFileRepository,
+            IReadOnlyList<string> packageNames,
             Action<string> log)
         {
             if (!Directory.Exists(hostFileRepository))
                 throw new DirectoryNotFoundException($"Host DriverStore FileRepository was not found: {hostFileRepository}");
 
-            if (Directory.Exists(guestFileRepository)) RemoveReadOnlyAttribute(guestFileRepository);
-            else Directory.CreateDirectory(guestFileRepository);
+            Directory.CreateDirectory(guestFileRepository);
 
-            log($"[GPU DriverStore] {hostFileRepository}");
-            using Process process = Process.Start(new ProcessStartInfo
+            foreach (string packageName in packageNames.Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                FileName = "robocopy.exe",
-                Arguments = $"\"{hostFileRepository}\" \"{guestFileRepository}\" /E /R:1 /W:1 /MT:32 /XJ /NDL /NJH /NJS /NC /NS",
-                CreateNoWindow = true,
-                UseShellExecute = false
-            }) ?? throw new InvalidOperationException("Unable to start robocopy.exe.");
-            await process.WaitForExitAsync();
-            // Robocopy 0..7 are success states; 8 and above mean at least one copy failure.
-            if (process.ExitCode >= 8)
-                throw new IOException($"Copying DriverStore FileRepository failed with robocopy exit code {process.ExitCode}.");
+                string source = Path.Combine(hostFileRepository, packageName);
+                if (!Directory.Exists(source))
+                    throw new DirectoryNotFoundException($"Driver package was not found: {source}");
 
-            await Task.Run(() => SetFolderReadOnly(guestFileRepository));
+                string target = Path.Combine(guestFileRepository, packageName);
+                if (Directory.Exists(target)) RemoveReadOnlyAttribute(target);
+
+                log($"[GPU DriverStore] {source} -> {target}");
+                using Process process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "robocopy.exe",
+                    Arguments = $"\"{source}\" \"{target}\" /E /R:1 /W:1 /MT:32 /XJ /NDL /NJH /NJS /NC /NS",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                }) ?? throw new InvalidOperationException("Unable to start robocopy.exe.");
+                await process.WaitForExitAsync();
+                // Robocopy 0..7 are success states; 8 and above mean at least one copy failure.
+                if (process.ExitCode >= 8)
+                    throw new IOException(
+                        $"Copying driver package {packageName} failed with robocopy exit code {process.ExitCode}.");
+
+                await Task.Run(() => SetFolderReadOnly(target));
+            }
         }
 
         private void PromoteRegistryDefinedFiles(
@@ -1068,250 +1101,6 @@ namespace ExHyperV.Services
             LinkSingleFile(assignedDriveLetter, "vulkan-1-32.dll", "vulkan-1-999-0-0-0.dll", sw64);
             LinkSingleFile(assignedDriveLetter, "vulkaninfo-32.exe", "vulkaninfo.exe", sw64);
             LinkSingleFile(assignedDriveLetter, "vulkaninfo-32.exe", "vulkaninfo-1-999-0-0-0.exe", sw64);
-        }
-
-        private void PromoteIntelGpuRuntimeRegistry(
-            string assignedDriveLetter,
-            string selectedClassSubKeyName)
-        {
-            const string displayClassGuid = "{4d36e968-e325-11ce-bfc1-08002be10318}";
-            string systemHiveFile = Path.Combine(
-                assignedDriveLetter,
-                "Windows",
-                "System32",
-                "Config",
-                "SYSTEM");
-
-            if (!File.Exists(systemHiveFile))
-                throw new FileNotFoundException("The offline SYSTEM hive was not found.", systemHiveFile);
-
-            using var hostBaseKey = Microsoft.Win32.RegistryKey.OpenBaseKey(
-                Microsoft.Win32.RegistryHive.LocalMachine,
-                Microsoft.Win32.RegistryView.Registry64);
-            if (string.IsNullOrWhiteSpace(selectedClassSubKeyName))
-                throw new InvalidOperationException("Unable to map the selected Intel GPU-PV instance to its display-class registry key.");
-
-            using var hostAdapterKey = hostBaseKey.OpenSubKey(
-                $@"SYSTEM\CurrentControlSet\Control\Class\{displayClassGuid}\{selectedClassSubKeyName}");
-            if (hostAdapterKey == null)
-                throw new InvalidOperationException("The selected Intel display-class registry key does not exist.");
-
-            var runtimeValues = new List<(string Name, object Value, Microsoft.Win32.RegistryValueKind Kind)>();
-            foreach (string valueName in IntelGpuRuntimeRegistryValueNames)
-            {
-                object? value = hostAdapterKey.GetValue(
-                    valueName,
-                    null,
-                    Microsoft.Win32.RegistryValueOptions.DoNotExpandEnvironmentNames);
-                if (value == null) continue;
-
-                Microsoft.Win32.RegistryValueKind valueKind;
-                try { valueKind = hostAdapterKey.GetValueKind(valueName); }
-                catch { continue; }
-
-                runtimeValues.Add((
-                    valueName,
-                    RewriteDriverStoreRegistryValue(value),
-                    valueKind));
-            }
-
-            if (runtimeValues.Count == 0)
-                throw new InvalidOperationException("The selected Intel driver does not expose GPU runtime registry values.");
-
-            string? levelZeroDriverPath = runtimeValues
-                .FirstOrDefault(item => item.Name.Equals("LevelZeroDriverPath", StringComparison.OrdinalIgnoreCase))
-                .Value as string;
-
-            string offlineHiveName = $"ExHyperVIntelOfflineSystem_{Guid.NewGuid():N}";
-            if (ExecuteCommand($@"reg load HKLM\{offlineHiveName} ""{systemHiveFile}""") != 0)
-                throw new InvalidOperationException(Properties.Resources.Error_OfflineLoadVmRegistryFailed);
-
-            try
-            {
-                using var offlineSystem = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(offlineHiveName, writable: true)
-                    ?? throw new InvalidOperationException("The loaded offline SYSTEM hive could not be opened.");
-
-                IReadOnlyCollection<string> controlSetNames = GetOfflineControlSetNames(offlineSystem);
-                string currentControlSetName = GetOfflineCurrentControlSetName(offlineSystem);
-                var levelZeroAnchorSubKeys = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-                // Validate every destination before writing anything. An absent Level Zero anchor is
-                // fatal only for the active control set; stale backup control sets are synchronized
-                // when possible but must not make an otherwise bootable deployment fail.
-                foreach (string controlSetName in controlSetNames)
-                {
-                    string classRoot = $@"{controlSetName}\Control\Class\{displayClassGuid}";
-                    using var existingRuntimeKey = offlineSystem.OpenSubKey(
-                        $@"{classRoot}\{selectedClassSubKeyName}");
-                    if (existingRuntimeKey != null && !IsCompatibleIntelRuntimeTarget(existingRuntimeKey))
-                    {
-                        throw new InvalidOperationException(
-                            $"The offline display-class key {selectedClassSubKeyName} belongs to another display driver; Intel runtime values were not written.");
-                    }
-
-                    if (string.IsNullOrWhiteSpace(levelZeroDriverPath)) continue;
-
-                    string? anchorSubKeyName = FindOfflineHyperVVideoClassSubKeyName(offlineSystem, classRoot);
-                    if (!string.IsNullOrWhiteSpace(anchorSubKeyName))
-                    {
-                        levelZeroAnchorSubKeys[controlSetName] = anchorSubKeyName;
-                    }
-                    else if (controlSetName.Equals(currentControlSetName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        throw new InvalidOperationException("The offline Microsoft Hyper-V Video display-class key was not found in the active control set.");
-                    }
-                }
-
-                foreach (string controlSetName in controlSetNames)
-                {
-                    string classRoot = $@"{controlSetName}\Control\Class\{displayClassGuid}";
-
-                    // Intel NEO gets DeviceRegistryPath from the selected host adapter through
-                    // KMTQAITYPE_UMDRIVERPRIVATE. GPU-PV preserves that numeric class-key name,
-                    // so populate it before the virtual render device starts for the first time.
-                    using (var runtimeKey = offlineSystem.CreateSubKey(
-                        $@"{classRoot}\{selectedClassSubKeyName}",
-                        writable: true))
-                    {
-                        if (runtimeKey == null)
-                            throw new InvalidOperationException("Unable to create the offline Intel runtime registry key.");
-                        if (!IsCompatibleIntelRuntimeTarget(runtimeKey))
-                            throw new InvalidOperationException(
-                                $"The offline display-class key {selectedClassSubKeyName} belongs to another display driver; Intel runtime values were not written.");
-
-                        foreach (var runtimeValue in runtimeValues)
-                            runtimeKey.SetValue(runtimeValue.Name, runtimeValue.Value, runtimeValue.Kind);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(levelZeroDriverPath) &&
-                        levelZeroAnchorSubKeys.TryGetValue(controlSetName, out string? anchorSubKeyName))
-                    {
-                        // The Windows Level Zero loader enumerates present guest display DEVNODEs and
-                        // reads LevelZeroDriverPath from their software keys. The VRD software key does
-                        // not exist until first boot, but Hyper-V Video does, so use that stable display
-                        // key as a discovery anchor without replacing any other driver's registration.
-                        using var levelZeroAnchorKey = offlineSystem.OpenSubKey(
-                            $@"{classRoot}\{anchorSubKeyName}",
-                            writable: true);
-                        if (levelZeroAnchorKey == null)
-                            throw new InvalidOperationException("The offline Microsoft Hyper-V Video registry key could not be opened.");
-
-                        levelZeroAnchorKey.SetValue(
-                            "LevelZeroDriverPath",
-                            levelZeroDriverPath,
-                            Microsoft.Win32.RegistryValueKind.String);
-                    }
-                }
-            }
-            finally
-            {
-                ExecuteCommand($"reg unload HKLM\\{offlineHiveName}");
-            }
-        }
-
-        private static object RewriteDriverStoreRegistryValue(object value)
-        {
-            static string Rewrite(string text) => Regex.Replace(
-                text,
-                @"(?i)([\\/])System32([\\/])DriverStore([\\/])",
-                "$1System32$2HostDriverStore$3");
-
-            return value switch
-            {
-                string text => Rewrite(text),
-                string[] texts => texts.Select(Rewrite).ToArray(),
-                _ => value
-            };
-        }
-
-        private static IReadOnlyCollection<string> GetOfflineControlSetNames(Microsoft.Win32.RegistryKey offlineSystem)
-        {
-            var controlSets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            controlSets.Add(GetOfflineCurrentControlSetName(offlineSystem));
-            using var selectKey = offlineSystem.OpenSubKey("Select");
-            foreach (string valueName in new[] { "Default", "LastKnownGood" })
-            {
-                if (selectKey?.GetValue(valueName) is int controlSetNumber && controlSetNumber > 0)
-                    controlSets.Add($"ControlSet{controlSetNumber:D3}");
-            }
-
-            return controlSets.ToArray();
-        }
-
-        private static string GetOfflineCurrentControlSetName(Microsoft.Win32.RegistryKey offlineSystem)
-        {
-            using var selectKey = offlineSystem.OpenSubKey("Select");
-            return selectKey?.GetValue("Current") is int controlSetNumber && controlSetNumber > 0
-                ? $"ControlSet{controlSetNumber:D3}"
-                : "ControlSet001";
-        }
-
-        private static bool IsCompatibleIntelRuntimeTarget(Microsoft.Win32.RegistryKey runtimeKey)
-        {
-            string driverDesc = runtimeKey.GetValue("DriverDesc")?.ToString() ?? string.Empty;
-            string providerName = runtimeKey.GetValue("ProviderName")?.ToString() ?? string.Empty;
-            string infPath = runtimeKey.GetValue("InfPath")?.ToString() ?? string.Empty;
-            string matchingDeviceId = runtimeKey.GetValue("MatchingDeviceId")?.ToString() ?? string.Empty;
-
-            if (string.IsNullOrWhiteSpace(driverDesc) &&
-                string.IsNullOrWhiteSpace(providerName) &&
-                string.IsNullOrWhiteSpace(infPath) &&
-                string.IsNullOrWhiteSpace(matchingDeviceId))
-            {
-                return true;
-            }
-
-            string identity = $"{driverDesc}|{providerName}|{infPath}|{matchingDeviceId}";
-            if (identity.Contains("Intel", StringComparison.OrdinalIgnoreCase) ||
-                matchingDeviceId.Contains("VEN_8086", StringComparison.OrdinalIgnoreCase))
-            {
-                return true;
-            }
-
-            return infPath.Equals("vrd.inf", StringComparison.OrdinalIgnoreCase) ||
-                   (providerName.Contains("Microsoft", StringComparison.OrdinalIgnoreCase) &&
-                    driverDesc.Contains("Virtual Render", StringComparison.OrdinalIgnoreCase));
-        }
-
-        private static string? FindOfflineHyperVVideoClassSubKeyName(
-            Microsoft.Win32.RegistryKey offlineSystem,
-            string classRoot)
-        {
-            using var classKey = offlineSystem.OpenSubKey(classRoot);
-            if (classKey == null) return null;
-
-            foreach (string subKeyName in classKey.GetSubKeyNames()
-                         .OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
-            {
-                Microsoft.Win32.RegistryKey? candidate = null;
-                try { candidate = classKey.OpenSubKey(subKeyName); }
-                catch (UnauthorizedAccessException) { continue; }
-                catch (System.Security.SecurityException) { continue; }
-                using (candidate)
-                {
-                    if (candidate == null) continue;
-
-                    string driverDesc;
-                    string providerName;
-                    string infPath;
-                    try
-                    {
-                        driverDesc = candidate.GetValue("DriverDesc")?.ToString() ?? string.Empty;
-                        providerName = candidate.GetValue("ProviderName")?.ToString() ?? string.Empty;
-                        infPath = candidate.GetValue("InfPath")?.ToString() ?? string.Empty;
-                    }
-                    catch (UnauthorizedAccessException) { continue; }
-                    catch (System.Security.SecurityException) { continue; }
-                    if ((driverDesc.Contains("Hyper-V Video", StringComparison.OrdinalIgnoreCase) ||
-                         infPath.Equals("wvmbusvideo.inf", StringComparison.OrdinalIgnoreCase)) &&
-                        providerName.Contains("Microsoft", StringComparison.OrdinalIgnoreCase))
-                    {
-                        return subKeyName;
-                    }
-                }
-            }
-
-            return null;
         }
 
         private void PromoteAmdGpuFiles(
@@ -1898,131 +1687,6 @@ namespace ExHyperV.Services
             foreach (var file in directory.GetFiles())
             {
                 file.Attributes &= ~FileAttributes.ReadOnly;
-            }
-        }
-
-        private string PatchNvidiaServiceRegistry(
-            string letter,
-            GpuDriverPackagePlan packagePlan)
-        {
-            string systemHiveFile = $@"{letter}\Windows\System32\Config\SYSTEM";
-            string offlineHiveName = $"ExHyperVNvidiaOfflineSystem_{Guid.NewGuid():N}";
-            bool hiveLoaded = false;
-
-            try
-            {
-                if (!File.Exists(systemHiveFile))
-                    return Properties.Resources.Error_OfflineLoadVmRegistryFailed;
-
-                using var hostBaseKey = Microsoft.Win32.RegistryKey.OpenBaseKey(
-                    Microsoft.Win32.RegistryHive.LocalMachine,
-                    Microsoft.Win32.RegistryView.Registry64);
-                using var hostServiceKey = hostBaseKey.OpenSubKey(
-                    @"SYSTEM\CurrentControlSet\Services\nvlddmkm");
-                if (hostServiceKey == null)
-                    return Properties.Resources.Error_ExportLocalRegistryInfoFailed;
-
-                string packageDirectory = Path.Combine(
-                    packagePlan.HostFileRepository,
-                    packagePlan.PrimaryPackageName);
-                string[] driverFiles = Directory.GetFiles(
-                    packageDirectory,
-                    "nvlddmkm.sys",
-                    SearchOption.AllDirectories);
-                if (driverFiles.Length != 1)
-                {
-                    throw new InvalidOperationException(
-                        $"The selected NVIDIA package must contain exactly one nvlddmkm.sys; found {driverFiles.Length}: {packageDirectory}");
-                }
-
-                string relativeDriverPath = Path.GetRelativePath(
-                    packagePlan.HostFileRepository,
-                    driverFiles[0]);
-                if (relativeDriverPath.StartsWith("..", StringComparison.Ordinal) ||
-                    Path.IsPathRooted(relativeDriverPath))
-                {
-                    throw new InvalidOperationException(
-                        $"The selected NVIDIA kernel driver is outside FileRepository: {driverFiles[0]}");
-                }
-
-                string guestImagePath =
-                    $@"\SystemRoot\System32\HostDriverStore\FileRepository\{relativeDriverPath}";
-
-                string[] serviceValueNames =
-                {
-                    "Type",
-                    "Start",
-                    "ErrorControl",
-                    "Group"
-                };
-
-                var serviceValues = new List<(
-                    string Name,
-                    object Value,
-                    Microsoft.Win32.RegistryValueKind Kind)>();
-                foreach (string valueName in serviceValueNames)
-                {
-                    object? value = hostServiceKey.GetValue(
-                        valueName,
-                        null,
-                        Microsoft.Win32.RegistryValueOptions.DoNotExpandEnvironmentNames);
-                    if (value == null)
-                    {
-                        throw new InvalidOperationException(
-                            $"The host nvlddmkm service is missing the required value {valueName}.");
-                    }
-
-                    serviceValues.Add((
-                        valueName,
-                        value,
-                        hostServiceKey.GetValueKind(valueName)));
-                }
-
-                serviceValues.Add((
-                    "ImagePath",
-                    guestImagePath,
-                    Microsoft.Win32.RegistryValueKind.ExpandString));
-
-                if (ExecuteCommand($@"reg load HKLM\{offlineHiveName} ""{systemHiveFile}""") != 0)
-                    return Properties.Resources.Error_OfflineLoadVmRegistryFailed;
-                hiveLoaded = true;
-
-                using var offlineSystem = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
-                    offlineHiveName,
-                    writable: true);
-                if (offlineSystem == null)
-                    return Properties.Resources.Error_OfflineLoadVmRegistryFailed;
-
-                foreach (string controlSetName in GetOfflineControlSetNames(offlineSystem))
-                {
-                    using var destinationServiceKey = offlineSystem.CreateSubKey(
-                        $@"{controlSetName}\Services\nvlddmkm",
-                        writable: true);
-                    if (destinationServiceKey == null)
-                        throw new InvalidOperationException(
-                            $"Unable to create {controlSetName}\\Services\\nvlddmkm in the offline guest.");
-
-                    // Only the kernel-service bootstrap belongs to offline deployment. NVIDIA's
-                    // service subkeys contain host PnP bindings, volatile state and installed
-                    // feature state; the guest must generate or install those for itself.
-                    foreach (var serviceValue in serviceValues)
-                    {
-                        destinationServiceKey.SetValue(
-                            serviceValue.Name,
-                            serviceValue.Value,
-                            serviceValue.Kind);
-                    }
-                }
-
-                return "OK";
-            }
-            catch (Exception ex)
-            {
-                return string.Format(Properties.Resources.Error_NvidiaRegistryProcessingException, ex.Message);
-            }
-            finally
-            {
-                if (hiveLoaded) ExecuteCommand($"reg unload HKLM\\{offlineHiveName}");
             }
         }
 

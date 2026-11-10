@@ -16,8 +16,8 @@ internal enum GpuDriverVendor
 
 /// <summary>
 /// 精确描述当前所选 GPU 的主包和映射依赖。
-/// 部署会镜像完整 FileRepository；这个计划只负责限定注册表与文件链接来源，
-/// 防止同名文件错误地链接到另一版本或另一块显卡的驱动包。
+/// 部署只把这里列出的驱动包复制到来宾 HostDriverStore\FileRepository；
+/// 这个计划同时限定注册表与文件链接的来源，防止同名文件错误地链接到另一版本或另一块显卡的驱动包。
 /// </summary>
 internal sealed class GpuDriverPackagePlan
 {
@@ -137,11 +137,47 @@ internal static class GpuDriverPackageResolver
             DisplayClassSubKeyName = classSubKeyName,
             HostFileRepository = fileRepository.FullName,
             PrimaryPackageName = primaryDirectory.Name,
-            PackageNames = packages.Select(package => package.Directory.Name).ToArray(),
+            PackageNames = BuildPackageNames(
+                fileRepository,
+                packages,
+                publishedInfName,
+                ReadInfDirective(packages[0].Inf, "CatalogFile")),
             AmdOpenClPackageNames = openClPackages,
             AmdWinPackageNames = amdWinPackages,
             Warnings = warnings
         };
+    }
+
+    /// <summary>
+    /// 组装需要复制到来宾的驱动包名：主包 + 已解析的伴随包 + 同一次安装的配套包。
+    /// 配套包按 INF / CatalogFile 的名字前缀在 FileRepository 里匹配（参考实现的做法），
+    /// 例如 Intel 的 iigd_dch.inf_amd64_* 组件包，避免逐个解析几百个 INF。
+    /// </summary>
+    private static IReadOnlyList<string> BuildPackageNames(
+        DirectoryInfo fileRepository,
+        IReadOnlyCollection<DriverPackage> packages,
+        string publishedInfName,
+        string? catalogName)
+    {
+        var names = packages.Select(package => package.Directory.Name).ToList();
+
+        var prefixes = new List<string>();
+        string infBase = Path.GetFileNameWithoutExtension(publishedInfName);
+        if (!string.IsNullOrWhiteSpace(infBase)) prefixes.Add($"{infBase}.inf_");
+        string catalogBase = string.IsNullOrWhiteSpace(catalogName)
+            ? string.Empty
+            : Path.GetFileNameWithoutExtension(catalogName);
+        if (!string.IsNullOrWhiteSpace(catalogBase)) prefixes.Add($"{catalogBase}.inf_");
+        if (prefixes.Count == 0) return names;
+
+        foreach (DirectoryInfo directory in fileRepository.EnumerateDirectories())
+        {
+            if (!prefixes.Any(prefix => directory.Name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))) continue;
+            if (names.Contains(directory.Name, StringComparer.OrdinalIgnoreCase)) continue;
+            names.Add(directory.Name);
+        }
+
+        return names;
     }
 
     private static DriverPackage SelectExactCompanionPackage(
