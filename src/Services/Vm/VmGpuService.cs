@@ -414,23 +414,10 @@ namespace ExHyperV.Services
                 template["HostResource"] = new string[] { gpuWmiPath };
                 string gpuXml = template.GetText(TextFormat.CimDtd20);
 
-                // 查 VM SettingData 路径
-                var vmSettingResp = await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName = '{WmiApi.Escape(vmName)}' AND VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'",
-                    obj => obj.Path.Path);
-                if (!vmSettingResp.HasData) return (false, Properties.Resources.Error_Vm_GetSettings);
-
-                // AddResourceSettings
-                var result = await WmiApi.InvokeAsync(
-                    "SELECT * FROM Msvm_VirtualSystemManagementService",
-                    "AddResourceSettings",
-                    p =>
-                    {
-                        p["AffectedConfiguration"] = vmSettingResp.Data;
-                        p["ResourceSettings"] = new string[] { gpuXml };
-                    });
-
-                if (!result.Success) return (false, result.Error);
+                // AddResourceSettings：与 DDA 共用同一提交通道（目标配置解析也在共享层完成）
+                var result = await ResourceAssignmentService.AddForVmAsync(vmName, gpuXml);
+                if (!result.Success)
+                    return (false, result.Error.Length > 0 ? result.Error : Properties.Resources.Error_Vm_GetSettings);
 
                 // 验证
                 var vmGuidResp = await WmiApi.QueryFirstAsync(
@@ -451,18 +438,11 @@ namespace ExHyperV.Services
         {
             try
             {
-                // 查 GpuPartitionSettingData 拿对象路径
-                string escapedId = adapterId.Replace("\\", "\\\\");
-                var adapterResp = await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_GpuPartitionSettingData WHERE InstanceID = '{escapedId}'",
-                    obj => obj.Path.Path);
+                var adapterResp = await ResourceAssignmentService.FindSettingPathAsync(
+                    "Msvm_GpuPartitionSettingData", adapterId);
                 if (!adapterResp.HasData) return false;
 
-                // RemoveResourceSettings
-                var result = await WmiApi.InvokeAsync(
-                    "SELECT * FROM Msvm_VirtualSystemManagementService",
-                    "RemoveResourceSettings",
-                    p => p["ResourceSettings"] = new string[] { adapterResp.Data });
+                var result = await ResourceAssignmentService.RemoveAsync(adapterResp.Data!);
                 if (!result.Success) return false;
 
                 // Notes 清理
@@ -500,6 +480,176 @@ namespace ExHyperV.Services
 
             string result = await InjectWindowsDriversAsync(vmName, diskTarget, selectedPartition, gpuManu, gpuInstancePath, progressCallback);
             return result == "OK" ? (true, "OK") : (false, result);
+        }
+
+        /// <summary>注入标记：清理只认这个文件，避免误删来宾原有驱动。</summary>
+        internal const string InjectionMarkerRelativePath = @"Windows\System32\HostDriverStore\.gpupv-inject.json";
+
+        /// <summary>
+        /// 清理本工具写入来宾的显卡驱动（离线挂载 + 只认注入标记）。
+        /// 标记缺失时只列出候选目录并返回失败，绝不自动删除。
+        /// </summary>
+        public async Task<(bool Success, string Message)> CleanupWindowsDriversAsync(
+            string vmName,
+            PartitionInfo selectedPartition,
+            Action<string> progressCallback = null)
+        {
+            if (selectedPartition == null) return (false, Properties.Resources.Error_Common_NoPartitionSelected);
+
+            void Log(string msg) => progressCallback?.Invoke(msg);
+
+            string assignedDriveLetter = null;
+            int hostDiskNumber = -1;
+            string savedCtrlType = "SCSI";
+            int savedCtrlNum = 0;
+            int savedCtrlLoc = 0;
+            bool isPhysical = selectedPartition.IsPhysicalDisk;
+            bool detachSuccess = false;
+
+            try
+            {
+                if (isPhysical)
+                {
+                    hostDiskNumber = int.Parse(selectedPartition.DiskPath);
+                    Log(string.Format(Properties.Resources.Msg_Gpu_DismountingDisk, hostDiskNumber));
+                    var detachResult = await VmStorageService.DetachPhysicalDiskAsync(vmName, hostDiskNumber);
+                    if (!detachResult.Success) return (false, Properties.Resources.Error_Gpu_DiskNotFound);
+                    savedCtrlType = detachResult.CtrlType;
+                    savedCtrlNum = detachResult.CtrlNum;
+                    savedCtrlLoc = detachResult.CtrlLoc;
+                    detachSuccess = true;
+
+                    await HostDiskService.SetDiskOfflineStatusAsync(hostDiskNumber, false);
+                    await HostDiskService.SetDiskReadOnlyAsync(hostDiskNumber, false);
+                }
+                else
+                {
+                    var mountResult = await VmStorageService.MountVhdxAsync(selectedPartition.DiskPath);
+                    if (!mountResult.Success) return (false, Properties.Resources.Error_Gpu_MountVhdFailed);
+                    hostDiskNumber = mountResult.DiskNumber;
+                }
+
+                Log(string.Format(Properties.Resources.Msg_Gpu_AssignTempDrive, hostDiskNumber, selectedPartition.PartitionNumber));
+                char suggestedLetter = GetFreeDriveLetter();
+                var assignResult = await VmStorageService.AssignPartitionDriveLetterAsync(
+                    hostDiskNumber, selectedPartition.PartitionNumber, suggestedLetter);
+                if (!assignResult.Success) return (false, "无法为该系统分区分配盘符，清理已中止。");
+                assignedDriveLetter = $"{suggestedLetter}:\\";
+
+                string windowsDir = Path.Combine(assignedDriveLetter, "Windows", "System32");
+                if (!Directory.Exists(windowsDir))
+                {
+                    return (false, $"分区 {assignedDriveLetter} 不是 Windows 系统分区（缺少 Windows\\System32），清理已中止。");
+                }
+
+                string markerPath = Path.Combine(assignedDriveLetter, InjectionMarkerRelativePath);
+                string repositoryPath = Path.Combine(windowsDir, "HostDriverStore", "FileRepository");
+
+                if (!File.Exists(markerPath))
+                {
+                    return (false,
+                        "未找到本工具写入的注入标记，已跳过自动清理（不会删除来宾原有驱动）。\r\n" +
+                        "候选位置：\r\n" + DescribeCleanupCandidates(repositoryPath));
+                }
+
+                Log("已找到注入标记，开始删除 HostDriverStore\\FileRepository …");
+                if (Directory.Exists(repositoryPath))
+                {
+                    RemoveReadOnlyAttribute(repositoryPath);
+                    Directory.Delete(repositoryPath, true);
+                    Log("已删除来宾内的 FileRepository。");
+                }
+                else
+                {
+                    Log("标记存在但 FileRepository 已不存在，仅清理标记文件。");
+                }
+
+                File.Delete(markerPath);
+                Log("已删除注入标记。");
+                return (true, "清理完成：已删除本工具复制的 FileRepository 与标记文件。注册表与服务项未回滚，如需完全还原请使用虚拟机检查点。");
+            }
+            catch (Exception ex)
+            {
+                return (false, $"清理失败：{ex.Message}");
+            }
+            finally
+            {
+                if (isPhysical && hostDiskNumber != -1 && detachSuccess)
+                {
+                    Log(Properties.Resources.Msg_Gpu_Remounting);
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(assignedDriveLetter))
+                        {
+                            await VmStorageService.RemovePartitionAccessPathAsync(
+                                hostDiskNumber, selectedPartition.PartitionNumber, assignedDriveLetter[0]);
+                        }
+                        await HostDiskService.SetDiskOfflineStatusAsync(hostDiskNumber, true);
+                        await Task.Delay(1000);
+                        await VmStorageService.AddDriveAsync(
+                            vmName, savedCtrlType, savedCtrlNum, savedCtrlLoc,
+                            "HardDisk", pathOrNumber: hostDiskNumber.ToString(), isPhysical: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log(string.Format(Properties.Resources.Error_Gpu_RemountFailed, ex.Message));
+                    }
+                }
+                else if (!isPhysical && !string.IsNullOrEmpty(selectedPartition.DiskPath))
+                {
+                    Log(Properties.Resources.Msg_Gpu_Unmounting);
+                    await VmStorageService.DismountVhdxAsync(selectedPartition.DiskPath);
+                }
+            }
+        }
+
+        private static string DescribeCleanupCandidates(string repositoryPath)
+        {
+            if (!Directory.Exists(repositoryPath))
+                return "  - 未发现 HostDriverStore\\FileRepository（没有可清理内容）";
+
+            try
+            {
+                int subDirectories = Directory.GetDirectories(repositoryPath).Length;
+                int files = Directory.GetFiles(repositoryPath).Length;
+                return $"  - {repositoryPath}（{subDirectories} 个子目录 / {files} 个文件）";
+            }
+            catch (Exception ex)
+            {
+                return $"  - {repositoryPath}（读取失败：{ex.Message}）";
+            }
+        }
+
+        private static void WriteInjectionMarker(
+            string assignedDriveLetter,
+            string gpuInstancePath,
+            string gpuManu,
+            GpuDriverPackagePlan packagePlan,
+            Action<string> log)
+        {
+            try
+            {
+                string markerPath = Path.Combine(assignedDriveLetter, InjectionMarkerRelativePath);
+                string payload = System.Text.Json.JsonSerializer.Serialize(
+                    new
+                    {
+                        tool = "hyver-v-mgr",
+                        feature = "GPU-PV",
+                        version = 1,
+                        createdUtc = DateTime.UtcNow.ToString("o"),
+                        gpuInstancePath,
+                        gpuManu,
+                        vendor = packagePlan.Vendor.ToString(),
+                        fileRepository = @"Windows\System32\HostDriverStore\FileRepository",
+                    },
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(markerPath, payload, new System.Text.UTF8Encoding(false));
+                log("[GPU Marker] 已写入注入标记，清理时可据此识别本工具复制的内容。");
+            }
+            catch (Exception ex)
+            {
+                log($"[GPU Marker] 标记写入失败，后续清理将只列出候选而不自动删除：{ex.Message}");
+            }
         }
 
         private async Task<string> InjectWindowsDriversAsync(
@@ -630,6 +780,8 @@ namespace ExHyperV.Services
                     Log($"[GPU Optional] Vendor software directories were not copied completely: {ex.Message}");
                 }
 
+                // 写入清理标记：后续「清理驱动」只认这个文件，避免误删来宾原有驱动
+                WriteInjectionMarker(assignedDriveLetter, gpuInstancePath, gpuManu, packagePlan, Log);
 
                 return "OK";
             }

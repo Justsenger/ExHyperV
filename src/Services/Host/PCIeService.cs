@@ -593,24 +593,9 @@ namespace ExHyperV.Services
 
                     template["HostResource"] = new string[] { pcipPath };
 
-                    // 拿 VM VirtualSystemSettingData 路径
-                    string escapedVmName = WmiApi.Escape(vmName);
-                    using var vmSettingSearcher = new System.Management.ManagementObjectSearcher(ms,
-                        new System.Management.ObjectQuery(
-                            $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE ElementName='{escapedVmName}' AND VirtualSystemType='Microsoft:Hyper-V:System:Realized'"));
-                    using var vmSettingCol = vmSettingSearcher.Get();
-                    using var vmSetting = vmSettingCol.Cast<System.Management.ManagementObject>().FirstOrDefault();
-                    if (vmSetting is null) return ApiResponse.Fail($"Cannot find VM setting: {vmName}");
-
-                    // AddResourceSettings
-                    return await WmiApi.InvokeAsync(
-                        "SELECT * FROM Msvm_VirtualSystemManagementService",
-                        "AddResourceSettings",
-                        p => {
-                            p["AffectedConfiguration"] = vmSetting["__PATH"]?.ToString();
-                            p["ResourceSettings"] = new string[] { template.GetText(System.Management.TextFormat.CimDtd20) };
-                        },
-                        WmiScope.HyperV);
+                    // AddResourceSettings：与 GPU-PV 共用同一提交通道（目标 VM 配置由共享层解析）
+                    return await ResourceAssignmentService.AddForVmAsync(
+                        vmName, template.GetText(System.Management.TextFormat.CimDtd20));
                 });
 
             PCIeOperation DismountDevice(string devInstanceId, string locationPath) => new(
@@ -670,12 +655,9 @@ namespace ExHyperV.Services
 
                     using (targetSetting)
                     {
-                        // RemoveResourceSettings
-                        return await WmiApi.InvokeAsync(
-                            "SELECT * FROM Msvm_VirtualSystemManagementService",
-                            "RemoveResourceSettings",
-                            p => p["ResourceSettings"] = new string[] { targetSetting["__PATH"]?.ToString() ?? "" },
-                            WmiScope.HyperV);
+                        // RemoveResourceSettings：与 GPU-PV 共用同一提交通道
+                        return await ResourceAssignmentService.RemoveAsync(
+                            targetSetting["__PATH"]?.ToString() ?? "");
                     }
                 });
 
