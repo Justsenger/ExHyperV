@@ -126,7 +126,8 @@ namespace ExHyperV.Services
 
         /// <summary>修复指定的失配 GPU-PV:能重指的(同卡换路径)更新 HostResource 到新路径;不能的(卡已不在)删除该设备。
         /// 全部走引擎就地改单个 .vmcx,改完复校结构。VM 须关机;无需停 vmms,改完 Start-VM 即生效。
-        /// 返回 (成功, 信息, 重指数, 删除数)。</summary>
+        /// 修改前必定生成同名 .gpupv-bak-时间戳 备份；校验失败或异常时自动用备份回滚。
+        /// 返回 (成功, 信息, 重指数, 删除数)。成功时信息里带备份文件路径。</summary>
         public static async Task<(bool Success, string Message, int Rebound, int Removed)> RepairAsync(
             string vmName, IEnumerable<StaleGpuPartition> targets)
         {
@@ -137,9 +138,21 @@ namespace ExHyperV.Services
             if (vmcx == null) return (false, Properties.Resources.GpuRepair_VmcxNotFound, 0, 0);
             if (state == State_Running) return (false, Properties.Resources.GpuRepair_VmRunning, 0, 0);
 
+            string backupPath = $"{vmcx}.gpupv-bak-{DateTime.Now:yyyyMMddHHmmss}";
+            try
+            {
+                File.Copy(vmcx, backupPath, overwrite: false);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"备份 .vmcx 失败，已取消修复（未做任何修改）：{ex.Message}", 0, 0);
+            }
+
             return await Task.Run(() =>
             {
                 int rebound = 0, removed = 0;
+                string failureMessage = string.Empty;
+
                 try
                 {
                     using (var s = VmcxStore.Open(vmcx))
@@ -158,17 +171,42 @@ namespace ExHyperV.Services
                             s.RemoveDevice(t.Instance);
                             removed++;
                         }
+
                         var issues = s.ValidateManifest();
-                        if (issues.Count > 0)
-                            return (false, Properties.Resources.GpuRepair_ValidationFailed + string.Join("; ", issues), rebound, removed);
+                        if (issues.Count == 0)
+                        {
+                            return (true, $"已备份到：{backupPath}", rebound, removed);
+                        }
+                        failureMessage = Properties.Resources.GpuRepair_ValidationFailed + string.Join("; ", issues);
                     }
-                    return (true, string.Empty, rebound, removed);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
-                    return (false, Properties.Resources.GpuRepair_RepairFailed + ex.Message, rebound, removed);
+                    failureMessage = Properties.Resources.GpuRepair_RepairFailed + ex.Message;
                 }
+
+                bool restored = RestoreBackup(vmcx, backupPath);
+                return (false,
+                    failureMessage + (restored
+                        ? $"（已从备份回滚：{backupPath}）"
+                        : $"（自动回滚失败，请关机后手工用备份覆盖：{backupPath}）"),
+                    rebound, removed);
             });
+        }
+
+        /// <summary>用修复前的备份覆盖 .vmcx。返回是否成功。</summary>
+        private static bool RestoreBackup(string vmcxPath, string backupPath)
+        {
+            try
+            {
+                File.Copy(backupPath, vmcxPath, overwrite: true);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GpuRepair] 回滚失败: {ex}");
+                return false;
+            }
         }
 
         /// <summary>在枚举结果里找某实例 GPU-PV 的 HostResource 键的精确路径(避免大小写假设)。</summary>

@@ -53,6 +53,20 @@ namespace ExHyperV.Services
                 });
         }
 
+        /// <summary>把计算好的 MMIO 方案一次性写入（高位基址/高位大小/低位大小 + GuestControlledCacheTypes）。</summary>
+        public static Task<ApiResponse> ApplyAsync(string vmName, MmioPlan plan)
+        {
+            return WmiApi.WithObjectAsync(
+                wql: RealizedSettingsWql(vmName),
+                modifier: obj =>
+                {
+                    obj["HighMmioGapBase"] = plan.BaseMb;
+                    obj["HighMmioGapSize"] = plan.HighSizeMb;
+                    obj["LowMmioGapSize"] = plan.LowSizeMb;
+                    obj["GuestControlledCacheTypes"] = true;
+                });
+        }
+
         private const ulong ProbeSizeMb = 1024UL;
 
         // 沿用旧版逐档启停探测顺序，覆盖 50、48、47、46、44、42、40、39、38、37、36 位。

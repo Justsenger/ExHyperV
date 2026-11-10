@@ -378,7 +378,16 @@ namespace ExHyperV.Services
         #endregion
 
         #region GPU 分配与解绑
-        public async Task<(bool Success, string Message)> AssignGpuPartitionAsync(string vmName, string gpuInstancePath)
+        /// <summary>
+        /// 分配 GPU 分区。<paramref name="sharePercent"/> 为份额上限百分比（1-100），
+        /// 按比例缩放模板的 Max/Optimal 显存、编解码与计算字段；100 表示使用模板原值（整卡上限）。
+        /// 份额限制的是"最多能用多少"，不是预留量：设 50% 只意味着高负载时性能上限约减半，
+        /// 空闲时仍可使用整卡，多台虚拟机共享同一张卡时靠它避免互相挤占。
+        /// </summary>
+        public async Task<(bool Success, string Message)> AssignGpuPartitionAsync(
+            string vmName,
+            string gpuInstancePath,
+            int sharePercent = 100)
         {
             try
             {
@@ -412,6 +421,7 @@ namespace ExHyperV.Services
                 // 设置 HostResource 为 WMI 路径，清空 InstanceID
                 template["InstanceID"] = null;
                 template["HostResource"] = new string[] { gpuWmiPath };
+                ApplyPartitionShare(template, sharePercent);
                 string gpuXml = template.GetText(TextFormat.CimDtd20);
 
                 // AddResourceSettings：与 DDA 共用同一提交通道（目标配置解析也在共享层完成）
@@ -434,6 +444,33 @@ namespace ExHyperV.Services
             }
             catch (Exception ex) { return (false, ex.Message); }
         }
+        /// <summary>
+        /// 按份额百分比缩放分区模板的 Max/Optimal 字段。
+        /// Min 字段保持模板原值，避免把下限压到无法保证基本显示输出的程度。
+        /// </summary>
+        private static void ApplyPartitionShare(ManagementObject template, int sharePercent)
+        {
+            int clamped = Math.Clamp(sharePercent, 1, 100);
+            if (clamped >= 100) return;
+
+            double factor = clamped / 100.0;
+            string[] scaledProperties =
+            {
+                "MaxPartitionVRAM", "OptimalPartitionVRAM",
+                "MaxPartitionEncode", "OptimalPartitionEncode",
+                "MaxPartitionDecode", "OptimalPartitionDecode",
+                "MaxPartitionCompute", "OptimalPartitionCompute",
+            };
+
+            foreach (string property in scaledProperties)
+            {
+                if (template[property] is ulong value && value > 0)
+                {
+                    template[property] = (ulong)Math.Max(1, value * factor);
+                }
+            }
+        }
+
         public async Task<bool> RemoveGpuPartitionAsync(string vmName, string adapterId)
         {
             try
