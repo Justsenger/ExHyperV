@@ -72,6 +72,15 @@
                 </ui:NavigationViewItem>
 
                 <ui:NavigationViewItem
+                    Content="GPU-PV"
+                    NavigationCacheMode="Enabled"
+                    TargetPageType="{x:Type pages:GpuPvPage}">
+                    <ui:NavigationViewItem.Icon>
+                        <ui:FontIcon FontSize="16" FontFamily="{DynamicResource SegoeFluentIcons}" Glyph="&#xE7F8;"/>
+                    </ui:NavigationViewItem.Icon>
+                </ui:NavigationViewItem>
+
+                <ui:NavigationViewItem
                     Content="{x:Static properties:Resources.Title_VirtualSwitch}"
                     NavigationCacheMode="Enabled"
                     Foreground="{ui:ThemeResource TextFillColorPrimaryBrush}"

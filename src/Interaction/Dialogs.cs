@@ -179,7 +179,7 @@ namespace ExHyperV.Interaction
             await dialog.ShowAsync(CancellationToken.None);
         }
 
-        public static async Task<bool> ShowContentDialogAsync(string title, UserControl content)
+        public static async Task<bool> ShowContentDialogAsync(string title, UserControl content, string? primaryButtonText = null)
         {
             if (Application.Current.MainWindow is not MainWindow mainWindow)
             {
@@ -196,7 +196,7 @@ namespace ExHyperV.Interaction
             {
                 Title = title,
                 Content = content,
-                PrimaryButtonText = Properties.Resources.Btn_Create,
+                PrimaryButtonText = primaryButtonText ?? Properties.Resources.Btn_Create,
                 CloseButtonText = Properties.Resources.Btn_Cancel,
                 DialogHostEx = dialogHost,
                 VerticalContentAlignment = VerticalAlignment.Top

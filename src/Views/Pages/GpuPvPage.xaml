@@ -1,0 +1,225 @@
+<Page
+    x:Class="ExHyperV.Views.GpuPvPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:vm="clr-namespace:ExHyperV.ViewModels"
+    xmlns:properties="clr-namespace:ExHyperV.Properties"
+    Title="GpuPvPage"
+    d:DataContext="{d:DesignInstance vm:GpuPvViewModel, IsDesignTimeCreatable=True}"
+    mc:Ignorable="d">
+
+    <Page.DataContext>
+        <vm:GpuPvViewModel/>
+    </Page.DataContext>
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Page.Resources>
+
+    <Grid>
+        <StackPanel Margin="10,0,10,10">
+            <ui:InfoBar Margin="0,5,0,0"
+                        Title="{x:Static properties:Resources.Common_Attention}"
+                        Message="分配或移除 GPU 分区会修改虚拟机配置，请先关闭目标虚拟机。分区只是把宿主机显卡切给虚拟机，来宾内还需要复制对应驱动才能真正使用。"
+                        IsOpen="True"
+                        IsClosable="False"
+                        Severity="Warning"/>
+
+            <ui:InfoBar Margin="0,5,0,0"
+                        Title="未找到可分区 GPU"
+                        Message="请先安装显卡驱动，再启用 Hyper-V（顺序反了显卡不会暴露 GPUPARAV 接口，需要重装驱动并重启）。"
+                        IsOpen="{Binding ShowNoPartitionableGpu}"
+                        IsClosable="False"
+                        Severity="Error"/>
+
+            <Grid Margin="0,5,0,0">
+                <ui:Card BorderThickness="1" Padding="10">
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <ui:FontIcon Glyph="&#xF0B9;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
+                            <TextBlock Text="主机可分区 GPU" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        </StackPanel>
+                        <ui:Button HorizontalAlignment="Right"
+                                   Content="{x:Static properties:Resources.Btn_Refresh}"
+                                   Command="{Binding LoadCommand}"
+                                   IsEnabled="{Binding IsUiEnabled}"/>
+                    </Grid>
+                </ui:Card>
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding HostGpus}" Margin="0,0,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:CardExpander IsExpanded="False" Margin="20,5,0,0" ContentPadding="6">
+                            <ui:CardExpander.Icon>
+                                <ui:FontIcon Glyph="&#xF0B9;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
+                            </ui:CardExpander.Icon>
+                            <ui:CardExpander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding Name}" FontSize="16" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding AssignedDisplay}" FontSize="12" Opacity="0.7"/>
+                                    </StackPanel>
+                                    <ui:Button Grid.Column="1"
+                                               Content="分配…"
+                                               Margin="10,0,5,0"
+                                               IsEnabled="{Binding IsPartitionable}"
+                                               Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                               CommandParameter="{Binding}"/>
+                                </Grid>
+                            </ui:CardExpander.Header>
+
+                            <StackPanel Margin="42,10,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="芯片商" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manu}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="板卡厂商" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Vendor}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="驱动版本" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DriverVersion}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="显存 / 路径" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8" TextTrimming="CharacterEllipsis">
+                                        <Run Text="{Binding MemoryDisplay, Mode=OneWay}"/>
+                                        <Run Text="  ·  "/>
+                                        <Run Text="{Binding PathDisplay, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </Grid>
+                                <TextBlock Text="该显卡没有暴露可分区接口（GPUPARAV），无法分配。"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                           Margin="0,4,0,0"
+                                           Visibility="{Binding IsNotPartitionable, Converter={StaticResource BoolToVis}}"/>
+                            </StackPanel>
+                        </ui:CardExpander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid Margin="0,15,0,0">
+                <ui:Card BorderThickness="1" Padding="10">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ui:FontIcon Glyph="&#xE7F8;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
+                        <TextBlock Text="已分配的分区" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                    </StackPanel>
+                </ui:Card>
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding Assignments}" Margin="0,0,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:CardExpander IsExpanded="False" Margin="20,5,0,0" ContentPadding="6">
+                            <ui:CardExpander.Icon>
+                                <ui:FontIcon Glyph="&#xE7F8;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
+                            </ui:CardExpander.Icon>
+                            <ui:CardExpander.Header>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding VmName}" FontSize="16" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="{Binding GpuName}" FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                        <ui:Button Content="复制/更新驱动"
+                                                   Margin="10,0,5,0"
+                                                   IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   Command="{Binding DataContext.SyncDriverCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}"/>
+                                        <ui:Button Content="清理驱动"
+                                                   Margin="0,0,5,0"
+                                                   IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   Command="{Binding DataContext.CleanupDriverCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}"/>
+                                        <ui:Button Content="移除分区"
+                                                   IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                                   CommandParameter="{Binding}"/>
+                                    </StackPanel>
+                                </Grid>
+                            </ui:CardExpander.Header>
+
+                            <StackPanel Margin="42,10,0,0">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="110"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                        <RowDefinition Height="30"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="芯片商" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manu}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="驱动版本" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DriverVersion}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="显存" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MemoryDisplay}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="实例路径" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding InstancePath}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,8" TextTrimming="CharacterEllipsis"/>
+                                </Grid>
+                            </StackPanel>
+                        </ui:CardExpander>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+
+        <ProgressBar Panel.ZIndex="1" VerticalAlignment="Top" Height="4"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+
+        <Grid Panel.ZIndex="2" Background="#99000000"
+              Visibility="{Binding IsDriverBusy, Converter={StaticResource BoolToVis}}">
+            <ui:Card MaxWidth="640" MaxHeight="460" Padding="16" VerticalAlignment="Center">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="{Binding DriverTitle}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <ProgressBar Grid.Row="1" Height="4" Margin="0,12,0,8" IsIndeterminate="True"/>
+                    <TextBlock Grid.Row="2" Text="{Binding DriverStatus}" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <TextBox Grid.Row="3" Text="{Binding DriverLog, Mode=OneWay}"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="NoWrap"
+                             Height="180"
+                             FontFamily="Consolas"
+                             FontSize="12"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"/>
+                    <ui:Button Grid.Row="4"
+                               Content="关闭"
+                               HorizontalAlignment="Right"
+                               Margin="0,12,0,0"
+                               IsEnabled="{Binding DriverCanClose}"
+                               Command="{Binding CloseDriverOverlayCommand}"/>
+                </Grid>
+            </ui:Card>
+        </Grid>
+    </Grid>
+</Page>

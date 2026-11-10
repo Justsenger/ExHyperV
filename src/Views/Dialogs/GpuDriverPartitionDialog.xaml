@@ -1,0 +1,41 @@
+<UserControl x:Class="ExHyperV.Views.GpuDriverPartitionDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             MinWidth="460">
+    <StackPanel>
+        <TextBlock x:Name="HeaderText"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,4"/>
+        <TextBlock Text="驱动操作会离线挂载选中的系统分区，要求虚拟机已关机。本期只支持 Windows 来宾。"
+                   TextWrapping="Wrap"
+                   Opacity="0.7"
+                   Margin="0,0,0,10"/>
+
+        <ListBox x:Name="PartitionList"
+                 MaxHeight="260"
+                 SelectionMode="Single"
+                 BorderThickness="1">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Margin="2">
+                        <Image Source="{Binding IconPath}" Width="20" Height="20" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding OsType}" VerticalAlignment="Center" Opacity="0.6" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <TextBlock x:Name="LinuxHint"
+                   Text="当前选中的不是 Windows 分区，无法复制/清理显卡驱动。"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                   Margin="0,8,0,0"
+                   Visibility="Collapsed"/>
+    </StackPanel>
+</UserControl>

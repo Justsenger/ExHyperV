@@ -47,6 +47,7 @@ namespace ExHyperV.Views
             if (!App.PerformanceMode)
             {
                 RootNavigation.Navigate(typeof(PCIePage));
+                RootNavigation.Navigate(typeof(GpuPvPage));
                 RootNavigation.Navigate(typeof(HostPage));
                 RootNavigation.Navigate(typeof(SwitchPage));
                 RootNavigation.Navigate(typeof(VirtualMachinesPage));
