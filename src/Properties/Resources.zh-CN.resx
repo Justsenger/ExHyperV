@@ -3126,9 +3126,6 @@
   <data name="Log_Gpu_SelectedScript" xml:space="preserve">
     <value>[信息] 已选脚本：{0}</value>
   </data>
-  <data name="Log_Gpu_Syncing" xml:space="preserve">
-    <value>正在同步：{0} -&gt; {1}</value>
-  </data>
   <data name="Log_Gpu_StartingVm" xml:space="preserve">
     <value>[ExHyperV] 正在启动虚拟机…</value>
   </data>
@@ -4032,6 +4029,7 @@
   <data name="GpuPv_Btn_MmioCheck" xml:space="preserve"><value>MMIO 体检与修正</value></data>
   <data name="GpuPv_Btn_Repair" xml:space="preserve"><value>修复幽灵分区</value></data>
   <data name="GpuPv_Btn_Close" xml:space="preserve"><value>关闭</value></data>
+  <data name="GpuPv_InfoBar_DriverReset" xml:space="preserve"><value>桌面假死应急：按 Ctrl + Win + Shift + B 可软重启显卡驱动（无需重启或远程登录）。AMD + GPU-PV 的兼容问题要根治，仍需把宿主 AMD 驱动钉在稳定版本（如 24.3.1）。</value></data>
   <data name="GpuPv_Label_Manu" xml:space="preserve"><value>芯片商</value></data>
   <data name="GpuPv_Label_Vendor" xml:space="preserve"><value>板卡厂商</value></data>
   <data name="GpuPv_Label_DriverVersion" xml:space="preserve"><value>驱动版本</value></data>

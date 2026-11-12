@@ -29,6 +29,13 @@
                         Severity="Warning"/>
 
             <ui:InfoBar Margin="0,5,0,0"
+                        Title="{x:Static properties:Resources.Common_Attention}"
+                        Message="{x:Static properties:Resources.GpuPv_InfoBar_DriverReset}"
+                        IsOpen="True"
+                        IsClosable="True"
+                        Severity="Informational"/>
+
+            <ui:InfoBar Margin="0,5,0,0"
                         Title="{x:Static properties:Resources.GpuPv_NoPartitionableGpu_Title}"
                         Message="{x:Static properties:Resources.GpuPv_NoPartitionableGpu_Message}"
                         IsOpen="{Binding ShowNoPartitionableGpu}"

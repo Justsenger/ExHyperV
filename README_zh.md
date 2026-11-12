@@ -399,7 +399,7 @@ GPU-PV 是一种半虚拟化技术，它允许多个虚拟机共享使用物理 
 | MMIO 体检与修正 | 并排显示当前值与目标值（高位基址 / 高位间隙 / 低位间隙 / 写合并缓存），确认后整组写入。首次使用会逐档启停虚拟机探测主机 MMIO 上限并缓存结果。 |
 | 修复幽灵分区 | 检出 `.vmcx` 中指向失效显卡路径或结构残缺的分区，修改前自动备份为 `.gpupv-bak-<时间戳>`，校验失败或异常时自动回滚。 |
 | 复制 / 更新驱动 | 按驱动包解析宿主 `DriverStore`，离线挂载来宾系统分区后仅复制必要文件（目前只支持 Windows 来宾）。 |
-| 清理驱动 | 只删除带本工具注入标记的内容；没有标记时只列出候选位置，不会自动删除。 |
+| 清理驱动 | 只删除带本工具注入标记的内容；没有标记时只列出候选位置，不会自动删除。旧版本额外复制过的 `Program Files\<厂商>` 等软件目录不在标记范围内，需手动确认后删除。 |
 
 > [!WARNING]
 > 份额缩放从 `Msvm_GpuPartitionSettingData` 的 `Maximum` 模板读取上限，按比例写入 `Default` 模板的 `MaxPartition* / OptimalPartition*` 字段后提交。真机测试（2026-11-12，AMD RX 5600 XT + Intel UHD 730）已确认数值能写入并被 WMI 保留，但尚未验证来宾运行时是否真正限流。
@@ -528,7 +528,7 @@ $n="CheckMMIO_$(Get-Random)";New-VM $n -Gen 2 -NoVHD|Out-Null;Set-VM $n -Automat
 
 这是一个可选项，需要添加多张显卡时，可以取消勾选以免每次都导入驱动。
 
-- 对于 Windows 虚拟机，会按当前显卡解析宿主 `DriverStore` 中必需的驱动包（含伴随包），离线挂载所选系统分区后只把这些包复制到 `Windows\System32\HostDriverStore\FileRepository`，并在 System32 目录下建立必要的驱动文件链接；不再写入离线注册表服务项。具体映射关系参考 [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md)。工具会留下注入标记 `.gpupv-inject.json`，「清理驱动」只删除标记中列出的驱动包；标记缺失时只列出候选位置，不自动删除。
+- 对于 Windows 虚拟机，会按当前显卡解析宿主 `DriverStore` 中必需的驱动包（含伴随包），离线挂载所选系统分区后只把这些包复制到 `Windows\System32\HostDriverStore\FileRepository`，并在 System32 目录下建立必要的驱动文件链接；不再写入离线注册表服务项。宿主 `Program Files` / `ProgramData` 下的厂商软件安装目录（例如 `C:\Program Files\Intel`）不属于 GPU-PV 驱动，不会复制。具体映射关系参考 [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md)。工具会留下注入标记 `.gpupv-inject.json`，「清理驱动」只删除标记中列出的驱动包；标记缺失时只列出候选位置，不自动删除。
 
 - 对于Linux虚拟机，会执行 SSH 自动化流程进行模块编译和驱动安装，兼容列表之外的系统或内核还需更多测试。
 

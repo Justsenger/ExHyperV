@@ -60,6 +60,7 @@ namespace ExHyperV.Properties {
         public static string GpuPv_Btn_MmioCheck => ResourceManager.GetString("GpuPv_Btn_MmioCheck", resourceCulture);
         public static string GpuPv_Btn_Repair => ResourceManager.GetString("GpuPv_Btn_Repair", resourceCulture);
         public static string GpuPv_Btn_Close => ResourceManager.GetString("GpuPv_Btn_Close", resourceCulture);
+        public static string GpuPv_InfoBar_DriverReset => ResourceManager.GetString("GpuPv_InfoBar_DriverReset", resourceCulture);
         public static string GpuPv_Label_Manu => ResourceManager.GetString("GpuPv_Label_Manu", resourceCulture);
         public static string GpuPv_Label_Vendor => ResourceManager.GetString("GpuPv_Label_Vendor", resourceCulture);
         public static string GpuPv_Label_DriverVersion => ResourceManager.GetString("GpuPv_Label_DriverVersion", resourceCulture);
@@ -8832,14 +8833,6 @@ namespace ExHyperV.Properties {
         public static string Log_Gpu_SelectedScript {
             get {
                 return ResourceManager.GetString("Log_Gpu_SelectedScript", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Syncing: {0} -> {1}.
-        /// </summary>
-        public static string Log_Gpu_Syncing {
-            get {
-                return ResourceManager.GetString("Log_Gpu_Syncing", resourceCulture);
             }
         }
         /// <summary>

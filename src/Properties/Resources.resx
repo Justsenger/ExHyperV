@@ -3126,9 +3126,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Log_Gpu_SelectedScript" xml:space="preserve">
     <value>[Info] Selected script: {0}</value>
   </data>
-  <data name="Log_Gpu_Syncing" xml:space="preserve">
-    <value>Syncing: {0} -&gt; {1}</value>
-  </data>
   <data name="Log_Gpu_StartingVm" xml:space="preserve">
     <value>[ExHyperV] Starting VM...</value>
   </data>
@@ -4032,6 +4029,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="GpuPv_Btn_MmioCheck" xml:space="preserve"><value>MMIO check &amp; fix</value></data>
   <data name="GpuPv_Btn_Repair" xml:space="preserve"><value>Repair stale partitions</value></data>
   <data name="GpuPv_Btn_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="GpuPv_InfoBar_DriverReset" xml:space="preserve"><value>Desktop freeze first-aid: press Ctrl + Win + Shift + B to soft-reset the graphics driver (no reboot / remote login needed). For a real fix to AMD + GPU-PV compatibility, pin the host driver to a stable version (e.g. 24.3.1).</value></data>
   <data name="GpuPv_Label_Manu" xml:space="preserve"><value>Chip vendor</value></data>
   <data name="GpuPv_Label_Vendor" xml:space="preserve"><value>Board vendor</value></data>
   <data name="GpuPv_Label_DriverVersion" xml:space="preserve"><value>Driver version</value></data>

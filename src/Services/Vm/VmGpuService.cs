@@ -856,14 +856,9 @@ namespace ExHyperV.Services
                     Log($"[GPU Optional] Vendor-specific promotion was incomplete: {ex.Message}");
                 }
 
-                try
-                {
-                    await CopyVendorProgramFoldersAsync(packagePlan.Vendor, assignedDriveLetter, Log);
-                }
-                catch (Exception ex)
-                {
-                    Log($"[GPU Optional] Vendor software directories were not copied completely: {ex.Message}");
-                }
+                // GPU-PV 来宾驱动只由 HostDriverStore\FileRepository 中的驱动包和 System32 文件链接组成：
+                // 宿主的厂商软件安装目录（Program Files\Intel 等）既不被驱动加载，也不被任何文件链接引用，
+                // 因此不再整目录镜像到来宾，避免复制数 GB 无关文件。
 
                 // 写入清理标记：后续「清理驱动」只认这个文件，避免误删来宾原有驱动
                 WriteInjectionMarker(assignedDriveLetter, gpuInstancePath, gpuManu, packagePlan, Log);
@@ -1718,59 +1713,6 @@ namespace ExHyperV.Services
             foreach (var file in directory.GetFiles())
             {
                 file.Attributes &= ~FileAttributes.ReadOnly;
-            }
-        }
-
-        private static async Task CopyVendorProgramFoldersAsync(
-            GpuDriverVendor vendor,
-            string assignedDriveLetter,
-            Action<string> log)
-        {
-            string[] directoryNames = vendor switch
-            {
-                GpuDriverVendor.Nvidia => new[] { "NVIDIA Corporation", "NVIDIA" },
-                GpuDriverVendor.Amd => new[] { "AMD", "ATI Technologies" },
-                GpuDriverVendor.Intel => new[] { "Intel", "Intel Corporation" },
-                GpuDriverVendor.Qualcomm => new[] { "Qualcomm", "Qualcomm Incorporated" },
-                _ => Array.Empty<string>()
-            };
-
-            string[] roots =
-            {
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)
-            };
-
-            string[] sourceFolders = roots
-                .Where(root => !string.IsNullOrWhiteSpace(root))
-                .SelectMany(root => directoryNames.Select(name => Path.Combine(root, name)))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
-
-            foreach (var sourcePath in sourceFolders)
-            {
-                if (!Directory.Exists(sourcePath)) continue;
-                string root = Path.GetPathRoot(sourcePath)
-                    ?? throw new IOException($"Unable to determine the root of vendor directory: {sourcePath}");
-                string relativePath = Path.GetRelativePath(root, sourcePath);
-
-                string targetPath = Path.Combine(assignedDriveLetter, relativePath);
-
-                log?.Invoke(string.Format(Properties.Resources.Log_Gpu_Syncing, sourcePath, targetPath));
-
-                Directory.CreateDirectory(targetPath);
-                using Process process = Process.Start(new ProcessStartInfo
-                {
-                    FileName = "robocopy.exe",
-                    Arguments = $"\"{sourcePath}\" \"{targetPath}\" /E /R:1 /W:1 /MT:32 /XJ /NDL /NJH /NJS /NC /NS",
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                }) ?? throw new InvalidOperationException("Unable to start robocopy.exe.");
-                await process.WaitForExitAsync();
-                if (process.ExitCode >= 8)
-                    throw new IOException(
-                        $"Copying vendor program directory {sourcePath} failed with robocopy exit code {process.ExitCode}.");
             }
         }
 
