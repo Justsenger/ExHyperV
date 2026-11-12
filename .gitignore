@@ -10,6 +10,9 @@
 .dotnet/
 .dotnet_home/
 
+# WorkBuddy local workspace memory (session logs, not part of the source tree)
+.workbuddy/
+
 # Local illustration drafts and previews
 /design/
 
