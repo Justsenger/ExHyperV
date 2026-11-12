@@ -1,0 +1,22 @@
+# 统一文本文件行尾为 LF，避免 Windows 上 core.autocrlf 在提交时产生
+# "LF will be replaced by CRLF" 噪音，也让跨平台贡献者看到的 diff 干净一致。
+
+# 源码与脚本：强制 LF
+*.cs        text eol=lf
+*.xaml      text eol=lf
+*.csproj    text eol=lf
+*.resx      text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.json      text eol=lf
+*.editorconfig text eol=lf
+
+# 二进制/生成物：不做行尾转换
+*.dll       binary
+*.ico       binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.baml      binary

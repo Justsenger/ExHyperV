@@ -77,8 +77,20 @@ public partial class App
 
         // StartupUri 已移除：门禁通过且语言就绪后才创建主窗口，
         // 避免第二个实例在退出前闪出一个窗口。
-        MainWindow = new MainWindow();
-        MainWindow.Show();
+        try
+        {
+            MainWindow = new MainWindow();
+            MainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            // 建窗/首帧失败时若继续留在这个进程，ShutdownMode=OnMainWindowClose 会因
+            // 无主窗口而永不退出，变成一个没有界面的僵尸进程。这里显式终止，
+            // 并跳过 OnExit（其清理逻辑见下方），避免机器级清理在异常路径二次抛错。
+            System.Diagnostics.Debug.WriteLine($"[ExHyperV] Failed to create main window: {ex}");
+            Environment.Exit(1);
+            return;
+        }
     }
     protected override void OnExit(ExitEventArgs e)
     {
@@ -96,9 +108,16 @@ public partial class App
             System.Diagnostics.Debug.WriteLine($"[ExHyperV-USB] Shutdown cleanup failed: {ex.Message}");
         }
         ExHyperV.Services.HostAzureFeatureSetService.EnsureDisabledAtRest();
-        // 主动停掉 ARP 嗅探的 ETW 会话：赶在 CLR 硬终止后台线程之前、在受控时机清理，
-        // 否则 ProcessTrace 线程会阻止进程退出；服务层的 ProcessExit 处理仅作后备。
-        ExHyperV.Services.ArpSnoopService.Instance.Dispose();
+        try
+        {
+            // 主动停掉 ARP 嗅探的 ETW 会话：赶在 CLR 硬终止后台线程之前、在受控时机清理，
+            // 否则 ProcessTrace 线程会阻止进程退出；服务层的 ProcessExit 处理仅作后备。
+            ExHyperV.Services.ArpSnoopService.Instance.Dispose();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"[ExHyperV-ARP] Shutdown cleanup failed: {ex.Message}");
+        }
         base.OnExit(e);
     }
 
