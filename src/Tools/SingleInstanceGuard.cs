@@ -41,8 +41,19 @@ internal static class SingleInstanceGuard
     {
         // 用构造函数的 createdNew 判定，不调 WaitOne：前一实例崩溃遗留的
         // abandoned mutex 既不会抛 AbandonedMutexException，也不影响判定。
-        _mutex = new Mutex(initiallyOwned: true, MutexName, out bool createdNew);
-        if (createdNew) return true;
+        try
+        {
+            _mutex = new Mutex(initiallyOwned: true, MutexName, out bool createdNew);
+            if (createdNew) return true;
+        }
+        catch (Exception ex)
+        {
+            // 同名 Mutex 被不同完整性级别/会话（如服务或旧版实例）先建时会抛
+            // UnauthorizedAccessException。此时无法判定唯一实例，放弃门禁、
+            // 照常启动，避免把用户挡在崩溃之外；单实例仅是体验增强，非安全边界。
+            System.Diagnostics.Debug.WriteLine($"[ExHyperV] Single-instance mutex unavailable, proceeding without guard: {ex.Message}");
+            return true;
+        }
 
         _mutex.Dispose();
         _mutex = null;

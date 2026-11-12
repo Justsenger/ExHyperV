@@ -18,8 +18,14 @@ namespace ExHyperV.Views
             // 单实例：首个实例在此监听"唤醒"广播（第二个实例启动时会发出）。
             SourceInitialized += (_, _) =>
             {
-                if (PresentationSource.FromVisual(this) is HwndSource source)
+                // 优先取窗口 HWND 对应的 HwndSource；FromVisual 在极早期可能尚未建立
+                // 连接而返回 null，此时静默跳过后唤醒将永远失效，故打印日志便于排查。
+                var source = PresentationSource.FromVisual(this) as HwndSource
+                             ?? HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+                if (source != null)
                     source.AddHook(OnWindowMessage);
+                else
+                    System.Diagnostics.Debug.WriteLine("[ExHyperV] Single-instance activation hook not attached (no HwndSource).");
             };
 
             if (App.PerformanceMode)
