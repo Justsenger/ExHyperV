@@ -378,7 +378,7 @@ namespace ExHyperV.Services
                 if (matched == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
                 string gpuWmiPath = matched.WmiPath;
 
-                // 查 ResourcePool → AllocationCapabilities → Default 模板
+                // 查 ResourcePool → AllocationCapabilities → Default / Maximum 模板
                 var ms = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
                 using var poolSearcher = new ManagementObjectSearcher(ms,
                     new ObjectQuery("SELECT * FROM Msvm_ResourcePool WHERE ResourceType = 32770 AND ResourceSubType = 'Microsoft:Hyper-V:GPU Partition' AND Primordial = TRUE"));
@@ -390,45 +390,64 @@ namespace ExHyperV.Services
                 using var caps = capsCollection.Cast<ManagementObject>().FirstOrDefault();
                 if (caps == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
 
+                // Default 模板用于 AddResourceSettings；Maximum 模板提供份额上限（Default 的份额字段为 null）。
                 using var templateCollection = caps.GetRelated("Msvm_GpuPartitionSettingData");
-                using var template = templateCollection.Cast<ManagementObject>()
-                    .FirstOrDefault(t => t["InstanceID"]?.ToString()?.EndsWith("\\Default", StringComparison.OrdinalIgnoreCase) == true);
-                if (template == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
+                var templates = templateCollection.Cast<ManagementObject>().ToList();
+                try
+                {
+                    var template = templates.FirstOrDefault(t =>
+                        t["InstanceID"]?.ToString()?.EndsWith("\\Default", StringComparison.OrdinalIgnoreCase) == true);
+                    var maximumTemplate = templates.FirstOrDefault(t =>
+                        t["InstanceID"]?.ToString()?.EndsWith("\\Maximum", StringComparison.OrdinalIgnoreCase) == true);
+                    if (template == null) return (false, Properties.Resources.Error_Gpu_NoPartition);
 
-                // 设置 HostResource 为 WMI 路径，清空 InstanceID
-                template["InstanceID"] = null;
-                template["HostResource"] = new string[] { gpuWmiPath };
-                ApplyPartitionShare(template, sharePercent);
-                string gpuXml = template.GetText(TextFormat.CimDtd20);
+                    // 设置 HostResource 为 WMI 路径，清空 InstanceID
+                    template["InstanceID"] = null;
+                    template["HostResource"] = new string[] { gpuWmiPath };
+                    ApplyPartitionShare(template, maximumTemplate, sharePercent);
+                    string gpuXml = template.GetText(TextFormat.CimDtd20);
 
-                // AddResourceSettings：与 DDA 共用同一提交通道（目标配置解析也在共享层完成）
-                var result = await ResourceAssignmentService.AddForVmAsync(vmName, gpuXml);
-                if (!result.Success)
-                    return (false, result.Error.Length > 0 ? result.Error : Properties.Resources.Error_Vm_GetSettings);
+                    // AddResourceSettings：与 DDA 共用同一提交通道（目标配置解析也在共享层完成）
+                    var result = await ResourceAssignmentService.AddForVmAsync(vmName, gpuXml);
+                    if (!result.Success)
+                        return (false, result.Error.Length > 0 ? result.Error : Properties.Resources.Error_Vm_GetSettings);
 
-                // 验证
-                var vmGuidResp = await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
-                    obj => obj["Name"]?.ToString() ?? "");
-                string vmGuid = vmGuidResp.Data ?? "";
+                    // 验证
+                    var vmGuidResp = await WmiApi.QueryFirstAsync(
+                        $"SELECT * FROM Msvm_ComputerSystem WHERE {WmiApi.VmComputerSystemNamePredicate(vmName)}",
+                        obj => obj["Name"]?.ToString() ?? "");
+                    string vmGuid = vmGuidResp.Data ?? "";
 
-                var verifyResp = await WmiApi.QueryFirstAsync(
-                    $"SELECT * FROM Msvm_GpuPartitionSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
-                    obj => obj["InstanceID"]?.ToString() ?? "");
-                if (!verifyResp.HasData) return (false, Properties.Resources.Error_Gpu_NoPartition);
+                    var verifyResp = await WmiApi.QueryFirstAsync(
+                        $"SELECT * FROM Msvm_GpuPartitionSettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'",
+                        obj => obj["InstanceID"]?.ToString() ?? "");
+                    if (!verifyResp.HasData) return (false, Properties.Resources.Error_Gpu_NoPartition);
 
-                return (true, "OK");
+                    return (true, "OK");
+                }
+                finally
+                {
+                    foreach (var t in templates) t.Dispose();
+                }
             }
             catch (Exception ex) { return (false, ex.Message); }
         }
         /// <summary>
         /// 按份额百分比缩放分区模板的 Max/Optimal 字段。
+        /// 上限必须取自 AllocationCapabilities 的 Maximum 定义模板：实测 Default 模板这 8 个字段全为 null，
+        /// 直接读 Default 会让份额静默失效（50% 与 100% 效果相同）。
+        /// 取不到上限时明确报错终止，不回退默认值、不静默成功。
         /// Min 字段保持模板原值，避免把下限压到无法保证基本显示输出的程度。
         /// </summary>
-        private static void ApplyPartitionShare(ManagementObject template, int sharePercent)
+        private static void ApplyPartitionShare(
+            ManagementObject template,
+            ManagementObject? maximumTemplate,
+            int sharePercent)
         {
             int clamped = Math.Clamp(sharePercent, 1, 100);
             if (clamped >= 100) return;
+            if (maximumTemplate == null)
+                throw new InvalidOperationException(Properties.Resources.GpuPv_Err_ShareTemplateMissing);
 
             double factor = clamped / 100.0;
             string[] scaledProperties =
@@ -439,13 +458,25 @@ namespace ExHyperV.Services
                 "MaxPartitionCompute", "OptimalPartitionCompute",
             };
 
+            int applied = 0;
             foreach (string property in scaledProperties)
             {
-                if (template[property] is ulong value && value > 0)
-                {
-                    template[property] = (ulong)Math.Max(1, value * factor);
-                }
+                object? raw = null;
+                try { raw = maximumTemplate[property]; }
+                catch (ManagementException) { continue; }
+                if (raw == null) continue;
+
+                ulong value;
+                try { value = Convert.ToUInt64(raw); }
+                catch (Exception) { continue; }
+                if (value == 0) continue;
+
+                template[property] = (ulong)Math.Max(1, value * factor);
+                applied++;
             }
+
+            if (applied == 0)
+                throw new InvalidOperationException(Properties.Resources.GpuPv_Err_ShareCeilingMissing);
         }
 
         public async Task<bool> RemoveGpuPartitionAsync(string vmName, string adapterId)
@@ -547,13 +578,13 @@ namespace ExHyperV.Services
                 char suggestedLetter = GetFreeDriveLetter();
                 var assignResult = await VmStorageService.AssignPartitionDriveLetterAsync(
                     hostDiskNumber, selectedPartition.PartitionNumber, suggestedLetter);
-                if (!assignResult.Success) return (false, "无法为该系统分区分配盘符，清理已中止。");
+                if (!assignResult.Success) return (false, Properties.Resources.GpuPv_Err_AssignDriveLetter);
                 assignedDriveLetter = $"{suggestedLetter}:\\";
 
                 string windowsDir = Path.Combine(assignedDriveLetter, "Windows", "System32");
                 if (!Directory.Exists(windowsDir))
                 {
-                    return (false, $"分区 {assignedDriveLetter} 不是 Windows 系统分区（缺少 Windows\\System32），清理已中止。");
+                    return (false, string.Format(Properties.Resources.GpuPv_Err_NotWindowsPartition, assignedDriveLetter));
                 }
 
                 string markerPath = Path.Combine(assignedDriveLetter, InjectionMarkerRelativePath);
@@ -562,11 +593,11 @@ namespace ExHyperV.Services
                 if (!File.Exists(markerPath))
                 {
                     return (false,
-                        "未找到本工具写入的注入标记，已跳过自动清理（不会删除来宾原有驱动）。\r\n" +
-                        "候选位置：\r\n" + DescribeCleanupCandidates(repositoryPath));
+                        Properties.Resources.GpuPv_Err_NoInjectionMarker +
+                        Properties.Resources.GpuPv_Log_Candidates + DescribeCleanupCandidates(repositoryPath));
                 }
 
-                Log("已找到注入标记，开始清理本工具复制的驱动包 …");
+                Log(Properties.Resources.GpuPv_Log_MarkerFound);
                 var markerPackages = ReadMarkerPackages(markerPath);
                 int removedPackages = 0;
                 if (markerPackages.Count > 0 && Directory.Exists(repositoryPath))
@@ -580,7 +611,7 @@ namespace ExHyperV.Services
                         RemoveReadOnlyAttribute(packagePath);
                         Directory.Delete(packagePath, true);
                         removedPackages++;
-                        Log($"已删除驱动包 {packageName}。");
+                        Log(string.Format(Properties.Resources.GpuPv_Log_PackageRemoved, packageName));
                     }
 
                     if (!Directory.EnumerateFileSystemEntries(repositoryPath).Any())
@@ -591,22 +622,22 @@ namespace ExHyperV.Services
                     // 旧版标记没有包列表：HostDriverStore\FileRepository 是 GPU-PV 专用目录，整体删除
                     RemoveReadOnlyAttribute(repositoryPath);
                     Directory.Delete(repositoryPath, true);
-                    Log("已删除来宾内的 HostDriverStore\\FileRepository。");
+                    Log(Properties.Resources.GpuPv_Log_RepositoryRemoved);
                 }
                 else
                 {
-                    Log("标记存在但 HostDriverStore\\FileRepository 已不存在，仅清理标记文件。");
+                    Log(Properties.Resources.GpuPv_Log_RepositoryMissing);
                 }
 
                 File.Delete(markerPath);
-                Log("已删除注入标记。");
+                Log(Properties.Resources.GpuPv_Log_MarkerRemoved);
                 return (true,
-                    $"清理完成：已删除本工具复制的 {removedPackages} 个驱动包与标记文件。" +
-                    "System32/SysWOW64 下的驱动文件不在本次清理范围（与参考实现一致，重新推送驱动会覆盖）。");
+                    string.Format(Properties.Resources.GpuPv_Msg_CleanupSummary, removedPackages) +
+                    Properties.Resources.GpuPv_Msg_CleanupScope);
             }
             catch (Exception ex)
             {
-                return (false, $"清理失败：{ex.Message}");
+                return (false, string.Format(Properties.Resources.GpuPv_Err_CleanupFailed, ex.Message));
             }
             finally
             {
@@ -642,17 +673,17 @@ namespace ExHyperV.Services
         private static string DescribeCleanupCandidates(string repositoryPath)
         {
             if (!Directory.Exists(repositoryPath))
-                return "  - 未发现 HostDriverStore\\FileRepository（没有可清理内容）";
+                return Properties.Resources.GpuPv_Log_NoRepository;
 
             try
             {
                 int subDirectories = Directory.GetDirectories(repositoryPath).Length;
                 int files = Directory.GetFiles(repositoryPath).Length;
-                return $"  - {repositoryPath}（{subDirectories} 个子目录 / {files} 个文件）";
+                return string.Format(Properties.Resources.GpuPv_Log_RepositoryStats, repositoryPath, subDirectories, files);
             }
             catch (Exception ex)
             {
-                return $"  - {repositoryPath}（读取失败：{ex.Message}）";
+                return string.Format(Properties.Resources.GpuPv_Log_RepositoryReadFailed, repositoryPath, ex.Message);
             }
         }
 
@@ -704,11 +735,11 @@ namespace ExHyperV.Services
                     },
                     new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(markerPath, payload, new System.Text.UTF8Encoding(false));
-                log("[GPU Marker] 已写入注入标记，清理时可据此识别本工具复制的内容。");
+                log(Properties.Resources.GpuPv_Log_MarkerWritten);
             }
             catch (Exception ex)
             {
-                log($"[GPU Marker] 标记写入失败，后续清理将只列出候选而不自动删除：{ex.Message}");
+                log(string.Format(Properties.Resources.GpuPv_Log_MarkerWriteFailed, ex.Message));
             }
         }
 
