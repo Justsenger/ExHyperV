@@ -52,14 +52,25 @@ namespace ExHyperV.Views
 
         private IntPtr OnWindowMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (msg != SingleInstanceGuard.ActivateMessage) return IntPtr.Zero;
+            // 消息号注册失败时为 0，与 WM_NULL 同值，不能当作唤醒消息处理。
+            if (!SingleInstanceGuard.IsActivationAvailable || msg != SingleInstanceGuard.ActivateMessage)
+                return IntPtr.Zero;
             handled = true;
 
-            // 隐藏到托盘时窗口 HWND 仍在，能收到广播；Show() 会触发
-            // TrayIconController 的 IsVisibleChanged，自动 Resume 挂起的资源。
-            if (!IsVisible) Show();
-            if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
-            Activate();
+            // 与托盘菜单“打开”共用同一还原逻辑：隐藏到托盘时窗口 HWND 仍在，Show() 会触发
+            // TrayIconController 的 IsVisibleChanged 自动 Resume 挂起的资源；最小化前的窗口状态
+            // 也由控制器记录，避免最大化窗口在唤醒后变成普通大小。
+            if (_trayIcon != null)
+            {
+                _trayIcon.RestoreWindow();
+            }
+            else
+            {
+                // 托盘初始化失败时没有控制器可用，退化为直接显示。
+                if (!IsVisible) Show();
+                if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+                Activate();
+            }
             SingleInstanceGuard.BringToFront(new WindowInteropHelper(this).Handle);
             return IntPtr.Zero;
         }

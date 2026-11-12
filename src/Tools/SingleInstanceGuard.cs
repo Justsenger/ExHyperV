@@ -16,14 +16,20 @@ internal static class SingleInstanceGuard
     private const int HwndBroadcast = 0xFFFF;
     // SW_SHOW：按当前大小/位置激活并显示。不用 SW_RESTORE，否则会把最大化窗口还原成普通大小。
     private const int SwShow = 5;
+    // ASFW_ANY：把置前许可转交给任意进程（此处即已在运行的实例）。
+    private const int AsfwAny = -1;
 
     // 必须静态持有到进程退出：Mutex 一旦被 GC 回收或释放，内核句柄随之消失，
     // 下一个进程就会误判成首个实例。
     private static Mutex? _mutex;
 
-    // RegisterWindowMessage 返回 0xC000~0xFFFF，转 int 不会溢出。返回 0 表示注册失败，
-    // 此时只是无法唤醒（单实例判定仍由 Mutex 保证），不会造成多开。
+    // RegisterWindowMessage 成功时返回 0xC000~0xFFFF，转 int 不会溢出；失败返回 0。
+    // 0 与 WM_NULL 同值，不能用来判定唤醒：注册失败时唤醒能力整体关闭，
+    // 单实例判定仍由 Mutex 保证，不会因此多开。
     private static readonly uint ActivationMessage = RegisterWindowMessage(ActivationMessageName);
+
+    /// <summary>消息号是否可用；注册失败时为 false，调用方须忽略唤醒消息。</summary>
+    public static bool IsActivationAvailable => ActivationMessage != 0;
 
     /// <summary>供主窗口的 HwndSource 消息钩子比对。</summary>
     public static int ActivateMessage => (int)ActivationMessage;
@@ -40,8 +46,14 @@ internal static class SingleInstanceGuard
 
         _mutex.Dispose();
         _mutex = null;
+        // 前台锁默认只把置前许可留给本进程：本进程由 shell 启动、刚拿到用户点击，
+        // 须先把它转交给已在运行的实例，否则对方的 SetForegroundWindow 会被拦下，
+        // 表现为窗口已显示但只闪任务栏。
+        AllowSetForegroundWindow(AsfwAny);
         // 主窗口即便 Hide() 到托盘，HWND 仍然存在，广播消息照样能收到。
-        PostMessage((IntPtr)HwndBroadcast, ActivationMessage, IntPtr.Zero, IntPtr.Zero);
+        // 消息号不可用时广播的是 WM_NULL，没有意义，直接跳过。
+        if (IsActivationAvailable)
+            PostMessage((IntPtr)HwndBroadcast, ActivationMessage, IntPtr.Zero, IntPtr.Zero);
         return false;
     }
 
@@ -66,4 +78,8 @@ internal static class SingleInstanceGuard
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool AllowSetForegroundWindow(int dwProcessId);
 }

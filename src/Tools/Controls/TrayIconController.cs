@@ -106,7 +106,11 @@ internal sealed class TrayIconController : NotifyIconService, IDisposable
             target.RenderMode = RenderMode.SoftwareOnly;
     }
 
-    private void RestoreWindow()
+    /// <summary>
+    /// 显示并前置主窗口，按 StateChanged 记录的历史状态还原最小化前的尺寸。
+    /// 托盘菜单“打开”与单实例唤醒共用此入口，避免两条路径还原结果不一致。
+    /// </summary>
+    public void RestoreWindow()
     {
         if (_exitRequested || _disposed) return;
         _windowResources.Resume();
