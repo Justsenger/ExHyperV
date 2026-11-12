@@ -19,6 +19,8 @@ namespace ExHyperV.ViewModels
     {
         private readonly VmQueryService _queryService;
         private readonly VmGpuService _gpuService;
+        // 构造函数、刷新按钮与各项操作后的重载可能同时触发，串行化加载避免重复查询与 UI 状态互相覆盖。
+        private readonly SemaphoreSlim _loadGate = new(1, 1);
 
         [ObservableProperty]
         private bool _isLoading;
@@ -56,7 +58,7 @@ namespace ExHyperV.ViewModels
         {
             _queryService = queryService;
             _gpuService = new VmGpuService(queryService);
-            LoadCommand.Execute(null);
+            _ = LoadAsync();
         }
 
         [RelayCommand]
@@ -69,10 +71,12 @@ namespace ExHyperV.ViewModels
                 return;
             }
 
-            IsUiEnabled = false;
-            IsLoading = true;
+            // 同一时刻只允许一次加载，避免多处触发时集合更新与 UI 状态交错。
+            await _loadGate.WaitAsync();
             try
             {
+                IsUiEnabled = false;
+                IsLoading = true;
                 var gpus = await _gpuService.GetHostGpusAsync();
                 var vms = await _queryService.GetVmListAsync();
 
@@ -134,6 +138,7 @@ namespace ExHyperV.ViewModels
             {
                 IsLoading = false;
                 IsUiEnabled = true;
+                _loadGate.Release();
             }
         }
 

@@ -22,7 +22,9 @@ namespace ExHyperV.Services
         }
 
         private static readonly ConcurrentDictionary<string, string> _switchNameCache = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly Dictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
+        // 首页状态监控跑在 Task.Run 后台线程、GPU-PV 等页面跑在 UI 线程，两者会同时调用 GetDiskSizes。
+        // 普通 Dictionary 被并发写入会抛 InvalidOperationException（集合状态被并发更新破坏），必须用并发集合。
+        private static readonly ConcurrentDictionary<string, (long Current, long Max, string Type)> _diskSizeCache = new();
         // VM → 一组 PID：vmwp + 其子 vmmem。GPU-PV 的 GPU 占用 Win11 记在 vmwp、Win10 记在 vmmem
         // （vmmem 是 vmwp 的子进程、同 VM 账户 SID），故一 VM 需对应多个 PID 才能跨版本命中。
         private static readonly ConcurrentDictionary<Guid, List<int>> _vmProcessIdCache = new();
@@ -728,6 +730,7 @@ namespace ExHyperV.Services
             catch { }
 
             var result = (currentSize, maxSize > 0 ? maxSize : currentSize, diskType == "Unknown" ? "Dynamic" : diskType);
+            // 索引器赋值（AddOrUpdate）在并发集合上是线程安全的；不要改回普通 Dictionary。
             if (result.Item2 > 0) _diskSizeCache[path] = result;
             return result;
         }
