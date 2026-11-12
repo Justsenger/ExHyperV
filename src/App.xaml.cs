@@ -4,7 +4,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Xml.Linq;
-using ExHyperV.Tools; 
+using ExHyperV.Tools;
+using ExHyperV.Views;
 
 namespace ExHyperV;
 
@@ -33,6 +34,16 @@ public partial class App
 
     protected override void OnStartup(StartupEventArgs e)
     {
+        // 单实例门禁必须最先执行：本进程若不是首个实例，继续初始化会复位
+        // AzureFeatureSet、抢注 ETW/USB 等机器级全局资源，干扰已在运行的实例。
+        // 也不能走 Application.Shutdown()，它会触发 OnExit 里的全局清理（停 ETW/USB
+        // 隧道、复位主机状态），把首个实例的资源一起清掉；故直接终止本进程。
+        if (!SingleInstanceGuard.TryAcquire())
+        {
+            Environment.Exit(0);
+            return;
+        }
+
         // 正常模式下为窗口内页面统一启用平滑滚轮；轻量模式仍遵循“关闭动画”的约定。
         if (!PerformanceMode)
             SmoothScroll.Initialize();
@@ -63,6 +74,11 @@ public partial class App
             WriteLanguageToConfig(targetLanguage);
         }
         SetLanguage(targetLanguage);
+
+        // StartupUri 已移除：门禁通过且语言就绪后才创建主窗口，
+        // 避免第二个实例在退出前闪出一个窗口。
+        MainWindow = new MainWindow();
+        MainWindow.Show();
     }
     protected override void OnExit(ExitEventArgs e)
     {

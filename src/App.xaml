@@ -4,7 +4,6 @@
              xmlns:local="clr-namespace:ExHyperV"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:converters="clr-namespace:ExHyperV.Converters"
-             StartupUri="Views/Windows/MainWindow.xaml"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <ResourceDictionary>

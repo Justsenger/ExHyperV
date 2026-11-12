@@ -1,5 +1,7 @@
 ﻿using System.Windows;
+using System.Windows.Interop;
 using ExHyperV.Services;
+using ExHyperV.Tools;
 using ExHyperV.Tools.Controls;
 using Wpf.Ui.Controls;
 
@@ -12,6 +14,14 @@ namespace ExHyperV.Views
         public MainWindow()
         {
             InitializeComponent();
+
+            // 单实例：首个实例在此监听"唤醒"广播（第二个实例启动时会发出）。
+            SourceInitialized += (_, _) =>
+            {
+                if (PresentationSource.FromVisual(this) is HwndSource source)
+                    source.AddHook(OnWindowMessage);
+            };
+
             if (App.PerformanceMode)
             {
                 // 无 GPU 模式：关 Mica（省 DWM 合成），改不透明底
@@ -38,6 +48,20 @@ namespace ExHyperV.Views
                 // 托盘不可用时仍正常关闭，不能把唯一窗口隐藏后无从恢复。
                 System.Diagnostics.Debug.WriteLine($"[ExHyperV] Tray initialization failed: {ex.Message}");
             }
+        }
+
+        private IntPtr OnWindowMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg != SingleInstanceGuard.ActivateMessage) return IntPtr.Zero;
+            handled = true;
+
+            // 隐藏到托盘时窗口 HWND 仍在，能收到广播；Show() 会触发
+            // TrayIconController 的 IsVisibleChanged，自动 Resume 挂起的资源。
+            if (!IsVisible) Show();
+            if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+            Activate();
+            SingleInstanceGuard.BringToFront(new WindowInteropHelper(this).Handle);
+            return IntPtr.Zero;
         }
 
         private void PagePreload(object sender, RoutedEventArgs e)
