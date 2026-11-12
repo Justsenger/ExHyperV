@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:properties="clr-namespace:ExHyperV.Properties"
              mc:Ignorable="d"
              MinWidth="400">
     <StackPanel>
@@ -12,15 +13,21 @@
                    FontWeight="SemiBold"
                    TextWrapping="Wrap"
                    Margin="0,0,0,4"/>
-        <TextBlock Text="分配后该虚拟机会获得一块 GPU 分区；分区增删要求虚拟机处于关机状态。"
+        <TextBlock Text="{x:Static properties:Resources.GpuPv_Assign_Intro}"
                    TextWrapping="Wrap"
                    Opacity="0.7"
                    Margin="0,0,0,12"/>
 
-        <TextBlock Text="目标虚拟机" Margin="0,0,0,6"/>
-        <ComboBox x:Name="VmCombo" MinHeight="32"/>
+        <TextBlock Text="{x:Static properties:Resources.GpuPv_Assign_TargetVm}" Margin="0,0,0,6"/>
+        <ComboBox x:Name="VmCombo" MinHeight="32" SelectionChanged="VmCombo_SelectionChanged"/>
+        <TextBlock x:Name="SelectVmHint"
+                   Text="{x:Static properties:Resources.GpuPv_SelectVmHint}"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                   Margin="0,6,0,0"
+                   Visibility="Collapsed"/>
 
-        <TextBlock Text="GPU 份额（可用性能上限）" Margin="0,14,0,6"/>
+        <TextBlock Text="{x:Static properties:Resources.GpuPv_Assign_Share}" Margin="0,14,0,6"/>
         <ComboBox x:Name="ShareCombo"
                   MinHeight="32"
                   DisplayMemberPath="Label"
@@ -29,9 +36,14 @@
                    TextWrapping="Wrap"
                    Opacity="0.75"
                    Margin="0,6,0,0"/>
+        <TextBlock Text="{x:Static properties:Resources.GpuPv_ShareHint_Disclaimer}"
+                   TextWrapping="Wrap"
+                   Opacity="0.6"
+                   FontSize="12"
+                   Margin="0,6,0,0"/>
 
         <TextBlock x:Name="EmptyHint"
-                   Text="没有处于关机状态的虚拟机。请先关闭目标虚拟机再分配。"
+                   Text="{x:Static properties:Resources.GpuPv_Assign_NoVm}"
                    TextWrapping="Wrap"
                    Foreground="{DynamicResource SystemFillColorCriticalBrush}"
                    Margin="0,8,0,0"

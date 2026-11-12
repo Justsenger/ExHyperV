@@ -145,7 +145,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                return (false, $"备份 .vmcx 失败，已取消修复（未做任何修改）：{ex.Message}", 0, 0);
+                return (false, string.Format(Properties.Resources.GpuPv_Err_RepairBackupFailed, ex.Message), 0, 0);
             }
 
             return await Task.Run(() =>
@@ -175,7 +175,7 @@ namespace ExHyperV.Services
                         var issues = s.ValidateManifest();
                         if (issues.Count == 0)
                         {
-                            return (true, $"已备份到：{backupPath}", rebound, removed);
+                            return (true, string.Format(Properties.Resources.GpuPv_Msg_RepairBackupPath, backupPath), rebound, removed);
                         }
                         failureMessage = Properties.Resources.GpuRepair_ValidationFailed + string.Join("; ", issues);
                     }
@@ -188,8 +188,8 @@ namespace ExHyperV.Services
                 bool restored = RestoreBackup(vmcx, backupPath);
                 return (false,
                     failureMessage + (restored
-                        ? $"（已从备份回滚：{backupPath}）"
-                        : $"（自动回滚失败，请关机后手工用备份覆盖：{backupPath}）"),
+                        ? string.Format(Properties.Resources.GpuPv_Msg_RollbackOk, backupPath)
+                        : string.Format(Properties.Resources.GpuPv_Msg_RollbackFailed, backupPath)),
                     rebound, removed);
             });
         }

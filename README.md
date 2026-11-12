@@ -392,9 +392,26 @@ GPU-PV is a paravirtualization technology that allows multiple virtual machines 
 
 · The monitoring interface allows viewing the graphics engine utilization of all GPU-PV partitions on that VM, including four common engines: 3D Rendering, Copy, Video Encode, and Video Decode.
 
-· Currently, Hyper-V cannot effectively limit the GPU resources used by each virtual machine. Parameters in `Set-VMGpuPartitionAdapter` do not take effect ([Relevant discussion](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)). Therefore, this tool does not currently provide resource allocation functions.
+· Currently, Hyper-V cannot effectively limit the GPU resources used by each virtual machine; the parameters in `Set-VMGpuPartitionAdapter` do not take effect ([Relevant discussion](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298)). The GPU-PV page of this tool still offers a "share" option that writes scaled ceilings into the WMI partition settings, but **whether the running guest is actually throttled has not been verified**. Do not treat it as hard QoS; see "GPU-PV Management Page" below.
 
 · Although virtual devices created by GPU-PV can call the physical GPU, they do not fully inherit its hardware characteristics and driver details. Certain software/games relying on specific hardware IDs or driver signatures may not run.
+
+#### GPU-PV Management Page
+
+The **GPU-PV** entry in the left navigation is independent of the "Virtual Machine -> Graphics Card" wizard. It gives a single place to inspect and change existing partitions:
+
+| Feature | Description |
+| :--- | :--- |
+| Host partitionable GPUs | Lists chip vendor, board vendor, driver version, VRAM and the `GPUPARAV` instance path of each GPU, plus its assigned partition count. Only GPUs exposing a partitionable interface can be assigned. |
+| Assign / remove partitions | Pick the target VM and a 100% / 75% / 50% / 25% share. The target VM is **not preselected**, so a partition cannot be accidentally assigned to the first item in the list. Adding or removing partitions requires the VM to be powered off. |
+| MMIO check & fix | Shows current and target values side by side (high base / high gap / low gap / write-combining cache) and writes them as one group after confirmation. The first run probes the host MMIO ceiling by starting and stopping the VM at successive sizes, then caches the result. |
+| Repair stale partitions | Detects `.vmcx` partitions pointing at a missing GPU path or with an incomplete structure. A `.gpupv-bak-<timestamp>` backup is created first and the change is rolled back on validation failure or exception. |
+| Copy / update driver | Resolves the required host `DriverStore` packages and copies only the necessary files after mounting the guest system partition offline (Windows guests only for now). |
+| Clean up driver | Deletes only items carrying this tool's injection marker; when no marker is present, candidate locations are listed and nothing is removed. |
+
+> [!WARNING]
+> Share scaling reads the ceilings from the `Maximum` template of `Msvm_GpuPartitionSettingData`, scales them, and writes them into the `MaxPartition* / OptimalPartition*` fields of the `Default` template before committing. A real-machine test (2026-11-12, AMD RX 5600 XT + Intel UHD 730) confirmed the values are written and retained by WMI, but **actual runtime throttling inside the guest has not been verified**.
+> Driver copy writes files into the guest `Windows\System32` tree and changes their permissions; cleanup does **not** remove those files. Back up the guest virtual disk before running it (checkpoints are unavailable for VMs with GPU-PV enabled).
 
 #### System Requirements
 
@@ -519,7 +536,7 @@ Create a GPU-PV partition for the selected graphics card and assign it to the vi
 
 This is optional. When adding multiple graphics cards, you can uncheck this to avoid importing drivers every time.
 
-- For Windows VMs, the host driver folder will be fully injected into the VM's specified partition. For NVIDIA, ExHyperV also creates the minimal `nvlddmkm` service-loading values needed to address the selected `nvlddmkm.sys` under `HostDriverStore`; it does not import the host's complete NVIDIA service tree. At the same time, link files for certain driver files will be created in the VM's System32 directory. For specific mapping relationships, refer to [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md).
+- For Windows VMs, the tool resolves the driver packages required by the selected GPU from the host `DriverStore` (including companion packages), mounts the chosen system partition offline, and copies only those packages into `Windows\System32\HostDriverStore\FileRepository`. Necessary driver file links are created in the guest System32 tree; offline registry service values are no longer written. For the mapping details, see [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md). An injection marker `.gpupv-inject.json` is left behind; "Clean up driver" removes only the packages listed in that marker. Without the marker, candidate locations are listed and nothing is deleted.
 
 - For Linux VMs, an SSH automated flow will be executed for module compilation and driver installation. Systems or kernels outside the compatibility list need more testing.
 

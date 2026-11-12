@@ -384,9 +384,26 @@ GPU-PV 是一种半虚拟化技术，它允许多个虚拟机共享使用物理 
 
 · 监控界面可查看该虚拟机上所有 GPU-PV 分区的图形引擎利用率，包含四个常用引擎：3D 渲染、数据复制、视频编码和视频解码。
 
-· 目前，Hyper-V 无法有效限制每个虚拟机使用的 GPU 资源。`Set-VMGpuPartitionAdapter` 中的参数并不生效 ([相关讨论](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298))。因此，本工具暂不提供资源分配功能。
+· 目前，Hyper-V 无法有效限制每个虚拟机使用的 GPU 资源，`Set-VMGpuPartitionAdapter` 中的参数并不生效 ([相关讨论](https://github.com/jamesstringerparsec/Easy-GPU-PV/issues/298))。本工具的 GPU-PV 管理页仍提供「份额」选项（把缩放后的上限写入 WMI 分区设置），但**来宾运行时是否真正按该上限限流尚未验证**，请勿将其当作硬性 QoS 使用，详见下文「GPU-PV 管理页」。
 
 · GPU-PV 创建的虚拟设备虽然能调用物理 GPU，但并未完整继承其硬件特征和驱动细节。某些依赖特定硬件ID或驱动签名的软件/游戏可能无法运行。
+
+#### GPU-PV 管理页
+
+左侧导航的 **GPU-PV** 页与「虚拟机 → 显卡」配置向导相互独立，用于集中查看和改动已经存在的分区：
+
+| 功能 | 说明 |
+| :--- | :--- |
+| 主机可分区 GPU | 列出显卡的芯片商、板卡厂商、驱动版本、显存与 `GPUPARAV` 实例路径，以及每张卡的已分配分区数。只有暴露了可分区接口的显卡才能分配。 |
+| 分配 / 移除分区 | 分配时手动指定目标虚拟机与 100% / 75% / 50% / 25% 份额；目标虚拟机**不预选**，避免误分配给列表第一项。分区增删要求虚拟机处于关机状态。 |
+| MMIO 体检与修正 | 并排显示当前值与目标值（高位基址 / 高位间隙 / 低位间隙 / 写合并缓存），确认后整组写入。首次使用会逐档启停虚拟机探测主机 MMIO 上限并缓存结果。 |
+| 修复幽灵分区 | 检出 `.vmcx` 中指向失效显卡路径或结构残缺的分区，修改前自动备份为 `.gpupv-bak-<时间戳>`，校验失败或异常时自动回滚。 |
+| 复制 / 更新驱动 | 按驱动包解析宿主 `DriverStore`，离线挂载来宾系统分区后仅复制必要文件（目前只支持 Windows 来宾）。 |
+| 清理驱动 | 只删除带本工具注入标记的内容；没有标记时只列出候选位置，不会自动删除。 |
+
+> [!WARNING]
+> 份额缩放从 `Msvm_GpuPartitionSettingData` 的 `Maximum` 模板读取上限，按比例写入 `Default` 模板的 `MaxPartition* / OptimalPartition*` 字段后提交。真机测试（2026-11-12，AMD RX 5600 XT + Intel UHD 730）已确认数值能写入并被 WMI 保留，但尚未验证来宾运行时是否真正限流。
+> 驱动复制会往来宾 `Windows\System32` 写入文件并修改权限，清理操作**不删除**这些文件；执行前建议自行备份来宾虚拟磁盘（启用 GPU-PV 的虚拟机不支持检查点）。
 
 #### 系统要求
 
@@ -511,7 +528,7 @@ $n="CheckMMIO_$(Get-Random)";New-VM $n -Gen 2 -NoVHD|Out-Null;Set-VM $n -Automat
 
 这是一个可选项，需要添加多张显卡时，可以取消勾选以免每次都导入驱动。
 
-- 对于 Windows 虚拟机，将全量注入主机驱动文件夹到虚拟机指定分区。对于 NVIDIA，ExHyperV 只会创建从 `HostDriverStore` 加载当前所选 `nvlddmkm.sys` 所需的最小 `nvlddmkm` 服务值，不会导入主机完整的 NVIDIA 服务树。同时，会为虚拟机的 System32 目录创建部分驱动文件的链接，具体映射关系参考 [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md)。
+- 对于 Windows 虚拟机，会按当前显卡解析宿主 `DriverStore` 中必需的驱动包（含伴随包），离线挂载所选系统分区后只把这些包复制到 `Windows\System32\HostDriverStore\FileRepository`，并在 System32 目录下建立必要的驱动文件链接；不再写入离线注册表服务项。具体映射关系参考 [drivermapping.md](https://github.com/Justsenger/ExHyperV/blob/main/doc/drivermapping.md)。工具会留下注入标记 `.gpupv-inject.json`，「清理驱动」只删除标记中列出的驱动包；标记缺失时只列出候选位置，不自动删除。
 
 - 对于Linux虚拟机，会执行 SSH 自动化流程进行模块编译和驱动安装，兼容列表之外的系统或内核还需更多测试。
 

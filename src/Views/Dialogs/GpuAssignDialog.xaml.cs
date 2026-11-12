@@ -1,3 +1,4 @@
+using System.Windows;
 using System.Windows.Controls;
 using ExHyperV.Models;
 
@@ -6,14 +7,19 @@ namespace ExHyperV.Views
     /// <summary>GPU-PV「分配分区」对话框：只列出关机状态的虚拟机，并可选择分区份额。</summary>
     public partial class GpuAssignDialog : UserControl
     {
-        private sealed record ShareOption(int Percent, string Label);
-
-        private static readonly ShareOption[] ShareOptions =
+        private sealed record ShareOption(int Percent, string Label)
         {
-            new(100, "100%（整卡上限，不缩放）"),
-            new(75, "75%（接近满额）"),
-            new(50, "50%（多机共享常用）"),
-            new(25, "25%（轻量图形）"),
+            // ComboBox 项在 UI Automation 中的默认名称取 ToString()，
+            // 覆盖后不再暴露编译器生成的 "ShareOption { Percent = ..., Label = ... }"。
+            public override string ToString() => Label;
+        }
+
+        private static ShareOption[] CreateShareOptions() => new[]
+        {
+            new ShareOption(100, Properties.Resources.GpuPv_Share_100),
+            new ShareOption(75, Properties.Resources.GpuPv_Share_75),
+            new ShareOption(50, Properties.Resources.GpuPv_Share_50),
+            new ShareOption(25, Properties.Resources.GpuPv_Share_25),
         };
 
         public GpuAssignDialog(GpuInfo gpu, IEnumerable<string> vmNames)
@@ -25,33 +31,44 @@ namespace ExHyperV.Views
             VmCombo.ItemsSource = names;
             if (names.Count > 0)
             {
-                VmCombo.SelectedIndex = 0;
+                // 不预选任何虚拟机：默认选中列表第一项容易把分区误分配给错误的 VM。
+                VmCombo.SelectedIndex = -1;
             }
             else
             {
                 VmCombo.IsEnabled = false;
-                EmptyHint.Visibility = System.Windows.Visibility.Visible;
+                EmptyHint.Visibility = Visibility.Visible;
             }
 
-            ShareCombo.ItemsSource = ShareOptions;
+            ShareCombo.ItemsSource = CreateShareOptions();
             ShareCombo.SelectedIndex = 0;
             UpdateShareHint();
+            UpdateVmHint();
         }
 
         public string? SelectedVmName => VmCombo.SelectedItem as string;
 
         public int SelectedSharePercent => ShareCombo.SelectedItem is ShareOption option ? option.Percent : 100;
 
+        private void VmCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateVmHint();
+
         private void ShareCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateShareHint();
+
+        private void UpdateVmHint()
+        {
+            SelectVmHint.Visibility = VmCombo.Items.Count > 0 && VmCombo.SelectedIndex < 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
 
         private void UpdateShareHint()
         {
             ShareHint.Text = SelectedSharePercent switch
             {
-                100 => "使用模板原值：该分区可获得整卡的全部显存与编解码/计算上限，性能最好；多台虚拟机同时分配时更容易互相抢占。",
-                75 => "显存与编解码/计算上限压到约 3/4：性能损失较小，适合一台主力虚拟机搭配一台轻量副机。",
-                50 => "上限减半：显存带宽与编解码/计算能力最高只能用一半，高负载游戏或渲染的帧率、分辨率会明显下降，适合办公桌面与轻量图形。",
-                25 => "上限约为 1/4：只适合桌面、视频播放等轻量场景，3D 负载会明显受限。",
+                100 => Properties.Resources.GpuPv_ShareHint_100,
+                75 => Properties.Resources.GpuPv_ShareHint_75,
+                50 => Properties.Resources.GpuPv_ShareHint_50,
+                25 => Properties.Resources.GpuPv_ShareHint_25,
                 _ => string.Empty,
             };
         }

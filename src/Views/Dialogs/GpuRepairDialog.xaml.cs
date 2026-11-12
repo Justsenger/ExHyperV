@@ -11,15 +11,15 @@ namespace ExHyperV.Views
         {
             InitializeComponent();
 
-            HeaderText.Text = $"「{vmName}」— 发现 {stalePartitions.Count} 个失配/幽灵 GPU 分区";
+            HeaderText.Text = string.Format(Properties.Resources.GpuPv_Repair_Header, vmName, stalePartitions.Count);
 
             foreach (var item in stalePartitions)
             {
                 string action = item.IsStructurallyIncomplete
-                    ? "删除（配置结构残缺）"
+                    ? Properties.Resources.GpuPv_Repair_Action_Incomplete
                     : item.RebindPath != null
-                        ? "重指到主机上的新路径"
-                        : "删除（该显卡已不在主机）";
+                        ? Properties.Resources.GpuPv_Repair_Action_Rebind
+                        : Properties.Resources.GpuPv_Repair_Action_Remove;
 
                 ItemsHost.Children.Add(new Border
                 {
@@ -32,20 +32,22 @@ namespace ExHyperV.Views
                         {
                             new TextBlock
                             {
-                                Text = $"VDEV {item.VdevNumber} — {action}",
+                                Text = string.Format(Properties.Resources.GpuPv_Repair_ItemHeader, item.VdevNumber, action),
                                 FontWeight = FontWeights.SemiBold,
                                 TextWrapping = TextWrapping.Wrap,
                             },
                             new TextBlock
                             {
-                                Text = "当前 HostResource：" + item.HostResource,
+                                Text = Properties.Resources.GpuPv_Repair_CurrentHostResource + item.HostResource,
                                 Opacity = 0.7,
                                 FontSize = 12,
                                 TextWrapping = TextWrapping.Wrap,
                             },
                             new TextBlock
                             {
-                                Text = item.RebindPath != null ? "修复后指向：" + item.RebindPath : "修复后该设备将从虚拟机配置中移除。",
+                                Text = item.RebindPath != null
+                                    ? Properties.Resources.GpuPv_Repair_RebindTo + item.RebindPath
+                                    : Properties.Resources.GpuPv_Repair_WillRemove,
                                 Opacity = 0.7,
                                 FontSize = 12,
                                 TextWrapping = TextWrapping.Wrap,

@@ -11,7 +11,7 @@ namespace ExHyperV.Views
         {
             InitializeComponent();
 
-            HeaderText.Text = $"「{vmName}」— {action}";
+            HeaderText.Text = string.Format(Properties.Resources.GpuPv_Partition_Header, vmName, action);
             PartitionList.ItemsSource = partitions.ToList();
             if (PartitionList.Items.Count > 0)
             {

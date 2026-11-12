@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:properties="clr-namespace:ExHyperV.Properties"
              mc:Ignorable="d"
              MinWidth="500">
     <StackPanel>
@@ -11,13 +12,13 @@
                    FontWeight="SemiBold"
                    TextWrapping="Wrap"
                    Margin="0,0,0,4"/>
-        <TextBlock Text="MMIO 修正是写操作，会直接修改虚拟机配置，要求虚拟机已关机。高位 MMIO 间隙是 GPU 显存映射使用的地址窗口：太小会导致虚拟机无法启动或来宾内显卡报错（代码 43）。"
+        <TextBlock Text="{x:Static properties:Resources.GpuPv_Mmio_Intro}"
                    TextWrapping="Wrap"
                    Opacity="0.7"/>
 
         <Grid x:Name="ValueGrid" Margin="0,12,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="150"/>
+                <ColumnDefinition Width="200"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>

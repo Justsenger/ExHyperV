@@ -13,25 +13,25 @@ namespace ExHyperV.Views
         {
             InitializeComponent();
 
-            HeaderText.Text = $"「{vmName}」— MMIO 体检结果";
+            HeaderText.Text = string.Format(Properties.Resources.GpuPv_Mmio_Header, vmName);
             AddHeaderRow();
-            AddRow("高位 MMIO 基址", current.HighBaseMb, target.BaseMb);
-            AddRow("高位 MMIO 间隙", current.HighSizeMb, target.HighSizeMb);
-            AddRow("低位 MMIO 间隙", current.LowSizeMb, target.LowSizeMb);
-            AddRow("GuestControlledCacheTypes", null, null, targetValue: "启用");
+            AddRow(Properties.Resources.GpuPv_Mmio_Base, current.HighBaseMb, target.BaseMb);
+            AddRow(Properties.Resources.GpuPv_Mmio_High, current.HighSizeMb, target.HighSizeMb);
+            AddRow(Properties.Resources.GpuPv_Mmio_Low, current.LowSizeMb, target.LowSizeMb);
+            AddRow("GuestControlledCacheTypes", null, null, targetValue: Properties.Resources.GpuPv_Mmio_Enabled);
 
             NoteText.Text = ceilingKnown
-                ? "以上目标值按主机已探测到的 MMIO 上限计算：高位基址取上限的一半，高位间隙在剩余空间内取 256 GB 上限。应用后配置立即写入，可用虚拟机检查点还原。"
-                : "当前没有主机 MMIO 上限缓存，本次只把高位间隙提升到默认 256 GB，高位基址与低位间隙保持现值。若应用后虚拟机无法启动，可在 VM 设置页执行完整探测，或用检查点还原。";
+                ? Properties.Resources.GpuPv_Mmio_Note_Known
+                : Properties.Resources.GpuPv_Mmio_Note_Unknown;
         }
 
         private void AddHeaderRow()
         {
             int row = ValueGrid.RowDefinitions.Count;
             ValueGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            AddCell(row, 0, "项目", bold: true);
-            AddCell(row, 1, "当前值", bold: true);
-            AddCell(row, 2, "目标值", bold: true);
+            AddCell(row, 0, Properties.Resources.GpuPv_Mmio_Col_Item, bold: true);
+            AddCell(row, 1, Properties.Resources.GpuPv_Mmio_Col_Current, bold: true);
+            AddCell(row, 2, Properties.Resources.GpuPv_Mmio_Col_Target, bold: true);
         }
 
         private void AddRow(string label, ulong? current, ulong? target, string? targetValue = null)
@@ -40,9 +40,9 @@ namespace ExHyperV.Views
             ValueGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             AddCell(row, 0, label);
-            AddCell(row, 1, current is ulong value ? FormatMb(value) : "未提供");
+            AddCell(row, 1, current is ulong value ? FormatMb(value) : Properties.Resources.GpuPv_Mmio_NotProvided);
 
-            string targetText = targetValue ?? (target is ulong targetMb ? FormatMb(targetMb) : "不变");
+            string targetText = targetValue ?? (target is ulong targetMb ? FormatMb(targetMb) : Properties.Resources.GpuPv_Mmio_Unchanged);
             bool changed = targetValue == null && current is ulong currentValue && target is ulong targetMb2 && currentValue != targetMb2;
             AddCell(row, 2, targetText, highlight: changed);
         }
@@ -68,7 +68,7 @@ namespace ExHyperV.Views
         private static string FormatMb(ulong value)
         {
             double gb = value / 1024.0;
-            return $"{value} MB（约 {gb:F1} GB）";
+            return string.Format(Properties.Resources.GpuPv_Mmio_FormatMb, value, $"{gb:F1}");
         }
     }
 }

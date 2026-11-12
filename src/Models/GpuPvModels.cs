@@ -34,7 +34,9 @@ namespace ExHyperV.Models
             }
         }
 
-        public string AssignedDisplay => AssignedCount == 0 ? "未分配" : $"已分配 {AssignedCount} 个分区";
+        public string AssignedDisplay => AssignedCount == 0
+            ? Properties.Resources.GpuPv_Assigned_None
+            : string.Format(Properties.Resources.GpuPv_Assigned_Count, AssignedCount);
     }
 
     /// <summary>GPU-PV 页面：已分配给虚拟机的分区行。</summary>

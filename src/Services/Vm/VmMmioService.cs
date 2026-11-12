@@ -219,7 +219,7 @@ namespace ExHyperV.Services
 
                 Debug.WriteLine($"[VmMmio] 探测成功，主机 MMIO 上限: {ceilingMb} MB");
                 if (!await StopVmAsync(vmName))
-                    throw new InvalidOperationException("MMIO 探测启动成功，但无法关闭虚拟机。");
+                    throw new InvalidOperationException(Properties.Resources.GpuPv_Err_MmioProbeStopFailed);
 
                 return ceilingMb;
             }

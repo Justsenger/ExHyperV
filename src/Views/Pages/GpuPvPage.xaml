@@ -23,14 +23,14 @@
         <StackPanel Margin="10,0,10,10">
             <ui:InfoBar Margin="0,5,0,0"
                         Title="{x:Static properties:Resources.Common_Attention}"
-                        Message="分配或移除 GPU 分区会修改虚拟机配置，请先关闭目标虚拟机。分区只是把宿主机显卡切给虚拟机，来宾内还需要复制对应驱动才能真正使用。"
+                        Message="{x:Static properties:Resources.GpuPv_InfoBar_Notice}"
                         IsOpen="True"
                         IsClosable="False"
                         Severity="Warning"/>
 
             <ui:InfoBar Margin="0,5,0,0"
-                        Title="未找到可分区 GPU"
-                        Message="请先安装显卡驱动，再启用 Hyper-V（顺序反了显卡不会暴露 GPUPARAV 接口，需要重装驱动并重启）。"
+                        Title="{x:Static properties:Resources.GpuPv_NoPartitionableGpu_Title}"
+                        Message="{x:Static properties:Resources.GpuPv_NoPartitionableGpu_Message}"
                         IsOpen="{Binding ShowNoPartitionableGpu}"
                         IsClosable="False"
                         Severity="Error"/>
@@ -40,7 +40,7 @@
                     <Grid>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                             <ui:FontIcon Glyph="&#xF0B9;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
-                            <TextBlock Text="主机可分区 GPU" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                            <TextBlock Text="{x:Static properties:Resources.GpuPv_Section_HostGpus}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                         </StackPanel>
                         <ui:Button HorizontalAlignment="Right"
                                    Content="{x:Static properties:Resources.Btn_Refresh}"
@@ -68,7 +68,7 @@
                                         <TextBlock Text="{Binding AssignedDisplay}" FontSize="12" Opacity="0.7"/>
                                     </StackPanel>
                                     <ui:Button Grid.Column="1"
-                                               Content="分配…"
+                                               Content="{x:Static properties:Resources.GpuPv_Btn_Assign}"
                                                Margin="10,0,5,0"
                                                IsEnabled="{Binding IsPartitionable}"
                                                Command="{Binding DataContext.AssignCommand, RelativeSource={RelativeSource AncestorType=Page}}"
@@ -88,20 +88,20 @@
                                         <RowDefinition Height="30"/>
                                         <RowDefinition Height="30"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="芯片商" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.GpuPv_Label_Manu}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manu}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="板卡厂商" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.GpuPv_Label_Vendor}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Vendor}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8" TextTrimming="CharacterEllipsis"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="驱动版本" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.GpuPv_Label_DriverVersion}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DriverVersion}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="显存 / 路径" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.GpuPv_Label_MemoryPath}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="3" Grid.Column="1" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8" TextTrimming="CharacterEllipsis">
                                         <Run Text="{Binding MemoryDisplay, Mode=OneWay}"/>
                                         <Run Text="  ·  "/>
                                         <Run Text="{Binding PathDisplay, Mode=OneWay}"/>
                                     </TextBlock>
                                 </Grid>
-                                <TextBlock Text="该显卡没有暴露可分区接口（GPUPARAV），无法分配。"
+                                <TextBlock Text="{x:Static properties:Resources.GpuPv_NotPartitionable_Hint}"
                                            FontSize="12"
                                            Foreground="{DynamicResource SystemFillColorCautionBrush}"
                                            Margin="0,4,0,0"
@@ -116,7 +116,7 @@
                 <ui:Card BorderThickness="1" Padding="10">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:FontIcon Glyph="&#xE7F8;" FontSize="24" FontFamily="{DynamicResource SegoeFluentIcons}"/>
-                        <TextBlock Text="已分配的分区" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                        <TextBlock Text="{x:Static properties:Resources.GpuPv_Section_Assignments}" FontSize="16" VerticalAlignment="Center" Margin="10,0,0,0"/>
                     </StackPanel>
                 </ui:Card>
             </Grid>
@@ -139,17 +139,17 @@
                                         <TextBlock Text="{Binding GpuName}" FontSize="12" Opacity="0.7" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                        <ui:Button Content="复制/更新驱动"
+                                        <ui:Button Content="{x:Static properties:Resources.GpuPv_Btn_SyncDriver}"
                                                    Margin="10,0,5,0"
                                                    IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
                                                    Command="{Binding DataContext.SyncDriverCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                                    CommandParameter="{Binding}"/>
-                                        <ui:Button Content="清理驱动"
+                                        <ui:Button Content="{x:Static properties:Resources.GpuPv_Btn_CleanupDriver}"
                                                    Margin="0,0,5,0"
                                                    IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
                                                    Command="{Binding DataContext.CleanupDriverCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                                    CommandParameter="{Binding}"/>
-                                        <ui:Button Content="移除分区"
+                                        <ui:Button Content="{x:Static properties:Resources.GpuPv_Btn_Remove}"
                                                    IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
                                                    Command="{Binding DataContext.RemoveCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                                    CommandParameter="{Binding}"/>
@@ -169,25 +169,25 @@
                                         <RowDefinition Height="30"/>
                                         <RowDefinition Height="30"/>
                                     </Grid.RowDefinitions>
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="芯片商" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{x:Static properties:Resources.GpuPv_Label_Manu}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Manu}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="驱动版本" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{x:Static properties:Resources.GpuPv_Label_DriverVersion}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DriverVersion}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="显存" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="{x:Static properties:Resources.GpuPv_Label_Memory}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding MemoryDisplay}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="实例路径" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="{x:Static properties:Resources.GpuPv_Label_InstancePath}" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,8"/>
                                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding InstancePath}" FontSize="12" VerticalAlignment="Center" Margin="0,0,10,8" TextTrimming="CharacterEllipsis"/>
                                 </Grid>
 
                                 <StackPanel Orientation="Horizontal"
                                             Margin="0,8,0,0"
                                             Visibility="{Binding ShowVmMaintenance, Converter={StaticResource BoolToVis}}">
-                                    <ui:Button Content="MMIO 体检与修正"
+                                    <ui:Button Content="{x:Static properties:Resources.GpuPv_Btn_MmioCheck}"
                                                Margin="0,0,8,0"
                                                IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
                                                Command="{Binding DataContext.MmioCheckCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                                CommandParameter="{Binding}"/>
-                                    <ui:Button Content="修复幽灵分区"
+                                    <ui:Button Content="{x:Static properties:Resources.GpuPv_Btn_Repair}"
                                                IsEnabled="{Binding DataContext.IsUiEnabled, RelativeSource={RelativeSource AncestorType=Page}}"
                                                Command="{Binding DataContext.RepairCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                                CommandParameter="{Binding}"/>
@@ -227,7 +227,7 @@
                              VerticalScrollBarVisibility="Auto"
                              HorizontalScrollBarVisibility="Auto"/>
                     <ui:Button Grid.Row="4"
-                               Content="关闭"
+                               Content="{x:Static properties:Resources.GpuPv_Btn_Close}"
                                HorizontalAlignment="Right"
                                Margin="0,12,0,0"
                                IsEnabled="{Binding DriverCanClose}"

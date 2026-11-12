@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:properties="clr-namespace:ExHyperV.Properties"
              mc:Ignorable="d"
              MinWidth="540">
     <StackPanel>
@@ -11,14 +12,14 @@
                    FontWeight="SemiBold"
                    TextWrapping="Wrap"
                    Margin="0,0,0,6"/>
-        <TextBlock Text="这一步会直接改写虚拟机的 .vmcx 配置文件，是写操作：工具会在修改前自动备份为 .gpupv-bak-时间戳，校验失败或异常时自动回滚；但修复成功后不提供一键还原，只能手动用备份覆盖。虚拟机必须处于关机状态。"
+        <TextBlock Text="{x:Static properties:Resources.GpuPv_Repair_Intro}"
                    TextWrapping="Wrap"
                    Foreground="{DynamicResource SystemFillColorCriticalBrush}"
                    Margin="0,0,0,10"/>
 
         <StackPanel x:Name="ItemsHost"/>
 
-        <TextBlock Text="备份文件位于虚拟机配置目录，不会自动清理。若修复后仍无法开机，请关机后用对应备份覆盖 .vmcx 再启动。"
+        <TextBlock Text="{x:Static properties:Resources.GpuPv_Repair_BackupNote}"
                    TextWrapping="Wrap"
                    Opacity="0.7"
                    Margin="0,10,0,0"/>

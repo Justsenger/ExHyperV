@@ -99,7 +99,7 @@ namespace ExHyperV.ViewModels
                             VmName = vm.Name,
                             AdapterId = adapter.Id,
                             InstancePath = adapter.InstancePath,
-                            GpuName = matched?.Name ?? "Unknown Device",
+                            GpuName = matched?.Name ?? Properties.Resources.GpuPv_UnknownDevice,
                             Manu = matched?.Manu ?? string.Empty,
                             DriverVersion = matched?.DriverVersion ?? string.Empty,
                             MemoryBytes = matched?.MemoryBytes ?? 0,
@@ -128,7 +128,7 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError("读取 GPU 分区信息失败：" + ex.Message);
+                ShowError(string.Format(Properties.Resources.GpuPv_Err_Load, ex.Message));
             }
             finally
             {
@@ -143,7 +143,7 @@ namespace ExHyperV.ViewModels
             if (item == null) return;
             if (!item.IsPartitionable)
             {
-                ShowTip("该显卡没有可分区接口。请先安装显卡驱动，再启用 Hyper-V（顺序反了只能重装驱动）。");
+                ShowTip(Properties.Resources.GpuPv_Tip_NotPartitionable);
                 return;
             }
 
@@ -158,14 +158,21 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError("读取虚拟机列表失败：" + ex.Message);
+                ShowError(string.Format(Properties.Resources.GpuPv_Err_ReadVmList, ex.Message));
                 return;
             }
 
             var dialog = new GpuAssignDialog(item.Source, poweredOffVms);
-            bool confirmed = await Dialogs.ShowContentDialogAsync("分配 GPU 分区", dialog, "分配");
+            bool confirmed = await Dialogs.ShowContentDialogAsync(
+                Properties.Resources.GpuPv_Dlg_Assign_Title, dialog, Properties.Resources.GpuPv_Dlg_Assign_Primary);
+            if (!confirmed) return;
             string? vmName = dialog.SelectedVmName;
-            if (!confirmed || string.IsNullOrWhiteSpace(vmName)) return;
+            if (string.IsNullOrWhiteSpace(vmName))
+            {
+                // 分配对话框不预选虚拟机：用户未选择时明确拒绝，绝不回退到列表第一项。
+                ShowError(Properties.Resources.GpuPv_Err_NoVmSelected);
+                return;
+            }
 
             IsUiEnabled = false;
             try
@@ -174,12 +181,13 @@ namespace ExHyperV.ViewModels
                     vmName, item.PartitionableGpuPath, dialog.SelectedSharePercent);
                 if (success)
                 {
-                    ShowSuccess($"已为「{vmName}」分配 {item.Name} 分区（份额 {dialog.SelectedSharePercent}%）。驱动需要在来宾内单独复制。");
+                    ShowSuccess(string.Format(Properties.Resources.GpuPv_Msg_Assigned,
+                        vmName, item.Name, dialog.SelectedSharePercent));
                     await LoadAsync();
                 }
                 else
                 {
-                    ShowError(string.IsNullOrWhiteSpace(message) ? "分配失败。" : message);
+                    ShowError(string.IsNullOrWhiteSpace(message) ? Properties.Resources.GpuPv_Err_AssignFailed : message);
                 }
             }
             finally
@@ -194,10 +202,10 @@ namespace ExHyperV.ViewModels
             if (item == null) return;
 
             bool confirmed = await Dialogs.ShowConfirmAsync(
-                "移除 GPU 分区",
-                $"确定从「{item.VmName}」移除 {item.GpuName} 分区？\r\n移除后该虚拟机将失去 GPU 加速，配置修改要求虚拟机处于关机状态。",
-                "移除",
-                "取消",
+                Properties.Resources.GpuPv_Dlg_Remove_Title,
+                string.Format(Properties.Resources.GpuPv_Dlg_Remove_Confirm, item.VmName, item.GpuName),
+                Properties.Resources.GpuPv_Dlg_Remove_Primary,
+                Properties.Resources.Btn_Cancel,
                 isDanger: true);
             if (!confirmed) return;
 
@@ -207,12 +215,12 @@ namespace ExHyperV.ViewModels
                 bool success = await _gpuService.RemoveGpuPartitionAsync(item.VmName, item.AdapterId);
                 if (success)
                 {
-                    ShowSuccess($"已从「{item.VmName}」移除 {item.GpuName} 分区。");
+                    ShowSuccess(string.Format(Properties.Resources.GpuPv_Msg_Removed, item.VmName, item.GpuName));
                     await LoadAsync();
                 }
                 else
                 {
-                    ShowError("移除失败：未能删除分区设置，请确认虚拟机已关机后重试。");
+                    ShowError(Properties.Resources.GpuPv_Err_RemoveFailed);
                 }
             }
             finally
@@ -227,23 +235,24 @@ namespace ExHyperV.ViewModels
             if (item == null) return;
             if (item.HostGpu == null || string.IsNullOrEmpty(item.HostGpu.PartitionableGpuPath))
             {
-                ShowError("无法定位该分区对应的宿主显卡，驱动复制已中止。");
+                ShowError(Properties.Resources.GpuPv_Err_HostGpuNotFound);
                 return;
             }
             if (!await EnsureVmPoweredOffAsync(item.VmName)) return;
 
-            var partition = await PromptPartitionAsync(item.VmName, "复制/更新显卡驱动", "开始复制");
+            var partition = await PromptPartitionAsync(
+                item.VmName, Properties.Resources.GpuPv_Dlg_Sync_Title, Properties.Resources.GpuPv_Btn_StartCopy);
             if (partition == null) return;
 
             await RunDriverTaskAsync(
-                $"正在向「{item.VmName}」复制 {item.GpuName} 驱动（离线挂载）",
+                string.Format(Properties.Resources.GpuPv_Overlay_SyncTitle, item.VmName, item.GpuName),
                 log => _gpuService.SyncWindowsDriversAsync(
                     item.VmName,
                     item.HostGpu.PartitionableGpuPath,
                     item.HostGpu.Manu,
                     partition,
                     log),
-                $"驱动已复制到「{item.VmName}」。启动虚拟机后由来宾系统完成驱动安装。");
+                string.Format(Properties.Resources.GpuPv_Msg_SyncDone, item.VmName));
         }
 
         [RelayCommand]
@@ -253,21 +262,21 @@ namespace ExHyperV.ViewModels
             if (!await EnsureVmPoweredOffAsync(item.VmName)) return;
 
             bool confirmed = await Dialogs.ShowConfirmAsync(
-                "清理显卡驱动",
-                $"将从「{item.VmName}」清理本工具复制进去的显卡驱动文件。\r\n" +
-                "只删除带有本工具注入标记的内容；没有标记时只列出候选位置，不会自动删除。",
-                "开始清理",
-                "取消",
+                Properties.Resources.GpuPv_Dlg_Cleanup_Title,
+                string.Format(Properties.Resources.GpuPv_Dlg_Cleanup_Confirm, item.VmName),
+                Properties.Resources.GpuPv_Btn_StartCleanup,
+                Properties.Resources.Btn_Cancel,
                 isDanger: true);
             if (!confirmed) return;
 
-            var partition = await PromptPartitionAsync(item.VmName, "清理显卡驱动", "开始清理");
+            var partition = await PromptPartitionAsync(
+                item.VmName, Properties.Resources.GpuPv_Dlg_Cleanup_Title, Properties.Resources.GpuPv_Btn_StartCleanup);
             if (partition == null) return;
 
             await RunDriverTaskAsync(
-                $"正在清理「{item.VmName}」的显卡驱动（离线挂载）",
+                string.Format(Properties.Resources.GpuPv_Overlay_CleanupTitle, item.VmName),
                 log => _gpuService.CleanupWindowsDriversAsync(item.VmName, partition, log),
-                $"已清理「{item.VmName}」中本工具复制的显卡驱动。");
+                string.Format(Properties.Resources.GpuPv_Msg_CleanupDone, item.VmName));
         }
 
         [RelayCommand]
@@ -286,13 +295,13 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError("读取 MMIO 设置失败：" + ex.Message);
+                ShowError(string.Format(Properties.Resources.GpuPv_Err_MmioRead, ex.Message));
                 return;
             }
 
             if (current == null)
             {
-                ShowError("读取 MMIO 设置失败：WMI 未返回虚拟机配置。");
+                ShowError(Properties.Resources.GpuPv_Err_MmioNoConfig);
                 return;
             }
 
@@ -310,12 +319,13 @@ namespace ExHyperV.ViewModels
                 : current.HighSizeMb == target.HighSizeMb;
             if (alreadyOptimal)
             {
-                ShowSuccess($"「{item.VmName}」的 MMIO 间隙已是推荐值，无需修正。");
+                ShowSuccess(string.Format(Properties.Resources.GpuPv_Msg_MmioOptimal, item.VmName));
                 return;
             }
 
             var dialog = new GpuMmioDialog(item.VmName, current, target, ceilingKnown);
-            if (!await Dialogs.ShowContentDialogAsync("MMIO 体检与修正", dialog, "应用修正")) return;
+            if (!await Dialogs.ShowContentDialogAsync(
+                Properties.Resources.GpuPv_Dlg_Mmio_Title, dialog, Properties.Resources.GpuPv_Btn_ApplyFix)) return;
 
             IsUiEnabled = false;
             try
@@ -335,12 +345,12 @@ namespace ExHyperV.ViewModels
 
                 if (response.Success)
                 {
-                    ShowSuccess(
-                        $"已写入 MMIO：基址 {target.BaseMb} MB / 高位 {target.HighSizeMb} MB / 低位 {target.LowSizeMb} MB，GuestControlledCacheTypes 已启用。");
+                    ShowSuccess(string.Format(Properties.Resources.GpuPv_Msg_MmioWritten,
+                        target.BaseMb, target.HighSizeMb, target.LowSizeMb));
                 }
                 else
                 {
-                    ShowError(string.IsNullOrWhiteSpace(response.Error) ? "MMIO 写入失败。" : response.Error);
+                    ShowError(string.IsNullOrWhiteSpace(response.Error) ? Properties.Resources.GpuPv_Err_MmioWriteFailed : response.Error);
                 }
             }
             finally
@@ -362,18 +372,19 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError("检测幽灵分区失败：" + ex.Message);
+                ShowError(string.Format(Properties.Resources.GpuPv_Err_RepairDetect, ex.Message));
                 return;
             }
 
             if (stale.Count == 0)
             {
-                ShowSuccess($"「{item.VmName}」未发现幽灵/失配 GPU 分区。");
+                ShowSuccess(string.Format(Properties.Resources.GpuPv_Msg_NoStale, item.VmName));
                 return;
             }
 
             var dialog = new GpuRepairDialog(item.VmName, stale);
-            if (!await Dialogs.ShowContentDialogAsync("修复幽灵分区", dialog, "备份并修复")) return;
+            if (!await Dialogs.ShowContentDialogAsync(
+                Properties.Resources.GpuPv_Btn_Repair, dialog, Properties.Resources.GpuPv_Btn_BackupRepair)) return;
 
             IsUiEnabled = false;
             try
@@ -381,7 +392,8 @@ namespace ExHyperV.ViewModels
                 var (success, message, rebound, removed) = await VmGpuRepairService.RepairAsync(item.VmName, stale);
                 if (success)
                 {
-                    ShowSuccess($"已修复「{item.VmName}」：重指 {rebound} 个、删除 {removed} 个。{message}");
+                    ShowSuccess(string.Format(Properties.Resources.GpuPv_Msg_Repaired,
+                        item.VmName, rebound, removed, message));
                     await LoadAsync();
                 }
                 else
@@ -404,13 +416,13 @@ namespace ExHyperV.ViewModels
             }
             catch (Exception ex)
             {
-                ShowError("读取虚拟机分区失败：" + ex.Message);
+                ShowError(string.Format(Properties.Resources.GpuPv_Err_ReadPartitions, ex.Message));
                 return null;
             }
 
             if (partitions.Count == 0)
             {
-                ShowError("虚拟机内没有可用的磁盘分区，或磁盘尚未初始化，无法进行离线驱动操作。");
+                ShowError(Properties.Resources.GpuPv_Err_NoPartitions);
                 return null;
             }
 
@@ -421,7 +433,7 @@ namespace ExHyperV.ViewModels
 
             if (partition.OsType != OperatingSystemType.Windows)
             {
-                ShowError("本期只支持 Windows 来宾的驱动复制与清理；Linux 来宾请先只分配分区。");
+                ShowError(Properties.Resources.GpuPv_Err_WindowsOnly);
                 return null;
             }
 
@@ -436,19 +448,19 @@ namespace ExHyperV.ViewModels
                     .FirstOrDefault(v => string.Equals(v.Name, vmName, StringComparison.OrdinalIgnoreCase));
                 if (vm == null)
                 {
-                    ShowError($"找不到虚拟机「{vmName}」。");
+                    ShowError(string.Format(Properties.Resources.GpuPv_Err_VmNotFound, vmName));
                     return false;
                 }
                 if (vm.IsRunning)
                 {
-                    ShowError($"「{vmName}」正在运行。驱动复制/清理需要离线挂载磁盘，请先关机再操作。");
+                    ShowError(string.Format(Properties.Resources.GpuPv_Err_VmRunning, vmName));
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                ShowError("读取虚拟机状态失败：" + ex.Message);
+                ShowError(string.Format(Properties.Resources.GpuPv_Err_ReadVmState, ex.Message));
                 return false;
             }
         }
@@ -459,7 +471,7 @@ namespace ExHyperV.ViewModels
             string successText)
         {
             DriverTitle = title;
-            DriverStatus = "准备中…";
+            DriverStatus = Properties.Resources.GpuPv_Overlay_Preparing;
             DriverLog = string.Empty;
             DriverCanClose = false;
             IsDriverBusy = true;
@@ -483,16 +495,16 @@ namespace ExHyperV.ViewModels
                 }
                 else
                 {
-                    DriverStatus = "失败：" + result.Message;
-                    DriverLog += Environment.NewLine + "失败：" + result.Message + Environment.NewLine;
+                    DriverStatus = string.Format(Properties.Resources.GpuPv_Overlay_FailedPrefix, result.Message);
+                    DriverLog += Environment.NewLine + DriverStatus + Environment.NewLine;
                     ShowError(result.Message);
                 }
             }
             catch (Exception ex)
             {
-                DriverStatus = "异常：" + ex.Message;
+                DriverStatus = string.Format(Properties.Resources.GpuPv_Overlay_ExceptionPrefix, ex.Message);
                 DriverLog += Environment.NewLine + ex + Environment.NewLine;
-                ShowError("驱动操作异常：" + ex.Message);
+                ShowError(string.Format(Properties.Resources.GpuPv_Err_DriverOperation, ex.Message));
             }
             finally
             {
