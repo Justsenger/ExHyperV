@@ -4020,4 +4020,135 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="ConsoleWindow_MoreActions" xml:space="preserve"><value>More actions</value></data>
   <data name="Tray_Open" xml:space="preserve"><value>Open ExHyperV</value></data>
   <data name="Tray_Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="GpuPv_InfoBar_Notice" xml:space="preserve"><value>Assigning or removing a GPU partition modifies the VM configuration. Power off the target VM first. A partition only exposes the host GPU to the VM; the matching driver must also be copied into the guest.</value></data>
+  <data name="GpuPv_NoPartitionableGpu_Title" xml:space="preserve"><value>No partitionable GPU found</value></data>
+  <data name="GpuPv_NoPartitionableGpu_Message" xml:space="preserve"><value>Install the graphics driver before enabling Hyper-V. If Hyper-V was enabled first, the GPUPARAV interface will not be exposed: reinstall the driver and reboot.</value></data>
+  <data name="GpuPv_Section_HostGpus" xml:space="preserve"><value>Host partitionable GPUs</value></data>
+  <data name="GpuPv_Section_Assignments" xml:space="preserve"><value>Assigned partitions</value></data>
+  <data name="GpuPv_Btn_Assign" xml:space="preserve"><value>Assign...</value></data>
+  <data name="GpuPv_Btn_SyncDriver" xml:space="preserve"><value>Copy / update driver</value></data>
+  <data name="GpuPv_Btn_CleanupDriver" xml:space="preserve"><value>Clean up driver</value></data>
+  <data name="GpuPv_Btn_Remove" xml:space="preserve"><value>Remove partition</value></data>
+  <data name="GpuPv_Btn_MmioCheck" xml:space="preserve"><value>MMIO check &amp; fix</value></data>
+  <data name="GpuPv_Btn_Repair" xml:space="preserve"><value>Repair stale partitions</value></data>
+  <data name="GpuPv_Btn_Close" xml:space="preserve"><value>Close</value></data>
+  <data name="GpuPv_Label_Manu" xml:space="preserve"><value>Chip vendor</value></data>
+  <data name="GpuPv_Label_Vendor" xml:space="preserve"><value>Board vendor</value></data>
+  <data name="GpuPv_Label_DriverVersion" xml:space="preserve"><value>Driver version</value></data>
+  <data name="GpuPv_Label_MemoryPath" xml:space="preserve"><value>VRAM / path</value></data>
+  <data name="GpuPv_Label_Memory" xml:space="preserve"><value>VRAM</value></data>
+  <data name="GpuPv_Label_InstancePath" xml:space="preserve"><value>Instance path</value></data>
+  <data name="GpuPv_NotPartitionable_Hint" xml:space="preserve"><value>This GPU does not expose a GPUPARAV partitionable interface and cannot be assigned.</value></data>
+  <data name="GpuPv_Assigned_None" xml:space="preserve"><value>Not assigned</value></data>
+  <data name="GpuPv_Assigned_Count" xml:space="preserve"><value>{0} partitions assigned</value></data>
+  <data name="GpuPv_UnknownDevice" xml:space="preserve"><value>Unknown Device</value></data>
+  <data name="GpuPv_SelectVmHint" xml:space="preserve"><value>Select a target virtual machine first.</value></data>
+  <data name="GpuPv_Err_NoVmSelected" xml:space="preserve"><value>No target virtual machine was selected; assignment cancelled.</value></data>
+  <data name="GpuPv_Assign_Intro" xml:space="preserve"><value>The VM will receive a GPU partition. Adding or removing partitions requires the VM to be powered off.</value></data>
+  <data name="GpuPv_Assign_TargetVm" xml:space="preserve"><value>Target virtual machine</value></data>
+  <data name="GpuPv_Assign_Share" xml:space="preserve"><value>GPU share (performance ceiling)</value></data>
+  <data name="GpuPv_Assign_NoVm" xml:space="preserve"><value>No powered-off virtual machines are available. Shut down the target VM first.</value></data>
+  <data name="GpuPv_Share_100" xml:space="preserve"><value>100% (full GPU ceiling, no scaling)</value></data>
+  <data name="GpuPv_Share_75" xml:space="preserve"><value>75% (near full)</value></data>
+  <data name="GpuPv_Share_50" xml:space="preserve"><value>50% (common for multi-VM sharing)</value></data>
+  <data name="GpuPv_Share_25" xml:space="preserve"><value>25% (light graphics)</value></data>
+  <data name="GpuPv_ShareHint_100" xml:space="preserve"><value>Template defaults: this partition can use the full VRAM and encode/decode/compute ceilings. Best performance, but VMs are more likely to contend with each other.</value></data>
+  <data name="GpuPv_ShareHint_75" xml:space="preserve"><value>VRAM and encode/decode/compute ceilings reduced to about 3/4. Minor performance loss; good for one primary VM plus a lightweight secondary VM.</value></data>
+  <data name="GpuPv_ShareHint_50" xml:space="preserve"><value>Ceilings halved: VRAM bandwidth and encode/decode/compute capacity are capped at 50%. Heavy games or rendering see noticeably lower frame rates and resolutions. Suitable for office desktops and light graphics.</value></data>
+  <data name="GpuPv_ShareHint_25" xml:space="preserve"><value>Ceilings reduced to about 1/4. Only suitable for desktops and video playback; 3D workloads are heavily constrained.</value></data>
+  <data name="GpuPv_ShareHint_Disclaimer" xml:space="preserve"><value>Note: whether these ceilings actually throttle the running guest depends on the GPU driver and Hyper-V version. This tool only guarantees that scaled values are written to the WMI partition settings.</value></data>
+  <data name="GpuPv_Mmio_Intro" xml:space="preserve"><value>MMIO correction is a write operation that changes the VM configuration directly and requires the VM to be powered off. The high MMIO gap is the address window used for GPU VRAM mapping; if it is too small the VM will not start or the guest GPU reports Code 43.</value></data>
+  <data name="GpuPv_Mmio_Header" xml:space="preserve"><value>'{0}' — MMIO check result</value></data>
+  <data name="GpuPv_Mmio_Base" xml:space="preserve"><value>High MMIO base</value></data>
+  <data name="GpuPv_Mmio_High" xml:space="preserve"><value>High MMIO gap</value></data>
+  <data name="GpuPv_Mmio_Low" xml:space="preserve"><value>Low MMIO gap</value></data>
+  <data name="GpuPv_Mmio_Enabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="GpuPv_Mmio_Col_Item" xml:space="preserve"><value>Item</value></data>
+  <data name="GpuPv_Mmio_Col_Current" xml:space="preserve"><value>Current</value></data>
+  <data name="GpuPv_Mmio_Col_Target" xml:space="preserve"><value>Target</value></data>
+  <data name="GpuPv_Mmio_NotProvided" xml:space="preserve"><value>Not provided</value></data>
+  <data name="GpuPv_Mmio_Unchanged" xml:space="preserve"><value>Unchanged</value></data>
+  <data name="GpuPv_Mmio_FormatMb" xml:space="preserve"><value>{0} MB (about {1} GB)</value></data>
+  <data name="GpuPv_Mmio_Note_Known" xml:space="preserve"><value>These targets are derived from the probed host MMIO ceiling: the high base is set to half the ceiling and the high gap takes up to 256 GB of the remaining space. Applying writes the configuration immediately; a VM checkpoint can be used to restore it.</value></data>
+  <data name="GpuPv_Mmio_Note_Unknown" xml:space="preserve"><value>No cached host MMIO ceiling is available. This pass only raises the high gap to the default 256 GB and leaves the high base and low gap unchanged. If the VM fails to start afterwards, run a full probe on the VM settings page or restore a checkpoint.</value></data>
+  <data name="GpuPv_Repair_Intro" xml:space="preserve"><value>This step rewrites the VM .vmcx configuration file. The tool creates a .gpupv-bak-&lt;timestamp&gt; backup first and rolls back automatically on validation failure or an exception. After a successful repair there is no one-click undo: restore the backup manually. The VM must be powered off.</value></data>
+  <data name="GpuPv_Repair_BackupNote" xml:space="preserve"><value>Backup files stay in the VM configuration directory and are not cleaned up automatically. If the VM still fails to boot after repair, power it off, overwrite .vmcx with the matching backup, then start it again.</value></data>
+  <data name="GpuPv_Repair_Header" xml:space="preserve"><value>'{0}' — {1} stale/mismatched GPU partitions found</value></data>
+  <data name="GpuPv_Repair_Action_Incomplete" xml:space="preserve"><value>Remove (incomplete configuration)</value></data>
+  <data name="GpuPv_Repair_Action_Rebind" xml:space="preserve"><value>Rebind to the new host path</value></data>
+  <data name="GpuPv_Repair_Action_Remove" xml:space="preserve"><value>Remove (GPU no longer present on host)</value></data>
+  <data name="GpuPv_Repair_ItemHeader" xml:space="preserve"><value>VDEV {0} — {1}</value></data>
+  <data name="GpuPv_Repair_CurrentHostResource" xml:space="preserve"><value>Current HostResource: </value></data>
+  <data name="GpuPv_Repair_RebindTo" xml:space="preserve"><value>After repair points to: </value></data>
+  <data name="GpuPv_Repair_WillRemove" xml:space="preserve"><value>This device will be removed from the VM configuration.</value></data>
+  <data name="GpuPv_Partition_Intro" xml:space="preserve"><value>Driver operations mount the selected system partition offline and require the VM to be powered off. Only Windows guests are supported in this release.</value></data>
+  <data name="GpuPv_Partition_LinuxHint" xml:space="preserve"><value>The selected partition is not a Windows partition; GPU drivers cannot be copied or cleaned up.</value></data>
+  <data name="GpuPv_Partition_Header" xml:space="preserve"><value>'{0}' — {1}</value></data>
+  <data name="GpuPv_Err_Load" xml:space="preserve"><value>Failed to read GPU partition information: {0}</value></data>
+  <data name="GpuPv_Tip_NotPartitionable" xml:space="preserve"><value>This GPU has no partitionable interface. Install the graphics driver before enabling Hyper-V (if the order was reversed, reinstall the driver).</value></data>
+  <data name="GpuPv_Err_ReadVmList" xml:space="preserve"><value>Failed to read the virtual machine list: {0}</value></data>
+  <data name="GpuPv_Dlg_Assign_Title" xml:space="preserve"><value>Assign GPU partition</value></data>
+  <data name="GpuPv_Dlg_Assign_Primary" xml:space="preserve"><value>Assign</value></data>
+  <data name="GpuPv_Msg_Assigned" xml:space="preserve"><value>Assigned a {1} partition to '{0}' (share {2}%). The driver must be copied into the guest separately.</value></data>
+  <data name="GpuPv_Err_AssignFailed" xml:space="preserve"><value>Assignment failed.</value></data>
+  <data name="GpuPv_Dlg_Remove_Title" xml:space="preserve"><value>Remove GPU partition</value></data>
+  <data name="GpuPv_Dlg_Remove_Confirm" xml:space="preserve"><value>Remove the {1} partition from '{0}'?&#xD;&#xA;The VM will lose GPU acceleration. Configuration changes require the VM to be powered off.</value></data>
+  <data name="GpuPv_Dlg_Remove_Primary" xml:space="preserve"><value>Remove</value></data>
+  <data name="GpuPv_Msg_Removed" xml:space="preserve"><value>Removed the {1} partition from '{0}'.</value></data>
+  <data name="GpuPv_Err_RemoveFailed" xml:space="preserve"><value>Removal failed: the partition setting could not be deleted. Make sure the VM is powered off and try again.</value></data>
+  <data name="GpuPv_Err_HostGpuNotFound" xml:space="preserve"><value>Cannot locate the host GPU for this partition; driver copy aborted.</value></data>
+  <data name="GpuPv_Dlg_Sync_Title" xml:space="preserve"><value>Copy / update GPU driver</value></data>
+  <data name="GpuPv_Btn_StartCopy" xml:space="preserve"><value>Start copy</value></data>
+  <data name="GpuPv_Overlay_SyncTitle" xml:space="preserve"><value>Copying {1} driver into '{0}' (offline mount)</value></data>
+  <data name="GpuPv_Msg_SyncDone" xml:space="preserve"><value>Driver copied to '{0}'. The guest operating system completes driver installation after the VM starts.</value></data>
+  <data name="GpuPv_Dlg_Cleanup_Title" xml:space="preserve"><value>Clean up GPU driver</value></data>
+  <data name="GpuPv_Dlg_Cleanup_Confirm" xml:space="preserve"><value>GPU driver files copied by this tool will be removed from '{0}'.&#xD;&#xA;Only items carrying the tool injection marker are deleted; without a marker, candidate locations are listed but nothing is removed.</value></data>
+  <data name="GpuPv_Btn_StartCleanup" xml:space="preserve"><value>Start cleanup</value></data>
+  <data name="GpuPv_Overlay_CleanupTitle" xml:space="preserve"><value>Cleaning up GPU drivers in '{0}' (offline mount)</value></data>
+  <data name="GpuPv_Msg_CleanupDone" xml:space="preserve"><value>GPU drivers copied by this tool were removed from '{0}'.</value></data>
+  <data name="GpuPv_Err_MmioRead" xml:space="preserve"><value>Failed to read MMIO settings: {0}</value></data>
+  <data name="GpuPv_Err_MmioNoConfig" xml:space="preserve"><value>Failed to read MMIO settings: WMI returned no VM configuration.</value></data>
+  <data name="GpuPv_Msg_MmioOptimal" xml:space="preserve"><value>The MMIO gaps of '{0}' already match the recommended values; no correction needed.</value></data>
+  <data name="GpuPv_Dlg_Mmio_Title" xml:space="preserve"><value>MMIO check &amp; fix</value></data>
+  <data name="GpuPv_Btn_ApplyFix" xml:space="preserve"><value>Apply fix</value></data>
+  <data name="GpuPv_Msg_MmioWritten" xml:space="preserve"><value>MMIO written: base {0} MB / high gap {1} MB / low gap {2} MB; GuestControlledCacheTypes enabled.</value></data>
+  <data name="GpuPv_Err_MmioWriteFailed" xml:space="preserve"><value>Failed to write MMIO settings.</value></data>
+  <data name="GpuPv_Err_RepairDetect" xml:space="preserve"><value>Failed to detect stale GPU partitions: {0}</value></data>
+  <data name="GpuPv_Msg_NoStale" xml:space="preserve"><value>No stale or mismatched GPU partitions found in '{0}'.</value></data>
+  <data name="GpuPv_Btn_BackupRepair" xml:space="preserve"><value>Back up and repair</value></data>
+  <data name="GpuPv_Msg_Repaired" xml:space="preserve"><value>Repaired '{0}': {1} rebound, {2} removed. {3}</value></data>
+  <data name="GpuPv_Err_ReadPartitions" xml:space="preserve"><value>Failed to read VM disk partitions: {0}</value></data>
+  <data name="GpuPv_Err_NoPartitions" xml:space="preserve"><value>No usable disk partitions were found in the VM (or the disk is not initialized); offline driver operations cannot proceed.</value></data>
+  <data name="GpuPv_Err_WindowsOnly" xml:space="preserve"><value>Driver copy and cleanup only support Windows guests in this release; for Linux guests, assign the partition only.</value></data>
+  <data name="GpuPv_Err_VmNotFound" xml:space="preserve"><value>Virtual machine '{0}' was not found.</value></data>
+  <data name="GpuPv_Err_VmRunning" xml:space="preserve"><value>'{0}' is running. Driver copy/cleanup requires an offline disk mount; shut it down first.</value></data>
+  <data name="GpuPv_Err_ReadVmState" xml:space="preserve"><value>Failed to read VM state: {0}</value></data>
+  <data name="GpuPv_Overlay_Preparing" xml:space="preserve"><value>Preparing...</value></data>
+  <data name="GpuPv_Overlay_FailedPrefix" xml:space="preserve"><value>Failed: {0}</value></data>
+  <data name="GpuPv_Overlay_ExceptionPrefix" xml:space="preserve"><value>Exception: {0}</value></data>
+  <data name="GpuPv_Err_DriverOperation" xml:space="preserve"><value>Driver operation failed: {0}</value></data>
+  <data name="GpuPv_Err_ShareTemplateMissing" xml:space="preserve"><value>Cannot read the GPU partition share ceilings (Maximum template missing); assignment cancelled.</value></data>
+  <data name="GpuPv_Err_ShareCeilingMissing" xml:space="preserve"><value>This platform exposes no usable GPU partition share ceilings; assignment cancelled.</value></data>
+  <data name="GpuPv_Err_AssignDriveLetter" xml:space="preserve"><value>Could not assign a drive letter to the system partition; cleanup aborted.</value></data>
+  <data name="GpuPv_Err_NotWindowsPartition" xml:space="preserve"><value>Partition {0} is not a Windows system partition (Windows\System32 missing); cleanup aborted.</value></data>
+  <data name="GpuPv_Err_NoInjectionMarker" xml:space="preserve"><value>No injection marker written by this tool was found; automatic cleanup skipped (guest drivers are untouched).&#xD;&#xA;</value></data>
+  <data name="GpuPv_Log_Candidates" xml:space="preserve"><value>Candidate locations:&#xD;&#xA;</value></data>
+  <data name="GpuPv_Log_MarkerFound" xml:space="preserve"><value>Injection marker found; cleaning up driver packages copied by this tool...</value></data>
+  <data name="GpuPv_Log_PackageRemoved" xml:space="preserve"><value>Removed driver package {0}.</value></data>
+  <data name="GpuPv_Log_RepositoryRemoved" xml:space="preserve"><value>Removed HostDriverStore\FileRepository from the guest.</value></data>
+  <data name="GpuPv_Log_RepositoryMissing" xml:space="preserve"><value>The marker exists but HostDriverStore\FileRepository is already gone; only the marker file is removed.</value></data>
+  <data name="GpuPv_Log_MarkerRemoved" xml:space="preserve"><value>Injection marker removed.</value></data>
+  <data name="GpuPv_Msg_CleanupSummary" xml:space="preserve"><value>Cleanup complete: removed {0} driver packages copied by this tool and the marker file.</value></data>
+  <data name="GpuPv_Msg_CleanupScope" xml:space="preserve"><value>Driver files under System32/SysWOW64 are outside the cleanup scope (matching the reference implementation; re-pushing drivers overwrites them).</value></data>
+  <data name="GpuPv_Err_CleanupFailed" xml:space="preserve"><value>Cleanup failed: {0}</value></data>
+  <data name="GpuPv_Log_NoRepository" xml:space="preserve"><value>  - HostDriverStore\FileRepository not found (nothing to clean)</value></data>
+  <data name="GpuPv_Log_RepositoryStats" xml:space="preserve"><value>  - {0} ({1} subdirectories / {2} files)</value></data>
+  <data name="GpuPv_Log_RepositoryReadFailed" xml:space="preserve"><value>  - {0} (read failed: {1})</value></data>
+  <data name="GpuPv_Log_MarkerWritten" xml:space="preserve"><value>[GPU Marker] Injection marker written; cleanup uses it to identify files copied by this tool.</value></data>
+  <data name="GpuPv_Log_MarkerWriteFailed" xml:space="preserve"><value>[GPU Marker] Failed to write the marker; later cleanup will only list candidates and delete nothing: {0}</value></data>
+  <data name="GpuPv_Err_RepairBackupFailed" xml:space="preserve"><value>Backing up .vmcx failed; repair cancelled without any changes: {0}</value></data>
+  <data name="GpuPv_Msg_RepairBackupPath" xml:space="preserve"><value>Backup written to: {0}</value></data>
+  <data name="GpuPv_Msg_RollbackOk" xml:space="preserve"><value> (rolled back from backup: {0})</value></data>
+  <data name="GpuPv_Msg_RollbackFailed" xml:space="preserve"><value> (automatic rollback failed; power off the VM and restore the backup manually: {0})</value></data>
+  <data name="GpuPv_Err_MmioProbeStopFailed" xml:space="preserve"><value>The MMIO probe VM started successfully but could not be turned off.</value></data>
 </root>
