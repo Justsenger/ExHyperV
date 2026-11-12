@@ -18,8 +18,9 @@
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 		<RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
 		<PublishRoot Condition="'$(PublishRoot)' == ''">$(MSBuildProjectDirectory)\bin\publish-all</PublishRoot>
-		<!-- MSTSCLib(mstscax.dll RDP 控件)的 get_UIParentWindowHandle 返回窗口句柄 HWND，COM 封送器固有提示其按指针传递；控件工作正常，降级此 MSBuild 警告为消息以消除约 30 条 MSB3305 -->
-		<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);MSB3305</MSBuildWarningsAsMessages>
+		<!-- dotnet CLI(MSBuild Core) 不支持 ResolveComReference：MSTSCLib/IMAPI2FS 改用
+		     TlbImp 预生成互操作程序集（libs\interop）按普通引用加载。此改造与 TFM 无关，
+		     .NET 8 基线下 VS 与 `dotnet build` 均可构建。 -->
 	</PropertyGroup>
 	<!-- Authors 仅进 NuGet 元数据、不会自动生成运行时特性；显式发布为 AssemblyMetadata("Authors") 供 AppInfoService 读取，否则"关于"页作者回落为 Unknown -->
 	<ItemGroup>
@@ -28,34 +29,26 @@
 	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="SSH.NET" Version="2026.0.0" />
-		<PackageReference Include="System.Management" Version="10.0.8" />
+		<PackageReference Include="System.Management" Version="8.0.0" />
 		<PackageReference Include="WPF-UI" Version="4.3.0" />
 		<!-- 本地 fork 的配套托盘组件；图标转换依赖与该组件构建版本一致。 -->
 		<Reference Include="Wpf.Ui.Tray">
 			<HintPath>libs\Wpf.Ui.Tray.dll</HintPath>
 			<Private>true</Private>
 		</Reference>
-		<PackageReference Include="System.Drawing.Common" Version="10.0.7" />
+		<PackageReference Include="System.Drawing.Common" Version="8.0.0" />
 		<Resource Include="Assets\**\*.*" Exclude="Assets\**\*.xaml;Assets\Icon.ico" />
 		<Resource Include="Assets\Icon.ico" />
-		<COMReference Include="IMAPI2FS">
-			<WrapperTool>tlbimp</WrapperTool>
-			<VersionMinor>0</VersionMinor>
-			<VersionMajor>1</VersionMajor>
-			<Guid>2c941fd0-975b-59be-a960-9a2a262853a5</Guid>
-			<Lcid>0</Lcid>
-			<Isolated>false</Isolated>
+		<Reference Include="IMAPI2FS">
+			<HintPath>libs\interop\IMAPI2FS.dll</HintPath>
 			<EmbedInteropTypes>true</EmbedInteropTypes>
-		</COMReference>
-		<COMReference Include="MSTSCLib">
-			<WrapperTool>tlbimp</WrapperTool>
-			<VersionMinor>0</VersionMinor>
-			<VersionMajor>1</VersionMajor>
-			<Guid>8c11efa1-92c3-11d1-bc1e-00c04fa31489</Guid>
-			<Lcid>0</Lcid>
-			<Isolated>false</Isolated>
+			<Private>false</Private>
+		</Reference>
+		<Reference Include="MSTSCLib">
+			<HintPath>libs\interop\MSTSCLib.dll</HintPath>
 			<EmbedInteropTypes>true</EmbedInteropTypes>
-		</COMReference>
+			<Private>false</Private>
+		</Reference>
 		<Compile Update="Properties\Resources.Designer.cs">
 			<DesignTime>True</DesignTime>
 			<AutoGen>True</AutoGen>

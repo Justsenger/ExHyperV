@@ -46,7 +46,9 @@ namespace ExHyperV.Tools
                 evt.OnFatalError += code => Safe(() => FatalError?.Invoke(code));
                 // 容器处理全屏下，连接栏的最小化/关闭按钮经事件交给容器（窗口）处理
                 evt.OnRequestContainerMinimize += () => Safe(() => MinimizeRequested?.Invoke());
-                evt.OnConfirmClose += () => { Safe(() => CloseRequested?.Invoke()); return true; };  // 返回值=允许关闭
+                // 迁移到 .NET 10 后改用本地 TlbImp 生成的互操作程序集：该版本类型库把
+                // OnConfirmClose 声明为 [in,out] VARIANT_BOOL*，对应委托参数为 ref bool（返回值经参数回填）。
+                evt.OnConfirmClose += (out bool allowClose) => { Safe(() => CloseRequested?.Invoke()); allowClose = true; };
             }
             catch (Exception ex)
             {
