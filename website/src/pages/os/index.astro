@@ -1,4 +1,35 @@
 ---
 import SiteLayout from '../../layouts/SiteLayout.astro';
+import SystemIcon from '../../components/SystemIcon.astro';
+import { categories } from '../../data/catalog';
 ---
-<SiteLayout module="wiki" />
+<SiteLayout module="wiki">
+  <section class="os-home" aria-label="系统分类" data-i18n-aria="categories">
+    <div class="os-home-entries">
+      {categories.map((category, index) => (
+        <button class="os-home-entry" type="button" data-open-family={category.name} aria-controls={`family-${index}`}>
+          <SystemIcon name={category.icon} />
+          <span>{category.name}</span>
+        </button>
+      ))}
+    </div>
+  </section>
+</SiteLayout>
+
+<style>
+  .os-home { padding: 32px 24px; }
+  .os-home-entries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; }
+  .os-home-entry { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 18px; width: 100%; min-height: 72px; padding: 14px 18px; border: 1px solid var(--ui-border); border-radius: 10px; background: var(--surface-raised); text-align: left; font-size: 18px; }
+  .os-home-entry :global(.system-icon) { width: 40px; height: 40px; margin: 0; }
+  .os-home-entry > span { white-space: nowrap; }
+  .os-home-entry:hover { background: var(--surface-hover); border-color: var(--accent); }
+  .os-home-entry:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  @media (max-width: 640px) {
+    .os-home { padding: 24px 16px; }
+    .os-home-entry { gap: 14px; padding-inline: 16px; }
+  }
+  @media (max-width: 480px) {
+    .os-home-entry { grid-template-columns: 28px minmax(0, 1fr); min-height: 64px; gap: 10px; padding: 12px; font-size: 15px; }
+    .os-home-entry :global(.system-icon) { width: 28px; height: 28px; }
+  }
+</style>

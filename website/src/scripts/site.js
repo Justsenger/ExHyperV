@@ -252,6 +252,27 @@ document.addEventListener('focusin', event => { const target = nameTarget(event.
 document.addEventListener('focusout', event => { if (!fullNamePinned && !nameTarget(event.relatedTarget || {})) hideFullName(); });
 
 document.addEventListener('click', event => {
+  const familyEntry = event.target.closest('[data-open-family]');
+  if (familyEntry) {
+    const sidebar = document.querySelector('#slide-out');
+    const family = [...sidebar.querySelectorAll('#version-categories > li')]
+      .find(row => row.dataset.family === familyEntry.dataset.openFamily);
+    const search = sidebar.querySelector('#version-search');
+    search.value = '';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    hideFullName();
+    openRow(family, false);
+    if (matchMedia('(max-width: 999px)').matches) {
+      sidebar.classList.add('is-open');
+      document.querySelector('#sidebar-toggle').setAttribute('aria-expanded', 'true');
+      document.querySelector('#wiki-backdrop').hidden = false;
+    }
+    const heading = family.querySelector(':scope > .collapsible-header');
+    heading.focus({ preventScroll: true });
+    heading.scrollIntoView({ block: 'nearest' });
+    measureNames();
+    return;
+  }
   const info = event.target.closest('[data-name-for]');
   if (info) {
     const target = nameTarget(info);

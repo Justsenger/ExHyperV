@@ -104,7 +104,7 @@ await assert.rejects(access(path.join(root, 'dist/wiki')), 'Removed /wiki/ route
 await assert.rejects(access(path.join(root, 'dist/os/windows-10-team-surface-hub/index.html')), 'Team page must be deleted');
 const generatedRoutes = await readdir(path.join(root, 'dist/os'));
 assert(!generatedRoutes.some(name => name.includes('arm32')), 'ARM32 routes must be removed');
-for (const route of ['os', 'changelog']) {
+for (const route of ['changelog']) {
   const html = await readFile(path.join(root, 'dist', route, 'index.html'), 'utf8');
   const main = html.match(/<main\b[^>]*>([\s\S]*?)<\/main>/);
   assert(main && main[1].trim() === '', `Unexpected placeholder content in ${route}`);
@@ -114,6 +114,10 @@ assert(home.includes('id="home-title"') && home.includes('src="/images/exhyperv-
 assert(home.includes('<home-model'), 'Homepage must include the interactive model');
 await access(path.join(root, 'dist/images/exhyperv-app-icon.webp'));
 await access(path.join(root, 'dist/models/exhyperv-icon.glb'));
+const osHome = await readFile(path.join(root, 'dist/os/index.html'), 'utf8');
+const familyEntries = [...osHome.matchAll(/data-open-family="([^"]+)" aria-controls="([^"]+)"/g)];
+assert.deepEqual(familyEntries.map(entry => entry[1]), catalog.categories.map(category => category.name), 'OS home must expose each available system family');
+for (const entry of familyEntries) assert(osHome.includes(`id="${entry[2]}"`), `Missing family navigation target: ${entry[1]}`);
 const docs = await readFile(path.join(root, 'dist/docs/index.html'), 'utf8');
 assert(docs.includes('href="/api/"') && docs.includes('data-astro-reload'), 'API entry must load the standalone Core document');
 assert(!docs.includes('href="/sdk/"'), 'Old SDK entry remains');
