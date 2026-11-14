@@ -11,6 +11,6 @@ namespace ExHyperV.Services;
 /// <para>例如同一段网页内容可同时提供纯文本和 HTML，接收方选择能处理的格式。</para>
 /// <para>构造记录时保存原集合；SetClipboard 在发送时检查并复制。提交期间保持集合及数据不变。</para>
 /// <para>从 ClipboardReceived 收到的数据由托管内存持有，可在回调结束后继续使用，无需 Dispose。
-/// 接收列表只包含成功取得的受支持格式；空列表也可能表示格式不受支持或取数失败，不能据此认定来宾清空了剪贴板。</para>
+/// 接收列表包含成功取得的受支持格式；格式不受支持或取数失败时也可能为空。</para>
 /// </remarks>
 public sealed record ConsoleClipboardData(IReadOnlyList<ConsoleClipboardFormat> Formats);

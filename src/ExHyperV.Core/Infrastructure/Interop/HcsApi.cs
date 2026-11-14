@@ -27,7 +27,7 @@ internal sealed class HcsCpuGroupDetail
     [JsonPropertyName("GroupProperties")]
     public HcsCpuGroupProperty[]? GroupProperties { get; init; }
 
-    /// <summary>Hyper-V 内部 CPU 分组标识，不是 Windows 处理器组编号。</summary>
+    /// <summary>Hyper-V 内部 CPU 分组的唯一标识。</summary>
     [JsonPropertyName("HypervisorGroupId")]
     public ulong? HypervisorGroupId { get; init; }
 
@@ -87,7 +87,7 @@ internal sealed class HcsLogicalProcessor
     [JsonRequired]
     public uint PackageId { get; init; }
 
-    /// <summary>HCS 返回的物理核心标识，不是 LpIndex。</summary>
+    /// <summary>HCS 返回的物理核心标识。</summary>
     [JsonPropertyName("CoreId")]
     [JsonRequired]
     public uint CoreId { get; init; }
@@ -196,7 +196,7 @@ internal static class HcsApi
     /// <summary>创建具有指定逻辑处理器集合的宿主 CPU 分组。</summary>
     /// <returns>HCS 创建响应。</returns>
     /// <param name="groupId">新分组的 GUID。</param>
-    /// <param name="processorIndexes">宿主逻辑处理器索引，不是 VM 内 vCPU 索引。</param>
+    /// <param name="processorIndexes">宿主逻辑处理器索引。</param>
     public static Task<ApiResponse> CreateCpuGroupAsync(Guid groupId, uint[] processorIndexes)
     {
         if (groupId == Guid.Empty || processorIndexes is null || processorIndexes.Length == 0)
@@ -291,7 +291,7 @@ internal static class HcsApi
     /// <summary>将 CPU 分组配额原始值提交给 HCS。</summary>
     /// <returns>HCS 配置响应。</returns>
     /// <param name="groupId">待修改分组 GUID。</param>
-    /// <param name="cpuCap">HCS CpuCap 原始值，范围 0 至 65536；65536 表示满额，不是普通百分比。</param>
+    /// <param name="cpuCap">HCS CpuCap 原始值，范围 0 至 65536；65536 表示满额。</param>
     public static Task<ApiResponse> SetCpuGroupCapAsync(Guid groupId, uint cpuCap)
         => SetCpuGroupPropertyAsync(groupId, 0x00010000, cpuCap, cpuCap <= 65536);
 
@@ -303,7 +303,7 @@ internal static class HcsApi
     internal static Task<ApiResponse> SetCpuGroupIdleProcessorReserveAsync(Guid groupId, uint count)
         => SetCpuGroupPropertyAsync(groupId, 0x00030000, count, count <= 255);
 
-    /// <summary>提交已验证的 CPU 组相对调度权重；此名称描述底层计算，不是公开 HCS schema 的属性名。</summary>
+    /// <summary>设置 CPU 组的相对调度权重。</summary>
     internal static Task<ApiResponse> SetCpuGroupRelativeWeightAsync(Guid groupId, uint weight)
         => SetCpuGroupPropertyAsync(groupId, 0x00040000, weight, weight is >= 1 and <= 65535);
     private static Task<ApiResponse> SetCpuGroupPropertyAsync(Guid groupId, uint propertyCode, uint value, bool valid)

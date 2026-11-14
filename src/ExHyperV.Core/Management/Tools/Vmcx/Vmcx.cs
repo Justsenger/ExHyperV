@@ -23,7 +23,7 @@ namespace ExHyperV.Vmcx
     /// <remarks>
     /// 通过本机 VmDataStore.dll 读取文件副本，使用 BeginEdit 创建编辑批次。
     /// 文件上限为 256 MiB；提交时需要独占访问源文件。
-    /// 原生接口按本机 DLL 的接口约定调用，尚未提供覆盖所有 Windows 版本的兼容性保证；缺少 DLL 或接口时直接失败。
+    /// 依赖宿主的 VMCX 原生接口。
     /// </remarks>
     /// <example>
     /// <code>
@@ -243,7 +243,7 @@ namespace ExHyperV.Vmcx
         public IReadOnlyList<string> Validate() { RequireActive(); return VmcxValidation.Check(LegacyNodes()); }
         /// <summary>校验整批修改，备份后通过本机 VmDataStore 一次提交到原文件。</summary>
         /// <returns>是否修改、保留的备份路径以及前后哈希。无改动不创建备份。</returns>
-        /// <remarks>提交前核对源文件并取得原生排他锁。失败时保留备份和当前文件，恢复材料通过 VmcxEditException 返回；不会自动回滚，也不承诺断电或进程终止时的原子提交。</remarks>
+        /// <remarks>提交前核对源文件并取得排他锁。失败时保留备份和当前文件，恢复材料通过 VmcxEditException 返回，由调用方处理恢复。</remarks>
         /// <exception cref="InvalidDataException">批次含已知结构错误。</exception>
         /// <exception cref="IOException">源文件已变化或无法访问。</exception>
         /// <exception cref="VmcxEditException">文件事务失败；异常包含备份和恢复状态。</exception>
@@ -447,7 +447,7 @@ namespace ExHyperV.Vmcx
 
 #nullable restore
     /// <summary>现有 VMCX 中的一个节点快照。同名同路径节点仍各自具有独立身份。</summary>
-    /// <remarks>Id 只在本次文档及其编辑批次内有效；保存后请重新读取，不能跨文件复用。</remarks>
+    /// <remarks>Id 的有效范围为本次文档及编辑批次，保存后重新读取。</remarks>
     public sealed class VmcxEntry
     {
         /// <summary>节点在当前文档内的唯一标识。</summary>
@@ -474,7 +474,7 @@ namespace ExHyperV.Vmcx
     }
 
 #nullable restore
-    /// <summary>VMCX 值节点支持的存储类型；容器不是值。</summary>
+    /// <summary>VMCX 值节点支持的存储类型。</summary>
     public enum VmcxValueType
     {
         /// <summary>64 位有符号整数。</summary>
@@ -527,7 +527,7 @@ namespace ExHyperV.Vmcx
             _ = new UnicodeEncoding(false, false, true).GetByteCount(value);
             return new(VmcxValueType.String, value);
         }
-        /// <summary>构造独立的二进制值；不会保留调用方的可变缓冲区。</summary>
+        /// <summary>复制数据并构造独立的二进制值。</summary>
         /// <param name="value">待保存的字节。</param>
         /// <returns>保存独立数据的二进制类型值。</returns>
         public static VmcxValue Raw(ReadOnlySpan<byte> value) => new(VmcxValueType.Raw, Convert.ToBase64String(value));
@@ -792,7 +792,7 @@ namespace ExHyperV.Vmcx
 
         /// <summary>读取指定存储键的整数值。</summary>
         /// <returns>原生有符号 64 位整数；键缺失或类型错误等原生失败抛 VmcxException。</returns>
-        /// <param name="keyPath">存储树全路径，不是文件路径。</param>
+        /// <param name="keyPath">VMCX 存储树中的节点全路径。</param>
         public long   GetInteger(string keyPath){ long v=0; Hr(WithKey(keyPath, k=>D<DGetI>(Slot(_ikv,GET_INT))(_ikv,k, out v)), "GetInteger"); return v; }
         // out HSTRING 归调用方所有:复制成托管串后须 WindowsDeleteString 归还(与 Enumerate 同一约定;NULL 句柄删除为 no-op)
         /// <summary>读取指定存储键并复制为托管字符串，释放临时原生字符串。</summary>

@@ -55,14 +55,14 @@ internal static class Win32Api
 
     /// <summary>请求 Windows 启用指定 PnP 设备节点。</summary>
     /// <returns>原生配置管理器响应；Code 为对应配置管理器结果码。</returns>
-    /// <param name="instanceId">完整 PnP 设备实例 ID，不是显示名称或 LocationPath。</param>
+    /// <param name="instanceId">完整 PnP 设备实例 ID。</param>
     public static ApiResponse EnablePnpDevice(string instanceId)
         => SetPnpDeviceState(instanceId, enable: true);
 
     /// <summary>请求 Windows 禁用指定 PnP 设备节点，影响宿主对设备的访问。</summary>
     /// <remarks>需要设备管理权限；重新启用设备须调用 EnablePnpDevice。</remarks>
     /// <returns>原生配置管理器响应；设备不可禁用时返回失败。</returns>
-    /// <param name="instanceId">完整 PnP 设备实例 ID，不是显示名称或 LocationPath。</param>
+    /// <param name="instanceId">完整 PnP 设备实例 ID。</param>
     public static ApiResponse DisablePnpDevice(string instanceId)
         => SetPnpDeviceState(instanceId, enable: false);
 
@@ -100,7 +100,7 @@ internal static class Win32Api
 
     /// <summary>读取 PnP 设备的父设备实例 ID。</summary>
     /// <returns>父实例 ID；空输入、未找到或无法读取时返回空字符串。</returns>
-    /// <param name="instanceId">完整 PnP 设备实例 ID，不是显示名称或 LocationPath。</param>
+    /// <param name="instanceId">完整 PnP 设备实例 ID。</param>
     public static string GetDeviceParent(string instanceId)
     {
         if (string.IsNullOrWhiteSpace(instanceId)) return string.Empty;
@@ -442,7 +442,7 @@ internal class PciDeviceInfo
     public string Manufacturer { get; set; } = "";
     /// <summary>父 PnP 节点实例 ID。</summary>
     public string ParentInstanceId { get; set; } = "";
-    /// <summary>设备状态的显示文本，不是稳定数值错误码。</summary>
+    /// <summary>设备状态的显示文本。</summary>
     public string Status { get; set; } = "";
     /// <summary>节点当前是否在位；与驱动状态独立。</summary>
     public bool IsPresent { get; set; }

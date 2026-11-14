@@ -33,8 +33,7 @@ public sealed class VmTools
         if (bufferPercent.HasValue) { settings.Buffer = bufferPercent.Value; changed.Add(nameof(settings.Buffer)); }
         if (weight.HasValue) { settings.Weight = weight.Value; changed.Add(nameof(settings.Weight)); }
         if (changed.Count == 0) return ToolReply.Error("请至少选择一项内存字段。");
-        // Core re-reads the actual power state; this parameter is retained in its current contract.
-        return ToolReply.From(await VmMemoryService.SetVmMemorySettingsAsync(ToolReply.VmId(vmId), settings, isVmRunning: false, changedProperties: changed));
+        return ToolReply.From(await VmMemoryService.SetVmMemorySettingsAsync(ToolReply.VmId(vmId), settings, changedProperties: changed));
     });
 
     [McpServerTool(Name = "vm_processor_get", Title = "读取虚拟机处理器配置", ReadOnly = true, OpenWorld = false)]

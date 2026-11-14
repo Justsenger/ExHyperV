@@ -56,7 +56,7 @@ internal sealed partial class VmQueryEngine
                 ("GpuCopy", Value(VmGpuPerformanceFields.GpuCopy, g.GpuCopy, g.Sample)),
                 ("GpuEncode", Value(VmGpuPerformanceFields.GpuEncode, g.GpuEncode, g.Sample)),
                 ("GpuDecode", Value(VmGpuPerformanceFields.GpuDecode, g.GpuDecode, g.Sample)),
-                ("IsDriverBound", Value(VmGpuPerformanceFields.IsDriverBound, g.IsDriverBound, g.DriverSample)));
+                ("HasGpuEngineInstance", Value(VmGpuPerformanceFields.HasGpuEngineInstance, g.HasGpuEngineInstance, g.EnginePresenceSample)));
         }));
     }
     private static VmQueryValue Value(VmQueryField field, object value, PerformanceSampleInfo? sample) => field.Make(SampleState(sample), value, sample?.ObservedAtUtc ?? DateTimeOffset.UtcNow, sample?.Error);

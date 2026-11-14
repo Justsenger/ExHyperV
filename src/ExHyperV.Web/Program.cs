@@ -53,8 +53,8 @@ app.MapGet("/api/console/backends", () => Results.Ok(new
     backends = consoleBackends.Select(backend => new
     {
         id = backend.BackendId, name = backend.Name,
-        available = backend.IsImplemented && backend.Capabilities.HasFlag(ConsoleCapabilities.Video),
-        unavailableReason = backend.UnavailableReason
+        available = backend.Capabilities.HasFlag(ConsoleCapabilities.Video),
+        unavailableReason = backend.Capabilities.HasFlag(ConsoleCapabilities.Video) ? "" : "此后端未提供视频能力。"
     })
 }));
 app.MapGet("/api/vms", async (VmCatalog catalog, ILogger<Program> logger) =>
@@ -89,7 +89,7 @@ app.Map("/api/console/{vmId:guid}", async (HttpContext context, Guid vmId, VmCat
     if (backendId.Length == 0) backendId = consoleSource;
     var backend = consoleBackends.FirstOrDefault(item => item.BackendId == backendId);
     if (backend is null) { context.Response.StatusCode = 400; return; }
-    if (!backend.IsImplemented || !backend.Capabilities.HasFlag(ConsoleCapabilities.Video))
+    if (!backend.Capabilities.HasFlag(ConsoleCapabilities.Video))
     { context.Response.StatusCode = 503; return; }
     var quality = context.Request.Query["quality"].ToString();
     VideoSettings settings = quality switch

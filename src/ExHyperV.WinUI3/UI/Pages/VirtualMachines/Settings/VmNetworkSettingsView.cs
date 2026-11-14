@@ -41,7 +41,8 @@ public sealed class VmNetworkSettingsView : VmSettingsView
         if (IsStopped) return;
         switches = switchResult.Data!;
         var context = await contextTask;
-        canEditMac = VmNetworkService.CanEditMacAddress(context.IsRunning);
+        var condition = VmNetworkService.GetMacModificationCondition(context.State);
+        canEditMac = condition.CanModify;
         string? ipError = null;
         if (context.IsRunning)
         {

@@ -67,7 +67,7 @@ namespace ExHyperV.Tools
         // 用于 UI 判定亮监控/计时、Service 过滤可取性能数据的 VM。
         // 关键：合并磁盘(32772)/等待启动(32771)/已休眠(32783)/未知(0) 等均非活动——避免关机态被误判为运行。
         /// <summary>判断 VM 是否运行或处于本应用认可的运行相关过渡态。</summary>
-        /// <returns>属于运行、启动、停止、保存、挂起/恢复等选定过渡态时为 true；不等同 IsRunning。</returns>
+        /// <returns>处于运行、启动、停止、保存或挂起/恢复等活动状态时为 true。</returns>
         /// <param name="code">WMI 虚拟机 EnabledState 代码。</param>
         public static bool IsActiveState(ushort code) => code switch
         {
@@ -76,7 +76,7 @@ namespace ExHyperV.Tools
         };
 
         /// <summary>把 WMI 虚拟机状态码转换为当前资源语言的显示文本。</summary>
-        /// <returns>本地化状态说明，未知码保留其数值；不应用显示文本反推业务状态。</returns>
+        /// <returns>本地化状态说明，未知状态码保留数值。</returns>
         /// <param name="code">WMI 虚拟机 EnabledState 代码。</param>
         public static string MapStateCodeToText(ushort code)
         {

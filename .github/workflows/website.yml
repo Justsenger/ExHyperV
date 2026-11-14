@@ -6,6 +6,8 @@ on:
     paths:
       - 'website/**'
       - 'src/ExHyperV.Core/**'
+      - 'doc/api/**'
+      - 'tools/api-docs/**'
       - '.github/workflows/website.yml'
       - '**/Directory.Build.*'
       - '**/global.json'
@@ -14,6 +16,8 @@ on:
     paths:
       - 'website/**'
       - 'src/ExHyperV.Core/**'
+      - 'doc/api/**'
+      - 'tools/api-docs/**'
       - '.github/workflows/website.yml'
       - '**/Directory.Build.*'
       - '**/global.json'

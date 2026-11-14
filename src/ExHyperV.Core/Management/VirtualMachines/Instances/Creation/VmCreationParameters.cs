@@ -1,6 +1,6 @@
 ﻿namespace ExHyperV.Models
 {
-    /// <summary>创建虚拟机的可变输入。服务在开始时复制输入并按最终名称解析目录；设置此模型本身不会创建资源。</summary>
+    /// <summary>创建虚拟机的输入；调用时复制，并按最终名称解析目录。</summary>
     public class VmCreationParameters
     {
         internal VmCreationParameters Copy() => (VmCreationParameters)MemberwiseClone();
@@ -19,7 +19,7 @@
         /// <summary>虚拟机配置文件的根目录，服务在其下创建最终虚拟机名称目录。</summary>
         public string Path { get; set; } = string.Empty;
         // 仅新增磁盘跟随配置目录；已有磁盘不移动。服务按冲突避让后的实际名称解析。
-        /// <summary>是否将新磁盘放入虚拟机目录下的 Virtual Hard Disks；不会移动已有磁盘。</summary>
+        /// <summary>是否将新磁盘放入虚拟机目录下的 Virtual Hard Disks。</summary>
         public bool StoreNewDisksWithVm { get; set; }
 
         internal string GetNewDiskDirectory(string finalVmName)

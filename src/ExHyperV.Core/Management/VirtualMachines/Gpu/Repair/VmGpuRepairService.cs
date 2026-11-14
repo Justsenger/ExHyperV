@@ -53,7 +53,7 @@ namespace ExHyperV.Services
         /// <summary>当前宿主上可用于重绑的具体 GPU；由扫描结果提供。</summary>
         public sealed record RebindCandidate
         {
-            /// <summary>本候选的完整 GPU 分区路径，用作 SelectCandidate 的不透明标识；只代表当前宿主的这次设备身份，不保证跨宿主或重新枚举后不变。</summary>
+            /// <summary>本次查询的完整 GPU 分区路径，用于 SelectCandidate 选择设备。</summary>
             public string Id { get; }
             /// <summary>PnP 设备实例标识，包含区分同型号显卡的位置段；可与 HostGpuInfo.InstanceId 比对以取得名称。无法按标准分区路径解析时保留原路径。</summary>
             public string DeviceInstanceId { get; }
@@ -75,11 +75,11 @@ namespace ExHyperV.Services
             public string Instance { get; }
             /// <summary>设备缺少核心字段，无法按完整 GPU 分区设备使用。</summary>
             public bool IsStructurallyIncomplete { get; }
-            /// <summary>是否找到重绑候选；多候选时仍需先选择，不能仅凭此属性直接批准修复。</summary>
+            /// <summary>是否存在重绑候选；多个候选时需先选择。</summary>
             public bool CanRebind => Candidates.Count != 0;
-            /// <summary>具有相同硬件标识的全部候选，只读且已按完整身份去重；排序仅用于展示，不表示推荐优先级。</summary>
+            /// <summary>具有相同硬件标识的全部候选，按完整身份去重。</summary>
             public IReadOnlyList<RebindCandidate> Candidates { get; }
-            /// <summary>有多个候选且尚未明确选择；此时修复返回 AmbiguousTarget，不改绑也不删除设备。</summary>
+            /// <summary>是否有多个待选择候选；为 true 时，修复返回 AmbiguousTarget。</summary>
             public bool RequiresSelection => Candidates.Count > 1 && _selectedCandidateId == null;
             /// <summary>本次将使用的候选；单候选自动采用，多候选经 SelectCandidate 选择，零候选或待选择时为 null。</summary>
             public RebindCandidate? SelectedCandidate => Candidates.FirstOrDefault(c =>
@@ -103,7 +103,7 @@ namespace ExHyperV.Services
             }
 
             /// <summary>选择一张候选显卡，返回携带选择的新修复目标；原扫描结果和宿主均不改变。</summary>
-            /// <param name="candidateId">Candidates 中某一项的 Id；不能传型号名称或数组序号。</param>
+            /// <param name="candidateId">Candidates 中所选项的 Id。</param>
             /// <returns>可交给 RepairAsync 的新目标；执行时还会核对该候选仍然可用。</returns>
             /// <exception cref="ArgumentException">标识为空，或不是本目标的候选。</exception>
             public StaleGpuPartition SelectCandidate(string candidateId)
@@ -122,7 +122,7 @@ namespace ExHyperV.Services
         /// <param name="VmId">虚拟机的稳定 GUID。</param>
         /// <param name="Path">现存配置文件的绝对路径。</param>
         /// <param name="State">本次查询的类型化运行状态。</param>
-        public sealed record ConfigurationFile(Guid VmId, string Path, VmState State);
+        internal sealed record ConfigurationFile(Guid VmId, string Path, VmState State);
 
         /// <summary>本次提交完成的 GPU 分区修复数量。</summary>
         /// <param name="Rebound">重新绑定宿主 GPU 的设备数量。</param>
@@ -132,12 +132,12 @@ namespace ExHyperV.Services
         /// <summary>按稳定身份定位注册虚拟机的配置文件，并读取当前运行状态。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>现存配置文件与状态；查询失败或文件缺失均返回失败，不返回拼凑默认路径。</returns>
-        public static async Task<ApiResponse<ConfigurationFile>> ResolveVmcxAsync(Guid vmId)
+        internal static async Task<ApiResponse<ConfigurationFile>> ResolveVmcxAsync(Guid vmId)
         {
             if (vmId == Guid.Empty) return ApiResponse<ConfigurationFile>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
             var config = await WmiApi.QueryFirstAsync(
-                $"SELECT ConfigurationDataRoot FROM Msvm_VirtualSystemSettingData WHERE {VmIdentity.SettingsPredicate(vmId)}",
-                obj => obj["ConfigurationDataRoot"]?.ToString() ?? string.Empty);
+                $"SELECT ConfigurationDataRoot, ConfigurationFile FROM Msvm_VirtualSystemSettingData WHERE {VmIdentity.SettingsPredicate(vmId)}",
+                obj => (Root: obj["ConfigurationDataRoot"]?.ToString(), File: obj["ConfigurationFile"]?.ToString()));
             if (!config.HasData) return ApiResponse<ConfigurationFile>.Fail(config.Success ? Properties.Resources.GpuRepair_VmcxNotFound : config.Error,
                 config.Code, config.ErrorSource, config.Exception, config.Success ? ApiErrorKind.NotFound : config.ErrorKind);
             var state = await WmiApi.QueryFirstAsync(
@@ -147,10 +147,9 @@ namespace ExHyperV.Services
                 state.Code, state.ErrorSource, state.Exception, state.Success ? ApiErrorKind.NotFound : state.ErrorKind);
             try
             {
-                if (string.IsNullOrWhiteSpace(config.Data) || !Path.IsPathFullyQualified(config.Data))
-                    return ApiResponse<ConfigurationFile>.Fail("虚拟机未返回有效配置目录。", kind: ApiErrorKind.OperationFailed);
-                foreach (string candidate in new[] { Path.Combine(config.Data, "Virtual Machines", vmId.ToString("D") + ".vmcx"), Path.Combine(config.Data, vmId.ToString("D") + ".vmcx") })
-                    if (File.Exists(candidate)) return ApiResponse<ConfigurationFile>.Ok(new(vmId, candidate, VmMapper.MapState(state.Data)));
+                string path = VmConfigurationPaths.Resolve(config.Data.File ?? string.Empty, config.Data.Root);
+                if (File.Exists(path))
+                    return ApiResponse<ConfigurationFile>.Ok(new(vmId, path, VmMapper.MapState(state.Data)));
                 return ApiResponse<ConfigurationFile>.Fail(Properties.Resources.GpuRepair_VmcxNotFound, kind: ApiErrorKind.NotFound);
             }
             catch (Exception error) { return ApiResponse<ConfigurationFile>.Fail(error.Message, exception: error, kind: ApiErrorKind.OperationFailed); }
@@ -174,7 +173,7 @@ namespace ExHyperV.Services
         /// <summary>扫描注册虚拟机的结构残缺或宿主 GPU 绑定失效的分区设备。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>完整扫描结果；配置读取或必要的 GPU 池查询失败时返回失败，不把未完成的扫描表示为成功空列表。</returns>
-        /// <remarks>返回全部匹配候选。RequiresSelection 为 true 时，由调用方选择 Candidates 中的一项并调用 SelectCandidate；扫描和选择本身均不修改虚拟机。</remarks>
+        /// <remarks>RequiresSelection 为 true 时，从 Candidates 中选择一项并调用 SelectCandidate。</remarks>
         public static async Task<ApiResponse<IReadOnlyList<StaleGpuPartition>>> FindStaleGpuPartitionsAsync(Guid vmId)
         {
             var location = await ResolveVmcxAsync(vmId);
@@ -216,7 +215,7 @@ namespace ExHyperV.Services
         /// <summary>按扫描结果及显卡选择修复 GPU 分区；零候选或结构残缺时移除失效定义，多候选未选择时不执行。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID；必须完全关机。</param>
         /// <param name="targets">扫描目标或其 SelectCandidate 返回的新目标。所提交目标中的全部多候选项都必须完成选择；空集合表示无需修复。</param>
-        /// <returns>成功时返回整批重绑与删除计数；失败不提供虚假的零计数，提交故障的备份位置包含在说明中。</returns>
+        /// <returns>成功时返回重绑与删除计数；失败时返回原因及提交故障的备份位置。</returns>
         /// <remarks>全部目标先校验，再准备文件修改。选中的卡失效时返回 Conflict，不替换成另一张卡或删除该设备。单候选变为多候选时要求重新扫描选择。显式选择仍在当前候选中时，不受候选枚举顺序影响。原生提交失败可能留下需要恢复的配置，请保留错误中的备份。</remarks>
     /// <editentry label="修复 GPU 配置" category="GPU"/>
         public static async Task<ApiResponse<RepairResult>> RepairAsync(Guid vmId, IEnumerable<StaleGpuPartition> targets)

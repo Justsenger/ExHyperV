@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 
-using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ExHyperV.Models;
 
@@ -24,8 +23,8 @@ public enum SpacetimeNodeType
     Current
 }
 
-/// <summary>检查点时间线节点。修改模型不会修改检查点；重命名、回退和历史磁盘挂接均由服务执行。</summary>
-public partial class SpacetimeNode : ObservableObject
+/// <summary>检查点时间线节点。</summary>
+public partial class SpacetimeNode
 {
     /// <summary>检查点 GUID 文本或 GenesisId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。</summary>
     public string Id { get; set; } = string.Empty;
@@ -36,10 +35,10 @@ public partial class SpacetimeNode : ObservableObject
     public string? ParentId { get; set; }
 
     /// <summary>节点当前显示名称。</summary>
-    [ObservableProperty]
-    private string _name = string.Empty;
+    public string Name { get => _name; set => _name = value; }
+        private string _name = string.Empty;
 
-    /// <summary>真实检查点的本地创建时间；Genesis 为推算的时间线起点，Current 为本次读取时间，均不能作为 VM 创建时间。</summary>
+    /// <summary>检查点的本地创建时间；Genesis 为推算的时间线起点，Current 为本次读取时间。</summary>
     public DateTime CreatedDate { get; set; }
     /// <summary>节点缩略图；null 表示未提供图像。</summary>
     public VmScreenshotImage? Thumbnail { get; set; }
@@ -55,7 +54,7 @@ public partial class SpacetimeNode : ObservableObject
     public bool IsLogicalNode => NodeType == SpacetimeNodeType.Genesis || NodeType == SpacetimeNodeType.Current;
 
     /// <summary>
-    /// 查询选出的一个磁盘文件路径，可能为 .avhdx；供历史磁盘挂接使用，不是检查点的完整磁盘清单。
+    /// 查询选出的一个磁盘文件路径，可能为 .avhdx，用于历史磁盘挂接。
     /// </summary>
     public string VhdPath { get; set; } = string.Empty;
 
@@ -69,7 +68,7 @@ public partial class SpacetimeNode : ObservableObject
     public bool IsWormhole
     {
         get => _isWormhole;
-        internal set => SetProperty(ref _isWormhole, value);
+        internal set => _isWormhole = value;
     }
 
     /// <summary>临时差分盘路径，关闭虫洞时摘除+删除</summary>

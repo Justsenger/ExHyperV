@@ -7,7 +7,7 @@ namespace ExHyperV.Services;
 /// <summary>一次设置操作需要的当前 VM 状态；无后台任务或进程级会话。</summary>
 public sealed record VmConfigurationState
 {
-    /// <summary>虚拟机的稳定 GUID 文本，不是显示名称。</summary>
+    /// <summary>虚拟机的 GUID 文本。</summary>
     public string Id { get; }
     /// <summary>虚拟机代数，1 或 2；读取时未识别配置子类型则为 0。</summary>
     public int Generation { get; }
@@ -30,14 +30,14 @@ public sealed record VmConfigurationState
         State = VmMapper.MapState(stateCode);
     }
 
-    /// <summary>当前状态属于活动状态；不等同于仅 EnabledState=2。</summary>
+    /// <summary>当前是否处于运行或电源切换等活动状态。</summary>
     public bool IsRunning => VmMapper.IsActiveState(StateCode);
     /// <summary>Hyper-V 状态码为 3，表示完全关机。</summary>
     public bool IsPoweredOff => StateCode == 3;
 
     /// <summary>读取用于配置校验的虚拟机标识、代数与当前 Hyper-V 状态。</summary>
-    /// <param name="vmName">目标虚拟机的显示名称，不是 GUID。</param>
-    /// <returns>配置状态快照；未找到虚拟机或 WMI 读取失败时不提供有效数据。</returns>
+    /// <param name="vmName">目标虚拟机的显示名称。</param>
+    /// <returns>配置状态快照；虚拟机不存在或读取失败时返回错误。</returns>
     public static async Task<ApiResponse<VmConfigurationState>> ReadAsync(string vmName)
     {
         var identity = await VmIdentity.ResolveAsync(vmName);

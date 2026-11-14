@@ -158,8 +158,8 @@ namespace ExHyperV.Services
 
         /// <summary>根据一份配置创建并注册一台虚拟机，返回实际 GUID 和名称。</summary>
         /// <param name="p">虚拟机创建参数；新磁盘目录留空时沿用虚拟机目录。</param>
-        /// <returns>创建结果包含独立的 GUID、实际名称和注册状态；失败时保留原始错误、回滚错误及未清理路径，不能假定没有副作用。</returns>
-        /// <remarks>此入口只创建一台虚拟机，不自动启动。调用方指定名称和磁盘方案，多台任务的编号、调度及后续启动由调用方安排。创建前发现名称或输出路径冲突时自动避让；成功结果的 NameAdjusted、Notice、ActualName、ConfigurationDirectory 和 DiskPath 报告调整及实际位置。</remarks>
+        /// <returns>GUID、实际名称和注册状态；失败时返回原始错误、清理错误及保留路径。</returns>
+        /// <remarks>每次创建一台虚拟机，成功后处于关机状态。名称或输出路径冲突时自动避让；NameAdjusted、Notice、ActualName、ConfigurationDirectory 和 DiskPath 报告调整结果及实际位置。</remarks>
         /// <instanceentry label="创建虚拟机" category="创建" order="10">
         /// <step>构造 <c>VmCreationParameters</c>，填写名称、配置目录、处理器、内存、磁盘和网络选项。新磁盘目录可以留空，沿用虚拟机目录。</step>
         /// <step>调用 <c>CreateVirtualMachineAsync</c>。如需提交前显示校验结果，可先调用 <c>GetCreationError</c>。</step>

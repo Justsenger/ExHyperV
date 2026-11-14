@@ -15,7 +15,7 @@ public sealed class VmMemorySettingsView : VmSettingsView
     private readonly List<(string Title, Border Content)> sections = [];
     private VmMemorySettings? snapshot;
     private VmMmioSettings? mmioSnapshot;
-    private bool isRunning;
+    private VmState powerState;
     private static readonly ConcurrentDictionary<Guid, byte> unknownOperations = new();
     private bool uncertain { get => unknownOperations.ContainsKey(VmId); set { if (value) unknownOperations.TryAdd(VmId, 0); } }
 
@@ -77,7 +77,7 @@ public sealed class VmMemorySettingsView : VmSettingsView
             await RunAsync(() => ApplyMemoryAsync(field));
         };
         fields.Add(field);
-        return FieldRow(title, description, field, kind);
+        return FieldRow(title, ApiFieldHelp.For(field.Property), field, kind);
     }
 
     private Grid Mmio(string title, string property)
@@ -97,7 +97,7 @@ public sealed class VmMemorySettingsView : VmSettingsView
             });
         };
         mmioFields.Add(field);
-        return FieldRow(title, null, field, SettingEditorKind.Text);
+        return FieldRow(title, ApiFieldHelp.For(field.Property), field, SettingEditorKind.Text);
     }
 
     protected override async Task LoadAsync()
@@ -108,29 +108,14 @@ public sealed class VmMemorySettingsView : VmSettingsView
         var memoryTask = VmMemoryService.GetVmMemorySettingsAsync(VmId);
         var mmioTask = VmMmioService.GetSettingsAsync(VmId);
         var contextTask = ReadContextAsync();
-        var hostTask = ReadHostCapabilitiesAsync();
-        // 基础值的设置模型有历史默认值；使用查询状态确认其确实已读到。
-        var validityTask = QueryAsync(VmMemoryFields.Startup, VmMemoryFields.DynamicMemoryEnabled,
-            VmMemoryFields.Minimum, VmMemoryFields.Maximum, VmMemoryFields.Buffer, VmMemoryFields.Weight);
-        await Task.WhenAll(memoryTask, mmioTask, contextTask, hostTask, validityTask);
-        var memory = (await memoryTask).RequireData();
+        await Task.WhenAll(memoryTask, mmioTask, contextTask);
+        var observation = (await memoryTask).RequireData();
+        var memory = observation.Values;
         var mmio = (await mmioTask).RequireData();
-        var host = await hostTask;
-        isRunning = (await contextTask).IsRunning;
-        var validity = await validityTask;
-        var validBase = new Dictionary<string, bool>
-        {
-            [nameof(VmMemorySettings.Startup)] = validity.Get(VmMemoryFields.Startup).HasValue,
-            [nameof(VmMemorySettings.DynamicMemoryEnabled)] = validity.Get(VmMemoryFields.DynamicMemoryEnabled).HasValue,
-            [nameof(VmMemorySettings.Minimum)] = validity.Get(VmMemoryFields.Minimum).HasValue,
-            [nameof(VmMemorySettings.Maximum)] = validity.Get(VmMemoryFields.Maximum).HasValue,
-            [nameof(VmMemorySettings.Buffer)] = validity.Get(VmMemoryFields.Buffer).HasValue,
-            [nameof(VmMemorySettings.Weight)] = validity.Get(VmMemoryFields.Weight).HasValue
-        };
+        powerState = (await contextTask).State;
         if (IsStopped) return;
         snapshot = memory;
         mmioSnapshot = mmio;
-        var capabilities = VmMemoryService.GetCapabilities(isRunning, memory.DynamicMemoryEnabled);
         Updating = true;
         try
         {
@@ -139,39 +124,23 @@ public sealed class VmMemorySettingsView : VmSettingsView
                 var name = field.Property.Name;
                 object? value = field.Property.GetValue(memory);
                 if (name == nameof(VmMemorySettings.BackingPageSize))
-                    field.SetOptions(memory.AvailablePageSizes.Select(p => new SettingOption(p.Value, p.Description)));
-                string? error = value == null || validBase.TryGetValue(name, out bool valid) && !valid
+                    field.SetOptions(memory.SupportsBackingPageSize
+                        ? [new((byte)0, "标准页"), new((byte)1, "大页"), new((byte)2, "巨页")]
+                        : [new((byte)1, "大页"), new((byte)2, "巨页")]);
+                string? error = observation.States.GetValueOrDefault(name) != VmQueryValueState.Available
                     ? "此设置未取得有效数据。" : null;
-                if (error == null)
-                {
-                    var probe = memory.Clone();
-                    field.Property.SetValue(probe, field.ProbeValue(value));
-                    error = VmMemoryService.GetChangeError(memory, probe, isRunning, name);
-                    if (error == null)
-                    {
-                        var requested = field.Property.GetValue(probe);
-                        VmMemoryService.NormalizeMemoryBackingSettings(probe, name);
-                        if (!Equals(requested, field.Property.GetValue(probe))) error = "当前后备方式不支持此选项。";
-                    }
-                }
-                if (name is nameof(VmMemorySettings.Minimum) or nameof(VmMemorySettings.Maximum) or nameof(VmMemorySettings.Buffer))
-                    if (!capabilities.DynamicLimits) error = "启用动态内存后可配置。";
-                if (name == nameof(VmMemorySettings.MemoryAccessTrackingPolicy) && memory.MemoryAccessTrackingState != 1)
-                    error = "启用全局内存访问跟踪后可配置。";
-                if (name is nameof(VmMemorySettings.SgxEnabled) or nameof(VmMemorySettings.SgxLaunchControlMode) or nameof(VmMemorySettings.SgxSize) or nameof(VmMemorySettings.SgxLaunchControlDefault))
-                {
-                    if (!host.IsIntel) error = "当前宿主平台不支持 SGX。";
-                    else if (name != nameof(VmMemorySettings.SgxEnabled) && memory.SgxEnabled != true) error = "启用 SGX 后可配置。";
-                }
+                var condition = VmMemoryService.GetModificationCondition(memory, name, powerState);
+                if (!condition.CanModify) error = condition.Reason;
                 field.Load(value, error == null && !uncertain, error);
             }
             foreach (var field in mmioFields)
             {
                 var value = field.Property.GetValue(mmio);
-                var error = value == null ? "当前宿主未提供此设置。" : !VmMmioService.CanEdit(isRunning) ? "请先关闭虚拟机。" : null;
+                var condition = VmMmioService.GetModificationCondition(powerState);
+                var error = value == null ? "当前宿主未提供此设置。" : condition.CanModify ? null : condition.Reason;
                 field.Load(value, error == null && !uncertain, error);
             }
-            if (validBase.Any(pair => !pair.Value)) ShowError("部分内存配置未读到有效值，相关编辑已禁用。请重新进入页面读取。");
+            if (observation.States.Any(pair => pair.Value == VmQueryValueState.Unavailable)) ShowError("部分内存配置未读到有效值，相关编辑已禁用。请重新进入页面读取。");
         }
         finally { Updating = false; }
         if (uncertain) ShowError("此前的内存修改结果尚未确认，本次程序内已暂停对此虚拟机继续提交。请核对底层操作的最终状态。");
@@ -185,10 +154,8 @@ public sealed class VmMemorySettingsView : VmSettingsView
         if (Equals(value, field.Property.GetValue(snapshot))) return;
         var request = snapshot.Clone();
         field.Property.SetValue(request, value);
-        if (VmMemoryService.GetChangeError(snapshot, request, isRunning, field.Property.Name) is { } error)
-            throw new InvalidOperationException(error);
         // 仅提交用户选择的字段；必要联动由 Core 在读取最新配置后执行。
-        await WriteAndReloadAsync(() => VmMemoryService.SetVmMemorySettingsAsync(VmId, request, isRunning, [field.Property.Name]));
+        await WriteAndReloadAsync(() => VmMemoryService.SetVmMemorySettingsAsync(VmId, request, [field.Property.Name]));
     }
 
     private async Task WriteAndReloadAsync(Func<Task<ApiResponse>> write)

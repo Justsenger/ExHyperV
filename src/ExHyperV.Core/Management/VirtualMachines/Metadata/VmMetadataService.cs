@@ -6,8 +6,8 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-/// <summary>通过 Hyper-V HostOnlyItems 读取和保存随虚拟机配置携带的字符串元数据。</summary>
-/// <remarks>使用本机 WMI 和当前进程权限，Source 固定为 4，不交换给来宾。只更新指定键，保留其他程序的数据；不读取、迁移或修改虚拟机备注。键名区分大小写，值是普通字符串；结构化内容由调用方约定。</remarks>
+/// <summary>读取和保存虚拟机 VMCX 配置文件（.vmcx）中的自定义键值数据。</summary>
+/// <remarks>数据由 VMMS 保存到 VMCX 文件，通过 HostOnlyItems 提供宿主侧读写，随虚拟机导出携带。每项由区分大小写的键名和字符串值组成，Source 为 4，不交换给来宾。写入仅更新指定键，结构化内容由使用该键的程序约定。</remarks>
 /// <example><code>using System;
 /// using System.Threading.Tasks;
 /// using ExHyperV.Services;
@@ -27,7 +27,7 @@ public static partial class VmMetadataService
     /// <metadatakey purpose="操作系统分类">操作系统类型名称，例如 Linux，用于界面识别和图标显示。</metadatakey>
     public const string OsTypeKey = "ExHyperV.OSType";
 
-    /// <summary>处理器亲和性的键名。新保存使用 Version=2 的 JSON，包含 Backend、LogicalProcessors、HostFingerprint 和 TopologyFingerprint；后两项为宿主 UUID 和编号拓扑的摘要。旧数组与版本 1 记录保留可读，但非空旧选择需要重新保存。空集合表示不限制；保存值不代表实际绑定。</summary>
+    /// <summary>处理器亲和性的键名。新保存使用 Version=2 的 JSON，包含 Backend、LogicalProcessors、HostFingerprint 和 TopologyFingerprint；后两项为宿主 UUID 和编号拓扑的摘要。旧数组与版本 1 记录保留可读，但非空旧选择需要重新保存。空集合表示不限制。</summary>
     /// <metadatakey purpose="CPU 亲和性配置">JSON 文本，记录所选处理器、使用的后端、宿主及处理器拓扑标识。</metadatakey>
     public const string CpuAffinityKey = "ExHyperV.CpuAffinity";
 
@@ -35,10 +35,10 @@ public static partial class VmMetadataService
     private const string ComponentClass = "Msvm_KvpExchangeComponentSettingData";
     private const string ItemClass = "Msvm_KvpExchangeDataItem";
 
-    /// <summary>读取指定虚拟机当前配置的全部 HostOnlyItems，不包含来宾交换数据。</summary>
-    /// <param name="vmId">虚拟机稳定 GUID，不能是空 GUID。</param>
+    /// <summary>读取虚拟机 VMCX 配置文件中通过 HostOnlyItems 保存的全部自定义数据。</summary>
+    /// <param name="vmId">目标虚拟机的标识。</param>
     /// <returns>成功时返回独立只读字典，未存任何键时字典为空；虚拟机不存在、查询失败或数据损坏时返回失败。</returns>
-    /// <queryentry label="读取全部自定义数据" category="额外元数据"/>
+    /// <queryentry label="读取全部自定义数据" category="自定义数据"/>
     public static async Task<ApiResponse<IReadOnlyDictionary<string, string>>> ReadAsync(Guid vmId)
     {
         if (vmId == Guid.Empty)
@@ -68,20 +68,20 @@ public static partial class VmMetadataService
     }
 
     /// <summary>新增或修改一个 HostOnlyItems 键，等待 VMMS 作业结束并回读确认。</summary>
-    /// <param name="vmId">虚拟机稳定 GUID，不能是空 GUID。</param>
+    /// <param name="vmId">目标虚拟机的标识。</param>
     /// <param name="key">非空键名，区分大小写；使用自己的名称前缀避免与其他程序冲突。</param>
     /// <param name="value">要保存的非 null 字符串，可以为空；JSON 等内容由调用方序列化。</param>
     /// <returns>指定键已保存且回读一致时成功。权限、容量、数据格式和并发修改等错误返回失败，不回退到其他存储。</returns>
-    /// <remarks>新增和修改分别通过 AddKvpItems、ModifyKvpItems 提交。与其他进程并发修改同一键时不提供比较交换或跨调用事务；失败后应重新读取。容量上限由 VMMS 校验。</remarks>
-    /// <editentry label="写入自定义数据" category="额外元数据"/>
+    /// <remarks>按键新增或覆盖。同一键的并发修改以系统接受的写入为准；失败后重新读取。容量上限由 VMMS 校验。</remarks>
+    /// <editentry label="写入自定义数据" category="自定义数据"/>
     public static Task<ApiResponse> SetAsync(Guid vmId, string key, string value)
         => WriteAsync(vmId, key, value, remove: false);
 
     /// <summary>删除指定 HostOnlyItems 键；键已不存在时直接成功。</summary>
-    /// <param name="vmId">虚拟机稳定 GUID，不能是空 GUID。</param>
+    /// <param name="vmId">目标虚拟机的标识。</param>
     /// <param name="key">要删除的非空键名，区分大小写。</param>
     /// <returns>指定键不存在时成功；查询或删除失败返回失败，不清理其他键。</returns>
-    /// <editentry label="删除自定义数据" category="额外元数据"/>
+    /// <editentry label="删除自定义数据" category="自定义数据"/>
     public static Task<ApiResponse> RemoveAsync(Guid vmId, string key)
         => WriteAsync(vmId, key, string.Empty, remove: true);
 

@@ -7,7 +7,7 @@ namespace ExHyperV.Models
         Bridge,
         /// <summary>内部交换机配合 ICS 共享的模式。</summary>
         NAT,
-        /// <summary>未识别到外部端口或经典 ICS 共享；不能据此排除 HCN、WinNAT 或其他转发配置。</summary>
+        /// <summary>未识别到外部端口或经典 ICS 共享。</summary>
         Isolated
     }
 

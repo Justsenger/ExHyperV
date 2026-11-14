@@ -9,7 +9,7 @@ public enum VmExportCompressionLevel
     Fastest,
     /// <summary>在压缩时间和文件体积之间取均衡。</summary>
     Optimal,
-    /// <summary>优先减小文件体积，通常需要更长时间；不保证每种文件都比均衡档更小。</summary>
+    /// <summary>优先减小文件体积，通常需要更长时间。</summary>
     SmallestSize
 }
 
@@ -39,7 +39,7 @@ public sealed class VmExportPackageOptions
     public VmExportCompressionLevel CompressionLevel { get; init; } = VmExportCompressionLevel.Optimal;
     /// <summary>内容加密方式；默认 None。选择 Aes256 时必须提供非空密码。</summary>
     public VmExportEncryption Encryption { get; init; }
-    /// <summary>本次归档的密码，按 UTF-8 编码；默认 null。None 模式拒绝非 null 密码，避免误以为已加密；密码不会被自动保存。</summary>
+    /// <summary>本次归档的密码，按 UTF-8 编码，默认 null；None 加密模式要求密码为 null。</summary>
     /// <remarks>与其他 ZIP 软件交换时建议使用 ASCII 密码。ZIP 没有统一的密码字符编码标记；部分 Windows 工具使用系统代码页，可能无法用相同的中文密码打开 UTF-8 加密包。Core 可使用相同的 Unicode 密码读取自己的包。</remarks>
     public string? Password { get; init; }
     /// <summary>校验成功后的源目录处理；默认 Keep。只有明确指定 DeleteAfterValidation 才会删除源文件。</summary>

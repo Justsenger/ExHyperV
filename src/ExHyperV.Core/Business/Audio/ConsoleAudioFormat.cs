@@ -23,6 +23,6 @@ namespace ExHyperV.Services;
 /// 同一采样时刻的全部声道组成一个采样帧。</para>
 /// <para>例如 48 kHz、双声道、16 位整数，每个采样帧占 4 字节；10 毫秒包含 480 个采样帧，共 1920 字节。</para>
 /// <para>此记录只描述格式，构造时不检查数值。ConsoleAudioPacket 会检查格式及数据长度。
-/// 当前没有可用的控制台音频后端；多声道的声道顺序仍需在接入后端时确定。</para>
+/// 控制台音频后端待接入，多声道顺序待确定。</para>
 /// </remarks>
-public sealed record ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat SampleFormat);
+internal sealed record ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat SampleFormat);

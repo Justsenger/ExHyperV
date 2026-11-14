@@ -111,9 +111,7 @@ await ConfigurationInteractionChecks.RunAsync(Check);
 
 var memory = new VmMemorySettings();
 memory.ConfigurePageSizeSupport(false);
-Check(memory.AvailablePageSizes.Select(x => x.Value).SequenceEqual(new byte[] { 1, 2 }), "Legacy host exposes the original two page sizes");
 memory.ConfigurePageSizeSupport(true);
-Check(memory.AvailablePageSizes.Select(x => x.Value).SequenceEqual(new byte[] { 0, 1, 2 }), "New host exposes the original three page sizes");
 memory.SgxEnabled = true;
 Check(memory.SgxSize == 2, "SGX retains the original default EPC size");
 memory.Startup = 1025;

@@ -1,10 +1,10 @@
 namespace ExHyperV.Services;
 
-/// <summary>音频输入的历史预留接口，未实现，不属于当前 Core 的功能范围。</summary>
+/// <summary>音频输入预留接口，尚未实现。</summary>
 /// <remarks>
 /// <para>当前内置后端的 AudioInput 为 null。以下成员保留采样格式、就绪通知和提交 PCM 的约定。</para>
 /// </remarks>
-public interface IConsoleAudioInput
+internal interface IConsoleAudioInput
 {
     /// <summary>音频发送通道是否已就绪。</summary>
     /// <fielddoc>
@@ -26,6 +26,6 @@ public interface IConsoleAudioInput
     /// <param name="samples">原始 PCM 字节，包含完整的采样帧；本次调用返回后可复用该内存。</param>
     /// <returns>true 表示数据已加入发送队列；通道不可用、格式不匹配或队列无法接收时为 false。</returns>
     /// <remarks>格式可能在采集期间改变。发送时仍传入这批数据原来的格式；如果被拒绝，重新读取 Format 后为下一批数据调整格式。
-    /// 返回 true 不表示来宾已经播放或处理了这段声音。</remarks>
+    /// </remarks>
     bool SendAudio(ConsoleAudioFormat format, ReadOnlySpan<byte> samples);
 }

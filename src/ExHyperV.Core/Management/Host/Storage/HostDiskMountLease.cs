@@ -3,7 +3,7 @@ using ExHyperV.Tools;
 namespace ExHyperV.Services;
 
 /// <summary>一次宿主映像挂载的独占使用期。释放前，同一映像的其他 Core 挂载、卸载和临时使用请求等待。</summary>
-/// <remarks>使用 await using 或在 finally 中等待 ReleaseAsync。先结束文件读写和相关任务，再释放；不要在持有期间调用同一映像的挂载或卸载入口，否则会等待自己。不同映像可以并行。此约定不阻止其他工具直接操作 Windows 存储。</remarks>
+/// <remarks>先结束文件访问，再用 await using 或 ReleaseAsync 释放。持有期间重复挂载或卸载同一映像会等待自己；不同映像可并行。</remarks>
 public sealed class HostDiskMountLease : IAsyncDisposable
 {
     private readonly TaskCompletionSource _release;

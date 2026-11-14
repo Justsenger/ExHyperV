@@ -6,6 +6,24 @@ namespace ExHyperV.Documentation;
 // 这些示例只参与编译检查，不会由生成器执行。
 public static class UsageExamples
 {
+    // example:settings-snapshot:start
+    // title: 从读取快照创建内存编辑值
+    // description: 检查启动内存的本次读取状态，仅提交调用方选择的字段。
+    public static async Task ChangeStartupMemoryAsync(Guid vmId, long startupMiB)
+    {
+        var response = await VmMemoryService.GetVmMemorySettingsAsync(vmId);
+        if (!response.HasData) throw new InvalidOperationException(response.Error);
+        var snapshot = response.Data!;
+        if (snapshot.States[nameof(VmMemorySettings.Startup)] != VmQueryValueState.Available)
+            throw new InvalidOperationException("本次未取得启动内存配置。");
+        var draft = snapshot.Values;
+        draft.Startup = startupMiB;
+        var result = await VmMemoryService.SetVmMemorySettingsAsync(vmId, draft,
+            [nameof(VmMemorySettings.Startup)]);
+        if (!result.Success) throw new InvalidOperationException(result.Error);
+    }
+    // example:settings-snapshot:end
+
     // example:encrypted-export:start
     // title: 创建加密导出包
     // description: 对已经导出的目录打包，选择压缩级别、AES-256 和保留源目录。密码由调用方取得；跨工具交换建议使用 ASCII 密码。

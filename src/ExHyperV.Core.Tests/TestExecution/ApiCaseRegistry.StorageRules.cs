@@ -12,7 +12,7 @@ internal static partial class ApiCaseRegistry
             foreach (int gen in new[] { 1, 2 }) foreach (bool physical in new[] { false, true }) foreach (bool fresh in new[] { false, true }) foreach (string type in new[] { "HardDisk", "DvdDrive" })
             { var choice = c.Call(() => VmStorageService.GetSourceChoice(gen, physical, type, fresh)); c.Equal(physical && gen == 2 && type == "DvdDrive" ? "HardDisk" : type, choice.DriveType, "来源类型"); c.Equal(!physical && fresh, choice.IsNew, "新建介质标志"); c.Equal(!physical || gen == 1, choice.SupportsOptical, "光驱适用性"); }
         }]);
-        add("VmStorageService.GetEditStoragePathError()", [c =>
+        add("VmStorageService 介质修改规则", [c =>
         {
             foreach (bool running in new[] { false, true }) foreach (string controller in new[] { "IDE", "SCSI" }) foreach (string type in new[] { "HardDisk", "DvdDrive" }) foreach (string source in new[] { "Virtual", "Physical" })
             { var item = new VmStorageAttachment { ControllerType = controller, DriveType = type, DiskType = source }; c.Equal(source == "Virtual" && !(running && controller == "IDE" && type == "HardDisk"), c.Call(() => VmStorageService.GetEditStoragePathError(item, running)) is null, $"{source}/{controller}/{type}/运行={running}"); }

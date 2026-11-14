@@ -52,10 +52,6 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     public IConsoleInput Input => this;
     /// <summary>增强会话提供剪贴板能力；基本会话为 null，就绪状态须另查 IsAvailable。</summary>
     public IConsoleClipboard? Clipboard => enhanced ? this : null;
-    /// <summary>当前 FreeRDP 接入未实现音频接收，为 null。</summary>
-    public IConsoleAudioOutput? AudioOutput => null;
-    /// <summary>当前 FreeRDP 接入未实现音频发送，为 null。</summary>
-    public IConsoleAudioInput? AudioInput => null;
     bool IConsoleVideoSource.SupportsResize => enhanced;
     bool IConsoleClipboard.IsAvailable
     {
@@ -73,7 +69,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     public event Action<ConsoleClipboardData>? ClipboardReceived;
     /// <summary>增强会话剪贴板通道可用性变化时在后台线程通知；false 时 SetClipboard 不可发送。</summary>
     public event Action<bool>? ClipboardAvailabilityChanged;
-    /// <summary>已入队的尺寸调整请求在显示通道发送失败；这不是来宾返回的调整结果。</summary>
+    /// <summary>已入队的尺寸调整请求在本地显示通道发送失败。</summary>
     public event Action<uint>? ResizeRejected;
 
     /// <summary>启动后台连接并立即返回；同一对象只能启动一次，已经断开或请求停止后不能再次启动。</summary>
@@ -203,7 +199,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     }
 
     /// <summary>提交一个键盘扫描码的按下或释放事件。</summary>
-    /// <param name="scanCode">扫描码，范围 1 至 255，不是字符码或虚拟键码。</param>
+    /// <param name="scanCode">PC 键盘扫描码，范围 1 至 255。</param>
     /// <param name="extended">是否使用扩展扫描码标记。</param>
     /// <param name="down">true 为按下，false 为释放。</param>
     /// <returns>已加入发送队列时为 true；无效输入、未连接或队列拒绝时为 false。</returns>
@@ -268,7 +264,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     }
 
     /// <summary>发送调用方显式提供的剪贴板内容，需要增强会话及可用的来宾剪贴板通道。</summary>
-    /// <param name="clipboard">显式提供的支持格式集合；发送前校验并复制，不会从宿主读取内容。</param>
+    /// <param name="clipboard">待发送的格式集合，发送前校验并复制。</param>
     /// <returns>已加入发送队列时为 true；格式无效、通道不可用或连接停止时为 false。</returns>
     public bool SetClipboard(ConsoleClipboardData clipboard)
     {

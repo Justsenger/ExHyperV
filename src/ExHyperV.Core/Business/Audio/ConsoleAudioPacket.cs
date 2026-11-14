@@ -4,7 +4,7 @@ namespace ExHyperV.Services;
 /// <remarks>构造时复制采样数据，因此可在回调返回或连接关闭后继续使用，不需要 Dispose。
 /// 当前此类型是音频接口的数据约定，内置控制台后端尚未输出音频包。</remarks>
 /// <example>
-/// <para>构造一段 10 毫秒的双声道静音，说明数据长度如何由格式计算。此例只构造数据，不代表已有音频连接。</para>
+/// <para>构造一段 10 毫秒的双声道静音，说明数据长度如何由格式计算。</para>
 /// <code>
 /// using ExHyperV.Services;
 /// public static class AudioPacketExample
@@ -19,7 +19,7 @@ namespace ExHyperV.Services;
 /// }
 /// </code>
 /// </example>
-public sealed class ConsoleAudioPacket
+internal sealed class ConsoleAudioPacket
 {
     private readonly byte[] data;
 
@@ -76,6 +76,6 @@ public sealed class ConsoleAudioPacket
     /// <meaning>当前音频流中的相对时间。</meaning>
     /// <values kind="format">非负时间间隔。</values>
     /// </fielddoc>
-    /// <remarks>音频后端尚未接入，时间零点和采样时刻的对应关系尚未约定，当前不能用于音画同步。</remarks>
+    /// <remarks>音频后端待接入，音画同步的时间基准待定义。</remarks>
     public TimeSpan Timestamp { get; }
 }

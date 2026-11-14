@@ -77,7 +77,7 @@ public static partial class VmStorageService
     /// <summary>将新磁盘容量文本解析为正整数 GiB。</summary>
     /// <param name="input">以 GiB（1024³ 字节）为单位的容量文本；null 或无效输入使用 128。</param>
     /// <returns>有效正数；为空、格式错误或非正数时返回 128。</returns>
-    public static int GetNewDiskSize(string? input) => int.TryParse(input, out int size) && size > 0 ? size : 128;
+    internal static int GetNewDiskSize(string? input) => int.TryParse(input, out int size) && size > 0 ? size : 128;
 
     /// <summary>按代数、物理磁盘标记和介质类型规范化新增设备来源选项。</summary>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
@@ -91,7 +91,7 @@ public static partial class VmStorageService
 
     /// <summary>根据代数、运行状态和驱动类型列出允许添加的控制器类型。</summary>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <param name="driveType">驱动类型 HardDisk 或 DvdDrive。</param>
     /// <returns>IDE 或 SCSI 类型列表；仅计算规则，不创建控制器。</returns>
     public static IReadOnlyList<string> GetControllerTypes(int generation, bool isRunning, string driveType)
@@ -106,8 +106,8 @@ public static partial class VmStorageService
     /// <summary>从已有挂接快照中排除占用位置，计算指定控制器的空闲槽位。</summary>
     /// <param name="type">控制器类型 IDE 或 SCSI。</param>
     /// <param name="number">从零开始的控制器编号。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用；方法不会预留位置。</param>
-    /// <returns>从零开始的槽位列表；不会预留位置。</returns>
+    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
+    /// <returns>根据当前挂接快照得到的可用槽位编号，从零开始。</returns>
     public static IReadOnlyList<int> GetAvailableLocations(string type, int number, IEnumerable<VmStorageAttachment> items)
     {
         var used = items.Where(item => item.ControllerType == type && item.ControllerNumber == number)
@@ -118,7 +118,7 @@ public static partial class VmStorageService
     /// <summary>检查指定控制器是否仍有可用槽位。</summary>
     /// <param name="type">控制器类型 IDE 或 SCSI。</param>
     /// <param name="number">从零开始的控制器编号。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用；方法不会预留位置。</param>
+    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
     /// <returns>已满时返回说明，否则为 null。</returns>
     public static string? GetControllerFullError(string type, int number, IEnumerable<VmStorageAttachment> items)
         => GetAvailableLocations(type, number, items).Count == 0
@@ -126,9 +126,9 @@ public static partial class VmStorageService
 
     /// <summary>按当前规则和已有设备快照选择首个适合新增驱动的空闲槽位。</summary>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <param name="driveType">驱动类型 HardDisk 或 DvdDrive。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用；方法不会预留位置。</param>
+    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
     /// <returns>可用槽位，或没有槽位时的错误说明。</returns>
     public static VmStorageSlotPlan GetBestSlot(int generation, bool isRunning, string driveType, IEnumerable<VmStorageAttachment> items)
     {
@@ -149,9 +149,9 @@ public static partial class VmStorageService
 
     /// <summary>校验新增设备请求的控制器类型、编号、槽位及运行状态限制。</summary>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <param name="request">待检查的新增存储设备请求。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用；方法不会预留位置。</param>
+    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
     /// <returns>首个错误说明；符合当前快照时为 null。执行时需重新核对槽位。</returns>
     public static string? GetAddSlotError(int generation, bool isRunning, VmStorageAddRequest request,
         IEnumerable<VmStorageAttachment> items)
@@ -173,9 +173,9 @@ public static partial class VmStorageService
     /// <summary>规范化并验证新增设备请求；ISO 制作路径需要时会创建输出目录。</summary>
     /// <param name="request">待检查的新增存储设备请求。</param>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用；方法不会预留位置。</param>
-    /// <returns>可执行请求或错误、提示状态；不会创建虚拟机设备，但可能创建宿主目录。</returns>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
+    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
+    /// <returns>可执行请求或错误、提示状态；准备过程中可能创建宿主目录。</returns>
     public static VmStorageAddPreparation PrepareAddRequest(VmStorageAddRequest request,
         int generation, bool isRunning, IEnumerable<VmStorageAttachment> items)
     {
@@ -331,17 +331,43 @@ public static partial class VmStorageService
 
     /// <summary>判断该存储挂接是否支持更换文件路径。</summary>
     /// <param name="item">目标存储挂接；允许 null 的规则入口会返回不允许编辑。</param>
-    /// <returns>非空且不是物理磁盘等不可换路径项时为 true。</returns>
+    /// <returns>存在可编辑的存储项时为 true；null 或 Physical 返回 false。</returns>
     public static bool CanEditStoragePath(VmStorageAttachment? item) => item != null && item.DiskType != "Physical";
 
     /// <summary>检查指定设备在当前运行状态下能否更换介质路径。</summary>
     /// <param name="item">目标存储挂接；允许 null 的规则入口会返回不允许编辑。</param>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <returns>限制说明；允许继续时为 null。</returns>
-    public static string? GetEditStoragePathError(VmStorageAttachment item, bool isRunning)
-        => !CanEditStoragePath(item) ? Properties.Resources.Error_Storage_PhysicalMod
-            : item.DriveType == "HardDisk" && isRunning && item.ControllerType == "IDE"
-                ? Properties.Resources.Error_Storage_VhdRunning : null;
+    internal static string? GetEditStoragePathError(VmStorageAttachment item, bool isRunning)
+    {
+        var condition = GetMediaModificationCondition(item, isRunning ? VmState.Running : VmState.PoweredOff);
+        return condition.CanModify ? null : condition.Reason;
+    }
+
+    /// <summary>评估更换存储介质路径的条件。</summary>
+    /// <param name="item">查询返回的存储挂接。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许更换及原因；IDE 硬盘需要关机，光驱和 SCSI 设备由实际提交结果判断。</returns>
+    public static VmModificationCondition GetMediaModificationCondition(VmStorageAttachment item, VmState state)
+        => !CanEditStoragePath(item) ? VmModificationCondition.Unsupported(Properties.Resources.Error_Storage_PhysicalMod)
+            : item.DriveType == "HardDisk" && item.ControllerType == "IDE" ? VmModificationCondition.PoweredOff(state)
+            : VmModificationCondition.Allowed;
+
+    /// <summary>评估压缩虚拟机所挂接磁盘的条件。</summary>
+    /// <param name="item">查询返回的存储挂接。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许发起压缩及原因；文件占用情况由压缩操作检查。</returns>
+    public static VmModificationCondition GetCompactionCondition(VmStorageAttachment item, VmState state)
+        => item.DriveType != "HardDisk" || item.DiskType != "Virtual" || string.IsNullOrWhiteSpace(item.PathOrDiskNumber)
+            ? VmModificationCondition.Unsupported("请选择虚拟硬盘文件。")
+            : VmModificationCondition.PoweredOff(state);
+
+    /// <summary>评估移除存储挂接的条件。</summary>
+    /// <param name="item">查询返回的存储挂接。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许移除及原因。</returns>
+    public static VmModificationCondition GetRemovalCondition(VmStorageAttachment item, VmState state)
+        => item.ControllerType == "IDE" ? VmModificationCondition.PoweredOff(state) : VmModificationCondition.Allowed;
 
     /// <summary>校验介质路径是否存在；空路径按弹出介质处理。</summary>
     /// <param name="newPath">要引用的介质文件路径；允许空值的光驱校验入口将其视为无介质。</param>

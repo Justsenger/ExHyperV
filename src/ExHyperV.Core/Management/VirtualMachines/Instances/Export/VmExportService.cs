@@ -195,9 +195,9 @@ public static partial class VmExportService
     /// <param name="progress">可选进度接收器；null 时不通知。回调线程由具体 IProgress 实现决定。</param>
     /// <returns>成功时 OutputPath 为实际导出目录；失败保留已产生路径及未知操作状态。单检查点模式强制包含磁盘与运行状态，不能与磁盘排除选择组合。</returns>
     /// <remarks>
-    /// <para>输出目录由 <c>ExportAsync</c> 完成。打包是调用方选择的后续步骤：成功后将结果的 <c>OutputPath</c> 交给 <see cref="VmExportPackagingService"/>，指定 ZIP 路径和 <see cref="VmExportPackageOptions"/>；可选择压缩级别、AES-256 密码以及保留源目录或校验后删除。Core 不自动命名归档或串联多台导出。</para>
+    /// <para>输出目录由 <c>ExportAsync</c> 完成。打包是调用方选择的后续步骤：成功后将结果的 <c>OutputPath</c> 交给 <see cref="VmExportPackagingService"/>，指定 ZIP 路径和 <see cref="VmExportPackageOptions"/>；可选择压缩级别、AES-256 密码以及保留源目录或校验后删除。</para>
     /// <para>选项重载默认均衡压缩、不加密、保留源目录。原 <c>VmExportPackageMode</c> 重载保持原行为：<c>Store</c> 不压缩，<c>Compress</c> 优先最小体积，两者都在校验成功后尝试清理专用导出暂存目录。归档结果分别报告 <c>SourceHandling</c>、<c>SourceDirectoryRemoved</c> 和清理错误。</para>
-    /// <para>本入口不提供取消原生导出。提交后的失败如果未能确认终态会标记 OperationStateUnknown，此时不得删除保留目录或假定任务已停止；Core 不自动清理失败输出。</para>
+    /// <para>已提交的原生导出会继续执行。结果待确认时标记 OperationStateUnknown，保留输出目录，核实任务结束后再处理。</para>
     /// </remarks>
     /// <instanceentry label="导出虚拟机" category="导出" order="10">
     /// <step>指定目标 GUID 和已存在的输出根目录，决定是否包含磁盘、检查点和运行状态。</step>

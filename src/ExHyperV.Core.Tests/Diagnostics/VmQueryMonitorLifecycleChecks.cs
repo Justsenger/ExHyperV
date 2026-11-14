@@ -29,7 +29,7 @@ internal static class VmQueryMonitorLifecycleChecks
         check(warmup[first.Vm.Id].Sample?.State == PerformanceSampleState.WarmingUp, "GPU first sample reports its warm-up state");
         var gpu = await first.Query.GetGpuPerformanceAsync([first.Vm]);
         check(first.Adapter.HasNetworkSpeedSample && first.Adapter.SendBytesPerSecond == 123 && first.Adapter.ReceiveBytesPerSecond == 456 &&
-            gpu[first.Vm.Id].Gpu3d == 25 && gpu[first.Vm.Id].IsDriverBound,
+            gpu[first.Vm.Id].Gpu3d == 25 && gpu[first.Vm.Id].HasGpuEngineInstance,
             "counter lifetime changes preserve network samples and GPU aggregation");
         await second.Query.UpdateNetworkPerformanceAsync([second.Vm]);
         await first.Query.DisposeAsync();

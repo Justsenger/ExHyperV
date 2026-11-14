@@ -114,7 +114,7 @@ public sealed class TestPlanningTests
     public void ChineseFunctionNamesAndTechnicalApiNamesHaveSeparateFields()
     {
         var items = ReadyReport().Plan.Items;
-        CollectionAssert.AreEqual(new[] { "管理层面", "业务层面", "使用说明" },
+        CollectionAssert.AreEqual(new[] { "管理层面", "业务层面" },
             items.Select(i => i.Group.Split(" / ")[0]).Distinct().ToArray());
         Assert.IsTrue(items.All(i => i.Group.Any(c => c is >= '\u4e00' and <= '\u9fff')
             && i.Operation.Any(c => c is >= '\u4e00' and <= '\u9fff')));
@@ -134,8 +134,8 @@ public sealed class TestPlanningTests
     [DataRow("IConsoleInput.SendKey(", "业务层面 / 控制 / 键盘")]
     [DataRow("IConsoleInput.SendPointer(", "业务层面 / 控制 / 鼠标")]
     [DataRow("IConsoleClipboard.", "业务层面 / 剪贴板")]
-    [DataRow("ApiResponse<T>.", "使用说明 / 结果、取消和资源释放")]
-    [DataRow("SharedBackgroundServices.", "使用说明 / 结果、取消和资源释放")]
+    [DataRow("ApiResponse<T>.", "管理层面 / 共用类型")]
+    [DataRow("SharedBackgroundServices.", "管理层面 / 共用类型")]
     public void PlanGroupsFollowCoreCapabilityOwnership(string apiPrefix, string category)
     {
         var items = ReadyReport().Plan.Items.Where(item => item.Api.StartsWith(apiPrefix, StringComparison.Ordinal)).ToArray();

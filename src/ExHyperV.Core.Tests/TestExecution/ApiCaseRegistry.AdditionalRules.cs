@@ -7,20 +7,20 @@ internal static partial class ApiCaseRegistry
 {
     private static void AddAdditionalRuleCases(Action<string, Action<ApiCaseContext>[]> add)
     {
-        add("VmBootService.CanChangeBootOrder()", [c =>
+        add("VmBootService 引导重排规则", [c =>
         {
             foreach (var (generation, running, expected) in new[] { (1, false, true), (1, true, false), (2, false, true), (2, true, true) })
                 c.Equal(expected, c.Call(() => VmBootService.CanChangeBootOrder(generation, running)), $"代数 {generation}，运行={running}");
         }]);
-        add("VmConsoleSupportService.CanToggleConsoleSupport()", [c =>
+        add("VmConsoleSupportService 控制台能力规则", [c =>
         {
             foreach (var (generation, running, expected) in new[] { (1, false, false), (1, true, false), (2, false, true), (2, true, false) })
                 c.Equal(expected, c.Call(() => VmConsoleSupportService.CanToggleConsoleSupport(generation, running)), $"代数 {generation}，运行={running}");
         }]);
-        add("VmBootService.CanEditBootNumLock()", [c => CheckOffline(c, VmBootService.CanEditBootNumLock)]);
-        add("VmDisplaySettingsService.CanEdit()", [c => CheckOffline(c, VmDisplaySettingsService.CanEdit)]);
-        add("VmMmioService.CanEdit()", [c => CheckOffline(c, VmMmioService.CanEdit)]);
-        add("VmPowerService.CanEditHibernation()", [c =>
+        add("VmBootService 数字锁定规则", [c => CheckOffline(c, VmBootService.CanEditBootNumLock)]);
+        add("VmDisplaySettingsService 显示配置规则", [c => CheckOffline(c, VmDisplaySettingsService.CanEdit)]);
+        add("VmMmioService 地址窗口修改规则", [c => CheckOffline(c, VmMmioService.CanEdit)]);
+        add("VmPowerService 休眠修改规则", [c =>
         {
             foreach (var row in new[] { (false, false, false), (false, true, false), (true, false, true), (true, true, false) })
                 c.Equal(row.Item3, c.Call(() => VmPowerService.CanEditHibernation(row.Item1, row.Item2)), $"字段存在={row.Item1}，运行={row.Item2}");

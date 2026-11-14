@@ -29,7 +29,7 @@ internal sealed partial class VmQueryEngine
                 throw new InvalidDataException("提供者返回了目录而非文件路径。");
             string path;
             if (Path.IsPathFullyQualified(file))
-                path = Path.GetFullPath(file);
+                path = VmConfigurationPaths.Resolve(file, null);
             else
             {
                 if (!row.Values.ContainsKey(rootProperty))
@@ -40,7 +40,7 @@ internal sealed partial class VmQueryEngine
                 // Drive-relative and rooted-without-drive paths must not use this process's current directory.
                 if (!Path.IsPathFullyQualified(root) || Path.IsPathRooted(file))
                     throw new InvalidDataException("提供者返回的路径无法解析为完整文件路径。");
-                path = Path.GetFullPath(file, root);
+                path = VmConfigurationPaths.Resolve(file, root);
             }
             if (string.IsNullOrEmpty(Path.GetFileName(path)))
                 throw new InvalidDataException("提供者返回了目录而非文件路径。");

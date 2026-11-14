@@ -8,10 +8,10 @@ public static class VmCheckpointFields
 {
     /// <summary>检查点身份：检查点或当前配置节点的标识。</summary>
     /// <fielddoc>
-    /// <meaning>后端 ConfigurationID。当前配置也使用真实配置标识，不使用 SpacetimeNode.CurrentId；此查询不生成 Genesis 逻辑节点。</meaning>
+    /// <meaning>检查点或当前配置的唯一标识，用于区分同一虚拟机的不同配置节点。</meaning>
     /// <source>配置与检查点的 VirtualSystemSettingData 及父节点关联，读取或派生 Id。</source>
     /// <references><see cref="VmSpacetimeService"/>。</references>
-    /// <modification kind="readonly">检查点节点的身份，不能给已有检查点替换身份。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> Id = new("Checkpoint.Id", "检查点身份", "检查点", VmQueryCollection.Checkpoints, "Checkpoints", "Id");
 
@@ -28,10 +28,10 @@ public static class VmCheckpointFields
     /// <fielddoc>
     /// <meaning>检查点或当前配置节点的创建时间。</meaning>
     /// <unit>日期与时间</unit>
-    /// <values>通过 ManagementDateTimeConverter.ToDateTime 将 WMI CreationTime 转为 DateTime。</values>
+    /// <values>宿主本地日期与时间。</values>
     /// <source>配置与检查点的 VirtualSystemSettingData 及父节点关联，读取或派生 CreatedDate。</source>
     /// <references><see cref="VmSpacetimeService"/>。</references>
-    /// <modification kind="readonly">由检查点树和磁盘链决定的记录，不提供直接赋值；创建、删除或合并由检查点管理操作完成。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<DateTime> CreatedDate = new("Checkpoint.CreatedDate", "检查点创建时间", "检查点", VmQueryCollection.Checkpoints, "Checkpoints", "CreatedDate");
 
@@ -40,7 +40,7 @@ public static class VmCheckpointFields
     /// <meaning>在本次节点集合中解析出的父配置标识；空字符串也可能表示父配置未包含在结果中。</meaning>
     /// <source>配置与检查点的 VirtualSystemSettingData 及父节点关联，读取或派生 ParentId。</source>
     /// <references><see cref="VmSpacetimeService"/>。</references>
-    /// <modification kind="readonly">由检查点树和磁盘链决定的记录，不提供直接赋值；创建、删除或合并由检查点管理操作完成。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> ParentId = new("Checkpoint.ParentId", "父检查点身份", "检查点", VmQueryCollection.Checkpoints, "Checkpoints", "ParentId");
 
@@ -49,7 +49,7 @@ public static class VmCheckpointFields
     /// <meaning>节点的类型，用于区分当前配置和已保存的检查点。</meaning>
     /// <source>配置与检查点的 VirtualSystemSettingData 及父节点关联，读取或派生 NodeType。</source>
     /// <references><see cref="VmSpacetimeService"/>。</references>
-    /// <modification kind="readonly">由检查点树和磁盘链决定的记录，不提供直接赋值；创建、删除或合并由检查点管理操作完成。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<SpacetimeNodeType> NodeType = new("Checkpoint.NodeType", "节点类型", "检查点", VmQueryCollection.Checkpoints, "Checkpoints", "NodeType");
 
@@ -69,7 +69,7 @@ public static class VmCheckpointFields
     /// <values>返回本节点存储分配记录中的全部介质路径；没有关联路径时为空列表。</values>
     /// <source>检查点或当前配置关联的 StorageAllocationSettingData.HostResource。</source>
     /// <references><see cref="VmSpacetimeService"/>。</references>
-    /// <modification kind="readonly">由检查点树和磁盘链决定的记录，不提供直接赋值；创建、删除或合并由检查点管理操作完成。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<IReadOnlyList<string>> DiskPaths = new("Checkpoint.DiskPaths", "历史磁盘路径", "检查点", VmQueryCollection.Checkpoints, "CheckpointDisks", "DiskPaths");
 
@@ -78,7 +78,7 @@ public static class VmCheckpointFields
     /// <meaning>是否检测到该节点历史磁盘的临时挂接。</meaning>
     /// <source>检查点配置的 StorageAllocationSettingData；临时挂接存在时进一步核对磁盘链，读取或派生 IsWormhole。</source>
     /// <references><see cref="VmSpacetimeService"/>。</references>
-    /// <modification kind="operation" submission="操作流程">随历史磁盘临时挂接的打开或关闭而变化。<see cref="VmSpacetimeService.OpenWormholeAsync"/><see cref="VmSpacetimeService.CloseWormholeAsync"/></modification>
+    /// <modification kind="operation" submission="操作流程">随历史磁盘临时挂接的打开或关闭而变化。<see cref="VmSpacetimeService.OpenWormholeAsync"/>、<see cref="VmSpacetimeService.CloseWormholeAsync"/></modification>
     /// <values kind="options"><c>true</c>：检测到历史磁盘的临时挂接；<c>false</c>：未检测到。</values>
     /// </fielddoc>
     public static readonly VmQueryField<bool> IsWormhole = new("Checkpoint.IsWormhole", "历史磁盘临时挂接状态", "检查点", VmQueryCollection.Checkpoints, "CheckpointDisks", "IsWormhole");

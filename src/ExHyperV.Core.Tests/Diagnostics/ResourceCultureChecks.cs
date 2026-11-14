@@ -145,11 +145,9 @@ internal static class ResourceCultureChecks
         adapter.SwitchIdentity = "WMI_partial";
         check(adapter.SwitchIdentity == "real-switch" && adapter.SwitchName == "real-switch",
             "incomplete switch refreshes retain the previous valid selection");
-        var notifications = new List<string?>();
-        adapter.PropertyChanged += (_, args) => notifications.Add(args.PropertyName);
         adapter.SwitchIdentity = "updated-switch";
-        check(notifications.SequenceEqual([nameof(VmNetworkAdapter.SwitchIdentity), nameof(VmNetworkAdapter.SwitchName)]),
-            "changing raw switch identity also refreshes the compatible display binding");
+        check(adapter.SwitchIdentity == "updated-switch" && adapter.SwitchName == "updated-switch",
+            "changing raw switch identity updates the derived display value");
     }
 
     private static void CheckCreationSwitchIdentity(Action<bool, string> check)

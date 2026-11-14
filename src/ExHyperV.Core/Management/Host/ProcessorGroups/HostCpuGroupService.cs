@@ -53,17 +53,17 @@ public static class HostCpuGroupService
     /// <param name="groupId">待修改的宿主 CPU 组 GUID。</param>
     /// <param name="cpuCap">组总配额，0 至 65536；65536 为满额，32768 为 50%。</param>
     /// <param name="expectedRevision">GetAsync 或 GetAllAsync 返回的非空 Revision；过期时在任何写入前返回 Conflict。</param>
-    /// <param name="cancellationToken">仅在原生提交前取消；提交后等待返回及回读，不自动撤销请求。</param>
-    /// <returns>修改后的只读快照；无法确认结果时返回 OutcomeUnknown，调用方应重新读取，不能直接重试。</returns>
+    /// <param name="cancellationToken">在原生提交前响应取消；提交后等待操作结束并回读。</param>
+    /// <returns>修改后的快照；OutcomeUnknown 表示结果待确认，重试前重新读取。</returns>
     public static Task<ApiResponse<HostCpuGroupInfo>> SetCpuCapAsync(Guid groupId, uint cpuCap, string expectedRevision, CancellationToken cancellationToken = default)
         => SetAsync(groupId, Property.CpuCap, cpuCap, expectedRevision, cancellationToken);
 
     /// <summary>修改 CPU 组的调度优先级，影响该组全部成员。</summary>
     /// <param name="groupId">待修改的宿主 CPU 组 GUID。</param>
-    /// <param name="priority">调度优先级原始值，0 至 7；数值越大优先级越高，不表示固定时间份额。</param>
+    /// <param name="priority">调度优先级，0 至 7；数值越大，优先级越高。</param>
     /// <param name="expectedRevision">最近读取的非空 Revision；过期时不执行修改。</param>
     /// <param name="cancellationToken">仅在原生提交前取消；提交后完成返回和回读。</param>
-    /// <returns>修改后经确认的组快照；失败不自动回滚或重放。</returns>
+    /// <returns>修改后经确认的组快照；失败后先重新读取实际状态。</returns>
     public static Task<ApiResponse<HostCpuGroupInfo>> SetPriorityAsync(Guid groupId, uint priority, string expectedRevision, CancellationToken cancellationToken = default)
         => SetAsync(groupId, Property.Priority, priority, expectedRevision, cancellationToken);
 

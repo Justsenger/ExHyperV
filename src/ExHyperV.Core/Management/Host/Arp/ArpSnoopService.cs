@@ -97,7 +97,7 @@ public sealed unsafe class ArpSnoopService : IDisposable
         }
     }
 
-    /// <summary>查询指定 MAC 尚未过期的 IPv4 缓存，不主动发包或等待新地址。</summary>
+    /// <summary>读取指定 MAC 的有效 IPv4 缓存。</summary>
     /// <returns>找到有效缓存时为 true；否则为 false 且 ip 为空。</returns>
     /// <param name="mac">待查询的 MAC；允许空值，格式会归一化。</param>
     /// <param name="ip">成功时接收 IPv4 地址；失败时为空字符串。</param>
@@ -231,7 +231,7 @@ public sealed unsafe class ArpSnoopService : IDisposable
         }
     }
 
-    /// <summary>最终停止捕获并清理本实例的独立会话和实时流，不修改其他程序的过滤器或会话；以后不能重新启动。</summary>
+    /// <summary>停止捕获并清理本实例的会话和实时流。释放后不可重新启动。</summary>
     public void Dispose()
     {
         lock (_lifecycleLock) CleanupCore();

@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using System.Text.Json;
 using ExHyperV.Services;
 
 namespace ExHyperV.Mcp.Api;
@@ -16,17 +17,25 @@ public sealed class ApiCatalog
     public IReadOnlyDictionary<string, MemberInfo> Members { get; }
     private readonly Dictionary<string, XElement> comments;
     private readonly Dictionary<string, string> categories = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> groups = new(StringComparer.Ordinal);
+    private readonly HashSet<string> readOnlyMembers = new(StringComparer.Ordinal);
     public string Guide { get; }
     public string? ReferenceFingerprint { get; }
     private string? contractFingerprint;
     public string ContractFingerprint => contractFingerprint ??= Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(
         string.Join("\n", Members.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => System.Text.Json.JsonSerializer.Serialize(new
         {
-            metadata = Describe(pair.Value, detail: false),
+            id = pair.Key,
+            metadata = ContractMetadata(pair.Value),
             parameters = pair.Value is MethodBase method ? method.GetParameters().Select(parameter => new
                 { parameter.Name, type = TypeName(parameter.ParameterType), parameter.IsOut, parameter.HasDefaultValue,
                     defaultValue = parameter.HasDefaultValue ? Convert.ToString(parameter.DefaultValue, System.Globalization.CultureInfo.InvariantCulture) : null }).ToArray() : null
         })))))).ToLowerInvariant();
+    private object ContractMetadata(MemberInfo member)
+        => JsonSerializer.SerializeToElement(Describe(member, detail: false)).EnumerateObject()
+            .Where(property => property.Name is not ("description" or "category"))
+            .ToDictionary(property => property.Name, property => property.Value.Clone());
+
     public bool ContractReviewed
     {
         get
@@ -38,32 +47,30 @@ public sealed class ApiCatalog
         }
     }
 
-    public ApiCatalog()
+    public ApiCatalog() : this(ReadResource("Core.API.md"), ReadResource("Core.API.json")) { }
+
+    internal ApiCatalog(string guide, string metadata)
     {
         string xml = Path.ChangeExtension(Core.Location, ".xml");
         comments = File.Exists(xml) ? XDocument.Load(xml).Descendants("member")
             .ToDictionary(node => (string)node.Attribute("name")!, node => node) : [];
-        using var reader = new StreamReader(typeof(ApiCatalog).Assembly.GetManifestResourceStream("Core.API.md")!);
-        Guide = reader.ReadToEnd();
-        var fingerprint = Regex.Match(Guide, @"<!--\s*source-sha256:\s*(?<hash>[a-f0-9]{64})\s*-->");
-        if (!fingerprint.Success) fingerprint = Regex.Match(Guide, @"源码摘要：`(?<hash>[a-f0-9]{64})`");
-        ReferenceFingerprint = fingerprint.Success ? fingerprint.Groups["hash"].Value : null;
-        foreach (Match match in Regex.Matches(Guide, @"### `(?<name>[^`]+)`[^\r\n]*\r?\n(?<body>[\s\S]*?)(?=\r?\n### |\z)"))
+        Guide = guide;
+        using var model = JsonDocument.Parse(metadata);
+        if (model.RootElement.GetProperty("schemaVersion").GetInt32() != 1)
+            throw new InvalidDataException("Unsupported Core API metadata version.");
+        ReferenceFingerprint = model.RootElement.GetProperty("source").GetProperty("contentSha256").GetString();
+        foreach (var type in model.RootElement.GetProperty("types").EnumerateArray())
         {
-            string body = match.Groups["body"].Value;
-            var category = Regex.Match(body, @"\| 功能归属 \| (?<value>[^|]+)\|");
-            var ns = Regex.Match(body, @"\| 命名空间 \| `\s*(?<value>[^`]+?)\s*` \|");
-            // The guide includes enclosing type names, e.g. VmSecurityService.Capabilities.
-            string name = Regex.Replace(match.Groups["name"].Value, @"<(?<args>[^<>]+)>",
-                generic => "`" + (generic.Groups["args"].Value.Count(c => c == ',') + 1));
-            if (category.Success && ns.Success)
-                categories["T:" + ns.Groups["value"].Value.Trim() + "." + name] = category.Groups["value"].Value.Trim();
-        }
-        var memberCategories = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (Match match in Regex.Matches(Guide, """<a id="(?<anchor>api-[a-f0-9]+)"></a>\s*\r?\n##### [^\r\n]*\r?\n(?<body>[\s\S]*?)(?=\r?\n<a id=|\z)"""))
-        {
-            var category = Regex.Match(match.Groups["body"].Value, @"(?m)^功能归属：(?<value>[^\r\n]+?)。\r?$");
-            if (category.Success) memberCategories[match.Groups["anchor"].Value] = category.Groups["value"].Value.Trim();
+            string id = type.GetProperty("uid").GetString()!;
+            categories[id] = type.GetProperty("area").GetString()!;
+            groups[id] = type.GetProperty("toolGroup").GetString()!;
+            foreach (var member in type.GetProperty("members").EnumerateArray())
+            {
+                string memberId = member.GetProperty("uid").GetString()!;
+                categories[memberId] = string.Join(" / ", member.GetProperty("navigationPath").EnumerateArray().Select(part => part.GetString()));
+                groups[memberId] = member.GetProperty("toolGroup").GetString()!;
+                if (member.GetProperty("readOnly").GetBoolean()) readOnlyMembers.Add(memberId);
+            }
         }
         Types = Core.GetExportedTypes().Where(type => type.Namespace?.StartsWith("ExHyperV.", StringComparison.Ordinal) == true && type.Namespace != "ExHyperV.Properties")
             .OrderBy(type => type.FullName, StringComparer.Ordinal).ToDictionary(type => TypeName(type));
@@ -78,11 +85,14 @@ public sealed class ApiCatalog
                     members[Id(member)] = member;
         }
         Members = members;
-        foreach (string id in Members.Keys)
-        {
-            string anchor = "api-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(id)))[..16].ToLowerInvariant();
-            if (memberCategories.TryGetValue(anchor, out var category)) categories[id] = category;
-        }
+    }
+
+    private static string ReadResource(string name)
+    {
+        using var stream = typeof(ApiCatalog).Assembly.GetManifestResourceStream(name)
+            ?? throw new InvalidDataException($"Missing API resource: {name}");
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     public MemberInfo Find(string id) => Members.TryGetValue(id, out var member) ? member
@@ -91,27 +101,10 @@ public sealed class ApiCatalog
     public string Category(MemberInfo member) => categories.GetValueOrDefault(Id(member))
         ?? categories.GetValueOrDefault(Id(member as Type ?? member.DeclaringType!), "Core");
 
-    public string Group(MemberInfo member)
-    {
-        string category = Category(member);
-        if (category.Contains("业务层面") || category.Contains("控制台")) return "console";
-        if (category.Contains("GPU") || category.Contains("PCIe") || category.Contains("USB")) return "devices";
-        if (category.Contains("虚拟机")) return "vm";
-        if (category.Contains("宿主")) return "host";
-        if (category.Contains("工具")) return "utilities";
-        return "core";
-    }
+    public string Group(MemberInfo member) => groups.GetValueOrDefault(Id(member))
+        ?? groups.GetValueOrDefault(Id(member as Type ?? member.DeclaringType!), "core");
 
-    public bool IsReadOnly(MemberInfo member)
-    {
-        // Categories alone are insufficient: ARP Start/Dispose also live in a query category.
-        string category = Category(member);
-        if (!category.Contains(" / 查询") || category.Contains(" / 修改") || category.Contains(" / 实例")) return false;
-        if (member is FieldInfo or PropertyInfo) return true;
-        if (member is not MethodInfo method || ApiValuePolicy.IsHelper(member)) return false;
-        return new[] { "Get", "Read", "Query", "Find", "Is", "Check", "Lookup", "Resolve", "TryGet" }
-            .Any(prefix => method.Name.StartsWith(prefix, StringComparison.Ordinal));
-    }
+    public bool IsReadOnly(MemberInfo member) => readOnlyMembers.Contains(Id(member)) && !ApiValuePolicy.IsHelper(member);
 
     public Type ResolveType(string name)
     {
@@ -226,8 +219,7 @@ public sealed class ApiCatalog
         {
             MethodBase callable => callable.GetParameters().Any(parameter => parameter.ParameterType.IsPointer
                 || parameter.ParameterType.IsByRefLike && parameter.ParameterType != typeof(ReadOnlySpan<byte>)),
-            PropertyInfo property => property.PropertyType.IsByRefLike && !(property.DeclaringType == typeof(ConsoleFrame) && property.Name == "Pixels")
-                && !(property.DeclaringType == typeof(ConsoleAudioPacket) && property.Name == "Samples"),
+            PropertyInfo property => property.PropertyType.IsByRefLike && !(property.DeclaringType == typeof(ConsoleFrame) && property.Name == "Pixels"),
             _ => false
         }).Select(Id).ToArray()
     };

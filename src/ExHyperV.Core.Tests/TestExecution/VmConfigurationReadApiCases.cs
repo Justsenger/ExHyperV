@@ -14,7 +14,7 @@ internal static class VmConfigurationReadApiCases
             var raw = VmSettingsApiCases.Read(vm.Id, "Msvm_MemorySettingData");
             var result = await c.CallAsync(() => VmMemoryService.GetVmMemorySettingsAsync(vm.Id));
             c.Require(result.HasData, "读取内存设置：" + result.Error);
-            var model = result.Data!;
+            var model = result.Data!.Values;
             c.Equal(1024L, model.Startup, "1 GiB 转为 1024 MiB");
             c.Equal(256L, model.Minimum, "256 MiB 下限"); c.Equal(2048L, model.Maximum, "2 GiB 上限");
             c.Equal(25, model.Buffer, "25% 缓冲"); c.Equal(7300u, model.Weight, "优先级系统百分比转权重");
@@ -30,7 +30,7 @@ internal static class VmConfigurationReadApiCases
         var native = VmSettingsApiCases.Read(vm.Id, "Msvm_ProcessorSettingData");
         var response = await c.CallAsync(() => VmProcessorService.GetVmProcessorAsync(vm.Id));
         c.Require(response.HasData, "读取处理器设置：" + response.Error);
-        var settings = response.Data!;
+        var settings = response.Data!.Values;
         c.Equal(2, settings.Count, "处理器数量"); c.Equal(10000UL, settings.Reservation, "10% 保留换算");
         c.Equal(70000UL, settings.Limit, "70% 限制换算"); c.Equal(400, settings.RelativeWeight, "权重");
         Compare(c, native.GetValueOrDefault("LimitProcessorFeatures"), settings.CompatibilityForMigrationEnabled, "迁移兼容");

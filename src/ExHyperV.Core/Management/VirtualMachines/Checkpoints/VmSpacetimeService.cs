@@ -98,7 +98,7 @@ public static class VmSpacetimeService
     /// <summary>检查是否允许创建检查点，要求已启用检查点且没有打开的虫洞。</summary>
     /// <param name="checkpointsEnabled">当前是否允许使用检查点。</param>
     /// <param name="nodes">检查点和当前状态节点的快照；允许 null 的规则入口按没有节点处理。</param>
-    /// <returns>当前输入满足条件时为 true；不执行主机检查。</returns>
+    /// <returns>当前输入满足条件时为 true。</returns>
     public static bool CanCreateMoment(bool checkpointsEnabled, IEnumerable<SpacetimeNode>? nodes) =>
         checkpointsEnabled && !HasOpenWormhole(nodes);
 
@@ -121,7 +121,7 @@ public static class VmSpacetimeService
     /// <summary>按稳定身份读取检查点树、当前状态及历史磁盘挂接信息。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <param name="encodeThumbnail">可选缩略图编码器；提供时可能更新缩略图缓存。</param>
-    /// <returns>查询成功的完整节点列表，或明确的读取失败；失败不会伪装成没有检查点。</returns>
+    /// <returns>完整节点列表；失败时返回原因。</returns>
     public static async Task<ApiResponse<List<SpacetimeNode>>> GetSpacetimeNodesAsync(Guid vmId,
         Func<VmScreenshotImage, byte[]>? encodeThumbnail = null)
     {
@@ -164,7 +164,7 @@ public static class VmSpacetimeService
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <param name="nodes">可选的调用方节点快照，用于同步本次清理后的挂接状态。</param>
     /// <returns>整个应用及必要重启结果；Steps 记录 CloseWormhole（ResourceId 为节点 ID）、Save、Apply、Start 及失败的状态检查 StateBeforeApply/StateBeforeRestart。未执行的步骤不列出。后续失败不会撤销已经完成的步骤。</returns>
-    /// <remarks>开始时处于运行或暂停状态的虚拟机在应用后会被启动；暂停状态不会原样恢复。其他初始状态不要求重启。</remarks>
+    /// <remarks>初始为运行或暂停的虚拟机，在应用后启动。</remarks>
     /// <editentry label="恢复检查点" category="检查点"/>
     public static Task<ApiResponse> TeleportAsync(SpacetimeNode node, Guid vmId, IEnumerable<SpacetimeNode>? nodes = null) =>
         RunSpacetimeResponseAsync(vmId, () => TeleportOperationAsync(node, vmId, nodes ?? []));
@@ -193,7 +193,7 @@ public static class VmSpacetimeService
     /// <summary>删除目标检查点及其全部后代检查点。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <param name="node">要删除的历史节点；执行前核对归属及历史磁盘挂接互锁。</param>
-    /// <returns>删除结果；删除成功不能通过本响应撤销。</returns>
+    /// <returns>删除结果。</returns>
     /// <editentry label="删除检查点" category="检查点"/>
     public static Task<ApiResponse> AnnihilateAsync(Guid vmId, SpacetimeNode node) =>
         RunSpacetimeOperationAsync(vmId, () => AnnihilateOperationAsync(vmId, node));
@@ -201,7 +201,7 @@ public static class VmSpacetimeService
     /// <summary>删除并合并单个历史检查点，保留后继检查点关系。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <param name="node">要合并的历史节点；执行前核对归属及历史磁盘挂接互锁。</param>
-    /// <returns>合并结果；成功不能通过本响应撤销。</returns>
+    /// <returns>合并结果。</returns>
     /// <editentry label="合并检查点" category="检查点"/>
     public static Task<ApiResponse> ConvergeAsync(Guid vmId, SpacetimeNode node) =>
         RunSpacetimeOperationAsync(vmId, () => ConvergeOperationAsync(vmId, node));

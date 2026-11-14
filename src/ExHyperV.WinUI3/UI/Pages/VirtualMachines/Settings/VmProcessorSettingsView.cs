@@ -20,7 +20,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
     private VmCpuAffinitySettingsView? affinityView;
     private VmProcessorSettings? snapshot;
     private VmProcessorService.HostCapabilities? host;
-    private bool poweredOff;
+    private VmState powerState;
     private static readonly ConcurrentDictionary<Guid, byte> unknownOperations = new();
     private bool uncertain { get => unknownOperations.ContainsKey(VmId); set { if (value) unknownOperations.TryAdd(VmId, 0); } }
 
@@ -100,10 +100,29 @@ public sealed class VmProcessorSettingsView : VmSettingsView
 
     private void UpdateGroupActions()
     {
+        UpdatePerfmonAvailability();
         foreach (var group in groupActions)
         {
-            group.Apply.IsEnabled = snapshot != null && !uncertain && group.Fields.Any(f => f.IsEnabled && f.HasPendingEdit);
+            group.Apply.IsEnabled = snapshot != null && !uncertain && group.Fields.Any(f => f.HasPendingEdit);
             group.Revert.IsEnabled = group.Fields.Any(f => f.HasPendingEdit);
+        }
+    }
+
+    private static bool IsPerfmonToggle(VmProcessorCapability capability) => capability is
+        VmProcessorCapability.PerformanceMonitoring or VmProcessorCapability.PreciseEventSampling or VmProcessorCapability.InstructionTracing;
+
+    private void UpdatePerfmonAvailability()
+    {
+        if (Updating || snapshot == null || host == null) return;
+        var toggles = fields.Where(field => IsPerfmonToggle(field.Capability)).ToArray();
+        var draft = snapshot.Clone();
+        foreach (var (field, _) in toggles)
+            if (field.HasPendingEdit) field.Property.SetValue(draft, field.Read());
+
+        foreach (var (field, _) in toggles)
+        {
+            var condition = VmProcessorService.GetModificationCondition(draft, field.Property.Name, powerState, host);
+            field.SetAvailability(!uncertain && condition.CanModify, condition.CanModify ? null : condition.Reason);
         }
     }
 
@@ -116,7 +135,8 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         apply.Click += async (_, _) =>
         {
             if (Updating || IsBusy || IsStopped || snapshot == null || uncertain) return;
-            var submitted = grouped.Where(f => f.IsEnabled && f.HasPendingEdit).ToArray();
+            // 依赖开关可能因其他草稿值而暂时禁用，已编辑的值仍属于同一次提交。
+            var submitted = grouped.Where(f => f.HasPendingEdit).ToArray();
             await RunAsync(() => ApplyAsync(submitted));
         };
         revert.Click += (_, _) =>
@@ -136,47 +156,6 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         sections.Add((title, new Border { Child = content, Margin = new Thickness(0, 0, 0, 16) }));
     }
 
-    private static string? DescriptionFor(string property) => property switch
-    {
-        nameof(VmProcessorSettings.Count) => "虚拟机可见的逻辑处理器数量；可修改范围以宿主能力和虚拟机状态为准",
-        nameof(VmProcessorSettings.Reservation) => "为虚拟机预留的处理器资源比例",
-        nameof(VmProcessorSettings.Limit) => "虚拟机可使用的处理器资源上限",
-        nameof(VmProcessorSettings.RelativeWeight) => "多个虚拟机竞争处理器资源时使用的相对调度权重",
-        nameof(VmProcessorSettings.CpuBrandString) => "修改向来宾公开的 CPU 名称",
-        nameof(VmProcessorSettings.ExposeVirtualizationExtensions) => "开启后透传虚拟化指令集，支持在虚拟机内运行虚拟机",
-        nameof(VmProcessorSettings.CompatibilityForMigrationEnabled) => "屏蔽 CPU 指令集，以便在不同版本的主机间迁移",
-        nameof(VmProcessorSettings.CompatibilityForMigrationMode) => "选择固定的最小特征集，或群集节点共同支持的特征集",
-        nameof(VmProcessorSettings.CompatibilityForOlderOperatingSystemsEnabled) => "屏蔽 CPU 指令集，提高对老旧操作系统的兼容性",
-        nameof(VmProcessorSettings.ApicMode) => "切换虚拟机的中断控制器模式，影响兼容性与可扩展性",
-        nameof(VmProcessorSettings.LpiMode) => "设置虚拟机使用 LPI 接收设备中断的方式",
-        nameof(VmProcessorSettings.EnableHostResourceProtection) => "监控 VMBus 通信，防止中断风暴影响主机",
-        nameof(VmProcessorSettings.SmtMode) => "控制向虚拟机公开的每个核心硬件线程数",
-        nameof(VmProcessorSettings.MaxNumaNodesPerSocket) => "控制虚拟 CPU 插槽包含的 NUMA 分组数",
-        nameof(VmProcessorSettings.MaxProcessorsPerNumaNode) => "控制虚拟处理器的 NUMA 分组大小",
-        nameof(VmProcessorSettings.L3CacheWays) => "设置虚拟机可见的 L3 缓存路数",
-        nameof(VmProcessorSettings.L3DistributionPolicy) => "设置虚拟处理器在 L3 缓存域之间的分布方式",
-        nameof(VmProcessorSettings.MaxClusterCountPerSocket) => "设置每个虚拟 CPU 插槽允许包含的最大处理器簇数",
-        nameof(VmProcessorSettings.MaxProcessorCountPerL3) => "设置每个虚拟 L3 缓存包含的最大虚拟处理器数",
-        nameof(VmProcessorSettings.EnablePerfmonPmu) => "允许虚拟机访问通用硬件性能计数器",
-        nameof(VmProcessorSettings.EnablePerfmonArchPmu) => "允许虚拟机访问架构性能监控计数器",
-        nameof(VmProcessorSettings.AllowAcountMcount) => "允许虚拟机读取 ACOUNT/MCOUNT 频率监视寄存器",
-        nameof(VmProcessorSettings.EnablePerfmonLbr) => "允许虚拟机读取最近执行的分支记录",
-        nameof(VmProcessorSettings.EnablePerfmonPebs) => "允许虚拟机采集精确的性能事件样本，需要同时开启 PMU",
-        nameof(VmProcessorSettings.EnablePerfmonIpt) => "允许虚拟机记录处理器指令执行流，需要同时开启 PMU",
-        nameof(VmProcessorSettings.PerfCpuFreqCapMhz) => "设置虚拟机 CPU 可使用的最高频率",
-        nameof(VmProcessorSettings.PerfCpuFreqMinMhz) => "设置虚拟机 CPU 可使用的最低频率",
-        nameof(VmProcessorSettings.PerfCpuFreqDesiredMhz) => "设置虚拟机 CPU 的目标运行频率",
-        nameof(VmProcessorSettings.PerfCpuEnergyPerformancePreference) => "设置虚拟机 CPU 在性能和能效之间的偏好",
-        nameof(VmProcessorSettings.PerfCpuAutonomousActivityWindow) => "设置虚拟机 CPU 自动调节频率时的活动评估窗口",
-        nameof(VmProcessorSettings.PerfCpuIgnoreHostMaxFrequency) => "允许虚拟机 CPU 忽略主机设置的最高频率",
-        nameof(VmProcessorSettings.PhysicalAddressWidth) => "设置虚拟机可见的物理地址宽度",
-        nameof(VmProcessorSettings.PageShatterMode) => "设置二级地址转换中大内存页的拆分方式",
-        nameof(VmProcessorSettings.DisableSpeculationControls) => "禁用漏洞补丁 (如 Spectre)，提升性能但降低安全性",
-        nameof(VmProcessorSettings.HardwareIsolationExtensionsEnabled) => "允许虚拟机向嵌套虚拟机暴露硬件隔离扩展",
-        nameof(VmProcessorSettings.MaxHwIsolatedGuests) => "设置允许创建的嵌套硬件隔离虚拟机数量上限",
-        _ => null
-    };
-
     private static SettingOption[] Options<T>(params (T Value, string Label)[] options) => options.Select(o => new SettingOption(o.Value!, o.Label)).ToArray();
     private Grid Toggle(string title, string property, VmProcessorCapability capability) => Add(title, property, capability, SettingEditorKind.Toggle);
     private Grid Number(string title, string property, VmProcessorCapability capability, decimal scale = 1, string? description = null) => Add(title, property, capability, SettingEditorKind.Text, scale: scale, description: description);
@@ -188,7 +167,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         if (kind == SettingEditorKind.Text && field.Property.PropertyType != typeof(string)) field.UseNumericStepper(title);
         field.ValueEdited += UpdateGroupActions;
         fields.Add((field, capability));
-        var row = FieldRow(title, string.Join("\n", new[] { DescriptionFor(property), description }.Where(s => !string.IsNullOrWhiteSpace(s))), field, kind);
+        var row = FieldRow(title, string.Join("\n", new[] { ApiFieldHelp.For(field.Property), description }.Where(s => !string.IsNullOrWhiteSpace(s))), field, kind);
         row.Tag = field;
         row.Background = Brush("CardBackgroundFillColorDefaultBrush");
         row.BorderBrush = Brush("CardStrokeColorDefaultBrush");
@@ -213,9 +192,10 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         var hostTask = ReadHostCapabilitiesAsync();
         var contextTask = ReadContextAsync();
         await Task.WhenAll(settingsTask, hostTask, contextTask);
-        var settings = (await settingsTask).RequireData();
+        var observation = (await settingsTask).RequireData();
+        var settings = observation.Values;
         host = await hostTask;
-        poweredOff = (await contextTask).State == VmState.PoweredOff;
+        powerState = (await contextTask).State;
         if (IsStopped) return;
         snapshot = settings;
         Updating = true;
@@ -224,14 +204,10 @@ public sealed class VmProcessorSettingsView : VmSettingsView
             foreach (var (field, capability) in fields)
             {
                 var value = field.Property.GetValue(settings);
-                string? error = settings.Supports(capability) ? null : "当前宿主未提供此设置。";
-                if (error == null)
-                {
-                    var proposed = Copy(settings);
-                    field.Property.SetValue(proposed, field.ProbeValue(value));
-                    error = VmProcessorService.GetChangeError(settings, proposed, poweredOff, host);
-                }
-                field.Load(value, !uncertain && error == null, error);
+                var condition = VmProcessorService.GetModificationCondition(settings, field.Property.Name, powerState, host);
+                bool available = observation.States.GetValueOrDefault(field.Property.Name) == VmQueryValueState.Available;
+                field.Load(value, !uncertain && available && condition.CanModify,
+                    !available ? "此设置未取得有效数据。" : condition.CanModify ? null : condition.Reason);
             }
         }
         finally { Updating = false; }
@@ -242,7 +218,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
     private async Task ApplyAsync(params SettingFieldEditor[] submitted)
     {
         if (snapshot == null || host == null) return;
-        var proposed = Copy(snapshot);
+        var proposed = snapshot.Clone();
         var changed = new List<string>();
         foreach (var field in submitted)
         {
@@ -252,8 +228,6 @@ public sealed class VmProcessorSettingsView : VmSettingsView
             changed.Add(field.Property.Name);
         }
         if (changed.Count == 0) return;
-        if (VmProcessorService.GetChangeError(snapshot, proposed, poweredOff, host) is { } error)
-            throw new InvalidOperationException(error);
         var otherDrafts = fields.Select(f => f.Editor).Where(f => f.HasPendingEdit && !submitted.Contains(f))
             .Select(f => (Field: f, Draft: f.CaptureDraft())).ToArray();
         ApiResponse? result = null;
@@ -275,13 +249,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         if (failure != null) throw failure;
     }
 
-    private static VmProcessorSettings Copy(VmProcessorSettings source)
-    {
-        var copy = new VmProcessorSettings();
-        foreach (var property in typeof(VmProcessorSettings).GetProperties().Where(p => p.SetMethod?.IsPublic == true))
-            property.SetValue(copy, property.GetValue(source));
-        return copy;
-    }
+
 }
 
 internal enum SettingEditorKind { Text, Toggle, Choice }
@@ -467,12 +435,17 @@ internal sealed class SettingFieldEditor : UserControl
                 }
                 choice.SelectedItem = item;
             }
-            IsEnabled = enabled;
-            ToolTipService.SetToolTip(this, reason);
-            AvailabilityChanged?.Invoke(reason);
+            SetAvailability(enabled, reason);
         }
         finally { loading = false; }
         UpdateStepper();
+    }
+
+    public void SetAvailability(bool enabled, string? reason)
+    {
+        IsEnabled = enabled;
+        ToolTipService.SetToolTip(this, reason);
+        AvailabilityChanged?.Invoke(reason);
     }
 
     public object? Read()
@@ -493,12 +466,5 @@ internal sealed class SettingFieldEditor : UserControl
         { throw new InvalidOperationException("请输入有效且在范围内的数值。", ex); }
     }
 
-    public object ProbeValue(object? current)
-    {
-        var type = Nullable.GetUnderlyingType(Property.PropertyType) ?? Property.PropertyType;
-        if (type == typeof(bool)) return current is not true;
-        if (type == typeof(string)) return (current as string ?? "") + " ";
-        if (type.IsEnum) return Enum.GetValues(type).Cast<object>().First(v => !Equals(v, current));
-        return Convert.ChangeType(current == null || Convert.ToDecimal(current) == 0 ? 1 : 0, type, CultureInfo.InvariantCulture);
-    }
+
 }

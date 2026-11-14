@@ -2,7 +2,7 @@
   {
     "id": "C-a41e3bd35586bfde-1",
     "api": "VmGpuService.构造()",
-    "group": "管理层面 / 虚拟机",
+    "group": "管理层面",
     "name": "传入既有查询服务建立 GPU 服务",
     "expected": "服务引用按约定使用，构造阶段保持虚拟机与设备原状态",
     "requirements": [
@@ -11,6 +11,233 @@
     "recovery": [],
     "order": 0,
     "operation": "建立 GPU 服务"
+  },
+  {
+    "id": "C-cc53e3830a712bc3-1",
+    "api": "DiskPartitionInfo.构造()",
+    "group": "管理层面",
+    "name": "编号 2、容量 1073741824 字节、Windows 分类和固定说明",
+    "expected": "输入字段逐项保留，SizeInGb=1，物理盘标志与磁盘路径初值正确",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "建立分区事实记录"
+  },
+  {
+    "id": "T-b113beccfb305bfa-1",
+    "api": "VmGpuService.ScanVmPartitionsAsync()",
+    "group": "管理层面",
+    "name": "扫描完整副本的 VHD",
+    "expected": "分区序号/偏移/容量与独立分区表一致，扫描后按既有卸载约定收尾",
+    "requirements": [
+      "hyperv",
+      "vm",
+      "vmstate",
+      "media"
+    ],
+    "recovery": [
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "文件写入使用测试副本；保存结果后清理本轮文件、挂载和句柄。",
+      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
+    ],
+    "order": 14,
+    "operation": "扫描系统磁盘分区"
+  },
+  {
+    "id": "T-b113beccfb305bfa-2",
+    "api": "VmGpuService.ScanVmPartitionsAsync()",
+    "group": "管理层面",
+    "name": "扫描已指定物理盘",
+    "expected": "分区序号/偏移/容量与独立分区表一致，扫描后按既有脱机约定收尾",
+    "requirements": [
+      "hyperv",
+      "vm",
+      "vmstate",
+      "physical"
+    ],
+    "recovery": [
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "仅使用第一步选定的专用磁盘；记录并恢复脱机、只读、盘符和挂接状态。",
+      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
+    ],
+    "order": 19,
+    "operation": "扫描系统磁盘分区"
+  },
+  {
+    "id": "T-3d90d2fd0bb8557a-1",
+    "api": "VmNetworkService 地址修改规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "分别传入正在运行与已停止",
+    "expected": "isRunning=true 返回 false；isRunning=false 返回 true。",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "判断当前运行状态是否允许编辑 MAC 地址"
+  },
+  {
+    "id": "T-1fbfc99325fbc7f5-1",
+    "api": "VmProcessorService 配置校验规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "运行/关机状态逐字段改变数量、权重、限制、嵌套和兼容性",
+    "expected": "在线与离线字段按公开规则分别允许或返回状态错误",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "比较处理器设置"
+  },
+  {
+    "id": "T-dd0769d5a75f506a-1",
+    "api": "VmMemoryService 动态内存能力规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "运行状态 × 动态内存的四种组合",
+    "expected": "关机允许离线项；运行且动态内存时锁定启动内存；动态上限随动态开关开放",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "根据运行状态和当前动态内存开关计算内存编辑能力"
+  },
+  {
+    "id": "T-04c74eb1d0f19b8e-1",
+    "api": "VmMemoryService 配置校验规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "运行时逐项修改优先级、启动内存、动态上下限和离线字段",
+    "expected": "优先级可改；运行动态内存的启动值受限；动态上限按当前动态开关判断；离线字段返回关机要求",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "比较当前与请求设置"
+  },
+  {
+    "id": "T-52bb45cdb2267299-1",
+    "api": "VmMemoryService 内存后备联动规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "选择 1GB 页、虚拟后备及后备高级功能的冲突组合",
+    "expected": "最后修改项优先；整组应用得到确定的兼容组合，其他字段保留",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "原地规范化内存后备页设置及其互斥项"
+  },
+  {
+    "id": "T-598076cb947f091d-1",
+    "api": "VmStorageService 介质修改规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "运行/关机 × IDE/SCSI × 硬盘/光驱",
+    "expected": "路径修改许可与热插拔规则相符",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "检查指定设备在当前运行状态下能否更换介质路径"
+  },
+  {
+    "id": "T-8d881fe2280458cc-1",
+    "api": "VmBootService 引导重排规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "一代/二代 × 运行/关机",
+    "expected": "一代运行返回 false，其余返回 true",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "按虚拟机代数与运行状态判断是否允许改变启动顺序"
+  },
+  {
+    "id": "T-d32a5fbc3c95c678-1",
+    "api": "VmBootService 数字锁定规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "正在运行标志分别为 true 和 false",
+    "expected": "isRunning=true 返回 false；isRunning=false 返回 true。此入口仅检查活动状态。",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "判断当前状态是否允许修改引导 Num Lock"
+  },
+  {
+    "id": "T-e67a4d07048dee65-1",
+    "api": "VmSecurityService 状态修改规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "一代/二代 × 运行/关机",
+    "expected": "仅二代关机返回 true",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "判断当前虚拟机是否满足安全设置的代数和离线要求"
+  },
+  {
+    "id": "T-ec8ce4884f65e35a-1",
+    "api": "VmSecurityService 安全能力规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "代数、运行状态、安全启动、TPM、屏蔽组合及各 设置项",
+    "expected": "整组许可与各项互锁共同生效；被锁项返回对应限制原因",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "合并代数、运行状态和安全开关互锁规则"
+  },
+  {
+    "id": "T-b49c2d8f03d0a4d7-1",
+    "api": "VmSecurityService 安全联动规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "安全启动、TPM、屏蔽的八种组合",
+    "expected": "屏蔽锁住安全启动/TPM/加密；模板依赖安全启动，加密依赖 TPM",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "仅按安全启动、TPM 和屏蔽状态计算各安全开关之间的互锁关系"
+  },
+  {
+    "id": "T-cb90ab1eee1220c0-1",
+    "api": "VmSecurityService 安全提交规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "代数、运行状态、安全启动、TPM、屏蔽组合及各 设置项",
+    "expected": "整组许可与各项互锁共同生效；被锁项返回对应限制原因",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "校验指定安全设置是否满足当前代数、运行状态和互锁规则"
+  },
+  {
+    "id": "T-ccbb01325c9a7bf9-1",
+    "api": "VmDisplaySettingsService 显示配置规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "运行与关机两种状态",
+    "expected": "关机返回 true，运行返回 false",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "判断虚拟机显示设备分辨率配置是否可修改"
+  },
+  {
+    "id": "T-9bd9ed220dac0b42-1",
+    "api": "VmMmioService 地址窗口修改规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "运行与关机两种状态",
+    "expected": "关机返回 true，运行返回 false",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "判断当前状态是否允许手动编辑 MMIO 配置"
+  },
+  {
+    "id": "T-4fc0989ca5b307d3-1",
+    "api": "VmConsoleSupportService 控制台能力规则",
+    "group": "管理层面 / 虚拟机",
+    "name": "一代/二代 × 运行/关机",
+    "expected": "只有二代关机为 true",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "判断是否允许添加或移除基本控制台所需的合成设备"
+  },
+  {
+    "id": "api.hibernation-rule",
+    "api": "VmPowerService 休眠修改规则",
+    "group": "管理层面 / 虚拟机",
+    "operation": "判断休眠设置条件",
+    "name": "字段存在性与虚拟机状态组合",
+    "expected": "仅字段存在且虚拟机处于允许状态时可修改",
+    "requirements": [],
+    "recovery": [],
+    "order": 0
   },
   {
     "id": "C-c354f64ecc36c3c9-1",
@@ -315,23 +542,6 @@
     "operation": "读取用于配置校验的虚拟机标识、代数与当前 Hyper-V 状态"
   },
   {
-    "id": "T-65ddb44483a14191-1",
-    "api": "VmQueryService.GetVmConfigRootAsync()",
-    "group": "管理层面 / 虚拟机 / 查询",
-    "name": "读取并核对：配置根目录",
-    "expected": "逐字段与对应虚拟机配置路径的同一对象记录相等，身份按稳定 ID 对齐",
-    "requirements": [
-      "hyperv",
-      "vm"
-    ],
-    "recovery": [
-      "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 9,
-    "operation": "查找虚拟机配置目录"
-  },
-  {
     "id": "T-c27b37bcb44a678c-1",
     "api": "VmQueryService.GetVmStateAsync()",
     "group": "管理层面 / 虚拟机 / 查询",
@@ -549,7 +759,7 @@
   {
     "id": "T-987cb5dc889f2286-1",
     "api": "VmMetadataService.ReadAsync()",
-    "group": "管理层面 / 虚拟机 / 查询 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 查询 / 自定义数据",
     "name": "空元数据及包含自定义键的 虚拟机",
     "expected": "返回当前配置的独立只读键值集合，空集合与失败明确区分",
     "requirements": [
@@ -566,7 +776,7 @@
   {
     "id": "T-987cb5dc889f2286-2",
     "api": "VmMetadataService.ReadAsync()",
-    "group": "管理层面 / 虚拟机 / 查询 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 查询 / 自定义数据",
     "name": "目标唯一标识缺席或查询失败",
     "expected": "Success=false，保留错误信息",
     "requirements": [
@@ -975,7 +1185,6 @@
       "vm"
     ],
     "recovery": [
-      "使用当前账户，关闭共用配置的程序；备份配置及 MMIO 缓存，结束后恢复原字节与原先存在状态。",
       "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
@@ -1052,17 +1261,6 @@
     ],
     "order": 14,
     "operation": "读取检查点树、当前状态和历史磁盘挂接信息"
-  },
-  {
-    "id": "T-3d90d2fd0bb8557a-1",
-    "api": "VmNetworkService.CanEditMacAddress()",
-    "group": "管理层面 / 虚拟机 / 修改 / 网络",
-    "name": "分别传入正在运行与已停止",
-    "expected": "isRunning=true 返回 false；isRunning=false 返回 true。",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "判断当前运行状态是否允许编辑 MAC 地址"
   },
   {
     "id": "T-d40cf06a5ccf520f-1",
@@ -1592,15 +1790,15 @@
     "order": 30
   },
   {
-    "id": "T-c027ec2049f7ff70-1",
-    "api": "VmEditService.GetNameError()",
-    "group": "管理层面 / 虚拟机 / 修改 / 基本信息",
-    "name": "空白名称与含中文、空格、引号的名称",
-    "expected": "null、空串、纯空白返回错误；有内容的名称通过。本接口检查空白规则。",
+    "id": "api.condition.VmNetworkService.GetMacModificationCondition",
+    "api": "VmNetworkService.GetMacModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 网络",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "检查新虚拟机名称是否为空白"
+    "order": 10014,
+    "operation": "验证 VmNetworkService.GetMacModificationCondition"
   },
   {
     "id": "T-feb5a07dbfc23262-1",
@@ -1654,20 +1852,9 @@
     "operation": "按稳定唯一标识重命名虚拟机"
   },
   {
-    "id": "T-a7feffe5e688d28b-1",
-    "api": "OsImages.Canonical()",
-    "group": "管理层面 / 虚拟机 / 修改 / 额外元数据",
-    "name": "Windows、Linux、大小写别名及空值",
-    "expected": "返回固定规范分类；未知输入按默认分类处理",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "匹配内置操作系统类型"
-  },
-  {
     "id": "T-c6da4235d54cbb51-1",
     "api": "VmMetadataService.SetOperatingSystemTypeAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 修改 / 自定义数据",
     "name": "修改宿主元数据 中的操作系统分类",
     "expected": "独立读取系统配置，目标字段等于请求值，其他字段保留原值",
     "requirements": [
@@ -1684,7 +1871,7 @@
   {
     "id": "T-c6da4235d54cbb51-2",
     "api": "VmMetadataService.SetOperatingSystemTypeAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 修改 / 自定义数据",
     "name": "对相同值再次调用",
     "expected": "成功或明确的已达目标结果；对象数量、关联关系保持稳定",
     "requirements": [
@@ -1701,7 +1888,7 @@
   {
     "id": "T-c6da4235d54cbb51-3",
     "api": "VmMetadataService.SetOperatingSystemTypeAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 修改 / 自定义数据",
     "name": "目标在调用前已删除",
     "expected": "返回该入口声明的失败结果；其他测试对象保持原值",
     "requirements": [
@@ -1718,7 +1905,7 @@
   {
     "id": "T-25bccb731f217a85-1",
     "api": "VmMetadataService.RemoveAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 修改 / 自定义数据",
     "name": "删除存在的键和再次删除同一键",
     "expected": "指定键消失，其余键保持原值；重复删除符合接口约定",
     "requirements": [
@@ -1735,7 +1922,7 @@
   {
     "id": "T-36243ce225f467d9-1",
     "api": "VmMetadataService.SetAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 修改 / 自定义数据",
     "name": "新增和覆盖单个键，值含中文、XML 特殊字符、CR/LF",
     "expected": "系统 来源编号=4 的值逐字相等，其他键和原备注保留",
     "requirements": [
@@ -1752,7 +1939,7 @@
   {
     "id": "T-36243ce225f467d9-2",
     "api": "VmMetadataService.SetAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 修改 / 自定义数据",
     "name": "空 唯一标识、无效键或非法 XML 字符",
     "expected": "明确报告错误，原元数据保留",
     "requirements": [
@@ -1769,7 +1956,7 @@
   {
     "id": "T-36243ce225f467d9-3",
     "api": "VmMetadataService.SetAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 额外元数据",
+    "group": "管理层面 / 虚拟机 / 修改 / 自定义数据",
     "name": "连续修改两个独立键",
     "expected": "两个最新值均保存，旧读取快照保持原值",
     "requirements": [
@@ -1784,50 +1971,6 @@
     "operation": "新增或修改一个宿主元数据键"
   },
   {
-    "id": "T-e4c8e05c638eb132-1",
-    "api": "VmProcessorService.CanEditOfflineSettings()",
-    "group": "管理层面 / 虚拟机 / 修改 / 处理器",
-    "name": "已关机标志分别为 true 和 false",
-    "expected": "返回值与 isPoweredOff 一致。",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "判断是否允许修改要求完全关机的处理器设置"
-  },
-  {
-    "id": "T-a713121a602099f1-1",
-    "api": "VmProcessorService.CanTogglePerfmonDependent()",
-    "group": "管理层面 / 虚拟机 / 修改 / 处理器",
-    "name": "当前值 与 性能监测单元 的 true/false/null 组合",
-    "expected": "已有依赖为 true 或 性能监测单元=true 时允许切换，其余 false",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "判断 性能监测单元 依赖功能能否切换"
-  },
-  {
-    "id": "T-686157bcc236e890-1",
-    "api": "VmProcessorService.CanTogglePerfmonPmu()",
-    "group": "管理层面 / 虚拟机 / 修改 / 处理器",
-    "name": "性能监测单元、精确事件采样、指令跟踪 的 true/false/null 组合",
-    "expected": "性能监测单元 尚未启用时允许；已启用时须同时无 精确事件采样/指令跟踪 才允许",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "判断 性能监测单元 能否切换"
-  },
-  {
-    "id": "T-1fbfc99325fbc7f5-1",
-    "api": "VmProcessorService.GetChangeError()",
-    "group": "管理层面 / 虚拟机 / 修改 / 处理器",
-    "name": "运行/关机状态逐字段改变数量、权重、限制、嵌套和兼容性",
-    "expected": "在线与离线字段按公开规则分别允许或返回状态错误",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "比较处理器设置"
-  },
-  {
     "id": "T-bc33776a025430aa-1",
     "api": "VmProcessorService.GetHostCapabilities()",
     "group": "管理层面 / 虚拟机 / 修改 / 处理器",
@@ -1837,17 +1980,6 @@
     "recovery": [],
     "order": 0,
     "operation": "根据宿主平台和隔离类型计算处理器设置所需的能力标记"
-  },
-  {
-    "id": "T-70e78fb1432c6160-1",
-    "api": "VmProcessorService.GetProcessorCountOptions()",
-    "group": "管理层面 / 虚拟机 / 修改 / 处理器",
-    "name": "主机核心数 1、6、8、48",
-    "expected": "从 1 起列出范围内的 2 的幂，再补入实际核心数；去重并升序排列。",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "生成从 1 开始的二次幂选项"
   },
   {
     "id": "contract.cpu-capability",
@@ -2689,37 +2821,26 @@
     "operation": "修改虚拟机处理器设置"
   },
   {
-    "id": "T-dd0769d5a75f506a-1",
-    "api": "VmMemoryService.GetCapabilities()",
-    "group": "管理层面 / 虚拟机 / 修改 / 内存",
-    "name": "运行状态 × 动态内存的四种组合",
-    "expected": "关机允许离线项；运行且动态内存时锁定启动内存；动态上限随动态开关开放",
+    "id": "api.condition.VmProcessorService.GetModificationCondition",
+    "api": "VmProcessorService.GetModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 处理器",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "根据运行状态和当前动态内存开关计算内存编辑能力"
+    "order": 10000,
+    "operation": "验证 VmProcessorService.GetModificationCondition"
   },
   {
-    "id": "T-04c74eb1d0f19b8e-1",
-    "api": "VmMemoryService.GetChangeError()",
-    "group": "管理层面 / 虚拟机 / 修改 / 内存",
-    "name": "运行时逐项修改优先级、启动内存、动态上下限和离线字段",
-    "expected": "优先级可改；运行动态内存的启动值受限；动态上限按当前动态开关判断；离线字段返回关机要求",
+    "id": "api.condition.VmProcessorSettings.Clone",
+    "api": "VmProcessorSettings.Clone()",
+    "group": "管理层面 / 虚拟机 / 修改 / 处理器",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "比较当前与请求设置"
-  },
-  {
-    "id": "T-52bb45cdb2267299-1",
-    "api": "VmMemoryService.NormalizeMemoryBackingSettings()",
-    "group": "管理层面 / 虚拟机 / 修改 / 内存",
-    "name": "选择 1GB 页、虚拟后备及后备高级功能的冲突组合",
-    "expected": "最后修改项优先；整组应用得到确定的兼容组合，其他字段保留",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "原地规范化内存后备页设置及其互斥项"
+    "order": 10001,
+    "operation": "验证 VmProcessorSettings.Clone"
   },
   {
     "id": "C-579606f4b6f23f0b-1",
@@ -2742,17 +2863,6 @@
     "recovery": [],
     "order": 0,
     "operation": "复制当前值为独立模型"
-  },
-  {
-    "id": "T-0718401cd1847e63-1",
-    "api": "VmMemorySettings.ConfigurePageSizeSupport()",
-    "group": "管理层面 / 虚拟机 / 修改 / 内存",
-    "name": "分别传入支持与缺少 内存后备页大小",
-    "expected": "可选页大小和兼容映射与对应平台规则一致",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "更新本地页面大小选项"
   },
   {
     "id": "T-94d0f03236a10a60-1",
@@ -3198,6 +3308,17 @@
     "operation": "修改虚拟机内存设置"
   },
   {
+    "id": "api.condition.VmMemoryService.GetModificationCondition",
+    "api": "VmMemoryService.GetModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 内存",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
+    "requirements": [],
+    "recovery": [],
+    "order": 10002,
+    "operation": "验证 VmMemoryService.GetModificationCondition"
+  },
+  {
     "id": "T-e8e3fc55c8135b30-1",
     "api": "VmStorageService.CanEditStoragePath()",
     "group": "管理层面 / 虚拟机 / 修改 / 存储",
@@ -3273,28 +3394,6 @@
     "recovery": [],
     "order": 0,
     "operation": "根据代数、运行状态和驱动类型列出允许添加的控制器类型"
-  },
-  {
-    "id": "T-598076cb947f091d-1",
-    "api": "VmStorageService.GetEditStoragePathError()",
-    "group": "管理层面 / 虚拟机 / 修改 / 存储",
-    "name": "运行/关机 × IDE/SCSI × 硬盘/光驱",
-    "expected": "路径修改许可与热插拔规则相符",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "检查指定设备在当前运行状态下能否更换介质路径"
-  },
-  {
-    "id": "T-57998fd260a9bee9-1",
-    "api": "VmStorageService.GetNewDiskSize()",
-    "group": "管理层面 / 虚拟机 / 修改 / 存储",
-    "name": "128、1、0、负数、空串、字母和溢出数字",
-    "expected": "合法正整数原样返回，其余回退 128",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "将新磁盘容量文本解析为正整数 GB"
   },
   {
     "id": "T-3e54a0ff198bf9c4-1",
@@ -3670,6 +3769,39 @@
     "order": 30
   },
   {
+    "id": "api.condition.VmStorageService.GetCompactionCondition",
+    "api": "VmStorageService.GetCompactionCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
+    "requirements": [],
+    "recovery": [],
+    "order": 10005,
+    "operation": "验证 VmStorageService.GetCompactionCondition"
+  },
+  {
+    "id": "api.condition.VmStorageService.GetMediaModificationCondition",
+    "api": "VmStorageService.GetMediaModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
+    "requirements": [],
+    "recovery": [],
+    "order": 10006,
+    "operation": "验证 VmStorageService.GetMediaModificationCondition"
+  },
+  {
+    "id": "api.condition.VmStorageService.GetRemovalCondition",
+    "api": "VmStorageService.GetRemovalCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
+    "requirements": [],
+    "recovery": [],
+    "order": 10007,
+    "operation": "验证 VmStorageService.GetRemovalCondition"
+  },
+  {
     "id": "C-f91ceb7e4df3e117-1",
     "api": "GpuDeploymentSession.构造()",
     "group": "管理层面 / 虚拟机 / 修改 / GPU",
@@ -3751,23 +3883,6 @@
     "operation": "仅发送协作式取消请求"
   },
   {
-    "id": "T-940fa9842e3cbfb1-1",
-    "api": "VmGpuRepairService.ResolveVmcxAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "读取并核对：目标配置文件路径",
-    "expected": "逐字段与独立读取系统 WMI的同一对象记录相等，身份按稳定 ID 对齐",
-    "requirements": [
-      "vm",
-      "vmcx"
-    ],
-    "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 9,
-    "operation": "定位虚拟机配置文件"
-  },
-  {
     "id": "T-c43952ae3a2faf5f-1",
     "api": "VmGpuService.RemoveGpuPartitionAsync()",
     "group": "管理层面 / 虚拟机 / 修改 / GPU",
@@ -3797,32 +3912,12 @@
       "config"
     ],
     "recovery": [
-      "使用当前账户，关闭共用配置的程序；备份配置及 MMIO 缓存，结束后恢复原字节与原先存在状态。",
+      "使用当前账户；仅备份并恢复本轮涉及的 MMIO 缓存字段，其余配置保留当前值。",
       "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 13,
     "operation": "配置 GPU 所需的虚拟机缓存控制和 MMIO 空间"
-  },
-  {
-    "id": "T-b113beccfb305bfa-1",
-    "api": "VmGpuService.ScanVmPartitionsAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "扫描完整副本的 VHD",
-    "expected": "分区序号/偏移/容量与独立分区表一致，扫描后按既有卸载约定收尾",
-    "requirements": [
-      "hyperv",
-      "vm",
-      "vmstate",
-      "media"
-    ],
-    "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
-      "文件写入使用测试副本；保存结果后清理本轮文件、挂载和句柄。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 14,
-    "operation": "扫描系统磁盘分区"
   },
   {
     "id": "T-b53e70a1a0085789-1",
@@ -3879,26 +3974,6 @@
     ],
     "order": 19,
     "operation": "给虚拟机分配显卡"
-  },
-  {
-    "id": "T-b113beccfb305bfa-2",
-    "api": "VmGpuService.ScanVmPartitionsAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "扫描已指定物理盘",
-    "expected": "分区序号/偏移/容量与独立分区表一致，扫描后按既有脱机约定收尾",
-    "requirements": [
-      "hyperv",
-      "vm",
-      "vmstate",
-      "physical"
-    ],
-    "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
-      "仅使用第一步选定的专用磁盘；记录并恢复脱机、只读、盘符和挂接状态。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 19,
-    "operation": "扫描系统磁盘分区"
   },
   {
     "id": "T-4ea1036d17491171-1",
@@ -4418,26 +4493,26 @@
     "operation": "按设备实例标识修改 PCIe 设备的虚拟机模式"
   },
   {
-    "id": "T-8d881fe2280458cc-1",
-    "api": "VmBootService.CanChangeBootOrder()",
-    "group": "管理层面 / 虚拟机 / 修改 / 引导",
-    "name": "一代/二代 × 运行/关机",
-    "expected": "一代运行返回 false，其余返回 true",
+    "id": "api.condition.VmPcieService.GetModificationCondition",
+    "api": "VmPcieService.GetModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / PCIe",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "按虚拟机代数与运行状态判断是否允许改变启动顺序"
+    "order": 10003,
+    "operation": "验证 VmPcieService.GetModificationCondition"
   },
   {
-    "id": "T-d32a5fbc3c95c678-1",
-    "api": "VmBootService.CanEditBootNumLock()",
-    "group": "管理层面 / 虚拟机 / 修改 / 引导",
-    "name": "正在运行标志分别为 true 和 false",
-    "expected": "isRunning=true 返回 false；isRunning=false 返回 true。此入口仅检查活动状态。",
+    "id": "api.condition.VmPcieService.GetDeviceModeModificationCondition",
+    "api": "VmPcieService.GetDeviceModeModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / PCIe",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "判断当前状态是否允许修改引导 Num Lock"
+    "order": 10004,
+    "operation": "验证 VmPcieService.GetDeviceModeModificationCondition"
   },
   {
     "id": "T-0edb8d8dc0296447-1",
@@ -4547,48 +4622,26 @@
     "operation": "将已挂载 ISO 的光驱调整到启动顺序首位"
   },
   {
-    "id": "T-e67a4d07048dee65-1",
-    "api": "VmSecurityService.CanEdit()",
-    "group": "管理层面 / 虚拟机 / 修改 / 安全",
-    "name": "一代/二代 × 运行/关机",
-    "expected": "仅二代关机返回 true",
+    "id": "api.condition.VmBootService.GetBootOrderModificationCondition",
+    "api": "VmBootService.GetBootOrderModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 引导",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "判断当前虚拟机是否满足安全设置的代数和离线要求"
+    "order": 10008,
+    "operation": "验证 VmBootService.GetBootOrderModificationCondition"
   },
   {
-    "id": "T-ec8ce4884f65e35a-1",
-    "api": "VmSecurityService.GetCapabilities()",
-    "group": "管理层面 / 虚拟机 / 修改 / 安全",
-    "name": "代数、运行状态、安全启动、TPM、屏蔽组合及各 设置项",
-    "expected": "整组许可与各项互锁共同生效；被锁项返回对应限制原因",
+    "id": "api.condition.VmBootService.GetNumLockModificationCondition",
+    "api": "VmBootService.GetNumLockModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 引导",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "合并代数、运行状态和安全开关互锁规则"
-  },
-  {
-    "id": "T-b49c2d8f03d0a4d7-1",
-    "api": "VmSecurityService.GetInterlocks()",
-    "group": "管理层面 / 虚拟机 / 修改 / 安全",
-    "name": "安全启动、TPM、屏蔽的八种组合",
-    "expected": "屏蔽锁住安全启动/TPM/加密；模板依赖安全启动，加密依赖 TPM",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "仅按安全启动、TPM 和屏蔽状态计算各安全开关之间的互锁关系"
-  },
-  {
-    "id": "T-cb90ab1eee1220c0-1",
-    "api": "VmSecurityService.GetSettingError()",
-    "group": "管理层面 / 虚拟机 / 修改 / 安全",
-    "name": "代数、运行状态、安全启动、TPM、屏蔽组合及各 设置项",
-    "expected": "整组许可与各项互锁共同生效；被锁项返回对应限制原因",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "校验指定安全设置是否满足当前代数、运行状态和互锁规则"
+    "order": 10010,
+    "operation": "验证 VmBootService.GetNumLockModificationCondition"
   },
   {
     "id": "T-438e700cde99ca50-1",
@@ -4874,15 +4927,15 @@
     "operation": "配置虚拟 TPM"
   },
   {
-    "id": "T-ccbb01325c9a7bf9-1",
-    "api": "VmDisplaySettingsService.CanEdit()",
-    "group": "管理层面 / 虚拟机 / 修改 / 显示",
-    "name": "运行与关机两种状态",
-    "expected": "关机返回 true，运行返回 false",
+    "id": "api.condition.VmSecurityService.GetModificationCondition",
+    "api": "VmSecurityService.GetModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 安全",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "判断虚拟机显示设备分辨率配置是否可修改"
+    "order": 10009,
+    "operation": "验证 VmSecurityService.GetModificationCondition"
   },
   {
     "id": "T-1709fcff18c53f85-1",
@@ -4943,15 +4996,15 @@
     "operation": "在虚拟机未运行时写入分辨率策略"
   },
   {
-    "id": "T-9bd9ed220dac0b42-1",
-    "api": "VmMmioService.CanEdit()",
-    "group": "管理层面 / 虚拟机 / 修改 / MMIO",
-    "name": "运行与关机两种状态",
-    "expected": "关机返回 true，运行返回 false",
+    "id": "api.condition.VmDisplaySettingsService.GetModificationCondition",
+    "api": "VmDisplaySettingsService.GetModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 显示",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "判断当前状态是否允许手动编辑 MMIO 配置"
+    "order": 10012,
+    "operation": "验证 VmDisplaySettingsService.GetModificationCondition"
   },
   {
     "id": "T-8b7a42b6a79f2308-1",
@@ -4974,21 +5027,6 @@
     "recovery": [],
     "order": 0,
     "operation": "通过属性设置器恢复本地模型并触发相关通知"
-  },
-  {
-    "id": "T-a42f2189437b381c-1",
-    "api": "VmMmioService.ComputeMmioPlan()",
-    "group": "管理层面 / 虚拟机 / 修改 / MMIO",
-    "name": "上限缺席、已有上限；设备需求取小于/等于/大于上限",
-    "expected": "低位/高位 MMIO 与缓存需求按约定生成，探测需求标记正确",
-    "requirements": [
-      "lifecycle"
-    ],
-    "recovery": [
-      "使用当前账户，关闭共用配置的程序；备份配置及 MMIO 缓存，结束后恢复原字节与原先存在状态。"
-    ],
-    "order": 4,
-    "operation": "仅根据已缓存或已保存的宿主 MMIO 上限计算间隙"
   },
   {
     "id": "T-b7401502ceb4a16c-1",
@@ -5057,7 +5095,7 @@
       "config"
     ],
     "recovery": [
-      "使用当前账户，关闭共用配置的程序；备份配置及 MMIO 缓存，结束后恢复原字节与原先存在状态。",
+      "使用当前账户；仅备份并恢复本轮涉及的 MMIO 缓存字段，其余配置保留当前值。",
       "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
@@ -5077,7 +5115,7 @@
       "config"
     ],
     "recovery": [
-      "使用当前账户，关闭共用配置的程序；备份配置及 MMIO 缓存，结束后恢复原字节与原先存在状态。",
+      "使用当前账户；仅备份并恢复本轮涉及的 MMIO 缓存字段，其余配置保留当前值。",
       "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
@@ -5097,7 +5135,7 @@
       "config"
     ],
     "recovery": [
-      "使用当前账户，关闭共用配置的程序；备份配置及 MMIO 缓存，结束后恢复原字节与原先存在状态。",
+      "使用当前账户；仅备份并恢复本轮涉及的 MMIO 缓存字段，其余配置保留当前值。",
       "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
@@ -5105,15 +5143,15 @@
     "operation": "确保虚拟机完全关机后应用主机推荐的 MMIO 配置"
   },
   {
-    "id": "T-4fc0989ca5b307d3-1",
-    "api": "VmConsoleSupportService.CanToggleConsoleSupport()",
-    "group": "管理层面 / 虚拟机 / 修改 / 控制台",
-    "name": "一代/二代 × 运行/关机",
-    "expected": "只有二代关机为 true",
+    "id": "api.condition.VmMmioService.GetModificationCondition",
+    "api": "VmMmioService.GetModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / MMIO",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
     "requirements": [],
     "recovery": [],
-    "order": 0,
-    "operation": "判断是否允许添加或移除基本控制台所需的合成设备"
+    "order": 10013,
+    "operation": "验证 VmMmioService.GetModificationCondition"
   },
   {
     "id": "T-d5048bdd0da6a284-1",
@@ -5219,6 +5257,17 @@
     "order": 30
   },
   {
+    "id": "api.condition.VmConsoleSupportService.GetModificationCondition",
+    "api": "VmConsoleSupportService.GetModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 控制台",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
+    "requirements": [],
+    "recovery": [],
+    "order": 10011,
+    "operation": "验证 VmConsoleSupportService.GetModificationCondition"
+  },
+  {
     "id": "C-92a2904b83c3f455-1",
     "api": "VmPowerOperationSession.构造()",
     "group": "管理层面 / 虚拟机 / 修改 / 电源",
@@ -5231,17 +5280,6 @@
     "recovery": [],
     "order": 0,
     "operation": "建立指定虚拟机和动作的一次流程"
-  },
-  {
-    "id": "api.hibernation-rule",
-    "api": "VmPowerService.CanEditHibernation()",
-    "group": "管理层面 / 虚拟机 / 修改 / 电源",
-    "operation": "判断休眠设置条件",
-    "name": "字段存在性与虚拟机状态组合",
-    "expected": "仅字段存在且虚拟机处于允许状态时可修改",
-    "requirements": [],
-    "recovery": [],
-    "order": 0
   },
   {
     "id": "T-7bd6d45e27d7ead2-1",
@@ -5499,6 +5537,17 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 30
+  },
+  {
+    "id": "api.condition.VmPowerService.GetHibernationModificationCondition",
+    "api": "VmPowerService.GetHibernationModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 电源",
+    "name": "配置状态、宿主能力与提交条件一致",
+    "expected": "允许条件与提交校验一致；缺少能力返回 Unsupported；所需电源状态明确",
+    "requirements": [],
+    "recovery": [],
+    "order": 10015,
+    "operation": "验证 VmPowerService.GetHibernationModificationCondition"
   },
   {
     "id": "T-b14757a9dfd6ac57-1",
@@ -6927,13 +6976,15 @@
     "id": "T-13435e0342a25628-1",
     "api": "ArpSnoopService.Dispose()",
     "group": "管理层面 / 宿主 / 查询 / ARP 嗅探",
-    "name": "停止已启动或尚未启动的独立进程实例",
-    "expected": "捕获与 ETW 资源释放，重复释放安全，最终关闭状态准确",
+    "name": "关闭已启动的独立捕获",
+    "expected": "目标句柄释放、重复关闭安全；另一实例继续运行；已有系统捕获保持原样",
     "requirements": [
       "hostwrite",
       "capture"
     ],
-    "recovery": [],
+    "recovery": [
+      "仅关闭本次创建的捕获实例。"
+    ],
     "order": 2,
     "operation": "最终停止捕获并清理本实例持有的主机捕获资源"
   },
@@ -6955,15 +7006,15 @@
     "id": "T-6bbdff3f2ad28f04-1",
     "api": "ArpSnoopService.Start()",
     "group": "管理层面 / 宿主 / 查询 / ARP 嗅探",
-    "name": "PktMon 空闲且过滤器为空时启动并发送已知 ARP",
-    "expected": "使用公开 PktMon 会话接收辅助 IP，保留本进程错误；已有捕获会话与过滤器保持原样",
+    "name": "独立捕获已知 ARP 报文",
+    "expected": "捕获并解析已知报文；关闭目标后另一实例继续收包；已有系统捕获保持原样",
     "requirements": [
       "vm",
       "hostwrite",
       "capture"
     ],
     "recovery": [
-      "PktMon 空闲且过滤器为空才执行；结束释放本轮捕获资源。"
+      "删除本次临时网络，关闭本次捕获实例。"
     ],
     "order": 14,
     "operation": "启动本进程的 ARP 捕获"
@@ -7370,17 +7421,6 @@
     ],
     "order": 66,
     "operation": "修改原生 NVMe 开关"
-  },
-  {
-    "id": "T-05ce7737d6ec100f-1",
-    "api": "HostNetworkService.NormalizeDynamicMacAddress()",
-    "group": "管理层面 / 宿主 / 修改 / 网络",
-    "name": "合法 MAC、空值、异常长度",
-    "expected": "合法值规范化，空值与异常返回形式符合 MAC 范围接口约定",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "将支持的 MAC 输入规范为无分隔符的大写十六进制"
   },
   {
     "id": "T-465d254b659b5e30-1",
@@ -8570,49 +8610,6 @@
     "operation": "生成 ISO 映像"
   },
   {
-    "id": "C-cc53e3830a712bc3-1",
-    "api": "DiskPartitionInfo.构造()",
-    "group": "管理层面 / 工具 / 磁盘分区解析",
-    "name": "编号 2、容量 1073741824 字节、Windows 分类和固定说明",
-    "expected": "输入字段逐项保留，SizeInGb=1，物理盘标志与磁盘路径初值正确",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "建立分区事实记录"
-  },
-  {
-    "id": "T-cc0ae6d5227b0f65-1",
-    "api": "DiskParser.GetPartitions()",
-    "group": "管理层面 / 工具 / 磁盘分区解析",
-    "name": "固定 MBR/GPT 样本与多分区样本",
-    "expected": "分区序号、偏移和容量与样本清单精确相等，包含 1GiB 边界过滤",
-    "requirements": [
-      "files",
-      "windows"
-    ],
-    "recovery": [
-      "文件写入使用测试副本；保存结果后清理本轮文件、挂载和句柄。"
-    ],
-    "order": 13,
-    "operation": "读取磁盘并筛选达到容量阈值的 Windows/Linux 相关分区"
-  },
-  {
-    "id": "T-cc0ae6d5227b0f65-2",
-    "api": "DiskParser.GetPartitions()",
-    "group": "管理层面 / 工具 / 磁盘分区解析",
-    "name": "空表、截断文件与损坏分区表",
-    "expected": "返回公开约定的空结果或读取错误，输入文件哈希保留",
-    "requirements": [
-      "files",
-      "windows"
-    ],
-    "recovery": [
-      "文件写入使用测试副本；保存结果后清理本轮文件、挂载和句柄。"
-    ],
-    "order": 13,
-    "operation": "读取磁盘并筛选达到容量阈值的 Windows/Linux 相关分区"
-  },
-  {
     "id": "F005",
     "api": "控制台事件",
     "group": "业务层面",
@@ -8653,7 +8650,7 @@
     "api": "ConsoleService.CreateConnection()",
     "group": "业务层面 / 连接",
     "name": "未知来源、Nimue、null 参数",
-    "expected": "按契约分别报参数错误或待接入错误；后端分别选择 RdpBasic、RdpEnhanced、Nimue，Nimue 当前明确返回尚未实现",
+    "expected": "空参数报告参数错误；未知后端和已收回的 Nimue 标识均报告未知后端",
     "requirements": [],
     "recovery": [],
     "order": 0,
@@ -8664,7 +8661,7 @@
     "api": "ConsoleService.GetBackends()",
     "group": "业务层面 / 连接",
     "name": "读取目录并尝试修改返回集合",
-    "expected": "FreeRDP 能力与实现状态准确，Nimue 标为待接入，目录保持只读",
+    "expected": "仅列出 RdpBasic 与 RdpEnhanced，功能能力准确，目录保持只读",
     "requirements": [],
     "recovery": [],
     "order": 0,
@@ -9018,36 +9015,6 @@
     "operation": "请求改变桌面尺寸"
   },
   {
-    "id": "C-7ced884f097119dd-1",
-    "api": "ConsoleAudioPacket.构造()",
-    "group": "业务层面 / 音频",
-    "name": "合法 PCM 数据、非法采样率/声道/对齐/序号/时间",
-    "expected": "合法输入独立复制，非法输入抛对应参数异常",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "复制一份完整音频包"
-  },
-  {
-    "id": "T-4b650c40d5b6382b-1",
-    "api": "IConsoleAudioInput.SendAudio()",
-    "group": "业务层面 / 音频",
-    "name": "已实现来源上发送匹配格式 PCM",
-    "expected": "接收端数据完整，格式变化和未就绪状态明确拒绝；当前内置来源缺少实现，此实测项跳过",
-    "requirements": [
-      "audio",
-      "vm",
-      "template",
-      "nativeconsole",
-      "enhanced"
-    ],
-    "recovery": [
-      "同一连接串行验证输入、剪贴板与尺寸；释放帧租约、连接和全部订阅。"
-    ],
-    "order": 86,
-    "operation": "发送按声道帧对齐的 PCM 数据"
-  },
-  {
     "id": "api.input-keys",
     "api": "IConsoleInput.SendKeys()",
     "group": "业务层面 / 控制 / 键盘",
@@ -9234,7 +9201,7 @@
   {
     "id": "T-e25fe3c96ce60f17-1",
     "api": "ApiResponse.Fail()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "带错误代码、来源、文本与异常构造失败",
     "expected": "Success=false；错误类别、代码、来源、文本及异常引用完整保留",
     "requirements": [],
@@ -9245,7 +9212,7 @@
   {
     "id": "T-308387f87df9c37a-1",
     "api": "ApiResponse.Ok()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "创建无数据的成功结果",
     "expected": "Success=true，ErrorKind=None，错误文本为空；该结果用于执行操作",
     "requirements": [],
@@ -9256,7 +9223,7 @@
   {
     "id": "T-8b7b70e45ccc66eb-1",
     "api": "ApiResponse.op_Implicit()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "分别使用成功、失败结果",
     "expected": "成功响应转换为 true；失败响应及 null 转换为 false。",
     "requirements": [],
@@ -9267,7 +9234,7 @@
   {
     "id": "T-8481a5cc2fd10c46-1",
     "api": "ApiResponse.ToString()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "分别使用成功、失败结果",
     "expected": "诊断文本区分成功、成功空结果（泛型）与失败；失败文本包含错误来源、代码及说明。",
     "requirements": [],
@@ -9278,7 +9245,7 @@
   {
     "id": "T-4da81e85512bf4cd-1",
     "api": "ApiResponse<T>.Empty()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "建立空结果",
     "expected": "Success、IsEmpty、HasData、Data 精确符合空结果契约，区别于失败结果",
     "requirements": [],
@@ -9289,7 +9256,7 @@
   {
     "id": "T-2019388239c4c13c-1",
     "api": "ApiResponse<T>.Fail()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "带错误代码、来源、文本与异常构造失败",
     "expected": "Success=false；错误类别、代码、来源、文本及异常引用完整保留",
     "requirements": [],
@@ -9300,7 +9267,7 @@
   {
     "id": "T-ca7826aa38f9355f-1",
     "api": "ApiResponse<T>.Ok()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "分别传入有效数据与 null",
     "expected": "有效数据原样返回且 HasData=true；null 返回成功空结果，IsEmpty=true、HasData=false",
     "requirements": [],
@@ -9311,7 +9278,7 @@
   {
     "id": "T-d476883b504758e1-1",
     "api": "ApiResponse<T>.op_Implicit()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "分别使用成功、失败结果",
     "expected": "成功响应和成功空结果转换为 true，包含 Data=false 的成功结果；失败响应及 null 转换为 false。",
     "requirements": [],
@@ -9322,7 +9289,7 @@
   {
     "id": "T-27458ff1456674cc-1",
     "api": "ApiResponse<T>.ToString()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "分别使用成功、失败结果",
     "expected": "诊断文本区分成功、成功空结果（泛型）与失败；失败文本包含错误来源、代码及说明。",
     "requirements": [],
@@ -9333,7 +9300,7 @@
   {
     "id": "T-db8598581b9373e3-2",
     "api": "SharedBackgroundServices.ShutdownAsync()",
-    "group": "使用说明 / 结果、取消和资源释放",
+    "group": "管理层面 / 共用类型",
     "name": "关闭尚未启动的实例并重复关闭",
     "expected": "句柄保持为空；重复关闭安全；最终关闭后再次启动保持关闭状态",
     "requirements": [
@@ -9349,14 +9316,16 @@
   {
     "id": "T-db8598581b9373e3-1",
     "api": "SharedBackgroundServices.ShutdownAsync()",
-    "group": "使用说明 / 结果、取消和资源释放",
-    "name": "启动测试 ARP 后最终关闭",
-    "expected": "本进程资源收尾完成；重复关闭结束，同进程最终关闭语义保持",
+    "group": "管理层面 / 共用类型",
+    "name": "关闭已启动的独立捕获",
+    "expected": "目标句柄释放、重复关闭安全；另一实例继续运行；已有系统捕获保持原样",
     "requirements": [
       "hostwrite",
       "capture"
     ],
-    "recovery": [],
+    "recovery": [
+      "仅关闭本次创建的捕获实例。"
+    ],
     "order": 2,
     "operation": "释放共享 ARP 捕获"
   }

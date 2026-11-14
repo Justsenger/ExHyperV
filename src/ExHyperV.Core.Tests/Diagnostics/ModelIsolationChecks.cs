@@ -1,5 +1,5 @@
 using System.Reflection;
-using CommunityToolkit.Mvvm.ComponentModel;
+using System.ComponentModel;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 using ExHyperV.Vmcx;
@@ -11,30 +11,19 @@ internal static class ModelIsolationChecks
         CheckFixedCatalogs(check);
         CheckAllSnapshotFields(new VmMemorySettings(), source => source.Clone(), check);
         CheckAllSnapshotFields(new VmMmioSettings(), source => source.Clone(), check);
-        CheckNotifications(new VmMemorySettings(), source => source.Clone(),
-            model => model.Startup++, check);
-        CheckNotifications(new VmMmioSettings(), source => source.Clone(),
-            model => model.LowSizeMiB = (model.LowSizeMiB ?? 0) + 1, check);
-
+        foreach (var type in typeof(VmMemorySettings).Assembly.GetExportedTypes()
+            .Where(type => type.Namespace == "ExHyperV.Models"))
+            check(!typeof(INotifyPropertyChanged).IsAssignableFrom(type), type.Name + " exposes values without UI notifications");
         var source = new VmMemorySettings { SgxEnabled = true, SgxSize = null };
         var clone = source.Clone();
-        check(clone.SgxEnabled == true && clone.SgxSize == null,
-            "memory snapshot preserves exact SGX values without running normalization setters");
         clone.SgxEnabled = false;
         clone.SgxEnabled = true;
-        check(clone.SgxSize == 2 && source.SgxSize == null,
-            "memory clone retains the original SGX setter behavior independently of its source");
-
-        source.AvailablePageSizes[0].Description = "source first";
+        check(clone.SgxSize == null && source.SgxSize == null, "SGX editing preserves input until Core prepares a write");
+        source.SupportedProps = new(StringComparer.Ordinal) { "VirtualQuantity" };
         clone = source.Clone();
-        clone.AvailablePageSizes[0].Description = "clone first";
-        clone.AvailablePageSizes.Add(new PageSizeItem { Description = "clone extra", Value = 7 });
-        check(source.AvailablePageSizes.Count == 3 && source.AvailablePageSizes[0].Description == "source first",
-            "changing cloned page-size items or collection leaves the source unchanged");
-        source.AvailablePageSizes[1].Value = 9;
-        source.AvailablePageSizes.Clear();
-        check(clone.AvailablePageSizes.Count == 4 && clone.AvailablePageSizes[1].Value == 1,
-            "changing source page-size items or collection leaves its clone unchanged");
+        clone.SupportedProps!.Add("BackingType");
+        check(!source.SupportedProps.Contains("BackingType"), "cloned capabilities are independent");
+
     }
 
     private static void CheckFixedCatalogs(Action<bool, string> check)
@@ -99,13 +88,8 @@ internal static class ModelIsolationChecks
             {
                 var original = field.GetValue(source);
                 var copied = field.GetValue(copy);
-                if (original is List<PageSizeItem> items)
-                {
-                    matches &= copied is List<PageSizeItem> copiedItems && !ReferenceEquals(items, copiedItems) &&
-                        items.Count == copiedItems.Count && items.Zip(copiedItems).All(pair =>
-                            !ReferenceEquals(pair.First, pair.Second) &&
-                            pair.First.Description == pair.Second.Description && pair.First.Value == pair.Second.Value);
-                }
+                if (original is HashSet<string> names)
+                    matches &= copied is HashSet<string> copiedNames && !ReferenceEquals(names, copiedNames) && names.SetEquals(copiedNames);
                 else matches &= Equals(original, copied);
             }
             check(matches, $"{typeof(T).Name} copies every declared snapshot field and isolates nested values ({(populated ? "populated" : "null and false")})");
@@ -125,28 +109,8 @@ internal static class ModelIsolationChecks
         if (type == typeof(ulong)) return (ulong)index + 401;
         if (type == typeof(double)) return index + 0.75;
         if (type == typeof(string)) return populated ? "snapshot " + index : null;
-        if (type == typeof(List<PageSizeItem>)) return new List<PageSizeItem>
-        {
-            new() { Description = "custom second", Value = 2 },
-            new() { Description = "custom first", Value = 0 }
-        };
+        if (type == typeof(HashSet<string>)) return populated ? new HashSet<string>(["VirtualQuantity", "BackingType"]) : null;
         throw new InvalidOperationException("Add snapshot coverage for field type " + type);
     }
 
-    private static void CheckNotifications<T>(T source, Func<T, T> clone, Action<T> mutate,
-        Action<bool, string> check) where T : ObservableObject
-    {
-        int sourceChanging = 0, sourceChanged = 0, copyChanging = 0, copyChanged = 0;
-        source.PropertyChanging += (_, _) => sourceChanging++;
-        source.PropertyChanged += (_, _) => sourceChanged++;
-        var copy = clone(source);
-        copy.PropertyChanging += (_, _) => copyChanging++;
-        copy.PropertyChanged += (_, _) => copyChanged++;
-        mutate(copy);
-        check(sourceChanging == 0 && sourceChanged == 0 && copyChanging == 1 && copyChanged == 1,
-            $"{typeof(T).Name} clone changes notify only the clone's subscribers");
-        mutate(source);
-        check(sourceChanging == 1 && sourceChanged == 1 && copyChanging == 1 && copyChanged == 1,
-            $"{typeof(T).Name} source changes retain independent notifications after cloning");
-    }
 }

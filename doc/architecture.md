@@ -15,7 +15,6 @@ src/
 │  ├─ Business/       连接、监控及部署流程
 │  ├─ Common/         共用契约与工具
 │  ├─ Infrastructure/ 系统调用和底层支持
-│  ├─ Documentation/  API 文档生成与设计图
 │  ├─ Linux/          Linux GPU 部署素材
 │  └─ external/freerdp/ 原生控制台实现与依赖包
 ├─ ExHyperV.Core.Tests/ Core 测试项目，只引用 Core
@@ -33,7 +32,7 @@ flowchart LR
 
 Core 是在调用程序进程内使用的工具箱 DLL，提供查询、修改、需用户决定的多步流程和有生命周期的连接/监控对象。它不引用 WPF、WinForms 或桌面项目，也没有统一的 Core 运行会话、后台服务进程或独立 Worker。
 
-接口分类、调用约定和资源归属见 [Core API 参考](../src/ExHyperV.Core/API.md)；测试入口与执行方式见 [Core 测试项目](../src/ExHyperV.Core.Tests/README.md)。分类不改变目录分层，也不把公开辅助方法自动变成远程工具。
+接口分类、调用约定和资源归属见 [Core API 参考](../doc/api/API.md)；测试入口与执行方式见 [Core 测试项目](../src/ExHyperV.Core.Tests/README.md)。分类不改变目录分层，也不把公开辅助方法自动变成远程工具。
 
 WinUI 负责页面和窗口、绑定集合、图表、图像转换及用户决定的收集；布局、主题偏好和退出时机也属于客户端。控制台显示、系统剪贴板同步和重连等客户端策略由各调用方负责，不因 Core 提供协议能力而自动实现。WinUI 当前范围和待迁移功能见 [客户端说明](../src/ExHyperV.WinUI3/README.md)。因此，“Core 可独立调用”不等于“所有程序策略都在 Core”。
 
@@ -112,3 +111,5 @@ Core 调用系统目录中的 `VmDataStore.dll`，使用 `IKeyValueStore` 的前
 - 自动检查覆盖规则、替身流程、资源释放和部分界面样例，不能替代真实 GPU 驱动部署、VM/PCIe 操作、ARP 捕获、原生故障注入、长时间监控和完整应用退出测试。构建或离线检查通过也不等于所有设备路径可用。
 
 WinUI 的 ARM64、x64 输出采用自包含文件夹部署，保留 SDK 生成的全部依赖。旧 WPF 单文件发布工作流及安装包脚本已移除；WinUI 正式发布打包尚未配置。外部库源码、字体来源及许可证跟随各自目录维护。
+
+API 指南、分类和设计说明位于 `doc/api/`，生成工具位于 `tools/api-docs/`，网页模板位于 `website/src/api/`。Core 仅保存接口行为注释。MCP 与测试目录使用生成的 API.json；WinUI 字段说明使用生成的 FieldHelp.json。配置模型采用普通数据属性，界面通知由 WinUI 持有。

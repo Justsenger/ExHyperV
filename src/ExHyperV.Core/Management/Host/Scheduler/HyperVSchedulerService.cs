@@ -35,7 +35,7 @@ public static class HyperVSchedulerService
         return running != HyperVSchedulerType.Unknown ? running : TryGetFromEventLog();
     }
 
-    /// <summary>读取后续启动采用的调度器配置，不表示当前已经切换。</summary>
+    /// <summary>读取下次启动采用的调度器配置。</summary>
     /// <remarks>读取当前启动项的 BCD 配置；未配置时按当前系统产品类型和构建号确定默认值，无法确定时返回 Unknown。此配置可能与正在运行的调度器不同。</remarks>
     /// <returns>明确配置或按当前系统推定的启动调度器；无法确定时为 Unknown。</returns>
     public static HyperVSchedulerType GetConfiguredSchedulerType()
@@ -137,7 +137,7 @@ public static class HyperVSchedulerService
     }
 
     /// <summary>写入宿主引导配置中的 Hyper-V 调度器选择。</summary>
-    /// <remarks>通过 BCD WMI Provider 写入并回读，需要管理员及备份、还原特权。修改供后续启动采用，不自动重启宿主。</remarks>
+    /// <remarks>通过 BCD WMI Provider 写入并回读，需要管理员及备份、还原特权。宿主重启后生效。</remarks>
     /// <returns>引导配置写入及读回结果；Unknown 或未定义的枚举值不会提交。失败信息区分写入失败、结果未知和写入成功后读回失败。</returns>
     /// <param name="type">要写入的调度器模式。</param>
     public static Task<ApiResponse> SetSchedulerTypeAsync(HyperVSchedulerType type)

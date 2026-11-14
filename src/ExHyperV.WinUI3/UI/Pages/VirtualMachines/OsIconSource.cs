@@ -11,7 +11,7 @@ internal static class OsIconSource
 
     public static ImageSource Get(string? osType)
     {
-        var name = OsImages.Canonical(osType);
+        var name = GetResourceName(osType);
         if (!Images.TryGetValue(name, out var image))
         {
             image = new SvgImageSource(new Uri($"ms-appx:///Assets/OperatingSystems/{name}.svg"));
@@ -19,4 +19,7 @@ internal static class OsIconSource
         }
         return image;
     }
+
+    public static string GetResourceName(string? osType) =>
+        OsImages.SupportedTypes.FirstOrDefault(name => name.Equals(osType, StringComparison.OrdinalIgnoreCase)) ?? "Windows";
 }

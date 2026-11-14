@@ -86,8 +86,7 @@ internal sealed partial class VmQueryEngine
                 return affinity.HasData ? Done([Row(id.ToString("D"), id,
                     ("AppliedProcessors", affinity.Data.AppliedProcessors == null ? null : Array.AsReadOnly(affinity.Data.AppliedProcessors.ToArray())),
                     ("SavedProcessors", affinity.Data.SavedProcessors == null ? null : Array.AsReadOnly(affinity.Data.SavedProcessors.ToArray())),
-                    ("SavedPreferenceStatus", affinity.Data.SavedPreferenceStatus), ("SavedPreferenceIssue", affinity.Data.SavedPreferenceIssue),
-                    ("ProcessId", affinity.Data.ProcessId), ("ProcessCreationTime", affinity.Data.ProcessCreationTime))]) : Forward(affinity);
+                    ("SavedPreferenceStatus", affinity.Data.SavedPreferenceStatus), ("SavedPreferenceIssue", affinity.Data.SavedPreferenceIssue))]) : Forward(affinity);
             case "Boot":
                 var boot = await VmBootService.GetBootOrderAsync(id).ConfigureAwait(false);
                 return boot.HasData ? Done(boot.Data.Select((b, i) => Row(id.ToString("D") + ":" + i, id,

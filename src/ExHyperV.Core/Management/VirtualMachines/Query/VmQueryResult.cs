@@ -14,7 +14,7 @@ public enum VmQueryValueState
     Unsupported,
     /// <summary>当前状态不适用，例如未运行虚拟机的性能采样。</summary>
     NotApplicable,
-    /// <summary>字段存在但没有取得有效值；不推断为零或关闭。</summary>
+    /// <summary>字段存在，但本次未取得有效值。</summary>
     Unavailable,
     /// <summary>读取操作失败，Error 提供原因。</summary>
     Failed,
@@ -31,7 +31,7 @@ public abstract class VmQueryValue
     { State = state; ObservedAtUtc = time; Error = error; }
     /// <summary>本次字段读取状态。</summary>
     public VmQueryValueState State { get; }
-    /// <summary>该来源完成读取的 UTC 时间；不是全局原子快照时间。</summary>
+    /// <summary>该来源完成读取的 UTC 时间。</summary>
     public DateTimeOffset ObservedAtUtc { get; }
     /// <summary>缺测、归属冲突或读取失败的说明。</summary>
     public string? Error { get; }
@@ -48,7 +48,7 @@ public abstract class VmQueryValue
 public sealed class VmQueryValue<T> : VmQueryValue
 {
     internal VmQueryValue(VmQueryValueState state, T? value, DateTimeOffset time, string? error) : base(state, time, error) { Value = value; }
-    /// <summary>仅 HasValue 为 true 时有效；其他状态下的 default 不是实际采样值。</summary>
+    /// <summary>字段值，仅在 HasValue 为 true 时有效。</summary>
     public T? Value { get; }
     /// <summary>供动态调用方读取的值；无效时为 null。</summary>
     public override object? UntypedValue => HasValue ? Value : null;
@@ -60,7 +60,7 @@ public sealed class VmQueryRow
     internal VmQueryRow(string key, IDictionary<string, VmQueryValue> values, IDictionary<VmQueryCollection, VmQueryCollectionResult>? collections = null)
     { Key = key; Values = new ReadOnlyDictionary<string, VmQueryValue>(new Dictionary<string, VmQueryValue>(values)); Collections = new ReadOnlyDictionary<VmQueryCollection, VmQueryCollectionResult>(collections == null ? new Dictionary<VmQueryCollection, VmQueryCollectionResult>() : new Dictionary<VmQueryCollection, VmQueryCollectionResult>(collections)); }
     /// <summary>虚拟机记录为 GUID；子对象为本次来源的稳定身份或明确标注的序号。不可当作任意底层操作路径。</summary>
-    /// <remarks>虚拟机、所属分组使用 GUID；元数据使用 VM GUID 与元数据键的组合；引导项使用 VM GUID 与本次顺序号，重排后不能用旧 Key 关联同一引导设备。网卡、存储、GPU、PCIe 和检查点使用当前后端记录身份，移除重建或跨宿主后不保证保留。Key 仅在同一虚拟机和同类集合内关联记录；操作入口仍使用其要求的 GUID 或查询引用。</remarks>
+    /// <remarks>Key 用于同一虚拟机、同类集合内的记录关联。虚拟机及所属分组使用 GUID；元数据使用 VM GUID 与键名；引导项使用 VM GUID 与顺序号，重排后更新。设备和检查点使用后端记录标识，重建或迁移后可能变化。</remarks>
     public string Key { get; }
     /// <summary>按字段稳定标识索引的结果；不包含为了关联而内部读取的依赖字段。</summary>
     public IReadOnlyDictionary<string, VmQueryValue> Values { get; }
@@ -76,7 +76,7 @@ public sealed class VmQueryRow
         return Values.TryGetValue(field.Id, out var value)
             ? (VmQueryValue<T>)value : new(VmQueryValueState.NotRequested, default, default, null);
     }
-    /// <summary>取得子对象集合；没有选择时返回 NotRequested，而不是成功空列表。</summary>
+    /// <summary>取得子对象集合；未选择时返回 NotRequested。</summary>
     /// <param name="collection">需要的子对象种类。</param>
     /// <returns>集合状态与记录。</returns>
     public VmQueryCollectionResult GetCollection(VmQueryCollection collection) => Collections.TryGetValue(collection, out var value)
@@ -95,15 +95,15 @@ public sealed record VmQueryCollectionResult(VmQueryValueState State, IReadOnlyL
 }
 
 /// <summary>查询引擎执行阶段的耗时，用于比较来源成本；并行阶段耗时不能直接相加作为总时间。</summary>
-/// <param name="Name">读取阶段标识，不是供调用方执行的命令。</param>
+/// <param name="Name">读取阶段标识。</param>
 /// <param name="Elapsed">该阶段实际执行耗时。</param>
 public sealed record VmQueryTiming(string Name, TimeSpan Elapsed);
 
 /// <summary>自由组合查询的结果；必需的身份枚举失败由外层 ApiResponse 返回，其他失败保留在字段或集合中。</summary>
 /// <param name="VirtualMachines">按 GUID 排序的虚拟机投影，不使用页面排序规则。</param>
-/// <param name="MissingVmIds">请求中指定但本次清单没有找到的 GUID；不静默忽略。</param>
+/// <param name="MissingVmIds">请求中指定但本次清单未找到的 GUID。</param>
 /// <param name="StartedAtUtc">查询开始时间。</param>
-/// <param name="CompletedAtUtc">查询结束时间。多个来源在此区间分别采集，不保证跨来源原子一致。</param>
+/// <param name="CompletedAtUtc">查询结束时间；各来源在本次查询期间分别采样。</param>
 /// <param name="Timings">各读取阶段的耗时。</param>
 public sealed record VmQueryResult(IReadOnlyList<VmQueryRow> VirtualMachines, IReadOnlyList<Guid> MissingVmIds,
     DateTimeOffset StartedAtUtc, DateTimeOffset CompletedAtUtc, IReadOnlyList<VmQueryTiming> Timings);

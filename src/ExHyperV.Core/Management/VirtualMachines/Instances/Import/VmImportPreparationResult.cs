@@ -3,7 +3,7 @@ using ExHyperV.Tools;
 namespace ExHyperV.Services;
 
 /// <summary>导入预览的准备结果，以及仍由调用方负责释放的批次。</summary>
-/// <remarks>准备失败也可能留下未清理完的工作目录。此时 Batch 只用于检查清理结果和再次 DisposeAsync，不可继续导入；不能仅根据 Success 丢弃它。</remarks>
+/// <remarks>准备失败时，Batch 可能仍有待清理的工作目录。保留引用，检查清理结果并重试 DisposeAsync。</remarks>
 public sealed class VmImportPreparationResult
 {
     internal VmImportPreparationResult(ApiResponse result, VmImportBatchSession? batch)

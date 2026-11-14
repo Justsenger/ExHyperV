@@ -1,13 +1,13 @@
-using System.Collections.ObjectModel;
+
 using ExHyperV.Tools;
 
 namespace ExHyperV.Models
 {
     /// <summary>
     /// 虚拟机清单及详情的可变模型；包含配置、查询时的状态和可独立刷新的性能样本。
-    /// 设备集合支持变更通知，是否已加载以及样本是否有效须按对应字段判断。
+    /// 设备集合保存查询结果，加载状态与采样有效性由对应字段给出。
     /// </summary>
-    /// <remarks>这是可变查询模型，不是持续连接或事务对象。修改其属性或集合不会自动提交 Hyper-V 配置；调用方负责刷新、服务提交和绑定线程调度。</remarks>
+    /// <remarks>本地可变的查询模型。刷新数据和提交修改通过相应服务完成。</remarks>
     public class VmInstance
     {
         // ── 标识 ──────────────────────────────────────────────────
@@ -21,12 +21,12 @@ namespace ExHyperV.Models
         public int Generation { get; set; }
         /// <summary>Hyper-V 配置版本字符串，未填充时为 0.0。</summary>
         public string Version { get; set; } = "0.0";
-        /// <summary>HostOnlyItems 保存的操作系统分类，缺少或无法识别时为 Windows；不是来宾上报的实际操作系统。</summary>
+        /// <summary>HostOnlyItems 中保存的操作系统分类；缺少或无法识别时为 Windows。</summary>
         public string OsType { get; set; } = "Windows";
 
         // ── 状态（raw，由 backend WMI 给出；VM 层负责 transient 处理）──
         /// <summary>当前资源语言的状态显示文本；程序判断使用 State。</summary>
-        public string StateText { get; set; } = string.Empty;
+        internal string StateText { get; set; } = string.Empty;
 
         /// <summary>Hyper-V 原始状态码（EnabledState）；IsRunning 据此判定，不依赖本地化文本</summary>
         internal ushort StateCode { get; set; }
@@ -58,28 +58,28 @@ namespace ExHyperV.Models
         public string MacAddress { get; set; } = "00:00:00:00:00:00";
 
         // ── 存储 facts ────────────────────────────────────────────
-        /// <summary>Disks 中 MaxSize 的合计，单位 GiB，包含光驱镜像；容量缺测项的默认值仍参与计算，不能单凭总数判断完整容量。</summary>
-        public double TotalDiskSizeGiB { get; set; }
-        /// <summary>磁盘容量和速率的可变通知集合。</summary>
-        public ObservableCollection<VmDiskStatus> Disks { get; } = new();
-        /// <summary>当前存储连接的可变通知集合。</summary>
-        public ObservableCollection<VmStorageAttachment> StorageItems { get; } = new();
-        /// <summary>当前虚拟网卡的可变通知集合。</summary>
-        public ObservableCollection<VmNetworkAdapter> NetworkAdapters { get; } = new();
-        /// <summary>启动顺序的可变通知集合。</summary>
-        public ObservableCollection<BootOrderItem> BootOrderItems { get; } = new();
+        /// <summary>Disks 中 MaxSize 的合计，单位 GiB，包含光驱镜像；缺测项以默认值参与合计。</summary>
+        internal double TotalDiskSizeGiB { get; set; }
+        /// <summary>磁盘容量和速率的结果集合。</summary>
+        public List<VmDiskStatus> Disks { get; } = new();
+        /// <summary>当前存储连接的结果集合。</summary>
+        public List<VmStorageAttachment> StorageItems { get; } = new();
+        /// <summary>当前虚拟网卡的结果集合。</summary>
+        public List<VmNetworkAdapter> NetworkAdapters { get; } = new();
+        /// <summary>启动顺序的结果集合。</summary>
+        public List<BootOrderItem> BootOrderItems { get; } = new();
 
         // ── GPU facts ─────────────────────────────────────────────
         /// <summary>概要显示的 GPU 名称；未取得时可为 null。</summary>
         public string? GpuName { get; set; }
         /// <summary>是否确认分配了 GPU 分区；null 表示本次没有取得可靠分配清单。此状态独立于设备显示名称是否可读。</summary>
         public bool? HasGpuAssignment { get; set; }
-        /// <summary>已分配 GPU 适配器的可变通知集合。</summary>
-        public ObservableCollection<VmGpuAssignment> AssignedGpus { get; } = new();
+        /// <summary>已分配 GPU 适配器的结果集合。</summary>
+        public List<VmGpuAssignment> AssignedGpus { get; } = new();
         /// <summary>查询结果中的 GPU 活动标记。</summary>
         public bool IsGpuActive { get; set; }
 
-        // ── 详细 settings（叶子 ObservableObject，作为 Model 的子对象）──
+        // ── 详细 settings（配置值模型，作为 Model 的子对象）──
         /// <summary>处理器详细设置；尚未加载或查询不可用时为 null。</summary>
         public VmProcessorSettings? Processor { get; set; }
         /// <summary>内存详细设置；尚未加载或查询不可用时为 null。</summary>
@@ -102,7 +102,7 @@ namespace ExHyperV.Models
         /// <summary>创建尚未加载宿主数据的虚拟机模型。</summary>
         public VmInstance() { }
 
-        /// <summary>创建带虚拟机身份的模型；不会读取 Hyper-V。</summary>
+        /// <summary>创建带虚拟机身份的本地模型。</summary>
         /// <param name="id">虚拟机 GUID。</param>
         /// <param name="name">虚拟机名称。</param>
         public VmInstance(Guid id, string name)

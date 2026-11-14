@@ -14,18 +14,20 @@ internal static partial class ApiDocument
 {
     private static readonly CSharpParseOptions ParseOptions = CSharpParseOptions.Default
         .WithLanguageVersion(LanguageVersion.Preview).WithDocumentationMode(DocumentationMode.Diagnose);
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true, NewLine = "\n" };
 
     public static int Run(string[] args)
     {
         try
         {
-            if (args.Length == 0 || args[0] is not ("--write" or "--check" or "--audit" or "--verify-examples" or "--html"))
-                throw new ArgumentException("用法：--write | --check | --audit [报告路径] | --verify-examples <Core.dll> | --html <输出.html>；可附加 --root <Core目录>。");
+            if (args.Length == 0 || args[0] is not ("--write" or "--check" or "--audit" or "--verify-examples" or "--html" or "--json"))
+                throw new ArgumentException("用法：--write | --check | --audit [报告路径] | --verify-examples <Core.dll> | --html <输出.html> | --json <输出.json>；可附加 --root <Core目录>。");
             int rootOption = Array.IndexOf(args, "--root");
             string root = rootOption >= 0 ? Path.GetFullPath(args[rootOption + 1]) : FindCoreRoot();
             if (args[0] == "--verify-examples") return VerifyExamples(root, args[1]);
             var scan = Scan(root);
+            ValidatePresentation(scan);
+            IndexReferenceLabels(scan);
             if (args[0] == "--audit")
             {
                 string report = args.Length > 1 && args[1] != "--root" ? args[1] : Path.Combine(root, "../../.artifacts/api-documentation/audit.json");
@@ -33,7 +35,9 @@ internal static partial class ApiDocument
                 File.WriteAllText(report, JsonSerializer.Serialize(new
                 {
                     files = scan.Files, types = scan.Types.Count, members = scan.Types.Sum(t => t.Members.Count),
-                    errors = scan.Errors, entries = scan.Types.SelectMany(t => t.Members.Select(m => new { type = t.Name, m.Name, m.Path, m.Line, m.Kind, m.Signature }))
+                    errors = scan.Errors,
+                    typesIndex = scan.Types.Select(t => new { id = t.Symbol.GetDocumentationCommentId(), t.Name, t.Path, title = TypeDisplayName(t), role = PresentationFor(t).Role, paths = NavigationPaths(t) }),
+                    entries = scan.Types.SelectMany(t => t.Members.Select(m => new { type = t.Name, id = m.Id, m.Name, m.Path, m.Line, m.Kind, m.Signature, title = MethodDisplayName(t, m), paths = MemberNavigationPaths(t, m) }))
                 }, JsonOptions));
                 Console.WriteLine($"API 材料：{scan.Files} 文件，{scan.Types.Count} 类型，{scan.Types.Sum(t => t.Members.Count)} 成员，{scan.Errors.Count} 项待处理。");
                 return scan.Errors.Count == 0 ? 0 : 1;
@@ -42,19 +46,36 @@ internal static partial class ApiDocument
                 throw new InvalidOperationException("接口说明不完整或格式有误：\n" + string.Join("\n", scan.Errors.Take(30))
                     + (scan.Errors.Count > 30 ? $"\n另有 {scan.Errors.Count - 30} 项；使用 --audit 查看完整清单。" : ""));
             _ = HtmlDesigns(scan);
-            string path = Path.Combine(root, "API.md");
+            string path = DocumentationFile(root, "API.md");
             string original = File.ReadAllText(path).Replace("\r\n", "\n");
             string version = XDocument.Load(Path.Combine(root, "ExHyperV.Core.csproj")).Descendants("Version").First().Value;
             var source = ReadSourceIdentity(root);
             // A tracked document cannot embed its own commit ID: every documentation commit would invalidate it.
             // Keep the content digest here; HTML and the export manifest record the publishing revision.
             string provenance = $"<!-- source-sha256: {source.ContentSha256} -->\n\n";
-            string generated = ReplaceBlock(original, "api-reference", provenance + Render(scan, version));
+            string guide = File.ReadAllText(DocumentationFile(root, "guide.md")).Replace("\r\n", "\n");
+            string generated = ReplaceBlock(guide, "api-reference", provenance + Render(scan, version));
             generated = RenderExampleBlocks(generated, root);
+            string helpPath = DocumentationFile(root, "FieldHelp.json");
+            string help = JsonSerializer.Serialize(BuildFieldHelp(scan), JsonOptions) + "\n";
+            string modelPath = DocumentationFile(root, "API.json");
+            string model = JsonSerializer.Serialize(BuildDocumentData(scan, version, generated,
+                new SourceIdentity(null, source.ContentSha256)), JsonOptions) + "\n";
+            if (args[0] == "--json")
+            {
+                if (args.Length < 2 || !args[1].EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                    throw new ArgumentException("--json 需要指定 JSON 输出文件。");
+                string destination = Path.GetFullPath(args[1]);
+                Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                File.WriteAllText(destination, model, new UTF8Encoding(false));
+                Console.WriteLine($"API 元数据已生成：{scan.Types.Count} 类型，{scan.Types.Sum(t => t.Members.Count)} 成员。");
+                return 0;
+            }
             if (args[0] == "--html")
             {
                 if (args.Length < 2 || args[1].StartsWith("--", StringComparison.Ordinal)) throw new ArgumentException("--html 需要指定输出 HTML 文件。");
-                if (generated != original) throw new InvalidOperationException("API.md 已过期，请先运行 --write 并检查变更。");
+                if (generated != original || !File.Exists(modelPath) || File.ReadAllText(modelPath).Replace("\r\n", "\n") != model || !File.Exists(helpPath) || File.ReadAllText(helpPath).Replace("\r\n", "\n") != help)
+                    throw new InvalidOperationException("API 文档产物已过期，请运行 --write。");
                 string destination = Path.GetFullPath(args[1]);
                 if (!destination.EndsWith(".html", StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("网页输出必须使用 .html 扩展名。");
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
@@ -62,13 +83,33 @@ internal static partial class ApiDocument
                 Console.WriteLine($"API 网页已生成：{scan.Types.Count} 类型，{scan.Types.Sum(t => t.Members.Count)} 成员。");
                 return 0;
             }
-            if (args[0] == "--write") File.WriteAllText(path, generated, new UTF8Encoding(false));
-            else if (generated != original) throw new InvalidOperationException("API.md 已过期。运行 --write，检查文档差异后与源码一起保存。");
+            if (args[0] == "--write")
+            {
+                File.WriteAllText(path, generated, new UTF8Encoding(false));
+                File.WriteAllText(modelPath, model, new UTF8Encoding(false));
+                File.WriteAllText(helpPath, help, new UTF8Encoding(false));
+            }
+            else if (!File.Exists(helpPath) || File.ReadAllText(helpPath).Replace("\r\n", "\n") != help || generated != original || !File.Exists(modelPath) || File.ReadAllText(modelPath).Replace("\r\n", "\n") != model) throw new InvalidOperationException("API.md 已过期。运行 --write，检查文档差异后与源码一起保存。");
             Console.WriteLine($"API 文档{(args[0] == "--write" ? "已生成" : "同步检查通过")}：{scan.Types.Count} 类型，{scan.Types.Sum(t => t.Members.Count)} 成员；示例不执行。");
             return 0;
         }
         catch (Exception ex) { Console.Error.WriteLine(ex.Message); return 1; }
     }
+
+    private static IReadOnlyDictionary<string, string> BuildFieldHelp(ScanResult scan)
+    {
+        var members = scan.Types.SelectMany(type => type.Members).ToDictionary(member => member.Id);
+        return members.Values.Where(member => member.Id.StartsWith("P:", StringComparison.Ordinal))
+            .OrderBy(member => member.Id, StringComparer.Ordinal).ToDictionary(member => member.Id, member =>
+            {
+                var source = PresentationFor(member).HelpSource is { } id ? members[id] : member;
+                return Regex.Replace(Inline(source.Doc.Element("fielddoc")?.Element("meaning")
+                    ?? source.Doc.Element("summary")), @"\s+", " ").Trim();
+            });
+    }
+
+    private static string RepositoryRoot(string core) => Path.GetFullPath(Path.Combine(core, "../.."));
+    private static string DocumentationFile(string core, string name) => Path.Combine(RepositoryRoot(core), "doc/api", name);
 
     private static string FindCoreRoot()
     {
@@ -250,6 +291,8 @@ internal static partial class ApiDocument
             string narrative = string.Concat(prose.DescendantNodes().OfType<XText>()
                 .Where(text => !text.Ancestors().Any(e => e.Name.LocalName is "code" or "c" or "see" or "paramref" or "typeparamref"))
                 .Select(text => text.Value));
+            if (Regex.IsMatch(narrative, "不代表完成|不能把属性存在|不承诺|尚未验证|具体用途待确认|具体布局含义待补充"))
+                errors.Add(label + " 含冗余验证说明；未知机制使用：相关机制暂不明确。");
             // API identifiers and code stay verbatim; standalone explanatory sentences use Chinese.
             if (Regex.IsMatch(narrative, @"[A-Za-z]{2,}\s+[A-Za-z]{2,}") && !Regex.IsMatch(narrative, @"[\p{IsCJKUnifiedIdeographs}\p{IsCJKUnifiedIdeographsExtensionA}]"))
                 errors.Add(label + $" {prose.Name.LocalName} 仍有未统一为中文的说明。");
@@ -311,7 +354,7 @@ internal static partial class ApiDocument
         text.AppendLine("本参考收录公开及受保护的自有成员，包括生成属性、命令和 record 主构造器。继承成员、record 编译器基础方法、隐式默认构造器及资源文案访问器不重复列出；`DEBUG` 专用成员不属于发布接口。").AppendLine();
         text.AppendLine("### 类型导航").AppendLine();
         string? navigationRoot = null, navigationDomain = null;
-        foreach (var path in CategoriesFor(scan).Where(path => path[0] != "使用说明"))
+        foreach (var path in DocumentationCategoriesFor(scan).Where(path => path[0] != "使用说明"))
         {
             if (navigationRoot != path[0])
             {
@@ -328,12 +371,12 @@ internal static partial class ApiDocument
                 foreach (var section in scan.Types.SelectMany(type => type.Doc.Elements("businessdoc"))
                     .Where(section => (string?)section.Attribute("category") == path[1]))
                     text.AppendLine(Inline(section)).AppendLine();
-            var categoryTypes = scan.Types.Where(type => NavigationPaths(type).Any(item => NavigationKey(item) == NavigationKey(path))).ToArray();
+            var categoryTypes = scan.Types.Where(type => NavigationPaths(type).Select(DocumentationPath).Any(item => NavigationKey(item) == NavigationKey(path))).ToArray();
             var metadataKeys = categoryTypes.SelectMany(type => type.Members.Where(member => member.Doc.Element("metadatakey") != null)
                 .Select(member => (Key: MetadataKeyValue(type, member), Note: member.Doc.Element("metadatakey")!))).ToArray();
             if (metadataKeys.Length != 0)
             {
-                text.AppendLine("**Core 已使用的键**").AppendLine();
+                text.AppendLine("**ExHyperV 已使用的键**").AppendLine();
                 text.AppendLine("| 键名 | 用途 | 保存内容 |").AppendLine("| --- | --- | --- |");
                 foreach (var item in metadataKeys)
                     text.AppendLine($"| {CodeCell(item.Key)} | {Cell((string?)item.Note.Attribute("purpose") ?? "")} | {Cell(item.Note.Value.Trim())} |");
@@ -341,7 +384,7 @@ internal static partial class ApiDocument
             }
             if (categoryTypes.Length == 0)
             {
-                if (!CategoriesFor(scan).Any(item => NavigationKey(item).StartsWith(NavigationKey(path) + " / ", StringComparison.Ordinal)))
+                if (!DocumentationCategoriesFor(scan).Any(item => NavigationKey(item).StartsWith(NavigationKey(path) + " / ", StringComparison.Ordinal)))
                     text.AppendLine("本分类暂未归入接口。").AppendLine();
                 continue;
             }
@@ -361,7 +404,7 @@ internal static partial class ApiDocument
             text.AppendLine($"| 类型 | {label} |");
             text.AppendLine($"| 命名空间 | {CodeCell(NamespaceName(type))} |");
             text.AppendLine("| 程序集 | `ExHyperV.Core.dll` |");
-            text.AppendLine($"| 功能归属 | {string.Join("；", NavigationPaths(type).Select(NavigationKey))} |");
+            text.AppendLine($"| 功能归属 | {string.Join("；", NavigationPaths(type).Select(DocumentationPath).Select(NavigationKey).Distinct())} |");
             text.AppendLine($"| 源文件 | {CodeCell(type.Path)} |");
             text.AppendLine();
 
@@ -394,11 +437,11 @@ internal static partial class ApiDocument
                 text.AppendLine($"#### {group.Key.Title}说明").AppendLine();
                 foreach (var member in group)
                 {
-                    string memberName = member.Name == ".ctor" ? type.Symbol.Name : member.Name;
+                    string memberName = MethodDisplayName(type, member);
                     text.AppendLine($"<a id=\"{Anchor(member.Id)}\"></a>\n\n##### {memberName} · {member.Kind}\n");
                     text.AppendLine("```csharp\n" + member.Signature.Trim() + "\n```\n");
                     if (NavigationPaths(type).Length > 1)
-                        text.AppendLine("功能归属：" + string.Join("；", MemberNavigationPaths(type, member).Select(NavigationKey)) + "。").AppendLine();
+                        text.AppendLine("功能归属：" + string.Join("；", MemberNavigationPaths(type, member).Select(DocumentationPath).Select(NavigationKey).Distinct()) + "。").AppendLine();
                     AppendDoc(text, MemberDescription(type, member));
                     AppendFieldDocumentation(text, type, member);
                 }
@@ -474,7 +517,7 @@ internal static partial class ApiDocument
         if (doc.Element("returns") is XElement returns) output.AppendLine("返回：" + Inline(returns)).AppendLine();
         if (doc.Element("value") is XElement valueDoc) output.AppendLine("属性值：" + Inline(valueDoc)).AppendLine();
         if (doc.Element("remarks") is XElement remarks) output.AppendLine("调用约定：" + Inline(remarks)).AppendLine();
-        foreach (var exception in doc.Elements("exception")) output.AppendLine($"- 异常 `{exception.Attribute("cref")?.Value}`：{Inline(exception)}");
+        foreach (var exception in doc.Elements("exception")) output.AppendLine($"- 异常 `{ReferenceLabel(exception.Attribute("cref")?.Value ?? "")}`：{Inline(exception)}");
         if (doc.Elements("exception").Any()) output.AppendLine();
         foreach (var example in doc.Elements("example")) output.AppendLine("示例：\n\n" + Inline(example)).AppendLine();
     }
@@ -484,7 +527,7 @@ internal static partial class ApiDocument
         XText text when string.IsNullOrWhiteSpace(text.Value) && text.Parent?.Elements("para").Any() == true => "",
         XText text => System.Net.WebUtility.HtmlEncode(Regex.Replace(text.Value, @"\s+", " ")),
         XElement e when e.Name.LocalName is "c" or "paramref" or "typeparamref" => "`" + (e.Attribute("name")?.Value ?? e.Value.Trim()) + "`",
-        XElement e when e.Name.LocalName == "see" => e.Attribute("href") is XAttribute href ? $"[{(e.Value.Length > 0 ? e.Value : href.Value)}]({href.Value})" : "`" + (e.Attribute("cref")?.Value ?? e.Attribute("langword")?.Value ?? e.Value) + "`",
+        XElement e when e.Name.LocalName == "see" => e.Attribute("href") is XAttribute href ? $"[{(e.Value.Length > 0 ? e.Value : href.Value)}]({href.Value})" : "`" + (e.Value.Length > 0 ? e.Value : ReferenceLabel(e.Attribute("cref")?.Value ?? e.Attribute("langword")?.Value ?? "")) + "`",
         XElement e when e.Name.LocalName == "code" => "\n\n```csharp\n" + Dedent(e.Value) + "\n```\n\n",
         XElement e when e.Name.LocalName == "para" => "\n\n" + Inline(e) + "\n\n",
         XElement e when e.Name.LocalName == "list" => "\n\n" + string.Join("\n", e.Elements("item").Select(item => "- " + Inline(item))) + "\n\n",
@@ -508,7 +551,7 @@ internal static partial class ApiDocument
     }
     private static string RenderExampleBlocks(string document, string root)
     {
-        string source = File.ReadAllText(Path.Combine(root, "Documentation/UsageExamples.cs")).Replace("\r\n", "\n");
+        string source = File.ReadAllText(DocumentationFile(root, "UsageExamples.cs")).Replace("\r\n", "\n");
         var examples = Regex.Matches(source, @"(?ms)^[ \t]*// example:(?<key>[\w-]+):start\n(?<body>.*?)^[ \t]*// example:\k<key>:end[ \t]*$");
         if (examples.Count == 0 || Regex.Matches(source, @"(?m)^[ \t]*// example:[\w-]+:(?:start|end)[ \t]*$").Count != examples.Count * 2)
             throw new InvalidOperationException("调用示例的开始和结束标记不匹配。");
@@ -551,7 +594,7 @@ internal static partial class ApiDocument
         if (scan.Errors.Count != 0) throw new InvalidOperationException("接口材料检查未通过：\n" + string.Join("\n", scan.Errors.Take(30)));
         var examples = new List<(string Label, string Source)>
         {
-            ("调用示例", File.ReadAllText(Path.Combine(root, "Documentation/UsageExamples.cs")))
+            ("调用示例", File.ReadAllText(DocumentationFile(root, "UsageExamples.cs")))
         };
         foreach (var type in scan.Types)
         {

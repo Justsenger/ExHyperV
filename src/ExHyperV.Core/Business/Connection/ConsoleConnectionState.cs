@@ -5,9 +5,9 @@ namespace ExHyperV.Services;
 /// 每个对象只能启动一次；重新连接需要创建新对象。</remarks>
 public enum ConsoleConnectionState
 {
-    /// <summary>尚未启动，或已断开并完成底层清理；断开后的对象不能重启。</summary>
+    /// <summary>尚未启动，或已断开并完成清理；重连需创建新对象。</summary>
     Disconnected,
-    /// <summary>底层已报告连接建立，不等同于用户登录已完成。</summary>
+    /// <summary>底层连接已建立。</summary>
     Connected,
     /// <summary>已开始连接，尚未报告连接建立。</summary>
     Connecting,

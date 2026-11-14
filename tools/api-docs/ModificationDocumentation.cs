@@ -4,10 +4,10 @@ internal static partial class ApiDocument
 {
     private static readonly IReadOnlyDictionary<string, string> ModificationKinds = new Dictionary<string, string>
     {
-        ["supported"] = "已提供修改入口",
+        ["supported"] = "读写",
         ["readonly"] = "只读",
-        ["unavailable"] = "尚未提供修改入口",
-        ["operation"] = "通过操作改变"
+        ["unavailable"] = "只读",
+        ["operation"] = "只读"
     };
 
     private static IEnumerable<(string Key, string Id)> MemberLinkAliases(ScanResult scan) =>
@@ -39,8 +39,8 @@ internal static partial class ApiDocument
                     || note.Value.Contains("nameof(", StringComparison.Ordinal))
                     scan.Errors.Add(label + " 的提交步骤应写在修改方法的参数或示例中，不能混入字段说明。");
                 string kind = (string?)note.Attribute("kind") ?? "";
-                if (!ModificationKinds.ContainsKey(kind) || (string.IsNullOrWhiteSpace(note.Value) && !note.Elements("see").Any()))
-                    scan.Errors.Add(label + " 修改状态或说明无效。");
+                if (!ModificationKinds.ContainsKey(kind))
+                    scan.Errors.Add(label + " 修改状态无效。");
                 if (kind == "supported" && (string.IsNullOrWhiteSpace((string?)note.Attribute("input"))
                     || string.IsNullOrWhiteSpace((string?)note.Attribute("submission"))))
                     scan.Errors.Add(label + " 缺少修改输入或提交方式。");
@@ -94,14 +94,19 @@ internal static partial class ApiDocument
         var note = member.Doc.Element("fielddoc")?.Element("modification");
         if (note == null) return null;
         string kind = (string)note.Attribute("kind")!;
+        string[] memberIds = note.Descendants("see")
+            .Select(reference => (string?)reference.Attribute("cref"))
+            .Where(reference => reference != null && links.TryGetValue(reference, out var id) && memberLinks.Contains(id))
+            .Select(reference => links[reference!]).Distinct().ToArray();
         string membersHtml = string.Join("、", note.Descendants("see")
             .Where(reference => reference.Attribute("cref") is { } cref && links.TryGetValue(cref.Value, out var id) && memberLinks.Contains(id))
             .DistinctBy(reference => (string?)reference.Attribute("cref"))
             .Select(reference => Node(reference, links)));
         var description = new XElement(note);
         description.Elements("see").Remove();
+        string html = string.IsNullOrWhiteSpace(description.Value) ? "" : HtmlInline(note, links);
         return new { kind, status = ModificationKinds[kind], input = (string?)note.Attribute("input") ?? "",
-            membersHtml, submission = (string?)note.Attribute("submission") ?? "", html = HtmlInline(description, links) };
+            membersHtml, memberIds, submission = (string?)note.Attribute("submission") ?? "", html };
     }
 
     private static object? NavigationEntryMetadata(MemberEntry member, string tag)

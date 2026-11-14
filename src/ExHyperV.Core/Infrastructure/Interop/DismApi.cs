@@ -91,7 +91,7 @@ internal static class DismApi
     // ── 公开接口 ──────────────────────────────────────────────────
 
     /// <summary>将给定功能名称原样提交给 DISM 启用接口。</summary>
-    /// <remarks>修改宿主在线映像；不自动重启。LimitAccess 在 Windows 8.1／Server 2012 R2 起被忽略，不代表本地安装或联网修复策略。</remarks>
+    /// <remarks>修改宿主在线映像；不自动重启。LimitAccess 在 Windows 8.1／Server 2012 R2 起被忽略，安装来源由 sourcePath 和系统修复策略决定。</remarks>
     /// <returns>功能请求成功（包括需要重启）且清理完成时为成功；清理失败返回 CleanupRequired，并保留功能请求结果。</returns>
     /// <param name="featureNames">Windows 可选功能的单个名称；参数名为历史命名，本封装不解析分号批量列表。</param>
     /// <param name="enableAll">是否同时启用该功能的父级依赖。</param>

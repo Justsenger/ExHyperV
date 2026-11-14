@@ -9,9 +9,14 @@ namespace ExHyperV.Services
     public static partial class VmMmioService
     {
         /// <summary>判断当前状态是否允许手动编辑 MMIO 配置。</summary>
-        /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+        /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
         /// <returns>虚拟机未运行时为 true。</returns>
-        public static bool CanEdit(bool isRunning) => !isRunning;
+        internal static bool CanEdit(bool isRunning) => !isRunning;
+
+    /// <summary>评估 MMIO 配置的修改条件。</summary>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许修改、原因及需要的电源状态。</returns>
+    public static VmModificationCondition GetModificationCondition(VmState state) => VmModificationCondition.PoweredOff(state);
 
         /// <summary>读取虚拟机 MMIO 基址和间隙大小，单位为 MiB。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
@@ -34,7 +39,7 @@ namespace ExHyperV.Services
 
         /// <summary>核对虚拟机未运行后，只写入指定的一个 MMIO 属性。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <param name="settings">所选字段的新值，单位 MiB；null 属性不提供可写数值。</param>
+        /// <param name="settings">所选字段的新值，单位 MiB；要修改的字段须填写非空值。</param>
         /// <param name="propertyName">要写入的 VmMmioSettings 属性名：LowSizeMiB、HighSizeMiB 或 HighBaseMiB。例如修改高位 MMIO 起始地址时传入 <c>nameof(VmMmioSettings.HighBaseMiB)</c>，只读取 settings 中该属性的值。</param>
         /// <returns>WMI 修改结果；无效属性名或执行失败通过错误响应报告。</returns>
         public static async Task<ApiResponse> SetSettingAsync(Guid vmId, VmMmioSettings settings, string propertyName)
@@ -47,7 +52,8 @@ namespace ExHyperV.Services
             if (!state.HasData)
                 return ApiResponse.Fail(state.Success ? Properties.Resources.Error_Net_VmNotFound : state.Error,
                     state.Code, state.ErrorSource, state.Exception, state.Success ? ApiErrorKind.NotFound : state.ErrorKind);
-            if (!CanEdit(state.Data!.IsRunning)) return ApiResponse.Fail(Properties.Resources.Warn_VmOffRequired, kind: ApiErrorKind.InvalidState);
+            var condition = GetModificationCondition(state.Data!.State);
+            if (!condition.CanModify) return condition.ToResponse();
             return await WmiApi.WithObjectAsync(
                 wql: RealizedSettingsWql(vmId),
                 modifier: obj =>
@@ -109,7 +115,7 @@ namespace ExHyperV.Services
         // 间隙越大越能降低两者在同一 MMIO gap 里撞车的概率。Hyper-V 对该值有硬上限（实测 262656MB=256.5G），
         // 256G 稳在其下且实测能正常启动。改这一个常量即全项目一致。
         /// <summary>高位 MMIO 间隙目标大小，262144 MiB，即 256 GiB。</summary>
-        public const ulong DefaultHighSizeMiB = 262144UL;
+        internal const ulong DefaultHighSizeMiB = 262144UL;
 
         // RequestStateChange 的目标状态
         private const ushort StateEnabled = 2;   // 开机
@@ -122,7 +128,7 @@ namespace ExHyperV.Services
         /// <summary>复用主机已保存的 MMIO 上限；无结果时通过目标虚拟机逐档启停探测，再写入 MMIO 方案。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>最终配置写入结果；探测或提交失败保留说明。操作可能部分改写配置，首次探测包括强制下电及保存主机级结果。</returns>
-        /// <remarks>没有缓存时不是纯配置计算：会反复启动并强制关闭目标虚拟机，探测结果写入主机共享配置并在进程内复用。调用者须将这一副作用纳入操作确认，不应将它当作只读能力探测。</remarks>
+        /// <remarks>缺少缓存时会反复启动并强制关闭目标虚拟机以探测上限；结果保存到宿主共享配置。执行前应确认允许这些电源操作。</remarks>
     /// <editentry label="自动配置 MMIO" category="MMIO"/>
         public static async Task<ApiResponse> ConfigureMmioAsync(Guid vmId)
         {
@@ -164,11 +170,11 @@ namespace ExHyperV.Services
         /// <param name="BaseMiB">高位 MMIO 基址，单位 MiB。</param>
         /// <param name="HighSizeMiB">高位 MMIO 间隙大小，单位 MiB。</param>
         /// <param name="LowSizeMiB">低位 MMIO 间隙大小，单位 MiB。</param>
-        public readonly record struct MmioPlan(ulong BaseMiB, ulong HighSizeMiB, ulong LowSizeMiB);
+        internal readonly record struct MmioPlan(ulong BaseMiB, ulong HighSizeMiB, ulong LowSizeMiB);
 
-        /// <summary>仅根据进程内已缓存的宿主 MMIO 上限计算间隙；不读取保存文件，也不启动探测。</summary>
+        /// <summary>根据进程内缓存的宿主 MMIO 上限计算间隙。</summary>
         /// <returns>单位 MiB 的基址和高低间隙方案；没有已知上限时为 null。</returns>
-        public static MmioPlan? ComputeMmioPlan()
+        internal static MmioPlan? ComputeMmioPlan()
         {
             if (_cachedCeilingMb is not ulong ceilingMb || ceilingMb == 0) return null;
             return ComputeMmioPlan(ceilingMb);

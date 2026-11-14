@@ -2,9 +2,9 @@ namespace ExHyperV.Services;
 
 /// <summary>与来宾交换剪贴板内容，例如双向复制粘贴文字。</summary>
 /// <remarks>
-/// <para>当前 RdpEnhanced 提供此接口，RdpBasic 不提供。接口存在后还需要等待 IsAvailable 为 true。</para>
+/// <para>RdpEnhanced 的剪贴板通道就绪后，IsAvailable 为 true，此时可以收发内容。</para>
 /// <para>向来宾发送时调用 SetClipboard；来宾提供新内容时，通过 ClipboardReceived 接收。
-/// Core 不自动读取或写入宿主系统剪贴板，桌面程序或 Web 应用自行决定何时取出、显示或粘贴这些数据。</para>
+/// 宿主系统剪贴板的读取、写入及展示由调用方完成。</para>
 /// <para>事件可能在后台线程触发；需要操作界面或宿主剪贴板时，调度到调用方要求的线程。
 /// 双向同步时应识别自己刚写入的内容，避免两端反复回传。</para>
 /// </remarks>
@@ -58,12 +58,12 @@ public interface IConsoleClipboard
     event Action<bool>? ClipboardAvailabilityChanged;
     /// <summary>取得来宾剪贴板中受支持格式的数据时通知。</summary>
     /// <remarks>从 Formats 中选择能处理的格式。空列表不一定表示来宾剪贴板为空，见 ConsoleClipboardData。
-    /// 快速变化的内容可能被较新的内容替代，不保证逐次通知每次复制操作。
+    /// 快速更新时，以较新的内容为准。
     /// 数据可在回调返回后继续使用，保存它不需要 Retain 或 Dispose。</remarks>
     event Action<ConsoleClipboardData>? ClipboardReceived;
     /// <summary>把调用方准备好的剪贴板内容发送给来宾。</summary>
     /// <param name="clipboard">同一份内容的文本、DIB 或 HTML 表示；具体格式布局见 ConsoleClipboardFormat。</param>
     /// <returns>true 表示内容已复制并加入发送队列；通道不可用、数据格式无效、超出大小限制或队列无法接收时为 false。</returns>
-    /// <remarks>调用返回后可以复用输入数据。true 不表示来宾已经执行了粘贴；来宾程序何时使用内容由它自身决定。</remarks>
+    /// <remarks>调用返回后可以复用输入数据。</remarks>
     bool SetClipboard(ConsoleClipboardData clipboard);
 }

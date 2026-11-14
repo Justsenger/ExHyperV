@@ -11,7 +11,7 @@ public static class VmPcieDeviceFields
     /// <meaning>已分配 PCIe 设备的宿主设备标识。</meaning>
     /// <source>PciExpressSettingData 与宿主 PCIe 设备身份清单，读取或派生 DeviceInstanceId。</source>
     /// <references><see cref="VmPcieService"/>。</references>
-    /// <modification kind="operation" submission="操作流程">设备归属随 PCIe 分配流程变化，硬件身份本身不被覆盖。<see cref="PcieAssignmentSession.AdvanceAsync"/></modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> DeviceInstanceId = new("PcieDevice.DeviceInstanceId", "PCIe 设备身份", "PCIe", VmQueryCollection.PcieDevices, "PcieDevices", "DeviceInstanceId");
 
@@ -20,7 +20,7 @@ public static class VmPcieDeviceFields
     /// <meaning>已分配 PCIe 设备的显示名称。</meaning>
     /// <source>PciExpressSettingData 与宿主 PCIe 设备身份清单，读取或派生 Name。</source>
     /// <references><see cref="VmPcieService"/>。</references>
-    /// <modification kind="readonly">宿主设备信息；虚拟机设置不会重命名、改变厂商或重写设备位置。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> Name = new("PcieDevice.Name", "PCIe 设备名称", "PCIe", VmQueryCollection.PcieDevices, "PcieDevices", "Name");
 
@@ -29,7 +29,7 @@ public static class VmPcieDeviceFields
     /// <meaning>已分配 PCIe 设备的类别名称。</meaning>
     /// <source>PciExpressSettingData 与宿主 PCIe 设备身份清单，读取或派生 ClassType。</source>
     /// <references><see cref="VmPcieService"/>。</references>
-    /// <modification kind="readonly">宿主设备信息；虚拟机设置不会重命名、改变厂商或重写设备位置。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> ClassType = new("PcieDevice.ClassType", "PCIe 设备类别", "PCIe", VmQueryCollection.PcieDevices, "PcieDevices", "ClassType");
 
@@ -38,7 +38,7 @@ public static class VmPcieDeviceFields
     /// <meaning>已分配 PCIe 设备的厂商名称。</meaning>
     /// <source>PciExpressSettingData 与宿主 PCIe 设备身份清单，读取或派生 Vendor。</source>
     /// <references><see cref="VmPcieService"/>。</references>
-    /// <modification kind="readonly">宿主设备信息；虚拟机设置不会重命名、改变厂商或重写设备位置。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> Vendor = new("PcieDevice.Vendor", "PCIe 设备厂商", "PCIe", VmQueryCollection.PcieDevices, "PcieDevices", "Vendor");
 
@@ -48,7 +48,7 @@ public static class VmPcieDeviceFields
     /// <unit>设备资源路径</unit>
     /// <source>PciExpressSettingData 与宿主 PCIe 设备身份清单，读取或派生 Path。</source>
     /// <references><see cref="VmPcieService"/>。</references>
-    /// <modification kind="readonly">宿主设备信息；虚拟机设置不会重命名、改变厂商或重写设备位置。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> Path = new("PcieDevice.Path", "PCIe 设备位置", "PCIe", VmQueryCollection.PcieDevices, "PcieDevices", "Path");
 
@@ -57,7 +57,7 @@ public static class VmPcieDeviceFields
     /// <meaning>PCIe 设备向来宾呈现的访问模式。</meaning>
     /// <source>PciExpressSettingData 与宿主 PCIe 设备身份清单，读取或派生 GuestMode。</source>
     /// <references><see cref="VmPcieService"/>。</references>
-    /// <modification kind="supported" input="device、mode" submission="单设备提交">可用模式取决于设备能力和当前归属。<see cref="VmPcieService.SetDeviceModeAsync"/></modification>
+    /// <modification kind="supported" input="device、mode" submission="单设备提交">可用模式取决于设备能力和当前归属。<see cref="M:ExHyperV.Services.VmPcieService.SetDeviceModeAsync(System.Guid,ExHyperV.Models.VmPcieDeviceSetting,ExHyperV.Models.VmPcieGuestMode)"/></modification>
     /// </fielddoc>
     public static readonly VmQueryField<VmPcieGuestMode> GuestMode = new("PcieDevice.GuestMode", "PCIe 来宾模式", "PCIe", VmQueryCollection.PcieDevices, "PcieDevices", "GuestMode");
 

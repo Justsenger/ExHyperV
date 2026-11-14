@@ -21,7 +21,7 @@ public static class VmGroupFields
     /// <meaning>虚拟机直接所属分组的显示名称。</meaning>
     /// <source>VmGroupService.ReadAsync 的直接成员关系，读取或派生 Name。</source>
     /// <references><see cref="VmGroupService"/>。</references>
-    /// <modification kind="operation" submission="操作流程">分组名称由该组全部成员共用；重命名后所有成员看到相同的新名称。<see cref="VmGroupService.RenameAsync"/><see cref="VmGroupService.MoveAsync"/></modification>
+    /// <modification kind="operation" submission="操作流程">分组名称由该组全部成员共用；重命名后所有成员看到相同的新名称。<see cref="VmGroupService.RenameAsync"/>、<see cref="VmGroupService.MoveAsync"/></modification>
     /// </fielddoc>
     public static readonly VmQueryField<string> Name = new("Group.Name", "分组名称", "所属分组", VmQueryCollection.Groups, "Groups", "Name");
 

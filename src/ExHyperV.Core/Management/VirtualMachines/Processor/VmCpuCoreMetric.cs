@@ -7,13 +7,13 @@ namespace ExHyperV.Models
         public Guid? VmId { get; init; }
         /// <summary>是否为宿主逻辑处理器；不通过 VmName 的保留字判断。</summary>
         public bool IsHost { get; init; }
-        /// <summary>该采样所属的虚拟机显示名称；不作为身份。</summary>
+        /// <summary>该采样所属的虚拟机显示名称。</summary>
         public string VmName { get; init; } = string.Empty;
         /// <summary>虚拟处理器或宿主逻辑处理器编号；无法读取核心数量时为 -1，并返回无效样本。</summary>
         public int CoreId { get; init; }
-        /// <summary>使用率百分比；仅 Sample.IsValid 为 true 时有意义，缺测时不能作为零使用率。</summary>
+        /// <summary>使用率百分比；Sample.IsValid 为 true 时有效。</summary>
         public float Usage { get; init; }
-        /// <summary>本次采集的有效性、观测时间与问题说明；无效样本不代表当前负载为零。</summary>
+        /// <summary>本次采样的有效性、观测时间与问题说明。</summary>
         public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.NotSampled, default);
     }
 }

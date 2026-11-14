@@ -5,7 +5,7 @@ using R = ExHyperV.Properties.Resources;
 namespace ExHyperV.Services;
 
 /// <summary>管理一次进程内 GPU 部署；Core 推进各步骤，并在需要确认时暂停，等待带版本标识的明确决定。</summary>
-/// <remarks>每个实例管理一次 GPU 部署，串行执行写操作；GetStatus 可随时读取已发布快照。执行失败返回 Failed 或 CleanupRequired；错误状态、过期决定和无效输入抛出异常，保留有效的待确认事项。失败或取消后保留已完成的策略、MMIO、文件和电源变化，恢复本次临时磁盘资源，并清理创建回执明确归属于本次操作的 GPU 适配器。原任务是否结束或资源归属无法确认时保留现场；按 AllowedActions 调用 ReconcileAsync 核实和 RetryCleanupAsync 清理。恢复仅限当前进程内的此实例，不提供驱动文件回滚或重启后的恢复。</remarks>
+/// <remarks>每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前快照。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器；已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场；按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。</remarks>
 public sealed class GpuDeploymentSession
 {
     private readonly IGpuDeploymentBackend backend;
@@ -54,7 +54,7 @@ public sealed class GpuDeploymentSession
 
     // Polling never waits for a native operation. Returned values cannot mutate this session.
     /// <summary>读取最近发布的状态，不等待正在进行的底层操作。</summary>
-    /// <returns>当前快照；读取不会推进流程或修改会话。</returns>
+    /// <returns>当前部署状态快照。</returns>
     public GpuDeploymentSnapshot GetStatus() => Volatile.Read(ref snapshot);
     /// <summary>仅发送协作式取消请求，立即返回；正在执行的不可取消底层调用仍需自行结束。</summary>
     public void RequestCancellation() => cancellation.Cancel();
@@ -76,7 +76,7 @@ public sealed class GpuDeploymentSession
         finally { gate.Release(); }
     }
 
-    /// <summary>校验当前请求 ID 和输入种类后推进部署；过期或错误的提交不会替代正在等待的合法请求。</summary>
+    /// <summary>校验当前请求 ID 及输入类型，然后推进部署。</summary>
     /// <param name="decision">与 PendingDecision 对应的确认、分区、Linux 输入或返回决定；不能为空。</param>
     /// <returns>执行至下一次等待或结束后的快照。</returns>
     /// <remarks>选择分区后会重新核对磁盘状态。确认 PowerOff 会直接 TurnOff；确认 Windows 安装会修改离线分区，Linux 部署可能启动或重启来宾。</remarks>
@@ -167,7 +167,7 @@ public sealed class GpuDeploymentSession
 
     /// <summary>请求取消，等待当前操作退出后尝试清理本次新增的适配器。</summary>
     /// <returns>取消或既有终态快照；清理未完成时返回 CleanupRequired。</returns>
-    /// <remarks>不是立即中断或完整回滚。已完成、已失败、已取消或已经等待清理的会话直接返回当前状态；仅当 AllowedActions 包含 RetryCleanup 时才能重试清理。OutcomeUnknown 为 true 时保留资源；允许 Reconcile 时可调用 ReconcileAsync 只读核实原操作。</remarks>
+    /// <remarks>等待当前步骤结束后取消，已完成的修改保留。会话已终止或等待清理时返回当前状态。OutcomeUnknown 时先按 AllowedActions 调用 ReconcileAsync 核实，再决定是否调用 RetryCleanupAsync。</remarks>
     public async Task<GpuDeploymentSnapshot> CancelAsync()
     {
         // Finish active native calls first, including identifying an adapter just added.
@@ -185,7 +185,7 @@ public sealed class GpuDeploymentSession
 
     /// <summary>在允许 RetryCleanup 且 OutcomeUnknown 为 false 时，恢复临时磁盘资源并清理本次新增的 GPU 适配器。</summary>
     /// <returns>清理完成后返回原定的 Failed 或 Cancelled；仍需处理的资源保留在 Recovery.Resources，状态为 CleanupRequired。</returns>
-    /// <remarks>先再次核实原任务，再在原资源锁内按盘符、物理盘挂接、磁盘原状态或映像卸载的顺序恢复。只恢复本次改变的资源，借用的已有挂载不卸载；磁盘身份、分区或控制器变化时停止，不操作替代对象。磁盘恢复要求 VM 已关闭，本方法不会自动关机。原来的联机和只读状态会覆盖期间的外部状态修改。恢复失败后保留原始记录；恢复本身结果未知时，下一步只能先 Reconcile。不会重新分配 GPU、复制驱动、继续部署或撤回已完成的电源和 MMIO 修改。</remarks>
+    /// <remarks>先核实原任务，再在资源锁内恢复本次临时修改。借用的挂载保留；磁盘、分区或控制器身份变化时停止。磁盘恢复要求 VM 已关闭，原联机和只读状态会覆盖期间的外部修改。恢复失败保留记录；结果未知时先调用 ReconcileAsync。</remarks>
     /// <exception cref="InvalidOperationException">会话不在 CleanupRequired 状态，或 OutcomeUnknown 为 true。</exception>
     public async Task<GpuDeploymentSnapshot> RetryCleanupAsync()
     {
@@ -213,7 +213,7 @@ public sealed class GpuDeploymentSession
 
     /// <summary>只读核实本次部署和清理的原生任务、GPU 适配器及临时磁盘资源。</summary>
     /// <returns>更新后的快照。原任务结束且资源已恢复时进入原定的 Failed 或 Cancelled；仍需清理时停在 CleanupRequired，并更新 AllowedActions。</returns>
-    /// <remarks>覆盖适配器创建和移除、电源、MMIO、分区扫描与 Windows 驱动部署中的临时磁盘操作。只观察已保存的任务，不重新执行写入；当前状态恰好符合预期不能单独证明旧任务已结束。作业仍运行、无法读取或回执不足时保留 OutcomeUnknown。Recovery.Operations 提供任务结果，Resources 提供原状态和恢复项，ObservedValues 提供本次核实到的电源与 MMIO 值。核实后不自动继续部署或清理；尚需恢复时由调用方明确调用 RetryCleanupAsync。作业已回收且没有终态证据、进程重启、驱动文件回滚和 Linux 在线部署仍需另行处理。</remarks>
+    /// <remarks>核实已记录的适配器、电源、MMIO 和临时磁盘任务。仍在运行、读取失败或缺少最终回执时保留 OutcomeUnknown。Recovery 中的 Operations、Resources、ObservedValues 分别提供任务结果、恢复资源和本次观测值；后续清理由调用方按 AllowedActions 发起。</remarks>
     /// <exception cref="InvalidOperationException">当前 AllowedActions 不包含 Reconcile。</exception>
     public async Task<GpuDeploymentSnapshot> ReconcileAsync()
     {

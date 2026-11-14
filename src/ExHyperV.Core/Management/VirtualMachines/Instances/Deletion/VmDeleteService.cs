@@ -4,10 +4,10 @@ using ExHyperV.Tools;
 namespace ExHyperV.Services;
 
 /// <summary>提供保留磁盘与恢复配置的删除，以及注销后清理专属文件的彻底删除。</summary>
-/// <remarks>执行前会按需要使虚拟机停止；部分失败可能发生在注销或文件操作已经完成后，应读取具体操作返回的状态，不能将 Success=false 解释为没有发生修改。</remarks>
+/// <remarks>执行前按需停止虚拟机。注销或文件操作完成后仍可能发生后续错误，实际结果见返回状态。</remarks>
 public static class VmDeleteService
 {
-    /// <summary>彻底删除预览。这里只返回可证明属于该 VM 的文件；共享根目录永远不会被当成 VM 私有目录。</summary>
+    /// <summary>彻底删除预览，列出已确认属于目标虚拟机的文件。</summary>
     /// <param name="ConfigDirectory">可确定的虚拟机配置目录；成功查询但无法确定目录时为 null。预览失败由外层响应表达。</param>
     /// <param name="DeletesConfigDirectory">是否能够证明整个配置目录归该虚拟机独占并计划删除。</param>
     /// <param name="ConfigFiles">明确识别为该虚拟机所有的配置文件路径。</param>
@@ -65,7 +65,7 @@ public static class VmDeleteService
     /// <summary>保存恢复配置后注销一台虚拟机，保留其磁盘文件。</summary>
     /// <param name="vmName">仅用于错误说明的显示名称；目标定位始终使用 vmId。</param>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <returns>流程结果分别报告注册状态、恢复位置与清理错误；失败可能发生在已注销后，Unknown 不表示仍在册。</returns>
+    /// <returns>分别报告注册状态、恢复位置与清理错误；注销后仍可能发生清理失败，Unknown 表示注册状态待核实。</returns>
     /// <instanceentry label="删除虚拟机" category="删除" mode="仅注销" order="10">
     /// <step>准备目标虚拟机的 GUID 和显示名称；GUID 用于确定操作对象。</step>
     /// <step>调用 <c>DeleteVmAsync</c>。Core 先保存不含磁盘副本的恢复配置，再注销虚拟机并将配置放回原目录。</step>

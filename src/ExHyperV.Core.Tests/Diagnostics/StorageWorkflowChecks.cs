@@ -118,7 +118,7 @@ internal static class StorageWorkflowChecks
 
                 var hardDisk = Slot("IDE", 0, 0);
                 hardDisk.DriveType = "HardDisk";
-                Verify(VmStorageService.GetEditStoragePathError(hardDisk, true) == R.Error_Storage_VhdRunning
+                Verify(VmStorageService.GetMediaModificationCondition(hardDisk, ExHyperV.Models.VmState.Running).RequiredState == ExHyperV.Models.VmState.PoweredOff
                     && VmStorageService.GetEditStoragePathError(hardDisk, false) == null,
                     "IDE virtual disk media changes require a non-running VM");
                 hardDisk.ControllerType = "SCSI";

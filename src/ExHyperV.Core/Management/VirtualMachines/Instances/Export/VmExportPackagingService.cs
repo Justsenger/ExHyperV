@@ -23,7 +23,7 @@ public sealed record VmExportPackageResult(
     bool SourceDirectoryRemoved,
     string? CleanupError)
 {
-    /// <summary>本次采用的源目录处理方式；Keep 且 SourceDirectoryRemoved=false 表示按要求保留，不是清理失败。</summary>
+    /// <summary>本次采用的源目录处理方式；Keep 表示保留源目录。</summary>
     public VmExportSourceHandling SourceHandling { get; init; } = VmExportSourceHandling.DeleteAfterValidation;
     /// <summary>源目录清理失败的结构化信息；归档仍有效。</summary>
     public ApiFailure? CleanupFailure { get; init; }
@@ -40,7 +40,7 @@ public enum VmExportPackageStage
 
 /// <summary>当前打包阶段及该阶段的整数百分比。</summary>
 /// <param name="Stage">报告进度或结果时所处的操作阶段。</param>
-/// <param name="Percentage">当前 CreatingArchive 或 ValidatingArchive 阶段的百分比，不是两个阶段合并的总进度。</param>
+/// <param name="Percentage">CreatingArchive 或 ValidatingArchive 当前阶段的完成百分比。</param>
 public readonly record struct VmExportPackageProgress(
     VmExportPackageStage Stage,
     int Percentage);

@@ -14,7 +14,7 @@ namespace ExHyperV.Tools
         /// <summary>按不区分大小写的方式匹配内置操作系统类型。</summary>
         /// <returns>标准类型名称；未知或 null 输入回退为 Windows。</returns>
         /// <param name="osType">待规范化的操作系统类型名称。</param>
-        public static string Canonical(string? osType) =>
+        internal static string Canonical(string? osType) =>
             SupportedTypes.FirstOrDefault(t => t.Equals(osType, StringComparison.OrdinalIgnoreCase)) ?? "Windows";
     }
 }

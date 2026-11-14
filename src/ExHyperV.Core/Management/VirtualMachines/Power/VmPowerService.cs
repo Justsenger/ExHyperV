@@ -17,7 +17,7 @@ namespace ExHyperV.Services
         /// <param name="vmName">目标虚拟机的显示名称；重名时拒绝操作。</param>
         /// <param name="action">区分大小写的 Start、TurnOff、Stop、Restart、Save 或 Suspend；其他值返回失败。</param>
         /// <returns>身份解析或电源请求的结果。</returns>
-        /// <remarks>名称仅在入口解析一次，后续执行使用 GUID。Stop 或 Restart 失败不会自动升级为强制操作。</remarks>
+        /// <remarks>供只持有显示名称的调用方使用。名称先解析为 GUID；已有 GUID 时使用对应重载。</remarks>
         public static Task<ApiResponse> ExecuteControlActionAsync(string vmName, string action)
             => TryParseAction(action, out var parsed) ? ExecuteControlActionAsync(vmName, parsed)
                 : Task.FromResult(InvalidAction());
@@ -26,7 +26,7 @@ namespace ExHyperV.Services
         /// <param name="vmId">目标虚拟机的非空 GUID。</param>
         /// <param name="action">区分大小写的 Start、TurnOff、Stop、Restart、Save 或 Suspend；其他值返回失败。</param>
         /// <returns>参数校验或电源请求的结果。</returns>
-        /// <remarks>Stop 或 Restart 失败不会自动升级为强制操作。TurnOff 明确允许必要时终止该虚拟机工作进程。</remarks>
+        /// <remarks>供接收文本动作的调用方使用；普通 C# 调用使用 VmPowerAction 重载。TurnOff 必要时会终止目标虚拟机工作进程。</remarks>
         public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, string action)
             => TryParseAction(action, out var parsed) ? ExecuteControlActionAsync(vmId, parsed)
                 : Task.FromResult(InvalidAction());
@@ -46,11 +46,11 @@ namespace ExHyperV.Services
             return await ExecuteControlActionAsync(identity.Data, action).ConfigureAwait(false);
         }
 
-        /// <summary>按稳定身份执行类型化电源动作，不隐式升级正常关机或重启。</summary>
+        /// <summary>使用虚拟机 GUID 和电源动作枚举执行电源操作。</summary>
         /// <param name="vmId">目标虚拟机的非空 GUID。</param>
         /// <param name="action">要执行的动作；未定义的枚举值返回失败。</param>
-        /// <returns>参数校验或电源请求的结果；启动成功不表示后台亲和性恢复已经结束。</returns>
-        /// <remarks>Stop 和 Restart 直接返回请求结果。TurnOff 先请求下电，失败或超时后可终止对应 vmwp 进程；终止前核对 VM 归属、创建时间和当前进程映射。本方法不提供取消已提交系统操作的保证。</remarks>
+        /// <returns>参数校验或电源请求的结果；亲和性恢复在启动后由后台继续执行。</returns>
+        /// <remarks>Stop 和 Restart 返回来宾请求结果。TurnOff 请求下电，失败或超时后核对进程归属及创建时间，再终止对应 vmwp 进程。</remarks>
         /// <editentry label="电源控制" category="电源"/>
         public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action)
         {

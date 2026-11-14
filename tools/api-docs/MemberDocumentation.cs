@@ -4,10 +4,10 @@ using Microsoft.CodeAnalysis;
 internal static partial class ApiDocument
 {
     private sealed record MemberPresentation(string expression, string valueType, string valueTypeHtml, string? enumTypeId,
-        bool callable, string valuesHtml, string descriptionHtml, string parametersHtml,
+        bool callable, string valuesHtml, string descriptionHtml, string notesHtml, string parametersHtml,
         string returnsHtml, string exceptionsHtml, string examplesHtml);
 
-    private static MemberPresentation PresentMember(TypeEntry type, MemberEntry member, IReadOnlyDictionary<string, string> links)
+    private static MemberPresentation PresentMember(TypeEntry type, MemberEntry member, IReadOnlyDictionary<string, string> links, string linkedExamples = "")
     {
         var symbol = type.Symbol.GetMembers().FirstOrDefault(candidate => candidate.GetDocumentationCommentId() == member.Id)
             ?? type.Symbol.GetMembers(member.Name).FirstOrDefault();
@@ -38,9 +38,15 @@ internal static partial class ApiDocument
             .Select(element => "<dt>" + Node(new XElement("see", element.Attributes()), links) + "</dt><dd>" + HtmlInline(element, links) + "</dd>")) + "</dl>" : "";
         string owner = type.Symbol.ContainingNamespace.IsGlobalNamespace ? type.Name : type.Name[(type.Symbol.ContainingNamespace.ToDisplayString().Length + 1)..];
         string expression = member.Kind is "构造器" or "主构造器" ? owner : owner + "." + member.Name;
+        string description = callable
+            ? Parts(new[] { doc.Element("fielddoc")?.Element("meaning") ?? doc.Element("summary") }.OfType<XElement>())
+            : MemberProse(type, member, links);
+        string notes = callable ? Parts(new[] { doc.Element("fielddoc")?.Element("applicability"), doc.Element("fielddoc")?.Element("absence"), doc.Element("remarks") }.OfType<XElement>()) : "";
+        if (callable && doc.Element("instanceentry") is { } steps)
+            notes += "<ol class=\"instance-steps\">" + string.Concat(steps.Elements("step").Select(step => "<li>" + HtmlInline(step, links) + "</li>")) + "</ol>";
         return new(expression, valueName, HtmlCode(valueName, links), enumId, callable,
-            MemberValues(member, links), MemberProse(type, member, links), HtmlDoc(parameters, links, false),
-            Section("returns"), exceptions, Section("example"));
+            MemberValues(member, links), description, notes, HtmlDoc(parameters, links, false),
+            Section("returns"), exceptions, Section("example") + linkedExamples);
     }
 
     private static string MemberValues(MemberEntry member, IReadOnlyDictionary<string, string> links)

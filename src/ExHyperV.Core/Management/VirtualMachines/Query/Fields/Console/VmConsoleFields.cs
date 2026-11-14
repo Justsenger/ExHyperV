@@ -20,7 +20,7 @@ public static class VmConsoleFields
     /// <meaning>Hyper-V 当前是否报告增强会话已可用。</meaning>
     /// <values>EnhancedSessionModeState 为 2（允许且可用）时返回 true；3（不允许）、6（允许但尚不可用）及其他非空编码返回 false，无法由此 bool 区分具体原因。</values>
     /// <source>Msvm_ComputerSystem，读取或派生 EnhancedSessionModeState。</source>
-    /// <modification kind="readonly">当前来宾是否提供增强会话的检测结果，不是可直接开启的虚拟机开关。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<bool> EnhancedAvailable = new("Console.EnhancedAvailable", "增强会话可用状态", "控制台", VmQueryCollection.VirtualMachine, "Computer", "EnhancedSessionModeState", o => Convert.ToUInt16(o) == 2);
 

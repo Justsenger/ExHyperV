@@ -4,7 +4,7 @@
 
 ```text
 ExHyperV/
-├─ src/ExHyperV.Core/        Core 源码、API.md、文档示例和网页生成器
+├─ src/ExHyperV.Core/        Core 源码与接口 XML 注释
 ├─ website/                 Astro 首页、系统图鉴、文档入口与静态资源
 │  ├─ public/api/           本地生成的 API HTML、Markdown 和 manifest（不提交）
 │  └─ dist/                 含 /api/ 的完整网站（不提交）
@@ -24,9 +24,9 @@ node website/scripts/start.mjs
 
 首页 `/`、系统图鉴 `/os/`、文档 `/docs/` 和 API `/api/` 全部由同一个服务提供。访问 API 是读取站内页面，不会跳转到 Core 仓库。导航使用当前主机和端口。`/sdk/` 已删除。
 
-服务监听所有 IPv4 网卡，内网通过 `http://本机IP:5189/` 访问；防火墙需允许此端口。修改网站页面后 Astro 自动更新；修改 Core 源码注释、API.md 手写部分、示例、样式或模板后，文档会重新生成并刷新。生成失败时终端显示原因，保留最后一次成功的 API 页面；修正并保存后自动重试。生成过程只分析源码，不运行 Core 或示例。
+服务监听所有 IPv4 网卡，内网通过 `http://本机IP:5189/` 访问；防火墙需允许此端口。修改网站页面后 Astro 自动更新；修改 Core 源码注释、doc/api/guide.md、示例、样式或模板后，文档会重新生成并刷新。生成失败时终端显示原因，保留最后一次成功的 API 页面；修正并保存后自动重试。生成过程只分析源码，不运行 Core 或示例。
 
-首页、图鉴和文档入口改 `website/src/`；API 内容和样式改 `src/ExHyperV.Core/`，具体见 [Core 文档维护说明](../../src/ExHyperV.Core/Documentation/Website.md)。生成区块不手工编辑。提交时检查 `src/ExHyperV.Core/API.md` 的差异，与源码一起保存。
+首页、图鉴和文档入口改 `website/src/`；API 说明改 Core 注释和 `doc/api/`；网页模板与样式改 `website/src/api/`，具体见 [Core 文档维护说明](../../doc/api/README.md)。生成区块不手工编辑。提交时检查 `doc/api/API.md` 的差异，与源码一起保存。
 
 ## 构建和校验
 

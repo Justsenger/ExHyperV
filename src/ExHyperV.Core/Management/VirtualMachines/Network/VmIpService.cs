@@ -59,7 +59,7 @@ namespace ExHyperV.Services
         /// <summary>从网卡地址列表中选择首个有效 IPv4 地址用于简要显示或连接。</summary>
         /// <param name="adapters">网卡对象集合。</param>
         /// <param name="fallback">没有可显示地址时返回的文本，默认为空字符串。</param>
-        /// <returns>单个 IPv4 地址或 fallback；逗号分隔的地址先拆分，无效文本及 IPv6 不作为 IPv4 返回。</returns>
+        /// <returns>从逗号分隔的地址中选取一个有效 IPv4 地址，无可用地址时返回 fallback。</returns>
         public static string GetPrimaryAddress(IEnumerable<VmNetworkAdapter> adapters, string fallback = "") =>
             ParseAddresses(adapters.SelectMany(a => a.IpAddresses ?? Enumerable.Empty<string>()))
                 .FirstOrDefault(ip => IPAddress.TryParse(ip, out var parsed)
@@ -77,8 +77,8 @@ namespace ExHyperV.Services
         /// <summary>查找 IPv4，返回独立地址及网卡关联、来源和时间；宿主嗅探优先。</summary>
         /// <param name="vmId">目标虚拟机 GUID，用于来宾上报查询。</param>
         /// <param name="macAddressWithColons">目标 MAC，允许冒号、横线或连续 12 位十六进制；空值返回空集合。</param>
-        /// <returns>按优先级选取的地址观测集合。若只能取得整台 VM 的来宾地址，Association 为 VirtualMachine，不能当成该 MAC 的确切地址。来源均无地址且查询失败时返回结构化错误。</returns>
-        /// <remarks>ARP 和邻居缓存仅按 MAC 关联，不证明地址仍属于目标 VM，也不替代 SSH 等服务器身份验证。来宾网卡通过系统关联查询；缓存无可靠观测时间时 ObservedAtUtc 为 null。</remarks>
+        /// <returns>按来源优先级选取的地址。Association 为 VirtualMachine 时，只能关联到整台 VM；各来源均无地址且查询失败时返回错误。</returns>
+        /// <remarks>ARP 和邻居缓存按 MAC 地址关联；来宾网卡通过系统关联查询。来源缺少可靠观测时间时，ObservedAtUtc 为 null。</remarks>
         public static async Task<ApiResponse<IReadOnlyList<VmIpAddressObservation>>> LookupAsync(Guid vmId, string macAddressWithColons)
         {
             if (vmId == Guid.Empty) return ApiResponse<IReadOnlyList<VmIpAddressObservation>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);

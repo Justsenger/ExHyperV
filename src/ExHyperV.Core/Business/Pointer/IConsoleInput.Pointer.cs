@@ -14,7 +14,7 @@ public partial interface IConsoleInput
     /// <para>释放坐标越界时自动限制到最新桌面边界，分辨率缩小不会丢掉释放；其他事件仍需提交有效坐标。失焦使用 ReleaseAllInputs，普通点击可用 SendClick 一次提交。</para>
     /// <para>显示区域经过缩放时，先减去画面的显示起点，再按来宾尺寸与显示尺寸的比例换算坐标。
     /// 黑边和画面外的输入不应发送。滚轮事件也需要合法的 x、y；较大的累计增量拆成多次发送。</para>
-    /// <para>滚轮单位沿用 Windows 的 WHEEL_DELTA，120 表示通常的一格，不表示滚动 120 行。
+    /// <para>滚轮单位沿用 Windows 的 WHEEL_DELTA，120 通常表示一格。
     /// 来宾应用决定实际滚动多少内容。参见 <see href="https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-mousewheel">WM_MOUSEWHEEL</see>。</para>
     /// </remarks>
     /// <example>

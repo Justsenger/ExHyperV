@@ -39,21 +39,21 @@ namespace ExHyperV.Services
         /// <param name="Tpm">是否允许切换 TPM。</param>
         /// <param name="Encryption">是否允许切换加密。</param>
         /// <param name="Shielding">是否允许切换屏蔽。</param>
-        public readonly record struct Capabilities(bool CanEdit, bool SecureBoot, bool SecureBootTemplate, bool Tpm, bool Encryption, bool Shielding);
+        internal readonly record struct Capabilities(bool CanEdit, bool SecureBoot, bool SecureBootTemplate, bool Tpm, bool Encryption, bool Shielding);
 
         /// <summary>判断虚拟机是否为第 2 代且已经完全关机。</summary>
         /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
         /// <param name="state">当前运行状态快照；只有 PoweredOff 满足关机要求。保存、挂起、休眠、过渡及未知状态均不满足。</param>
         /// <returns>第 2 代且 state 为 PoweredOff 时返回 true；各安全开关的互锁规则另由 GetCapabilities 检查。</returns>
         /// <remarks>此方法只判断传入的快照，不查询宿主。实际修改入口会重新读取状态；返回 true 不锁定后续状态。</remarks>
-        public static bool CanEdit(int generation, VmState state) => generation == 2 && state == VmState.PoweredOff;
+        internal static bool CanEdit(int generation, VmState state) => generation == 2 && state == VmState.PoweredOff;
 
         /// <summary>仅按安全启动、TPM 和屏蔽状态计算各安全开关之间的互锁关系。</summary>
         /// <param name="secureBoot">当前安全启动状态。</param>
         /// <param name="tpm">当前虚拟 TPM 状态。</param>
         /// <param name="shielded">当前屏蔽状态。</param>
         /// <returns>每个安全设置是否允许编辑的标记；不包含运行状态及代数限制。</returns>
-        public static Capabilities GetInterlocks(bool secureBoot, bool tpm, bool shielded)
+        internal static Capabilities GetInterlocks(bool secureBoot, bool tpm, bool shielded)
         {
             bool unlocked = !shielded;
             // These depend only on the security selections. A caller can bind VM-state
@@ -63,12 +63,12 @@ namespace ExHyperV.Services
 
         /// <summary>合并代数、运行状态和安全开关互锁规则。</summary>
         /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-        /// <param name="state">当前运行状态快照；只有 PoweredOff 允许修改。此方法不自行刷新宿主状态。</param>
+        /// <param name="state">运行状态快照；PoweredOff 时允许修改。</param>
         /// <param name="secureBoot">当前安全启动状态。</param>
         /// <param name="tpm">当前虚拟 TPM 状态。</param>
         /// <param name="shielded">当前屏蔽状态。</param>
         /// <returns>当前上下文下各安全设置的编辑能力。</returns>
-        public static Capabilities GetCapabilities(int generation, VmState state, bool secureBoot, bool tpm, bool shielded)
+        internal static Capabilities GetCapabilities(int generation, VmState state, bool secureBoot, bool tpm, bool shielded)
         {
             bool canEdit = CanEdit(generation, state);
             var interlocks = GetInterlocks(secureBoot, tpm, shielded);
@@ -83,21 +83,31 @@ namespace ExHyperV.Services
         /// <param name="current">当前成功读取的安全设置，含互锁所需开关。</param>
         /// <param name="setting">准备修改的安全设置项。</param>
         /// <returns>不允许修改的说明；允许继续时为 null。</returns>
-        public static string? GetSettingError(int generation, VmState state, VmSecurityInfo current, Setting setting)
+        internal static string? GetSettingError(int generation, VmState state, VmSecurityInfo current, Setting setting)
         {
-            if (generation != 2) return Properties.Resources.Error_VerNotSupport;
-            if (state != VmState.PoweredOff) return Properties.Resources.Warn_VmOffRequired;
-            var caps = GetCapabilities(generation, state, current.SecureBootEnabled, current.TpmEnabled, current.Shielded);
-            bool allowed = setting switch
-            {
-                Setting.SecureBoot => caps.SecureBoot,
-                Setting.SecureBootTemplate => caps.SecureBootTemplate,
-                Setting.Tpm => caps.Tpm,
-                Setting.Encryption => caps.Encryption,
-                Setting.Shielding => caps.Shielding,
-                _ => false
-            };
-            return allowed ? null : Properties.Resources.Error_VerNotSupport;
+            var condition = GetModificationCondition(generation, state, current, setting);
+            return condition.CanModify ? null : condition.Reason;
+        }
+
+        /// <summary>评估一项安全设置的修改条件。</summary>
+        /// <param name="generation">查询得到的虚拟机代数。</param>
+        /// <param name="state">查询得到的虚拟机电源状态。</param>
+        /// <param name="current">查询得到的安全配置。</param>
+        /// <param name="setting">要修改的设置。</param>
+        /// <returns>是否允许修改及代数、电源状态或设置依赖方面的原因。</returns>
+        public static VmModificationCondition GetModificationCondition(int generation, VmState state, VmSecurityInfo current, Setting setting)
+        {
+            if (!Enum.IsDefined(setting)) return VmModificationCondition.Denied("未知的安全设置。", ApiErrorKind.InvalidArgument);
+            if (generation != 2) return VmModificationCondition.Unsupported("安全设置适用于第二代虚拟机。");
+            var power = VmModificationCondition.PoweredOff(state);
+            if (!power.CanModify) return power;
+            if (current.Shielded && setting != Setting.Shielding)
+                return VmModificationCondition.Denied("请先关闭屏蔽保护。");
+            if (setting == Setting.SecureBootTemplate && !current.SecureBootEnabled)
+                return VmModificationCondition.Denied("请先开启安全启动。");
+            if (setting == Setting.Encryption && !current.TpmEnabled)
+                return VmModificationCondition.Denied("请先开启虚拟 TPM。");
+            return VmModificationCondition.Allowed;
         }
 
         private static ApiResponse Failure<T>(ApiResponse<T> response, string? missing = null) => ApiResponse.Fail(
@@ -109,15 +119,9 @@ namespace ExHyperV.Services
             if (vmId == Guid.Empty) return ApiResponse.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
             var state = await VmConfigurationState.ReadAsync(vmId);
             if (!state.HasData) return Failure(state);
-            if (state.Data.Generation != 2)
-                return ApiResponse.Fail(Properties.Resources.Error_VerNotSupport, kind: ApiErrorKind.Unsupported);
-            if (!CanEdit(state.Data.Generation, state.Data.State))
-                return ApiResponse.Fail(Properties.Resources.Warn_VmOffRequired, kind: ApiErrorKind.InvalidState);
             var current = await GetSecuritySettingsAsync(vmId);
             if (!current.HasData) return Failure(current);
-            string? error = GetSettingError(state.Data.Generation, state.Data.State, current.Data, setting);
-            return error == null ? ApiResponse.Ok() : ApiResponse.Fail(error,
-                kind: ApiErrorKind.InvalidState);
+            return GetModificationCondition(state.Data.Generation, state.Data.State, current.Data, setting).ToResponse();
         }
 
         /// <summary>读取安全启动模板、TPM、状态加密及屏蔽状态；任何必要子查询失败时返回失败。</summary>
@@ -151,7 +155,7 @@ namespace ExHyperV.Services
         public sealed record SecureBootTemplate(string Name, Guid Id);
 
         /// <summary>读取宿主提供的安全启动模板，查询失败与成功空列表分别返回。</summary>
-        /// <returns>模板名称及稳定 GUID 列表；不会把查询错误当作没有模板。</returns>
+        /// <returns>模板名称及 GUID 列表；失败时返回原因。</returns>
         public static async Task<ApiResponse<IReadOnlyList<SecureBootTemplate>>> GetSecureBootTemplatesAsync()
         {
             const string wql =

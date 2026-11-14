@@ -26,7 +26,7 @@ public enum ApiErrorKind
 {
     /// <summary>操作成功，没有错误。</summary>
     None,
-    /// <summary>失败尚未归入更具体的类别，不应按错误文案猜测。</summary>
+    /// <summary>尚未归入具体类别的失败。</summary>
     Unspecified,
     /// <summary>请求缺少必需信息，或参数组合不合法。</summary>
     InvalidArgument,
@@ -44,7 +44,7 @@ public enum ApiErrorKind
     Unsupported,
     /// <summary>操作产生了尚未清理的资源或状态，需要先处理清理结果。</summary>
     CleanupRequired,
-    /// <summary>执行操作失败；不表示此前步骤没有产生副作用。</summary>
+    /// <summary>执行操作失败；此前已完成的步骤可能保留。</summary>
     OperationFailed,
     /// <summary>操作已取消或在提交前被取消；仅停止等待且无法确认底层结果时使用 OutcomeUnknown。</summary>
     Cancelled,
@@ -136,7 +136,7 @@ public sealed class ApiResponse<T>
     /// <returns>响应非 null 且 Success=true 时为 true；不检查 Data。</returns>
     public static implicit operator bool(ApiResponse<T>? response) => response is not null && response.Success;
 
-    /// <summary>生成用于诊断的响应摘要，不是稳定的数据交换格式。</summary>
+    /// <summary>生成用于诊断的响应摘要。</summary>
     /// <returns>包含成功/空结果或错误来源、码和说明的文本。</returns>
     public override string ToString() =>
         Success
@@ -153,7 +153,7 @@ public sealed class ApiResponse<T>
 public sealed class ApiResponse
 {
     private ApiResponse() { }
-    /// <summary>接口已记录的修改步骤，按执行顺序排列；空列表表示该入口不提供步骤记录，不表示没有副作用。</summary>
+    /// <summary>已记录的修改步骤，按执行顺序排列。空列表表示没有步骤记录。</summary>
     /// <remarks>步骤标识及范围见具体方法；未开始的步骤可能不在列表中。此列表不代替重新查询实际资源。</remarks>
     public IReadOnlyList<OperationStepResult> Steps { get; private init; } = Array.Empty<OperationStepResult>();
 
@@ -170,11 +170,11 @@ public sealed class ApiResponse
         };
     }
     /// <summary>本次操作已确认需要重启宿主；失败响应也可能保留此前成功步骤的重启要求。</summary>
-    /// <remarks>仅提供重启状态的接口设置此标志；false 不代表对整个系统不存在待重启事项作出保证。本对象不会触发重启。</remarks>
+    /// <remarks>表示本次操作报告的重启要求。</remarks>
     public bool RequiresRestart { get; private init; }
 
     /// <summary>本次操作及已记录步骤明确报告的重启原因；按首次出现顺序保存，只读且去重。</summary>
-    /// <remarks>只有重启布尔标记的旧入口可能没有原因。本列表不会推断系统其他操作的重启需求。</remarks>
+    /// <remarks>返回本次操作已取得的重启原因。</remarks>
     public IReadOnlyList<RestartReason> RestartReasons { get; private init; } = Array.Empty<RestartReason>();
 
     internal ApiResponse WithRestartRequired(bool required) => new()
@@ -249,7 +249,7 @@ public sealed class ApiResponse
     /// <returns>响应非 null 且 Success=true 时为 true。</returns>
     public static implicit operator bool(ApiResponse? response) => response is not null && response.Success;
 
-    /// <summary>生成用于诊断的响应摘要，不是稳定的数据交换格式。</summary>
+    /// <summary>生成用于诊断的响应摘要。</summary>
     /// <returns>包含成功状态或错误来源、码和说明的文本。</returns>
     public override string ToString() =>
         Success

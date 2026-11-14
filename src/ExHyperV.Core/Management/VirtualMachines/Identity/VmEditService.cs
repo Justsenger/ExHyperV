@@ -2,19 +2,20 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-/// <summary>校验和修改虚拟机显示名称。</summary>
+/// <summary>修改虚拟机显示名称。</summary>
 public static class VmEditService
 {
-    /// <summary>检查新虚拟机名称是否为空白。</summary>
-    /// <param name="newName">要设置的新显示名称；不得为空白。</param>
-    /// <returns>空白名称的错误说明，其他名称返回 null；不检查重名或主机约束。</returns>
-    public static string? GetNameError(string? newName) =>
+    /// <summary>检查名称是否为空或全为空白。</summary>
+    /// <param name="newName">待检查的名称。</param>
+    /// <returns>通过检查时返回 null，否则返回错误说明。</returns>
+    internal static string? GetNameError(string? newName) =>
         string.IsNullOrWhiteSpace(newName) ? Properties.Resources.VmPage_NameEmpty : null;
 
-    /// <summary>按稳定 GUID 重命名虚拟机。</summary>
-    /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="newName">要设置的新显示名称；不得为空白。</param>
-    /// <returns>修改结果；错误包含分类与底层诊断。</returns>
+    /// <summary>修改虚拟机的显示名称。</summary>
+    /// <param name="vmId">目标虚拟机的标识。</param>
+    /// <param name="newName">新名称，不能全为空白。</param>
+    /// <returns>返回重命名结果；失败时附带原因。</returns>
+    /// <editentry label="重命名" category="基本信息"/>
     public static async Task<ApiResponse> RenameVmAsync(Guid vmId, string newName)
     {
         if (GetNameError(newName) is string error)

@@ -38,7 +38,7 @@ public enum PcieAssignmentError
     Execution
 }
 
-/// <summary>对一次特定 PCIe 确认请求的决定，不能重用到其他步骤。</summary>
+/// <summary>本次 PCIe 确认请求的决定。</summary>
 /// <param name="RequestId">从待确认状态读取的请求身份。</param>
 /// <param name="Approve">是否同意该请求；伴随设备步骤中拒绝仅跳过伴随设备。</param>
 public sealed record PcieAssignmentDecision(Guid RequestId, bool Approve);
@@ -55,7 +55,7 @@ public sealed record PcieAssignmentState(
     PcieAssignmentError Error = PcieAssignmentError.None, bool RefreshRequired = false, Guid? RequestId = null)
 {
     /// <summary>本次流程已执行步骤的只读快照；ResourceId 区分主设备、伴随设备和磁盘，Failure 保留底层类别、来源及错误码。</summary>
-    /// <remarks>步骤名为 CheckMmio、ExpandMmio、ReadControllerDisks、AssignDevice、ReadReturnedDisks、RestoreDiskOnline 或 UnhandledFailure。未执行的步骤不列出，不以空列表推断没有副作用。</remarks>
+    /// <remarks>记录已执行的 CheckMmio、ExpandMmio、ReadControllerDisks、AssignDevice、ReadReturnedDisks、RestoreDiskOnline 步骤，以及未处理异常 UnhandledFailure。</remarks>
     public IReadOnlyList<OperationStepResult> Steps { get; init; } = Array.Empty<OperationStepResult>();
     /// <summary>需要优先处理的失败；结果未知优先于清理失败，其余取首个失败。全部失败详情仍保留在 Steps 中。</summary>
     public ApiFailure? Failure { get; init; }
@@ -69,7 +69,7 @@ public sealed record PcieAssignmentState(
 }
 
 /// <summary>保存一次 PCIe 分配的检查、确认和执行状态，供界面或其他调用方逐步驱动。</summary>
-/// <remarks>同一实例不能并发推进。创建实例不执行分配；推进可修改 MMIO、关闭 VM、脱机磁盘和转移设备，不是可整体回滚的事务。等待用户确认时不持有宿主资源锁；获准执行时，在控制器及关联磁盘锁内重新校验设备身份和系统盘标志，再连续执行脱机、转移及失败恢复。失败恢复以本次执行前的联机、只读状态为准，不保留期间外部状态修改；不能确认同一设备时停止恢复并报告失败。</remarks>
+/// <remarks>同一实例依次推进，步骤可能修改 MMIO、关闭 VM、脱机磁盘和转移设备；失败时可能保留已完成的修改。等待确认时释放资源锁，执行时重新核对设备身份及系统盘标志。失败恢复使用操作前的磁盘状态，覆盖期间的外部修改；身份待确认时保留现场并报告失败。</remarks>
 public sealed class PcieAssignmentSession
 {
     private readonly PcieDeviceInfo _device;

@@ -9,7 +9,7 @@ using ExHyperV.Models;
 namespace ExHyperV.Tools
 {
     /// <summary>读取块设备上的 GPT/MBR 分区结构，用于筛选可供来宾部署的数据分区。</summary>
-    public class DiskParser
+    internal class DiskParser
     {
         private static readonly Guid WindowsBasicDataGuid = new Guid("EBD0A0A2-B9E5-4433-87C0-68B6B72699C7");
         private static readonly Guid LinuxFileSystemGuid = new Guid("0FC63DAF-8483-4772-8E79-3D69D8477DE4");
@@ -19,7 +19,7 @@ namespace ExHyperV.Tools
 
         /// <summary>读取磁盘并筛选达到容量阈值的 Windows/Linux 相关分区。</summary>
         /// <remarks>返回容量至少 1 GiB、被识别为 Windows 或 Linux 用途的分区。打开设备失败会抛异常；分区表解析失败时保留已经取得的记录，当前结果不含完整性标记。物理设备从系统读取扇区大小；原始镜像文件按 512 或 4096 字节扇区定位 GPT。</remarks>
-        /// <returns>识别的分区列表，容量以字节表示；不是包含所有分区的完整磁盘清单。</returns>
+        /// <returns>已识别的 Windows 和 Linux 用途分区，容量以字节表示。</returns>
         /// <param name="devicePath">原始块设备路径，或直接按磁盘扇区排列的镜像文件路径。VHD/VHDX 应先挂载，再传入块设备路径。</param>
         public List<DiskPartitionInfo> GetPartitions(string devicePath)
         {

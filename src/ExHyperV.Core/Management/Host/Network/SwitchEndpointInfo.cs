@@ -1,7 +1,7 @@
 namespace ExHyperV.Models
 {
     /// <summary>
-    /// 交换机端点的显示摘要：虚拟机网卡或宿主网卡。未携带稳定端点身份，不能作为修改目标。
+    /// 交换机端点的显示摘要，包含虚拟机网卡或宿主网卡。
     /// </summary>
     public class SwitchEndpointInfo
     {

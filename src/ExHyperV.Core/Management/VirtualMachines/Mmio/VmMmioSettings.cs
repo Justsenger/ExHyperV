@@ -1,19 +1,20 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ExHyperV.Models
 {
     /// <summary>虚拟机 MMIO 地址空间设置（Msvm_VirtualSystemSettingData，单位 MiB）。</summary>
-    public partial class VmMmioSettings : ObservableObject
+    public partial class VmMmioSettings
     {
         /// <summary>低位 MMIO 空间大小，单位为 MiB（1024² 字节）；null 表示未取得。</summary>
-        [ObservableProperty] private ulong? _lowSizeMiB;
+        public ulong? LowSizeMiB { get => _lowSizeMiB; set => _lowSizeMiB = value; }
+        private ulong? _lowSizeMiB;
         /// <summary>高位 MMIO 空间大小，单位为 MiB（1024² 字节）；null 表示未取得。</summary>
-        [ObservableProperty] private ulong? _highSizeMiB;
+        public ulong? HighSizeMiB { get => _highSizeMiB; set => _highSizeMiB = value; }
+        private ulong? _highSizeMiB;
         /// <summary>高位 MMIO 地址基址，单位为 MiB（1024² 字节）；null 表示未取得。</summary>
-        [ObservableProperty] private ulong? _highBaseMiB;
+        public ulong? HighBaseMiB { get => _highBaseMiB; set => _highBaseMiB = value; }
+        private ulong? _highBaseMiB;
 
-        // A value snapshot must not inherit the source object's notification subscribers.
-        /// <summary>复制当前值为独立模型，不复制属性变化事件订阅者。</summary>
+        /// <summary>复制当前值为独立模型。</summary>
         /// <returns>包含当前三个 MMIO 值的新模型。</returns>
         public VmMmioSettings Clone() => new()
         {
@@ -22,7 +23,7 @@ namespace ExHyperV.Models
             _highBaseMiB = _highBaseMiB
         };
 
-        /// <summary>通过属性设置器恢复本地模型并触发相关通知；不提交 Hyper-V 配置。</summary>
+        /// <summary>将备份值恢复到当前编辑模型。</summary>
         /// <param name="other">要恢复的设置快照；null 时不做操作。</param>
         public void Restore(VmMmioSettings other)
         {

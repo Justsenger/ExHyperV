@@ -365,7 +365,7 @@ internal static partial class WmiApi
 
     /// <summary>调用实例方法并提取指定字符串结果字段；异步作业按实现读取关联结果路径。</summary>
     /// <remarks>提交前取消返回 Cancelled；提交后停止等待或无法确认最终结果返回 OutcomeUnknown，不撤销原生操作，调用方不得直接重试或清理。</remarks>
-    /// <returns>指定结果字段或作业关联路径的字符串数组响应，不是完整 outParams 对象。</returns>
+    /// <returns>指定结果字段或作业关联路径的字符串数组响应。</returns>
     /// <param name="wql">用于定位目标实例的 WQL 查询，使用首个匹配实例。</param>
     /// <param name="methodName">目标 WMI 方法名称。</param>
     /// <param name="setParams">同步填写借用的入参对象；null 表示无需填写，不得保存该对象。</param>
@@ -452,6 +452,7 @@ internal static partial class WmiApi
     /// <param name="cancellationToken">取消异步作业等待的令牌；底层作业和同步原生调用继续执行。</param>
     /// <param name="progress">可选的作业完成百分比接收器；界面更新需调度到界面线程。</param>
     /// <param name="timeout">异步作业等待上限；null 默认 30 分钟，不限制同步原生调用所耗时间。</param>
+    /// <param name="operation">本次调用的操作回执；null 时创建新回执并记录原生任务状态。</param>
     public static async Task<ApiResponse> InvokeOnObjectAsync(
         ManagementObject target,
         string methodName,
@@ -505,7 +506,7 @@ internal static partial class WmiApi
     }
 
     /// <summary>调用 WMI 类方法并返回原生输出参数对象。</summary>
-    /// <remarks>输出对象不是普通 DTO，不能遗漏释放。异步作业使用内部等待策略，没有公开取消入口。</remarks>
+    /// <remarks>调用方通过 using 释放输出对象。异步作业按内部等待策略执行。</remarks>
     /// <returns>成功时 Data 为调用方拥有的 ManagementBaseObject，使用后必须 Dispose；失败时返回错误响应。</returns>
     /// <param name="className">目标 WMI 类名。</param>
     /// <param name="methodName">目标 WMI 方法名称。</param>
@@ -883,7 +884,7 @@ internal static partial class WmiApi
 
     /// <summary>按 WMI 对象路径读取实例并映射为托管结果。</summary>
     /// <returns>映射结果响应；访问或映射失败时返回失败。</returns>
-    /// <param name="objectPath">WMI 对象路径，不是文件路径。</param>
+    /// <param name="objectPath">WMI 对象路径。</param>
     /// <param name="mapper">把当前借用的 ManagementObject 转为独立托管结果；不得保存或返回该原生对象。</param>
     /// <param name="scope">WMI 命名空间，默认取方法声明值。</param>
     /// <param name="ctx">连接上下文；null 使用本机当前身份。</param>
@@ -1028,7 +1029,7 @@ internal static partial class WmiApi
 
     /// <summary>转义 WQL 字符串值中的反斜杠和单引号。</summary>
     /// <returns>转义后的文本，不额外添加外围单引号。</returns>
-    /// <param name="value">非 null 的原始字符串值，不是整段 WQL。</param>
+    /// <param name="value">需要编码为 WQL 字符串字面量的非 null 原始值。</param>
     public static string Escape(string value) => value.Replace("\\", "\\\\").Replace("'", "\\'");
 
     /// <summary>尝试读取并转换 WMI 属性，读取或转换失败时采用默认值。</summary>

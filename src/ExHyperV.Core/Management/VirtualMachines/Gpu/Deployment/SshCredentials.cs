@@ -5,7 +5,7 @@ namespace ExHyperV.Models
     {
         /// <summary>来宾 IPv4 地址；直接调用部署服务时会被改写为选出的目标地址，会话入口会先复制凭据。</summary>
         public string Host { get; set; } = string.Empty;
-        /// <summary>SSH 端口，调用方须指定 1 至 65535；模型默认值 0 不是有效端口。</summary>
+        /// <summary>SSH 端口，范围 1 至 65535。</summary>
         public int Port { get; set; }
         /// <summary>来宾 SSH 用户名，Linux 部署要求非空。</summary>
         public string Username { get; set; } = string.Empty;

@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#0d0e11">
+<title>API 文档</title>
+<script id="api-title">
+(() => {
+  'use strict';
+  // Match the website's automatic interface language, including live browser changes.
+  const updateTitle = () => {
+    const language = (navigator.languages?.[0] || navigator.language || 'zh-CN').replaceAll('_','-').toLowerCase();
+    document.title = language.startsWith('zh')
+      ? (/tw|hk|hant/.test(language) ? 'API 文件' : 'API 文档')
+      : 'API Documentation';
+  };
+  updateTitle();
+  window.addEventListener('languagechange',updateTitle);
+})();
+</script>
+<script id="theme-init">
+(() => {
+  'use strict';
+  const onWebsite = /^https?:$/.test(location.protocol) && /^\/api(?:\/|$)/.test(location.pathname);
+  document.documentElement.dataset.siteContext = onWebsite ? 'website' : 'standalone';
+  const key = 'exhyperv-doc-theme';
+  const normalize = value => ['system','light','dark'].includes(value) ? value : 'system';
+  const media = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  let preference = 'system';
+  try { preference = normalize(localStorage.getItem(key)); } catch {}
+  const apply = () => {
+    document.documentElement.dataset.theme = preference === 'system' ? (media?.matches ? 'dark' : 'light') : preference;
+  };
+  // Set the palette before the first paint, including when storage is unavailable.
+  apply();
+  document.addEventListener('DOMContentLoaded', () => {
+    if (onWebsite) {
+      document.querySelector('[data-site-navigation]').hidden = false;
+      const home = document.querySelector('[data-site-home]');
+      home.href = '/';
+      home.setAttribute('aria-label', 'ExHyperV 首页');
+    }
+    const selector = document.getElementById('theme-select');
+    selector.value = preference;
+    apply();
+    selector.addEventListener('change', () => {
+      preference = normalize(selector.value);
+      apply();
+      try { localStorage.setItem(key, preference); } catch {}
+    });
+    const systemChanged = () => { if (preference === 'system') apply(); };
+    if (media?.addEventListener) media.addEventListener('change', systemChanged);
+    else if (media?.addListener) media.addListener(systemChanged);
+    window.addEventListener('storage', event => {
+      if (event.key !== key && event.key !== null) return;
+      preference = normalize(event.newValue);
+      selector.value = preference;
+      apply();
+    });
+  });
+})();
+</script>
+<style id="api-theme">__WEB_STYLES__</style>
+<script type="text/plain" id="comfortaa-font-license">__FONT_LICENSE__</script>
+</head>
+<body>
+<a class="skip-link" href="#main-content">跳到正文</a>
+<header class="site-header">
+  <div class="topbar">
+    <a class="brand" href="#overview" data-site-home aria-label="ExHyperV API 文档首页"><span class="brand-text">ExHyperV</span></a>
+    <nav class="site-links" data-site-navigation aria-label="主站导航" hidden><a href="/">首页</a><a href="/os/">系统图鉴</a><a href="/docs/" aria-current="page">文档</a></nav>
+    <div class="topbar-actions"><select id="theme-select" class="theme-select" aria-label="文档主题" title="文档主题"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></div>
+  </div>
+  <div class="subbar">
+    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="展开类型目录" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button>
+    <div class="breadcrumb" aria-label="当前位置"><span class="current" id="breadcrumb-current"></span></div>
+    <nav class="toplinks" aria-label="文档导航"><a href="#overview" id="reference-tab">API 文档</a><a href="#design" id="design-tab">设计图</a></nav>
+    <span class="version" id="version"></span>
+  </div>
+</header>
+<div class="nav-scrim" id="nav-scrim"></div>
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="类型与成员目录">
+    <div class="search-box"><svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 20-5-5m2-6a6 6 0 1 1-12 0 6 6 0 0 1 12 0" /></svg><input id="api-search" type="search" autocomplete="off" spellcheck="false" aria-label="搜索字段、类型或成员" placeholder="搜索字段、类型或成员"><button type="button" class="clear-search" id="clear-search" aria-label="清空搜索" hidden>×</button></div>
+    <a class="overview-navigation" id="overview-link" href="#overview">概览</a>
+    <div id="navigation"></div>
+  </aside>
+  <main class="article" id="main-content" tabindex="-1"><noscript><p class="no-script">此页面需要启用 JavaScript 才能浏览类型和成员。也可直接阅读 API.md。</p></noscript></main>
+</div>
+<script type="application/json" id="api-data">__API_DATA__</script>
+<script>
+(() => {
+  'use strict';
+  const data = JSON.parse(document.getElementById('api-data').textContent);
+  const types = data.types || [];
+  const designs = data.designs || [];
+  const designMap = new Map(designs.map(design => [design.id, design]));
+  const typeMap = new Map(types.map(type => [type.id, type]));
+  const memberMap = new Map();
+  for (const type of types) for (const member of type.members || []) memberMap.set(member.id, {type, member});
+  // A field that already explains an enum owns its documentation. Keep old type
+  // and value URLs as aliases, so callers and saved links reach the same card.
+  const fieldsByEnum = new Map();
+  const fieldsByExpression = new Map();
+  for (const {member} of memberMap.values()) if (member.queryField) {
+    fieldsByExpression.set(member.queryField.expression,member);
+    const enumId = member.queryField.enumTypeId;
+    if (enumId) {
+      if (!fieldsByEnum.has(enumId)) fieldsByEnum.set(enumId,[]);
+      fieldsByEnum.get(enumId).push(member);
+    }
+  }
+  const enumOwners = new Map([...fieldsByEnum].filter(([,fields]) => fields.length === 1)
+    .map(([id,fields]) => [id,fields[0]]));
+  const referenceTargets = new Map();
+  for (const [enumId,field] of enumOwners) {
+    referenceTargets.set(enumId,field.id);
+    for (const value of typeMap.get(enumId)?.members || [])
+      referenceTargets.set(value.id,`${field.id}--${value.id}`);
+  }
+  const referenceTarget = id => referenceTargets.get(id) || referenceTargets.get(id.split('--')[0]) || id;
+  const referenceLinks = html => html.replace(/href="#([^"]+)"/g,(_,id) => `href="#${referenceTarget(id)}"`);
+  const main = document.getElementById('main-content');
+  const navigation = document.getElementById('navigation');
+  const search = document.getElementById('api-search');
+  const clearSearch = document.getElementById('clear-search');
+  const menu = document.getElementById('mobile-menu');
+  const categories = data.categories || [];
+  const categoryMap = new Map(categories.map(category => [category.id,category]));
+  const pathKey = path => path.join(' / ');
+  const displayPath = path => path[0] === '管理层面' && ['虚拟机','宿主'].includes(path[1]) && ['查询','修改'].includes(path[2])
+    ? [...path.slice(0,2), ...path.slice(3)] : path;
+  const typePaths = type => type.navigationPaths || [];
+  const memberPaths = member => member.navigationPaths || [member.navigationPath || []];
+  const belongsTo = (type,path) => typePaths(type).some(item => pathKey(item) === pathKey(path));
+  const membersIn = (type,path) => (type.members || []).filter(member => memberPaths(member).some(item => pathKey(item) === pathKey(path)));
+  const insideArea = (path,area) => !area || pathKey(path) === area || pathKey(path).startsWith(area + ' / ');
+  const queryPath = data.queryPath || ['管理层面','虚拟机','查询'];
+  const queryKey = pathKey(queryPath);
+  const queryTypes = types.filter(type => typePaths(type).some(path => insideArea(path,queryKey)));
+  const queryMethod = queryTypes.find(type => type.shortName === 'VmQueryService').members.find(member => member.name === 'QueryAsync');
+  const queryEntries = types.flatMap(type => (type.members || []).filter(member => member.queryEntry).map(member => ({type,member,...member.queryEntry})));
+  const queryGroups = categories.filter(category => insideArea(category.path,queryKey) && category.path.length > queryPath.length).map(category => ({
+    ...category,
+    entries: queryEntries.filter(entry => entry.category === category.path.at(-1)),
+    fields: types.flatMap(type => (type.members || []).filter(member => member.queryField && pathKey(member.navigationPath) === category.area).map(member => ({type,member,...member.queryField})))
+      .sort((left,right) => Number(left.type.shortName === 'VmAffinityFields') - Number(right.type.shortName === 'VmAffinityFields') || left.type.source.localeCompare(right.type.source,'en') || left.order - right.order)
+  })).filter(group => group.fields.length || group.entries.length);
+  const vmQueryFields = queryGroups.flatMap(group => group.fields);
+  const queryFields = types.flatMap(type => (type.members || []).filter(member => member.queryField).map(member => ({type,member,...member.queryField})));
+  const hostPath = ['管理层面','宿主'];
+  const hostKey = pathKey(hostPath);
+  const hostEntries = types.flatMap(type => (type.members || []).filter(member => member.hostEntry).map(member => ({type,member,...member.hostEntry}))).sort((a,b) => a.order-b.order);
+  const hostEntryMap = new Map(hostEntries.map(entry => [entry.member.id,entry]));
+  const hostGroups = area => categories.filter(category => category.path.length === 4 && category.path[1] === '宿主' && category.path[2] === area)
+    .map(category => ({...category,entries:hostEntries.filter(entry => entry.area === area && entry.category === category.path[3])})).filter(group => group.entries.length);
+  const hostReadGroups = hostGroups('查询'), hostWriteGroups = hostGroups('修改');
+  const hostGroupQuery = hostReadGroups.find(group => group.path.at(-1) === '分组');
+  const hostGroupModification = hostWriteGroups.find(group => group.path.at(-1) === '分组');
+  const hostGroupFields = queryFields.filter(field => field.member.navigationPath[1] === '宿主');
+  const hostCategoryPages = new Map(categories.filter(category => category.path[1] === '宿主').map(category => [category.id,category.path[2] === '修改' ? 'host-modification' : 'host-query']));
+  const queryFieldMap = new Map(queryFields.map(field => [field.member.id,field]));
+  const queryCategoryIds = new Set(categories.filter(category => insideArea(category.path,queryKey)).map(category => category.id));
+  const modificationPath = [...queryPath.slice(0,-1),'修改'];
+  const modificationKey = pathKey(modificationPath);
+  const modificationFields = queryFields.map(field => ({...field,id:'modify-' + field.member.id,change:field.member.modification}));
+  const modificationFieldMap = new Map(modificationFields.map(field => [field.id,field]));
+  const editableFields = modificationFields.filter(field => ['supported','unavailable'].includes(field.change.kind));
+  const allModificationActions = types.flatMap(type => (type.members || []).filter(member => member.editEntry).map(member => ({type,member,...member.editEntry})));
+  const modificationActions = allModificationActions.filter(action => memberPaths(action.member).some(path => insideArea(path,modificationKey)));
+  const modificationGroups = categories.filter(category => insideArea(category.path,modificationKey) && category.path.length > modificationPath.length).map(group => ({...group,
+    fields:editableFields.filter(field => field.category === group.path.at(-1)).sort((left,right) => Number(left.type.shortName === 'VmAffinityFields') - Number(right.type.shortName === 'VmAffinityFields') || left.type.source.localeCompare(right.type.source,'en') || left.order - right.order),
+    actions:modificationActions.filter(action => action.category === group.path.at(-1)).sort((left,right) => left.order-right.order)
+  }));
+  const modificationCategoryIds = new Set(categories.filter(category => insideArea(category.path,modificationKey)).map(category => category.id));
+  const instancePath = [...queryPath.slice(0,-1),'实例'];
+  const instanceKey = pathKey(instancePath);
+  const instanceEntries = types.flatMap(type => (type.members || []).filter(member => member.instanceEntry).map(member => ({type,member,id:'instance-' + member.id,...member.instanceEntry}))).sort((a,b) => a.order - b.order || a.member.id.localeCompare(b.member.id));
+  const groupedInstanceEntries = new Map();
+  for (const entry of instanceEntries) {
+    const key = JSON.stringify([entry.category,entry.label]);
+    if (!groupedInstanceEntries.has(key)) groupedInstanceEntries.set(key,{...entry,variants:[]});
+    groupedInstanceEntries.get(key).variants.push(entry);
+  }
+  const instanceActions = [...groupedInstanceEntries.values()];
+  const instanceActionMap = new Map(instanceActions.flatMap(action => action.variants.map(variant => [variant.id,action])));
+  const instanceGroups = categories.filter(category => insideArea(category.path,instanceKey) && category.path.length === instancePath.length + 1).map(group => ({...group,actions:instanceActions.filter(action => memberPaths(action.member).some(path => pathKey(path) === group.area))}));
+  const orderedInstanceActions = instanceGroups.flatMap(group => group.actions);
+  const instanceGroupFor = action => instanceGroups.find(group => group.actions.includes(action));
+  const instanceSection = {id:'instances',path:instancePath};
+  const instanceTypes = types.filter(type => typePaths(type).some(path => insideArea(path,instanceKey)));
+  const instanceCategoryIds = new Set(categories.filter(category => insideArea(category.path,instanceKey)).map(category => category.id));
+  const referenceGroups = categories.filter(category => (category.path[0] === '业务层面' && category.path.length === 2)
+    || (category.path[0] === '管理层面' && category.path[1] === '工具' && category.path.length === 3)
+    || (category.path[0] === '管理层面' && category.path[1] === '虚拟机' && category.path.length === 3 && !['查询','修改','实例'].includes(category.path[2])));
+  // Query and write assignments remain source metadata; a capability has one reading page.
+  const managementByPath = new Map();
+  const managementSources = new Map([...queryGroups, ...modificationGroups, ...hostReadGroups, ...hostWriteGroups].map(group => [group.id,group]));
+  for (const category of categories.filter(category => category.path[0] === '管理层面'
+      && ['虚拟机','宿主'].includes(category.path[1]) && ['查询','修改'].includes(category.path[2]) && category.path.length === 4)) {
+    const source = managementSources.get(category.id) || category;
+    const path = displayPath(source.path), area = pathKey(path);
+    if (!managementByPath.has(area)) managementByPath.set(area,{id:source.id,path,area,kind:'management',sources:[],fields:[],methods:[]});
+    managementByPath.get(area).sources.push(source);
+  }
+  const managementGroups = [...managementByPath.values()];
+  for (const group of managementGroups) {
+    const areas = new Set(group.sources.map(source => source.area));
+    const fields = new Map(), methods = new Map();
+    const addMethod = (type,member,label) => {
+      if (member?.presentation.callable && !methods.has(member.id)) methods.set(member.id,{type,member,label:member.displayName || label});
+    };
+    for (const source of group.sources) {
+      for (const field of source.fields || []) if (field.member.queryField && !fields.has(field.member.id))
+        fields.set(field.member.id,{type:field.type,member:field.member,label:field.label});
+      for (const entry of [...source.entries || [], ...source.actions || []]) {
+        if (entry.member.presentation.callable) addMethod(entry.type,entry.member,entry.label);
+        else if (!fields.has(entry.member.id)) fields.set(entry.member.id,entry);
+        for (const reference of [entry.reader,entry.related].filter(Boolean)) {
+          const target = memberMap.get(reference.id);
+          if (target) addMethod(target.type,target.member,hostEntryMap.get(reference.id)?.label);
+        }
+      }
+    }
+    // Include the actual service methods as well as the curated operation entries.
+    for (const type of types) for (const member of type.members || [])
+      if (memberPaths(member).some(path => areas.has(pathKey(path))) && member.presentation.callable
+          && type.role === 'entry' && !['ToString','Equals','GetHashCode'].includes(member.name)
+          && !['构造函数','构造器','主构造器','运算符'].includes(member.kind))
+        addMethod(type,member,member.queryEntry?.label || member.editEntry?.label || member.hostEntry?.label);
+    if (group.path[1] === '虚拟机' && fields.size)
+      methods.set(queryMethod.id,{type:memberMap.get(queryMethod.id).type,member:queryMethod,label:queryMethod.displayName});
+    group.fields = [...fields.values()];
+    group.methods = [...methods.values()].sort((a,b) => Number(b.member.id === queryMethod.id) - Number(a.member.id === queryMethod.id) || Number(b.member.isPrimary) - Number(a.member.isPrimary));
+  }
+  const managementAliases = new Map(managementGroups.flatMap(group => group.sources.map(source => [source.id,group.id])));
+  const groupPages = [...managementGroups,
+    ...instanceGroups.map(group => ({...group,kind:'instance'})),
+    ...referenceGroups.map(group => ({...group,kind:'reference'}))];
+  const groupPageMap = new Map(groupPages.map(group => [group.id,group]));
+  const pageForMember = new Map();
+  for (const group of groupPages) {
+    for (const field of group.fields || []) pageForMember.set(field.id || field.member.id,group);
+    for (const entry of group.entries || []) pageForMember.set(entry.member.id,group);
+    for (const method of group.methods || []) if (!pageForMember.has(method.member.id)) pageForMember.set(method.member.id,group);
+    if (group.kind === 'management') for (const field of group.fields) {
+      pageForMember.set(field.member.id,group);
+      pageForMember.set('modify-' + field.member.id,group);
+    }
+    for (const action of group.actions || []) {
+      if (group.kind === 'instance') for (const variant of action.variants) {
+        pageForMember.set(variant.id,group);
+        pageForMember.set(variant.member.id,group);
+      }
+      else pageForMember.set(action.member.id,group);
+    }
+  }
+  const contractHomes = new Map();
+  const contractRoots = new Map();
+  const basicInformationPage = managementGroups.find(group => group.path[1] === '虚拟机' && group.path.at(-1) === '基本信息')?.id;
+  const fieldReferences = new Map();
+  const capabilityReferences = new Map();
+  const processorCapabilities = {
+    ProcessorCount:'Count', ResourceReservation:'Reservation', ResourceLimit:'Limit', SchedulingWeight:'RelativeWeight',
+    NestedVirtualization:'ExposeVirtualizationExtensions', HostResourceProtection:'EnableHostResourceProtection',
+    MigrationCompatibility:'CompatibilityForMigrationEnabled', MigrationFeatureSet:'CompatibilityForMigrationMode',
+    LegacyOperatingSystemCompatibility:'CompatibilityForOlderOperatingSystemsEnabled', SimultaneousMultithreading:'SmtMode',
+    SpeculationControlPolicy:'DisableSpeculationControls', ArchitecturalPerformanceMonitoring:'EnablePerfmonArchPmu',
+    ActivityCounters:'AllowAcountMcount', ProcessorBrand:'CpuBrandString', InterruptControllerMode:'ApicMode',
+    L3CacheAssociativity:'L3CacheWays', L3ProcessorDistribution:'L3DistributionPolicy', LargePageMitigation:'PageShatterMode',
+    FrequencyMaximum:'PerfCpuFreqCapMhz', FrequencyMinimum:'PerfCpuFreqMinMhz', DesiredFrequency:'PerfCpuFreqDesiredMhz',
+    EnergyPerformancePreference:'PerfCpuEnergyPerformancePreference', AutonomousActivityWindow:'PerfCpuAutonomousActivityWindow',
+    IgnoreHostFrequencyMaximum:'PerfCpuIgnoreHostMaxFrequency', PerformanceMonitoring:'EnablePerfmonPmu',
+    LastBranchRecording:'EnablePerfmonLbr', PreciseEventSampling:'EnablePerfmonPebs', InstructionTracing:'EnablePerfmonIpt',
+    HardwareIsolation:'HardwareIsolationExtensionsEnabled', HardwareIsolatedGuestLimit:'MaxHwIsolatedGuests',
+    ProcessorClustersPerSocket:'MaxClusterCountPerSocket', ProcessorsPerL3Domain:'MaxProcessorCountPerL3',
+    ProcessorsPerNumaNode:'MaxProcessorsPerNumaNode', NumaNodesPerSocket:'MaxNumaNodesPerSocket',
+    PhysicalAddressWidth:'PhysicalAddressWidth', LocalPeripheralInterruptMode:'LpiMode'
+  };
+  const processorCapabilityType=types.find(type => type.shortName === 'VmProcessorCapability');
+  const processorFields=types.find(type => type.shortName === 'VmProcessorFields');
+  const processorPage=pageForMember.get(processorFields.members[0].id);
+  referenceTargets.set(processorCapabilityType.id,processorPage.id+'--fields');
+  for (const capability of processorCapabilityType.members) {
+    const field=processorFields.members.find(member => member.name === processorCapabilities[capability.name]);
+    if (!field) throw new Error('处理器能力尚未关联字段：'+capability.name);
+    referenceTargets.set(capability.id,field.id);
+    capabilityReferences.set(field.id,capability);
+  }
+  const usesOf = member => [
+    ...[...new Set((member.usage?.parameters || []).flatMap(parameter => parameter.types))].map(id => ({id,slot:'parameters'})),
+    ...(member.usage?.returns || []).map(id => ({id,slot:'returns'})),
+    ...(member.usage?.value || []).map(id => ({id,slot:'value'})),
+    ...(member.usage?.exceptions || []).map(id => ({id,slot:'exceptions'}))
+  ];
+  const memberPage = (type,member) => pageForMember.get(member.id)
+    || groupPages.find(group => group.kind === 'reference' && memberPaths(member).some(path => insideArea(path,group.area))) || type;
+  // The shared query protocol is referenced by every field page. It is not a
+  // contract owned by Basic Information merely because that page appears first.
+  const roots = [...memberMap.values()].filter(({type,member}) => type.role === 'entry' && member.id !== queryMethod.id
+    && memberPage(type,member).id !== basicInformationPage
+    && !['构造函数','构造器','主构造器','运算符'].includes(member.kind)
+    && !['ToString','Equals','GetHashCode'].includes(member.name) && memberPage(type,member));
+  let candidates = roots.map(item => ({...item,root:item.member.id,page:memberPage(item.type,item.member).id}));
+  let pending = types.filter(type => type.role === 'contract' && !referenceTargets.has(type.id)
+    && !type.members.every(member => member.queryField));
+  // Walk outward from real operations. A type is assigned once, so recursive
+  // models remain links and never cause recursive or duplicated documentation.
+  while (candidates.length && pending.length) {
+    const available = candidates.flatMap(candidate => usesOf(candidate.member).map(use => ({...candidate,...use})));
+    const assigned = [];
+    for (const type of pending) {
+      const choices = available.filter(use => use.id === type.id && use.type.id !== type.id);
+      const score = use => (use.member.queryEntry ? -40 : use.member.isPrimary ? -30 : 0)
+        + (typePaths(type).some(path => memberPaths(use.member).some(other => pathKey(displayPath(other)) === pathKey(displayPath(path)))) ? -20 : 0)
+        + ({parameters:3,returns:-6,value:0,exceptions:6}[use.slot]);
+      choices.sort((a,b) => score(a)-score(b) || a.member.id.localeCompare(b.member.id));
+      if (!choices.length) continue;
+      const owner=choices[0];
+      contractHomes.set(type.id,{member:owner.member.id,slot:owner.slot,root:owner.root,page:owner.page});
+      contractRoots.set(owner.root,owner.page);
+      referenceTargets.set(type.id,`${owner.root}--type-${type.id}`);
+      for (const member of type.members) referenceTargets.set(member.id,`${owner.root}--${member.id}`);
+      assigned.push(type);
+    }
+    pending=pending.filter(type => !contractHomes.has(type.id));
+    candidates=assigned.flatMap(type => type.members.map(member => ({...contractHomes.get(type.id),type,member})));
+  }
+  // Modification metadata identifies the exact input property for an existing
+  // field. Ambiguous relationships are deliberately not merged by name alone.
+  const propertyFields = new Map();
+  for (const {member:field} of memberMap.values()) if (field.queryField && field.modification) {
+    for (const match of field.modification.input.matchAll(/\b(\w+)\.(\w+)\b/g))
+      for (const methodId of field.modification.memberIds) {
+        const method=memberMap.get(methodId)?.member;
+        const parameter=method?.usage?.parameters.find(parameter => parameter.name === match[1]);
+        for (const typeId of parameter?.types || []) {
+          const property=typeMap.get(typeId)?.members.find(member => member.name === match[2] && !member.presentation.callable);
+          if (!property) continue;
+          if (!propertyFields.has(property.id)) propertyFields.set(property.id,new Set());
+          propertyFields.get(property.id).add(field.id);
+        }
+      }
+  }
+  for (const [property,fields] of propertyFields) if (fields.size === 1) {
+    const field=[...fields][0];
+    fieldReferences.set(property,field);
+    referenceTargets.set(property,field);
+  }
+  for (const {type,member} of memberMap.values())
+    if (type.role === 'contract' && !member.presentation.callable && pageForMember.has(member.id) && !member.queryField) {
+      fieldReferences.set(member.id,member.id);
+      referenceTargets.delete(member.id);
+    }
+  // Result properties reuse the field documentation without becoming input
+  // properties on those fields (in particular, Basic Information's State).
+  const resultFieldReferences = new Map();
+  const standaloneContractMembers = new Set();
+  const affinityResult = types.find(type => type.shortName === 'CpuAffinityService.AffinityState');
+  if (affinityResult) for (const member of affinityResult.members) {
+    if (member.presentation.callable) {
+      referenceTargets.delete(member.id);
+      standaloneContractMembers.add(member.id);
+      continue;
+    }
+    const owner = member.name === 'State' ? 'VmIdentityFields' : 'VmAffinityFields';
+    const field = types.find(type => type.shortName === owner)?.members.find(field => field.name === member.name && field.queryField);
+    if (!field) throw new Error('亲和性结果尚未关联字段：'+member.name);
+    resultFieldReferences.set(member.id,field.id);
+    referenceTargets.set(member.id,field.id);
+  }
+  let documentationPage = '';
+  let renderedContracts = new Set();
+  const navigationCategories = [...new Map(categories.filter(category => category.path[1] !== '共用类型').map(category => {
+    const path = displayPath(category.path), area = pathKey(path);
+    const group = managementByPath.get(area);
+    return [area,{...category,path,area,id:group?.id || category.id}];
+  })).values()];
+  const tree = new Map();
+  let navigationId = 0;
+  for (const category of navigationCategories) {
+    if (category.guideId) continue;
+    let children = tree;
+    category.path.forEach((label,index) => {
+      const path = category.path.slice(0,index+1), key = pathKey(path);
+      if (!children.has(label)) children.set(label,{label,path,key,id:`overview--${navigationId++}`,children:new Map(),category:null});
+      const node = children.get(label);
+      if (index === category.path.length-1) { node.category = category; node.id = category.id; }
+      children = node.children;
+    });
+  }
+  const expanded = new Map();
+  const navigationGroups = managementGroups;
+  let currentType = null;
+  let currentRoute = '';
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const link = (id, text, className = '') => `<a href="#${escape(referenceTarget(id))}"${className ? ` class="${escape(className)}"` : ''}>${text}</a>`;
+  const shortName = type => type.shortName || type.name;
+  const typeTitle = type => type.displayName;
+  const groupId = (type, index) => `${type.id}--group-${index}`;
+  const groupsFor = type => {
+    const groups = new Map();
+    for (const member of type.members || []) {
+      const label = member.group || member.kind || '成员';
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label).push(member);
+    }
+    const order = ['构造函数','属性','命令','事件','静态方法','方法','受保护方法','字段与常量','枚举值','运算符'];
+    const rank = label => { const index = order.indexOf(label); return index < 0 ? order.length : index; };
+    return [...groups].sort(([left],[right]) => rank(left) - rank(right) || left.localeCompare(right,'zh-CN'));
+  };
+  const compact = signature => String(signature || '').trim();
+  const typeLink = type => link(type.id, `<code>${escape(shortName(type))}</code>`);
+  const categoryMembers = (type,path) => typePaths(type).length > 1
+    ? membersIn(type,path).map(member => link(member.id,`<code>${escape(member.name)}</code>`)).join('、') : '';
+  const queryEntryTable = group => group.entries.length ? '<table><thead><tr><th>读取入口</th><th>说明</th></tr></thead><tbody>' + group.entries.map(entry => '<tr><td>' + link(entry.member.id,escape(entry.label)) + '</td><td>' + entry.member.summaryHtml + '</td></tr>').join('') + '</tbody></table>' : '';
+  const plainSummary = member => member.summaryText || '';
+  const highlight = (value, query) => {
+    const text = String(value || ''), index = text.toLowerCase().indexOf(query.toLowerCase());
+    if (!query || index < 0) return escape(text);
+    return escape(text.slice(0, index)) + '<mark class="search-result-highlight">' + escape(text.slice(index, index + query.length)) + '</mark>' + escape(text.slice(index + query.length));
+  };
+  document.getElementById('version').textContent = `Core ${data.version || ''}`;
+  navigation.addEventListener('toggle',event => {
+    if (event.target.matches('details[data-node]')) expanded.set(event.target.dataset.node,event.target.open);
+  },true);
+  function revealNavigationGroup(id) {
+    const target = managementAliases.get(id.split('--')[0]) || id.split('--')[0];
+    for (const group of navigationGroups) {
+      const matches = group.id === target
+        || (group.fields || []).some(field => (field.id || field.member.id) === target)
+        || (group.entries || []).some(entry => entry.member.id === target)
+        || (group.methods || []).some(entry => entry.member.id === target)
+        || (group.actions || []).some(action => action.member.id === target);
+      if (!matches) continue;
+      for (let length = 1; length <= group.path.length; length++) {
+        expanded.set(pathKey(group.path.slice(0,length)),true);
+      }
+    }
+  }
+  function renderNavigation() {
+    document.getElementById('overview-link')?.setAttribute('aria-current',currentRoute === 'overview' ? 'page' : 'false');
+    const query = search.value.trim().toLowerCase();
+    const designActive = designMap.has(currentRoute);
+    search.placeholder = designActive ? '搜索设计图' : '搜索字段、类型或成员';
+    search.setAttribute('aria-label', search.placeholder);
+    const selectedCategory = categoryMap.get(currentRoute) || categoryMap.get(location.hash.slice(1));
+    const instanceActive = currentRoute === 'instances' || instanceActionMap.has(currentRoute) || instanceCategoryIds.has(currentRoute);
+    const hostActive = currentRoute.startsWith('host-') || hostEntryMap.has(currentRoute) || hostGroupFields.some(field => 'modify-' + field.member.id === currentRoute);
+    const vmModificationActive = vmQueryFields.some(field => 'modify-' + field.member.id === currentRoute);
+    clearSearch.hidden = !query;
+    if (designActive) {
+      const matches = designs.filter(design => !query || (design.title + ' ' + design.summary + ' ' + design.sections.map(section => section.title).join(' ')).toLowerCase().includes(query));
+      navigation.innerHTML = `<section class="guide-navigation design-navigation"><h3>设计图</h3><ul>${matches.map(design => `<li>${link(design.id,`<span>${escape(design.title)}</span><span class="design-state ${design.status === 'draft' ? 'draft' : ''}">${design.status === 'draft' ? '规划草案' : '当前结构'}</span>`,design.id === currentRoute ? 'active' : '')}</li>`).join('')}</ul>${matches.length ? '' : '<p class="empty" role="status">没有匹配的设计图</p>'}</section>`;
+      return;
+    }
+    const eligible = types;
+    if (query) {
+      const results = [];
+      for (const group of modificationGroups) {
+        for (const action of group.actions) if ((action.label + ' ' + action.member.name).toLowerCase().includes(query))
+          results.push({id:action.member.id,name:action.label,field:true,context:'修改操作 / ' + action.category,signature:shortName(action.type) + '.' + action.member.name});
+      }
+      for (const entry of hostEntries) if ((entry.label + ' ' + entry.type.shortName + '.' + entry.member.name).toLowerCase().includes(query))
+        results.push({id:entry.member.id,name:entry.label,field:true,context:'宿主 / ' + entry.category,signature:entry.member.signature});
+      for (const action of instanceActions) if ((action.label + ' ' + action.variants.map(variant => (variant.mode || '') + ' ' + variant.member.name).join(' ')).toLowerCase().includes(query))
+        results.push({id:action.id,name:action.label,field:true,context:pathKey(instanceSection.path.slice(2)),signature:action.variants.map(variant => shortName(variant.type) + '.' + variant.member.name).join(' / ')});
+      for (const entry of queryEntries.filter(entry => !hostEntryMap.has(entry.member.id))) {
+        if ((entry.label + ' ' + entry.member.name).toLowerCase().includes(query)) results.push({id:entry.member.id,name:entry.label,field:true,context:'查询入口 / ' + entry.category,signature:entry.member.signature});
+      }
+      for (const type of eligible) {
+        if ((type.name + ' ' + typeTitle(type)).toLowerCase().includes(query)) results.push({id:type.id, name:typeTitle(type), context:type.namespace, type:true});
+        for (const member of type.members || []) {
+          if (hostEntryMap.has(member.id)) continue;
+          if ((member.name + ' ' + member.displayName + ' ' + member.signature + ' ' + plainSummary(member) + ' ' + (member.queryField?.key || '') + ' ' + (member.queryField?.label || '')).toLowerCase().includes(query)) results.push({id:member.id, name:member.queryField?.label || member.displayName, field:!!member.queryField, context:member.queryField ? '查询字段 / ' + member.queryField.category : shortName(type), signature:member.queryField?.expression || compact(member.signature)});
+        }
+      }
+      const rank = result => result.name.toLowerCase() === query ? 0 : result.name.toLowerCase().includes(query) ? 1 : 2;
+      results.sort((left,right) => rank(left) - rank(right) || Number(!!right.field) - Number(!!left.field));
+      const uniqueResults = [...new Map(results.map(result => [referenceTarget(result.id),result])).values()];
+      const shown = uniqueResults.slice(0, 100);
+      navigation.innerHTML = `<p class="result-count" role="status">${uniqueResults.length ? `${uniqueResults.length} 个结果${uniqueResults.length > shown.length ? '，显示前 100 项' : ''}` : '没有匹配的类型或成员'}</p><ul class="search-results">${shown.map(result => `<li>${link(result.id, `<code>${highlight(result.name, query)}</code><span class="result-context">${escape(result.context)}</span>${result.signature ? `<small>${highlight(result.signature, query)}</small>` : ''}`)}</li>`).join('')}</ul>`;
+      return;
+    }
+    const draw = (nodes,depth=0) => [...nodes.values()].map(node => {
+      if (!eligible.some(type => typePaths(type).some(path => insideArea(displayPath(path),node.key)))
+          && !navigationCategories.some(category => category.isEmpty && insideArea(category.path,node.key))) return '';
+      const categoryPage = groupPageMap.get(node.id);
+      if (categoryPage) return categoryNavigationLink(categoryPage);
+      if (node.key === instanceKey) {
+        const active = instanceActive || (currentType && instanceTypes.includes(currentType));
+        const open = expanded.get(node.key) ?? active;
+        const groups = instanceGroups.map(categoryNavigationLink).join('');
+        return '<details class="nav-group instance-navigation" data-node="' + escape(node.key) + '"' + (open ? ' open' : '') + '><summary>实例</summary>' + groups + '</details>';
+      }
+      if (node.key === hostKey + ' / 查询' || node.key === hostKey + ' / 修改') {
+        const area = node.path.at(-1), groups = area === '查询' ? hostReadGroups : hostWriteGroups;
+        const entry = hostEntryMap.get(currentRoute);
+        const active = (entry && entry.area === area) || currentRoute === (area === '查询' ? 'host-query' : 'host-modification')
+          || (selectedCategory && insideArea(selectedCategory.path,node.key));
+        const open = expanded.get(node.key) ?? active;
+        const items = groups.map(categoryNavigationLink).join('');
+        return '<details class="nav-group host-navigation" data-node="' + escape(node.key) + '"' + (open ? ' open' : '') + '><summary>' + area + '</summary>' + items + '</details>';
+      }
+      if (node.key === queryKey) {
+        const active = currentRoute === 'query-fields' || queryGroups.some(group => group.id === currentRoute) || vmQueryFields.some(field => field.member.id === currentRoute) || (currentType && queryTypes.includes(currentType));
+        const open = expanded.get(node.key) ?? active;
+        const fields = queryGroups.map(categoryNavigationLink).join('');
+        return `<details class="nav-group query-navigation" data-node="${escape(node.key)}"${open ? ' open' : ''}><summary>查询</summary>${fields}</details>`;
+      }
+      if (node.key === modificationKey) {
+        const active = (currentType && typePaths(currentType).some(path => insideArea(path,modificationKey)))
+          || currentRoute.startsWith('modification-') || vmModificationActive
+          || (selectedCategory && insideArea(selectedCategory.path,modificationKey));
+        const open = expanded.get(node.key) ?? active;
+        const groups = modificationGroups.map(categoryNavigationLink).join('');
+        return `<details class="nav-group modification-navigation" data-node="${escape(node.key)}"${open ? ' open' : ''}><summary>修改</summary>${groups}</details>`;
+      }
+      const items = node.path.length === 2 && ['虚拟机','宿主'].includes(node.path[1]) ? []
+        : eligible.filter(type => typePaths(type).some(path => pathKey(displayPath(path)) === node.key));
+      const entries = items.length ? `<ul>${items.map(type => `<li>${link(type.id,escape(typeTitle(type)),currentType?.id === type.id ? 'active' : '')}${typePaths(type).length > 1 ? `<ul class="nav-members">${membersIn(type,node.path).map(member => `<li>${link(member.id,escape(member.displayName))}</li>`).join('')}</ul>` : ''}</li>`).join('')}</ul>` : node.category?.isEmpty ? '<p class="empty">本分类暂未归入接口。</p>' : '';
+      const children = draw(node.children,depth+1);
+      const active = (currentType && typePaths(currentType).some(path => insideArea(displayPath(path),node.key)))
+        || (groupPageMap.has(currentRoute) && insideArea(groupPageMap.get(currentRoute).path,node.key))
+        || (instanceActive && insideArea(instancePath,node.key)) || (hostActive && insideArea(hostPath,node.key))
+        || (selectedCategory && insideArea(displayPath(selectedCategory.path),node.key));
+      const open = expanded.get(node.key) ?? (depth === 0 || active);
+      return `<details class="nav-group" data-node="${escape(node.key)}"${open ? ' open' : ''}><summary>${escape(node.label)}</summary>${entries}${children}</details>`;
+    }).join('');
+    navigation.innerHTML = draw(tree);
+  }
+  function categoryNavigationLink(group) {
+    const active = currentRoute === group.id || (currentType && typePaths(currentType).some(path => insideArea(displayPath(path),group.area)));
+    return `<div class="nav-category-link">${link(group.id,escape(group.path.at(-1)),active ? 'active' : '')}</div>`;
+  }
+  function typeContent(type, selectedMembers = type.members, level = 1) {
+    const groups = groupsFor({...type,members:selectedMembers});
+    const detailsId = `${type.id}--description`;
+    const hasDetails = Boolean(type.descriptionHtml?.trim());
+    const memberDetailsId = `${type.id}--members`;
+    const description = hasDetails ? usageSection(type.descriptionHtml,detailsId) : '';
+    const members = groups.map(([label, entries], index) => `<section aria-labelledby="${groupId(type,index)}"><h2 class="member-group-heading" id="${groupId(type,index)}">${escape(label)}</h2>${type.kind === '枚举' ? `<ul class="enum-values">${entries.map(member => `<li id="${member.id}"><code>${escape(member.signature)}</code><span>${member.summaryHtml}</span></li>`).join('')}</ul>` : entries.map(member => memberCard(type,member)).join('')}</section>`).join('');
+    return `<header id="${escape(type.id)}"><h${level} class="type-heading-name">${escape(typeTitle(type))}</h${level}><dl class="field-reference">${referenceRow('描述',type.summaryHtml || '')}${referenceRow('声明',`<pre><code>${type.signatureHtml || escape(type.signature)}</code></pre>`)}</dl></header>${description}<div id="${memberDetailsId}">${members}</div>`;
+  }
+  function renderType(type, member = null) {
+    currentType = type;
+    documentationPage = type.id;
+    renderedContracts = new Set();
+    main.className = 'article';
+    main.innerHTML = member ? memberCard(type,member,member.displayName,1) : typeContent(type);
+    document.getElementById('breadcrumb-current').textContent = pathKey(displayPath(typePaths(type)[0])) + ' / ' + typeTitle(type);
+  }
+  function valueList(enumTypeId,fieldId) {
+    const type = typeMap.get(enumTypeId);
+    if (type?.kind !== '枚举') return '';
+    const owner = enumOwners.get(enumTypeId);
+    if (!owner || owner.id !== fieldId)
+      return link(owner?.id || enumTypeId,escape(owner?.queryField.label || typeTitle(type)));
+    const members = (typeMap.get(enumTypeId)?.members || []).filter(member => member.kind === '枚举值').sort((a,b) => a.order - b.order);
+    return members.length ? `<ul class="enum-values">${members.map(member => `<li id="${fieldId}--${member.id}"><code>${escape(member.signature)}</code><span>${member.summaryHtml}</span></li>`).join('')}</ul>` : '';
+  }
+  function referenceRow(label, html, className = '') {
+    return html ? `<div${className ? ` class="${className}"` : ''}><dt>${label}</dt><dd>${html}</dd></div>` : '';
+  }
+  function usageContent(member,slot) {
+    if (member.id === queryMethod.id || documentationPage === basicInformationPage) return '';
+    const references=usesOf(member).filter(use => use.slot === slot);
+    return [...new Set(references.map(use => use.id))].map(id => {
+      const type=typeMap.get(id);
+      if (!type || type.role !== 'contract') return '';
+      const home=contractHomes.get(id);
+      if (home?.member === member.id && home.slot === slot && home.page === documentationPage && !renderedContracts.has(id)) {
+        renderedContracts.add(id);
+        return contractContent(type);
+      }
+      return `<p class="contract-reference">${link(id,escape(enumOwners.get(id)?.queryField.label || typeTitle(type)))}</p>`;
+    }).join('');
+  }
+  function contractContent(type) {
+    if (type.shortName === 'VmModificationCondition') {
+      return '<section class="inline-contract" id="'+referenceTarget(type.id)+'"><table class="contract-fields"><thead><tr><th>成员</th><th>类型</th><th>描述</th></tr></thead><tbody>'+type.members.filter(member=>!member.presentation.callable).map(member=>
+        '<tr id="'+referenceTarget(member.id)+'"><td><code>'+escape(member.name)+'</code></td><td><code>'+member.presentation.valueTypeHtml+'</code></td><td>'+member.summaryHtml+'</td></tr>').join('')+'</tbody></table></section>';
+    }
+    const home=contractHomes.get(type.id);
+    const heading=`<h4>${escape(typeTitle(type))} <code>${escape(shortName(type))}</code></h4>`;
+    const notes=type.descriptionHtml || '';
+    if (type.id === affinityResult?.id) {
+      const rows=type.members.filter(member => resultFieldReferences.has(member.id)).map(member => {
+        const field=memberMap.get(resultFieldReferences.get(member.id)).member;
+        return `<tr><td><code>${escape(member.name)}</code></td><td><code>${member.presentation.valueTypeHtml}</code></td><td>${link(field.id,escape(field.queryField.label))}</td></tr>`;
+      }).join('');
+      return `<section class="inline-contract" id="${referenceTarget(type.id)}">`
+        + `<table class="contract-fields"><thead><tr><th>成员</th><th>类型</th><th>说明</th></tr></thead><tbody>${rows}</tbody></table></section>`;
+    }
+    if (type.kind === '枚举')
+      return `<section class="inline-contract" id="${referenceTarget(type.id)}">${heading}<dl class="field-reference">${referenceRow('描述',type.summaryHtml + notes)}</dl><ul class="enum-values">`
+        + type.members.filter(member => member.kind === '枚举值').sort((a,b) => a.order-b.order)
+          .map(member => `<li id="${referenceTarget(member.id)}"><code>${escape(member.signature)}</code><span>${member.summaryHtml}</span></li>`).join('') + '</ul></section>';
+    const fields=type.members.filter(member => !member.presentation.callable && !fieldReferences.has(member.id));
+    const rows=fields.map(member => {
+      const field=fieldReferences.get(member.id);
+      const description=field ? link(field,escape(memberMap.get(field).member.queryField.label)) : member.presentation.descriptionHtml;
+      const rowId=`${home.root}--${member.id}`;
+      return `<tr id="${rowId}"><td>${escape(member.displayName)}<br><code>${escape(member.name)}</code></td><td><code>${member.presentation.valueTypeHtml}</code></td><td>${description}${member.presentation.valuesHtml}</td></tr>`;
+    }).join('');
+    const details=fields.map(member => usageContent(member,'value') + usageContent(member,'exceptions')).join('');
+    const relatedFields=[...new Set(type.members.map(member => fieldReferences.get(member.id)).filter(Boolean))];
+    const fieldsLink=relatedFields.length ? `<p class="contract-reference">配置项见${link(pageForMember.get(relatedFields[0]).id+'--fields','上方字段')}。</p>` : '';
+    const methods=type.members.filter(member => member.presentation.callable).map(member => memberCard(type,member,member.displayName,5)).join('');
+    return `<section class="inline-contract" id="${referenceTarget(type.id)}">${heading}<dl class="field-reference">${referenceRow('描述',type.summaryHtml + notes)}</dl>`
+      + fieldsLink + (rows ? `<table class="contract-fields"><thead><tr><th>成员</th><th>类型</th><th>描述</th></tr></thead><tbody>${rows}</tbody></table>` : '')
+      + details + methods + '</section>';
+  }
+  function memberCard(type, member, title = member.displayName, level = 3, extra = '') {
+    if (member.presentation.callable && title === member.name) title = member.displayName;
+    if (member.queryField) return `<section class="field-sheet member-card" id="${escape(member.id)}"><h${level}>${escape(member.queryField.label)}</h${level}>${queryFieldContent(member.queryField,extra,member.modification)}</section>`;
+    const item = member.presentation;
+    const declaration = `<pre class="member-declaration"><code>${member.signatureHtml || escape(member.signature)}</code></pre>`;
+    if (item.callable) {
+      const returns = (item.valueType ? `<div class="method-return-type"><code>${item.valueTypeHtml || escape(item.valueType)}</code></div>` : '') + item.returnsHtml + usageContent(member,'returns');
+      return `<section class="field-sheet member-card method-card" id="${escape(referenceTarget(member.id))}"><h${level}>${escape(title)}</h${level}><dl class="field-reference">`
+        + referenceRow('描述',item.descriptionHtml + item.notesHtml,'field-description')
+        + referenceRow('成员',link(type.id,`<code>${escape(item.expression)}</code>`))
+        + referenceRow('声明',declaration)
+        + referenceRow('参数',item.parametersHtml + usageContent(member,'parameters'))
+        + referenceRow('返回',returns)
+        + referenceRow('异常',item.exceptionsHtml + usageContent(member,'exceptions'))
+        + referenceRow('示例',item.examplesHtml)
+        + extra + '</dl></section>';
+    }
+    const signature = '';
+    const values = item.valuesHtml + usageContent(member,'value') || valueList(item.enumTypeId);
+    return `<section class="field-sheet member-card" id="${escape(member.id)}"><h${level}>${escape(title)}</h${level}><dl class="field-reference">`
+      + referenceRow('描述',item.descriptionHtml,'field-description')
+      + referenceRow('成员',link(type.id,`<code>${escape(item.expression)}</code>`) + signature)
+      + referenceRow('类型',item.valueType ? `<code>${item.valueTypeHtml || escape(item.valueType)}</code>` : '')
+      + referenceRow('取值',values,'field-values')
+      + referenceRow('参数',item.parametersHtml)
+      + referenceRow('返回',item.returnsHtml)
+      + referenceRow('异常',item.exceptionsHtml)
+      + referenceRow('示例',item.examplesHtml)
+      + extra + '</dl></section>';
+  }
+  const categoryHubs = [
+    {id:'category-vm',label:'虚拟机',description:'生命周期与配置'},
+    {id:'category-host',label:'宿主',description:'资源与系统设置'},
+    {id:'category-tools',label:'工具',description:'配置文件与磁盘映像'}
+  ];
+  const categoryHubMap = new Map(categoryHubs.map(hub => [hub.id,hub]));
+  const businessDescriptions = {
+    '连接':'建立与管理会话',
+    '视频':'画面与截图',
+    '控制':'键盘与鼠标',
+    '剪贴板':'文本与图像传输'
+  };
+  const toolDescriptions = {
+    'VMCX 文件':'读取、查找、编辑和校验虚拟机配置文件。',
+    'ISO 构建':'把目录构建为 ISO 光盘映像。',
+    '磁盘分区解析':'扫描虚拟机磁盘，读取分区容量、用途与扫描结果。'
+  };
+  function categoryCards(items, label) {
+    return `<nav class="category-grid" aria-label="${escape(label)}">${items.map(item =>
+      link(item.id,`<span class="category-card-heading"><span>${escape(item.label)}</span><span class="category-arrow" aria-hidden="true">→</span></span>${item.description ? `<span class="category-card-description">${escape(item.description)}</span>` : ''}`,'category-card')).join('')}</nav>`;
+  }
+  function overviewEntries(items, label) {
+    const icons = {
+      '虚拟机':'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+      '宿主':'<rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h6M11 17.5h6"/>',
+      '工具':'<path d="M15 3a6 6 0 0 0-6 7L3 16a3 3 0 0 0 5 5l6-6a6 6 0 0 0 7-6l-4 3-4-4 2-5Z"/>',
+      '连接':'<path d="m9 15 6-6M8 17l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M16 7l1-1a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(1 0) scale(.92)"/>',
+      '视频':'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
+      '控制':'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/>',
+      '剪贴板':'<path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2M8 12h8M8 16h6"/><rect x="8" y="2" width="8" height="5" rx="1.5"/>'
+    };
+    return `<nav class="overview-entries" aria-label="${escape(label)}">${items.map(item =>
+      link(item.id,`<svg class="overview-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[item.label]}</svg><span class="overview-entry-copy"><span class="overview-entry-name">${escape(item.label)}</span><span class="overview-entry-description">${escape(item.description)}</span></span><span class="overview-entry-arrow" aria-hidden="true">→</span>`,'overview-entry')).join('')}</nav>`;
+  }
+  function renderOverview() {
+    currentType = null;
+    main.className = 'article overview-page';
+    const business = referenceGroups.filter(group => group.path[0] === '业务层面')
+      .map(group => ({id:group.id,label:group.path[1],description:businessDescriptions[group.path[1]]}));
+    main.innerHTML = `<header id="overview"><h1>概览</h1></header>`
+      + `<div class="overview-columns"><section class="overview-domain" aria-labelledby="overview-management"><header class="overview-domain-heading"><h2 id="overview-management">管理层面</h2></header>${overviewEntries(categoryHubs,'管理分类')}</section>`
+      + `<section class="overview-domain" aria-labelledby="overview-business"><header class="overview-domain-heading"><h2 id="overview-business">业务层面</h2></header>${overviewEntries(business,'业务分类')}</section></div>`;
+    document.getElementById('breadcrumb-current').textContent = '概览';
+  }
+  function renderCategoryHub(hub) {
+    currentType = null;
+    main.className = 'article category-index';
+    const cards = groups => categoryCards(groups.map(group => ({id:group.id,label:group.path.at(-1)})),hub.label+'分类');
+    let content;
+    if (hub.id === 'category-vm') {
+      content = `<section><h2>实例操作</h2>${cards(instanceGroups)}</section>`
+        + `<section><h2>配置与状态</h2>${cards(managementGroups.filter(group => group.path[1] === '虚拟机'))}</section>`;
+    } else if (hub.id === 'category-host') {
+      content = cards(managementGroups.filter(group => group.path[1] === '宿主'));
+    } else {
+      content = categoryCards(referenceGroups.filter(group => group.path[1] === '工具')
+        .map(group => ({id:group.id,label:group.path.at(-1),description:toolDescriptions[group.path.at(-1)]})),'工具分类');
+    }
+    main.innerHTML = `<header id="${hub.id}"><h1>${escape(hub.label)}</h1></header>${content}`;
+    document.getElementById('breadcrumb-current').textContent = '管理层面 / '+hub.label;
+  }
+  function affinityGroupLinks(area) {
+    const entries = hostEntries.filter(entry => entry.area === area && entry.category === '处理器组' && ['CpuCap','Priority','IdleProcessorReserve','RelativeWeight','SetCpuCapAsync','SetPriorityAsync','SetIdleProcessorReserveAsync','SetRelativeWeightAsync'].includes(entry.member.name));
+    return '<p>Classic／Core 的处理器组策略见宿主' + area + '：' + entries.map(entry => link(entry.member.id,escape(entry.label))).join('、') + '。新分配按每台虚拟机独立建组，既有共享绑定在下次保存亲和性时拆分。这些策略不适用于 Root 进程亲和性。</p>';
+  }
+  function renderQueryCatalog() {
+    currentType = null;
+    main.className = 'article';
+    main.innerHTML = `<h1 id="query-fields">可查询字段</h1>${usageSection(`<p class="lead">这里列出 ${vmQueryFields.length} 项。每一项都可独立选择，分类只用于查找，不要求整组查询。另有 ${hostGroupFields.length} 项分组字段归入${link(hostGroupQuery.id,'宿主 / 查询 / 分组')}，仍可使用同一查询接口组合读取。</p><p>调用：${link(queryMethod.id,'<code>VmQueryService.QueryAsync</code>')} · 参数：${typeLink(queryTypes.find(type => type.shortName === 'VmQueryRequest'))} · 结果：${typeLink(queryTypes.find(type => type.shortName === 'VmQueryResult'))}</p>`,'query-fields--description')}${queryGroups.map(group => `<section><h2 class="query-group-title" id="${escape(group.id)}">${escape(group.path.at(-1))}</h2>${group.path.at(-1) === '处理器' ? affinityGroupLinks('查询') : ''}<table class="query-field-table"><thead><tr><th>查询项</th><th>类型</th><th>说明</th></tr></thead><tbody>${group.fields.map(field => `<tr><td class="query-field-name">${link(field.member.id,escape(field.label))}<code>${escape(field.expression)}</code></td><td class="query-field-type"><code>${escape(field.valueType)}</code></td><td>${field.summaryHtml}</td></tr>`).join('')}</tbody></table>${queryEntryTable(group)}</section>`).join('')}`;
+
+    document.getElementById('breadcrumb-current').textContent = '查询 / 可查询字段';
+  }
+  function renderModificationCatalog() {
+    currentType = null;
+    main.className = 'article';
+    main.innerHTML = `<h1 id="modification-fields">修改</h1>${modificationGroups.map(group => `<section><h2 class="query-group-title" id="${escape(group.id)}">${escape(group.path.at(-1))}</h2>${group.path.at(-1) === '处理器' ? affinityGroupLinks('修改') : ''}${group.fields.length ? `<table class="query-field-table"><thead><tr><th>修改项</th><th>类型</th><th>说明</th></tr></thead><tbody>${group.fields.map(field => `<tr><td class="query-field-name">${link(field.id,escape(field.label))}${field.change.kind === 'unavailable' ? '<div class="entry-status">只读</div>' : ''}</td><td class="query-field-type"><code>${escape(field.valueType)}</code></td><td>${field.summaryHtml}<div class="modification-description">${field.change.kind === 'supported' ? escape(field.change.submission) : field.change.html}</div></td></tr>`).join('')}</tbody></table>` : ''}${group.actions.length ? `<table class="modification-actions"><thead><tr><th>操作</th><th>说明</th></tr></thead><tbody>${group.actions.map(action => `<tr><td>${link(action.member.id,escape(action.label))}</td><td>${action.member.summaryHtml}</td></tr>`).join('')}</tbody></table>` : ''}</section>`).join('')}`;
+
+    document.getElementById('breadcrumb-current').textContent = '修改';
+  }
+  function renderModificationField(field) {
+    currentType = null;
+    main.className = 'article';
+    const group = hostGroupFields.some(item => item.member.id === field.member.id) ? hostGroupModification : modificationGroups.find(group => group.path.at(-1) === field.category);
+    main.innerHTML = modificationCard(field,1);
+
+    document.getElementById('breadcrumb-current').textContent = `${pathKey(group.path.slice(1))} / ${field.label}`;
+  }
+  function modificationCard(field,level=2) {
+    const values = valueList(field.enumTypeId) + field.valuesHtml;
+    const description = field.descriptionHtml + (field.change.html && !field.descriptionHtml.includes(field.change.html) ? `<div class="doc-paragraph">${field.change.html}</div>` : '');
+    return `<section class="field-sheet" id="${escape(field.id)}"><h${level}>${escape(field.label)}</h${level}><dl class="field-reference">`
+      + referenceRow('描述',description,'field-description')
+      + referenceRow('成员',field.change.kind === 'unavailable' ? escape(field.change.status) : field.change.membersHtml)
+      + referenceRow('类型',`<code>${escape(field.valueType)}</code>`)
+      + referenceRow('取值',values,'field-values')
+      + referenceRow('查询',link(field.member.id,`<code>${escape(field.expression)}</code>`))
+      + `</dl><span id="${escape(field.id)}--usage"></span></section>`;
+
+  }
+  function renderInstances() {
+    currentType = null; main.className = 'article';
+    main.innerHTML = '<h1 id="instances">实例</h1>' + usageSection('<p>每次创建、删除、导入或导出一台虚拟机。名称与磁盘方案由调用方指定；多台任务的命名、调度、失败处理和后续启动由上层应用安排。</p>','instances--description')
+      + '<table><thead><tr><th>入口</th><th>方法</th><th>用途</th></tr></thead><tbody>' + orderedInstanceActions.map(action => {const group=instanceGroupFor(action);return '<tr id="' + group.id + '"><td>' + link(action.id,escape(action.label)) + '</td><td>' + action.variants.map(variant => '<div><code>' + escape(variant.type.shortName + '.' + variant.member.name) + '</code></div>').join('') + '</td><td>' + action.variants.map(variant => '<div>' + (variant.mode ? '<strong>' + escape(variant.mode) + '：</strong>' : '') + variant.member.summaryHtml + '</div>').join('') + '</td></tr>';}).join('') + '</tbody></table>';
+
+    document.getElementById('breadcrumb-current').textContent = '虚拟机 / 实例';
+  }
+  function renderInstanceEntry(action) {
+    currentType = null; main.className = 'article';
+    const section = instanceSection;
+    main.innerHTML = `<div id="${action.id}">${action.variants.map(variant => `<section id="${variant.id}--usage">${memberCard(variant.type,variant.member,action.label + (variant.mode ? ' · ' + variant.mode : ''),action.variants.length === 1 ? 1 : 2)}</section>`).join('')}</div>`;
+
+    document.getElementById('breadcrumb-current').textContent = pathKey(section.path.slice(1)) + ' / ' + action.label;
+  }
+  function usageSection(html, id, level = 2) {
+    return html.trim() ? `<section class="capability-usage" id="${escape(id)}" aria-labelledby="${escape(id)}--heading"><h${level} class="member-group-heading" id="${escape(id)}--heading">功能说明</h${level}><div class="usage-content">${html}</div></section>` : '';
+  }
+  function hostUsageFor(areas, category) {
+    return (data.hostUsage || []).filter(usage => [areas].flat().includes(usage.area) && usage.category === category);
+  }
+  function hostUsageHtml(areas, category, prefix = '') {
+    const usages = hostUsageFor(areas,category), distinct = new Map();
+    for (const usage of usages) {
+      const key = JSON.stringify([usage.title,usage.html]);
+      if (!distinct.has(key)) distinct.set(key,{...usage,aliases:[]});
+      distinct.get(key).aliases.push(usage.id);
+    }
+    const html = [...distinct.values()].map(usage => '<section class="host-usage">'
+      + usage.aliases.map(id => '<span id="' + escape(prefix + id) + '"></span>').join('')
+      + '<h3>' + escape(usage.title) + '</h3>' + usage.html + '</section>').join('');
+    return usages.length ? usageSection(html,prefix + usages[0].id + '--description') : '';
+  }
+  function renderHostCatalog(area) {
+    currentType = null; main.className = 'article';
+    const groups = area === '查询' ? hostReadGroups : hostWriteGroups;
+    const id = area === '查询' ? 'host-query' : 'host-modification';
+    const intro = area === '查询'
+      ? '读取宿主配置、设备、资源和运行状态。'
+      : '调整宿主配置、管理设备和分组。配置开关通过同一个方法提交状态，具体输入和生效条件见调用说明。';
+    main.innerHTML = '<h1 id="' + id + '">宿主' + area + '</h1>' + usageSection('<p>' + intro + '</p>',id+'--description')
+      + groups.map(group => '<section><h2 class="query-group-title" id="' + group.id + '">' + escape(group.path.at(-1)) + '</h2><table class="query-field-table"><thead><tr><th>' + area + '项</th><th>' + (area === '查询' ? '值／返回类型' : '调用方法') + '</th><th>说明</th></tr></thead><tbody>'
+        + group.entries.map(entry => '<tr><td class="query-field-name">' + link(entry.member.id,escape(entry.label)) + '</td><td class="query-field-type"><code>' + escape(area === '查询' ? entry.valueType : entry.type.shortName + '.' + entry.member.name) + '</code></td><td>' + entry.member.summaryHtml + '</td></tr>').join('') + '</tbody></table>' + hostUsageHtml(area,group.path.at(-1)) + '</section>').join('');
+
+    document.getElementById('breadcrumb-current').textContent = '宿主 / ' + area;
+  }
+  function renderHostEntry(entry) {
+    currentType = entry.type; main.className = 'article';
+    const member = entry.member;
+    const sourceReference = reference => link(reference.id,'<code>' + escape(reference.expression) + '</code>');
+    const reader = entry.reader && memberMap.get(entry.reader.id);
+    const related = entry.related ? referenceRow(entry.area === '查询' ? '修改' : '查询',sourceReference(entry.related)) : '';
+    main.innerHTML = member.queryField
+      ? `<section class="field-sheet" id="${member.id}"><h1>${escape(entry.label)}</h1>${queryFieldContent({...member.queryField,type:entry.type,member})}</section>`
+      : memberCard(entry.type,member,entry.label,1,related);
+    main.innerHTML += `<span id="${member.id}--usage"></span>`
+      + (reader ? `<section id="${member.id}--read"><h2 class="member-group-heading">读取</h2>${memberCard(reader.type,reader.member)}</section>` : '');
+
+    document.getElementById('breadcrumb-current').textContent = '宿主 / ' + entry.area + ' / ' + entry.category + ' / ' + entry.label;
+  }
+  function modificationDescription(change) {
+    if (!change) return '';
+    const notes = change.html.replace(/<a href="#([^"]+)">([\s\S]*?)<\/a>/g,(original,id,caption) => {
+      const member = memberMap.get(id)?.member;
+      const text = caption.replace(/<[^>]+>/g,'');
+      const codeReference = text === member?.name || text === member?.presentation.expression || text.endsWith('.' + member?.name);
+      if (!member?.presentation.callable) return original;
+      return link(id,codeReference ? escape(member.displayName) : caption.replace(/^<code>([\s\S]*)<\/code>$/,'$1'));
+    });
+    const methods = (change.memberIds || []).filter(id => !notes.includes(`href="#${id}"`)).map(id => {
+      const member = memberMap.get(id)?.member;
+      return member ? link(id,escape(member.queryField?.label || member.displayName)) : '';
+    }).filter(Boolean).join('、');
+    const status = change.kind === 'supported' ? '读写' : '只读';
+    if (notes) return status + '。' + notes + (methods ? `<div class="doc-paragraph">${methods}</div>` : '');
+    return status + (methods ? '，可' + methods + '。' : '');
+  }
+  function queryFieldContent(field, extra = '', change = field.member?.modification) {
+    const fieldId=fieldsByExpression.get(field.expression)?.id;
+    const valuesHtml = valueList(field.enumTypeId,fieldId) + field.valuesHtml;
+    const properties=[...fieldReferences].filter(([,target]) => target === fieldId).map(([id]) => memberMap.get(id).member);
+    const capability=capabilityReferences.get(fieldId);
+    const membersHtml=`<code>${escape(field.expression)}</code>`
+      + properties.map(member => `<div class="field-member-reference"><span>配置</span> <code>${escape(member.presentation.expression)}</code> <code>${member.presentation.valueTypeHtml}</code></div>`).join('')
+      + (capability ? `<div class="field-member-reference"><span>支持判断</span> <code>VmProcessorCapability.${escape(capability.name)}</code></div>` : '');
+    return '<dl class="field-reference">'
+      + referenceRow('描述',field.descriptionHtml,'field-description')
+      + referenceRow('成员',membersHtml,'field-member')
+      + referenceRow('类型',`<code>${escape(field.valueType)}</code>`)
+      + referenceRow('取值',valuesHtml,'field-values')
+      + referenceRow('属性',modificationDescription(change))
+      + extra + `</dl>${field.detailsHtml}`;
+  }
+  function renderQueryField(field) {
+    currentType = field.type;
+    main.className = 'article';
+    const member = field.member;
+    const group = field.member.navigationPath[1] === '宿主' ? hostGroupQuery : queryGroups.find(group => group.fields.some(item => item.member.id === field.member.id));
+    main.innerHTML = `<section class="field-sheet" id="${escape(member.id)}"><h1>${escape(field.label)}</h1>${queryFieldContent(field)}</section>`;
+
+    document.getElementById('breadcrumb-current').textContent = `${pathKey(group.path.slice(1))} / ${field.label}`;
+  }
+  function resolveGroupPage(id) {
+    const target = managementAliases.get(id.split('--')[0]) || id.split('--')[0];
+    if (groupPageMap.has(target)) return groupPageMap.get(target);
+    if (id.includes('--') && contractRoots.has(target)) return groupPageMap.get(contractRoots.get(target));
+    const current = groupPageMap.get(currentRoute);
+    if (current?.kind === 'management' && current.methods.some(entry => entry.member.id === target)) return current;
+    if (current?.kind === 'host' && current.entries.some(entry => entry.reader?.id === target)) return current;
+    if (pageForMember.has(target)) return pageForMember.get(target);
+    const type = typeMap.get(target);
+    if (type?.members.length && type.members.every(member => member.queryField))
+      return groupPages.find(group => group.kind === 'management' && group.fields.some(field => field.type.id === target));
+    if (type?.role === 'entry') {
+      const matches = group => group.kind === 'reference' && typePaths(type).some(path => insideArea(path,group.area));
+      if (current && matches(current)) return current;
+      const reference = groupPages.find(matches);
+      if (reference) return reference;
+    }
+    const member = memberMap.get(target)?.member;
+    if (member && memberMap.get(target)?.type.role === 'entry') {
+      const matches = group => group.kind === 'reference' && memberPaths(member).some(path => insideArea(path,group.area));
+      if (current && matches(current)) return current;
+      return groupPages.find(matches);
+    }
+    const category = categoryMap.get(target);
+    if (category) return groupPages.find(group => group.kind === 'reference' && insideArea(category.path,group.area));
+    return null;
+  }
+  function metadataKeyTable(group) {
+    const keys = (data.metadataKeys || []).filter(item => item.navigationPaths.some(path => pathKey(displayPath(path)) === group.area));
+    return keys.length ? `<section class="metadata-keys" id="${group.id}--metadata-keys"><h2>ExHyperV 已使用的键</h2><table><thead><tr><th>键名</th><th>用途</th><th>保存内容</th></tr></thead><tbody>${keys.map(item => `<tr><td><code>${escape(item.key)}</code></td><td>${escape(item.purpose)}</td><td>${escape(item.content)}</td></tr>`).join('')}</tbody></table></section>` : '';
+  }
+  function capabilityContent(selected,group) {
+    const entries = selected.filter(type => type.role === 'entry');
+    const fields = [], methods = [];
+    for (const type of entries) for (const member of type.members.filter(member => memberPaths(member).some(path => insideArea(path,group.area)))) {
+      if (member.presentation.callable) {
+        if (!['构造函数','构造器','主构造器','运算符'].includes(member.kind) && !['ToString','Equals','GetHashCode'].includes(member.name)) methods.push(memberCard(type,member));
+      } else fields.push(memberCard(type,member));
+    }
+    return entries.map(type => '<span id="' + type.id + '"></span>').join('')
+      + (fields.length ? '<section class="capability-fields"><h2 class="member-group-heading">字段</h2>' + fields.join('') + '</section>' : '')
+      + (methods.length ? '<section class="capability-methods"><h2 class="member-group-heading">方法</h2>' + methods.join('') + '</section>' : '')
+      + typeExamplesContent(entries,group.id);
+  }
+  function typeExamplesContent(entries, groupId) {
+    const examples = [...new Map(entries.map(type => [type.id,type])).values()].filter(type => type.examplesHtml?.trim());
+    return examples.length ? `<section class="capability-examples"><h2 class="member-group-heading">示例</h2>${examples.map(type =>
+      `<section class="type-example" id="${groupId}--${type.id}--examples"><h3>${escape(typeTitle(type))}</h3>${type.examplesHtml}</section>`).join('')}</section>` : '';
+  }
+  function renderGroupPage(group) {
+    currentType = null;
+    documentationPage = group.id;
+    renderedContracts = new Set();
+    main.className = 'article category-page';
+    let content = '';
+    if (group.kind === 'management') {
+      const owners = [...new Map(group.fields.filter(field => field.member.queryField).map(field => [field.type.id,field.type])).values()];
+      const aliases = group.sources.filter(source => source.id !== group.id).map(source => `<span id="${source.id}"></span>`).join('');
+      const ownerAnchors = owners.map(type => `<span id="${type.id}"></span><span id="${type.id}--members"></span>`).join('');
+      const fields = group.fields.map(field => `<span id="modify-${field.member.id}"></span>` + memberCard(field.type,field.member,field.label,3) + `<span id="${field.member.id}--usage"></span>`).join('');
+      const methods = group.methods.map(entry => group.fields.filter(field => field.reader?.id === entry.member.id)
+        .map(field => `<span id="${field.member.id}--read"></span>`).join('') + memberCard(entry.type,entry.member,entry.label,3) + `<span id="${entry.member.id}--usage"></span>`).join('');
+      content = aliases + ownerAnchors
+        + (fields ? `<section class="capability-fields" aria-labelledby="${group.id}--fields"><h2 class="member-group-heading" id="${group.id}--fields">字段</h2>${fields}${metadataKeyTable(group)}</section>` : '')
+        + (methods ? `<section class="capability-methods" aria-labelledby="${group.id}--methods"><h2 class="member-group-heading" id="${group.id}--methods">方法</h2>${methods}</section>` : '');
+      content += typeExamplesContent(group.methods.map(entry => entry.type),group.id);
+      if (group.path[1] === '宿主') content += hostUsageHtml(['查询','修改'],group.path.at(-1));
+    } else if (group.kind === 'query') {
+      const owners = [...new Map(group.fields.map(field => [field.type.id,field.type])).values()];
+      content = owners.map(type => `<span id="${type.id}"></span><span id="${type.id}--members"></span>`).join('')
+        + group.fields.map(field => `<section class="inline-query-field" id="${field.member.id}"><h2>${escape(field.label)}</h2>${queryFieldContent(field)}</section>`).join('')
+        + metadataKeyTable(group)
+        + group.entries.filter(entry => !group.fields.some(field => field.member.id === entry.member.id))
+          .map(entry => memberCard(entry.type,entry.member,entry.label,2)).join('');
+    } else if (group.kind === 'modification') {
+      content = group.fields.map(field => modificationCard(field)).join('')
+        + metadataKeyTable(group)
+        + group.actions.map(action => memberCard(action.type,action.member,action.label,2)).join('');
+    } else if (group.kind === 'host') {
+      const listed = new Set(group.entries.map(entry => entry.member.id));
+      const readers = new Map();
+      content = group.entries.map(entry => {
+        if (entry.reader && !listed.has(entry.reader.id)) readers.set(entry.reader.id,memberMap.get(entry.reader.id));
+        const reference = item => link(item.id,`<code>${escape(item.expression)}</code>`);
+        const extra = (entry.reader ? referenceRow('读取',reference(entry.reader)) : '')
+          + (entry.related ? referenceRow(entry.area === '查询' ? '修改' : '查询',reference(entry.related)) : '');
+        return memberCard(entry.type,entry.member,entry.label,2,extra) + `<span id="${entry.member.id}--usage"></span>`;
+      }).join('');
+      if (group.id === hostGroupModification?.id)
+        content += editableFields.filter(field => field.member.navigationPath[1] === '宿主').map(field => modificationCard(field)).join('');
+      content += [...readers.values()].filter(Boolean).map(reader => memberCard(reader.type,reader.member,reader.member.name,2)).join('');
+      content += group.entries.filter(entry => entry.reader).map(entry => `<span id="${entry.member.id}--read"></span>`).join('');
+      content += hostUsageHtml(group.hostArea,group.path.at(-1));
+    } else if (group.kind === 'instance') {
+      content = group.actions.map(action => action.variants.map(variant => `<section id="${variant.id}"><span id="${variant.id}--usage"></span>${memberCard(variant.type,variant.member,action.label + (variant.mode ? ' · ' + variant.mode : ''),2)}</section>`).join('')).join('');
+    } else {
+      const selected = types.filter(type => typePaths(type).some(path => insideArea(path,group.area)));
+      const usage = group.path[0] === '业务层面' ? (data.businessUsage || []).find(item => item.category === group.path[1])?.html || '' : '';
+      content = categories.filter(category => category.id !== group.id && insideArea(category.path,group.area)).map(category => `<span id="${category.id}"></span>`).join('')
+        + usageSection(usage,group.id+'--description') + capabilityContent(selected,group);
+    }
+    main.innerHTML = `<div id="${group.id}">${content || '<p class="empty">本分类暂无公开成员。</p>'}</div>`;
+    document.getElementById('breadcrumb-current').textContent = pathKey(group.path[0] === '管理层面' ? group.path.slice(1) : group.path);
+  }
+  function renderDesign(design) {
+    currentType = null;
+    main.className = 'article design-article';
+    const draft = design.status === 'draft';
+    main.innerHTML = `<header id="${escape(design.id)}"><div class="design-heading"><h1>${escape(design.title)}</h1><span class="design-state ${draft ? 'draft' : ''}">${draft ? '规划草案' : '当前结构'}</span></div><p class="lead">${escape(design.summary)}</p></header>${design.sections.map(section => `<section><h2 id="${escape(section.id)}">${escape(section.title)}</h2>${section.html}</section>`).join('')}`;
+    document.getElementById('breadcrumb-current').textContent = '设计图 / ' + design.title;
+
+  }
+  function closeNavigation(focusTarget) {
+    const wasOpen = document.body.classList.contains('nav-open');
+    document.body.classList.remove('nav-open'); menu.setAttribute('aria-expanded','false');
+    if (wasOpen) (focusTarget instanceof HTMLElement ? focusTarget : menu).focus({preventScroll:true});
+  }
+  function route() {
+    let id;
+    try { id = decodeURIComponent(location.hash.slice(1)); } catch { id = ''; }
+    if (id === 'main-content') { main.focus(); return; }
+    if (!id) id = 'overview';
+    if (id === 'design') id = designs[0]?.id || id;
+    const previousIndexes = {'query-reference':'overview','modification-reference':'overview',
+      'query-fields':'overview','modification-fields':'overview','host-query':'overview','host-modification':'overview',
+      'guide-接入与基本约定':'guide-开始使用','guide-自由组合查询':'guide-查询数据',
+      'guide-实例操作':'guide-创建导入与导出','guide-控制台连接方式':'guide-连接与交互',
+      'guide-管理接口迁移':'guide-升级已有调用','guide-调用示例':'guide-开始使用',
+      'guide-宿主条件与已知限制':'guide','guide-文档维护':'guide',
+      'modification-coverage':'overview','instances-reference':'instances','instances--reference':'instances','host-groups':'overview','api-9d0d5255282aee00':'api-50a59fb2ce904b81','api-78fbcada8bd8cd8c':'api-4cf0073950220bf3'};
+    id = previousIndexes[id] || previousIndexes[id.split('--')[0]] || id;
+    if (id === 'guide' || id.startsWith('guide-')) {
+      const destinations = {
+        'guide-查询数据':queryMethod.id,
+        'guide-创建导入与导出':'category-vm',
+        'guide-部署流程':managementGroups.find(group => group.path[1] === '虚拟机' && group.path.at(-1) === 'GPU')?.id,
+        'guide-连接与交互':referenceGroups.find(group => group.path[1] === '连接')?.id,
+        'guide-结果取消和资源释放':types.find(type => type.shortName === 'ApiResponse')?.id
+      };
+      id = destinations[id] || 'overview';
+    }
+    id = data.categoryAliases?.[id] || id;
+    id = managementAliases.get(id) || id;
+    id = referenceTarget(id);
+    const oldCategory = categoryMap.get(id);
+    if (oldCategory && oldCategory.path.length === 3 && oldCategory.path[0] === '管理层面'
+        && ['虚拟机','宿主'].includes(oldCategory.path[1]) && ['查询','修改'].includes(oldCategory.path[2])) id = 'overview';
+    id = categoryMap.get(id)?.guideId || id;
+    const hostRoute = id.includes('--') ? id.split('--')[0] : id;
+    const selectedHostEntry = hostEntryMap.get(id) || hostEntryMap.get(hostRoute);
+    const hostPage = id === 'host-query' || id === 'host-modification' ? id : hostCategoryPages.get(id);
+    let selectedType = typeMap.get(id) || memberMap.get(id)?.type;
+    const standaloneMember = standaloneContractMembers.has(id) ? memberMap.get(id).member : null;
+    const selectedField = queryFieldMap.get(id) || (id.includes('--') ? queryFieldMap.get(id.split('--')[0]) : null);
+    const selectedGroupPage = resolveGroupPage(id);
+    const selectedModification = modificationFieldMap.get(id) || (id.includes('--') ? modificationFieldMap.get(id.split('--')[0]) : null);
+    const modificationPage = id === 'modification-fields' || modificationCategoryIds.has(id) ? 'modification-fields' : null;
+    const queryPage = id === 'query-fields' || queryCategoryIds.has(id) ? 'query-fields' : null;
+    if (!selectedType && id.includes('--')) selectedType = typeMap.get(id.split('--')[0])
+      || typeMap.get(contractRoots.get(id.split('--')[0]));
+    const selectedHub = categoryHubMap.get(id);
+    const selectedDesign = designMap.get(id) || (id.includes('--') ? designMap.get(id.split('--')[0]) : null);
+    const selectedInstance = instanceActionMap.get(id) || (id.includes('--') ? instanceActionMap.get(id.split('--')[0]) : null);
+    const instancePage = id === 'instances' || id.startsWith('instances--') || instanceCategoryIds.has(id);
+    const page = selectedHub?.id || standaloneMember?.id || selectedGroupPage?.id || (selectedHostEntry ? selectedHostEntry.member.id : hostPage || (selectedInstance ? selectedInstance.id : instancePage ? 'instances' : selectedModification?.id || modificationPage || selectedField?.member.id || queryPage || selectedType?.id || selectedDesign?.id || (id.startsWith('overview') || categoryMap.has(id) ? 'overview' : 'missing')));
+    if (page !== currentRoute) {
+      if (selectedHub) renderCategoryHub(selectedHub);
+      else if (standaloneMember) renderType(selectedType,standaloneMember);
+      else if (selectedGroupPage) renderGroupPage(selectedGroupPage);
+      else if (selectedHostEntry) renderHostEntry(selectedHostEntry);
+      else if (hostPage) renderHostCatalog(hostPage === 'host-query' ? '查询' : '修改');
+      else if (selectedInstance) renderInstanceEntry(selectedInstance);
+      else if (instancePage) renderInstances();
+      else if (selectedModification) renderModificationField(selectedModification);
+      else if (modificationPage === 'modification-fields') renderModificationCatalog();
+      else if (selectedField) renderQueryField(selectedField);
+      else if (queryPage === 'query-fields') renderQueryCatalog();
+      else if (selectedType) renderType(selectedType);
+      else if (selectedDesign) renderDesign(selectedDesign);
+      else if (page === 'overview') renderOverview();
+      else {
+        currentType = null; main.className = 'article';
+        main.innerHTML = `<h1>未找到文档</h1><p>此链接指向的类型或成员不在当前版本中。</p><p>${link('overview','返回概览')}</p>`;
+        document.getElementById('breadcrumb-current').textContent = '未找到文档';
+      }
+      main.innerHTML = referenceLinks(main.innerHTML);
+      currentRoute = page;
+      window.scrollTo(0,0);
+    }
+    revealNavigationGroup(id);
+    renderNavigation();
+    document.getElementById('reference-tab').setAttribute('aria-current', selectedDesign ? 'false' : 'page');
+    document.getElementById('design-tab').setAttribute('aria-current', selectedDesign ? 'page' : 'false');
+    closeNavigation(main);
+    requestAnimationFrame(() => {
+      const target = document.getElementById(id);
+      if (id === page) window.scrollTo(0,0);
+      else if (target) target.scrollIntoView({block:'start'});
+    });
+  }
+  search.addEventListener('input', renderNavigation);
+  clearSearch.addEventListener('click', () => { search.value=''; renderNavigation(); search.focus(); });
+  search.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      const first = navigation.querySelector('a');
+      if (first) { event.preventDefault(); const target = first.getAttribute('href'); if (location.hash === target) route(); else location.hash = target; closeNavigation(main); }
+    }
+    if (event.key === 'Escape') { search.value=''; renderNavigation(); }
+  });
+  menu.addEventListener('click', () => { const opened = document.body.classList.toggle('nav-open'); menu.setAttribute('aria-expanded',String(opened)); if (opened) search.focus(); });
+  document.getElementById('nav-scrim').addEventListener('click',closeNavigation);
+  // Repeated fragment clicks do not emit hashchange; use the same positioning as the first visit.
+  document.addEventListener('click',event => {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const anchor = event.target.closest?.('a[href^="#"]');
+    if (!anchor || anchor.hasAttribute('download') || (anchor.target && anchor.target !== '_self')) return;
+    if (anchor.getAttribute('href') !== location.hash) return;
+    event.preventDefault();
+    route();
+  });
+  document.addEventListener('keydown',event => { if (event.key === 'Escape') closeNavigation(); });
+  window.addEventListener('hashchange',route);
+  renderNavigation();
+  route();
+})();
+</script>
+</body>
+</html>

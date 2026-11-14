@@ -12,7 +12,7 @@ namespace ExHyperV.Core.Tests.TestExecution;
 internal static class ConsoleApiCases
 {
     internal static bool Supports(CatalogTest p) => p.Api.StartsWith("IConsole", StringComparison.Ordinal) || p.Api is "控制台事件" or "VmScreenshotSource.CaptureAsync()" or "VmInputService.SendCtrlAltDelAsync()";
-    internal static bool IsLive(CatalogTest p) => p.Id is "T-3ffa317c0bdfecc8-1" or "T-d3b8251b0e40130c-1" or "api.video-capture-live" || p.Api is "VmScreenshotSource.CaptureAsync()" or "VmInputService.SendCtrlAltDelAsync()" or "IConsoleAudioInput.SendAudio()";
+    internal static bool IsLive(CatalogTest p) => p.Id is "T-3ffa317c0bdfecc8-1" or "T-d3b8251b0e40130c-1" or "api.video-capture-live" || p.Api is "VmScreenshotSource.CaptureAsync()" or "VmInputService.SendCtrlAltDelAsync()";
     internal static async Task RunAsync(CatalogTest p, ApiCaseContext c)
     {
         if (IsLive(p)) { await LiveAsync(p, c); return; }
@@ -155,7 +155,7 @@ internal static class ConsoleApiCases
 
     private static async Task LiveAsync(CatalogTest p, ApiCaseContext c)
     {
-        bool enhanced = p.Api.Contains("Resize") || p.Api.Contains("SendAudio");
+        bool enhanced = p.Api.Contains("Resize");
         await using var vm = enhanced ? await TemporaryVm.CopyTemplateAsync(c) : await TemporaryVm.CreateAsync(c);
         await vm.StartAsync();
         if (p.Api == "VmInputService.SendCtrlAltDelAsync()")
@@ -228,13 +228,6 @@ internal static class ConsoleApiCases
             await connection.DisconnectAsync();
             c.Require(c.Call(connection.Video.CaptureFrame) is null, "真实连接断开后返回空画面");
             c.Require(pixels.AsSpan().SequenceEqual(captured.CopyPixels()), "原生连接释放后帧租约仍保持原始像素");
-        }
-        if (p.Api.Contains("SendAudio"))
-        {
-            if (connection.AudioInput is not { } audio) throw new ApiCheckSkippedException("当前 Core 的 RdpBasic 与 RdpEnhanced 均未实现音频输入，AudioInput 返回 null。");
-            if (!audio.IsAvailable || audio.Format is not { } format) throw new ApiCheckSkippedException("音频输入通道尚未协商格式。");
-            int bytes = format.SampleFormat == ConsoleAudioSampleFormat.Signed16LittleEndian ? 2 : 4;
-            c.Require(c.Call(() => audio.SendAudio(format, new byte[format.SampleRate / 100 * format.Channels * bytes])), "10 毫秒匹配格式 PCM 接受");
         }
     }
 }

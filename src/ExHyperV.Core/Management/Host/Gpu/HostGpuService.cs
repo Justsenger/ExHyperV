@@ -37,7 +37,7 @@ public static partial class HostGpuService
 
         /// <summary>查询当前存在的显示适配器并补充驱动、显存和可分区资源信息。</summary>
         /// <returns>新的可变 GPU 列表；IsPartitionable 表示是否匹配到可分区资源。</returns>
-        /// <remarks>专用显存为 null 表示未取得，0 是有效容量。首次查询可能初始化 PCI ID 名称数据；返回列表不表示每个设备都能成功分配。</remarks>
+        /// <remarks>专用显存为 null 表示未取得，0 是有效容量。首次查询可能初始化 PCI ID 名称数据。</remarks>
         internal static async Task<List<HostGpuInfo>> ReadHostGpusAsync()
         {
             var pciInfoProvider = new PciIds();

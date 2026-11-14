@@ -22,7 +22,7 @@ namespace ExHyperV.Services;
 /// <remarks>
 /// <para>CF_DIB 包含位图信息头和像素数据，不含 BMP 文件头。CF_HTML 包含片段范围头和 UTF-8 内容，头中的偏移量按字节计算。
 /// HTML 布局见 <see href="https://learn.microsoft.com/en-us/windows/win32/dataxchg/html-clipboard-format">HTML Clipboard Format</see>。</para>
-/// <para>SetClipboard 会复制数据并检查格式编号、名称、长度和文本结束符，不会完整验证 DIB 或 HTML 的内部结构。
+/// <para>SetClipboard 复制数据，校验格式编号、名称、长度和文本结束符；DIB 与 HTML 的内部结构由调用方准备。
 /// 调用方应提供由对应格式生成器或系统剪贴板取得的合法数据。</para>
 /// </remarks>
 public sealed record ConsoleClipboardFormat(uint Id, string? Name, ReadOnlyMemory<byte> Data);

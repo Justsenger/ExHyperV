@@ -10,17 +10,19 @@ export async function sourceFingerprint(root) {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const filename = path.join(directory, entry.name);
       if (entry.isDirectory() && !['bin', 'obj', 'external', '.git'].includes(entry.name.toLowerCase())) await visit(filename);
-      else if (entry.isFile() && /\.(cs|csproj|props|targets|resx|xml|html|css|md|mjs|woff2|txt)$/i.test(entry.name)) files.push(filename);
+      else if (entry.isFile() && /\.(cs|csproj|props|targets|resx|xml|json|html|css|md|mjs|woff2|txt)$/i.test(entry.name)) files.push(filename);
     }
   }
-  await visit(root);
+  const roots = Array.isArray(root) ? root : [root];
+  for (const directory of roots) await visit(directory);
   const hash = createHash('sha256');
   for (const file of files.sort()) {
-    const relative = path.relative(root, file).replaceAll('\\', '/');
+    const relative = path.relative(roots.find(directory => file.startsWith(path.resolve(directory) + path.sep)) || roots[0], file).replaceAll('\\', '/');
+    if (Array.isArray(root) && ['API.md', 'API.json', 'FieldHelp.json'].includes(relative)) continue;
     let content = await readFile(file);
-    if (relative === 'API.md') content = Buffer.from(content.toString('utf8').replace(/\r\n/g, '\n')
+    if (relative === 'API.md' || relative === 'guide.md') content = Buffer.from(content.toString('utf8').replace(/\r\n/g, '\n')
       .replace(/<!-- api-(reference|examples|example-[\w-]+):start -->[\s\S]*?<!-- api-\1:end -->/g, ''));
-    hash.update(relative + '\0' + content.length + '\0');
+    hash.update((Array.isArray(root) ? roots.findIndex(directory => file.startsWith(path.resolve(directory) + path.sep)) + '/' : '') + relative + '\0' + content.length + '\0');
     hash.update(content);
   }
   return hash.digest('hex');

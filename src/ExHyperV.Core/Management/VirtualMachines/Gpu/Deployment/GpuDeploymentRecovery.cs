@@ -1,6 +1,6 @@
 namespace ExHyperV.Models;
 
-/// <summary>部署结果不明时的核对材料；这些标识只用于诊断，不是执行任意底层命令的入口。</summary>
+/// <summary>部署结果待确认时的任务和资源核对材料。</summary>
 /// <param name="OperationId">Core 为本次部署恢复记录生成的编号，各原生调用另有 Operations.Id。</param>
 /// <param name="VmId">此次操作固定的虚拟机 GUID。</param>
 /// <param name="StartedAtUtc">创建此恢复记录的时间。</param>
@@ -13,7 +13,7 @@ public sealed record GpuDeploymentRecovery(Guid OperationId, Guid VmId, DateTime
     public IReadOnlyList<GpuRecoveryOperation> Operations { get; init; } = [];
     /// <summary>临时资源及原状态；Restored 为 true 表示最近核实已经恢复，尚未恢复的项由 RetryCleanupAsync 处理。</summary>
     public IReadOnlyList<GpuRecoveryResource> Resources { get; init; } = [];
-    /// <summary>最近核实的当前值：Power.State 为电源状态，Mmio.LowSizeMiB、Mmio.HighSizeMiB、Mmio.HighBaseMiB 为 MMIO 大小和基址，单位 MiB；未提供的值为 Unavailable。这里只包含本次涉及的步骤，不作为新的写入请求。</summary>
+    /// <summary>最近核实的当前值：Power.State 为电源状态，Mmio.LowSizeMiB、Mmio.HighSizeMiB、Mmio.HighBaseMiB 为 MMIO 大小和基址，单位 MiB；未提供的值为 Unavailable。仅记录本次涉及的步骤。</summary>
     public IReadOnlyDictionary<string, string> ObservedValues { get; init; } = new Dictionary<string, string>();
 }
 
@@ -24,7 +24,7 @@ public sealed record GpuDeploymentRecovery(Guid OperationId, Guid VmId, DateTime
 /// <param name="TargetReference">由 Core 查询取得的目标引用。</param>
 /// <param name="JobReference">原生作业引用；同步调用或未取得时为 null。</param>
 /// <param name="StartedAtUtc">调用开始时间。</param>
-/// <param name="IsSettled">是否已确认结束；不表示成功，失败详情见 Failure。</param>
+/// <param name="IsSettled">是否已确认操作结束；执行结果见 Failure。</param>
 /// <param name="Failure">最新失败详情；正在执行且未取得结果时也可能为 null，需结合 IsSettled。</param>
 public sealed record GpuRecoveryOperation(Guid Id, string Stage, string Method, string TargetReference,
     string? JobReference, DateTimeOffset StartedAtUtc, bool IsSettled, ExHyperV.Tools.ApiFailure? Failure);

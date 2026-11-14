@@ -26,12 +26,12 @@ public sealed record VmCreationResult(bool Success, Guid? VmId, string? ActualNa
     /// <summary>成功时的非阻塞调整说明；名称和目录未发生冲突时为 null。程序判断使用 NameAdjusted。</summary>
     public string? Notice => Success && NameAdjusted
         ? $"名称或输出路径已被占用，已自动将“{RequestedName}”调整为“{ActualName}”。" : null;
-    /// <summary>主操作失败类别；成功时为 None。不能仅凭失败判断虚拟机未创建。</summary>
+    /// <summary>主操作失败类别；成功时为 None。</summary>
     public ApiErrorKind ErrorKind { get; init; } = Success ? ApiErrorKind.None : ApiErrorKind.OperationFailed;
     /// <summary>至少一个已提交操作的结果尚未确认，可能仍在执行；不得盲目重试创建或清理保留资源。</summary>
     public bool OutcomeUnknown { get; init; }
     /// <summary>回滚或清理失败类别；没有清理错误时为 None，与主操作错误分别保留。</summary>
     public ApiErrorKind CleanupErrorKind { get; init; } = CleanupError == null ? ApiErrorKind.None : ApiErrorKind.CleanupRequired;
-    /// <summary>可选配置的失败响应；目前用于 ISO 优先引导，创建成功不表示这些可选配置已经完成。</summary>
+    /// <summary>可选配置的失败响应，目前用于 ISO 优先引导。</summary>
     public IReadOnlyList<ApiResponse> ConfigurationIssues { get; init; } = [];
 }

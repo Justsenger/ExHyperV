@@ -8,7 +8,7 @@ using System.Text.RegularExpressions;
 
 namespace ExHyperV.Services
 {
-    /// <summary>虚拟机列表中一项可选信息的读取问题；不代表已经确认该信息为空。</summary>
+    /// <summary>虚拟机列表中一项可选信息的读取问题。</summary>
     /// <param name="Component">受影响的信息类别，例如 GpuAssignments、PartitionableGpus、VideoControllerNames、SwitchNames 或 GuestIpAddresses。</param>
     /// <param name="Error">面向人的失败说明。</param>
     /// <param name="ErrorKind">业务失败类别；已确认对应可选类不存在时为 Unsupported。</param>
@@ -26,7 +26,7 @@ namespace ExHyperV.Services
     }
 
     /// <summary>读取虚拟机列表并持有按需创建的性能计数器；调用者负责释放实例。</summary>
-    /// <remarks>列表读取是一次快照，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp；仅有效样本用于更新数值。更新方法原地修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样；部分普通 WMI 查询不依赖计数器。</remarks>
+    /// <remarks>列表读取是一次快照，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp；仅有效样本用于更新数值。更新方法直接修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样；部分普通 WMI 查询不依赖计数器。</remarks>
     public partial class VmQueryService : IDisposable, IAsyncDisposable
     {
         /// <summary>虚拟机当前内存占用与可用百分比。</summary>
@@ -42,7 +42,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>按 GPU 引擎类别聚合的一次虚拟机采样结果。</summary>
-        /// <remarks>同类别多个 GPU 引擎百分比直接累加，结果没有统一截断到 100；不应把它当作单一物理 GPU 的严格总利用率。</remarks>
+        /// <remarks>同类 GPU 引擎的使用率相加，合计可超过 100%。</remarks>
         public struct GpuUsageData
         {
             /// <summary>3D 引擎占用百分比。</summary>
@@ -53,12 +53,12 @@ namespace ExHyperV.Services
             public double GpuEncode;
             /// <summary>视频解码引擎占用百分比。</summary>
             public double GpuDecode;
-            /// <summary>本次是否检测到该虚拟机进程的 GPU 引擎实例；使用率为零也可为 true，不证明来宾驱动状态或正在执行负载。仅 DriverSample.IsValid 时有本次结论。</summary>
-            public bool IsDriverBound;
-            /// <summary>本次引擎占用采样状态；无效时不能将各引擎的默认值视为零占用。</summary>
+            /// <summary>本次是否检测到该虚拟机进程的 GPU 引擎实例；使用率为零也可为 true，不证明来宾驱动状态或正在执行负载。仅 EnginePresenceSample.IsValid 时有本次结论。</summary>
+            public bool HasGpuEngineInstance;
+            /// <summary>本次引擎使用率的采样状态。</summary>
             public PerformanceSampleInfo? Sample { get; set; }
-            /// <summary>本次 GPU 引擎实例检测的有效性；无效时 IsDriverBound 不代表确定结论。</summary>
-            public PerformanceSampleInfo? DriverSample { get; set; }
+            /// <summary>本次 GPU 引擎实例检测结果是否有效。</summary>
+            public PerformanceSampleInfo? EnginePresenceSample { get; set; }
         }
 
         private readonly object _switchCacheLock = new();
@@ -169,7 +169,7 @@ namespace ExHyperV.Services
             }
         }
 
-        /// <summary>汇集虚拟机及设备配置生成列表快照，不启动持续刷新。</summary>
+        /// <summary>汇集虚拟机及设备配置生成完整列表快照；只需少量字段时使用 QueryAsync。</summary>
         /// <returns>成功时返回虚拟机列表及可选读取问题；必需摘要、配置、元数据、内存、存储或网卡基础读取失败时返回失败，不伪装为空列表。</returns>
         /// <remarks>可选 GPU 能力、来宾 IP 和友好名称读取失败时保留可用列表及既有显示回退，并在 Issues 中报告原生原因；使用 IsComplete 区分完整与部分结果。</remarks>
         public async Task<ApiResponse<VmInventorySnapshot>> GetVmListAsync()
@@ -602,9 +602,9 @@ namespace ExHyperV.Services
 
         // --- 性能监控相关方法 ---
 
-        /// <summary>采样磁盘性能计数器并原地更新传入虚拟机的磁盘读写速率。</summary>
+        /// <summary>采样磁盘性能计数器，将磁盘读写速率写入传入的虚拟机模型。</summary>
         /// <param name="vms">要采样的虚拟机集合；更新方法会修改其中对应性能字段，调用者负责安排呈现线程。</param>
-        /// <remarks>读写速率单位为字节/秒，针对后备文件或物理设备，不保证共享介质的速率按 VM 拆分。以完整文件或设备身份匹配计数器，不能唯一匹配时不更新数值。PerformanceSample 记录本次状态；明确非活动的 VM 标记 NotApplicable。虚拟盘身份另外读取全宿主存储分配，避免传入子集掩盖计数器名称编码碰撞。</remarks>
+        /// <remarks>读写速率单位为字节/秒，按后备文件或物理设备统计，共享介质使用介质级速率。完整设备身份与计数器唯一匹配时更新值；采样状态见 PerformanceSample，非活动 VM 为 NotApplicable。</remarks>
         public async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms)
         {
             var machines = vms.ToArray();
@@ -745,8 +745,8 @@ namespace ExHyperV.Services
 
         // GetGpuPerformanceAsync 使用 PerformanceCounter（.NET 原生 API），不需要迁移
         /// <summary>采样各虚拟机对应的 GPU 引擎占用，并检测是否出现该虚拟机的 GPU 活动实例。</summary>
-        /// <param name="vms">目标虚拟机列表，用于筛选运行中且带 GPU 的虚拟机；此方法返回字典，不原地写入 GPU 指标。</param>
-        /// <returns>以虚拟机 GUID 为键的本次采样状态；Sample 与 DriverSample 分别说明占用及活动检测是否有效。失败、预热或缺测不发布有效零值。</returns>
+        /// <param name="vms">目标虚拟机列表，筛选运行中且带 GPU 的虚拟机；指标通过返回字典提供。</param>
+        /// <returns>以虚拟机 GUID 为键的本次采样状态；Sample 与 EnginePresenceSample 分别说明占用及活动检测是否有效。失败、预热或缺测不发布有效零值。</returns>
         /// <exception cref="ObjectDisposedException">实例已开始释放，不能再开始 GPU 性能采样。</exception>
         public async Task<Dictionary<Guid, GpuUsageData>> GetGpuPerformanceAsync(IEnumerable<VmInstance> vms)
         {
@@ -774,7 +774,7 @@ namespace ExHyperV.Services
                 var sample = new PerformanceSampleInfo(vm.IsRunning
                     ? vm.HasGpuAssignment == false ? PerformanceSampleState.NotApplicable : PerformanceSampleState.Unavailable
                     : InactivePerformanceState(vm), observedAt);
-                results[vm.Id] = new GpuUsageData { Sample = sample, DriverSample = sample };
+                results[vm.Id] = new GpuUsageData { Sample = sample, EnginePresenceSample = sample };
             }
             var gpuVms = machines.Where(vm => vm.IsRunning && vm.HasGpu).ToList();
             if (!gpuVms.Any()) return results;
@@ -813,20 +813,20 @@ namespace ExHyperV.Services
                         bool ambiguous = processes.Count(process => IsVmWorker(process, vm.Id)) > 1;
                         var invalid = new PerformanceSampleInfo(ambiguous ? PerformanceSampleState.Ambiguous
                             : PerformanceSampleState.Unavailable, observedAt, "未取得唯一的虚拟机工作进程身份。");
-                        results[vm.Id] = new GpuUsageData { Sample = invalid, DriverSample = invalid };
+                        results[vm.Id] = new GpuUsageData { Sample = invalid, EnginePresenceSample = invalid };
                         continue;
                     }
                     if (pids.Any(pid => owners[pid].Length != 1))
                     {
                         var invalid = new PerformanceSampleInfo(PerformanceSampleState.Ambiguous, observedAt, "GPU 进程身份对应多台虚拟机。");
-                        results[vm.Id] = new GpuUsageData { Sample = invalid, DriverSample = invalid };
+                        results[vm.Id] = new GpuUsageData { Sample = invalid, EnginePresenceSample = invalid };
                         continue;
                     }
                     string[] matching = allGpuInstances.Where(name => TryGpuInstance(name, out int pid, out _)
                         && pids.Contains(pid)).ToArray();
                     var data = results[vm.Id];
-                    data.IsDriverBound = matching.Length > 0;
-                    data.DriverSample = new(PerformanceSampleState.Valid, observedAt);
+                    data.HasGpuEngineInstance = matching.Length > 0;
+                    data.EnginePresenceSample = new(PerformanceSampleState.Valid, observedAt);
                     var measured = matching.Where(name => TryGpuInstance(name, out _, out string engine)
                         && IsReportedGpuEngine(engine)).ToArray();
                     if (measured.Distinct(StringComparer.OrdinalIgnoreCase).Count() != measured.Length)
@@ -918,7 +918,7 @@ namespace ExHyperV.Services
             foreach (var vm in targets)
             {
                 var invalid = new PerformanceSampleInfo(state, observedAt, error);
-                results[vm.Id] = new GpuUsageData { Sample = invalid, DriverSample = invalid };
+                results[vm.Id] = new GpuUsageData { Sample = invalid, EnginePresenceSample = invalid };
             }
         }
 
@@ -936,7 +936,7 @@ namespace ExHyperV.Services
                 || engine.Equals("VideoEncode", StringComparison.OrdinalIgnoreCase) || engine.Equals("Encode", StringComparison.OrdinalIgnoreCase)
                 || engine.Equals("VideoDecode", StringComparison.OrdinalIgnoreCase) || engine.Equals("Decode", StringComparison.OrdinalIgnoreCase);
 
-        /// <summary>采样网络性能计数器并原地更新传入虚拟机的收发速率。</summary>
+        /// <summary>采样网络性能计数器，将收发速率写入传入的虚拟机模型。</summary>
         /// <param name="vms">要采样的虚拟机集合；更新方法会修改其中对应性能字段，调用者负责安排呈现线程。</param>
         /// <remarks>模型中的收发速率采用字节/秒。此方法不建立自动定时器，调用者决定采样间隔。首次建立计数器标记 WarmingUp；只有收发均有效才更新两个速率及 HasNetworkSpeedSample。缺测时保留旧数值，PerformanceSample 说明本次状态。</remarks>
         /// <exception cref="ObjectDisposedException">实例已开始释放，不能再开始网络性能采样。</exception>
@@ -1163,7 +1163,7 @@ namespace ExHyperV.Services
         /// <summary>按稳定身份读取虚拟机配置文件所在的根路径。</summary>
         /// <param name="vmId">目标虚拟机的非空 GUID。</param>
         /// <returns>成功时返回配置根路径；配置缺失与查询失败分别返回失败。</returns>
-        public async Task<ApiResponse<string>> GetVmConfigRootAsync(Guid vmId)
+        internal async Task<ApiResponse<string>> GetVmConfigRootAsync(Guid vmId)
         {
             if (vmId == Guid.Empty)
                 return ApiResponse<string>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);

@@ -23,7 +23,7 @@ public sealed record VmPcieChangeResult(bool Cancelled, ApiResponse Response)
 }
 
 /// <summary>保存一次 PCIe 修改的输入、永久开启模拟确认要求和执行结果。</summary>
-/// <remarks>ApplyAsync 的第一次调用确定执行任务；同一实例不能靠第二次批准来重试首次取消，需要创建新请求。</remarks>
+/// <remarks>首次 ApplyAsync 确定执行任务。重试已取消的操作需创建新请求。</remarks>
 public sealed class VmPcieChangeSession
 {
     private readonly VmPcieChangeKind _kind;
@@ -45,7 +45,7 @@ public sealed class VmPcieChangeSession
     /// <param name="kind">本次请求修改模拟开关、拓扑或单个设备模式。</param>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <param name="emulationEnabled">会话建立时已知的 PCIe 模拟状态。</param>
-    /// <param name="topology">Hyper-V 原始 PCIe 拓扑编码；当前 Core 未提供有效值目录，提交时由提供者校验。</param>
+    /// <param name="topology">Hyper-V 原始 PCIe 拓扑编码，由宿主校验。</param>
     /// <param name="device">GetSettingsAsync 返回的目标 PCIe 设备；非设备模式修改可省略。</param>
     /// <param name="deviceMode">待设置的 PCIe 设备来宾模式。</param>
     public VmPcieChangeSession(VmPcieChangeKind kind, Guid vmId, bool emulationEnabled,

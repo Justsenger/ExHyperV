@@ -1,4 +1,3 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ExHyperV.Models
 {
@@ -22,14 +21,17 @@ namespace ExHyperV.Models
     }
 
     /// <summary>虚拟机引导项，由 VmBootService 读取；写回时必须使用同一虚拟机读取的对象。</summary>
-    public partial class BootOrderItem : ObservableObject
+    public partial class BootOrderItem
     {
         /// <summary>启动设备的显示名称。</summary>
-        [ObservableProperty] private string _name = string.Empty;          // 显示名称
+        public string Name { get => _name; set => _name = value; }
+        private string _name = string.Empty;          // 显示名称
         /// <summary>启动设备的路径或地址说明，用于显示。</summary>
-        [ObservableProperty] private string _description = string.Empty;   // 详细描述（路径/地址）
+        public string Description { get => _description; set => _description = value; }
+        private string _description = string.Empty;   // 详细描述（路径/地址）
         /// <summary>启动设备的业务类别。</summary>
-        [ObservableProperty] private BootDeviceKind _kind;
+        public BootDeviceKind Kind { get => _kind; set => _kind = value; }
+        private BootDeviceKind _kind;
 
         internal Guid OwnerVmId { get; set; }
 

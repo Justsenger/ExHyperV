@@ -5,7 +5,7 @@ namespace ExHyperV.Services;
 /// <summary>单台导入结果；失败仍可能已经注册虚拟机或留下需要处理的工作资源。</summary>
 /// <param name="Success">导入流程是否完成。</param>
 /// <param name="VmId">已知的计划或已导入虚拟机 GUID；尚未取得时为 null。</param>
-/// <param name="IsRealized">是否已经确认实现为注册虚拟机；原生状态未知时 false 不能证明未注册。</param>
+/// <param name="IsRealized">是否确认已注册为虚拟机；原生状态未知时须继续核实。</param>
 /// <param name="OperationStateUnknown">是否仍不能确认原生操作结束或计划系统清理完成。</param>
 /// <param name="CleanupState">返回时的工作资源清理状态；释放会话后读取会话属性取得最新状态。</param>
 /// <param name="RetainedPaths">本次工作资源中保留或未确认删除的文件、目录，不包含原生对象路径。</param>

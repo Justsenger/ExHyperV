@@ -6,7 +6,7 @@ namespace ExHyperV.Services;
 /// <param name="Success">是否确认导出成功并找到配置文件。</param>
 /// <param name="VmId">请求导出的虚拟机稳定 GUID。</param>
 /// <param name="OutputPath">成功完成的导出目录；未成功时为 null。</param>
-/// <param name="OperationStateUnknown">提交后尚不能确认原生导出终态；失败不代表后台任务已停止。</param>
+/// <param name="OperationStateUnknown">原生导出任务的最终状态是否仍待确认。</param>
 /// <param name="RetainedPaths">本次产生且保留供检查的文件或目录；未知状态时不得直接删除。</param>
 /// <param name="Error">失败原因，成功时为 null。</param>
 /// <param name="Code">底层错误码，需结合 ErrorSource 解释。</param>

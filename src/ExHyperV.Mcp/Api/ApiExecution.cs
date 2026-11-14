@@ -155,11 +155,7 @@ public sealed class ApiExecution(ApiCatalog catalog, ApiObjects objects, ApiCode
             if (!parameters.Any(parameter => string.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase))) throw new ArgumentException($"参数名无效：{name}。");
         object?[] values = parameters.Select(parameter => Argument(parameter, inputs, operation)).ToArray();
         object? result;
-        if (member is ConstructorInfo constructor && constructor.DeclaringType == typeof(ConsoleAudioPacket))
-            result = new ConsoleAudioPacket((ConsoleAudioFormat)values[0]!, (byte[])values[1]!, (long)values[2]!, (TimeSpan)values[3]!);
-        else if (member.DeclaringType == typeof(IConsoleAudioInput) && member.Name == "SendAudio")
-            result = ((IConsoleAudioInput)target!).SendAudio((ConsoleAudioFormat)values[0]!, (byte[])values[1]!);
-        else if (member.DeclaringType == typeof(ExHyperV.Vmcx.VmcxValue) && member.Name == "Raw")
+        if (member.DeclaringType == typeof(ExHyperV.Vmcx.VmcxValue) && member.Name == "Raw")
             result = ExHyperV.Vmcx.VmcxValue.Raw((byte[])values[0]!);
         else result = member is ConstructorInfo ctor ? ctor.Invoke(values) : ((MethodInfo)member).Invoke(target, values);
         result = await AwaitResult(result);

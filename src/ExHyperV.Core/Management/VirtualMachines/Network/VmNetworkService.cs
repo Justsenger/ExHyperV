@@ -6,7 +6,7 @@ namespace ExHyperV.Services;
 
 /// <summary>安全和卸载设置的组合写入结果，分别保留两步是否成功。</summary>
 /// <param name="Success">该项操作是否完整成功；部分完成信息由同一结果中的其他字段表达。</param>
-/// <param name="Message">本地化结果或确认说明，供调用者呈现，不作为稳定的错误代码。</param>
+/// <param name="Message">供调用方展示的本地化结果或确认说明。</param>
 /// <param name="SecurityApplied">安全设置步骤是否已经成功写入。</param>
 /// <param name="OffloadApplied">卸载设置步骤是否已经成功写入。</param>
 public sealed record VmNetworkSettingsApplyResult(bool Success, string Message, bool SecurityApplied, bool OffloadApplied)
@@ -235,7 +235,7 @@ public static partial class VmNetworkService
     /// <summary>依次解析网卡 IPv4 并更新传入网卡对象；宿主嗅探结果优先。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <param name="adapters">该虚拟机查询返回的网卡对象集合。</param>
-    /// <returns>全部解析完成时成功；失败时返回具体错误，前面已经更新的地址不会撤回。</returns>
+    /// <returns>全部解析完成时成功；失败时返回原因，已更新的地址保留。</returns>
     public static async Task<ApiResponse> FillDynamicIpsAsync(Guid vmId, IEnumerable<VmNetworkAdapter> adapters)
     {
         ArgumentNullException.ThrowIfNull(adapters);
@@ -261,7 +261,7 @@ public static partial class VmNetworkService
     /// <summary>为虚拟机添加合成网卡并初始化连接资源；确认失败时自动撤销本次创建。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <returns>分别报告实际网卡状态、初始化结果、原始错误及撤销错误；失败后应刷新实际列表。</returns>
-    /// <remarks>底层任务或资源归属尚未确认时保留相关资源，不盲目撤销或重试。撤销前核对当前配置与附属资源；外部程序在最终核对后修改对象的竞态仍不能由 WMI 原子比较删除消除。</remarks>
+    /// <remarks>结果或资源归属待确认时保留现场。撤销前核对配置与附属资源；最终核对和提交之间仍可能发生外部修改。</remarks>
     /// <editentry label="添加网卡" category="网络"/>
     public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid vmId) =>
         Task.Run(() => CreateNetworkAdapterAsync(vmId));
@@ -374,9 +374,14 @@ public static partial class VmNetworkService
     // 改静态 MAC：写网卡 setting(合成/旧版按 PortSettingClass 派发到对应类)的 Address + StaticMacAddress(本身不是 feature，用 ModifyResourceSettings)。
     // 输入空=改回动态(系统分配)。运行态沿用页面的不可修改规则；其余原生约束仍返回引擎错误。
     /// <summary>判断当前运行状态是否允许编辑 MAC 地址。</summary>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <returns>未运行时为 true。</returns>
-    public static bool CanEditMacAddress(bool isRunning) => !isRunning;
+    internal static bool CanEditMacAddress(bool isRunning) => !isRunning;
+
+    /// <summary>评估 MAC 地址的修改条件。</summary>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许修改、原因及需要的电源状态。</returns>
+    public static VmModificationCondition GetMacModificationCondition(VmState state) => VmModificationCondition.PoweredOff(state);
 
     /// <summary>核对虚拟机状态后写入静态 MAC，空地址恢复由系统动态分配。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
@@ -396,12 +401,12 @@ public static partial class VmNetworkService
 
         var state = await WmiApi.QueryFirstAsync(
             $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}",
-            obj => VmMapper.IsActiveState(Convert.ToUInt16(obj["EnabledState"])));
+            obj => VmMapper.MapState(Convert.ToUInt16(obj["EnabledState"])));
         if (!state.Success) return Failure(state);
         if (!state.HasData)
             return ApiResponse.Fail(Properties.Resources.Error_Net_VmNotFound, kind: ApiErrorKind.NotFound);
-        if (!CanEditMacAddress(state.Data))
-            return ApiResponse.Fail(Properties.Resources.Warn_VmOffRequired);
+        var condition = GetMacModificationCondition(state.Data);
+        if (!condition.CanModify) return condition.ToResponse();
 
         bool toStatic = norm.Length == 12;
         string safeId = adapter.Id.Replace(@"\", @"\\").Replace("'", "\\'");
@@ -455,11 +460,11 @@ public static partial class VmNetworkService
     public static Task<ApiResponse> ApplyOffloadSettingsAsync(Guid vmId, VmNetworkAdapter adapter,
         IReadOnlyCollection<string> changedProperties) => ApplySelectedFeatureAsync(vmId, adapter, changedProperties,
             "Msvm_EthernetSwitchPortOffloadSettingData", OffloadFields);
-    /// <summary>应用明确选中的安全与卸载字段；未涉及的类别不执行。</summary>
+    /// <summary>应用选中的安全与卸载字段。</summary>
     /// <param name="vmId">目标虚拟机 GUID。</param>
     /// <param name="adapter">查询所得网卡及请求值。</param>
     /// <param name="changedProperties">安全或卸载属性名的非空集合，使用 nameof。</param>
-    /// <returns>整体结果；需要已完成类别时使用带 Result 的入口。</returns>
+    /// <returns>仅返回整体成败；需要分别显示安全与卸载设置结果时使用 ApplySecurityAndOffloadSettingsWithResultAsync。</returns>
     public static async Task<ApiResponse> ApplySecurityAndOffloadSettingsAsync(Guid vmId, VmNetworkAdapter adapter,
         IReadOnlyCollection<string> changedProperties)
     {
@@ -467,7 +472,7 @@ public static partial class VmNetworkService
         return result.Success ? ApiResponse.Ok() : ApiResponse.Fail(result.Message, result.Failure?.Code ?? -1, result.Failure?.Source ?? ApiErrorSource.None, kind: result.Failure?.Kind ?? ApiErrorKind.Unspecified);
     }
 
-    /// <summary>先安全后卸载，分别报告本次选择并已完成的类别；后一步失败不回滚前一步。</summary>
+    /// <summary>应用安全与卸载设置，并分别返回两个步骤的结果。先应用安全设置，再应用卸载设置；后一步失败时，已经成功的安全设置保留。</summary>
     /// <param name="vmId">目标虚拟机 GUID。</param>
     /// <param name="adapter">查询所得网卡及请求值。</param>
     /// <param name="changedProperties">安全或卸载属性名的非空集合，使用 nameof；开始前复制全部请求值。</param>

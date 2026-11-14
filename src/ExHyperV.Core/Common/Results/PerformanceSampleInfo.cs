@@ -9,7 +9,7 @@ public enum PerformanceSampleState
     Valid,
     /// <summary>计数器正在建立基线，尚无有效的时间差样本。</summary>
     WarmingUp,
-    /// <summary>本次未取得样本或必需字段，不能推断为零。</summary>
+    /// <summary>本次未取得样本或必需字段。</summary>
     Unavailable,
     /// <summary>当前环境未提供该采集能力。</summary>
     Unsupported,
@@ -22,9 +22,9 @@ public enum PerformanceSampleState
 }
 
 /// <summary>性能值对应的本次读取状态；调用方应先检查 IsValid 再更新数值和历史曲线。</summary>
-/// <param name="State">本次读取状态；不是对上次有效数值的状态描述。</param>
-/// <param name="ObservedAtUtc">本次读取或确认缺测的 UTC 时间；NotSampled 时为默认值，不代表有效采样时间。</param>
-/// <param name="Error">缺测、失败或归属不明确的说明；不应通过解析此文本决定业务分支。</param>
+/// <param name="State">本次读取状态。</param>
+/// <param name="ObservedAtUtc">本次读取或确认缺测的 UTC 时间；NotSampled 时为默认值。</param>
+/// <param name="Error">缺测、失败或归属不明确的说明。</param>
 /// <remarks>状态无效时，关联数值可能是默认值或此前保留值，均不可当作本次新样本。是否继续显示旧值由调用方决定。</remarks>
 public sealed record PerformanceSampleInfo(PerformanceSampleState State, DateTimeOffset ObservedAtUtc, string? Error = null)
 {

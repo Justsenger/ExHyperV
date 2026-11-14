@@ -42,26 +42,14 @@ internal sealed class CategoryCatalog
 
     private static JsonDocument ReadDocumentation(string core)
     {
-        string output = Path.Combine(Path.GetTempPath(), "ExHyperV-api-catalog-" + Guid.NewGuid().ToString("N") + ".html");
-        try
+        string model = Path.GetFullPath(Path.Combine(core, "../../doc/api/API.json"));
+        var data = JsonDocument.Parse(File.ReadAllText(model));
+        if (data.RootElement.GetProperty("schemaVersion").GetInt32() != 1)
         {
-            var start = new ProcessStartInfo("dotnet")
-            {
-                RedirectStandardOutput = true, RedirectStandardError = true,
-                UseShellExecute = false, CreateNoWindow = true
-            };
-            foreach (string argument in new[] { "run", "--project", Path.Combine(core, "Documentation", "Generator"),
-                "--no-launch-profile", "--", "--html", output, "--root", core }) start.ArgumentList.Add(argument);
-            using var process = Process.Start(start) ?? throw new InvalidOperationException("API generator failed to start.");
-            var stdout = process.StandardOutput.ReadToEndAsync();
-            var stderr = process.StandardError.ReadToEndAsync();
-            if (!process.WaitForExit(120_000)) { process.Kill(entireProcessTree: true); throw new TimeoutException("API generator timed out."); }
-            if (process.ExitCode != 0) throw new InvalidOperationException("Core API metadata generation failed:\n" + stdout.GetAwaiter().GetResult() + stderr.GetAwaiter().GetResult());
-            var match = Regex.Match(File.ReadAllText(output), "<script type=\"application/json\" id=\"api-data\">(?<data>.*?)</script>", RegexOptions.Singleline);
-            if (!match.Success) throw new InvalidDataException("Core API website metadata was not found.");
-            return JsonDocument.Parse(match.Groups["data"].Value);
+            data.Dispose();
+            throw new InvalidDataException("Unsupported API metadata version.");
         }
-        finally { if (File.Exists(output)) File.Delete(output); }
+        return data;
     }
 
     public string Category(string api)

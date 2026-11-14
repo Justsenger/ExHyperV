@@ -1,4 +1,5 @@
 using System.Management;
+using ExHyperV.Models;
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
@@ -20,9 +21,16 @@ public static partial class VmConsoleSupportService
 
     /// <summary>判断是否允许添加或移除基本控制台所需的合成设备。</summary>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <returns>仅第二代且未运行时允许。</returns>
-    public static bool CanToggleConsoleSupport(int generation, bool isRunning) => generation == 2 && !isRunning;
+    internal static bool CanToggleConsoleSupport(int generation, bool isRunning) => generation == 2 && !isRunning;
+
+    /// <summary>评估基本控制台开关的修改条件。</summary>
+    /// <param name="generation">查询得到的虚拟机代数。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>第二代虚拟机关机后允许修改；不满足时返回原因。</returns>
+    public static VmModificationCondition GetModificationCondition(int generation, VmState state) => generation == 2
+        ? VmModificationCondition.PoweredOff(state) : VmModificationCondition.Unsupported();
 
     /// <summary>按稳定身份读取控制台名称、运行状态及增强会话可用性。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
@@ -65,7 +73,7 @@ public static partial class VmConsoleSupportService
 
     /// <summary>检查 Hyper-V 当前是否报告增强会话可用。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <returns>原始状态 2 返回 true，3（不允许）、6（允许但尚不可用）及其他值返回 false；当前实现也把 null 折为 false。查询失败或找不到虚拟机返回失败。</returns>
+    /// <returns>状态 2 为 true，其余状态或空值为 false。读取失败或虚拟机不存在时返回错误。</returns>
     public static async Task<ApiResponse<bool>> IsEnhancedSessionAvailableAsync(Guid vmId)
     {
         if (vmId == Guid.Empty) return ApiResponse<bool>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
@@ -93,8 +101,8 @@ public static partial class VmConsoleSupportService
         using var vm = WmiApi.GetVmComputerSystem(vmId);
         if (vm == null) return ApiResponse.Fail(Properties.Resources.Error_Net_VmNotFound, kind: ApiErrorKind.NotFound);
         var state = VmConfigurationState.Read(vm);
-        if (!CanToggleConsoleSupport(state.Generation, state.IsRunning))
-            return ApiResponse.Fail(state.Generation == 2 ? Properties.Resources.Warn_VmOffRequired : Properties.Resources.Error_VerNotSupport);
+        var condition = GetModificationCondition(state.Generation, state.State);
+        if (!condition.CanModify) return condition.ToResponse();
         using var svcForScope = WmiApi.GetVirtualSystemManagementService();
         var scope = svcForScope.Scope;
         string guid = vm["Name"]?.ToString() ?? "";

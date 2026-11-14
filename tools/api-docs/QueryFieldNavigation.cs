@@ -5,7 +5,7 @@ using System.Xml.Linq;
 
 internal static partial class ApiDocument
 {
-    // Read labels from the field declarations, rather than maintaining a second catalog.
+    // Documentation may refine a display label without changing the runtime field metadata.
     private sealed record QueryFieldNavigation(string key, string label, string category, string expression, string valueType,
         int order, string summaryHtml, string? enumTypeId, string valuesHtml, string descriptionHtml, string detailsHtml);
 
@@ -26,7 +26,7 @@ internal static partial class ApiDocument
         string Text(int index) => arguments is { } values && values.Count > index
             && values[index].Expression is LiteralExpressionSyntax { Token.Value: string text } ? text
             : throw new InvalidOperationException($"查询字段 {type.Name}.{member.Name} 的标识、名称及分类必须可从声明中读取。");
-        string label = Text(1);
+        string label = (string?)member.Doc.Element("fielddoc")?.Attribute("label") ?? Text(1);
         var valueType = fieldType.TypeArguments[0];
         var enumType = valueType is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
             ? nullable.TypeArguments[0] : valueType;

@@ -36,6 +36,7 @@ internal static partial class ApiCaseRegistry
         AddSnapshotCases(Add);
         AddConfigurationRuleCases(Add);
         AddStorageRuleCases(Add);
+        AddConditionCases(Add);
         foreach (var plan in TestPlanner.Catalog.Where(item => HostReadApiCases.Supports(item.Api)))
             cases.Add(plan.Id, new(plan.Id, plan.Api, context => { HostReadApiCases.Run(plan.Api, context); return Task.CompletedTask; }, UsesHostResources: true));
         foreach (var plan in TestPlanner.Catalog.Where(item => item.Api == "IsoBuilderService.BuildUdfIso()"))

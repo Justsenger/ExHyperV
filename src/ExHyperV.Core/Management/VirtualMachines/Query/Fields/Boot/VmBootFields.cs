@@ -11,7 +11,7 @@ public static class VmBootFields
     /// <meaning>启动项在固件启动顺序中的位置。</meaning>
     /// <source>VmBootService.GetBootOrderAsync 的固件启动条目，读取或派生 Order。</source>
     /// <references><see cref="VmBootService"/>。</references>
-    /// <modification kind="supported" input="items" submission="完整顺序列表">顺序针对完整启动项列表。第二代通过稳定设备路径识别启动项；第一代虚拟机运行时不能修改启动顺序。<see cref="VmBootService.SetBootOrderAsync"/></modification>
+    /// <modification kind="supported" input="items" submission="完整顺序列表">顺序针对完整启动项列表。第二代通过稳定设备路径识别启动项；第一代虚拟机运行时不能修改启动顺序。<see cref="M:ExHyperV.Services.VmBootService.SetBootOrderAsync(System.Guid,System.Collections.Generic.List{ExHyperV.Models.BootOrderItem})"/></modification>
     /// <values kind="format">从 <c>0</c> 开始的整数序号。</values>
     /// </fielddoc>
     public static readonly VmQueryField<int> Order = new("Boot.Order", "启动顺序位置", "引导", VmQueryCollection.BootEntries, "Boot", "Order");
@@ -21,7 +21,7 @@ public static class VmBootFields
     /// <meaning>固件启动项的显示名称。</meaning>
     /// <source>VmBootService.GetBootOrderAsync 的固件启动条目，读取或派生 Name。</source>
     /// <references><see cref="VmBootService"/>。</references>
-    /// <modification kind="readonly">用于识别启动设备的查询描述；当前启动顺序接口不修改设备名称、类型或描述。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> Name = new("Boot.Name", "启动项名称", "引导", VmQueryCollection.BootEntries, "Boot", "Name");
 
@@ -30,7 +30,7 @@ public static class VmBootFields
     /// <meaning>固件启动项对应的设备类型。</meaning>
     /// <source>VmBootService.GetBootOrderAsync 的固件启动条目，读取或派生 Kind。</source>
     /// <references><see cref="VmBootService"/>。</references>
-    /// <modification kind="readonly">用于识别启动设备的查询描述；当前启动顺序接口不修改设备名称、类型或描述。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<BootDeviceKind> Kind = new("Boot.Kind", "启动项类型", "引导", VmQueryCollection.BootEntries, "Boot", "Kind");
 
@@ -39,7 +39,7 @@ public static class VmBootFields
     /// <meaning>启动模块提供的启动项说明。</meaning>
     /// <source>VmBootService.GetBootOrderAsync 的固件启动条目，读取或派生 Description。</source>
     /// <references><see cref="VmBootService"/>。</references>
-    /// <modification kind="readonly">用于识别启动设备的查询描述；当前启动顺序接口不修改设备名称、类型或描述。</modification>
+    /// <modification kind="readonly" />
     /// </fielddoc>
     public static readonly VmQueryField<string> Description = new("Boot.Description", "启动项描述", "引导", VmQueryCollection.BootEntries, "Boot", "Description");
 

@@ -77,10 +77,11 @@ public sealed class VmBootSettingsView : VmSettingsView
         {
             entries.Clear();
             foreach (var item in result.Data!) entries.Add(new BootEntry(item));
-            bool canEdit = VmBootService.CanChangeBootOrder(context.Generation, context.IsRunning);
+            var condition = VmBootService.GetBootOrderModificationCondition(context.Generation, context.State);
+            bool canEdit = condition.CanModify;
             list.IsEnabled = canEdit;
             list.Opacity = canEdit ? 1 : .6;
-            if (!canEdit) ShowInformation("第一代虚拟机需要关机后才能调整引导顺序。");
+            if (!canEdit) ShowInformation(condition.Reason);
         }
         finally { Updating = false; }
     }

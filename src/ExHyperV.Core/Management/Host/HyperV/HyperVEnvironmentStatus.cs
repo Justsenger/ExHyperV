@@ -13,7 +13,7 @@ public enum HyperVCheckStage
     Wmi
 }
 
-/// <summary>一个运行检查的结论；无法确认不等于明确不可用。</summary>
+/// <summary>运行环境检查的结果。</summary>
 public enum HyperVCheckState
 {
     /// <summary>此前阶段已遇到问题，本次未执行此检查。</summary>
@@ -35,7 +35,7 @@ public enum HyperVDiagnosticKind
     NotRunning,
     /// <summary>成功查询后没有找到目标服务或实例。</summary>
     NotFound,
-    /// <summary>本次等待读取结果已超时，不表示底层调用已取消。</summary>
+    /// <summary>等待读取结果已超时，底层调用可能仍在执行。</summary>
     Timeout,
     /// <summary>读取被拒绝或缺少所需特权。</summary>
     AccessDenied,
@@ -75,7 +75,7 @@ public enum VmmsImageState
     Exists,
     /// <summary>文件系统明确报告文件或所在目录不存在。</summary>
     Missing,
-    /// <summary>路径含糊、格式无效或读取失败，不能认定文件缺失。</summary>
+    /// <summary>路径含糊、格式无效或读取失败。</summary>
     Unknown
 }
 

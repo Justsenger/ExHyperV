@@ -6,7 +6,7 @@ namespace ExHyperV.Tools;
 /// <param name="Kind">业务错误类别。</param>
 /// <param name="Code">原始接口错误码；没有原始码时为 -1。</param>
 /// <param name="Source">错误码所属接口。</param>
-/// <param name="Message">面向人的说明，不作为稳定匹配条件。</param>
+/// <param name="Message">供人阅读的错误说明。</param>
 public sealed record ApiFailure(ApiErrorKind Kind, int Code, ApiErrorSource Source, string Message)
 {
     internal static ApiFailure? From(ApiResponse result) => result.Success ? null : new(result.ErrorKind, result.Code, result.ErrorSource, result.Error);
@@ -28,11 +28,11 @@ public enum OperationStepState
     Succeeded,
     /// <summary>已报告失败，之前步骤的副作用不因此撤销。</summary>
     Failed,
-    /// <summary>请求可能仍在执行，不能据此重试或回滚。</summary>
+    /// <summary>任务结果待确认，重试或清理前先核实状态。</summary>
     OutcomeUnknown
 }
 
-/// <summary>宿主操作已确认的重启原因；仅说明需要重启，不会触发重启。</summary>
+/// <summary>本次宿主操作报告的重启原因。</summary>
 public enum RestartReason
 {
     /// <summary>本机 Windows 组件包登记返回了重启要求。</summary>

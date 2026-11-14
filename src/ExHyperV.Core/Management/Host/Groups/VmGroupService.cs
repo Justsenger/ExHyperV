@@ -73,8 +73,8 @@ public static class VmGroupService
     /// <param name="name">分组显示名称。</param>
     /// <param name="kind">组类型：容纳虚拟机的集合组或容纳子组的管理组。</param>
     /// <param name="parentId">可选父分组 GUID；null 表示创建顶层分组。</param>
-    /// <returns>新分组 GUID；失败抛出异常，回滚失败时可能包含聚合错误。底层结果尚未确认时保留现状，不自动补偿或重试。</returns>
-    /// <remarks>指定的父组若为空的虚拟机组，会先重建为容纳子组的管理组，父组 GUID 随之改变；本返回值只有新建子组的 GUID，调用后须重新读取父组关系。后续创建失败也不保证恢复原父组身份。</remarks>
+    /// <returns>新分组 GUID；失败抛出异常，回滚失败时可能包含聚合错误。结果未知时保留现场，等待核实。</returns>
+    /// <remarks>空的虚拟机父组会先重建为管理组，父组 GUID 随之改变；重建完成后，即使创建子组失败也可能保留新父组。调用后重新读取父组关系。</remarks>
     /// <exception cref="CoreOperationException">创建或补偿操作的结果尚未确认；Result.ErrorKind 为 OutcomeUnknown，保留现状。</exception>
     /// <editentry label="创建分组" category="分组"/>
     public static async Task<Guid> CreateAsync(string name, VmGroupKind kind, Guid? parentId)
@@ -177,7 +177,7 @@ public static class VmGroupService
     /// <summary>按 GUID 重命名分组；失败以异常报告。</summary>
     /// <param name="id">目标分组 GUID。</param>
     /// <param name="name">分组显示名称。</param>
-    /// <exception cref="CoreOperationException">重命名结果尚未确认；不能将其视为没有修改。</exception>
+    /// <exception cref="CoreOperationException">重命名结果待确认。</exception>
     /// <editentry label="分组名称" category="分组"/>
     public static async Task RenameAsync(Guid id, string name)
     {

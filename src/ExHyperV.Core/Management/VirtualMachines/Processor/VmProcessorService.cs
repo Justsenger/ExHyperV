@@ -5,11 +5,10 @@ using System.Runtime.InteropServices;
 
 namespace ExHyperV.Services;
 
-/// <summary>读取、校验和写入虚拟处理器配置及宿主相关高级选项。</summary>
-/// <remarks>修改入口只读取 changedProperties 中的属性；同字段使用本次请求值，不比较调用方的旧快照或版本。
-/// CPU 与内存写入按 VM 跨 Core 进程串行，锁覆盖重新读取与本次所有修改；不阻止 PowerShell 等外部工具，也不承诺失败时整体回滚。</remarks>
+/// <summary>查询和修改虚拟机处理器配置。</summary>
+/// <remarks>同一虚拟机的处理器和内存修改在 Core 进程之间依次执行。选中字段以本次请求值为准；一次操作失败时，已完成的修改可能保留。</remarks>
 /// <example>
-/// <para>只把处理器数量改为 6；无需先读取整份配置，也不会把模型中的其他默认值作为修改请求。</para>
+/// <para>将处理器数量改为 6：</para>
 /// <code>
 /// using ExHyperV.Models;
 /// using ExHyperV.Services;
@@ -30,7 +29,7 @@ public static partial class VmProcessorService
         var identity = await VmIdentity.ResolveAsync(vmName);
         if (!identity.HasData) return null;
         var response = await GetVmProcessorAsync(identity.Data);
-        return response.HasData ? response.Data : null;
+        return response.HasData ? response.Data.Values : null;
     }
 
 
@@ -48,14 +47,14 @@ public static partial class VmProcessorService
     /// <param name="HardwareIsolationSupported">是否支持 SNP 或 TDX 硬件隔离。</param>
     public sealed record HostCapabilities(bool IsIntel, bool IsArm64, bool HardwareIsolationSupported)
     {
-        /// <summary>按当前规则由非 ARM64 推导出的 x64 能力标记。</summary>
+        /// <summary>宿主是否为 x64 平台。</summary>
         public bool IsX64 => !IsArm64;
     }
 
-    /// <summary>生成从 1 开始的二次幂选项，并包含宿主逻辑处理器总数。</summary>
-    /// <param name="logicalProcessorCount">宿主逻辑处理器总数，调用者应提供正数。</param>
-    /// <returns>去重后升序的处理器数量选项。</returns>
-    public static IReadOnlyList<int> GetProcessorCountOptions(int logicalProcessorCount)
+    /// <summary>生成可供选择的虚拟处理器数量。</summary>
+    /// <param name="logicalProcessorCount">宿主逻辑处理器总数，正整数。</param>
+    /// <returns>按升序排列的 1、2、4、8 等数量，以及宿主逻辑处理器总数。例如总数为 12 时返回 [1, 2, 4, 8, 12]。</returns>
+    internal static IReadOnlyList<int> GetProcessorCountOptions(int logicalProcessorCount)
     {
         var options = new SortedSet<int>();
         for (long count = 1; count <= logicalProcessorCount; count *= 2) options.Add((int)count);
@@ -63,7 +62,7 @@ public static partial class VmProcessorService
         return options.ToArray();
     }
 
-    /// <summary>根据宿主平台和隔离类型计算处理器设置所需的能力标记。</summary>
+    /// <summary>根据给定的平台和隔离信息生成宿主处理器能力。</summary>
     /// <param name="platform">已检测的宿主原生 CPU 平台。</param>
     /// <param name="isolationSupported">宿主是否报告硬件隔离支持。</param>
     /// <param name="isolationTypes">宿主提供的隔离类型名称；SNP 或 TDX 用于判定硬件隔离能力。</param>
@@ -72,8 +71,8 @@ public static partial class VmProcessorService
         => new(platform == HostProcessorPlatform.Intel, platform == HostProcessorPlatform.Arm64,
             isolationSupported && isolationTypes.Any(type => type is "SNP" or "TDX"));
 
-    /// <summary>读取宿主 CPU 平台和隔离支持后计算处理器配置能力。</summary>
-    /// <returns>成功时返回当前宿主能力；查询异常返回失败原因。</returns>
+    /// <summary>查询宿主处理器架构和硬件隔离能力。</summary>
+    /// <returns>宿主能力，或查询失败的原因。</returns>
     public static async Task<ApiResponse<HostCapabilities>> GetHostCapabilitiesAsync()
     {
         try
@@ -93,30 +92,23 @@ public static partial class VmProcessorService
 
     /// <summary>当前操作系统是否为 ARM64 架构。</summary>
     public static bool IsArm64Host => RuntimeInformation.OSArchitecture == Architecture.Arm64;
-    /// <summary>判断是否允许修改要求完全关机的处理器设置。</summary>
-    /// <param name="isPoweredOff">是否已完全关机；保存、挂起或其他状态应传 false。</param>
-    /// <returns>电源状态为关机时返回 true；运行、保存及挂起状态均返回 false。</returns>
-    public static bool CanEditOfflineSettings(bool isPoweredOff) => isPoweredOff;
-    /// <summary>判断 PMU 依赖功能能否切换；已启用项仍允许关闭。</summary>
-    /// <param name="currentValue">当前 PMU 依赖项状态；null 表示未取得当前值，不代表不支持该属性。</param>
-    /// <param name="pmu">当前 PMU 状态；null 表示未取得当前值，不代表不支持该属性。</param>
-    /// <returns>该项已启用或 PMU 已启用时为 true。</returns>
-    public static bool CanTogglePerfmonDependent(bool? currentValue, bool? pmu) => currentValue == true || pmu == true;
-    /// <summary>判断 PMU 能否切换，防止在 PEBS 或 IPT 仍启用时关闭 PMU。</summary>
-    /// <param name="pmu">当前 PMU 状态；null 表示未取得当前值，不代表不支持该属性。</param>
-    /// <param name="pebs">当前 PEBS 状态；null 表示未取得当前值，不代表不支持该属性。</param>
-    /// <param name="ipt">当前 IPT 状态；null 表示未取得当前值，不代表不支持该属性。</param>
-    /// <returns>允许切换时为 true。</returns>
-    public static bool CanTogglePerfmonPmu(bool? pmu, bool? pebs, bool? ipt) => pmu != true || (pebs != true && ipt != true);
 
-    /// <summary>比较处理器设置，检查离线限制、宿主架构与 PMU 依赖。</summary>
+    /// <summary>检查计划修改的处理器配置是否满足电源状态、宿主架构和 PMU 依赖条件。</summary>
     /// <param name="current">从主机读取的当前处理器配置。</param>
     /// <param name="requested">计划应用的新处理器配置。</param>
-    /// <param name="isPoweredOff">是否已完全关机；保存、挂起或其他状态应传 false。</param>
+    /// <param name="isPoweredOff">虚拟机是否已完全关机。</param>
     /// <param name="host">当前宿主架构和隔离能力。</param>
-    /// <returns>首个限制说明；无当前检查错误时为 null。</returns>
-    public static string? GetChangeError(VmProcessorSettings current, VmProcessorSettings requested,
+    /// <returns>发现的第一个问题；通过检查时为 null。</returns>
+    internal static string? GetChangeError(VmProcessorSettings current, VmProcessorSettings requested,
         bool isPoweredOff, HostCapabilities host)
+    {
+        var result = ValidateProcessorChange(current, requested,
+            isPoweredOff ? VmState.PoweredOff : VmState.Running, host);
+        return result.Success ? null : result.Error;
+    }
+
+    internal static ApiResponse ValidateProcessorChange(VmProcessorSettings current, VmProcessorSettings requested,
+        VmState state, HostCapabilities host)
     {
         foreach (var property in typeof(VmProcessorSettings).GetProperties())
         {
@@ -128,9 +120,50 @@ public static partial class VmProcessorService
                 after ??= "";
             }
             if (Equals(before, after)) continue;
-            if (!CanEditOfflineSettings(isPoweredOff) && !IsRuntimeSetting(property.Name))
-                return Properties.Resources.Warn_VmOffRequired;
-            bool available = property.Name switch
+            var condition = GetProcessorCondition(property.Name, state, host);
+            if (!condition.CanModify) return condition.ToResponse();
+        }
+
+        return GetPerfmonCondition(current, requested).ToResponse();
+    }
+
+    /// <summary>评估一项处理器设置的修改条件。</summary>
+    /// <param name="settings">已读取的配置或当前编辑草稿，保留查询返回的支持信息。</param>
+    /// <param name="propertyName">要修改的处理器设置成员名。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <param name="host">查询得到的宿主处理器能力。</param>
+    /// <returns>是否允许修改及原因。开关按切换到相反值评估，其他设置检查状态和平台条件。</returns>
+    /// <remarks>使用传入的快照，不查询宿主。实际修改会重新读取配置并检查完整请求。</remarks>
+    public static VmModificationCondition GetModificationCondition(VmProcessorSettings settings, string propertyName,
+        VmState state, HostCapabilities host)
+    {
+        if (!ProcessorProperties.TryGetValue(propertyName, out var mapping))
+            return VmModificationCondition.Denied("未知的处理器设置。", ApiErrorKind.InvalidArgument);
+        if (!settings.SupportedProps.Contains(mapping.NativeName))
+            return VmModificationCondition.Unsupported("当前宿主未提供此设置。");
+        var condition = GetProcessorCondition(propertyName, state, host);
+        if (!condition.CanModify) return condition;
+        var requested = new VmProcessorSettings
+        {
+            EnablePerfmonPmu = settings.EnablePerfmonPmu,
+            EnablePerfmonPebs = settings.EnablePerfmonPebs,
+            EnablePerfmonIpt = settings.EnablePerfmonIpt
+        };
+        switch (propertyName)
+        {
+            case nameof(VmProcessorSettings.EnablePerfmonPmu): requested.EnablePerfmonPmu = settings.EnablePerfmonPmu != true; break;
+            case nameof(VmProcessorSettings.EnablePerfmonPebs): requested.EnablePerfmonPebs = settings.EnablePerfmonPebs != true; break;
+            case nameof(VmProcessorSettings.EnablePerfmonIpt): requested.EnablePerfmonIpt = settings.EnablePerfmonIpt != true; break;
+            default: return condition;
+        }
+        return GetPerfmonCondition(settings, requested);
+    }
+
+    private static VmModificationCondition GetProcessorCondition(string propertyName, VmState state, HostCapabilities host)
+    {
+            if (state != VmState.PoweredOff && !IsRuntimeSetting(propertyName))
+                return VmModificationCondition.PoweredOff(state);
+            bool available = propertyName switch
             {
                 nameof(VmProcessorSettings.CompatibilityForOlderOperatingSystemsEnabled) or
                 nameof(VmProcessorSettings.CpuBrandString) or nameof(VmProcessorSettings.ApicMode) or
@@ -141,17 +174,20 @@ public static partial class VmProcessorService
                 nameof(VmProcessorSettings.HardwareIsolationExtensionsEnabled) or nameof(VmProcessorSettings.MaxHwIsolatedGuests) => host.HardwareIsolationSupported,
                 _ => true
             };
-            if (!available) return Properties.Resources.Error_VerNotSupport;
-        }
+            if (!available) return VmModificationCondition.Unsupported();
+        return VmModificationCondition.Allowed;
+    }
 
+    private static VmModificationCondition GetPerfmonCondition(VmProcessorSettings current, VmProcessorSettings requested)
+    {
         int requestedDependents = (requested.EnablePerfmonPebs == true ? 1 : 0) + (requested.EnablePerfmonIpt == true ? 1 : 0);
         if (requestedDependents > 0 && requested.EnablePerfmonPmu != true)
         {
             int currentDependents = (current.EnablePerfmonPebs == true ? 1 : 0) + (current.EnablePerfmonIpt == true ? 1 : 0);
             if (!(current.EnablePerfmonPmu != true && requestedDependents < currentDependents))
-                return Properties.Resources.Cpu_PerfmonPmuRequired;
+                return VmModificationCondition.Denied(Properties.Resources.Cpu_PerfmonPmuRequired, ApiErrorKind.InvalidArgument);
         }
-        return null;
+        return VmModificationCondition.Allowed;
     }
 
     private static bool IsRuntimeSetting(string propertyName) => propertyName is
@@ -162,14 +198,13 @@ public static partial class VmProcessorService
         nameof(VmProcessorSettings.PerfCpuFreqDesiredMhz) or nameof(VmProcessorSettings.PerfCpuEnergyPerformancePreference) or
         nameof(VmProcessorSettings.PerfCpuAutonomousActivityWindow) or nameof(VmProcessorSettings.PerfCpuIgnoreHostMaxFrequency);
 
-    /// <summary>读取处理器数量、资源限制和宿主支持的高级处理器属性。</summary>
-    /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <returns>成功时返回处理器设置；虚拟机或配置不存在为 NotFound，查询失败保留错误；可空高级属性表示主机未提供数据。</returns>
-    /// <remarks>可空字段未取得当前值时保留 null，不补为 false、0 或空字符串。宿主是否提供该字段由返回模型的 Supports 或 SupportedCapabilities 单独判断；字段存在不保证当前状态下允许修改。部分数值字段仍将底层未设置编码归一为 null，具体见设置模型说明。</remarks>
-    public static async Task<ApiResponse<VmProcessorSettings>> GetVmProcessorAsync(Guid vmId)
+    /// <summary>读取虚拟机的处理器配置。</summary>
+    /// <param name="vmId">目标虚拟机的标识。</param>
+    /// <returns>处理器配置及支持的设置项。虚拟机或配置不存在时返回 NotFound；查询失败时附带原因。可空值的含义见 <see cref="VmProcessorSettings"/>。</returns>
+    public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId)
     {
         if (vmId == Guid.Empty)
-            return ApiResponse<VmProcessorSettings>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
+            return ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
         string query = $"SELECT * FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}";
 
         var results = await WmiApi.QueryAsync(query, vmEntry =>
@@ -184,24 +219,25 @@ public static partial class VmProcessorService
             using var procData = processors.Cast<ManagementObject>().FirstOrDefault();
             if (procData == null) return null;
 
-            return MapProcessor(procData);
+            return MapProcessorSnapshot(MapProcessor(procData),
+                procData.Properties.Cast<PropertyData>().ToDictionary(p => p.Name, p => (object?)p.Value));
         });
 
         if (!results.Success)
-            return ApiResponse<VmProcessorSettings>.Fail(results.Error, results.Code, results.ErrorSource, results.Exception, results.ErrorKind);
+            return ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>.Fail(results.Error, results.Code, results.ErrorSource, results.Exception, results.ErrorKind);
         var settings = results.Data?.FirstOrDefault();
         return settings == null
-            ? ApiResponse<VmProcessorSettings>.Fail(Properties.Resources.Error_Cpu_ConfigNotFound, kind: ApiErrorKind.NotFound)
-            : ApiResponse<VmProcessorSettings>.Ok(settings);
+            ? ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>.Fail(Properties.Resources.Error_Cpu_ConfigNotFound, kind: ApiErrorKind.NotFound)
+            : ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>.Ok(settings);
     }
 
-    /// <summary>按当前宿主能力和虚拟机状态校验并写入处理器设置。</summary>
-    /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="newSettings">目标处理器配置；仅取 changedProperties 列出的属性；资源比例采用 0.001% 原始单位。</param>
-    /// <param name="changedProperties">要提交的属性名集合，不能为空。例如仅修改处理器数量时包含 <c>nameof(VmProcessorSettings.Count)</c>。未选择字段保持取得虚拟机设置锁后读到的值。同字段按本次值覆盖，不比较旧值或版本。CPU 与内存设置在同一虚拟机上跨 Core 进程串行；不阻止外部工具修改。</param>
-    /// <returns>成功响应或包含校验/原生执行原因的失败响应。页拆分和 L3 缓存路数写入后会再次读取，无法取得实际值时返回 OutcomeUnknown，读回值不同为 Conflict；不据空值推断该字段不受支持。</returns>
-    /// <remarks>可空字段的 null 通常忽略，不写入。例外：CpuBrandString 的 null 清为空字符串；PerfCpuFreqDesiredMhz、PerfCpuEnergyPerformancePreference、PerfCpuAutonomousActivityWindow、MaxClusterCountPerSocket 和 MaxProcessorCountPerL3 的 null 写入底层未设置编码以恢复默认。未选择的字段始终不作为请求。全部选择均被忽略或与当前值相同则不提交配置。</remarks>
-    /// <example><code>
+    /// <summary>修改选中的处理器设置。</summary>
+    /// <param name="vmId">目标虚拟机的标识。</param>
+    /// <param name="newSettings">各项设置的新值。空值的写入规则见 <see cref="VmProcessorSettings"/>。</param>
+    /// <param name="changedProperties">本次要修改的属性名，至少指定一项。</param>
+    /// <returns>修改结果。需要关机时返回 InvalidState 和关机提示；平台不支持时返回 Unsupported，PMU 依赖不满足时返回 InvalidArgument。页拆分策略和 L3 缓存路数写入后回读：无法核实为 OutcomeUnknown，结果不一致为 Conflict。</returns>
+    /// <remarks>Core 在提交前读取当前电源状态、处理器配置和宿主能力并检查修改条件。</remarks>
+    /// <example><para>将处理器数量改为 4：</para><code>
     /// using System;
     /// using System.Threading.Tasks;
     /// using ExHyperV.Models;
@@ -243,7 +279,7 @@ public static partial class VmProcessorService
             if (!host.HasData)
                 return ApiResponse.Fail(host.Error, host.Code, host.ErrorSource, host.Exception, host.ErrorKind);
             string query = $"SELECT * FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}";
-            string? validationError = null;
+            ApiResponse? validation = null;
             ApiResponse? selectionError = null;
             bool noChanges = false;
             string? processorPath = null;
@@ -268,8 +304,9 @@ public static partial class VmProcessorService
                 var current = MapProcessor(procData);
                 var newSettings = MergeProcessorSelection(current, selection);
 
-                validationError = GetChangeError(current, newSettings, Convert.ToUInt16(vmEntry["EnabledState"]) == 3, host.Data);
-                if (validationError != null) return null;
+                validation = ValidateProcessorChange(current, newSettings,
+                    VmMapper.MapState(Convert.ToUInt16(vmEntry["EnabledState"])), host.Data);
+                if (!validation.Success) return null;
 
                 var writes = BuildProcessorWrites(current, newSettings, selection);
                 if (writes.Count == 0) { noChanges = true; return null; }
@@ -292,8 +329,7 @@ public static partial class VmProcessorService
             if (!xmlResults.Success)
                 return ApiResponse.Fail(xmlResults.Error, xmlResults.Code, xmlResults.ErrorSource, xmlResults.Exception, xmlResults.ErrorKind);
             if (selectionError != null) return selectionError;
-            if (!string.IsNullOrEmpty(validationError))
-                return ApiResponse.Fail(validationError, kind: ApiErrorKind.InvalidState);
+            if (validation is { Success: false }) return validation;
             if (noChanges) return ApiResponse.Ok();
 
             string? xml = xmlResults.Data?.FirstOrDefault();
@@ -326,6 +362,11 @@ public static partial class VmProcessorService
                 exception: ex, kind: ApiErrorKind.OperationFailed);
         }
     }
+
+    internal static VmSettingsSnapshot<VmProcessorSettings> MapProcessorSnapshot(VmProcessorSettings settings,
+        IReadOnlyDictionary<string, object?> raw)
+        => new(settings, ProcessorProperties.ToDictionary(pair => pair.Key,
+            pair => SettingsSnapshot.State(raw, pair.Value.NativeName)), value => value.Clone());
 
     private static VmProcessorSettings MapProcessor(ManagementObject procData) =>
         new VmProcessorSettings

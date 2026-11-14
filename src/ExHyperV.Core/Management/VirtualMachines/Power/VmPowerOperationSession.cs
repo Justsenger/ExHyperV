@@ -27,10 +27,10 @@ public enum VmPowerRepairKind {
 /// <param name="Kind">本次需要确认的修复类型。</param>
 /// <param name="Title">可供调用者展示的确认标题。</param>
 /// <param name="Message">修复原因和拟采取操作的确认正文。</param>
-/// <param name="ConfirmText">确认按钮建议文案，不作为机器判定条件。</param>
+/// <param name="ConfirmText">确认按钮建议文案。</param>
 public sealed record VmPowerRepairConfirmation(VmPowerRepairKind Kind, string Title, string Message, string ConfirmText)
 {
-    /// <summary>本次确认请求的唯一编号；提交决定时原样回传，不能用另一会话或旧请求的编号批准当前修复。</summary>
+    /// <summary>本次确认请求的唯一编号，提交决定时原样回传。</summary>
     public Guid RequestId { get; } = Guid.NewGuid();
     /// <summary>本次 GPU 修复清单及每个设备的候选；其他修复类型为空。列表只读，选择通过 SubmitDecisionAsync 提交。</summary>
     public IReadOnlyList<VmGpuRepairService.StaleGpuPartition> GpuTargets { get; internal init; } = Array.Empty<VmGpuRepairService.StaleGpuPartition>();
@@ -66,7 +66,7 @@ public sealed class VmPowerOperationSession
     /// <summary>是否已有修复步骤失败。</summary>
     public bool RepairFailed { get; private set; }
 
-    /// <summary>为稳定身份对应的虚拟机建立一次电源及修复流程，尚不执行操作。</summary>
+    /// <summary>为指定虚拟机创建电源与修复流程。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID；空值在推进时返回失败。</param>
     /// <param name="action">电源动作；未定义值在推进时返回失败。</param>
     /// <param name="displayName">可选显示名称，只用于消息；省略时显示 GUID。</param>
@@ -124,7 +124,7 @@ public sealed class VmPowerOperationSession
 
     /// <summary>提交当前修复确认的决定；批准后执行修复并转为可重试，拒绝则结束为取消。</summary>
     /// <param name="requestId">用户实际确认的 Confirmation.RequestId；不匹配时保留待确认状态，Failure 返回 Conflict，不修复或取消当前请求。</param>
-    /// <param name="approve">用户是否同意当前修复；false 将会话结束为取消，不执行修复。</param>
+    /// <param name="approve">是否同意当前修复；false 取消会话。</param>
     /// <param name="gpuSelections">待修复设备 Instance GUID 到候选 Id 的映射；每个多候选设备必须提供一项。只提交本次清单内的选择，方法开始时复制映射。</param>
     /// <remarks>选卡缺失或无效时保留 AwaitingConfirmation，通过 Failure 和 Error 说明原因，调用方可以更正后再提交；此时没有执行任何修复。</remarks>
     /// <exception cref="InvalidOperationException">当前不在待确认阶段，或同一实例已有正在执行的修改。</exception>
@@ -197,7 +197,7 @@ public sealed class VmPowerOperationSession
     /// <summary>连续推进电源流程；遇到确认时调用 decide，未提供决定回调则停在待确认状态。</summary>
     /// <param name="decide">没有选卡需求时，用此回调批准或拒绝修复；null 或 RequiresGpuSelection 为 true 时停在 AwaitingConfirmation。需要选卡时读取 Confirmation.GpuTargets，再调用 SubmitDecisionAsync 传入选择。</param>
     /// <param name="changed">每次推进后接收当前会话的通知，可为 null；调用者负责界面线程切换。</param>
-    /// <remarks>同一实例不得并发调用推进或提交决定。终态不可重新执行；新的电源操作应创建新实例。决定或通知回调抛出的异常会传播给调用者，不会自动将会话改为 Failed。</remarks>
+    /// <remarks>同一实例依次推进和提交决定；每次新的电源操作创建新实例。决定或通知回调抛出的异常直接传播，会话保留当时状态。</remarks>
     public async Task RunAsync(Func<VmPowerRepairConfirmation, Task<bool>>? decide = null,
         Action<VmPowerOperationSession>? changed = null)
     {

@@ -76,21 +76,6 @@ internal static partial class ApiCaseRegistry
             }
             c.Throws<OverflowException>(() => c.Call(() => a.Union(new(int.MaxValue, 1, 1, 1))), "坐标溢出");
         }]);
-        add("ConsoleAudioPacket.构造()", [c =>
-        {
-            var format = new ConsoleAudioFormat(48000, 2, ConsoleAudioSampleFormat.Signed16LittleEndian);
-            byte[] samples = [1, 2, 3, 4];
-            var packet = c.Call(() => new ConsoleAudioPacket(format, samples, 5, TimeSpan.FromMilliseconds(10)));
-            samples[0] = 255;
-            c.Sequence(new byte[] { 1, 2, 3, 4 }, packet.Samples.ToArray(), "采样独立复制");
-            c.Equal(format, packet.Format, "音频格式"); c.Equal(5L, packet.Sequence, "包序号");
-            c.Equal(TimeSpan.FromMilliseconds(10), packet.Timestamp, "时间戳");
-            foreach (var invalid in new[] { format with { SampleRate = 0 }, format with { Channels = 0 }, format with { Channels = int.MaxValue }, format with { SampleFormat = (ConsoleAudioSampleFormat)99 } })
-                c.Throws<ArgumentOutOfRangeException>(() => c.Call(() => new ConsoleAudioPacket(invalid, samples, 0, TimeSpan.Zero)), "非法音频格式");
-            c.Throws<ArgumentException>(() => c.Call(() => new ConsoleAudioPacket(format, new byte[3], 0, TimeSpan.Zero)), "截断采样帧");
-            c.Throws<ArgumentOutOfRangeException>(() => c.Call(() => new ConsoleAudioPacket(format, samples, -1, TimeSpan.Zero)), "负序号");
-            c.Throws<ArgumentOutOfRangeException>(() => c.Call(() => new ConsoleAudioPacket(format, samples, 0, TimeSpan.FromTicks(-1))), "负时间");
-        }]);
         add("ConsoleConnectionOptions 默认值", [c =>
         {
             var options = c.Call(() => new ConsoleConnectionOptions());
@@ -101,8 +86,7 @@ internal static partial class ApiCaseRegistry
         add("ConsoleService.GetBackends()", [c =>
         {
             var backends = c.Call(ConsoleService.GetBackends);
-            c.Sequence(new[] { "RdpBasic", "RdpEnhanced", "Nimue" }, backends.Select(b => b.BackendId), "固定后端目录");
-            c.Sequence(new[] { true, true, false }, backends.Select(b => b.IsImplemented), "实现状态");
+            c.Sequence(new[] { "RdpBasic", "RdpEnhanced" }, backends.Select(b => b.BackendId), "固定后端目录");
             c.Equal(ConsoleCapabilities.Video | ConsoleCapabilities.Input, backends[0].Capabilities, "基本会话能力");
             c.Equal(ConsoleCapabilities.Video | ConsoleCapabilities.Input | ConsoleCapabilities.Clipboard | ConsoleCapabilities.DisplayResize, backends[1].Capabilities, "增强会话能力");
             c.Require(backends is IList<ConsoleBackendInfo> { IsReadOnly: true }, "目录为只读集合");
@@ -119,7 +103,6 @@ internal static partial class ApiCaseRegistry
                 c.Equal(ConsoleConnectionState.Disconnected, connection.State, "初始状态");
                 c.Require(connection.Video is not null && connection.Input is not null, "提供画面与输入能力");
                 c.Equal(backend == ConsoleService.RdpEnhancedBackendId, connection.Clipboard is not null, "剪贴板能力与后端匹配");
-                c.Require(connection.AudioInput is null && connection.AudioOutput is null, "音频保持待接入状态");
                 connection!.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
             var defaultConnection = c.Call(() => ConsoleService.CreateConnection(options));
@@ -131,7 +114,7 @@ internal static partial class ApiCaseRegistry
             c.Throws<ArgumentNullException>(() => c.Call(() => ConsoleService.CreateConnection(null!)), "空选项");
             c.Throws<ArgumentNullException>(() => c.Call(() => ConsoleService.CreateConnection(options, null!)), "空后端");
             c.Throws<ArgumentException>(() => c.Call(() => ConsoleService.CreateConnection(options, "unknown")), "未知后端");
-            c.Throws<NotSupportedException>(() => c.Call(() => ConsoleService.CreateConnection(options, ConsoleService.NimueBackendId)), "Nimue 返回明确错误");
+            c.Throws<ArgumentException>(() => c.Call(() => ConsoleService.CreateConnection(options, "Nimue")), "未实现后端不在公开目录中");
             c.Throws<ArgumentException>(() => c.Call(() => ConsoleService.CreateConnection(new())), "缺少虚拟机身份");
         }]);
         byte[] rgb565 = [0, 248, 224, 7, 31, 0, 255, 255];

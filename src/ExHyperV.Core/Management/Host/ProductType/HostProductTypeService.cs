@@ -20,7 +20,7 @@ public enum HostProductTypeSwitchState
 
 /// <summary>此前产品类型切换的挂起记录。</summary>
 /// <param name="TargetType">已知目标 WinNT/ServerNT；未知时为空字符串。</param>
-/// <param name="IsConfirmed">是否有成功替换后写入的挂起标记；仅文件占用不能确认。</param>
+/// <param name="IsConfirmed">是否已取得替换成功后写入的挂起标记。</param>
 /// <param name="RecoveryPaths">已记录或检测到的恢复材料路径。</param>
 public sealed record HostProductTypePendingSwitch(string TargetType, bool IsConfirmed, IReadOnlyList<string> RecoveryPaths);
 

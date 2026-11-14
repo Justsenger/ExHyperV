@@ -1,4 +1,5 @@
 using ExHyperV.Models;
+using ExHyperV.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExHyperV.Core.Tests;
@@ -9,13 +10,13 @@ namespace ExHyperV.Core.Tests;
 public sealed class MemorySettingsTests
 {
     [TestMethod]
-    [DataRow(false, new byte[] { 1, 2 })]
-    [DataRow(true, new byte[] { 0, 1, 2 })]
-    public void PageSizeChoices_FollowHostCapability(bool supported, byte[] expected)
+    [DataRow(false)]
+    [DataRow(true)]
+    public void PageSizeCapability_IsPreservedByClone(bool supported)
     {
         var settings = new VmMemorySettings();
         settings.ConfigurePageSizeSupport(supported);
-        CollectionAssert.AreEqual(expected, settings.AvailablePageSizes.Select(p => p.Value).ToArray());
+        Assert.AreEqual(supported, settings.Clone().SupportsBackingPageSize);
     }
 
     [TestMethod]
@@ -27,7 +28,10 @@ public sealed class MemorySettingsTests
     public void EnablingSgx_EnsuresMinimumEpcWithoutOverwritingLargerValues(double? initial, double expected)
     {
         var settings = new VmMemorySettings { SgxSize = initial, SgxEnabled = true };
-        Assert.AreEqual(expected, settings.SgxSize);
+        Assert.AreEqual(initial, settings.SgxSize, "编辑值保持调用方输入");
+        var target = VmMemoryService.MergeMemorySelection(new VmMemorySettings { SgxSize = initial },
+            SettingsSelection<VmMemorySettings>.Capture(settings, [nameof(VmMemorySettings.SgxEnabled)]));
+        Assert.AreEqual(expected, target.SgxSize);
     }
 
     [TestMethod]

@@ -1,7 +1,7 @@
 namespace ExHyperV.Services;
 
 /// <summary>鼠标输入中要按下或释放的一个按键。</summary>
-/// <remarks>SendPointer 每次只接收一个按键，不能用 | 组合。移动和滚轮事件使用 None。</remarks>
+/// <remarks>SendPointer 每次接收一个按键；移动和滚轮事件使用 None。</remarks>
 public enum ConsolePointerButton
 {
     /// <summary>没有鼠标按键，用于移动或滚轮事件。</summary>

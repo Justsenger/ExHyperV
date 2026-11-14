@@ -24,7 +24,7 @@ namespace ExHyperV.Services
 
         /// <summary>读取首次探测宿主拓扑时缓存的核心性能分类。</summary>
         /// <returns>存在不同 EfficiencyClass 时，最高类别为 Performance，其余为 Efficient；同类核心、编号未找到或探测失败时为 Unknown。</returns>
-        /// <param name="coreId">Windows 处理器组编号乘以 64 后加组内位号；不是 HCS LpIndex 或虚拟 CPU 编号。</param>
+        /// <param name="coreId">Windows 处理器组编号 × 64 + 组内位号。</param>
         /// <remarks>根据 Windows EfficiencyClass 分为性能和能效两类；首次探测结果在进程内缓存。</remarks>
         public static CpuCoreType GetCoreType(int coreId)
         {

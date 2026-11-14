@@ -7,7 +7,7 @@ using ExHyperV.Tools;
 namespace ExHyperV.Services
 {
     /// <summary>读取和配置本机 Hyper-V 虚拟交换机及 ICS 上游共享关系。</summary>
-    /// <remarks>变更需要 Hyper-V 与网络管理权限，并可能短暂中断宿主/VM 网络。交换机及 ICS 配置在同一宿主跨 Core 进程串行；不阻止外部工具修改。底层结果未知时停止后续修改及恢复，调用方必须先核对实际状态。</remarks>
+    /// <remarks>需要 Hyper-V 与网络管理权限，修改可能短暂中断宿主或虚拟机网络。同一宿主的 Core 网络修改串行执行；结果未知时保留现场，先核对实际状态。</remarks>
     public static partial class HyperVSwitchService
     {
 
@@ -502,14 +502,14 @@ namespace ExHyperV.Services
         //  DeleteSwitchAsync — WmiApi + ComApi
         // ══════════════════════════════════════════════════════════════════
         /// <summary>关闭相关 ICS 后删除指定交换机；默认交换机受规则保护。</summary>
-        /// <remarks>名称在宿主网络锁内解析一次；重名返回 AmbiguousTarget，不选第一项。删除可能影响已连接 VM；失败由 CoreOperationException.Result 表达，不能推定先行步骤已撤销。</remarks>
+        /// <remarks>名称在资源锁内解析一次；重名返回 AmbiguousTarget。删除可能影响已连接的虚拟机，已完成步骤可能保留。错误见 CoreOperationException.Result。</remarks>
         /// <param name="switchName">目标交换机的唯一显示名称。</param>
         public static Task DeleteSwitchAsync(string switchName) =>
             RunConfigurationAsync(async () => await DeleteSwitchCoreAsync(await ResolveSwitchIdAsync(switchName)));
 
         /// <summary>按稳定 GUID 关闭相关 ICS 并删除交换机，默认交换机受保护。</summary>
         /// <param name="switchId">查询返回的交换机 GUID，不受显示名称修改影响。</param>
-        /// <remarks>跨 Core 进程串行执行。失败抛出 CoreOperationException，Result 保留失败类别；OutcomeUnknown 时不得直接重试或清理。先行 ICS 修改不保证撤销。</remarks>
+        /// <remarks>跨 Core 进程串行执行。失败抛出 CoreOperationException，Result 保留失败类别；OutcomeUnknown 时先核实原操作。已完成的 ICS 修改可能保留。</remarks>
         public static Task DeleteSwitchAsync(Guid switchId) =>
             RunConfigurationAsync(() => DeleteSwitchCoreAsync(switchId));
 
@@ -557,7 +557,7 @@ namespace ExHyperV.Services
         /// <param name="mode">目标桥接、ICS NAT 或隔离模式。</param>
         /// <param name="upstream">桥接或 NAT 的宿主上游网卡；隔离可为 null。</param>
         /// <param name="allowManagementOS">桥接或隔离时是否保留宿主连接；NAT 按共享要求处理。</param>
-        /// <remarks>明确失败时尝试恢复原配置；结果未知时不恢复、不重试。CoreOperationException.Result 保留 OutcomeUnknown、CleanupRequired 等类别和原始失败。锁覆盖修改与恢复，但不阻止未遵循 Core 锁协议的工具。</remarks>
+        /// <remarks>明确失败时尝试恢复原配置；结果未知时保留现场等待核实。跨进程锁覆盖修改与恢复，CoreOperationException.Result 记录失败类别与原因。</remarks>
         public static Task UpdateSwitchConfigurationAsync(
             Guid switchId, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS) =>
             RunConfigurationAsync(() => UpdateSwitchCoreAsync(switchId, mode, upstream, allowManagementOS));
@@ -1084,8 +1084,8 @@ namespace ExHyperV.Services
         //  GetFullSwitchNetworkStateAsync — WmiApi + CimApi
         // ══════════════════════════════════════════════════════════════════
         /// <summary>读取接入指定交换机的宿主和虚拟机网卡。</summary>
-        /// <returns>已读取的端点列表；失败可能被省略或转为空列表，不能将空列表当作已确认没有端点。</returns>
-        /// <param name="switchName">交换机显示名称；当前实现遇到同名对象时取查询首项，调用方须避免歧义。</param>
+        /// <returns>已读取的端点列表；部分查询错误会被省略或转为空列表。</returns>
+        /// <param name="switchName">交换机显示名称；重名时使用查询首项。</param>
         /// <remarks>每个端点返回显示名称、MAC 和一个择优 IPv4 地址。</remarks>
         public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsync(string switchName)
         {

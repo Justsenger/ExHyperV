@@ -7,9 +7,10 @@ import test from 'node:test';
 import { installBundle, validateBundle } from './core-api.mjs';
 
 function fixture({ dirty = false, branch = '2.0.0', version = '2.0.0-Alpha' } = {}) {
-  const data = { version, types: [{ members: [{ name: 'QueryAsync' }] }] };
+  const data = { schemaVersion: 1, source: { contentSha256: 'b'.repeat(64) }, version, types: [{ members: [{ name: 'QueryAsync' }] }] };
   const bundle = {
     'index.html': Buffer.from(`<!doctype html><html><script type="application/json" id="api-data">${JSON.stringify(data)}</script></html>`),
+    'API.json': Buffer.from(JSON.stringify(data)),
     'API.md': Buffer.from('# ExHyperV.Core API\n'),
   };
   const files = Object.fromEntries(Object.entries(bundle).map(([name, bytes]) => [name, { bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') }]));

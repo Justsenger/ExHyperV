@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+using ExHyperV.Services;
 using System.Collections.Generic;
 using System.Linq;
 using System.Globalization;
@@ -49,22 +49,22 @@ namespace ExHyperV.Models
 
     /// <summary>聚合多个 Hyper-V 网络 WMI 类的网卡设置。</summary>
     /// <remarks>包含网卡设置与采样数据，修改通过相应服务提交。设备和交换机分别用 DeviceId、SwitchId 标识，名称仅供显示。</remarks>
-    public partial class VmNetworkAdapter : ObservableObject
+    public partial class VmNetworkAdapter
     {
         /// <summary>当前发送速率，单位为字节每秒。</summary>
-        [ObservableProperty]
+        public ulong SendBytesPerSecond { get => _sendBytesPerSecond; set => _sendBytesPerSecond = value; }
         private ulong _sendBytesPerSecond;
 
         /// <summary>当前接收速率，单位为字节每秒。</summary>
-        [ObservableProperty]
+        public ulong ReceiveBytesPerSecond { get => _receiveBytesPerSecond; set => _receiveBytesPerSecond = value; }
         private ulong _receiveBytesPerSecond;
 
-        /// <summary>是否已取得有效速率采样；false 时速率字段不能作为有效测量值。</summary>
-        [ObservableProperty]
+        /// <summary>当前速率是否为有效采样结果。</summary>
+        public bool HasNetworkSpeedSample { get => _hasNetworkSpeedSample; set => _hasNetworkSpeedSample = value; }
         private bool _hasNetworkSpeedSample;
 
-        /// <summary>本次收发速率采样状态与时间；无效时保留此前速率字段，但它们不是本次新样本。</summary>
-        [ObservableProperty]
+        /// <summary>本次速率采样的状态与时间；缺测时保留上次有效速率。</summary>
+        public PerformanceSampleInfo PerformanceSample { get => _performanceSample; set => _performanceSample = value; }
         private PerformanceSampleInfo _performanceSample = new(PerformanceSampleState.NotSampled, default);
 
         internal string Id { get; set; } = string.Empty;
@@ -81,12 +81,12 @@ namespace ExHyperV.Models
         }
 
         /// <summary>虚拟网卡名称。</summary>
-        [ObservableProperty]
+        public string Name { get => _name; set => _name = value; }
         private string _name = string.Empty;
 
         // 指示网卡是否已连接（模拟网线插拔）。 WMI: Msvm_EthernetPortAllocationSettingData.EnabledState (2=true, 3=false)
         /// <summary>网卡连接开关，表示模拟网线是否接通。</summary>
-        [ObservableProperty]
+        public bool IsConnected { get => _isConnected; set => _isConnected = value; }
         private bool _isConnected;
 
         // 原始交换机身份：空串为未连接，null 为查询未能确定名称；文案不参与业务判定。
@@ -103,8 +103,6 @@ namespace ExHyperV.Models
                     (string.IsNullOrWhiteSpace(value) || value.StartsWith("WMI_"))) return;
                 if (_switchIdentity == value) return;
                 _switchIdentity = value;
-                OnPropertyChanged(nameof(SwitchIdentity));
-                OnPropertyChanged(nameof(SwitchName));
             }
         }
 
@@ -128,90 +126,90 @@ namespace ExHyperV.Models
             value == Properties.Resources.ResourceManager.GetString(resourceName, CultureInfo.GetCultureInfo("zh-CN"));
 
         /// <summary>虚拟网卡 MAC 地址。</summary>
-        [ObservableProperty]
+        public string MacAddress { get => _macAddress; set => _macAddress = value; }
         private string _macAddress = string.Empty;
 
         // 指示 MAC 地址是否为静态配置。 WMI: Msvm_SyntheticEthernetPortSettingData.StaticMacAddress
         /// <summary>是否使用静态 MAC 地址配置。</summary>
-        [ObservableProperty]
+        public bool IsStaticMac { get => _isStaticMac; set => _isStaticMac = value; }
         private bool _isStaticMac;
 
         /// <summary>网卡 IP 地址的可变列表。</summary>
-        [ObservableProperty]
+        public List<string> IpAddresses { get => _ipAddresses; set => _ipAddresses = value; }
         private List<string> _ipAddresses = new List<string>();
 
         /// <summary>是否允许 MAC 地址欺骗。</summary>
-        [ObservableProperty]
+        public bool MacSpoofingAllowed { get => _macSpoofingAllowed; set => _macSpoofingAllowed = value; }
         private bool _macSpoofingAllowed;
 
         /// <summary>是否启用 DHCP 防护。</summary>
-        [ObservableProperty]
+        public bool DhcpGuardEnabled { get => _dhcpGuardEnabled; set => _dhcpGuardEnabled = value; }
         private bool _dhcpGuardEnabled;
 
         /// <summary>是否启用路由器通告防护。</summary>
-        [ObservableProperty]
+        public bool RouterGuardEnabled { get => _routerGuardEnabled; set => _routerGuardEnabled = value; }
         private bool _routerGuardEnabled;
 
         /// <summary>是否允许来宾对该网卡进行组队。</summary>
-        [ObservableProperty]
+        public bool TeamingAllowed { get => _teamingAllowed; set => _teamingAllowed = value; }
         private bool _teamingAllowed;
 
-        /// <summary>广播、组播和未知单播的风暴限制，采用 Hyper-V StormLimit 原始值。</summary>
-        [ObservableProperty]
+        /// <summary>端口广播、组播等风暴流量的速率上限，单位为包/秒；0 表示不限制。参见 <see cref="VmNetworkFields.StormLimit"/>。</summary>
+        public uint StormLimit { get => _stormLimit; set => _stormLimit = value; }
         private uint _stormLimit;
 
         /// <summary>端口镜像的源、目标或禁用角色。</summary>
-        [ObservableProperty]
+        public PortMonitorMode MonitorMode { get => _monitorMode; set => _monitorMode = value; }
         private PortMonitorMode _monitorMode;
 
 
         /// <summary>是否启用虚拟机队列 VMQ。</summary>
-        [ObservableProperty]
+        public bool VmqEnabled { get => _vmqEnabled; set => _vmqEnabled = value; }
         private bool _vmqEnabled;
 
         /// <summary>是否启用 IPsec 任务卸载。</summary>
-        [ObservableProperty]
+        public bool IpsecOffloadEnabled { get => _ipsecOffloadEnabled; set => _ipsecOffloadEnabled = value; }
         private bool _ipsecOffloadEnabled;
 
         /// <summary>是否启用单根 I/O 虚拟化 SR-IOV。</summary>
-        [ObservableProperty]
+        public bool SriovEnabled { get => _sriovEnabled; set => _sriovEnabled = value; }
         private bool _sriovEnabled;
 
         /// <summary>VLAN 工作模式。</summary>
-        [ObservableProperty]
+        public VlanOperationMode VlanMode { get => _vlanMode; set => _vlanMode = value; }
         private VlanOperationMode _vlanMode;
 
         /// <summary>接入模式下的 VLAN ID。</summary>
-        [ObservableProperty]
+        public int AccessVlanId { get => _accessVlanId; set => _accessVlanId = value; }
         private int _accessVlanId;
 
         /// <summary>中继模式下的本征 VLAN ID。</summary>
-        [ObservableProperty]
+        public int NativeVlanId { get => _nativeVlanId; set => _nativeVlanId = value; }
         private int _nativeVlanId;
 
         /// <summary>中继模式下允许通过的 VLAN ID 可变列表。</summary>
-        [ObservableProperty]
+        public List<int> TrunkAllowedVlanIds { get => _trunkAllowedVlanIds; set => _trunkAllowedVlanIds = value; }
         private List<int> _trunkAllowedVlanIds = new List<int>();
 
         /// <summary>专用 VLAN 的主 VLAN ID。</summary>
-        [ObservableProperty]
+        public int PvlanPrimaryId { get => _pvlanPrimaryId; set => _pvlanPrimaryId = value; }
         private int _pvlanPrimaryId;
 
         /// <summary>专用 VLAN 的辅助 VLAN ID。</summary>
-        [ObservableProperty]
+        public int PvlanSecondaryId { get => _pvlanSecondaryId; set => _pvlanSecondaryId = value; }
         private int _pvlanSecondaryId;
 
         /// <summary>专用 VLAN 端口角色。</summary>
-        [ObservableProperty]
+        public PvlanMode PvlanMode { get => _pvlanMode; set => _pvlanMode = value; }
         private PvlanMode _pvlanMode;
 
 
-        /// <summary>最低保留带宽，单位为 bit/s；保留 Hyper-V 原始精度，不作整数 Mbit/s 换算。</summary>
-        [ObservableProperty]
+        /// <summary>最低保留带宽，单位 bit/s。</summary>
+        public ulong BandwidthReservationBitsPerSecond { get => _bandwidthReservationBitsPerSecond; set => _bandwidthReservationBitsPerSecond = value; }
         private ulong _bandwidthReservationBitsPerSecond;
 
-        /// <summary>最大带宽限制，单位为 bit/s；保留 Hyper-V 原始精度，不作整数 Mbit/s 换算。</summary>
-        [ObservableProperty]
+        /// <summary>最大带宽限制，单位 bit/s。</summary>
+        public ulong BandwidthLimitBitsPerSecond { get => _bandwidthLimitBitsPerSecond; set => _bandwidthLimitBitsPerSecond = value; }
         private ulong _bandwidthLimitBitsPerSecond;
 
 

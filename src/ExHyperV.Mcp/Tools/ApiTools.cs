@@ -67,7 +67,7 @@ public sealed class ApiTools(ApiCatalog catalog, ApiObjects objects, ApiCodec co
     });
 
     [McpServerTool(Name = "core_api_get", Title = "读取 Core 属性或字段", ReadOnly = true, OpenWorld = true)]
-    [Description("读取公开属性、索引器、常量或字段。实例成员填写 target；索引器按参数名填写 arguments。返回 $handle 可继续读取和调用原对象。像素、PCM 等二进制内容转成 Base64 或分块编号。")]
+    [Description("读取公开属性、索引器、常量或字段。实例成员填写 target；索引器按参数名填写 arguments。返回 $handle 可继续读取和调用原对象。像素等二进制内容转成 Base64 或分块编号。")]
     public Task<CallToolResult> Get(string apiId, Guid? target = null, JsonElement? arguments = null, string[]? typeArguments = null) => ToolReply.Run(() =>
     {
         using var lease = target.HasValue ? objects.Use(target.Value) : null;
@@ -78,7 +78,6 @@ public sealed class ApiTools(ApiCatalog catalog, ApiObjects objects, ApiCodec co
         object? result = member switch
         {
             PropertyInfo property when instance is ConsoleFrame frame && property.Name == "Pixels" => frame.CopyPixels(),
-            PropertyInfo property when instance is ConsoleAudioPacket audio && property.Name == "Samples" => audio.Samples.ToArray(),
             PropertyInfo { GetMethod.IsPublic: true } property => property.GetValue(instance, IndexArguments(property, arguments ?? default)),
             FieldInfo field => field.GetValue(instance),
             _ => throw new ArgumentException("请使用具有公开读取入口的属性或字段标识。")
@@ -183,7 +182,7 @@ public sealed class ApiTools(ApiCatalog catalog, ApiObjects objects, ApiCodec co
     { execution.Unsubscribe(subscriptionId); return Task.FromResult(ToolReply.Result(new { success = true })); });
 
     [McpServerTool(Name = "core_binary_create", Title = "准备二进制 API 参数", Destructive = false, OpenWorld = false)]
-    [Description("将 Base64 数据保存在进程内，返回 byte[] 或 MemoryStream 的对象编号。用于字节数组、图像、PCM、剪贴板和流参数。")]
+    [Description("将 Base64 数据保存在进程内，返回 byte[] 或 MemoryStream 的对象编号。用于字节数组、图像、剪贴板和流参数。")]
     public Task<CallToolResult> BinaryCreate(string base64, bool stream = false) => ToolReply.Run(() =>
     {
         objects.RequireCapacity();

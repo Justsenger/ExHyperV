@@ -7,17 +7,17 @@ namespace ExHyperV.Models
     {
         /// <summary>未能识别系统类型。</summary>
         Unknown,
-        /// <summary>按分区类型识别为 Windows 数据分区；不代表已安装 Windows。</summary>
+        /// <summary>分区类型是否属于 Windows 数据分区。</summary>
         Windows,
-        /// <summary>按分区类型识别为 Linux 用途；不代表已安装 Linux。</summary>
+        /// <summary>分区类型是否属于 Linux 用途。</summary>
         Linux,
-        /// <summary>EFI 系统分区，不作为驱动部署的操作系统目标。</summary>
+        /// <summary>EFI 系统分区。</summary>
         EFI,
         /// <summary>已识别为其他用途的分区。</summary>
         Other
     }
 
-    /// <summary>磁盘分区扫描结果。分区事实在构造时确定；所属磁盘信息可补充，修改对象不会修改磁盘。</summary>
+    /// <summary>磁盘分区的扫描结果；可补充所属磁盘信息。</summary>
     public class DiskPartitionInfo
     {
         internal Guid ScannedVmId { get; set; }
@@ -38,7 +38,7 @@ namespace ExHyperV.Models
         /// <summary>虚拟磁盘文件路径；物理直通盘则为十进制磁盘编号字符串。</summary>
         /// <fielddoc><meaning>分区所属的磁盘。</meaning><values kind="format">虚拟磁盘使用宿主文件路径，例如 <c>D:\VMs\Disk.vhdx</c>；物理直通盘使用十进制磁盘编号，例如 <c>2</c>。结合 <see cref="IsPhysicalDisk"/> 区分。</values></fielddoc>
         public string DiskPath { get; set; } = string.Empty;        // 所属 VHDX 路径或物理磁盘编号
-        /// <summary>所属磁盘的友好显示名称，不作为操作标识。</summary>
+        /// <summary>所属磁盘的友好显示名称。</summary>
         public string DiskDisplayName { get; set; } = string.Empty; // 友好显示：如 "Disk 0 (System.vhdx)"
         /// <summary>是否为物理直通磁盘上的分区。</summary>
         /// <fielddoc><meaning>所属磁盘的来源类型。</meaning><values kind="options"><c>true</c>：物理直通盘；<c>false</c>：虚拟磁盘文件。</values></fielddoc>

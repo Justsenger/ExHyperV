@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-export const bundleFiles = ['manifest.json', 'index.html', 'API.md'];
+export const bundleFiles = ['manifest.json', 'index.html', 'API.md', 'API.json'];
 
 export async function readBundle(directory) {
   return Object.fromEntries(await Promise.all(bundleFiles.map(async name => [name, await readFile(path.join(directory, name))])));
@@ -19,7 +19,7 @@ export function validateBundle(bundle, { allowDirty = false } = {}) {
   assert.equal(typeof manifest.source.dirty, 'boolean', 'Missing Core working-tree state');
   assert(allowDirty || !manifest.source.dirty, 'Uncommitted Core content is only allowed in local previews');
   assert(Number.isFinite(Date.parse(manifest.generatedAt)), 'Invalid API export time');
-  for (const name of ['index.html', 'API.md']) {
+  for (const name of ['index.html', 'API.md', 'API.json']) {
     const bytes = bundle[name];
     assert(bytes?.length, `Empty API file: ${name}`);
     assert.equal(bytes.length, manifest.files?.[name]?.bytes, `API file size mismatch: ${name}`);
@@ -30,6 +30,10 @@ export function validateBundle(bundle, { allowDirty = false } = {}) {
   const match = html.match(/<script\b[^>]*id="api-data"[^>]*>([\s\S]*?)<\/script>/);
   assert(match, 'API data is missing from the generated document');
   const data = JSON.parse(match[1]);
+  const model = JSON.parse(bundle['API.json'].toString('utf8'));
+  assert.equal(model.schemaVersion, 1, 'Unsupported API model schema');
+  assert.equal(model.source.contentSha256, data.source.contentSha256, 'API model source mismatch');
+  assert.deepEqual(model.types, data.types, 'API model member mismatch');
   assert.equal(data.version, manifest.version, 'API version mismatch');
   assert(data.types?.length > 0, 'API type catalog is empty');
   assert.equal(data.types.length, manifest.types, 'API type count mismatch');

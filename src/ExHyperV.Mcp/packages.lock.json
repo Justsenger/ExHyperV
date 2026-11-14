@@ -34,11 +34,6 @@
         "resolved": "2.7.0",
         "contentHash": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw=="
       },
-      "CommunityToolkit.Mvvm": {
-        "type": "Transitive",
-        "resolved": "8.4.0",
-        "contentHash": "tqVU8yc/ADO9oiTRyTnwhFN68hCwvkliMierptWOudIAvWY1mWCh5VFh+guwHJmpMwfg0J0rY+yyd5Oy7ty9Uw=="
-      },
       "Microsoft.Extensions.AI.Abstractions": {
         "type": "Transitive",
         "resolved": "10.11.0",
@@ -115,7 +110,6 @@
       "exhyperv.core": {
         "type": "Project",
         "dependencies": {
-          "CommunityToolkit.Mvvm": "[8.4.0, )",
           "SSH.NET": "[2026.0.0, )",
           "SharpZipLib": "[1.4.2, )",
           "System.Diagnostics.PerformanceCounter": "[8.0.0, )",

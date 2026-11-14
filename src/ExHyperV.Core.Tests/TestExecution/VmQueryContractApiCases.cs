@@ -46,7 +46,7 @@ internal static class VmQueryContractApiCases
         {
             var off = new VmInstance(Guid.NewGuid(), "off") { StateCode = 3, HasGpuAssignment = true }; var noGpu = new VmInstance(Guid.NewGuid(), "no-gpu") { StateCode = 2, HasGpuAssignment = false };
             var values = await c.CallAsync(() => query.GetGpuPerformanceAsync([off, noGpu]));
-            foreach (var vm in new[] { off, noGpu }) { c.Equal(PerformanceSampleState.NotApplicable, values[vm.Id].Sample!.State, "GPU 采样适用性"); c.Require(values[vm.Id].DriverSample?.IsValid != true, "缺测具备明确状态"); }
+            foreach (var vm in new[] { off, noGpu }) { c.Equal(PerformanceSampleState.NotApplicable, values[vm.Id].Sample!.State, "GPU 采样适用性"); c.Require(values[vm.Id].EnginePresenceSample?.IsValid != true, "缺测具备明确状态"); }
             return;
         }
         await using var owned = await TemporaryVm.CreateAsync(c);

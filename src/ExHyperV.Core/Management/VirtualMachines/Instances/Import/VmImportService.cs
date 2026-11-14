@@ -68,7 +68,7 @@ public static partial class VmImportService
     /// <summary>解析目录或 ZIP 中的虚拟机配置，生成待导入预览及拥有暂存资源的批次。</summary>
     /// <param name="sourcePath">包含导出配置的目录或 ZIP 文件路径。</param>
     /// <param name="placementMode">在原目录就地导入或复制到新位置；ZIP 不支持原目录模式。</param>
-    /// <param name="progress">可选的预览扫描计数回调，Current 和 Total 表示当前处理进度，不是百分比。</param>
+    /// <param name="progress">可选的预览扫描计数回调，Current 为已处理数量，Total 为总数。</param>
     /// <param name="cancellationToken">协作取消令牌；默认不请求取消。取消不撤销已完成的主机或文件修改。</param>
     /// <returns>Success 表示预览是否准备完成；Batch 非 null 时始终由调用方管理，失败时也应检查清理结果并保留待重试对象。ZIP 不支持原目录就地导入。</returns>
     public static Task<VmImportPreparationResult> PreparePreviewsAsync(
@@ -85,7 +85,7 @@ public static partial class VmImportService
     /// <param name="progress">预览处理计数；null 不通知。</param>
     /// <param name="cancellationToken">取消预览准备；已创建的工作文件仍按批次清理规则处理。</param>
     /// <returns>预览批次或失败信息；密码、加密方式和额度失败可从 Result.Exception 取得 VmImportArchiveException。失败时也应检查并释放 Batch。</returns>
-    /// <remarks>未加密 ZIP 和 AES-128/AES-256 ZIP 可读取，传统 ZipCrypto 不支持。预览只完整校验配置条目；磁盘头仅作预览，整盘内容与 AES 认证在正式解压时校验。缺密码或密码错误时，释放失败批次后用正确密码重新准备。密码仅由批次在内存中持有，批次释放后 Core 解除其引用，不承诺清除调用方持有的字符串。</remarks>
+    /// <remarks>支持未加密 ZIP 及 AES-128/AES-256 ZIP。预览校验配置条目并读取磁盘头，整盘内容与 AES 认证在解压时校验。密码缺失或错误时，释放失败批次后重新准备；密码引用随批次释放。</remarks>
     public static async Task<VmImportPreparationResult> PreparePreviewsAsync(
         string sourcePath,
         VmImportArchiveOptions archiveOptions,
@@ -205,7 +205,7 @@ public static partial class VmImportService
     /// <param name="options">该虚拟机的导入选择，必须明确 GUID 策略；名称、目录及交换机映射未指定时沿用原规则。选项校验失败不会开始导入，可以修正选项后重试。</param>
     /// <param name="progress">可选进度接收器；null 时不通知。回调线程由具体 IProgress 实现决定。</param>
     /// <param name="cancellationToken">协作取消令牌；默认不请求取消。取消不撤销已完成的主机或文件修改。</param>
-    /// <returns>返回独立的虚拟机 GUID、已实现标记、原生状态是否未知及清理结果；失败不表示未注册或没有留下资源。</returns>
+    /// <returns>虚拟机 GUID、注册结果、原生任务状态及清理结果。失败时可能已注册或留下资源，分别查看对应结果项。</returns>
     /// <remarks>进入最后的实现计划系统步骤后不再取消，返回实际实现结果；此前的原生写入先确认终态再响应取消。已导入的虚拟机予以保留，由调用者管理；会话释放清理工作资源，原生状态未确认时保留资源并报告。网络引用不存在时按导入规则断开相关连接。一旦开始执行导入，无论成功或失败，该会话都不再重新导入；重试需先清理并重新准备预览。</remarks>
     /// <exception cref="ObjectDisposedException">会话已请求释放，不能再次导入。</exception>
     /// <exception cref="InvalidOperationException">同一会话正用于其他导入或批次准备操作。</exception>
@@ -344,10 +344,10 @@ public static partial class VmImportService
         }
     }
 
-    /// <summary>预先检查同一来源的预览和宿主交换机查询是否可用；不应用导入选项。</summary>
+    /// <summary>预先检查来源预览和宿主交换机是否可读取。</summary>
     /// <param name="batch">由 PreparePreviewsAsync 返回的批次；使用完成后必须释放。</param>
     /// <param name="cancellationToken">协作取消令牌；默认不请求取消。取消不撤销已完成的主机或文件修改。</param>
-    /// <returns>预览或交换机查询结果。此可选入口不执行导入，也不预留目录或 GUID；ImportAsync 会按自己的选项重新校验。</returns>
+    /// <returns>预览或交换机查询结果；正式导入时重新校验目录和 GUID。</returns>
     /// <exception cref="ObjectDisposedException">批次或其中某个会话已请求释放。</exception>
     /// <exception cref="InvalidOperationException">批次或其中某个会话正在使用，不能同时更改准备信息。</exception>
     public static async Task<ApiResponse> PrepareBatchImportAsync(

@@ -5,9 +5,9 @@ namespace ExHyperV.Services;
 /// <businessdoc category="音频">
 /// <summary>来宾声音接收；当前尚未实现。</summary>
 /// <para>接收方向为“来宾 → 调用方”，数据格式为 PCM；播放由调用方负责。RdpBasic 和 RdpEnhanced 尚未接入音频。</para>
-/// <para>采样格式和数据包约定见 <see cref="ConsoleAudioFormat"/>、<see cref="ConsoleAudioPacket"/>。向来宾输入音视频不属于当前实现范围。</para>
+/// <para>采样格式和数据包约定见 <see cref="ConsoleAudioFormat"/>、<see cref="ConsoleAudioPacket"/>。</para>
 /// </businessdoc>
-public interface IConsoleAudioOutput
+internal interface IConsoleAudioOutput
 {
     /// <summary>音频接收通道是否已就绪。</summary>
     /// <fielddoc>

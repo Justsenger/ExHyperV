@@ -1,3 +1,4 @@
+using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using Microsoft.UI.Xaml;
@@ -97,15 +98,22 @@ public sealed class VmSecuritySettingsView : VmSettingsView
                     if (info.SecureBootTemplateId.Contains(template.Id.ToString("D"), StringComparison.OrdinalIgnoreCase))
                         templates.SelectedItem = item;
                 }
-            var capabilities = VmSecurityService.GetCapabilities(context.Generation, context.State, info.SecureBootEnabled, info.TpmEnabled, info.Shielded);
-            secureBoot.IsEnabled = capabilities.SecureBoot;
-            tpm.IsEnabled = capabilities.Tpm;
-            encryption.IsEnabled = capabilities.Encryption;
-            shielding.IsEnabled = capabilities.Shielding;
-            templates.IsEnabled = capabilities.SecureBootTemplate && availableTemplates.HasData && availableTemplates.Data!.Count > 0;
+            VmModificationCondition Condition(VmSecurityService.Setting setting) =>
+                VmSecurityService.GetModificationCondition(context.Generation, context.State, info, setting);
+            void Apply(Control control, VmSecurityService.Setting setting)
+            {
+                var condition = Condition(setting);
+                control.IsEnabled = condition.CanModify;
+                ToolTipService.SetToolTip(control, condition.CanModify ? null : condition.Reason);
+            }
+            Apply(secureBoot, VmSecurityService.Setting.SecureBoot);
+            Apply(tpm, VmSecurityService.Setting.Tpm);
+            Apply(encryption, VmSecurityService.Setting.Encryption);
+            Apply(shielding, VmSecurityService.Setting.Shielding);
+            Apply(templates, VmSecurityService.Setting.SecureBootTemplate);
+            templates.IsEnabled &= availableTemplates.HasData && availableTemplates.Data!.Count > 0;
             if (!availableTemplates.HasData) ShowError(availableTemplates.Error);
-            else if (!capabilities.CanEdit)
-                ShowInformation(context.Generation != 2 ? "安全设置仅适用于第二代虚拟机。" : "虚拟机完全关机后才能修改安全设置。");
+            else if (Condition(VmSecurityService.Setting.Shielding) is { CanModify: false } restriction) ShowInformation(restriction.Reason);
         }
         finally { Updating = false; }
     }

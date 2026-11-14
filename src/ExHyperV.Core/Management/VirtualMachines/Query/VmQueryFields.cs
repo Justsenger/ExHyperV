@@ -1,6 +1,6 @@
 namespace ExHyperV.Services;
 
-/// <summary>Core 当前支持的全部可查询字段；目录本身不执行任何主机查询。</summary>
+/// <summary>全部可查询字段的目录。</summary>
 public static class VmQueryFields
 {
     /// <summary>按领域排列的完整只读目录，包含标识、名称、所属集合和结果类型；可以用于生成查询选择界面。</summary>

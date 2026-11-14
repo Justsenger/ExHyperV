@@ -19,24 +19,41 @@ internal static class ConfigurationRuleChecks
         var after = new VmProcessorSettings { Count = 8, Limit = 100000, EnablePerfmonPmu = false, EnablePerfmonPebs = false };
         check(VmProcessorService.GetChangeError(before, after, false, intel) == R.Warn_VmOffRequired,
             "CPU rules: processor-count changes require fully powered off state");
+        foreach (var state in Enum.GetValues<VmState>())
+        {
+            var validation = VmProcessorService.ValidateProcessorChange(before, after, state, intel);
+            check(state == VmState.PoweredOff ? validation.Success
+                    : !validation.Success && validation.ErrorKind == ApiErrorKind.InvalidState && validation.Error == R.Warn_VmOffRequired,
+                $"CPU write validation: {state} is checked inside Core before changing processor count");
+        }
         after.Count = 4;
         after.Limit = 70000;
         check(VmProcessorService.GetChangeError(before, after, false, intel) == null,
             "CPU rules: live CPU-limit changes remain allowed");
+        check(VmProcessorService.ValidateProcessorChange(before, after, VmState.Running, intel).Success,
+            "CPU write validation: a runtime CPU-limit change does not require shutdown");
         after.EnablePerfmonPebs = true;
         check(VmProcessorService.GetChangeError(before, after, true, intel) == R.Cpu_PerfmonPmuRequired,
             "CPU rules: creating a PEBS dependency without PMU is rejected");
+        check(VmProcessorService.ValidateProcessorChange(before, after, VmState.PoweredOff, intel).ErrorKind == ApiErrorKind.InvalidArgument,
+            "CPU write validation: an invalid PMU combination is not reported as a power-state problem");
         before.EnablePerfmonPebs = true;
         before.EnablePerfmonIpt = true;
         after.EnablePerfmonIpt = false;
         check(VmProcessorService.GetChangeError(before, after, true, intel) == null,
             "CPU rules: repairing a legacy broken PMU combination remains allowed");
-        check(!VmProcessorService.CanTogglePerfmonPmu(true, true, false)
-            && VmProcessorService.CanTogglePerfmonDependent(true, false)
-            && !VmProcessorService.CanTogglePerfmonDependent(false, false),
-            "CPU capabilities: existing invalid dependents can be disabled but new ones cannot be enabled");
+        var monitoring = new VmProcessorSettings { EnablePerfmonPmu = true, EnablePerfmonPebs = true, EnablePerfmonIpt = true };
+        check(VmProcessorService.GetChangeError(monitoring,
+                new() { EnablePerfmonPmu = false, EnablePerfmonPebs = true, EnablePerfmonIpt = true }, true, intel) == R.Cpu_PerfmonPmuRequired,
+            "CPU rules: disabling PMU alone cannot leave active dependents");
+        var disabled = new VmProcessorSettings { EnablePerfmonPmu = false, EnablePerfmonPebs = false, EnablePerfmonIpt = false };
+        check(VmProcessorService.GetChangeError(monitoring, disabled, true, intel) == null
+            && VmProcessorService.GetChangeError(disabled, monitoring, true, intel) == null,
+            "CPU rules: a complete PMU/PEBS/IPT change is validated as one configuration");
         check(VmProcessorService.GetChangeError(new(), new() { CpuBrandString = "Custom" }, true, arm) == R.Error_VerNotSupport,
             "CPU rules: x64-only CPU-brand changes cannot bypass the platform capability");
+        check(VmProcessorService.ValidateProcessorChange(new(), new() { CpuBrandString = "Custom" }, VmState.PoweredOff, arm).ErrorKind == ApiErrorKind.Unsupported,
+            "CPU write validation: an unsupported platform is distinguishable from a shutdown requirement");
         check(VmProcessorService.GetChangeError(new() { CpuBrandString = "" }, new() { CpuBrandString = null }, false, arm) == null,
             "CPU rules: empty/null brand roundtrips retain native compatibility");
 

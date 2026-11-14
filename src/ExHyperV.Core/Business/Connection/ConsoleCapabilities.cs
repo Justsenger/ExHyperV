@@ -15,9 +15,5 @@ public enum ConsoleCapabilities
     /// <summary>与来宾交换剪贴板内容。</summary>
     Clipboard = 4,
     /// <summary>请求调整来宾桌面的分辨率和缩放比例。</summary>
-    DisplayResize = 8,
-    /// <summary>预留的音频接收标志；当前内置后端不声明此能力。</summary>
-    AudioOutput = 16,
-    /// <summary>历史预留标志，不属于当前功能范围；内置后端不声明此能力。</summary>
-    AudioInput = 32
+    DisplayResize = 8
 }

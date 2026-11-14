@@ -38,4 +38,7 @@
   </ItemGroup>
   <!-- Explicit build-time composition; never scan or load arbitrary plugin directories. -->
   <Import Project="$(ProductIntegrationTargets)" Condition="'$(ProductIntegrationTargets)' != ''" />
+  <ItemGroup>
+    <EmbeddedResource Include="../../doc/api/FieldHelp.json" LogicalName="ExHyperV.ApiFieldHelp.json" />
+  </ItemGroup>
 </Project>

@@ -3,7 +3,7 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-/// <summary>只读解析虚拟磁盘的父盘关系；无法确认时返回失败，不能推断为没有父盘。</summary>
+/// <summary>读取虚拟磁盘的父盘关系；无法确认时返回失败。</summary>
 internal static class HostVirtualDiskMetadata
 {
     internal static Task<ApiResponse<string?>> ReadParentPathAsync(string imagePath) =>

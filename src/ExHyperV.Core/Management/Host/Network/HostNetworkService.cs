@@ -11,7 +11,7 @@ public static class HostNetworkService
     /// <summary>将支持的 MAC 输入规范为无分隔符的大写十六进制。</summary>
     /// <returns>12 位规范 MAC；空值或格式不合法时为 null。</returns>
     /// <param name="value">12 位十六进制，或由冒号/短横线分隔的六组地址。</param>
-    public static string? NormalizeDynamicMacAddress(string? value)
+    internal static string? NormalizeDynamicMacAddress(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         string trimmed = value.Trim();

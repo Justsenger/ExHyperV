@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)../../.artifacts/api-documentation/generator</ArtifactsPath>
+  </PropertyGroup>
+</Project>

@@ -15,11 +15,11 @@ public partial class VmQueryService
         finally { _gpuSampleGate.Release(); }
     }
 
-    /// <summary>按一次请求中的独立字段组合读取虚拟机；同源读取、设备身份关联和宿主数据复用由 Core 完成。</summary>
-    /// <param name="request">要返回的字段及目标 GUID；不接收任意 WQL，不包含页面预设。</param>
-    /// <param name="cancellationToken">取消尚未开始的读取；已进入不可中断的本地调用会安全结束后再返回取消。</param>
-    /// <returns>身份枚举失败返回失败响应；成功结果只返回请求字段，部分字段失败保留在对应字段或集合的状态中。</returns>
-    /// <remarks>同一实例的组合查询串行执行，每次请求内批量 WMI 读取最多并行四个，逐虚拟机的启动顺序与亲和性读取另外限制为四个。不会启动自动刷新、启动 ARP、修改配置或读取缩略图。多个来源并非原子快照。DisposeAsync 等待已开始的组合查询；新调用在释放后被拒绝。旧 GetVmListAsync 暂时保留，尚未将下游页面自动迁移到新接口。</remarks>
+    /// <summary>读取指定虚拟机的所选字段。</summary>
+    /// <param name="request">目标虚拟机和需要读取的字段。</param>
+    /// <param name="cancellationToken">取消本次查询；已经开始的本地读取会先收尾。</param>
+    /// <returns>返回所选字段的值和读取状态。个别字段读取失败时，原因记录在对应字段或集合中；虚拟机身份列表读取失败时，整个请求失败。</returns>
+    /// <remarks>每次调用采样一次。同一实例的查询依次执行，各数据源分别取样。</remarks>
     /// <exception cref="OperationCanceledException">请求取消；已经发起的读取已收尾。</exception>
     /// <exception cref="ObjectDisposedException">本实例已开始释放。</exception>
     public async Task<ApiResponse<VmQueryResult>> QueryAsync(VmQueryRequest request, CancellationToken cancellationToken = default)

@@ -39,14 +39,22 @@ namespace ExHyperV.Services
         /// <param name="State">本次读取的虚拟机状态。</param>
         /// <param name="AppliedProcessors">实际处理器编号；Root 关机或保存状态为 null，Classic/Core 未绑定为非 null 空集合。</param>
         /// <param name="SavedProcessors">保存的处理器编号，包括旧环境或其他后端的选择；使用前检查 SavedPreferenceStatus。未保存或无法解析时为 null，空集合表示不限制。</param>
-        /// <param name="ProcessId">Root 已核验的 vmmem 进程 ID；无进程或其他后端为 null。</param>
-        /// <param name="ProcessCreationTime">同一进程句柄读取的创建时间，UTC FILETIME；与 ProcessId 一起辨别进程实例，为 null 时未提供。</param>
         public sealed record AffinityState(VmState State, IReadOnlyList<int>? AppliedProcessors,
-            IReadOnlyList<int>? SavedProcessors, int? ProcessId, long? ProcessCreationTime)
+            IReadOnlyList<int>? SavedProcessors)
         {
-            /// <summary>保存偏好与当前环境的匹配状态；不代表运行时亲和性已经生效。</summary>
+            internal AffinityState(VmState state, IReadOnlyList<int>? appliedProcessors,
+                IReadOnlyList<int>? savedProcessors, int? processId, long? processCreationTime)
+                : this(state, appliedProcessors, savedProcessors)
+            {
+                ProcessId = processId;
+                ProcessCreationTime = processCreationTime;
+            }
+
+            internal int? ProcessId { get; init; }
+            internal long? ProcessCreationTime { get; init; }
+            /// <summary>保存的处理器选择与当前环境的匹配状态。</summary>
             public PreferenceStatus SavedPreferenceStatus { get; init; }
-            /// <summary>需要重新选择或无法核实的原因；无需说明时为 null。原保存内容不会自动删除。</summary>
+            /// <summary>需要重新选择或无法核实的原因，无需说明时为 null。</summary>
             public string? SavedPreferenceIssue { get; init; }
         }
 
@@ -77,7 +85,7 @@ namespace ExHyperV.Services
             Failed }
         /// <summary>亲和性应用状态与 HostOnlyItems 元数据保存结果。</summary>
         /// <param name="Status">亲和性已应用、等待应用或失败的状态。</param>
-        /// <param name="MetadataSaved">所选处理器是否已保存到虚拟机配置；不等同于亲和性应用状态。</param>
+        /// <param name="MetadataSaved">处理器选择是否已保存到虚拟机配置。</param>
         public sealed record SaveResult(SaveStatus Status, bool MetadataSaved)
         {
             /// <summary>应用或元数据保存的失败说明；Status=Applied 时失败仅表示后续保存未成功。</summary>
@@ -96,7 +104,7 @@ namespace ExHyperV.Services
             public Guid? CurrentGroupId { get; init; }
             /// <summary>失败后保留或无法确认删除的本次新建组；既有组从不由本操作删除。</summary>
             public Guid? RetainedGroupId { get; init; }
-            /// <summary>本次成功保存的偏好与环境是否匹配；保存失败时为 EnvironmentUnverified。显式应用成功不等于以后可自动恢复。</summary>
+            /// <summary>本次保存的处理器选择与当前环境是否匹配；保存失败时为 EnvironmentUnverified。</summary>
             public PreferenceStatus SavedPreferenceStatus { get; init; }
             /// <summary>环境无法核实或偏好未确认保存的说明；空选择无需环境核实。</summary>
             public string? SavedPreferenceIssue { get; init; }
@@ -115,14 +123,17 @@ namespace ExHyperV.Services
             InvalidConfiguration,
             /// <summary>恢复期间保存的偏好已被其他操作改变，本轮停止应用旧选择。</summary>
             Superseded,
-            /// <summary>保存环境不匹配或无法核实，需要重新选择并保存；不应用旧编号、不删除偏好、不阻止虚拟机启动。</summary>
+            /// <summary>保存环境不匹配或无法核实，需要重新选择并保存。</summary>
             ReselectionRequired }
 
-        /// <summary>应用处理器亲和性，将选择、后端和宿主拓扑摘要一起保存到 HostOnlyItems。</summary>
-        /// <param name="vmId">目标虚拟机的稳定 GUID；字符串形式也应使用 GUID，而非显示名称。</param>
-        /// <param name="coreIndices">HostProcessorService.GetAffinityProcessorsAsync 返回的处理器编号；空集合表示解除组绑定或 Root 进程限制。</param>
-        /// <returns>应用或排队状态及元数据是否成功保存；应用成功与持久化成功是两个独立结果。</returns>
-        /// <remarks><para>新偏好将处理器选择和环境摘要写入同一个 HostOnlyItems 值。宿主身份取自 SMBIOS UUID，拓扑包含编号到核心、封装和 NUMA 的关系；Root 另包含 Windows 处理器组和核心效率类别。保存前后环境不同或读取失败时，显式应用仍可完成，但 SavedPreferenceStatus 为 EnvironmentUnverified，不能自动恢复；空选择不受此限制。重新选择使用当前宿主枚举的编号，不把旧宿主编号直接传回。</para><para>Classic/Core 为每台虚拟机分别建立 CPU 组，不按相同处理器集合共享。当前已独享且处理器未变时保留原组；旧共享组在该 VM 本次保存时拆分，新组复制已报告的四项策略值，不自动分摊原共享配额。无法复制的策略或不兼容的新拓扑返回失败。成员核对限于 WMI 可见的 Hyper-V 虚拟机；外部工具仍可另行绑定其他对象，Core 不提供系统级排他占用。旧组不在本次创建范围内，换组或解绑后不自动删除。Root 只支持实际单 Windows 处理器组，使用已核验的进程句柄写入并回读；停机时仅保存偏好。同一 VM 的 Root 保存与启动恢复跨进程串行。</para></remarks>
+        /// <summary>设置虚拟机使用哪些宿主逻辑处理器，并保存选择。</summary>
+        /// <param name="vmId">目标虚拟机的标识。</param>
+        /// <param name="coreIndices">从 <see cref="HostProcessorService.GetAffinityProcessorsAsync"/> 获取的处理器编号；空集合解除亲和性限制。</param>
+        /// <returns><see cref="SaveResult"/>：Status 表示已应用、等待应用或失败；MetadataSaved 表示是否保存成功。保存环境未核实时，SavedPreferenceStatus 为 EnvironmentUnverified。</returns>
+        /// <remarks>
+        /// <para>Classic/Core 调度器为每台虚拟机使用独立 CPU 组；更换组时继承旧组策略，保留旧组。</para>
+        /// <para>Root 调度器修改虚拟机进程亲和性，目前支持单 Windows 处理器组；关机时仅保存选择，启动后调用<see cref="M:ExHyperV.Services.CpuAffinityService.ApplySavedAffinityAfterStartAsync(System.Guid,System.Threading.CancellationToken)">恢复亲和性</see>应用。</para>
+        /// </remarks>
         public static async Task<SaveResult> SaveAsync(Guid vmId, List<int> coreIndices)
         {
             ArgumentNullException.ThrowIfNull(coreIndices);
@@ -206,12 +217,13 @@ namespace ExHyperV.Services
             return new(applied ? SaveStatus.Applied : SaveStatus.Queued, saved);
         }
 
-        /// <summary>核实保存环境后，在 Root 上恢复进程亲和性，最多等待五轮；Classic/Core 只检查偏好，不自动重建 CPU 组。</summary>
-        /// <param name="vmId">目标虚拟机的稳定 GUID；字符串形式也应使用 GUID，而非显示名称。</param>
-        /// <param name="cancellationToken">协作取消令牌；默认不请求取消。取消不撤销已完成的主机或文件修改。</param>
-        /// <returns>恢复结果。ReselectionRequired 表示环境不同或无法核实，需要重新选择并保存；ReadStateAsync 提供具体原因及原编号。旧数组与版本 1 非空记录同样需要重新保存。空选择无需恢复。取消等待抛出取消异常。</returns>
-        /// <remarks><para>由调用方在虚拟机启动后调用，不建立持续后台监督。整轮持有该 VM 的跨进程锁，重试等待合计九秒，另加查询与操作耗时；后续手动保存等待本轮结束，旧重试不会在其后反向覆盖。同一 Core 进程对同一 vmmem 实例复用先前应用结果，明确 SaveAsync 仍可修改；该去重记录不跨进程共享。只有明确尚未出现的进程会重试，结果未知不自动重放。</para><para>环境检查只决定是否应用旧偏好，不关闭虚拟机、不清除当前绑定，也不删除原元数据。SMBIOS UUID 与拓扑相同的整机克隆可能无法区分；这是编号适用性检查，不是机器身份认证。当前没有跨平台拓扑不变或原生写入与硬件变化之间的事务保证。</para></remarks>
-        /// <exception cref="CoreOperationException">拓扑不支持、查询失败、身份冲突或应用失败；Result 保留具体错误，未把失败当作虚拟机已停止。</exception>
+        /// <summary>在虚拟机启动后恢复已保存的 Root 处理器亲和性。</summary>
+        /// <param name="vmId">目标虚拟机的标识。</param>
+        /// <param name="cancellationToken">取消等待与后续尝试。</param>
+        /// <returns>恢复状态。ReselectionRequired 表示宿主或处理器拓扑已变更，或保存环境无法核实，需要重新选择并保存。</returns>
+        /// <remarks>等待进程最多尝试五轮；Classic/Core 调度器仅核对保存的选择。</remarks>
+        /// <exception cref="CoreOperationException">查询或应用失败，Result 包含具体原因。</exception>
+        /// <exception cref="OperationCanceledException">取消了本次恢复。</exception>
         public static async Task<StartupApplyStatus> ApplySavedAffinityAfterStartAsync(
             Guid vmId, CancellationToken cancellationToken = default)
         {
@@ -260,10 +272,10 @@ namespace ExHyperV.Services
             return preference!.LogicalProcessors.Length == 0 ? StartupApplyStatus.NotRequired : StartupApplyStatus.ReselectionRequired;
         }
 
-        /// <summary>读取当前实际 CPU 组或运行进程的处理器选择，不用保存偏好代替实际状态。</summary>
-        /// <param name="vmId">目标虚拟机的稳定 GUID；字符串形式也应使用 GUID，而非显示名称。</param>
-        /// <returns>当前后端的实际处理器编号；Classic/Core 只有确认未绑定时返回空列表。Root 无运行进程时应改用 ReadStateAsync 查看保存偏好。</returns>
-        /// <exception cref="CoreOperationException">查询失败、Root 无运行进程、调度器未知、拓扑不支持或身份不一致；Result 保留具体原因。</exception>
+        /// <summary>读取当前实际生效的处理器亲和性。</summary>
+        /// <param name="vmId">目标虚拟机的标识。</param>
+        /// <returns>宿主逻辑处理器编号列表。Classic/Core 未绑定 CPU 组时返回空列表。</returns>
+        /// <exception cref="CoreOperationException">查询失败，或 Root 调度器下虚拟机进程尚未运行；Result 包含具体原因。</exception>
         public static async Task<List<int>> GetCpuAffinityAsync(Guid vmId)
         {
             if (vmId == Guid.Empty)
@@ -283,9 +295,9 @@ namespace ExHyperV.Services
             catch (Exception error) { throw new CoreOperationException(ExceptionResult(error, false)); }
         }
 
-        /// <summary>同时读取亲和性的实际状态和保存偏好；两者分别返回，供调用方明确区分。</summary>
-        /// <param name="vmId">目标虚拟机稳定 GUID。</param>
-        /// <returns>Root 运行或暂停时包含实际处理器，关机或保存状态仅包含偏好；Classic/Core 返回实际配置的组选择及保存偏好。SavedProcessors 保留旧编号，SavedPreferenceStatus 与 SavedPreferenceIssue 说明是否还能复用。环境读取失败记为 EnvironmentUnverified；实际绑定或元数据查询失败仍返回失败，不以空选择代替。</returns>
+        /// <summary>读取当前亲和性、保存的处理器选择及其环境匹配状态。</summary>
+        /// <param name="vmId">目标虚拟机的标识。</param>
+        /// <returns>当前电源状态、实际处理器选择和保存的亲和性偏好；查询失败时返回原因。</returns>
         public static async Task<ApiResponse<AffinityState>> ReadStateAsync(Guid vmId)
         {
             if (vmId == Guid.Empty) return ApiResponse<AffinityState>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);

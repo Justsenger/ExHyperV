@@ -5,7 +5,7 @@ namespace ExHyperV.Services;
 /// <para>后端由 <see cref="ConsoleService.CreateConnection"/> 的 backendId 参数选择。
 /// 当前 RDP 后端连接本机 Hyper-V 虚拟机。</para>
 /// <para>Width、Height、DesktopScale 是请求值，实际画面尺寸以收到的 <see cref="ConsoleFrame"/> 为准。
-/// 基本会话使用来宾已有的显示模式，不能通过这些参数保证改变来宾分辨率。</para>
+/// 基本会话沿用来宾的显示模式。</para>
 /// </remarks>
 public sealed record ConsoleConnectionOptions
 {

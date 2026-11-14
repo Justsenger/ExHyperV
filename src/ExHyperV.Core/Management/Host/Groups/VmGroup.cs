@@ -9,7 +9,7 @@ public enum VmGroupKind : ushort
     Groups = 1
 }
 
-/// <summary>Hyper-V 分组及其成员快照。成员集合仍可修改；修改模型集合不会写回 Hyper-V。</summary>
+/// <summary>Hyper-V 分组及其成员的本地快照。</summary>
 /// <param name="Id">分组 GUID。</param>
 /// <param name="Name">分组名称。</param>
 /// <param name="Kind">分组允许包含的成员类别。</param>

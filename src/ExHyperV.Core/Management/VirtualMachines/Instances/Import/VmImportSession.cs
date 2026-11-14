@@ -88,7 +88,7 @@ public sealed class VmImportSession : IAsyncDisposable
 }
 
 /// <summary>共享来源和临时目录的一组导入会话；即使只查看预览也应释放。</summary>
-/// <remarks>它管理同一目录或归档的工作资源，不自动调度多台导入。调用方选择 VirtualMachines 中的会话，逐次调用 ImportAsync；执行顺序和失败后是否继续由调用方决定。</remarks>
+/// <remarks>管理同一目录或归档的工作资源。从 VirtualMachines 选择会话，逐次调用 ImportAsync；顺序及失败后是否继续由调用方决定。</remarks>
 public sealed class VmImportBatchSession : IAsyncDisposable
 {
     internal VmImportBatchSession() { }

@@ -14,7 +14,7 @@ public static class VmMemoryService
         var identity = await VmIdentity.ResolveAsync(vmName);
         if (!identity.HasData) return null;
         var response = await GetVmMemorySettingsAsync(identity.Data);
-        return response.HasData ? response.Data : null;
+        return response.HasData ? response.Data.Values : null;
     }
 
 
@@ -29,40 +29,51 @@ public static class VmMemoryService
     /// <summary>读取虚拟机内存配置及当前主机可提供的高级内存属性。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <returns>成功时返回内存设置；虚拟机或配置缺失为 NotFound，查询异常保留失败原因。可空扩展属性未取得值时保留 null，包括 SgxSize；字段级缺测状态通过自由查询取得。</returns>
-    public static async Task<ApiResponse<VmMemorySettings>> GetVmMemorySettingsAsync(Guid vmId)
+    public static async Task<ApiResponse<VmSettingsSnapshot<VmMemorySettings>>> GetVmMemorySettingsAsync(Guid vmId)
     {
         if (vmId == Guid.Empty)
-            return ApiResponse<VmMemorySettings>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
+            return ApiResponse<VmSettingsSnapshot<VmMemorySettings>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
         try
         {
             string vmWql = $"SELECT * FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}";
             var vmResponse = await WmiApi.QueryFirstAsync(vmWql, obj => obj["Name"]?.ToString());
 
             if (!vmResponse.Success)
-                return ApiResponse<VmMemorySettings>.Fail(vmResponse.Error, vmResponse.Code, vmResponse.ErrorSource,
+                return ApiResponse<VmSettingsSnapshot<VmMemorySettings>>.Fail(vmResponse.Error, vmResponse.Code, vmResponse.ErrorSource,
                     vmResponse.Exception, vmResponse.ErrorKind);
             if (!vmResponse.HasData || string.IsNullOrEmpty(vmResponse.Data))
-                return ApiResponse<VmMemorySettings>.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound);
+                return ApiResponse<VmSettingsSnapshot<VmMemorySettings>>.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound);
 
             string vmInstanceId = vmResponse.Data;
             string memWql = $"SELECT * FROM Msvm_MemorySettingData WHERE InstanceID LIKE 'Microsoft:{vmInstanceId}%' AND ResourceType = 4";
 
-            var memResponse = await WmiApi.QueryFirstAsync(memWql, MapMemory);
+            var memResponse = await WmiApi.QueryFirstAsync(memWql, obj => MapMemorySnapshot(MapMemory(obj),
+                obj.Properties.Cast<PropertyData>().ToDictionary(p => p.Name, p => (object?)p.Value)));
 
             return memResponse.IsEmpty
-                ? ApiResponse<VmMemorySettings>.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound)
+                ? ApiResponse<VmSettingsSnapshot<VmMemorySettings>>.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound)
                 : memResponse;
         }
         catch (Exception ex)
         {
             Debug.WriteLine(string.Format(Properties.Resources.VmMemoryService_ErrReadConfig, ex));
-            return ApiResponse<VmMemorySettings>.Fail(ex.Message, exception: ex, kind: ApiErrorKind.OperationFailed);
+            return ApiResponse<VmSettingsSnapshot<VmMemorySettings>>.Fail(ex.Message, exception: ex, kind: ApiErrorKind.OperationFailed);
         }
+    }
+
+    internal static VmSettingsSnapshot<VmMemorySettings> MapMemorySnapshot(VmMemorySettings settings,
+        IReadOnlyDictionary<string, object?> raw)
+    {
+        var states = typeof(VmMemorySettings).GetProperties().Where(p => p.SetMethod?.IsPublic == true)
+            .ToDictionary(p => p.Name, p => SettingsSnapshot.State(raw,
+                p.Name == nameof(VmMemorySettings.BackingPageSize) && !raw.ContainsKey("BackingPageSize")
+                    ? "HugePagesEnabled" : MemoryPropertyName(p.Name)));
+        return new(settings, states, value => value.Clone());
     }
 
     private static VmMemorySettings MapMemory(ManagementObject obj)
     {
-        var s = new VmMemorySettings();
+        var s = new VmMemorySettings { SupportedProps = obj.Properties.Cast<PropertyData>().Select(p => p.Name).ToHashSet(StringComparer.Ordinal) };
 
         s.Startup = Convert.ToInt64(obj["VirtualQuantity"] ?? 0);
         s.Minimum = Convert.ToInt64(obj["Reservation"] ?? 0);
@@ -108,52 +119,82 @@ public static class VmMemoryService
     /// <param name="OfflineSettings">是否允许修改要求离线的内存字段。</param>
     /// <param name="Startup">是否允许修改启动内存。</param>
     /// <param name="DynamicLimits">是否允许编辑动态内存上下限及缓冲。</param>
-    public readonly record struct Capabilities(bool OfflineSettings, bool Startup, bool DynamicLimits);
+    internal readonly record struct Capabilities(bool OfflineSettings, bool Startup, bool DynamicLimits);
     /// <summary>根据运行状态和当前动态内存开关计算内存编辑能力。</summary>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <param name="dynamicMemoryEnabled">当前是否启用动态内存。</param>
     /// <returns>离线设置、启动内存和动态上下限是否允许编辑的标记。</returns>
-    public static Capabilities GetCapabilities(bool isRunning, bool dynamicMemoryEnabled)
+    internal static Capabilities GetCapabilities(bool isRunning, bool dynamicMemoryEnabled)
         => new(!isRunning, !(isRunning && dynamicMemoryEnabled), dynamicMemoryEnabled);
 
     /// <summary>比较当前与请求设置，检查运行中的虚拟机是否允许这些内存变更。</summary>
     /// <param name="current">从主机读取的当前内存配置。</param>
-    /// <param name="requested">计划写入的目标内存配置；本方法只比较，不修改。</param>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="requested">用于比较的目标内存配置。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <param name="changedProperty">只修改的 VmMemorySettings 属性名，建议使用 nameof；null 表示检查或规范化传入模型的全部相关属性；不提交宿主。</param>
     /// <returns>首个状态限制说明；无状态限制时为 null。数值范围在 WMI 提交时校验。</returns>
-    public static string? GetChangeError(VmMemorySettings current, VmMemorySettings requested, bool isRunning, string? changedProperty = null)
+    internal static string? GetChangeError(VmMemorySettings current, VmMemorySettings requested, bool isRunning, string? changedProperty = null)
+    {
+        if (changedProperty != null)
+        {
+            var condition = GetModificationCondition(current, changedProperty, isRunning ? VmState.Running : VmState.PoweredOff);
+            if (!condition.CanModify) return condition.Reason;
+        }
+        return ValidateMemoryChange(current, requested, isRunning ? VmState.Running : VmState.PoweredOff, changedProperty) is { Success: false } error ? error.Error : null;
+    }
+
+    /// <summary>评估一项内存设置的修改条件。</summary>
+    /// <param name="settings">查询得到的内存配置。</param>
+    /// <param name="propertyName">要修改的内存设置成员名。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许修改及原因。具体取值和配置组合在提交时校验。</returns>
+    public static VmModificationCondition GetModificationCondition(VmMemorySettings settings, string propertyName, VmState state)
+    {
+        if (!SupportsSingleMemorySetting(propertyName))
+            return VmModificationCondition.Denied("未知的内存设置。", ApiErrorKind.InvalidArgument);
+        if (settings.SupportedProps is { } props && !props.Contains(MemoryPropertyName(propertyName))
+            && !(propertyName == nameof(VmMemorySettings.BackingPageSize) && props.Contains("HugePagesEnabled")))
+            return VmModificationCondition.Unsupported("当前宿主未提供此设置。");
+        return GetMemoryStateCondition(settings, propertyName, state);
+    }
+
+    private static VmModificationCondition GetMemoryStateCondition(VmMemorySettings current, string propertyName, VmState state)
+    {
+        if (state == VmState.PoweredOff || propertyName == nameof(VmMemorySettings.Weight)) return VmModificationCondition.Allowed;
+        if (propertyName == nameof(VmMemorySettings.Startup)) return current.DynamicMemoryEnabled
+            ? VmModificationCondition.PoweredOff(state, Properties.Resources.Warn_DynRamRunning) : VmModificationCondition.Allowed;
+        if (propertyName is nameof(VmMemorySettings.Minimum) or nameof(VmMemorySettings.Maximum) or nameof(VmMemorySettings.Buffer))
+            if (current.DynamicMemoryEnabled) return VmModificationCondition.Allowed;
+        return VmModificationCondition.PoweredOff(state);
+    }
+
+    internal static ApiResponse ValidateMemoryChange(VmMemorySettings current, VmMemorySettings requested, VmState state, string? changedProperty = null)
     {
         if (changedProperty != null && !SupportsSingleMemorySetting(changedProperty))
-            return $"不支持单独修改内存字段 {changedProperty}。";
-        if (!isRunning) return null;
-        var caps = GetCapabilities(isRunning, current.DynamicMemoryEnabled);
-        if (changedProperty != null && changedProperty is not (nameof(VmMemorySettings.Startup) or
-            nameof(VmMemorySettings.Weight) or nameof(VmMemorySettings.Minimum) or nameof(VmMemorySettings.Maximum) or nameof(VmMemorySettings.Buffer)))
-            return Properties.Resources.Warn_VmOffRequired;
+            return ApiResponse.Fail($"不支持单独修改内存字段 {changedProperty}。", kind: ApiErrorKind.InvalidArgument);
         foreach (var property in typeof(VmMemorySettings).GetProperties())
         {
             if (property.SetMethod?.IsPublic != true || (changedProperty != null && property.Name != changedProperty)) continue;
             if (Equals(property.GetValue(current), property.GetValue(requested))) continue;
-            if (property.Name == nameof(VmMemorySettings.Weight)) continue;
-            if (property.Name == nameof(VmMemorySettings.Startup))
-            {
-                if (!caps.Startup) return Properties.Resources.Warn_DynRamRunning;
-                continue;
-            }
-            if (property.Name is nameof(VmMemorySettings.Minimum) or nameof(VmMemorySettings.Maximum) or nameof(VmMemorySettings.Buffer))
-            {
-                if (caps.DynamicLimits) continue;
-            }
-            return Properties.Resources.Warn_VmOffRequired;
+            var condition = GetModificationCondition(current, property.Name, state);
+            if (!condition.CanModify) return condition.ToResponse();
         }
-        return null;
+        return ApiResponse.Ok();
     }
 
-    /// <summary>原地规范化内存后备页设置及其互斥项；指定字段时保留用户最后修改的选择，null 使用整组应用规则。</summary>
-    /// <param name="settings">要原地规范化的内存配置对象；调用后其中互斥项可能改变。</param>
+    private static string MemoryPropertyName(string field) => field switch
+    {
+        nameof(VmMemorySettings.Startup) => "VirtualQuantity",
+        nameof(VmMemorySettings.Minimum) => "Reservation",
+        nameof(VmMemorySettings.Maximum) => "Limit",
+        nameof(VmMemorySettings.Buffer) => "TargetMemoryBuffer",
+        _ => field
+    };
+
+    /// <summary>调整传入的内存后备页设置及其互斥项；指定字段时保留用户最后修改的选择，null 使用整组应用规则。</summary>
+    /// <param name="settings">要调整的内存配置对象；直接修改该对象的互斥项。</param>
     /// <param name="changedProperty">只修改的 VmMemorySettings 属性名，建议使用 nameof；null 表示检查或规范化传入模型的全部相关属性；不提交宿主。</param>
-    public static void NormalizeMemoryBackingSettings(VmMemorySettings settings, string? changedProperty)
+    internal static void NormalizeMemoryBackingSettings(VmMemorySettings settings, string? changedProperty)
     {
         bool backingTypeChanged = changedProperty == nameof(VmMemorySettings.BackingType);
         bool pageSizeChanged = changedProperty == nameof(VmMemorySettings.BackingPageSize);
@@ -192,14 +233,13 @@ public static class VmMemoryService
     /// <summary>只应用明确选择的内存字段，并处理必要的页对齐、动态内存和 vNUMA 联动。</summary>
     /// <param name="vmId">目标虚拟机 GUID。</param>
     /// <param name="newSettings">本次请求值；只读取 changedProperties 中的属性，容量单位为 MiB，Weight 为原始权重。</param>
-    /// <param name="isVmRunning">兼容参数；执行时重新查询实际运行状态。</param>
-    /// <param name="changedProperties">要提交的属性名集合，不能为空。例如仅修改启动内存时包含 <c>nameof(VmMemorySettings.Startup)</c>；支持模型全部公开可写属性。不比较旧值或版本，同字段按本次请求覆盖。CPU 与内存设置在同一虚拟机上跨 Core 进程串行；锁覆盖读取、vNUMA 联动和写入，不阻止外部工具修改。</param>
+    /// <param name="changedProperties">本次修改的属性名集合，至少指定一项。</param>
     /// <returns>应用结果；Steps 按顺序记录已执行的 DisableVirtualNuma、Memory、EnableVirtualNuma 步骤，含各步骤的状态与原始错误。不需要或未开始的步骤不列出。</returns>
     /// <remarks>
-    /// <para>未选字段使用执行时的当前值。切换动态内存、后备页、后备类型及 SGX 时仍执行其必要联动；仅修改无关字段不会重写这些设置。</para>
-    /// <para>实验性内存字段继续接受显式提交，不增加启用总开关。字段用途、现有选项和未验证范围见 <see cref="VmMemoryFields"/>；实验性标记不是功能已在所有 Windows 版本上验证的承诺。</para>
-    /// <para>可空请求值为 null 时忽略该选择，不表示清空或恢复默认，也不因该选择触发联动；其他非空选择仍可触发必要联动。全部选择均为 null 时不提交。明确提交非空值但宿主没有对应属性，或旧 HugePagesEnabled 无法表达请求的页大小时，在任何修改前返回 Unsupported，不部分应用其余选择。</para>
-    /// <para>成功仅表示本次配置调用完成，不证明实际页粒度、提示投递、压缩或加密已经生效；同值请求也不能用来验证字段可写。Core 不新增基于研究风险或版本的开关拦截，调用方应展示字段文档中的风险。尤其不得通过试写 CxlEnabled 来探测 CXL 支持，已确认版本可能在保存时导致 VMMS 崩溃，详见 <see cref="VmMemoryFields.CxlEnabled"/>。</para>
+    /// <para>未选字段沿用当前值。切换动态内存、后备页、后备类型及 SGX 时按相应规则联动。同一虚拟机的 CPU 与内存修改在 Core 进程之间排队，同一字段以本次请求覆盖。</para>
+    /// <para>实验性字段的用途和取值见 <see cref="VmMemoryFields"/>。</para>
+    /// <para>null 保留原值；其他选中字段仍按各自规则联动。全部选择均为 null 时跳过提交。非空请求对应的属性缺失，或宿主页大小接口无法表达该请求时，提交前返回 Unsupported。</para>
+    /// <para>CXL 写入在已知版本上可能导致 VMMS 崩溃，具体版本及限制见 <see cref="VmMemoryFields.CxlEnabled"/>。</para>
     /// </remarks>
     /// <example><code>
     /// using System;
@@ -213,14 +253,14 @@ public static class VmMemoryService
     ///     {
     ///         var settings = new VmMemorySettings { Startup = 4096 };
     ///         var result = await VmMemoryService.SetVmMemorySettingsAsync(
-    ///             vmId, settings, isVmRunning: false,
+    ///             vmId, settings,
     ///             changedProperties: [nameof(VmMemorySettings.Startup)]);
     ///         if (!result.Success) throw new InvalidOperationException(result.Error);
     ///     }
     /// }
     /// </code></example>
     public static async Task<ApiResponse> SetVmMemorySettingsAsync(
-        Guid vmId, VmMemorySettings newSettings, bool isVmRunning, IReadOnlyCollection<string> changedProperties)
+        Guid vmId, VmMemorySettings newSettings, IReadOnlyCollection<string> changedProperties)
     {
         if (vmId == Guid.Empty || newSettings == null)
             return ApiResponse.Fail("虚拟机 GUID 和内存配置不能为空。", kind: ApiErrorKind.InvalidArgument);
@@ -231,6 +271,9 @@ public static class VmMemoryService
         return await VmSettingsWriteLock.RunAsync(vmId, () => ApplyMemorySettingsAsync(vmId, selection));
     }
 
+    internal static Task<ApiResponse> SetVmMemorySettingsAsync(Guid vmId, VmMemorySettings settings, bool isVmRunning, IReadOnlyCollection<string> changedProperties)
+        => SetVmMemorySettingsAsync(vmId, settings, changedProperties);
+
     private static async Task<ApiResponse> ApplyMemorySettingsAsync(Guid vmId, SettingsSelection<VmMemorySettings> selection)
     {
         bool isVmRunning;
@@ -240,11 +283,11 @@ public static class VmMemoryService
         {
             var vm = await WmiApi.QueryFirstAsync(
                 $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}",
-                obj => VmMapper.IsActiveState(Convert.ToUInt16(obj["EnabledState"])));
+                obj => VmMapper.MapState(Convert.ToUInt16(obj["EnabledState"])));
             if (!vm.Success) return ApiResponse.Fail(vm.Error, vm.Code, vm.ErrorSource, vm.Exception, vm.ErrorKind);
             if (!vm.HasData) return ApiResponse.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound);
-            isVmRunning = vm.Data;
-            string? validationError = null;
+            isVmRunning = vm.Data != VmState.PoweredOff;
+            ApiResponse? validation = null;
             ApiResponse? selectionError = null;
             var plan = await WmiApi.QueryFirstAsync(
                 $"SELECT * FROM Msvm_MemorySettingData WHERE InstanceID LIKE 'Microsoft:{vmId:D}%' AND ResourceType = 4",
@@ -255,15 +298,15 @@ public static class VmMemoryService
                     if (selectionError != null) return null;
                     var current = MapMemory(obj);
                     var target = MergeMemorySelection(current, selection);
-                    validationError = GetChangeError(current, target, isVmRunning);
-                    if (validationError != null) return null;
+                    validation = ValidateMemoryChange(current, target, vm.Data);
+                    if (!validation.Success) return null;
                     var writes = BuildMemoryWrites(raw, target, selection, isVmRunning);
                     foreach (var (name, value) in writes) obj[name] = value;
                     return new { Xml = obj.GetText(TextFormat.CimDtd20), Target = target };
                 });
             if (!plan.Success) return ApiResponse.Fail(plan.Error, plan.Code, plan.ErrorSource, plan.Exception, plan.ErrorKind);
             if (selectionError != null) return selectionError;
-            if (validationError != null) return ApiResponse.Fail(validationError, kind: ApiErrorKind.InvalidState);
+            if (validation is { Success: false }) return validation;
             if (!plan.HasData) return ApiResponse.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound);
             bool dynamicChanged = selection.Contains(nameof(VmMemorySettings.DynamicMemoryEnabled));
             if (dynamicChanged && !isVmRunning && plan.Data.Target.DynamicMemoryEnabled)
@@ -298,6 +341,8 @@ public static class VmMemoryService
         var fields = selection.Names.Where(name => selection[name] != null).ToArray();
         foreach (string field in fields)
             typeof(VmMemorySettings).GetProperty(field)!.SetValue(target, selection[field]);
+        if (fields.Contains(nameof(VmMemorySettings.SgxEnabled)) && target.SgxEnabled == true
+            && (target.SgxSize == null || target.SgxSize < 2)) target.SgxSize = 2;
         var backingFields = fields.Where(p => p is nameof(VmMemorySettings.BackingPageSize) or nameof(VmMemorySettings.BackingType)
             or nameof(VmMemorySettings.EnableColdHint) or nameof(VmMemorySettings.EnableHotHint)
             or nameof(VmMemorySettings.EnableEpf) or nameof(VmMemorySettings.EnablePrivateCompressionStore)).ToArray();
@@ -314,14 +359,7 @@ public static class VmMemoryService
         foreach (string field in selection.Names)
         {
             if (selection[field] == null) continue;
-            string property = field switch
-            {
-                nameof(VmMemorySettings.Startup) => "VirtualQuantity",
-                nameof(VmMemorySettings.Minimum) => "Reservation",
-                nameof(VmMemorySettings.Maximum) => "Limit",
-                nameof(VmMemorySettings.Buffer) => "TargetMemoryBuffer",
-                _ => field
-            };
+            string property = MemoryPropertyName(field);
             if (field == nameof(VmMemorySettings.BackingPageSize) && !raw.ContainsKey(property)
                 && raw.ContainsKey("HugePagesEnabled"))
             {

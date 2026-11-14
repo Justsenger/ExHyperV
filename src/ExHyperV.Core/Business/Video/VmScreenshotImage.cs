@@ -7,7 +7,7 @@ namespace ExHyperV.Models;
 
 /// <summary>一张独立保存的截图，包含尺寸和图像字节，可转换为 JPEG。</summary>
 /// <remarks>CaptureAsync 返回的图像保存 RGB565 原始像素；FromEncoded 创建的图像保存已有的图片文件字节。
-/// 用 IsEncoded 区分两者，再用 CopyBytes 取得副本。对象不需要 Dispose，也不依赖控制台连接的生命周期。</remarks>
+/// 用 IsEncoded 区分两者，再用 CopyBytes 取得副本。对象由托管内存持有，可独立保存。</remarks>
 public sealed class VmScreenshotImage
 {
     private readonly byte[] bytes;
@@ -73,7 +73,7 @@ public sealed class VmScreenshotImage
     /// <summary>从已有图片数据创建图像，保留原来的编码格式。</summary>
     /// <param name="data">Windows 图像解码器可读取的图片字节，例如 JPEG 或 PNG；本方法复制输入数组。</param>
     /// <returns>保存原编码字节和图片尺寸的图像，IsEncoded 为 true。</returns>
-    /// <remarks>读取图片取得宽高，但不会把对象保存的内容替换为原始像素。不支持或损坏的图片会由解码器抛出异常。</remarks>
+    /// <remarks>读取宽高并保留原编码内容；不支持或损坏的图片由解码器抛出异常。</remarks>
     public static VmScreenshotImage FromEncoded(byte[] data)
     {
         using var stream = new MemoryStream(data, writable: false);

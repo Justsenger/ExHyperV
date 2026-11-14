@@ -152,7 +152,7 @@ internal static class VmGpuApiCases
         do
         {
             var values = await c.CallAsync(() => query.GetGpuPerformanceAsync([vm])); c.Require(values.ContainsKey(vm.Id), "GPU 样本保留 VM 身份"); last = values[vm.Id];
-            if (last.Sample?.IsValid == true && last.DriverSample?.IsValid == true && last.IsDriverBound)
+            if (last.Sample?.IsValid == true && last.EnginePresenceSample?.IsValid == true && last.HasGpuEngineInstance)
             { foreach (double value in new[] { last.Gpu3d, last.GpuCopy, last.GpuEncode, last.GpuDecode }) c.Require(double.IsFinite(value) && value >= 0, "GPU 性能值有效"); c.Evidence.Add("Core 已读取到该虚拟机的有效 GPU 性能指标。"); return; }
             await Task.Delay(1000, c.Token);
         } while (DateTime.UtcNow < deadline);

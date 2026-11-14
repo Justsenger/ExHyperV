@@ -28,7 +28,7 @@ public static partial class VmMmioService
         /// <summary>确保指定虚拟机完全关机后应用主机推荐的 MMIO 配置。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>关机及配置结果；失败前可能已经关机或完成部分探测。</returns>
-        /// <remarks>非 Off 状态会执行 TurnOff 强制断电；配置可能启停探测，完成后不自动恢复运行。交互调用应先取得 MMIO 确认。</remarks>
+        /// <remarks>先强制关闭目标虚拟机，再配置 MMIO；探测期间可能反复启停，结束时保持关闭。执行前确认允许这些电源操作。</remarks>
         /// <editentry label="应用推荐 MMIO 配置" category="MMIO"/>
         public static async Task<ApiResponse> UpdateMmioSpaceAsync(Guid vmId)
         {

@@ -13,7 +13,8 @@ internal static class VmConfigurationSwitch
             var state = await VmConfigurationState.ReadAsync(vmId);
             if (!state.HasData) return ApiResponse.Fail(state.Success ? Properties.Resources.Error_Net_VmNotFound : state.Error,
                 state.Code, state.ErrorSource, state.Exception, state.Success ? ApiErrorKind.NotFound : state.ErrorKind);
-            if (!VmPowerService.CanEditHibernation(true, state.Data!.IsRunning)) return ApiResponse.Fail(Properties.Resources.Warn_VmOffRequired, kind: ApiErrorKind.InvalidState);
+            var condition = VmPowerService.GetHibernationModificationCondition(true, state.Data!.State);
+            if (!condition.CanModify) return condition.ToResponse();
         }
 
         return await WmiApi.WithObjectAsync(

@@ -11,14 +11,14 @@ public enum VmIpAddressSource
     NeighborCache
 }
 
-/// <summary>地址与请求目标之间能够确认的关联范围；不是服务器认证或防伪结论。</summary>
+/// <summary>地址与请求目标之间的关联依据。</summary>
 public enum VmIpAddressAssociation
 {
     /// <summary>按 MAC 匹配得到；同 MAC 的其他设备或过期缓存仍可能影响结果。</summary>
     MacAddress,
     /// <summary>通过 Hyper-V 的网卡关联取得，并核对了该网卡的 MAC。</summary>
     GuestAdapter,
-    /// <summary>只能关联到虚拟机，尚不能确定属于请求的网卡；不能自动填给某张网卡。</summary>
+    /// <summary>地址已关联到虚拟机，具体网卡待确认。</summary>
     VirtualMachine
 }
 
@@ -29,6 +29,6 @@ public enum VmIpAddressAssociation
 /// <param name="Source">地址来源。</param>
 /// <param name="Association">与所请求目标的关联依据。</param>
 /// <param name="ObservedAtUtc">有来源观测时间时返回；来宾上报和邻居缓存未提供可靠时间时为 null。</param>
-/// <param name="ReadAtUtc">Core 本次读取该来源的 UTC 时间；不表示地址刚刚形成。</param>
+/// <param name="ReadAtUtc">本次读取该来源的 UTC 时间。</param>
 public sealed record VmIpAddressObservation(string Address, string? AdapterId, string? MacAddress,
     VmIpAddressSource Source, VmIpAddressAssociation Association, DateTimeOffset? ObservedAtUtc, DateTimeOffset ReadAtUtc);

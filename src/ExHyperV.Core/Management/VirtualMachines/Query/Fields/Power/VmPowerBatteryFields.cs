@@ -20,7 +20,7 @@ public static class VmPowerBatteryFields
     /// <fielddoc>
     /// <meaning>是否为虚拟机启用来宾休眠支持。</meaning>
     /// <source>当前配置的 Msvm_VirtualSystemSettingData，读取或派生 EnableHibernation。</source>
-    /// <applicability>这是来宾休眠许可配置，不是来宾能力或当前电源状态。Windows 来宾仍需支持 S4，并具有完整型休眠文件。</applicability>
+    /// <applicability>Windows 来宾使用休眠需要支持 S4，并具有完整型休眠文件。</applicability>
     /// <verification>研究规则 released-domain-153:1：17763、28000 来宾组件先回复接受请求，再执行休眠 API。许可已保存、请求已接受、实际已休眠须分别判断；当前设置接口只负责第一项。</verification>
     /// <references><see cref="VmPowerService"/>。</references>
     /// <modification kind="supported" input="enabled" submission="单项提交">虚拟机未运行时可修改。<see cref="VmPowerService.SetHibernationEnabledAsync"/></modification>

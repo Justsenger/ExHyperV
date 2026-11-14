@@ -35,7 +35,7 @@ public enum VmQueryCollection
     VirtualMachine,
     /// <summary>直接所属分组。</summary>
     Groups,
-    /// <summary>额外元数据的键值项。</summary>
+    /// <summary>自定义数据的键值项。</summary>
     Metadata,
     /// <summary>虚拟处理器的逐核心采样。</summary>
     Processors,
@@ -53,7 +53,7 @@ public enum VmQueryCollection
     Checkpoints
 }
 
-/// <summary>内置可查询字段的描述；不能由调用方自行注入底层查询或执行代码。</summary>
+/// <summary>内置可查询字段的描述。</summary>
 public abstract class VmQueryField
 {
     internal VmQueryField(string id, string name, string category, VmQueryCollection collection, Type valueType,

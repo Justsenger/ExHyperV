@@ -45,13 +45,13 @@ public sealed class VmImportDiskPreview
     public bool Exists { get; init; }
 
     /// <summary>控制器槽位显示文本；无信息时显示破折号。</summary>
-    public string SlotText => string.IsNullOrWhiteSpace(Controller) ? "—" : Controller;
+    internal string SlotText => string.IsNullOrWhiteSpace(Controller) ? "—" : Controller;
     /// <summary>磁盘格式与分配类型组合的显示文本。</summary>
-    public string KindText => string.Join(" · ", new[] { Format, Type }.Where(x => !string.IsNullOrWhiteSpace(x)));
+    internal string KindText => string.Join(" · ", new[] { Format, Type }.Where(x => !string.IsNullOrWhiteSpace(x)));
     /// <summary>虚拟容量显示文本，以 1024 为换算基数。</summary>
-    public string VirtualSizeText => FormatBytes(VirtualSize);
+    internal string VirtualSizeText => FormatBytes(VirtualSize);
     /// <summary>实际文件大小显示文本；负值按 0 处理，以 1024 为换算基数。</summary>
-    public string ActualSizeText => FormatBytes((ulong)Math.Max(0, ActualSize));
+    internal string ActualSizeText => FormatBytes((ulong)Math.Max(0, ActualSize));
 
     private static string FormatBytes(ulong bytes)
     {
@@ -76,13 +76,13 @@ public sealed class VmImportPreview
     /// <summary>源配置中的虚拟机 GUID；无法取得时为 Guid.Empty。</summary>
     public Guid OriginalGuid { get; init; }
     /// <summary>源 GUID 的带连字符显示文本；新生成的身份在导入后通过 VmImportResult.VmId 取得。</summary>
-    public string GuidText => OriginalGuid.ToString("D");
+    internal string GuidText => OriginalGuid.ToString("D");
     /// <summary>主配置中识别到的源交换机 GUID，供 VmImportOptions.SwitchMappings 使用；未连接或未识别的记录不产生 GUID。</summary>
     public IReadOnlyList<Guid> SourceSwitchIds { get; internal set; } = Array.Empty<Guid>();
     /// <summary>虚拟机代数。</summary>
     public int Generation { get; init; }
     /// <summary>虚拟机代数的本地化显示文本。</summary>
-    public string GenerationText => string.Format(
+    internal string GenerationText => string.Format(
         Resources.Culture ?? CultureInfo.CurrentUICulture,
         Resources.VmImport_GenerationFormat,
         Generation);
@@ -91,7 +91,7 @@ public sealed class VmImportPreview
     /// <summary>源配置记录的创建时间；DateTime.MinValue 表示未知。</summary>
     public DateTime Created { get; init; }
     /// <summary>按当前界面区域格式化的创建时间；未知时显示破折号。</summary>
-    public string CreatedText => Created == DateTime.MinValue
+    internal string CreatedText => Created == DateTime.MinValue
         ? "—"
         : Created.ToString("g", Resources.Culture ?? CultureInfo.CurrentUICulture);
     /// <summary>源配置 HostOnlyItems 中的来宾系统类型；缺失或未知时为 Windows。</summary>
@@ -99,17 +99,17 @@ public sealed class VmImportPreview
     /// <summary>源配置的虚拟处理器数量。</summary>
     public int ProcessorCount { get; init; }
     /// <summary>是否启用动态内存；null 表示未读取到。当前导入解析器不读取此项。</summary>
-    public bool? DynamicMemory { get; init; }
+    internal bool? DynamicMemory { get; init; }
     /// <summary>启动内存，单位为 MiB（1024² 字节）。</summary>
     public ulong StartupMemoryMiB { get; init; }
     /// <summary>动态内存下限，单位为 MiB；null 表示未读取到。当前导入解析器不读取此项。</summary>
-    public ulong? MinimumMemoryMiB { get; init; }
+    internal ulong? MinimumMemoryMiB { get; init; }
     /// <summary>动态内存上限，单位为 MiB；null 表示未读取到。当前导入解析器不读取此项。</summary>
-    public ulong? MaximumMemoryMiB { get; init; }
+    internal ulong? MaximumMemoryMiB { get; init; }
     /// <summary>源配置是否包含保存状态；null 表示未读取到。当前导入解析器不读取此项。</summary>
-    public bool? HasSavedState { get; init; }
+    internal bool? HasSavedState { get; init; }
     /// <summary>保存状态的本地化文本；未读取到时显示未知。</summary>
-    public string SavedStateText => HasSavedState switch
+    internal string SavedStateText => HasSavedState switch
     {
         true => Resources.VmImport_Yes,
         false => Resources.VmImport_No,
@@ -123,7 +123,7 @@ public sealed class VmImportPreview
     internal void AddIssue(string issue) => CompatibilityIssues = Array.AsReadOnly(CompatibilityIssues.Append(issue).ToArray());
 
     /// <summary>内存摘要；动态模式及上下限均已取得时显示范围，其余只显示启动内存。</summary>
-    public string MemoryText => DynamicMemory == true && MinimumMemoryMiB.HasValue && MaximumMemoryMiB.HasValue
+    internal string MemoryText => DynamicMemory == true && MinimumMemoryMiB.HasValue && MaximumMemoryMiB.HasValue
         ? string.Format(
         Resources.Culture ?? CultureInfo.CurrentUICulture,
         Resources.VmImport_DynamicMemoryFormat,
@@ -132,12 +132,12 @@ public sealed class VmImportPreview
         MaximumMemoryMiB.Value)
         : StartupMemoryText;
     /// <summary>启动内存的本地化显示文本。</summary>
-    public string StartupMemoryText => string.Format(
+    internal string StartupMemoryText => string.Format(
         Resources.Culture ?? CultureInfo.CurrentUICulture,
         Resources.VmImport_StaticMemoryFormat,
         StartupMemoryMiB);
     /// <summary>处理器、启动内存和各磁盘容量的组合摘要。</summary>
-    public string ConfigSummary
+    internal string ConfigSummary
     {
         get
         {
@@ -157,11 +157,11 @@ public sealed class VmImportPreview
         }
     }
     /// <summary>处理器数量与启动内存的组合摘要。</summary>
-    public string ProcessorMemorySummary => string.Format(
+    internal string ProcessorMemorySummary => string.Format(
         Resources.Culture ?? CultureInfo.CurrentUICulture,
         Resources.VmImport_ProcessorMemoryFormat,
         ProcessorCount,
         StartupMemoryMiB / 1024.0);
     /// <summary>预览中的磁盘数量文本。</summary>
-    public string DiskSummary => Disks.Count == 0 ? "0" : Disks.Count.ToString();
+    internal string DiskSummary => Disks.Count == 0 ? "0" : Disks.Count.ToString();
 }

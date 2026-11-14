@@ -42,7 +42,7 @@ internal static partial class ApiDocument
         output.AppendLine("| 宿主 build | 系统 | 最高已记录版本 | 支持的配置版本 |")
             .AppendLine("| --- | --- | --- | --- |");
         foreach (var host in reference.Hosts)
-            output.AppendLine($"| {host.Build} | {host.System}{(host.Research ? "（研究构建）" : "")} | {host.Versions[0]} | {string.Join("、", host.Versions)} |");
+            output.AppendLine($"| {host.Build} | {host.System}{(host.Research ? "（预览版）" : "")} | {host.Versions[0]} | {string.Join("、", host.Versions)} |");
         output.AppendLine().AppendLine("<!--\n" + reference.License + "\n-->").AppendLine();
     }
 
@@ -50,25 +50,45 @@ internal static partial class ApiDocument
     {
         var reference = ConfigurationVersions.Value;
         string id = memberId + "--versions";
-        var output = new StringBuilder($"<section class=\"configuration-versions\" aria-labelledby=\"{H(id)}\"><h3 id=\"{H(id)}\">宿主与配置版本</h3><p class=\"version-legend\"><span aria-hidden=\"true\"></span>着色格表示支持</p>");
-        output.Append("<div class=\"version-table-wrap\" tabindex=\"0\" role=\"region\" aria-label=\"宿主与配置版本对照表，可横向滚动\"><table class=\"version-matrix\"><thead><tr><th scope=\"col\">宿主 / 配置版本</th>");
-        foreach (string version in reference.Versions) output.Append($"<th scope=\"col\"><code>{H(version)}</code></th>");
-        output.Append("</tr></thead><tbody>");
-        foreach (var host in reference.Hosts)
+        var output = new StringBuilder($"<section class=\"configuration-versions\" aria-labelledby=\"{H(id)}\"><div class=\"version-heading\"><h3 id=\"{H(id)}\">宿主与配置版本</h3><span class=\"version-legend\"><span aria-hidden=\"true\"></span>支持</span></div>");
+        output.Append("<div class=\"version-table-full\">");
+        AppendTable(reference.Hosts);
+        output.Append("</div><div class=\"version-table-narrow\">");
+        foreach (var hosts in reference.Hosts.Chunk(4)) AppendTable(hosts);
+        output.Append("</div></section><!--\n").Append(reference.License).Append("\n-->");
+        return output.ToString();
+
+        void AppendTable(ConfigurationHost[] hosts)
         {
-            output.Append($"<tr><th scope=\"row\"><span class=\"version-host\">{H(host.System)}</span><code class=\"version-build\">Build {host.Build}</code>");
-            if (host.Research) output.Append("<span class=\"version-channel\">研究构建</span>");
-            output.Append("</th>");
+            output.Append("<table class=\"version-matrix\" aria-label=\"配置版本与宿主支持关系\"><colgroup><col class=\"version-label-column\">");
+            foreach (var _ in hosts) output.Append("<col>");
+            output.Append("</colgroup><thead><tr><th class=\"version-corner\" scope=\"col\">配置版本</th>");
+            foreach (var host in hosts)
+            {
+                output.Append($"<th scope=\"col\" class=\"version-host\" aria-label=\"{H(host.System)}，Build {host.Build}\">");
+                foreach (string system in host.System.Split(" / ", StringSplitOptions.RemoveEmptyEntries))
+                    output.Append($"<span class=\"version-host-name\">{string.Join("<br>", system.Split(" · ").Select(H))}</span>");
+                output.Append($"<span class=\"version-build\">{host.Build}</span>");
+                if (host.Research) output.Append("<span class=\"version-channel\">预览版</span>");
+                output.Append("</th>");
+            }
+            output.Append("</tr></thead><tbody>");
+            int? previousMajor = null;
             foreach (string version in reference.Versions)
             {
-                bool supported = host.Versions.Contains(version);
-                string status = $"{host.System}（Build {host.Build}） · {version}：{(supported ? "支持" : "未列入支持列表")}";
-                output.Append($"<td class=\"{(supported ? "version-supported" : "version-empty")}\" aria-label=\"{H(status)}\" title=\"{H(status)}\">");
-                output.Append("</td>");
+                int major = Version.Parse(version).Major;
+                output.Append(previousMajor.HasValue && previousMajor != major ? "<tr class=\"version-major-start\">" : "<tr>");
+                previousMajor = major;
+                output.Append($"<th scope=\"row\">{H(version)}</th>");
+                foreach (var host in hosts)
+                {
+                    bool supported = host.Versions.Contains(version);
+                    string status = $"{host.System}（Build {host.Build}） · {version}：{(supported ? "支持" : "未列入支持列表")}";
+                    output.Append($"<td class=\"{(supported ? "version-supported" : "version-empty")}\" aria-label=\"{H(status)}\"></td>");
+                }
+                output.Append("</tr>");
             }
-            output.Append("</tr>");
+            output.Append("</tbody></table>");
         }
-        output.Append("</tbody></table></div></section><!--\n").Append(reference.License).Append("\n-->");
-        return output.ToString();
     }
 }

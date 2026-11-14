@@ -1,4 +1,4 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+using ExHyperV.Services;
 using System.Collections.Frozen;
 
 namespace ExHyperV.Models
@@ -14,16 +14,16 @@ namespace ExHyperV.Models
         MultiThread
     }
 
-    /// <summary>APIC 模式（Msvm_ProcessorSettingData.ApicMode，u8）：自动 / 强制 xAPIC / 强制 x2APIC / Apic。改 guest CPUID 0x01 ECX[21] x2APIC 位。</summary>
+    /// <summary>虚拟处理器的 APIC 中断控制器模式：自动、Legacy、x2APIC 或 xAPIC。</summary>
     public enum VmApicMode : byte
     {
-        /// <summary>使用 Hyper-V 默认 APIC 模式。</summary>
+        /// <summary>自动选择。Hyper-V 根据虚拟机配置、兼容性、处理器拓扑及宿主能力确定实际模式。</summary>
         Default = 0,
-        /// <summary>请求传统 xAPIC 模式。</summary>
+        /// <summary>传统兼容模式（Legacy），使用 Hyper-V 的旧式 APIC 兼容路径。</summary>
         Legacy = 1,
-        /// <summary>请求 x2APIC 模式。</summary>
+        /// <summary>x2APIC 模式，支持扩展的 APIC ID 编号空间。</summary>
         X2Apic = 2,
-        /// <summary>使用 Hyper-V Apic 编码 3。</summary>
+        /// <summary>xAPIC 模式。WMI 名称为 Apic，虚拟机工作进程中对应 XApic。</summary>
         Apic = 3
     }
 
@@ -73,113 +73,137 @@ namespace ExHyperV.Models
 
     /// <summary>虚拟机处理器设置的可变模型。属性变化可用于绑定；提交配置由 VmProcessorService 执行。</summary>
     /// <remarks>
-    /// <para>可空字段未取得当前值时保留 null，不补为 false、0 或空字符串。字段是否存在由 SupportedCapabilities 或 Supports 单独表示：支持且值为 null 表示本次没有可用的当前值，不支持且值为 null 表示本次查询未提供该字段。未查询的模型也不包含支持信息。</para>
-    /// <para>频率上限、下限、期望频率、能效偏好、自主活动窗口、硬件隔离来宾上限、每插槽簇数量、每 L3 域处理器数量和物理地址位宽仍将底层 0xFFFFFFFF 未设置编码归一为 null；不能据 null 推断有效默认值。其他实际读到的 false、0 和空字符串保留原值。</para>
-    /// <para>字段存在不保证硬件支持或当前状态下可修改；修改仍由服务校验，并由底层返回执行结果。读取的 null 不等于写入请求，写入语义见 SetVmProcessorAsync 的 changedProperties 和空值约定。</para>
+    /// <para>读取结果：SupportedCapabilities 和 Supports 表示宿主提供哪些设置项。可空字段的 null 表示未取得当前值或未设置。</para>
+    /// <para>频率上限、下限、期望频率、能效偏好、自主活动窗口、硬件隔离来宾上限、每插槽簇数量、每 L3 域处理器数量和物理地址位宽仍将底层 0xFFFFFFFF 未设置编码归一为 null。其他实际读到的 false、0 和空字符串保留原值。</para>
+    /// <para>写入时，仅提交 changedProperties 选中的属性。选中属性的 null 按以下规则处理：</para>
+    /// <list type="bullet">
+    /// <item><c>CpuBrandString</c>：清为空字符串。</item>
+    /// <item><c>PerfCpuFreqDesiredMhz</c>、<c>PerfCpuEnergyPerformancePreference</c>、<c>PerfCpuAutonomousActivityWindow</c>、<c>MaxClusterCountPerSocket</c>、<c>MaxProcessorCountPerL3</c>：恢复默认，写入底层未设置值。</item>
+    /// <item>其他可空属性：跳过该项，保留原值。</item>
+    /// </list>
     /// </remarks>
-    public partial class VmProcessorSettings : ObservableObject
+    public partial class VmProcessorSettings
     {
         /// <summary>虚拟处理器数量。</summary>
-        [ObservableProperty] private int _count;
+        public int Count { get => _count; set => _count = value; }
+        private int _count;
         /// <summary>保留处理器资源的原始值，单位为 0.001%；100000 表示 100%。</summary>
-        [ObservableProperty] private ulong _reservation;
+        public ulong Reservation { get => _reservation; set => _reservation = value; }
+        private ulong _reservation;
         /// <summary>处理器资源上限的原始值，单位为 0.001%；100000 表示 100%。</summary>
-        [ObservableProperty] private ulong _limit;
+        public ulong Limit { get => _limit; set => _limit = value; }
+        private ulong _limit;
         /// <summary>处理器竞争时的相对权重。</summary>
-        [ObservableProperty] private int _relativeWeight;
+        public int RelativeWeight { get => _relativeWeight; set => _relativeWeight = value; }
+        private int _relativeWeight;
         /// <summary>是否向来宾公开虚拟化扩展以支持嵌套虚拟化；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _exposeVirtualizationExtensions;
-        /// <summary>是否启用宿主资源保护；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _enableHostResourceProtection;
+        public bool? ExposeVirtualizationExtensions { get => _exposeVirtualizationExtensions; set => _exposeVirtualizationExtensions = value; }
+        private bool? _exposeVirtualizationExtensions;
+        /// <summary>参见 <see cref="VmProcessorFields.EnableHostResourceProtection"/>；null 表示未取得当前值。</summary>
+        public bool? EnableHostResourceProtection { get => _enableHostResourceProtection; set => _enableHostResourceProtection = value; }
+        private bool? _enableHostResourceProtection;
         /// <summary>是否启用处理器迁移兼容；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _compatibilityForMigrationEnabled;
+        public bool? CompatibilityForMigrationEnabled { get => _compatibilityForMigrationEnabled; set => _compatibilityForMigrationEnabled = value; }
+        private bool? _compatibilityForMigrationEnabled;
         /// <summary>处理器迁移兼容所采用的功能集模式；null 表示未取得。</summary>
-        [ObservableProperty] private VmMigrationCompatibilityMode? _compatibilityForMigrationMode;
+        public VmMigrationCompatibilityMode? CompatibilityForMigrationMode { get => _compatibilityForMigrationMode; set => _compatibilityForMigrationMode = value; }
+        private VmMigrationCompatibilityMode? _compatibilityForMigrationMode;
         /// <summary>是否启用旧操作系统兼容；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _compatibilityForOlderOperatingSystemsEnabled;
+        public bool? CompatibilityForOlderOperatingSystemsEnabled { get => _compatibilityForOlderOperatingSystemsEnabled; set => _compatibilityForOlderOperatingSystemsEnabled = value; }
+        private bool? _compatibilityForOlderOperatingSystemsEnabled;
         /// <summary>向来宾呈现的同时多线程模式；null 表示未取得。</summary>
-        [ObservableProperty] private SmtMode? _smtMode;
-        /// <summary>是否禁用推测执行控制；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _disableSpeculationControls;
-        /// <summary>是否启用体系结构性能监控单元；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _enablePerfmonArchPmu;
-        /// <summary>是否允许访问 ACNT/MCNT 计数器，对应 AllowACountMCount；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _allowAcountMcount;
+        public SmtMode? SmtMode { get => _smtMode; set => _smtMode = value; }
+        private SmtMode? _smtMode;
+        /// <summary>是否向来宾隐藏推测执行侧信道漏洞的缓解控制能力；null 表示未取得。</summary>
+        public bool? DisableSpeculationControls { get => _disableSpeculationControls; set => _disableSpeculationControls = value; }
+        private bool? _disableSpeculationControls;
+        /// <summary>参见 <see cref="VmProcessorFields.EnablePerfmonArchPmu"/>；null 表示未取得当前值。</summary>
+        public bool? EnablePerfmonArchPmu { get => _enablePerfmonArchPmu; set => _enablePerfmonArchPmu = value; }
+        private bool? _enablePerfmonArchPmu;
+        /// <summary>参见 <see cref="VmProcessorFields.AllowAcountMcount"/>；null 表示未取得当前值。</summary>
+        public bool? AllowAcountMcount { get => _allowAcountMcount; set => _allowAcountMcount = value; }
+        private bool? _allowAcountMcount;
         /// <summary>向来宾公开的处理器品牌字符串；null 表示未取得。</summary>
-        [ObservableProperty] private string? _cpuBrandString;
+        public string? CpuBrandString { get => _cpuBrandString; set => _cpuBrandString = value; }
+        private string? _cpuBrandString;
 
         // ── 新增：CPUID 视图类（改 guest 所见，多为迁移/兼容向）──
         /// <summary>来宾 APIC 呈现模式；null 表示未取得。</summary>
-        [ObservableProperty] private VmApicMode? _apicMode;                        // ApicMode
+        public VmApicMode? ApicMode { get => _apicMode; set => _apicMode = value; }
+        private VmApicMode? _apicMode;                        // ApicMode
         /// <summary>来宾看到的 L3 缓存相联路数，0 表示默认；不改变物理缓存，null 表示未取得。</summary>
-        [ObservableProperty] private uint? _l3CacheWays;                           // L3CacheWays（0=默认；仅改 guest 视图，不动真缓存）
+        public uint? L3CacheWays { get => _l3CacheWays; set => _l3CacheWays = value; }
+        private uint? _l3CacheWays;                           // L3CacheWays（0=默认；仅改 guest 视图，不动真缓存）
         /// <summary>虚拟处理器在虚拟 L3 缓存域间的分布策略；null 表示未取得。</summary>
-        [ObservableProperty] private L3DistributionPolicy? _l3DistributionPolicy;  // L3ProcessorDistributionPolicy
+        public L3DistributionPolicy? L3DistributionPolicy { get => _l3DistributionPolicy; set => _l3DistributionPolicy = value; }
+        private L3DistributionPolicy? _l3DistributionPolicy;  // L3ProcessorDistributionPolicy
         /// <summary>二级地址转换的大页拆分缓解策略；null 表示未取得。</summary>
-        [ObservableProperty] private PageShatterMode? _pageShatterMode;            // EnablePageShattering（SLAT 内部）
+        public PageShatterMode? PageShatterMode { get => _pageShatterMode; set => _pageShatterMode = value; }
+        private PageShatterMode? _pageShatterMode;            // EnablePageShattering（SLAT 内部）
 
         // ── 新增：每-VM 调频/能效（需主机 HWP；消费 Intel 多被拒，应做能力门控）──
         /// <summary>每虚拟机处理器频率上限，单位为 MHz；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _perfCpuFreqCapMhz;
+        public uint? PerfCpuFreqCapMhz { get => _perfCpuFreqCapMhz; set => _perfCpuFreqCapMhz = value; }
+        private uint? _perfCpuFreqCapMhz;
         /// <summary>每虚拟机处理器频率下限，单位为 MHz；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _perfCpuFreqMinMhz;
-        /// <summary>每虚拟机期望处理器频率，单位为 MHz；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _perfCpuFreqDesiredMhz;
-        /// <summary>宿主性能与能效偏好的原始编码；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _perfCpuEnergyPerformancePreference;
-        /// <summary>宿主自主活动窗口的原始编码，不在模型中换算时间单位；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _perfCpuAutonomousActivityWindow;
+        public uint? PerfCpuFreqMinMhz { get => _perfCpuFreqMinMhz; set => _perfCpuFreqMinMhz = value; }
+        private uint? _perfCpuFreqMinMhz;
+        /// <summary>向宿主请求的处理器目标频率，单位为 MHz；0 表示自主性能选择，null 表示未设置或未取得。</summary>
+        public uint? PerfCpuFreqDesiredMhz { get => _perfCpuFreqDesiredMhz; set => _perfCpuFreqDesiredMhz = value; }
+        private uint? _perfCpuFreqDesiredMhz;
+        /// <summary>自主调频的能耗性能偏好（EPP），范围为 0～255；0 最偏性能，255 最偏节能。期望频率须为 0；null 表示未设置或未取得。</summary>
+        public uint? PerfCpuEnergyPerformancePreference { get => _perfCpuEnergyPerformancePreference; set => _perfCpuEnergyPerformancePreference = value; }
+        private uint? _perfCpuEnergyPerformancePreference;
+        /// <summary>宿主自主调频活动窗口的原始值，时间单位和编码尚未确认。期望频率须为 0；null 表示未设置或未取得。</summary>
+        public uint? PerfCpuAutonomousActivityWindow { get => _perfCpuAutonomousActivityWindow; set => _perfCpuAutonomousActivityWindow = value; }
+        private uint? _perfCpuAutonomousActivityWindow;
         /// <summary>是否忽略宿主最大频率限制；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _perfCpuIgnoreHostMaxFrequency;
+        public bool? PerfCpuIgnoreHostMaxFrequency { get => _perfCpuIgnoreHostMaxFrequency; set => _perfCpuIgnoreHostMaxFrequency = value; }
+        private bool? _perfCpuIgnoreHostMaxFrequency;
 
         // ── 新增：性能监控透传（需主机 vPMU；消费 Intel 开启会拒启 0xC0350005）──
-        /// <summary>是否透传 PMU 性能监控；null 表示未取得，切换还需满足相关依赖规则。</summary>
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanTogglePerfmonPmu))]
-        [NotifyPropertyChangedFor(nameof(CanTogglePerfmonPebs))]
-        [NotifyPropertyChangedFor(nameof(CanTogglePerfmonIpt))]
+        /// <summary>参见 <see cref="VmProcessorFields.EnablePerfmonPmu"/>；null 表示未取得当前值。</summary>
+        public bool? EnablePerfmonPmu { get => _enablePerfmonPmu; set => _enablePerfmonPmu = value; }
         private bool? _enablePerfmonPmu;
-        /// <summary>是否透传最后分支记录 LBR；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _enablePerfmonLbr;
-        /// <summary>是否启用精确事件采样 PEBS，依赖 PMU；null 表示未取得。</summary>
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanTogglePerfmonPmu))]
-        [NotifyPropertyChangedFor(nameof(CanTogglePerfmonPebs))]
+        /// <summary>参见 <see cref="VmProcessorFields.EnablePerfmonLbr"/>；null 表示未取得当前值。</summary>
+        public bool? EnablePerfmonLbr { get => _enablePerfmonLbr; set => _enablePerfmonLbr = value; }
+        private bool? _enablePerfmonLbr;
+        /// <summary>参见 <see cref="VmProcessorFields.EnablePerfmonPebs"/>；null 表示未取得当前值。</summary>
+        public bool? EnablePerfmonPebs { get => _enablePerfmonPebs; set => _enablePerfmonPebs = value; }
         private bool? _enablePerfmonPebs;
-        /// <summary>是否启用处理器跟踪 IPT，依赖 PMU；null 表示未取得。</summary>
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanTogglePerfmonPmu))]
-        [NotifyPropertyChangedFor(nameof(CanTogglePerfmonIpt))]
+        /// <summary>参见 <see cref="VmProcessorFields.EnablePerfmonIpt"/>；null 表示未取得当前值。</summary>
+        public bool? EnablePerfmonIpt { get => _enablePerfmonIpt; set => _enablePerfmonIpt = value; }
         private bool? _enablePerfmonIpt;
-
-        /// <summary>按当前 PMU、PEBS 和 IPT 状态判断是否允许切换 PMU。</summary>
-        public bool CanTogglePerfmonPmu => Services.VmProcessorService.CanTogglePerfmonPmu(EnablePerfmonPmu, EnablePerfmonPebs, EnablePerfmonIpt);
-        /// <summary>按当前 PEBS 和 PMU 状态判断是否允许切换 PEBS。</summary>
-        public bool CanTogglePerfmonPebs => Services.VmProcessorService.CanTogglePerfmonDependent(EnablePerfmonPebs, EnablePerfmonPmu);
-        /// <summary>按当前 IPT 和 PMU 状态判断是否允许切换 IPT。</summary>
-        public bool CanTogglePerfmonIpt => Services.VmProcessorService.CanTogglePerfmonDependent(EnablePerfmonIpt, EnablePerfmonPmu);
 
         // ── 新增：硬件隔离（需 Intel TDX / AMD SEV-SNP，消费级无此硅片）──
         /// <summary>是否启用硬件隔离扩展；null 表示未取得。</summary>
-        [ObservableProperty] private bool? _hardwareIsolationExtensionsEnabled;   // WMI: 0=Disabled, 1=HardwareIsolation
+        public bool? HardwareIsolationExtensionsEnabled { get => _hardwareIsolationExtensionsEnabled; set => _hardwareIsolationExtensionsEnabled = value; }
+        private bool? _hardwareIsolationExtensionsEnabled;   // WMI: 0=Disabled, 1=HardwareIsolation
         /// <summary>允许的硬件隔离来宾最大数量；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _maxHwIsolatedGuests;
+        public uint? MaxHwIsolatedGuests { get => _maxHwIsolatedGuests; set => _maxHwIsolatedGuests = value; }
+        private uint? _maxHwIsolatedGuests;
 
         // ── 处理器簇与 L3 缓存域拓扑 ──
         /// <summary>每个虚拟处理器插槽的最大簇数量；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _maxClusterCountPerSocket;
+        public uint? MaxClusterCountPerSocket { get => _maxClusterCountPerSocket; set => _maxClusterCountPerSocket = value; }
+        private uint? _maxClusterCountPerSocket;
         /// <summary>每个虚拟 L3 缓存域的最大处理器数量；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _maxProcessorCountPerL3;
+        public uint? MaxProcessorCountPerL3 { get => _maxProcessorCountPerL3; set => _maxProcessorCountPerL3 = value; }
+        private uint? _maxProcessorCountPerL3;
 
         // vNUMA, guest physical address space, and interrupt topology.
         /// <summary>每个虚拟 NUMA 节点的最大处理器数量；null 表示未取得。</summary>
-        [ObservableProperty] private ulong? _maxProcessorsPerNumaNode;
+        public ulong? MaxProcessorsPerNumaNode { get => _maxProcessorsPerNumaNode; set => _maxProcessorsPerNumaNode = value; }
+        private ulong? _maxProcessorsPerNumaNode;
         /// <summary>每个虚拟插槽的最大 NUMA 节点数量；null 表示未取得。</summary>
-        [ObservableProperty] private ulong? _maxNumaNodesPerSocket;
-        /// <summary>来宾物理地址位宽，单位为位；null 表示未取得。</summary>
-        [ObservableProperty] private uint? _physicalAddressWidth;
+        public ulong? MaxNumaNodesPerSocket { get => _maxNumaNodesPerSocket; set => _maxNumaNodesPerSocket = value; }
+        private ulong? _maxNumaNodesPerSocket;
+        /// <summary>参见 <see cref="VmProcessorFields.PhysicalAddressWidth"/>；null 表示未取得当前值。</summary>
+        public uint? PhysicalAddressWidth { get => _physicalAddressWidth; set => _physicalAddressWidth = value; }
+        private uint? _physicalAddressWidth;
         /// <summary>局部外设中断模式；null 表示未取得。</summary>
-        [ObservableProperty] private LpiMode? _lpiMode;
+        public LpiMode? LpiMode { get => _lpiMode; set => _lpiMode = value; }
+        private LpiMode? _lpiMode;
 
         /// <summary>本次处理器设置查询中实际存在的属性名集合；与各字段当前值是否为空独立保存。</summary>
         internal HashSet<string> SupportedProps { get; set; } = new(System.StringComparer.OrdinalIgnoreCase);
@@ -189,11 +213,22 @@ namespace ExHyperV.Models
             .Where(entry => SupportedProps.Contains(entry.Value))
             .Select(entry => entry.Key).ToFrozenSet();
 
-        /// <summary>判断本次查询是否提供某项处理器设置字段；与当前值是否为 null 无关，不执行宿主查询或写入。</summary>
+        /// <summary>查询本次读取结果中是否包含指定处理器设置。</summary>
         /// <param name="capability">要判断的业务设置项。</param>
         /// <returns>本次查询包含该设置项时为 true；未查询或未知能力值返回 false。</returns>
         public bool Supports(VmProcessorCapability capability) =>
             CapabilityProperties.TryGetValue(capability, out var property) && SupportedProps.Contains(property);
+
+        /// <summary>复制处理器配置及查询返回的支持信息。</summary>
+        /// <returns>可独立编辑的配置副本。</returns>
+        public VmProcessorSettings Clone()
+        {
+            var copy = new VmProcessorSettings();
+            foreach (var property in typeof(VmProcessorSettings).GetProperties().Where(p => p.SetMethod?.IsPublic == true))
+                property.SetValue(copy, property.GetValue(this));
+            copy.SupportedProps = new(SupportedProps, StringComparer.OrdinalIgnoreCase);
+            return copy;
+        }
 
         private static readonly FrozenDictionary<VmProcessorCapability, string> CapabilityProperties =
             new Dictionary<VmProcessorCapability, string>

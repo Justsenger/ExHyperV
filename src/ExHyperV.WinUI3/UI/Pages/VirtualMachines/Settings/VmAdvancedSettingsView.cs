@@ -1,3 +1,4 @@
+using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using Microsoft.UI.Xaml;
@@ -89,11 +90,11 @@ public sealed class VmAdvancedSettingsView : VmSettingsView
         try
         {
             var errors = new List<string>();
-            SetSwitch(console, row.Get(VmConsoleFields.BasicEnabled), VmConsoleSupportService.CanToggleConsoleSupport(context.Generation, context.IsRunning), errors, "控制台支持");
-            SetSwitch(numLock, row.Get(VmBootGlobalFields.NumLock), VmBootService.CanEditBootNumLock(context.IsRunning), errors, "数字小键盘");
+            SetSwitch(console, row.Get(VmConsoleFields.BasicEnabled), VmConsoleSupportService.GetModificationCondition(context.Generation, context.State), errors, "控制台支持");
+            SetSwitch(numLock, row.Get(VmBootGlobalFields.NumLock), VmBootService.GetNumLockModificationCondition(context.State), errors, "数字小键盘");
             SetSwitch(lockOnDisconnect, row.Get(VmConsoleFields.LockOnDisconnect), true, errors, "断开时锁定");
             var hibernationValue = row.Get(VmPowerBatteryFields.EnableHibernation);
-            SetSwitch(hibernation, hibernationValue, VmPowerService.CanEditHibernation(hibernationValue.HasValue, context.IsRunning), errors, "虚拟机休眠");
+            SetSwitch(hibernation, hibernationValue, VmPowerService.GetHibernationModificationCondition(hibernationValue.HasValue, context.State), errors, "虚拟机休眠");
             SetSwitch(turnOffOnRestart, row.Get(VmPowerBatteryFields.TurnOffOnGuestRestart), true, errors, "重启时改为关机");
             SetSwitch(fullScsi, row.Get(VmStorageGlobalFields.AllowFullScsiCommandSet), true, errors, "完整 SCSI 命令集");
             SetSwitch(battery, row.Get(VmPowerBatteryFields.BatteryEnabled), true, errors, "电池状态透传");
@@ -116,13 +117,20 @@ public sealed class VmAdvancedSettingsView : VmSettingsView
             }
             else appliedResolution = null;
             bool knownResolution = hasResolution && type.Value is 2 or 3 or 4;
-            resolution.IsEnabled = applyResolution.IsEnabled = knownResolution && VmDisplaySettingsService.CanEdit(context.IsRunning);
+            var condition = VmDisplaySettingsService.GetModificationCondition(context.State);
+            resolution.IsEnabled = applyResolution.IsEnabled = knownResolution && condition.CanModify;
             ToolTipService.SetToolTip(resolution, !hasResolution ? type.Error ?? "当前虚拟机没有可用的显示分辨率配置。"
-                : !knownResolution ? "当前分辨率策略尚不支持编辑，已保留原值。" : null);
+                : !knownResolution ? "当前分辨率策略尚不支持编辑，已保留原值。" : condition.CanModify ? null : condition.Reason);
             if (!hasResolution && type.State == VmQueryValueState.Failed) errors.Add("分辨率：" + type.Error);
             if (errors.Count > 0) ShowError(string.Join(Environment.NewLine, errors));
         }
         finally { Updating = false; }
+    }
+
+    private void SetSwitch(ToggleSwitch target, VmQueryValue<bool> value, VmModificationCondition condition, List<string> errors, string title)
+    {
+        SetSwitch(target, value, condition.CanModify, errors, title);
+        if (value.HasValue && !condition.CanModify) ToolTipService.SetToolTip(target, condition.Reason);
     }
 
     private void SetSwitch(ToggleSwitch target, VmQueryValue<bool> value, bool editable, List<string> errors, string title)

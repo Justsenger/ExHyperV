@@ -28,7 +28,7 @@ public static class HostVolumeAutoMountService
 
     /// <summary>直接设置 Mount Manager 的宿主全局自动挂载策略，并重新查询确认。</summary>
     /// <remarks>这是宿主全局的持久设置，退出程序后仍生效。Core 的写入和复核按宿主排队。</remarks>
-    /// <returns>成功表示设置后查询值与请求一致；原生失败保留 Win32 错误码。已写入但复核失败时为 OutcomeUnknown，复核值不一致时为 Conflict；失败不保证设置未改变。</returns>
+    /// <returns>成功表示回读值与请求一致；回读失败为 OutcomeUnknown，值不一致为 Conflict。原生失败保留 Win32 错误码。</returns>
     /// <param name="enabled">true 启用新卷自动挂载，false 禁用。</param>
     public static async Task<ApiResponse> SetEnabledAsync(bool enabled)
     {

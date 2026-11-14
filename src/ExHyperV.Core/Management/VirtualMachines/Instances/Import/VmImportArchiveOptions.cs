@@ -1,7 +1,7 @@
 namespace ExHyperV.Services;
 
 /// <summary>从 ZIP 准备预览及导入时使用的密码、解压额度和预览工作目录。</summary>
-/// <remarks>在 PreparePreviewsAsync 提交一次，之后所有单机会话沿用同一组选项和累计额度。null 额度表示不设置该项上限，保持旧调用行为；Core 不替调用方规定虚拟磁盘容量。额度限制解压数据，不等同于整个进程的内存或耗时上限。选项不包含虚拟机名称、GUID 或目标目录，那些由 VmImportOptions 指定。</remarks>
+/// <remarks>在 PreparePreviewsAsync 设置一次，批次内各会话共用选项和累计解压额度。额度为 null 表示该项不限；虚拟机名称、GUID 和目标目录由 VmImportOptions 指定。</remarks>
 public sealed class VmImportArchiveOptions
 {
     /// <summary>读取加密条目使用的 UTF-8 密码；默认 null。缺少密码时返回 PasswordRequired；Core 不弹窗、不保存密码。一个归档中的加密条目应使用同一密码。</summary>
@@ -24,7 +24,7 @@ public enum VmImportArchiveError
 {
     /// <summary>遇到加密条目，但调用方尚未提供密码。</summary>
     PasswordRequired,
-    /// <summary>密码不正确或加密数据已损坏；不能仅凭此错误区分二者。</summary>
+    /// <summary>密码错误或加密数据损坏。</summary>
     DecryptionFailed,
     /// <summary>条目采用当前不支持的加密方式。</summary>
     UnsupportedEncryption,

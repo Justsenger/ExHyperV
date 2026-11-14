@@ -13,19 +13,22 @@ internal static partial class ApiDocument
         void Visit(string directory)
         {
             foreach (string child in Directory.EnumerateDirectories(directory))
-                if (Path.GetFileName(child) is not ("bin" or "obj" or "External" or ".git")) Visit(child);
+                if (Path.GetFileName(child) is not ("bin" or "obj" or "external" or "External" or ".git")) Visit(child);
             files.AddRange(Directory.EnumerateFiles(directory).Where(path => Path.GetExtension(path).ToLowerInvariant()
-                is ".cs" or ".csproj" or ".props" or ".targets" or ".resx" or ".xml" or ".html" or ".css" or ".md" or ".mjs"));
+                is ".cs" or ".csproj" or ".props" or ".targets" or ".resx" or ".xml" or ".json" or ".html" or ".css" or ".md" or ".mjs" or ".woff2" or ".txt"));
         }
-        Visit(root);
+        string repository = RepositoryRoot(root);
+        foreach (string input in new[] { root, Path.Combine(repository, "doc/api"), Path.Combine(repository, "tools/api-docs"), Path.Combine(repository, "website/src/api") }) Visit(input);
+        files.RemoveAll(path => Path.GetFullPath(path) == Path.GetFullPath(DocumentationFile(root, "FieldHelp.json")) || Path.GetFullPath(path) == Path.GetFullPath(DocumentationFile(root, "API.md")) || Path.GetFullPath(path) == Path.GetFullPath(DocumentationFile(root, "API.json")));
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        foreach (string file in files.OrderBy(path => Path.GetRelativePath(root, path).Replace('\\', '/'), StringComparer.Ordinal))
+        foreach (string file in files.OrderBy(path => Path.GetRelativePath(repository, path).Replace('\\', '/'), StringComparer.Ordinal))
         {
-            string relative = Path.GetRelativePath(root, file).Replace('\\', '/');
-            string text = File.ReadAllText(file).Replace("\r\n", "\n");
-            if (relative == "API.md")
+            string relative = Path.GetRelativePath(repository, file).Replace('\\', '/');
+            bool binary = Path.GetExtension(file) == ".woff2";
+            string text = binary ? "" : File.ReadAllText(file).Replace("\r\n", "\n");
+            if (relative == "doc/api/guide.md")
                 text = Regex.Replace(text, @"<!-- api-(reference|examples|example-[\w-]+):start -->.*?<!-- api-\1:end -->", "", RegexOptions.Singleline);
-            byte[] content = Encoding.UTF8.GetBytes(text);
+            byte[] content = binary ? File.ReadAllBytes(file) : Encoding.UTF8.GetBytes(text);
             hash.AppendData(Encoding.UTF8.GetBytes(relative + "\0" + content.Length + "\0"));
             hash.AppendData(content);
         }

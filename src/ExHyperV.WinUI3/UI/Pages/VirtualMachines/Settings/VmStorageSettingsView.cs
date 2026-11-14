@@ -20,6 +20,7 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
     private IReadOnlyList<VmStorageAttachment> attachments = [];
     private int generation;
     private bool running;
+    private VmState powerState = VmState.Unknown;
     private bool snapshotKnown;
     private bool mutationBlocked;
 
@@ -60,6 +61,7 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
         if (IsStopped) return;
         generation = context.Generation;
         running = context.IsRunning;
+        powerState = context.State;
         attachments = storage.Data;
         snapshotKnown = true;
         RenderDevices();
@@ -95,14 +97,16 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
             var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
             if (item.DiskType != "Physical" && !string.IsNullOrWhiteSpace(item.PathOrDiskNumber))
                 actions.Children.Add(ActionButton("\uF6B0", "在资源管理器中定位", () => RevealMediaAsync(item.PathOrDiskNumber), true));
-            if (item.DriveType == "HardDisk" && item.DiskType == "Virtual" && !running)
-                actions.Children.Add(ActionButton("\uF202", "压缩虚拟磁盘", () => CompactAsync(item)));
+            if (item.DriveType == "HardDisk" && item.DiskType == "Virtual")
+            {
+                var compact = ActionButton("\uF202", "压缩虚拟磁盘", () => CompactAsync(item));
+                ApplyCondition(compact, VmStorageService.GetCompactionCondition(item, powerState));
+                actions.Children.Add(compact);
+            }
             if (VmStorageService.CanEditStoragePath(item))
             {
                 var edit = ActionButton("\uF3DE", item.DriveType == "DvdDrive" ? item.HasIsoMedia ? "更换 ISO" : "插入 ISO" : "更换虚拟磁盘", () => EditMediaAsync(item));
-                var editError = VmStorageService.GetEditStoragePathError(item, running);
-                edit.IsEnabled &= editError is null;
-                if (editError is not null) ToolTipService.SetToolTip(edit, editError);
+                ApplyCondition(edit, VmStorageService.GetMediaModificationCondition(item, powerState));
                 actions.Children.Add(edit);
             }
             if (item.HasIsoMedia)
@@ -110,11 +114,7 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
                     () => VmStorageService.ModifyDvdDrivePathAsync(VmId, item, string.Empty), "已弹出介质，光驱保留。")));
             var remove = ActionButton("\uF34D", item.DriveType == "DvdDrive" ? "移除光驱" : "移除挂接（保留磁盘文件）", () => ChangeAsync(
                 () => VmStorageService.RemoveDriveAsync(VmId, item), "已移除存储挂接。"));
-            if (running && item.ControllerType == "IDE")
-            {
-                remove.IsEnabled = false;
-                ToolTipService.SetToolTip(remove, "运行中的虚拟机不能移除 IDE 设备。");
-            }
+            ApplyCondition(remove, VmStorageService.GetRemovalCondition(item, powerState));
             actions.Children.Add(remove);
             Grid.SetColumn(actions, 2);
             header.Children.Add(actions);
@@ -129,6 +129,12 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
             devices.Children.Add(new Expander { Header = header, Content = details, HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Stretch });
         }
+    }
+
+    private static void ApplyCondition(Button button, VmModificationCondition condition)
+    {
+        button.IsEnabled &= condition.CanModify;
+        if (!condition.CanModify) ToolTipService.SetToolTip(button, condition.Reason);
     }
 
     private Button ActionButton(string glyph, string title, Func<Task> action, bool readOnly = false)
@@ -146,8 +152,8 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
     {
         if (!CanChange()) return;
         var context = await ReadContextAsync();
-        if (VmStorageService.GetEditStoragePathError(item, context.IsRunning) is string reason)
-            throw new InvalidOperationException(reason);
+        var condition = VmStorageService.GetMediaModificationCondition(item, context.State);
+        if (!condition.CanModify) throw new InvalidOperationException(condition.Reason);
         var path = await PickOpenAsync(item.DriveType == "DvdDrive" ? [".iso"] : [".vhd", ".vhdx", ".avhd", ".avhdx"]);
         if (path is null || IsStopped) return;
         await ChangeAsync(() => item.DriveType == "DvdDrive"
@@ -158,9 +164,7 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
     private async Task CompactAsync(VmStorageAttachment item)
     {
         if (!CanChange()) return;
-        var context = await ReadContextAsync();
-        if (context.IsRunning) throw new InvalidOperationException("请先关闭虚拟机，再压缩虚拟磁盘。");
-        await ChangeAsync(() => VmStorageService.CompactDiskAsync(item.PathOrDiskNumber), "虚拟磁盘压缩完成。");
+        await ChangeAsync(() => VmStorageService.CompactDiskAsync(VmId, item), "虚拟磁盘压缩完成。");
     }
 
     private bool CanChange() => snapshotKnown && !mutationBlocked && !IsStopped;

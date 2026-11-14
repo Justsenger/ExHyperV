@@ -10,7 +10,7 @@ public static class VmInputService
     /// <summary>向指定虚拟机发送 Ctrl+Alt+Del 组合键。</summary>
     /// <param name="vmId">目标虚拟机的 GUID。</param>
     /// <returns>按键请求的执行结果，失败时包含 Hyper-V 返回的原因。</returns>
-    /// <remarks>不需要先建立 RDP 连接，也不需要窗口获得焦点。成功表示底层按键请求已执行，不表示来宾已完成登录。</remarks>
+    /// <remarks>通过 Hyper-V 直接发送按键，无需 RDP 连接或窗口焦点。</remarks>
     public static async Task<ApiResponse> SendCtrlAltDelAsync(Guid vmId)
     {
         if (vmId == Guid.Empty) return ApiResponse.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);

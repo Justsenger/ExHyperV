@@ -137,7 +137,7 @@ dotnet run --project src/ExHyperV.Core.Tests/Tools/Catalog -- --audit-tests
 dotnet run --project src/ExHyperV.Core.Tests/Tools/Catalog -- --sync-categories
 ```
 
-接口约定以 [Core API 文档](../ExHyperV.Core/API.md) 为准。源码核对按方法名合并重载；编译后的 `ApiCatalogTests` 反向检查计划中的公开接口是否仍存在。计划登记数量与实际执行覆盖率分别统计。
+接口约定以 [Core API 文档](../../doc/api/API.md) 为准。源码核对按方法名合并重载；编译后的 `ApiCatalogTests` 反向检查计划中的公开接口是否仍存在。计划登记数量与实际执行覆盖率分别统计。
 
 编译后的测试程序支持 `--audit-catalog`，只核对执行器登记与资源条件定义，输出 JSON；此入口仅作静态检查。新增清单项缺少执行器或条件定义时返回失败。
 

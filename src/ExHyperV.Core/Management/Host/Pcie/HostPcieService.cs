@@ -175,7 +175,7 @@ namespace ExHyperV.Services
     {
         // 字符串标记仅供内部执行流程使用；公开契约由 PcieAssignmentTarget 表示归属。
         // 内部入口仍归一化旧版本产生的中英文快照。
-        /// <summary>设备目标或归属为宿主的稳定哨兵值；不是本地化显示名称。</summary>
+        /// <summary>表示设备归属宿主的固定标识。</summary>
         internal static readonly string HostKey = "\u200BHost";
         /// <summary>设备已从宿主卸除且未分配给 VM 的稳定状态值。</summary>
         internal static readonly string DismountedKey = "\u200BDismounted";
@@ -228,7 +228,7 @@ namespace ExHyperV.Services
 
         /// <summary>将 PCI LocationPath 的最后一个功能号归零，用于关联同一多功能设备的各功能。</summary>
         /// <returns>同卡匹配键；空输入返回空字符串。</returns>
-        /// <param name="locationPath">设备的 PCI LocationPath；不是 PnP InstanceId。</param>
+        /// <param name="locationPath">设备的 PCI LocationPath。</param>
         internal static string CardKey(string? locationPath)
         {
             if (string.IsNullOrEmpty(locationPath)) return string.Empty;
@@ -237,7 +237,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>查询指定 PCIe 存储控制器关联的宿主物理磁盘。</summary>
-        /// <returns>直接连接到控制器的磁盘及系统、启动、脱机标志；不包含间接下属磁盘。没有匹配时列表为空，查询失败返回错误。</returns>
+        /// <returns>直接连接到控制器的磁盘及系统、启动、脱机标志；无匹配时为空列表，查询失败返回错误。</returns>
         /// <param name="controllerInstanceId">控制器的完整 PnP InstanceId。</param>
         public static async Task<ApiResponse<List<ControllerDisk>>> GetControllerDisksAsync(string controllerInstanceId)
         {
@@ -631,8 +631,8 @@ namespace ExHyperV.Services
         /// <param name="progress">可选的人类可读进度接收器。</param>
         /// <returns>步骤执行结果，失败可能发生在部分步骤已完成后；应刷新设备实际归属。</returns>
         /// <remarks>
-        /// <para>分配给 VM 时将其宿主关机动作设为 TurnOff；尚未启用 GuestControlledCacheTypes 时先强制关闭目标 VM，再启用该设置。失败不恢复这两项 VM 配置，也不重新启动 VM。宿主设备卸除请求将 RequireAcsSupport 和 RequireDeviceMitigations 均设为 false，未要求通过相应隔离与缓解条件。</para>
-        /// <para>同一控制器及其已枚举关联盘跨进程排队，锁覆盖检查、转移和失败恢复；直接入口不会自动将联机数据盘脱机。失败且原归属或目标为宿主时尝试恢复到宿主，并恢复同一磁盘的原联机、只读状态，覆盖期间外部状态修改。OutcomeUnknown 时停止补救；无法恢复时报告 CleanupRequired。归还兼容路径可忽略明确的 Mount 失败，成功响应仍应通过重新查询确认最终设备归属。</para>
+        /// <para>分配给 VM 时将宿主关机动作设为 TurnOff；GuestControlledCacheTypes 关闭时，先强制关闭 VM 再启用该设置。已完成的 VM 配置和电源变化会保留。卸除宿主设备时，RequireAcsSupport 与 RequireDeviceMitigations 均为 false。</para>
+        /// <para>同一控制器及关联盘的操作跨 Core 进程排队。联机数据盘须先脱机。失败且原归属或目标为宿主时，尝试归还宿主并恢复同一磁盘的原联机、只读状态，覆盖期间的外部修改。OutcomeUnknown 时先核实，恢复失败为 CleanupRequired。归还后的设备归属通过重新查询确认。</para>
         /// </remarks>
         public static Task<ApiResponse> ExecutePCIeOperationAsync(PcieAssignmentTarget target,
             PcieAssignmentTarget current, string instanceId, string path, IProgress<string>? progress = null)

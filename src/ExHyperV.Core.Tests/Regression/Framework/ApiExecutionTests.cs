@@ -19,6 +19,22 @@ public sealed class ApiExecutionTests
     private static VmQueryCapture Capture(VmListRow[]? actual = null, VmListRow[]? after = null) => new(Baseline(), actual ?? Baseline(), after ?? Baseline(), 12.5);
 
     [TestMethod]
+    public void InternalOsTypeNormalizationRetainsItsRegressionCoverage()
+    {
+        foreach (var (input, expected) in new[] { ("windows", "Windows"), ("LINUX", "Linux"), ("ubuntu", "Ubuntu"), ("未知分类", "Windows"), ((string?)null, "Windows") })
+            Assert.AreEqual(expected, OsImages.Canonical(input));
+        Assert.IsFalse(TestPlanner.Catalog.Any(item => item.Api == "OsImages.Canonical()"));
+    }
+
+    [TestMethod]
+    public void InternalVmNameValidationRetainsItsRegressionCoverage()
+    {
+        foreach (var name in new string?[] { null, "", " \t\r\n" }) Assert.IsNotNull(VmEditService.GetNameError(name));
+        foreach (var name in new[] { "中文 虚拟机", "A'B", "<样例>" }) Assert.IsNull(VmEditService.GetNameError(name));
+        Assert.IsFalse(TestPlanner.Catalog.Any(item => item.Api == "VmEditService.GetNameError()"));
+    }
+
+    [TestMethod]
     public async Task NetworkSamplingSeparatesZeroMissingAndReplacementIdentity()
     {
         await InDirectory(async directory =>

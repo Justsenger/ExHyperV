@@ -31,7 +31,7 @@ public enum GpuDeploymentState
 /// <summary>GPU 部署暂停时需要用户处理的具体事项。</summary>
 public enum GpuDecisionKind
 {
-    /// <summary>确认将虚拟机直接关闭（TurnOff），不是来宾正常关机。</summary>
+    /// <summary>确认强制关闭虚拟机（TurnOff）。</summary>
     PowerOff,
     /// <summary>选择目标系统分区。</summary>
     SelectPartition,
@@ -127,7 +127,7 @@ public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulon
     public string DisplayName => string.Format(Properties.Resources.Format_PartitionDesc, DiskDisplayName, PartitionNumber, SizeGiB);
 }
 
-/// <summary>部署暂停时发布的待确认事项；每次请求有新的 Id，旧 ID 不能用于后续步骤。</summary>
+/// <summary>部署暂停时的待确认事项；提交决定时须携带本次请求的 Id。</summary>
 /// <param name="Id">提交决定时必须原样携带的请求 ID。</param>
 /// <param name="Kind">待确认事项的种类。</param>
 /// <param name="Title">本地化标题。</param>
@@ -170,9 +170,9 @@ public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDep
     public bool OutcomeUnknown { get; init; }
     /// <summary>本次原生回执返回且已核对属于目标 VM 的 GPU 适配器身份；未确认时为 null，不通过清单差异推断。</summary>
     public string? AddedAdapterId { get; init; }
-    /// <summary>已确认归属且仍待清理的适配器身份；不代表当前允许清理，另查 AllowedActions。</summary>
+    /// <summary>已确认归属且待清理的适配器标识；清理时机由 AllowedActions 指示。</summary>
     public string? PendingCleanupAdapterId { get; init; }
-    /// <summary>本次部署和恢复的原任务、资源身份、原状态与核实结果；尚未留下记录时为 null。可保存用于排查，但序列化材料不能在新进程中恢复此会话。</summary>
+    /// <summary>本次部署与恢复的任务、资源、原状态及核实结果；无记录时为 null，可保存用于排查。</summary>
     public GpuDeploymentRecovery? Recovery { get; init; }
 
     internal GpuDeploymentSnapshot(Guid sessionId, long revision, GpuDeploymentState state,
@@ -194,7 +194,7 @@ public abstract record GpuDeploymentDecision(Guid RequestId);
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 /// <param name="Accepted">true 继续确认的步骤；false 取消部署。</param>
 public sealed record GpuConfirmation(Guid RequestId, bool Accepted) : GpuDeploymentDecision(RequestId);
-/// <summary>从当前候选列表中选择一个分区；不能用任意磁盘路径替代 PartitionId。</summary>
+/// <summary>通过 PartitionId 从当前候选列表中选择分区。</summary>
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 /// <param name="PartitionId">当前 PendingDecision.Partitions 中的分区 Id。</param>
 public sealed record GpuPartitionSelection(Guid RequestId, string PartitionId) : GpuDeploymentDecision(RequestId);

@@ -1,6 +1,6 @@
 namespace ExHyperV.Models;
 
-/// <summary>宿主为虚拟机提供的处理器设置项；可用不代表当前电源状态和硬件条件一定允许修改。</summary>
+/// <summary>宿主为虚拟机提供的处理器设置项。</summary>
 public enum VmProcessorCapability
 {
     /// <summary>虚拟处理器数量。</summary>

@@ -91,8 +91,8 @@ namespace ExHyperV.Services
         // 无副作用(不动 vm.StorageItems)，复用 BuildStorageItems 的 stale 检测，供开机失败反应式清理用。
         /// <summary>查找主机物理磁盘身份或编号已变化的直通挂接，供启动修复流程处理。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <returns>成功时为需要核对或重新挂接的磁盘列表；查询失败与成功空列表分开表示，此方法本身不执行修复。</returns>
-        /// <remarks>宿主磁盘映射读取成功后才判断失效；读取失败直接返回错误。失效表示当前挂接引用不再匹配，不等于已经证明物理设备被拔出。</remarks>
+        /// <returns>需要核对或重新挂接的磁盘列表；失败时返回原因。</returns>
+        /// <remarks>按宿主磁盘映射核对挂接引用；映射读取失败时返回错误。</remarks>
         public static async Task<ApiResponse<List<VmStorageAttachment>>> FindStalePassthroughDisksAsync(Guid vmId)
         {
             var response = await GetVmStorageItemsAsync(vmId);
@@ -364,6 +364,24 @@ namespace ExHyperV.Services
             return response.Data ?? [];
         }
 
+        /// <summary>压缩指定虚拟机挂接的虚拟硬盘文件。</summary>
+        /// <param name="vmId">目标虚拟机的标识。</param>
+        /// <param name="drive">存储查询返回的挂接，原样回传 SelectionToken。</param>
+        /// <returns>压缩结果；虚拟机未关机返回 InvalidState，挂接已变化返回 Conflict。</returns>
+        public static async Task<ApiResponse> CompactDiskAsync(Guid vmId, VmStorageAttachment drive)
+        {
+            if (vmId == Guid.Empty || drive == null || string.IsNullOrWhiteSpace(drive.SelectionToken))
+                return ApiResponse.Fail("请提供虚拟机及查询返回的存储挂接。", kind: ApiErrorKind.InvalidArgument);
+            string token = drive.SelectionToken;
+            var selected = VmStorageRemoval.Select(vmId, token, await GetVmStorageItemsAsync(vmId));
+            if (!selected.HasData) return VmStorageRemoval.Failure(selected);
+            var state = await VmConfigurationState.ReadAsync(vmId);
+            if (!state.HasData) return state.Success ? ApiResponse.Fail("未找到虚拟机。", kind: ApiErrorKind.NotFound)
+                : ApiResponse.Fail(state.Error, state.Code, state.ErrorSource, state.Exception, state.ErrorKind);
+            var condition = GetCompactionCondition(selected.Data, state.Data.State);
+            return condition.CanModify ? await CompactDiskAsync(selected.Data.PathOrDiskNumber) : condition.ToResponse();
+        }
+
         // 压缩虚拟磁盘
 
         /// <summary>请求 Hyper-V 压缩虚拟磁盘文件的物理占用。</summary>
@@ -387,9 +405,9 @@ namespace ExHyperV.Services
 
         // 刷新虚拟磁盘文件大小
 
-        /// <summary>批量读取磁盘文件当前的文件长度，不是虚拟磁盘声明的最大容量。</summary>
+        /// <summary>批量读取磁盘文件的当前文件长度。</summary>
         /// <param name="paths">待查询文件长度的磁盘路径集合。</param>
-        /// <returns>路径到文件字节数的映射；未读取成功的路径不在结果中，不应将缺少的项视为零字节。</returns>
+        /// <returns>读取成功的路径及文件字节数。</returns>
         public static Task<IReadOnlyDictionary<string, long>> GetVirtualDiskSizesAsync(IEnumerable<string> paths)
         {
             var requestedPaths = paths.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
@@ -408,8 +426,8 @@ namespace ExHyperV.Services
         // 设备增删改操作
 
         /// <summary>按请求创建或挂接虚拟磁盘、光驱或物理磁盘，必要时创建控制器并调整槽位。</summary>
-        /// <param name="vmName">目标虚拟机的显示名称，不是 GUID。</param>
-        /// <param name="controllerType">IDE 或 SCSI，区分当前实现使用的类型字符串。</param>
+        /// <param name="vmName">目标虚拟机的显示名称。</param>
+        /// <param name="controllerType">IDE 或 SCSI。</param>
         /// <param name="controllerNumber">从零开始的控制器编号；IDE 为 0 至 1，SCSI 为 0 至 3。</param>
         /// <param name="location">从零开始的控制器槽位；IDE 为 0 至 1，SCSI 为 0 至 63。</param>
         /// <param name="driveType">驱动类型 HardDisk 或 DvdDrive。</param>
@@ -423,8 +441,8 @@ namespace ExHyperV.Services
         /// <param name="blockSize">新磁盘块大小选择字符串；Default 使用创建器默认配置。</param>
         /// <param name="isoSourcePath">制作新 ISO 的来源目录；无需制作 ISO 时可为 null。</param>
         /// <param name="isoVolumeLabel">新 ISO 的卷标；null 时由制作器采用默认卷标。</param>
-        /// <param name="expectedDiskUniqueId">物理磁盘预期唯一标识，用于防止编号变化后误选；null 时不提供该身份约束。</param>
-        /// <param name="expectedDiskSerial">物理磁盘预期序列号；null 时不提供该身份约束。</param>
+        /// <param name="expectedDiskUniqueId">预期的磁盘唯一标识；null 跳过此项核对。</param>
+        /// <param name="expectedDiskSerial">预期的磁盘序列号；null 跳过此项核对。</param>
         /// <param name="expectedDiskSize">物理磁盘预期字节容量；0 表示未提供。</param>
         /// <returns>成功标记、说明及实际控制器类型、编号、槽位；失败时尝试清理本次新增资源，并按记录恢复物理磁盘的联机和只读状态。</returns>
         /// <remarks>物理磁盘路径可能要求将宿主磁盘置为离线或修改只读状态；新介质可能创建 VHD、差分盘或 ISO。身份参数用于防止宿主磁盘编号变化后连接错误设备。返回的 ActualType、ActualNumber、ActualLocation 才是最终挂接位置。</remarks>
@@ -1011,8 +1029,8 @@ namespace ExHyperV.Services
             }
         }
 
-        /// <summary>移除指定存储挂接及必要的关联设备，不将普通虚拟硬盘文件作为删除对象。</summary>
-        /// <param name="vmName">目标虚拟机的显示名称，不是 GUID。</param>
+        /// <summary>移除存储挂接及必要的关联设备，保留虚拟硬盘文件。</summary>
+        /// <param name="vmName">目标虚拟机的显示名称。</param>
         /// <param name="drive">由存储查询取得的目标挂接对象，含实例标识及控制器位置。</param>
         /// <returns>Success 表示设备移除完成，Message 为结果或失败原因。</returns>
         internal static async Task<(bool Success, string Message)> RemoveDriveAsync(string vmName, VmStorageAttachment drive)
@@ -1025,9 +1043,9 @@ namespace ExHyperV.Services
 
         /// <summary>从指定虚拟机移除查询时选中的存储挂接和介质；不删除虚拟磁盘文件。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID，必须与产生选择摘要的查询一致。</param>
-        /// <param name="drive">存储查询返回的设备，须原样回传 SelectionToken；可序列化后回传。位置及显示字段不作为替代定位依据。</param>
+        /// <param name="drive">存储查询返回的设备，原样回传 SelectionToken；支持序列化后回传。</param>
         /// <returns>移除结果；旧摘要、设备或介质已变化时返回冲突。失败可能发生在介质已移除但槽位仍保留之后。</returns>
-        /// <remarks>缺少身份摘要不会退回按槽位移除。执行前再次核对原对象；WMI 不提供原子比较删除，不能保证识别外部在最终核对后替换或按完全相同配置重建的对象。</remarks>
+        /// <remarks>移除前须提供查询得到的身份摘要。最终核对与提交之间，外部工具仍可能修改或重建对象。</remarks>
     /// <editentry label="移除存储设备" category="存储"/>
         public static async Task<ApiResponse> RemoveDriveAsync(Guid vmId, VmStorageAttachment drive)
         {
@@ -1074,18 +1092,8 @@ namespace ExHyperV.Services
             if (!vmResp.HasData)
                 return ApiResponse.Fail(string.Format(Properties.Resources.Error_Vm_NotFound, vmId), kind: ApiErrorKind.NotFound);
 
-            bool isRunning = vmResp.Data == 2;
-
-            if (drive.DriveType == "DvdDrive" &&
-                isRunning &&
-                drive.ControllerType == "IDE")
-            {
-                return ApiResponse.Fail(Properties.Resources.Error_Storage_DvdHotRemove, kind: ApiErrorKind.InvalidState);
-            }
-
-            // 运行中不能删 IDE 硬盘(IDE 不支持热插拔)——与添加的 IdeHotAdd 对称
-            if (drive.DriveType == "HardDisk" && isRunning && drive.ControllerType == "IDE")
-                return ApiResponse.Fail(Properties.Resources.Error_Storage_IdeHotRemove, kind: ApiErrorKind.InvalidState);
+            var removalCondition = GetRemovalCondition(drive, VmMapper.MapState(checked((ushort)vmResp.Data)));
+            if (!removalCondition.CanModify) return removalCondition.ToResponse();
 
             var removal = await VmStorageRemoval.ExecuteAsync(selection,
                 () => GetVmStorageItemsAsync(vmId),
@@ -1126,7 +1134,7 @@ namespace ExHyperV.Services
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <param name="drive">存储查询返回的光驱，原样回传 DeviceToken；不以显示槽位重新定位。</param>
         /// <param name="newIsoPath">新的 ISO 文件路径；空字符串用于弹出介质。</param>
-        /// <returns>更新结果；设备身份变化时返回 Conflict，未知底层结果不自动重试。</returns>
+        /// <returns>更新结果；设备身份变化时为 Conflict，结果未知时先核实原操作。</returns>
         public static Task<ApiResponse> ModifyDvdDrivePathAsync(Guid vmId, VmStorageAttachment drive, string newIsoPath)
             => ModifyMediaPathAsync(vmId, drive, "DvdDrive", "Microsoft:Hyper-V:Virtual CD/DVD Disk", newIsoPath);
 
@@ -1135,7 +1143,7 @@ namespace ExHyperV.Services
         /// <param name="drive">存储查询返回的硬盘驱动器，原样回传 DeviceToken。</param>
         /// <param name="newPath">新的虚拟磁盘路径；沿用介质入口的空路径移除介质行为，不删除文件。</param>
         /// <returns>更新结果；只修改原驱动器，不改同槽位的替代设备。</returns>
-        /// <remarks>设备身份摘要不比较旧介质路径。同一驱动器仍采用本次提交覆盖；WMI 不提供跨查询和提交的原子身份锁，完全相同身份的外部重建无法区分。</remarks>
+        /// <remarks>核对驱动器身份后覆盖介质路径。外部以完全相同身份重建驱动器时，按同一对象处理。</remarks>
         public static Task<ApiResponse> ModifyHardDrivePathAsync(Guid vmId, VmStorageAttachment drive, string newPath)
             => ModifyMediaPathAsync(vmId, drive, "HardDisk", "Microsoft:Hyper-V:Virtual Hard Disk", newPath);
 
@@ -1157,8 +1165,8 @@ namespace ExHyperV.Services
             var current = selected.Data;
             if (current.DriveType != driveType)
                 return ApiResponse.Fail("所选驱动器类型与修改入口不符。", kind: ApiErrorKind.InvalidArgument);
-            if (GetEditStoragePathError(current, VmMapper.IsActiveState(Convert.ToUInt16(vmObj["EnabledState"]))) is string error)
-                return ApiResponse.Fail(error, kind: ApiErrorKind.InvalidState);
+            var condition = GetMediaModificationCondition(current, VmMapper.MapState(Convert.ToUInt16(vmObj["EnabledState"])));
+            if (!condition.CanModify) return condition.ToResponse();
             var selection = current.Selection!;
             if (selection.Media.Length > 0)
             {

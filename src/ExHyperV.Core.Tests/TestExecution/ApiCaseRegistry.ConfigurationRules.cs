@@ -9,10 +9,10 @@ internal static partial class ApiCaseRegistry
 {
     private static void AddConfigurationRuleCases(Action<string, Action<ApiCaseContext>[]> add)
     {
-        add("VmSecurityService.GetInterlocks()", [c => SecurityMatrix(c, "interlocks")]);
-        add("VmSecurityService.GetCapabilities()", [c => SecurityMatrix(c, "capabilities")]);
-        add("VmSecurityService.GetSettingError()", [c => SecurityMatrix(c, "error")]);
-        add("VmMemoryService.NormalizeMemoryBackingSettings()", [c =>
+        add("VmSecurityService 安全联动规则", [c => SecurityMatrix(c, "interlocks")]);
+        add("VmSecurityService 安全能力规则", [c => SecurityMatrix(c, "capabilities")]);
+        add("VmSecurityService 安全提交规则", [c => SecurityMatrix(c, "error")]);
+        add("VmMemoryService 内存后备联动规则", [c =>
         {
             foreach (string? changed in new string?[] { null, "BackingPageSize", "BackingType", "EnableColdHint", "Weight" })
             {
@@ -26,7 +26,7 @@ internal static partial class ApiCaseRegistry
             var absent = new VmMemorySettings { BackingType = 0 }; c.Call(() => VmMemoryService.NormalizeMemoryBackingSettings(absent, null));
             c.Sequence(new bool?[] { null, null, null, null }, new[] { absent.EnableColdHint, absent.EnableHotHint, absent.EnableEpf, absent.EnablePrivateCompressionStore }, "缺测字段保留 null");
         }]);
-        add("VmProcessorService.GetChangeError()", [c =>
+        add("VmProcessorService 配置校验规则", [c =>
         {
             var fields = new (string Name, object Value, bool Runtime)[] { ("Count", 2, false), ("Reservation", 100ul, true), ("Limit", 50000ul, true), ("RelativeWeight", 200, true), ("ExposeVirtualizationExtensions", true, false), ("CompatibilityForMigrationEnabled", true, false), ("EnableHostResourceProtection", true, true) };
             foreach (var field in fields) foreach (bool off in new[] { false, true })

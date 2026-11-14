@@ -57,9 +57,20 @@ public static partial class VmBootService
 
     /// <summary>按虚拟机代数与运行状态判断是否允许改变启动顺序。</summary>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <returns>第一代运行时不允许修改；其他受支持状态允许。</returns>
-    public static bool CanChangeBootOrder(int generation, bool isRunning) => !(generation == 1 && isRunning);
+    internal static bool CanChangeBootOrder(int generation, bool isRunning) => !(generation == 1 && isRunning);
+
+    /// <summary>评估启动顺序的修改条件。</summary>
+    /// <param name="generation">查询得到的虚拟机代数。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>第一代要求关机；第二代提交固件启动顺序，由 VMMS 检查实际请求。</returns>
+    public static VmModificationCondition GetBootOrderModificationCondition(int generation, VmState state) => generation switch
+    {
+        1 => VmModificationCondition.PoweredOff(state),
+        2 => VmModificationCondition.Allowed,
+        _ => VmModificationCondition.Unsupported("未识别虚拟机代数。")
+    };
 
     /// <summary>读取第一代 BIOS 或第二代固件的启动设备顺序。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
@@ -173,8 +184,8 @@ public static partial class VmBootService
 
                 bool isGen2 = settings["VirtualSystemSubType"]?.ToString() == "Microsoft:Hyper-V:SubType:2";
                 int generation = isGen2 ? 2 : settings["VirtualSystemSubType"]?.ToString() == "Microsoft:Hyper-V:SubType:1" ? 1 : 0;
-                if (!CanChangeBootOrder(generation, VmMapper.IsActiveState(Convert.ToUInt16(vm["EnabledState"]))))
-                    return ApiResponse.Fail(Properties.Resources.Warn_VmOffRequired, kind: ApiErrorKind.InvalidState);
+                var condition = GetBootOrderModificationCondition(generation, VmMapper.MapState(Convert.ToUInt16(vm["EnabledState"])));
+                if (!condition.CanModify) return condition.ToResponse();
 
                 if (isGen2)
                 {
@@ -330,8 +341,8 @@ public static partial class VmBootService
                 using var vm = WmiApi.GetVmComputerSystem(vmId);
                 if (vm == null) return ApiResponse.Fail(Properties.Resources.Error_Net_VmNotFound, kind: ApiErrorKind.NotFound);
 
-                if (!VmBootService.CanEditBootNumLock(VmMapper.IsActiveState(Convert.ToUInt16(vm["EnabledState"]))))
-                    return ApiResponse.Fail(Properties.Resources.Warn_VmOffRequired, kind: ApiErrorKind.InvalidState);
+                var condition = GetNumLockModificationCondition(VmMapper.MapState(Convert.ToUInt16(vm["EnabledState"])));
+                if (!condition.CanModify) return condition.ToResponse();
 
                 using var settings = WmiApi.GetVmSettings(vm);
                 if (settings == null) return ApiResponse.Fail(Properties.Resources.Error_Net_VmNotFound, kind: ApiErrorKind.NotFound);

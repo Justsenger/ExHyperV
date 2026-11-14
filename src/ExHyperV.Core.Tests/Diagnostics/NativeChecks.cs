@@ -52,7 +52,7 @@ internal static class NativeChecks
                 using (var vm = WmiApi.GetVmComputerSystem(vmId)) check(vm != null && Convert.ToUInt16(vm["EnabledState"]) == 3, "Fixture remains powered off");
                 var currentSettings = useBaseline ? null : await VmMemoryService.GetVmMemorySettingsAsync(vmId);
                 if (currentSettings is { HasData: false }) throw new InvalidOperationException(currentSettings.Error);
-                object settings = useBaseline ? await Invoke(source, "VmMemoryService", "GetVmMemorySettingsAsync", name) : currentSettings!.Data!;
+                object settings = useBaseline ? await Invoke(source, "VmMemoryService", "GetVmMemorySettingsAsync", name) : currentSettings!.Data!.Values;
                 settings.GetType().GetProperty("Startup")!.SetValue(settings, 512L);
                 object changed = useBaseline ? await Invoke(source, "VmMemoryService", "SetVmMemorySettingsAsync", name, settings, false, null)
                     : await VmMemoryService.SetVmMemorySettingsAsync(vmId, (VmMemorySettings)settings, false,
@@ -60,7 +60,7 @@ internal static class NativeChecks
                 check(TupleSuccess(changed), (useBaseline ? "1.5.2" : "Core") + " applies memory settings to its own VM: " + TupleMessage(changed));
                 var memoryResponse = await VmMemoryService.GetVmMemorySettingsAsync(vmId);
                 if (!memoryResponse.HasData) throw new InvalidOperationException(memoryResponse.Error);
-                var readback = memoryResponse.Data;
+                var readback = memoryResponse.Data?.Values;
                 check(readback?.Startup == 512 && readback.Minimum == 512 && readback.Maximum == 512 && !readback.DynamicMemoryEnabled, "Native memory readback preserves static-memory semantics");
                 string memoryJson = JsonSerializer.Serialize(readback);
                 if (useBaseline) originalMemory = memoryJson;

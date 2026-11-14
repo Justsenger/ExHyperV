@@ -9,7 +9,7 @@ using Microsoft.Win32.SafeHandles;
 namespace ExHyperV.Services;
 
 /// <summary>在业务操作期间设置或移除主机 AzureFeatureSet 开关，并在结束时恢复原值。</summary>
-/// <remarks>修改 HKLM 64 位视图，需要注册表写权限。跨进程锁覆盖原值读取、业务执行及恢复；恢复包含原值的存在性、类型和内容，并覆盖期间的外部修改。强制终止进程或断电不能保证恢复，不提供启动/退出时的全局兜底。</remarks>
+/// <remarks>修改 HKLM 64 位视图。跨进程锁覆盖原值读取、业务执行及恢复；恢复原值的存在性、类型和内容，并覆盖期间的外部修改。进程异常终止或断电时可能遗留临时值。</remarks>
 internal static class HostAzureFeatureSetService
 {
     private const string VirtualizationKey =

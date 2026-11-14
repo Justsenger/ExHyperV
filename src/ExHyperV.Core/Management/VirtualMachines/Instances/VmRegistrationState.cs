@@ -2,7 +2,7 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-/// <summary>操作结束时已确认的虚拟机注册状态；未知不等于仍在册或已经注销。</summary>
+/// <summary>操作结束时已确认的虚拟机注册状态。</summary>
 public enum VmRegistrationState
 {
     /// <summary>无法确认当前是否仍有注册的虚拟机。</summary>

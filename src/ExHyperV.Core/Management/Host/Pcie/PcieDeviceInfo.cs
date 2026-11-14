@@ -1,10 +1,9 @@
-using CommunityToolkit.Mvvm.ComponentModel;
 using ExHyperV.Services;
 
 namespace ExHyperV.Models
 {
     /// <summary>具有 DDA 位置路径的 PCIe 设备及其当前归属。</summary>
-    public partial class PcieDeviceInfo : ObservableObject
+    public partial class PcieDeviceInfo
     {
         /// <summary>PCIe 设备的友好名称。</summary>
         /// <fielddoc>
@@ -39,7 +38,8 @@ namespace ExHyperV.Models
         public string Vendor { get; init; } = string.Empty;
 
         /// <summary>设备当前归属的宿主、虚拟机或未分配状态。实际转移通过 HostPcieService 执行。</summary>
-        [ObservableProperty] private PcieAssignmentTarget _assignment = PcieAssignmentTarget.Unassigned;
+        public PcieAssignmentTarget Assignment { get => _assignment; set => _assignment = value; }
+        private PcieAssignmentTarget _assignment = PcieAssignmentTarget.Unassigned;
 
         internal string Status
         {

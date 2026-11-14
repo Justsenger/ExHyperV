@@ -8,7 +8,7 @@ public partial class VmQueryService
 {
     /// <summary>按虚拟机 GUID 读取运行时已分配内存和来宾可用内存比例，分别报告两个字段的有效性。</summary>
     /// <returns>摘要查询失败返回错误；成功时各项仍可能缺测。已分配内存单位为 MiB，可用比例按内存需求计算，负数表示需求超过分配量。</returns>
-    /// <remarks>动态内存读取摘要的 MemoryAvailable；固定内存使用 Hyper-V Dynamic Memory VM 的 Current Pressure 和 Guest Visible Physical Memory 推算需求，再换算可用比例。它不是来宾任务管理器的进程工作集或空闲页比例。固定内存计数器按名称提供，只有采样前后能唯一对应同一 GUID、运行时间未倒退且分配量一致时才采用；同名、缺测或来宾尚未报告需求时不更新。调用者应分别检查 AssignedSample 和 AvailableSample，不用缺失值更新历史曲线。动态内存配置读取失败不会丢弃已成功读取的分配量。</remarks>
+    /// <remarks>动态内存读取 MemoryAvailable；固定内存根据 Current Pressure 与 Guest Visible Physical Memory 推算需求，再计算可用比例。按 GUID、运行时间及分配量核对样本，缺测时保留历史值；分配量与可用比例的有效性分别见 AssignedSample 和 AvailableSample。</remarks>
     public async Task<ApiResponse<Dictionary<Guid, VmDynamicMemoryData>>> GetVmRuntimeMemoryDataAsync()
     {
         var summaryTask = QueryMemorySummaryAsync();

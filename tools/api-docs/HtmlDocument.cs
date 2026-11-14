@@ -9,7 +9,7 @@ using Microsoft.CodeAnalysis.CSharp;
 
 internal static partial class ApiDocument
 {
-    private static string RenderHtml(ScanResult scan, string version, string markdown, SourceIdentity source)
+    private static object BuildDocumentData(ScanResult scan, string version, string markdown, SourceIdentity source)
     {
         var businessSections = scan.Types.SelectMany(type => type.Doc.Elements("businessdoc")).ToArray();
         var businessCategories = CategoriesFor(scan).Where(path => path[0] == "业务层面" && path.Length == 2).Select(path => path[1]).ToHashSet(StringComparer.Ordinal);
@@ -29,7 +29,8 @@ internal static partial class ApiDocument
 
         var types = scan.Types.Select(type => new
         {
-            id = Anchor(type.Name), name = type.Name,
+            id = Anchor(type.Name), uid = type.Symbol.GetDocumentationCommentId(), name = type.Name, toolGroup = PresentationFor(type).Group,
+            displayName = TypeDisplayName(type), role = PresentationFor(type).Role,
             shortName = type.Symbol.ContainingNamespace.IsGlobalNamespace ? type.Name : type.Name[(type.Symbol.ContainingNamespace.ToDisplayString().Length + 1)..],
             @namespace = type.Symbol.ContainingNamespace.ToDisplayString(),
             kind = type.Symbol.IsRecord ? "record" : type.Symbol.TypeKind switch
@@ -47,14 +48,18 @@ internal static partial class ApiDocument
             source = type.Path, sources = type.Members.Select(member => member.Path).Prepend(type.Path).Distinct(StringComparer.Ordinal).ToArray(),
             summaryHtml = HtmlInline(type.Doc.Element("summary"), links),
             descriptionHtml = HtmlDoc(new XElement(type.Doc.Name, type.Doc.Elements().Where(element => element.Name.LocalName != "param")), links, includeSummary: false),
+            examplesHtml = string.Concat(type.Doc.Elements("example").Select(element => HtmlInline(element, links))),
             members = type.Members.Select(member => new
             {
-                id = Anchor(member.Id), name = member.Name == ".ctor" ? type.Symbol.Name : member.Name,
+                id = Anchor(member.Id), uid = member.Id, toolGroup = PresentationFor(member).Group, readOnly = PresentationFor(member).ReadOnly, name = member.Name == ".ctor" ? type.Symbol.Name : member.Name,
+                displayName = MethodDisplayName(type, member),
+                isPrimary = member.Doc.Element("editentry") != null || member.Doc.Element("queryentry") != null,
                 navigationPath = MemberNavigationPaths(type, member)[0],
                 navigationPaths = MemberNavigationPaths(type, member), source = member.Path,
                 kind = member.Kind, group = HtmlMemberGroup(member), order = member.Line, signature = member.Signature,
                 signatureHtml = HtmlCode(member.Signature, links),
-                presentation = PresentMember(type, member, links),
+                presentation = PresentMember(type, member, links, MemberExamples(member, markdown)),
+                usage = MemberTypeUsage(type, member, links, scan),
                 queryField = QueryFieldMetadata(type, member, links),
                 hostEntry = HostEntryMetadata(type, member, scan),
                 modification = ModificationMetadata(member, links, memberLinks),
@@ -67,17 +72,18 @@ internal static partial class ApiDocument
         }).ToArray();
         var data = new
         {
+            schemaVersion = 1,
             version,
             source = new { revision = source.Revision, contentSha256 = source.ContentSha256 },
-            defaultTypeId = "query-fields",
-            queryPath = NavigationPath("Management/VirtualMachines/Query/VmQueryService.cs"),
+            defaultTypeId = "overview",
+            queryPath = new[] { "管理层面", "虚拟机", "查询" },
             categoryAliases = new[]
             {
                 (Old: "业务层面 / 控制台", Current: "业务层面 / 连接"),
                 (Old: "业务层面 / 键盘", Current: "业务层面 / 控制 / 键盘"),
                 (Old: "业务层面 / 鼠标", Current: "业务层面 / 控制 / 鼠标")
             }.ToDictionary(entry => Anchor("category:" + entry.Old), entry => Anchor("category:" + entry.Current)),
-            types, guides = HtmlGuides(markdown, scan), designs = HtmlDesigns(scan),
+            types, guides = Array.Empty<object>(), designs = HtmlDesigns(scan),
             metadataKeys = scan.Types.SelectMany(type => type.Members.Where(member => member.Doc.Element("metadatakey") != null)
                 .Select(member => new
                 {
@@ -106,6 +112,12 @@ internal static partial class ApiDocument
                 guideId = path[0] == "使用说明" ? "guide-" + GuideSlug(path[1]) : null
             }).ToArray()
         };
+        return data;
+    }
+
+    private static string RenderHtml(ScanResult scan, string version, string markdown, SourceIdentity source)
+    {
+        object data = BuildDocumentData(scan, version, markdown, source);
         using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Generator.WebTemplate.html")
             ?? throw new InvalidOperationException("缺少网页模板。");
         using var reader = new StreamReader(stream);
@@ -188,10 +200,24 @@ internal static partial class ApiDocument
     private static string HtmlSee(XElement element, IReadOnlyDictionary<string, string> links)
     {
         string? reference = (string?)element.Attribute("cref");
-        string label = element.Value.Length > 0 ? element.Value : reference ?? (string?)element.Attribute("langword") ?? (string?)element.Attribute("href") ?? "";
+        string label = element.Value.Length > 0 ? element.Value : reference != null ? ReferenceLabel(reference)
+            : (string?)element.Attribute("langword") ?? (string?)element.Attribute("href") ?? "";
         if (reference != null && links.TryGetValue(reference, out var id)) return $"<a href=\"#{H(id)}\"><code>{H(label)}</code></a>";
         if (element.Attribute("href") is XAttribute href && SafeUrl(href.Value)) return $"<a href=\"{H(href.Value)}\">{H(label)}</a>";
         return "<code>" + H(label) + "</code>";
+    }
+
+    private static string MemberExamples(MemberEntry member, string markdown)
+    {
+        return string.Concat((PresentationFor(member).Examples ?? []).Select(key =>
+        {
+            var block = Regex.Match(markdown, @"<!-- api-example-" + Regex.Escape(key)
+                + @":start -->(?<body>.*?)<!-- api-example-" + Regex.Escape(key) + @":end -->", RegexOptions.Singleline);
+            if (!block.Success || !block.Groups["body"].Value.Contains("```csharp", StringComparison.Ordinal))
+                throw new InvalidOperationException($"接口引用了不存在的调用示例：{member.Id} → {key}");
+            string html = Regex.Replace(GuideMarkdown(block.Groups["body"].Value.Trim()), @" id=""guide-section-[^""]+""", "");
+            return "<section class=\"member-example\" data-example=\"" + H(key) + "\">" + html + "</section>";
+        }));
     }
 
     private static string HtmlDoc(XElement doc, IReadOnlyDictionary<string, string> links, bool includeSummary)
@@ -222,7 +248,7 @@ internal static partial class ApiDocument
         if (doc.Elements("exception").Any())
         {
             output.Append("<p><strong>异常</strong></p><dl class=\"exceptions\">");
-            foreach (var exception in doc.Elements("exception")) output.Append("<dt><code>").Append(H((string?)exception.Attribute("cref") ?? ""))
+            foreach (var exception in doc.Elements("exception")) output.Append("<dt><code>").Append(H(ReferenceLabel((string?)exception.Attribute("cref") ?? "")))
                 .Append("</code></dt><dd>").Append(HtmlInline(exception, links)).Append("</dd>");
             output.Append("</dl>");
         }

@@ -148,7 +148,7 @@ namespace ExHyperV.Services
 
         /// <summary>将宿主磁盘置为脱机或联机，立即影响该磁盘在宿主的可访问性。</summary>
         /// <returns>存储接口的操作响应；找不到目标磁盘时失败。</returns>
-        /// <param name="disk">查询时选中的磁盘身份；身份不匹配时返回 Conflict，不修改同编号的替代设备。</param>
+        /// <param name="disk">查询时选中的磁盘身份；身份变化时返回 Conflict。</param>
         /// <param name="isOffline">true 脱机，false 联机。</param>
         public static async Task<ApiResponse> SetDiskOfflineStatusAsync(HostDiskReference disk, bool isOffline)
         {
@@ -176,7 +176,7 @@ namespace ExHyperV.Services
 
         /// <summary>修改宿主磁盘的只读属性。</summary>
         /// <returns>存储接口的操作响应；找不到目标磁盘时失败。</returns>
-        /// <param name="disk">查询时选中的磁盘身份；只核对设备，不比较原只读状态。</param>
+        /// <param name="disk">查询时选中的磁盘身份。</param>
         /// <param name="isReadOnly">true 设置只读，false 取消只读。</param>
         public static async Task<ApiResponse> SetDiskReadOnlyAsync(HostDiskReference disk, bool isReadOnly)
         {
@@ -200,9 +200,9 @@ namespace ExHyperV.Services
 
         /// <summary>挂载宿主磁盘映像，并取得独占使用期。</summary>
         /// <param name="imagePath">宿主映像完整路径。</param>
-        /// <param name="cancellationToken">等待使用权、提交前及磁盘发现期间取消；取得使用期后，取消不会替调用方结束文件访问或释放使用权。</param>
+        /// <param name="cancellationToken">等待使用权、提交前及磁盘发现期间响应取消；已取得的使用期由调用方释放。</param>
         /// <returns>需释放的使用期对象；先检查 Result，使用结束后等待 ReleaseAsync 或 DisposeAsync。</returns>
-        /// <remarks>新挂载请求读写访问且不自动分配盘符；已有挂载沿用实际模式，见 Result.IsReadOnly，无法取得时为 null 并提供 AccessError。同一映像的其他 Core 使用者全程排队。取得使用权前的文件身份、锁或取消错误直接传播，不返回使用期对象。</remarks>
+        /// <remarks>新挂载请求读写访问、使用无盘符模式；已有挂载沿用实际模式。Result.IsReadOnly 为实际只读状态，未知时为 null，原因见 AccessError。同一映像的其他 Core 操作全程排队；取得使用期前的错误以异常返回。</remarks>
         public static Task<HostDiskMountLease> MountDiskImageAsync(string imagePath,
             CancellationToken cancellationToken = default)
             => MountImageAsync(imagePath, false, false, cancellationToken);
@@ -210,7 +210,7 @@ namespace ExHyperV.Services
         /// <summary>通过 Hyper-V 挂载虚拟磁盘，并取得独占使用期。</summary>
         /// <param name="imagePath">宿主虚拟磁盘完整路径。</param>
         /// <param name="readOnly">新挂载是否只读；已有挂载保留原访问模式。</param>
-        /// <param name="cancellationToken">在等待资源锁、提交前及磁盘发现期间取消；不会终止原生作业，也不会自动释放已返回的使用期。</param>
+        /// <param name="cancellationToken">等待资源锁、提交前及磁盘发现期间响应取消。已提交的原生作业继续执行；已返回的使用期由调用方释放。</param>
         /// <returns>需释放的使用期对象。Result 失败也需释放；本次建立的挂载自动清理，已有挂载保留。</returns>
         /// <remarks>已有挂载沿用原访问模式，见 Result.IsReadOnly。完成文件访问后释放使用期：本次建立的挂载自动卸载，已有挂载保留；其他 Core 调用者等待到清理完成。取得使用权前发生的文件身份、锁或取消异常直接抛出。</remarks>
         /// <example>
@@ -602,7 +602,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>移除宿主分区的指定盘符访问路径，不删除分区。</summary>
-        /// <returns>盘符移除结果；原分区不存在或已被替换时失败，不修改替代分区。</returns>
+        /// <returns>盘符移除结果；原分区不存在或已被替换时失败。</returns>
         /// <param name="partition">查询时选中的分区身份，含所属磁盘；身份不匹配时拒绝修改。</param>
         /// <param name="driveLetter">要移除的盘符字母。</param>
         public static async Task<ApiResponse> RemovePartitionAccessPathAsync(

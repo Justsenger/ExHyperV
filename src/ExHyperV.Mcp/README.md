@@ -202,4 +202,4 @@ Core 手册也通过 MCP Resources 提供：`exhyperv://core/api`；接入范围
 
 可用 `ExHyperV.Mcp.exe --api-catalog` 导出当前程序的完整接入目录和构建标识。目录包含编译器生成的公开成员，数量可多于手写 API 文档。
 
-SDK 接入参考官方 [QuickstartWeatherServer](https://github.com/modelcontextprotocol/csharp-sdk/tree/v2.3.0/samples/QuickstartWeatherServer)。版本和许可见 `THIRD-PARTY-NOTICES.txt`；业务约定见 [Core API](../ExHyperV.Core/API.md)。
+SDK 接入参考官方 [QuickstartWeatherServer](https://github.com/modelcontextprotocol/csharp-sdk/tree/v2.3.0/samples/QuickstartWeatherServer)。版本和许可见 `THIRD-PARTY-NOTICES.txt`；业务约定见 [Core API](../../doc/api/API.md)。

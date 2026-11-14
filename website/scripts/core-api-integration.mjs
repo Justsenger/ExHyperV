@@ -10,7 +10,7 @@ export default function coreApi() {
     hooks: {
       'astro:server:setup': async ({ server, logger }) => {
         stop = await watchCore({
-          root: coreRoot,
+          root: [coreRoot, path.resolve(websiteRoot, '../doc/api'), path.resolve(websiteRoot, '../tools/api-docs'), path.join(websiteRoot, 'src/api')],
           generate: () => syncCoreApi({ updateMarkdown: true }),
           onSuccess: () => server.ws.send({ type: 'full-reload' }),
           onError: error => logger.error(`API 更新失败，保留上次成功页面；修正源码后自动重试。${error.message}`),

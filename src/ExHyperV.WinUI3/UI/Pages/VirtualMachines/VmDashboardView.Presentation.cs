@@ -97,7 +97,7 @@ public sealed partial class VmDashboardView
     }
     private void UpdateGpuCharts(VmQueryRow row)
     {
-        if (row.Get(VmGpuPerformanceFields.IsDriverBound) is { HasValue: true } bound) gpuDriverBound = bound.Value;
+        if (row.Get(VmGpuPerformanceFields.HasGpuEngineInstance) is { HasValue: true } bound) gpuDriverBound = bound.Value;
         UpdateGpuVisibility();
         if (gpuCards.Count != 1) return;
         VmQueryField<double>[] fields = [VmGpuPerformanceFields.Gpu3d, VmGpuPerformanceFields.GpuCopy, VmGpuPerformanceFields.GpuEncode, VmGpuPerformanceFields.GpuDecode];

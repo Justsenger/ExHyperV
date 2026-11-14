@@ -97,7 +97,7 @@ namespace ExHyperV.Services
         /// <summary>按稳定身份读取虚拟机 GPU 分配；查询失败不伪装为空清单。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>分配快照或查询错误；缺少宿主显示信息时仍保留设备身份。</returns>
-        /// <remarks>旧宿主未返回可用的 HostResource 时，此入口可能用第一张可分区 GPU 补充宿主身份和显示信息；这些补充值不能证明实际分配到该卡。精确关联应使用 VmGpuFields 的逐字段查询，并检查结果是否可用。</remarks>
+        /// <remarks>旧宿主缺少 HostResource 时，会用第一张可分区 GPU 补充候选信息。精确关联使用 VmGpuFields 查询，并检查字段状态。</remarks>
         public async Task<ApiResponse<IReadOnlyList<VmGpuAssignment>>> GetVmGpuAssignmentsAsync(Guid vmId)
         {
             if (vmId == Guid.Empty) return ApiResponse<IReadOnlyList<VmGpuAssignment>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
@@ -158,7 +158,7 @@ namespace ExHyperV.Services
         /// <summary>查询虚拟 GPU 适配器并保留成功标记，区分无设备和查询失败。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>Success 表示查询成功；Adapters 为 Id 与 InstancePath 列表，失败时为空。</returns>
-        /// <remarks>旧版宿主若未提供适配器资源路径，兼容逻辑可能使用资源池首项；多 GPU 场景下不能把该回退视为精确物理卡身份。</remarks>
+        /// <remarks>旧版宿主缺少适配器资源路径时，使用资源池首项作为候选；多 GPU 环境需进一步核对物理设备。</remarks>
         internal async Task<(bool Success, List<(string Id, string InstancePath)> Adapters)> TryGetVmGpuAdaptersAsync(Guid vmId)
         {
             var result = new List<(string Id, string InstancePath)>();
@@ -252,7 +252,7 @@ namespace ExHyperV.Services
             return false; // 超时
         }
 
-        /// <summary>检查虚拟机来宾缓存控制及高位 MMIO 是否满足当前 GPU 配置要求，不执行配置写入。</summary>
+        /// <summary>检查来宾缓存控制及高位 MMIO 是否满足当前 GPU 配置要求。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>数据为 true 表示满足条件，false 表示需要配置；读取错误为失败响应。</returns>
         public async Task<ApiResponse<bool>> CheckVmForGpuAsync(Guid vmId)
@@ -279,7 +279,7 @@ namespace ExHyperV.Services
         }
         /// <summary>配置 GPU 所需的来宾缓存控制和 MMIO 空间。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <returns>配置执行结果；不自动回滚已完成的宿主探测或电源变化。</returns>
+        /// <returns>配置执行结果；已完成的探测和电源变化会保留。</returns>
         /// <remarks>可能复用宿主 MMIO 检测结果；没有结果时，检测可能启动并强制关闭目标虚拟机。调用完整部署流程可在 Core 的确认步骤后执行这些操作。</remarks>
     /// <editentry label="配置 GPU 所需环境" category="GPU"/>
         public async Task<ApiResponse> OptimizeVmForGpuAsync(Guid vmId)
@@ -294,7 +294,7 @@ namespace ExHyperV.Services
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <param name="cancellationToken">等待资源锁及磁盘之间检查取消；已开始的磁盘操作完成恢复后才返回。</param>
         /// <returns>分区、扫描错误和独立的恢复错误；失败时分区可能不完整。</returns>
-        /// <remarks>同磁盘或映像的 Core 操作跨进程排队，锁覆盖原状态读取、扫描及恢复。既有挂载只借用，本次新增挂载才卸载；物理盘按原状态恢复并覆盖期间外部状态修改，恢复前核对设备身份，不修改替代设备。</remarks>
+        /// <remarks>同磁盘或映像的 Core 操作跨进程排队，锁覆盖原状态读取、扫描及恢复。借用已有挂载，本次新增挂载在结束后卸载；核对磁盘身份后恢复原状态，并覆盖期间的外部修改。</remarks>
         public async Task<VmPartitionScanResult> ScanVmPartitionsAsync(Guid vmId, CancellationToken cancellationToken = default)
         {
             if (cancellationToken.IsCancellationRequested) return new([], [], [], true);
@@ -486,8 +486,8 @@ namespace ExHyperV.Services
         /// <summary>为虚拟机分配所选宿主 GPU 的分区；执行前重新解析当前可分区资源。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <param name="gpu">GetHostGpusAsync 返回的宿主 GPU，按其 PnP 设备身份重新查询。</param>
-        /// <returns>添加和后续验证结果；验证失败时新适配器可能已经存在，不自动回滚。</returns>
-        /// <remarks>此单项入口不自动清理已创建的设备。创建结果或资源归属无法确认时返回 OutcomeUnknown；已确认失败且留有本次设备时返回 CleanupRequired。两种情况都保留设备；需要分步核对和清理本次创建资源时使用 GpuDeploymentSession。</remarks>
+        /// <returns>添加和后续验证结果；验证失败时已创建的适配器可能保留。</returns>
+        /// <remarks>创建结果或归属待确认时返回 OutcomeUnknown；确认失败且留有本次设备时返回 CleanupRequired。分步核对及清理使用 GpuDeploymentSession。</remarks>
     /// <editentry label="分配 GPU 分区" category="GPU"/>
         public async Task<ApiResponse> AssignGpuPartitionAsync(Guid vmId, HostGpuInfo gpu)
         {
@@ -505,7 +505,8 @@ namespace ExHyperV.Services
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <param name="gpuInstancePath">宿主可分区 GPU 资源路径，通常使用 HostGpuInfo.PartitionableGpuPath。</param>
         /// <returns>操作响应与底层确认的新适配器身份；无法确认创建结果时保留不确定状态，禁止通过清单差异推断身份。</returns>
-        /// <remarks>此单项入口不会自动回滚新增设备；需要跟踪和清理时使用部署会话。</remarks>
+        /// <remarks>失败后可能保留新增设备；需要跟踪和清理时使用部署会话。</remarks>
+        /// <param name="trace">记录本次原生创建调用的结果和资源身份；null 时由内部流程收集。</param>
         internal async Task<GpuAssignmentAttempt> AssignGpuPartitionWithOwnershipAsync(Guid vmId, string gpuInstancePath, WmiCreationTrace? trace = null)
         {
             bool ownershipUncertain = false;
@@ -2100,7 +2101,7 @@ namespace ExHyperV.Services
 
         /// <summary>从在线索引读取可选 Linux GPU 部署脚本。</summary>
         /// <returns>新的脚本列表；请求超时、解析或网络失败时返回空列表。</returns>
-        /// <remarks>索引请求使用 5 秒超时；空列表不能区分没有脚本和在线查询失败。</remarks>
+        /// <remarks>索引请求超时为 5 秒；无脚本或查询失败均返回空列表。</remarks>
         public async Task<List<LinuxGpuDeploymentScript>> GetAvailableScriptsAsync()
         {
             var allScripts = new List<LinuxGpuDeploymentScript>();
@@ -2147,7 +2148,7 @@ namespace ExHyperV.Services
         /// <param name="progressCallback">进展文本回调，应快速返回且不抛出异常；界面更新需调度到界面线程。</param>
         /// <param name="ct">协作式取消令牌，在等待和部分步骤之间检查；SSH 命令和文件传输继续执行至完成。</param>
         /// <returns>成功时返回 OK，否则通常返回错误说明；取消也可能转换为失败文本。</returns>
-        /// <remarks>脚本可修改来宾软件包、内核模块、服务和环境，不是原子事务，也没有文件级回滚。SSH 命令可长时间运行；此方法不接管宿主剪贴板或交互登录。</remarks>
+        /// <remarks>脚本会修改来宾软件包、内核模块、服务和环境；失败时可能保留部分修改。SSH 命令可能长时间运行。</remarks>
         /// <editentry label="部署 Linux GPU 驱动" category="GPU"/>
         public Task<string> ProvisionLinuxGpuAsync(
             string vmName,

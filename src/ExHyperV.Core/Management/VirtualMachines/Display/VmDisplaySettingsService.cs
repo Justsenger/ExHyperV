@@ -1,4 +1,5 @@
 using System.Management;
+using ExHyperV.Models;
 using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
@@ -18,9 +19,14 @@ public static class VmDisplaySettingsService
     private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
 
     /// <summary>判断虚拟机显示设备分辨率配置是否可修改。</summary>
-    /// <param name="isRunning">当前状态快照是否属于活动状态；规则方法仅使用此输入，不自行刷新主机状态。</param>
+    /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <returns>虚拟机未运行时为 true。</returns>
-    public static bool CanEdit(bool isRunning) => !isRunning;
+    internal static bool CanEdit(bool isRunning) => !isRunning;
+
+    /// <summary>评估显示配置的修改条件。</summary>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许修改、原因及需要的电源状态。</returns>
+    public static VmModificationCondition GetModificationCondition(VmState state) => VmModificationCondition.PoweredOff(state);
 
     // ResolutionType：2=Maximum 3=Single(固定) 4=Default(自适应)
     /// <summary>读取虚拟显示设备的分辨率策略和像素尺寸。</summary>
@@ -63,7 +69,8 @@ public static class VmDisplaySettingsService
         var state = await VmConfigurationState.ReadAsync(vmId);
         if (!state.HasData) return ApiResponse.Fail(state.Success ? Properties.Resources.Error_Net_VmNotFound : state.Error,
             state.Code, state.ErrorSource, state.Exception, state.Success ? ApiErrorKind.NotFound : state.ErrorKind);
-        if (!CanEdit(state.Data!.IsRunning)) return ApiResponse.Fail(Properties.Resources.Warn_VmOffRequired, kind: ApiErrorKind.InvalidState);
+        var condition = GetModificationCondition(state.Data!.State);
+            if (!condition.CanModify) return condition.ToResponse();
 
         var xmlResp = await WmiApi.QueryFirstAsync(
             $"SELECT * FROM Msvm_SyntheticDisplayControllerSettingData WHERE InstanceID LIKE 'Microsoft:{vmId:D}%'",

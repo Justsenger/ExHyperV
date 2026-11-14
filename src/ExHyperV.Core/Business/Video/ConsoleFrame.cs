@@ -166,8 +166,8 @@ public sealed class ConsoleFrame : IDisposable
 
     /// <summary>保留这帧画面，供回调结束后继续使用，不复制像素。</summary>
     /// <returns>一份新的帧租约，共享当前像素；调用方用完后必须 Dispose。</returns>
-    /// <remarks>每次 Retain 都取得独立的释放责任。释放原帧不会使保留的帧失效；连接关闭也不会。
-    /// 不要把保留的帧无限积压，否则缓冲池可能耗尽并暂停输出新帧。</remarks>
+    /// <remarks>每次 Retain 取得一份独立租约，直到该租约释放为止均可读取像素。
+    /// 及时释放保留的帧；缓冲池耗尽时会暂停新帧输出。</remarks>
     /// <exception cref="ObjectDisposedException">当前租约已经释放。</exception>
     /// <exception cref="InvalidOperationException">同一缓冲区的租约数量已达整数上限。</exception>
     public ConsoleFrame Retain()

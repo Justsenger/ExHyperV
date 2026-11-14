@@ -38,7 +38,7 @@ public sealed partial class VmDashboardView : UserControl
         VmMemoryFields.AssignedMiB, VmMemoryFields.AvailablePercent,
         VmStorageFields.ReadBytesPerSecond, VmStorageFields.WriteBytesPerSecond,
         VmNetworkFields.SendBytesPerSecond, VmNetworkFields.ReceiveBytesPerSecond, VmNetworkFields.IpAddresses,
-        VmGpuPerformanceFields.Gpu3d, VmGpuPerformanceFields.GpuCopy, VmGpuPerformanceFields.GpuEncode, VmGpuPerformanceFields.GpuDecode, VmGpuPerformanceFields.IsDriverBound];
+        VmGpuPerformanceFields.Gpu3d, VmGpuPerformanceFields.GpuCopy, VmGpuPerformanceFields.GpuEncode, VmGpuPerformanceFields.GpuDecode, VmGpuPerformanceFields.HasGpuEngineInstance];
 
     public VmDashboardView()
     {
@@ -357,7 +357,7 @@ public sealed partial class VmDashboardView : UserControl
         var os = metadata.Rows.FirstOrDefault(m => m.Get(VmMetadataFields.Key).Value == VmMetadataService.OsTypeKey)?.Get(VmMetadataFields.Value);
         if (metadata.State == VmQueryValueState.Available)
         {
-            OsText.Text = ExHyperV.Tools.OsImages.Canonical(os is { HasValue: true } ? os.Value : null);
+            OsText.Text = OsIconSource.GetResourceName(os is { HasValue: true } ? os.Value : null);
             OsImage.Source = OsIconSource.Get(OsText.Text); GenericIcon.Visibility = OsImage.Source == null ? Visibility.Visible : Visibility.Collapsed;
         }
     }

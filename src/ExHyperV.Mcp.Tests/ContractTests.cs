@@ -92,5 +92,38 @@ public sealed class ContractTests
         Assert.AreEqual("null", input.GetProperty("properties").GetProperty("value").GetProperty("anyOf")[1].GetProperty("type").GetString());
     }
 
+    [TestMethod]
+    public void DocumentationProseDoesNotChangeExecutionPolicyOrContractFingerprint()
+    {
+        var original = new ApiCatalog();
+        using var stream = typeof(ApiCatalog).Assembly.GetManifestResourceStream("Core.API.json")!;
+        using var reader = new StreamReader(stream);
+        var data = System.Text.Json.Nodes.JsonNode.Parse(reader.ReadToEnd())!;
+        foreach (var type in data["types"]!.AsArray())
+        {
+            type!["area"] = "改写后的分类标题";
+            foreach (var member in type["members"]!.AsArray())
+                member!["navigationPath"] = new System.Text.Json.Nodes.JsonArray("改写后的目录");
+        }
+        var revised = new ApiCatalog("# 全新的开发者指南", data.ToJsonString());
+        Assert.AreEqual(original.ContractFingerprint, revised.ContractFingerprint);
+        foreach (var member in original.Members.Values)
+        {
+            Assert.AreEqual(original.IsReadOnly(member), revised.IsReadOnly(member), ApiCatalog.Id(member));
+            Assert.AreEqual(original.Group(member), revised.Group(member), ApiCatalog.Id(member));
+        }
+    }
+
+    [TestMethod]
+    public void ReadOnlyPolicyIncludesPreparationQueriesAndExcludesWrites()
+    {
+        var catalog = new ApiCatalog();
+        foreach (var type in new[] { typeof(ExHyperV.Services.VmMemoryService), typeof(ExHyperV.Services.VmProcessorService) })
+            Assert.IsTrue(catalog.IsReadOnly(type.GetMethod("GetModificationCondition")!));
+        Assert.IsTrue(catalog.IsReadOnly(typeof(ExHyperV.Services.VmCreateService).GetMethod("GetCreationOptionsAsync")!));
+        Assert.IsFalse(catalog.IsReadOnly(typeof(ExHyperV.Services.VmMemoryService).GetMethod("SetVmMemorySettingsAsync")!));
+        Assert.IsFalse(catalog.IsReadOnly(typeof(ExHyperV.Services.VmProcessorService).GetMethod("SetVmProcessorAsync")!));
+    }
+
     public static void NullableInput(string? value) { }
 }

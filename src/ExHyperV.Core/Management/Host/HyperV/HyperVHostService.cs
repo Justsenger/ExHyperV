@@ -127,7 +127,7 @@ namespace ExHyperV.Services
         /// <returns>配置与运行检查的结果。RequiresRestart 和 RestartReasons 表示重启要求；Steps 保留各步骤结果。后续步骤失败时，已完成的变更和重启要求仍保留。</returns>
         /// <remarks>
         /// <para>开启时先启用必要组件，再修改引导配置；组件失败或尚待完成时停止后续修改。确认家庭版缺少功能时，尝试登记适用的本机 Hyper-V 安装包。无需重启时继续检查监控程序、VMMS 和 WMI 是否就绪。</para>
-        /// <para>需要管理员权限，同一宿主的 Core 请求串行执行。此方法不关闭虚拟机、不自动重启；调用方根据 RequiresRestart 安排重启。</para>
+        /// <para>需要管理员权限，同一宿主的 Core 请求串行执行。调用方根据 RequiresRestart 安排重启。</para>
         /// </remarks>
         public static async Task<ApiResponse> SetHyperVEnabledAsync(bool enabled)
         {

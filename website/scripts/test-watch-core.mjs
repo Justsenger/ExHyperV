@@ -26,6 +26,11 @@ test('generated blocks and build outputs do not retrigger generation, but author
     assert.equal(await sourceFingerprint(root), initial);
     await writeFile(path.join(root, 'API.md'), 'New introduction\n' + document('new'));
     assert.notEqual(await sourceFingerprint(root), initial);
+    const names = path.join(root, 'MethodNames.zh-CN.json');
+    await writeFile(names, '{"Example.Check":"检查"}');
+    const withNames = await sourceFingerprint(root);
+    await writeFile(names, '{"Example.Check":"检查名称"}');
+    assert.notEqual(await sourceFingerprint(root), withNames, 'Method translations must trigger generation');
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
@@ -74,4 +79,22 @@ test('watcher serializes builds, catches edits during a build and recovers after
     stop?.();
     await rm(root, { recursive: true, force: true });
   }
+});
+
+
+test('separate source roots retain identity and ignore generated outputs', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'core-watch-roots-'));
+  const roots = [path.join(root, 'core'), path.join(root, 'docs')];
+  try {
+    await Promise.all(roots.map(directory => mkdir(directory)));
+    await writeFile(path.join(roots[0], 'same.json'), 'first');
+    await writeFile(path.join(roots[1], 'same.json'), 'second');
+    const initial = await sourceFingerprint(roots);
+    for (const name of ['API.md', 'API.json', 'FieldHelp.json'])
+      await writeFile(path.join(roots[1], name), 'generated');
+    assert.equal(await sourceFingerprint(roots), initial);
+    await writeFile(path.join(roots[0], 'same.json'), 'second');
+    await writeFile(path.join(roots[1], 'same.json'), 'first');
+    assert.notEqual(await sourceFingerprint(roots), initial);
+  } finally { await rm(root, { recursive: true, force: true }); }
 });

@@ -13,6 +13,46 @@ public static class VmPcieService
 {
     private const string VsmsWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
 
+    /// <summary>评估 PCIe 呈现配置或启动配置的修改条件。</summary>
+    /// <param name="settings">查询得到的 PCIe 配置。</param>
+    /// <param name="propertyName">EmulationEnabled、Topology 或 BootPciExpress。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许修改及原因；不用于设备分配或取消分配。</returns>
+    public static VmModificationCondition GetModificationCondition(VmPcieSettings settings, string propertyName, VmState state)
+    {
+        bool available;
+        switch (propertyName)
+        {
+            case nameof(VmPcieSettings.EmulationEnabled):
+                if (settings.EmulationEnabled)
+                    return VmModificationCondition.Unsupported("PCIe 仿真启用后不能关闭。");
+                available = settings.SystemSettingsAvailable;
+                break;
+            case nameof(VmPcieSettings.Topology): available = settings.SystemSettingsAvailable; break;
+            case nameof(VmPcieSettings.BootPciExpress): available = settings.BootPciExpressAvailable; break;
+            default: return VmModificationCondition.Denied("未知的 PCIe 设置。", ApiErrorKind.InvalidArgument);
+        }
+        return available ? VmModificationCondition.PoweredOff(state)
+            : VmModificationCondition.Unsupported("当前虚拟机未提供此 PCIe 设置。");
+    }
+
+    /// <summary>评估已分配设备的来宾呈现模式能否修改。</summary>
+    /// <param name="device">查询得到的 PCIe 设备配置。</param>
+    /// <param name="state">查询得到的虚拟机电源状态。</param>
+    /// <returns>是否允许修改及原因。</returns>
+    public static VmModificationCondition GetDeviceModeModificationCondition(VmPcieDeviceSetting device, VmState state)
+        => device.GuestModeAvailable ? VmModificationCondition.PoweredOff(state)
+            : VmModificationCondition.Unsupported("此设备不支持修改来宾模式。");
+
+    private static async Task<ApiResponse> CheckPoweredOffAsync(Guid vmId)
+    {
+        var current = await VmConfigurationState.ReadAsync(vmId);
+        if (!current.HasData) return current.Success
+            ? ApiResponse.Fail("未找到虚拟机。", kind: ApiErrorKind.NotFound)
+            : ApiResponse.Fail(current.Error, current.Code, current.ErrorSource, current.Exception, current.ErrorKind);
+        return VmModificationCondition.PoweredOff(current.Data.State).ToResponse();
+    }
+
     /// <summary>读取虚拟机 PCIe 模拟、拓扑和设备来宾模式等设置。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <returns>当前配置和支持情况；读取失败通过响应返回。</returns>
@@ -131,8 +171,8 @@ public static class VmPcieService
 
     /// <summary>修改虚拟机的 PCIe 模拟与拓扑；开启模拟可能需要临时修改宿主功能开关。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="enableEmulation">true 将模拟模式置为开启；false 只保留现有模拟状态，仍写入 topology，不执行关闭。</param>
-    /// <param name="topology">Hyper-V 原始 PCIe 拓扑编码；当前 Core 未提供有效值目录，提交时由提供者校验。</param>
+    /// <param name="enableEmulation">true 开启模拟模式；false 保留现有模式。两者均写入 topology。</param>
+    /// <param name="topology">Hyper-V 原始 PCIe 拓扑编码，由宿主校验。</param>
     /// <returns>配置结果；模拟开启具有持久副作用，调用者应先完成必要确认。</returns>
     public static async Task<ApiResponse> SetSystemSettingsAsync(
         Guid vmId, bool enableEmulation, ushort topology)
@@ -140,6 +180,9 @@ public static class VmPcieService
         if (vmId == Guid.Empty) return ApiResponse.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
         async Task<ApiResponse> ApplyAsync()
         {
+            // VMMS 的呈现配置 setter 拒绝活动 worker 和保存状态；这不是 DDA 分配的限制。
+            var condition = await CheckPoweredOffAsync(vmId);
+            if (!condition.Success) return condition;
             var id = await GetVssdInstanceIdAsync(vmId);
             if (!id.Success || !id.HasData)
                 return ApiResponse.Fail(
@@ -184,11 +227,16 @@ public static class VmPcieService
             string.Equals(item.WmiInstanceId, device.WmiInstanceId, StringComparison.OrdinalIgnoreCase));
         if (target is null) return ApiResponse.Fail("设备已不属于此虚拟机，请重新查询。", kind: ApiErrorKind.Conflict);
         if (!target.GuestModeAvailable) return ApiResponse.Fail("此设备不支持修改来宾模式。", kind: ApiErrorKind.Unsupported);
+        var state = await VmConfigurationState.ReadAsync(vmId);
+        if (!state.HasData) return state.Success ? ApiResponse.Fail("未找到虚拟机。", kind: ApiErrorKind.NotFound)
+            : ApiResponse.Fail(state.Error, state.Code, state.ErrorSource, state.Exception, state.ErrorKind);
+        var condition = GetDeviceModeModificationCondition(target, state.Data.State);
+        if (!condition.CanModify) return condition.ToResponse();
         return await SetDeviceModeAsync(target.WmiInstanceId, mode);
     }
 
     /// <summary>按内部设备实例标识修改 PCIe 设备的来宾模式。</summary>
-    /// <param name="instanceId">目标设备的 WMI 实例标识，不是设备显示名称。</param>
+    /// <param name="instanceId">目标设备的 WMI 实例标识。</param>
     /// <param name="mode">要配置的来宾设备模式，使用 VmPcieGuestMode 枚举值。</param>
     /// <returns>WMI 修改结果；无效实例、状态限制或底层拒绝时失败。</returns>
     internal static async Task<ApiResponse> SetDeviceModeAsync(
@@ -217,14 +265,16 @@ public static class VmPcieService
     /// <param name="enabled">true 请求启用该功能，false 请求关闭；互锁限制由对应操作执行。</param>
     /// <returns>启动阶段 vPCI 开关的配置提交结果，不证明已发现可启动磁盘或已成功引导。</returns>
     /// <remarks>
-    /// <para>研究中的 NVMe 路径筛选 PCI 类码 01/08/02，不能据此承诺 SATA/AHCI 也可从同一路径引导。开关、控制器分配、UEFI 初始化和来宾启动是分别需要确认的环节。</para>
-    /// <para>ARM64 vmfirmware.dll 10.0.26100.4202、10.0.28000.1 的已核对样本会将非零且小于 4 KiB 的有效 64 位内存 BAR 算成零页，使设备初始化失败；10.0.28000.1450 样本修正了此算法，但仍拒绝 I/O BAR 和 32 位内存 BAR。不能将“28000”直接视为修复保证，也不能用宿主 build 替代实际组件版本。</para>
-    /// <para>Core 保留开关写入，不按这些研究样本封禁其他设备或版本。调用方可展示限制；本接口没有读取控制器 BAR 或验证引导结果，不应将配置成功显示为 NVMe 启动能力已验证。</para>
+    /// <para>已研究的 NVMe 引导路径使用 PCI 类码 01/08/02。</para>
+    /// <para>ARM64 vmfirmware.dll 10.0.26100.4202、10.0.28000.1 的已核对样本会将非零且小于 4 KiB 的有效 64 位内存 BAR 算成零页，使设备初始化失败；10.0.28000.1450 样本修正了此算法，但仍拒绝 I/O BAR 和 32 位内存 BAR。按实际固件组件版本核对。</para>
+    ///
     /// <para>证据：Hyper-V WMI 研究的 nvme-boot 组件对照；微软固件修复 <see href="https://github.com/microsoft/mu_msvm/commit/3fe19d067b3eacd5e3991e5e02e476a810c94f6b">3fe19d0</see>。首次修复版本、未采样维护分支和其他架构不据此推定。</para>
     /// </remarks>
     public static async Task<ApiResponse> SetBootPciExpressAsync(Guid vmId, bool enabled)
     {
         if (vmId == Guid.Empty) return ApiResponse.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
+        var condition = await CheckPoweredOffAsync(vmId);
+        if (!condition.Success) return condition;
         return await WmiApi.WithObjectAsync(
             $"SELECT * FROM Msvm_VirtualSystemSettingData " +
             $"WHERE {VmIdentity.SettingsPredicate(vmId)}",

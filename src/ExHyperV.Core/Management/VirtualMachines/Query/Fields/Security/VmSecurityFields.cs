@@ -11,7 +11,7 @@ public static class VmSecurityFields
     /// <meaning>是否启用安全启动，在启动过程中验证引导组件的签名。</meaning>
     /// <source>当前配置的 Msvm_VirtualSystemSettingData，读取或派生 SecureBootEnabled。</source>
     /// <references><see cref="VmSecurityService"/>。</references>
-    /// <modification kind="supported" input="enabled" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="VmSecurityService.SetSecureBootAsync"/></modification>
+    /// <modification kind="supported" input="enabled" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="M:ExHyperV.Services.VmSecurityService.SetSecureBootAsync(System.Guid,System.Boolean)"/></modification>
     /// <values kind="options"><c>true</c>：启用安全启动；<c>false</c>：关闭。</values>
     /// </fielddoc>
     public static readonly VmQueryField<bool> SecureBootEnabled = new("Security.SecureBootEnabled", "安全启动", "安全", VmQueryCollection.VirtualMachine, "Settings", "SecureBootEnabled");
@@ -21,7 +21,7 @@ public static class VmSecurityFields
     /// <meaning>安全启动所使用的信任模板标识。</meaning>
     /// <source>当前配置的 Msvm_VirtualSystemSettingData，读取或派生 SecureBootTemplateId。</source>
     /// <references><see cref="VmSecurityService"/>。</references>
-    /// <modification kind="supported" input="templateId" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="VmSecurityService.SetSecureBootTemplateAsync"/></modification>
+    /// <modification kind="supported" input="templateId" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="M:ExHyperV.Services.VmSecurityService.SetSecureBootTemplateAsync(System.Guid,System.Guid)"/></modification>
     /// </fielddoc>
     public static readonly VmQueryField<string> SecureBootTemplateId = new("Security.SecureBootTemplateId", "安全启动模板", "安全", VmQueryCollection.VirtualMachine, "Settings", "SecureBootTemplateId");
 
@@ -30,7 +30,7 @@ public static class VmSecurityFields
     /// <meaning>是否为虚拟机启用虚拟 TPM。</meaning>
     /// <source>Msvm_SecuritySettingData，读取或派生 TpmEnabled。</source>
     /// <references><see cref="VmSecurityService"/>。</references>
-    /// <modification kind="supported" input="enabled" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="VmSecurityService.SetTpmAsync"/></modification>
+    /// <modification kind="supported" input="enabled" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="M:ExHyperV.Services.VmSecurityService.SetTpmAsync(System.Guid,System.Boolean)"/></modification>
     /// <values kind="options"><c>true</c>：启用虚拟 TPM；<c>false</c>：关闭。</values>
     /// </fielddoc>
     public static readonly VmQueryField<bool> TpmEnabled = new("Security.TpmEnabled", "虚拟 TPM", "安全", VmQueryCollection.VirtualMachine, "Security", "TpmEnabled");
@@ -40,7 +40,7 @@ public static class VmSecurityFields
     /// <meaning>是否对虚拟机的保存状态和迁移流量启用加密。</meaning>
     /// <source>Msvm_SecuritySettingData，读取或派生 EncryptStateAndVmMigrationTraffic。</source>
     /// <references><see cref="VmSecurityService"/>。</references>
-    /// <modification kind="supported" input="enabled" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="VmSecurityService.SetEncryptionAsync"/></modification>
+    /// <modification kind="supported" input="enabled" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="M:ExHyperV.Services.VmSecurityService.SetEncryptionAsync(System.Guid,System.Boolean)"/></modification>
     /// <values kind="options"><c>true</c>：启用保存状态和迁移流量加密；<c>false</c>：关闭。</values>
     /// </fielddoc>
     public static readonly VmQueryField<bool> EncryptEnabled = new("Security.EncryptEnabled", "保存状态及迁移流量加密", "安全", VmQueryCollection.VirtualMachine, "Security", "EncryptStateAndVmMigrationTraffic");
@@ -50,7 +50,7 @@ public static class VmSecurityFields
     /// <meaning>ShieldingRequested 配置标记；不证明来宾已通过证明或保护已生效。</meaning>
     /// <source>Msvm_SecuritySettingData，读取或派生 ShieldingRequested。</source>
     /// <references><see cref="VmSecurityService"/>。</references>
-    /// <modification kind="supported" input="enabled" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="VmSecurityService.SetShieldingAsync"/></modification>
+    /// <modification kind="supported" input="enabled" submission="单项提交">仅支持第二代虚拟机，且要求完全关机。<see cref="M:ExHyperV.Services.VmSecurityService.SetShieldingAsync(System.Guid,System.Boolean)"/></modification>
     /// <values kind="options"><c>true</c>：请求屏蔽保护；<c>false</c>：未请求。</values>
     /// </fielddoc>
     public static readonly VmQueryField<bool> Shielded = new("Security.Shielded", "屏蔽虚拟机", "安全", VmQueryCollection.VirtualMachine, "Security", "ShieldingRequested");

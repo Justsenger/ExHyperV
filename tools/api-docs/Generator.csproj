@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../website/src/api/WebTemplate.html" LogicalName="Generator.WebTemplate.html" />
+    <EmbeddedResource Include="../../website/src/api/WebStyles.css" LogicalName="Generator.WebStyles.css" />
+    <EmbeddedResource Include="../../website/src/api/Fonts/Comfortaa-Latin.woff2" LogicalName="Generator.Comfortaa.woff2" />
+    <EmbeddedResource Include="../../website/src/api/Fonts/Comfortaa-OFL.txt" LogicalName="Generator.Comfortaa-OFL.txt" />
+    <EmbeddedResource Include="../../doc/api/DesignPages.xml" LogicalName="Generator.DesignPages.xml" />
+    <EmbeddedResource Include="../../doc/api/ConfigurationVersions.xml" LogicalName="Generator.ConfigurationVersions.xml" />
+    <EmbeddedResource Include="../../doc/api/catalog.json" LogicalName="Generator.catalog.json" />
+
+    <Reference Include="Microsoft.CodeAnalysis">
+      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp">
+      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
