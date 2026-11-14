@@ -13,7 +13,7 @@
     "api:sync": "node scripts/sync-core-api.mjs",
     "api:verify": "node scripts/verify-core-api.mjs",
     "preview": "astro preview --host 0.0.0.0 --port 5189",
-    "verify": "node scripts/verify-build.mjs && node scripts/verify-core-api.mjs --dist && node --test scripts/verify-source-localization.mjs scripts/verify-display-models.mjs scripts/verify-reviewed-sources.mjs scripts/test-core-api.mjs scripts/test-api-navigation.mjs scripts/test-watch-core.mjs scripts/test-home-model.mjs"
+    "verify": "node scripts/verify-build.mjs && node scripts/verify-core-api.mjs --dist && node --test scripts/verify-source-localization.mjs scripts/verify-display-models.mjs scripts/verify-reviewed-sources.mjs scripts/test-core-api.mjs scripts/test-api-navigation.mjs scripts/test-watch-core.mjs scripts/test-review-panel.mjs scripts/test-home-model.mjs"
   },
   "dependencies": {
     "@fontsource-variable/comfortaa": "5.3.0",
