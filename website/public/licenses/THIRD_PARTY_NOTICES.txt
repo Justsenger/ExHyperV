@@ -44,5 +44,10 @@ Reviewed: 2026-10-22
    resource-rounded-site-font.json. No character subsetting is applied.
    Comfortaa's complete license accompanies this deployment in Comfortaa-OFL.txt.
 
+6. three.js
+   three.js 0.187.0 renders the interactive homepage model and handles rotation.
+   Its MIT license accompanies this deployment in Three-LICENSE.txt.
+   https://github.com/mrdoob/three.js
+
 These notices record sources and unresolved permissions; they are not a grant
 of rights by Microsoft, Canonical, or any other third party.

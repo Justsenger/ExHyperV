@@ -1,4 +1,45 @@
 ---
 import SiteLayout from '../layouts/SiteLayout.astro';
+import HomeModel from '../components/HomeModel.astro';
 ---
-<SiteLayout module="home" title="首页" />
+<SiteLayout module="home" title="首页">
+  <section class="home-hero" aria-labelledby="home-title">
+    <div class="home-copy">
+      <h1 id="home-title">ExHyperV</h1>
+      <p data-i18n="productDescription">Windows 上的 Hyper-V 管理工具。</p>
+      <div class="home-actions">
+        <a class="home-button home-primary" href="https://github.com/Justsenger/ExHyperV/releases" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5" /></svg><span data-i18n="download">下载</span></a>
+        <a class="home-button" href="https://github.com/Justsenger/ExHyperV" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18" /></svg><span data-i18n="viewSource">查看源码</span></a>
+      </div>
+      <a class="home-releases" href="https://github.com/Justsenger/ExHyperV/releases" target="_blank" rel="noopener noreferrer"><span data-i18n="releases">版本与更新</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></a>
+    </div>
+    <div class="home-art"><HomeModel /></div>
+  </section>
+</SiteLayout>
+
+<style>
+  .home-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 32px; min-height: 480px; padding: 44px 40px 52px; }
+  .home-copy { min-width: 0; }
+  .home-copy h1 { margin: 0; font-size: 48px; line-height: 1.2; font-weight: 500; letter-spacing: -1.5px; }
+  .home-copy p { margin: 17px 0 0; color: var(--muted); font-size: 16px; line-height: 1.7; text-wrap: balance; }
+  .home-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .home-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 10px 18px; border: 1px solid var(--ui-border); border-radius: 7px; background: var(--background); font-size: 14px; font-weight: 500; }
+  .home-button:hover { background: var(--surface-hover); }
+  .home-primary { background: var(--accent); color: var(--textHighlight); border-color: var(--accent); }
+  .home-primary:hover { background: color-mix(in srgb, var(--accent), var(--background) 12%); }
+  .home-button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  .home-releases { display: inline-flex; align-items: center; gap: 5px; margin-top: 22px; color: var(--muted); font-size: 13px; font-weight: 400; }
+  .home-releases:hover { color: var(--accent); }
+  .home-releases svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; }
+  .home-button:focus-visible, .home-releases:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .home-art { display: flex; align-items: center; justify-content: center; min-width: 0; }
+  @media (max-width: 720px) {
+    .home-hero { gap: 24px; padding: 36px 24px 44px; min-height: 430px; }
+    .home-copy h1 { font-size: 40px; }
+    .home-copy p { font-size: 15px; }
+  }
+  @media (max-width: 520px) {
+    .home-hero { grid-template-columns: 1fr; gap: 30px; padding: 30px 20px; }
+    .home-releases { margin-top: 18px; }
+  }
+</style>

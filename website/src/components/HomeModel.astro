@@ -1,0 +1,17 @@
+<home-model role="group" tabindex="0" aria-label="ExHyperV 三维图标，拖拽或使用方向键旋转，双击复位" data-i18n-aria="rotateModel">
+  <img src="/images/exhyperv-app-icon.webp" width="640" height="640" alt="ExHyperV" draggable="false" fetchpriority="high" />
+</home-model>
+
+<script>
+  import '../scripts/home-model.js';
+</script>
+
+<style>
+  home-model { position: relative; display: block; width: min(100%, 360px); aspect-ratio: 1; outline-offset: 5px; }
+  home-model img { display: block; width: 100%; height: auto; pointer-events: none; user-select: none; }
+  home-model :global(canvas) { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+  home-model[data-dragging] :global(canvas) { cursor: grabbing; }
+  home-model[data-ready] img { visibility: hidden; }
+  home-model:focus-visible { outline: 2px solid var(--accent); border-radius: 8px; }
+  @media (max-width: 520px) { home-model { max-width: 260px; } }
+</style>
