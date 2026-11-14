@@ -9,11 +9,39 @@ namespace ExHyperV.Core.Tests.TestExecution;
 
 internal static class RebootContinuation
 {
-    private sealed record VmBefore(Guid Id, string State, string AutomaticStartAction);
-    private sealed record Batch(string Sid, string TaskName, string ReportsRoot, string RunDirectory, string Directory,
+    internal sealed record VmBefore(Guid Id, string State, string AutomaticStartAction);
+    internal sealed record Batch(string Sid, string TaskName, string ReportsRoot, string RunDirectory, string Directory,
         string[] CheckIds, int Index, string CoreHash, ApiTestReport Report, InspectionReport Resources,
         VmBefore[]? Machines = null, bool MachinesStopped = false, int Restarts = 0, bool Completed = false, bool Started = false,
-        string? WaitingForBoot = null, int InspectionPort = 5187);
+        string? WaitingForBoot = null, int InspectionPort = 5187, bool AutomaticReboot = false);
+
+    // Only newly submitted batches opt in. Older durable records retain their original manual policy.
+    internal static Batch CreateBatch(string reports, InspectionReport resources, ApiTestReport report,
+        string[] checkIds, string sid, string coreHash, int inspectionPort)
+    {
+        string run = Path.GetFullPath(Path.Combine(reports, resources.RunId, "api-tests", report.RunId));
+        return new(sid, "ExHyperV.Core.Tests.Resume." + report.RunId, Path.GetFullPath(reports), run,
+            Path.Combine(run, "reboot-continuation"), checkIds, 0, coreHash,
+            report with { Phase = "准备宿主重启测试与续跑任务" }, resources,
+            InspectionPort: inspectionPort, AutomaticReboot: true);
+    }
+
+    internal static Batch PrepareRestart(Batch batch, string boot, bool restoring)
+    {
+        if (batch.Restarts >= 40) throw new IOException("续跑重启次数超出本轮上限，保留现场。");
+        int number = batch.Restarts + 1;
+        string purpose = restoring ? "核验原设置已恢复" : "核验测试设置";
+        string phase = batch.AutomaticReboot
+            ? $"第 {number} 次宿主重启等待系统执行（{purpose}）。开机后自动继续本轮测试。"
+            : $"第 {number} 次宿主重启等待你确认（{purpose}）。确认后请手动重启，开机后继续本轮测试。";
+        return batch with { Restarts = number, WaitingForBoot = boot, Report = batch.Report with { Phase = phase } };
+    }
+
+    internal static async Task SubmitRestartAsync(Batch batch, Func<Task> saveProgress, Func<Task>? requestRestart = null)
+    {
+        await saveProgress();
+        if (batch.AutomaticReboot) await (requestRestart ?? (() => HostRestart.RequestAsync(batch.TaskName)))();
+    }
     internal static InspectionReport? LatestResources(string reports)
     {
         var batch = LatestBatch(reports);
@@ -51,8 +79,8 @@ internal static class RebootContinuation
             string dest = Path.Combine(bin, Path.GetRelativePath(AppContext.BaseDirectory, source)); Directory.CreateDirectory(Path.GetDirectoryName(dest)!); File.Copy(source, dest, true);
         }
         if (configuration is not null && File.Exists(configuration)) File.Copy(configuration, Path.Combine(directory, "resource-settings.json"), true);
-        var batch = new Batch(WindowsIdentity.GetCurrent().User!.Value, "ExHyperV.Core.Tests.Resume." + report.RunId, Path.GetFullPath(reports), Path.GetFullPath(run), Path.GetFullPath(directory), cases.Select(v => v.Id).ToArray(), 0,
-            Hash(Path.Combine(bin, "ExHyperV.Core.dll")), report with { Phase = "准备宿主重启测试与续跑任务" }, resources, InspectionPort: inspectionPort);
+        var batch = CreateBatch(reports, resources, report, cases.Select(v => v.Id).ToArray(),
+            WindowsIdentity.GetCurrent().User!.Value, Hash(Path.Combine(bin, "ExHyperV.Core.dll")), inspectionPort);
         string state = Path.Combine(directory, "state.json"); Save(state, batch); DurableJson.Write(Path.Combine(reports, "reboot-active.json"), Path.GetFullPath(state));
         try
         {
@@ -167,18 +195,18 @@ internal static class RebootContinuation
                     var machines = batch.Machines ?? throw new InvalidDataException("缺少重启前的虚拟机清单。");
                     await StopMachinesAsync(machines, allowHypervisorStopped: true);
                     var pending = RebootApiCases.Read(directory) ?? throw new InvalidDataException("缺少宿主重启前保存的阶段。");
-                    int number = batch.Restarts + 1;
-                    string purpose = pending.Phase == "AwaitRestoreBoot" ? "核验原设置已恢复" : "核验测试设置";
-                    string phase = $"第 {number} 次宿主重启等待你确认（{purpose}）。确认后请手动重启，开机后继续本轮测试。";
-                    batch = batch with { Restarts = number, WaitingForBoot = pending.Boot, Report = batch.Report with { Phase = phase } };
-                    try { Save(statePath, batch); }
-                    catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+                    batch = PrepareRestart(batch, pending.Boot, pending.Phase == "AwaitRestoreBoot");
+                    await SubmitRestartAsync(batch, async () =>
                     {
-                        if (!await RebootApiCases.UndoDisableBeforeRestartAsync(directory, id)) throw;
-                        await RestoreMachinesAsync(machines);
-                        throw new IOException("重启前保存进度失败。Hyper-V 启动配置及虚拟机原状态已恢复。" + error.Message, error);
-                    }
-                    // Only a user-initiated host restart advances this step. The startup task resumes it.
+                        try { Save(statePath, batch); }
+                        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+                        {
+                            if (!await RebootApiCases.UndoDisableBeforeRestartAsync(directory, id)) throw;
+                            await RestoreMachinesAsync(machines);
+                            throw new IOException("重启前保存进度失败。Hyper-V 启动配置及虚拟机原状态已恢复。" + error.Message, error);
+                        }
+                    });
+                    // Legacy batches wait here; new batches exit with the host and resume at startup.
                     return 0;
                 }
                 catch (Exception e)

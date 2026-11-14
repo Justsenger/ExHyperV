@@ -47,7 +47,7 @@ try {
     $labels = @{ waiting = '等待'; running = '执行中'; passed = '通过'; failed = '失败'; skipped = '跳过'; cancelled = '已取消' }
     while ($true) {
         if ($run.runId -ne $runId) { throw '页面轮次已变化，停止收集；原轮次报告保存在测试程序报告目录。' }
-        if ($run.phase -ne $lastPhase -and $run.phase -like '*宿主重启等待你确认*') { Write-Host $run.phase }
+        if ($run.phase -ne $lastPhase -and $run.phase -like '*宿主重启*') { Write-Host $run.phase }
         $lastPhase = $run.phase
         foreach ($item in @($run.items | Where-Object selected)) {
             if ($seen[$item.id] -ne $item.status) {

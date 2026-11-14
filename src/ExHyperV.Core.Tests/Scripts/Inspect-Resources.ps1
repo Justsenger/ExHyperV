@@ -18,9 +18,9 @@ $repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
 $pagePath = [IO.Path]::GetFullPath((Join-Path $projectDirectory 'ResourceInspection/Page.html'))
 $defaultConfiguration = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'ExHyperV.Core.Tests/resources.json'
 $expectedConfiguration = if ($Configuration) { [IO.Path]::GetFullPath($Configuration) } else { $defaultConfiguration }
-function Get-InspectionSession {
+function Get-InspectionValue([string]$Route) {
     try {
-        $request = [Net.WebRequest]::Create("http://127.0.0.1:$Port/api/session")
+        $request = [Net.WebRequest]::Create("http://127.0.0.1:$Port$Route")
         $request.Proxy = $null
         $request.Timeout = 2000
         $request.ReadWriteTimeout = 2000
@@ -32,6 +32,7 @@ function Get-InspectionSession {
         } finally { $response.Dispose() }
     } catch { return $null }
 }
+function Get-InspectionSession { Get-InspectionValue '/api/session' }
 function Test-InspectionSession($Session) {
     if (!$Session -or !$Session.supervised -or ([bool]$Session.deployment -ne [bool]$Deployment) -or
         ![string]::Equals($Session.pagePath, $pagePath, [StringComparison]::OrdinalIgnoreCase)) { return $false }
@@ -39,9 +40,26 @@ function Test-InspectionSession($Session) {
     $actualConfiguration = if ($Session.configurationPath) { $Session.configurationPath } else { $defaultConfiguration }
     return [string]::Equals($actualConfiguration, $expectedConfiguration, [StringComparison]::OrdinalIgnoreCase)
 }
+function Update-PreviousInspection($Session) {
+    if ($Session.automaticRebootForNewRuns) { return }
+    $active = Get-InspectionValue '/api/tests'
+    if ($active -and $active.running) {
+        Write-Host '当前轮次保持原版本；结束后再次打开“启动测试”将更新程序。'
+        return
+    }
+    Write-Host '正在更新测试程序…'
+    # The service also checks idleness when accepting the update, covering a concurrent test start.
+    & (Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe') -NoProfile -ExecutionPolicy RemoteSigned `
+        -File (Join-Path $PSScriptRoot 'Update-Inspection.ps1') -Port $Port
+    if ($LASTEXITCODE -ne 0) { throw '测试程序更新失败，请查看上方提示。' }
+    $updated = Get-InspectionSession
+    if (!(Test-InspectionSession $updated) -or !$updated.automaticRebootForNewRuns) { throw '当前页面仍是旧版，请查看启动器编译结果。' }
+}
 # A repeated interactive launch opens this checkout's existing page.
+$existingSession = Get-InspectionSession
 if (!$BuildOnly -and !$ReportOnly -and !$Deployment -and !$Configuration -and !$Elevated -and
-    (Test-InspectionSession (Get-InspectionSession))) {
+    (Test-InspectionSession $existingSession)) {
+    Update-PreviousInspection $existingSession
     if (!$NoBrowser) { Start-Process "http://127.0.0.1:$Port/" }
     exit 0
 }

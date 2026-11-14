@@ -98,7 +98,7 @@ internal static class AutomatedRun
                     i.Id, i.Name, Selected = selected.Contains(i.Id),
                     Reasons = selected.Contains(i.Id) ? Array.Empty<string>() : i.Reasons.Length > 0 ? i.Reasons
                         : !request.IncludeRebootTests && TestPlanner.Catalog.Any(c => c.Id == i.Id && RebootApiCases.Supports(c))
-                            ? ["宿主重启项留待单独启用；每次重启由操作者确认。"] : ["本轮按指定范围执行。"]
+                            ? ["本轮未启用宿主重启测试。"] : ["本轮按指定范围执行。"]
                 }).ToArray());
                 if (selected.Length == 0) throw new IOException("本轮条件齐备的测试项为零，详见资源报告。");
                 var runner = new VmQueryTestRunner(request.ReportsRoot, workspaceProvider: () => configuration.WorkDirectory!,

@@ -99,9 +99,11 @@ public sealed class ApiExecutionTests
     }
 
     [TestMethod]
-    [DataRow(1)]
-    [DataRow(2)]
-    public async Task WaitingForManualRebootCannotAdvanceOnTheSameBoot(int number)
+    [DataRow(1, false)]
+    [DataRow(2, false)]
+    [DataRow(1, true)]
+    [DataRow(2, true)]
+    public async Task WaitingForRebootCannotAdvanceOnTheSameBoot(int number, bool automaticReboot)
     {
         await InDirectory(async directory =>
         {
@@ -109,7 +111,7 @@ public sealed class ApiExecutionTests
             string boot = await RebootApiCases.BootStampAsync();
             var report = new ApiTestReport("run", "resources", "request", "reboot", DateTimeOffset.Now, null, true,
                 $"第 {number} 次宿主重启等待你确认", 0, null, []);
-            DurableJson.Write(state, new { directory, report, started = true, restarts = number, waitingForBoot = boot });
+            DurableJson.Write(state, new { directory, report, started = true, restarts = number, waitingForBoot = boot, automaticReboot });
             DurableJson.Write(Path.Combine(directory, "reboot-active.json"), state);
             var original = File.ReadAllBytes(state);
             Assert.AreEqual(0, await RebootContinuation.RunAsync(state));
@@ -121,7 +123,9 @@ public sealed class ApiExecutionTests
     }
 
     [TestMethod]
-    public async Task RebootFailureMarkerStopsAnOlderRunningSnapshot()
+    [DataRow(false)]
+    [DataRow(true)]
+    public async Task RebootFailureMarkerStopsAnOlderRunningSnapshot(bool automaticReboot)
     {
         await InDirectory(async directory =>
         {
@@ -129,7 +133,7 @@ public sealed class ApiExecutionTests
             var now = DateTimeOffset.Now;
             var report = new ApiTestReport("run", "resources", "request", "reboot", now, null, true, "执行中", 0, null,
                 [new("first", "", "", true, ApiTestStatus.Running, "", []), new("next", "", "", true, ApiTestStatus.Waiting, "", [])]);
-            DurableJson.Write(path, new { directory, report, completed = false });
+            DurableJson.Write(path, new { directory, report, completed = false, automaticReboot });
             DurableJson.Write(Path.Combine(directory, "reboot-active.json"), path);
             File.WriteAllText(Path.Combine(directory, "recovery-hold.txt"), "模拟状态文件写入失败");
 
