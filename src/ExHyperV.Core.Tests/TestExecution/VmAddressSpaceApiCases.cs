@@ -13,7 +13,7 @@ internal static class VmAddressSpaceApiCases
     internal static async Task RunAsync(CatalogTest p, ApiCaseContext c)
     {
         if (p.Api.StartsWith("VmPcieService.")) { await PcieAsync(p, c); return; }
-        await using var restore = new HostStateJournal(c); restore.File(AppDataPaths.ConfigFilePath);
+        await using var restore = new HostStateJournal(c);
         var cache = typeof(VmMmioService).GetField("_cachedCeilingMb", BindingFlags.Static | BindingFlags.NonPublic) ?? throw new MissingFieldException("MMIO cache fixture");
         cache.SetValue(null, null);
         if (p.Api.Contains("Compute"))
@@ -43,6 +43,7 @@ internal static class VmAddressSpaceApiCases
             }
             return;
         }
+        restore.ConfigurationElement(AppDataPaths.ConfigFilePath, "MmioCeilingMb");
         bool probe = p.Id == "T-f0887b2e52e6a943-2";
         if (probe) AppConfigurationStore.Update(root => root.Element("MmioCeilingMb")?.Remove());
         else if (MmioSettingsStore.GetMmioCeilingMb() is null)

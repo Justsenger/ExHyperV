@@ -103,6 +103,7 @@ internal static class VmBootPowerApiCases
         Task<ApiResponse> Call(string action) => c.CallAsync(() => byName ? VmPowerService.ExecuteControlActionAsync(vm.Name, action) : VmPowerService.ExecuteControlActionAsync(vm.Id, action));
         async Task Act(string action, string expected, int seconds = 60)
         {
+            if (action == "Start") await vm.EnsureStartCapacityAsync();
             Require(c, await Call(action), action);
             var actual = await WindowsTestCommand.RunAsync("""
                 $end=[DateTime]::UtcNow.AddSeconds($a.seconds)

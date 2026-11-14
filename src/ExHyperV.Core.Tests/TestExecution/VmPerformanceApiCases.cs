@@ -11,6 +11,8 @@ internal static class VmPerformanceApiCases
     internal static bool Supports(CatalogTest p) => p.Api is "VmQueryService.UpdateDiskPerformanceAsync()" or "VmQueryService.UpdateNetworkPerformanceAsync()";
     internal static async Task RunAsync(CatalogTest p, ApiCaseContext c)
     {
+        if (p.Id.EndsWith("-3", StringComparison.Ordinal)) { await VmPerformanceSamplingCases.ReadExistingAsync(p, c); return; }
+        if (p.Id.EndsWith("-2", StringComparison.Ordinal)) { await VmPerformanceSamplingCases.BoundaryAsync(p, c); return; }
         VmTestAccess.RequireCredentials(c);
         await using var network = p.Api.Contains("Network") ? await TemporarySwitch.CreateAsync(c, internalNetwork: true) : null;
         await using var vm = await TemporaryVm.CopyTemplateAsync(c);
@@ -37,13 +39,6 @@ internal static class VmPerformanceApiCases
             }
             finally { var completed = await load; c.Require(completed.GetProperty("bytes").GetInt64() > 0, "副本内磁盘负载实际完成写入"); }
             c.Require(active, "Core 在副本磁盘实际 I/O 期间读到有效非零速率");
-            if (p.Id.EndsWith("-2", StringComparison.Ordinal))
-            {
-                await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Stop-VM -TurnOff -Force;@{ok=$true}|ConvertTo-Json", new { id = vm.Id }); model.StateCode = 3;
-                await c.CallAsync(async () => { await query.UpdateDiskPerformanceAsync([model]); return true; }); foreach (var disk in model.Disks) c.Equal(PerformanceSampleState.NotApplicable, disk.PerformanceSample.State, "停机后速率明确为非适用");
-                await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Get-VMHardDiskDrive|Remove-VMHardDiskDrive;@{ok=$true}|ConvertTo-Json", new { id = vm.Id }); model.StateCode = 2;
-                await c.CallAsync(async () => { await query.UpdateDiskPerformanceAsync([model]); return true; }); c.Require(model.Disks.All(v => !v.PerformanceSample.IsValid), "失效磁盘身份停止发布有效速率");
-            }
             return;
         }
         var setup = await WindowsTestCommand.RunAsync("""
@@ -91,14 +86,5 @@ internal static class VmPerformanceApiCases
             finally { stop.Cancel(); await Task.WhenAll(drain, hostTraffic); }
         }
         c.Require(traffic && incoming, "Core 读到指定测试网卡的有效发送与接收速率"); c.Evidence.Add("独立宿主 UDP 接收字节数：" + bytesReceived + "（受宿主入站策略影响）");
-        if (p.Id.EndsWith("-2", StringComparison.Ordinal))
-        {
-            await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Get-VMNetworkAdapter -Name $a.name|Remove-VMNetworkAdapter;@{ok=$true}|ConvertTo-Json", new { id = vm.Id, name = adapterName });
-            await Task.Delay(2000, c.Token); await c.CallAsync(async () => { await query.UpdateNetworkPerformanceAsync([model]); return true; }); c.Require(!adapter.PerformanceSample.IsValid, "删除后旧网卡身份缺测");
-            await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Add-VMNetworkAdapter -Name $a.name -SwitchName $a.network;@{ok=$true}|ConvertTo-Json", new { id = vm.Id, name = adapterName, network = network.Name });
-            var refreshed = await VmNetworkService.GetNetworkAdaptersAsync(vm.Id); c.Require(refreshed.HasData, refreshed.Error); var replacement = refreshed.Data!.Single(v => v.Name == adapterName);
-            c.Require(adapter.Id != replacement.Id, "同名重建设备具有新身份"); model.NetworkAdapters.Clear(); model.NetworkAdapters.Add(replacement);
-            await c.CallAsync(async () => { await query.UpdateNetworkPerformanceAsync([model]); return true; }); c.Require(replacement.SendBytesPerSecond == 0, "新网卡初次样本保持自己的速率");
-        }
     }
 }

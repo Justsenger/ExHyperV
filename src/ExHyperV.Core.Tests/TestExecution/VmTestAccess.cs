@@ -33,7 +33,7 @@ internal static class VmTestAccess
     internal static async Task ReadyWindowsAsync(ApiCaseContext c, TemporaryVm vm)
     {
         RequireCredentials(c);
-        await WindowsTestCommand.RunAsync("$v=Get-VM -Id $a.id;if($v.State -eq 'Off'){$v|Start-VM};@{ok=$true}|ConvertTo-Json", new { id = vm.Id });
+        await vm.StartAsync();
         var deadline = DateTime.UtcNow.AddMinutes(2); Exception? last = null;
         do
         {
@@ -47,7 +47,7 @@ internal static class VmTestAccess
     {
         RequireCredentials(c);
         var secret = await WindowsTestCommand.RunAsync("$v=Import-Clixml -LiteralPath $a.path;if($v -isnot [PSCredential]){throw '本机凭据文件格式错误'};@{user=$v.UserName;password=$v.GetNetworkCredential().Password}|ConvertTo-Json", new { path = CredentialPath(c) });
-        await WindowsTestCommand.RunAsync("$v=Get-VM -Id $a.id;if($v.State -eq 'Off'){$v|Start-VM};@{ok=$true}|ConvertTo-Json", new { id = vm.Id });
+        await vm.StartAsync();
         var deadline = DateTime.UtcNow.AddMinutes(2);
         do
         {

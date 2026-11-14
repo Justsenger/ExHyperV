@@ -85,7 +85,7 @@ public sealed class TestPlanningTests
     [TestMethod]
     public void EnumeratedDevicesNeverStandInForSelectedValidatedFixtures()
     {
-        var report = WithStatuses(("test-pcie", InspectionStatus.Pending), ("disks", InspectionStatus.Pending), ("reboot-resume", InspectionStatus.Missing), ("config-isolation", InspectionStatus.Missing));
+        var report = WithStatuses(("test-pcie", InspectionStatus.Pending), ("disks", InspectionStatus.Pending), ("reboot-resume", InspectionStatus.Missing), ("config-access", InspectionStatus.Unavailable));
         Assert.IsTrue(TestConditions.GetBlockers(report, "pcie").Any());
         Assert.IsTrue(TestConditions.GetBlockers(report, "physical").Any());
         Assert.IsTrue(TestConditions.GetBlockers(report, "reboot").Any());
@@ -176,6 +176,49 @@ public sealed class TestPlanningTests
 
     private static InspectionReport ReadyReport() => new("sample-run", DateTimeOffset.Now, DateTimeOffset.Now,
         false, "离线样例", null, ResourceProbes.Checks.Select(c => new InspectionItem(c, new(InspectionStatus.Ready, "满足"))).ToArray());
+
+    [TestMethod]
+    public void DesktopProcessPresenceNeverBlocksGpuTests()
+    {
+        var ready = ReadyReport();
+        var oldCheck = new ResourceCheck("config-isolation", "执行条件", "配置文件独占", "", "");
+        var report = ready with { Items = [.. ready.Items, new(oldCheck, new(InspectionStatus.Missing, "ExHyperV 正在运行"))] };
+        Assert.IsFalse(ResourceProbes.Checks.Any(check => check.Id == oldCheck.Id));
+        Assert.IsFalse(TestConditions.GetBlockers(report, "config").Any());
+        foreach (var id in new[] { "T-319692fabf672c00-1", "T-319692fabf672c00-3" })
+            Assert.IsTrue(report.Plan.Items.Single(item => item.Id == id).Eligible);
+        var unreadable = WithStatuses(("config-access", InspectionStatus.Unavailable));
+        Assert.IsTrue(unreadable.Plan.Items.Where(item => item.Api is "VmMmioService.ComputeMmioPlan()" or "VmMmioService.CheckMmioSpaceAsync()").All(item => item.Eligible));
+    }
+
+    [TestMethod]
+    public void PerformanceCredentialsOnlyGateTheActiveWorkload()
+    {
+        var report = WithStatuses(("vm-credentials", InspectionStatus.Missing), ("templates", InspectionStatus.Missing), ("template-copy", InspectionStatus.Missing));
+        foreach (var prefix in new[] { "T-68108fd110ddce6f", "T-de71f96836494602" })
+        {
+            Assert.IsFalse(report.Plan.Items.Single(i => i.Id == prefix + "-1").Eligible);
+            Assert.IsTrue(report.Plan.Items.Single(i => i.Id == prefix + "-2").Eligible);
+            Assert.IsTrue(report.Plan.Items.Single(i => i.Id == prefix + "-3").Eligible);
+        }
+    }
+
+    [TestMethod]
+    public void CaptureUsesIndependentApiInsteadOfGlobalCaptureAvailability()
+    {
+        var ready = ReadyReport();
+        Assert.IsFalse(ResourceProbes.Checks.Any(c => c.Id == "capture-idle"));
+        foreach (string id in new[] { "T-13435e0342a25628-1", "T-db8598581b9373e3-1", "T-6bbdff3f2ad28f04-1" })
+        {
+            Assert.IsTrue(ready.Plan.Items.Single(i => i.Id == id).Eligible);
+            Assert.IsFalse(WithStatuses(("capture-api", InspectionStatus.Missing)).Plan.Items.Single(i => i.Id == id).Eligible);
+            Assert.IsFalse(WithStatuses(("identity", InspectionStatus.Missing)).Plan.Items.Single(i => i.Id == id).Eligible);
+        }
+        var oldReport = ready with { Items = ready.Items.Where(i => i.Check.Id != "capture-api").ToArray() };
+        Assert.IsFalse(oldReport.Plan.Items.Single(i => i.Id == "T-13435e0342a25628-1").Eligible);
+        foreach (string id in new[] { "T-13435e0342a25628-2", "T-db8598581b9373e3-2" })
+            Assert.IsTrue(WithStatuses(("capture-api", InspectionStatus.Missing), ("identity", InspectionStatus.Missing)).Plan.Items.Single(i => i.Id == id).Eligible);
+    }
 
     private static InspectionReport WithStatuses(params (string Id, InspectionStatus Status)[] changes)
     {

@@ -34,7 +34,7 @@ internal static class VmGpuApiCases
         if (p.Api.Contains("ScanVmPartitions")) { await ScanAsync(p, c, gpu); return; }
         if (p.Api.Contains("SyncWindowsDrivers") || p.Id.StartsWith("T-319692fabf672c00", StringComparison.Ordinal))
         {
-            await using var restore = new HostStateJournal(c); restore.File(AppDataPaths.ConfigFilePath);
+            await using var restore = new HostStateJournal(c); restore.ConfigurationElement(AppDataPaths.ConfigFilePath, "MmioCeilingMb");
             await using var vm = await TemporaryVm.CopyTemplateAsync(c);
             var host = await SelectGpuAsync(c);
             var scan = await c.CallAsync(() => gpu.ScanVmPartitionsAsync(vm.Id, c.Token)); c.RequireSettled(scan.OutcomeUnknown || scan.CleanupRequired, string.Join(";", scan.CleanupErrors)); c.Require(scan.Success, string.Join(";", scan.Errors));
@@ -82,12 +82,13 @@ internal static class VmGpuApiCases
             await VerifyDriverFilesAsync(c, partitions[0], host);
             Require(c, await gpu.OptimizeVmForGpuAsync(vm.Id), "GPU MMIO 准备"); Require(c, await gpu.AssignGpuPartitionAsync(vm.Id, host), "GPU 分配准备");
             var machine = new VmInstance(vm.Id, vm.Name) { StateCode = 2, HasGpuAssignment = true };
-            await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Start-VM; @{ok=$true}|ConvertTo-Json", new { id = vm.Id }); await SystemBaseline.WaitStateAsync(vm.Id, 2);
+            await vm.StartAsync(); await SystemBaseline.WaitStateAsync(vm.Id, 2);
             await WaitGpuSampleAsync(c, query, machine);
             if (p.Id.EndsWith("-3", StringComparison.Ordinal))
             {
                 int before = Convert.ToInt32(SystemBaseline.Vm(vm.Id)["ProcessID"]);
-                await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Stop-VM -TurnOff -Force; Get-VM -Id $a.id|Start-VM; @{ok=$true}|ConvertTo-Json", new { id = vm.Id });
+                await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Stop-VM -TurnOff -Force; @{ok=$true}|ConvertTo-Json", new { id = vm.Id });
+                await vm.StartAsync();
                 await SystemBaseline.WaitStateAsync(vm.Id, 2); c.Require(before != Convert.ToInt32(SystemBaseline.Vm(vm.Id)["ProcessID"]), "重新启动后工作进程已更换"); await WaitGpuSampleAsync(c, query, machine);
             }
             return;
@@ -116,7 +117,7 @@ internal static class VmGpuApiCases
         }
         if (p.Api.Contains("OptimizeVm"))
         {
-            await using var restore = new HostStateJournal(c); restore.File(AppDataPaths.ConfigFilePath);
+            await using var restore = new HostStateJournal(c); restore.ConfigurationElement(AppDataPaths.ConfigFilePath, "MmioCeilingMb");
             Require(c, await c.CallAsync(() => gpu.OptimizeVmForGpuAsync(target.Id)), "GPU 配置优化");
             var actual = SystemBaseline.Settings(target.Id); c.Require(Convert.ToBoolean(actual["GuestControlledCacheTypes"]), "系统缓存控制打开");
             var plan = VmMmioService.ComputeMmioPlan(); c.Require(plan.HasValue, "优化产生 MMIO 计划"); c.Equal(plan!.Value.HighSizeMiB, Convert.ToUInt64(actual["HighMmioGapSize"]), "实际高位 MMIO 容量"); return;
@@ -260,7 +261,7 @@ internal static class VmGpuApiCases
             credentials.Password = Guid.NewGuid().ToString("N"); using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             var failed = await c.CallAsync(() => service.ProvisionLinuxGpuAsync(vm.Name, gpu.InstanceId, gpu.Manu, script, credentials, _ => { }, limit.Token)); c.Require(failed != "OK", "错误 SSH 密码产生失败结果"); return;
         }
-        await using var restore = new HostStateJournal(c); restore.File(AppDataPaths.ConfigFilePath);
+        await using var restore = new HostStateJournal(c); restore.ConfigurationElement(AppDataPaths.ConfigFilePath, "MmioCeilingMb");
         await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Stop-VM -TurnOff -Force;@{off=$true}|ConvertTo-Json", new { id = vm.Id });
         await SystemBaseline.WaitStateAsync(vm.Id, 3);
         Require(c, await service.OptimizeVmForGpuAsync(vm.Id), "Linux GPU MMIO 准备"); Require(c, await service.AssignGpuPartitionAsync(vm.Id, gpu), "Linux GPU 分配");

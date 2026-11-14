@@ -23,7 +23,7 @@ internal static class PcieApiCases
         var disks = await HostPcieService.GetControllerDisksAsync(device.InstanceId); c.Require(disks.HasData, disks.Error);
         if (disks.Data!.Any(v => v.IsBoot || v.IsSystem)) throw new ApiCheckSkippedException("已选控制器连接着宿主系统盘或启动盘。");
         if (disks.Data!.Any(v => !v.IsOffline)) throw new ApiCheckSkippedException("已选控制器还有联机磁盘；请提前释放这些磁盘后再测直通。");
-        await using var restore = new HostStateJournal(c); restore.File(AppDataPaths.ConfigFilePath);
+        await using var restore = new HostStateJournal(c); restore.ConfigurationElement(AppDataPaths.ConfigFilePath, "MmioCeilingMb");
         await using var vm = await TemporaryVm.CreateAsync(c);
         string path = Path.Combine(c.DirectoryPath, "pcie-device.json"); var journal = new Journal(device.InstanceId, device.Path, vm.Id);
         File.WriteAllText(path + ".new", JsonSerializer.Serialize(journal)); File.Move(path + ".new", path, true);

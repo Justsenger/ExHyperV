@@ -90,6 +90,22 @@
     "order": 0
   },
   {
+    "id": "T-de71f96836494602-2",
+    "api": "VmQueryService.UpdateNetworkPerformanceAsync()",
+    "group": "管理层面 / 虚拟机 / 查询",
+    "name": "固定计数器：空闲、移除与同名重建",
+    "expected": "速率与固定输入一致；零值有效；移除后缺测；同名新身份重新预热，旧计数器释放",
+    "requirements": [
+      "inputs",
+      "lifecycle"
+    ],
+    "recovery": [
+      "仅使用进程内固定计数器，完成后释放查询对象。"
+    ],
+    "order": 0,
+    "operation": "读取虚拟机网络收发速度"
+  },
+  {
     "id": "T-c8347aeeeba3f88b-1",
     "api": "VmQueryService.Dispose()",
     "group": "管理层面 / 虚拟机 / 查询",
@@ -148,6 +164,38 @@
     "recovery": [],
     "order": 2,
     "operation": "停止接受新的性能采样"
+  },
+  {
+    "id": "T-68108fd110ddce6f-3",
+    "api": "VmQueryService.UpdateDiskPerformanceAsync()",
+    "group": "管理层面 / 虚拟机 / 查询",
+    "name": "读取现有虚拟机的磁盘速率",
+    "expected": "两轮采样时间更新；有效速率为有限非负数；缺少有效样本时记录具体状态",
+    "requirements": [
+      "vms",
+      "counters"
+    ],
+    "recovery": [
+      "仅采样现有虚拟机，结束后释放查询对象。"
+    ],
+    "order": 2,
+    "operation": "读取虚拟机磁盘读写速度"
+  },
+  {
+    "id": "T-de71f96836494602-3",
+    "api": "VmQueryService.UpdateNetworkPerformanceAsync()",
+    "group": "管理层面 / 虚拟机 / 查询",
+    "name": "读取现有虚拟机的网络速率",
+    "expected": "两轮采样时间更新；有效速率为有限非负数；缺少有效样本时记录具体状态",
+    "requirements": [
+      "vms",
+      "counters"
+    ],
+    "recovery": [
+      "仅采样现有虚拟机，结束后释放查询对象。"
+    ],
+    "order": 2,
+    "operation": "读取虚拟机网络收发速度"
   },
   {
     "id": "T-ea02c278c682e728-1",
@@ -231,6 +279,23 @@
     "recovery": [],
     "order": 4,
     "operation": "获取虚拟机列表"
+  },
+  {
+    "id": "T-68108fd110ddce6f-2",
+    "api": "VmQueryService.UpdateDiskPerformanceAsync()",
+    "group": "管理层面 / 虚拟机 / 查询",
+    "name": "关机与磁盘移除后的样本状态",
+    "expected": "关机磁盘标记为非活动；移除后旧模型标记为缺测",
+    "requirements": [
+      "vm",
+      "media",
+      "counters"
+    ],
+    "recovery": [
+      "创建空白虚拟机和小型测试磁盘，完成后删除。"
+    ],
+    "order": 5,
+    "operation": "读取虚拟机磁盘读写速度"
   },
   {
     "id": "T-d6316dd6136c4190-1",
@@ -391,27 +456,8 @@
     "id": "T-68108fd110ddce6f-1",
     "api": "VmQueryService.UpdateDiskPerformanceAsync()",
     "group": "管理层面 / 虚拟机 / 查询",
-    "name": "固定磁盘读写负载后两轮采样",
-    "expected": "对应磁盘的采样有效标记、速率及单位与独立计数器相符",
-    "requirements": [
-      "vm",
-      "template",
-      "guest",
-      "counters"
-    ],
-    "recovery": [
-      "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 14,
-    "operation": "读取虚拟机磁盘读写速度"
-  },
-  {
-    "id": "T-68108fd110ddce6f-2",
-    "api": "VmQueryService.UpdateDiskPerformanceAsync()",
-    "group": "管理层面 / 虚拟机 / 查询",
-    "name": "空闲及磁盘被移除",
-    "expected": "空闲有效零值与缺失样本明确区分",
+    "name": "在虚拟机副本中制造磁盘读写负载",
+    "expected": "实际负载执行成功，Core 在负载期间读到有效非零磁盘读写速率",
     "requirements": [
       "vm",
       "template",
@@ -429,27 +475,8 @@
     "id": "T-de71f96836494602-1",
     "api": "VmQueryService.UpdateNetworkPerformanceAsync()",
     "group": "管理层面 / 虚拟机 / 查询",
-    "name": "固定网络流量后两轮采样",
-    "expected": "对应网卡的收发速率、单位和有效标记与独立计数器相符",
-    "requirements": [
-      "vm",
-      "template",
-      "guest",
-      "counters"
-    ],
-    "recovery": [
-      "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 14,
-    "operation": "读取虚拟机网络收发速度"
-  },
-  {
-    "id": "T-de71f96836494602-2",
-    "api": "VmQueryService.UpdateNetworkPerformanceAsync()",
-    "group": "管理层面 / 虚拟机 / 查询",
-    "name": "网卡移除后重新添加",
-    "expected": "计数器绑定更新，旧网卡数据退出结果",
+    "name": "在虚拟机副本中制造双向网络流量",
+    "expected": "实际负载执行成功，Core 在负载期间读到有效非零发送和接收速率",
     "requirements": [
       "vm",
       "template",
@@ -945,8 +972,7 @@
     "expected": "返回正确的 MMIO 判定，读取阶段保留原配置",
     "requirements": [
       "hyperv",
-      "vm",
-      "config"
+      "vm"
     ],
     "recovery": [
       "使用当前账户，关闭共用配置的程序；备份配置及 MMIO 缓存，结束后恢复原字节与原先存在状态。",
@@ -4956,7 +4982,6 @@
     "name": "上限缺席、已有上限；设备需求取小于/等于/大于上限",
     "expected": "低位/高位 MMIO 与缓存需求按约定生成，探测需求标记正确",
     "requirements": [
-      "config",
       "lifecycle"
     ],
     "recovery": [
@@ -6883,13 +6908,28 @@
     "operation": "读取当前虚拟机分组、成员及层级关系"
   },
   {
+    "id": "T-13435e0342a25628-2",
+    "api": "ArpSnoopService.Dispose()",
+    "group": "管理层面 / 宿主 / 查询 / ARP 嗅探",
+    "name": "关闭尚未启动的实例并重复关闭",
+    "expected": "句柄保持为空；重复关闭安全；最终关闭后再次启动保持关闭状态",
+    "requirements": [
+      "inputs",
+      "lifecycle"
+    ],
+    "recovery": [
+      "仅关闭本次创建的捕获实例。"
+    ],
+    "order": 0,
+    "operation": "最终停止捕获并清理本实例持有的主机捕获资源"
+  },
+  {
     "id": "T-13435e0342a25628-1",
     "api": "ArpSnoopService.Dispose()",
     "group": "管理层面 / 宿主 / 查询 / ARP 嗅探",
     "name": "停止已启动或尚未启动的独立进程实例",
     "expected": "捕获与 ETW 资源释放，重复释放安全，最终关闭状态准确",
     "requirements": [
-      "vm",
       "hostwrite",
       "capture"
     ],
@@ -9291,13 +9331,28 @@
     "operation": "生成用于诊断的响应摘要"
   },
   {
+    "id": "T-db8598581b9373e3-2",
+    "api": "SharedBackgroundServices.ShutdownAsync()",
+    "group": "使用说明 / 结果、取消和资源释放",
+    "name": "关闭尚未启动的实例并重复关闭",
+    "expected": "句柄保持为空；重复关闭安全；最终关闭后再次启动保持关闭状态",
+    "requirements": [
+      "inputs",
+      "lifecycle"
+    ],
+    "recovery": [
+      "仅关闭本次创建的捕获实例。"
+    ],
+    "order": 0,
+    "operation": "释放共享 ARP 捕获"
+  },
+  {
     "id": "T-db8598581b9373e3-1",
     "api": "SharedBackgroundServices.ShutdownAsync()",
     "group": "使用说明 / 结果、取消和资源释放",
     "name": "启动测试 ARP 后最终关闭",
     "expected": "本进程资源收尾完成；重复关闭结束，同进程最终关闭语义保持",
     "requirements": [
-      "vm",
       "hostwrite",
       "capture"
     ],

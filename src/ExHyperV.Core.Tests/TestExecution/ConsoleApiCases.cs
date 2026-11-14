@@ -157,7 +157,7 @@ internal static class ConsoleApiCases
     {
         bool enhanced = p.Api.Contains("Resize") || p.Api.Contains("SendAudio");
         await using var vm = enhanced ? await TemporaryVm.CopyTemplateAsync(c) : await TemporaryVm.CreateAsync(c);
-        await WindowsTestCommand.RunAsync("Get-VM -Id ([guid]$a.id)|Start-VM; $true|ConvertTo-Json", new { id = vm.Id });
+        await vm.StartAsync();
         if (p.Api == "VmInputService.SendCtrlAltDelAsync()")
         {
             await SystemBaseline.WaitStateAsync(vm.Id, 2);

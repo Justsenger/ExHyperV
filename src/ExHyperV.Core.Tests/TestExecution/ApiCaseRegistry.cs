@@ -99,7 +99,8 @@ internal static partial class ApiCaseRegistry
         foreach (var plan in TestPlanner.Catalog.Where(IpCaptureApiCases.Supports))
             cases.Add(plan.Id, new(plan.Id, plan.Api, context => IpCaptureApiCases.RunAsync(plan, context), Exclusive: true, UsesHostResources: IpCaptureApiCases.Live(plan), TimeoutSeconds: 180));
         foreach (var plan in TestPlanner.Catalog.Where(VmPerformanceApiCases.Supports))
-            cases.Add(plan.Id, new(plan.Id, plan.Api, context => VmPerformanceApiCases.RunAsync(plan, context), Exclusive: true, UsesHostResources: true, TimeoutSeconds: 2700));
+            cases.Add(plan.Id, new(plan.Id, plan.Api, context => VmPerformanceApiCases.RunAsync(plan, context), Exclusive: true,
+                UsesHostResources: plan.Requirements.Contains("counters"), TimeoutSeconds: plan.Id.EndsWith("-1", StringComparison.Ordinal) ? 2700 : 180));
         foreach (var plan in TestPlanner.Catalog.Where(PcieApiCases.Supports))
             cases.Add(plan.Id, new(plan.Id, plan.Api, context => PcieApiCases.RunAsync(plan, context), Exclusive: true, UsesHostResources: true, TimeoutSeconds: 900));
         foreach (var plan in TestPlanner.Catalog.Where(SwitchApiCases.Supports))

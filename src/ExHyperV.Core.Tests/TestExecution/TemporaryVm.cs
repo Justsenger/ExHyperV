@@ -15,6 +15,8 @@ internal sealed class TemporaryVm : IAsyncDisposable
     private string JournalDirectory => Path.GetDirectoryName(Root)!;
     private readonly ApiCaseContext context;
     private TemporaryVm(ApiCaseContext context) => this.context = context;
+    internal Task StartAsync() => VmTestMemory.PrepareStartAsync(context, this, start: true);
+    internal Task EnsureStartCapacityAsync() => VmTestMemory.PrepareStartAsync(context, this, start: false);
 
     internal static TemporaryVm Reserve(ApiCaseContext context)
     {
@@ -79,7 +81,7 @@ internal sealed class TemporaryVm : IAsyncDisposable
                 $current=if($current.ParentPath){Get-VHD -Path $current.ParentPath}else{$null}
             }
         }
-        @{state=$vm.State.ToString();checkpoints=@($vm|Get-VMSnapshot).Count;disks=$disks.Count;bytes=$bytes;paths=@($drives.Path);physical=@($vm|Get-VMHardDiskDrive|Where-Object {!$_.Path}).Count;dda=@($vm|Get-VMAssignableDevice).Count;gpu=@($vm|Get-VMGpuPartitionAdapter).Count}|ConvertTo-Json
+        @{state=$vm.State.ToString();memoryStartupBytes=[long]$vm.MemoryStartup;checkpoints=@($vm|Get-VMSnapshot).Count;disks=$disks.Count;bytes=$bytes;paths=@($drives.Path);physical=@($vm|Get-VMHardDiskDrive|Where-Object {!$_.Path}).Count;dda=@($vm|Get-VMAssignableDevice).Count;gpu=@($vm|Get-VMGpuPartitionAdapter).Count}|ConvertTo-Json
         """, new { id = templateId }, 60, mayMutate: false);
 
     internal static async Task<TemporaryVm> CopyTemplateAsync(ApiCaseContext context)
@@ -95,6 +97,7 @@ internal sealed class TemporaryVm : IAsyncDisposable
         if (facts.GetProperty("disks").GetInt32() == 0) throw new ApiCheckSkippedException("指定模板尚未连接可启动的系统磁盘。");
         if (new[] { "physical", "dda", "gpu" }.Any(key => facts.GetProperty(key).GetInt32() > 0))
             throw new ApiCheckSkippedException("模板已挂接物理盘、PCIe 或 GPU；请使用仅含完整虚拟磁盘的干净模板，设备由各项测试按已登记资源分配。");
+        long startupBytes = VmTestMemory.TemplateStartupBytes(facts.GetProperty("memoryStartupBytes").GetInt64());
         var sourceBytes = facts.GetProperty("bytes").GetInt64();
         var available = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(context.DirectoryPath))!).AvailableFreeSpace;
         long required = checked(sourceBytes * 2 + 2L * 1024 * 1024 * 1024);
@@ -128,6 +131,9 @@ internal sealed class TemporaryVm : IAsyncDisposable
                 $vm=Import-VM -Path $config[0].FullName -Copy -GenerateNewId -VirtualMachinePath $target -VhdDestinationPath $disk -SnapshotFilePath $target -SmartPagingFilePath $target
                 $vm|Rename-VM -NewName $a.name
                 $vm|Set-VM -AutomaticStartAction Nothing -AutomaticCheckpointsEnabled $false
+                $vm|Set-VMMemory -DynamicMemoryEnabled $false -StartupBytes ([long]$a.startupBytes) -MinimumBytes ([long]$a.startupBytes) -MaximumBytes ([long]$a.startupBytes)
+                $memory=Get-VMMemory -VM $vm
+                if($memory.DynamicMemoryEnabled -or $memory.Startup -ne [long]$a.startupBytes){throw '测试副本内存预算核验失败'}
                 # The installed system is copied; setup media still belongs to the
                 # template and may grant access only to its original VM identity.
                 # Some host builds retain media after Set-VMDvdDrive -Path $null.
@@ -146,10 +152,11 @@ internal sealed class TemporaryVm : IAsyncDisposable
                 }
                 if((Get-VM -Id ([guid]$a.id)).State -ne 'Off'){throw '模板运行状态已变化'}
                 @{id=$vm.Id.ToString()}|ConvertTo-Json
-                """, new { id = templateId, root = vm.Root, name = vm.Name, export = exported.OutputPath,
+                """, new { id = templateId, root = vm.Root, name = vm.Name, export = exported.OutputPath, startupBytes,
                     checkpoints = facts.GetProperty("checkpoints").GetInt32(), paths = facts.GetProperty("paths").EnumerateArray().Select(v => v.GetString()).ToArray() }, 1800);
             vm.Id = Guid.Parse(copy.GetProperty("id").GetString()!); Save(vm.JournalDirectory, new(vm.Name, vm.Root, vm.Id));
             context.Evidence.Add("已从指定模板制作完整磁盘副本，独立身份：" + vm.Id);
+            context.Evidence.Add($"副本采用固定 {startupBytes / 1073741824d:F1} GiB 内存；模板原配置保留。");
             context.Evidence.Add("副本光驱已弹出模板安装介质；模板光驱保持原配置。");
             return vm;
         }

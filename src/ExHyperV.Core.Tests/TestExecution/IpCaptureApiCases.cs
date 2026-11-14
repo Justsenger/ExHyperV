@@ -12,11 +12,17 @@ namespace ExHyperV.Core.Tests.TestExecution;
 internal static class IpCaptureApiCases
 {
     internal static bool Supports(CatalogTest p) => p.Api is "VmIpService.ResolveAdapterAddresses()" or "VmIpService.LookupAsync()" or "ArpSnoopService.TryGetIp()" or "ArpSnoopService.Start()" or "ArpSnoopService.Dispose()" or "SharedBackgroundServices.ShutdownAsync()";
-    internal static bool Live(CatalogTest p) => p.Api is "ArpSnoopService.Start()" or "ArpSnoopService.Dispose()" or "SharedBackgroundServices.ShutdownAsync()";
+    private static bool Lifecycle(CatalogTest p) => p.Api is "ArpSnoopService.Start()" or "ArpSnoopService.Dispose()" or "SharedBackgroundServices.ShutdownAsync()";
+    internal static bool Live(CatalogTest p) => Lifecycle(p) && !p.Id.EndsWith("-2", StringComparison.Ordinal);
     internal static async Task RunAsync(CatalogTest p, ApiCaseContext c)
     {
         var service = ArpSnoopService.Instance;
-        if (Live(p)) { await LiveAsync(p, c, service); return; }
+        if (Lifecycle(p))
+        {
+            if (Live(p)) await LiveAsync(p, c, service);
+            else { await CloseAsync(p, c, service); AssertReleased(c, service); await CloseAsync(p, c, service); c.Call(service.Start); AssertReleased(c, service); }
+            return;
+        }
         // Exercise public lookup contracts with a deterministic cache, in the disposable worker process.
         var state = typeof(ArpSnoopService).GetField("_state", BindingFlags.Instance | BindingFlags.NonPublic)!;
         var map = (ConcurrentDictionary<string, (string Ip, long Ticks, DateTimeOffset ObservedAtUtc)>)typeof(ArpSnoopService).GetField("_map", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(service)!;
@@ -49,22 +55,21 @@ internal static class IpCaptureApiCases
     }
     private static async Task LiveAsync(CatalogTest p, ApiCaseContext c, ArpSnoopService service)
     {
-        var idle = await WindowsTestCommand.RunAsync("$s=pktmon status 2>&1;$exit=$LASTEXITCODE;$f=pktmon filter list 2>&1;@{status=($s -join \"`n\");filters=($f -join \"`n\");exit=$exit;filterExit=$LASTEXITCODE}|ConvertTo-Json");
-        string status = idle.GetProperty("status").GetString()!, filters = idle.GetProperty("filters").GetString()!;
-        if (!ExHyperV.Core.Tests.ResourceInspection.PacketCaptureAvailability.IsIdle(status, idle.GetProperty("exit").GetInt32(), filters, idle.GetProperty("filterExit").GetInt32()))
-            throw new ApiCheckSkippedException("PktMon 的空闲状态与空筛选器尚未核实；现有捕获和筛选器保持原样。");
-        c.Call(service.Start);
-        if (!service.IsAvailable)
-        {
-            c.Require(service.LastFailure is { Success: false }, "捕获启动失败具有结构化诊断");
-            if (service.LastFailure!.ErrorKind is ApiErrorKind.Unsupported or ApiErrorKind.AccessDenied)
-                throw new ApiCheckSkippedException("Packet Monitor 权限或系统能力缺失：" + service.LastFailure.Error);
-            throw new ApiCheckFailureException("抓包资源空闲时，Core 启动捕获失败：" + service.LastFailure.Error);
-        }
+        var before = await ReadGlobalCaptureAsync();
+        using var peer = new ArpSnoopService();
         try
         {
-            var field = typeof(ArpSnoopService).GetField("_session", BindingFlags.Instance | BindingFlags.NonPublic)!; var handle = field.GetValue(service);
-            c.Call(service.Start); c.Equal(handle, field.GetValue(service), "重复启动复用同一捕获会话");
+            Start(c, service); Start(c, peer);
+            nint handle = Handle(service, "_session"), peerHandle = Handle(peer, "_session");
+            c.Require(handle != 0 && peerHandle != 0 && handle != peerHandle, "两个捕获实例具有各自的会话句柄");
+            c.Call(service.Start); c.Equal(handle, Handle(service, "_session"), "重复启动复用本实例会话");
+            if (p.Api != "ArpSnoopService.Start()")
+            {
+                await CloseAsync(p, c, service); AssertReleased(c, service);
+                await CloseAsync(p, c, service); c.Call(service.Start); AssertReleased(c, service);
+                c.Require(peer.IsAvailable && peer.LastFailure is null && Handle(peer, "_session") == peerHandle, "关闭目标后另一独立捕获仍运行");
+                return;
+            }
             await using var network = await TemporarySwitch.CreateAsync(c, internalNetwork: true);
             var subnet = await WindowsTestCommand.RunAsync("""
                 $adapter=Get-VMNetworkAdapter -ManagementOS -SwitchName $a.name
@@ -79,11 +84,52 @@ internal static class IpCaptureApiCases
             string mac = subnet.GetProperty("mac").GetString()!; string observed = "";
             var deadline = DateTime.UtcNow.AddSeconds(10); while (!service.TryGetIp(mac, out observed) && DateTime.UtcNow < deadline) await Task.Delay(100, c.Token);
             c.Equal(subnet.GetProperty("source").GetString(), observed, "独立生成的 ARP 请求被 Core 捕获并解析");
-            if (p.Api.Contains("SharedBackground")) { await c.CallAsync(async () => { await SharedBackgroundServices.ShutdownAsync(); return true; }); await SharedBackgroundServices.ShutdownAsync(); }
-            else c.Call(service.Dispose);
-            c.Require(!service.IsAvailable, "退出后停止捕获"); c.Require(!service.TryGetIp(mac, out _), "退出后缓存无法作为有效来源"); c.Call(service.Dispose); c.Call(service.Start); c.Require(!service.IsAvailable, "最终释放后保持已结束状态");
+            c.Call(service.Dispose); AssertReleased(c, service);
+            c.Require(!service.TryGetIp(mac, out _), "退出后缓存停止作为有效来源");
+            // Clear only the peer's test cache, then require a fresh packet after target disposal.
+            var map = (ConcurrentDictionary<string, (string Ip, long Ticks, DateTimeOffset ObservedAtUtc)>)typeof(ArpSnoopService).GetField("_map", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(peer)!;
+            map.Clear();
+            length = 6; SendARP(BitConverter.ToUInt32(IPAddress.Parse(subnet.GetProperty("target").GetString()!).GetAddressBytes()), BitConverter.ToUInt32(IPAddress.Parse(subnet.GetProperty("source").GetString()!).GetAddressBytes()), hardware, ref length);
+            deadline = DateTime.UtcNow.AddSeconds(10); while (!peer.TryGetIp(mac, out observed) && DateTime.UtcNow < deadline) await Task.Delay(100, c.Token);
+            c.Equal(subnet.GetProperty("source").GetString(), observed, "关闭目标后另一实例继续接收新 ARP 报文");
         }
-        finally { service.Dispose(); }
+        finally
+        {
+            var failure = service.LastFailure; var peerFailure = peer.LastFailure;
+            service.Dispose(); peer.Dispose();
+            AssertReleased(c, service, failure); AssertReleased(c, peer, peerFailure);
+            var after = await ReadGlobalCaptureAsync();
+            c.Equal(before, after, "系统已有捕获状态和筛选器保持原样");
+        }
+    }
+
+    private static nint Handle(ArpSnoopService service, string field)
+        => (nint)typeof(ArpSnoopService).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(service)!;
+    private static void AssertReleased(ApiCaseContext c, ArpSnoopService service, ApiResponse? previousFailure = null)
+    {
+        c.Require(!service.IsAvailable, "捕获已结束");
+        c.Require(new[] { "_monitor", "_session", "_stream" }.All(field => Handle(service, field) == 0), "本实例监视器、会话和实时流句柄均已释放");
+        c.Require(ReferenceEquals(service.LastFailure, previousFailure), "资源清理没有新增接口错误：" + service.LastFailure?.Error);
+    }
+    private static async Task CloseAsync(CatalogTest p, ApiCaseContext c, ArpSnoopService service)
+    {
+        if (p.Api == "SharedBackgroundServices.ShutdownAsync()")
+            await c.CallAsync(async () => { await SharedBackgroundServices.ShutdownAsync(); return true; });
+        else c.Call(service.Dispose);
+    }
+    private static void Start(ApiCaseContext c, ArpSnoopService service)
+    {
+        c.Call(service.Start);
+        if (service.IsAvailable) return;
+        c.Require(service.LastFailure is { Success: false }, "捕获启动失败具有结构化诊断");
+        if (service.LastFailure!.ErrorKind is ApiErrorKind.Unsupported or ApiErrorKind.AccessDenied)
+            throw new ApiCheckSkippedException("Packet Monitor 权限或系统能力缺失：" + service.LastFailure.Error);
+        throw new ApiCheckFailureException("Core 独立捕获启动失败：" + service.LastFailure.Error);
+    }
+    private static async Task<string> ReadGlobalCaptureAsync()
+    {
+        var snapshot = await WindowsTestCommand.RunAsync("$s=pktmon status 2>&1;$ec=$LASTEXITCODE;$f=pktmon filter list 2>&1;if($ec -ne 0 -or $LASTEXITCODE -ne 0){throw '系统捕获基准读取失败'};@{status=($s -join \"`n\");filters=($f -join \"`n\")}|ConvertTo-Json", timeoutSeconds: 15, mayMutate: false);
+        return snapshot.GetProperty("status").GetString()!.Trim() + "\n" + snapshot.GetProperty("filters").GetString()!.Trim();
     }
     [DllImport("iphlpapi.dll")] private static extern uint SendARP(uint destination, uint source, byte[] hardware, ref uint length);
 }

@@ -1,5 +1,7 @@
 using System.Security.Principal;
 using System.Text.Json;
+using System.Xml.Linq;
+using ExHyperV.Services;
 using Microsoft.Win32;
 using ExHyperV.Core.Tests.ResourceInspection;
 
@@ -34,10 +36,16 @@ internal sealed class HostStateJournal : IAsyncDisposable
     }
     internal void File(string file)
     {
-        foreach (var process in System.Diagnostics.Process.GetProcessesByName("ExHyperV"))
-            using (process) throw new ApiCheckSkippedException("配置写入测试等待 ExHyperV 桌面程序退出。");
         string full = Path.GetFullPath(file); bool exists = System.IO.File.Exists(full);
         Add(new("file", full, "", JsonSerializer.SerializeToElement(exists ? Convert.ToBase64String(System.IO.File.ReadAllBytes(full)) : ""), Exists: exists));
+    }
+    internal void ConfigurationElement(string file, string name)
+    {
+        string full = Path.GetFullPath(file);
+        var document = new XmlConfigurationFile(full).Load();
+        var values = document.Root?.Elements(XName.Get(name)).Select(value => value.ToString(SaveOptions.DisableFormatting)).ToArray()
+            ?? throw new InvalidDataException("配置文件缺少根元素。");
+        Add(new("configuration-element", full, name, JsonSerializer.SerializeToElement(values)));
     }
     internal async Task SettingAsync(string name)
     {
@@ -112,6 +120,9 @@ internal sealed class HostStateJournal : IAsyncDisposable
                     else System.IO.File.Delete(e.Key);
                     if (System.IO.File.Exists(e.Key) != e.Exists || (e.Exists && Convert.ToBase64String(System.IO.File.ReadAllBytes(e.Key)) != e.Value.GetString())) throw new IOException("配置文件恢复核验失败。");
                     break;
+                case "configuration-element":
+                    RestoreConfigurationElement(e);
+                    break;
                 case "host":
                     await WindowsTestCommand.RunAsync("$params=@{}; $params[$a.name]=$a.value; Set-VMHost @params; $v=(Get-VMHost).($a.name); if($v -ne $a.value){throw '宿主设置恢复核验失败'}; $true|ConvertTo-Json", new { name = e.Name, value = e.Value }); break;
                 case "mac":
@@ -139,6 +150,23 @@ internal sealed class HostStateJournal : IAsyncDisposable
             journal.Entries.RemoveAt(journal.Entries.Count - 1); Write(path, journal);
         }
         System.IO.File.Delete(path);
+    }
+    private static void RestoreConfigurationElement(Entry entry)
+    {
+        var file = new XmlConfigurationFile(entry.Key);
+        var name = XName.Get(entry.Name);
+        var original = entry.Value.Deserialize<string[]>()!.Select(value => XElement.Parse(value)).ToArray();
+        bool Matches(XElement root) => root.Elements(name).SequenceEqual(original, XNode.EqualityComparer);
+        var current = file.Load().Root ?? throw new InvalidDataException("配置文件缺少根元素。");
+        if (Matches(current)) return;
+        // Use Core's shared configuration mutex and reload the latest document.
+        // Restore only our field; other programs' settings stay as they are now.
+        file.Update(root =>
+        {
+            root.Elements(name).Remove();
+            root.Add(original.Select(element => new XElement(element)));
+        });
+        if (!Matches(file.Load().Root!)) throw new IOException("配置字段恢复核验失败：" + entry.Name);
     }
     private static Journal Read(string path) => JsonSerializer.Deserialize<Journal>(System.IO.File.ReadAllText(path), InspectionJson.Options) ?? throw new IOException("宿主恢复记录损坏。");
     private static void Write(string path, Journal journal)

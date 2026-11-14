@@ -19,6 +19,20 @@ public sealed class ApiExecutionTests
     private static VmQueryCapture Capture(VmListRow[]? actual = null, VmListRow[]? after = null) => new(Baseline(), actual ?? Baseline(), after ?? Baseline(), 12.5);
 
     [TestMethod]
+    public async Task NetworkSamplingSeparatesZeroMissingAndReplacementIdentity()
+    {
+        await InDirectory(async directory =>
+        {
+            var context = new ApiCaseContext(directory, CancellationToken.None);
+            var definition = ApiCaseRegistry.Get("T-de71f96836494602-2");
+            Assert.IsFalse(definition.UsesHostResources);
+            await definition.Run(context);
+            Assert.IsTrue(context.Calls >= 6);
+            Assert.IsTrue(context.Assertions >= 12);
+        });
+    }
+
+    [TestMethod]
     public void NativeHandlesProduceEvidenceWithoutBreakingTheAssertion()
     {
         var context = new ApiCaseContext(Path.GetTempPath(), CancellationToken.None);

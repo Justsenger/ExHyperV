@@ -105,16 +105,14 @@ internal static class VmCheckpointApiCases
     private static async Task ProductionAsync(ApiCaseContext c)
     {
         await using var vm = await TemporaryVm.CopyTemplateAsync(c);
+        await WindowsTestCommand.RunAsync("Get-VM -Id ([guid]$a.id)|Set-VM -CheckpointType Standard; @{ok=$true}|ConvertTo-Json", new { id = vm.Id });
+        await vm.StartAsync();
         var preparation = await WindowsTestCommand.RunAsync("""
             $v=Get-VM -Id ([guid]$a.id)
-            if(@($v|Get-VMGpuPartitionAdapter).Count){@{gpu=$true;ready=$false}|ConvertTo-Json;return}
-            $v|Set-VM -CheckpointType Standard
-            $v|Start-VM
             $end=(Get-Date).AddSeconds(180)
             do {$service=@($v|Get-VMIntegrationService|Where-Object {$_.Id.ToString() -match '5ced1297-4598-4915-a5fc-ad21bb4d02a4'}); if($service.Count -eq 1 -and $service[0].Enabled -and $service[0].PrimaryOperationalStatus -eq 'Ok'){break}; Start-Sleep -Milliseconds 500}while((Get-Date) -lt $end)
-            @{gpu=$false;ready=($service.Count -eq 1 -and $service[0].Enabled -and $service[0].PrimaryOperationalStatus -eq 'Ok')}|ConvertTo-Json
-            """, new { id = vm.Id }, 200);
-        if (preparation.GetProperty("gpu").GetBoolean()) throw new ApiCheckSkippedException("模板带有 GPU-PV 适配器；检查点仅用于普通虚拟机，需准备独立普通模板。");
+            @{ready=($service.Count -eq 1 -and $service[0].Enabled -and $service[0].PrimaryOperationalStatus -eq 'Ok')}|ConvertTo-Json
+            """, new { id = vm.Id }, 200, mayMutate: false);
         if (!preparation.GetProperty("ready").GetBoolean()) throw new ApiCheckSkippedException("模板副本的备份集成服务尚未就绪，生产检查点条件待满足。");
         var production = await c.CallAsync(() => VmSpacetimeService.CaptureMomentAsync(vm.Id, SpacetimeMode.Still));
         c.RequireSettled(production.ErrorKind is ApiErrorKind.OutcomeUnknown or ApiErrorKind.CleanupRequired, production.Error);
