@@ -1,23 +1,22 @@
-import { Box3, NoToneMapping, OrthographicCamera, Scene, Spherical, SRGBColorSpace, Vector3, WebGLRenderer } from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createHomeModelControls } from './home-model-controls.js';
+import { createConcept2Viewer, createStageTextures } from './concepts-3d.js';
 
-function disposeModel(root) {
-  const resources = new Set();
-  root.traverse(object => {
-    if (object.geometry) resources.add(object.geometry);
+function disposeGltfTextures(root) {
+  const textures = new Set();
+  root.traverse((object) => {
     for (const material of [object.material].flat().filter(Boolean)) {
-      resources.add(material);
-      for (const value of Object.values(material)) if (value?.isTexture) resources.add(value);
+      for (const value of Object.values(material)) {
+        if (value?.isTexture) textures.add(value);
+      }
     }
   });
-  for (const resource of resources) resource.dispose();
+  for (const texture of textures) texture.dispose();
 }
 
 class HomeModel extends HTMLElement {
   connectedCallback() {
     const controller = this.controller = new AbortController();
-    this.initialize(controller.signal).catch(error => {
+    this.initialize(controller.signal).catch((error) => {
       if (controller.signal.aborted) return;
       console.error('Home model could not be loaded.', error);
       this.cleanup?.();
@@ -30,78 +29,76 @@ class HomeModel extends HTMLElement {
   }
 
   async initialize(signal) {
+    const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+    const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const state = {
+      theme: darkMq.matches ? 'dark' : 'light',
+      motion: motionMq.matches ? 'static' : 'combo',
+      surroundMode: this.dataset.surround || 'updraft-velvet',
+      globalLocked: false,
+      fxGlow: true,
+      fxConduits: true,
+      fxShards: true,
+      fxSpring: true,
+      fxFieldRing: false,
+      faceStyle: 'lit-satin',
+    };
+
+    const syncTheme = () => { state.theme = darkMq.matches ? 'dark' : 'light'; };
+    const syncMotion = () => { state.motion = motionMq.matches ? 'static' : 'combo'; };
+    darkMq.addEventListener('change', syncTheme, { signal });
+    motionMq.addEventListener('change', syncMotion, { signal });
+
     const gltf = await new GLTFLoader().loadAsync('/models/exhyperv-icon.glb');
-    if (signal.aborted) { disposeModel(gltf.scene); return; }
-    const model = gltf.scene;
-    const scene = new Scene();
-    scene.add(model);
-    const center = new Box3().setFromObject(model).getCenter(new Vector3());
-    const camera = gltf.cameras[0] || new OrthographicCamera(-4, 4, 4, -4, 0.01, 100);
-    if (!gltf.cameras.length) camera.position.set(6, 6, 6);
-    scene.attach(camera);
-    camera.updateMatrixWorld();
+    if (signal.aborted) {
+      disposeGltfTextures(gltf.scene);
+      return;
+    }
 
-    let renderer;
-    try {
-      renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
-    } catch (error) { disposeModel(model); throw error; }
-    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    renderer.outputColorSpace = SRGBColorSpace;
-    renderer.toneMapping = NoToneMapping;
-    renderer.setClearColor(0, 0);
-    renderer.domElement.setAttribute('aria-hidden', 'true');
-    this.append(renderer.domElement);
-
-    const controls = createHomeModelControls(camera, renderer.domElement, center);
-
-    const render = () => renderer.render(scene, camera);
-    controls.addEventListener('change', render);
-    controls.addEventListener('start', () => this.setAttribute('data-dragging', ''));
-    controls.addEventListener('end', () => this.removeAttribute('data-dragging'));
-    this.addEventListener('dblclick', () => controls.reset(), { signal });
-    this.addEventListener('keydown', event => {
-      if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home'].includes(event.key)) return;
-      event.preventDefault();
-      if (event.key === 'Home') { controls.reset(); return; }
-      const offset = camera.position.clone().sub(controls.target);
-      const spherical = new Spherical().setFromVector3(offset);
-      if (event.key === 'ArrowLeft') spherical.theta += 0.12;
-      if (event.key === 'ArrowRight') spherical.theta -= 0.12;
-      if (event.key === 'ArrowUp') spherical.phi -= 0.12;
-      if (event.key === 'ArrowDown') spherical.phi += 0.12;
-      spherical.phi = Math.max(controls.minPolarAngle, Math.min(controls.maxPolarAngle, spherical.phi));
-      camera.position.copy(controls.target).add(offset.setFromSpherical(spherical));
-      controls.update();
-    }, { signal });
-    renderer.domElement.addEventListener('webglcontextlost', event => {
-      event.preventDefault();
-      this.removeAttribute('data-ready');
-    }, { signal });
-    renderer.domElement.addEventListener('webglcontextrestored', () => {
-      render();
-      this.setAttribute('data-ready', '');
-    }, { signal });
-    const resize = new ResizeObserver(() => {
-      const width = this.clientWidth;
-      if (!width) return;
-      renderer.setSize(width, width, false);
-      render();
+    const stageAssets = createStageTextures();
+    const viewer = await createConcept2Viewer({
+      stageEl: this,
+      hostEl: this,
+      coreStyle: 'quad-turbine',
+      powerPreference: 'low-power',
+      gltfSource: gltf,
+      ...stageAssets,
+      stateGetter: () => state,
     });
+
+    if (signal.aborted || !viewer) {
+      viewer?.destroy();
+      stageAssets.dispose();
+      disposeGltfTextures(gltf.scene);
+      return;
+    }
+
+    this.addEventListener('c2-lock-changed', () => {
+      this.toggleAttribute('data-locked', viewer.isLocked());
+    }, { signal });
+
+    let last = performance.now();
+    let elapsed = 0;
+    let rafId = 0;
+
+    const tick = (now) => {
+      if (signal.aborted) return;
+      const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
+      last = now;
+      elapsed += dt;
+      viewer.update(dt, elapsed);
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+
     this.cleanup = () => {
       this.cleanup = undefined;
-      resize.disconnect();
-      controls.dispose();
-      disposeModel(model);
-      renderer.dispose();
-      renderer.forceContextLoss();
-      renderer.domElement.remove();
-      this.removeAttribute('data-ready');
-      this.removeAttribute('data-dragging');
+      cancelAnimationFrame(rafId);
+      viewer.destroy();
+      stageAssets.dispose();
+      disposeGltfTextures(gltf.scene);
+      this.removeAttribute('data-locked');
     };
-    resize.observe(this);
-    renderer.setSize(this.clientWidth || 360, this.clientWidth || 360, false);
-    render();
-    this.setAttribute('data-ready', '');
   }
 }
 

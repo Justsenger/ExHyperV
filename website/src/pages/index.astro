@@ -3,43 +3,379 @@ import SiteLayout from '../layouts/SiteLayout.astro';
 import HomeModel from '../components/HomeModel.astro';
 ---
 <SiteLayout module="home" title="首页">
+  <div class="home-bg" data-home-bg data-bg-mode="bloom-subsurface" aria-hidden="true">
+    <div class="home-bg-studio"></div>
+    <div class="home-bg-beam"></div>
+    <svg class="home-bg-bloom-svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="bloomShadowBlur" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="24" />
+        </filter>
+        <linearGradient id="bloomFold1" x1="15%" y1="90%" x2="85%" y2="8%">
+          <stop offset="0%" stop-color="#01030b" stop-opacity="0.98" />
+          <stop offset="35%" stop-color="#031044" stop-opacity="0.92" />
+          <stop offset="68%" stop-color="#0832c8" stop-opacity="0.88" />
+          <stop offset="90%" stop-color="#1364ff" stop-opacity="0.92" />
+          <stop offset="100%" stop-color="#2eb4ff" stop-opacity="0.96" />
+        </linearGradient>
+        <linearGradient id="bloomFold2" x1="10%" y1="12%" x2="88%" y2="88%">
+          <stop offset="0%" stop-color="#32b8ff" stop-opacity="0.94" />
+          <stop offset="16%" stop-color="#1260f8" stop-opacity="0.90" />
+          <stop offset="48%" stop-color="#0728b8" stop-opacity="0.88" />
+          <stop offset="80%" stop-color="#020c38" stop-opacity="0.95" />
+          <stop offset="100%" stop-color="#01030a" stop-opacity="0.98" />
+        </linearGradient>
+        <linearGradient id="bloomFold3" x1="82%" y1="14%" x2="18%" y2="88%">
+          <stop offset="0%" stop-color="#3ec4ff" stop-opacity="0.92" />
+          <stop offset="18%" stop-color="#1464ff" stop-opacity="0.88" />
+          <stop offset="52%" stop-color="#072ac2" stop-opacity="0.86" />
+          <stop offset="84%" stop-color="#020b32" stop-opacity="0.94" />
+          <stop offset="100%" stop-color="#010208" stop-opacity="0.98" />
+        </linearGradient>
+        <linearGradient id="bloomRim" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#5cd8ff" stop-opacity="0" />
+          <stop offset="25%" stop-color="#38beff" stop-opacity="0.82" />
+          <stop offset="50%" stop-color="#7ce6ff" stop-opacity="0.98" />
+          <stop offset="78%" stop-color="#1e88ff" stop-opacity="0.62" />
+          <stop offset="100%" stop-color="#0830be" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+
+      <!-- Group A: Crisp-edge Sweeping Diagonal Satin Ribbons (sharp fold lips + soft blurred occlusion shadow beneath) -->
+      <g class="bloom-group-waves">
+        <path d="M -140,920 C 340,580 760,860 1220,440 C 1420,255 1560,90 1720,-40 L 1720,1080 L -140,1080 Z" fill="url(#bloomFold1)" opacity="0.88" />
+        <path d="M -140,920 C 340,580 760,860 1220,440 C 1420,255 1560,90 1720,-40" fill="none" stroke="url(#bloomRim)" stroke-width="2.4" opacity="0.92" />
+
+        <!-- Soft abyssal occlusion shadow cast by second ribbon onto first ribbon -->
+        <path d="M 40,1060 C 490,690 890,910 1350,490 C 1520,335 1650,180 1750,70 L 1750,1080 L 40,1080 Z" fill="#01030a" filter="url(#bloomShadowBlur)" opacity="0.95" />
+        <path d="M 80,1040 C 520,680 910,890 1370,480 C 1535,330 1660,185 1750,80 L 1750,1080 L 80,1080 Z" fill="url(#bloomFold2)" opacity="0.92" />
+        <path d="M 80,1040 C 520,680 910,890 1370,480 C 1535,330 1660,185 1750,80" fill="none" stroke="url(#bloomRim)" stroke-width="2.2" opacity="0.94" />
+
+        <!-- Third foreground dark velvet fold in bottom-right corner -->
+        <path d="M 520,1080 C 860,810 1160,920 1520,610 L 1740,420 L 1740,1080 Z" fill="#010208" filter="url(#bloomShadowBlur)" opacity="0.96" />
+        <path d="M 560,1080 C 890,820 1180,925 1540,620 L 1740,440 L 1740,1080 Z" fill="url(#bloomFold3)" opacity="0.90" />
+        <path d="M 560,1080 C 890,820 1180,925 1540,620 L 1740,440" fill="none" stroke="url(#bloomRim)" stroke-width="2.0" opacity="0.88" />
+      </g>
+
+      <!-- Group B: Sculptural S-Curve Satin Petals with sharp inner fold lips and blurred shadow troughs -->
+      <g class="bloom-group-petals">
+        <path d="M 640,1020 C 540,640 820,240 1260,60 C 1480,-30 1660,40 1720,220 L 1720,1020 Z" fill="url(#bloomFold1)" opacity="0.86" />
+        <path d="M 640,1020 C 540,640 820,240 1260,60" fill="none" stroke="url(#bloomRim)" stroke-width="2.4" opacity="0.90" />
+
+        <path d="M 790,1040 C 710,690 960,330 1360,160 L 1720,160 L 1720,1040 Z" fill="#01030a" filter="url(#bloomShadowBlur)" opacity="0.95" />
+        <path d="M 820,1040 C 740,700 980,350 1380,180 C 1540,110 1670,150 1720,280 L 1720,1040 Z" fill="url(#bloomFold2)" opacity="0.90" />
+        <path d="M 820,1040 C 740,700 980,350 1380,180" fill="none" stroke="url(#bloomRim)" stroke-width="2.2" opacity="0.92" />
+
+        <path d="M 990,1040 C 930,760 1120,460 1460,310 L 1720,310 L 1720,1040 Z" fill="#010208" filter="url(#bloomShadowBlur)" opacity="0.96" />
+        <path d="M 1020,1040 C 960,770 1140,480 1480,330 L 1720,240 L 1720,1040 Z" fill="url(#bloomFold3)" opacity="0.92" />
+        <path d="M 1020,1040 C 960,770 1140,480 1480,330" fill="none" stroke="url(#bloomRim)" stroke-width="2.0" opacity="0.88" />
+      </g>
+    </svg>
+    <div class="home-bg-vignette"></div>
+    <div class="home-bg-grain"></div>
+  </div>
+
   <section class="home-hero" aria-labelledby="home-title">
     <div class="home-copy">
       <h1 id="home-title">ExHyperV</h1>
-      <p data-i18n="productDescription">Windows 上的 Hyper-V 管理工具。</p>
+      <p data-i18n="productDescription">为 Windows 上的 Hyper-V，带来卓越的现代化桌面体验。</p>
       <div class="home-actions">
         <a class="home-button home-primary" href="https://github.com/Justsenger/ExHyperV/releases" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5" /></svg><span data-i18n="download">下载</span></a>
         <a class="home-button" href="https://github.com/Justsenger/ExHyperV" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18" /></svg><span data-i18n="viewSource">查看源码</span></a>
       </div>
-      <a class="home-releases" href="https://github.com/Justsenger/ExHyperV/releases" target="_blank" rel="noopener noreferrer"><span data-i18n="releases">版本与更新</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg></a>
     </div>
-    <div class="home-art"><HomeModel /></div>
+    <div class="home-art">
+      <HomeModel />
+    </div>
   </section>
 </SiteLayout>
 
 <style>
-  .home-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 32px; min-height: 480px; padding: 44px 40px 52px; }
-  .home-copy { min-width: 0; }
-  .home-copy h1 { margin: 0; font-size: 48px; line-height: 1.2; font-weight: 500; letter-spacing: -1.5px; }
-  .home-copy p { margin: 17px 0 0; color: var(--muted); font-size: 16px; line-height: 1.7; text-wrap: balance; }
-  .home-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-  .home-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 44px; padding: 10px 18px; border: 1px solid var(--ui-border); border-radius: 7px; background: var(--background); font-size: 14px; font-weight: 500; }
-  .home-button:hover { background: var(--surface-hover); }
-  .home-primary { background: var(--accent); color: var(--textHighlight); border-color: var(--accent); }
-  .home-primary:hover { background: color-mix(in srgb, var(--accent), var(--background) 12%); }
+  .home-bg {
+    --focus-x: 71%;
+    --focus-y: 48%;
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+    background: #010308;
+  }
+
+  /* Exact Windows 11 Bloom studio backdrop: upper-left midnight slate-blue (#0c1e35) to lower-right abyssal indigo-black (#010308) */
+  .home-bg-studio {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 88% 78% at 8% 6%, rgba(16, 42, 78, 0.76) 0%, rgba(8, 20, 42, 0.36) 46%, transparent 78%),
+      radial-gradient(circle 460px at var(--focus-x) var(--focus-y), rgba(9, 52, 215, 0.24) 0%, rgba(4, 18, 86, 0.10) 52%, transparent 78%),
+      linear-gradient(135deg, #0a182d 0%, #030916 52%, #010206 100%);
+  }
+
+  .home-bg-bloom-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    transform-origin: center center;
+    transition: filter 0.35s ease, opacity 0.35s ease;
+  }
+
+  .bloom-group-waves,
+  .bloom-group-petals {
+    display: none;
+  }
+
+  /* Mode 1: bloom-subsurface (Pure royal-cobalt & electric-cyan subsurface studio field) */
+  .home-bg[data-bg-mode="bloom-subsurface"] .home-bg-studio {
+    background:
+      radial-gradient(ellipse 92% 82% at 8% 6%, rgba(18, 46, 86, 0.78) 0%, rgba(10, 26, 54, 0.42) 38%, rgba(5, 13, 28, 0.14) 64%, transparent 86%),
+      radial-gradient(circle 340px at var(--focus-x) var(--focus-y), rgba(24, 128, 255, 0.20) 0%, rgba(14, 72, 224, 0.14) 36%, rgba(6, 26, 110, 0.06) 64%, transparent 86%),
+      radial-gradient(ellipse 720px 560px at var(--focus-x) var(--focus-y), rgba(7, 38, 175, 0.24) 0%, rgba(4, 18, 82, 0.12) 45%, rgba(2, 8, 36, 0.04) 70%, transparent 90%),
+      linear-gradient(135deg, #0b1b32 0%, #050d1d 38%, #020610 72%, #010206 100%);
+  }
+
+  /* Mode 2: bloom-waves (Crisp-lip sweeping diagonal satin waves) */
+  .home-bg[data-bg-mode="bloom-waves"] .bloom-group-waves {
+    display: inline;
+  }
+
+  /* Mode 3: bloom-crisp (Crisp sculptural S-curve Bloom folds on the right) */
+  .home-bg[data-bg-mode="bloom-crisp"] .bloom-group-petals {
+    display: inline;
+  }
+
+  /* Mode 4: bloom-dof (Soft depth-of-field sculptural S-curve Bloom folds) */
+  .home-bg[data-bg-mode="bloom-dof"] .bloom-group-petals {
+    display: inline;
+  }
+  .home-bg[data-bg-mode="bloom-dof"] .home-bg-bloom-svg {
+    filter: blur(8px);
+    opacity: 0.82;
+  }
+
+  /* Mode 5: bloom-abyss (Deep midnight-to-abyssal studio backdrop, 100% focus on the 3D crystal) */
+  .home-bg[data-bg-mode="bloom-abyss"] .home-bg-studio {
+    background:
+      radial-gradient(ellipse 85% 75% at 10% 8%, rgba(14, 36, 68, 0.68) 0%, transparent 70%),
+      radial-gradient(circle 420px at var(--focus-x) var(--focus-y), rgba(8, 42, 168, 0.16) 0%, transparent 72%),
+      linear-gradient(135deg, #081526 0%, #030812 52%, #010206 100%);
+  }
+
+  .home-bg-beam {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 56% 42% at var(--focus-x) var(--focus-y), rgba(32, 138, 255, 0.24) 0%, rgba(16, 72, 220, 0.10) 48%, transparent 78%),
+      conic-gradient(from 215deg at 78% -12%, transparent 0deg, rgba(64, 156, 255, 0.13) 26deg, rgba(130, 212, 255, 0.08) 44deg, transparent 74deg);
+  }
+
+  .home-bg-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 95% 90% at 50% 50%, transparent 45%, rgba(1, 3, 10, 0.55) 100%);
+  }
+  .home-bg-grain {
+    position: absolute;
+    inset: 0;
+    opacity: 0.032;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  @keyframes bloomFloat {
+    0%, 100% {
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+    50% {
+      transform: translate3d(-1.2%, 0.8%, 0) scale(1.025);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-bg-bloom-svg {
+      animation: none !important;
+    }
+  }
+
+  :global(html:has(body[data-module="home"])) {
+    scrollbar-width: none;
+  }
+  :global(html:has(body[data-module="home"])::-webkit-scrollbar),
+  :global(body[data-module="home"]::-webkit-scrollbar) {
+    display: none;
+  }
+
+  .home-hero {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(32px, 5vw, 72px);
+    max-width: 1180px;
+    margin: 0 auto;
+    min-height: calc(100dvh - var(--topbar-height));
+    padding: clamp(8px, 2dvh, 24px) clamp(24px, 5vw, 64px) clamp(56px, 10dvh, 104px);
+    overflow: clip;
+  }
+  .home-copy { min-width: 0; max-width: 520px; }
+  .home-copy h1 {
+    margin: 0;
+    font-size: clamp(50px, 5.6vw, 72px);
+    line-height: 1.08;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: #f4f8ff;
+    background: linear-gradient(180deg, #ffffff 30%, rgba(168, 210, 255, 0.78) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 8px 28px rgba(24, 118, 255, 0.16));
+  }
+  .home-copy p {
+    margin: 18px 0 0;
+    max-width: 44ch;
+    color: rgba(206, 222, 248, 0.68);
+    font-size: 16.5px;
+    line-height: 1.72;
+    text-wrap: balance;
+  }
+  .home-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+  .home-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    min-height: 48px;
+    padding: 0 24px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    color: rgba(240, 246, 255, 0.90);
+    font-size: 14px;
+    font-weight: 500;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.14s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease;
+  }
+  .home-button:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+  }
+  .home-button:active { transform: translateY(1px) scale(0.99); }
+  .home-primary {
+    background: linear-gradient(180deg, #2184ff 0%, #0d54eb 100%);
+    color: #ffffff;
+    border-color: rgba(118, 192, 255, 0.45);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 20px -4px rgba(14, 92, 248, 0.50);
+  }
+  .home-primary:hover {
+    background: linear-gradient(180deg, #3290ff 0%, #1562ff 100%);
+    border-color: rgba(148, 210, 255, 0.65);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 8px 24px -4px rgba(22, 108, 255, 0.58);
+  }
   .home-button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; }
-  .home-releases { display: inline-flex; align-items: center; gap: 5px; margin-top: 22px; color: var(--muted); font-size: 13px; font-weight: 400; }
-  .home-releases:hover { color: var(--accent); }
-  .home-releases svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; }
-  .home-button:focus-visible, .home-releases:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  .home-art { display: flex; align-items: center; justify-content: center; min-width: 0; }
-  @media (max-width: 720px) {
-    .home-hero { gap: 24px; padding: 36px 24px 44px; min-height: 430px; }
-    .home-copy h1 { font-size: 40px; }
-    .home-copy p { font-size: 15px; }
+  .home-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .home-art {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-width: 0;
+  }
+  @media (max-width: 820px) {
+    .home-bg {
+      --focus-x: 50%;
+      --focus-y: 30%;
+    }
+    .home-hero {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      align-content: center;
+      gap: 12px;
+      min-height: calc(100svh - var(--topbar-height));
+      padding: 4px 24px 84px;
+      text-align: center;
+    }
+    .home-art {
+      order: -1;
+      margin-top: -12px;
+    }
+    .home-copy {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .home-copy h1 { font-size: clamp(38px, 7vw, 46px); }
+    .home-copy p { font-size: 15px; max-width: 38ch; }
+    .home-actions { justify-content: center; margin-top: 22px; }
   }
   @media (max-width: 520px) {
-    .home-hero { grid-template-columns: 1fr; gap: 30px; padding: 30px 20px; }
-    .home-releases { margin-top: 18px; }
+    .home-hero {
+      gap: 6px;
+      padding: 0 20px 88px;
+    }
+    .home-art {
+      margin-top: -16px;
+    }
+    .home-copy h1 { font-size: 36px; letter-spacing: -1.1px; }
+    .home-copy p { margin-top: 10px; font-size: 14.5px; line-height: 1.65; }
+    .home-actions { gap: 10px; margin-top: 18px; }
+    .home-button { min-height: 42px; padding: 9px 16px; }
   }
 </style>
+
+<script>
+  let cleanupHomeLight = null;
+
+  function initHomeLight() {
+    cleanupHomeLight?.();
+    const bg = document.querySelector('[data-home-bg]');
+    if (!bg) return;
+
+    const ac = new AbortController();
+    const { signal } = ac;
+    const getBaseFocus = () => (window.innerWidth <= 820 ? { x: 50, y: 30 } : { x: 71, y: 48 });
+    let targetX = getBaseFocus().x;
+    let targetY = getBaseFocus().y;
+    let curX = targetX;
+    let curY = targetY;
+    let rafId = 0;
+
+    const tickLight = () => {
+      rafId = 0;
+      curX += (targetX - curX) * 0.08;
+      curY += (targetY - curY) * 0.08;
+      bg.style.setProperty('--focus-x', `${curX.toFixed(2)}%`);
+      bg.style.setProperty('--focus-y', `${curY.toFixed(2)}%`);
+      if (Math.abs(targetX - curX) > 0.02 || Math.abs(targetY - curY) > 0.02) {
+        rafId = requestAnimationFrame(tickLight);
+      }
+    };
+
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType !== 'mouse') return;
+      const base = getBaseFocus();
+      const nx = (e.clientX / Math.max(1, window.innerWidth)) - 0.5;
+      const ny = (e.clientY / Math.max(1, window.innerHeight)) - 0.5;
+      targetX = base.x + nx * 5.0;
+      targetY = base.y + ny * 4.0;
+      if (!rafId) rafId = requestAnimationFrame(tickLight);
+    }, { signal });
+
+    cleanupHomeLight = () => {
+      ac.abort();
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }
+
+  document.addEventListener('astro:page-load', initHomeLight);
+  document.addEventListener('astro:before-swap', () => cleanupHomeLight?.());
+</script>

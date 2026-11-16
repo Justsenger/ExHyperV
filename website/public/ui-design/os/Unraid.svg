@@ -1,0 +1,15 @@
+<!--Derived from ExHyperV.Wpf/Assets/VectorIcons.xaml; original project and third-party rights remain unchanged.-->
+<svg version="1.1" viewBox="-0.5 -0.5 128 128" width="128" height="128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient x1="0.85" y1="0.08" x2="0.15" y2="0.92" id="paint1" gradientUnits="objectBoundingBox" spreadMethod="pad" color-interpolation="sRGB">
+      <stop offset="0" stop-color="#FB7E2F" stop-opacity="1" />
+      <stop offset="1" stop-color="#E7382A" stop-opacity="1" />
+    </linearGradient>
+  </defs>
+  <g opacity="1">
+    <path d="M127.5,63.5C127.5,98.8462239891708 98.8462239891708,127.5 63.5,127.5 28.1537760108292,127.5 -0.5,98.8462239891708 -0.5,63.5 -0.5,28.1537760108292 28.1537760108292,-0.5 63.5,-0.5 98.8462239891708,-0.5 127.5,28.1537760108292 127.5,63.5z" fill-rule="evenodd" fill="url(#paint1)" fill-opacity="1" />
+    <g transform="matrix(0.1892 0 0 0.1892 15.568 15.568)" opacity="1">
+      <path d="M243.3,181.9L268.2,181.9 268.2,329.7 243.3,329.7z M24.9,329.7L0,329.7 0,181.9 24.9,181.9z M121.7,347.3L146.6,347.3 146.6,403.7 121.7,403.7z M60.6,284L85.5,284 85.5,375.3 60.6,375.3z M182.3,284L207.2,284 207.2,375.3 182.3,375.3z M487.1,181.9L512,181.9 512,329.7 487.1,329.7z M390.3,164.7L365.4,164.7 365.4,108.3 390.3,108.3z M451.4,227.6L426.5,227.6 426.5,136.6 451.4,136.6z M329.3,227.6L304.4,227.6 304.4,136.6 329.3,136.6z" fill-rule="nonzero" fill="#FFFFFF" fill-opacity="1" />
+    </g>
+  </g>
+</svg>

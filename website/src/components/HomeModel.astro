@@ -1,5 +1,5 @@
 <home-model role="group" tabindex="0" aria-label="ExHyperV 三维图标，拖拽或使用方向键旋转，双击复位" data-i18n-aria="rotateModel">
-  <img src="/images/exhyperv-app-icon.webp" width="640" height="640" alt="ExHyperV" draggable="false" fetchpriority="high" />
+  <img src="/images/home-model-poster.webp" width="640" height="640" alt="ExHyperV" draggable="false" fetchpriority="high" />
 </home-model>
 
 <script>
@@ -7,11 +7,74 @@
 </script>
 
 <style>
-  home-model { position: relative; display: block; width: min(100%, 360px); aspect-ratio: 1; outline-offset: 5px; }
-  home-model img { display: block; width: 100%; height: auto; pointer-events: none; user-select: none; }
-  home-model :global(canvas) { position: absolute; inset: 0; display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
-  home-model[data-dragging] :global(canvas) { cursor: grabbing; }
-  home-model[data-ready] img { visibility: hidden; }
-  home-model:focus-visible { outline: 2px solid var(--accent); border-radius: 8px; }
-  @media (max-width: 520px) { home-model { max-width: 260px; } }
+  home-model {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(100%, 460px, 62dvh);
+    aspect-ratio: 1;
+    outline-offset: 5px;
+    cursor: grab;
+    touch-action: none;
+  }
+  home-model::before {
+    content: "";
+    position: absolute;
+    inset: -38%;
+    border-radius: 50%;
+    pointer-events: none;
+    background: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    home-model::before {
+      background: radial-gradient(
+        circle at 50% 48%,
+        rgba(24, 126, 224, 0.13) 0%,
+        rgba(14, 72, 160, 0.07) 26%,
+        rgba(8, 36, 92, 0.025) 52%,
+        transparent 76%
+      );
+    }
+  }
+  home-model img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    position: relative;
+    z-index: 1;
+  }
+  home-model :global(canvas) {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    cursor: grab;
+    touch-action: none;
+  }
+  home-model[data-dragging],
+  home-model[data-dragging] :global(canvas) {
+    cursor: grabbing;
+  }
+  home-model[data-ready] img {
+    visibility: hidden;
+  }
+  home-model:focus-visible {
+    outline: 2px solid var(--accent);
+    border-radius: 16px;
+  }
+  @media (max-width: 820px) {
+    home-model {
+      max-width: 390px;
+    }
+  }
+  @media (max-width: 520px) {
+    home-model {
+      max-width: 330px;
+    }
+  }
 </style>

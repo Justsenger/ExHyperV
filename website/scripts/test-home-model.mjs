@@ -41,16 +41,46 @@ for (const pointerType of ['mouse', 'touch']) {
   });
 }
 
-test('scrolling over the icon remains page scrolling', () => {
+test('trackpad wheel gestures over the icon orbit the model instead of scrolling the page', () => {
   const canvas = new Canvas();
   const camera = new OrthographicCamera(-4, 4, 4, -4, 0.1, 100);
   camera.position.set(6, 8, 10);
-  const controls = createHomeModelControls(camera, canvas, new Vector3());
+  const controls = createHomeModelControls(camera, canvas, new Vector3(0, 2, 0));
+  const start = camera.position.clone();
+  const distance = camera.position.distanceTo(controls.target);
+
+  // Measure pointer drag right (+X) and down (+Y) direction
+  pointer(canvas, 'pointerdown', 'mouse', 100, 160);
+  pointer(canvas.ownerDocument, 'pointermove', 'mouse', 180, 220);
+  pointer(canvas.ownerDocument, 'pointerup', 'mouse', 180, 220);
+  const dragDelta = camera.position.clone().sub(start);
+  controls.reset();
+
+  // Natural-scroll trackpad two-finger swipe right (deltaX < 0) and down (deltaY < 0)
+  // must orbit in the exact same direction as pointer drag right/down
   const wheel = new Event('wheel', { cancelable: true });
-  Object.assign(wheel, { deltaY: 100, deltaMode: 0 });
+  Object.assign(wheel, { deltaX: -80, deltaY: -120, deltaMode: 0, ctrlKey: false });
   canvas.dispatchEvent(wheel);
-  assert.equal(wheel.defaultPrevented, false);
+  const afterWheel = camera.position.clone();
+  const wheelDelta = afterWheel.clone().sub(start);
+  assert.equal(wheel.defaultPrevented, true);
+  assert.ok(afterWheel.distanceTo(start) > 0.5);
+  assert.equal(Math.sign(wheelDelta.x), Math.sign(dragDelta.x));
+  assert.equal(Math.sign(wheelDelta.y), Math.sign(dragDelta.y));
+  assert.ok(Math.abs(camera.position.distanceTo(controls.target) - distance) < 1e-8);
   assert.equal(camera.zoom, 1);
+
+  // Rotational inertia continues coasting smoothly in the same direction
+  controls.updateInertia(0.016);
+  assert.ok(camera.position.distanceTo(start) > afterWheel.distanceTo(start));
+
+  const pinch = new Event('wheel', { cancelable: true });
+  Object.assign(pinch, { deltaY: -40, deltaMode: 0, ctrlKey: true });
+  canvas.dispatchEvent(pinch);
+  assert.equal(pinch.defaultPrevented, false);
+
+  controls.reset();
+  assert.ok(camera.position.distanceTo(start) < 1e-8);
   controls.dispose();
 });
 
@@ -63,6 +93,8 @@ test('the exported icon contains eight textured 3D cells and the source camera',
   assert.equal(json.meshes.length, 8);
   assert.equal(json.images.length, 8);
   assert.equal(json.cameras[0].type, 'orthographic');
+  const { xmag, ymag } = json.cameras[0].orthographic;
+  assert.ok(Math.abs(xmag - ymag) < 1e-3, `Expected 1:1 orthographic camera aspect, got ${xmag}x${ymag}`);
   for (const mesh of json.meshes) {
     const positions = json.accessors[mesh.primitives[0].attributes.POSITION];
     assert.ok(positions.count > 8);
