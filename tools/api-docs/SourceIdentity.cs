@@ -13,7 +13,7 @@ internal static partial class ApiDocument
         void Visit(string directory)
         {
             foreach (string child in Directory.EnumerateDirectories(directory))
-                if (Path.GetFileName(child) is not ("bin" or "obj" or "external" or "External" or ".git")) Visit(child);
+                if (Path.GetFileName(child) is not ("bin" or "obj" or "external" or "External" or ".git" or ".artifacts")) Visit(child);
             files.AddRange(Directory.EnumerateFiles(directory).Where(path => Path.GetExtension(path).ToLowerInvariant()
                 is ".cs" or ".csproj" or ".props" or ".targets" or ".resx" or ".xml" or ".json" or ".html" or ".css" or ".md" or ".mjs" or ".woff2" or ".txt"));
         }

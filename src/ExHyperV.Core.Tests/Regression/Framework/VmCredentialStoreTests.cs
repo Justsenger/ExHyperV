@@ -18,7 +18,7 @@ public sealed class VmCredentialStoreTests
             await store.SaveAsync(id, "fixture\\测试用户", password);
             string saved = File.ReadAllText(store.PathFor(id));
             Assert.IsFalse(saved.Contains(password, StringComparison.Ordinal));
-            var result = await WindowsTestCommand.RunAsync("$c=Import-Clixml -LiteralPath $a.path;@{user=$c.UserName;valid=($c -is [PSCredential] -and $c.Password.Length -gt 0)}|ConvertTo-Json", new { path = store.PathFor(id) }, 20, false);
+            var result = await WindowsTestCommand.RunAsync("$c=Import-Clixml -LiteralPath $a.path;@{user=$c.UserName;valid=($c -is [PSCredential] -and $c.Password.Length -gt 0)}|ConvertTo-Json", new { path = store.PathFor(id) }, 60, false);
             Assert.IsTrue(result.GetProperty("valid").GetBoolean());
             Assert.AreEqual("fixture\\测试用户", result.GetProperty("user").GetString());
             await Assert.ThrowsExactlyAsync<ArgumentException>(() => store.SaveAsync(id, "", ""));

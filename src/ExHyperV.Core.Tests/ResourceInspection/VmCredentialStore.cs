@@ -67,7 +67,7 @@ internal sealed class VmCredentialStore(string? directory = null)
             using var process = Process.Start(start) ?? throw new IOException("保存登录信息失败。");
             var output = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
             var error = process.StandardError.BaseStream.CopyToAsync(Stream.Null);
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
             try
             {
                 await process.StandardInput.WriteAsync(JsonSerializer.Serialize(new { path = temporary, userName = userName.Trim(), password }).AsMemory(), timeout.Token);
