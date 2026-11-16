@@ -1,0 +1,104 @@
+:root,
+[data-theme='dark'] {
+  --win-font-sans: 'Segoe UI Variable', 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  --win-bg-fallback: #050b19;
+  --win-mica-bg: #202020;
+  --win-mica-alt: #272727;
+  --win-layer-bg: rgba(44, 44, 46, 0.72);
+  --win-card-bg: rgba(255, 255, 255, 0.045);
+  --win-card-hover: rgba(255, 255, 255, 0.075);
+  --win-taskbar-bg: rgba(34, 35, 38, 0.80);
+  --win-flyout-bg: rgba(36, 37, 40, 0.88);
+  --win-menu-bg: rgba(43, 43, 43, 0.96);
+  --win-titlebar-inactive: #252527;
+
+  --win-text: #ffffff;
+  --win-text-secondary: rgba(255, 255, 255, 0.72);
+  --win-text-tertiary: rgba(255, 255, 255, 0.48);
+
+  --win-border: rgba(255, 255, 255, 0.09);
+  --win-border-strong: rgba(255, 255, 255, 0.16);
+  --win-divider: rgba(255, 255, 255, 0.08);
+
+  --win-hover: rgba(255, 255, 255, 0.08);
+  --win-active: rgba(255, 255, 255, 0.13);
+  --win-icon-select-bg: rgba(255, 255, 255, 0.14);
+  --win-icon-select-border: rgba(255, 255, 255, 0.24);
+  --win-icon-hover-bg: rgba(255, 255, 255, 0.08);
+
+  --win-accent: #4cc2ff;
+  --win-accent-hover: #5bc8ff;
+  --win-accent-pressed: #43a8dd;
+  --win-accent-text: #002133;
+
+  --win-shadow-window: 0 24px 64px rgba(0, 0, 0, 0.56), 0 2px 10px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.09);
+  --win-shadow-window-inactive: 0 12px 32px rgba(0, 0, 0, 0.36), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --win-shadow-flyout: 0 18px 48px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  --win-shadow-menu: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  --win-icon-label-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.7);
+}
+
+[data-theme='light'] {
+  --win-bg-fallback: #cfe3fb;
+  --win-mica-bg: #f3f3f3;
+  --win-mica-alt: #eaeaea;
+  --win-layer-bg: rgba(255, 255, 255, 0.72);
+  --win-card-bg: rgba(255, 255, 255, 0.76);
+  --win-card-hover: rgba(255, 255, 255, 0.94);
+  --win-taskbar-bg: rgba(242, 244, 248, 0.8);
+  --win-flyout-bg: rgba(246, 247, 250, 0.86);
+  --win-menu-bg: rgba(249, 250, 252, 0.92);
+  --win-titlebar-inactive: #eaecee;
+
+  --win-text: #1b1b1f;
+  --win-text-secondary: rgba(27, 27, 31, 0.72);
+  --win-text-tertiary: rgba(27, 27, 31, 0.5);
+
+  --win-border: rgba(0, 0, 0, 0.08);
+  --win-border-strong: rgba(0, 0, 0, 0.15);
+  --win-divider: rgba(0, 0, 0, 0.08);
+
+  --win-hover: rgba(0, 0, 0, 0.055);
+  --win-active: rgba(0, 0, 0, 0.09);
+  --win-icon-select-bg: rgba(255, 255, 255, 0.46);
+  --win-icon-select-border: rgba(255, 255, 255, 0.72);
+  --win-icon-hover-bg: rgba(255, 255, 255, 0.28);
+
+  --win-accent: #0067c0;
+  --win-accent-hover: #005fb8;
+  --win-accent-pressed: #00529e;
+  --win-accent-text: #ffffff;
+
+  --win-shadow-window: 0 24px 64px rgba(0, 0, 0, 0.22), 0 2px 10px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --win-shadow-window-inactive: 0 12px 30px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.07);
+  --win-shadow-flyout: 0 18px 48px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --win-shadow-menu: 0 10px 28px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  --win-icon-label-shadow: 0 1px 2px rgba(0, 0, 0, 0.68), 0 0 6px rgba(0, 0, 0, 0.45);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--win-font-sans);
+  background: var(--win-bg-fallback);
+  color: var(--win-text);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}

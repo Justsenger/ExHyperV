@@ -1,0 +1,5262 @@
+@font-face {
+  font-family: 'FluentSystemIcons-Regular';
+  src: url('/ui-design/FluentSystemIcons-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+astro-dev-toolbar {
+  display: none !important;
+}
+
+.ui-workbench-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  min-height: calc(100vh - 72px);
+}
+
+/* ============================================================================
+   1:1 ExHyperV.WinUI3 Window & Theme Tokens
+   Exact match to Assets/Styles.xaml + UI/Shared/AppAppearance.cs + Real Screenshots
+   ============================================================================ */
+.winui-window {
+  --VmAccentColor: #4CC2FF;
+  --VmAccentRgb: 76, 194, 255;
+  --VmAccentBrush: #4CC2FF;
+  --VmHeaderCheckedBrush: #4CC2FF;
+  --VmHeaderCheckedHoverBrush: #5BC8FF;
+  --VmHeaderCheckedPressedBrush: #43A8DD;
+  --VmHeaderForegroundBrush: #000000;
+  --VmChartFillBrush: rgba(76, 194, 255, 0.25);
+  --VmGpuChartFillBrush: rgba(76, 194, 255, 0.40);
+
+  /* Exact Dark Theme brushes from Assets/Styles.xaml & WinUI 3 Dark dictionary */
+  --WindowMicaBg: #202020;
+  --NavContentBg: #1C1C1C;
+  --VmSurfaceBrush: rgba(58, 58, 58, 0.30);     /* #4C3A3A3A */
+  --VmListBrush: rgba(255, 255, 255, 0.059);    /* #0FFFFFFF */
+  --VmSummaryBrush: rgba(255, 255, 255, 0.082); /* #15FFFFFF */
+  --VmCardBrush: rgba(255, 255, 255, 0.051);    /* #0DFFFFFF */
+  --VmStrokeBrush: rgba(0, 0, 0, 0.098);        /* #19000000 */
+  --VmBadgeBrush: rgba(255, 255, 255, 0.031);   /* #08FFFFFF */
+  --VmDeviceBrush: rgba(255, 255, 255, 0.020);  /* #05FFFFFF */
+  --VmKvWellBrush: rgba(255, 255, 255, 0.035);  /* #09FFFFFF */
+  --VmKvWellBorderBrush: rgba(255, 255, 255, 0.07); /* #12FFFFFF */
+  --VmMetricUnselectedBg: rgba(128, 128, 128, 0.125); /* Color.FromArgb(32, 128, 128, 128) */
+  --VmSelectorHoverBg: rgba(136, 136, 136, 0.086);    /* #16888888 */
+
+  --TextFillColorPrimaryBrush: #FFFFFF;
+  --TextFillColorSecondaryBrush: rgba(255, 255, 255, 0.78);
+  --TextFillColorTertiaryBrush: rgba(255, 255, 255, 0.54);
+  --TextFillColorDisabledBrush: rgba(255, 255, 255, 0.36);
+
+  --ControlFillColorDefaultBrush: rgba(255, 255, 255, 0.0605);
+  --ControlFillColorSecondaryBrush: rgba(255, 255, 255, 0.0837);
+  --ControlFillColorTertiaryBrush: rgba(255, 255, 255, 0.0326);
+  --ControlStrokeColorDefaultBrush: rgba(255, 255, 255, 0.085);
+  --CardBackgroundFillColorDefaultBrush: rgba(255, 255, 255, 0.051);
+  --CardStrokeColorDefaultBrush: rgba(0, 0, 0, 0.18);
+  --DividerStrokeColorDefaultBrush: rgba(255, 255, 255, 0.08);
+  --SubtleFillColorSecondaryBrush: rgba(255, 255, 255, 0.0605);
+  --SubtleFillColorTertiaryBrush: rgba(255, 255, 255, 0.04);
+  --SolidBackgroundFillColorTertiaryBrush: #282828;
+  --SolidBackgroundFillColorQuarternaryBrush: #2C2C2C;
+  --SystemFillColorSuccessBrush: #6CCB5F;
+  --SystemFillColorCautionBrush: #FCE100;
+  --SystemFillColorCriticalBrush: #FF99A4;
+  --SystemFillColorAttentionBackgroundBrush: rgba(255, 255, 255, 0.05);
+  --SystemFillColorCautionBackgroundBrush: rgba(67, 53, 25, 0.85);
+  --SystemFillColorCriticalBackgroundBrush: rgba(68, 39, 38, 0.85);
+  --SystemFillColorSuccessBackgroundBrush: rgba(24, 58, 36, 0.92);
+
+  --ChartCardBg: rgba(255, 255, 255, 0.031);     /* Color.FromArgb(8, 255, 255, 255) */
+  --ChartGridStroke: rgba(255, 255, 255, 0.082); /* Color.FromArgb(21, 255, 255, 255) */
+  --ChartBorderBrush: rgba(136, 136, 136, 0.102);/* Color.FromArgb(26, 136, 136, 136) */
+
+  width: 1140px;
+  max-width: none;
+  min-width: 520px;
+  height: 760px;
+  min-height: 400px;
+  flex-shrink: 0;
+  background: var(--WindowMicaBg);
+  color: var(--TextFillColorPrimaryBrush);
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.62);
+  display: grid;
+  grid-template-rows: 48px 1fr;
+  overflow: visible;
+  position: relative;
+  z-index: 1200;
+  user-select: none;
+}
+
+.winui-window.wide-1280 {
+  max-width: 1280px;
+}
+
+.winui-window[data-theme="light"] {
+  --WindowMicaBg: #F3F3F3;
+  --NavContentBg: #F6F6F6;
+  --VmSurfaceBrush: rgba(255, 255, 255, 0.50);   /* #80FFFFFF */
+  --VmListBrush: rgba(255, 255, 255, 0.70);      /* #B3FFFFFF */
+  --VmSummaryBrush: #FFFFFF;                     /* #FFFFFF */
+  --VmCardBrush: rgba(255, 255, 255, 0.70);      /* #B3FFFFFF */
+  --VmStrokeBrush: rgba(0, 0, 0, 0.059);         /* #0F000000 */
+  --VmBadgeBrush: rgba(0, 0, 0, 0.020);          /* #05000000 */
+  --VmDeviceBrush: rgba(0, 0, 0, 0.012);         /* #03000000 */
+  --VmKvWellBrush: rgba(0, 0, 0, 0.024);         /* #06000000 */
+  --VmKvWellBorderBrush: rgba(0, 0, 0, 0.065);   /* #10000000 */
+  --VmMetricUnselectedBg: rgba(128, 128, 128, 0.125);
+  --VmSelectorHoverBg: rgba(136, 136, 136, 0.086);
+
+  --TextFillColorPrimaryBrush: rgba(0, 0, 0, 0.8956);
+  --TextFillColorSecondaryBrush: rgba(0, 0, 0, 0.6063);
+  --TextFillColorTertiaryBrush: rgba(0, 0, 0, 0.4458);
+  --TextFillColorDisabledBrush: rgba(0, 0, 0, 0.3614);
+
+  --ControlFillColorDefaultBrush: rgba(255, 255, 255, 0.7);
+  --ControlFillColorSecondaryBrush: rgba(0, 0, 0, 0.055);
+  --ControlFillColorTertiaryBrush: rgba(249, 249, 249, 0.3);
+  --ControlStrokeColorDefaultBrush: rgba(0, 0, 0, 0.08);
+  --CardBackgroundFillColorDefaultBrush: rgba(255, 255, 255, 0.7);
+  --CardStrokeColorDefaultBrush: rgba(0, 0, 0, 0.065);
+  --DividerStrokeColorDefaultBrush: rgba(0, 0, 0, 0.08);
+  --SubtleFillColorSecondaryBrush: rgba(0, 0, 0, 0.0373);
+  --SubtleFillColorTertiaryBrush: rgba(0, 0, 0, 0.0241);
+  --SolidBackgroundFillColorTertiaryBrush: #F9F9F9;
+  --SolidBackgroundFillColorQuarternaryBrush: #FFFFFF;
+  --SystemFillColorSuccessBrush: #0F7B0F;
+  --SystemFillColorCautionBrush: #9D5D00;
+  --SystemFillColorCriticalBrush: #C42B1C;
+  --SystemFillColorAttentionBackgroundBrush: rgba(246, 246, 246, 0.9);
+  --SystemFillColorCautionBackgroundBrush: #FFF4CE;
+  --SystemFillColorCriticalBackgroundBrush: #FDE7E9;
+  --SystemFillColorSuccessBackgroundBrush: #DFF6DD;
+
+  --ChartCardBg: rgba(0, 0, 0, 0.020);
+  --ChartGridStroke: rgba(0, 0, 0, 0.078);
+  --ChartBorderBrush: rgba(136, 136, 136, 0.102);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+.winui-window ::-webkit-scrollbar { width: 4px; height: 4px; }
+.winui-window ::-webkit-scrollbar-track { background: transparent; }
+.winui-window ::-webkit-scrollbar-thumb { background: rgba(160, 160, 160, 0.45); border-radius: 2px; }
+
+/* Icons */
+.fi {
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', 'FluentSystemIcons-Regular', sans-serif;
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.fi-fluent {
+  font-family: 'FluentSystemIcons-Regular', 'Segoe Fluent Icons', sans-serif;
+}
+.fi-svg {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+   Row 0: TitleBar (MainWindow.xaml lines 10-14)
+   Height="48", StackPanel Margin="14,0,0,0" Spacing="14", AppIcon 24x24, FontSize 14
+   ============================================================================ */
+.winui-titlebar {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 14px;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+.winui-titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.app-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.app-title-text {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.caption-buttons {
+  display: flex;
+  height: 100%;
+}
+
+.caption-btn {
+  width: 46px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--TextFillColorPrimaryBrush);
+}
+.caption-btn:hover { background: var(--SubtleFillColorSecondaryBrush); }
+.caption-btn.close:hover { background: #C42B1C; color: #FFFFFF; }
+
+/* ============================================================================
+   Row 1: NavigationView (MainWindow.xaml lines 20-32 + MainWindow.xaml.cs line 108)
+   OpenPaneLength="212", CompactPaneLength="48", CompactModeThresholdWidth="820", ExpandedModeThresholdWidth="1080"
+   ============================================================================ */
+.winui-navview {
+  display: grid;
+  grid-template-columns: 212px 1fr;
+  height: 100%;
+  min-height: 0;
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  position: relative;
+  transition: grid-template-columns 0.16s cubic-bezier(0, 0, 0, 1);
+}
+.winui-navview.compact {
+  grid-template-columns: 48px 1fr;
+}
+.winui-navview.minimal {
+  grid-template-columns: 0px 1fr;
+}
+.minimal-nav-title {
+  display: none;
+}
+.nav-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  background: rgba(0, 0, 0, 0.30);
+}
+
+.winui-navpane {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 4px 8px 4px;
+  overflow: hidden;
+}
+.winui-navview.minimal .winui-navpane {
+  padding: 0;
+  overflow: visible;
+}
+.winui-navview.minimal:not(.minimal-open) .nav-item,
+.winui-navview.minimal:not(.minimal-open) .nav-bottom-group {
+  display: none;
+}
+.winui-navview.minimal .pane-toggle-btn {
+  position: absolute;
+  left: 4px;
+  top: 2px;
+  z-index: 30;
+}
+.winui-navview.minimal .minimal-nav-title {
+  display: inline-flex;
+  align-items: center;
+  position: absolute;
+  left: 48px;
+  top: 10px;
+  height: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+  pointer-events: none;
+  z-index: 25;
+}
+.winui-navview.minimal .nav-content-frame {
+  margin-top: 40px;
+  height: calc(100% - 40px);
+}
+.winui-navview.minimal.minimal-open .winui-navpane {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 212px;
+  z-index: 45;
+  padding: 4px 4px 8px 4px;
+  background: var(--SolidBackgroundFillColorTertiaryBrush);
+  border-right: 1px solid var(--CardStrokeColorDefaultBrush);
+  box-shadow: 8px 0 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.winui-navview.minimal.minimal-open .pane-toggle-btn {
+  position: static;
+}
+.winui-navview.minimal.minimal-open .minimal-nav-title {
+  display: none;
+}
+
+.nav-top-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pane-toggle-btn {
+  width: 40px;
+  height: 36px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+.pane-toggle-btn:hover {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+
+.nav-item {
+  height: 36px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 11px;
+  gap: 16px;
+  cursor: pointer;
+  position: relative;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+.nav-item:hover {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+.nav-item.selected {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+.nav-item.selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 1.5px;
+  background: var(--VmAccentBrush);
+}
+.winui-navview.compact .nav-item .nav-label {
+  display: none;
+}
+
+.nav-content-frame {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  background: var(--NavContentBg);
+  border-top-left-radius: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+}
+.winui-window[data-theme="light"] .nav-content-frame {
+  border-top-color: rgba(0, 0, 0, 0.05);
+  border-left-color: rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================================
+   VirtualMachinesPage.xaml (Grid Padding="12" ColumnSpacing="12", Col0=216)
+   ============================================================================ */
+.vm-page-grid {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 12px;
+  height: 100%;
+  min-height: 0;
+}
+.vm-page-grid.vm-compact-list {
+  grid-template-columns: 176px minmax(0, 1fr);
+  column-gap: 10px;
+  padding: 10px;
+}
+.vm-page-grid.vm-compact-list .vm-summary-card[data-summary-variant^="mid-"] {
+  margin: 10px 12px 0 12px;
+  padding: 12px 14px;
+  min-height: 104px;
+}
+.vm-page-grid.vm-compact-list .vm-summary-card[data-summary-variant^="mid-"] .vm-summary-grid {
+  column-gap: 12px;
+}
+
+/* Left VM List (VirtualMachinesPage.xaml lines 15-38) */
+.vm-list-pane {
+  background: var(--VmListBrush);
+  border: 1px solid var(--VmStrokeBrush);
+  border-radius: 8px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  row-gap: 4px;
+  min-height: 0;
+}
+
+.vm-search-grid {
+  margin: 8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.vm-search-input {
+  width: 100%;
+  height: 32px;
+  min-height: 28px;
+  background: var(--ControlFillColorDefaultBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  border-bottom: 1px solid var(--TextFillColorTertiaryBrush);
+  border-radius: 4px;
+  padding: 0 32px 0 10px;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 14px;
+  font-weight: 400;
+  outline: none;
+}
+.vm-search-input::placeholder {
+  color: var(--TextFillColorSecondaryBrush);
+}
+.vm-search-input:focus {
+  border-bottom: 2px solid var(--VmAccentBrush);
+  background: var(--ControlFillColorSecondaryBrush);
+}
+
+.vm-search-icon {
+  position: absolute;
+  right: 8px;
+  font-size: 16px;
+  color: var(--TextFillColorSecondaryBrush);
+  pointer-events: none;
+}
+
+.vm-listview {
+  padding: 0 4px 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.vm-listitem {
+  min-height: 40px;
+  padding: 6px 10px;
+  margin: 0 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+}
+.vm-listitem:hover {
+  background: var(--SubtleFillColorTertiaryBrush);
+}
+.vm-listitem.selected {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+
+.vm-state-ellipse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin: 0 8px 0 6px;
+  flex-shrink: 0;
+  background: var(--TextFillColorTertiaryBrush);
+}
+.vm-state-ellipse.running {
+  background: var(--SystemFillColorSuccessBrush);
+}
+
+.vm-item-glyph {
+  font-size: 16px;
+  margin-right: 8px;
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.vm-item-name {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================================================
+   Right VmDashboardView.xaml
+   ============================================================================ */
+.vm-dashboard-border {
+  position: relative;
+  background: var(--VmSurfaceBrush);
+  border: 1px solid var(--VmStrokeBrush);
+  border-radius: 8px;
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  overflow: hidden;
+}
+
+/* Row 0: Summary Card (compact gutter 16px) */
+.vm-summary-card {
+  margin: 12px 16px 0 16px;
+  padding: 20px;
+  min-height: 160px;
+  background: var(--VmSummaryBrush);
+  border: 1px solid var(--VmStrokeBrush);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+}
+
+.vm-summary-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  column-gap: 24px;
+  align-items: center;
+}
+
+.vm-artwork-box {
+  width: 120px;
+  height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.vm-system-icon-panel {
+  width: 120px;
+  height: 112px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vm-os-image {
+  width: 104px;
+  height: 104px;
+  object-fit: contain;
+}
+
+/* MonitorPreview (VmDashboardView.xaml lines 19-25) */
+.vm-monitor-preview {
+  width: 120px;
+  height: 112px;
+  flex-shrink: 0;
+  position: relative;
+}
+.vm-monitor-neck {
+  width: 18px;
+  height: 18px;
+  background: #777777;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 6px;
+}
+.vm-monitor-base {
+  width: 64px;
+  height: 5px;
+  background: #999999;
+  border-radius: 2px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+}
+.vm-monitor-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 90px;
+  background: #141414;
+  border: 5px solid #141414;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.vm-monitor-inner {
+  width: 100%;
+  height: 100%;
+  background: #141414;
+}
+
+.vm-summary-right {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto auto;
+  column-gap: 16px;
+  align-items: start;
+  min-width: 0;
+  overflow: visible;
+}
+
+/* Title & Action Stack (Start / Connect) */
+.vm-title-row {
+  display: contents;
+}
+
+.vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vm-summary-actions {
+  grid-column: 2;
+  grid-row: 1 / 5;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 110px;
+}
+
+.power-split-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 36px;
+}
+
+.power-main-btn {
+  flex: 1;
+  height: 36px;
+  border: none;
+  font-size: 14px;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.12s;
+  cursor: pointer;
+}
+.power-main-btn:hover { opacity: 0.92; }
+
+.vm-connect-btn {
+  width: 100%;
+  height: 36px;
+  padding: 6px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: var(--ControlFillColorDefaultBrush);
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 14px;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.vm-connect-btn:hover {
+  background: var(--ControlFillColorSecondaryBrush);
+}
+.vm-connect-btn:active {
+  background: var(--ControlFillColorTertiaryBrush);
+  opacity: 0.9;
+}
+
+/* Stopped: Padding="41,6,41,6", CornerRadius="8", Background=Accent, Foreground=Black */
+.power-split-wrap.stopped .power-main-btn {
+  padding: 6px 41px;
+  border-radius: 8px;
+  background: var(--VmAccentBrush);
+  color: var(--VmHeaderForegroundBrush);
+}
+
+/* Running: Padding="24,0,24,0", CornerRadius="8,0,0,8", Background=#F44336, Foreground=White */
+.power-split-wrap.running .power-main-btn {
+  padding: 0 24px;
+  border-radius: 8px 0 0 8px;
+  background: #F44336;
+  color: #FFFFFF;
+}
+
+.power-drop-btn {
+  height: 36px;
+  padding: 0 8px;
+  border: none;
+  border-left: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0 8px 8px 0;
+  background: #F44336;
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+}
+.power-drop-btn:hover { background: #E53935; }
+
+.power-flyout {
+  position: absolute;
+  right: 0;
+  top: 40px;
+  min-width: 140px;
+  background: var(--SolidBackgroundFillColorQuarternaryBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  z-index: 100;
+}
+
+.power-flyout-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--DividerStrokeColorDefaultBrush);
+}
+
+.power-flyout-item {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.power-flyout-item:hover { background: var(--SubtleFillColorSecondaryBrush); }
+.power-flyout-item.danger { color: #E81123; }
+
+/* State & Uptime Row (Margin="0,0,0,12" Spacing="6") */
+.vm-state-row {
+  grid-column: 1;
+  grid-row: 2;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.vm-state-icon {
+  font-size: 16px;
+}
+
+.vm-state-label {
+  margin-right: 6px;
+}
+
+/* Badges Rows (Two horizontal StackPanels, Spacing="8", Row1 Margin="0,0,0,8") */
+.vm-badges-row {
+  grid-column: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  overflow: hidden;
+  gap: 8px;
+}
+.vm-badges-row:empty {
+  display: none;
+}
+.vm-badges-row.row-1 {
+  grid-row: 3;
+  margin-bottom: 8px;
+}
+.vm-badges-row.row-2 {
+  grid-row: 4;
+}
+
+/* BadgeStyle: Background=VmBadgeBrush, BorderBrush=VmStrokeBrush, BorderThickness=1, CornerRadius=4, Padding="10,6" */
+.vm-badge {
+  background: var(--VmBadgeBrush);
+  border: 1px solid var(--VmStrokeBrush);
+  border-radius: 4px;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.vm-badge-icon {
+  font-size: 14px;
+}
+
+.vm-badge-text {
+  white-space: nowrap;
+}
+
+button.vm-badge {
+  cursor: pointer;
+}
+
+.vm-uptime-label {
+  margin-right: 6px;
+}
+
+.vm-gen-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.vm-gen-inline:hover {
+  opacity: 0.85;
+}
+
+.vm-version-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 6px;
+}
+
+.vm-guid-text {
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+button.vm-badge:hover {
+  background: var(--VmSelectorHoverBg);
+}
+
+.vm-os-picker-anchor {
+  position: relative;
+  grid-column: 1;
+  grid-row: 4;
+}
+
+.vm-os-badge-img {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.vm-os-badge-chevron {
+  font-size: 10px;
+  opacity: 0.72;
+  margin-left: 2px;
+}
+
+.os-picker-flyout {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 40;
+  width: 440px;
+  max-width: min(440px, calc(100vw - 64px));
+  padding: 12px;
+  background: #2C2C2C;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.48);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.os-picker-flyout[hidden] {
+  display: none;
+}
+
+.os-picker-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.os-picker-search-icon {
+  position: absolute;
+  left: 10px;
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  pointer-events: none;
+}
+
+.os-picker-search {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px 0 30px;
+  border-radius: 6px;
+  border: 1px solid var(--VmStrokeBrush);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 12.5px;
+  outline: none;
+}
+
+.os-picker-search:focus {
+  border-color: var(--AccentLight2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.os-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.os-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 6px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--TextFillColorPrimaryBrush);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.os-picker-item:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.os-picker-item.selected {
+  background: rgba(96, 205, 255, 0.14);
+  border-color: rgba(96, 205, 255, 0.55);
+}
+
+.os-picker-item-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.os-picker-item-label {
+  font-size: 11.5px;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.os-picker-empty {
+  grid-column: 1 / -1;
+  padding: 20px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+/* ============================================================================
+   Row 1: PageTabs (VmDashboardView.xaml line 55 + VmTabs.cs)
+   Margin="24,16,24,12", Spacing="4", Button MinWidth="64" Height="36" Padding="12,0,12,3" CornerRadius="6,6,0,0"
+   ============================================================================ */
+.vm-pagetabs {
+  position: relative;
+  margin: 10px 16px 8px 16px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+}
+.vm-pagetabs::-webkit-scrollbar { height: 0; }
+
+.vm-tab-btn {
+  min-width: 64px;
+  height: 36px;
+  padding: 0 12px 3px 12px;
+  border: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--TextFillColorSecondaryBrush);
+  font-size: 13px;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.vm-tab-btn:hover:not(.selected) {
+  background: var(--VmSelectorHoverBg);
+}
+.vm-tab-btn.selected {
+  background: var(--ControlFillColorSecondaryBrush);
+  color: var(--TextFillColorPrimaryBrush);
+}
+.vm-tab-btn.selected::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  border-radius: 1.5px;
+  background: var(--VmAccentBrush);
+}
+
+/* Row 2: ErrorBar InfoBar */
+#dashboardNoticeWrap {
+  position: relative;
+}
+.winui-infobar {
+  margin: 0 16px 8px 16px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(108, 203, 95, 0.32);
+  background: var(--SystemFillColorSuccessBackgroundBrush);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.winui-infobar.is-settings-bar {
+  margin: 0 0 12px 0;
+  flex-shrink: 0;
+}
+.vm-settings-right {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.winui-infobar.is-toast {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 12px 8px 14px;
+  border-radius: 8px;
+  z-index: 150;
+  background: rgba(24, 58, 36, 0.95);
+  color: #FFFFFF;
+  border: 1px solid rgba(108, 203, 95, 0.38);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(12px);
+  white-space: nowrap;
+  max-width: calc(100% - 48px);
+}
+.winui-infobar-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.winui-infobar-icon {
+  color: var(--SystemFillColorSuccessBrush);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.winui-infobar.is-toast .pane-toggle-btn {
+  color: inherit;
+}
+.compute-inline-status {
+  margin-right: 4px;
+  font-size: 12.5px;
+  color: var(--SystemFillColorSuccessBrush);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+.compute-inline-status.is-visible {
+  opacity: 1;
+}
+
+/* ============================================================================
+   Row 3A: DashboardScroll (VmDashboardView.xaml lines 57-90)
+   Padding="24,0,24,24" Spacing="12"
+   ============================================================================ */
+.vm-overview-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Outer Card: Border Background=VmCardBrush CornerRadius="8" Padding="12", StackPanel Spacing="12" */
+.vm-overview-card {
+  background: var(--VmCardBrush);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+/* Selector Grid: Grid ColumnSpacing="8" */
+.metric-selectors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* VmMetricCard.cs: Height=72, Padding="16,10,16,10", CornerRadius=6, ColumnSpacing=12 */
+.vm-metric-card {
+  height: 72px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--VmMetricUnselectedBg);
+  color: var(--TextFillColorPrimaryBrush);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+}
+.vm-metric-card:hover:not(.selected) {
+  background: rgba(148, 148, 148, 0.18);
+}
+.vm-metric-card.selected {
+  background: var(--VmHeaderCheckedBrush);
+  color: var(--VmHeaderForegroundBrush);
+}
+
+.vm-metric-icon {
+  font-size: 26px;
+}
+
+.vm-metric-text-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vm-metric-title {
+  font-size: 14px;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vm-metric-subline {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.vm-metric-subtitle {
+  opacity: 0.75;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vm-metric-secreading {
+  opacity: 0.85;
+}
+
+.vm-metric-reading {
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+}
+.vm-metric-reading .unit {
+  font-size: 12px;
+}
+
+/* ResourceDetails (VmDashboardView.xaml line 67 & VmDashboardView.xaml.cs line 222) */
+.resource-details-box {
+  width: 100%;
+}
+
+/* CoreCharts Grid (LayoutCoreCharts: ColumnSpacing = RowSpacing = 6, 4 columns) */
+.core-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.memory-content-box {
+  width: 100%;
+  height: 100%;
+}
+
+/* VmUsageChart.cs:
+   ProcessorHeight = 104, Gpu = 148, Transfer = 132, Memory = ResourceDetails.Height
+   CornerRadius = 4, BorderThickness = 1,
+   BorderBrush = rgba(136,136,136,0.102), Background = rgba(255,255,255,0.031),
+   10px x 10px background mesh lines (StrokeThickness=0.5, Stroke=rgba(255,255,255,0.082))
+*/
+.vm-usage-chart {
+  height: 104px;
+  border-radius: 4px;
+  border: 1px solid var(--ChartBorderBrush);
+  background-color: var(--ChartCardBg);
+  background-image:
+    linear-gradient(to right, var(--ChartGridStroke) 0.5px, transparent 0.5px),
+    linear-gradient(to bottom, var(--ChartGridStroke) 0.5px, transparent 0.5px);
+  background-size: 10px 10px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vm-usage-chart-caption {
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  font-size: 10px;
+  opacity: 0.7;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.vm-usage-chart-value {
+  font-size: 18px;
+  font-weight: 400;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.vm-usage-chart-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Device Card (VmDashboardView.xaml lines 70-87 & VmDashboardView.Devices.cs) */
+.device-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+}
+
+.device-panel-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.gpu-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.transfer-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.storage-capacity-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+}
+.storage-capacity-line .cap-label {
+  color: var(--TextFillColorSecondaryBrush);
+  margin-right: 6px;
+}
+.storage-capacity-line .cap-num {
+  font-size: 22px;
+  color: var(--TextFillColorPrimaryBrush);
+}
+.storage-capacity-meter {
+  height: 8px;
+  margin: 8px 0 2px 0;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.winui-window[data-theme="light"] .storage-capacity-meter {
+  background: rgba(0, 0, 0, 0.08);
+}
+.storage-capacity-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--VmHeaderCheckedBrush);
+}
+.storage-cap-slim {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 2px 2px 0 2px;
+}
+.storage-cap-slim-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.storage-capacity-meter.is-slim {
+  height: 4px;
+  margin: 0;
+  border-radius: 999px;
+}
+.storage-capacity-meter.is-slim .storage-capacity-fill {
+  border-radius: 999px;
+}
+
+.network-addresses-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.network-addresses-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 16px;
+}
+.network-addr-group {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: 8px;
+  align-items: center;
+  min-height: 32px;
+}
+.network-addr-title {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.network-copy-btn {
+  min-height: 32px;
+  padding: 4px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  justify-self: start;
+}
+.network-copy-btn:hover {
+  background: var(--VmSelectorHoverBg);
+}
+
+/* ============================================================================
+   Row 3B: SettingsArea (VmDashboardView.xaml lines 91-100 & VmDashboardView.Settings.cs)
+   Margin="24,0,24,24" ColumnSpacing="16", SettingsNavigationColumn Width="144"
+   ============================================================================ */
+.vm-settings-area {
+  height: 100%;
+  min-height: 0;
+  margin: 0 16px 16px 16px;
+  display: grid;
+  grid-template-columns: 144px minmax(0, 1fr);
+  column-gap: 12px;
+  overflow: hidden;
+}
+.vm-settings-area.settings-compact-subnav {
+  grid-template-columns: 112px minmax(0, 1fr);
+  column-gap: 10px;
+}
+.vm-settings-area.settings-compact-subnav .settings-subnav {
+  width: 112px;
+}
+.vm-settings-area.no-subnav {
+  grid-template-columns: 1fr;
+  column-gap: 0;
+}
+
+/* SettingsNavigation ListView (VmDashboardView.Settings.cs lines 122-134) */
+.settings-subnav {
+  width: 144px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.subnav-btn {
+  min-height: 44px;
+  padding: 6px 8px 6px 14px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: break-word;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.subnav-icon {
+  width: 18px;
+  font-size: 16px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.subnav-btn.selected .subnav-icon {
+  color: var(--TextFillColorPrimaryBrush);
+}
+.subnav-divider {
+  height: 1px;
+  margin: 6px 12px;
+  background: var(--DividerStrokeColorDefaultBrush);
+  flex-shrink: 0;
+}
+.subnav-btn:hover {
+  background: var(--SubtleFillColorTertiaryBrush);
+}
+.subnav-btn.selected {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+.subnav-btn.selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  border-radius: 1.5px;
+  background: var(--VmAccentBrush);
+}
+
+.settings-host-scroll {
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ============================================================================
+   Tab 1: VmProcessorSettingsView.cs & VmCpuAffinitySettingsView.cs
+   ============================================================================ */
+.proc-group-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+
+/* Individual Field Card in VmProcessorSettingsView.cs (lines 191-205) */
+.proc-field-card {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  padding: 17px;
+}
+.proc-field-card.kind-editor {
+  min-height: 128px;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  row-gap: 16px;
+  align-items: center;
+}
+.proc-field-card.kind-toggle {
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+/* UseNumericStepper (VmProcessorSettingsView.cs lines 381-405) */
+.proc-stepper-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  column-gap: 6px;
+  align-items: center;
+}
+.proc-stepper-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 28px;
+  font-weight: 400;
+  outline: none;
+}
+.proc-stepper-input::placeholder {
+  color: var(--TextFillColorSecondaryBrush);
+  opacity: 0.6;
+}
+.proc-stepper-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+}
+.proc-stepper-btn:hover {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+
+/* SettingsActionButton (SettingsView.cs lines 113-138: 44x44 CornerRadius=22) */
+.settings-round-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.settings-action-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 22px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.settings-action-circle:hover:not(:disabled) {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+.settings-action-circle.primary {
+  background: var(--VmAccentBrush);
+  color: var(--VmHeaderForegroundBrush);
+  border-color: transparent;
+}
+.settings-action-circle.primary:hover:not(:disabled) {
+  background: var(--VmHeaderCheckedHoverBrush);
+}
+.settings-action-circle:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* VmCpuAffinitySettingsView.cs (lines 16-295) */
+.cpu-affinity-view {
+  margin: 17px;
+  height: calc(100% - 34px);
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cpu-affinity-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cpu-affinity-status-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cpu-affinity-quick-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cpu-affinity-quick-btn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: var(--ControlFillColorDefaultBrush);
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.cpu-affinity-quick-btn:hover {
+  background: var(--ControlFillColorSecondaryBrush);
+}
+.cpu-affinity-quick-btn.active {
+  background: var(--VmHeaderCheckedBrush);
+  border-color: var(--VmHeaderCheckedBrush);
+  color: var(--VmHeaderForegroundBrush);
+}
+.cpu-affinity-model {
+  font-size: 12.5px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.cpu-affinity-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(84px, 1fr));
+  grid-auto-rows: minmax(76px, 1fr);
+  flex: 1;
+  gap: 8px;
+  touch-action: none;
+  user-select: none;
+}
+.cpu-affinity-tile {
+  min-width: 64px;
+  min-height: 76px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: var(--ControlFillColorDefaultBrush);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.cpu-affinity-tile:hover {
+  background: var(--ControlFillColorSecondaryBrush);
+}
+.cpu-affinity-tile.selected {
+  background: var(--VmHeaderCheckedBrush);
+  border-color: var(--VmHeaderCheckedBrush);
+}
+.cpu-affinity-tile.selected:hover {
+  background: var(--VmHeaderCheckedHoverBrush);
+  border-color: var(--VmHeaderCheckedHoverBrush);
+}
+.cpu-affinity-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 13px;
+  line-height: 1;
+}
+.cpu-affinity-badge.perf { color: #FAA146; }
+.cpu-affinity-badge.eff { color: #6CCB5F; }
+.cpu-affinity-num {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+}
+.cpu-affinity-tile.selected .cpu-affinity-num {
+  color: var(--VmHeaderForegroundBrush);
+}
+
+/* ============================================================================
+   Settings Cards & Controls (VmSettingsView.cs, SettingsFieldPanel.cs)
+   ============================================================================ */
+.settings-section-title {
+  font-size: 14px;
+  margin: 0 0 12px 0;
+}
+
+.winui-field-card {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-field-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.field-editor-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.field-editor-toggle-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* SettingLabel (VmSettingsView.cs lines 250-260: HorizontalAlignment=Left, ColumnSpacing=4) */
+.setting-label-grid {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  justify-self: start;
+}
+.setting-label-title {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.setting-info-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorSecondaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.setting-info-btn:hover { background: var(--VmSelectorHoverBg); }
+
+.winui-card {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.winui-card-row {
+  padding: 16px 24px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 24px;
+  align-items: center;
+  border-bottom: 1px solid var(--CardStrokeColorDefaultBrush);
+}
+.winui-card-row:last-child { border-bottom: none; }
+
+.winui-row-desc {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  margin-top: 2px;
+}
+
+.winui-textbox,
+.winui-select {
+  height: 32px;
+  background: var(--ControlFillColorDefaultBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  border-bottom: 1px solid var(--TextFillColorTertiaryBrush);
+  border-radius: 4px;
+  padding: 0 10px;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 14px;
+  outline: none;
+  min-width: 0;
+}
+.winui-select option {
+  background: var(--SolidBackgroundFillColorTertiaryBrush);
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.winui-btn {
+  height: 32px;
+  padding: 0 12px;
+  background: var(--ControlFillColorDefaultBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  border-radius: 4px;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.winui-btn:hover:not(:disabled) { background: var(--ControlFillColorSecondaryBrush); }
+.winui-btn:disabled { opacity: 0.45; cursor: default; }
+.winui-btn.accent {
+  background: var(--VmAccentBrush);
+  color: var(--VmHeaderForegroundBrush);
+  border-color: transparent;
+}
+.winui-btn.accent:hover:not(:disabled) {
+  background: var(--VmHeaderCheckedHoverBrush);
+}
+.winui-btn.danger {
+  background: #C42B1C;
+  color: #FFFFFF;
+  border-color: transparent;
+}
+
+/* ToggleSwitch */
+.winui-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.winui-switch-track {
+  width: 40px;
+  height: 20px;
+  border-radius: 10px;
+  border: 1px solid var(--TextFillColorTertiaryBrush);
+  background: transparent;
+  position: relative;
+  transition: all 0.14s;
+}
+.winui-switch-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--TextFillColorSecondaryBrush);
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: all 0.14s;
+}
+.winui-switch.on .winui-switch-track {
+  background: var(--VmAccentBrush);
+  border-color: var(--VmAccentBrush);
+}
+.winui-switch.on .winui-switch-thumb {
+  left: 23px;
+  background: var(--VmHeaderForegroundBrush);
+}
+.winui-switch.disabled {
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   WinUI 3 Expander (VmStorageSettingsView.cs, VmGpuSettingsView.cs, VmNetworkSettingsView.cs, VmPcieSettingsView.cs)
+   Exact match to Screenshot 4 (media_1794659693841_045a2033.png)
+   ============================================================================ */
+.winui-expander {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.winui-expander-header {
+  min-height: 66px;
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 12px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+}
+.winui-expander.expanded > .winui-expander-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.winui-expander-chevron {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.winui-expander-body {
+  padding: 20px 32px 24px 32px;
+}
+
+/* RoundIconButtonStyle (Styles.xaml lines 38-47 + Screenshot 4) */
+.round-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 18px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--TextFillColorPrimaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+}
+.round-icon-btn:hover {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+
+/* Boot Order Item (VmBootSettingsView.cs lines 24-51) */
+.boot-order-item {
+  background: var(--ControlFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  column-gap: 18px;
+  align-items: center;
+  cursor: grab;
+}
+.boot-order-item:hover {
+  background: var(--ControlFillColorSecondaryBrush);
+}
+
+/* ============================================================================
+   SettingInfoButton Flyout & Window Drag / Resize
+   ============================================================================ */
+.setting-info-flyout {
+  position: absolute;
+  max-width: 340px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: var(--SolidBackgroundFillColorQuarternaryBrush);
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.48);
+  z-index: 200;
+}
+
+.winui-window.maximized {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  transform: none !important;
+  z-index: 9999 !important;
+}
+
+.win-resize-handle {
+  position: absolute;
+  touch-action: none;
+  z-index: 999;
+}
+.win-resize-t {
+  top: -6px;
+  left: 12px;
+  right: 12px;
+  height: 12px;
+  cursor: ns-resize;
+}
+.win-resize-b {
+  bottom: -6px;
+  left: 12px;
+  right: 12px;
+  height: 12px;
+  cursor: ns-resize;
+}
+.win-resize-l {
+  left: -6px;
+  top: 12px;
+  bottom: 12px;
+  width: 12px;
+  cursor: ew-resize;
+}
+.win-resize-r {
+  right: -6px;
+  top: 12px;
+  bottom: 12px;
+  width: 12px;
+  cursor: ew-resize;
+}
+.win-resize-tl {
+  top: -7px;
+  left: -7px;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  z-index: 1000;
+}
+.win-resize-tr {
+  top: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  cursor: nesw-resize;
+  z-index: 1000;
+}
+.win-resize-bl {
+  bottom: -7px;
+  left: -7px;
+  width: 18px;
+  height: 18px;
+  cursor: nesw-resize;
+  z-index: 1000;
+}
+.win-resize-br {
+  bottom: -7px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  z-index: 1000;
+}
+
+/* ============================================================================
+   Right-side Compact Control Panel (#designCandidatesPanel)
+   ============================================================================ */
+.design-candidates-panel {
+  position: fixed;
+  right: 16px;
+  top: 88px;
+  width: 206px;
+  background: #1E1F22;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  z-index: 1300;
+  color: #FFFFFF;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+  user-select: none;
+  max-height: calc(100vh - 104px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dcp-header {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: move;
+}
+
+.dcp-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.dcp-list {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.dcp-chip {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12.5px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+.dcp-chip:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+.dcp-chip.active {
+  background: rgba(76, 194, 255, 0.15);
+  border-color: #4CC2FF;
+  color: #FFFFFF;
+  font-weight: 500;
+}
+.dcp-chip.active::after {
+  content: '✓';
+  font-size: 12px;
+  color: #4CC2FF;
+}
+
+.dcp-footer {
+  padding: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.dcp-action-btn {
+  width: 100%;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFFFFF;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dcp-action-btn:hover {
+  background: rgba(255, 255, 255, 0.11);
+}
+.dcp-action-btn.active {
+  background: rgba(76, 194, 255, 0.16);
+  border-color: #4CC2FF;
+  color: #FFFFFF;
+}
+
+.dcp-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  padding: 4px 8px 8px 8px;
+}
+.dcp-icon-grid.cols-6 {
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+}
+.dcp-icon-btn {
+  height: 30px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.84);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.dcp-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.11);
+  color: #FFFFFF;
+}
+.dcp-icon-btn.active {
+  background: rgba(76, 194, 255, 0.18);
+  border-color: #4CC2FF;
+  color: #FFFFFF;
+}
+
+/* ============================================================================
+   Summary Card Refactoring Candidates (Live Variants)
+   ============================================================================ */
+.vm-summary-matrix {
+  display: none;
+}
+
+/* Shared compact artwork scaling for small candidates */
+.vm-summary-card:not([data-summary-variant="original"]):not([data-summary-variant^="mid-"]) .vm-artwork-box,
+.vm-summary-card:not([data-summary-variant="original"]):not([data-summary-variant^="mid-"]) .vm-system-icon-panel {
+  width: 52px;
+  height: 52px;
+}
+.vm-summary-card:not([data-summary-variant="original"]):not([data-summary-variant^="mid-"]) .vm-os-image {
+  width: 46px;
+  height: 46px;
+}
+.vm-summary-card:not([data-summary-variant="original"]):not([data-summary-variant^="mid-"]) .vm-monitor-preview {
+  transform: scale(0.45);
+  transform-origin: center center;
+}
+
+/* Shared Midpoint (120px) artwork scaling: exact middle between Original (104px) and Candidate 1 (46px) -> 74px */
+.vm-summary-card[data-summary-variant^="mid-"] {
+  min-height: 120px;
+  padding: 16px 20px;
+}
+.vm-summary-card[data-summary-variant^="mid-"] .vm-summary-grid {
+  grid-template-columns: 84px minmax(0, 1fr);
+  column-gap: 20px;
+}
+.vm-summary-card[data-summary-variant^="mid-"] .vm-artwork-box,
+.vm-summary-card[data-summary-variant^="mid-"] .vm-system-icon-panel {
+  width: 84px;
+  height: 80px;
+}
+.vm-summary-card[data-summary-variant^="mid-"] .vm-os-image {
+  width: 74px;
+  height: 74px;
+}
+.vm-summary-card[data-summary-variant^="mid-"] .vm-monitor-preview {
+  width: 80px;
+  height: 74px;
+  transform: none;
+}
+.vm-summary-card[data-summary-variant^="mid-"] .vm-monitor-screen {
+  height: 60px;
+  border-width: 4px;
+  border-radius: 5px;
+}
+.vm-summary-card[data-summary-variant^="mid-"] .vm-monitor-neck {
+  width: 12px;
+  height: 12px;
+  bottom: 4px;
+}
+.vm-summary-card[data-summary-variant^="mid-"] .vm-monitor-base {
+  width: 44px;
+  height: 4px;
+}
+
+/* Midpoint A: mid-3row (120px · 3行舒展 · 去掉重复核数磁盘长条，保留单排徽章) */
+.vm-summary-card[data-summary-variant="mid-3row"] .vm-summary-right {
+  grid-template-rows: auto auto auto;
+}
+.vm-summary-card[data-summary-variant="mid-3row"] .vm-name-text {
+  font-size: 24px;
+}
+.vm-summary-card[data-summary-variant="mid-3row"] .vm-state-row {
+  margin-bottom: 8px;
+}
+.vm-summary-card[data-summary-variant="mid-3row"] .vm-summary-right:has(#vmBadgeRow2:empty) .vm-state-row {
+  margin-bottom: 0;
+}
+.vm-summary-card[data-summary-variant="mid-3row"] #vmBadgeRow1 {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="mid-3row"] #vmBadgeRow2,
+.vm-summary-card[data-summary-variant="mid-3row"] .vm-os-picker-anchor {
+  grid-row: 3;
+}
+.vm-summary-card[data-summary-variant="mid-3row"] .vm-summary-actions {
+  grid-row: 1 / 4;
+  align-self: center;
+}
+
+/* Midpoint B: mid-3row-center (120px · 3行 + 右侧启动按钮垂直居中) */
+.vm-summary-card[data-summary-variant="mid-3row-center"] .vm-summary-right {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto;
+  column-gap: 16px;
+  align-items: center;
+}
+.vm-summary-card[data-summary-variant="mid-3row-center"] .vm-title-row {
+  display: contents;
+}
+.vm-summary-card[data-summary-variant="mid-3row-center"] .vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+.vm-summary-card[data-summary-variant="mid-3row-center"] .vm-state-row {
+  grid-column: 1;
+  grid-row: 2;
+  margin-bottom: 8px;
+}
+.vm-summary-card[data-summary-variant="mid-3row-center"] #vmBadgeRow1 {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="mid-3row-center"] #vmBadgeRow2,
+.vm-summary-card[data-summary-variant="mid-3row-center"] .vm-os-picker-anchor {
+  grid-column: 1;
+  grid-row: 3;
+}
+.vm-summary-card[data-summary-variant="mid-3row-center"] .vm-summary-actions {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  align-self: center;
+}
+
+/* Midpoint C: mid-3row-split (120px · 徽章分流到右下角填补空白) */
+.vm-summary-card[data-summary-variant="mid-3row-split"] .vm-summary-right {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 16px;
+  row-gap: 10px;
+  align-items: center;
+}
+.vm-summary-card[data-summary-variant="mid-3row-split"] .vm-title-row {
+  display: contents;
+}
+.vm-summary-card[data-summary-variant="mid-3row-split"] .vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 24px;
+}
+.vm-summary-card[data-summary-variant="mid-3row-split"] .power-split-wrap {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+.vm-summary-card[data-summary-variant="mid-3row-split"] .vm-state-row {
+  grid-column: 1;
+  grid-row: 2;
+  margin-bottom: 0;
+}
+.vm-summary-card[data-summary-variant="mid-3row-split"] #vmBadgeRow1 {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="mid-3row-split"] #vmBadgeRow2 {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+}
+
+/* Midpoint D: mid-2row-lg (114px · 候选A的放大舒展版：72px图标 + 24px大标题 + 舒展行距) */
+.vm-summary-card[data-summary-variant="mid-2row-lg"] {
+  min-height: 114px;
+  padding: 18px 22px;
+}
+.vm-summary-card[data-summary-variant="mid-2row-lg"] .vm-summary-right {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 12px;
+  align-items: center;
+}
+.vm-summary-card[data-summary-variant="mid-2row-lg"] .vm-title-row {
+  display: contents;
+}
+.vm-summary-card[data-summary-variant="mid-2row-lg"] .vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 24px;
+}
+.vm-summary-card[data-summary-variant="mid-2row-lg"] #vmBadgeRow1,
+.vm-summary-card[data-summary-variant="mid-2row-lg"] #vmGpuBadge {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="mid-2row-lg"] #vmBadgeRow2 {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  margin-bottom: 0;
+}
+.vm-summary-card[data-summary-variant="mid-2row-lg"] .vm-state-row {
+  grid-column: 1 / 3;
+  grid-row: 2;
+  margin-bottom: 0;
+  font-size: 14px;
+}
+.vm-summary-card[data-summary-variant="mid-2row-lg"] .power-split-wrap {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+/* Candidate 1: compact-2row (84px · 双行去冗余) */
+.vm-summary-card[data-summary-variant="compact-2row"] {
+  min-height: 82px;
+  padding: 14px 20px;
+}
+.vm-summary-card[data-summary-variant="compact-2row"] .vm-summary-grid {
+  grid-template-columns: 52px minmax(0, 1fr);
+  column-gap: 16px;
+}
+.vm-summary-card[data-summary-variant="compact-2row"] .vm-summary-right {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 6px;
+  align-items: center;
+}
+.vm-summary-card[data-summary-variant="compact-2row"] .vm-title-row {
+  display: contents;
+}
+.vm-summary-card[data-summary-variant="compact-2row"] .vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 20px;
+  font-weight: 600;
+}
+.vm-summary-card[data-summary-variant="compact-2row"] #vmBadgeRow1,
+.vm-summary-card[data-summary-variant="compact-2row"] #vmGpuBadge {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="compact-2row"] #vmBadgeRow2 {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  margin-bottom: 0;
+}
+.vm-summary-card[data-summary-variant="compact-2row"] .vm-badge {
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.vm-summary-card[data-summary-variant="compact-2row"] .vm-state-row {
+  grid-column: 1 / 3;
+  grid-row: 2;
+  margin-bottom: 0;
+  font-size: 13px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.vm-summary-card[data-summary-variant="compact-2row"] .power-split-wrap {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+/* Candidate 2: right-badges (88px · 徽章右置平衡) */
+.vm-summary-card[data-summary-variant="right-badges"] {
+  min-height: 86px;
+  padding: 15px 20px;
+}
+.vm-summary-card[data-summary-variant="right-badges"] .vm-summary-grid {
+  grid-template-columns: 52px minmax(0, 1fr);
+  column-gap: 16px;
+}
+.vm-summary-card[data-summary-variant="right-badges"] .vm-summary-right {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) auto auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 5px;
+  align-items: center;
+}
+.vm-summary-card[data-summary-variant="right-badges"] .vm-title-row {
+  display: contents;
+}
+.vm-summary-card[data-summary-variant="right-badges"] .vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 21px;
+  font-weight: 600;
+}
+.vm-summary-card[data-summary-variant="right-badges"] .vm-state-row {
+  grid-column: 1;
+  grid-row: 2;
+  margin-bottom: 0;
+  font-size: 13px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.vm-summary-card[data-summary-variant="right-badges"] #vmGpuBadge {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="right-badges"] #vmBadgeRow1 {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  margin-bottom: 0;
+}
+.vm-summary-card[data-summary-variant="right-badges"] #vmBadgeRow2 {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  margin-bottom: 0;
+}
+.vm-summary-card[data-summary-variant="right-badges"] .power-split-wrap {
+  grid-column: 4;
+  grid-row: 1 / 3;
+  align-self: center;
+  margin-left: 6px;
+}
+
+/* Candidate 3: single-bar (64px · 单行极简横条) */
+.vm-summary-card[data-summary-variant="single-bar"] {
+  min-height: 62px;
+  padding: 10px 18px;
+}
+.vm-summary-card[data-summary-variant="single-bar"] .vm-artwork-box,
+.vm-summary-card[data-summary-variant="single-bar"] .vm-system-icon-panel {
+  width: 38px;
+  height: 38px;
+}
+.vm-summary-card[data-summary-variant="single-bar"] .vm-os-image {
+  width: 34px;
+  height: 34px;
+}
+.vm-summary-card[data-summary-variant="single-bar"] .vm-monitor-preview {
+  transform: scale(0.34);
+}
+.vm-summary-card[data-summary-variant="single-bar"] .vm-summary-grid {
+  grid-template-columns: 38px minmax(0, 1fr);
+  column-gap: 14px;
+}
+.vm-summary-card[data-summary-variant="single-bar"] .vm-summary-right {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  grid-template-rows: 1fr;
+  column-gap: 14px;
+  align-items: center;
+}
+.vm-summary-card[data-summary-variant="single-bar"] .vm-title-row {
+  display: contents;
+}
+.vm-summary-card[data-summary-variant="single-bar"] .vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 18px;
+  font-weight: 600;
+}
+.vm-summary-card[data-summary-variant="single-bar"] .vm-state-row {
+  grid-column: 2;
+  grid-row: 1;
+  margin-bottom: 0;
+  padding-left: 14px;
+  border-left: 1px solid var(--DividerStrokeColorDefaultBrush);
+  font-size: 13px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.vm-summary-card[data-summary-variant="single-bar"] #vmBadgeRow1,
+.vm-summary-card[data-summary-variant="single-bar"] #vmGpuBadge {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="single-bar"] #vmBadgeRow2 {
+  grid-column: 4;
+  grid-row: 1;
+  margin-bottom: 0;
+}
+.vm-summary-card[data-summary-variant="single-bar"] .power-split-wrap {
+  grid-column: 5;
+  grid-row: 1;
+}
+
+/* Candidate 4: right-matrix (92px · 右侧参数矩阵) */
+.vm-summary-card[data-summary-variant="right-matrix"] {
+  min-height: 90px;
+  padding: 15px 20px;
+}
+.vm-summary-card[data-summary-variant="right-matrix"] .vm-summary-grid {
+  grid-template-columns: 52px minmax(0, 1fr);
+  column-gap: 16px;
+}
+.vm-summary-card[data-summary-variant="right-matrix"] .vm-summary-right {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 14px;
+  row-gap: 4px;
+  align-items: center;
+}
+.vm-summary-card[data-summary-variant="right-matrix"] .vm-title-row {
+  display: contents;
+}
+.vm-summary-card[data-summary-variant="right-matrix"] .vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 21px;
+  font-weight: 600;
+}
+.vm-summary-card[data-summary-variant="right-matrix"] .vm-state-row {
+  grid-column: 1;
+  grid-row: 2;
+  margin-bottom: 0;
+  font-size: 13px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.vm-summary-card[data-summary-variant="right-matrix"] #vmBadgeRow1,
+.vm-summary-card[data-summary-variant="right-matrix"] #vmBadgeRow2 {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="right-matrix"] .vm-summary-matrix {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / 3;
+  grid-template-columns: repeat(3, auto);
+  column-gap: 18px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: var(--VmBadgeBrush);
+  border: 1px solid var(--VmStrokeBrush);
+}
+.vm-matrix-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 18px;
+  border-right: 1px solid var(--DividerStrokeColorDefaultBrush);
+}
+.vm-matrix-cell:last-child {
+  padding-right: 0;
+  border-right: none;
+  cursor: pointer;
+}
+.vm-matrix-label {
+  font-size: 11px;
+  color: var(--TextFillColorTertiaryBrush);
+}
+.vm-matrix-val {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+}
+.vm-summary-card[data-summary-variant="right-matrix"] .power-split-wrap {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+/* Candidate 5: merged-tabs (108px · 卡片与标签栏一体融合) */
+.vm-summary-card[data-summary-variant="merged-tabs"] {
+  min-height: 76px;
+  padding: 12px 20px;
+  border-radius: 8px 8px 0 0;
+  border-bottom: none;
+}
+.vm-summary-card[data-summary-variant="merged-tabs"] .vm-summary-grid {
+  grid-template-columns: 48px minmax(0, 1fr);
+  column-gap: 14px;
+}
+.vm-summary-card[data-summary-variant="merged-tabs"] .vm-summary-right {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto auto;
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+}
+.vm-summary-card[data-summary-variant="merged-tabs"] .vm-title-row {
+  display: contents;
+}
+.vm-summary-card[data-summary-variant="merged-tabs"] .vm-name-text {
+  grid-column: 1;
+  grid-row: 1;
+  font-size: 20px;
+  font-weight: 600;
+}
+.vm-summary-card[data-summary-variant="merged-tabs"] .vm-state-row {
+  grid-column: 1 / 3;
+  grid-row: 2;
+  margin-bottom: 0;
+  font-size: 13px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.vm-summary-card[data-summary-variant="merged-tabs"] #vmBadgeRow1,
+.vm-summary-card[data-summary-variant="merged-tabs"] #vmGpuBadge {
+  display: none !important;
+}
+.vm-summary-card[data-summary-variant="merged-tabs"] #vmBadgeRow2 {
+  grid-column: 3;
+  grid-row: 1 / 3;
+  margin-bottom: 0;
+}
+.vm-summary-card[data-summary-variant="merged-tabs"] .power-split-wrap {
+  grid-column: 4;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+.vm-dashboard-border.merged-tabs-mode .vm-pagetabs {
+  margin: 0 16px 8px 16px;
+  padding: 4px 12px 0 12px;
+  height: 40px;
+  background: var(--VmSummaryBrush);
+  border: 1px solid var(--VmStrokeBrush);
+  border-top: 1px solid var(--DividerStrokeColorDefaultBrush);
+  border-radius: 0 0 8px 8px;
+}
+
+/* ============================================================================
+   Desktop-Native Overview Interaction Candidates (Mode 1 / Mode 2 / Mode 3)
+   ============================================================================ */
+.vm-overview-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.vm-overview-stack[hidden],
+.vm-overview-alt-host[hidden] {
+  display: none !important;
+}
+.vm-overview-alt-host {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.vm-overview-alt-host.mode-fill {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dcp-subheader {
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.56);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+/* Shared WinUI Desktop Detail Key-Value Grid */
+.dt-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--DividerStrokeColorDefaultBrush);
+}
+.dt-kv-grid.is-title-first {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-top: 0;
+  border-top: none;
+}
+.dt-kv-grid.is-title-first .dt-kv-item {
+  padding: 10px 14px;
+  border: 1px solid var(--VmKvWellBorderBrush);
+  border-radius: 6px;
+  background: var(--VmKvWellBrush);
+}
+.dt-kv-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.dt-kv-label {
+  font-size: 11px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.dt-kv-val {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--TextFillColorPrimaryBrush);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dt-kv-title {
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--TextFillColorPrimaryBrush);
+}
+.dt-kv-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.dt-kv-head-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--TextFillColorSecondaryBrush);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.dt-kv-head-copy:hover {
+  background: var(--SubtleFillColorSecondaryBrush);
+  color: var(--TextFillColorPrimaryBrush);
+}
+.dt-kv-multi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 2px;
+  min-width: 0;
+}
+.dt-kv-multi-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.dt-kv-multi-val {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dt-kv-state {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--TextFillColorSecondaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dt-kv-state.is-caution {
+  color: var(--SystemFillColorCautionBrush);
+  font-weight: 500;
+}
+.dt-kv-val.mono {
+  font-family: Consolas, monospace;
+  font-size: 12.5px;
+}
+.dt-copy-link {
+  padding: 2px 5px;
+  margin-left: -5px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-family: Consolas, monospace;
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dt-copy-link:hover {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+.dt-kv-grid.is-2col {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.dt-kv-item.is-wide {
+  grid-column: 1 / -1;
+}
+.dt-copy-link.is-kv-copy {
+  padding: 2px 6px;
+  margin-left: -6px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--TextFillColorSecondaryBrush);
+  justify-content: flex-start;
+  width: fit-content;
+  max-width: 100%;
+}
+.dt-copy-link.is-kv-copy > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dt-copy-link.is-kv-copy:hover {
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.dt-core-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 6px;
+}
+
+/* ---------------- Shared Right Canvas Subheader & Actions (tc-fluent / tc-tiles / tc-cockpit) ---------------- */
+.tc-shell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 188px minmax(0, 1fr);
+  column-gap: 12px;
+  overflow: hidden;
+}
+.tc-shell.tiles-wide {
+  grid-template-columns: 214px minmax(0, 1fr);
+}
+.tc-left-rail {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 2px 6px 0;
+}
+.tc-left-rail.tiles-rail {
+  gap: 7px;
+  padding-right: 4px;
+}
+.tc-rail-section {
+  padding: 8px 10px 3px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--TextFillColorTertiaryBrush);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.tc-rail-section:first-child {
+  padding-top: 2px;
+}
+.tc-rail-divider {
+  height: 1px;
+  margin: 6px 10px 6px 14px;
+  background: var(--DividerStrokeColorDefaultBrush);
+  flex-shrink: 0;
+}
+
+.tc-right-card {
+  min-width: 0;
+  min-height: 0;
+  background: var(--VmCardBrush);
+  border: 1px solid var(--VmStrokeBrush);
+  border-radius: 8px;
+  padding: 13px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tc-canvas-head {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--DividerStrokeColorDefaultBrush);
+}
+.tc-canvas-identity {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.tc-canvas-identity.is-single-line {
+  align-items: center;
+}
+.tc-canvas-identity.is-single-line .tc-head-icon-box {
+  margin-top: 0;
+}
+.tc-head-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  background: var(--SubtleFillColorSecondaryBrush);
+  border: 1px solid var(--DividerStrokeColorDefaultBrush);
+  color: var(--VmAccentBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.tc-canvas-title-wrap {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.tc-canvas-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tc-canvas-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--TextFillColorPrimaryBrush);
+  word-break: keep-all;
+}
+.tc-canvas-title.is-model-title {
+  display: -webkit-box;
+  flex: 1;
+  min-width: 0;
+  font-size: 16px;
+  line-height: 1.32;
+  word-break: normal;
+  overflow-wrap: break-word;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.tc-kind-pill {
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: var(--SubtleFillColorSecondaryBrush);
+  color: var(--TextFillColorSecondaryBrush);
+}
+.tc-canvas-sub {
+  font-size: 12.5px;
+  color: var(--TextFillColorSecondaryBrush);
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.4;
+}
+.tc-canvas-head-right {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.tc-canvas-reading {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+}
+.tc-cfg-icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: var(--ControlFillColorDefaultBrush);
+  color: var(--TextFillColorSecondaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.tc-cfg-icon-btn:hover {
+  background: var(--ControlFillColorSecondaryBrush);
+  color: var(--VmAccentBrush);
+}
+.tc-cfg-icon-btn:active {
+  background: var(--ControlFillColorTertiaryBrush);
+}
+.tc-cfg-icon-btn .fi {
+  font-size: 16px;
+  line-height: 1;
+}
+.tc-canvas-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------------- Final Overview: Win11 波形左栏 × ExHyperV 主题双模式 ---------------- */
+.tc-shell.tm-wide {
+  grid-template-columns: 224px minmax(0, 1fr);
+}
+.tc-shell.tm-wide.tc-compact-rail {
+  grid-template-columns: 196px minmax(0, 1fr);
+}
+.tc-shell.tm-wide.tc-stacked {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  row-gap: 10px;
+}
+.tc-shell.tm-wide.tc-stacked .tc-left-rail.tiles-rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  padding: 0 2px 2px 0;
+  max-height: 146px;
+  overflow-y: auto;
+}
+.tc-shell.tm-wide.tc-stacked .tc-rail-divider {
+  display: none;
+}
+.tc-mid-fit {
+  display: block;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.tmw-item {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  column-gap: 9px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+.tmw-item:hover:not(.selected) {
+  background: var(--SubtleFillColorTertiaryBrush);
+}
+.tmw-item.selected {
+  background: var(--SubtleFillColorSecondaryBrush);
+  border-color: var(--ControlStrokeColorDefaultBrush);
+}
+.tmw-item.accent-mode.selected {
+  background: var(--VmHeaderCheckedBrush);
+  color: var(--VmHeaderForegroundBrush);
+  border-color: transparent;
+}
+.tmw-thumb {
+  width: 52px;
+  height: 46px;
+  border-radius: 3px;
+  border: 1px solid var(--ChartBorderBrush);
+  background: var(--ChartCardBg);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tmw-item.accent-mode.selected .tmw-thumb {
+  --spark-stroke: var(--VmHeaderForegroundBrush);
+  --spark-fill: color-mix(in srgb, var(--VmHeaderForegroundBrush) 20%, transparent);
+  background: color-mix(in srgb, var(--VmHeaderForegroundBrush) 10%, transparent);
+  border-color: color-mix(in srgb, var(--VmHeaderForegroundBrush) 30%, transparent);
+}
+.tmw-thumb svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.tmw-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+.tmw-title {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tmw-item.accent-mode.selected .tmw-title {
+  font-weight: 600;
+}
+.tmw-sub {
+  font-size: 11.5px;
+  color: var(--TextFillColorSecondaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tmw-stat {
+  min-height: 15px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--TextFillColorSecondaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tmw-item.accent-mode.selected .tmw-sub,
+.tmw-item.accent-mode.selected .tmw-stat {
+  color: var(--VmHeaderForegroundBrush);
+  opacity: 0.9;
+}
+
+/* ============================================================================
+   Processor Compute Playground & Right-Panel Toggle Controls
+   ============================================================================ */
+.dcp-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.22);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.dcp-mode-tab {
+  height: 28px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.dcp-mode-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+.dcp-mode-tab.active {
+  background: rgba(76, 194, 255, 0.18);
+  border-color: #4CC2FF;
+  color: #FFFFFF;
+}
+
+.dcp-switch-list {
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dcp-switch-row {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+.dcp-switch-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+.dcp-switch-row.active {
+  color: #FFFFFF;
+  border-color: rgba(76, 194, 255, 0.35);
+}
+.dcp-switch-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dcp-mini-switch {
+  width: 28px;
+  height: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: transparent;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.dcp-mini-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  transform: translateX(0);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.dcp-mini-switch.on {
+  background: #4CC2FF;
+  border-color: #4CC2FF;
+}
+.dcp-mini-switch.on .dcp-mini-thumb {
+  background: #000000;
+  transform: translateX(12px);
+}
+
+.subnav-dirty-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--VmAccentBrush);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.energy-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 12px;
+}
+
+.settings-field-panel.compute-grid-responsive {
+  align-items: stretch;
+  gap: 16px;
+}
+
+.energy-card {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  transition: border-color 0.15s ease, opacity 0.15s ease;
+}
+.energy-card.standard-mode {
+  min-height: 132px;
+}
+.energy-card.compact-head-mode {
+  min-height: 108px;
+}
+.energy-card.is-dirty {
+  border-color: color-mix(in srgb, var(--VmAccentBrush) 50%, var(--CardStrokeColorDefaultBrush));
+}
+.energy-card.is-disabled {
+  opacity: 0.55;
+}
+
+.energy-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.energy-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.energy-mid-val {
+  display: flex;
+  align-items: center;
+}
+
+.energy-val-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.energy-val-inline {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.energy-num-input {
+  min-width: 1.5ch;
+  max-width: 6.5ch;
+  padding: 0 2px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: background-color 0.12s ease;
+}
+.energy-num-input:focus:not(:disabled) {
+  background: var(--ControlFillColorTertiaryBrush);
+}
+.energy-num-input.compact-num {
+  font-size: 22px;
+  text-align: right;
+}
+.energy-num-unit {
+  font-size: 14px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.energy-step-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.energy-step-btn:hover:not(:disabled) {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+.energy-step-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.energy-track-box {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0 2px;
+}
+
+/* Rectangular Energy Bar + Rectangular Slider Block */
+.energy-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  outline: none;
+  cursor: pointer;
+  margin: 0;
+}
+.energy-range:disabled {
+  cursor: default;
+}
+
+/* Variant B: Clean rectangular bar */
+.energy-range.thin {
+  height: 6px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--VmAccentBrush) 0%,
+    var(--VmAccentBrush) var(--energy-pct, 0%),
+    var(--ControlStrokeColorDefaultBrush) var(--energy-pct, 0%),
+    var(--ControlStrokeColorDefaultBrush) 100%
+  );
+}
+
+/* Variant C: Thick rectangular energy trough */
+.energy-range.capsule {
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: linear-gradient(
+    to right,
+    var(--VmAccentBrush) 0%,
+    color-mix(in srgb, var(--VmAccentBrush) 78%, transparent) var(--energy-pct, 0%),
+    var(--ControlFillColorTertiaryBrush) var(--energy-pct, 0%),
+    var(--ControlFillColorTertiaryBrush) 100%
+  );
+}
+
+/* Variant D: Segmented cell energy bar */
+.energy-range.segmented {
+  height: 12px;
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 10px,
+      var(--CardBackgroundFillColorDefaultBrush) 10px,
+      var(--CardBackgroundFillColorDefaultBrush) 12px
+    ),
+    linear-gradient(
+      to right,
+      var(--VmAccentBrush) 0%,
+      var(--VmAccentBrush) var(--energy-pct, 0%),
+      var(--ControlStrokeColorDefaultBrush) var(--energy-pct, 0%),
+      var(--ControlStrokeColorDefaultBrush) 100%
+    );
+}
+
+/* Rectangular Slider Thumb (Slim vertical block) */
+.energy-range.slim-rect::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 9px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--VmAccentBrush);
+  border: 1.5px solid #FFFFFF;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+.energy-range.capsule.slim-rect::-webkit-slider-thumb,
+.energy-range.segmented.slim-rect::-webkit-slider-thumb {
+  width: 10px;
+  height: 22px;
+}
+
+/* Rectangular Slider Thumb (Wide block with center grip line) */
+.energy-range.wide-rect::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 20px;
+  border-radius: 3px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 6px,
+      var(--VmAccentBrush) 6px,
+      var(--VmAccentBrush) 8px,
+      transparent 8px
+    ),
+    var(--SolidBackgroundFillColorQuarternaryBrush);
+  border: 2px solid var(--VmAccentBrush);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  transition: transform 0.1s ease;
+}
+.energy-range.capsule.wide-rect::-webkit-slider-thumb,
+.energy-range.segmented.wide-rect::-webkit-slider-thumb {
+  height: 22px;
+}
+
+.energy-range:not(:disabled)::-webkit-slider-thumb:hover {
+  transform: scaleY(1.08);
+}
+
+/* ============================================================================
+   WinUI3 Energy Slider (based on CapacityMeter in VmDashboardView.Devices.cs:
+   Grid + track Border(CornerRadius 3, Opacity .08) + fill Border(VmHeaderCheckedBrush))
+   plus a re-templated rectangular Thumb.
+   ============================================================================ */
+.winui-energy-slider {
+  --track-h: 14px;
+  --thumb-w: 16px;
+  --thumb-h: 30px;
+  position: relative;
+  height: var(--thumb-h);
+  margin-top: 4px;
+  cursor: pointer;
+  touch-action: none;
+  outline: none;
+}
+.winui-energy-slider.is-jumbo {
+  --track-h: 20px;
+  --thumb-w: 22px;
+  --thumb-h: 38px;
+}
+.winui-energy-slider.mode-fader {
+  --track-h: 24px;
+  --thumb-w: 14px;
+  --thumb-h: 34px;
+}
+.winui-energy-slider.mode-fader.is-jumbo {
+  --track-h: 30px;
+  --thumb-w: 18px;
+  --thumb-h: 42px;
+}
+.winui-energy-slider.mode-cells {
+  --track-h: 16px;
+}
+.winui-energy-slider.mode-cells.is-jumbo {
+  --track-h: 22px;
+}
+.winui-energy-slider.is-disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.winui-energy-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: var(--track-h);
+  transform: translateY(-50%);
+  border-radius: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--TextFillColorPrimaryBrush) 8%, transparent);
+}
+.winui-energy-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: calc(var(--thumb-w) / 2 + var(--energy-ratio, 0) * (100% - var(--thumb-w)));
+  background: var(--VmHeaderCheckedBrush);
+  overflow: hidden;
+  transition: filter 0.14s ease;
+}
+.winui-energy-slider.is-dragging .winui-energy-fill {
+  filter: brightness(1.06);
+}
+.energy-bubble {
+  display: none;
+  position: absolute;
+  bottom: -4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.52);
+  pointer-events: none;
+}
+.winui-energy-slider.is-dragging .energy-bubble {
+  display: block;
+  animation: energyBubbleRise var(--bt, 0.9s) ease-out var(--bd, 0s) infinite;
+}
+.energy-bubble:nth-child(1) { left: 10%; width: 4px; height: 4px; --bt: 0.85s; --bd: 0s; }
+.energy-bubble:nth-child(2) { left: 24%; width: 6px; height: 6px; --bt: 1.05s; --bd: 0.25s; }
+.energy-bubble:nth-child(3) { left: 39%; width: 3px; height: 3px; --bt: 0.75s; --bd: 0.12s; }
+.energy-bubble:nth-child(4) { left: 54%; width: 5px; height: 5px; --bt: 0.95s; --bd: 0.42s; }
+.energy-bubble:nth-child(5) { left: 68%; width: 4px; height: 4px; --bt: 0.88s; --bd: 0.18s; }
+.energy-bubble:nth-child(6) { left: 81%; width: 6px; height: 6px; --bt: 1.1s; --bd: 0.55s; }
+.energy-bubble:nth-child(7) { left: 91%; width: 3.5px; height: 3.5px; --bt: 0.8s; --bd: 0.33s; }
+@keyframes energyBubbleRise {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.6);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  80% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate3d(4px, -26px, 0) scale(1.15);
+    opacity: 0;
+  }
+}
+.winui-energy-cells-overlay {
+  display: none;
+}
+.mode-cells .winui-energy-cells-overlay {
+  display: block;
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 10px,
+    var(--SolidBackgroundFillColorTertiaryBrush) 10px,
+    var(--SolidBackgroundFillColorTertiaryBrush) 13px
+  );
+  pointer-events: none;
+}
+
+.winui-energy-thumb {
+  position: absolute;
+  top: 0;
+  left: calc(var(--energy-ratio, 0) * (100% - var(--thumb-w)));
+  width: var(--thumb-w);
+  height: var(--thumb-h);
+  border-radius: 4px;
+  background: var(--SolidBackgroundFillColorQuarternaryBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  transition: background-color 0.12s ease, transform 0.08s ease;
+}
+.winui-energy-slider.is-disabled .winui-energy-thumb {
+  cursor: default;
+}
+.winui-energy-slider:not(.is-disabled):hover .winui-energy-thumb {
+  background: color-mix(in srgb, var(--SolidBackgroundFillColorQuarternaryBrush) 85%, #ffffff);
+}
+.winui-energy-slider.is-dragging .winui-energy-thumb {
+  cursor: grabbing;
+  transform: scale(1.04);
+}
+.winui-energy-slider:focus-visible .winui-energy-thumb {
+  outline: 2px solid var(--TextFillColorPrimaryBrush);
+  outline-offset: 1px;
+}
+/* Grip: two vertical lines in accent color */
+.thumb-grip {
+  width: 6px;
+  height: 45%;
+  border-left: 2px solid var(--VmAccentBrush);
+  border-right: 2px solid var(--VmAccentBrush);
+}
+.mode-fader .thumb-grip {
+  width: 0;
+  border-right: none;
+  height: 60%;
+}
+
+/* Explicit thumb style overrides (selectable in right panel) */
+.winui-energy-slider.thumb-fader .thumb-grip {
+  width: 0;
+  border-right: none;
+  height: 58%;
+}
+.winui-energy-slider.thumb-double-grip .thumb-grip {
+  width: 6px;
+  height: 48%;
+  border-left: 2px solid var(--VmAccentBrush);
+  border-right: 2px solid var(--VmAccentBrush);
+}
+.winui-energy-slider.thumb-accent-block .winui-energy-thumb {
+  background: var(--VmAccentBrush);
+  border: 1.5px solid color-mix(in srgb, var(--TextFillColorPrimaryBrush) 75%, transparent);
+}
+.winui-energy-slider.thumb-accent-block:not(.is-disabled):hover .winui-energy-thumb {
+  background: color-mix(in srgb, var(--VmAccentBrush) 85%, #ffffff);
+}
+.winui-energy-slider.thumb-accent-block .thumb-grip {
+  width: 0;
+  height: 54%;
+  border-left: 2px solid rgba(0, 0, 0, 0.45);
+  border-right: none;
+}
+.winui-energy-slider.thumb-frosted-glass .winui-energy-thumb {
+  background: color-mix(in srgb, var(--SolidBackgroundFillColorQuarternaryBrush) 52%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid color-mix(in srgb, var(--TextFillColorPrimaryBrush) 35%, transparent);
+}
+.winui-energy-slider.thumb-frosted-glass:not(.is-disabled):hover .winui-energy-thumb {
+  background: color-mix(in srgb, var(--SolidBackgroundFillColorQuarternaryBrush) 70%, transparent);
+}
+.winui-energy-slider.thumb-frosted-glass .thumb-grip {
+  width: 0;
+  height: 50%;
+  border-left: 2px solid color-mix(in srgb, var(--TextFillColorPrimaryBrush) 65%, transparent);
+  border-right: none;
+}
+.winui-energy-slider.thumb-slim-bar {
+  --thumb-w: 12px;
+}
+.winui-energy-slider.thumb-slim-bar.is-jumbo {
+  --thumb-w: 16px;
+}
+.winui-energy-slider.thumb-slim-bar .winui-energy-thumb {
+  border-radius: 4px;
+  background: var(--SolidBackgroundFillColorQuarternaryBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+}
+.winui-energy-slider.thumb-slim-bar:not(.is-disabled):hover .winui-energy-thumb {
+  background: color-mix(in srgb, var(--SolidBackgroundFillColorQuarternaryBrush) 88%, var(--TextFillColorPrimaryBrush));
+  transform: scale(1.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.winui-window[data-theme="light"] .winui-energy-slider.thumb-slim-bar .winui-energy-thumb {
+  background: var(--SolidBackgroundFillColorQuarternaryBrush);
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+}
+.winui-window[data-theme="light"] .winui-energy-slider.thumb-slim-bar:not(.is-disabled):hover .winui-energy-thumb {
+  background: #f5f5f5;
+  border-color: rgba(0, 0, 0, 0.36);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+.winui-energy-slider.thumb-slim-bar .thumb-grip {
+  display: none;
+}
+
+/* Human-readable equivalent hint & live drag tooltip */
+.energy-equiv-text {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.35;
+  color: var(--TextFillColorTertiaryBrush);
+  font-variant-numeric: tabular-nums;
+}
+.winui-energy-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: calc(var(--energy-ratio, 0) * 100%);
+  transform: translate(calc(var(--energy-ratio, 0) * -100%), 4px);
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: var(--SolidBackgroundFillColorQuarternaryBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.38);
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 11.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 20;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  font-variant-numeric: tabular-nums;
+}
+.winui-energy-slider.is-dragging .winui-energy-tooltip {
+  opacity: 1;
+  transform: translate(calc(var(--energy-ratio, 0) * -100%), 0);
+}
+
+/* Segmented weight preset bar (matches energy bar height & minimalism) */
+.weight-tier-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  height: 34px;
+  margin-top: 4px;
+  align-items: center;
+}
+.weight-tier-bar.is-jumbo {
+  height: 42px;
+}
+.weight-tier-btn {
+  height: 24px;
+  border-radius: 3px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: color-mix(in srgb, var(--TextFillColorPrimaryBrush) 8%, transparent);
+  color: var(--TextFillColorSecondaryBrush);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.weight-tier-bar.is-jumbo .weight-tier-btn {
+  height: 30px;
+  font-size: 12.5px;
+}
+.weight-tier-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--TextFillColorPrimaryBrush) 14%, transparent);
+  color: var(--TextFillColorPrimaryBrush);
+}
+.weight-tier-btn.active {
+  background: var(--VmHeaderCheckedBrush);
+  border-color: var(--VmHeaderCheckedBrush);
+  color: var(--VmHeaderForegroundBrush);
+  font-weight: 600;
+}
+
+/* Compute Apply / Revert Button Candidates */
+.compute-rect-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.winui-btn-secondary,
+.winui-btn-accent {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+}
+.winui-btn-secondary {
+  background: var(--ControlFillColorDefaultBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  color: var(--TextFillColorPrimaryBrush);
+}
+.winui-btn-secondary:hover:not(:disabled) {
+  background: var(--ControlFillColorSecondaryBrush);
+}
+.winui-btn-accent {
+  background: var(--VmHeaderCheckedBrush);
+  border: 1px solid var(--VmHeaderCheckedBrush);
+  color: var(--VmHeaderForegroundBrush);
+}
+.winui-btn-accent:hover:not(:disabled) {
+  background: var(--VmHeaderCheckedHoverBrush);
+  border-color: var(--VmHeaderCheckedHoverBrush);
+}
+.winui-btn-secondary:disabled,
+.winui-btn-accent:disabled {
+  opacity: 0.38;
+  cursor: default;
+}
+
+.compute-dirty-bar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--VmCardBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+}
+.compute-dirty-bar.is-dirty {
+  display: flex;
+}
+.compute-dirty-text {
+  font-size: 12.5px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.compute-dirty-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Header icon box: always primary foreground (white in dark mode), never theme accent */
+.tc-head-icon-box {
+  color: var(--TextFillColorPrimaryBrush) !important;
+}
+
+/* Disk bottom KV grid layout options */
+.dt-kv-grid.is-title-first.is-disk-asym {
+  grid-template-columns: 156px minmax(0, 1fr);
+}
+.dt-kv-grid.is-title-first.is-disk-stack {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* ============================================================================
+   Processor -> Instruction Set (指令集能力) Candidates
+   ============================================================================ */
+.isa-grid-2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.isa-grid-3col {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.isa-card {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  padding: 16px 17px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+  transition: border-color 0.14s ease, opacity 0.14s ease;
+}
+
+.isa-card.uniform-2row {
+  min-height: 114px;
+}
+
+.isa-card.uniform-1row {
+  min-height: 68px;
+  padding: 14px 17px;
+  justify-content: center;
+}
+
+.isa-grid-2x2 > .span-2,
+.isa-card.span-2 {
+  grid-column: 1 / -1;
+}
+
+.isa-card.is-disabled {
+  opacity: 0.55;
+}
+.isa-card.is-disabled .isa-pill-track,
+.isa-card.is-disabled .winui-switch,
+.isa-card.is-disabled .isa-num-box,
+.isa-card.is-disabled .winui-textbox {
+  pointer-events: none;
+}
+
+.isa-card.is-arch-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.isa-card.is-arch-disabled .isa-pill-track,
+.isa-card.is-arch-disabled .winui-switch,
+.isa-card.is-arch-disabled .isa-num-box,
+.isa-card.is-arch-disabled .winui-textbox {
+  pointer-events: none;
+}
+
+.isa-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+}
+
+.isa-sub-full {
+  width: 100%;
+  transition: opacity 0.15s ease;
+}
+
+.isa-sub-full.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.isa-header-hint {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  white-space: nowrap;
+}
+.isa-header-hint.is-active {
+  color: var(--VmHeaderCheckedBrush);
+}
+
+/* Unified sunken segmented track (modern WinUI 3 SelectorBar / Segmented style) */
+.isa-pill-track {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: 100%;
+  height: 38px;
+  padding: 3px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-sizing: border-box;
+}
+
+.isa-pill-track.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.isa-pill-track.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.isa-num-box {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.isa-num-input {
+  width: 68px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  outline: none;
+  padding: 0 4px;
+}
+.isa-num-input::placeholder {
+  color: var(--TextFillColorSecondaryBrush);
+  font-weight: 400;
+  font-size: 12.5px;
+}
+
+.isa-num-step {
+  width: 30px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorSecondaryBrush);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.isa-num-step:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--TextFillColorPrimaryBrush);
+}
+.isa-num-step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.isa-pill-track.inline-width {
+  width: 260px;
+}
+
+.topo-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 17px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--CardStrokeColorDefaultBrush);
+  font-size: 13px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-preview-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+}
+.topo-preview-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.topo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.topo-chip b {
+  color: var(--VmHeaderCheckedBrush);
+  font-weight: 700;
+}
+
+.topo-mode-switch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--CardStrokeColorDefaultBrush);
+}
+.topo-mode-switch-label {
+  font-size: 12.5px;
+  color: var(--TextFillColorSecondaryBrush);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topo-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 17px;
+  border-radius: 8px;
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+}
+.topo-summary-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.topo-summary-wmi {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-wmi-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.22);
+  font-family: 'Cascadia Mono', 'Consolas', monospace;
+  font-size: 11.5px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-wmi-tag b {
+  color: var(--TextFillColorPrimaryBrush);
+  font-weight: 600;
+}
+.topo-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 -2px;
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+.topo-right-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.topo-derived-badge {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  white-space: nowrap;
+}
+.topo-derived-badge b {
+  color: var(--TextFillColorPrimaryBrush);
+  font-weight: 600;
+}
+
+/* Interactive Visual Topology Canvas */
+.topo-canvas-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+}
+.topo-slider-card {
+  padding: 9px 12px !important;
+  gap: 6px !important;
+}
+.topo-slider-card .energy-card-head {
+  min-height: 22px;
+}
+.topo-slider-card .energy-num-input.compact-num {
+  font-size: 16px;
+}
+.topo-slider-card .winui-energy-slider {
+  height: 22px;
+}
+.topo-canvas-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.topo-canvas-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.topo-canvas-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+}
+.topo-canvas-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(76, 194, 255, 0.14);
+  color: var(--VmHeaderCheckedBrush);
+  font-size: 12px;
+  font-weight: 600;
+}
+.topo-canvas-smt {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-controls-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.topo-tm-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.topo-tm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-tm-pill b {
+  color: var(--VmHeaderCheckedBrush);
+  font-weight: 600;
+}
+.topo-adv-expander {
+  border-radius: 8px;
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  overflow: hidden;
+}
+.topo-adv-header {
+  width: 100%;
+  min-height: 52px;
+  padding: 0 17px;
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.topo-adv-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+.topo-adv-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topo-adv-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+.topo-adv-sub {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-adv-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 12px;
+}
+.topo-mini-ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 6px 8px 6px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+.topo-mini-label {
+  font-size: 12.5px;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+}
+.topo-mini-stepper {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.topo-mini-step {
+  width: 24px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorSecondaryBrush);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.topo-mini-step:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--TextFillColorPrimaryBrush);
+}
+.topo-mini-step:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.topo-mini-val {
+  min-width: 40px;
+  padding: 0 4px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+}
+.topo-dist-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: rgba(76, 194, 255, 0.06);
+  border: 1px solid rgba(76, 194, 255, 0.22);
+  font-size: 12.5px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-diagram-stage {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  gap: 8px;
+}
+.topo-diagram-stage.is-single {
+  grid-template-columns: 1fr;
+}
+.topo-diagram-stage.is-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.topo-socket-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+.topo-box-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+}
+.topo-box-sub {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--TextFillColorSecondaryBrush);
+}
+.topo-numa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 6px;
+}
+.topo-numa-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  background: rgba(76, 194, 255, 0.05);
+  border-left: 2px solid rgba(76, 194, 255, 0.45);
+}
+.topo-l3-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.topo-l3-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid rgba(255, 255, 255, 0.2);
+}
+.topo-cores-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.topo-core-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  color: var(--TextFillColorPrimaryBrush);
+  font-family: 'Cascadia Mono', 'Consolas', monospace;
+}
+.topo-core-chip.is-smt {
+  padding: 0 4px 0 6px;
+  gap: 4px;
+  background: rgba(76, 194, 255, 0.1);
+  border-color: rgba(76, 194, 255, 0.28);
+}
+.topo-thread-tag {
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 10px;
+  color: var(--VmHeaderCheckedBrush);
+}
+
+.isa-pill-btn {
+  height: 100%;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--TextFillColorSecondaryBrush);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.isa-pill-btn:hover:not(:disabled):not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--TextFillColorPrimaryBrush);
+}
+.isa-pill-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Neutral active state for 'Off' in 3-segment mode */
+.isa-pill-btn.active-neutral {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--TextFillColorPrimaryBrush);
+  font-weight: 600;
+}
+
+/* Accent active state ONLY when migration is actually enabled */
+.isa-pill-btn.active {
+  background: var(--VmHeaderCheckedBrush);
+  border-color: var(--VmHeaderCheckedBrush);
+  color: var(--VmHeaderForegroundBrush);
+  font-weight: 600;
+}
+
+/* When migration switch is OFF, never glow bright blue */
+.is-disabled .isa-pill-btn.active,
+.isa-pill-btn:disabled.active {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--TextFillColorSecondaryBrush);
+  font-weight: 400;
+}
+
+.isa-off-banner {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+  color: var(--TextFillColorSecondaryBrush);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.isa-inline-migration {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.isa-inline-migration-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.isa-inline-migration-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: opacity 0.15s ease;
+}
+.isa-inline-migration-right.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* ============================================================================
+   Unified Device Workbench & GPU-PV Candidate Layouts (Restrained WinUI 3)
+   ============================================================================ */
+.dev-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 18px;
+}
+
+.dev-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.dev-toolbar.is-split {
+  justify-content: space-between;
+}
+
+.dev-toolbar-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dev-toolbar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.dev-toolbar-sub {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.dev-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dev-empty-line {
+  padding: 28px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.dev-empty-row {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dev-status-muted {
+  font-size: 12.5px;
+  color: var(--TextFillColorSecondaryBrush);
+  white-space: nowrap;
+}
+
+.dev-status-caution {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--SystemFillColorCautionBrush);
+  white-space: nowrap;
+}
+
+.dev-env-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Candidate A: Classic WinUI Expander */
+.dev-a-kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dev-a-kv-row {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr) auto;
+  column-gap: 16px;
+  align-items: center;
+  min-height: 22px;
+  font-size: 13px;
+}
+
+.dev-a-kv-lbl {
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.dev-a-kv-val {
+  color: var(--TextFillColorPrimaryBrush);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Candidate B: Overview-aligned 2-col KV tiles */
+.dev-b-card {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dev-b-head {
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.dev-b-head:hover {
+  background: var(--SubtleFillColorTertiaryBrush);
+}
+
+.dev-b-card.is-expanded > .dev-b-head {
+  border-bottom: 1px solid var(--DividerStrokeColorDefaultBrush);
+}
+
+.dev-b-identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dev-b-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+  line-height: 1.3;
+}
+
+.dev-b-sub {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dev-b-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dev-b-chevron {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--TextFillColorSecondaryBrush);
+  font-size: 12px;
+}
+
+.dev-b-body {
+  padding: 12px 16px 14px 16px;
+}
+
+/* Candidate C: Compact Multi-Device Icon Actions + Split Bar */
+.dev-c-card {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dev-c-head {
+  min-height: 50px;
+  padding: 8px 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.dev-c-head:hover {
+  background: var(--SubtleFillColorTertiaryBrush);
+}
+
+.dev-c-card.is-expanded > .dev-c-head {
+  border-bottom: 1px solid var(--DividerStrokeColorDefaultBrush);
+}
+
+.dev-c-title-inline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dev-c-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dev-c-spec {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  white-space: nowrap;
+}
+
+.dev-c-kv-4col {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 14px;
+  padding: 11px 14px 8px 14px;
+}
+
+.dev-c-kv-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dev-c-kv-lbl {
+  font-size: 11.5px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.dev-c-kv-val {
+  font-size: 13px;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dev-c-path-row {
+  margin: 0 14px 10px 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--DividerStrokeColorDefaultBrush);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 10px;
+  align-items: center;
+  font-size: 12px;
+}
+
+.dev-c-env-bar {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  align-items: center;
+}
+
+.dev-c-env-cell {
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dev-c-env-sep {
+  width: 1px;
+  height: 26px;
+  background: var(--DividerStrokeColorDefaultBrush);
+}
+
+/* Candidate D: Open-canvas Airy Card + Collapsed Strategy Expander */
+.dev-d-card {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.dev-d-head {
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+}
+
+.dev-d-body {
+  padding: 0 18px 15px 18px;
+}
+
+.dev-d-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--DividerStrokeColorDefaultBrush);
+}
+
+.dev-d-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dev-d-field.is-wide {
+  grid-column: 1 / -1;
+}
+
+.dev-d-lbl {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dev-d-val {
+  font-size: 13.5px;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Clean InfoBar for Stale Repair */
+.dev-infobar {
+  background: var(--SystemFillColorCautionBackgroundBrush);
+  border: 1px solid rgba(252, 225, 0, 0.28);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.winui-window[data-theme="light"] .dev-infobar {
+  border-color: rgba(157, 93, 0, 0.30);
+}
+
+.dev-infobar-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dev-infobar-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dev-infobar-icon {
+  font-size: 15px;
+  margin-top: 2px;
+  color: var(--SystemFillColorCautionBrush);
+  flex-shrink: 0;
+}
+
+.dev-infobar-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.dev-infobar-desc {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Clean Picker & Deployment Flow (Restrained WinUI 3) */
+.dev-subhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dev-subhead-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dev-back-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: var(--ControlFillColorDefaultBrush);
+  color: var(--TextFillColorPrimaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.dev-back-btn:hover {
+  background: var(--ControlFillColorSecondaryBrush);
+}
+
+.dev-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dev-picker-row {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dev-picker-row:hover:not(.is-disabled) {
+  background: var(--SubtleFillColorTertiaryBrush);
+}
+
+.dev-picker-row.is-selected {
+  border-color: var(--VmAccentBrush);
+  background: rgba(var(--VmAccentRgb), 0.08);
+}
+
+.dev-picker-row.is-disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.dev-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--TextFillColorTertiaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.is-selected > .dev-radio {
+  border-color: var(--VmAccentBrush);
+}
+
+.is-selected > .dev-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--VmAccentBrush);
+}
+
+.dev-step-box {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 6px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dev-step-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.dev-step-cell {
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--SubtleFillColorTertiaryBrush);
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dev-step-cell.is-active {
+  border-color: var(--VmAccentBrush);
+}
+
+.dev-step-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--TextFillColorPrimaryBrush);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dev-step-sub {
+  font-size: 11px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.dev-decision-box {
+  background: var(--CardBackgroundFillColorDefaultBrush);
+  border: 1px solid var(--CardStrokeColorDefaultBrush);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dev-ssh-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+}
+
+.dev-field-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dev-field-col.span-2 {
+  grid-column: 1 / -1;
+}
+
+.dev-field-lbl {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.dev-action-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ==================== HostPage Prototype (Task Manager + Core Tabs) ==================== */
+.host-page-root {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.host-pagetabs {
+  margin: 12px 16px 8px 16px;
+}
+
+.host-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.host-exp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.host-exp-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.host-exp-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.host-exp-muted {
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.host-inline-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.host-mono {
+  font-family: Consolas, monospace;
+  font-size: 12px;
+  color: var(--TextFillColorSecondaryBrush);
+  word-break: break-all;
+}
+
+.host-span-2 {
+  grid-column: 1 / -1;
+}
+
+.host-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--DividerStrokeColorDefaultBrush);
+}
+
+.host-segmented {
+  display: inline-flex;
+  width: fit-content;
+  background: var(--ControlFillColorDefaultBrush);
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.host-seg-btn {
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorSecondaryBrush);
+  font-size: 13px;
+  padding: 5px 12px;
+  border-radius: 4px;
+}
+
+.host-seg-btn.active {
+  background: var(--SubtleFillColorSecondaryBrush);
+  color: var(--TextFillColorPrimaryBrush);
+  font-weight: 600;
+}
+
+.host-path-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.host-path-row .winui-textbox {
+  flex: 1;
+}
+
+.host-mac-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.host-mac-input {
+  width: 176px;
+  font-family: Consolas, monospace;
+  text-align: center;
+}
+
+.host-mac-arrow {
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.winui-switch.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+

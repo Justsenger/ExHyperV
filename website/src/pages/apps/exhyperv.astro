@@ -1,0 +1,157 @@
+---
+import WinUiWorkbench from '../../components/ui-design/WinUiWorkbench.astro';
+import '../../win11-shell/win11-tokens.css';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ExHyperV</title>
+    <script is:inline>
+      (function () {
+        document.documentElement.classList.add('winui-hydrating');
+        var theme = new URLSearchParams(window.location.search).get('theme');
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.background = theme === 'light' ? '#F3F3F3' : '#202020';
+          document.documentElement.style.colorScheme = theme;
+        }
+        window.setTimeout(function () {
+          document.documentElement.classList.remove('winui-hydrating');
+        }, 2500);
+      })();
+    </script>
+  </head>
+  <body>
+    <WinUiWorkbench />
+
+    <script is:inline>
+      (function () {
+        function applyTheme(nextTheme) {
+          var normalized = nextTheme === 'light' ? 'light' : 'dark';
+          document.documentElement.style.background = normalized === 'light' ? '#F3F3F3' : '#202020';
+          if (document.body) {
+            document.body.style.background = normalized === 'light' ? '#F3F3F3' : '#202020';
+          }
+          var winEl = document.getElementById('winuiWindow');
+          if (winEl) {
+            winEl.setAttribute('data-theme', normalized);
+          }
+          document.documentElement.style.colorScheme = normalized;
+          var picker = document.getElementById('settingsThemePicker');
+          if (picker && picker.value !== normalized) {
+            picker.value = normalized;
+            picker.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+
+        var params = new URLSearchParams(window.location.search);
+        var initialTheme = params.get('theme');
+        if (initialTheme === 'light' || initialTheme === 'dark') {
+          applyTheme(initialTheme);
+        }
+
+        window.addEventListener('message', function (event) {
+          if (event.origin !== window.location.origin) return;
+          if (event.data && event.data.type === 'w11-theme') {
+            applyTheme(event.data.theme);
+          }
+        });
+
+        window.addEventListener(
+          'contextmenu',
+          function (e) {
+            var target = e.target;
+            if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+            e.preventDefault();
+          },
+          { capture: true }
+        );
+      })();
+    </script>
+
+    <style is:global>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #202020;
+        font-family: var(--win-font-sans);
+        font-size: 14px;
+        -webkit-touch-callout: none;
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        color: inherit;
+        cursor: pointer;
+      }
+
+      /* 嵌入桌面窗口时剥离官网页面外边距、独立标题栏与设计调参面板 */
+      .ui-workbench-page {
+        width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+      }
+
+      .winui-window {
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        max-width: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        transform: none !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        z-index: 1 !important;
+      }
+
+      .winui-navview {
+        height: 100% !important;
+        border-radius: 0 !important;
+      }
+
+      .winui-titlebar,
+      .win-resize-handle,
+      .design-candidates-panel {
+        display: none !important;
+      }
+
+      html[data-theme='light'],
+      html[data-theme='light'] body {
+        background: #F3F3F3;
+      }
+
+      html.winui-hydrating .winui-window {
+        opacity: 0 !important;
+        pointer-events: none !important;
+      }
+    </style>
+  </body>
+</html>
