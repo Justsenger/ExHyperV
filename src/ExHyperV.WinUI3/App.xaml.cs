@@ -1,3 +1,4 @@
+using ExHyperV.WinUI3.Localization;
 using ExHyperV.WinUI3.UI.Shell;
 using ExHyperV.WinUI3.UI.Shared;
 using Microsoft.UI.Xaml;
@@ -10,12 +11,13 @@ public partial class App : Microsoft.UI.Xaml.Application
     partial void ConfigureProduct(ref Composition.ProductConfiguration product);
     private MainWindow? window;
     internal Microsoft.UI.WindowId MainWindowId => window?.AppWindow.Id
-        ?? throw new InvalidOperationException("主窗口尚未创建。");
+        ?? throw new InvalidOperationException(L10n.Get("Main_WindowNotCreated"));
 
     internal AppAppearance Appearance { get; private set; } = null!;
 
     public App()
     {
+        L10n.ApplyLanguage(AppearanceSettings.Load().Language);
         InitializeComponent();
     }
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Xaml;
 using Windows.UI;
 
@@ -10,6 +11,7 @@ internal sealed record AppearanceSettings
     public ElementTheme Theme { get; init; } = ElementTheme.Default;
     public bool AccentEnabled { get; init; } = true;
     public string AccentColor { get; init; } = "#4CC2FF";
+    public string Language { get; init; } = "system";
 
     private static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -22,7 +24,7 @@ internal sealed record AppearanceSettings
             if (!File.Exists(FilePath)) return new();
             var value = JsonSerializer.Deserialize<AppearanceSettings>(File.ReadAllText(FilePath));
             if (value == null || !Enum.IsDefined(value.Theme) || !TryParseColor(value.AccentColor, out _)) return new();
-            return value;
+            return value with { Language = L10n.NormalizePreference(value.Language) };
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
@@ -43,7 +45,7 @@ internal sealed record AppearanceSettings
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return "外观已在本次运行中生效，但未能保存：" + exception.Message;
+            return L10n.Format("Settings_AppearanceSaveFailed", exception.Message);
         }
         finally
         {

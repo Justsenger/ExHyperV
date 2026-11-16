@@ -1,3 +1,4 @@
+using ExHyperV.WinUI3.Localization;
 using ExHyperV.WinUI3.UI.Pages.Host;
 using ExHyperV.WinUI3.UI.Pages.Settings;
 using ExHyperV.WinUI3.UI.Pages.VirtualMachines;
@@ -16,6 +17,7 @@ public sealed partial class MainWindow : Window
     private bool closeAfterCleanup;
     private bool cleanupInProgress;
     private bool initialSizeApplied;
+    private bool initialPaneClosed;
     private XamlRoot? titleBarRoot;
     private readonly ThemeSettings themeSettings;
     private bool restoringNavigation;
@@ -46,7 +48,7 @@ public sealed partial class MainWindow : Window
         foreach (var page in ((App)Application.Current).Product.Pages)
         {
             if (string.IsNullOrWhiteSpace(page.Id) || string.IsNullOrWhiteSpace(page.Title) || page.Create is null)
-                throw new ArgumentException("产品页面需要有效的标识、名称和创建函数。");
+                throw new ArgumentException(L10n.Get("Main_InvalidProductPage"));
             var route = "product." + page.Id;
             productPages.Add(route, page);
             Navigation.MenuItems.Add(new NavigationViewItem
@@ -55,9 +57,17 @@ public sealed partial class MainWindow : Window
                 Icon = new FontIcon { Glyph = page.Glyph, FontSize = 18 }
             });
         }
+        ApplyNavigationLocalization();
         Navigation.SelectedItem = Navigation.MenuItems[0];
         AppWindow.Closing += OnClosing;
         Closed += OnClosed;
+    }
+
+    private void ApplyNavigationLocalization()
+    {
+        NavVirtualMachines.Content = L10n.Get("Nav_VirtualMachines");
+        NavHost.Content = L10n.Get("Nav_Host");
+        NavSettings.Content = L10n.Get("Nav_Settings");
     }
 
     private void OnRootLoaded(object sender, RoutedEventArgs args)
@@ -74,10 +84,12 @@ public sealed partial class MainWindow : Window
             initialSizeApplied = true;
             double scale = Root.XamlRoot?.RasterizationScale ?? 1;
             var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary).WorkArea;
-            int width = Math.Min((int)Math.Round(1100 * scale), Math.Max(320, area.Width - (int)(32 * scale)));
+            int width = Math.Min((int)Math.Round(1140 * scale), Math.Max(320, area.Width - (int)(32 * scale)));
             int height = Math.Min((int)Math.Round(800 * scale), Math.Max(240, area.Height - (int)(32 * scale)));
             AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(
                 area.X + (area.Width - width) / 2, area.Y + (area.Height - height) / 2, width, height));
+            Navigation.IsPaneOpen = false;
+            Root.DispatcherQueue.TryEnqueue(() => Navigation.IsPaneOpen = false);
         }
         UpdateTitleBar();
     }
@@ -91,6 +103,7 @@ public sealed partial class MainWindow : Window
     {
         Root.RequestedTheme = ((App)Application.Current).Appearance.Settings.Theme;
         ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast);
+        ApplyNavigationLocalization();
     }
     private void OnSystemThemeChanged(ThemeSettings sender, object args) => Root.DispatcherQueue.TryEnqueue(() =>
         ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast));
@@ -100,7 +113,14 @@ public sealed partial class MainWindow : Window
         => TitleContent.Opacity = args.WindowActivationState == WindowActivationState.Deactivated ? .55 : 1;
 
     private void OnNavigationDisplayModeChanged(NavigationView sender, NavigationViewDisplayModeChangedEventArgs args)
-        => UpdateNavigationContentInset();
+    {
+        if (!initialPaneClosed && args.DisplayMode == NavigationViewDisplayMode.Expanded)
+        {
+            initialPaneClosed = true;
+            sender.IsPaneOpen = false;
+        }
+        UpdateNavigationContentInset();
+    }
 
     private void UpdateNavigationContentInset()
     {
@@ -219,7 +239,7 @@ public sealed partial class MainWindow : Window
             Root.IsHitTestVisible = true;
             Navigation.IsEnabled = true;
             cleanupInProgress = false;
-            var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, Title = "尚未安全结束", Content = exception.Message, CloseButtonText = "返回处理" };
+            var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, Title = L10n.Get("Main_CloseFailedTitle"), Content = CoreMessageResolver.ResolveException(exception), CloseButtonText = L10n.Get("Main_CloseFailedButton") };
             await dialog.ShowAsync();
         }
     }

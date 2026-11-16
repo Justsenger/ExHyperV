@@ -9,7 +9,11 @@
             <SolidColorBrush x:Key="VmStrokeBrush" Color="#19000000"/>
             <SolidColorBrush x:Key="VmBadgeBrush" Color="#08FFFFFF"/>
             <SolidColorBrush x:Key="VmDeviceBrush" Color="#05FFFFFF"/>
+            <SolidColorBrush x:Key="VmKvWellBrush" Color="#09FFFFFF"/>
+            <SolidColorBrush x:Key="VmKvWellBorderBrush" Color="#12FFFFFF"/>
             <SolidColorBrush x:Key="VmAccentBrush" Color="#287BB1"/>
+            <SolidColorBrush x:Key="SystemFillColorSuccessBackgroundBrush" Color="#EB183A24"/>
+            <SolidColorBrush x:Key="InfoBarSuccessSeverityBackgroundBrush" Color="#EB183A24"/>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Light">
             <SolidColorBrush x:Key="VmSurfaceBrush" Color="#80FFFFFF"/>
@@ -19,6 +23,8 @@
             <SolidColorBrush x:Key="VmStrokeBrush" Color="#0F000000"/>
             <SolidColorBrush x:Key="VmBadgeBrush" Color="#05000000"/>
             <SolidColorBrush x:Key="VmDeviceBrush" Color="#03000000"/>
+            <SolidColorBrush x:Key="VmKvWellBrush" Color="#06000000"/>
+            <SolidColorBrush x:Key="VmKvWellBorderBrush" Color="#10000000"/>
             <SolidColorBrush x:Key="VmAccentBrush" Color="#0067C0"/>
         </ResourceDictionary>
         <ResourceDictionary x:Key="HighContrast">
@@ -29,6 +35,8 @@
             <SolidColorBrush x:Key="VmStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}"/>
             <SolidColorBrush x:Key="VmBadgeBrush" Color="{ThemeResource SystemColorWindowColor}"/>
             <SolidColorBrush x:Key="VmDeviceBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+            <SolidColorBrush x:Key="VmKvWellBrush" Color="{ThemeResource SystemColorWindowColor}"/>
+            <SolidColorBrush x:Key="VmKvWellBorderBrush" Color="{ThemeResource SystemColorWindowTextColor}"/>
             <SolidColorBrush x:Key="VmAccentBrush" Color="{ThemeResource SystemColorHighlightColor}"/>
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
@@ -90,7 +98,7 @@
                     <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="Hover.Opacity" Value="1"/><Setter Target="Presenter.Opacity" Value="0.65"/></VisualState.Setters></VisualState>
                     <VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="Presenter.Opacity" Value="0.4"/></VisualState.Setters></VisualState>
                 </VisualStateGroup></VisualStateManager.VisualStateGroups>
-                <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}"/>
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"/>
                 <Border x:Name="Hover" Background="#16888888" Opacity="0" CornerRadius="{TemplateBinding CornerRadius}"/>
                 <ContentPresenter x:Name="Presenter" Content="{TemplateBinding Content}" Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"/>
             </Grid>

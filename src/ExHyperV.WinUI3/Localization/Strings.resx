@@ -1,0 +1,1651 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Common_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Common_Revert" xml:space="preserve">
+    <value>Revert</value>
+  </data>
+  <data name="Common_Applied" xml:space="preserve">
+    <value>Applied</value>
+  </data>
+  <data name="Common_Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Common_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Common_Disable" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Common_Enable" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="Common_On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Common_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common_Confirm" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Common_Unavailable" xml:space="preserve">
+    <value>Not available</value>
+  </data>
+  <data name="Action_RefreshStatus" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Action_ApplyPageChanges" xml:space="preserve">
+    <value>Apply changes</value>
+  </data>
+  <data name="Action_RevertPageChanges" xml:space="preserve">
+    <value>Revert changes</value>
+  </data>
+  <data name="Action_ViewDetails" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Action_CopyAll" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Dialog_ErrorDetailsTitle" xml:space="preserve">
+    <value>Error details</value>
+  </data>
+  <data name="Common_ListSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
+  <data name="Nav_VirtualMachines" xml:space="preserve">
+    <value>Virtual Machines</value>
+  </data>
+  <data name="Nav_Host" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Nav_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Main_WindowNotCreated" xml:space="preserve">
+    <value>Main window has not been created yet.</value>
+  </data>
+  <data name="Main_InvalidProductPage" xml:space="preserve">
+    <value>Product pages require valid Id, Title, and Create delegate.</value>
+  </data>
+  <data name="Main_CloseFailedTitle" xml:space="preserve">
+    <value>Not safely closed</value>
+  </data>
+  <data name="Main_CloseFailedButton" xml:space="preserve">
+    <value>Go back</value>
+  </data>
+  <data name="Host_Title" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Host_QueryErrorTitle" xml:space="preserve">
+    <value>Unable to read host info</value>
+  </data>
+  <data name="Host_Os" xml:space="preserve">
+    <value>Operating System</value>
+  </data>
+  <data name="Host_Processor" xml:space="preserve">
+    <value>Processor</value>
+  </data>
+  <data name="Host_Arch" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="Host_Memory" xml:space="preserve">
+    <value>Physical Memory</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>App Settings</value>
+  </data>
+  <data name="Settings_Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="Settings_Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Settings_Theme_System" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Settings_Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Settings_Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Settings_Accent" xml:space="preserve">
+    <value>Accent color</value>
+  </data>
+  <data name="Settings_CustomColor" xml:space="preserve">
+    <value>Custom color</value>
+  </data>
+  <data name="Settings_ResetColor" xml:space="preserve">
+    <value>Reset to default blue</value>
+  </data>
+  <data name="Settings_ColorHint" xml:space="preserve">
+    <value>Expanded monitoring cards use the accent color; gray when off.</value>
+  </data>
+  <data name="Settings_ExpandedState" xml:space="preserve">
+    <value>Expanded state</value>
+  </data>
+  <data name="Settings_Gray" xml:space="preserve">
+    <value>Gray</value>
+  </data>
+  <data name="Settings_Selected" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+  <data name="Settings_Unselected" xml:space="preserve">
+    <value>Not selected</value>
+  </data>
+  <data name="Settings_ColorPaletteName" xml:space="preserve">
+    <value>Accent swatches</value>
+  </data>
+  <data name="Settings_Color_Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Settings_Color_Purple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="Settings_Color_Pink" xml:space="preserve">
+    <value>Pink</value>
+  </data>
+  <data name="Settings_Color_Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Settings_Color_Yellow" xml:space="preserve">
+    <value>Yellow</value>
+  </data>
+  <data name="Settings_Color_Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Settings_Color_Cyan" xml:space="preserve">
+    <value>Cyan</value>
+  </data>
+  <data name="Settings_LanguageGroup" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Display language</value>
+  </data>
+  <data name="Settings_Language_System" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Settings_Language_ZhCn" xml:space="preserve">
+    <value>简体中文</value>
+  </data>
+  <data name="Settings_Language_En" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Settings_Language_RestartHint" xml:space="preserve">
+    <value>Language preference saved. Restart the app so every page updates.</value>
+  </data>
+  <data name="Settings_AppearanceSaveFailed" xml:space="preserve">
+    <value>Appearance applied for this session, but could not be saved: {0}</value>
+  </data>
+  <data name="Cond_PoweredOff" xml:space="preserve">
+    <value>Shut down the VM to edit</value>
+  </data>
+  <data name="Cond_DynRamStartup" xml:space="preserve">
+    <value>Shut down the VM to edit startup memory while dynamic memory is enabled</value>
+  </data>
+  <data name="Cond_HostSettingMissing" xml:space="preserve">
+    <value>Not supported on this host OS or hardware</value>
+  </data>
+  <data name="Cond_UnsupportedVmVersion" xml:space="preserve">
+    <value>Not supported by this VM configuration version</value>
+  </data>
+  <data name="Cond_RequiresX64" xml:space="preserve">
+    <value>Requires an x64 processor</value>
+  </data>
+  <data name="Cond_RequiresArm64" xml:space="preserve">
+    <value>Requires an ARM64 processor</value>
+  </data>
+  <data name="Cond_RequiresIntel" xml:space="preserve">
+    <value>Requires an Intel processor</value>
+  </data>
+  <data name="Cond_RequiresHardwareIsolation" xml:space="preserve">
+    <value>Host lacks hardware isolation support</value>
+  </data>
+  <data name="Cond_RequiresPerfmonPmu" xml:space="preserve">
+    <value>Enable Hardware Performance Counters (PMU) first</value>
+  </data>
+  <data name="Cond_UnknownSetting" xml:space="preserve">
+    <value>Unsupported setting</value>
+  </data>
+  <data name="Cond_DisabledLine" xml:space="preserve">
+    <value>Unavailable now: {0}</value>
+  </data>
+  <data name="Err_VmmsCrashedCxlRecovered" xml:space="preserve">
+    <value>Failed to enable CXL: not supported on this host.</value>
+  </data>
+  <data name="Err_VmmsCrashedRecovered" xml:space="preserve">
+    <value>Changes not applied: the Hyper-V service stopped unexpectedly.</value>
+  </data>
+  <data name="Err_VmmsCrashedVnumaUnrestored" xml:space="preserve">
+    <value>Changes not applied, and virtual NUMA could not be restored. Refresh status.</value>
+  </data>
+  <data name="Err_VmmsRecoveryFailed" xml:space="preserve">
+    <value>Hyper-V service stopped. Check host services and refresh.</value>
+  </data>
+  <data name="Err_VmmsRecoveryFailedWithDetail" xml:space="preserve">
+    <value>Hyper-V service stopped: {0}</value>
+  </data>
+  <data name="Err_VmmsRecoveredOutcomeUnknown" xml:space="preserve">
+    <value>The Hyper-V service was interrupted and the outcome could not be confirmed.</value>
+  </data>
+  <data name="Err_VmmsUnavailable" xml:space="preserve">
+    <value>Hyper-V service is temporarily unavailable. Refresh and try again.</value>
+  </data>
+  <data name="Err_AccessDenied" xml:space="preserve">
+    <value>Access denied. Run as administrator and try again.</value>
+  </data>
+  <data name="Err_NotFound" xml:space="preserve">
+    <value>VM or configuration not found. Refresh and try again.</value>
+  </data>
+  <data name="Err_Unsupported" xml:space="preserve">
+    <value>This setting is not supported by this host OS or hardware.</value>
+  </data>
+  <data name="Err_InvalidState" xml:space="preserve">
+    <value>The VM's current power state does not allow this operation.</value>
+  </data>
+  <data name="Err_InvalidParameter" xml:space="preserve">
+    <value>Invalid parameter or host constraint not met.</value>
+  </data>
+  <data name="Err_TimedOut" xml:space="preserve">
+    <value>Timed out waiting for Hyper-V. Refresh to verify current state.</value>
+  </data>
+  <data name="Err_Cancelled" xml:space="preserve">
+    <value>Stopped waiting for completion. Refresh to verify current state.</value>
+  </data>
+  <data name="Err_MethodFailed" xml:space="preserve">
+    <value>Failed to apply setting in Hyper-V. Refresh to check state.</value>
+  </data>
+  <data name="Err_PartialVnumaDisable" xml:space="preserve">
+    <value>Virtual NUMA was disabled, but memory changes failed: {0}</value>
+  </data>
+  <data name="Err_PartialVnumaRestore" xml:space="preserve">
+    <value>Memory updated, but restoring virtual NUMA failed: {0}</value>
+  </data>
+  <data name="Err_ReadBackUnavailable" xml:space="preserve">
+    <value>Changes submitted, but readback check failed. Refresh to verify.</value>
+  </data>
+  <data name="Err_ReadBackMismatch" xml:space="preserve">
+    <value>{0} read back as {1} (expected {2}). Refresh to verify.</value>
+  </data>
+  <data name="Err_InsufficientMemory" xml:space="preserve">
+    <value>Not enough free host memory for this operation. Lower VM memory or free up host RAM.</value>
+  </data>
+  <data name="Err_InsufficientMemoryWithSize" xml:space="preserve">
+    <value>Failed to start VM: not enough free host memory (requires {0} MiB). Lower startup memory or free up host RAM.</value>
+  </data>
+  <data name="Err_FileInUse" xml:space="preserve">
+    <value>A virtual disk or image file required by this VM is currently in use by another process.</value>
+  </data>
+  <data name="Err_FileNotFound" xml:space="preserve">
+    <value>A disk, image, or configuration file required by this VM could not be found.</value>
+  </data>
+  <data name="Err_DiskFull" xml:space="preserve">
+    <value>Not enough free disk space on the host to complete this operation.</value>
+  </data>
+  <data name="Err_DifferencingParentNotFound" xml:space="preserve">
+    <value>Virtual disk differencing chain is broken: its parent virtual hard disk could not be found.</value>
+  </data>
+  <data name="Err_VirtualSwitchNotFound" xml:space="preserve">
+    <value>A virtual switch bound to this VM's network adapter no longer exists. Update the network adapter settings and try again.</value>
+  </data>
+  <data name="Err_StartFailedProcessorTopology" xml:space="preserve">
+    <value>Failed to start VM: {0} configured vCPUs exceed the host's {1} logical processors.</value>
+  </data>
+  <data name="Err_RuntimeMemoryResizeFailed" xml:space="preserve">
+    <value>Failed to resize memory while running: make sure the guest OS has finished booting and supports hot memory resize, or shut down the VM first.</value>
+  </data>
+  <data name="Err_StartFailedGen1OnArm64" xml:space="preserve">
+    <value>Cannot start a Generation 1 VM on an ARM64 host (Virtual BIOS firmware is not available on ARM64).</value>
+  </data>
+  <data name="Err_StartUnsupportedWithSuspects" xml:space="preserve">
+    <value>Failed to start VM: this host does not support active VM setting(s): {0}. Turn them off and try again.</value>
+  </data>
+  <data name="Err_StartFailedUnsupported" xml:space="preserve">
+    <value>Failed to start VM: one or more settings or devices are not supported on this host.</value>
+  </data>
+  <data name="Suspect_SGX" xml:space="preserve">
+    <value>SGX</value>
+  </data>
+  <data name="Suspect_CXL" xml:space="preserve">
+    <value>CXL memory expansion</value>
+  </data>
+  <data name="Suspect_HugePages1Gb" xml:space="preserve">
+    <value>Huge backing pages (1 GB)</value>
+  </data>
+  <data name="Suspect_MemEncryption" xml:space="preserve">
+    <value>Always-on memory encryption</value>
+  </data>
+  <data name="Suspect_IntelPerfmon" xml:space="preserve">
+    <value>Intel hardware performance counters</value>
+  </data>
+  <data name="Suspect_HwIsolation" xml:space="preserve">
+    <value>Hardware isolation extensions</value>
+  </data>
+  <data name="Suspect_ApicMode" xml:space="preserve">
+    <value>x64 APIC interrupt mode</value>
+  </data>
+  <data name="Suspect_LpiMode" xml:space="preserve">
+    <value>ARM64 LPI interrupt mode</value>
+  </data>
+  <data name="Suspect_NestedVirt" xml:space="preserve">
+    <value>Nested virtualization</value>
+  </data>
+  <data name="Err_GenericDefault" xml:space="preserve">
+    <value>Operation could not be completed.</value>
+  </data>
+  <data name="Err_ReloadFailed" xml:space="preserve">
+    <value>Failed to reload settings: {0}</value>
+  </data>
+  <data name="Err_UncertainLock" xml:space="preserve">
+    <value>Previous operation outcome is unconfirmed; editing is paused until refreshed.</value>
+  </data>
+  <data name="Err_UncertainAfterFail" xml:space="preserve">
+    <value>{0}
+Editing is paused; refresh status first.</value>
+  </data>
+  <data name="Err_PartialReadUnavailable" xml:space="preserve">
+    <value>Some settings could not be read and are disabled. Refresh to retry.</value>
+  </data>
+  <data name="Err_NoValidData" xml:space="preserve">
+    <value>No valid data returned.</value>
+  </data>
+  <data name="SettingsView_VmNotFound" xml:space="preserve">
+    <value>VM not found.</value>
+  </data>
+  <data name="SettingsView_LeavePending" xml:space="preserve">
+    <value>{0}
+View kept open so you can review before leaving.</value>
+  </data>
+  <data name="SettingsView_ReadbackSuffix" xml:space="preserve">
+    <value>{0}
+Reload failed: {1}</value>
+  </data>
+  <data name="SettingsView_InfoAriaSuffix" xml:space="preserve">
+    <value>{0} info</value>
+  </data>
+  <data name="VmList_SearchPlaceholder" xml:space="preserve">
+    <value>Search VMs...</value>
+  </data>
+  <data name="VmList_SearchAria" xml:space="preserve">
+    <value>Search VMs</value>
+  </data>
+  <data name="VmList_ListAria" xml:space="preserve">
+    <value>Virtual machines</value>
+  </data>
+  <data name="VmList_ReadFailed" xml:space="preserve">
+    <value>Failed to load virtual machine list.</value>
+  </data>
+  <data name="VmList_StateUnavailable" xml:space="preserve">
+    <value>Unknown state</value>
+  </data>
+  <data name="VmList_UptimeUnavailable" xml:space="preserve">
+    <value>Unknown uptime</value>
+  </data>
+  <data name="VmList_MissingFields" xml:space="preserve">
+    <value>{0} VM(s) have temporarily unavailable fields; previous values kept.</value>
+  </data>
+  <data name="VmState_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="VmState_PoweredOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="VmState_Saved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="VmState_Suspended" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="VmState_Starting" xml:space="preserve">
+    <value>Starting</value>
+  </data>
+  <data name="VmState_ShuttingDown" xml:space="preserve">
+    <value>Shutting down</value>
+  </data>
+  <data name="VmState_Saving" xml:space="preserve">
+    <value>Saving</value>
+  </data>
+  <data name="VmState_Stopping" xml:space="preserve">
+    <value>Stopping</value>
+  </data>
+  <data name="VmState_Resuming" xml:space="preserve">
+    <value>Resuming</value>
+  </data>
+  <data name="VmState_Suspending" xml:space="preserve">
+    <value>Pausing</value>
+  </data>
+  <data name="VmState_MergingDisks" xml:space="preserve">
+    <value>Merging disks</value>
+  </data>
+  <data name="VmState_Processing" xml:space="preserve">
+    <value>Processing</value>
+  </data>
+  <data name="VmState_WaitingToStart" xml:space="preserve">
+    <value>Waiting to start</value>
+  </data>
+  <data name="VmState_FastSaved" xml:space="preserve">
+    <value>Fast-saved</value>
+  </data>
+  <data name="VmState_FastSaving" xml:space="preserve">
+    <value>Fast-saving</value>
+  </data>
+  <data name="VmState_ForceShuttingDown" xml:space="preserve">
+    <value>Force stopping</value>
+  </data>
+  <data name="VmState_ForceRestarting" xml:space="preserve">
+    <value>Force restarting</value>
+  </data>
+  <data name="VmState_Hibernated" xml:space="preserve">
+    <value>Hibernated</value>
+  </data>
+  <data name="VmState_InTest" xml:space="preserve">
+    <value>In test</value>
+  </data>
+  <data name="VmState_Deferred" xml:space="preserve">
+    <value>Deferred</value>
+  </data>
+  <data name="VmState_NotApplicable" xml:space="preserve">
+    <value>N/A</value>
+  </data>
+  <data name="VmState_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="VmState_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Dash_IconPickerTooltip" xml:space="preserve">
+    <value>Click to change OS icon</value>
+  </data>
+  <data name="Dash_CopyGuidTooltip" xml:space="preserve">
+    <value>Click to copy VM GUID</value>
+  </data>
+  <data name="Dash_CopyGuidFailed" xml:space="preserve">
+    <value>Failed to copy GUID: {0}</value>
+  </data>
+  <data name="Dash_GenFormat" xml:space="preserve">
+    <value>Gen {0}</value>
+  </data>
+  <data name="Dash_VersionFormat" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="Dash_MorePowerActions" xml:space="preserve">
+    <value>More power actions</value>
+  </data>
+  <data name="Dash_Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="Dash_ConnectFailed" xml:space="preserve">
+    <value>Failed to launch VM Connect: {0}</value>
+  </data>
+  <data name="Dash_Power_Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Dash_Power_ShutDown" xml:space="preserve">
+    <value>Shut down</value>
+  </data>
+  <data name="Dash_Power_Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Dash_Power_Restart" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="Dash_Power_Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Dash_Power_SaveState" xml:space="preserve">
+    <value>Save state</value>
+  </data>
+  <data name="Dash_Power_ForceTurnOff" xml:space="preserve">
+    <value>Turn off</value>
+  </data>
+  <data name="Dash_PowerConfirmTitle" xml:space="preserve">
+    <value>{0} {1}?</value>
+  </data>
+  <data name="Dash_PowerAction_Stop" xml:space="preserve">
+    <value>Shut down</value>
+  </data>
+  <data name="Dash_PowerAction_Restart" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="Dash_PowerAction_Suspend" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Dash_PowerAction_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Dash_PowerAction_TurnOff" xml:space="preserve">
+    <value>Turn off</value>
+  </data>
+  <data name="Dash_PowerConfirm_TurnOffBody" xml:space="preserve">
+    <value>Turning off the VM immediately may lose unsaved guest data.</value>
+  </data>
+  <data name="Dash_PowerConfirm_NormalBody" xml:space="preserve">
+    <value>Run the selected power action cleanly without forcing power off if it fails.</value>
+  </data>
+  <data name="Dash_PowerRepair_SelectGpu" xml:space="preserve">
+    <value>Target GPU for device #{0}:</value>
+  </data>
+  <data name="Dash_Tab_Overview" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="Dash_Tab_Processor" xml:space="preserve">
+    <value>Processor</value>
+  </data>
+  <data name="Dash_Tab_Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Dash_Tab_Devices" xml:space="preserve">
+    <value>Devices</value>
+  </data>
+  <data name="Dash_Tab_Checkpoints" xml:space="preserve">
+    <value>Checkpoints</value>
+  </data>
+  <data name="Dash_Tab_Advanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="Dash_Sub_Gpu" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="Dash_Sub_Storage" xml:space="preserve">
+    <value>Storage</value>
+  </data>
+  <data name="Dash_Sub_Network" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="Dash_Sub_Serial" xml:space="preserve">
+    <value>Serial Port</value>
+  </data>
+  <data name="Dash_Sub_Pcie" xml:space="preserve">
+    <value>PCIe</value>
+  </data>
+  <data name="Dash_Sub_Boot" xml:space="preserve">
+    <value>Boot</value>
+  </data>
+  <data name="Dash_Sub_Security" xml:space="preserve">
+    <value>Security</value>
+  </data>
+  <data name="Dash_Sub_Console" xml:space="preserve">
+    <value>Console</value>
+  </data>
+  <data name="Dash_Sub_Power" xml:space="preserve">
+    <value>Power</value>
+  </data>
+  <data name="Dash_OpenGearTooltip" xml:space="preserve">
+    <value>Open settings</value>
+  </data>
+  <data name="Dash_SettingsNavAria" xml:space="preserve">
+    <value>Settings sections</value>
+  </data>
+  <data name="Dash_LoadingSettingsAria" xml:space="preserve">
+    <value>Loading VM settings</value>
+  </data>
+  <data name="Dash_ReadVmError" xml:space="preserve">
+    <value>Unable to read VM information.</value>
+  </data>
+  <data name="Dash_VmNotInHost" xml:space="preserve">
+    <value>This VM is no longer present on the host.</value>
+  </data>
+  <data name="Dash_VmRemoved" xml:space="preserve">
+    <value>The VM was removed from the host.</value>
+  </data>
+  <data name="Dash_RefreshConfigError" xml:space="preserve">
+    <value>Unable to refresh VM configuration.</value>
+  </data>
+  <data name="Dash_PreviewReadError" xml:space="preserve">
+    <value>Failed to load VM preview: {0}</value>
+  </data>
+  <data name="Dash_SearchOsPlaceholder" xml:space="preserve">
+    <value>Search OS...</value>
+  </data>
+  <data name="Dash_NoMatchingOs" xml:space="preserve">
+    <value>No matching OS found</value>
+  </data>
+  <data name="Dash_SaveOsFailed" xml:space="preserve">
+    <value>Failed to save OS badge.</value>
+  </data>
+  <data name="Dash_AffinityRestoreFailed" xml:space="preserve">
+    <value>VM started, but saved CPU affinity could not be restored. Check Core Binding settings.
+{0}</value>
+  </data>
+  <data name="Dash_AffinityRestoreError" xml:space="preserve">
+    <value>VM started, but restoring CPU affinity failed: {0}</value>
+  </data>
+  <data name="Overview_MemoryUsageTrend" xml:space="preserve">
+    <value>Memory usage</value>
+  </data>
+  <data name="Overview_VirtualProcessor" xml:space="preserve">
+    <value>Virtual Processor</value>
+  </data>
+  <data name="Overview_Cpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="Overview_Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Overview_Disk" xml:space="preserve">
+    <value>Disk</value>
+  </data>
+  <data name="Overview_DiskIndexed" xml:space="preserve">
+    <value>Disk {0}</value>
+  </data>
+  <data name="Overview_Network" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="Overview_NetworkIndexed" xml:space="preserve">
+    <value>Network {0}</value>
+  </data>
+  <data name="Overview_Disconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="Overview_NoGpu" xml:space="preserve">
+    <value>No GPU assigned</value>
+  </data>
+  <data name="Overview_NestedVirt" xml:space="preserve">
+    <value>Nested virtualization</value>
+  </data>
+  <data name="Overview_Hyperthreading" xml:space="preserve">
+    <value>Hyper-threading</value>
+  </data>
+  <data name="Overview_SmtMulti" xml:space="preserve">
+    <value>Simultaneous Multithreading (SMT): Enabled</value>
+  </data>
+  <data name="Overview_SmtSingle" xml:space="preserve">
+    <value>Simultaneous Multithreading (SMT): Single thread</value>
+  </data>
+  <data name="Overview_SmtInherit" xml:space="preserve">
+    <value>Simultaneous Multithreading (SMT): Follow host (Auto)</value>
+  </data>
+  <data name="Overview_DynamicMemory" xml:space="preserve">
+    <value>Dynamic memory</value>
+  </data>
+  <data name="Overview_DynamicMemoryTip" xml:space="preserve">
+    <value>Dynamic memory enabled (DynamicMemoryEnabled)</value>
+  </data>
+  <data name="Overview_MemoryRange" xml:space="preserve">
+    <value>Memory range</value>
+  </data>
+  <data name="Overview_MemoryRangeTip" xml:space="preserve">
+    <value>Minimum to Maximum dynamic memory</value>
+  </data>
+  <data name="Overview_MemoryPressure" xml:space="preserve">
+    <value>Memory pressure</value>
+  </data>
+  <data name="Overview_MemoryPressureTip" xml:space="preserve">
+    <value>Guest memory demand vs assigned pressure (%)</value>
+  </data>
+  <data name="Overview_MemoryDemand" xml:space="preserve">
+    <value>Memory demand</value>
+  </data>
+  <data name="Overview_MemoryDemandTip" xml:space="preserve">
+    <value>Estimated guest memory demand</value>
+  </data>
+  <data name="Overview_SmartPaging" xml:space="preserve">
+    <value>Smart Paging</value>
+  </data>
+  <data name="Overview_SmartPagingActive" xml:space="preserve">
+    <value>{0}, active</value>
+  </data>
+  <data name="Overview_SmartPagingTip" xml:space="preserve">
+    <value>Disk Smart Paging file is currently in use</value>
+  </data>
+  <data name="Overview_CpuUsageWithCores" xml:space="preserve">
+    <value>{0} ({1} cores)</value>
+  </data>
+  <data name="Overview_GpuCardTitle" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="Overview_GpuChipVendor" xml:space="preserve">
+    <value>Chipset vendor</value>
+  </data>
+  <data name="Overview_GpuBoardVendor" xml:space="preserve">
+    <value>Board vendor</value>
+  </data>
+  <data name="Overview_GpuDedicatedVram" xml:space="preserve">
+    <value>Dedicated memory</value>
+  </data>
+  <data name="Overview_GpuDriverVersion" xml:space="preserve">
+    <value>Driver version</value>
+  </data>
+  <data name="Overview_GpuDevicePath" xml:space="preserve">
+    <value>Device instance path</value>
+  </data>
+  <data name="Overview_GpuMultiWait" xml:space="preserve">
+    <value>Multi-GPU per-adapter metrics are not separated in Core yet.</value>
+  </data>
+  <data name="Overview_GpuWaitingDriver" xml:space="preserve">
+    <value>Waiting for GPU engine counters</value>
+  </data>
+  <data name="Overview_GpuReadFailed" xml:space="preserve">
+    <value>Unable to read GPU details</value>
+  </data>
+  <data name="Overview_Gpu3d" xml:space="preserve">
+    <value>3D</value>
+  </data>
+  <data name="Overview_GpuCopy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Overview_GpuEncode" xml:space="preserve">
+    <value>Video Encode</value>
+  </data>
+  <data name="Overview_GpuDecode" xml:space="preserve">
+    <value>Video Decode</value>
+  </data>
+  <data name="Dev_ControllerLocation" xml:space="preserve">
+    <value>{0} Controller {1}, Location {2}</value>
+  </data>
+  <data name="Dev_VirtualStorageController" xml:space="preserve">
+    <value>Virtual Storage Controller</value>
+  </data>
+  <data name="Dev_VirtualOpticalDrive" xml:space="preserve">
+    <value>Virtual Optical Drive</value>
+  </data>
+  <data name="Dev_VirtualDisk" xml:space="preserve">
+    <value>Virtual Disk</value>
+  </data>
+  <data name="Dev_VirtualHardDisk" xml:space="preserve">
+    <value>Virtual Hard Disk</value>
+  </data>
+  <data name="Dev_PhysicalOpticalDrive" xml:space="preserve">
+    <value>Physical Optical Drive</value>
+  </data>
+  <data name="Dev_PhysicalDisk" xml:space="preserve">
+    <value>Physical Disk</value>
+  </data>
+  <data name="Dev_Source" xml:space="preserve">
+    <value>Source</value>
+  </data>
+  <data name="Dev_Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Dev_NoMedia" xml:space="preserve">
+    <value>No media inserted</value>
+  </data>
+  <data name="Dev_Empty" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="Dev_Serial" xml:space="preserve">
+    <value>Serial number</value>
+  </data>
+  <data name="Dev_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Dev_VhdDynamic" xml:space="preserve">
+    <value>Dynamically expanding</value>
+  </data>
+  <data name="Dev_VhdFixed" xml:space="preserve">
+    <value>Fixed size</value>
+  </data>
+  <data name="Dev_VhdDifferencing" xml:space="preserve">
+    <value>Differencing</value>
+  </data>
+  <data name="Dev_DiskRate" xml:space="preserve">
+    <value>R {0} W {1}</value>
+  </data>
+  <data name="Dev_NetRate" xml:space="preserve">
+    <value>S {0} R {1}</value>
+  </data>
+  <data name="Dev_DiskUsageAria" xml:space="preserve">
+    <value>File size {0}, capacity {1}</value>
+  </data>
+  <data name="Dev_Ipv4" xml:space="preserve">
+    <value>IPv4 Address</value>
+  </data>
+  <data name="Dev_Mac" xml:space="preserve">
+    <value>MAC Address</value>
+  </data>
+  <data name="Dev_Ipv6" xml:space="preserve">
+    <value>IPv6 Address</value>
+  </data>
+  <data name="Dev_CopyTooltip" xml:space="preserve">
+    <value>Click to copy</value>
+  </data>
+  <data name="Dev_CopyValueTooltip" xml:space="preserve">
+    <value>Click to copy: {0}</value>
+  </data>
+  <data name="Dev_CopyValueAria" xml:space="preserve">
+    <value>Copy {0}: {1}</value>
+  </data>
+  <data name="Dev_CopyTypeAria" xml:space="preserve">
+    <value>Copy {0}: {1}</value>
+  </data>
+  <data name="Dev_Copied" xml:space="preserve">
+    <value>Copied</value>
+  </data>
+  <data name="Dev_CopyFailed" xml:space="preserve">
+    <value>Copy failed: {0}</value>
+  </data>
+  <data name="Dev_CopyAddrFailed" xml:space="preserve">
+    <value>Failed to copy address: {0}</value>
+  </data>
+  <data name="Dev_Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Dev_Receive" xml:space="preserve">
+    <value>Receive</value>
+  </data>
+  <data name="Dev_Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Dev_Write" xml:space="preserve">
+    <value>Write</value>
+  </data>
+  <data name="Card_SettingsTooltip" xml:space="preserve">
+    <value>{0} settings</value>
+  </data>
+  <data name="Card_Expanded" xml:space="preserve">
+    <value>Expanded</value>
+  </data>
+  <data name="Card_Collapsed" xml:space="preserve">
+    <value>Collapsed</value>
+  </data>
+  <data name="Card_CollapseHelp" xml:space="preserve">
+    <value>Activate to collapse details</value>
+  </data>
+  <data name="Card_ExpandHelp" xml:space="preserve">
+    <value>Activate to expand details</value>
+  </data>
+  <data name="Energy_HostPercent" xml:space="preserve">
+    <value>{0}% of host</value>
+  </data>
+  <data name="Energy_ReserveCores" xml:space="preserve">
+    <value>Min ~{0} cores</value>
+  </data>
+  <data name="Energy_LimitCores" xml:space="preserve">
+    <value>Max ~{0} cores</value>
+  </data>
+  <data name="Energy_WeightBalanced" xml:space="preserve">
+    <value>Equal CPU share (Default)</value>
+  </data>
+  <data name="Energy_WeightLow" xml:space="preserve">
+    <value>Lower CPU share ({0}x)</value>
+  </data>
+  <data name="Energy_WeightHigh" xml:space="preserve">
+    <value>Higher CPU share ({0}x)</value>
+  </data>
+  <data name="Step_Decrease" xml:space="preserve">
+    <value>Decrease {0}</value>
+  </data>
+  <data name="Step_Increase" xml:space="preserve">
+    <value>Increase {0}</value>
+  </data>
+  <data name="Editor_InvalidNumberRange" xml:space="preserve">
+    <value>Enter a valid number within range.</value>
+  </data>
+  <data name="Mem_Group_Compute" xml:space="preserve">
+    <value>Compute Resources</value>
+  </data>
+  <data name="Mem_Group_Mmio" xml:space="preserve">
+    <value>MMIO Space</value>
+  </data>
+  <data name="Mem_Group_Pages" xml:space="preserve">
+    <value>Page Management</value>
+  </data>
+  <data name="Mem_Group_Mapping" xml:space="preserve">
+    <value>Memory Mapping</value>
+  </data>
+  <data name="Mem_Group_Security" xml:space="preserve">
+    <value>Confidential Computing</value>
+  </data>
+  <data name="Mem_Group_Extensions" xml:space="preserve">
+    <value>Advanced Extensions</value>
+  </data>
+  <data name="Mem_Startup_Title" xml:space="preserve">
+    <value>Startup memory</value>
+  </data>
+  <data name="Mem_Startup_Desc" xml:space="preserve">
+    <value>Memory assigned when the VM starts. When Dynamic Memory is off, this stays fixed.</value>
+  </data>
+  <data name="Mem_Weight_Title" xml:space="preserve">
+    <value>Memory weight</value>
+  </data>
+  <data name="Mem_Weight_Desc" xml:space="preserve">
+    <value>Priority when multiple VMs compete for host RAM. Higher values keep more memory.</value>
+  </data>
+  <data name="Mem_Weight_Equal" xml:space="preserve">
+    <value>Equal share under pressure (Default)</value>
+  </data>
+  <data name="Mem_Weight_Low" xml:space="preserve">
+    <value>Lower priority ({0}x)</value>
+  </data>
+  <data name="Mem_Weight_High" xml:space="preserve">
+    <value>Higher priority ({0}x)</value>
+  </data>
+  <data name="Mem_Dynamic_Title" xml:space="preserve">
+    <value>Dynamic memory</value>
+  </data>
+  <data name="Mem_Dynamic_Desc" xml:space="preserve">
+    <value>Automatically adds or reclaims RAM at runtime so idle memory stays available for the host.</value>
+  </data>
+  <data name="Mem_Min_Title" xml:space="preserve">
+    <value>Minimum memory</value>
+  </data>
+  <data name="Mem_Min_Desc" xml:space="preserve">
+    <value>Lowest memory limit when reclaiming RAM so the guest stays responsive.</value>
+  </data>
+  <data name="Mem_Max_Title" xml:space="preserve">
+    <value>Maximum memory</value>
+  </data>
+  <data name="Mem_Max_Desc" xml:space="preserve">
+    <value>Highest memory limit the VM can grow to, preventing one VM from draining host RAM.</value>
+  </data>
+  <data name="Mem_Buffer_Title" xml:space="preserve">
+    <value>Memory buffer</value>
+  </data>
+  <data name="Mem_Buffer_Desc" xml:space="preserve">
+    <value>Extra RAM reserve above current guest demand to handle sudden usage spikes.</value>
+  </data>
+  <data name="Mem_LowMmio_Title" xml:space="preserve">
+    <value>Low MMIO space (32-bit)</value>
+  </data>
+  <data name="Mem_LowMmio_Desc" xml:space="preserve">
+    <value>Address space below 4 GB for legacy 32-bit PCI devices. Usually keep default.</value>
+  </data>
+  <data name="Mem_HighMmio_Title" xml:space="preserve">
+    <value>High MMIO space (64-bit)</value>
+  </data>
+  <data name="Mem_HighMmio_Desc" xml:space="preserve">
+    <value>Address space above 4 GB for 64-bit PCIe devices. Increase this for GPU passthrough (DDA) with large VRAM.</value>
+  </data>
+  <data name="Mem_HighBase_Title" xml:space="preserve">
+    <value>High MMIO base address</value>
+  </data>
+  <data name="Mem_HighBase_Desc" xml:space="preserve">
+    <value>Starting physical address offset for high MMIO space. Leave at default unless hardware conflicts occur.</value>
+  </data>
+  <data name="Mem_BackingPageSize_Title" xml:space="preserve">
+    <value>Backing page size</value>
+  </data>
+  <data name="Mem_BackingPageSize_Desc" xml:space="preserve">
+    <value>Chunk size used to back guest memory on the host. Keep Default (4 KB) normally; 2 MB or 1 GB pages cut lookup overhead for heavy RAM workloads.</value>
+  </data>
+  <data name="Mem_PageSize_Default" xml:space="preserve">
+    <value>Default (4 KB)</value>
+  </data>
+  <data name="Mem_PageSize_Large" xml:space="preserve">
+    <value>Large (2 MB)</value>
+  </data>
+  <data name="Mem_PageSize_Huge" xml:space="preserve">
+    <value>Huge (1 GB)</value>
+  </data>
+  <data name="Mem_DynAlign_Title" xml:space="preserve">
+    <value>Dynamic memory alignment</value>
+  </data>
+  <data name="Mem_DynAlign_Desc" xml:space="preserve">
+    <value>Alignment chunk size when dynamic memory expands or shrinks, helping reduce fragmentation. Keep default normally.</value>
+  </data>
+  <data name="Mem_Align_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Mem_Align_Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Mem_Align_Large" xml:space="preserve">
+    <value>Large</value>
+  </data>
+  <data name="Mem_Align_Huge" xml:space="preserve">
+    <value>Huge</value>
+  </data>
+  <data name="Mem_NumaBlocks_Title" xml:space="preserve">
+    <value>Max memory per NUMA node</value>
+  </data>
+  <data name="Mem_NumaBlocks_Desc" xml:space="preserve">
+    <value>Maximum memory block limit for a single virtual NUMA node. Only needed when tuning multi-node servers.</value>
+  </data>
+  <data name="Mem_BackingType_Title" xml:space="preserve">
+    <value>Memory backing type</value>
+  </data>
+  <data name="Mem_BackingType_Desc" xml:space="preserve">
+    <value>Physical locks real host RAM (lowest latency, allows 1 GB huge pages); Virtual allocates on demand with compression and page hints. Keep default normally.</value>
+  </data>
+  <data name="Mem_Backing_Physical" xml:space="preserve">
+    <value>Physical</value>
+  </data>
+  <data name="Mem_Backing_Virtual" xml:space="preserve">
+    <value>Virtual</value>
+  </data>
+  <data name="Mem_Backing_Hybrid" xml:space="preserve">
+    <value>Hybrid (per node)</value>
+  </data>
+  <data name="Mem_ColdHint_Title" xml:space="preserve">
+    <value>Cold page hint</value>
+  </data>
+  <data name="Mem_ColdHint_Desc" xml:space="preserve">
+    <value>Marks rarely accessed pages so the host reclaims or swaps them first when RAM is tight.</value>
+  </data>
+  <data name="Mem_HotHint_Title" xml:space="preserve">
+    <value>Hot page hint</value>
+  </data>
+  <data name="Mem_HotHint_Desc" xml:space="preserve">
+    <value>Marks frequently used pages to keep them resident in fast physical RAM.</value>
+  </data>
+  <data name="Mem_Epf_Title" xml:space="preserve">
+    <value>Extended Page Faults (EPF)</value>
+  </data>
+  <data name="Mem_Epf_Desc" xml:space="preserve">
+    <value>Optimizes page-fault scheduling under virtualization. Usually keep default unless tuning specific workloads.</value>
+  </data>
+  <data name="Mem_Compression_Title" xml:space="preserve">
+    <value>Private compression store</value>
+  </data>
+  <data name="Mem_Compression_Desc" xml:space="preserve">
+    <value>Gives this VM a dedicated compressed RAM pool to ease host memory pressure without disk paging.</value>
+  </data>
+  <data name="Mem_GpaPinning_Title" xml:space="preserve">
+    <value>Pin guest memory (GPA)</value>
+  </data>
+  <data name="Mem_GpaPinning_Desc" xml:space="preserve">
+    <value>Locks guest physical memory in place so the host won't move or page it out (common for device passthrough; consumes host RAM upfront).</value>
+  </data>
+  <data name="Mem_EncPolicy_Title" xml:space="preserve">
+    <value>Memory encryption</value>
+  </data>
+  <data name="Mem_EncPolicy_Desc" xml:space="preserve">
+    <value>Protects guest RAM with hardware encryption when supported by the host CPU.</value>
+  </data>
+  <data name="Mem_Enc_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Mem_Enc_IfSupported" xml:space="preserve">
+    <value>When supported</value>
+  </data>
+  <data name="Mem_Enc_Always" xml:space="preserve">
+    <value>Always enabled</value>
+  </data>
+  <data name="Mem_Sgx_Title" xml:space="preserve">
+    <value>SGX</value>
+  </data>
+  <data name="Mem_Sgx_Desc" xml:space="preserve">
+    <value>Enables Intel SGX confidential computing enclaves inside the VM (Intel CPUs only).</value>
+  </data>
+  <data name="Mem_Info_SgxUnsupportedEnabled" xml:space="preserve">
+    <value>This host does not support SGX. Turn SGX off in Confidential Computing; once disabled, it cannot be re-enabled.</value>
+  </data>
+  <data name="Mem_SgxMode_Title" xml:space="preserve">
+    <value>SGX launch control</value>
+  </data>
+  <data name="Mem_SgxMode_Desc" xml:space="preserve">
+    <value>Sets guest permission to access SGX launch control registers.</value>
+  </data>
+  <data name="Mem_SgxMode_Deny" xml:space="preserve">
+    <value>No access</value>
+  </data>
+  <data name="Mem_SgxMode_ReadOnly" xml:space="preserve">
+    <value>Read-only</value>
+  </data>
+  <data name="Mem_SgxMode_ReadWrite" xml:space="preserve">
+    <value>Read/Write</value>
+  </data>
+  <data name="Mem_SgxSize_Title" xml:space="preserve">
+    <value>SGX memory size</value>
+  </data>
+  <data name="Mem_SgxSize_Desc" xml:space="preserve">
+    <value>Dedicated RAM reserved for SGX enclaves (min 2 MiB, 2 MiB steps).</value>
+  </data>
+  <data name="Mem_SgxDefault_Title" xml:space="preserve">
+    <value>SGX default launch control</value>
+  </data>
+  <data name="Mem_SgxDefault_Placeholder" xml:space="preserve">
+    <value>Auto (default)</value>
+  </data>
+  <data name="Mem_SgxDefault_Desc" xml:space="preserve">
+    <value>Optional launch control configuration string. Leave blank for automatic defaults.</value>
+  </data>
+  <data name="Mem_TrackingState_Title" xml:space="preserve">
+    <value>Access tracking</value>
+  </data>
+  <data name="Mem_TrackingState_Desc" xml:space="preserve">
+    <value>Monitors which guest memory pages are active for performance tuning or live migration.</value>
+  </data>
+  <data name="Mem_Tracking_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Mem_Tracking_Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="Mem_Tracking_PerNuma" xml:space="preserve">
+    <value>Per NUMA node</value>
+  </data>
+  <data name="Mem_TrackingPolicy_Title" xml:space="preserve">
+    <value>Tracking granularity</value>
+  </data>
+  <data name="Mem_TrackingPolicy_Desc" xml:space="preserve">
+    <value>Page size unit used for access tracking. Coarser sizes use less CPU overhead.</value>
+  </data>
+  <data name="Mem_Tracking_Large" xml:space="preserve">
+    <value>Large</value>
+  </data>
+  <data name="Mem_Tracking_Huge" xml:space="preserve">
+    <value>Huge</value>
+  </data>
+  <data name="Mem_Cxl_Title" xml:space="preserve">
+    <value>CXL memory expansion</value>
+  </data>
+  <data name="Mem_Cxl_Desc" xml:space="preserve">
+    <value>Enables CXL memory pool expansion (requires CXL hardware and compatible Windows build).</value>
+  </data>
+  <data name="Mem_Link_VirtualNo1Gb" xml:space="preserve">
+    <value>Virtual backing does not support 1 GB huge pages; switched to 2 MB large pages.</value>
+  </data>
+  <data name="Mem_Link_1GbNeedsPhysical" xml:space="preserve">
+    <value>1 GB huge pages require physical backing; switched backing type automatically.</value>
+  </data>
+  <data name="Mem_Cond_NeedDynRam" xml:space="preserve">
+    <value>Enable Dynamic Memory first</value>
+  </data>
+  <data name="Mem_Cond_NeedVirtualBacking" xml:space="preserve">
+    <value>Requires Virtual backing (switch from Physical first)</value>
+  </data>
+  <data name="Mem_Cond_NeedTracking" xml:space="preserve">
+    <value>Enable Access Tracking first</value>
+  </data>
+  <data name="Mem_Cond_NeedSgx" xml:space="preserve">
+    <value>Enable SGX first</value>
+  </data>
+  <data name="Mem_Err_MmioEmpty" xml:space="preserve">
+    <value>Enter a valid MMIO value.</value>
+  </data>
+  <data name="Mem_Val_StartupPositive" xml:space="preserve">
+    <value>Startup memory must be greater than 0 MiB.</value>
+  </data>
+  <data name="Mem_Val_MinPositive" xml:space="preserve">
+    <value>Minimum memory must be greater than 0 MiB.</value>
+  </data>
+  <data name="Mem_Val_MaxPositive" xml:space="preserve">
+    <value>Maximum memory must be greater than 0 MiB.</value>
+  </data>
+  <data name="Mem_Val_WeightRange" xml:space="preserve">
+    <value>Memory weight must be between 0 and 10000.</value>
+  </data>
+  <data name="Mem_Val_BufferRange" xml:space="preserve">
+    <value>Memory buffer must be between 5% and 2000%.</value>
+  </data>
+  <data name="Mem_Val_MinGtMax" xml:space="preserve">
+    <value>Minimum memory ({0} MiB) cannot exceed maximum memory ({1} MiB).</value>
+  </data>
+  <data name="Mem_Val_MinGtStartup" xml:space="preserve">
+    <value>Minimum memory ({0} MiB) cannot exceed startup memory ({1} MiB).</value>
+  </data>
+  <data name="Mem_Val_StartupGtMax" xml:space="preserve">
+    <value>Startup memory ({0} MiB) cannot exceed maximum memory ({1} MiB).</value>
+  </data>
+  <data name="Cpu_Group_Compute" xml:space="preserve">
+    <value>Compute Resources</value>
+  </data>
+  <data name="Cpu_Group_Affinity" xml:space="preserve">
+    <value>Core Binding</value>
+  </data>
+  <data name="Cpu_Group_Isa" xml:space="preserve">
+    <value>Instruction Set</value>
+  </data>
+  <data name="Cpu_Group_Topology" xml:space="preserve">
+    <value>Processor Topology</value>
+  </data>
+  <data name="Cpu_Group_Interrupt" xml:space="preserve">
+    <value>Interrupt Control</value>
+  </data>
+  <data name="Cpu_Group_Perfmon" xml:space="preserve">
+    <value>Performance Monitoring</value>
+  </data>
+  <data name="Cpu_Group_Frequency" xml:space="preserve">
+    <value>Frequency Control</value>
+  </data>
+  <data name="Cpu_Group_Addressing" xml:space="preserve">
+    <value>Addressing &amp; Paging</value>
+  </data>
+  <data name="Cpu_Group_Security" xml:space="preserve">
+    <value>Security Isolation</value>
+  </data>
+  <data name="Cpu_Count_Title" xml:space="preserve">
+    <value>Cores (vCPU)</value>
+  </data>
+  <data name="Cpu_Count_Desc" xml:space="preserve">
+    <value>Number of virtual CPU cores assigned to this VM (editable when off).</value>
+  </data>
+  <data name="Cpu_Reserve_Title" xml:space="preserve">
+    <value>Reservation (%)</value>
+  </data>
+  <data name="Cpu_Reserve_Desc" xml:space="preserve">
+    <value>Minimum host CPU capacity guaranteed for this VM even under heavy load.</value>
+  </data>
+  <data name="Cpu_Limit_Title" xml:space="preserve">
+    <value>Limit (%)</value>
+  </data>
+  <data name="Cpu_Limit_Desc" xml:space="preserve">
+    <value>Maximum host CPU capacity this VM can consume to keep the host responsive.</value>
+  </data>
+  <data name="Cpu_Weight_Title" xml:space="preserve">
+    <value>Weight</value>
+  </data>
+  <data name="Cpu_Weight_Desc" xml:space="preserve">
+    <value>Scheduling priority when multiple VMs compete for CPU; higher gets more share.</value>
+  </data>
+  <data name="Cpu_ReserveMaxLimit" xml:space="preserve">
+    <value>Cannot exceed Limit ({0}%)</value>
+  </data>
+  <data name="Cpu_LimitMinReserve" xml:space="preserve">
+    <value>Cannot be below Reservation ({0}%)</value>
+  </data>
+  <data name="Affinity_Desc" xml:space="preserve">
+    <value>Drag with left mouse button to select multiple cores. Deselect all to unbind and schedule freely.</value>
+  </data>
+  <data name="Affinity_SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Affinity_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Affinity_PerfOnly" xml:space="preserve">
+    <value>P-cores only</value>
+  </data>
+  <data name="Affinity_EffOnly" xml:space="preserve">
+    <value>E-cores only</value>
+  </data>
+  <data name="Affinity_FreeSchedule" xml:space="preserve">
+    <value>Unbound (auto)</value>
+  </data>
+  <data name="Affinity_BoundCount" xml:space="preserve">
+    <value>Pinned {0} / {1}</value>
+  </data>
+  <data name="Affinity_NoHostProcessors" xml:space="preserve">
+    <value>Host returned no processors available for affinity binding.</value>
+  </data>
+  <data name="Affinity_Tooltip_Logical" xml:space="preserve">
+    <value>Logical CPU {0}</value>
+  </data>
+  <data name="Affinity_Tooltip_Socket" xml:space="preserve">
+    <value>Socket {0}</value>
+  </data>
+  <data name="Affinity_Tooltip_Core" xml:space="preserve">
+    <value>Physical core {0}</value>
+  </data>
+  <data name="Affinity_Tooltip_Numa" xml:space="preserve">
+    <value>NUMA node {0}</value>
+  </data>
+  <data name="Affinity_Aria_Logical" xml:space="preserve">
+    <value>Logical processor {0}</value>
+  </data>
+  <data name="Affinity_ReselectRequired" xml:space="preserve">
+    <value>Saved core preference no longer matches host topology. Pick cores again or clear all and Apply.</value>
+  </data>
+  <data name="Affinity_SavedApplied" xml:space="preserve">
+    <value>Core affinity applied.</value>
+  </data>
+  <data name="Affinity_SavedQueued" xml:space="preserve">
+    <value>Core affinity saved and will take effect after VM starts.</value>
+  </data>
+  <data name="Affinity_SaveIncomplete" xml:space="preserve">
+    <value>Failed to save core affinity.</value>
+  </data>
+  <data name="Affinity_PrefSaved" xml:space="preserve">
+    <value>Startup preference saved.</value>
+  </data>
+  <data name="Affinity_PrefNotSaved" xml:space="preserve">
+    <value>Startup preference not saved.</value>
+  </data>
+  <data name="Affinity_Cleanup" xml:space="preserve">
+    <value>Cleanup note: {0}</value>
+  </data>
+  <data name="Affinity_CurrentGroup" xml:space="preserve">
+    <value>Current CPU group: {0}</value>
+  </data>
+  <data name="Affinity_RetainedGroup" xml:space="preserve">
+    <value>Retained CPU group: {0}</value>
+  </data>
+  <data name="Cpu_Nested_Title" xml:space="preserve">
+    <value>Nested virtualization</value>
+  </data>
+  <data name="Cpu_Nested_Desc" xml:space="preserve">
+    <value>Allows running Hyper-V VMs, containers, or WSL2 inside this VM.</value>
+  </data>
+  <data name="Cpu_LegacyOs_Title" xml:space="preserve">
+    <value>Legacy OS compatibility</value>
+  </data>
+  <data name="Cpu_LegacyOs_Desc" xml:space="preserve">
+    <value>Hides newer CPU instructions so older OSes like Windows 7 can install and boot.</value>
+  </data>
+  <data name="Cpu_Migration_Title" xml:space="preserve">
+    <value>Cross-host migration</value>
+  </data>
+  <data name="Cpu_Migration_Desc" xml:space="preserve">
+    <value>Minimum: keeps baseline instructions to migrate across different CPUs.
+Cluster: keeps features shared across cluster nodes.</value>
+  </data>
+  <data name="Cpu_Mig_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Cpu_Mig_Minimum" xml:space="preserve">
+    <value>Minimum</value>
+  </data>
+  <data name="Cpu_Mig_Cluster" xml:space="preserve">
+    <value>Cluster</value>
+  </data>
+  <data name="Cpu_Brand_Title" xml:space="preserve">
+    <value>Custom CPU name</value>
+  </data>
+  <data name="Cpu_Brand_Desc" xml:space="preserve">
+    <value>Overrides the CPU model name visible inside the VM; leave blank to show the host CPU.</value>
+  </data>
+  <data name="Cpu_Smt_Title" xml:space="preserve">
+    <value>Hyper-threading (SMT)</value>
+  </data>
+  <data name="Cpu_Smt_Desc" xml:space="preserve">
+    <value>Auto: follows the host.
+Off: 1 thread per virtual core.
+On: groups every 2 vCPUs as threads of 1 dual-thread core.</value>
+  </data>
+  <data name="Cpu_Smt_Inherit" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Cpu_Smt_Single" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Cpu_Smt_Multi" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Cpu_Sockets_Title" xml:space="preserve">
+    <value>Sockets</value>
+  </data>
+  <data name="Cpu_Sockets_Desc" xml:space="preserve">
+    <value>Number of virtual CPU sockets presented to the VM (affects per-socket software licenses; keep 1 normally).</value>
+  </data>
+  <data name="Cpu_Sockets_Value" xml:space="preserve">
+    <value>{0} socket(s)</value>
+  </data>
+  <data name="Cpu_Numa_Title" xml:space="preserve">
+    <value>NUMA nodes</value>
+  </data>
+  <data name="Cpu_Numa_Desc" xml:space="preserve">
+    <value>Splits virtual cores into NUMA memory zones for multi-node tuning; keep 1 normally.</value>
+  </data>
+  <data name="Cpu_Numa_Value" xml:space="preserve">
+    <value>{0} node(s)</value>
+  </data>
+  <data name="Cpu_L3_Title" xml:space="preserve">
+    <value>L3 domains per node</value>
+  </data>
+  <data name="Cpu_L3_Desc" xml:space="preserve">
+    <value>Splits L3 cache groups inside each NUMA node; Auto shares one L3 cache per node.</value>
+  </data>
+  <data name="Cpu_L3_Value" xml:space="preserve">
+    <value>{0} group(s)</value>
+  </data>
+  <data name="Cpu_Cluster_Title" xml:space="preserve">
+    <value>Clusters per socket</value>
+  </data>
+  <data name="Cpu_Cluster_Desc" xml:space="preserve">
+    <value>Number of CPU clusters inside each virtual socket; leave Auto for Hyper-V defaults.</value>
+  </data>
+  <data name="Cpu_Cluster_Value" xml:space="preserve">
+    <value>{0} cluster(s)</value>
+  </data>
+  <data name="Cpu_L3Policy_Title" xml:space="preserve">
+    <value>L3 remainder distribution</value>
+  </data>
+  <data name="Cpu_L3Policy_Desc" xml:space="preserve">
+    <value>When cores don't divide evenly across L3 domains, sets where extra cores are placed.
+Small to large / Large to small: pack toward end or front.
+Even: spread evenly across groups.</value>
+  </data>
+  <data name="Cpu_L3Policy_Current" xml:space="preserve">
+    <value>Current per-node L3 layout: {0} ({1} groups)</value>
+  </data>
+  <data name="Cpu_L3Pol_S2L" xml:space="preserve">
+    <value>Small -&gt; Large</value>
+  </data>
+  <data name="Cpu_L3Pol_L2S" xml:space="preserve">
+    <value>Large -&gt; Small</value>
+  </data>
+  <data name="Cpu_L3Pol_EvenS2L" xml:space="preserve">
+    <value>Even S -&gt; L</value>
+  </data>
+  <data name="Cpu_L3Pol_EvenL2S" xml:space="preserve">
+    <value>Even L -&gt; S</value>
+  </data>
+  <data name="Cpu_Ways_Title" xml:space="preserve">
+    <value>L3 cache ways</value>
+  </data>
+  <data name="Cpu_Ways_Desc" xml:space="preserve">
+    <value>Sets L3 cache associativity reported to the engine (0 = default). Usually leave at default.</value>
+  </data>
+  <data name="Cpu_Ways_Value" xml:space="preserve">
+    <value>{0} way(s)</value>
+  </data>
+  <data name="Cpu_Cond_Only1Vcpu" xml:space="preserve">
+    <value>Only 1 vCPU assigned; cannot split further</value>
+  </data>
+  <data name="Cpu_Cond_Only1PerNuma" xml:space="preserve">
+    <value>Only 1 vCPU per NUMA node; no need to split</value>
+  </data>
+  <data name="Cpu_Cond_L3Auto" xml:space="preserve">
+    <value>Not needed when L3 domains are set to Auto</value>
+  </data>
+  <data name="Cpu_Cond_L3SingleGroup" xml:space="preserve">
+    <value>Not needed when each node has only 1 L3 domain</value>
+  </data>
+  <data name="Topo_PreviewTitle" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="Topo_SummaryTotal" xml:space="preserve">
+    <value>Total {0} vCPUs</value>
+  </data>
+  <data name="Topo_SocketLabel" xml:space="preserve">
+    <value>Socket {0}</value>
+  </data>
+  <data name="Topo_NumaLabel" xml:space="preserve">
+    <value>NUMA Node {0}</value>
+  </data>
+  <data name="Topo_ClusterBadge" xml:space="preserve">
+    <value>, {0} clusters</value>
+  </data>
+  <data name="Topo_CoresUnit" xml:space="preserve">
+    <value>{0} cores</value>
+  </data>
+  <data name="Topo_CoreLabel" xml:space="preserve">
+    <value>Core {0}</value>
+  </data>
+  <data name="Topo_PlainRange" xml:space="preserve">
+    <value>{0} logical CPUs (CPU {1}-{2})</value>
+  </data>
+  <data name="Cpu_Apic_Title" xml:space="preserve">
+    <value>Interrupt controller</value>
+  </data>
+  <data name="Cpu_Apic_Desc" xml:space="preserve">
+    <value>Virtual APIC interrupt mode on x64 VMs; keep Default normally.</value>
+  </data>
+  <data name="Cpu_Apic_Legacy" xml:space="preserve">
+    <value>Legacy</value>
+  </data>
+  <data name="Cpu_Lpi_Title" xml:space="preserve">
+    <value>Local peripheral interrupts (LPI)</value>
+  </data>
+  <data name="Cpu_Lpi_Desc" xml:space="preserve">
+    <value>ARM64 peripheral interrupt delivery mode; keep Default normally.</value>
+  </data>
+  <data name="Cpu_HostProtect_Title" xml:space="preserve">
+    <value>Host resource protection</value>
+  </data>
+  <data name="Cpu_HostProtect_Desc" xml:space="preserve">
+    <value>Gently throttles a VM if it keeps hogging host CPU responsiveness so the whole host won't freeze.</value>
+  </data>
+  <data name="Cpu_Acount_Title" xml:space="preserve">
+    <value>Actual frequency counter</value>
+  </data>
+  <data name="Cpu_Acount_Desc" xml:space="preserve">
+    <value>Lets x64 guests read real boost clock ratios so Task Manager shows accurate CPU speed.</value>
+  </data>
+  <data name="Cpu_Pmu_Title" xml:space="preserve">
+    <value>Hardware performance counters (PMU)</value>
+  </data>
+  <data name="Cpu_Pmu_Desc" xml:space="preserve">
+    <value>Exposes Intel hardware performance counters for profilers like VTune.</value>
+  </data>
+  <data name="Cpu_Lbr_Title" xml:space="preserve">
+    <value>Last branch record (LBR)</value>
+  </data>
+  <data name="Cpu_Lbr_Desc" xml:space="preserve">
+    <value>Exposes recent branch history for low-overhead code profiling.</value>
+  </data>
+  <data name="Cpu_Pebs_Title" xml:space="preserve">
+    <value>Precise event sampling (PEBS)</value>
+  </data>
+  <data name="Cpu_Pebs_Desc" xml:space="preserve">
+    <value>Captures exact instruction address and register snapshots during PMU sampling (requires PMU).</value>
+  </data>
+  <data name="Cpu_Ipt_Title" xml:space="preserve">
+    <value>Instruction trace (IPT)</value>
+  </data>
+  <data name="Cpu_Ipt_Desc" xml:space="preserve">
+    <value>Continuously records instruction execution trace in hardware for deep debugging (requires PMU).</value>
+  </data>
+  <data name="Cpu_FreqMin_Title" xml:space="preserve">
+    <value>Minimum frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqMin_Desc" xml:space="preserve">
+    <value>Floor clock frequency to avoid idle wake-up lag; leave Auto for normal power saving.</value>
+  </data>
+  <data name="Cpu_FreqMax_Title" xml:space="preserve">
+    <value>Maximum frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqMax_Desc" xml:space="preserve">
+    <value>Caps maximum clock speed for thermal or power control; leave Auto normally.</value>
+  </data>
+  <data name="Cpu_FreqMode_Title" xml:space="preserve">
+    <value>Frequency scaling</value>
+  </data>
+  <data name="Cpu_FreqMode_Desc" xml:space="preserve">
+    <value>Auto scales clock speed with load (recommended).
+Fixed tries to hold the target MHz.</value>
+  </data>
+  <data name="Cpu_FreqMode_Auto" xml:space="preserve">
+    <value>Auto scaling</value>
+  </data>
+  <data name="Cpu_FreqMode_Manual" xml:space="preserve">
+    <value>Fixed frequency</value>
+  </data>
+  <data name="Cpu_FreqDesired_Title" xml:space="preserve">
+    <value>Target frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqDesired_Desc" xml:space="preserve">
+    <value>Target clock frequency maintained in Fixed frequency mode.</value>
+  </data>
+  <data name="Cpu_FreqTooltip_Unlimited" xml:space="preserve">
+    <value>Auto (unlimited)</value>
+  </data>
+  <data name="Cpu_Epp_Title" xml:space="preserve">
+    <value>Performance preference</value>
+  </data>
+  <data name="Cpu_Epp_Desc" xml:space="preserve">
+    <value>Auto-scaling bias: left saves more power, right prioritizes peak responsiveness.</value>
+  </data>
+  <data name="Cpu_Epp_Power" xml:space="preserve">
+    <value>Power saver</value>
+  </data>
+  <data name="Cpu_Epp_MorePower" xml:space="preserve">
+    <value>Prefer power</value>
+  </data>
+  <data name="Cpu_Epp_Balanced" xml:space="preserve">
+    <value>Balanced</value>
+  </data>
+  <data name="Cpu_Epp_MorePerf" xml:space="preserve">
+    <value>Prefer performance</value>
+  </data>
+  <data name="Cpu_Epp_Perf" xml:space="preserve">
+    <value>Max performance</value>
+  </data>
+  <data name="Cpu_Window_Title" xml:space="preserve">
+    <value>Activity sampling window</value>
+  </data>
+  <data name="Cpu_Window_Desc" xml:space="preserve">
+    <value>Hardware evaluation window before scaling clocks; leave blank for Auto.</value>
+  </data>
+  <data name="Cpu_IgnoreHostMax_Title" xml:space="preserve">
+    <value>Ignore host frequency cap</value>
+  </data>
+  <data name="Cpu_IgnoreHostMax_Desc" xml:space="preserve">
+    <value>Allows this VM to boost above a power-saving host cap when hardware limits permit.</value>
+  </data>
+  <data name="Cpu_PageShatter_Title" xml:space="preserve">
+    <value>Large page mitigation</value>
+  </data>
+  <data name="Cpu_PageShatter_Desc" xml:space="preserve">
+    <value>Security mitigation for older Intel CPUs against guest-triggered crashes; keep Default to decide automatically.</value>
+  </data>
+  <data name="Cpu_PaWidth_Title" xml:space="preserve">
+    <value>Physical address width</value>
+  </data>
+  <data name="Cpu_PaWidth_Desc" xml:space="preserve">
+    <value>Caps physical memory and device MMIO address bits (e.g. 40-bit ≈ 1 TB). Leave Auto unless required by passthrough GPUs.</value>
+  </data>
+  <data name="Cpu_PaWidth_Tooltip" xml:space="preserve">
+    <value>{0}-bit ({1})</value>
+  </data>
+  <data name="Cpu_InvalidBitWidth" xml:space="preserve">
+    <value>Invalid width</value>
+  </data>
+  <data name="Cpu_DisableSpec_Title" xml:space="preserve">
+    <value>Hide speculation controls</value>
+  </data>
+  <data name="Cpu_DisableSpec_Desc" xml:space="preserve">
+    <value>Hides CPU speculation side-channel mitigation controls from the guest (keep off normally).</value>
+  </data>
+  <data name="Cpu_HwIso_Title" xml:space="preserve">
+    <value>Hardware isolation extensions</value>
+  </data>
+  <data name="Cpu_HwIso_Desc" xml:space="preserve">
+    <value>Allows running nested hardware-encrypted isolated VMs (requires host support such as SEV-SNP).</value>
+  </data>
+  <data name="Cpu_HwIsoLimit_Title" xml:space="preserve">
+    <value>Max hardware-isolated guests</value>
+  </data>
+  <data name="Cpu_HwIsoLimit_Desc" xml:space="preserve">
+    <value>Maximum number of nested hardware-isolated VMs allowed.</value>
+  </data>
+  <data name="Cpu_Cond_NeedHwIso" xml:space="preserve">
+    <value>Enable Hardware Isolation Extensions first</value>
+  </data>
+  <data name="Cpu_Val_CountRange" xml:space="preserve">
+    <value>Cores (vCPU) must be between 1 and {0}.</value>
+  </data>
+  <data name="Cpu_Val_ResRange" xml:space="preserve">
+    <value>Processor reservation must be between 0% and 100%.</value>
+  </data>
+  <data name="Cpu_Val_LimRange" xml:space="preserve">
+    <value>Processor limit must be between 0% and 100%.</value>
+  </data>
+  <data name="Cpu_Val_WeightRange" xml:space="preserve">
+    <value>Processor weight must be between 1 and 10000.</value>
+  </data>
+  <data name="Cpu_Val_ResGtLim" xml:space="preserve">
+    <value>Reservation ({0}%) cannot exceed Limit ({1}%).</value>
+  </data>
+  <data name="Cpu_Val_FreqMinGtCap" xml:space="preserve">
+    <value>Minimum frequency ({0} MHz) cannot exceed maximum frequency ({1} MHz).</value>
+  </data>
+  <data name="Cpu_Val_FreqDesiredGtCap" xml:space="preserve">
+    <value>Target frequency ({0} MHz) cannot exceed maximum frequency ({1} MHz).</value>
+  </data>
+  <data name="Cpu_Val_FreqDesiredLtMin" xml:space="preserve">
+    <value>Target frequency ({0} MHz) cannot be below minimum frequency ({1} MHz).</value>
+  </data>
+</root>

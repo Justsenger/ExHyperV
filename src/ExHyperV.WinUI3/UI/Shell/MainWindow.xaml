@@ -17,16 +17,16 @@
             </Grid>
         </Border>
         <!-- Keep labels visible in wide windows; use the native compact/minimal modes below these DIP thresholds. -->
-        <NavigationView x:Name="Navigation" Grid.Row="1" PaneDisplayMode="Auto" IsPaneOpen="True" OpenPaneLength="212" CompactPaneLength="48"
+        <NavigationView x:Name="Navigation" Grid.Row="1" PaneDisplayMode="Auto" IsPaneOpen="False" OpenPaneLength="212" CompactPaneLength="48"
             CompactModeThresholdWidth="820" ExpandedModeThresholdWidth="1080"
             IsTitleBarAutoPaddingEnabled="False" IsBackButtonVisible="Collapsed" IsSettingsVisible="False"
             SelectionChanged="OnSelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="虚拟机" Tag="virtual-machines"><NavigationViewItem.Icon><FontIcon Glyph="&#xF5ED;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
-                <NavigationViewItem Content="宿主" Tag="host"><NavigationViewItem.Icon><FontIcon Glyph="&#xE90F;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem x:Name="NavVirtualMachines" Tag="virtual-machines"><NavigationViewItem.Icon><FontIcon Glyph="&#xF5ED;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
+                <NavigationViewItem x:Name="NavHost" Tag="host"><NavigationViewItem.Icon><FontIcon Glyph="&#xE90F;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
-                <NavigationViewItem Content="应用设置" Tag="settings" Icon="Setting" />
+                <NavigationViewItem x:Name="NavSettings" Tag="settings" Icon="Setting" />
             </NavigationView.FooterMenuItems>
             <ContentControl x:Name="PageContent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
         </NavigationView>

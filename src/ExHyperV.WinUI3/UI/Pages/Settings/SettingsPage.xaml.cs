@@ -1,3 +1,4 @@
+using ExHyperV.WinUI3.Localization;
 using ExHyperV.WinUI3.UI.Shared;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -9,16 +10,16 @@ namespace ExHyperV.WinUI3.UI.Pages.Settings;
 public sealed partial class SettingsPage : Page
 {
     private readonly AppAppearance appearance = ((App)Application.Current).Appearance;
-    private readonly List<(Button Button, FontIcon Check, string Color)> swatches = [];
+    private readonly List<(Button Button, FontIcon Check, string Color, string Key)> swatches = [];
     private bool updating = true;
 
     public SettingsPage()
     {
         InitializeComponent();
-        foreach (var (name, hex) in new[]
+        foreach (var (key, hex) in new[]
         {
-            ("蓝色", "#4CC2FF"), ("紫色", "#B69CFF"), ("粉色", "#F39BC1"),
-            ("橙色", "#FFB36B"), ("黄色", "#F2D66D"), ("绿色", "#7BDCB5"), ("青色", "#64D8E4")
+            ("Settings_Color_Blue", "#4CC2FF"), ("Settings_Color_Purple", "#B69CFF"), ("Settings_Color_Pink", "#F39BC1"),
+            ("Settings_Color_Orange", "#FFB36B"), ("Settings_Color_Yellow", "#F2D66D"), ("Settings_Color_Green", "#7BDCB5"), ("Settings_Color_Cyan", "#64D8E4")
         })
         {
             AppearanceSettings.TryParseColor(hex, out var color);
@@ -30,29 +31,64 @@ public sealed partial class SettingsPage : Page
             };
             button.Resources["ButtonBackgroundPointerOver"] = new SolidColorBrush(color);
             button.Resources["ButtonBackgroundPressed"] = new SolidColorBrush(color);
-            AutomationProperties.SetName(button, name);
-            ToolTipService.SetToolTip(button, name);
             button.Click += (_, _) => SetColor(hex);
-            swatches.Add((button, check, hex));
+            swatches.Add((button, check, hex, key));
             ColorSwatches.Children.Add(button);
         }
+        ApplyLocalization();
         UpdateControls();
+    }
+
+    private void ApplyLocalization()
+    {
+        TitleHeader.Text = L10n.Get("Settings_Title");
+        LanguageSectionHeader.Text = L10n.Get("Settings_LanguageGroup");
+        LanguagePicker.Header = L10n.Get("Settings_Language");
+        LangSystemItem.Content = L10n.Get("Settings_Language_System");
+        AppearanceSectionHeader.Text = L10n.Get("Settings_Appearance");
+        ThemePicker.Header = L10n.Get("Settings_Theme");
+        ThemeSystemItem.Content = L10n.Get("Settings_Theme_System");
+        ThemeLightItem.Content = L10n.Get("Settings_Theme_Light");
+        ThemeDarkItem.Content = L10n.Get("Settings_Theme_Dark");
+        AccentToggle.Header = L10n.Get("Settings_Accent");
+        AccentToggle.OnContent = L10n.Get("Common_On");
+        AccentToggle.OffContent = L10n.Get("Common_Off");
+        AutomationProperties.SetName(ColorSwatches, L10n.Get("Settings_ColorPaletteName"));
+        CustomColorButton.Content = L10n.Get("Settings_CustomColor");
+        CancelColorButton.Content = L10n.Get("Common_Cancel");
+        ApplyColorButton.Content = L10n.Get("Common_Apply");
+        ResetColorButton.Content = L10n.Get("Settings_ResetColor");
+        ColorHintText.Text = L10n.Get("Settings_ColorHint");
+        ExpandedStateLabel.Text = L10n.Get("Settings_ExpandedState");
+        foreach (var (button, _, _, key) in swatches)
+        {
+            string colorName = L10n.Get(key);
+            AutomationProperties.SetName(button, colorName);
+            ToolTipService.SetToolTip(button, colorName);
+        }
+        if (LanguageNotice.IsOpen) LanguageNotice.Message = L10n.Get("Settings_Language_RestartHint");
     }
 
     private void UpdateControls()
     {
         updating = true;
         var settings = appearance.Settings;
+        LanguagePicker.SelectedIndex = L10n.NormalizePreference(settings.Language) switch
+        {
+            "zh-CN" => 1,
+            "en" => 2,
+            _ => 0
+        };
         ThemePicker.SelectedIndex = settings.Theme switch { ElementTheme.Light => 1, ElementTheme.Dark => 2, _ => 0 };
         AccentToggle.IsOn = settings.AccentEnabled;
         foreach (var button in ColorControls.Children.OfType<StackPanel>().SelectMany(panel => panel.Children).OfType<Button>())
             button.IsEnabled = settings.AccentEnabled;
-        ColorValue.Text = settings.AccentEnabled ? settings.AccentColor : "灰色";
-        foreach (var (button, check, hex) in swatches)
+        ColorValue.Text = settings.AccentEnabled ? settings.AccentColor : L10n.Get("Settings_Gray");
+        foreach (var (button, check, hex, _) in swatches)
         {
             bool selected = string.Equals(hex, settings.AccentColor, StringComparison.OrdinalIgnoreCase);
             check.Visibility = selected ? Visibility.Visible : Visibility.Collapsed;
-            AutomationProperties.SetItemStatus(button, selected ? "已选择" : "未选择");
+            AutomationProperties.SetItemStatus(button, L10n.Get(selected ? "Settings_Selected" : "Settings_Unselected"));
         }
         updating = false;
     }
@@ -63,6 +99,18 @@ public sealed partial class SettingsPage : Page
         SaveError.Message = error ?? string.Empty;
         SaveError.IsOpen = error != null;
         UpdateControls();
+    }
+
+    private void OnLanguageChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (updating) return;
+        string lang = (LanguagePicker.SelectedItem as ComboBoxItem)?.Tag as string ?? "system";
+        L10n.ApplyLanguage(lang);
+        Apply(appearance.Settings with { Language = L10n.NormalizePreference(lang) });
+        ApplyLocalization();
+        UpdateControls();
+        LanguageNotice.Message = L10n.Get("Settings_Language_RestartHint");
+        LanguageNotice.IsOpen = true;
     }
 
     private void OnThemeChanged(object sender, SelectionChangedEventArgs args)

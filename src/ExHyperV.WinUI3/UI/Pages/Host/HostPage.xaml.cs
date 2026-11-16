@@ -1,4 +1,5 @@
 using ExHyperV.Services;
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -11,6 +12,12 @@ public sealed partial class HostPage : Page
     public HostPage()
     {
         InitializeComponent();
+        TitleHeader.Text = L10n.Get("Host_Title");
+        QueryError.Title = L10n.Get("Host_QueryErrorTitle");
+        OsLabel.Text = L10n.Get("Host_Os");
+        ProcessorLabel.Text = L10n.Get("Host_Processor");
+        ArchitectureLabel.Text = L10n.Get("Host_Arch");
+        MemoryLabel.Text = L10n.Get("Host_Memory");
         Loaded += OnLoaded;
     }
 
@@ -29,7 +36,7 @@ public sealed partial class HostPage : Page
         }
         catch (Exception exception)
         {
-            QueryError.Message = exception.Message;
+            QueryError.Message = CoreMessageResolver.ResolveException(exception);
             QueryError.IsOpen = true;
             requested = false;
         }
