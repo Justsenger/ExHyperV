@@ -119,7 +119,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
                     Need("CheckpointsRaw", "VirtualSystemIdentifier", "ConfigurationID", "ElementName", "CreationTime", "Parent", "VirtualSystemType"); break;
             }
         }
-        if (request.Fields.Any(f => f.Collection == VmQueryCollection.Storage && f.Property is "DiskNumber" or "DiskModel" or "SerialNumber" or "PnpDeviceId" or "IsPassthroughStale" or "CapacityBytes" or "FileSizeBytes" or "ReadBytesPerSecond" or "WriteBytesPerSecond"))
+        if (request.Fields.Any(f => f.Collection == VmQueryCollection.Storage && f.Property is "DiskNumber" or "DiskModel" or "SerialNumber" or "PnpDeviceId" or "IsPassthroughStale" or "CapacityBytes" or "FileSizeBytes" or "ReadBytesPerSecond" or "WriteBytesPerSecond" or "ReadOperationsPerSecond" or "WriteOperationsPerSecond" or "QueueLength" or "ErrorCount"))
         { Need("HvDisks", "DriveNumber"); Need("HostDisks", "Model", "Size", "SerialNumber", "PNPDeviceID"); }
         if (request.Fields.Contains(VmMemoryFields.BackingPageSize)) Need("Memory", "HugePagesEnabled");
     }

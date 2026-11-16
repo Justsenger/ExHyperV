@@ -111,6 +111,10 @@ internal sealed partial class VmQueryEngine
         await owner.UpdateDiskPerformanceAsync(machines).ConfigureAwait(false);
         return Done(machines.SelectMany(vm => vm.Disks.Select(d => Row(identities[d].Key, vm.Id,
             ("ReadBytesPerSecond", Value(VmStorageFields.ReadBytesPerSecond, d.ReadBytesPerSecond, d.PerformanceSample)),
-            ("WriteBytesPerSecond", Value(VmStorageFields.WriteBytesPerSecond, d.WriteBytesPerSecond, d.PerformanceSample))))));
+            ("WriteBytesPerSecond", Value(VmStorageFields.WriteBytesPerSecond, d.WriteBytesPerSecond, d.PerformanceSample)),
+            ("ReadOperationsPerSecond", Value(VmStorageFields.ReadOperationsPerSecond, d.ReadOperationsPerSecond, d.PerformanceSample)),
+            ("WriteOperationsPerSecond", Value(VmStorageFields.WriteOperationsPerSecond, d.WriteOperationsPerSecond, d.PerformanceSample)),
+            ("QueueLength", Value(VmStorageFields.QueueLength, d.QueueLength, d.PerformanceSample)),
+            ("ErrorCount", Value(VmStorageFields.ErrorCount, d.ErrorCount, d.PerformanceSample))))));
     }
 }

@@ -30,6 +30,22 @@ namespace ExHyperV.Models
         public long WriteBytesPerSecond { get => _writeBytesPerSecond; set => _writeBytesPerSecond = value; }
         private long _writeBytesPerSecond; // 字节每秒
 
+        /// <summary>当前每秒读取操作数（读 IOPS）。</summary>
+        public long ReadOperationsPerSecond { get => _readOperationsPerSecond; set => _readOperationsPerSecond = value; }
+        private long _readOperationsPerSecond;
+
+        /// <summary>当前每秒写入操作数（写 IOPS）。</summary>
+        public long WriteOperationsPerSecond { get => _writeOperationsPerSecond; set => _writeOperationsPerSecond = value; }
+        private long _writeOperationsPerSecond;
+
+        /// <summary>当前虚拟存储设备的平均 IO 队列长度。</summary>
+        public long QueueLength { get => _queueLength; set => _queueLength = value; }
+        private long _queueLength;
+
+        /// <summary>虚拟存储设备累计报告的 IO 错误次数。</summary>
+        public long ErrorCount { get => _errorCount; set => _errorCount = value; }
+        private long _errorCount;
+
         /// <summary>本次读写速率读取的有效性与时间；无效时速率字段不更新。</summary>
         public PerformanceSampleInfo PerformanceSample { get => _performanceSample; set => _performanceSample = value; }
         private PerformanceSampleInfo _performanceSample = new(PerformanceSampleState.NotSampled, default);

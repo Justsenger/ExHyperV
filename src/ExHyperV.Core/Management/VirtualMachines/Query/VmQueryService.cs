@@ -144,7 +144,7 @@ namespace ExHyperV.Services
         private const string QueryMemSettings = "SELECT InstanceID, VirtualQuantity FROM Msvm_MemorySettingData WHERE ResourceType = 4";
         private const string QuerySettings = "SELECT ConfigurationID, InstanceID, VirtualSystemSubType, Version FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
         private const string QueryGpuPvSettings = "SELECT InstanceID, HostResource FROM Msvm_GpuPartitionSettingData";
-        private const string QueryDiskPerf = "SELECT Name, ReadBytesPersec, WriteBytesPersec FROM Win32_PerfFormattedData_Counters_HyperVVirtualStorageDevice";
+        private const string QueryDiskPerf = "SELECT Name, ReadBytesPersec, WriteBytesPersec, ReadOperationsPerSec, WriteOperationsPerSec, QueueLength, ErrorCount FROM Win32_PerfFormattedData_Counters_HyperVVirtualStorageDevice";
         private const string QuerySwitches = "SELECT Name, ElementName FROM Msvm_VirtualEthernetSwitch";
         private const string QueryGuestNetwork = "SELECT InstanceID, IPAddresses FROM Msvm_GuestNetworkAdapterConfiguration";
 
@@ -159,7 +159,14 @@ namespace ExHyperV.Services
         private sealed record AllocItem(string InstanceID, string EnabledState, string[] HostResource);
         private sealed record SwitchItem(string Guid, string Name);
         private sealed record GuestNetItem(string InstanceID, string[] IPAddresses);
-        internal sealed record PerfItem(string WmiName, ulong? Read, ulong? Write);
+        internal sealed record PerfItem(
+            string WmiName,
+            ulong? Read,
+            ulong? Write,
+            ulong? ReadOps = null,
+            ulong? WriteOps = null,
+            ulong? QueueLength = null,
+            ulong? ErrorCount = null);
 
         internal sealed record GpuProcessInfo(int Pid, int ParentPid, string Name, string CommandLine, string? CreationDate = null);
         internal sealed record GpuPidSnapshot(Guid[] RequestedIds, Dictionary<Guid, int[]> Processes, DateTime CheckedAtUtc)
@@ -643,7 +650,11 @@ namespace ExHyperV.Services
                 var perfTask = WmiApi.QueryAsync(QueryDiskPerf, obj => new PerfItem(
                     obj["Name"]?.ToString() ?? "",
                     obj["ReadBytesPersec"] is null ? null : Convert.ToUInt64(obj["ReadBytesPersec"]),
-                    obj["WriteBytesPersec"] is null ? null : Convert.ToUInt64(obj["WriteBytesPersec"])
+                    obj["WriteBytesPersec"] is null ? null : Convert.ToUInt64(obj["WriteBytesPersec"]),
+                    obj["ReadOperationsPerSec"] is null ? null : Convert.ToUInt64(obj["ReadOperationsPerSec"]),
+                    obj["WriteOperationsPerSec"] is null ? null : Convert.ToUInt64(obj["WriteOperationsPerSec"]),
+                    obj["QueueLength"] is null ? null : Convert.ToUInt64(obj["QueueLength"]),
+                    obj["ErrorCount"] is null ? null : Convert.ToUInt64(obj["ErrorCount"])
                 ), WmiScope.CimV2);
                 var identitiesTask = WmiApi.QueryAsync(
                     "SELECT HostResource FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31 OR ResourceType = 16",
@@ -733,6 +744,10 @@ namespace ExHyperV.Services
                     }
                     disk.ReadBytesPerSecond = (long)sample.Read.Value;
                     disk.WriteBytesPerSecond = (long)sample.Write.Value;
+                    disk.ReadOperationsPerSecond = sample.ReadOps is { } ro && ro <= long.MaxValue ? (long)ro : 0;
+                    disk.WriteOperationsPerSecond = sample.WriteOps is { } wo && wo <= long.MaxValue ? (long)wo : 0;
+                    disk.QueueLength = sample.QueueLength is { } ql && ql <= long.MaxValue ? (long)ql : 0;
+                    disk.ErrorCount = sample.ErrorCount is { } ec && ec <= long.MaxValue ? (long)ec : 0;
                     disk.PerformanceSample = new(PerformanceSampleState.Valid, observedAt);
                 }
             }

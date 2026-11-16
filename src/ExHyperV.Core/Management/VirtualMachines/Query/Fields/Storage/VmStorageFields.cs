@@ -180,5 +180,45 @@ public static class VmStorageFields
     /// </fielddoc>
     public static readonly VmQueryField<long> WriteBytesPerSecond = new("Storage.WriteBytesPerSecond", "磁盘写入速率", "存储", VmQueryCollection.Storage, "DiskPerformance", "WriteBytesPerSecond");
 
-    internal static readonly VmQueryField[] Items = [AttachmentId, DriveType, DiskType, Path, ControllerType, ControllerNumber, ControllerLocation, DiskNumber, DiskModel, SerialNumber, PnpDeviceId, IsPassthroughStale, CapacityBytes, VirtualDiskType, FileSizeBytes, ReadBytesPerSecond, WriteBytesPerSecond];
+    /// <summary>磁盘读取 IOPS：磁盘当前每秒发生的读取操作次数。</summary>
+    /// <fielddoc>
+    /// <meaning>磁盘当前每秒读取操作数。</meaning>
+    /// <source>VmQueryService 的磁盘性能采样（HyperVVirtualStorageDevice.ReadOperationsPerSec）。</source>
+    /// <references><see cref="VmStorageService"/>。</references>
+    /// <modification kind="readonly" />
+    /// <values kind="format">单位为次/秒（IOPS）。</values>
+    /// </fielddoc>
+    public static readonly VmQueryField<long> ReadOperationsPerSecond = new("Storage.ReadOperationsPerSecond", "磁盘读取 IOPS", "存储", VmQueryCollection.Storage, "DiskPerformance", "ReadOperationsPerSecond");
+
+    /// <summary>磁盘写入 IOPS：磁盘当前每秒发生的写入操作次数。</summary>
+    /// <fielddoc>
+    /// <meaning>磁盘当前每秒写入操作数。</meaning>
+    /// <source>VmQueryService 的磁盘性能采样（HyperVVirtualStorageDevice.WriteOperationsPerSec）。</source>
+    /// <references><see cref="VmStorageService"/>。</references>
+    /// <modification kind="readonly" />
+    /// <values kind="format">单位为次/秒（IOPS）。</values>
+    /// </fielddoc>
+    public static readonly VmQueryField<long> WriteOperationsPerSecond = new("Storage.WriteOperationsPerSecond", "磁盘写入 IOPS", "存储", VmQueryCollection.Storage, "DiskPerformance", "WriteOperationsPerSecond");
+
+    /// <summary>磁盘队列深度：当前虚拟存储设备的平均 IO 队列长度。</summary>
+    /// <fielddoc>
+    /// <meaning>当前虚拟存储设备的平均队列长度。</meaning>
+    /// <source>VmQueryService 的磁盘性能采样（HyperVVirtualStorageDevice.QueueLength）。</source>
+    /// <references><see cref="VmStorageService"/>。</references>
+    /// <modification kind="readonly" />
+    /// <values kind="format">非负整数，值越大表示正在排队的 IO 请求越多。</values>
+    /// </fielddoc>
+    public static readonly VmQueryField<long> QueueLength = new("Storage.QueueLength", "磁盘队列深度", "存储", VmQueryCollection.Storage, "DiskPerformance", "QueueLength");
+
+    /// <summary>磁盘错误计数：虚拟存储设备累计发生的 IO 错误次数。</summary>
+    /// <fielddoc>
+    /// <meaning>虚拟存储设备累计报告的 IO 错误次数。</meaning>
+    /// <source>VmQueryService 的磁盘性能采样（HyperVVirtualStorageDevice.ErrorCount）。</source>
+    /// <references><see cref="VmStorageService"/>。</references>
+    /// <modification kind="readonly" />
+    /// <values kind="format">正常为 <c>0</c>；大于 0 表示出现过存储 IO 错误。</values>
+    /// </fielddoc>
+    public static readonly VmQueryField<long> ErrorCount = new("Storage.ErrorCount", "磁盘错误计数", "存储", VmQueryCollection.Storage, "DiskPerformance", "ErrorCount");
+
+    internal static readonly VmQueryField[] Items = [AttachmentId, DriveType, DiskType, Path, ControllerType, ControllerNumber, ControllerLocation, DiskNumber, DiskModel, SerialNumber, PnpDeviceId, IsPassthroughStale, CapacityBytes, VirtualDiskType, FileSizeBytes, ReadBytesPerSecond, WriteBytesPerSecond, ReadOperationsPerSecond, WriteOperationsPerSecond, QueueLength, ErrorCount];
 }
