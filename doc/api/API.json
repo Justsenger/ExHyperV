@@ -3,7 +3,7 @@
   "version": "2.0.0-Alpha",
   "source": {
     "revision": null,
-    "contentSha256": "fbbc62e63a435da7096dc5f35cbf5d3ee20372e71a0e7b9868958bd8b9c6fbec"
+    "contentSha256": "594b84cf21802aacea0f7ff4cd17c37a1ef9badfee3e6a3e0f348f9794a9dbb6"
   },
   "defaultTypeId": "overview",
   "queryPath": [
@@ -26883,6 +26883,122 @@
           "instanceEntry": null,
           "summaryHtml": "\u4E0D\u5141\u8BB8\u4FEE\u6539\u7684\u539F\u56E0\uFF1B\u5141\u8BB8\u65F6\u4E3A\u7A7A\u5B57\u7B26\u4E32\u3002",
           "summaryText": "\u4E0D\u5141\u8BB8\u4FEE\u6539\u7684\u539F\u56E0\uFF1B\u5141\u8BB8\u65F6\u4E3A\u7A7A\u5B57\u7B26\u4E32\u3002"
+        },
+        {
+          "id": "api-5301e39f0c5c3430",
+          "uid": "P:ExHyperV.Models.VmModificationCondition.ReasonArgs",
+          "toolGroup": "vm",
+          "readOnly": false,
+          "name": "ReasonArgs",
+          "displayName": "\u539F\u56E0\u53C2\u6570",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "\u5904\u7406\u5668"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "\u5904\u7406\u5668"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Query/VmModificationCondition.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 20,
+          "signature": "public IReadOnlyList\u003Cstring\u003E ReasonArgs { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; ReasonArgs { get; }",
+          "presentation": {
+            "expression": "VmModificationCondition.ReasonArgs",
+            "valueType": "IReadOnlyList\u003Cstring\u003E",
+            "valueTypeHtml": "IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt;",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u914D\u5408 ReasonCode \u4F7F\u7528\u7684\u53EF\u9009\u53C2\u6570\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u914D\u5408 ReasonCode \u4F7F\u7528\u7684\u53EF\u9009\u53C2\u6570\u3002",
+          "summaryText": "\u914D\u5408 ReasonCode \u4F7F\u7528\u7684\u53EF\u9009\u53C2\u6570\u3002"
+        },
+        {
+          "id": "api-74f584e48f85c8d8",
+          "uid": "P:ExHyperV.Models.VmModificationCondition.ReasonCode",
+          "toolGroup": "vm",
+          "readOnly": false,
+          "name": "ReasonCode",
+          "displayName": "\u539F\u56E0\u7801",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "\u5904\u7406\u5668"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "\u5904\u7406\u5668"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Query/VmModificationCondition.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 18,
+          "signature": "public ConditionReasonCode ReasonCode { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E ReasonCode { get; }",
+          "presentation": {
+            "expression": "VmModificationCondition.ReasonCode",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u8BED\u8A00\u65E0\u5173\u7684\u524D\u7F6E\u6761\u4EF6\u539F\u56E0\u7801\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u8BED\u8A00\u65E0\u5173\u7684\u524D\u7F6E\u6761\u4EF6\u539F\u56E0\u7801\u3002",
+          "summaryText": "\u8BED\u8A00\u65E0\u5173\u7684\u524D\u7F6E\u6761\u4EF6\u539F\u56E0\u7801\u3002"
         },
         {
           "id": "api-de4343c35f30cbf9",
@@ -89923,7 +90039,7 @@
           "source": "Management/VirtualMachines/Memory/VmMemoryService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 151,
+          "order": 152,
           "signature": "public static VmModificationCondition GetModificationCondition(VmMemorySettings settings, string propertyName, VmState state);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-93e367f9b5bd2a37\u0022\u003EVmModificationCondition\u003C/a\u003E GetModificationCondition(\u003Ca href=\u0022#api-1245af70d4ef31dd\u0022\u003EVmMemorySettings\u003C/a\u003E settings, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E propertyName, \u003Ca href=\u0022#api-add6eece8fedcd7e\u0022\u003EVmState\u003C/a\u003E state);",
           "presentation": {
@@ -89999,7 +90115,7 @@
           "source": "Management/VirtualMachines/Memory/VmMemoryService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 32,
+          "order": 33,
           "signature": "public static async Task\u003CApiResponse\u003CVmSettingsSnapshot\u003CVmMemorySettings\u003E\u003E\u003E GetVmMemorySettingsAsync(Guid vmId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026lt;\u003Ca href=\u0022#api-6cbffda7f312d0d5\u0022\u003EVmSettingsSnapshot\u003C/a\u003E\u0026lt;\u003Ca href=\u0022#api-1245af70d4ef31dd\u0022\u003EVmMemorySettings\u003C/a\u003E\u0026gt;\u0026gt;\u0026gt; GetVmMemorySettingsAsync(Guid vmId);",
           "presentation": {
@@ -90065,7 +90181,7 @@
           "source": "Management/VirtualMachines/Memory/VmMemoryService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 304,
+          "order": 338,
           "signature": "public static async Task\u003CApiResponse\u003E SetVmMemorySettingsAsync(Guid vmId, VmMemorySettings newSettings, IReadOnlyCollection\u003Cstring\u003E changedProperties);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026gt; SetVmMemorySettingsAsync(Guid vmId, \u003Ca href=\u0022#api-1245af70d4ef31dd\u0022\u003EVmMemorySettings\u003C/a\u003E newSettings, IReadOnlyCollection\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; changedProperties);",
           "presentation": {
@@ -91166,7 +91282,7 @@
           "source": "Management/VirtualMachines/Mmio/VmMmioService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 133,
+          "order": 135,
           "signature": "public static async Task\u003CApiResponse\u003E ConfigureMmioAsync(Guid vmId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026gt; ConfigureMmioAsync(Guid vmId);",
           "presentation": {
@@ -101379,7 +101495,7 @@
           "source": "Management/VirtualMachines/Power/VmPowerService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 55,
+          "order": 57,
           "signature": "public static Task\u003CApiResponse\u003E ExecuteControlActionAsync(Guid vmId, VmPowerAction action);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E Task\u0026lt;ApiResponse\u0026gt; ExecuteControlActionAsync(Guid vmId, \u003Ca href=\u0022#api-c38f561557cd3ed7\u0022\u003EVmPowerAction\u003C/a\u003E action);",
           "presentation": {
@@ -101454,7 +101570,7 @@
           "source": "Management/VirtualMachines/Power/VmPowerService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 30,
+          "order": 32,
           "signature": "public static Task\u003CApiResponse\u003E ExecuteControlActionAsync(Guid vmId, string action);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E Task\u0026lt;ApiResponse\u0026gt; ExecuteControlActionAsync(Guid vmId, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E action);",
           "presentation": {
@@ -101522,7 +101638,7 @@
           "source": "Management/VirtualMachines/Power/VmPowerService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 39,
+          "order": 41,
           "signature": "public static async Task\u003CApiResponse\u003E ExecuteControlActionAsync(string vmName, VmPowerAction action);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026gt; ExecuteControlActionAsync(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E vmName, \u003Ca href=\u0022#api-c38f561557cd3ed7\u0022\u003EVmPowerAction\u003C/a\u003E action);",
           "presentation": {
@@ -101592,7 +101708,7 @@
           "source": "Management/VirtualMachines/Power/VmPowerService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 21,
+          "order": 23,
           "signature": "public static Task\u003CApiResponse\u003E ExecuteControlActionAsync(string vmName, string action);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E Task\u0026lt;ApiResponse\u0026gt; ExecuteControlActionAsync(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E vmName, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E action);",
           "presentation": {
@@ -105401,7 +105517,7 @@
           "source": "Management/VirtualMachines/Processor/VmProcessorService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 137,
+          "order": 156,
           "signature": "public static VmModificationCondition GetModificationCondition(VmProcessorSettings settings, string propertyName, VmState state, HostCapabilities host);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-93e367f9b5bd2a37\u0022\u003EVmModificationCondition\u003C/a\u003E GetModificationCondition(\u003Ca href=\u0022#api-1bd5c358d4233af8\u0022\u003EVmProcessorSettings\u003C/a\u003E settings, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E propertyName, \u003Ca href=\u0022#api-add6eece8fedcd7e\u0022\u003EVmState\u003C/a\u003E state, \u003Ca href=\u0022#api-726a953ed0783af6\u0022\u003EHostCapabilities\u003C/a\u003E host);",
           "presentation": {
@@ -105483,7 +105599,7 @@
           "source": "Management/VirtualMachines/Processor/VmProcessorService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 206,
+          "order": 223,
           "signature": "public static async Task\u003CApiResponse\u003CVmSettingsSnapshot\u003CVmProcessorSettings\u003E\u003E\u003E GetVmProcessorAsync(Guid vmId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026lt;\u003Ca href=\u0022#api-6cbffda7f312d0d5\u0022\u003EVmSettingsSnapshot\u003C/a\u003E\u0026lt;\u003Ca href=\u0022#api-1bd5c358d4233af8\u0022\u003EVmProcessorSettings\u003C/a\u003E\u0026gt;\u0026gt;\u0026gt; GetVmProcessorAsync(Guid vmId);",
           "presentation": {
@@ -105549,7 +105665,7 @@
           "source": "Management/VirtualMachines/Processor/VmProcessorService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 259,
+          "order": 276,
           "signature": "public static async Task\u003CApiResponse\u003E SetVmProcessorAsync(Guid vmId, VmProcessorSettings newSettings, IReadOnlyCollection\u003Cstring\u003E changedProperties);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026gt; SetVmProcessorAsync(Guid vmId, \u003Ca href=\u0022#api-1bd5c358d4233af8\u0022\u003EVmProcessorSettings\u003C/a\u003E newSettings, IReadOnlyCollection\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; changedProperties);",
           "presentation": {
@@ -114354,7 +114470,7 @@
             "category": "\u4E32\u53E3",
             "expression": "VmSerialPortFields.DebuggerMode",
             "valueType": "bool",
-            "order": 2778,
+            "order": 2825,
             "summaryHtml": "\u662F\u5426\u4E3A Windows \u5185\u6838\u8C03\u8BD5\u5668\uFF08WinDbg\uFF09\u4F18\u5316\u4E32\u53E3\u4F20\u8F93\u3002",
             "enumTypeId": null,
             "valuesHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u003Ccode\u003Etrue\u003C/code\u003E\uFF1A\u5F00\u542F\u5185\u6838\u8C03\u8BD5\u4F18\u5316\uFF1B\u003Ccode\u003Efalse\u003C/code\u003E\uFF1A\u666E\u901A\u4E32\u53E3\u6A21\u5F0F\u3002\u003C/div\u003E",
@@ -114435,7 +114551,7 @@
             "category": "\u4E32\u53E3",
             "expression": "VmSerialPortFields.Name",
             "valueType": "string",
-            "order": 1118,
+            "order": 1143,
             "summaryHtml": "\u865A\u62DF\u4E32\u53E3\u7684\u663E\u793A\u540D\u79F0\uFF08\u5982 COM 1\u3001COM 2\uFF09\u3002",
             "enumTypeId": null,
             "valuesHtml": "",
@@ -114514,7 +114630,7 @@
             "category": "\u4E32\u53E3",
             "expression": "VmSerialPortFields.PipePath",
             "valueType": "string",
-            "order": 1924,
+            "order": 1960,
             "summaryHtml": "\u865A\u62DF\u4E32\u53E3\u8FDE\u63A5\u7684\u5BBF\u4E3B\u673A\u547D\u540D\u7BA1\u9053\u8DEF\u5F84\uFF1B\u4E3A\u7A7A\u8868\u793A\u672A\u8FDE\u63A5\u3002",
             "enumTypeId": null,
             "valuesHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003EWindows \u547D\u540D\u7BA1\u9053\u8DEF\u5F84\uFF0C\u4F8B\u5982 \u003Ccode\u003E\\\\.\\pipe\\my-vm-com1\u003C/code\u003E\uFF1B\u7559\u7A7A\u8868\u793A\u672A\u8FDE\u63A5\u3002\u003C/div\u003E",
@@ -114595,7 +114711,7 @@
             "category": "\u4E32\u53E3",
             "expression": "VmSerialPortFields.PortNumber",
             "valueType": "int",
-            "order": 641,
+            "order": 657,
             "summaryHtml": "\u865A\u62DF\u4E32\u53E3\u7684\u56FA\u5B9A\u7AEF\u53E3\u53F7\uFF081 \u8868\u793A COM 1\uFF0C2 \u8868\u793A COM 2\uFF09\u3002",
             "enumTypeId": null,
             "valuesHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u003Ccode\u003E1\u003C/code\u003E\uFF1ACOM 1\uFF1B\u003Ccode\u003E2\u003C/code\u003E\uFF1ACOM 2\u3002\u003C/div\u003E\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u7AEF\u53E3\u7F16\u53F7\u003C/div\u003E",
@@ -124008,7 +124124,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 10,
+          "order": 11,
           "signature": "public ApiFailure(ApiErrorKind Kind, int Code, ApiErrorSource Source, string Message);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-ed6980c68f413cc1\u0022\u003EApiFailure\u003C/a\u003E(\u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E Kind, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E Code, \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E Source, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message);",
           "presentation": {
@@ -124061,7 +124177,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 10,
+          "order": 11,
           "signature": "public int Code { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E Code { get; init; }",
           "presentation": {
@@ -124114,7 +124230,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 10,
+          "order": 11,
           "signature": "public ApiErrorKind Kind { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E Kind { get; init; }",
           "presentation": {
@@ -124169,7 +124285,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 10,
+          "order": 11,
           "signature": "public string Message { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message { get; init; }",
           "presentation": {
@@ -124222,7 +124338,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 10,
+          "order": 11,
           "signature": "public ApiErrorSource Source { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E Source { get; init; }",
           "presentation": {
@@ -124309,7 +124425,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 228,
+          "order": 281,
           "signature": "public static ApiResponse Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E ApiResponse Fail(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E error, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E code = -\u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E, \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E source = \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E.None, Exception? exception = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E kind = \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E.Unspecified);",
           "presentation": {
@@ -124389,7 +124505,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 219,
+          "order": 272,
           "signature": "public static ApiResponse Ok();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E ApiResponse Ok();",
           "presentation": {
@@ -124444,7 +124560,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 254,
+          "order": 310,
           "signature": "public override string ToString();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eoverride\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E ToString();",
           "presentation": {
@@ -124497,7 +124613,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u8FD0\u7B97\u7B26",
-          "order": 250,
+          "order": 306,
           "signature": "public static implicit operator bool (ApiResponse? response);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eimplicit\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eoperator\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E (ApiResponse? response);",
           "presentation": {
@@ -124557,7 +124673,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 207,
+          "order": 231,
           "signature": "public int Code { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E Code { get; }",
           "presentation": {
@@ -124590,6 +124706,114 @@
           "summaryText": "\u539F\u751F\u6216\u4E1A\u52A1\u9519\u8BEF\u7801\uFF1B\u542B\u4E49\u7531 ErrorSource \u548C\u5177\u4F53\u65B9\u6CD5\u51B3\u5B9A\uFF0C\u672A\u6307\u5B9A\u65F6\u901A\u5E38\u4E3A -1\u3002"
         },
         {
+          "id": "api-5e91d6f0bd1f79c5",
+          "uid": "P:ExHyperV.Tools.ApiResponse.DiagnosticArgs",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "DiagnosticArgs",
+          "displayName": "\u8BCA\u65AD\u53C2\u6570",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/ApiResponse.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 245,
+          "signature": "public IReadOnlyList\u003Cstring\u003E DiagnosticArgs { get; } = Array.Empty\u003Cstring\u003E();",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; DiagnosticArgs { get; } = Array.Empty\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt;();",
+          "presentation": {
+            "expression": "ApiResponse.DiagnosticArgs",
+            "valueType": "IReadOnlyList\u003Cstring\u003E",
+            "valueTypeHtml": "IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt;",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u914D\u5408 DiagnosticCode \u4F7F\u7528\u7684\u7ED3\u6784\u5316\u4E0A\u4E0B\u6587\u53C2\u6570\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u914D\u5408 DiagnosticCode \u4F7F\u7528\u7684\u7ED3\u6784\u5316\u4E0A\u4E0B\u6587\u53C2\u6570\u3002",
+          "summaryText": "\u914D\u5408 DiagnosticCode \u4F7F\u7528\u7684\u7ED3\u6784\u5316\u4E0A\u4E0B\u6587\u53C2\u6570\u3002"
+        },
+        {
+          "id": "api-280d6dd962a6539c",
+          "uid": "P:ExHyperV.Tools.ApiResponse.DiagnosticCode",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "DiagnosticCode",
+          "displayName": "\u8BCA\u65AD\u9519\u8BEF\u7801",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/ApiResponse.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 242,
+          "signature": "public CoreErrorCode DiagnosticCode { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E DiagnosticCode { get; }",
+          "presentation": {
+            "expression": "ApiResponse.DiagnosticCode",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u6807\u8BC6\uFF1B\u672A\u547D\u4E2D\u6807\u51C6\u7801\u65F6\u4E3A None\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u6807\u8BC6\uFF1B\u672A\u547D\u4E2D\u6807\u51C6\u7801\u65F6\u4E3A None\u3002",
+          "summaryText": "\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u6807\u8BC6\uFF1B\u672A\u547D\u4E2D\u6807\u51C6\u7801\u65F6\u4E3A None\u3002"
+        },
+        {
           "id": "api-94a85ddbff6b6faa",
           "uid": "P:ExHyperV.Tools.ApiResponse.Error",
           "toolGroup": "core",
@@ -124610,7 +124834,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 205,
+          "order": 229,
           "signature": "public string Error { get; } = string.Empty;",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Error { get; } = \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E.Empty;",
           "presentation": {
@@ -124663,7 +124887,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 212,
+          "order": 236,
           "signature": "public ApiErrorKind ErrorKind { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E ErrorKind { get; }",
           "presentation": {
@@ -124718,7 +124942,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 209,
+          "order": 233,
           "signature": "public ApiErrorSource ErrorSource { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E ErrorSource { get; }",
           "presentation": {
@@ -124773,7 +124997,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 215,
+          "order": 239,
           "signature": "public Exception? Exception { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Exception? Exception { get; }",
           "presentation": {
@@ -124826,7 +125050,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 174,
+          "order": 198,
           "signature": "public bool RequiresRestart { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E RequiresRestart { get; }",
           "presentation": {
@@ -124879,7 +125103,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 178,
+          "order": 202,
           "signature": "public IReadOnlyList\u003CRestartReason\u003E RestartReasons { get; } = Array.Empty\u003CRestartReason\u003E();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-ec6d13ee818c895b\u0022\u003ERestartReason\u003C/a\u003E\u0026gt; RestartReasons { get; } = Array.Empty\u0026lt;\u003Ca href=\u0022#api-ec6d13ee818c895b\u0022\u003ERestartReason\u003C/a\u003E\u0026gt;();",
           "presentation": {
@@ -124934,7 +125158,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 158,
+          "order": 181,
           "signature": "public IReadOnlyList\u003COperationStepResult\u003E Steps { get; } = Array.Empty\u003COperationStepResult\u003E();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-824369b51a27da0a\u0022\u003EOperationStepResult\u003C/a\u003E\u0026gt; Steps { get; } = Array.Empty\u0026lt;\u003Ca href=\u0022#api-824369b51a27da0a\u0022\u003EOperationStepResult\u003C/a\u003E\u0026gt;();",
           "presentation": {
@@ -124989,7 +125213,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 203,
+          "order": 227,
           "signature": "public bool Success { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E Success { get; }",
           "presentation": {
@@ -125074,7 +125298,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 96,
+          "order": 116,
           "signature": "public static ApiResponse\u003CT\u003E Empty();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E ApiResponse\u0026lt;T\u0026gt; Empty();",
           "presentation": {
@@ -125129,7 +125353,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 110,
+          "order": 130,
           "signature": "public static ApiResponse\u003CT\u003E Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E ApiResponse\u0026lt;T\u0026gt; Fail(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E error, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E code = -\u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E, \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E source = \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E.None, Exception? exception = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E kind = \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E.Unspecified);",
           "presentation": {
@@ -125209,7 +125433,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 87,
+          "order": 107,
           "signature": "public static ApiResponse\u003CT\u003E Ok(T? data);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E ApiResponse\u0026lt;T\u0026gt; Ok(T? data);",
           "presentation": {
@@ -125269,7 +125493,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 141,
+          "order": 164,
           "signature": "public override string ToString();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eoverride\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E ToString();",
           "presentation": {
@@ -125322,7 +125546,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u8FD0\u7B97\u7B26",
-          "order": 137,
+          "order": 160,
           "signature": "public static implicit operator bool (ApiResponse\u003CT\u003E? response);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eimplicit\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eoperator\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E (ApiResponse\u0026lt;T\u0026gt;? response);",
           "presentation": {
@@ -125466,6 +125690,114 @@
           "instanceEntry": null,
           "summaryHtml": "\u54CD\u5E94\u6570\u636E\uFF1B\u4F7F\u7528\u524D\u5148\u68C0\u67E5 HasData\uFF0C\u5931\u8D25/\u7A7A\u7ED3\u679C\u65F6\u53EF\u80FD\u4E3A\u9ED8\u8BA4\u503C\u3002",
           "summaryText": "\u54CD\u5E94\u6570\u636E\uFF1B\u4F7F\u7528\u524D\u5148\u68C0\u67E5 HasData\uFF0C\u5931\u8D25/\u7A7A\u7ED3\u679C\u65F6\u53EF\u80FD\u4E3A\u9ED8\u8BA4\u503C\u3002"
+        },
+        {
+          "id": "api-7936b85bd688d615",
+          "uid": "P:ExHyperV.Tools.ApiResponse\u00601.DiagnosticArgs",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "DiagnosticArgs",
+          "displayName": "\u8BCA\u65AD\u53C2\u6570",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/ApiResponse.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 88,
+          "signature": "public IReadOnlyList\u003Cstring\u003E DiagnosticArgs { get; } = Array.Empty\u003Cstring\u003E();",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; DiagnosticArgs { get; } = Array.Empty\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt;();",
+          "presentation": {
+            "expression": "ApiResponse\u003CT\u003E.DiagnosticArgs",
+            "valueType": "IReadOnlyList\u003Cstring\u003E",
+            "valueTypeHtml": "IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt;",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u914D\u5408 DiagnosticCode \u4F7F\u7528\u7684\u7ED3\u6784\u5316\u4E0A\u4E0B\u6587\u53C2\u6570\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u914D\u5408 DiagnosticCode \u4F7F\u7528\u7684\u7ED3\u6784\u5316\u4E0A\u4E0B\u6587\u53C2\u6570\u3002",
+          "summaryText": "\u914D\u5408 DiagnosticCode \u4F7F\u7528\u7684\u7ED3\u6784\u5316\u4E0A\u4E0B\u6587\u53C2\u6570\u3002"
+        },
+        {
+          "id": "api-253d01cd57371b28",
+          "uid": "P:ExHyperV.Tools.ApiResponse\u00601.DiagnosticCode",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "DiagnosticCode",
+          "displayName": "\u8BCA\u65AD\u9519\u8BEF\u7801",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/ApiResponse.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 85,
+          "signature": "public CoreErrorCode DiagnosticCode { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E DiagnosticCode { get; }",
+          "presentation": {
+            "expression": "ApiResponse\u003CT\u003E.DiagnosticCode",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u6807\u8BC6\uFF1B\u672A\u547D\u4E2D\u6807\u51C6\u7801\u65F6\u4E3A None\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u6807\u8BC6\uFF1B\u672A\u547D\u4E2D\u6807\u51C6\u7801\u65F6\u4E3A None\u3002",
+          "summaryText": "\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u6807\u8BC6\uFF1B\u672A\u547D\u4E2D\u6807\u51C6\u7801\u65F6\u4E3A None\u3002"
         },
         {
           "id": "api-63a4a29a2aba472e",
@@ -125704,7 +126036,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 131,
+          "order": 154,
           "signature": "public bool HasData { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasData { get; }",
           "presentation": {
@@ -125845,6 +126177,2595 @@
       ]
     },
     {
+      "id": "api-c6b312ed6e71ad87",
+      "uid": "T:ExHyperV.Tools.ConditionReasonCode",
+      "name": "ExHyperV.Tools.ConditionReasonCode",
+      "toolGroup": "core",
+      "displayName": "\u6761\u4EF6\u539F\u56E0\u7801",
+      "role": "contract",
+      "shortName": "ConditionReasonCode",
+      "namespace": "ExHyperV.Tools",
+      "kind": "\u679A\u4E3E",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u5171\u7528\u7C7B\u578B",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u5171\u7528\u7C7B\u578B"
+        ]
+      ],
+      "signature": "public enum ConditionReasonCode",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eenum\u003C/span\u003E \u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+      "baseTypeHtml": "",
+      "interfacesHtml": "",
+      "derivedTypesHtml": "",
+      "source": "Common/Results/CoreDiagnostic.cs",
+      "sources": [
+        "Common/Results/CoreDiagnostic.cs"
+      ],
+      "summaryHtml": "\u8BED\u8A00\u65E0\u5173\u7684\u8BBE\u7F6E\u4FEE\u6539\u524D\u7F6E\u6761\u4EF6\u539F\u56E0\u7801\u3002",
+      "descriptionHtml": "",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-9d67e2b08a47ead6",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.DynamicMemoryRunningStartupLocked",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "DynamicMemoryRunningStartupLocked",
+          "displayName": "DynamicMemoryRunningStartupLocked",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 15,
+          "signature": "DynamicMemoryRunningStartupLocked = 2",
+          "signatureHtml": "DynamicMemoryRunningStartupLocked = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.DynamicMemoryRunningStartupLocked",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5F00\u542F\u52A8\u6001\u5185\u5B58\u65F6\uFF0C\u542F\u52A8\u5185\u5B58\u4EC5\u5728\u5173\u673A\u540E\u53EF\u4FEE\u6539\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5F00\u542F\u52A8\u6001\u5185\u5B58\u65F6\uFF0C\u542F\u52A8\u5185\u5B58\u4EC5\u5728\u5173\u673A\u540E\u53EF\u4FEE\u6539\u3002",
+          "summaryText": "\u5F00\u542F\u52A8\u6001\u5185\u5B58\u65F6\uFF0C\u542F\u52A8\u5185\u5B58\u4EC5\u5728\u5173\u673A\u540E\u53EF\u4FEE\u6539\u3002"
+        },
+        {
+          "id": "api-810ebcae6aed77cb",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.HostSettingMissing",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "HostSettingMissing",
+          "displayName": "HostSettingMissing",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 17,
+          "signature": "HostSettingMissing = 3",
+          "signatureHtml": "HostSettingMissing = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.HostSettingMissing",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5F53\u524D\u5BBF\u4E3B\u7CFB\u7EDF\u6216\u786C\u4EF6\u672A\u63D0\u4F9B\u6B64\u8BBE\u7F6E\u5C5E\u6027\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5F53\u524D\u5BBF\u4E3B\u7CFB\u7EDF\u6216\u786C\u4EF6\u672A\u63D0\u4F9B\u6B64\u8BBE\u7F6E\u5C5E\u6027\u3002",
+          "summaryText": "\u5F53\u524D\u5BBF\u4E3B\u7CFB\u7EDF\u6216\u786C\u4EF6\u672A\u63D0\u4F9B\u6B64\u8BBE\u7F6E\u5C5E\u6027\u3002"
+        },
+        {
+          "id": "api-ff0428d064feb7d4",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.None",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "None",
+          "displayName": "None",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 11,
+          "signature": "None = 0",
+          "signatureHtml": "None = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.None",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u65E0\u9650\u5236\uFF0C\u5141\u8BB8\u4FEE\u6539\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u65E0\u9650\u5236\uFF0C\u5141\u8BB8\u4FEE\u6539\u3002",
+          "summaryText": "\u65E0\u9650\u5236\uFF0C\u5141\u8BB8\u4FEE\u6539\u3002"
+        },
+        {
+          "id": "api-efa66364ed32bb4a",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.PoweredOffRequired",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "PoweredOffRequired",
+          "displayName": "PoweredOffRequired",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 13,
+          "signature": "PoweredOffRequired = 1",
+          "signatureHtml": "PoweredOffRequired = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.PoweredOffRequired",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u9700\u8981\u5148\u5173\u95ED\u865A\u62DF\u673A\u540E\u4FEE\u6539\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u9700\u8981\u5148\u5173\u95ED\u865A\u62DF\u673A\u540E\u4FEE\u6539\u3002",
+          "summaryText": "\u9700\u8981\u5148\u5173\u95ED\u865A\u62DF\u673A\u540E\u4FEE\u6539\u3002"
+        },
+        {
+          "id": "api-34faa9d87b213b38",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.RequiresArm64",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "RequiresArm64",
+          "displayName": "RequiresArm64",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 23,
+          "signature": "RequiresArm64 = 6",
+          "signatureHtml": "RequiresArm64 = \u003Cspan class=\u0022literal\u0022\u003E6\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.RequiresArm64",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4EC5\u652F\u6301 ARM64 \u5904\u7406\u5668\u67B6\u6784\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4EC5\u652F\u6301 ARM64 \u5904\u7406\u5668\u67B6\u6784\u3002",
+          "summaryText": "\u4EC5\u652F\u6301 ARM64 \u5904\u7406\u5668\u67B6\u6784\u3002"
+        },
+        {
+          "id": "api-8c0a4fc6e8603885",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.RequiresHardwareIsolation",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "RequiresHardwareIsolation",
+          "displayName": "RequiresHardwareIsolation",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 27,
+          "signature": "RequiresHardwareIsolation = 8",
+          "signatureHtml": "RequiresHardwareIsolation = \u003Cspan class=\u0022literal\u0022\u003E8\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.RequiresHardwareIsolation",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5BBF\u4E3B\u786C\u4EF6\u4E0D\u652F\u6301\u786C\u4EF6\u9694\u79BB\u6269\u5C55\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5BBF\u4E3B\u786C\u4EF6\u4E0D\u652F\u6301\u786C\u4EF6\u9694\u79BB\u6269\u5C55\u3002",
+          "summaryText": "\u5BBF\u4E3B\u786C\u4EF6\u4E0D\u652F\u6301\u786C\u4EF6\u9694\u79BB\u6269\u5C55\u3002"
+        },
+        {
+          "id": "api-475b1d078b1e0b55",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.RequiresIntel",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "RequiresIntel",
+          "displayName": "RequiresIntel",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 25,
+          "signature": "RequiresIntel = 7",
+          "signatureHtml": "RequiresIntel = \u003Cspan class=\u0022literal\u0022\u003E7\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.RequiresIntel",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4EC5\u652F\u6301 Intel \u5904\u7406\u5668\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4EC5\u652F\u6301 Intel \u5904\u7406\u5668\u3002",
+          "summaryText": "\u4EC5\u652F\u6301 Intel \u5904\u7406\u5668\u3002"
+        },
+        {
+          "id": "api-3b36b688017cb206",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.RequiresPerfmonPmu",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "RequiresPerfmonPmu",
+          "displayName": "RequiresPerfmonPmu",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 29,
+          "signature": "RequiresPerfmonPmu = 9",
+          "signatureHtml": "RequiresPerfmonPmu = \u003Cspan class=\u0022literal\u0022\u003E9\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.RequiresPerfmonPmu",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u9700\u8981\u5148\u5F00\u542F\u786C\u4EF6\u6027\u80FD\u8BA1\u6570\u5668\uFF08PMU\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u9700\u8981\u5148\u5F00\u542F\u786C\u4EF6\u6027\u80FD\u8BA1\u6570\u5668\uFF08PMU\uFF09\u3002",
+          "summaryText": "\u9700\u8981\u5148\u5F00\u542F\u786C\u4EF6\u6027\u80FD\u8BA1\u6570\u5668\uFF08PMU\uFF09\u3002"
+        },
+        {
+          "id": "api-0d38feac504e01be",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.RequiresX64",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "RequiresX64",
+          "displayName": "RequiresX64",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 21,
+          "signature": "RequiresX64 = 5",
+          "signatureHtml": "RequiresX64 = \u003Cspan class=\u0022literal\u0022\u003E5\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.RequiresX64",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4EC5\u652F\u6301 x64 \u5904\u7406\u5668\u67B6\u6784\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4EC5\u652F\u6301 x64 \u5904\u7406\u5668\u67B6\u6784\u3002",
+          "summaryText": "\u4EC5\u652F\u6301 x64 \u5904\u7406\u5668\u67B6\u6784\u3002"
+        },
+        {
+          "id": "api-2925b6dfae9f3d11",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.UnknownSetting",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "UnknownSetting",
+          "displayName": "UnknownSetting",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 31,
+          "signature": "UnknownSetting = 10",
+          "signatureHtml": "UnknownSetting = \u003Cspan class=\u0022literal\u0022\u003E10\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.UnknownSetting",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u672A\u77E5\u6216\u4E0D\u652F\u6301\u7684\u8BBE\u7F6E\u6210\u5458\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u672A\u77E5\u6216\u4E0D\u652F\u6301\u7684\u8BBE\u7F6E\u6210\u5458\u3002",
+          "summaryText": "\u672A\u77E5\u6216\u4E0D\u652F\u6301\u7684\u8BBE\u7F6E\u6210\u5458\u3002"
+        },
+        {
+          "id": "api-71a4999fa730d607",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedBackingTypeHybrid",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "UnsupportedBackingTypeHybrid",
+          "displayName": "UnsupportedBackingTypeHybrid",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 33,
+          "signature": "UnsupportedBackingTypeHybrid = 11",
+          "signatureHtml": "UnsupportedBackingTypeHybrid = \u003Cspan class=\u0022literal\u0022\u003E11\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.UnsupportedBackingTypeHybrid",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u6682\u4E0D\u652F\u6301\u5168\u5C40\u5199\u5165\u6DF7\u5408\u540E\u5907\u65B9\u5F0F\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u6682\u4E0D\u652F\u6301\u5168\u5C40\u5199\u5165\u6DF7\u5408\u540E\u5907\u65B9\u5F0F\u3002",
+          "summaryText": "\u6682\u4E0D\u652F\u6301\u5168\u5C40\u5199\u5165\u6DF7\u5408\u540E\u5907\u65B9\u5F0F\u3002"
+        },
+        {
+          "id": "api-51604a3389792352",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedTrackingPerNuma",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "UnsupportedTrackingPerNuma",
+          "displayName": "UnsupportedTrackingPerNuma",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 35,
+          "signature": "UnsupportedTrackingPerNuma = 12",
+          "signatureHtml": "UnsupportedTrackingPerNuma = \u003Cspan class=\u0022literal\u0022\u003E12\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.UnsupportedTrackingPerNuma",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u6682\u4E0D\u652F\u6301\u6309 NUMA \u8282\u70B9\u914D\u7F6E\u5185\u5B58\u8BBF\u95EE\u8DDF\u8E2A\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u6682\u4E0D\u652F\u6301\u6309 NUMA \u8282\u70B9\u914D\u7F6E\u5185\u5B58\u8BBF\u95EE\u8DDF\u8E2A\u3002",
+          "summaryText": "\u6682\u4E0D\u652F\u6301\u6309 NUMA \u8282\u70B9\u914D\u7F6E\u5185\u5B58\u8BBF\u95EE\u8DDF\u8E2A\u3002"
+        },
+        {
+          "id": "api-47ec12824fa61f66",
+          "uid": "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedVmVersion",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "UnsupportedVmVersion",
+          "displayName": "UnsupportedVmVersion",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 19,
+          "signature": "UnsupportedVmVersion = 4",
+          "signatureHtml": "UnsupportedVmVersion = \u003Cspan class=\u0022literal\u0022\u003E4\u003C/span\u003E",
+          "presentation": {
+            "expression": "ConditionReasonCode.UnsupportedVmVersion",
+            "valueType": "ConditionReasonCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c6b312ed6e71ad87\u0022\u003EConditionReasonCode\u003C/a\u003E",
+            "enumTypeId": "api-c6b312ed6e71ad87",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5F53\u524D\u865A\u62DF\u673A\u914D\u7F6E\u7248\u672C\u4E0D\u652F\u6301\u6B64\u529F\u80FD\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c6b312ed6e71ad87"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5F53\u524D\u865A\u62DF\u673A\u914D\u7F6E\u7248\u672C\u4E0D\u652F\u6301\u6B64\u529F\u80FD\u3002",
+          "summaryText": "\u5F53\u524D\u865A\u62DF\u673A\u914D\u7F6E\u7248\u672C\u4E0D\u652F\u6301\u6B64\u529F\u80FD\u3002"
+        }
+      ]
+    },
+    {
+      "id": "api-472bbf4a51177686",
+      "uid": "T:ExHyperV.Tools.CoreErrorClassifier",
+      "name": "ExHyperV.Tools.CoreErrorClassifier",
+      "toolGroup": "core",
+      "displayName": "Core \u9519\u8BEF\u5F52\u7C7B\u5668",
+      "role": "entry",
+      "shortName": "CoreErrorClassifier",
+      "namespace": "ExHyperV.Tools",
+      "kind": "\u7C7B",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u5171\u7528\u7C7B\u578B",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u5171\u7528\u7C7B\u578B"
+        ]
+      ],
+      "signature": "public static class CoreErrorClassifier",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eclass\u003C/span\u003E \u003Ca href=\u0022#api-472bbf4a51177686\u0022\u003ECoreErrorClassifier\u003C/a\u003E",
+      "baseTypeHtml": "",
+      "interfacesHtml": "",
+      "derivedTypesHtml": "",
+      "source": "Common/Results/CoreDiagnostic.cs",
+      "sources": [
+        "Common/Results/CoreDiagnostic.cs"
+      ],
+      "summaryHtml": "\u6839\u636E\u8DE8\u8BED\u8A00\u7684\u539F\u751F\u9519\u8BEF\u7801\u4E0E\u5931\u8D25\u7C7B\u522B\u5F52\u7C7B\u6807\u51C6\u9519\u8BEF\u3002",
+      "descriptionHtml": "",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-8865112386141a40",
+          "uid": "M:ExHyperV.Tools.CoreErrorClassifier.ClassifyException(System.Exception)",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "ClassifyException",
+          "displayName": "\u5F52\u7C7B\u5F02\u5E38\u9519\u8BEF\u7801",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u65B9\u6CD5",
+          "group": "\u9759\u6001\u65B9\u6CD5",
+          "order": 152,
+          "signature": "public static CoreErrorCode ClassifyException(Exception exception);",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E ClassifyException(Exception exception);",
+          "presentation": {
+            "expression": "CoreErrorClassifier.ClassifyException",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": true,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u76F4\u63A5\u5BF9\u672A\u5305\u88C5\u7684\u5E95\u5C42\u5F02\u5E38\u8FDB\u884C\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "\u003Ctable class=\u0022parameter-table\u0022\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth\u003E\u53C2\u6570\u003C/th\u003E\u003Cth\u003E\u8BF4\u660E\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Eexception\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u5F85\u5F52\u7C7B\u7684\u5E95\u5C42\u5F02\u5E38\u5BF9\u8C61\u3002\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E",
+            "returnsHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5F52\u4E00\u5316\u540E\u7684\u6838\u5FC3\u9519\u8BEF\u8BCA\u65AD\u7801\u3002\u003C/div\u003E",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [
+              {
+                "name": "exception",
+                "types": []
+              }
+            ],
+            "returns": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u76F4\u63A5\u5BF9\u672A\u5305\u88C5\u7684\u5E95\u5C42\u5F02\u5E38\u8FDB\u884C\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u3002",
+          "summaryText": "\u76F4\u63A5\u5BF9\u672A\u5305\u88C5\u7684\u5E95\u5C42\u5F02\u5E38\u8FDB\u884C\u8BED\u8A00\u65E0\u5173\u7684\u8BCA\u65AD\u5F52\u7C7B\u3002"
+        },
+        {
+          "id": "api-a90e56365487e314",
+          "uid": "M:ExHyperV.Tools.CoreErrorClassifier.IsServiceUnavailable(System.Int32,ExHyperV.Tools.ApiErrorSource,System.Exception)",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "IsServiceUnavailable",
+          "displayName": "\u5224\u65AD\u670D\u52A1\u4E0D\u53EF\u7528",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u65B9\u6CD5",
+          "group": "\u9759\u6001\u65B9\u6CD5",
+          "order": 134,
+          "signature": "public static bool IsServiceUnavailable(int code, ApiErrorSource source, Exception? exception = null);",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsServiceUnavailable(\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E code, \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E source, Exception? exception = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E);",
+          "presentation": {
+            "expression": "CoreErrorClassifier.IsServiceUnavailable",
+            "valueType": "bool",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": true,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5224\u65AD\u5E95\u5C42\u9519\u8BEF\u7801\u6216\u5F02\u5E38\u94FE\u662F\u5426\u5C5E\u4E8E Hyper-V / WMI \u670D\u52A1\u6B63\u5728\u505C\u6B62\u6216\u6682\u65F6\u4E0D\u53EF\u8FBE\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "\u003Ctable class=\u0022parameter-table\u0022\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth\u003E\u53C2\u6570\u003C/th\u003E\u003Cth\u003E\u8BF4\u660E\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Ecode\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u5E95\u5C42\u9519\u8BEF\u7801\u6216 HRESULT\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Esource\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u9519\u8BEF\u7801\u6765\u6E90\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Eexception\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u53EF\u9009\u7684\u539F\u59CB\u5F02\u5E38\u5BF9\u8C61\u3002\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E",
+            "returnsHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u82E5\u5C5E\u4E8E\u670D\u52A1\u6B63\u5728\u505C\u6B62\u6216\u4E0D\u53EF\u8FBE\uFF0C\u8FD4\u56DE true\uFF1B\u5426\u5219\u8FD4\u56DE false\u3002\u003C/div\u003E",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [
+              {
+                "name": "code",
+                "types": []
+              },
+              {
+                "name": "source",
+                "types": [
+                  "api-acee855ddcf0dd3d"
+                ]
+              },
+              {
+                "name": "exception",
+                "types": []
+              }
+            ],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5224\u65AD\u5E95\u5C42\u9519\u8BEF\u7801\u6216\u5F02\u5E38\u94FE\u662F\u5426\u5C5E\u4E8E Hyper-V / WMI \u670D\u52A1\u6B63\u5728\u505C\u6B62\u6216\u6682\u65F6\u4E0D\u53EF\u8FBE\u3002",
+          "summaryText": "\u5224\u65AD\u5E95\u5C42\u9519\u8BEF\u7801\u6216\u5F02\u5E38\u94FE\u662F\u5426\u5C5E\u4E8E Hyper-V / WMI \u670D\u52A1\u6B63\u5728\u505C\u6B62\u6216\u6682\u65F6\u4E0D\u53EF\u8FBE\u3002"
+        }
+      ]
+    },
+    {
+      "id": "api-c159b3ca11e89ee0",
+      "uid": "T:ExHyperV.Tools.CoreErrorCode",
+      "name": "ExHyperV.Tools.CoreErrorCode",
+      "toolGroup": "core",
+      "displayName": "Core \u9519\u8BEF\u7801",
+      "role": "contract",
+      "shortName": "CoreErrorCode",
+      "namespace": "ExHyperV.Tools",
+      "kind": "\u679A\u4E3E",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u5171\u7528\u7C7B\u578B",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u5171\u7528\u7C7B\u578B"
+        ]
+      ],
+      "signature": "public enum CoreErrorCode",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eenum\u003C/span\u003E \u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+      "baseTypeHtml": "",
+      "interfacesHtml": "",
+      "derivedTypesHtml": "",
+      "source": "Common/Results/CoreDiagnostic.cs",
+      "sources": [
+        "Common/Results/CoreDiagnostic.cs"
+      ],
+      "summaryHtml": "\u8BED\u8A00\u65E0\u5173\u7684\u6838\u5FC3\u9519\u8BEF\u5F52\u4E00\u5316\u6807\u8BC6\u3002",
+      "descriptionHtml": "",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-180e6ef952e853f7",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.AccessDenied",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "AccessDenied",
+          "displayName": "AccessDenied",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 56,
+          "signature": "AccessDenied = 7",
+          "signatureHtml": "AccessDenied = \u003Cspan class=\u0022literal\u0022\u003E7\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.AccessDenied",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u8C03\u7528\u65B9\u7F3A\u5C11\u6267\u884C\u64CD\u4F5C\u6240\u9700\u7684\u6743\u9650\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u8C03\u7528\u65B9\u7F3A\u5C11\u6267\u884C\u64CD\u4F5C\u6240\u9700\u7684\u6743\u9650\u3002",
+          "summaryText": "\u8C03\u7528\u65B9\u7F3A\u5C11\u6267\u884C\u64CD\u4F5C\u6240\u9700\u7684\u6743\u9650\u3002"
+        },
+        {
+          "id": "api-381ea8233b135f62",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.DifferencingParentNotFound",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "DifferencingParentNotFound",
+          "displayName": "DifferencingParentNotFound",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 92,
+          "signature": "DifferencingParentNotFound = 25",
+          "signatureHtml": "DifferencingParentNotFound = \u003Cspan class=\u0022literal\u0022\u003E25\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.DifferencingParentNotFound",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5DEE\u5206\u865A\u62DF\u786C\u76D8\u7684\u7236\u7EA7\u78C1\u76D8\u7F3A\u5931\u6216\u78C1\u76D8\u94FE\u5DF2\u65AD\u5F00\uFF08\u5982 0xC03A000D\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5DEE\u5206\u865A\u62DF\u786C\u76D8\u7684\u7236\u7EA7\u78C1\u76D8\u7F3A\u5931\u6216\u78C1\u76D8\u94FE\u5DF2\u65AD\u5F00\uFF08\u5982 0xC03A000D\uFF09\u3002",
+          "summaryText": "\u5DEE\u5206\u865A\u62DF\u786C\u76D8\u7684\u7236\u7EA7\u78C1\u76D8\u7F3A\u5931\u6216\u78C1\u76D8\u94FE\u5DF2\u65AD\u5F00\uFF08\u5982 0xC03A000D\uFF09\u3002"
+        },
+        {
+          "id": "api-f52b4f8e12fc7516",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.DiskFull",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "DiskFull",
+          "displayName": "DiskFull",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 86,
+          "signature": "DiskFull = 22",
+          "signatureHtml": "DiskFull = \u003Cspan class=\u0022literal\u0022\u003E22\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.DiskFull",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5BBF\u4E3B\u673A\u78C1\u76D8\u7A7A\u95F4\u4E0D\u8DB3\uFF08\u5982 0x80070070 / 0x80070027 / 32794\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5BBF\u4E3B\u673A\u78C1\u76D8\u7A7A\u95F4\u4E0D\u8DB3\uFF08\u5982 0x80070070 / 0x80070027 / 32794\uFF09\u3002",
+          "summaryText": "\u5BBF\u4E3B\u673A\u78C1\u76D8\u7A7A\u95F4\u4E0D\u8DB3\uFF08\u5982 0x80070070 / 0x80070027 / 32794\uFF09\u3002"
+        },
+        {
+          "id": "api-95a15866c0c14937",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.FileInUse",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "FileInUse",
+          "displayName": "FileInUse",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 82,
+          "signature": "FileInUse = 20",
+          "signatureHtml": "FileInUse = \u003Cspan class=\u0022literal\u0022\u003E20\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.FileInUse",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u76EE\u6807\u865A\u62DF\u78C1\u76D8\u3001\u955C\u50CF\u6216\u6587\u4EF6\u6B63\u88AB\u5360\u7528\uFF08\u5982 0x80070020\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u76EE\u6807\u865A\u62DF\u78C1\u76D8\u3001\u955C\u50CF\u6216\u6587\u4EF6\u6B63\u88AB\u5360\u7528\uFF08\u5982 0x80070020\uFF09\u3002",
+          "summaryText": "\u76EE\u6807\u865A\u62DF\u78C1\u76D8\u3001\u955C\u50CF\u6216\u6587\u4EF6\u6B63\u88AB\u5360\u7528\uFF08\u5982 0x80070020\uFF09\u3002"
+        },
+        {
+          "id": "api-70fd27c6b7f23183",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.FileNotFound",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "FileNotFound",
+          "displayName": "FileNotFound",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 84,
+          "signature": "FileNotFound = 21",
+          "signatureHtml": "FileNotFound = \u003Cspan class=\u0022literal\u0022\u003E21\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.FileNotFound",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u627E\u4E0D\u5230\u542F\u52A8\u6216\u64CD\u4F5C\u6240\u9700\u7684\u78C1\u76D8\u3001\u955C\u50CF\u6216\u914D\u7F6E\u6587\u4EF6\uFF08\u5982 0x80070002 / 0x80070003\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u627E\u4E0D\u5230\u542F\u52A8\u6216\u64CD\u4F5C\u6240\u9700\u7684\u78C1\u76D8\u3001\u955C\u50CF\u6216\u914D\u7F6E\u6587\u4EF6\uFF08\u5982 0x80070002 / 0x80070003\uFF09\u3002",
+          "summaryText": "\u627E\u4E0D\u5230\u542F\u52A8\u6216\u64CD\u4F5C\u6240\u9700\u7684\u78C1\u76D8\u3001\u955C\u50CF\u6216\u914D\u7F6E\u6587\u4EF6\uFF08\u5982 0x80070002 / 0x80070003\uFF09\u3002"
+        },
+        {
+          "id": "api-9a518a7473f8aebc",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.InsufficientMemory",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "InsufficientMemory",
+          "displayName": "InsufficientMemory",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 80,
+          "signature": "InsufficientMemory = 19",
+          "signatureHtml": "InsufficientMemory = \u003Cspan class=\u0022literal\u0022\u003E19\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.InsufficientMemory",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5BBF\u4E3B\u673A\u53EF\u7528\u5185\u5B58\u6216\u7CFB\u7EDF\u8D44\u6E90\u4E0D\u8DB3\uFF08\u5982 0x8007000E / 0x800705AA\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5BBF\u4E3B\u673A\u53EF\u7528\u5185\u5B58\u6216\u7CFB\u7EDF\u8D44\u6E90\u4E0D\u8DB3\uFF08\u5982 0x8007000E / 0x800705AA\uFF09\u3002",
+          "summaryText": "\u5BBF\u4E3B\u673A\u53EF\u7528\u5185\u5B58\u6216\u7CFB\u7EDF\u8D44\u6E90\u4E0D\u8DB3\uFF08\u5982 0x8007000E / 0x800705AA\uFF09\u3002"
+        },
+        {
+          "id": "api-9b8adec6a5f02609",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.InvalidParameter",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "InvalidParameter",
+          "displayName": "InvalidParameter",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 64,
+          "signature": "InvalidParameter = 11",
+          "signatureHtml": "InvalidParameter = \u003Cspan class=\u0022literal\u0022\u003E11\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.InvalidParameter",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u63D0\u4EA4\u7684\u53C2\u6570\u65E0\u6548\u6216\u4E0D\u7B26\u5408\u5BBF\u4E3B\u7EA6\u675F\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u63D0\u4EA4\u7684\u53C2\u6570\u65E0\u6548\u6216\u4E0D\u7B26\u5408\u5BBF\u4E3B\u7EA6\u675F\u3002",
+          "summaryText": "\u63D0\u4EA4\u7684\u53C2\u6570\u65E0\u6548\u6216\u4E0D\u7B26\u5408\u5BBF\u4E3B\u7EA6\u675F\u3002"
+        },
+        {
+          "id": "api-c8b30ee8b5a46d13",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.InvalidState",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "InvalidState",
+          "displayName": "InvalidState",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 62,
+          "signature": "InvalidState = 10",
+          "signatureHtml": "InvalidState = \u003Cspan class=\u0022literal\u0022\u003E10\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.InvalidState",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u865A\u62DF\u673A\u5F53\u524D\u72B6\u6001\u4E0D\u5141\u8BB8\u6267\u884C\u6B64\u4FEE\u6539\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u865A\u62DF\u673A\u5F53\u524D\u72B6\u6001\u4E0D\u5141\u8BB8\u6267\u884C\u6B64\u4FEE\u6539\u3002",
+          "summaryText": "\u865A\u62DF\u673A\u5F53\u524D\u72B6\u6001\u4E0D\u5141\u8BB8\u6267\u884C\u6B64\u4FEE\u6539\u3002"
+        },
+        {
+          "id": "api-79b157656a27db57",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.MethodFailed",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "MethodFailed",
+          "displayName": "MethodFailed",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 70,
+          "signature": "MethodFailed = 14",
+          "signatureHtml": "MethodFailed = \u003Cspan class=\u0022literal\u0022\u003E14\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.MethodFailed",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5E95\u5C42 WMI \u65B9\u6CD5\u6216\u5F02\u6B65\u4F5C\u4E1A\u6267\u884C\u5931\u8D25\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5E95\u5C42 WMI \u65B9\u6CD5\u6216\u5F02\u6B65\u4F5C\u4E1A\u6267\u884C\u5931\u8D25\u3002",
+          "summaryText": "\u5E95\u5C42 WMI \u65B9\u6CD5\u6216\u5F02\u6B65\u4F5C\u4E1A\u6267\u884C\u5931\u8D25\u3002"
+        },
+        {
+          "id": "api-5290218e62d4ce9a",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.None",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "None",
+          "displayName": "None",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 42,
+          "signature": "None = 0",
+          "signatureHtml": "None = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.None",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u672A\u547D\u4E2D\u9884\u8BBE\u8BCA\u65AD\u7801\uFF0C\u8BF7\u4F7F\u7528\u9ED8\u8BA4\u6216\u539F\u59CB\u9519\u8BEF\u4FE1\u606F\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u672A\u547D\u4E2D\u9884\u8BBE\u8BCA\u65AD\u7801\uFF0C\u8BF7\u4F7F\u7528\u9ED8\u8BA4\u6216\u539F\u59CB\u9519\u8BEF\u4FE1\u606F\u3002",
+          "summaryText": "\u672A\u547D\u4E2D\u9884\u8BBE\u8BCA\u65AD\u7801\uFF0C\u8BF7\u4F7F\u7528\u9ED8\u8BA4\u6216\u539F\u59CB\u9519\u8BEF\u4FE1\u606F\u3002"
+        },
+        {
+          "id": "api-aee4a8cc8f1cf975",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.NotFound",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "NotFound",
+          "displayName": "NotFound",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 58,
+          "signature": "NotFound = 8",
+          "signatureHtml": "NotFound = \u003Cspan class=\u0022literal\u0022\u003E8\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.NotFound",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u627E\u4E0D\u5230\u76EE\u6807\u865A\u62DF\u673A\u6216\u914D\u7F6E\u5B9E\u4F8B\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u627E\u4E0D\u5230\u76EE\u6807\u865A\u62DF\u673A\u6216\u914D\u7F6E\u5B9E\u4F8B\u3002",
+          "summaryText": "\u627E\u4E0D\u5230\u76EE\u6807\u865A\u62DF\u673A\u6216\u914D\u7F6E\u5B9E\u4F8B\u3002"
+        },
+        {
+          "id": "api-e7352bf89faf3d40",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.OperationCancelled",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "OperationCancelled",
+          "displayName": "OperationCancelled",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 68,
+          "signature": "OperationCancelled = 13",
+          "signatureHtml": "OperationCancelled = \u003Cspan class=\u0022literal\u0022\u003E13\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.OperationCancelled",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u7B49\u5F85\u64CD\u4F5C\u7ED3\u679C\u671F\u95F4\u88AB\u53D6\u6D88\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u7B49\u5F85\u64CD\u4F5C\u7ED3\u679C\u671F\u95F4\u88AB\u53D6\u6D88\u3002",
+          "summaryText": "\u7B49\u5F85\u64CD\u4F5C\u7ED3\u679C\u671F\u95F4\u88AB\u53D6\u6D88\u3002"
+        },
+        {
+          "id": "api-905249b8513e9a16",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.OperationTimedOut",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "OperationTimedOut",
+          "displayName": "OperationTimedOut",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 66,
+          "signature": "OperationTimedOut = 12",
+          "signatureHtml": "OperationTimedOut = \u003Cspan class=\u0022literal\u0022\u003E12\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.OperationTimedOut",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u7B49\u5F85\u5F02\u6B65\u4F5C\u4E1A\u6216\u7CFB\u7EDF\u54CD\u5E94\u8D85\u65F6\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u7B49\u5F85\u5F02\u6B65\u4F5C\u4E1A\u6216\u7CFB\u7EDF\u54CD\u5E94\u8D85\u65F6\u3002",
+          "summaryText": "\u7B49\u5F85\u5F02\u6B65\u4F5C\u4E1A\u6216\u7CFB\u7EDF\u54CD\u5E94\u8D85\u65F6\u3002"
+        },
+        {
+          "id": "api-9862da7333274c91",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.PartialVnumaDisableFailed",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "PartialVnumaDisableFailed",
+          "displayName": "PartialVnumaDisableFailed",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 72,
+          "signature": "PartialVnumaDisableFailed = 15",
+          "signatureHtml": "PartialVnumaDisableFailed = \u003Cspan class=\u0022literal\u0022\u003E15\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.PartialVnumaDisableFailed",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5DF2\u5173\u95ED vNUMA\uFF0C\u4F46\u540E\u7EED\u5185\u5B58\u4FEE\u6539\u5931\u8D25\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5DF2\u5173\u95ED vNUMA\uFF0C\u4F46\u540E\u7EED\u5185\u5B58\u4FEE\u6539\u5931\u8D25\u3002",
+          "summaryText": "\u5DF2\u5173\u95ED vNUMA\uFF0C\u4F46\u540E\u7EED\u5185\u5B58\u4FEE\u6539\u5931\u8D25\u3002"
+        },
+        {
+          "id": "api-54a1f4ef84759b55",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.PartialVnumaRestoreFailed",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "PartialVnumaRestoreFailed",
+          "displayName": "PartialVnumaRestoreFailed",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 74,
+          "signature": "PartialVnumaRestoreFailed = 16",
+          "signatureHtml": "PartialVnumaRestoreFailed = \u003Cspan class=\u0022literal\u0022\u003E16\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.PartialVnumaRestoreFailed",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5185\u5B58\u5DF2\u4FEE\u6539\uFF0C\u4F46\u6062\u590D vNUMA \u5931\u8D25\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5185\u5B58\u5DF2\u4FEE\u6539\uFF0C\u4F46\u6062\u590D vNUMA \u5931\u8D25\u3002",
+          "summaryText": "\u5185\u5B58\u5DF2\u4FEE\u6539\uFF0C\u4F46\u6062\u590D vNUMA \u5931\u8D25\u3002"
+        },
+        {
+          "id": "api-5d3faca25920e81d",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.ReadBackMismatch",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "ReadBackMismatch",
+          "displayName": "ReadBackMismatch",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 78,
+          "signature": "ReadBackMismatch = 18",
+          "signatureHtml": "ReadBackMismatch = \u003Cspan class=\u0022literal\u0022\u003E18\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.ReadBackMismatch",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u63D0\u4EA4\u540E\u56DE\u8BFB\u5230\u7684\u914D\u7F6E\u4E0E\u9884\u671F\u4E0D\u4E00\u81F4\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u63D0\u4EA4\u540E\u56DE\u8BFB\u5230\u7684\u914D\u7F6E\u4E0E\u9884\u671F\u4E0D\u4E00\u81F4\u3002",
+          "summaryText": "\u63D0\u4EA4\u540E\u56DE\u8BFB\u5230\u7684\u914D\u7F6E\u4E0E\u9884\u671F\u4E0D\u4E00\u81F4\u3002"
+        },
+        {
+          "id": "api-a913d389d8558b09",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.ReadBackUnavailable",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "ReadBackUnavailable",
+          "displayName": "ReadBackUnavailable",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 76,
+          "signature": "ReadBackUnavailable = 17",
+          "signatureHtml": "ReadBackUnavailable = \u003Cspan class=\u0022literal\u0022\u003E17\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.ReadBackUnavailable",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u63D0\u4EA4\u540E\u56DE\u8BFB\u914D\u7F6E\u5931\u8D25\uFF0C\u65E0\u6CD5\u786E\u8BA4\u5B9E\u9645\u7ED3\u679C\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u63D0\u4EA4\u540E\u56DE\u8BFB\u914D\u7F6E\u5931\u8D25\uFF0C\u65E0\u6CD5\u786E\u8BA4\u5B9E\u9645\u7ED3\u679C\u3002",
+          "summaryText": "\u63D0\u4EA4\u540E\u56DE\u8BFB\u914D\u7F6E\u5931\u8D25\uFF0C\u65E0\u6CD5\u786E\u8BA4\u5B9E\u9645\u7ED3\u679C\u3002"
+        },
+        {
+          "id": "api-69ce106b6e138c4f",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.RuntimeMemoryResizeFailed",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "RuntimeMemoryResizeFailed",
+          "displayName": "RuntimeMemoryResizeFailed",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 98,
+          "signature": "RuntimeMemoryResizeFailed = 28",
+          "signatureHtml": "RuntimeMemoryResizeFailed = \u003Cspan class=\u0022literal\u0022\u003E28\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.RuntimeMemoryResizeFailed",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u8FD0\u884C\u6001\u4FEE\u6539\u9759\u6001\u5185\u5B58\u5927\u5C0F\u5931\u8D25\uFF08\u6765\u5BBE\u672A\u5C31\u7EEA\u6216\u4E0D\u652F\u6301\u70ED\u8C03\u6574\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u8FD0\u884C\u6001\u4FEE\u6539\u9759\u6001\u5185\u5B58\u5927\u5C0F\u5931\u8D25\uFF08\u6765\u5BBE\u672A\u5C31\u7EEA\u6216\u4E0D\u652F\u6301\u70ED\u8C03\u6574\uFF09\u3002",
+          "summaryText": "\u8FD0\u884C\u6001\u4FEE\u6539\u9759\u6001\u5185\u5B58\u5927\u5C0F\u5931\u8D25\uFF08\u6765\u5BBE\u672A\u5C31\u7EEA\u6216\u4E0D\u652F\u6301\u70ED\u8C03\u6574\uFF09\u3002"
+        },
+        {
+          "id": "api-9020a57663938251",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.StartFailedGen1OnArm64",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "StartFailedGen1OnArm64",
+          "displayName": "StartFailedGen1OnArm64",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 100,
+          "signature": "StartFailedGen1OnArm64 = 29",
+          "signatureHtml": "StartFailedGen1OnArm64 = \u003Cspan class=\u0022literal\u0022\u003E29\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.StartFailedGen1OnArm64",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003EARM64 \u5BBF\u4E3B\u673A\u672A\u9644\u5E26\u7B2C 1 \u4EE3\u865A\u62DF\u673A\u56FA\u4EF6\uFF0C\u4E0D\u652F\u6301\u542F\u52A8\u7B2C 1 \u4EE3\u865A\u62DF\u673A\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "ARM64 \u5BBF\u4E3B\u673A\u672A\u9644\u5E26\u7B2C 1 \u4EE3\u865A\u62DF\u673A\u56FA\u4EF6\uFF0C\u4E0D\u652F\u6301\u542F\u52A8\u7B2C 1 \u4EE3\u865A\u62DF\u673A\u3002",
+          "summaryText": "ARM64 \u5BBF\u4E3B\u673A\u672A\u9644\u5E26\u7B2C 1 \u4EE3\u865A\u62DF\u673A\u56FA\u4EF6\uFF0C\u4E0D\u652F\u6301\u542F\u52A8\u7B2C 1 \u4EE3\u865A\u62DF\u673A\u3002"
+        },
+        {
+          "id": "api-5b7bf2367231e124",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.StartFailedProcessorTopology",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "StartFailedProcessorTopology",
+          "displayName": "StartFailedProcessorTopology",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 96,
+          "signature": "StartFailedProcessorTopology = 27",
+          "signatureHtml": "StartFailedProcessorTopology = \u003Cspan class=\u0022literal\u0022\u003E27\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.StartFailedProcessorTopology",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5904\u7406\u5668\u6570\u91CF\u6216\u62D3\u6251\u8D85\u8FC7\u5BBF\u4E3B\u673A\u7269\u7406\u4E0A\u9650\u800C\u5931\u8D25\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5904\u7406\u5668\u6570\u91CF\u6216\u62D3\u6251\u8D85\u8FC7\u5BBF\u4E3B\u673A\u7269\u7406\u4E0A\u9650\u800C\u5931\u8D25\u3002",
+          "summaryText": "\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5904\u7406\u5668\u6570\u91CF\u6216\u62D3\u6251\u8D85\u8FC7\u5BBF\u4E3B\u673A\u7269\u7406\u4E0A\u9650\u800C\u5931\u8D25\u3002"
+        },
+        {
+          "id": "api-f59e4c55503619d4",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.StartFailedUnsupported",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "StartFailedUnsupported",
+          "displayName": "StartFailedUnsupported",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 90,
+          "signature": "StartFailedUnsupported = 24",
+          "signatureHtml": "StartFailedUnsupported = \u003Cspan class=\u0022literal\u0022\u003E24\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.StartFailedUnsupported",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5BBF\u4E3B\u673A\u4E0D\u652F\u6301\u800C\u88AB\u62D2\u7EDD\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5BBF\u4E3B\u673A\u4E0D\u652F\u6301\u800C\u88AB\u62D2\u7EDD\u3002",
+          "summaryText": "\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5BBF\u4E3B\u673A\u4E0D\u652F\u6301\u800C\u88AB\u62D2\u7EDD\u3002"
+        },
+        {
+          "id": "api-37f3df65ae780f3c",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.StartUnsupportedWithSuspects",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "StartUnsupportedWithSuspects",
+          "displayName": "StartUnsupportedWithSuspects",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 88,
+          "signature": "StartUnsupportedWithSuspects = 23",
+          "signatureHtml": "StartUnsupportedWithSuspects = \u003Cspan class=\u0022literal\u0022\u003E23\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.StartUnsupportedWithSuspects",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5BBF\u4E3B\u673A\u4E0D\u652F\u6301\u88AB\u62D2\u7EDD\uFF0C\u5E76\u5339\u914D\u5230\u5177\u4F53\u4E0D\u517C\u5BB9\u6216\u9AD8\u98CE\u9669\u914D\u7F6E\u9879\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5BBF\u4E3B\u673A\u4E0D\u652F\u6301\u88AB\u62D2\u7EDD\uFF0C\u5E76\u5339\u914D\u5230\u5177\u4F53\u4E0D\u517C\u5BB9\u6216\u9AD8\u98CE\u9669\u914D\u7F6E\u9879\u3002",
+          "summaryText": "\u542F\u52A8\u865A\u62DF\u673A\u56E0\u5BBF\u4E3B\u673A\u4E0D\u652F\u6301\u88AB\u62D2\u7EDD\uFF0C\u5E76\u5339\u914D\u5230\u5177\u4F53\u4E0D\u517C\u5BB9\u6216\u9AD8\u98CE\u9669\u914D\u7F6E\u9879\u3002"
+        },
+        {
+          "id": "api-b5f56afbbefd7bf6",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.Unsupported",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "Unsupported",
+          "displayName": "Unsupported",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 60,
+          "signature": "Unsupported = 9",
+          "signatureHtml": "Unsupported = \u003Cspan class=\u0022literal\u0022\u003E9\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.Unsupported",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5F53\u524D\u5BBF\u4E3B\u6216\u5BF9\u8C61\u4E0D\u652F\u6301\u8BE5\u64CD\u4F5C\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5F53\u524D\u5BBF\u4E3B\u6216\u5BF9\u8C61\u4E0D\u652F\u6301\u8BE5\u64CD\u4F5C\u3002",
+          "summaryText": "\u5F53\u524D\u5BBF\u4E3B\u6216\u5BF9\u8C61\u4E0D\u652F\u6301\u8BE5\u64CD\u4F5C\u3002"
+        },
+        {
+          "id": "api-c5250db6db4a4262",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.VirtualSwitchNotFound",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "VirtualSwitchNotFound",
+          "displayName": "VirtualSwitchNotFound",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 94,
+          "signature": "VirtualSwitchNotFound = 26",
+          "signatureHtml": "VirtualSwitchNotFound = \u003Cspan class=\u0022literal\u0022\u003E26\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.VirtualSwitchNotFound",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u865A\u62DF\u673A\u7F51\u5361\u7ED1\u5B9A\u7684\u865A\u62DF\u4EA4\u6362\u673A\u5DF2\u4E0D\u5B58\u5728\uFF08\u5982 32788 / 0x800705AA\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u865A\u62DF\u673A\u7F51\u5361\u7ED1\u5B9A\u7684\u865A\u62DF\u4EA4\u6362\u673A\u5DF2\u4E0D\u5B58\u5728\uFF08\u5982 32788 / 0x800705AA\uFF09\u3002",
+          "summaryText": "\u865A\u62DF\u673A\u7F51\u5361\u7ED1\u5B9A\u7684\u865A\u62DF\u4EA4\u6362\u673A\u5DF2\u4E0D\u5B58\u5728\uFF08\u5982 32788 / 0x800705AA\uFF09\u3002"
+        },
+        {
+          "id": "api-3af324fe217853da",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedCxlRecovered",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "VmmsCrashedCxlRecovered",
+          "displayName": "VmmsCrashedCxlRecovered",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 44,
+          "signature": "VmmsCrashedCxlRecovered = 1",
+          "signatureHtml": "VmmsCrashedCxlRecovered = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.VmmsCrashedCxlRecovered",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5199\u5165 CXL \u65F6 Hyper-V \u670D\u52A1\u505C\u6B62\uFF0C\u5DF2\u81EA\u52A8\u6062\u590D\u8FD0\u884C\u4E14\u914D\u7F6E\u672A\u6539\u53D8\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5199\u5165 CXL \u65F6 Hyper-V \u670D\u52A1\u505C\u6B62\uFF0C\u5DF2\u81EA\u52A8\u6062\u590D\u8FD0\u884C\u4E14\u914D\u7F6E\u672A\u6539\u53D8\u3002",
+          "summaryText": "\u5199\u5165 CXL \u65F6 Hyper-V \u670D\u52A1\u505C\u6B62\uFF0C\u5DF2\u81EA\u52A8\u6062\u590D\u8FD0\u884C\u4E14\u914D\u7F6E\u672A\u6539\u53D8\u3002"
+        },
+        {
+          "id": "api-165055049e0afbd4",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedRecovered",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "VmmsCrashedRecovered",
+          "displayName": "VmmsCrashedRecovered",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 46,
+          "signature": "VmmsCrashedRecovered = 2",
+          "signatureHtml": "VmmsCrashedRecovered = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.VmmsCrashedRecovered",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5199\u5165\u5185\u5B58\u8BBE\u7F6E\u65F6 Hyper-V \u670D\u52A1\u5F02\u5E38\u505C\u6B62\uFF0C\u5DF2\u81EA\u52A8\u6062\u590D\u8FD0\u884C\u4E14\u914D\u7F6E\u672A\u6539\u53D8\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5199\u5165\u5185\u5B58\u8BBE\u7F6E\u65F6 Hyper-V \u670D\u52A1\u5F02\u5E38\u505C\u6B62\uFF0C\u5DF2\u81EA\u52A8\u6062\u590D\u8FD0\u884C\u4E14\u914D\u7F6E\u672A\u6539\u53D8\u3002",
+          "summaryText": "\u5199\u5165\u5185\u5B58\u8BBE\u7F6E\u65F6 Hyper-V \u670D\u52A1\u5F02\u5E38\u505C\u6B62\uFF0C\u5DF2\u81EA\u52A8\u6062\u590D\u8FD0\u884C\u4E14\u914D\u7F6E\u672A\u6539\u53D8\u3002"
+        },
+        {
+          "id": "api-b536adb817689b3a",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedVnumaUnrestored",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "VmmsCrashedVnumaUnrestored",
+          "displayName": "VmmsCrashedVnumaUnrestored",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 48,
+          "signature": "VmmsCrashedVnumaUnrestored = 3",
+          "signatureHtml": "VmmsCrashedVnumaUnrestored = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.VmmsCrashedVnumaUnrestored",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u670D\u52A1\u5DF2\u6062\u590D\u4E14\u76EE\u6807\u8BBE\u7F6E\u672A\u6539\u53D8\uFF0C\u4F46\u4E34\u65F6\u5173\u95ED\u7684\u865A\u62DF NUMA \u672A\u80FD\u81EA\u52A8\u6062\u590D\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u670D\u52A1\u5DF2\u6062\u590D\u4E14\u76EE\u6807\u8BBE\u7F6E\u672A\u6539\u53D8\uFF0C\u4F46\u4E34\u65F6\u5173\u95ED\u7684\u865A\u62DF NUMA \u672A\u80FD\u81EA\u52A8\u6062\u590D\u3002",
+          "summaryText": "\u670D\u52A1\u5DF2\u6062\u590D\u4E14\u76EE\u6807\u8BBE\u7F6E\u672A\u6539\u53D8\uFF0C\u4F46\u4E34\u65F6\u5173\u95ED\u7684\u865A\u62DF NUMA \u672A\u80FD\u81EA\u52A8\u6062\u590D\u3002"
+        },
+        {
+          "id": "api-95070036f53dd157",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.VmmsRecoveredOutcomeUnknown",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "VmmsRecoveredOutcomeUnknown",
+          "displayName": "VmmsRecoveredOutcomeUnknown",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 52,
+          "signature": "VmmsRecoveredOutcomeUnknown = 5",
+          "signatureHtml": "VmmsRecoveredOutcomeUnknown = \u003Cspan class=\u0022literal\u0022\u003E5\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.VmmsRecoveredOutcomeUnknown",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003EHyper-V \u670D\u52A1\u5DF2\u91CD\u542F\uFF0C\u4F46\u914D\u7F6E\u6700\u7EC8\u72B6\u6001\u5C1A\u4E0D\u786E\u5B9A\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "Hyper-V \u670D\u52A1\u5DF2\u91CD\u542F\uFF0C\u4F46\u914D\u7F6E\u6700\u7EC8\u72B6\u6001\u5C1A\u4E0D\u786E\u5B9A\u3002",
+          "summaryText": "Hyper-V \u670D\u52A1\u5DF2\u91CD\u542F\uFF0C\u4F46\u914D\u7F6E\u6700\u7EC8\u72B6\u6001\u5C1A\u4E0D\u786E\u5B9A\u3002"
+        },
+        {
+          "id": "api-f44e2562b596841f",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.VmmsRecoveryFailed",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "VmmsRecoveryFailed",
+          "displayName": "VmmsRecoveryFailed",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 50,
+          "signature": "VmmsRecoveryFailed = 4",
+          "signatureHtml": "VmmsRecoveryFailed = \u003Cspan class=\u0022literal\u0022\u003E4\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.VmmsRecoveryFailed",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003EHyper-V \u670D\u52A1\u505C\u6B62\u4E14\u81EA\u52A8\u62C9\u8D77\u5931\u8D25\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "Hyper-V \u670D\u52A1\u505C\u6B62\u4E14\u81EA\u52A8\u62C9\u8D77\u5931\u8D25\u3002",
+          "summaryText": "Hyper-V \u670D\u52A1\u505C\u6B62\u4E14\u81EA\u52A8\u62C9\u8D77\u5931\u8D25\u3002"
+        },
+        {
+          "id": "api-cb49659f66cae545",
+          "uid": "F:ExHyperV.Tools.CoreErrorCode.VmmsUnavailableOrShuttingDown",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "VmmsUnavailableOrShuttingDown",
+          "displayName": "VmmsUnavailableOrShuttingDown",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostic.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 54,
+          "signature": "VmmsUnavailableOrShuttingDown = 6",
+          "signatureHtml": "VmmsUnavailableOrShuttingDown = \u003Cspan class=\u0022literal\u0022\u003E6\u003C/span\u003E",
+          "presentation": {
+            "expression": "CoreErrorCode.VmmsUnavailableOrShuttingDown",
+            "valueType": "CoreErrorCode",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003EHyper-V \u7BA1\u7406\u670D\u52A1\u5F53\u524D\u6B63\u5728\u505C\u6B62\u3001\u91CD\u542F\u6216\u6682\u65F6\u4E0D\u53EF\u7528\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "Hyper-V \u7BA1\u7406\u670D\u52A1\u5F53\u524D\u6B63\u5728\u505C\u6B62\u3001\u91CD\u542F\u6216\u6682\u65F6\u4E0D\u53EF\u7528\u3002",
+          "summaryText": "Hyper-V \u7BA1\u7406\u670D\u52A1\u5F53\u524D\u6B63\u5728\u505C\u6B62\u3001\u91CD\u542F\u6216\u6682\u65F6\u4E0D\u53EF\u7528\u3002"
+        }
+      ]
+    },
+    {
       "id": "api-d508b5ee4db3a2d0",
       "uid": "T:ExHyperV.Tools.CoreOperationException",
       "name": "ExHyperV.Tools.CoreOperationException",
@@ -125932,6 +128853,197 @@
       ]
     },
     {
+      "id": "api-0ae38ea99e73ecdc",
+      "uid": "T:ExHyperV.Tools.HyperVServiceCoordination",
+      "name": "ExHyperV.Tools.HyperVServiceCoordination",
+      "toolGroup": "core",
+      "displayName": "Hyper-V \u670D\u52A1\u534F\u540C\u72B6\u6001",
+      "role": "entry",
+      "shortName": "HyperVServiceCoordination",
+      "namespace": "ExHyperV.Tools",
+      "kind": "\u7C7B",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u5171\u7528\u7C7B\u578B",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u5171\u7528\u7C7B\u578B"
+        ]
+      ],
+      "signature": "public static class HyperVServiceCoordination",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eclass\u003C/span\u003E \u003Ca href=\u0022#api-0ae38ea99e73ecdc\u0022\u003EHyperVServiceCoordination\u003C/a\u003E",
+      "baseTypeHtml": "",
+      "interfacesHtml": "",
+      "derivedTypesHtml": "",
+      "source": "Infrastructure/Interop/VmmsServiceRecovery.cs",
+      "sources": [
+        "Infrastructure/Interop/VmmsServiceRecovery.cs"
+      ],
+      "summaryHtml": "\u8DE8\u8BBE\u7F6E\u5199\u5165\u4E0E\u540E\u53F0\u8F6E\u8BE2\u5171\u4EAB\u7684 Hyper-V \u670D\u52A1\u6D3B\u52A8/\u6062\u590D\u72B6\u6001\uFF0C\u7528\u4E8E\u6291\u5236\u6062\u590D\u7A97\u53E3\u5185\u7684\u91CD\u590D\u62A5\u9519\u3002",
+      "descriptionHtml": "",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-37af5373183a7a7b",
+          "uid": "M:ExHyperV.Tools.HyperVServiceCoordination.BeginActiveSettingsWrite",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "BeginActiveSettingsWrite",
+          "displayName": "\u6807\u8BB0\u4E3B\u52A8\u914D\u7F6E\u5199\u5165\u7A97\u53E3",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Infrastructure/Interop/VmmsServiceRecovery.cs",
+          "kind": "\u65B9\u6CD5",
+          "group": "\u9759\u6001\u65B9\u6CD5",
+          "order": 21,
+          "signature": "public static IDisposable BeginActiveSettingsWrite();",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E IDisposable BeginActiveSettingsWrite();",
+          "presentation": {
+            "expression": "HyperVServiceCoordination.BeginActiveSettingsWrite",
+            "valueType": "IDisposable",
+            "valueTypeHtml": "IDisposable",
+            "enumTypeId": null,
+            "callable": true,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u6807\u8BB0\u4E00\u6B21\u4E3B\u52A8\u914D\u7F6E\u5199\u5165\u7A97\u53E3\uFF0C\u7528\u4E8E\u6291\u5236\u540C\u4E00\u65F6\u95F4\u540E\u53F0\u8F6E\u8BE2\u4EA7\u751F\u7684\u91CD\u590D\u65AD\u8FDE\u63D0\u793A\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u7528\u4E8E\u7ED3\u675F\u5F53\u524D\u4E3B\u52A8\u914D\u7F6E\u5199\u5165\u7A97\u53E3\u7684\u91CA\u653E\u4F5C\u7528\u57DF\u5BF9\u8C61\u3002\u003C/div\u003E",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u6807\u8BB0\u4E00\u6B21\u4E3B\u52A8\u914D\u7F6E\u5199\u5165\u7A97\u53E3\uFF0C\u7528\u4E8E\u6291\u5236\u540C\u4E00\u65F6\u95F4\u540E\u53F0\u8F6E\u8BE2\u4EA7\u751F\u7684\u91CD\u590D\u65AD\u8FDE\u63D0\u793A\u3002",
+          "summaryText": "\u6807\u8BB0\u4E00\u6B21\u4E3B\u52A8\u914D\u7F6E\u5199\u5165\u7A97\u53E3\uFF0C\u7528\u4E8E\u6291\u5236\u540C\u4E00\u65F6\u95F4\u540E\u53F0\u8F6E\u8BE2\u4EA7\u751F\u7684\u91CD\u590D\u65AD\u8FDE\u63D0\u793A\u3002"
+        },
+        {
+          "id": "api-b9c08a706c5948a8",
+          "uid": "P:ExHyperV.Tools.HyperVServiceCoordination.HasActiveSettingsWrite",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "HasActiveSettingsWrite",
+          "displayName": "\u662F\u5426\u6709\u4E3B\u52A8\u914D\u7F6E\u5199\u5165",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Infrastructure/Interop/VmmsServiceRecovery.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 17,
+          "signature": "public static bool HasActiveSettingsWrite { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasActiveSettingsWrite { get; }",
+          "presentation": {
+            "expression": "HyperVServiceCoordination.HasActiveSettingsWrite",
+            "valueType": "bool",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u662F\u5426\u6709\u8BBE\u7F6E\u9875\u9762\u6B63\u5728\u6267\u884C\u914D\u7F6E\u5199\u5165\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u662F\u5426\u6709\u8BBE\u7F6E\u9875\u9762\u6B63\u5728\u6267\u884C\u914D\u7F6E\u5199\u5165\u3002",
+          "summaryText": "\u662F\u5426\u6709\u8BBE\u7F6E\u9875\u9762\u6B63\u5728\u6267\u884C\u914D\u7F6E\u5199\u5165\u3002"
+        },
+        {
+          "id": "api-bd264984c90bc1fe",
+          "uid": "P:ExHyperV.Tools.HyperVServiceCoordination.IsRecovering",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "IsRecovering",
+          "displayName": "\u662F\u5426\u6B63\u5728\u6062\u590D\u670D\u52A1",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Infrastructure/Interop/VmmsServiceRecovery.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 15,
+          "signature": "public static bool IsRecovering { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsRecovering { get; }",
+          "presentation": {
+            "expression": "HyperVServiceCoordination.IsRecovering",
+            "valueType": "bool",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u662F\u5426\u6B63\u5728\u6267\u884C vmms \u670D\u52A1\u7684\u81EA\u52A8\u62C9\u8D77\u6062\u590D\u6D41\u7A0B\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u662F\u5426\u6B63\u5728\u6267\u884C vmms \u670D\u52A1\u7684\u81EA\u52A8\u62C9\u8D77\u6062\u590D\u6D41\u7A0B\u3002",
+          "summaryText": "\u662F\u5426\u6B63\u5728\u6267\u884C vmms \u670D\u52A1\u7684\u81EA\u52A8\u62C9\u8D77\u6062\u590D\u6D41\u7A0B\u3002"
+        }
+      ]
+    },
+    {
       "id": "api-824369b51a27da0a",
       "uid": "T:ExHyperV.Tools.OperationStepResult",
       "name": "ExHyperV.Tools.OperationStepResult",
@@ -125982,7 +129094,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 50,
+          "order": 51,
           "signature": "public OperationStepResult(string Name, OperationStepState State, ApiFailure? Failure = null);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-824369b51a27da0a\u0022\u003EOperationStepResult\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Name, \u003Ca href=\u0022#api-0c0612bad12dd636\u0022\u003EOperationStepState\u003C/a\u003E State, \u003Ca href=\u0022#api-ed6980c68f413cc1\u0022\u003EApiFailure\u003C/a\u003E? Failure = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E);",
           "presentation": {
@@ -126035,7 +129147,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 50,
+          "order": 51,
           "signature": "public ApiFailure? Failure { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-ed6980c68f413cc1\u0022\u003EApiFailure\u003C/a\u003E? Failure { get; init; }",
           "presentation": {
@@ -126090,7 +129202,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 50,
+          "order": 51,
           "signature": "public string Name { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Name { get; init; }",
           "presentation": {
@@ -126143,7 +129255,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 55,
+          "order": 56,
           "signature": "public bool RequiresRestart { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E RequiresRestart { get; }",
           "presentation": {
@@ -126196,7 +129308,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 53,
+          "order": 54,
           "signature": "public string? ResourceId { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? ResourceId { get; init; }",
           "presentation": {
@@ -126249,7 +129361,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 57,
+          "order": 58,
           "signature": "public IReadOnlyList\u003CRestartReason\u003E RestartReasons { get; } = Array.Empty\u003CRestartReason\u003E();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-ec6d13ee818c895b\u0022\u003ERestartReason\u003C/a\u003E\u0026gt; RestartReasons { get; } = Array.Empty\u0026lt;\u003Ca href=\u0022#api-ec6d13ee818c895b\u0022\u003ERestartReason\u003C/a\u003E\u0026gt;();",
           "presentation": {
@@ -126304,7 +129416,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 50,
+          "order": 51,
           "signature": "public OperationStepState State { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-0c0612bad12dd636\u0022\u003EOperationStepState\u003C/a\u003E State { get; init; }",
           "presentation": {
@@ -126391,7 +129503,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 30,
+          "order": 31,
           "signature": "Failed = 2",
           "signatureHtml": "Failed = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
           "presentation": {
@@ -126446,7 +129558,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 26,
+          "order": 27,
           "signature": "NotStarted = 0",
           "signatureHtml": "NotStarted = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
           "presentation": {
@@ -126501,7 +129613,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 32,
+          "order": 33,
           "signature": "OutcomeUnknown = 3",
           "signatureHtml": "OutcomeUnknown = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
           "presentation": {
@@ -126556,7 +129668,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 28,
+          "order": 29,
           "signature": "Succeeded = 1",
           "signatureHtml": "Succeeded = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
           "presentation": {
@@ -126734,7 +129846,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 43,
+          "order": 44,
           "signature": "BootConfiguration = 2",
           "signatureHtml": "BootConfiguration = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
           "presentation": {
@@ -126789,7 +129901,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 39,
+          "order": 40,
           "signature": "PackageRegistration = 0",
           "signatureHtml": "PackageRegistration = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
           "presentation": {
@@ -126844,7 +129956,7 @@
           "source": "Common/Results/ApiFailure.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 41,
+          "order": 42,
           "signature": "WindowsFeatureChange = 1",
           "signatureHtml": "WindowsFeatureChange = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
           "presentation": {

@@ -17,6 +17,7 @@ public static class HyperVServiceCoordination
     public static bool HasActiveSettingsWrite => Volatile.Read(ref activeWriteCount) > 0;
 
     /// <summary>标记一次主动配置写入窗口，用于抑制同一时间后台轮询产生的重复断连提示。</summary>
+    /// <returns>用于结束当前主动配置写入窗口的释放作用域对象。</returns>
     public static IDisposable BeginActiveSettingsWrite() => new Scope(isRecovery: false);
     internal static IDisposable BeginRecovery() => new Scope(isRecovery: true);
 

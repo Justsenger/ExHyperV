@@ -6460,6 +6460,19 @@
     "operation": "读取逻辑处理器对应的核心分类"
   },
   {
+    "id": "T-1a2b3c4d5e6f0003-1",
+    "api": "HostSystemInfoService.GetProcessorDisplayNameAsync()",
+    "group": "管理层面 / 宿主 / 查询 / 处理器",
+    "name": "读取并格式化宿主物理处理器显示名称",
+    "expected": "返回与当前宿主处理器一致的非空型号文本，重复调用复用进程内缓存",
+    "requirements": [
+      "windows"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "获取宿主处理器显示型号"
+  },
+  {
     "id": "C-c6db9b28d9775b80-1",
     "api": "HyperVCpuMonitorService.构造()",
     "group": "管理层面 / 宿主 / 查询 / 处理器",
@@ -9417,6 +9430,39 @@
     ],
     "order": 0,
     "operation": "释放共享 ARP 捕获"
+  },
+  {
+    "id": "T-1a2b3c4d5e6f0001-1",
+    "api": "CoreErrorClassifier.ClassifyException()",
+    "group": "管理层面 / 共用类型",
+    "name": "对常见底层异常进行诊断码归类",
+    "expected": "按 HRESULT 与异常链返回对应的 CoreErrorCode 枚举值",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "归类异常诊断码"
+  },
+  {
+    "id": "T-1a2b3c4d5e6f0002-1",
+    "api": "CoreErrorClassifier.IsServiceUnavailable()",
+    "group": "管理层面 / 共用类型",
+    "name": "识别 Hyper-V 与 WMI 服务不可用错误码及内部异常链",
+    "expected": "命中 RPC/服务停止相关错误码时返回 true，常规错误返回 false",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "判断服务不可用状态"
+  },
+  {
+    "id": "T-1a2b3c4d5e6f0004-1",
+    "api": "HyperVServiceCoordination.BeginActiveSettingsWrite()",
+    "group": "管理层面 / 共用类型",
+    "name": "进入与释放主动配置写入作用域",
+    "expected": "进入后 HasActiveSettingsWrite=true，Dispose 后恢复且重复 Dispose 安全",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "切换主动配置写入标记"
   },
   {
     "id": "T-db8598581b9373e3-1",

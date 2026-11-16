@@ -127,6 +127,10 @@ public static class CoreErrorClassifier
     private static readonly Regex HexCodePattern = new(@"0[xX]([0-9A-Fa-f]{8})", RegexOptions.Compiled);
 
     /// <summary>判断底层错误码或异常链是否属于 Hyper-V / WMI 服务正在停止或暂时不可达。</summary>
+    /// <param name="code">底层错误码或 HRESULT。</param>
+    /// <param name="source">错误码来源。</param>
+    /// <param name="exception">可选的原始异常对象。</param>
+    /// <returns>若属于服务正在停止或不可达，返回 true；否则返回 false。</returns>
     public static bool IsServiceUnavailable(int code, ApiErrorSource source, Exception? exception = null)
     {
         if (IsUnavailableCode(code, source)) return true;
@@ -143,6 +147,8 @@ public static class CoreErrorClassifier
     }
 
     /// <summary>直接对未包装的底层异常进行语言无关的诊断归类。</summary>
+    /// <param name="exception">待归类的底层异常对象。</param>
+    /// <returns>归一化后的核心错误诊断码。</returns>
     public static CoreErrorCode ClassifyException(Exception exception)
     {
         var failure = ApiFailure.From(exception);

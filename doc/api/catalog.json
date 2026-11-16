@@ -3633,6 +3633,42 @@
       ],
       "group": "core"
     },
+    "ExHyperV.Tools.ConditionReasonCode": {
+      "title": "条件原因码",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "共用类型"
+      ],
+      "group": "core"
+    },
+    "ExHyperV.Tools.CoreErrorClassifier": {
+      "title": "Core 错误归类器",
+      "role": "entry",
+      "path": [
+        "管理层面",
+        "共用类型"
+      ],
+      "group": "core"
+    },
+    "ExHyperV.Tools.CoreErrorCode": {
+      "title": "Core 错误码",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "共用类型"
+      ],
+      "group": "core"
+    },
+    "ExHyperV.Tools.HyperVServiceCoordination": {
+      "title": "Hyper-V 服务协同状态",
+      "role": "entry",
+      "path": [
+        "管理层面",
+        "共用类型"
+      ],
+      "group": "core"
+    },
     "ExHyperV.Tools.CoreOperationException": {
       "title": "Core 操作异常",
       "role": "contract",
@@ -9338,6 +9374,32 @@
     },
     "P:ExHyperV.Models.VmModificationCondition.Reason": {
       "title": "原因",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "处理器"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmModificationCondition.ReasonArgs": {
+      "title": "原因参数",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "处理器"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmModificationCondition.ReasonCode": {
+      "title": "原因码",
       "paths": [
         [
           "管理层面",
@@ -27449,6 +27511,294 @@
       "group": "core",
       "readOnly": false
     },
+    "F:ExHyperV.Tools.ConditionReasonCode.None": {
+      "title": "None",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.PoweredOffRequired": {
+      "title": "PoweredOffRequired",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.DynamicMemoryRunningStartupLocked": {
+      "title": "DynamicMemoryRunningStartupLocked",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.HostSettingMissing": {
+      "title": "HostSettingMissing",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedVmVersion": {
+      "title": "UnsupportedVmVersion",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.RequiresX64": {
+      "title": "RequiresX64",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.RequiresArm64": {
+      "title": "RequiresArm64",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.RequiresIntel": {
+      "title": "RequiresIntel",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.RequiresHardwareIsolation": {
+      "title": "RequiresHardwareIsolation",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.RequiresPerfmonPmu": {
+      "title": "RequiresPerfmonPmu",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.UnknownSetting": {
+      "title": "UnknownSetting",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedBackingTypeHybrid": {
+      "title": "UnsupportedBackingTypeHybrid",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedTrackingPerNuma": {
+      "title": "UnsupportedTrackingPerNuma",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "M:ExHyperV.Tools.CoreErrorClassifier.ClassifyException(System.Exception)": {
+      "title": "归类异常错误码",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": true
+    },
+    "M:ExHyperV.Tools.CoreErrorClassifier.IsServiceUnavailable(System.Int32,ExHyperV.Tools.ApiErrorSource,System.Exception)": {
+      "title": "判断服务不可用",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": true
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.None": {
+      "title": "None",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedCxlRecovered": {
+      "title": "VmmsCrashedCxlRecovered",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedRecovered": {
+      "title": "VmmsCrashedRecovered",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedVnumaUnrestored": {
+      "title": "VmmsCrashedVnumaUnrestored",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.VmmsRecoveryFailed": {
+      "title": "VmmsRecoveryFailed",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.VmmsRecoveredOutcomeUnknown": {
+      "title": "VmmsRecoveredOutcomeUnknown",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.VmmsUnavailableOrShuttingDown": {
+      "title": "VmmsUnavailableOrShuttingDown",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.AccessDenied": {
+      "title": "AccessDenied",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.NotFound": {
+      "title": "NotFound",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.Unsupported": {
+      "title": "Unsupported",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.InvalidState": {
+      "title": "InvalidState",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.InvalidParameter": {
+      "title": "InvalidParameter",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.OperationTimedOut": {
+      "title": "OperationTimedOut",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.OperationCancelled": {
+      "title": "OperationCancelled",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.MethodFailed": {
+      "title": "MethodFailed",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.PartialVnumaDisableFailed": {
+      "title": "PartialVnumaDisableFailed",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.PartialVnumaRestoreFailed": {
+      "title": "PartialVnumaRestoreFailed",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.ReadBackUnavailable": {
+      "title": "ReadBackUnavailable",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.ReadBackMismatch": {
+      "title": "ReadBackMismatch",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.InsufficientMemory": {
+      "title": "InsufficientMemory",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.FileInUse": {
+      "title": "FileInUse",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.FileNotFound": {
+      "title": "FileNotFound",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.DiskFull": {
+      "title": "DiskFull",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.StartUnsupportedWithSuspects": {
+      "title": "StartUnsupportedWithSuspects",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.StartFailedUnsupported": {
+      "title": "StartFailedUnsupported",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.DifferencingParentNotFound": {
+      "title": "DifferencingParentNotFound",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.VirtualSwitchNotFound": {
+      "title": "VirtualSwitchNotFound",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.StartFailedProcessorTopology": {
+      "title": "StartFailedProcessorTopology",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.RuntimeMemoryResizeFailed": {
+      "title": "RuntimeMemoryResizeFailed",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.StartFailedGen1OnArm64": {
+      "title": "StartFailedGen1OnArm64",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "M:ExHyperV.Tools.HyperVServiceCoordination.BeginActiveSettingsWrite": {
+      "title": "标记主动配置写入窗口",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "P:ExHyperV.Tools.HyperVServiceCoordination.HasActiveSettingsWrite": {
+      "title": "是否有主动配置写入",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.HyperVServiceCoordination.IsRecovering": {
+      "title": "是否正在恢复服务",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": true
+    },
     "M:ExHyperV.Tools.ApiResponse.Fail(System.String,System.Int32,ExHyperV.Tools.ApiErrorSource,System.Exception,ExHyperV.Tools.ApiErrorKind)": {
       "title": "创建失败结果",
       "paths": [
@@ -27512,6 +27862,18 @@
           "共用类型"
         ]
       ],
+      "group": "core",
+      "readOnly": false
+    },
+    "P:ExHyperV.Tools.ApiResponse.DiagnosticArgs": {
+      "title": "诊断参数",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "P:ExHyperV.Tools.ApiResponse.DiagnosticCode": {
+      "title": "诊断错误码",
+      "paths": [["管理层面", "共用类型"]],
       "group": "core",
       "readOnly": false
     },
@@ -27677,6 +28039,18 @@
           "共用类型"
         ]
       ],
+      "group": "core",
+      "readOnly": false
+    },
+    "P:ExHyperV.Tools.ApiResponse`1.DiagnosticArgs": {
+      "title": "诊断参数",
+      "paths": [["管理层面", "共用类型"]],
+      "group": "core",
+      "readOnly": false
+    },
+    "P:ExHyperV.Tools.ApiResponse`1.DiagnosticCode": {
+      "title": "诊断错误码",
+      "paths": [["管理层面", "共用类型"]],
       "group": "core",
       "readOnly": false
     },

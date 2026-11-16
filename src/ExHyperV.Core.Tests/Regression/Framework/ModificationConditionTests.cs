@@ -70,7 +70,7 @@ public sealed class ModificationConditionTests
         foreach (var state in Enum.GetValues<VmState>())
         foreach (string name in new[] { nameof(VmMemorySettings.Startup), nameof(VmMemorySettings.Weight), nameof(VmMemorySettings.DynamicMemoryEnabled) })
         {
-            var current = new VmMemorySettings { Startup = 1024, Weight = 5000, DynamicMemoryEnabled = dynamic };
+            var current = new VmMemorySettings { Startup = 1024, Minimum = 512, Maximum = 4096, Buffer = 20, Weight = 5000, DynamicMemoryEnabled = dynamic };
             var requested = current.Clone();
             switch (name)
             {

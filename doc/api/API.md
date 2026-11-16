@@ -602,7 +602,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: fbbc62e63a435da7096dc5f35cbf5d3ee20372e71a0e7b9868958bd8b9c6fbec -->
+<!-- source-sha256: 594b84cf21802aacea0f7ff4cd17c37a1ef9badfee3e6a3e0f348f9794a9dbb6 -->
 
 程序集：`ExHyperV.Core.dll` · 版本：`2.0.0-Alpha`。
 
@@ -1236,7 +1236,11 @@ Core 负责传输；宿主剪贴板的读取和写入由调用方完成。 一�
 | [` ApiFailure `](#api-ed6980c68f413cc1) | ` ExHyperV.Tools ` | 可序列化的失败信息；分类和原始错误码用于程序判断，Message 用于显示。 |
 | [` ApiResponse `](#api-422efc6c1478ebfe) | ` ExHyperV.Tools ` | 表示不携带数据的操作结果，提供成功标志及失败信息。 |
 | [` ApiResponse<T> `](#api-dd3269fca7449cd0) | ` ExHyperV.Tools ` | 表示带数据操作的结果，区分失败、成功空结果和成功数据。 |
+| [` ConditionReasonCode `](#api-c6b312ed6e71ad87) | ` ExHyperV.Tools ` | 语言无关的设置修改前置条件原因码。 |
+| [` CoreErrorClassifier `](#api-472bbf4a51177686) | ` ExHyperV.Tools ` | 根据跨语言的原生错误码与失败类别归类标准错误。 |
+| [` CoreErrorCode `](#api-c159b3ca11e89ee0) | ` ExHyperV.Tools ` | 语言无关的核心错误归一化标识。 |
 | [` CoreOperationException `](#api-d508b5ee4db3a2d0) | ` ExHyperV.Tools ` | Core 操作抛出的失败异常；Result 保留错误类别和执行结果。 |
+| [` HyperVServiceCoordination `](#api-0ae38ea99e73ecdc) | ` ExHyperV.Tools ` | 跨设置写入与后台轮询共享的 Hyper-V 服务活动/恢复状态，用于抑制恢复窗口内的重复报错。 |
 | [` OperationStepResult `](#api-824369b51a27da0a) | ` ExHyperV.Tools ` | 组合操作中一个步骤的结果。 |
 | [` OperationStepState `](#api-0c0612bad12dd636) | ` ExHyperV.Tools ` | 一个修改步骤的执行情况，区分未执行、明确结束和结果不明。 |
 | [` RestartReason `](#api-ec6d13ee818c895b) | ` ExHyperV.Tools ` | 本次宿主操作报告的重启原因。 |
@@ -8761,6 +8765,8 @@ public void Restore(VmMmioSettings other);
 | [` public bool CanModify { get; } `](#api-82cb37b1009ac600) | 是否通过已知的修改条件检查。 |
 | [` public ApiErrorKind ErrorKind { get; } `](#api-af7394e853469c13) | 失败类别；允许时为 None。 |
 | [` public string Reason { get; } `](#api-016c25c56a01ebff) | 不允许修改的原因；允许时为空字符串。 |
+| [` public IReadOnlyList<string> ReasonArgs { get; } `](#api-5301e39f0c5c3430) | 配合 ReasonCode 使用的可选参数。 |
+| [` public ConditionReasonCode ReasonCode { get; } `](#api-74f584e48f85c8d8) | 语言无关的前置条件原因码。 |
 | [` public VmState? RequiredState { get; } `](#api-de4343c35f30cbf9) | 需要达到的电源状态；无电源状态要求时为 null。 |
 
 #### 详细说明
@@ -8802,6 +8808,26 @@ public string Reason { get; }
 ```
 
 不允许修改的原因；允许时为空字符串。
+
+<a id="api-5301e39f0c5c3430"></a>
+
+##### 原因参数 · 属性
+
+```csharp
+public IReadOnlyList<string> ReasonArgs { get; }
+```
+
+配合 ReasonCode 使用的可选参数。
+
+<a id="api-74f584e48f85c8d8"></a>
+
+##### 原因码 · 属性
+
+```csharp
+public ConditionReasonCode ReasonCode { get; }
+```
+
+语言无关的前置条件原因码。
 
 <a id="api-de4343c35f30cbf9"></a>
 
@@ -36775,6 +36801,8 @@ public ApiErrorSource Source { get; init; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public int Code { get; } `](#api-38efe1de89d31e9e) | 原生或业务错误码；含义由 ErrorSource 和具体方法决定，未指定时通常为 -1。 |
+| [` public IReadOnlyList<string> DiagnosticArgs { get; } = Array.Empty<string>() `](#api-5e91d6f0bd1f79c5) | 配合 DiagnosticCode 使用的结构化上下文参数。 |
+| [` public CoreErrorCode DiagnosticCode { get; } `](#api-280d6dd962a6539c) | 语言无关的诊断归类标识；未命中标准码时为 None。 |
 | [` public string Error { get; } = string.Empty `](#api-94a85ddbff6b6faa) | 面向人的失败说明，可能本地化，不宜按文本判断错误类别。 |
 | [` public ApiErrorKind ErrorKind { get; } `](#api-2248bf934335f9fb) | 业务失败类别；成功时为 None，尚未分类的失败为 Unspecified。 |
 | [` public ApiErrorSource ErrorSource { get; } `](#api-8440bfb969ffd704) | 错误码所属接口来源。 |
@@ -36817,6 +36845,26 @@ public int Code { get; }
 ```
 
 原生或业务错误码；含义由 ErrorSource 和具体方法决定，未指定时通常为 -1。
+
+<a id="api-5e91d6f0bd1f79c5"></a>
+
+##### 诊断参数 · 属性
+
+```csharp
+public IReadOnlyList<string> DiagnosticArgs { get; } = Array.Empty<string>();
+```
+
+配合 DiagnosticCode 使用的结构化上下文参数。
+
+<a id="api-280d6dd962a6539c"></a>
+
+##### 诊断错误码 · 属性
+
+```csharp
+public CoreErrorCode DiagnosticCode { get; }
+```
+
+语言无关的诊断归类标识；未命中标准码时为 None。
 
 <a id="api-94a85ddbff6b6faa"></a>
 
@@ -36990,6 +37038,8 @@ public override string ToString();
 | --- | --- |
 | [` public int Code { get; } `](#api-36b99e7ac53eca9c) | 原生或业务错误码；含义由 ErrorSource 和具体方法决定，未指定时通常为 -1。 |
 | [` public T? Data { get; } `](#api-09aba646ac904898) | 响应数据；使用前先检查 HasData，失败/空结果时可能为默认值。 |
+| [` public IReadOnlyList<string> DiagnosticArgs { get; } = Array.Empty<string>() `](#api-7936b85bd688d615) | 配合 DiagnosticCode 使用的结构化上下文参数。 |
+| [` public CoreErrorCode DiagnosticCode { get; } `](#api-253d01cd57371b28) | 语言无关的诊断归类标识；未命中标准码时为 None。 |
 | [` public string Error { get; } = string.Empty `](#api-63a4a29a2aba472e) | 面向人的失败说明，可能本地化，不宜按文本判断错误类别。 |
 | [` public ApiErrorKind ErrorKind { get; } `](#api-082ece6ab08fa1f1) | 业务失败类别；成功时为 None，尚未分类的失败为 Unspecified。 |
 | [` public ApiErrorSource ErrorSource { get; } `](#api-9da73b15a78ab23e) | 错误码所属接口来源。 |
@@ -37046,6 +37096,26 @@ public T? Data { get; }
 ```
 
 响应数据；使用前先检查 HasData，失败/空结果时可能为默认值。
+
+<a id="api-7936b85bd688d615"></a>
+
+##### 诊断参数 · 属性
+
+```csharp
+public IReadOnlyList<string> DiagnosticArgs { get; } = Array.Empty<string>();
+```
+
+配合 DiagnosticCode 使用的结构化上下文参数。
+
+<a id="api-253d01cd57371b28"></a>
+
+##### 诊断错误码 · 属性
+
+```csharp
+public CoreErrorCode DiagnosticCode { get; }
+```
+
+语言无关的诊断归类标识；未命中标准码时为 None。
 
 <a id="api-63a4a29a2aba472e"></a>
 
@@ -37197,6 +37267,602 @@ public override string ToString();
 
 返回：包含成功/空结果或错误来源、码和说明的文本。
 
+<a id="api-c6b312ed6e71ad87"></a>
+
+### `ConditionReasonCode` 枚举
+
+语言无关的设置修改前置条件原因码。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Tools ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 共用类型 |
+| 源文件 | ` Common/Results/CoreDiagnostic.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` DynamicMemoryRunningStartupLocked = 2 `](#api-9d67e2b08a47ead6) | 开启动态内存时，启动内存仅在关机后可修改。 |
+| [` HostSettingMissing = 3 `](#api-810ebcae6aed77cb) | 当前宿主系统或硬件未提供此设置属性。 |
+| [` None = 0 `](#api-ff0428d064feb7d4) | 无限制，允许修改。 |
+| [` PoweredOffRequired = 1 `](#api-efa66364ed32bb4a) | 需要先关闭虚拟机后修改。 |
+| [` RequiresArm64 = 6 `](#api-34faa9d87b213b38) | 仅支持 ARM64 处理器架构。 |
+| [` RequiresHardwareIsolation = 8 `](#api-8c0a4fc6e8603885) | 宿主硬件不支持硬件隔离扩展。 |
+| [` RequiresIntel = 7 `](#api-475b1d078b1e0b55) | 仅支持 Intel 处理器。 |
+| [` RequiresPerfmonPmu = 9 `](#api-3b36b688017cb206) | 需要先开启硬件性能计数器（PMU）。 |
+| [` RequiresX64 = 5 `](#api-0d38feac504e01be) | 仅支持 x64 处理器架构。 |
+| [` UnknownSetting = 10 `](#api-2925b6dfae9f3d11) | 未知或不支持的设置成员。 |
+| [` UnsupportedBackingTypeHybrid = 11 `](#api-71a4999fa730d607) | 暂不支持全局写入混合后备方式。 |
+| [` UnsupportedTrackingPerNuma = 12 `](#api-51604a3389792352) | 暂不支持按 NUMA 节点配置内存访问跟踪。 |
+| [` UnsupportedVmVersion = 4 `](#api-47ec12824fa61f66) | 当前虚拟机配置版本不支持此功能。 |
+
+#### 详细说明
+
+```csharp
+public enum ConditionReasonCode
+```
+
+#### 枚举值说明
+
+<a id="api-9d67e2b08a47ead6"></a>
+
+##### DynamicMemoryRunningStartupLocked · 枚举值
+
+```csharp
+DynamicMemoryRunningStartupLocked = 2
+```
+
+开启动态内存时，启动内存仅在关机后可修改。
+
+<a id="api-810ebcae6aed77cb"></a>
+
+##### HostSettingMissing · 枚举值
+
+```csharp
+HostSettingMissing = 3
+```
+
+当前宿主系统或硬件未提供此设置属性。
+
+<a id="api-ff0428d064feb7d4"></a>
+
+##### None · 枚举值
+
+```csharp
+None = 0
+```
+
+无限制，允许修改。
+
+<a id="api-efa66364ed32bb4a"></a>
+
+##### PoweredOffRequired · 枚举值
+
+```csharp
+PoweredOffRequired = 1
+```
+
+需要先关闭虚拟机后修改。
+
+<a id="api-34faa9d87b213b38"></a>
+
+##### RequiresArm64 · 枚举值
+
+```csharp
+RequiresArm64 = 6
+```
+
+仅支持 ARM64 处理器架构。
+
+<a id="api-8c0a4fc6e8603885"></a>
+
+##### RequiresHardwareIsolation · 枚举值
+
+```csharp
+RequiresHardwareIsolation = 8
+```
+
+宿主硬件不支持硬件隔离扩展。
+
+<a id="api-475b1d078b1e0b55"></a>
+
+##### RequiresIntel · 枚举值
+
+```csharp
+RequiresIntel = 7
+```
+
+仅支持 Intel 处理器。
+
+<a id="api-3b36b688017cb206"></a>
+
+##### RequiresPerfmonPmu · 枚举值
+
+```csharp
+RequiresPerfmonPmu = 9
+```
+
+需要先开启硬件性能计数器（PMU）。
+
+<a id="api-0d38feac504e01be"></a>
+
+##### RequiresX64 · 枚举值
+
+```csharp
+RequiresX64 = 5
+```
+
+仅支持 x64 处理器架构。
+
+<a id="api-2925b6dfae9f3d11"></a>
+
+##### UnknownSetting · 枚举值
+
+```csharp
+UnknownSetting = 10
+```
+
+未知或不支持的设置成员。
+
+<a id="api-71a4999fa730d607"></a>
+
+##### UnsupportedBackingTypeHybrid · 枚举值
+
+```csharp
+UnsupportedBackingTypeHybrid = 11
+```
+
+暂不支持全局写入混合后备方式。
+
+<a id="api-51604a3389792352"></a>
+
+##### UnsupportedTrackingPerNuma · 枚举值
+
+```csharp
+UnsupportedTrackingPerNuma = 12
+```
+
+暂不支持按 NUMA 节点配置内存访问跟踪。
+
+<a id="api-47ec12824fa61f66"></a>
+
+##### UnsupportedVmVersion · 枚举值
+
+```csharp
+UnsupportedVmVersion = 4
+```
+
+当前虚拟机配置版本不支持此功能。
+
+<a id="api-472bbf4a51177686"></a>
+
+### `CoreErrorClassifier` 类
+
+根据跨语言的原生错误码与失败类别归类标准错误。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Tools ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 共用类型 |
+| 源文件 | ` Common/Results/CoreDiagnostic.cs ` |
+
+#### 成员概览
+
+**静态方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static CoreErrorCode ClassifyException(Exception exception) `](#api-8865112386141a40) | 直接对未包装的底层异常进行语言无关的诊断归类。 |
+| [` public static bool IsServiceUnavailable(int code, ApiErrorSource source, Exception? exception = null) `](#api-a90e56365487e314) | 判断底层错误码或异常链是否属于 Hyper-V / WMI 服务正在停止或暂时不可达。 |
+
+#### 详细说明
+
+```csharp
+public static class CoreErrorClassifier
+```
+
+#### 静态方法说明
+
+<a id="api-8865112386141a40"></a>
+
+##### 归类异常错误码 · 方法
+
+```csharp
+public static CoreErrorCode ClassifyException(Exception exception);
+```
+
+直接对未包装的底层异常进行语言无关的诊断归类。
+
+| 参数 | 说明 |
+| --- | --- |
+| `exception` | 待归类的底层异常对象。 |
+
+返回：归一化后的核心错误诊断码。
+
+<a id="api-a90e56365487e314"></a>
+
+##### 判断服务不可用 · 方法
+
+```csharp
+public static bool IsServiceUnavailable(int code, ApiErrorSource source, Exception? exception = null);
+```
+
+判断底层错误码或异常链是否属于 Hyper-V / WMI 服务正在停止或暂时不可达。
+
+| 参数 | 说明 |
+| --- | --- |
+| `code` | 底层错误码或 HRESULT。 |
+| `source` | 错误码来源。 |
+| `exception` | 可选的原始异常对象。 |
+
+返回：若属于服务正在停止或不可达，返回 true；否则返回 false。
+
+<a id="api-c159b3ca11e89ee0"></a>
+
+### `CoreErrorCode` 枚举
+
+语言无关的核心错误归一化标识。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Tools ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 共用类型 |
+| 源文件 | ` Common/Results/CoreDiagnostic.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` AccessDenied = 7 `](#api-180e6ef952e853f7) | 调用方缺少执行操作所需的权限。 |
+| [` DifferencingParentNotFound = 25 `](#api-381ea8233b135f62) | 差分虚拟硬盘的父级磁盘缺失或磁盘链已断开（如 0xC03A000D）。 |
+| [` DiskFull = 22 `](#api-f52b4f8e12fc7516) | 宿主机磁盘空间不足（如 0x80070070 / 0x80070027 / 32794）。 |
+| [` FileInUse = 20 `](#api-95a15866c0c14937) | 目标虚拟磁盘、镜像或文件正被占用（如 0x80070020）。 |
+| [` FileNotFound = 21 `](#api-70fd27c6b7f23183) | 找不到启动或操作所需的磁盘、镜像或配置文件（如 0x80070002 / 0x80070003）。 |
+| [` InsufficientMemory = 19 `](#api-9a518a7473f8aebc) | 宿主机可用内存或系统资源不足（如 0x8007000E / 0x800705AA）。 |
+| [` InvalidParameter = 11 `](#api-9b8adec6a5f02609) | 提交的参数无效或不符合宿主约束。 |
+| [` InvalidState = 10 `](#api-c8b30ee8b5a46d13) | 虚拟机当前状态不允许执行此修改。 |
+| [` MethodFailed = 14 `](#api-79b157656a27db57) | 底层 WMI 方法或异步作业执行失败。 |
+| [` None = 0 `](#api-5290218e62d4ce9a) | 未命中预设诊断码，请使用默认或原始错误信息。 |
+| [` NotFound = 8 `](#api-aee4a8cc8f1cf975) | 找不到目标虚拟机或配置实例。 |
+| [` OperationCancelled = 13 `](#api-e7352bf89faf3d40) | 等待操作结果期间被取消。 |
+| [` OperationTimedOut = 12 `](#api-905249b8513e9a16) | 等待异步作业或系统响应超时。 |
+| [` PartialVnumaDisableFailed = 15 `](#api-9862da7333274c91) | 已关闭 vNUMA，但后续内存修改失败。 |
+| [` PartialVnumaRestoreFailed = 16 `](#api-54a1f4ef84759b55) | 内存已修改，但恢复 vNUMA 失败。 |
+| [` ReadBackMismatch = 18 `](#api-5d3faca25920e81d) | 提交后回读到的配置与预期不一致。 |
+| [` ReadBackUnavailable = 17 `](#api-a913d389d8558b09) | 提交后回读配置失败，无法确认实际结果。 |
+| [` RuntimeMemoryResizeFailed = 28 `](#api-69ce106b6e138c4f) | 运行态修改静态内存大小失败（来宾未就绪或不支持热调整）。 |
+| [` StartFailedGen1OnArm64 = 29 `](#api-9020a57663938251) | ARM64 宿主机未附带第 1 代虚拟机固件，不支持启动第 1 代虚拟机。 |
+| [` StartFailedProcessorTopology = 27 `](#api-5b7bf2367231e124) | 启动虚拟机因处理器数量或拓扑超过宿主机物理上限而失败。 |
+| [` StartFailedUnsupported = 24 `](#api-f59e4c55503619d4) | 启动虚拟机因宿主机不支持而被拒绝。 |
+| [` StartUnsupportedWithSuspects = 23 `](#api-37f3df65ae780f3c) | 启动虚拟机因宿主机不支持被拒绝，并匹配到具体不兼容或高风险配置项。 |
+| [` Unsupported = 9 `](#api-b5f56afbbefd7bf6) | 当前宿主或对象不支持该操作。 |
+| [` VirtualSwitchNotFound = 26 `](#api-c5250db6db4a4262) | 虚拟机网卡绑定的虚拟交换机已不存在（如 32788 / 0x800705AA）。 |
+| [` VmmsCrashedCxlRecovered = 1 `](#api-3af324fe217853da) | 写入 CXL 时 Hyper-V 服务停止，已自动恢复运行且配置未改变。 |
+| [` VmmsCrashedRecovered = 2 `](#api-165055049e0afbd4) | 写入内存设置时 Hyper-V 服务异常停止，已自动恢复运行且配置未改变。 |
+| [` VmmsCrashedVnumaUnrestored = 3 `](#api-b536adb817689b3a) | 服务已恢复且目标设置未改变，但临时关闭的虚拟 NUMA 未能自动恢复。 |
+| [` VmmsRecoveredOutcomeUnknown = 5 `](#api-95070036f53dd157) | Hyper-V 服务已重启，但配置最终状态尚不确定。 |
+| [` VmmsRecoveryFailed = 4 `](#api-f44e2562b596841f) | Hyper-V 服务停止且自动拉起失败。 |
+| [` VmmsUnavailableOrShuttingDown = 6 `](#api-cb49659f66cae545) | Hyper-V 管理服务当前正在停止、重启或暂时不可用。 |
+
+#### 详细说明
+
+```csharp
+public enum CoreErrorCode
+```
+
+#### 枚举值说明
+
+<a id="api-180e6ef952e853f7"></a>
+
+##### AccessDenied · 枚举值
+
+```csharp
+AccessDenied = 7
+```
+
+调用方缺少执行操作所需的权限。
+
+<a id="api-381ea8233b135f62"></a>
+
+##### DifferencingParentNotFound · 枚举值
+
+```csharp
+DifferencingParentNotFound = 25
+```
+
+差分虚拟硬盘的父级磁盘缺失或磁盘链已断开（如 0xC03A000D）。
+
+<a id="api-f52b4f8e12fc7516"></a>
+
+##### DiskFull · 枚举值
+
+```csharp
+DiskFull = 22
+```
+
+宿主机磁盘空间不足（如 0x80070070 / 0x80070027 / 32794）。
+
+<a id="api-95a15866c0c14937"></a>
+
+##### FileInUse · 枚举值
+
+```csharp
+FileInUse = 20
+```
+
+目标虚拟磁盘、镜像或文件正被占用（如 0x80070020）。
+
+<a id="api-70fd27c6b7f23183"></a>
+
+##### FileNotFound · 枚举值
+
+```csharp
+FileNotFound = 21
+```
+
+找不到启动或操作所需的磁盘、镜像或配置文件（如 0x80070002 / 0x80070003）。
+
+<a id="api-9a518a7473f8aebc"></a>
+
+##### InsufficientMemory · 枚举值
+
+```csharp
+InsufficientMemory = 19
+```
+
+宿主机可用内存或系统资源不足（如 0x8007000E / 0x800705AA）。
+
+<a id="api-9b8adec6a5f02609"></a>
+
+##### InvalidParameter · 枚举值
+
+```csharp
+InvalidParameter = 11
+```
+
+提交的参数无效或不符合宿主约束。
+
+<a id="api-c8b30ee8b5a46d13"></a>
+
+##### InvalidState · 枚举值
+
+```csharp
+InvalidState = 10
+```
+
+虚拟机当前状态不允许执行此修改。
+
+<a id="api-79b157656a27db57"></a>
+
+##### MethodFailed · 枚举值
+
+```csharp
+MethodFailed = 14
+```
+
+底层 WMI 方法或异步作业执行失败。
+
+<a id="api-5290218e62d4ce9a"></a>
+
+##### None · 枚举值
+
+```csharp
+None = 0
+```
+
+未命中预设诊断码，请使用默认或原始错误信息。
+
+<a id="api-aee4a8cc8f1cf975"></a>
+
+##### NotFound · 枚举值
+
+```csharp
+NotFound = 8
+```
+
+找不到目标虚拟机或配置实例。
+
+<a id="api-e7352bf89faf3d40"></a>
+
+##### OperationCancelled · 枚举值
+
+```csharp
+OperationCancelled = 13
+```
+
+等待操作结果期间被取消。
+
+<a id="api-905249b8513e9a16"></a>
+
+##### OperationTimedOut · 枚举值
+
+```csharp
+OperationTimedOut = 12
+```
+
+等待异步作业或系统响应超时。
+
+<a id="api-9862da7333274c91"></a>
+
+##### PartialVnumaDisableFailed · 枚举值
+
+```csharp
+PartialVnumaDisableFailed = 15
+```
+
+已关闭 vNUMA，但后续内存修改失败。
+
+<a id="api-54a1f4ef84759b55"></a>
+
+##### PartialVnumaRestoreFailed · 枚举值
+
+```csharp
+PartialVnumaRestoreFailed = 16
+```
+
+内存已修改，但恢复 vNUMA 失败。
+
+<a id="api-5d3faca25920e81d"></a>
+
+##### ReadBackMismatch · 枚举值
+
+```csharp
+ReadBackMismatch = 18
+```
+
+提交后回读到的配置与预期不一致。
+
+<a id="api-a913d389d8558b09"></a>
+
+##### ReadBackUnavailable · 枚举值
+
+```csharp
+ReadBackUnavailable = 17
+```
+
+提交后回读配置失败，无法确认实际结果。
+
+<a id="api-69ce106b6e138c4f"></a>
+
+##### RuntimeMemoryResizeFailed · 枚举值
+
+```csharp
+RuntimeMemoryResizeFailed = 28
+```
+
+运行态修改静态内存大小失败（来宾未就绪或不支持热调整）。
+
+<a id="api-9020a57663938251"></a>
+
+##### StartFailedGen1OnArm64 · 枚举值
+
+```csharp
+StartFailedGen1OnArm64 = 29
+```
+
+ARM64 宿主机未附带第 1 代虚拟机固件，不支持启动第 1 代虚拟机。
+
+<a id="api-5b7bf2367231e124"></a>
+
+##### StartFailedProcessorTopology · 枚举值
+
+```csharp
+StartFailedProcessorTopology = 27
+```
+
+启动虚拟机因处理器数量或拓扑超过宿主机物理上限而失败。
+
+<a id="api-f59e4c55503619d4"></a>
+
+##### StartFailedUnsupported · 枚举值
+
+```csharp
+StartFailedUnsupported = 24
+```
+
+启动虚拟机因宿主机不支持而被拒绝。
+
+<a id="api-37f3df65ae780f3c"></a>
+
+##### StartUnsupportedWithSuspects · 枚举值
+
+```csharp
+StartUnsupportedWithSuspects = 23
+```
+
+启动虚拟机因宿主机不支持被拒绝，并匹配到具体不兼容或高风险配置项。
+
+<a id="api-b5f56afbbefd7bf6"></a>
+
+##### Unsupported · 枚举值
+
+```csharp
+Unsupported = 9
+```
+
+当前宿主或对象不支持该操作。
+
+<a id="api-c5250db6db4a4262"></a>
+
+##### VirtualSwitchNotFound · 枚举值
+
+```csharp
+VirtualSwitchNotFound = 26
+```
+
+虚拟机网卡绑定的虚拟交换机已不存在（如 32788 / 0x800705AA）。
+
+<a id="api-3af324fe217853da"></a>
+
+##### VmmsCrashedCxlRecovered · 枚举值
+
+```csharp
+VmmsCrashedCxlRecovered = 1
+```
+
+写入 CXL 时 Hyper-V 服务停止，已自动恢复运行且配置未改变。
+
+<a id="api-165055049e0afbd4"></a>
+
+##### VmmsCrashedRecovered · 枚举值
+
+```csharp
+VmmsCrashedRecovered = 2
+```
+
+写入内存设置时 Hyper-V 服务异常停止，已自动恢复运行且配置未改变。
+
+<a id="api-b536adb817689b3a"></a>
+
+##### VmmsCrashedVnumaUnrestored · 枚举值
+
+```csharp
+VmmsCrashedVnumaUnrestored = 3
+```
+
+服务已恢复且目标设置未改变，但临时关闭的虚拟 NUMA 未能自动恢复。
+
+<a id="api-95070036f53dd157"></a>
+
+##### VmmsRecoveredOutcomeUnknown · 枚举值
+
+```csharp
+VmmsRecoveredOutcomeUnknown = 5
+```
+
+Hyper-V 服务已重启，但配置最终状态尚不确定。
+
+<a id="api-f44e2562b596841f"></a>
+
+##### VmmsRecoveryFailed · 枚举值
+
+```csharp
+VmmsRecoveryFailed = 4
+```
+
+Hyper-V 服务停止且自动拉起失败。
+
+<a id="api-cb49659f66cae545"></a>
+
+##### VmmsUnavailableOrShuttingDown · 枚举值
+
+```csharp
+VmmsUnavailableOrShuttingDown = 6
+```
+
+Hyper-V 管理服务当前正在停止、重启或暂时不可用。
+
 <a id="api-d508b5ee4db3a2d0"></a>
 
 ### `CoreOperationException` 类
@@ -37238,6 +37904,77 @@ public ApiResponse Result { get; }
 ```
 
 保留错误类别、来源、错误码与原始异常的失败响应。
+
+<a id="api-0ae38ea99e73ecdc"></a>
+
+### `HyperVServiceCoordination` 类
+
+跨设置写入与后台轮询共享的 Hyper-V 服务活动/恢复状态，用于抑制恢复窗口内的重复报错。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Tools ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 共用类型 |
+| 源文件 | ` Infrastructure/Interop/VmmsServiceRecovery.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static bool HasActiveSettingsWrite { get; } `](#api-b9c08a706c5948a8) | 是否有设置页面正在执行配置写入。 |
+| [` public static bool IsRecovering { get; } `](#api-bd264984c90bc1fe) | 是否正在执行 vmms 服务的自动拉起恢复流程。 |
+
+**静态方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static IDisposable BeginActiveSettingsWrite() `](#api-37af5373183a7a7b) | 标记一次主动配置写入窗口，用于抑制同一时间后台轮询产生的重复断连提示。 |
+
+#### 详细说明
+
+```csharp
+public static class HyperVServiceCoordination
+```
+
+#### 属性说明
+
+<a id="api-b9c08a706c5948a8"></a>
+
+##### 是否有主动配置写入 · 属性
+
+```csharp
+public static bool HasActiveSettingsWrite { get; }
+```
+
+是否有设置页面正在执行配置写入。
+
+<a id="api-bd264984c90bc1fe"></a>
+
+##### 是否正在恢复服务 · 属性
+
+```csharp
+public static bool IsRecovering { get; }
+```
+
+是否正在执行 vmms 服务的自动拉起恢复流程。
+
+#### 静态方法说明
+
+<a id="api-37af5373183a7a7b"></a>
+
+##### 标记主动配置写入窗口 · 方法
+
+```csharp
+public static IDisposable BeginActiveSettingsWrite();
+```
+
+标记一次主动配置写入窗口，用于抑制同一时间后台轮询产生的重复断连提示。
+
+返回：用于结束当前主动配置写入窗口的释放作用域对象。
 
 <a id="api-824369b51a27da0a"></a>
 

@@ -50,14 +50,15 @@ internal static class ConfigurationRuleChecks
         check(VmProcessorService.GetChangeError(monitoring, disabled, true, intel) == null
             && VmProcessorService.GetChangeError(disabled, monitoring, true, intel) == null,
             "CPU rules: a complete PMU/PEBS/IPT change is validated as one configuration");
-        check(VmProcessorService.GetChangeError(new(), new() { CpuBrandString = "Custom" }, true, arm) == R.Error_VerNotSupport,
+        check(VmProcessorService.GetChangeError(new(), new() { CpuBrandString = "Custom" }, true, arm)
+            == "Requires an x64 processor.",
             "CPU rules: x64-only CPU-brand changes cannot bypass the platform capability");
         check(VmProcessorService.ValidateProcessorChange(new(), new() { CpuBrandString = "Custom" }, VmState.PoweredOff, arm).ErrorKind == ApiErrorKind.Unsupported,
             "CPU write validation: an unsupported platform is distinguishable from a shutdown requirement");
         check(VmProcessorService.GetChangeError(new() { CpuBrandString = "" }, new() { CpuBrandString = null }, false, arm) == null,
             "CPU rules: empty/null brand roundtrips retain native compatibility");
 
-        var memory = new VmMemorySettings { Startup = 2048, DynamicMemoryEnabled = false, Weight = 5000 };
+        var memory = new VmMemorySettings { Startup = 2048, Minimum = 512, Maximum = 4096, Buffer = 20, DynamicMemoryEnabled = false, Weight = 5000 };
         var changed = memory.Clone();
         changed.Startup = 4096;
         check(VmMemoryService.GetChangeError(memory, changed, true) == null,

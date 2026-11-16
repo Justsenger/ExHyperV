@@ -9,7 +9,7 @@ namespace ExHyperV.Core.Tests.TestExecution;
 
 internal static class HostInventoryApiCases
 {
-    internal static bool Supports(CatalogTest p) => p.Api is "HostSystemInfoService.GetSystemInfoAsync()" or "HostGpuService.GetHostGpusAsync()"
+    internal static bool Supports(CatalogTest p) => p.Api is "HostSystemInfoService.GetSystemInfoAsync()" or "HostSystemInfoService.GetProcessorDisplayNameAsync()" or "HostGpuService.GetHostGpusAsync()"
         or "HyperVSwitchService.GetBridgeableAdaptersAsync()" or "HyperVSwitchService.GetNetworkInfoAsync()" or "HyperVSwitchService.GetFullSwitchNetworkStateAsync()"
         or "HostPcieService.GetPCIeInfoAsync()" or "HostPcieService.GetControllerDisksAsync()" or "HyperVSchedulerService.GetSchedulerType()"
         or "HyperVSchedulerService.GetConfiguredSchedulerType()" or "HostProductTypeService.GetPendingSwitch()" or "HostProductTypeService.CanApplySwitch()"
@@ -58,6 +58,15 @@ internal static class HostInventoryApiCases
             c.Equal(Convert.ToString(os["OSArchitecture"]), result.OSArchitecture, "系统位数");
             foreach (var cpu in cpus) c.Require(result.CpuModel.Contains(Convert.ToString(cpu["Name"])!.Trim(), StringComparison.Ordinal), "处理器型号保留系统名称");
             c.Equal(Math.Round(ram, 2).ToString(CultureInfo.InvariantCulture) + " GB", result.MemCap, "物理内存容量"); return;
+        }
+        if (p.Api == "HostSystemInfoService.GetProcessorDisplayNameAsync()")
+        {
+            var cpus = SystemBaseline.Query("SELECT Name FROM Win32_Processor", "root/cimv2");
+            var a = c.Call(HostSystemInfoService.GetProcessorDisplayNameAsync); var b = c.Call(HostSystemInfoService.GetProcessorDisplayNameAsync);
+            c.Require(ReferenceEquals(a, b), "并发调用复用缓存任务"); var result = await a;
+            c.Require(!string.IsNullOrWhiteSpace(result), "处理器显示名称非空");
+            foreach (var cpu in cpus) c.Require(result.Contains(Convert.ToString(cpu["Name"])!.Trim(), StringComparison.Ordinal), "处理器显示名称保留系统名称");
+            return;
         }
         if (p.Api == "HostProductTypeService.CanApplySwitch()")
         {
