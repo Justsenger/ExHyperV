@@ -137,6 +137,7 @@ public sealed class ModificationConditionTests
                 VmMmioService.GetModificationCondition(state),
                 VmNetworkService.GetMacModificationCondition(state),
                 VmConsoleSupportService.GetModificationCondition(2, state),
+                VmSerialPortService.GetModificationCondition(state),
                 VmPowerService.GetHibernationModificationCondition(true, state) })
                 Assert.AreEqual(state == VmState.PoweredOff, condition.CanModify);
             Assert.AreEqual(ApiErrorKind.Unsupported, VmConsoleSupportService.GetModificationCondition(1, state).ErrorKind);

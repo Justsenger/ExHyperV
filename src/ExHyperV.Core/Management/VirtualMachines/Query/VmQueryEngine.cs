@@ -41,6 +41,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
         ["Battery"] = new("Msvm_BatterySettingData", "InstanceID", WmiScope.HyperV),
         ["PcieSystem"] = new("Msvm_VirtualSystemPciExpressSettingData", "InstanceID", WmiScope.HyperV, null, true),
         ["PcieRaw"] = new("Msvm_PciExpressSettingData", "InstanceID", WmiScope.HyperV, null, true),
+        ["SerialRaw"] = new("Msvm_SerialPortSettingData", "InstanceID", WmiScope.HyperV, null, true),
         ["MetadataRaw"] = new("Msvm_KvpExchangeComponentSettingData", "InstanceID", WmiScope.HyperV, null, true),
         ["Ports"] = new("Msvm_SyntheticEthernetPortSettingData", "InstanceID", WmiScope.HyperV, null, true),
         ["EmulatedPorts"] = new("Msvm_EmulatedEthernetPortSettingData", "InstanceID", WmiScope.HyperV, null, true),
@@ -115,6 +116,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
                     Need("Summary", "EnabledState", "ElementName"); break;
                 case "Gpu": Need("GpuRaw", "HostResource"); break;
                 case "PcieDevices": Need("PcieRaw", "HostResource", "GuestPciExpressMode"); break;
+                case "SerialPorts": Need("SerialRaw", "InstanceID", "ElementName", "Connection", "DebuggerMode"); break;
                 case "Checkpoints": case "CheckpointDisks":
                     Need("CheckpointsRaw", "VirtualSystemIdentifier", "ConfigurationID", "ElementName", "CreationTime", "Parent", "VirtualSystemType"); break;
             }

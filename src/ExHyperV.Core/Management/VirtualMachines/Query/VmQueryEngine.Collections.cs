@@ -32,6 +32,7 @@ internal sealed partial class VmQueryEngine
             VmQueryCollection.Processors => "ProcessorPerformance", VmQueryCollection.Storage => "Storage",
             VmQueryCollection.NetworkAdapters => "Ports", VmQueryCollection.BootEntries => "Boot",
             VmQueryCollection.GpuAssignments => "Gpu", VmQueryCollection.PcieDevices => "PcieDevices",
+            VmQueryCollection.SerialPorts => "SerialPorts",
             VmQueryCollection.Checkpoints => "Checkpoints", _ => throw new InvalidOperationException("未知查询集合。")
         };
         ReadResult basis = source == "Ports" ? Ports() : await DerivedAsync(source, id).ConfigureAwait(false);
@@ -93,6 +94,7 @@ internal sealed partial class VmQueryEngine
                     ("Order", i), ("Name", b.Name), ("Kind", b.Kind), ("Description", b.Description)))) : Forward(boot);
             case "Gpu": return await BuildGpuAsync().ConfigureAwait(false);
             case "PcieDevices": return await BuildPcieAsync().ConfigureAwait(false);
+            case "SerialPorts": return BuildSerialPorts();
             case "Checkpoints": return BuildCheckpoints();
             case "CheckpointDisks": return await BuildCheckpointDisksAsync().ConfigureAwait(false);
             case "ProcessorPerformance": return BuildProcessorPerformance();
@@ -215,6 +217,28 @@ internal sealed partial class VmQueryEngine
                 if (!host.HasData) foreach (var field in request.Fields.Where(f => f.Source == "PcieDevices" && f != VmPcieDeviceFields.GuestMode)) row.Values[field.Property] = Failure(field, Forward(host));
                 rows.Add(row);
             }
+        return Done(rows);
+    }
+
+    private ReadResult BuildSerialPorts()
+    {
+        var raw = Read("SerialRaw");
+        if (raw.State != VmQueryValueState.Available) return raw;
+        var rows = new List<RawRow>();
+        foreach (var id in _ids)
+        {
+            foreach (var port in raw.Rows.Where(r => Owned(r, id)))
+            {
+                string elementName = port.Text("ElementName");
+                int portNumber = VmSerialPortService.ParsePortNumber(port.Key, elementName);
+                string name = VmSerialPortService.ResolvePortName(elementName, portNumber);
+                string pipePath = VmSerialPortService.ExtractPipePath(port["Connection"]);
+                var row = Row(port.Key, id, ("PortNumber", portNumber), ("Name", name), ("PipePath", pipePath));
+                if (port.Values.ContainsKey("DebuggerMode"))
+                    row.Values["DebuggerMode"] = port["DebuggerMode"];
+                rows.Add(row);
+            }
+        }
         return Done(rows);
     }
 

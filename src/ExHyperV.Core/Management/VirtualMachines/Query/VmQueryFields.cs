@@ -20,6 +20,7 @@ public static class VmQueryFields
         VmGpuPerformanceFields.Items,
         VmPcieFields.Items,
         VmPcieDeviceFields.Items,
+        VmSerialPortFields.Items,
         VmBootFields.Items,
         VmBootGlobalFields.Items,
         VmSecurityFields.Items,

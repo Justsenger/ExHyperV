@@ -1085,6 +1085,24 @@
     "operation": "读取虚拟机 PCIe 模拟、拓扑和设备虚拟机模式等设置"
   },
   {
+    "id": "T-serial-get-1",
+    "api": "VmSerialPortService.GetSerialPortsAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 串口",
+    "name": "读取并核对：COM 1 / COM 2 串口管道路径与内核调试状态",
+    "expected": "固定返回 COM 1 与 COM 2 两项，逐字段与独立读取系统 WMI 一致",
+    "requirements": [
+      "hyperv",
+      "vm",
+      "vmstate"
+    ],
+    "recovery": [
+      "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
+      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
+    ],
+    "order": 11,
+    "operation": "读取虚拟机串口配置"
+  },
+  {
     "id": "T-bbac3c4e45f51f53-1",
     "api": "VmBootService.GetBootNumLockAsync()",
     "group": "管理层面 / 虚拟机 / 查询 / 引导",
@@ -4513,6 +4531,93 @@
     "recovery": [],
     "order": 10004,
     "operation": "验证 VmPcieService.GetDeviceModeModificationCondition"
+  },
+  {
+    "id": "T-serial-norm-1",
+    "api": "VmSerialPortService.NormalizePipePath()",
+    "group": "管理层面 / 虚拟机 / 修改 / 串口",
+    "name": "短管道名与完整命名管道路径规范化",
+    "expected": "短名称自动补全本地命名管道前缀，完整路径保持原样，空值返回空串",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "规范化串口命名管道路径输入"
+  },
+  {
+    "id": "T-serial-err-1",
+    "api": "VmSerialPortService.GetPipePathError()",
+    "group": "管理层面 / 虚拟机 / 修改 / 串口",
+    "name": "有效、缺失前缀、非法字符与相对路径段校验",
+    "expected": "有效管道路径返回 null，非法前缀、空名称、非法字符或相对路径段返回错误文本",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "校验串口命名管道路径格式"
+  },
+  {
+    "id": "T-serial-pipe-1",
+    "api": "VmSerialPortService.SetPipePathAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 串口",
+    "name": "设置与清空 COM 端口命名管道路径",
+    "expected": "写入后独立读取 WMI 的 Connection 与规范化路径一致，清空后连接断开且另一串口保持不变",
+    "requirements": [
+      "hyperv",
+      "vm",
+      "vmstate"
+    ],
+    "recovery": [
+      "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
+      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
+    ],
+    "order": 11,
+    "operation": "修改或断开串口命名管道连接"
+  },
+  {
+    "id": "T-serial-pipe-2",
+    "api": "VmSerialPortService.SetPipePathAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 串口",
+    "name": "拒绝越界端口号、非法管道路径及已删除目标",
+    "expected": "越界端口与非法管道路径返回 InvalidArgument 且保持原配置，已删除虚拟机返回 NotFound",
+    "requirements": [
+      "hyperv",
+      "vm",
+      "vmstate"
+    ],
+    "recovery": [
+      "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
+      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
+    ],
+    "order": 11,
+    "operation": "校验非法串口管道修改请求"
+  },
+  {
+    "id": "T-serial-dbg-1",
+    "api": "VmSerialPortService.SetDebuggerModeAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 串口",
+    "name": "切换内核调试模式并核对越界端口与已删除目标",
+    "expected": "宿主支持时切换 DebuggerMode 且保留原管道路径，越界端口返回 InvalidArgument，已删除目标返回 NotFound",
+    "requirements": [
+      "hyperv",
+      "vm",
+      "vmstate"
+    ],
+    "recovery": [
+      "写入使用测试程序创建的虚拟机；同一虚拟机串行，完成后清理自有配置与磁盘。查询可复用稳定采样。",
+      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
+    ],
+    "order": 11,
+    "operation": "切换串口内核调试模式开关"
+  },
+  {
+    "id": "api.condition.VmSerialPortService.GetModificationCondition",
+    "api": "VmSerialPortService.GetModificationCondition()",
+    "group": "管理层面 / 虚拟机 / 修改 / 串口",
+    "name": "配置状态与提交条件一致",
+    "expected": "仅在关机状态返回可修改；所需电源状态明确",
+    "requirements": [],
+    "recovery": [],
+    "order": 10016,
+    "operation": "验证 VmSerialPortService.GetModificationCondition"
   },
   {
     "id": "T-0edb8d8dc0296447-1",

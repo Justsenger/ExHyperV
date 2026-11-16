@@ -87,6 +87,9 @@ internal static class VmSettingsApiCases
             "VmMmioService.GetSettingsAsync()" => true,
             "VmDisplaySettingsService.GetResolutionAsync()" => true,
             "VmDisplaySettingsService.SetResolutionAsync()" => true,
+            "VmSerialPortService.GetSerialPortsAsync()" => true,
+            "VmSerialPortService.SetPipePathAsync()" => true,
+            "VmSerialPortService.SetDebuggerModeAsync()" => true,
             _ => false
         };
     }
@@ -150,6 +153,10 @@ internal static class VmSettingsApiCases
             }
             case "VmMmioService.SetSettingAsync()":
                 await MmioAsync(vm, n, c); break;
+            case "VmSerialPortService.GetSerialPortsAsync()":
+            case "VmSerialPortService.SetPipePathAsync()":
+            case "VmSerialPortService.SetDebuggerModeAsync()":
+                await SerialAsync(vm, plan.Api, n, c); break;
         }
     }
 
@@ -324,6 +331,92 @@ internal static class VmSettingsApiCases
             var after = Read(vm.Id, "Msvm_VirtualSystemSettingData"); EqualRaw(c, value, after[field.Item2], field.Item1);
             Unchanged(c, before, after, names.Select(x => x.Item2), [field.Item2]);
         }
+    }
+
+    private static async Task SerialAsync(TemporaryVm vm, string api, int n, ApiCaseContext c)
+    {
+        static Dictionary<int, Dictionary<string, object?>> ReadSerialPorts(Guid id) => ReadMany(id, "Msvm_SerialPortSettingData")
+            .Where(row => Convert.ToString(row.GetValueOrDefault("InstanceID")) is string inst && (inst.EndsWith("\\0", StringComparison.OrdinalIgnoreCase) || inst.EndsWith("\\1", StringComparison.OrdinalIgnoreCase)))
+            .ToDictionary(row => Convert.ToString(row["InstanceID"])!.EndsWith("\\1", StringComparison.OrdinalIgnoreCase) ? 2 : 1);
+
+        static string RawConnection(Dictionary<string, object?> row)
+            => row.GetValueOrDefault("Connection") is string[] arr && arr.Length > 0 ? arr[0] ?? "" : "";
+
+        if (api == "VmSerialPortService.GetSerialPortsAsync()")
+        {
+            var raw = ReadSerialPorts(vm.Id);
+            var response = await c.CallAsync(() => VmSerialPortService.GetSerialPortsAsync(vm.Id));
+            c.Require(response.HasData && response.Data!.Count == 2, "应固定返回 COM 1 与 COM 2 两项串口配置");
+            foreach (var port in response.Data!)
+            {
+                var native = raw[port.PortNumber];
+                c.Equal(RawConnection(native), port.PipePath, $"COM {port.PortNumber} 管道路径与 WMI 一致");
+                bool available = native.ContainsKey("DebuggerMode") && native["DebuggerMode"] is not null;
+                c.Equal(available, port.DebuggerModeAvailable, $"COM {port.PortNumber} DebuggerModeAvailable 与 WMI 一致");
+                if (available)
+                    c.Equal(Convert.ToBoolean(native["DebuggerMode"], CultureInfo.InvariantCulture), port.DebuggerMode, $"COM {port.PortNumber} DebuggerMode 与 WMI 一致");
+            }
+            return;
+        }
+
+        if (api == "VmSerialPortService.SetPipePathAsync()")
+        {
+            if (n == 2)
+            {
+                var before = ReadSerialPorts(vm.Id);
+                foreach (var bad in new[] { (0, @"\\.\pipe\bad-port"), (3, @"\\.\pipe\bad-port"), (1, @"\\.\pipe\"), (1, @"\\.\pipe\bad?name") })
+                {
+                    var invalid = await c.CallAsync(() => VmSerialPortService.SetPipePathAsync(vm.Id, bad.Item1, bad.Item2));
+                    c.Equal(ApiErrorKind.InvalidArgument, invalid.ErrorKind, $"非法参数 ({bad.Item1}, {bad.Item2}) 被拒绝");
+                }
+                var unchanged = ReadSerialPorts(vm.Id);
+                c.Equal(RawConnection(before[1]), RawConnection(unchanged[1]), "非法调用后 COM 1 保持不变");
+                c.Equal(RawConnection(before[2]), RawConnection(unchanged[2]), "非法调用后 COM 2 保持不变");
+                await vm.DisposeAsync();
+                var missing = await c.CallAsync(() => VmSerialPortService.SetPipePathAsync(vm.Id, 1, @"\\.\pipe\missing"));
+                c.Equal(ApiErrorKind.NotFound, missing.ErrorKind, "已删除目标返回 NotFound");
+                return;
+            }
+
+            var initial = ReadSerialPorts(vm.Id);
+            string shortName = "exhyperv-test-" + vm.Id.ToString("N")[..8];
+            string expectedPipe = @"\\.\pipe\" + shortName;
+            Success(c, await c.CallAsync(() => VmSerialPortService.SetPipePathAsync(vm.Id, 1, shortName)));
+            var afterSet = ReadSerialPorts(vm.Id);
+            c.Equal(expectedPipe, RawConnection(afterSet[1]), "短管道名写入并归一化到 COM 1");
+            c.Equal(RawConnection(initial[2]), RawConnection(afterSet[2]), "写入 COM 1 后 COM 2 保持不变");
+
+            Success(c, await c.CallAsync(() => VmSerialPortService.SetPipePathAsync(vm.Id, 1, "")));
+            var afterClear = ReadSerialPorts(vm.Id);
+            c.Equal("", RawConnection(afterClear[1]), "传入空字符串断开 COM 1 管道连接");
+            return;
+        }
+
+        foreach (int badPort in new[] { 0, 3 })
+        {
+            var invalid = await c.CallAsync(() => VmSerialPortService.SetDebuggerModeAsync(vm.Id, badPort, true));
+            c.Equal(ApiErrorKind.InvalidArgument, invalid.ErrorKind, $"越界串口号 {badPort} 被拒绝");
+        }
+        var current = ReadSerialPorts(vm.Id)[1];
+        bool dbgAvailable = current.ContainsKey("DebuggerMode") && current["DebuggerMode"] is not null;
+        if (dbgAvailable)
+        {
+            Success(c, await c.CallAsync(() => VmSerialPortService.SetPipePathAsync(vm.Id, 1, @"\\.\pipe\dbg-" + vm.Id.ToString("N")[..8])));
+            Success(c, await c.CallAsync(() => VmSerialPortService.SetDebuggerModeAsync(vm.Id, 1, true)));
+            var enabledRow = ReadSerialPorts(vm.Id)[1];
+            c.Equal(true, Convert.ToBoolean(enabledRow["DebuggerMode"], CultureInfo.InvariantCulture), "DebuggerMode 已开启");
+            c.Equal(@"\\.\pipe\dbg-" + vm.Id.ToString("N")[..8], RawConnection(enabledRow), "切换 DebuggerMode 不清管道路径");
+            Success(c, await c.CallAsync(() => VmSerialPortService.SetDebuggerModeAsync(vm.Id, 1, false)));
+            c.Equal(false, Convert.ToBoolean(ReadSerialPorts(vm.Id)[1]["DebuggerMode"], CultureInfo.InvariantCulture), "DebuggerMode 已关闭");
+        }
+        else
+        {
+            var unsupported = await c.CallAsync(() => VmSerialPortService.SetDebuggerModeAsync(vm.Id, 1, true));
+            c.Equal(ApiErrorKind.Unsupported, unsupported.ErrorKind, "宿主串口不支持 DebuggerMode 时返回 Unsupported");
+        }
+        await vm.DisposeAsync();
+        var notFound = await c.CallAsync(() => VmSerialPortService.SetDebuggerModeAsync(vm.Id, 1, false));
+        c.Equal(ApiErrorKind.NotFound, notFound.ErrorKind, "已删除目标返回 NotFound");
     }
 
     internal static Dictionary<string, object?> Read(Guid id, string className)

@@ -20,5 +20,6 @@ internal static partial class ApiCaseRegistry
         add("VmMmioService.GetModificationCondition()", [c => { c.Call(() => new ModificationConditionTests().SingleStateConditionsCoverEveryPowerState()); c.Require(true, "电源状态、能力与配置依赖矩阵通过"); }]);
         add("VmNetworkService.GetMacModificationCondition()", [c => { c.Call(() => new ModificationConditionTests().SingleStateConditionsCoverEveryPowerState()); c.Require(true, "电源状态、能力与配置依赖矩阵通过"); }]);
         add("VmPowerService.GetHibernationModificationCondition()", [c => { c.Call(() => new ModificationConditionTests().SingleStateConditionsCoverEveryPowerState()); c.Require(true, "电源状态、能力与配置依赖矩阵通过"); }]);
+        add("VmSerialPortService.GetModificationCondition()", [c => { c.Call(() => new ModificationConditionTests().SingleStateConditionsCoverEveryPowerState()); c.Require(true, "电源状态、能力与配置依赖矩阵通过"); }]);
     }
 }

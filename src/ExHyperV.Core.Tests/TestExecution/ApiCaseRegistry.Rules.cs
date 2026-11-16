@@ -48,6 +48,22 @@ internal static partial class ApiCaseRegistry
             c.Equal("192.0.2.8",c.Call(()=>VmIpService.GetPrimaryAddress(adapters)),"跳过无效文本与 IPv6 后取得首个 IPv4");
         },c=>{c.Equal("",c.Call(()=>VmIpService.GetPrimaryAddress([])),"空列表默认值");c.Equal("备用",c.Call(()=>VmIpService.GetPrimaryAddress([],"备用")),"显式回退文本");}]);
         add("HostProcessorPlatformService.GetArchitecture()", [c => { CheckArchitecture(c); c.Evidence.Add("本进程架构：" + RuntimeInformation.ProcessArchitecture); }]);
+        add("VmSerialPortService.NormalizePipePath()", [c =>
+        {
+            c.Equal("", c.Call(() => VmSerialPortService.NormalizePipePath(null)), "null 归一化为空串");
+            c.Equal("", c.Call(() => VmSerialPortService.NormalizePipePath("   ")), "空白字符串归一化为空串");
+            c.Equal(@"\\.\pipe\vm-com1", c.Call(() => VmSerialPortService.NormalizePipePath("vm-com1")), "短管道名补全本地命名管道前缀");
+            c.Equal(@"\\.\pipe\vm-com2", c.Call(() => VmSerialPortService.NormalizePipePath("  vm-com2  ")), "短管道名先裁剪空白");
+            c.Equal(@"\\.\pipe\existing", c.Call(() => VmSerialPortService.NormalizePipePath(@"\\.\pipe\existing")), "已有本地管道前缀保持原样");
+            c.Equal(@"\\server01\pipe\kd2", c.Call(() => VmSerialPortService.NormalizePipePath(@"\\server01\pipe\kd2")), "完整远端管道路径保持原样");
+        }]);
+        add("VmSerialPortService.GetPipePathError()", [c =>
+        {
+            foreach (string valid in new[] { @"\\.\pipe\exhyperv-com1", @"\\server01\pipe\kd_1" })
+                c.Equal<string?>(null, c.Call(() => VmSerialPortService.GetPipePathError(valid)), "有效管道路径：" + valid);
+            foreach (string invalid in new[] { @"\\.\pipe\", @"\\.\pipe\.", @"\\.\pipe\..", @"\\.\pipe\foo\", @"\\.\pipe\bad?name", @"\\.\pipe\a/b", @"C:\pipe\test", @"\\.\other\name" })
+                c.Require(c.Call(() => VmSerialPortService.GetPipePathError(invalid)) is not null, "非法管道路径：" + invalid);
+        }]);
     }
     private static void CheckArchitecture(ApiCaseContext c)
     {
