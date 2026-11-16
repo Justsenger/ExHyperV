@@ -1,7 +1,67 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ensureDevHttpsCert, loadDevHttpsOptions } from './dev-https.mjs';
+
+function listLanUrls(port, protocol = 'http') {
+  const ips = [];
+  for (const entries of Object.values(os.networkInterfaces())) {
+    for (const addr of entries ?? []) {
+      if (!addr.internal && addr.family === 'IPv4' && !addr.address.startsWith('169.254.')) {
+        ips.push(addr.address);
+      }
+    }
+  }
+  const rank = ip => (ip.startsWith('192.168.') ? 0 : ip.startsWith('10.') ? 1 : 2);
+  ips.sort((a, b) => rank(a) - rank(b));
+  const urls = ips.map(ip => `${protocol}://${ip}:${port}/`);
+  const host = os.hostname()?.trim();
+  if (host) urls.push(`${protocol}://${host.toLowerCase()}.local:${port}/`);
+  return urls;
+}
+
+function probeManifest(port, useHttps) {
+  const client = useHttps ? https : http;
+  return new Promise((resolve) => {
+    const req = client.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: '/api/manifest.json',
+        method: 'GET',
+        timeout: 2000,
+        ...(useHttps ? { rejectUnauthorized: false } : {}),
+      },
+      (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          resolve(null);
+          return;
+        }
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', chunk => { body += chunk; });
+        res.on('end', () => {
+          try {
+            resolve(JSON.parse(body));
+          } catch {
+            resolve(null);
+          }
+        });
+      },
+    );
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+    req.on('error', () => resolve(null));
+    req.end();
+  });
+}
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const astro = path.join(root, 'node_modules/astro/bin/astro.mjs');
@@ -16,9 +76,19 @@ if (!existsSync(astro)) {
     process.exit(1);
   }
 }
+
+const certResult = ensureDevHttpsCert();
+if (!certResult.ready && certResult.error) {
+  console.warn(`HTTPS 开发证书不可用，将回退到 HTTP：${certResult.error}`);
+}
+const hasHttps = Boolean(loadDevHttpsOptions());
+const protocol = hasHttps ? 'https' : 'http';
+
 // Reusing the entry point should show the running site, not start another server.
 const { default: config } = await import('../astro.config.mjs');
-let runningPort = config.server.port;
+const listenHost = config.server?.host || '0.0.0.0';
+const listenPort = config.server?.port || 5189;
+let runningPort = listenPort;
 try {
   const running = JSON.parse(readFileSync(path.join(root, '.astro/dev.json'), 'utf8'));
   if (Number.isInteger(running.pid) && running.pid > 0 && Number.isInteger(running.port)) {
@@ -26,14 +96,20 @@ try {
     runningPort = running.port;
   }
 } catch { /* A build can clear .astro while the existing server is still running. */ }
-try {
-  const response = await fetch(`http://127.0.0.1:${runningPort}/api/manifest.json`, { signal: AbortSignal.timeout(2000) });
-  if (response.ok && (await response.json()).source?.repository === 'Justsenger/ExHyperV') {
-    console.log(`文档网站已运行：http://localhost:${runningPort}/（API：/api/，系统图鉴：/os/）`);
-    process.exit(0);
-  }
-} catch { /* No matching website is listening; start it below. */ }
-const child = spawn(process.execPath, [astro, 'dev'], { cwd: root, stdio: 'inherit', windowsHide: true });
+
+const httpsManifest = hasHttps ? await probeManifest(runningPort, true) : null;
+const runningManifest = httpsManifest ?? (await probeManifest(runningPort, false));
+if (runningManifest?.source?.repository === 'Justsenger/ExHyperV') {
+  const activeProto = httpsManifest ? 'https' : 'http';
+  const lanUrls = listLanUrls(runningPort, activeProto);
+  console.log(`文档网站已运行：${activeProto}://localhost:${runningPort}/（API：/api/，系统图鉴：/os/）`);
+  if (lanUrls.length) console.log(`内网设备可访问：${lanUrls.join('  ')}`);
+  process.exit(0);
+}
+
+const startLanUrls = listLanUrls(listenPort, protocol);
+if (startLanUrls.length) console.log(`即将以内网可访问模式启动（${protocol}://0.0.0.0:${listenPort}）：${startLanUrls.join('  ')}`);
+const child = spawn(process.execPath, [astro, 'dev', '--host', listenHost, '--port', String(listenPort)], { cwd: root, stdio: 'inherit', windowsHide: true });
 child.once('error', error => { console.error(error.message); process.exitCode = 1; });
 child.once('exit', code => { process.exitCode = code ?? 1; });
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => child.kill(signal));
