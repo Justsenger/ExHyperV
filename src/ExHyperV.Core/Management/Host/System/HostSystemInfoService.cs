@@ -19,10 +19,17 @@ namespace ExHyperV.Services
             string CpuModel,
             string MemCap);
 
+        private static readonly Lazy<Task<string>> CachedProcessorDisplayName =
+            new(() => Task.Run(GetProcessorDisplayName));
+
         /// <summary>一次读取系统名称与构建号、系统位数、处理器型号说明和已安装物理内存容量。</summary>
         /// <returns>包含四项显示文本的基本信息汇总，对应 Caption、OSArchitecture、CpuModel 和 MemCap。</returns>
         /// <remarks>首次调用执行实际查询，后续调用复用进程内缓存。各项不可用时返回 N/A 等回退文本，首次回退结果也会被缓存。</remarks>
         public static Task<SystemInfo> GetSystemInfoAsync() => CachedSystemInfo.Value;
+
+        /// <summary>一次读取并格式化宿主物理处理器型号，合并同型号数量并在异构多路时分行展示。</summary>
+        /// <returns>格式化后的宿主物理处理器型号显示文本；不可用时返回回退文本。</returns>
+        public static Task<string> GetProcessorDisplayNameAsync() => CachedProcessorDisplayName.Value;
 
         private static SystemInfo GetSystemInfo()
         {
@@ -100,6 +107,35 @@ namespace ExHyperV.Services
             catch { }
 
             return new SystemInfo(osCaption, osArch, cpuInfo, memoryInfo);
+        }
+
+        private static string GetProcessorDisplayName()
+        {
+            try
+            {
+                var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+                var order = new List<string>();
+                using var searcher = new ManagementObjectSearcher("SELECT Name FROM Win32_Processor");
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    string name = obj["Name"]?.ToString()?.Trim() ?? string.Empty;
+                    if (string.IsNullOrEmpty(name)) continue;
+                    if (counts.TryGetValue(name, out int existing)) counts[name] = existing + 1;
+                    else { counts[name] = 1; order.Add(name); }
+                }
+                if (order.Count == 0) return string.Empty;
+                if (order.Count == 1)
+                {
+                    string single = order[0];
+                    int count = counts[single];
+                    return count > 1 ? $"{single} × {count}" : single;
+                }
+                return string.Join(Environment.NewLine, order.Select(name => $"{name} × {counts[name]}"));
+            }
+            catch
+            {
+                return string.Empty;
+            }
         }
     }
 }
