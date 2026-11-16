@@ -18,6 +18,7 @@
   "dependencies": {
     "@fontsource-variable/comfortaa": "5.3.0",
     "astro": "7.4.2",
+    "hw-profiler": "file:vendor\\hw-profiler-0.1.0.tgz",
     "three": "0.187.0"
   }
 }

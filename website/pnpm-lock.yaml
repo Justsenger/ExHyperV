@@ -14,6 +14,9 @@ importers:
       astro:
         specifier: 7.4.2
         version: 7.4.2(yaml@2.9.1)
+      hw-profiler:
+        specifier: file:vendor\hw-profiler-0.1.0.tgz
+        version: file:vendor/hw-profiler-0.1.0.tgz
       three:
         specifier: 0.187.0
         version: 0.187.0
@@ -745,6 +748,10 @@ packages:
 
   http-cache-semantics@4.3.0:
     resolution: {integrity: sha512-M5t5LlJpS1UHMjvwRQVdFHvPISGeLAxNcrWuJkeGh0KxsqCHZ1O3NXZU/8x7cD0BDcGW8kapxMKTvwlqrNkHkA==}
+
+  hw-profiler@file:vendor/hw-profiler-0.1.0.tgz:
+    resolution: {integrity: sha512-I57RJK51gBQEfDY6gurD1PhaTpkeKSiDKPGwe8EBjEKBVXci+NKXtGR3B6VWuNl79zSY67hA2UvRCI7c6/NGZw==, tarball: file:vendor/hw-profiler-0.1.0.tgz}
+    version: 0.1.0
 
   iron-webcrypto@1.2.1:
     resolution: {integrity: sha512-feOM6FaSr6rEABp/eDfVseKyTMDt+KGpeB35SkVn9Tyn0CqvVsY3EwI0v5i8nMHyJnzCIQf7nsy3p41TPkJZhg==}
@@ -1930,6 +1937,8 @@ snapshots:
   html-void-elements@3.0.0: {}
 
   http-cache-semantics@4.3.0: {}
+
+  hw-profiler@file:vendor/hw-profiler-0.1.0.tgz: {}
 
   iron-webcrypto@1.2.1: {}
 
