@@ -1,6 +1,8 @@
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.WinUI3.Localization;
+using ExHyperV.WinUI3.UI.Shared;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -11,8 +13,12 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 public abstract class VmSettingsView : UserControl
 {
     private CancellationTokenSource cancellation = new();
-    private readonly InfoBar message = new() { IsOpen = false, Visibility = Visibility.Collapsed, IsClosable = true, Margin = new Thickness(24, 0, 24, 12) };
+    private readonly Grid layout = new();
+    private readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromMilliseconds(2600) };
     private readonly ContentControl body = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
+    private IDashboardFeedbackHost? feedbackHost;
+    private FloatingNoticeBanner? standaloneNotice;
+    private FloatingSuccessToast? standaloneToast;
     private Task running = Task.CompletedTask;
     private Task? stopping;
     private readonly List<string> stopFailures = [];
@@ -29,16 +35,9 @@ public abstract class VmSettingsView : UserControl
     protected VmSettingsView(Guid vmId)
     {
         VmId = vmId;
-        // A closed InfoBar must not reserve its bottom margin above the settings.
-        message.RegisterPropertyChangedCallback(InfoBar.IsOpenProperty, (_, _) =>
-            message.Visibility = message.IsOpen ? Visibility.Visible : Visibility.Collapsed);
-        var layout = new Grid();
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        Grid.SetRow(message, 0);
-        Grid.SetRow(body, 1);
-        layout.Children.Add(message);
         layout.Children.Add(body);
+        toastTimer.Tick += (_, _) => HideAppliedToast();
+
         Content = layout;
         Loaded += async (_, _) =>
         {
@@ -47,6 +46,8 @@ public abstract class VmSettingsView : UserControl
             await RunAsync(LoadAsync);
         };
     }
+
+    internal void BindFeedbackHost(IDashboardFeedbackHost host) => feedbackHost = host;
 
     public Guid VmId { get; }
     internal bool HandlesScrolling { get; private set; }
@@ -65,7 +66,11 @@ public abstract class VmSettingsView : UserControl
     protected void SetSectionedBody(IEnumerable<(string Title, Border Content)> items)
     {
         sections = items.ToArray();
-        sectionHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        sectionHost = new ContentControl
+        {
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            Margin = new Thickness(0, 0, 0, 72)
+        };
         sectionScroll = new ScrollViewer { Content = sectionHost, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
         ShowSection(0);
         SetBody(sectionScroll, handlesScrolling: true);
@@ -115,7 +120,7 @@ public abstract class VmSettingsView : UserControl
         cancellation.Dispose();
         cancellation = new CancellationTokenSource();
         body.IsEnabled = true;
-        ShowError(failure + "\n页面已保留；查看后可以再次返回。");
+        ShowError(L10n.Format("SettingsView_LeavePending", failure));
         throw new InvalidOperationException(failure);
     }
 
@@ -126,15 +131,26 @@ public abstract class VmSettingsView : UserControl
         return running;
     }
 
+    protected sealed class ActionableException(string message, string actionLabel, Func<Task> onAction) : Exception(message)
+    {
+        public string ActionLabel { get; } = actionLabel;
+        public Func<Task> OnAction { get; } = onAction;
+    }
+
     private async Task RunOperationAsync(Func<Task> operation)
     {
         operationBusy = true;
         body.IsEnabled = false;
         BusyChanged?.Invoke(true);
-        message.IsOpen = false;
+        toastTimer.Stop();
+        standaloneToast?.Hide();
+        standaloneNotice?.Hide();
+        feedbackHost?.HideSuccessToast();
+        feedbackHost?.ClearSettingsNotice();
         try { await operation(); }
         catch (OperationCanceledException) when (stopped) { }
-        catch (Exception ex) { ShowError(ex.Message); }
+        catch (ActionableException ex) { ShowError(ex.Message, ex.ActionLabel, ex.OnAction); }
+        catch (Exception ex) { ShowError(CoreMessageResolver.ResolveException(ex)); }
         finally
         {
             operationBusy = false;
@@ -151,31 +167,112 @@ public abstract class VmSettingsView : UserControl
         }
     }
 
-    protected void ShowError(string? text)
+    protected void ShowError(string? text) => ShowError(text, null, null);
+
+    protected void ShowError(string? text, string? actionLabel, Func<Task>? onAction)
     {
-        string detail = string.IsNullOrWhiteSpace(text) ? "未取得有效结果。" : text;
+        string detail = string.IsNullOrWhiteSpace(text) ? L10n.Get("Err_NoValidData") : text;
         if (stopped)
         {
             if (!stopFailures.Contains(detail)) stopFailures.Add(detail);
             return;
         }
-        message.Severity = InfoBarSeverity.Error;
-        message.Title = "操作未完成";
-        message.Message = detail;
-        message.IsOpen = true;
+        toastTimer.Stop();
+        standaloneToast?.Hide();
+        var button = CreateInfoBarActionButton(actionLabel, onAction);
+        if (feedbackHost != null)
+            feedbackHost.ShowSettingsNotice(detail, InfoBarSeverity.Error, button);
+        else
+            EnsureStandaloneNotice().Show(detail, InfoBarSeverity.Error, button);
+    }
+
+    private Button? CreateInfoBarActionButton(string? label, Func<Task>? onAction)
+    {
+        if (string.IsNullOrWhiteSpace(label) || onAction == null) return null;
+        var button = new Button { Content = label, Padding = new Thickness(10, 4, 10, 4), FontSize = 12.5 };
+        button.Click += async (_, _) =>
+        {
+            if (stopped || IsBusy) return;
+            button.IsEnabled = false;
+            try { await onAction(); }
+            catch (ActionableException ex) { ShowError(ex.Message, ex.ActionLabel, ex.OnAction); }
+            catch (Exception ex) { ShowError(CoreMessageResolver.ResolveException(ex)); }
+            finally { button.IsEnabled = true; }
+        };
+        return button;
     }
 
     protected void ShowInformation(string text)
     {
-        message.Severity = InfoBarSeverity.Informational;
-        message.Title = string.Empty;
-        message.Message = text;
-        message.IsOpen = true;
+        toastTimer.Stop();
+        standaloneToast?.Hide();
+        if (feedbackHost != null)
+            feedbackHost.ShowSettingsNotice(text, InfoBarSeverity.Informational);
+        else
+            EnsureStandaloneNotice().Show(text, InfoBarSeverity.Informational);
+    }
+
+    protected void ShowAppliedToast(string? text = null)
+    {
+        bool hasError = feedbackHost != null
+            ? feedbackHost.HasSettingsError
+            : standaloneNotice is { IsOpen: true, Severity: InfoBarSeverity.Error };
+        if (hasError) return;
+        toastTimer.Stop();
+        string applied = L10n.Get("Common_Applied");
+        string labelText = string.IsNullOrWhiteSpace(text)
+            || string.Equals(text, applied, StringComparison.Ordinal)
+            || string.Equals(text, "已应用", StringComparison.Ordinal)
+            ? applied
+            : text;
+        if (feedbackHost != null)
+        {
+            feedbackHost.ShowSuccessToast(labelText);
+            return;
+        }
+        EnsureStandaloneToast().Show(labelText, elevated: true);
+        toastTimer.Start();
+    }
+
+    private void HideAppliedToast()
+    {
+        toastTimer.Stop();
+        standaloneToast?.Hide();
+    }
+
+    private FloatingNoticeBanner EnsureStandaloneNotice()
+    {
+        if (standaloneNotice == null)
+        {
+            standaloneNotice = new FloatingNoticeBanner
+            {
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                Margin = new Thickness(8, 0, 8, 8)
+            };
+            layout.Children.Add(standaloneNotice);
+        }
+        return standaloneNotice;
+    }
+
+    private FloatingSuccessToast EnsureStandaloneToast()
+    {
+        if (standaloneToast == null)
+        {
+            standaloneToast = new FloatingSuccessToast
+            {
+                VerticalAlignment = VerticalAlignment.Top,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 4, 4, 0)
+            };
+            layout.Children.Add(standaloneToast);
+        }
+        return standaloneToast;
     }
 
     protected static void RequireSuccess(ApiResponse result)
     {
-        if (!result.Success) throw new InvalidOperationException(result.Error);
+        if (!result.Success) throw new InvalidOperationException(CoreMessageResolver.ResolveError(result));
     }
 
     protected async Task ReloadAfterWriteAsync(ApiResponse result)
@@ -184,9 +281,12 @@ public abstract class VmSettingsView : UserControl
         catch (Exception ex) when (!result.Success)
         {
             // 离页可能取消回读，但不能让取消异常覆盖已经取得的写入失败。
-            throw new InvalidOperationException(result.Error + "\n配置回读失败：" + ex.Message, ex);
+            throw new InvalidOperationException(
+                L10n.Format("SettingsView_ReadbackSuffix", CoreMessageResolver.ResolveError(result), CoreMessageResolver.ResolveException(ex)),
+                ex);
         }
         RequireSuccess(result);
+        ShowAppliedToast();
     }
 
     protected async Task<VmQueryRow> QueryAsync(params VmQueryField[] fields)
@@ -195,9 +295,9 @@ public abstract class VmSettingsView : UserControl
         {
             await using var query = new VmQueryService();
             var result = await query.QueryAsync(new VmQueryRequest(fields, [VmId]), CancellationToken);
-            if (!result.HasData) throw new InvalidOperationException(result.Error);
+            if (!result.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(result));
             return result.Data!.VirtualMachines.FirstOrDefault()
-                ?? throw new InvalidOperationException("没有找到此虚拟机。");
+                ?? throw new InvalidOperationException(L10n.Get("SettingsView_VmNotFound"));
         }, CancellationToken);
     }
 
@@ -205,7 +305,7 @@ public abstract class VmSettingsView : UserControl
     {
         // Settings need configuration state, not an enhanced-console availability probe.
         var result = await VmConfigurationState.ReadAsync(VmId);
-        if (!result.HasData) throw new InvalidOperationException(result.Error);
+        if (!result.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(result));
         var state = result.Data!;
         return (state.Generation, state.State, state.IsRunning);
     }
@@ -216,7 +316,7 @@ public abstract class VmSettingsView : UserControl
         // against the current host; reopening the page also reads a fresh snapshot.
         if (hostCapabilities != null) return hostCapabilities;
         var result = await VmProcessorService.GetHostCapabilitiesAsync();
-        if (!result.HasData) throw new InvalidOperationException(result.Error);
+        if (!result.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(result));
         return hostCapabilities = result.Data!;
     }
 
@@ -246,16 +346,24 @@ public abstract class VmSettingsView : UserControl
     }
 
     protected static Grid SettingLabel(string title, string? description, FrameworkElement? editor = null)
+        => SettingLabel(title, description, out _, editor);
+
+    private protected static Grid SettingLabel(string title, string? description, out SettingInfoButton info, FrameworkElement? editor = null)
     {
         var label = new Grid { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, ColumnSpacing = 4 };
         label.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         label.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         label.Children.Add(new TextBlock { Text = title, FontSize = 14, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
-        var info = new SettingInfoButton(title, description);
-        Grid.SetColumn(info, 1);
-        label.Children.Add(info);
+        info = new SettingInfoButton(title, description);
+        var infoBtn = info;
+        Grid.SetColumn(infoBtn, 1);
+        label.Children.Add(infoBtn);
         if (editor is SettingFieldEditor field)
-            field.AvailabilityChanged += reason => info.SetDescription(string.Join("\n\n", new[] { description, reason }.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct()));
+            field.AvailabilityChanged += reason =>
+            {
+                label.Opacity = field.IsFieldEnabled ? 1.0 : 0.45;
+                infoBtn.SetDescription(description, reason);
+            };
         return label;
     }
 
@@ -276,6 +384,45 @@ public abstract class VmSettingsView : UserControl
             Grid.SetRow(field, 1);
         }
         row.Children.Add(SettingLabel(title, description, field));
+        row.Children.Add(field);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(field, title);
+        return row;
+    }
+
+    internal static void StyleCardBorder(Grid row, double minHeight, double rowSpacing = 0, Thickness? padding = null)
+    {
+        row.Background = Brush("CardBackgroundFillColorDefaultBrush");
+        row.BorderBrush = Brush("CardStrokeColorDefaultBrush");
+        row.BorderThickness = new Thickness(1);
+        row.CornerRadius = new CornerRadius(8);
+        row.Padding = padding ?? new Thickness(17);
+        row.MinHeight = minHeight;
+        row.RowSpacing = rowSpacing;
+    }
+
+    internal static Grid EnergyFieldRow(string title, string? help, SettingFieldEditor field)
+    {
+        var row = new Grid();
+        row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        row.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        var header = new Grid { ColumnSpacing = 8 };
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        var label = SettingLabel(title, help, field);
+        label.VerticalAlignment = VerticalAlignment.Center;
+        header.Children.Add(label);
+        if (field.HeaderValueControl != null)
+        {
+            Grid.SetColumn(field.HeaderValueControl, 1);
+            header.Children.Add(field.HeaderValueControl);
+            void SyncHeaderValueOpacity() => field.HeaderValueControl.Opacity = field.IsFieldEnabled ? 1.0 : 0.45;
+            SyncHeaderValueOpacity();
+            field.AvailabilityChanged += _ => SyncHeaderValueOpacity();
+        }
+        Grid.SetRow(header, 0);
+        Grid.SetRow(field, 1);
+        row.Children.Add(header);
         row.Children.Add(field);
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(field, title);
         return row;

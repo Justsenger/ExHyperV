@@ -21,4 +21,19 @@ internal static class SettingsActionButton
         ToolTipService.SetToolTip(button, name);
         return button;
     }
+
+    public static Button CreateRect(string label, bool primary = false)
+    {
+        var button = new Button
+        {
+            Content = label,
+            Height = 32,
+            Padding = new Thickness(16, 0, 16, 0),
+            CornerRadius = new CornerRadius(4),
+            FontSize = 13,
+            FontWeight = Microsoft.UI.Text.FontWeights.Normal
+        };
+        if (primary) button.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
+        return button;
+    }
 }

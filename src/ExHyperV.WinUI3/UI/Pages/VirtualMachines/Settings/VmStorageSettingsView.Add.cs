@@ -3,6 +3,7 @@ using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.WinUI3.Localization;
 using ExHyperV.WinUI3.UI.Shared;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -174,7 +175,7 @@ public sealed partial class VmStorageSettingsView
             static async Task<ApiResponse<List<T>>> ReadAsync<T>(Func<Task<ApiResponse<List<T>>>> query)
             {
                 try { return await Task.Run(query); }
-                catch (Exception error) { return ApiResponse<List<T>>.Fail(error.Message); }
+                catch (Exception error) { return ApiResponse<List<T>>.Fail(error.Message, exception: error); }
             }
             var disksTask = ReadAsync(HostDiskService.GetHostDisksAsync);
             var opticalTask = owner.generation == 1 ? ReadAsync(HostDiskService.GetHostOpticalDrivesAsync) : null;
@@ -187,12 +188,12 @@ public sealed partial class VmStorageSettingsView
             if (disks.HasData)
                 foreach (var disk in disks.Data)
                     physicalDisk.Items.Add(new ComboBoxItem { Tag = disk, IsEnabled = disk.CanPassthrough,
-                        Content = $"磁盘 {disk.Number} · {disk.FriendlyName} · {disk.SizeGiB:N1} GB · {disk.Status}" });
-            else if (!disks.Success) errors.Add("物理磁盘：" + disks.Error);
+                        Content = $"磁盘 {disk.Number}，{disk.FriendlyName}，{disk.SizeGiB:N1} GB，{disk.Status}" });
+            else if (!disks.Success) errors.Add("物理磁盘：" + CoreMessageResolver.ResolveError(disks));
             if (opticals?.HasData == true)
                 foreach (var optical in opticals.Data)
                     physicalOptical.Items.Add(new ComboBoxItem { Tag = optical, Content = $"{optical.Model} ({optical.Drive})" });
-            else if (opticals is { Success: false }) errors.Add("物理光驱：" + opticals.Error);
+            else if (opticals is { Success: false }) errors.Add("物理光驱：" + CoreMessageResolver.ResolveError(opticals));
             sourcesKnown = true;
             sourceWarning.Message = string.Join(Environment.NewLine, errors);
             sourceWarning.IsOpen = errors.Count > 0;
@@ -326,10 +327,11 @@ public sealed partial class VmStorageSettingsView
             owner.CancellationToken.ThrowIfCancellationRequested();
             ApiResponse<VmStorageSlot> result;
             try { result = await Task.Run(() => VmStorageService.AddDriveAsync(owner.VmId, prepared.Request!)); }
-            catch (Exception error) { result = ApiResponse<VmStorageSlot>.Fail(error.Message, kind: ApiErrorKind.OutcomeUnknown); }
+            catch (Exception error) { result = ApiResponse<VmStorageSlot>.Fail(CoreMessageResolver.ResolveException(error), exception: error, kind: ApiErrorKind.OutcomeUnknown); }
+            string errorMessage = result.Success ? string.Empty : CoreMessageResolver.ResolveError(result);
             if (owner.IsStopped)
             {
-                await owner.CompleteChangeAsync(result.Success, result.ErrorKind, result.Error, string.Empty);
+                await owner.CompleteChangeAsync(result.Success, result.ErrorKind, errorMessage, string.Empty);
                 return;
             }
             if (result.Success)
@@ -339,7 +341,7 @@ public sealed partial class VmStorageSettingsView
                 owner.deviceHost.Visibility = Visibility.Visible;
                 owner.add.Visibility = owner.refresh.Visibility = Visibility.Visible;
             }
-            await owner.CompleteChangeAsync(result.Success, result.ErrorKind, result.Error,
+            await owner.CompleteChangeAsync(result.Success, result.ErrorKind, errorMessage,
                 result.HasData ? $"已连接至 {result.Data.ControllerType} 控制器 {result.Data.ControllerNumber}，位置 {result.Data.Location}。" : "已添加存储设备。");
             if (owner.IsStopped) return;
             if (!result.Success) RefreshSlots();

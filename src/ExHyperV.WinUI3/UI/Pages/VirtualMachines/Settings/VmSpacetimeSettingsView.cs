@@ -1,6 +1,8 @@
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.WinUI3.Localization;
+using ExHyperV.WinUI3.UI.Shared;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -28,9 +30,9 @@ public sealed class VmSpacetimeSettingsView : UserControl
     private readonly ScrollViewer scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Hidden, HorizontalScrollMode = ScrollMode.Enabled, VerticalScrollMode = ScrollMode.Enabled, ZoomMode = ZoomMode.Disabled };
     private readonly StackPanel details = new() { Spacing = 8 };
     private readonly ToggleSwitch checkpoints = new() { Header = "检查点", OnContent = "启用", OffContent = "关闭", IsEnabled = false };
-    private readonly InfoBar message = new() { IsClosable = true };
-    private readonly Button retry = new() { Content = "重新读取", Visibility = Visibility.Collapsed };
-    private readonly ProgressBar progress = new() { IsIndeterminate = true, Visibility = Visibility.Collapsed };
+    private readonly Grid layout = new();
+    private IDashboardFeedbackHost? feedbackHost;
+    private FloatingNoticeBanner? standaloneNotice;
     private readonly Dictionary<string, BitmapImage> thumbnails = [];
     private readonly Dictionary<string, Point> positions = [];
     private List<SpacetimeNode> nodes = [];
@@ -43,19 +45,13 @@ public sealed class VmSpacetimeSettingsView : UserControl
     private bool started, stopped, busy, suppressToggle, checkpointsEnabled, dragging, stateAvailable;
     private Point? pointerPosition;
 
+    internal event Action<bool>? BusyChanged;
+
     public event EventHandler? Changed;
 
     public VmSpacetimeSettingsView(Guid vmId)
     {
         this.vmId = vmId;
-        var root = new Grid { RowSpacing = 10 };
-        root.RowDefinitions.Add(new() { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new() { Height = GridLength.Auto });
-        root.RowDefinitions.Add(new() { Height = new(1, GridUnitType.Star) });
-        root.Children.Add(message);
-        retry.Click += (_, _) => operation = RunAsync(() => LoadAsync(selected?.Id));
-        message.ActionButton = retry;
-        Grid.SetRow(progress, 1); root.Children.Add(progress);
         interactive.RowDefinitions.Add(new() { Height = GridLength.Auto });
         interactive.RowDefinitions.Add(new() { Height = new(1, GridUnitType.Star) });
         var toolbar = new Grid();
@@ -80,14 +76,21 @@ public sealed class VmSpacetimeSettingsView : UserControl
         scroll.PointerReleased += PanReleased;
         scroll.PointerCanceled += PanReleased;
         columns.Children.Add(new Border { Child = scroll, Background = Brush("ControlFillColorDefaultBrush"), BorderBrush = Brush("CardStrokeColorDefaultBrush"), BorderThickness = new(1), CornerRadius = new(8) });
-        var panel = new ScrollViewer { Content = details, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        var panel = new ScrollViewer
+        {
+            Content = details,
+            Padding = new Thickness(0, 0, 0, 72),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+        };
         Grid.SetColumn(panel, 1); columns.Children.Add(panel);
         Grid.SetRow(columns, 1); interactive.Children.Add(columns);
         interactiveHost.Content = interactive;
-        Grid.SetRow(interactiveHost, 2); root.Children.Add(interactiveHost);
-        Content = root;
+        layout.Children.Add(interactiveHost);
+        Content = layout;
         Loaded += (_, _) => { if (!started) { started = true; operation = RunAsync(() => LoadAsync()); } };
     }
+
+    internal void BindFeedbackHost(IDashboardFeedbackHost host) => feedbackHost = host;
 
     public Task StopAsync()
     {
@@ -118,11 +121,12 @@ public sealed class VmSpacetimeSettingsView : UserControl
         if (busy || stopped) return;
         busy = true;
         IsEnabled = false;
-        progress.Visibility = Visibility.Visible;
-        message.IsOpen = false;
+        BusyChanged?.Invoke(true);
+        standaloneNotice?.Hide();
+        feedbackHost?.ClearSettingsNotice();
         try { await action(); }
-        catch (Exception ex) { ShowError(ex.Message); }
-        finally { busy = false; IsEnabled = !stopped; progress.Visibility = Visibility.Collapsed; }
+        catch (Exception ex) { ShowError(CoreMessageResolver.ResolveException(ex)); }
+        finally { busy = false; IsEnabled = !stopped; BusyChanged?.Invoke(false); }
     }
 
     private async Task LoadAsync(string? selectedId = null)
@@ -131,9 +135,9 @@ public sealed class VmSpacetimeSettingsView : UserControl
         interactiveHost.IsEnabled = checkpoints.IsEnabled = false;
         ToolTipService.SetToolTip(checkpoints, "尚未取得有效的检查点设置，请重新读取。");
         var enabled = await VmSpacetimeService.GetCheckpointsEnabledAsync(vmId);
-        if (!enabled.Success || !enabled.HasData) throw new InvalidOperationException(enabled.Error);
+        if (!enabled.Success || !enabled.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(enabled));
         var response = await VmSpacetimeService.GetSpacetimeNodesAsync(vmId, image => image.EncodeJpeg());
-        if (!response.Success || !response.HasData) throw new InvalidOperationException(response.Error);
+        if (!response.Success || !response.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(response));
         if (stopped) return;
         checkpointsEnabled = enabled.Data;
         suppressToggle = true;
@@ -162,7 +166,7 @@ public sealed class VmSpacetimeSettingsView : UserControl
                 await bitmap.SetSourceAsync(stream);
                 thumbnails[node.Id] = bitmap;
             }
-            catch (Exception ex) { ShowError($"检查点已读取，但缩略图不可用：{ex.Message}"); }
+            catch (Exception ex) { ShowError($"检查点已读取，但缩略图不可用：{CoreMessageResolver.ResolveException(ex)}"); }
         }
         if (stopped) return;
         selected = nodes.FirstOrDefault(node => node.Id == selectedId) ?? nodes.FirstOrDefault(node => node.NodeType == SpacetimeNodeType.Current) ?? nodes.FirstOrDefault();
@@ -183,7 +187,7 @@ public sealed class VmSpacetimeSettingsView : UserControl
         {
             // Core 会在原节点上保留未完成的虫洞清理信息，不能用新查询对象丢弃重试依据。
             if (!stopped) { DrawTree(); RenderDetails(); }
-            ShowError(result.Error);
+            ShowError(CoreMessageResolver.ResolveError(result));
             suppressToggle = true;
             try { checkpoints.IsOn = checkpointsEnabled; }
             finally { suppressToggle = false; }
@@ -430,10 +434,25 @@ public sealed class VmSpacetimeSettingsView : UserControl
         }
         // A failed mutation may retain wormhole cleanup state on the original nodes.
         // Offer a reload for failed reads only; do not replace those recovery objects.
-        retry.Visibility = stateAvailable ? Visibility.Collapsed : Visibility.Visible;
-        message.Severity = InfoBarSeverity.Error;
-        message.Message = detail;
-        message.IsOpen = true;
+        Button? retryButton = null;
+        if (!stateAvailable)
+        {
+            retryButton = new Button { Content = "重新读取", Padding = new Thickness(10, 4, 10, 4), FontSize = 12.5 };
+            retryButton.Click += (_, _) => operation = RunAsync(() => LoadAsync(selected?.Id));
+        }
+        if (feedbackHost != null)
+        {
+            feedbackHost.ShowSettingsNotice(detail, InfoBarSeverity.Error, retryButton);
+            return;
+        }
+        standaloneNotice ??= new FloatingNoticeBanner
+        {
+            VerticalAlignment = VerticalAlignment.Bottom,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Margin = new Thickness(8, 0, 8, 8)
+        };
+        if (!layout.Children.Contains(standaloneNotice)) layout.Children.Add(standaloneNotice);
+        standaloneNotice.Show(detail, InfoBarSeverity.Error, retryButton);
     }
     private static Brush Brush(string key) => (Brush)Application.Current.Resources[key];
 }

@@ -17,7 +17,7 @@ public sealed class VmSecuritySettingsView : VmSettingsView
 
     public VmSecuritySettingsView(Guid vmId) : base(vmId)
     {
-        var sections = new StackPanel { Margin = new Thickness(24, 4, 24, 24) };
+        var sections = new StackPanel { Margin = new Thickness(0, 4, 0, 24) };
         AddSection(sections, "安全启动", Card(
             Row("启用安全启动", "帮助防止启动时运行未经授权的代码", secureBoot),
             Row("安全模板", null, templates)));

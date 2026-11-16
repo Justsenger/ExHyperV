@@ -83,7 +83,7 @@ public sealed partial class VmGpuSettingsView
         void UpdateDescription()
         {
             scriptDescription.Text = availableScripts.SelectedItem is LinuxGpuDeploymentScript script
-                ? $"{script.Author} · {script.Version}\n{script.Description}"
+                ? $"{script.Author}，{script.Version}\n{script.Description}"
                 : "未取得可用脚本。可重新加载在线清单，或返回选择其他分区。";
         }
         UpdateDescription();

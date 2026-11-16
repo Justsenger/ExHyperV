@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.DataTransfer;
@@ -85,7 +86,7 @@ public sealed partial class VmGpuSettingsView
         recoveryText.Text = string.Empty;
         decisions.Children.Clear();
         recoveryDetails.Visibility = Visibility.Collapsed;
-        deploymentTitle.Text = $"{(mode == GpuDeploymentMode.UpdateDrivers ? "更新驱动" : "配置显卡")} · {gpu.Name}";
+        deploymentTitle.Text = $"{(mode == GpuDeploymentMode.UpdateDrivers ? "更新驱动" : "配置显卡")}，{gpu.Name}";
         overview.Visibility = selection.Visibility = Visibility.Collapsed;
         deployment.Visibility = Visibility.Visible;
         ApplySnapshot(session, session.GetStatus());
@@ -105,7 +106,7 @@ public sealed partial class VmGpuSettingsView
         {
             NotifyChanged();
             try { await RefreshAssignmentsAsync(); }
-            catch (Exception ex) { Notice($"GPU 清单刷新失败：{ex.Message}", InfoBarSeverity.Warning); }
+            catch (Exception ex) { Notice($"GPU 清单刷新失败：{CoreMessageResolver.ResolveException(ex)}", InfoBarSeverity.Warning); }
         }
     }
 
@@ -159,7 +160,7 @@ public sealed partial class VmGpuSettingsView
                 _ => "未知"
             };
             var body = new StackPanel { Spacing = 4, Margin = new Thickness(16, 12, 16, 12) };
-            body.Children.Add(Label($"{step.Name} · {stateText}"));
+            body.Children.Add(Label($"{step.Name}，{stateText}"));
             if (!string.IsNullOrWhiteSpace(step.Description)) body.Children.Add(Label(step.Description, 12, secondary: true));
             steps.Children.Add(new Border { Background = Brush("CardBackgroundFillColorDefaultBrush"), CornerRadius = new CornerRadius(8), Child = body });
         }
@@ -297,6 +298,6 @@ public sealed partial class VmGpuSettingsView
             Clipboard.SetContent(data);
             Clipboard.Flush();
         }
-        catch (Exception ex) { Notice($"复制失败：{ex.Message}", InfoBarSeverity.Error); }
+        catch (Exception ex) { Notice($"复制失败：{CoreMessageResolver.ResolveException(ex)}", InfoBarSeverity.Error); }
     }
 }

@@ -8,6 +8,8 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 public sealed class VmAdvancedSettingsView : VmSettingsView
 {
+    public enum Section { All, Console, Power, StoragePolicy }
+
     private const string DefaultResolution = "默认（自适应）";
     private readonly ToggleSwitch console = Switch();
     private readonly ToggleSwitch numLock = Switch();
@@ -26,22 +28,48 @@ public sealed class VmAdvancedSettingsView : VmSettingsView
     private VmDisplayResolution? appliedResolution;
     private string appliedResolutionText = string.Empty;
 
-    public VmAdvancedSettingsView(Guid vmId) : base(vmId)
+    private readonly Section activeSection;
+
+    public VmAdvancedSettingsView(Guid vmId, Section section = Section.All) : base(vmId)
     {
+        activeSection = section;
         var resolutionEditor = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         resolutionEditor.Children.Add(resolution);
         resolutionEditor.Children.Add(applyResolution);
         applyResolution.Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"];
-        var content = new StackPanel { Margin = new Thickness(24, 12, 24, 24) };
-        content.Children.Add(Card(
-            Row("控制台支持", "仅第 2 代虚拟机有效。关闭后无法经控制台访问，适合串流/RDP 直连。", console),
-            Row("基本会话默认分辨率", "默认、预设或手动输入，宽高不可为奇数。", resolutionEditor),
-            Row("开机时启用数字小键盘", null, numLock),
-            Row("断开时锁定", "断开虚拟机控制台时锁定虚拟机系统", lockOnDisconnect),
-            Row("虚拟机休眠（S4）", "允许虚拟机使用 S4 休眠和快速启动", hibernation),
-            Row("重启时改为关机", "虚拟机系统请求重启时，关闭虚拟机而不是重新启动", turnOffOnRestart),
-            Row("完整 SCSI 命令集", "允许虚拟机向挂载的物理磁盘发送未经筛选的 SCSI 命令", fullScsi),
-            Row("电池状态透传", "允许虚拟机读取主机的电池状态和剩余电量", battery)));
+        var content = new StackPanel { Margin = new Thickness(0, 8, 0, 24) };
+        switch (section)
+        {
+            case Section.Console:
+                AddSection(content, "控制台与会话", Card(
+                    Row("控制台支持", "仅第 2 代虚拟机有效。关闭后无法经控制台访问，适合串流/RDP 直连。", console),
+                    Row("基本会话默认分辨率", "默认、预设或手动输入，宽高不可为奇数。", resolutionEditor),
+                    Row("断开时锁定", "断开虚拟机控制台时锁定虚拟机系统", lockOnDisconnect)));
+                AddSection(content, "输入行为", Card(
+                    Row("开机时启用数字小键盘", null, numLock)));
+                break;
+            case Section.Power:
+                AddSection(content, "电源行为与电池", Card(
+                    Row("虚拟机休眠（S4）", "允许虚拟机使用 S4 休眠和快速启动", hibernation),
+                    Row("重启时改为关机", "虚拟机系统请求重启时，关闭虚拟机而不是重新启动", turnOffOnRestart),
+                    Row("电池状态透传", "允许虚拟机读取主机的电池状态和剩余电量", battery)));
+                break;
+            case Section.StoragePolicy:
+                AddSection(content, "存储与控制器策略", Card(
+                    Row("完整 SCSI 命令集", "允许虚拟机向挂载的物理磁盘发送未经筛选的 SCSI 命令", fullScsi)));
+                break;
+            default:
+                content.Children.Add(Card(
+                    Row("控制台支持", "仅第 2 代虚拟机有效。关闭后无法经控制台访问，适合串流/RDP 直连。", console),
+                    Row("基本会话默认分辨率", "默认、预设或手动输入，宽高不可为奇数。", resolutionEditor),
+                    Row("开机时启用数字小键盘", null, numLock),
+                    Row("断开时锁定", "断开虚拟机控制台时锁定虚拟机系统", lockOnDisconnect),
+                    Row("虚拟机休眠（S4）", "允许虚拟机使用 S4 休眠和快速启动", hibernation),
+                    Row("重启时改为关机", "虚拟机系统请求重启时，关闭虚拟机而不是重新启动", turnOffOnRestart),
+                    Row("完整 SCSI 命令集", "允许虚拟机向挂载的物理磁盘发送未经筛选的 SCSI 命令", fullScsi),
+                    Row("电池状态透传", "允许虚拟机读取主机的电池状态和剩余电量", battery)));
+                break;
+        }
         SetBody(content);
         console.Toggled += async (_, _) => await ApplyAsync(() => VmConsoleSupportService.SetConsoleSupportAsync(VmId, console.IsOn));
         numLock.Toggled += async (_, _) => await ApplyAsync(() => VmBootService.SetBootNumLockAsync(VmId, numLock.IsOn));
@@ -90,14 +118,17 @@ public sealed class VmAdvancedSettingsView : VmSettingsView
         try
         {
             var errors = new List<string>();
-            SetSwitch(console, row.Get(VmConsoleFields.BasicEnabled), VmConsoleSupportService.GetModificationCondition(context.Generation, context.State), errors, "控制台支持");
-            SetSwitch(numLock, row.Get(VmBootGlobalFields.NumLock), VmBootService.GetNumLockModificationCondition(context.State), errors, "数字小键盘");
-            SetSwitch(lockOnDisconnect, row.Get(VmConsoleFields.LockOnDisconnect), true, errors, "断开时锁定");
+            var consoleErrors = activeSection is Section.All or Section.Console ? errors : [];
+            var powerErrors = activeSection is Section.All or Section.Power ? errors : [];
+            var storageErrors = activeSection is Section.All or Section.StoragePolicy ? errors : [];
+            SetSwitch(console, row.Get(VmConsoleFields.BasicEnabled), VmConsoleSupportService.GetModificationCondition(context.Generation, context.State), consoleErrors, "控制台支持");
+            SetSwitch(numLock, row.Get(VmBootGlobalFields.NumLock), VmBootService.GetNumLockModificationCondition(context.State), consoleErrors, "数字小键盘");
+            SetSwitch(lockOnDisconnect, row.Get(VmConsoleFields.LockOnDisconnect), true, consoleErrors, "断开时锁定");
             var hibernationValue = row.Get(VmPowerBatteryFields.EnableHibernation);
-            SetSwitch(hibernation, hibernationValue, VmPowerService.GetHibernationModificationCondition(hibernationValue.HasValue, context.State), errors, "虚拟机休眠");
-            SetSwitch(turnOffOnRestart, row.Get(VmPowerBatteryFields.TurnOffOnGuestRestart), true, errors, "重启时改为关机");
-            SetSwitch(fullScsi, row.Get(VmStorageGlobalFields.AllowFullScsiCommandSet), true, errors, "完整 SCSI 命令集");
-            SetSwitch(battery, row.Get(VmPowerBatteryFields.BatteryEnabled), true, errors, "电池状态透传");
+            SetSwitch(hibernation, hibernationValue, VmPowerService.GetHibernationModificationCondition(hibernationValue.HasValue, context.State), powerErrors, "虚拟机休眠");
+            SetSwitch(turnOffOnRestart, row.Get(VmPowerBatteryFields.TurnOffOnGuestRestart), true, powerErrors, "重启时改为关机");
+            SetSwitch(fullScsi, row.Get(VmStorageGlobalFields.AllowFullScsiCommandSet), true, storageErrors, "完整 SCSI 命令集");
+            SetSwitch(battery, row.Get(VmPowerBatteryFields.BatteryEnabled), true, powerErrors, "电池状态透传");
 
             var type = row.Get(VmDisplayFields.ResolutionType);
             var width = row.Get(VmDisplayFields.Width);
@@ -121,7 +152,7 @@ public sealed class VmAdvancedSettingsView : VmSettingsView
             resolution.IsEnabled = applyResolution.IsEnabled = knownResolution && condition.CanModify;
             ToolTipService.SetToolTip(resolution, !hasResolution ? type.Error ?? "当前虚拟机没有可用的显示分辨率配置。"
                 : !knownResolution ? "当前分辨率策略尚不支持编辑，已保留原值。" : condition.CanModify ? null : condition.Reason);
-            if (!hasResolution && type.State == VmQueryValueState.Failed) errors.Add("分辨率：" + type.Error);
+            if (!hasResolution && type.State == VmQueryValueState.Failed) consoleErrors.Add("分辨率：" + type.Error);
             if (errors.Count > 0) ShowError(string.Join(Environment.NewLine, errors));
         }
         finally { Updating = false; }

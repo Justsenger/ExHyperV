@@ -1,5 +1,7 @@
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.WinUI3.Localization;
+using ExHyperV.WinUI3.UI.Shared;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -11,7 +13,9 @@ public sealed class VmPcieSettingsView : UserControl
 {
     private readonly Guid vmId;
     private readonly StackPanel body = new() { Spacing = 18 };
-    private readonly InfoBar message = new() { IsClosable = true };
+    private readonly Grid layout = new();
+    private IDashboardFeedbackHost? feedbackHost;
+    private FloatingNoticeBanner? standaloneNotice;
     private Task operation = Task.CompletedTask;
     private Task? stopping;
     private readonly List<string> stopFailures = [];
@@ -28,15 +32,18 @@ public sealed class VmPcieSettingsView : UserControl
     public VmPcieSettingsView(Guid vmId)
     {
         this.vmId = vmId;
-        var layout = new Grid { RowSpacing = 12 };
-        layout.RowDefinitions.Add(new() { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new() { Height = new(1, GridUnitType.Star) });
-        layout.Children.Add(message);
-        var scroll = new ScrollViewer { Content = body, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-        Grid.SetRow(scroll, 1); layout.Children.Add(scroll);
+        var scroll = new ScrollViewer
+        {
+            Content = body,
+            Padding = new Thickness(0, 0, 0, 72),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+        };
+        layout.Children.Add(scroll);
         Content = layout;
         Loaded += (_, _) => { if (!started) { started = true; operation = RunAsync(LoadAsync); } };
     }
+
+    internal void BindFeedbackHost(IDashboardFeedbackHost host) => feedbackHost = host;
 
     public Task StopAsync()
     {
@@ -67,9 +74,10 @@ public sealed class VmPcieSettingsView : UserControl
         busy = true;
         IsEnabled = false;
         BusyChanged?.Invoke(true);
-        message.IsOpen = false;
+        standaloneNotice?.Hide();
+        feedbackHost?.ClearSettingsNotice();
         try { await action(); }
-        catch (Exception ex) { ShowError(ex.Message); }
+        catch (Exception ex) { ShowError(CoreMessageResolver.ResolveException(ex)); }
         finally
         {
             busy = false;
@@ -89,13 +97,13 @@ public sealed class VmPcieSettingsView : UserControl
         if (stopped) return;
         if (!response.HasData)
         {
-            ShowError(response.Error);
+            ShowError(CoreMessageResolver.ResolveError(response));
             return;
         }
         settings = response.Data!;
         settingsLoaded = state.HasData;
         powerState = state.Data?.State ?? VmState.Unknown;
-        loadRestriction = state.HasData ? "" : state.Error;
+        loadRestriction = state.HasData ? "" : CoreMessageResolver.ResolveError(state);
         if (!state.HasData) ShowError(loadRestriction);
         Render();
     }
@@ -145,9 +153,8 @@ public sealed class VmPcieSettingsView : UserControl
             {
                 var response = await VmPcieService.SetBootPciExpressAsync(vmId, requested);
                 if (response.Success) Changed?.Invoke(this, EventArgs.Empty);
-                if (!response.Success) ShowError(response.Error);
                 await LoadAsync();
-                if (!response.Success) ShowError(response.Error);
+                if (!response.Success) ShowError(CoreMessageResolver.ResolveError(response));
             });
         };
         body.Children.Add(Card(Row("启动阶段 vPCI", "在 UEFI 中加载 vPCI 驱动，以识别受支持的设备（NVMe、AziHsm）", boot)));
@@ -201,9 +208,8 @@ public sealed class VmPcieSettingsView : UserControl
         var result = await session.ApplyAsync(confirmed);
         // 启用仿真可能已成功，而后续设备模式修改失败，因此始终重新读取真实状态。
         if (!result.Cancelled) Changed?.Invoke(this, EventArgs.Empty);
-        if (!result.Cancelled && !result.Success) ShowError(result.Error);
         await LoadAsync();
-        if (!result.Cancelled && !result.Success) ShowError(result.Error);
+        if (!result.Cancelled && !result.Success) ShowError(CoreMessageResolver.ResolveError(result.Response));
     }
 
     private void ShowError(string error)
@@ -214,9 +220,19 @@ public sealed class VmPcieSettingsView : UserControl
             if (!stopFailures.Contains(detail)) stopFailures.Add(detail);
             return;
         }
-        message.Severity = InfoBarSeverity.Error;
-        message.Message = detail;
-        message.IsOpen = true;
+        if (feedbackHost != null)
+        {
+            feedbackHost.ShowSettingsNotice(detail, InfoBarSeverity.Error);
+            return;
+        }
+        standaloneNotice ??= new FloatingNoticeBanner
+        {
+            VerticalAlignment = VerticalAlignment.Bottom,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            Margin = new Thickness(8, 0, 8, 8)
+        };
+        if (!layout.Children.Contains(standaloneNotice)) layout.Children.Add(standaloneNotice);
+        standaloneNotice.Show(detail, InfoBarSeverity.Error);
     }
 
     private static TextBlock SectionTitle(string text) => new() { Text = text, FontSize = 14, Margin = new(4, 10, 0, -6) };

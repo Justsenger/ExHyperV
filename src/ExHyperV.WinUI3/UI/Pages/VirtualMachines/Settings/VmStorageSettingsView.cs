@@ -2,6 +2,7 @@ using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -10,7 +11,7 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 public sealed partial class VmStorageSettingsView : VmSettingsView
 {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, string> unresolvedChanges = new();
-    private readonly StackPanel page = new() { Margin = new Thickness(24, 12, 24, 24), Spacing = 12 };
+    private readonly StackPanel page = new() { Margin = new Thickness(0, 8, 0, 24), Spacing = 12 };
     private readonly StackPanel devices = new() { Spacing = 12 };
     private readonly ContentControl deviceHost = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
     private readonly ContentControl editor = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
@@ -56,7 +57,7 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
         var storageTask = Task.Run(() => VmStorageService.GetVmStorageItemsAsync(VmId));
         await Task.WhenAll(contextTask, storageTask);
         var storage = await storageTask;
-        if (!storage.HasData) throw new InvalidOperationException(storage.Error);
+        if (!storage.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(storage));
         var context = await contextTask;
         if (IsStopped) return;
         generation = context.Generation;
@@ -121,7 +122,7 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
 
             var details = new StackPanel { Spacing = 10, Margin = new Thickness(16, 8, 16, 16) };
             details.Children.Add(Detail("类型", item.DiskType == "Physical" ? "宿主物理设备" : "虚拟介质文件"));
-            details.Children.Add(Detail("插槽", $"{item.ControllerType} 控制器 {item.ControllerNumber} · 位置 {item.ControllerLocation}"));
+            details.Children.Add(Detail("插槽", $"{item.ControllerType} 控制器 {item.ControllerNumber}，位置 {item.ControllerLocation}"));
             details.Children.Add(Detail("路径", string.IsNullOrWhiteSpace(item.PathOrDiskNumber) ? "空" : item.PathOrDiskNumber));
             if (item.IsPassthroughStale)
                 details.Children.Add(new InfoBar { IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning,
@@ -176,8 +177,9 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
         CancellationToken.ThrowIfCancellationRequested();
         ApiResponse result;
         try { result = await Task.Run(operation); }
-        catch (Exception error) { result = ApiResponse.Fail(error.Message, kind: ApiErrorKind.OutcomeUnknown); }
-        await CompleteChangeAsync(result.Success, result.ErrorKind, result.Error, successMessage);
+        catch (Exception error) { result = ApiResponse.Fail(CoreMessageResolver.ResolveException(error), exception: error, kind: ApiErrorKind.OutcomeUnknown); }
+        string errorMessage = result.Success ? string.Empty : CoreMessageResolver.ResolveError(result);
+        await CompleteChangeAsync(result.Success, result.ErrorKind, errorMessage, successMessage);
     }
 
     private async Task CompleteChangeAsync(bool success, ApiErrorKind kind, string error, string successMessage)
@@ -198,11 +200,11 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
         string? refreshError = null;
         try { await LoadAsync(); }
         catch (OperationCanceledException) when (IsStopped && success) { return; }
-        catch (Exception readError) { refreshError = readError.Message; }
+        catch (Exception readError) { refreshError = CoreMessageResolver.ResolveException(readError); }
         if (!success || refreshError is not null)
             ShowError(string.Join(Environment.NewLine, new[] { success ? null : error, refreshError is null ? null : "回读存储状态失败：" + refreshError }
                 .Where(text => !string.IsNullOrWhiteSpace(text))));
-        else if (!IsStopped) ShowInformation(successMessage);
+        else if (!IsStopped) ShowAppliedToast(successMessage);
     }
 
     private static string DisplayName(VmStorageAttachment item)

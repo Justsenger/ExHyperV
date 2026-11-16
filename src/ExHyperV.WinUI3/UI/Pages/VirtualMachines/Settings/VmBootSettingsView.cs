@@ -23,7 +23,7 @@ public sealed class VmBootSettingsView : VmSettingsView
             CanReorderItems = true,
             AllowDrop = true,
             IsEnabled = false,
-            Margin = new Thickness(24, 4, 24, 24),
+            Margin = new Thickness(0, 4, 0, 24),
             ItemTemplate = (DataTemplate)XamlReader.Load("""
                 <DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
                   <Border Background="{ThemeResource ControlFillColorDefaultBrush}" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1" CornerRadius="8" Padding="18" Margin="0,0,0,10">

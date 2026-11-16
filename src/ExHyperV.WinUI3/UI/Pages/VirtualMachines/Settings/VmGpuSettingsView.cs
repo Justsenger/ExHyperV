@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -41,7 +42,7 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     public VmGpuSettingsView(Guid vmId) : base(vmId)
     {
         service = new VmGpuService(query);
-        var panel = new StackPanel { Margin = new Thickness(24, 4, 24, 24), Spacing = 16 };
+        var panel = new StackPanel { Margin = new Thickness(0, 4, 0, 24), Spacing = 16 };
         var toolbar = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         add.Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"];
         toolbar.Children.Add(add);
@@ -142,14 +143,14 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     {
         EnsureNoUnfinishedDeployment();
         var result = await Task.Run(HostGpuService.GetHostGpusAsync);
-        if (!result.HasData) throw new InvalidOperationException(result.Error);
+        if (!result.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(result));
         hosts.Items.Clear();
         foreach (var gpu in result.Data!)
         {
             var content = new StackPanel { Spacing = 6, Margin = new Thickness(8) };
             content.Children.Add(Label(gpu.Name, 16));
             content.Children.Add(Label(gpu.InstanceId, 12, secondary: true));
-            content.Children.Add(Label($"驱动 {gpu.DriverVersion}  ·  {(gpu.IsPartitionable ? "已发现可分区资源" : "未发现可分区资源")}", 12, secondary: true));
+            content.Children.Add(Label($"驱动 {gpu.DriverVersion}，{(gpu.IsPartitionable ? "已发现可分区资源" : "未发现可分区资源")}", 12, secondary: true));
             hosts.Items.Add(new ListViewItem { Tag = gpu, Content = content, HorizontalContentAlignment = HorizontalAlignment.Stretch });
         }
         if (result.Data!.Count == 0) Notice("未找到宿主显卡。", InfoBarSeverity.Informational);
@@ -171,7 +172,7 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     {
         EnsureNoUnfinishedDeployment();
         var result = await Task.Run(HostGpuService.GetHostGpusAsync);
-        if (!result.HasData) throw new InvalidOperationException(result.Error);
+        if (!result.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(result));
         var gpu = result.Data!.FirstOrDefault(item => string.Equals(item.InstanceId,
             assignment.HostDeviceInstanceId, StringComparison.OrdinalIgnoreCase));
         if (gpu == null) throw new InvalidOperationException("没有找到此分配对应的宿主显卡，请刷新分配信息后再试。");
@@ -193,16 +194,17 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
             result.Steps, result.RequiresRestart, result.RestartReasons
         }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
         lastOperation.Visibility = Visibility.Visible;
+        string resolvedError = result.Success ? string.Empty : CoreMessageResolver.ResolveError(result);
         var detail = removalOutcomeUnknown
-            ? "移除操作的最终结果尚未确认；不会自动重试，请先核实底层操作。\n" + result.Error
-            : result.Error;
+            ? "移除操作的最终结果尚未确认；不会自动重试，请先核实底层操作。\n" + resolvedError
+            : resolvedError;
         if (removalOutcomeUnknown)
             unconfirmedRemovals[VmId] = new UnconfirmedRemoval(detail, lastOperationDetails.Text);
         NotifyChanged();
         // 无论成功还是失败都重新读取实际分配，不用本地删除冒充底层成功。
         string? refreshError = null;
         try { await RefreshAssignmentsAsync(); }
-        catch (Exception ex) { refreshError = $"分配清单刷新失败：{ex.Message}"; }
+        catch (Exception ex) { refreshError = $"分配清单刷新失败：{CoreMessageResolver.ResolveException(ex)}"; }
         if (!result.Success || removalOutcomeUnknown)
         {
             Notice(string.Join(Environment.NewLine, new[] { detail, refreshError }.Where(text => !string.IsNullOrWhiteSpace(text))), InfoBarSeverity.Error);
@@ -235,7 +237,7 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         try { await action(); }
         catch (Exception ex)
         {
-            Notice(ex.Message, InfoBarSeverity.Error);
+            Notice(CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error);
             if (workflow != null) ApplySnapshot(workflow, workflow.GetStatus());
         }
         finally { working = false; RefreshActions(); }

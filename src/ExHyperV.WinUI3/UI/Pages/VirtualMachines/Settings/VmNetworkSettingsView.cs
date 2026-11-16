@@ -2,6 +2,7 @@ using System.Globalization;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.ApplicationModel.DataTransfer;
@@ -36,8 +37,8 @@ public sealed class VmNetworkSettingsView : VmSettingsView
         await Task.WhenAll(switchTask, adapterTask, contextTask);
         var switchResult = await switchTask;
         var adapterResult = await adapterTask;
-        if (!switchResult.HasData) throw new InvalidOperationException(switchResult.Error);
-        if (!adapterResult.HasData) throw new InvalidOperationException(adapterResult.Error);
+        if (!switchResult.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(switchResult));
+        if (!adapterResult.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(adapterResult));
         if (IsStopped) return;
         switches = switchResult.Data!;
         var context = await contextTask;
@@ -47,7 +48,7 @@ public sealed class VmNetworkSettingsView : VmSettingsView
         if (context.IsRunning)
         {
             var ipResult = await VmNetworkService.FillDynamicIpsAsync(VmId, adapterResult.Data!);
-            if (!ipResult.Success) ipError = ipResult.Error;
+            if (!ipResult.Success) ipError = CoreMessageResolver.ResolveError(ipResult);
         }
         if (IsStopped) return;
         Updating = true;
@@ -166,8 +167,16 @@ public sealed class VmNetworkSettingsView : VmSettingsView
             Row("", null, ActionButton("应用", async () =>
             {
                 if (changes.Count == 0) return;
-                if (changes.Contains(nameof(adapter.BandwidthReservationBitsPerSecond))) adapter.BandwidthReservationBitsPerSecond = ParseBandwidth(min.Text);
-                if (changes.Contains(nameof(adapter.BandwidthLimitBitsPerSecond))) adapter.BandwidthLimitBitsPerSecond = ParseBandwidth(max.Text);
+                ulong nextMin = changes.Contains(nameof(adapter.BandwidthReservationBitsPerSecond))
+                    ? ParseBandwidth(min.Text)
+                    : adapter.BandwidthReservationBitsPerSecond;
+                ulong nextMax = changes.Contains(nameof(adapter.BandwidthLimitBitsPerSecond))
+                    ? ParseBandwidth(max.Text)
+                    : adapter.BandwidthLimitBitsPerSecond;
+                if (nextMax > 0 && nextMin > nextMax)
+                    throw new ArgumentException("最低带宽不能高于最高带宽。");
+                adapter.BandwidthReservationBitsPerSecond = nextMin;
+                adapter.BandwidthLimitBitsPerSecond = nextMax;
                 await MutateAsync(() => VmNetworkService.ApplyBandwidthSettingsAsync(VmId, adapter, changes.ToArray()));
             })));
     }
@@ -225,18 +234,19 @@ public sealed class VmNetworkSettingsView : VmSettingsView
     {
         EnsureWriteAllowed();
         var result = await operation();
+        string? resolvedError = result.Success ? null : CoreMessageResolver.ResolveError(result);
         if (result.ErrorKind == ApiErrorKind.OutcomeUnknown)
-            UncertainOperations[VmId] = $"{result.Error}\n底层任务的最终结果尚未确认，已暂停本次程序内的网卡修改。";
-        await RefreshAfterWriteAsync(result.Success ? null : result.Error);
+            UncertainOperations[VmId] = $"{resolvedError}\n底层任务的最终结果尚未确认，已暂停本次程序内的网卡修改。";
+        await RefreshAfterWriteAsync(resolvedError);
     }
 
     private async Task RefreshAfterWriteAsync(string? error)
     {
         NotifyChanged();
         try { await LoadAsync(); }
-        catch (Exception ex) { error = string.IsNullOrEmpty(error) ? ex.Message : $"{error}\n刷新失败：{ex.Message}"; }
+        catch (Exception ex) { string reloadError = CoreMessageResolver.ResolveException(ex); error = string.IsNullOrEmpty(error) ? reloadError : $"{error}\n刷新失败：{reloadError}"; }
         if (error != null) ShowError(UncertainOperations.GetValueOrDefault(VmId) ?? error);
-        else ShowInformation("已应用。");
+        else ShowAppliedToast("已应用");
     }
 
     private void EnsureWriteAllowed()
@@ -270,7 +280,7 @@ public sealed class VmNetworkSettingsView : VmSettingsView
         button.Click += (_, _) =>
         {
             try { var data = new DataPackage(); data.SetText(value ?? text); Clipboard.SetContent(data); }
-            catch (Exception ex) { ShowError(ex.Message); }
+            catch (Exception ex) { ShowError(CoreMessageResolver.ResolveException(ex)); }
         };
         return button;
     }
