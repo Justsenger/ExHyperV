@@ -1,64 +1,80 @@
 # ExHyperV.Core API
 
-ExHyperV.Core 为 Windows 应用提供虚拟机管理、设备配置和画面交互能力。应用直接调用 DLL；第一次接入可以从下面的查询示例开始。
+`ExHyperV.Core` 是直接嵌入 Windows 应用进程内的 Hyper-V 核心类库，提供**虚拟机管理、硬件配置、导入导出、GPU 分区部署**以及**远程控制台画面/键鼠交互**能力。
 
 ## 开始使用
 
-引用 Core，列出虚拟机，取得后续操作使用的 GUID。
+首次接入只需三步：**满足运行环境 → 查出虚拟机 GUID → 按 GUID 调对应服务**。
 
-调用项目使用 `net10.0-windows`，启用 `ImplicitUsings`，以管理员权限运行。同仓库项目引用 `ExHyperV.Core.csproj`；独立部署时携带 Core DLL 及其构建输出中的依赖。Hyper-V 管理功能需要宿主提供相应组件。
+### 运行要求
 
-下面的示例方法可以放入应用的类中，文件顶部添加：
+- **目标框架**：`net10.0-windows`（建议开启 `ImplicitUsings`）
+- **运行权限**：以**管理员权限**运行宿主进程，并在系统启用 Hyper-V 管理功能
+- **引用方式**：同仓库项目直接引用 `ExHyperV.Core.csproj`；独立发布时随应用携带 `ExHyperV.Core.dll` 及其依赖
+- **常用命名空间**：
 
 ```csharp
 using ExHyperV.Models;
 using ExHyperV.Services;
 ```
 
+### 第一段能跑通的代码
+
+先实例化 `VmQueryService` 把本机虚拟机列出来。**记住 `vm.Key`（即虚拟机 GUID）**——因为虚拟机显示名称可以重名也可以改，后面开关机、改配置、连画面全都认 GUID，不认名称。
+
 <!-- api-example-list:start -->
 
 <!-- api-example-list:end -->
 
-`vm.Key` 是虚拟机 GUID 的字符串形式。需要修改配置或建立连接时，使用 `Guid.Parse(vm.Key)`。显示名称可以重复，也可以修改，后续操作仍按 GUID 指定目标。
+### 常见任务速查
 
-接下来可按任务阅读：[查询数据](#查询数据)、[修改配置](#修改配置)、[创建导入与导出](#创建导入与导出)、[部署流程](#部署流程)、[连接与交互](#连接与交互)。具体字段和方法从左侧 API 目录查找。
+| 你想做什么 | 去找哪个入口 | 详细说明 |
+| --- | --- | --- |
+| 查列表、配置、IP 或运行状态 | `VmQueryService.QueryAsync` | [查询数据](#查询数据) |
+| 开机、关机、重启、强制断电 | `VmPowerService.ExecuteControlActionAsync` | [修改配置](#修改配置) |
+| 改名字、CPU、内存、网卡、磁盘 | `VmEditService` / `VmProcessorService` / `VmMemoryService` / `VmNetworkService` | [修改配置](#修改配置) |
+| 新建、删除、导入、导出虚拟机 | `VmCreateService` / `VmDeleteService` / `VmImportService` / `VmExportService` | [创建导入与导出](#创建导入与导出) |
+| 一键配置 GPU-PV 分区与驱动 | `GpuDeploymentSession` | [部署流程](#部署流程) |
+| 显示虚拟机屏幕、发键鼠与剪贴板 | `ConsoleService` / `VmScreenshotSource` | [连接与交互](#连接与交互) |
+| 统一处理报错、取消与资源清理 | `ApiResponse` / `CoreOperationException` | [结果、取消和资源释放](#结果取消和资源释放) |
 
 ## 查询数据
 
-一次查询可以自由选择不同领域的字段。虚拟机本身的属性直接返回；网卡、磁盘等一对多对象分别放在集合中。
+查询接口设计成“按需点菜”：你想要哪些字段就传哪些字段，不用每次拉整台虚拟机的全部信息，速度更快，也避免触发不必要的底层 WMI 或性能计数器查询。
+
+### 按需组合字段
+
+把需要的字段放进 `VmQueryRequest`。虚拟机自身属性（如内存大小、名称）直接从虚拟机行读取；网卡、磁盘这类一对多设备从对应的子集合读取。
 
 <!-- api-example-query:start -->
 
 <!-- api-example-query:end -->
 
-### 选择目标与字段
+几个常用细节：
+- **目标范围**：`VmQueryRequest` 第二个参数传 GUID 列表；**省略不传**会查全部虚拟机，传**空列表**会直接返回空结果。查不到的 GUID 会放在 `MissingVmIds` 里。
+- **动态选字段**：不知道有哪些字段名时，可以从 `VmQueryFields.All` 遍历，或用 `VmQueryFields.Find("Memory.Startup")` 按标识查找。
+- **集合里的主键**：`VmQueryRow.Key` 用来区分同一集合里的不同项（虚拟机是 GUID，设备是设备标识；引导顺序的 Key 含顺序位置，重排后会变化）。
 
-`VmQueryRequest` 的第一个参数是字段，第二个参数是虚拟机 GUID 集合。省略目标会查询全部虚拟机；传入空集合会返回空结果。重复目标和字段自动去重。没有找到的指定目标列在 `MissingVmIds` 中。
+### 怎么判断有没有读到值
 
-字段页的“成员”是请求中使用的对象，例如 `VmMemoryFields.Startup`；“类型”是成功读取后 `Value` 的 C# 类型。需要动态选择字段时，可从 `VmQueryFields.All` 枚举，或用 `VmQueryFields.Find("Memory.Startup")` 按标识查找。
+外层 `response.HasData` 为 `true` 只代表这趟查询整体成功；具体到某一个字段，先看 `field.HasValue`（为 `true` 时再读 `field.Value`，包括合法的 `0`、`false` 或空字符串）。
 
-### 读取结果
+没取到值时，可以通过 `field.State` 区分原因：
 
-`response.HasData` 表示取得了整次查询结果；其中每个字段和设备集合还各有读取状态。字段 `HasValue` 为 true 时使用 `Value`，包括有效的 0、false 或空字符串。
+| 状态 | 通俗解释 | 常见情况 |
+| --- | --- | --- |
+| `Available` | 读到了有效数据 | 对于网卡/磁盘集合，表示列表真实为空 |
+| `NotRequested` | 这次没选这个字段 | 请求参数里没带它 |
+| `NotApplicable` | 当前状态下没有意义 | 比如虚拟机关机时去读 CPU 占用率 |
+| `WarmingUp` | 计数器还在热身 | 刚启动采样，等下一次轮询就有值了 |
+| `Unsupported` | 当前系统不支持 | 宿主 Windows 版本或硬件不支持该特性 |
+| `Unavailable` / `Ambiguous` / `Failed` | 没取到、无法归属或读取报错 | 需排障时看 `Error` 和 `Failure` |
 
-| 状态 | 含义 |
-| --- | --- |
-| `Available` | 取得本次有效值；集合为空时表示确认没有记录 |
-| `NotRequested` | 本次没有选择这个字段或集合 |
-| `Unsupported` | 当前系统缺少读取所需的能力 |
-| `NotApplicable` | 当前对象状态不适用，例如关机时的运行性能 |
-| `Unavailable` | 本次没有取得值 |
-| `WarmingUp` | 计数器正在建立基线 |
-| `Ambiguous` | 无法确定数据归属 |
-| `Failed` | 读取失败，原因见 `Error` 和 `Failure` |
+### 实时性能监控
 
-`VmQueryRow.Key` 用于关联同一集合内的记录。虚拟机记录使用 GUID；设备和检查点使用各自的来源身份。引导项的 Key 包含顺序位置，重排后会变化。
+做 CPU、内存或网络实时曲线时，**请复用同一个 `VmQueryService` 或 `HyperVCpuMonitorService` 实例**定时轮询——性能计数器需要靠同一个实例保留上一次基线才能算出增量。
 
-### 连续采样
-
-保留同一个 `VmQueryService` 实例进行周期查询，计数器才能延续采样基线。字段的 `ObservedAtUtc` 是其读取时间；一个请求内的不同来源可能在不同时刻完成。`Timings` 可用来查看哪些来源耗时较多。
-
-只选择需要的字段。同一来源的读取会合并；增加设备详情或性能指标，可能引入新的底层查询。
+一个请求里不同来源的数据可能在不同毫秒完成，可以看字段的 `ObservedAtUtc` 了解采样时间；想排查哪一步慢，看 `Timings` 即可。
 
 <!-- api-example-monitor:start -->
 
@@ -66,73 +82,84 @@ using ExHyperV.Services;
 
 ## 修改配置
 
-用虚拟机 GUID 指定目标，再把需要变更的值交给对应服务。修改查询结果对象本身不会保存配置。
+改配置记住三个原则：**按 GUID 指定虚拟机、改前可先校验条件、只提交你改过的字段**。直接改查询出来的对象属性不会自动写回 Hyper-V。
+
+### 简单操作：直接改
+
+像改名、开关机（`VmPowerService.ExecuteControlActionAsync`）这类单步操作，直接把 `vmId` 和参数传给服务，然后看 `result.Success`：
 
 <!-- api-example-operation:start -->
 
 <!-- api-example-operation:end -->
 
-### 读取配置并编辑
+### 局部修改：`changedProperties` 的用法
 
-`GetVmMemorySettingsAsync` 与 `GetVmProcessorAsync` 返回 `VmSettingsSnapshot<T>`。`Values` 每次提供独立的编辑副本，`States` 按配置属性名给出本次读取状态，`ObservedAtUtc` 记录采集时间。值和状态来自同一个底层配置对象。
+处理器（`VmProcessorService`）、内存（`VmMemoryService`）和网卡（`VmNetworkService`）参数很多，为防止把别人或系统刚改过的值覆盖掉，写入时都需要传一个 `changedProperties` 集合——**只有点名在集合里的属性才会被修改**。
 
-先检查 `States[nameof(...)] == VmQueryValueState.Available`，再使用该字段的值。有效的 0、false 与缺值分开表示。处理器的“未设置”编码会映射成 null，其读取状态仍为 Available。
-
-<!-- api-example-settings-snapshot:start -->
-
-<!-- api-example-settings-snapshot:end -->
-
-`GetModificationCondition` 等条件查询返回当前状态下的可修改性、原因和所需电源状态。界面据此启用控件；提交时 Core 重新读取目标并执行相同校验。
-
-### 提交部分字段
-
-处理器、内存和网卡设置提供 `changedProperties`，用于明确选择本次修改的属性。没有选中的值不参与普通回写；字段之间的必要联动由对应服务处理。
+如果你已经明确知道要改某个字段，可以直接构造请求并只点名那一项：
 
 <!-- api-example-processor-change:start -->
 
 <!-- api-example-processor-change:end -->
 
-`null` 的含义取决于属性：有的表示本次不修改，有的表示恢复未设置状态。按具体设置模型的说明提交，不把整个查询快照当作修改清单。
+更稳妥的做法是“**先读后改**”：`GetVmMemorySettingsAsync` 和 `GetVmProcessorAsync` 会返回 `VmSettingsSnapshot<T>`，用 `States` 确认原值有效后，改完直接把改动的字段名传回去：
 
-处理器与内存写入按 VM 在使用 Core 的进程之间排队，读取最新配置后提交本次选择；同一字段以后一次请求为准。这种排队不覆盖 PowerShell 等外部工具。
+<!-- api-example-settings-snapshot:start -->
 
-### 判断结果
+<!-- api-example-settings-snapshot:end -->
 
-普通修改检查 `Success`，失败时使用 `ErrorKind` 判断类别，`Error` 提供说明。多步骤入口还会返回 `Steps` 或专用结果，记录已经完成的修改。
+### 改配置时的三个常见疑问
 
-配置保存和运行时生效由具体接口区分。有的修改立即生效，有的需要关闭虚拟机或重启宿主；返回的 `RequiresRestart` 和 `RestartReasons` 表示本次操作报告的宿主重启要求。
+1. **怎么提前知道某个按钮该不该灰掉？**
+   调用对应服务的 `GetModificationCondition(...)`（比如 `VmProcessorService.GetModificationCondition` 或 `VmMemoryService.GetModificationCondition`），它会告诉你当前电源状态下能不能改、不能改的原因，以及需要先切到什么状态。界面上可用它控制按钮状态，提交时 Core 内部也会再校验一遍。
+2. **传 `null` 是“不改”还是“恢复默认”？**
+   取决于具体属性：`CpuBrandString` 传 `null` 会清空；频率、能效偏好等部分高级属性传 `null` 会恢复为“未设置”；其余可空属性传 `null` 通常表示跳过不改。具体规则以对应设置类的说明为准，不要直接把整张查询对象当提交清单。
+3. **改完什么时候生效？**
+   有的配置（如动态调整部分内存、接通网卡）立即生效，有的要求关机才能改；如果操作触发了需要重启宿主机才能生效的更改，返回值里的 `RequiresRestart` 会为 `true`，`RestartReasons` 会写明原因。另外，Core 对同一台虚拟机的 CPU/内存写入会在进程间自动排队，防止并发写花。
 
 ## 创建导入与导出
 
-这些操作围绕单台虚拟机执行。批量任务由应用安排目标、顺序、并发与总进度。
+创建、删除、导入、导出都面向**单台虚拟机**设计。如果你在业务上要做批量创建或批量迁移，建议由上层自己控制并发、排队顺序和总进度条。
+
+### 创建与删除
+
+创建虚拟机时只需填充 `VmCreationParameters`；如果名字或目录撞车，Core 会按策略避让，并在结果里的 `ActualName`、`NameAdjusted`、`Notice` 告诉你最终落在哪里。
 
 <!-- api-example-create:start -->
 
 <!-- api-example-create:end -->
 
-创建结果提供实际名称、GUID 和文件位置。发生名称或路径避让时，看 `ActualName`、`NameAdjusted` 和 `Notice`。失败后通过 `RegistrationState`、`VmId` 和 `RetainedPaths` 确认是否已经留下虚拟机或文件。
+删除分两档，按风险小心选用：
+- `VmDeleteService.DeleteVmAsync`：**只注销虚拟机**，配置文件和 `.vhdx` 磁盘文件都留着。
+- `VmDeleteService.PurgeVmAsync`：**彻底删除**，注销后还会顺带删掉确认专属于这台虚拟机的配置和磁盘；如果某个磁盘无法排除被其他虚拟机共享依赖，Core 会保留它并在结果里报告。删除前可以先调预览方法给用户二次确认。
 
-### 删除虚拟机
+### 导入虚拟机
 
-`VmDeleteService.DeleteVmAsync()` 注销虚拟机并保留文件。`PurgeVmAsync()` 还会删除执行时确认属于它的配置和磁盘；无法排除其他虚拟机依赖的磁盘会保留并报告。删除预览供调用方确认，实际删除范围以执行时的归属检查为准。
+导入分两步：**先预览拿到 `VmImportBatchSession`，等用户选好配置后再真正导入**。
+
+- **GUID 策略必须二选一**：`Preserve` 保留原虚拟机 ID（本机已有同 ID 时会失败）；`GenerateNew` 总是分配新 ID，导入成功后拿结果里的 `VmId` 当后续标识。
+- **名称、目录与交换机**：名称和目标目录省略时沿用原名和宿主默认路径；虚拟交换机按“来源 GUID → 目标 GUID”映射，映射为 `null` 表示先断开。
+- **用完务必 `await using` 释放**：哪怕只是看了眼预览不打算导入，也要释放会话来清理临时解压目录。
 
 <!-- api-example-import:start -->
 
 <!-- api-example-import:end -->
 
-导入先取得预览和会话，再为选中的虚拟机提交 `VmImportOptions`。GUID 策略必须明确选择：`Preserve` 保留来源身份，冲突时失败；`GenerateNew` 始终生成新身份。成功后使用结果中的 `VmId`。
-
-名称和目录可以省略，使用来源名称及宿主默认放置规则。填写目录时使用实际目标目录。交换机映射按来源和目标 GUID 指定，映射为 null 表示断开。详细选项见 `VmImportOptions`。
+如果导入来源是**加密 ZIP 压缩包**，预览阶段就要通过 `VmImportArchiveOptions` 传入密码和解压额度限制（防压缩炸弹），预览消耗的额度会计入同一批次：
 
 <!-- api-example-archive-preview:start -->
 
 <!-- api-example-archive-preview:end -->
 
+### 导出与打包
+
+先用 `VmExportService.ExportAsync` 导出到指定目录（可按需勾选磁盘、检查点和运行状态）：
+
 <!-- api-example-export:start -->
 
 <!-- api-example-export:end -->
 
-导出可以选择磁盘、检查点和运行状态。导出成功后，如需归档，再调用打包接口。
+导出成功后如果想打成压缩包或加密归档，再调用 `VmExportPackagingService.CreatePackageAsync`（支持 AES-256 加密，跨工具解压建议使用纯 ASCII 密码）：
 
 <!-- api-example-encrypted-export:start -->
 
@@ -140,135 +167,114 @@ using ExHyperV.Services;
 
 ## 部署流程
 
-GPU 部署需要选择设备、处理电源、扫描磁盘并安装驱动。Core 管理步骤和规则，应用展示当前状态并提交用户决定。
+给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区、安装 Windows 驱动或通过 SSH 部署 Linux 驱动。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
+
+### 用一个循环跑完部署
+
+调用方只需要不断跑 `StartAsync()` / `SubmitDecisionAsync(...)`：当 `State == GpuDeploymentState.WaitingForDecision` 时，把 `PendingDecision` 里的信息弹窗给用户，拿回用户选择（带上原 `RequestId`）继续往下推；如果用户点取消，传 `null` 或调用 `CancelAsync()`。
 
 <!-- api-example-workflow:start -->
 
 <!-- api-example-workflow:end -->
 
-`PendingDecision` 是当前等待的决定，提交时携带它的请求 Id。`AllowedActions` 列出当前允许执行的动作，应用据此提供继续、取消或清理入口。
+### 部署中途失败或被取消怎么办？
 
-### 处理未完成的部署
-
-`Completed` 表示流程完成。`CleanupRequired` 表示还有资源需要处理；`OutcomeUnknown` 表示底层操作的最终结果尚未确认。后者应先通过允许的 `ReconcileAsync()` 核实，再根据新状态决定清理或结束。
+看最后快照的 `State` 和 `AllowedActions` 就行，不用自己猜：
+- `Completed`：全部搞定。
+- `CleanupRequired`：留下了临时挂接的磁盘或刚建出来的半成品适配器。
+- `OutcomeUnknown`：底层 WMI/磁盘异步任务还没返回最终结果。**此时不要直接强行删东西**，先按 `AllowedActions` 调 `ReconcileAsync()` 核实一遍真实状态，确认安全后再调 `RetryCleanupAsync()` 清理。
 
 <!-- api-example-gpu-recovery:start -->
 
 <!-- api-example-gpu-recovery:end -->
 
-恢复信息保存在原部署对象的 `Recovery` 中，包括执行记录、资源归属和待恢复状态。它用于当前进程内的这次部署。清理负责恢复哪些临时资源、哪些已完成修改会保留，见 `GpuDeploymentSession` 的对应方法。
+所有的进度记录和待清理资源清单都保存在原 `session` 实例的 `Recovery` 属性里；只有当次进程内的原会话对象能用来核实和收尾。
 
 ## 连接与交互
 
-先建立连接，再使用该连接提供的视频、控制和剪贴板能力。
+`ConsoleService` 负责连上虚拟机屏幕并收发键鼠/剪贴板；如果只需要列表页的静态缩略图，**不用建连接**，直接用 `VmScreenshotSource.CaptureAsync()` 通过 WMI 抓一张即可。
 
-| 后端 | 当前实现 |
-| --- | --- |
-| `RdpBasic` | 基本会话画面、键盘和鼠标 |
-| `RdpEnhanced` | 增强会话画面、键盘和鼠标、剪贴板，以及分辨率请求 |
+### 选基本会话还是增强会话
 
-基本和增强会话均由 FreeRDP 实现。`ConsoleService.GetBackends()` 提供当前后端目录，目标是否支持增强会话还取决于来宾。
+| 连接方式 | 常量标识 | 适合场景 | 能力范围 |
+| --- | --- | --- | --- |
+| 基本会话 | `RdpBasic` | 看开机画面、进 BIOS/UEFI、装系统、系统未启用增强会话时 | 画面、键盘、鼠标 |
+| 增强会话 | `RdpEnhanced` | 日常远程桌面操作（需来宾系统支持并开启增强会话） | 画面、键盘、鼠标、双向剪贴板、动态调整分辨率 |
+
+两种后端目前都基于 FreeRDP 实现，可通过 `ConsoleService.GetBackends()` 查当前可用列表。
+
+### 连接与取图示例
+
+记住两个顺序：**先订阅事件，再调 `Start()`**；**每个连接对象只能启动一次**，断开重连请创建新对象。
 
 <!-- api-example-resource:start -->
 
 <!-- api-example-resource:end -->
 
-### 连接状态
+### 处理画面、输入和剪贴板的 4 个实战提醒
 
-先订阅事件，再调用 `Start()`。`Connected` 表示连接已建立，`LoginCompleted` 表示后端报告登录完成；剪贴板就绪由自身的 `IsAvailable` 表示。每个连接对象只启动一次，重连时创建新对象。
-
-事件可能从后台线程触发。耗时工作交给其他线程，界面更新调度回界面线程；回调应及时返回，不能在其中同步等待同一连接退出。
-
-### 画面和取图
-
-`FrameReceived` 提供完整的 BGRA32 图像及变化区域。帧在回调期间借出；跨回调保存时先调用 `Retain()`，用完释放。`CopyPixels()` 返回独立的像素数组。
-
-`Video.CaptureFrame()` 取得当前连接最近的完整画面；没有可用画面时返回 null，取得的帧由调用方释放。基本和增强会话各自使用自己的连接画面。
-
-虚拟机列表预览使用 `VmScreenshotSource.CaptureAsync()`，无需连接，通过 WMI 读取基本控制台画面。它与增强会话桌面是不同来源。
-
-### 输入与剪贴板
-
-键盘使用 `Input.SendKey()`，组合键可用 `SendKeys()`；鼠标使用 `SendPointer()` 或 `SendClick()`，坐标按来宾桌面像素计算。界面失焦时调用 `ReleaseAllInputs()` 释放按键和按钮。
-
-输入方法返回 true 表示请求被 Core 接收。调整分辨率也是异步请求，实际尺寸以随后收到的帧为准。
-
-剪贴板就绪后，通过 `SetClipboard()` 发送，通过 `ClipboardReceived` 接收。具体格式和回调约定见 `IConsoleClipboard`；宿主系统剪贴板由调用应用负责接入。
+1. **别在 `FrameReceived` 回调里做重活**
+   事件都在后台线程触发，界面更新记得调度回 UI 线程；回调本身要尽快返回，**绝对不要在回调里同步等待当前连接断开**，否则会死锁。
+2. **帧内存是借用的**
+   `FrameReceived` 回调给你的 `ConsoleFrame` 只在回调期间有效。如果想异步拿去渲染或存下来，先调 `frame.Retain()`，用完后一定要 `Dispose()`；或者直接调 `CopyPixels()` 拿一份独立字节数组。
+3. **随时抓当前一帧**
+   调 `Video.CaptureFrame()` 可以直接取当前连接的最新完整画面（没有画面时返回 `null`，取到的帧用完记得释放）。基本会话和增强会话各自的画面是独立的，互不替代。
+4. **键盘、鼠标和剪贴板**
+   键盘用 `Input.SendKey()` / `SendKeys()`，鼠标用 `SendPointer()` / `SendClick()`（坐标按来宾桌面像素计算）。**当应用窗口失去焦点时，记得调用 `ReleaseAllInputs()`**，防止 Ctrl/Alt/鼠标左键卡死在按住状态。剪贴板通道就绪由 `IsAvailable` 标识，准备好后即可通过 `SetClipboard()` 和 `ClipboardReceived` 收发文本/图像。
 
 ## 结果、取消和资源释放
 
-这一节说明各模块共用的结果和资源约定；具体操作的额外返回值见对应接口。
+### 怎么读返回值和报错
 
-### 读取结果
+大多数操作返回 `ApiResponse` 或 `ApiResponse<T>`，少数方法会直接抛出 `CoreOperationException`（异常里的 `Result` 包含同样完整的错误信息）：
 
-`ApiResponse` 用 `Success` 表示操作是否成功。`ApiResponse<T>` 还包含数据；读取 `Data` 前检查 `HasData`。成功但没有结果用 `IsEmpty` 表示，和失败分开。
+- **判断是否成功**：无数据看 `Success`；有数据先检查 `HasData` 再读 `Data`（成功但查无记录会标记为 `IsEmpty`，和报错分开）。
+- **代码分支看 `ErrorKind`，提示用户看 `Error`**：`Error` 文本可能会本地化或调整措辞，代码里永远不要用字符串匹配错误，而是判断 `ErrorKind`；深挖底层 WMI/Win32 错误码再看 `ErrorSource`、`Code` 和 `Exception`。
 
-`ErrorKind` 是供程序判断的错误类别，`Error` 是供人阅读的说明。需要排查底层失败时，再看 `ErrorSource`、`Code` 和 `Exception`。使用异常形式的操作通过 `CoreOperationException.Result` 提供同样的结构化信息；VMCX 编辑等工具还有自己的异常类型。
-
-多步骤结果会记录已完成的部分。`CleanupRequired` 表示清理尚未完成，`OutcomeUnknown` 表示执行结果未确认；先按该流程提供的核实或清理入口处理，再决定是否重新发起。
-
-### 根据错误决定下一步
-
-| 错误类别 | 处理方式 |
+| `ErrorKind` | 建议处理方式 |
 | --- | --- |
-| `InvalidArgument` | 按参数范围修正输入后提交 |
-| `AmbiguousTarget` | 重新查询候选，使用唯一身份指定目标 |
-| `InvalidState` | 按条件查询返回的 RequiredState 调整目标状态 |
-| `AccessDenied` | 使用具备目标操作权限的 Windows 身份 |
-| `Cancelled` | 按结果中的步骤状态结束本次调用 |
-| `NotFound` | 重新查询目标，使用当前 GUID 或设备身份 |
-| `Unsupported` | 读取宿主能力，选择支持的设置 |
-| `Conflict` | 按返回原因重新取得对象或流程状态 |
-| `OutcomeUnknown` | 查询原操作状态；会话流程按 AllowedActions 核实 |
-| `CleanupRequired` | 调用结果指向的清理入口，完成后读取新状态 |
-| 其他失败 | 读取 Error、Code、ErrorSource 和 Steps 定位失败步骤 |
+| `InvalidArgument` | 参数超出范围或格式不对，修正输入再提交 |
+| `NotFound` | 目标 VM 或设备已经不存在，刷新列表重新获取 GUID |
+| `AmbiguousTarget` | 名称不唯一，改用 GUID 指定目标 |
+| `InvalidState` | 虚拟机电源状态不对（比如开机时改了需要关机的项），先按条件调整状态 |
+| `AccessDenied` | 权限不足，确认进程以管理员身份运行 |
+| `Conflict` | 有其他操作冲突或状态已变化，重新读取最新状态再试 |
+| `Unsupported` | 当前宿主版本或硬件不支持该功能 |
+| `OutcomeUnknown` / `CleanupRequired` | 操作结果未明或残留临时资源，按对应流程的核实/清理方法处理 |
+| `Cancelled` / 其他 | 检查多步骤结果 `Steps` 确认哪些已完成、在哪一步中断 |
 
-Core 是进程内 DLL，调用权限来自宿主 Windows 进程。Web 与 MCP 的身份验证由各自入口负责。查询返回本次请求的完整结果集；字段选择和目标 GUID 集合用于控制读取范围。
+### 取消操作与必须释放的对象
 
-### 取消与退出
+所有支持 `CancellationToken` 的操作在取消后，已经发给 Windows/WMI 的底层调用可能需要等它返回后才会停止后续步骤——**取消等待不会把已经写完的配置自动回滚**。
 
-支持取消的接口提供 `CancellationToken` 或取消方法。已经提交的 WMI 或原生调用可能需要等待返回，再停止后续步骤和释放资源。停止等待本身不会撤销已经完成的修改。
+下列对象用完请务必释放：
 
-| 使用的对象 | 结束方式 |
-| --- | --- |
-| 查询或监控实例 | 调用 Dispose；提供 DisposeAsync 时可等待释放完成 |
-| 控制台连接 | 等待 DisconnectAsync 或 DisposeAsync |
-| 保留或单独取得的帧 | 每份租约分别 Dispose |
-| 导入会话 | 等待 DisposeAsync，检查 CleanupState 和剩余文件 |
-| 磁盘挂载租约 | 在读写及恢复完成后等待 ReleaseAsync 或 DisposeAsync |
+| 对象 | 释放方式 | 备注 |
+| --- | --- | --- |
+| `VmQueryService` / `HyperVCpuMonitorService` | `Dispose` 或 `await DisposeAsync` | 会等待进行中的性能计数器采样结束并回收资源 |
+| `IConsoleConnection` | `await DisconnectAsync` 或 `await DisposeAsync` | 断开桌面连接并清理 FreeRDP 会话 |
+| 手动 `Retain()` 或 `CaptureFrame()` 拿到的帧 | 每份分别 `Dispose` | 避免占满帧池 |
+| `VmImportBatchSession` / `VmImportSession` | `await DisposeAsync` | 会清理临时解压目录；释放后检查 `CleanupState` |
+| 磁盘挂载租约（历史磁盘挂接） | `await ReleaseAsync` 或 `await DisposeAsync` | 用完及时卸载 |
 
-导入会话在导入中释放时，会请求停止后续步骤，等待正在进行的操作安全结束，再清理工作文件；成功导入的虚拟机保留。释放失败的详细状态仍由原会话提供。
-
-### 共享 ARP 捕获
-
-需要辅助 IP 来源时，调用 `ArpSnoopService.Instance.Start()`；宿主程序最终退出时等待 `SharedBackgroundServices.ShutdownAsync()`。这项清理属于进程退出，不属于页面关闭；同一进程清理后不能再次启动捕获。
+另外，如果应用开启了局域网 ARP 辅助 IP 发现（`ArpSnoopService.Instance.Start()`），**在宿主程序最终退出时**等待一次 `SharedBackgroundServices.ShutdownAsync()` 即可（不要在每次切页面时关它，进程内关闭后不能重启）。
 
 ## 升级已有调用
 
-本次配置读取返回值改为 `VmSettingsSnapshot<VmMemorySettings>` 和 `VmSettingsSnapshot<VmProcessorSettings>`。原有 `response.Data.Startup` 改为读取 `response.Data.Values.Startup`，并检查相应 `States`。
+如果你正在把老版本调用迁到当前 `ExHyperV.Core`，重点对照下面几处变化即可：
 
-Core 配置、设备和采样模型提供普通数据属性。WinUI 的属性通知、编辑草稿、下拉选项和界面线程调度由视图模型持有。字段解释由同一份 API 材料生成到 `FieldHelp.json`。
-
-
-
-升级前对照所用 Core 版本，重点检查标识、单位和提交方式。
-
-多数虚拟机操作已使用 GUID；设备操作使用查询得到的设备引用。旧名称调用不能直接当作 GUID 使用。Linux GPU 部署仍保留其原有名称入口。
-
-处理器的 `Reservation`、`Limit` 使用 0.001%，100000 表示 100%；内存 `Weight` 使用原始权重；网络带宽 `*BitsPerSecond` 使用 bit/s。从旧界面数值迁移时需要换算，不能只改属性名称。
-
-处理器、内存和网卡的组合设置只提交 `changedProperties` 选中的属性。未知值、恢复默认值和未修改字段的区别，按各模型的属性说明处理。
-
-创建、导入、导出、删除和电源控制使用单台入口。批量顺序、命名策略和创建后启动由应用安排。导入通过 `VmImportOptions` 明确 GUID 策略及目标配置。
-
-导入预览的 `DynamicMemory`、`HasSavedState` 改为 `bool?`，`MinimumMemoryMiB`、`MaximumMemoryMiB` 改为 `ulong?`。这四项尚未由解析器读取，返回 `null`；调用方应保留未知含义，不再把它们当作关闭或零值。
-
-连接后端标识使用 `RdpBasic` 或 `RdpEnhanced`。旧 `Enhanced` 布尔值和 `freerdp` 标识需要在调用方转换。
-
-其他签名变化以当前 API 参考为准。旧版本的调用示例不与本版本混用。
+| 迁移项 | 老写法 / 旧行为 | 新版写法 / 注意事项 |
+| --- | --- | --- |
+| **定位虚拟机** | 传虚拟机名称字符串 | 绝大多数接口改为传 **GUID**；设备操作传查询返回的设备引用（Linux GPU 部署保留原名称入口） |
+| **读取内存 / 处理器设置** | 直接读 `response.Data.Startup` | 返回值改为 `VmSettingsSnapshot<T>`：先看 `States["Startup"] == Available`，再读 `Values.Startup` |
+| **部分字段写入** | 传整个设置对象覆盖 | `VmProcessorService` / `VmMemoryService` / `VmNetworkService` 必须传 `changedProperties` 指定只改哪些字段 |
+| **单位换算** | 旧界面百分比/换算值 | 处理器 `Reservation`/`Limit` 用 `0.001%`（`100000` = 100%）；内存 `Weight` 用原始权重；网卡带宽用 `bit/s` |
+| **创建 / 电源 / 批量任务** | 内部自带批量或默认联动 | Core 统一为单台操作入口；批量顺序、命名避让、创建后是否开机由上层编排 |
+| **导入选项与未知值** | 自动按默认策略处理 | 导入通过 `VmImportOptions` 显式选 `Preserve`/`GenerateNew`；预览里的 `DynamicMemory`、`HasSavedState`、`MinimumMemoryMiB`、`MaximumMemoryMiB` 改为可空，返回 `null` 表示未解析而非关闭/零值 |
+| **控制台后端标识** | `Enhanced` 布尔值或 `freerdp` | 改用 `RdpBasic` / `RdpEnhanced` |
+| **UI 绑定与字段说明** | Core 模型带通知和文案 | Core 只管纯数据；属性通知、草稿状态和选项标签归 WinUI 视图模型，字段文案统一走生成的 `FieldHelp.json` |
 
 ## 接口参考
-
 
 <!-- api-reference:start -->
 

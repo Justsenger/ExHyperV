@@ -9,7 +9,7 @@ internal static partial class ApiDocument
     {
         "VmInstance", "VmProcessorSettings", "VmMemorySettings", "VmNetworkAdapter",
         "VmStorageAttachment", "VmDiskStatus", "VmGpuAssignment", "VmPcieSettings",
-        "VmPcieDeviceSetting", "BootOrderItem", "SpacetimeNode", "VmMmioSettings",
+        "VmPcieDeviceSetting", "VmSerialPort", "BootOrderItem", "SpacetimeNode", "VmMmioSettings",
         "VmSecurityInfo", "VmDisplayResolution", "VmBatteryState",
         "VmConsoleState", "AffinityState", "VmCpuCoreMetric", "VmDynamicMemoryData", "GpuUsageData",
         "VmGroup", "CheckpointInfo"

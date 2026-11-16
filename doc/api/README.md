@@ -39,7 +39,7 @@ node tools/api-docs/export.mjs <输出目录>
 
 能力介绍、使用流程和职责说明归入“功能说明”；类型摘要放在“描述”行。同一页面的相同说明只展示一次。
 
-网页首页只展示两大层面的介绍与分类入口，不展开类型或成员总表。网页不设独立“使用说明”栏目；catalog.json 的成员 `examples` 引用 UsageExamples.cs 中的示例名称，将已编译检查的示例展示在对应方法下。类型 XML 示例随对应功能页展示。
+网页首页只展示两大层面的介绍与分类入口，不展开类型或成员总表。网页不设独立“使用说明”栏目，并隐藏“设计图”导航；`catalog.json` 的成员 `examples` 引用 UsageExamples.cs 中的示例名称，将已编译检查的示例展示在对应方法下。类型 XML 示例随对应功能页展示。
 
 字段使用 `fielddoc` 组织含义、取值、适用条件、缺值和修改入口。固定选项写在 `values kind="options"`；格式与范围写在 `values kind="format"`。枚举取值来自声明。操作示例通过 `example:<名称>:start/end` 标记引用到指南。
 

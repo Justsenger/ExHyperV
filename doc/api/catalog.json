@@ -58,6 +58,12 @@
       "管理层面",
       "虚拟机",
       "查询",
+      "串口"
+    ],
+    [
+      "管理层面",
+      "虚拟机",
+      "查询",
       "引导"
     ],
     [
@@ -148,6 +154,12 @@
       "虚拟机",
       "修改",
       "PCIe"
+    ],
+    [
+      "管理层面",
+      "虚拟机",
+      "修改",
+      "串口"
     ],
     [
       "管理层面",
@@ -1267,6 +1279,17 @@
         "视频"
       ],
       "group": "console"
+    },
+    "ExHyperV.Models.VmSerialPort": {
+      "title": "虚拟机串口配置",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "修改",
+        "串口"
+      ],
+      "group": "devices"
     },
     "ExHyperV.Models.VmState": {
       "title": "虚拟机运行状态",
@@ -3410,6 +3433,28 @@
         "安全"
       ],
       "group": "vm"
+    },
+    "ExHyperV.Services.VmSerialPortFields": {
+      "title": "串口字段",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "串口"
+      ],
+      "group": "devices"
+    },
+    "ExHyperV.Services.VmSerialPortService": {
+      "title": "虚拟机串口管理",
+      "role": "entry",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "修改",
+        "串口"
+      ],
+      "group": "devices"
     },
     "ExHyperV.Services.VmSpacetimeService": {
       "title": "检查点管理",
@@ -7649,6 +7694,58 @@
       "group": "vm",
       "readOnly": true
     },
+    "P:ExHyperV.Models.VmDiskStatus.ReadOperationsPerSecond": {
+      "title": "读取 IOPS",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.WriteOperationsPerSecond": {
+      "title": "写入 IOPS",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.QueueLength": {
+      "title": "队列深度",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.ErrorCount": {
+      "title": "错误计数",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
     "P:ExHyperV.Models.VmGpuAssignment.DriverVersion": {
       "title": "驱动版本",
       "paths": [
@@ -11038,6 +11135,71 @@
         ]
       ],
       "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmSerialPort.DebuggerMode": {
+      "title": "内核调试模式",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmSerialPort.DebuggerModeAvailable": {
+      "title": "内核调试模式支持",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmSerialPort.Name": {
+      "title": "串口名称",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmSerialPort.PipePath": {
+      "title": "命名管道路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmSerialPort.PortNumber": {
+      "title": "串口编号",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
       "readOnly": false
     },
     "F:ExHyperV.Models.VmState.Deferred": {
@@ -14442,6 +14604,19 @@
           "宿主",
           "查询",
           "基本信息"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostSystemInfoService.GetProcessorDisplayNameAsync": {
+      "title": "处理器显示型号",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
         ]
       ],
       "group": "host",
@@ -20682,6 +20857,97 @@
       "group": "vm",
       "readOnly": true
     },
+    "F:ExHyperV.Services.VmMemoryFields.AvailableBufferPercent": {
+      "title": "可用内存缓冲比例",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "内存"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmMemoryFields.DemandMiB": {
+      "title": "内存需求",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "内存"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmMemoryFields.PressurePercent": {
+      "title": "当前内存压力",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "内存"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmMemoryFields.GuestVisibleMiB": {
+      "title": "来宾可见内存",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "内存"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmMemoryFields.GuestAvailableMiB": {
+      "title": "来宾可用内存",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "内存"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmMemoryFields.SmartPagingMiB": {
+      "title": "智能分页占用",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "内存"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmMemoryFields.SwapFilesInUse": {
+      "title": "交换文件使用状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "内存"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
     "F:ExHyperV.Services.VmMemoryFields.AvailablePercent": {
       "title": "来宾可用内存比例",
       "paths": [
@@ -23926,6 +24192,18 @@
       "group": "vm",
       "readOnly": false
     },
+    "F:ExHyperV.Services.VmQueryCollection.SerialPorts": {
+      "title": "SerialPorts",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
     "F:ExHyperV.Services.VmQueryCollection.Storage": {
       "title": "Storage",
       "paths": [
@@ -24590,6 +24868,78 @@
       "group": "vm",
       "readOnly": true
     },
+    "F:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.AvailableBufferPercent": {
+      "title": "可用内存缓冲比例",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.DemandMiB": {
+      "title": "内存需求",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.PressurePercent": {
+      "title": "当前内存压力",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.GuestVisibleMiB": {
+      "title": "来宾可见内存",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.GuestAvailableMiB": {
+      "title": "来宾可用内存",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.SmartPagingMiB": {
+      "title": "智能分页占用",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
     "P:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.AssignedSample": {
       "title": "内存分配采样状态",
       "paths": [
@@ -24604,6 +24954,78 @@
     },
     "P:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.AvailableSample": {
       "title": "可用内存采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.AvailableBufferSample": {
+      "title": "可用缓冲采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.DemandSample": {
+      "title": "内存需求采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.PressureSample": {
+      "title": "内存压力采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.GuestVisibleSample": {
+      "title": "来宾可见内存采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.GuestAvailableSample": {
+      "title": "来宾可用内存采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmQueryService.VmDynamicMemoryData.SmartPagingSample": {
+      "title": "智能分页采样状态",
       "paths": [
         [
           "管理层面",
@@ -25095,6 +25517,136 @@
         ]
       ],
       "group": "vm",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.VmSerialPortFields.DebuggerMode": {
+      "title": "内核调试模式",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmSerialPortFields.Name": {
+      "title": "串口名称",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmSerialPortFields.PipePath": {
+      "title": "命名管道路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmSerialPortFields.PortNumber": {
+      "title": "串口编号",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmSerialPortService.GetModificationCondition(ExHyperV.Models.VmState)": {
+      "title": "评估修改条件",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmSerialPortService.GetPipePathError(System.String)": {
+      "title": "检查命名管道路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmSerialPortService.GetSerialPortsAsync(System.Guid)": {
+      "title": "读取串口列表",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmSerialPortService.NormalizePipePath(System.String)": {
+      "title": "规范化命名管道路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmSerialPortService.SetDebuggerModeAsync(System.Guid,System.Int32,System.Boolean)": {
+      "title": "设置内核调试模式",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmSerialPortService.SetPipePathAsync(System.Guid,System.Int32,System.String)": {
+      "title": "设置命名管道连接",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
       "readOnly": false
     },
     "F:ExHyperV.Services.VmSecurityService.Setting.Encryption": {
@@ -25905,6 +26457,58 @@
     },
     "F:ExHyperV.Services.VmStorageFields.WriteBytesPerSecond": {
       "title": "磁盘写入速率",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmStorageFields.ReadOperationsPerSecond": {
+      "title": "磁盘读取 IOPS",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmStorageFields.WriteOperationsPerSecond": {
+      "title": "磁盘写入 IOPS",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmStorageFields.QueueLength": {
+      "title": "磁盘队列深度",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmStorageFields.ErrorCount": {
+      "title": "磁盘错误计数",
       "paths": [
         [
           "管理层面",
@@ -28260,6 +28864,13 @@
       "area": "查询",
       "category": "基本信息",
       "label": "基本信息汇总"
+    },
+    {
+      "owner": "HostSystemInfoService",
+      "member": "GetProcessorDisplayNameAsync",
+      "area": "查询",
+      "category": "处理器",
+      "label": "处理器显示型号"
     },
     {
       "owner": "HostProcessorPlatformService",

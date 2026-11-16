@@ -83,7 +83,7 @@ internal static partial class ApiDocument
                 (Old: "业务层面 / 键盘", Current: "业务层面 / 控制 / 键盘"),
                 (Old: "业务层面 / 鼠标", Current: "业务层面 / 控制 / 鼠标")
             }.ToDictionary(entry => Anchor("category:" + entry.Old), entry => Anchor("category:" + entry.Current)),
-            types, guides = Array.Empty<object>(), designs = HtmlDesigns(scan),
+            types, guides = Array.Empty<object>(), designs = Array.Empty<object>(),
             metadataKeys = scan.Types.SelectMany(type => type.Members.Where(member => member.Doc.Element("metadatakey") != null)
                 .Select(member => new
                 {

@@ -483,7 +483,7 @@ internal static partial class ApiDocument
         }
         static string Brief(XElement doc)
         {
-            string value = Regex.Replace(doc.Element("summary")?.Value ?? "", @"\s+", " ").Trim();
+            string value = Regex.Replace(BriefText(doc.Element("summary")), @"\s+", " ").Trim();
             int sentence = value.IndexOf('。');
             if (sentence >= 0) value = value[..(sentence + 1)];
             if (value.Length > 120) value = value[..117] + "…";
@@ -492,6 +492,17 @@ internal static partial class ApiDocument
                 .Replace("*", "\\*").Replace("_", "\\_");
             return Cell(escaped);
         }
+        static string BriefText(XNode? node) => node switch
+        {
+            null => "",
+            XText text => text.Value,
+            XElement e when e.Name.LocalName == "see" => e.Value.Length > 0 ? e.Value
+                : ReferenceLabel(e.Attribute("cref")?.Value ?? e.Attribute("langword")?.Value ?? e.Attribute("href")?.Value ?? ""),
+            XElement e when e.Name.LocalName is "c" or "paramref" or "typeparamref" => e.Attribute("name")?.Value ?? e.Value,
+            XElement e when e.Name.LocalName == "fielddoc" => "",
+            XElement e => string.Concat(e.Nodes().Select(BriefText)),
+            _ => ""
+        };
     }
     private static string Anchor(string id) => "api-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(id)))[..16].ToLowerInvariant();
     private static void AppendDoc(StringBuilder output, XElement doc, bool includeSummary = true)

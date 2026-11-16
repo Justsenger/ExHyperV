@@ -1,25 +1,32 @@
 # ExHyperV.Core API
 
-ExHyperV.Core 为 Windows 应用提供虚拟机管理、设备配置和画面交互能力。应用直接调用 DLL；第一次接入可以从下面的查询示例开始。
+`ExHyperV.Core` 是直接嵌入 Windows 应用进程内的 Hyper-V 核心类库，提供**虚拟机管理、硬件配置、导入导出、GPU 分区部署**以及**远程控制台画面/键鼠交互**能力。
 
 ## 开始使用
 
-引用 Core，列出虚拟机，取得后续操作使用的 GUID。
+首次接入只需三步：**满足运行环境 → 查出虚拟机 GUID → 按 GUID 调对应服务**。
 
-调用项目使用 `net10.0-windows`，启用 `ImplicitUsings`，以管理员权限运行。同仓库项目引用 `ExHyperV.Core.csproj`；独立部署时携带 Core DLL 及其构建输出中的依赖。Hyper-V 管理功能需要宿主提供相应组件。
+### 运行要求
 
-下面的示例方法可以放入应用的类中，文件顶部添加：
+- **目标框架**：`net10.0-windows`（建议开启 `ImplicitUsings`）
+- **运行权限**：以**管理员权限**运行宿主进程，并在系统启用 Hyper-V 管理功能
+- **引用方式**：同仓库项目直接引用 `ExHyperV.Core.csproj`；独立发布时随应用携带 `ExHyperV.Core.dll` 及其依赖
+- **常用命名空间**：
 
 ```csharp
 using ExHyperV.Models;
 using ExHyperV.Services;
 ```
 
+### 第一段能跑通的代码
+
+先实例化 `VmQueryService` 把本机虚拟机列出来。**记住 `vm.Key`（即虚拟机 GUID）**——因为虚拟机显示名称可以重名也可以改，后面开关机、改配置、连画面全都认 GUID，不认名称。
+
 <!-- api-example-list:start -->
 
-### 列举虚拟机
+### 列出所有虚拟机
 
-不传 vmIds 即查询全部虚拟机。输出 GUID 和名称，GUID 可用于后续修改或连接。
+最短的入门示例：不传 vmIds 就会查出本机全部虚拟机，拿到 GUID（vm.Key）后就能用来开关机或改配置。
 
 ```csharp
 public static async Task ListVmsAsync()
@@ -27,6 +34,7 @@ public static async Task ListVmsAsync()
     await using var service = new VmQueryService();
     var response = await service.QueryAsync(new VmQueryRequest([VmIdentityFields.Name]));
     if (!response.HasData) throw new InvalidOperationException(response.Error);
+
     foreach (var vm in response.Data.VirtualMachines)
     {
         var name = vm.Get(VmIdentityFields.Name);
@@ -37,19 +45,31 @@ public static async Task ListVmsAsync()
 
 <!-- api-example-list:end -->
 
-`vm.Key` 是虚拟机 GUID 的字符串形式。需要修改配置或建立连接时，使用 `Guid.Parse(vm.Key)`。显示名称可以重复，也可以修改，后续操作仍按 GUID 指定目标。
+### 常见任务速查
 
-接下来可按任务阅读：[查询数据](#查询数据)、[修改配置](#修改配置)、[创建导入与导出](#创建导入与导出)、[部署流程](#部署流程)、[连接与交互](#连接与交互)。具体字段和方法从左侧 API 目录查找。
+| 你想做什么 | 去找哪个入口 | 详细说明 |
+| --- | --- | --- |
+| 查列表、配置、IP 或运行状态 | `VmQueryService.QueryAsync` | [查询数据](#查询数据) |
+| 开机、关机、重启、强制断电 | `VmPowerService.ExecuteControlActionAsync` | [修改配置](#修改配置) |
+| 改名字、CPU、内存、网卡、磁盘 | `VmEditService` / `VmProcessorService` / `VmMemoryService` / `VmNetworkService` | [修改配置](#修改配置) |
+| 新建、删除、导入、导出虚拟机 | `VmCreateService` / `VmDeleteService` / `VmImportService` / `VmExportService` | [创建导入与导出](#创建导入与导出) |
+| 一键配置 GPU-PV 分区与驱动 | `GpuDeploymentSession` | [部署流程](#部署流程) |
+| 显示虚拟机屏幕、发键鼠与剪贴板 | `ConsoleService` / `VmScreenshotSource` | [连接与交互](#连接与交互) |
+| 统一处理报错、取消与资源清理 | `ApiResponse` / `CoreOperationException` | [结果、取消和资源释放](#结果取消和资源释放) |
 
 ## 查询数据
 
-一次查询可以自由选择不同领域的字段。虚拟机本身的属性直接返回；网卡、磁盘等一对多对象分别放在集合中。
+查询接口设计成“按需点菜”：你想要哪些字段就传哪些字段，不用每次拉整台虚拟机的全部信息，速度更快，也避免触发不必要的底层 WMI 或性能计数器查询。
+
+### 按需组合字段
+
+把需要的字段放进 `VmQueryRequest`。虚拟机自身属性（如内存大小、名称）直接从虚拟机行读取；网卡、磁盘这类一对多设备从对应的子集合读取。
 
 <!-- api-example-query:start -->
 
-### 读取内存和网卡
+### 按需查询多个领域的字段
 
-一次请求组合不同领域的字段。虚拟机字段直接读取，网卡字段从网卡集合逐项读取。
+可以把内存、网卡等不同领域的字段混在同一次请求里。虚拟机自身属性直接读，网卡/磁盘这类一对多设备从集合里遍历读取。
 
 ```csharp
 public static async Task<VmQueryResult> ReadSelectedFieldsAsync(Guid vmId)
@@ -59,17 +79,21 @@ public static async Task<VmQueryResult> ReadSelectedFieldsAsync(Guid vmId)
         [VmMemoryFields.Startup, VmNetworkFields.MacAddress], [vmId]);
     var response = await service.QueryAsync(request);
     if (!response.HasData) throw new InvalidOperationException(response.Error);
+
     foreach (var vm in response.Data.VirtualMachines)
     {
         var memory = vm.Get(VmMemoryFields.Startup);
         if (memory.HasValue) Console.WriteLine($"启动内存：{memory.Value} MiB");
+
         var adapters = vm.GetCollection(VmQueryCollection.NetworkAdapters);
         if (adapters.State == VmQueryValueState.Available)
+        {
             foreach (var adapter in adapters.Rows)
             {
                 var address = adapter.Get(VmNetworkFields.MacAddress);
                 if (address.HasValue) Console.WriteLine(address.Value);
             }
+        }
     }
     return response.Data;
 }
@@ -77,40 +101,37 @@ public static async Task<VmQueryResult> ReadSelectedFieldsAsync(Guid vmId)
 
 <!-- api-example-query:end -->
 
-### 选择目标与字段
+几个常用细节：
+- **目标范围**：`VmQueryRequest` 第二个参数传 GUID 列表；**省略不传**会查全部虚拟机，传**空列表**会直接返回空结果。查不到的 GUID 会放在 `MissingVmIds` 里。
+- **动态选字段**：不知道有哪些字段名时，可以从 `VmQueryFields.All` 遍历，或用 `VmQueryFields.Find("Memory.Startup")` 按标识查找。
+- **集合里的主键**：`VmQueryRow.Key` 用来区分同一集合里的不同项（虚拟机是 GUID，设备是设备标识；引导顺序的 Key 含顺序位置，重排后会变化）。
 
-`VmQueryRequest` 的第一个参数是字段，第二个参数是虚拟机 GUID 集合。省略目标会查询全部虚拟机；传入空集合会返回空结果。重复目标和字段自动去重。没有找到的指定目标列在 `MissingVmIds` 中。
+### 怎么判断有没有读到值
 
-字段页的“成员”是请求中使用的对象，例如 `VmMemoryFields.Startup`；“类型”是成功读取后 `Value` 的 C# 类型。需要动态选择字段时，可从 `VmQueryFields.All` 枚举，或用 `VmQueryFields.Find("Memory.Startup")` 按标识查找。
+外层 `response.HasData` 为 `true` 只代表这趟查询整体成功；具体到某一个字段，先看 `field.HasValue`（为 `true` 时再读 `field.Value`，包括合法的 `0`、`false` 或空字符串）。
 
-### 读取结果
+没取到值时，可以通过 `field.State` 区分原因：
 
-`response.HasData` 表示取得了整次查询结果；其中每个字段和设备集合还各有读取状态。字段 `HasValue` 为 true 时使用 `Value`，包括有效的 0、false 或空字符串。
+| 状态 | 通俗解释 | 常见情况 |
+| --- | --- | --- |
+| `Available` | 读到了有效数据 | 对于网卡/磁盘集合，表示列表真实为空 |
+| `NotRequested` | 这次没选这个字段 | 请求参数里没带它 |
+| `NotApplicable` | 当前状态下没有意义 | 比如虚拟机关机时去读 CPU 占用率 |
+| `WarmingUp` | 计数器还在热身 | 刚启动采样，等下一次轮询就有值了 |
+| `Unsupported` | 当前系统不支持 | 宿主 Windows 版本或硬件不支持该特性 |
+| `Unavailable` / `Ambiguous` / `Failed` | 没取到、无法归属或读取报错 | 需排障时看 `Error` 和 `Failure` |
 
-| 状态 | 含义 |
-| --- | --- |
-| `Available` | 取得本次有效值；集合为空时表示确认没有记录 |
-| `NotRequested` | 本次没有选择这个字段或集合 |
-| `Unsupported` | 当前系统缺少读取所需的能力 |
-| `NotApplicable` | 当前对象状态不适用，例如关机时的运行性能 |
-| `Unavailable` | 本次没有取得值 |
-| `WarmingUp` | 计数器正在建立基线 |
-| `Ambiguous` | 无法确定数据归属 |
-| `Failed` | 读取失败，原因见 `Error` 和 `Failure` |
+### 实时性能监控
 
-`VmQueryRow.Key` 用于关联同一集合内的记录。虚拟机记录使用 GUID；设备和检查点使用各自的来源身份。引导项的 Key 包含顺序位置，重排后会变化。
+做 CPU、内存或网络实时曲线时，**请复用同一个 `VmQueryService` 或 `HyperVCpuMonitorService` 实例**定时轮询——性能计数器需要靠同一个实例保留上一次基线才能算出增量。
 
-### 连续采样
-
-保留同一个 `VmQueryService` 实例进行周期查询，计数器才能延续采样基线。字段的 `ObservedAtUtc` 是其读取时间；一个请求内的不同来源可能在不同时刻完成。`Timings` 可用来查看哪些来源耗时较多。
-
-只选择需要的字段。同一来源的读取会合并；增加设备详情或性能指标，可能引入新的底层查询。
+一个请求里不同来源的数据可能在不同毫秒完成，可以看字段的 `ObservedAtUtc` 了解采样时间；想排查哪一步慢，看 `Timings` 即可。
 
 <!-- api-example-monitor:start -->
 
-### 更新处理器监控值
+### 持续采集虚拟机的 CPU 使用率
 
-只将有效的来宾处理器样本交给 update。缺测时不更新，由应用保留历史值；有效的零值仍会传出。
+过滤掉宿主机采样和还没建立好基线的无效采样；遇到无效采样时跳过即可，界面上继续保留上一帧数值。
 
 ```csharp
 public static void UpdateCpuValues(HyperVCpuMonitorService monitor, Action<Guid, int, float> update)
@@ -127,13 +148,17 @@ public static void UpdateCpuValues(HyperVCpuMonitorService monitor, Action<Guid,
 
 ## 修改配置
 
-用虚拟机 GUID 指定目标，再把需要变更的值交给对应服务。修改查询结果对象本身不会保存配置。
+改配置记住三个原则：**按 GUID 指定虚拟机、改前可先校验条件、只提交你改过的字段**。直接改查询出来的对象属性不会自动写回 Hyper-V。
+
+### 简单操作：直接改
+
+像改名、开关机（`VmPowerService.ExecuteControlActionAsync`）这类单步操作，直接把 `vmId` 和参数传给服务，然后看 `result.Success`：
 
 <!-- api-example-operation:start -->
 
-### 修改虚拟机名称
+### 重命名虚拟机
 
-将 GUID 和新名称交给修改接口，再检查执行结果。这里把失败转换为异常，应用也可以自行展示错误。
+把虚拟机 GUID 和新名字交给服务即可；通过 result.Success 判断是否成功，失败时可以直接向用户展示 result.Error。
 
 ```csharp
 public static async Task RenameAsync(Guid vmId, string newName)
@@ -146,47 +171,17 @@ public static async Task RenameAsync(Guid vmId, string newName)
 
 <!-- api-example-operation:end -->
 
-### 读取配置并编辑
+### 局部修改：`changedProperties` 的用法
 
-`GetVmMemorySettingsAsync` 与 `GetVmProcessorAsync` 返回 `VmSettingsSnapshot<T>`。`Values` 每次提供独立的编辑副本，`States` 按配置属性名给出本次读取状态，`ObservedAtUtc` 记录采集时间。值和状态来自同一个底层配置对象。
+处理器（`VmProcessorService`）、内存（`VmMemoryService`）和网卡（`VmNetworkService`）参数很多，为防止把别人或系统刚改过的值覆盖掉，写入时都需要传一个 `changedProperties` 集合——**只有点名在集合里的属性才会被修改**。
 
-先检查 `States[nameof(...)] == VmQueryValueState.Available`，再使用该字段的值。有效的 0、false 与缺值分开表示。处理器的“未设置”编码会映射成 null，其读取状态仍为 Available。
-
-<!-- api-example-settings-snapshot:start -->
-
-### 从读取快照创建内存编辑值
-
-检查启动内存的本次读取状态，仅提交调用方选择的字段。
-
-```csharp
-public static async Task ChangeStartupMemoryAsync(Guid vmId, long startupMiB)
-{
-    var response = await VmMemoryService.GetVmMemorySettingsAsync(vmId);
-    if (!response.HasData) throw new InvalidOperationException(response.Error);
-    var snapshot = response.Data!;
-    if (snapshot.States[nameof(VmMemorySettings.Startup)] != VmQueryValueState.Available)
-        throw new InvalidOperationException("本次未取得启动内存配置。");
-    var draft = snapshot.Values;
-    draft.Startup = startupMiB;
-    var result = await VmMemoryService.SetVmMemorySettingsAsync(vmId, draft,
-        [nameof(VmMemorySettings.Startup)]);
-    if (!result.Success) throw new InvalidOperationException(result.Error);
-}
-```
-
-<!-- api-example-settings-snapshot:end -->
-
-`GetModificationCondition` 等条件查询返回当前状态下的可修改性、原因和所需电源状态。界面据此启用控件；提交时 Core 重新读取目标并执行相同校验。
-
-### 提交部分字段
-
-处理器、内存和网卡设置提供 `changedProperties`，用于明确选择本次修改的属性。没有选中的值不参与普通回写；字段之间的必要联动由对应服务处理。
+如果你已经明确知道要改某个字段，可以直接构造请求并只点名那一项：
 
 <!-- api-example-processor-change:start -->
 
-### 修改处理器数量
+### 直接修改虚拟处理器核心数
 
-只提交 Count。模型中的其他属性不参与这次修改；调用前应按处理器接口要求关闭虚拟机。
+只提交 Count 字段，其余属性不会被覆盖。修改处理器数量前需要先把虚拟机关机。
 
 ```csharp
 public static async Task SetProcessorCountAsync(Guid vmId, int count)
@@ -200,53 +195,94 @@ public static async Task SetProcessorCountAsync(Guid vmId, int count)
 
 <!-- api-example-processor-change:end -->
 
-`null` 的含义取决于属性：有的表示本次不修改，有的表示恢复未设置状态。按具体设置模型的说明提交，不把整个查询快照当作修改清单。
+更稳妥的做法是“**先读后改**”：`GetVmMemorySettingsAsync` 和 `GetVmProcessorAsync` 会返回 `VmSettingsSnapshot<T>`，用 `States` 确认原值有效后，改完直接把改动的字段名传回去：
 
-处理器与内存写入按 VM 在使用 Core 的进程之间排队，读取最新配置后提交本次选择；同一字段以后一次请求为准。这种排队不覆盖 PowerShell 等外部工具。
+<!-- api-example-settings-snapshot:start -->
 
-### 判断结果
+### 先读后改：调整启动内存
 
-普通修改检查 `Success`，失败时使用 `ErrorKind` 判断类别，`Error` 提供说明。多步骤入口还会返回 `Steps` 或专用结果，记录已经完成的修改。
+先读取当前内存配置，确认成功取到值之后，只把改过的 Startup 字段提交回去，避免误改其他配置。
 
-配置保存和运行时生效由具体接口区分。有的修改立即生效，有的需要关闭虚拟机或重启宿主；返回的 `RequiresRestart` 和 `RestartReasons` 表示本次操作报告的宿主重启要求。
+```csharp
+public static async Task ChangeStartupMemoryAsync(Guid vmId, long startupMiB)
+{
+    var response = await VmMemoryService.GetVmMemorySettingsAsync(vmId);
+    if (!response.HasData) throw new InvalidOperationException(response.Error);
+
+    var snapshot = response.Data!;
+    if (snapshot.States[nameof(VmMemorySettings.Startup)] != VmQueryValueState.Available)
+        throw new InvalidOperationException("当前未能读取到启动内存配置。");
+
+    var draft = snapshot.Values;
+    draft.Startup = startupMiB;
+
+    // 第二个参数只传你想改的字段名，其余字段会自动保持原样。
+    var result = await VmMemoryService.SetVmMemorySettingsAsync(
+        vmId, draft, [nameof(VmMemorySettings.Startup)]);
+    if (!result.Success) throw new InvalidOperationException(result.Error);
+}
+```
+
+<!-- api-example-settings-snapshot:end -->
+
+### 改配置时的三个常见疑问
+
+1. **怎么提前知道某个按钮该不该灰掉？**
+   调用对应服务的 `GetModificationCondition(...)`（比如 `VmProcessorService.GetModificationCondition` 或 `VmMemoryService.GetModificationCondition`），它会告诉你当前电源状态下能不能改、不能改的原因，以及需要先切到什么状态。界面上可用它控制按钮状态，提交时 Core 内部也会再校验一遍。
+2. **传 `null` 是“不改”还是“恢复默认”？**
+   取决于具体属性：`CpuBrandString` 传 `null` 会清空；频率、能效偏好等部分高级属性传 `null` 会恢复为“未设置”；其余可空属性传 `null` 通常表示跳过不改。具体规则以对应设置类的说明为准，不要直接把整张查询对象当提交清单。
+3. **改完什么时候生效？**
+   有的配置（如动态调整部分内存、接通网卡）立即生效，有的要求关机才能改；如果操作触发了需要重启宿主机才能生效的更改，返回值里的 `RequiresRestart` 会为 `true`，`RestartReasons` 会写明原因。另外，Core 对同一台虚拟机的 CPU/内存写入会在进程间自动排队，防止并发写花。
 
 ## 创建导入与导出
 
-这些操作围绕单台虚拟机执行。批量任务由应用安排目标、顺序、并发与总进度。
+创建、删除、导入、导出都面向**单台虚拟机**设计。如果你在业务上要做批量创建或批量迁移，建议由上层自己控制并发、排队顺序和总进度条。
+
+### 创建与删除
+
+创建虚拟机时只需填充 `VmCreationParameters`；如果名字或目录撞车，Core 会按策略避让，并在结果里的 `ActualName`、`NameAdjusted`、`Notice` 告诉你最终落在哪里。
 
 <!-- api-example-create:start -->
 
-### 创建虚拟机
+### 创建一台虚拟机
 
-在指定目录创建一台启动内存为 1024 MiB、暂不附带磁盘的虚拟机。返回实际名称、GUID 和创建结果，后续启动单独安排。
+在指定目录创建一台 1024 MiB 内存、暂不挂载虚拟磁盘的虚拟机。创建后不会自动开机，需要单独调用电源控制。
 
 ```csharp
 public static async Task<VmCreationResult> CreateVmAsync(string configurationDirectory)
 {
     var result = await VmCreateService.CreateVirtualMachineAsync(new VmCreationParameters
     {
-        Name = "Example", Path = configurationDirectory, DiskMode = 2,
-        MemoryMiB = 1024 // MiB；此例稍后添加磁盘，创建不自动启动。
+        Name = "Example",
+        Path = configurationDirectory,
+        DiskMode = 2, // 暂不创建磁盘，稍后按需挂载
+        MemoryMiB = 1024
     });
-    // Success=false 时也可能已注册或状态未知；先检查 RegistrationState 和 RetainedPaths。
-    // 后续操作使用 result.VmId；NameAdjusted/Notice 报告自动避让，实际位置见 ConfigurationDirectory/DiskPath。
+    // 如果名称或目录撞车，result.NameAdjusted / result.Notice 会告诉你实际采用的命名和位置。
+    // 如果失败，可以通过 RegistrationState 和 RetainedPaths 确认是否留下半成品需要清理。
     return result;
 }
 ```
 
 <!-- api-example-create:end -->
 
-创建结果提供实际名称、GUID 和文件位置。发生名称或路径避让时，看 `ActualName`、`NameAdjusted` 和 `Notice`。失败后通过 `RegistrationState`、`VmId` 和 `RetainedPaths` 确认是否已经留下虚拟机或文件。
+删除分两档，按风险小心选用：
+- `VmDeleteService.DeleteVmAsync`：**只注销虚拟机**，配置文件和 `.vhdx` 磁盘文件都留着。
+- `VmDeleteService.PurgeVmAsync`：**彻底删除**，注销后还会顺带删掉确认专属于这台虚拟机的配置和磁盘；如果某个磁盘无法排除被其他虚拟机共享依赖，Core 会保留它并在结果里报告。删除前可以先调预览方法给用户二次确认。
 
-### 删除虚拟机
+### 导入虚拟机
 
-`VmDeleteService.DeleteVmAsync()` 注销虚拟机并保留文件。`PurgeVmAsync()` 还会删除执行时确认属于它的配置和磁盘；无法排除其他虚拟机依赖的磁盘会保留并报告。删除预览供调用方确认，实际删除范围以执行时的归属检查为准。
+导入分两步：**先预览拿到 `VmImportBatchSession`，等用户选好配置后再真正导入**。
+
+- **GUID 策略必须二选一**：`Preserve` 保留原虚拟机 ID（本机已有同 ID 时会失败）；`GenerateNew` 总是分配新 ID，导入成功后拿结果里的 `VmId` 当后续标识。
+- **名称、目录与交换机**：名称和目标目录省略时沿用原名和宿主默认路径；虚拟交换机按“来源 GUID → 目标 GUID”映射，映射为 `null` 表示先断开。
+- **用完务必 `await using` 释放**：哪怕只是看了眼预览不打算导入，也要释放会话来清理临时解压目录。
 
 <!-- api-example-import:start -->
 
-### 导入并清理工作文件
+### 预览并导入虚拟机（含临时文件清理检查）
 
-解析来源并检查预览，再为选中的虚拟机提交独立选项。options 必须明确保留或生成 GUID；可另选名称、目录和交换机映射。两个回调用于报告清理结果，以及保留尚未清理完成的会话。
+先解析导入目录拿到预览信息，再选中要导入的虚拟机提交 VmImportOptions。即使中途失败，也要把未清理完的会话状态通知上层。
 
 ```csharp
 public static async Task<VmImportResult> ImportVmAsync(string sourceDirectory, Guid originalVmId, VmImportOptions options,
@@ -262,9 +298,8 @@ public static async Task<VmImportResult> ImportVmAsync(string sourceDirectory, G
             throw new InvalidOperationException(prepared.Result.Error);
         await using (batch)
         {
-            // 实际应用展示来源预览，让用户确定 options；预览本身不接受修改。
+            // 通常先在界面把 batch.VirtualMachines 展示给用户，选定后构造 options 再导入。
             var selected = batch.VirtualMachines.Single(item => item.Preview.OriginalGuid == originalVmId);
-            // 上层选择一个目标；多台时由上层决定执行顺序及失败后的安排。
             return await VmImportService.ImportAsync(selected, options);
         }
     }
@@ -272,9 +307,8 @@ public static async Task<VmImportResult> ImportVmAsync(string sourceDirectory, G
     {
         if (batch != null)
         {
-            // 预览失败时 Core 已尝试清理，也必须检查结果。
+            // 如果解压临时目录没能一次删干净，保留 batch 引用以便用户稍后重试 DisposeAsync，别直接硬删 RetainedPaths。
             reportCleanup(batch.CleanupState, batch.RetainedPaths, batch.CleanupError);
-            // 宿主保留引用供用户重试 DisposeAsync；勿自行删除 RetainedPaths。
             if (batch.CleanupState != VmImportCleanupState.Completed)
                 retainForCleanupRetry(batch);
         }
@@ -284,15 +318,13 @@ public static async Task<VmImportResult> ImportVmAsync(string sourceDirectory, G
 
 <!-- api-example-import:end -->
 
-导入先取得预览和会话，再为选中的虚拟机提交 `VmImportOptions`。GUID 策略必须明确选择：`Preserve` 保留来源身份，冲突时失败；`GenerateNew` 始终生成新身份。成功后使用结果中的 `VmId`。
-
-名称和目录可以省略，使用来源名称及宿主默认放置规则。填写目录时使用实际目标目录。交换机映射按来源和目标 GUID 指定，映射为 null 表示断开。详细选项见 `VmImportOptions`。
+如果导入来源是**加密 ZIP 压缩包**，预览阶段就要通过 `VmImportArchiveOptions` 传入密码和解压额度限制（防压缩炸弹），预览消耗的额度会计入同一批次：
 
 <!-- api-example-archive-preview:start -->
 
-### 带密码和额度的导入预览
+### 从加密压缩包预览可导入的虚拟机
 
-从预览开始设置 ZIP 读取参数。示例额度只是调用方策略；正式导入继续使用同一批次，预览读取也计入累计额度。
+如果导入来源是带密码的 ZIP，在预览阶段就要传入密码、临时目录和解压上限；预览和正式导入共用同一个 batch 会话。
 
 ```csharp
 public static async Task PreviewEncryptedImportAsync(string archivePath, string password, string workDirectory,
@@ -307,45 +339,52 @@ public static async Task PreviewEncryptedImportAsync(string archivePath, string 
             MaxEntryBytes = 1024L * 1024 * 1024 * 1024,
             MaxTotalBytes = 2L * 1024 * 1024 * 1024 * 1024
         }, VmImportPlacementMode.HostDirectories, cancellationToken: cancellationToken);
+
     await using var batch = prepared.Batch;
     if (!prepared.Success)
     {
         if (prepared.Result.Exception is VmImportArchiveException archiveError)
-            Console.WriteLine(archiveError.Reason);
+            Console.WriteLine($"压缩包读取失败：{archiveError.Reason}");
         throw new InvalidOperationException(prepared.Result.Error, prepared.Result.Exception);
     }
+
     foreach (var session in batch!.VirtualMachines)
         Console.WriteLine(session.Preview.Name);
-    // 需要导入时，在释放 batch 之前提交 VmImportOptions 并调用 ImportAsync。
+    // 确认要导入哪台后，在释放 batch 之前直接调用 VmImportService.ImportAsync(session, options)。
 }
 ```
 
 <!-- api-example-archive-preview:end -->
 
+### 导出与打包
+
+先用 `VmExportService.ExportAsync` 导出到指定目录（可按需勾选磁盘、检查点和运行状态）：
+
 <!-- api-example-export:start -->
 
 ### 导出一台虚拟机
 
-导出磁盘，不导出检查点和运行状态。调用方提供一个已存在的目标根目录，并检查返回结果中的状态与保留文件。
+把虚拟机配置和虚拟磁盘导出到指定目录（跳过检查点和运行状态）。
 
 ```csharp
 public static Task<VmExportResult> ExportVmAsync(Guid vmId, string destinationDirectory)
     => VmExportService.ExportAsync(vmId, destinationDirectory,
-        includeVirtualHardDisks: true, excludedVirtualHardDisks: [],
-        checkpointMode: VmExportCheckpointMode.None, selectedCheckpoint: null,
+        includeVirtualHardDisks: true,
+        excludedVirtualHardDisks: [],
+        checkpointMode: VmExportCheckpointMode.None,
+        selectedCheckpoint: null,
         includeRuntimeState: false);
-// 失败时检查 RetainedPaths；OperationStateUnknown=true 不表示后台导出已停止。
 ```
 
 <!-- api-example-export:end -->
 
-导出可以选择磁盘、检查点和运行状态。导出成功后，如需归档，再调用打包接口。
+导出成功后如果想打成压缩包或加密归档，再调用 `VmExportPackagingService.CreatePackageAsync`（支持 AES-256 加密，跨工具解压建议使用纯 ASCII 密码）：
 
 <!-- api-example-encrypted-export:start -->
 
-### 创建加密导出包
+### 把导出目录打包成加密 ZIP
 
-对已经导出的目录打包，选择压缩级别、AES-256 和保留源目录。密码由调用方取得；跨工具交换建议使用 ASCII 密码。
+先用 VmExportService 导出虚拟机目录，再调用打包接口压缩并设置 AES-256 密码。跨工具解压时建议使用纯 ASCII 密码。
 
 ```csharp
 public static async Task PackageExportAsync(string exportDirectory, string archivePath, string password,
@@ -357,7 +396,7 @@ public static async Task PackageExportAsync(string exportDirectory, string archi
             CompressionLevel = VmExportCompressionLevel.Optimal,
             Encryption = VmExportEncryption.Aes256,
             Password = password,
-            SourceHandling = VmExportSourceHandling.Keep
+            SourceHandling = VmExportSourceHandling.Keep // 打包完成后保留原导出目录
         }, cancellationToken: cancellationToken);
     if (!result.Success) throw new InvalidOperationException(result.Error, result.Exception);
     Console.WriteLine(result.Data!.ArchivePath);
@@ -368,13 +407,17 @@ public static async Task PackageExportAsync(string exportDirectory, string archi
 
 ## 部署流程
 
-GPU 部署需要选择设备、处理电源、扫描磁盘并安装驱动。Core 管理步骤和规则，应用展示当前状态并提交用户决定。
+给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区、安装 Windows 驱动或通过 SSH 部署 Linux 驱动。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
+
+### 用一个循环跑完部署
+
+调用方只需要不断跑 `StartAsync()` / `SubmitDecisionAsync(...)`：当 `State == GpuDeploymentState.WaitingForDecision` 时，把 `PendingDecision` 里的信息弹窗给用户，拿回用户选择（带上原 `RequestId`）继续往下推；如果用户点取消，传 `null` 或调用 `CancelAsync()`。
 
 <!-- api-example-workflow:start -->
 
-### 推进 GPU 部署流程
+### 驱动 GPU 分区与驱动部署流程
 
-调用方提供已创建的部署会话，并通过 decide 回答本次待确认的问题。返回 null 表示取消；返回决定时使用当前请求的 Id。
+GPU 部署会在需要用户拍板时暂停（例如选分区或确认关机）。每次循环读取 PendingDecision，把用户的选择通过 SubmitDecisionAsync 交回 Core 即可；返回 null 表示取消。
 
 ```csharp
 public static async Task<GpuDeploymentSnapshot> DeployGpuAsync(
@@ -387,21 +430,17 @@ public static async Task<GpuDeploymentSnapshot> DeployGpuAsync(
         while (status.State == GpuDeploymentState.WaitingForDecision)
         {
             var request = status.PendingDecision
-                ?? throw new InvalidOperationException("缺少待处理决定。");
+                ?? throw new InvalidOperationException("部署流程处于等待状态，但缺少待确认事项。");
             var decision = await decide(request);
             if (decision is null)
                 return await session.CancelAsync();
             status = await session.SubmitDecisionAsync(decision);
         }
-        // 调用者须检查 Completed / Failed / Cancelled / CleanupRequired 及错误字段。
-        // 只有 AllowedActions 包含 RetryCleanup 且 OutcomeUnknown=false 时，才能在处理原因后重试清理。
-        // OutcomeUnknown 表示原生操作尚未确认结束，不能通过重试清理来猜测是否完成。
-        // 允许 Reconcile 时可先只读核实；核实成功也不会继续部署。
+        // 循环结束后，根据 status.State（Completed / Failed / Cancelled / CleanupRequired）展示最终结果。
         return status;
     }
     catch
     {
-        // 收集决定或提交失败时先等待清理；清理状态仍可从 session.GetStatus() 读取。
         await session.CancelAsync();
         throw;
     }
@@ -410,52 +449,62 @@ public static async Task<GpuDeploymentSnapshot> DeployGpuAsync(
 
 <!-- api-example-workflow:end -->
 
-`PendingDecision` 是当前等待的决定，提交时携带它的请求 Id。`AllowedActions` 列出当前允许执行的动作，应用据此提供继续、取消或清理入口。
+### 部署中途失败或被取消怎么办？
 
-### 处理未完成的部署
-
-`Completed` 表示流程完成。`CleanupRequired` 表示还有资源需要处理；`OutcomeUnknown` 表示底层操作的最终结果尚未确认。后者应先通过允许的 `ReconcileAsync()` 核实，再根据新状态决定清理或结束。
+看最后快照的 `State` 和 `AllowedActions` 就行，不用自己猜：
+- `Completed`：全部搞定。
+- `CleanupRequired`：留下了临时挂接的磁盘或刚建出来的半成品适配器。
+- `OutcomeUnknown`：底层 WMI/磁盘异步任务还没返回最终结果。**此时不要直接强行删东西**，先按 `AllowedActions` 调 `ReconcileAsync()` 核实一遍真实状态，确认安全后再调 `RetryCleanupAsync()` 清理。
 
 <!-- api-example-gpu-recovery:start -->
 
-### 核实和清理 GPU 部署
+### 处理中断或未清理完的 GPU 部署
 
-使用原来的部署对象。先核实原任务；requestCleanup 表示调用方已经明确要求清理。方法返回后仍须检查状态和剩余资源，不循环重试写入。
+如果上次部署卡在结果未知或需要清理，直接对原 session 实例先核实状态（ReconcileAsync），确认安全后再触发清理（RetryCleanupAsync）。
 
 ```csharp
 public static async Task<GpuDeploymentSnapshot> RecoverGpuAsync(GpuDeploymentSession session, bool requestCleanup)
 {
     var status = session.GetStatus();
+
+    // 底层任务结果还没确认时，先只读核实，别急着清理。
     if (status.AllowedActions.Contains(GpuDeploymentAction.Reconcile))
         status = await session.ReconcileAsync();
+
+    // 核实完毕、确认安全且允许重试清理时，再把临时挂载的磁盘和多余适配器清掉。
     if (requestCleanup && !status.OutcomeUnknown && status.AllowedActions.Contains(GpuDeploymentAction.RetryCleanup))
         status = await session.RetryCleanupAsync();
-    // CleanupRequired 时检查 status.Recovery.Resources 和 status.CleanupError。
-    // Failed / Cancelled 表示这次部署结束；恢复不会把它变成 Completed。
+
     return status;
 }
 ```
 
 <!-- api-example-gpu-recovery:end -->
 
-恢复信息保存在原部署对象的 `Recovery` 中，包括执行记录、资源归属和待恢复状态。它用于当前进程内的这次部署。清理负责恢复哪些临时资源、哪些已完成修改会保留，见 `GpuDeploymentSession` 的对应方法。
+所有的进度记录和待清理资源清单都保存在原 `session` 实例的 `Recovery` 属性里；只有当次进程内的原会话对象能用来核实和收尾。
 
 ## 连接与交互
 
-先建立连接，再使用该连接提供的视频、控制和剪贴板能力。
+`ConsoleService` 负责连上虚拟机屏幕并收发键鼠/剪贴板；如果只需要列表页的静态缩略图，**不用建连接**，直接用 `VmScreenshotSource.CaptureAsync()` 通过 WMI 抓一张即可。
 
-| 后端 | 当前实现 |
-| --- | --- |
-| `RdpBasic` | 基本会话画面、键盘和鼠标 |
-| `RdpEnhanced` | 增强会话画面、键盘和鼠标、剪贴板，以及分辨率请求 |
+### 选基本会话还是增强会话
 
-基本和增强会话均由 FreeRDP 实现。`ConsoleService.GetBackends()` 提供当前后端目录，目标是否支持增强会话还取决于来宾。
+| 连接方式 | 常量标识 | 适合场景 | 能力范围 |
+| --- | --- | --- | --- |
+| 基本会话 | `RdpBasic` | 看开机画面、进 BIOS/UEFI、装系统、系统未启用增强会话时 | 画面、键盘、鼠标 |
+| 增强会话 | `RdpEnhanced` | 日常远程桌面操作（需来宾系统支持并开启增强会话） | 画面、键盘、鼠标、双向剪贴板、动态调整分辨率 |
+
+两种后端目前都基于 FreeRDP 实现，可通过 `ConsoleService.GetBackends()` 查当前可用列表。
+
+### 连接与取图示例
+
+记住两个顺序：**先订阅事件，再调 `Start()`**；**每个连接对象只能启动一次**，断开重连请创建新对象。
 
 <!-- api-example-resource:start -->
 
-### 接收控制台画面
+### 连接虚拟机桌面并接收画面帧
 
-建立基本会话，把收到的画面交给 onFrame。取消等待或连接结束后，等待清理完成。onFrame 应快速处理；需要延后读取时自行 Retain。
+建立基本会话连接，通过 FrameReceived 回调持续接收 BGRA32 画面；结束或取消时调用 DisconnectAsync 释放连接。
 
 ```csharp
 public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
@@ -463,12 +512,15 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 {
     await using var connection = ConsoleService.CreateConnection(
         new ConsoleConnectionOptions { VmId = vmId }, ConsoleService.RdpBasicBackendId);
-    var video = connection.Video ?? throw new NotSupportedException("所选连接方式不提供画面。");
+    var video = connection.Video ?? throw new NotSupportedException("当前连接方式不提供画面输出。");
     var disconnected = new TaskCompletionSource<ConsoleDisconnectInfo>(
         TaskCreationOptions.RunContinuationsAsynchronously);
+
+    // 一定要先订阅事件，再调用 Start()。
     video.FrameReceived += onFrame;
     connection.Disconnected += info => disconnected.TrySetResult(info);
-    connection.Start(); // 异步启动；成功由 Connected 事件通知，错误由 Disconnected 报告。
+    connection.Start();
+
     try
     {
         return await disconnected.Task.WaitAsync(cancellationToken);
@@ -483,106 +535,74 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-example-resource:end -->
 
-### 连接状态
+### 处理画面、输入和剪贴板的 4 个实战提醒
 
-先订阅事件，再调用 `Start()`。`Connected` 表示连接已建立，`LoginCompleted` 表示后端报告登录完成；剪贴板就绪由自身的 `IsAvailable` 表示。每个连接对象只启动一次，重连时创建新对象。
-
-事件可能从后台线程触发。耗时工作交给其他线程，界面更新调度回界面线程；回调应及时返回，不能在其中同步等待同一连接退出。
-
-### 画面和取图
-
-`FrameReceived` 提供完整的 BGRA32 图像及变化区域。帧在回调期间借出；跨回调保存时先调用 `Retain()`，用完释放。`CopyPixels()` 返回独立的像素数组。
-
-`Video.CaptureFrame()` 取得当前连接最近的完整画面；没有可用画面时返回 null，取得的帧由调用方释放。基本和增强会话各自使用自己的连接画面。
-
-虚拟机列表预览使用 `VmScreenshotSource.CaptureAsync()`，无需连接，通过 WMI 读取基本控制台画面。它与增强会话桌面是不同来源。
-
-### 输入与剪贴板
-
-键盘使用 `Input.SendKey()`，组合键可用 `SendKeys()`；鼠标使用 `SendPointer()` 或 `SendClick()`，坐标按来宾桌面像素计算。界面失焦时调用 `ReleaseAllInputs()` 释放按键和按钮。
-
-输入方法返回 true 表示请求被 Core 接收。调整分辨率也是异步请求，实际尺寸以随后收到的帧为准。
-
-剪贴板就绪后，通过 `SetClipboard()` 发送，通过 `ClipboardReceived` 接收。具体格式和回调约定见 `IConsoleClipboard`；宿主系统剪贴板由调用应用负责接入。
+1. **别在 `FrameReceived` 回调里做重活**
+   事件都在后台线程触发，界面更新记得调度回 UI 线程；回调本身要尽快返回，**绝对不要在回调里同步等待当前连接断开**，否则会死锁。
+2. **帧内存是借用的**
+   `FrameReceived` 回调给你的 `ConsoleFrame` 只在回调期间有效。如果想异步拿去渲染或存下来，先调 `frame.Retain()`，用完后一定要 `Dispose()`；或者直接调 `CopyPixels()` 拿一份独立字节数组。
+3. **随时抓当前一帧**
+   调 `Video.CaptureFrame()` 可以直接取当前连接的最新完整画面（没有画面时返回 `null`，取到的帧用完记得释放）。基本会话和增强会话各自的画面是独立的，互不替代。
+4. **键盘、鼠标和剪贴板**
+   键盘用 `Input.SendKey()` / `SendKeys()`，鼠标用 `SendPointer()` / `SendClick()`（坐标按来宾桌面像素计算）。**当应用窗口失去焦点时，记得调用 `ReleaseAllInputs()`**，防止 Ctrl/Alt/鼠标左键卡死在按住状态。剪贴板通道就绪由 `IsAvailable` 标识，准备好后即可通过 `SetClipboard()` 和 `ClipboardReceived` 收发文本/图像。
 
 ## 结果、取消和资源释放
 
-这一节说明各模块共用的结果和资源约定；具体操作的额外返回值见对应接口。
+### 怎么读返回值和报错
 
-### 读取结果
+大多数操作返回 `ApiResponse` 或 `ApiResponse<T>`，少数方法会直接抛出 `CoreOperationException`（异常里的 `Result` 包含同样完整的错误信息）：
 
-`ApiResponse` 用 `Success` 表示操作是否成功。`ApiResponse<T>` 还包含数据；读取 `Data` 前检查 `HasData`。成功但没有结果用 `IsEmpty` 表示，和失败分开。
+- **判断是否成功**：无数据看 `Success`；有数据先检查 `HasData` 再读 `Data`（成功但查无记录会标记为 `IsEmpty`，和报错分开）。
+- **代码分支看 `ErrorKind`，提示用户看 `Error`**：`Error` 文本可能会本地化或调整措辞，代码里永远不要用字符串匹配错误，而是判断 `ErrorKind`；深挖底层 WMI/Win32 错误码再看 `ErrorSource`、`Code` 和 `Exception`。
 
-`ErrorKind` 是供程序判断的错误类别，`Error` 是供人阅读的说明。需要排查底层失败时，再看 `ErrorSource`、`Code` 和 `Exception`。使用异常形式的操作通过 `CoreOperationException.Result` 提供同样的结构化信息；VMCX 编辑等工具还有自己的异常类型。
-
-多步骤结果会记录已完成的部分。`CleanupRequired` 表示清理尚未完成，`OutcomeUnknown` 表示执行结果未确认；先按该流程提供的核实或清理入口处理，再决定是否重新发起。
-
-### 根据错误决定下一步
-
-| 错误类别 | 处理方式 |
+| `ErrorKind` | 建议处理方式 |
 | --- | --- |
-| `InvalidArgument` | 按参数范围修正输入后提交 |
-| `AmbiguousTarget` | 重新查询候选，使用唯一身份指定目标 |
-| `InvalidState` | 按条件查询返回的 RequiredState 调整目标状态 |
-| `AccessDenied` | 使用具备目标操作权限的 Windows 身份 |
-| `Cancelled` | 按结果中的步骤状态结束本次调用 |
-| `NotFound` | 重新查询目标，使用当前 GUID 或设备身份 |
-| `Unsupported` | 读取宿主能力，选择支持的设置 |
-| `Conflict` | 按返回原因重新取得对象或流程状态 |
-| `OutcomeUnknown` | 查询原操作状态；会话流程按 AllowedActions 核实 |
-| `CleanupRequired` | 调用结果指向的清理入口，完成后读取新状态 |
-| 其他失败 | 读取 Error、Code、ErrorSource 和 Steps 定位失败步骤 |
+| `InvalidArgument` | 参数超出范围或格式不对，修正输入再提交 |
+| `NotFound` | 目标 VM 或设备已经不存在，刷新列表重新获取 GUID |
+| `AmbiguousTarget` | 名称不唯一，改用 GUID 指定目标 |
+| `InvalidState` | 虚拟机电源状态不对（比如开机时改了需要关机的项），先按条件调整状态 |
+| `AccessDenied` | 权限不足，确认进程以管理员身份运行 |
+| `Conflict` | 有其他操作冲突或状态已变化，重新读取最新状态再试 |
+| `Unsupported` | 当前宿主版本或硬件不支持该功能 |
+| `OutcomeUnknown` / `CleanupRequired` | 操作结果未明或残留临时资源，按对应流程的核实/清理方法处理 |
+| `Cancelled` / 其他 | 检查多步骤结果 `Steps` 确认哪些已完成、在哪一步中断 |
 
-Core 是进程内 DLL，调用权限来自宿主 Windows 进程。Web 与 MCP 的身份验证由各自入口负责。查询返回本次请求的完整结果集；字段选择和目标 GUID 集合用于控制读取范围。
+### 取消操作与必须释放的对象
 
-### 取消与退出
+所有支持 `CancellationToken` 的操作在取消后，已经发给 Windows/WMI 的底层调用可能需要等它返回后才会停止后续步骤——**取消等待不会把已经写完的配置自动回滚**。
 
-支持取消的接口提供 `CancellationToken` 或取消方法。已经提交的 WMI 或原生调用可能需要等待返回，再停止后续步骤和释放资源。停止等待本身不会撤销已经完成的修改。
+下列对象用完请务必释放：
 
-| 使用的对象 | 结束方式 |
-| --- | --- |
-| 查询或监控实例 | 调用 Dispose；提供 DisposeAsync 时可等待释放完成 |
-| 控制台连接 | 等待 DisconnectAsync 或 DisposeAsync |
-| 保留或单独取得的帧 | 每份租约分别 Dispose |
-| 导入会话 | 等待 DisposeAsync，检查 CleanupState 和剩余文件 |
-| 磁盘挂载租约 | 在读写及恢复完成后等待 ReleaseAsync 或 DisposeAsync |
+| 对象 | 释放方式 | 备注 |
+| --- | --- | --- |
+| `VmQueryService` / `HyperVCpuMonitorService` | `Dispose` 或 `await DisposeAsync` | 会等待进行中的性能计数器采样结束并回收资源 |
+| `IConsoleConnection` | `await DisconnectAsync` 或 `await DisposeAsync` | 断开桌面连接并清理 FreeRDP 会话 |
+| 手动 `Retain()` 或 `CaptureFrame()` 拿到的帧 | 每份分别 `Dispose` | 避免占满帧池 |
+| `VmImportBatchSession` / `VmImportSession` | `await DisposeAsync` | 会清理临时解压目录；释放后检查 `CleanupState` |
+| 磁盘挂载租约（历史磁盘挂接） | `await ReleaseAsync` 或 `await DisposeAsync` | 用完及时卸载 |
 
-导入会话在导入中释放时，会请求停止后续步骤，等待正在进行的操作安全结束，再清理工作文件；成功导入的虚拟机保留。释放失败的详细状态仍由原会话提供。
-
-### 共享 ARP 捕获
-
-需要辅助 IP 来源时，调用 `ArpSnoopService.Instance.Start()`；宿主程序最终退出时等待 `SharedBackgroundServices.ShutdownAsync()`。这项清理属于进程退出，不属于页面关闭；同一进程清理后不能再次启动捕获。
+另外，如果应用开启了局域网 ARP 辅助 IP 发现（`ArpSnoopService.Instance.Start()`），**在宿主程序最终退出时**等待一次 `SharedBackgroundServices.ShutdownAsync()` 即可（不要在每次切页面时关它，进程内关闭后不能重启）。
 
 ## 升级已有调用
 
-本次配置读取返回值改为 `VmSettingsSnapshot<VmMemorySettings>` 和 `VmSettingsSnapshot<VmProcessorSettings>`。原有 `response.Data.Startup` 改为读取 `response.Data.Values.Startup`，并检查相应 `States`。
+如果你正在把老版本调用迁到当前 `ExHyperV.Core`，重点对照下面几处变化即可：
 
-Core 配置、设备和采样模型提供普通数据属性。WinUI 的属性通知、编辑草稿、下拉选项和界面线程调度由视图模型持有。字段解释由同一份 API 材料生成到 `FieldHelp.json`。
-
-
-
-升级前对照所用 Core 版本，重点检查标识、单位和提交方式。
-
-多数虚拟机操作已使用 GUID；设备操作使用查询得到的设备引用。旧名称调用不能直接当作 GUID 使用。Linux GPU 部署仍保留其原有名称入口。
-
-处理器的 `Reservation`、`Limit` 使用 0.001%，100000 表示 100%；内存 `Weight` 使用原始权重；网络带宽 `*BitsPerSecond` 使用 bit/s。从旧界面数值迁移时需要换算，不能只改属性名称。
-
-处理器、内存和网卡的组合设置只提交 `changedProperties` 选中的属性。未知值、恢复默认值和未修改字段的区别，按各模型的属性说明处理。
-
-创建、导入、导出、删除和电源控制使用单台入口。批量顺序、命名策略和创建后启动由应用安排。导入通过 `VmImportOptions` 明确 GUID 策略及目标配置。
-
-导入预览的 `DynamicMemory`、`HasSavedState` 改为 `bool?`，`MinimumMemoryMiB`、`MaximumMemoryMiB` 改为 `ulong?`。这四项尚未由解析器读取，返回 `null`；调用方应保留未知含义，不再把它们当作关闭或零值。
-
-连接后端标识使用 `RdpBasic` 或 `RdpEnhanced`。旧 `Enhanced` 布尔值和 `freerdp` 标识需要在调用方转换。
-
-其他签名变化以当前 API 参考为准。旧版本的调用示例不与本版本混用。
+| 迁移项 | 老写法 / 旧行为 | 新版写法 / 注意事项 |
+| --- | --- | --- |
+| **定位虚拟机** | 传虚拟机名称字符串 | 绝大多数接口改为传 **GUID**；设备操作传查询返回的设备引用（Linux GPU 部署保留原名称入口） |
+| **读取内存 / 处理器设置** | 直接读 `response.Data.Startup` | 返回值改为 `VmSettingsSnapshot<T>`：先看 `States["Startup"] == Available`，再读 `Values.Startup` |
+| **部分字段写入** | 传整个设置对象覆盖 | `VmProcessorService` / `VmMemoryService` / `VmNetworkService` 必须传 `changedProperties` 指定只改哪些字段 |
+| **单位换算** | 旧界面百分比/换算值 | 处理器 `Reservation`/`Limit` 用 `0.001%`（`100000` = 100%）；内存 `Weight` 用原始权重；网卡带宽用 `bit/s` |
+| **创建 / 电源 / 批量任务** | 内部自带批量或默认联动 | Core 统一为单台操作入口；批量顺序、命名避让、创建后是否开机由上层编排 |
+| **导入选项与未知值** | 自动按默认策略处理 | 导入通过 `VmImportOptions` 显式选 `Preserve`/`GenerateNew`；预览里的 `DynamicMemory`、`HasSavedState`、`MinimumMemoryMiB`、`MaximumMemoryMiB` 改为可空，返回 `null` 表示未解析而非关闭/零值 |
+| **控制台后端标识** | `Enhanced` 布尔值或 `freerdp` | 改用 `RdpBasic` / `RdpEnhanced` |
+| **UI 绑定与字段说明** | Core 模型带通知和文案 | Core 只管纯数据；属性通知、草稿状态和选项标签归 WinUI 视图模型，字段文案统一走生成的 `FieldHelp.json` |
 
 ## 接口参考
 
-
 <!-- api-reference:start -->
 
-<!-- source-sha256: c211a37c5cdcdb780964f53a23fec224b87c44d31187fd6fff9662c74e27749f -->
+<!-- source-sha256: fbbc62e63a435da7096dc5f35cbf5d3ee20372e71a0e7b9868958bd8b9c6fbec -->
 
 程序集：`ExHyperV.Core.dll` · 版本：`2.0.0-Alpha`。
 
@@ -611,7 +631,7 @@ Core 配置、设备和采样模型提供普通数据属性。WinUI 的属性通
 | [` VmQueryRow `](#api-0c141aad85fe3927) | ` ExHyperV.Services ` | 一台虚拟机或一个子对象的只读投影；仅包含请求字段。 |
 | [` VmQueryService `](#api-043fe4f6d9c1db33) | ` ExHyperV.Services ` | 读取虚拟机列表并持有按需创建的性能计数器；调用者负责释放实例。 |
 | [` VmQueryService.GpuUsageData `](#api-c6acc9d5e6fe51eb) | ` ExHyperV.Services ` | 按 GPU 引擎类别聚合的一次虚拟机采样结果。 |
-| [` VmQueryService.VmDynamicMemoryData `](#api-71bb74d4d3230055) | ` ExHyperV.Services ` | 虚拟机当前内存占用与可用百分比。 |
+| [` VmQueryService.VmDynamicMemoryData `](#api-71bb74d4d3230055) | ` ExHyperV.Services ` | 虚拟机当前内存占用与压力、需求及来宾视角指标。 |
 | [` VmQueryTiming `](#api-ebac90479a0ebe98) | ` ExHyperV.Services ` | 查询引擎执行阶段的耗时，用于比较来源成本；并行阶段耗时不能直接相加作为总时间。 |
 | [` VmQueryValue `](#api-6ab0c100b6d64513) | ` ExHyperV.Services ` | 供动态调用方枚举的字段结果基类。 |
 | [` VmQueryValue<T> `](#api-78b4a43e7de4c00e) | ` ExHyperV.Services ` | 带类型的字段结果；读取 Value 前必须检查 HasValue。 |
@@ -768,6 +788,14 @@ Core 配置、设备和采样模型提供普通数据属性。WinUI 的属性通
 | [` VmPcieFields `](#api-455d9c1e196c68b4) | ` ExHyperV.Services ` | PCIe的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
 | [` VmPcieService `](#api-2166a73f1d6e8682) | ` ExHyperV.Services ` | 单台虚拟机的 PCIe 设置。 |
 
+**串口**
+
+| 类型 | 命名空间 | 简介 |
+| --- | --- | --- |
+| [` VmSerialPort `](#api-3db566e3ffc2ffad) | ` ExHyperV.Models ` | 虚拟机的虚拟串口（COM 1 / COM 2）配置。 |
+| [` VmSerialPortFields `](#api-d92d397c3e108049) | ` ExHyperV.Services ` | 串口的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
+| [` VmSerialPortService `](#api-9c7ebe4fe5817e13) | ` ExHyperV.Services ` | 查询和修改虚拟机串口（COM 1 / COM 2）的命名管道连接与内核调试模式。 |
+
 **引导**
 
 | 类型 | 命名空间 | 简介 |
@@ -920,6 +948,7 @@ Core 配置、设备和采样模型提供普通数据属性。WinUI 的属性通
 | [` HostProcessorPlatform `](#api-be843791603a448d) | ` ExHyperV.Services ` | 虚拟处理器设置规则使用的宿主平台分类，由架构和厂商信息组合得到。 |
 | [` HostProcessorPlatformService `](#api-1d2842d5ce9c4c63) | ` ExHyperV.Services ` | 分别查询宿主架构和处理器厂商；两项可以独立读取。 |
 | [` HostProcessorService `](#api-abc371c87161ae39) | ` ExHyperV.Services ` | 读取宿主逻辑处理器及可用于虚拟机亲和性的处理器集合。 |
+| [` HostSystemInfoService `](#api-c97822da1d5f0c88) | ` ExHyperV.Services ` | 读取用于显示的宿主系统概况，并在进程内缓存首次查询任务。 |
 | [` HostSystemInfoService.SystemInfo `](#api-0f0119c09ea17f4b) | ` ExHyperV.Services ` | 宿主基本信息汇总，包含系统名称与构建号、系统位数、处理器型号说明和内存容量文本。 |
 | [` HyperVCpuMonitorService `](#api-3d00ec7a4b276e23) | ` ExHyperV.Services ` | 维护宿主及虚拟机 CPU 性能计数器；每个实例拥有自己的后台维护任务和释放生命周期。 |
 
@@ -6406,15 +6435,19 @@ public string VhdPath { get; set; } = string.Empty;
 | [` public PerformanceSampleInfo CapacitySample { get; set; } `](#api-6ba36d3f4f2c7df6) | 最大容量的本次读取状态；无效时不得将 MaxSize 的默认值解释为零容量。 |
 | [` public long CurrentSize { get; set; } `](#api-9b57f46a83e7dc72) | 文件介质的文件长度或物理盘的整盘容量，单位字节；有效性见 SizeSample。 |
 | [` public string DiskType { get; set; } `](#api-bf5a35356486ec44) | 磁盘来源类型标识，例如 Physical 或 Virtual。 |
+| [` public long ErrorCount { get; set; } `](#api-4ea69c917b6a2180) | 虚拟存储设备累计报告的 IO 错误次数。 |
 | [` public long MaxSize { get; set; } `](#api-08f3acb4ba675dac) | 磁盘最大或虚拟容量，单位为字节。 |
 | [` public string Name { get; set; } `](#api-1a3388f8c84b9b0f) | 磁盘显示名称。 |
 | [` public string Path { get; set; } `](#api-e7c8ceae75c3ecd2) | 磁盘文件或设备路径。 |
 | [` public PerformanceSampleInfo PerformanceSample { get; set; } `](#api-6f20a3e050ef3e48) | 本次读写速率读取的有效性与时间；无效时速率字段不更新。 |
 | [` public string PnpDeviceId { get; set; } = string.Empty `](#api-05f4aaf7da99296a) | 物理磁盘的 PnP 设备标识；虚拟磁盘可为空。 |
+| [` public long QueueLength { get; set; } `](#api-bb18f03f5f2fe00f) | 当前虚拟存储设备的平均 IO 队列长度。 |
 | [` public long ReadBytesPerSecond { get; set; } `](#api-5a25304e4e87cfd2) | 当前读取速率，单位为字节每秒。 |
+| [` public long ReadOperationsPerSecond { get; set; } `](#api-71abe1f5ff9b0221) | 当前每秒读取操作数（读 IOPS）。 |
 | [` public PerformanceSampleInfo SizeSample { get; set; } `](#api-8bdde416b1722a93) | 当前文件大小的本次读取状态；无效时不得将 CurrentSize 的默认值解释为空磁盘。 |
 | [` public double UsagePercentage { get; } `](#api-0905dd0f46b003d4) | CurrentSize 相对 MaxSize 的百分比；文件介质可超过 100%，物理盘通常为 100%。 |
 | [` public long WriteBytesPerSecond { get; set; } `](#api-c3a36050a09c84cc) | 当前写入速率，单位为字节每秒。 |
+| [` public long WriteOperationsPerSecond { get; set; } `](#api-5dda7ebec0be6de3) | 当前每秒写入操作数（写 IOPS）。 |
 
 #### 详细说明
 
@@ -6453,6 +6486,16 @@ public string DiskType { get; set; }
 ```
 
 磁盘来源类型标识，例如 Physical 或 Virtual。
+
+<a id="api-4ea69c917b6a2180"></a>
+
+##### 错误计数 · 属性
+
+```csharp
+public long ErrorCount { get; set; }
+```
+
+虚拟存储设备累计报告的 IO 错误次数。
 
 <a id="api-08f3acb4ba675dac"></a>
 
@@ -6504,6 +6547,16 @@ public string PnpDeviceId { get; set; } = string.Empty;
 
 物理磁盘的 PnP 设备标识；虚拟磁盘可为空。
 
+<a id="api-bb18f03f5f2fe00f"></a>
+
+##### 队列深度 · 属性
+
+```csharp
+public long QueueLength { get; set; }
+```
+
+当前虚拟存储设备的平均 IO 队列长度。
+
 <a id="api-5a25304e4e87cfd2"></a>
 
 ##### 读取速率 · 属性
@@ -6513,6 +6566,16 @@ public long ReadBytesPerSecond { get; set; }
 ```
 
 当前读取速率，单位为字节每秒。
+
+<a id="api-71abe1f5ff9b0221"></a>
+
+##### 读取 IOPS · 属性
+
+```csharp
+public long ReadOperationsPerSecond { get; set; }
+```
+
+当前每秒读取操作数（读 IOPS）。
 
 <a id="api-8bdde416b1722a93"></a>
 
@@ -6543,6 +6606,16 @@ public long WriteBytesPerSecond { get; set; }
 ```
 
 当前写入速率，单位为字节每秒。
+
+<a id="api-5dda7ebec0be6de3"></a>
+
+##### 写入 IOPS · 属性
+
+```csharp
+public long WriteOperationsPerSecond { get; set; }
+```
+
+当前每秒写入操作数（写 IOPS）。
 
 <a id="api-51ff6610dbb72a26"></a>
 
@@ -9904,7 +9977,7 @@ SpeculationControlPolicy = 10
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public bool? AllowAcountMcount { get; set; } `](#api-e09bb47e09898e50) | 参见 ；null 表示未取得当前值。 |
+| [` public bool? AllowAcountMcount { get; set; } `](#api-e09bb47e09898e50) | 参见 VmProcessorFields.AllowAcountMcount；null 表示未取得当前值。 |
 | [` public VmApicMode? ApicMode { get; set; } `](#api-06dff0eb27a8cc10) | 来宾 APIC 呈现模式；null 表示未取得。 |
 | [` public bool? CompatibilityForMigrationEnabled { get; set; } `](#api-7df699543bf40a8a) | 是否启用处理器迁移兼容；null 表示未取得。 |
 | [` public VmMigrationCompatibilityMode? CompatibilityForMigrationMode { get; set; } `](#api-6b6ea0bce8cde6da) | 处理器迁移兼容所采用的功能集模式；null 表示未取得。 |
@@ -9912,12 +9985,12 @@ SpeculationControlPolicy = 10
 | [` public int Count { get; set; } `](#api-2ad9ef72ed6de310) | 虚拟处理器数量。 |
 | [` public string? CpuBrandString { get; set; } `](#api-f078b42b57d3b839) | 向来宾公开的处理器品牌字符串；null 表示未取得。 |
 | [` public bool? DisableSpeculationControls { get; set; } `](#api-713d74581e8f9c78) | 是否向来宾隐藏推测执行侧信道漏洞的缓解控制能力；null 表示未取得。 |
-| [` public bool? EnableHostResourceProtection { get; set; } `](#api-cfc4afd3ee752e7c) | 参见 ；null 表示未取得当前值。 |
-| [` public bool? EnablePerfmonArchPmu { get; set; } `](#api-86367239158af1bb) | 参见 ；null 表示未取得当前值。 |
-| [` public bool? EnablePerfmonIpt { get; set; } `](#api-b53212a586247d9b) | 参见 ；null 表示未取得当前值。 |
-| [` public bool? EnablePerfmonLbr { get; set; } `](#api-5ba3d69498b55ae4) | 参见 ；null 表示未取得当前值。 |
-| [` public bool? EnablePerfmonPebs { get; set; } `](#api-f19e510eb0f83218) | 参见 ；null 表示未取得当前值。 |
-| [` public bool? EnablePerfmonPmu { get; set; } `](#api-cbe6d5886db27916) | 参见 ；null 表示未取得当前值。 |
+| [` public bool? EnableHostResourceProtection { get; set; } `](#api-cfc4afd3ee752e7c) | 参见 VmProcessorFields.EnableHostResourceProtection；null 表示未取得当前值。 |
+| [` public bool? EnablePerfmonArchPmu { get; set; } `](#api-86367239158af1bb) | 参见 VmProcessorFields.EnablePerfmonArchPmu；null 表示未取得当前值。 |
+| [` public bool? EnablePerfmonIpt { get; set; } `](#api-b53212a586247d9b) | 参见 VmProcessorFields.EnablePerfmonIpt；null 表示未取得当前值。 |
+| [` public bool? EnablePerfmonLbr { get; set; } `](#api-5ba3d69498b55ae4) | 参见 VmProcessorFields.EnablePerfmonLbr；null 表示未取得当前值。 |
+| [` public bool? EnablePerfmonPebs { get; set; } `](#api-f19e510eb0f83218) | 参见 VmProcessorFields.EnablePerfmonPebs；null 表示未取得当前值。 |
+| [` public bool? EnablePerfmonPmu { get; set; } `](#api-cbe6d5886db27916) | 参见 VmProcessorFields.EnablePerfmonPmu；null 表示未取得当前值。 |
 | [` public bool? ExposeVirtualizationExtensions { get; set; } `](#api-80be917bee2bcf87) | 是否向来宾公开虚拟化扩展以支持嵌套虚拟化；null 表示未取得。 |
 | [` public bool? HardwareIsolationExtensionsEnabled { get; set; } `](#api-57f5f594c218d8f1) | 是否启用硬件隔离扩展；null 表示未取得。 |
 | [` public uint? L3CacheWays { get; set; } `](#api-50d097255d8f8f31) | 来宾看到的 L3 缓存相联路数，0 表示默认；不改变物理缓存，null 表示未取得。 |
@@ -9936,7 +10009,7 @@ SpeculationControlPolicy = 10
 | [` public uint? PerfCpuFreqDesiredMhz { get; set; } `](#api-f5e33988371a6362) | 向宿主请求的处理器目标频率，单位为 MHz；0 表示自主性能选择，null 表示未设置或未取得。 |
 | [` public uint? PerfCpuFreqMinMhz { get; set; } `](#api-87ef13670ae04326) | 每虚拟机处理器频率下限，单位为 MHz；null 表示未取得。 |
 | [` public bool? PerfCpuIgnoreHostMaxFrequency { get; set; } `](#api-fa443a55db63001b) | 是否忽略宿主最大频率限制；null 表示未取得。 |
-| [` public uint? PhysicalAddressWidth { get; set; } `](#api-6ee4358f8a53aaa4) | 参见 ；null 表示未取得当前值。 |
+| [` public uint? PhysicalAddressWidth { get; set; } `](#api-6ee4358f8a53aaa4) | 参见 VmProcessorFields.PhysicalAddressWidth；null 表示未取得当前值。 |
 | [` public int RelativeWeight { get; set; } `](#api-2ce9d3e0067c7873) | 处理器竞争时的相对权重。 |
 | [` public ulong Reservation { get; set; } `](#api-9774ba25ec4a2e4e) | 保留处理器资源的原始值，单位为 0.001%；100000 表示 100%。 |
 | [` public SmtMode? SmtMode { get; set; } `](#api-3a53eedde34c1330) | 向来宾呈现的同时多线程模式；null 表示未取得。 |
@@ -10560,6 +10633,128 @@ public byte[] EncodeJpeg();
 返回：新建的 JPEG 字节数组。
 
 调用约定：使用 Windows JPEG 编码器，质量参数固定为 80。JPEG 有损且不保留透明度； 即使输入已经是 JPEG，此方法也会重新编码。想保留原文件字节时使用 CopyBytes。
+
+<a id="api-3db566e3ffc2ffad"></a>
+
+### `VmSerialPort` 类
+
+虚拟机的虚拟串口（COM 1 / COM 2）配置。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 串口 |
+| 源文件 | ` Management/VirtualMachines/Serial/VmSerialPort.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool DebuggerMode { get; set; } `](#api-e0da8da110935bf8) | 是否启用 Windows 内核调试模式。 |
+| [` public bool DebuggerModeAvailable { get; init; } `](#api-3b2e4e16649317d4) | 宿主 WMI 类是否提供内核调试模式开关。 |
+| [` public string Name { get; init; } = string.Empty `](#api-bd6af8986ce3a853) | 串口显示名称（如 COM 1、COM 2）。 |
+| [` public string PipePath { get; set; } = string.Empty `](#api-1d668de32a449b5f) | 宿主机命名管道路径；为空表示未连接。 |
+| [` public int PortNumber { get; init; } `](#api-e03ad5a6f07ad79c) | 串口编号（1 为 COM 1，2 为 COM 2）。 |
+
+#### 详细说明
+
+```csharp
+public sealed class VmSerialPort
+```
+
+#### 属性说明
+
+<a id="api-e0da8da110935bf8"></a>
+
+##### 内核调试模式 · 属性
+
+```csharp
+public bool DebuggerMode { get; set; }
+```
+
+是否启用 Windows 内核调试模式。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否为 Windows 内核调试器（WinDbg）优化串口传输性能；普通串口控制台通信无需开启。 |
+| 取值与默认 | `true`：已启用内核调试优化；`false`：普通串口模式。 |
+| 适用条件 | 仅当宿主 WMI 提供 DebuggerMode 属性时可读写。 |
+
+<a id="api-3b2e4e16649317d4"></a>
+
+##### 内核调试模式支持 · 属性
+
+```csharp
+public bool DebuggerModeAvailable { get; init; }
+```
+
+宿主 WMI 类是否提供内核调试模式开关。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前宿主的 Msvm_SerialPortSettingData 是否存在 DebuggerMode 属性。 |
+| 取值与默认 | `true`：支持修改内核调试模式；`false`：宿主不支持。 |
+
+<a id="api-bd6af8986ce3a853"></a>
+
+##### 串口名称 · 属性
+
+```csharp
+public string Name { get; init; } = string.Empty;
+```
+
+串口显示名称（如 COM 1、COM 2）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 虚拟串口的显示名称。 |
+
+<a id="api-1d668de32a449b5f"></a>
+
+##### 命名管道路径 · 属性
+
+```csharp
+public string PipePath { get; set; } = string.Empty;
+```
+
+宿主机命名管道路径；为空表示未连接。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 虚拟串口映射到的宿主机命名管道路径；开启后由 Hyper-V 在宿主机创建命名管道，供 PuTTY、WinDbg 等工具连接，关闭开关即断开连接。 |
+| 取值与默认 | Windows 命名管道路径，例如 `\\.\pipe\my-vm-com1`；为空字符串表示未连接。 |
+| 缺测与错误 | 串口未连接任何命名管道时为空字符串。 |
+| 修改对应 | 读写；输入：pipePath；提交方式：单串口提交。支持短管道名自动补全为本地管道路径，传空字符串或 null 表示断开连接。`VmSerialPortService.SetPipePathAsync` |
+
+<a id="api-e03ad5a6f07ad79c"></a>
+
+##### 串口编号 · 属性
+
+```csharp
+public int PortNumber { get; init; }
+```
+
+串口编号（1 为 COM 1，2 为 COM 2）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 虚拟串口的固定端口号。 |
+| 单位与表示 | 端口编号 |
+| 取值与默认 | `1`：COM 1；`2`：COM 2。 |
 
 <a id="api-add6eece8fedcd7e"></a>
 
@@ -16334,7 +16529,7 @@ SubmittedAwaitingRestart = 0
 | 类型 | 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 宿主 / 基本信息 |
+| 功能归属 | 管理层面 / 宿主 / 基本信息；管理层面 / 宿主 / 处理器 |
 | 源文件 | ` Management/Host/System/HostSystemInfoService.cs ` |
 
 #### 成员概览
@@ -16343,6 +16538,7 @@ SubmittedAwaitingRestart = 0
 
 | 成员 | 说明 |
 | --- | --- |
+| [` public static Task<string> GetProcessorDisplayNameAsync() `](#api-f8fc20b84f1b752a) | 一次读取并格式化宿主物理处理器型号，合并同型号数量并在异构多路时分行展示。 |
 | [` public static Task<SystemInfo> GetSystemInfoAsync() `](#api-c93daf231c3d1b8f) | 一次读取系统名称与构建号、系统位数、处理器型号说明和已安装物理内存容量。 |
 
 #### 详细说明
@@ -16353,6 +16549,20 @@ public static class HostSystemInfoService
 
 #### 静态方法说明
 
+<a id="api-f8fc20b84f1b752a"></a>
+
+##### 处理器显示型号 · 方法
+
+```csharp
+public static Task<string> GetProcessorDisplayNameAsync();
+```
+
+功能归属：管理层面 / 宿主 / 处理器。
+
+一次读取并格式化宿主物理处理器型号，合并同型号数量并在异构多路时分行展示。
+
+返回：格式化后的宿主物理处理器型号显示文本；不可用时返回回退文本。
+
 <a id="api-c93daf231c3d1b8f"></a>
 
 ##### 基本信息汇总 · 方法
@@ -16360,6 +16570,8 @@ public static class HostSystemInfoService
 ```csharp
 public static Task<SystemInfo> GetSystemInfoAsync();
 ```
+
+功能归属：管理层面 / 宿主 / 基本信息。
 
 一次读取系统名称与构建号、系统位数、处理器型号说明和已安装物理内存容量。
 
@@ -26716,11 +26928,13 @@ public IReadOnlyList<string> Types { get; init; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public static readonly VmQueryField<long> AssignedMiB `](#api-6753301b848a0480) | 运行时已分配内存：Hyper-V 当前分配给运行中虚拟机的内存大小，单位为 MiB。 |
+| [` public static readonly VmQueryField<int> AvailableBufferPercent `](#api-87cc208eec50cfd9) | 可用内存缓冲比例：动态内存模式下，当前可用缓冲相对目标缓冲的百分比，单位为 %。 |
 | [` public static readonly VmQueryField<int> AvailablePercent `](#api-5ba20292feb21228) | 来宾可用内存比例：按来宾内存需求换算的可用内存比例，单位为 %。 |
 | [` public static readonly VmQueryField<byte> BackingPageSize `](#api-cdcc4d00ce904585) | 后备页大小：承载虚拟机内存所使用的页面类型：标准页、大页或巨页。 |
 | [` public static readonly VmQueryField<byte> BackingType `](#api-085553727c32ce93) | 内存后备类型：选择承载虚拟机内存的后备方式。 |
 | [` public static readonly VmQueryField<int> Buffer `](#api-9dc238f2ec64a90a) | 内存缓冲比例：动态内存的目标额外缓冲量，占来宾内存需求的百分比。 |
 | [` public static readonly VmQueryField<bool> CxlEnabled `](#api-5719a1b27f82c102) | CXL 开关：实验性配置，已知部分 VMMS 版本在写入时可能崩溃；Core 保留写入入口，由调用方提示风险。 |
+| [` public static readonly VmQueryField<long> DemandMiB `](#api-7d977086209900da) | 内存需求：Hyper-V 计算的虚拟机当前所需内存总量，单位为 MiB。 |
 | [` public static readonly VmQueryField<uint> DynMemOperationAlignment `](#api-5c20e553289c6fc9) | 动态内存操作对齐：动态内存调整所使用的对齐配置；与决定内存后备页面类型的 BackingPageSize 是不同字段。 |
 | [` public static readonly VmQueryField<bool> DynamicMemoryEnabled `](#api-9477a620d59ce7d0) | 动态内存开关：是否启用动态内存。 |
 | [` public static readonly VmQueryField<bool> EnableColdHint `](#api-020c8373f6ba8090) | 冷内存提示：控制内存配置中的冷提示开关。 |
@@ -26728,17 +26942,22 @@ public IReadOnlyList<string> Types { get; init; }
 | [` public static readonly VmQueryField<bool> EnableGpaPinning `](#api-f3c84d11dfd17563) | GPA 固定开关：来宾物理地址（GPA）固定配置的开关。 |
 | [` public static readonly VmQueryField<bool> EnableHotHint `](#api-fd421450537c3134) | 热内存提示：控制内存配置中的热提示开关。 |
 | [` public static readonly VmQueryField<bool> EnablePrivateCompressionStore `](#api-42e6cd53fe85fea6) | 专用压缩存储：内存配置中的专用压缩存储开关。 |
+| [` public static readonly VmQueryField<long> GuestAvailableMiB `](#api-1e0d022fb612992e) | 来宾可用内存：虚拟机操作系统内部当前报告的可用内存容量，单位为 MiB。 |
+| [` public static readonly VmQueryField<long> GuestVisibleMiB `](#api-46fee049c4b0d8e8) | 来宾可见物理内存：虚拟机操作系统内部当前看到的物理内存总量，单位为 MiB。 |
 | [` public static readonly VmQueryField<ulong> MaxMemoryBlocksPerNumaNode `](#api-c1194858b03dc692) | 每 NUMA 节点内存块上限：限制来宾可见的单个虚拟 NUMA 节点的内存容量。 |
 | [` public static readonly VmQueryField<long> Maximum `](#api-22d2202d4756e5f0) | 最大内存：动态内存允许分配的最高内存大小，单位为 MiB。 |
 | [` public static readonly VmQueryField<byte> MemoryAccessTrackingPolicy `](#api-0a424f7b01f07277) | 内存访问跟踪策略：配置内存访问跟踪的粒度策略。 |
 | [` public static readonly VmQueryField<byte> MemoryAccessTrackingState `](#api-2a71380a6e9b099c) | 内存访问跟踪状态：配置是否启用内存访问跟踪，或交给逐 NUMA 节点配置决定。 |
 | [` public static readonly VmQueryField<byte> MemoryEncryptionPolicy `](#api-46c0b0951d716b76) | 内存加密策略：虚拟机内存的加密策略。 |
 | [` public static readonly VmQueryField<long> Minimum `](#api-60fe4a712286afcb) | 最小内存：动态内存允许分配的最低内存大小，单位为 MiB。 |
+| [` public static readonly VmQueryField<int> PressurePercent `](#api-26dae397f03ba655) | 当前内存压力：Hyper-V 动态内存平衡器测得的实时内存压力百分比，单位为 %。 |
 | [` public static readonly VmQueryField<bool> SgxEnabled `](#api-dacbe0e17edb530b) | SGX 开关：请求为虚拟机启用 SGX 支持。 |
 | [` public static readonly VmQueryField<string> SgxLaunchControlDefault `](#api-724785468fc860e0) | SGX 默认启动控制：SGX 默认启动控制配置的原始文本。 |
 | [` public static readonly VmQueryField<uint> SgxLaunchControlMode `](#api-82f58951c1e978ad) | SGX 启动控制模式：SGX 启动控制的访问模式配置，与虚拟机的普通引导顺序无关。 |
 | [` public static readonly VmQueryField<double> SgxSize `](#api-deb7de2a490c2aa1) | SGX 内存大小：为虚拟机配置的 SGX EPC 内存容量，与普通启动内存分开。 |
+| [` public static readonly VmQueryField<long> SmartPagingMiB `](#api-42457fbd117ae450) | 智能分页工作集：Hyper-V 为虚拟机使用的智能分页磁盘工作集大小，单位为 MiB。 |
 | [` public static readonly VmQueryField<long> Startup `](#api-d2547f93da8b2561) | 启动内存：为虚拟机启动配置的内存大小，单位为 MiB。 |
+| [` public static readonly VmQueryField<bool> SwapFilesInUse `](#api-85fb99a6a32dd0c6) | 交换文件状态：虚拟机当前是否正在使用 Hyper-V 交换/分页文件。 |
 | [` public static readonly VmQueryField<uint> Weight `](#api-8eb7156ab5917a0f) | 内存权重：宿主可用内存不足、无法同时满足所有虚拟机的需求时，决定这台虚拟机获得内存的相对优先级。 |
 
 #### 详细说明
@@ -26760,6 +26979,20 @@ public static readonly VmQueryField<long> AssignedMiB;
 Hyper-V 当前分配给运行中虚拟机的内存大小。
 
 **取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
+
+<a id="api-87cc208eec50cfd9"></a>
+
+##### 可用内存缓冲比例 · 字段
+
+```csharp
+public static readonly VmQueryField<int> AvailableBufferPercent;
+```
+
+当前可用内存缓冲相对于配置目标缓冲（Buffer）的比例，单位为 %。
+
+**单位与格式：** %
+
+**取值说明：** 启用动态内存且运行中时返回整数百分比；未开启或关机返回 NotApplicable，未就绪或值为 2147483647 时返回 Unavailable。
 
 <a id="api-5ba20292feb21228"></a>
 
@@ -26836,6 +27069,18 @@ public static readonly VmQueryField<bool> CxlEnabled;
 **取值说明：** true：开启；false：关闭。
 
 **适用条件：** 存在缺陷，开启会导致vmms崩溃。
+
+<a id="api-7d977086209900da"></a>
+
+##### 内存需求 · 字段
+
+```csharp
+public static readonly VmQueryField<long> DemandMiB;
+```
+
+虚拟机当前工作负载所需的内存容量（MiB）。可能高于或低于已分配内存 AssignedMiB。
+
+**单位与格式：** MiB
 
 <a id="api-5c20e553289c6fc9"></a>
 
@@ -26935,6 +27180,30 @@ public static readonly VmQueryField<bool> EnablePrivateCompressionStore;
 
 **适用条件：** 实验性。适用于非物理后备配置，修改前退出活动状态。
 
+<a id="api-1e0d022fb612992e"></a>
+
+##### 来宾可用内存 · 字段
+
+```csharp
+public static readonly VmQueryField<long> GuestAvailableMiB;
+```
+
+来宾操作系统内部视角报告的可用内存（MiB），仅在运行中且平衡器计数器就绪时有效。
+
+**单位与格式：** MiB
+
+<a id="api-46fee049c4b0d8e8"></a>
+
+##### 来宾可见内存 · 字段
+
+```csharp
+public static readonly VmQueryField<long> GuestVisibleMiB;
+```
+
+来宾操作系统内部视角可见的总物理内存容量（MiB）。动态内存热添加或气球回收时可能与 AssignedMiB 不同。
+
+**单位与格式：** MiB
+
 <a id="api-c1194858b03dc692"></a>
 
 ##### 每 NUMA 节点内存块上限 · 字段
@@ -27023,6 +27292,20 @@ public static readonly VmQueryField<long> Minimum;
 
 **适用条件：** 动态内存启用时参与内存分配；关闭时仍可读取保存的配置。
 
+<a id="api-26dae397f03ba655"></a>
+
+##### 当前内存压力 · 字段
+
+```csharp
+public static readonly VmQueryField<int> PressurePercent;
+```
+
+内存需求与来宾可见物理内存之比（%）。100% 表示恰好饱和，大于 100% 表示正在发生内存竞争。
+
+**单位与格式：** %
+
+**适用条件：** 运行中且虚拟化动态内存平衡器计数器已就绪时有效；未安装或未激活集成服务的虚拟机返回 Unavailable，重名虚拟机返回 Ambiguous。
+
 <a id="api-dacbe0e17edb530b"></a>
 
 ##### SGX 开关 · 字段
@@ -27081,6 +27364,18 @@ public static readonly VmQueryField<double> SgxSize;
 
 **适用条件：** 实验性。Windows 10 1703 起提供；SGX 开启时写入容量。修改前退出活动状态。 未取得容量时返回缺测状态；设置模型使用 null 表示缺值，0 表示已读到的容量值。
 
+<a id="api-42457fbd117ae450"></a>
+
+##### 智能分页占用 · 字段
+
+```csharp
+public static readonly VmQueryField<long> SmartPagingMiB;
+```
+
+Hyper-V 智能分页工作集当前占用量（MiB）。正常运行应为 0，非 0 表示主机曾在内存紧张下使用磁盘智能分页。
+
+**单位与格式：** MiB
+
 <a id="api-d2547f93da8b2561"></a>
 
 ##### 启动内存 · 字段
@@ -27092,6 +27387,18 @@ public static readonly VmQueryField<long> Startup;
 虚拟机启动时使用的内存容量。启用动态内存后，运行期间实际分配的内存可以变化。
 
 **取值说明：** 单位为 MiB；1 MiB = 1,048,576 字节。例如 `1024` 表示 1 GiB。
+
+<a id="api-85fb99a6a32dd0c6"></a>
+
+##### 交换文件使用状态 · 字段
+
+```csharp
+public static readonly VmQueryField<bool> SwapFilesInUse;
+```
+
+指示 Hyper-V 当前是否在使用二级交换文件承载该虚拟机内存。
+
+**取值说明：** `true`：正在使用交换文件；`false`：未使用。
 
 <a id="api-8eb7156ab5917a0f"></a>
 
@@ -31260,13 +31567,14 @@ public bool IsX64 { get; }
 | 成员 | 说明 |
 | --- | --- |
 | [` BootEntries = 6 `](#api-9767f74828e4dbca) | 固件启动顺序中的条目。 |
-| [` Checkpoints = 9 `](#api-e9346323c153e44a) | 检查点及当前状态节点。 |
+| [` Checkpoints = 10 `](#api-e9346323c153e44a) | 检查点及当前状态节点。 |
 | [` GpuAssignments = 7 `](#api-671eb7864e4c887c) | 已分配 GPU 分区适配器。 |
 | [` Groups = 1 `](#api-13aacaceb1d79e9f) | 直接所属分组。 |
 | [` Metadata = 2 `](#api-3e1d5d5e3f03d146) | 自定义数据的键值项。 |
 | [` NetworkAdapters = 5 `](#api-ecded18b6473cc31) | 虚拟网卡。 |
 | [` PcieDevices = 8 `](#api-05c5fe7e01b89a33) | 已分配 PCIe 设备。 |
 | [` Processors = 3 `](#api-806e36e0534fc73f) | 虚拟处理器的逐核心采样。 |
+| [` SerialPorts = 9 `](#api-f4230c25b5de6d5f) | 虚拟串口（COM 1 / COM 2）。 |
 | [` Storage = 4 `](#api-4b84baa4b68b1b42) | 存储控制器上的挂接槽位，包括空光驱。 |
 | [` VirtualMachine = 0 `](#api-2732fe81225c5447) | 虚拟机本身，包括整台虚拟机的配置开关。 |
 
@@ -31293,7 +31601,7 @@ BootEntries = 6
 ##### Checkpoints · 枚举值
 
 ```csharp
-Checkpoints = 9
+Checkpoints = 10
 ```
 
 检查点及当前状态节点。
@@ -31357,6 +31665,16 @@ Processors = 3
 ```
 
 虚拟处理器的逐核心采样。
+
+<a id="api-f4230c25b5de6d5f"></a>
+
+##### SerialPorts · 枚举值
+
+```csharp
+SerialPorts = 9
+```
+
+虚拟串口（COM 1 / COM 2）。
 
 <a id="api-4b84baa4b68b1b42"></a>
 
@@ -31620,7 +31938,7 @@ public sealed class VmQueryField<T> : VmQueryField
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static IReadOnlyList<VmQueryField> All { get; } = Array.AsReadOnly(new VmQueryField[][]  {  VmIdentityFields.Items,  VmGroupFields.Items,  VmMetadataFields.Items,  VmProcessorFields.Items,  VmProcessorMetricFields.Items,  VmAffinityFields.Items,  VmMemoryFields.Items,  VmStorageFields.Items,  VmStorageGlobalFields.Items,  VmNetworkFields.Items,  VmGpuFields.Items,  VmGpuPerformanceFields.Items,  VmPcieFields.Items,  VmPcieDeviceFields.Items,  VmBootFields.Items,  VmBootGlobalFields.Items,  VmSecurityFields.Items,  VmDisplayFields.Items,  VmMmioFields.Items,  VmConsoleFields.Items,  VmPowerBatteryFields.Items,  VmCheckpointFields.Items,  VmCheckpointGlobalFields.Items,  }.SelectMany(items => items).ToArray()) `](#api-f5f575943cef6d8e) | 按领域排列的完整只读目录，包含标识、名称、所属集合和结果类型；可以用于生成查询选择界面。 |
+| [` public static IReadOnlyList<VmQueryField> All { get; } = Array.AsReadOnly(new VmQueryField[][]  {  VmIdentityFields.Items,  VmGroupFields.Items,  VmMetadataFields.Items,  VmProcessorFields.Items,  VmProcessorMetricFields.Items,  VmAffinityFields.Items,  VmMemoryFields.Items,  VmStorageFields.Items,  VmStorageGlobalFields.Items,  VmNetworkFields.Items,  VmGpuFields.Items,  VmGpuPerformanceFields.Items,  VmPcieFields.Items,  VmPcieDeviceFields.Items,  VmSerialPortFields.Items,  VmBootFields.Items,  VmBootGlobalFields.Items,  VmSecurityFields.Items,  VmDisplayFields.Items,  VmMmioFields.Items,  VmConsoleFields.Items,  VmPowerBatteryFields.Items,  VmCheckpointFields.Items,  VmCheckpointGlobalFields.Items,  }.SelectMany(items => items).ToArray()) `](#api-f5f575943cef6d8e) | 按领域排列的完整只读目录，包含标识、名称、所属集合和结果类型；可以用于生成查询选择界面。 |
 
 **静态方法**
 
@@ -31657,6 +31975,7 @@ public static IReadOnlyList<VmQueryField> All { get; } = Array.AsReadOnly(new Vm
         VmGpuPerformanceFields.Items,
         VmPcieFields.Items,
         VmPcieDeviceFields.Items,
+        VmSerialPortFields.Items,
         VmBootFields.Items,
         VmBootGlobalFields.Items,
         VmSecurityFields.Items,
@@ -32441,7 +32760,7 @@ public bool HasGpuEngineInstance;
 
 ### `VmQueryService.VmDynamicMemoryData` 结构
 
-虚拟机当前内存占用与可用百分比。
+虚拟机当前内存占用与压力、需求及来宾视角指标。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -32458,14 +32777,26 @@ public bool HasGpuEngineInstance;
 | 成员 | 说明 |
 | --- | --- |
 | [` public PerformanceSampleInfo? AssignedSample { get; init; } `](#api-0df00ffb287af5ca) | 已分配内存的本次读取状态及时间。 |
+| [` public PerformanceSampleInfo? AvailableBufferSample { get; init; } `](#api-af8b64a5911dd684) | 可用内存缓冲比例的本次读取状态及时间。 |
 | [` public PerformanceSampleInfo? AvailableSample { get; init; } `](#api-e93c4005ce0adee5) | 来宾可用百分比的本次读取状态及时间；可能独立于已分配内存缺测。 |
+| [` public PerformanceSampleInfo? DemandSample { get; init; } `](#api-fba6d7f17d188250) | 内存需求的本次读取状态及时间。 |
+| [` public PerformanceSampleInfo? GuestAvailableSample { get; init; } `](#api-b39b01788f1aeb51) | 来宾可用内存容量的本次读取状态及时间。 |
+| [` public PerformanceSampleInfo? GuestVisibleSample { get; init; } `](#api-4f4d2819929c88c0) | 来宾可见物理内存的本次读取状态及时间。 |
+| [` public PerformanceSampleInfo? PressureSample { get; init; } `](#api-186217227c1543db) | 当前内存压力百分比的本次读取状态及时间。 |
+| [` public PerformanceSampleInfo? SmartPagingSample { get; init; } `](#api-a16d6776384926e6) | 智能分页工作集占用的本次读取状态及时间。 |
 
 **字段与常量**
 
 | 成员 | 说明 |
 | --- | --- |
 | [` public long AssignedMiB `](#api-8d28112b07bb3d9d) | 当前分配内存，单位 MiB；仅 AssignedSample.IsValid 时表示本次有效值。 |
+| [` public int AvailableBufferPercent `](#api-d9249968bd206679) | 当前可用缓冲比例（相对于配置的目标缓冲百分比）；仅 AvailableBufferSample.IsValid 且启用动态内存时有效。 |
 | [` public int AvailablePercent `](#api-205e8652409c0c56) | 来宾可用内存百分比；仅 AvailableSample.IsValid 时有效。 |
+| [` public long DemandMiB `](#api-40150f7376011091) | 当前来宾内存需求，单位 MiB；仅 DemandSample.IsValid 时有效，大于 AssignedMiB 表示超额需求。 |
+| [` public long GuestAvailableMiB `](#api-d0e4458ee69bd968) | 来宾操作系统内部报告的可用内存，单位 MiB；仅 GuestAvailableSample.IsValid 时有效。 |
+| [` public long GuestVisibleMiB `](#api-c995afe77489d803) | 来宾操作系统当前可见的物理内存总量，单位 MiB；仅 GuestVisibleSample.IsValid 时有效。 |
+| [` public int PressurePercent `](#api-0b07ddc6269f7a66) | Hyper-V 动态内存平衡器报告的当前内存压力百分比；仅 PressureSample.IsValid 时有效，大于 100 表示需求超过来宾可见物理内存。 |
+| [` public long SmartPagingMiB `](#api-808f4542fbcdba99) | 智能分页工作集当前占用量，单位 MiB；仅 SmartPagingSample.IsValid 时有效。 |
 
 #### 详细说明
 
@@ -32485,6 +32816,16 @@ public PerformanceSampleInfo? AssignedSample { get; init; }
 
 已分配内存的本次读取状态及时间。
 
+<a id="api-af8b64a5911dd684"></a>
+
+##### 可用缓冲采样状态 · 属性
+
+```csharp
+public PerformanceSampleInfo? AvailableBufferSample { get; init; }
+```
+
+可用内存缓冲比例的本次读取状态及时间。
+
 <a id="api-e93c4005ce0adee5"></a>
 
 ##### 可用内存采样状态 · 属性
@@ -32494,6 +32835,56 @@ public PerformanceSampleInfo? AvailableSample { get; init; }
 ```
 
 来宾可用百分比的本次读取状态及时间；可能独立于已分配内存缺测。
+
+<a id="api-fba6d7f17d188250"></a>
+
+##### 内存需求采样状态 · 属性
+
+```csharp
+public PerformanceSampleInfo? DemandSample { get; init; }
+```
+
+内存需求的本次读取状态及时间。
+
+<a id="api-b39b01788f1aeb51"></a>
+
+##### 来宾可用内存采样状态 · 属性
+
+```csharp
+public PerformanceSampleInfo? GuestAvailableSample { get; init; }
+```
+
+来宾可用内存容量的本次读取状态及时间。
+
+<a id="api-4f4d2819929c88c0"></a>
+
+##### 来宾可见内存采样状态 · 属性
+
+```csharp
+public PerformanceSampleInfo? GuestVisibleSample { get; init; }
+```
+
+来宾可见物理内存的本次读取状态及时间。
+
+<a id="api-186217227c1543db"></a>
+
+##### 内存压力采样状态 · 属性
+
+```csharp
+public PerformanceSampleInfo? PressureSample { get; init; }
+```
+
+当前内存压力百分比的本次读取状态及时间。
+
+<a id="api-a16d6776384926e6"></a>
+
+##### 智能分页采样状态 · 属性
+
+```csharp
+public PerformanceSampleInfo? SmartPagingSample { get; init; }
+```
+
+智能分页工作集占用的本次读取状态及时间。
 
 #### 字段与常量说明
 
@@ -32507,6 +32898,16 @@ public long AssignedMiB;
 
 当前分配内存，单位 MiB；仅 AssignedSample.IsValid 时表示本次有效值。
 
+<a id="api-d9249968bd206679"></a>
+
+##### 可用内存缓冲比例 · 字段
+
+```csharp
+public int AvailableBufferPercent;
+```
+
+当前可用缓冲比例（相对于配置的目标缓冲百分比）；仅 AvailableBufferSample.IsValid 且启用动态内存时有效。
+
 <a id="api-205e8652409c0c56"></a>
 
 ##### 来宾可用内存比例 · 字段
@@ -32516,6 +32917,56 @@ public int AvailablePercent;
 ```
 
 来宾可用内存百分比；仅 AvailableSample.IsValid 时有效。负数表示内存需求超过分配量，保留原值，不把缺失值截断成零。
+
+<a id="api-40150f7376011091"></a>
+
+##### 内存需求 · 字段
+
+```csharp
+public long DemandMiB;
+```
+
+当前来宾内存需求，单位 MiB；仅 DemandSample.IsValid 时有效，大于 AssignedMiB 表示超额需求。
+
+<a id="api-d0e4458ee69bd968"></a>
+
+##### 来宾可用内存 · 字段
+
+```csharp
+public long GuestAvailableMiB;
+```
+
+来宾操作系统内部报告的可用内存，单位 MiB；仅 GuestAvailableSample.IsValid 时有效。
+
+<a id="api-c995afe77489d803"></a>
+
+##### 来宾可见内存 · 字段
+
+```csharp
+public long GuestVisibleMiB;
+```
+
+来宾操作系统当前可见的物理内存总量，单位 MiB；仅 GuestVisibleSample.IsValid 时有效。
+
+<a id="api-0b07ddc6269f7a66"></a>
+
+##### 当前内存压力 · 字段
+
+```csharp
+public int PressurePercent;
+```
+
+Hyper-V 动态内存平衡器报告的当前内存压力百分比；仅 PressureSample.IsValid 时有效，大于 100 表示需求超过来宾可见物理内存。
+
+<a id="api-808f4542fbcdba99"></a>
+
+##### 智能分页占用 · 字段
+
+```csharp
+public long SmartPagingMiB;
+```
+
+智能分页工作集当前占用量，单位 MiB；仅 SmartPagingSample.IsValid 时有效。
 
 <a id="api-ebac90479a0ebe98"></a>
 
@@ -33553,6 +34004,261 @@ public bool TpmEnabled { get; init; }
 
 虚拟 TPM 是否启用。
 
+<a id="api-d92d397c3e108049"></a>
+
+### `VmSerialPortFields` 类
+
+串口的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 串口 |
+| 源文件 | ` Management/VirtualMachines/Query/Fields/Serial/VmSerialPortFields.cs ` |
+
+#### 成员概览
+
+**字段与常量**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static readonly VmQueryField<bool> DebuggerMode `](#api-47f0290e9adf5041) | 内核调试模式：是否为 Windows 内核调试器（WinDbg）优化串口传输。 |
+| [` public static readonly VmQueryField<string> Name `](#api-869d6eecbd4df213) | 串口名称：虚拟串口的显示名称（如 COM 1、COM 2）。 |
+| [` public static readonly VmQueryField<string> PipePath `](#api-731a875ef2462904) | 命名管道路径：虚拟串口连接的宿主机命名管道路径；为空表示未连接。 |
+| [` public static readonly VmQueryField<int> PortNumber `](#api-75b55b87f52f76e2) | 串口编号：虚拟串口的固定端口号（1 表示 COM 1，2 表示 COM 2）。 |
+
+#### 详细说明
+
+```csharp
+public static class VmSerialPortFields
+```
+
+#### 字段与常量说明
+
+<a id="api-47f0290e9adf5041"></a>
+
+##### 内核调试模式 · 字段
+
+```csharp
+public static readonly VmQueryField<bool> DebuggerMode;
+```
+
+是否为 Windows 内核调试器（WinDbg）优化虚拟串口数据传输。
+
+**取值说明：** `true`：开启内核调试优化；`false`：普通串口模式。
+
+**适用条件：** 仅当宿主 Msvm_SerialPortSettingData 提供 DebuggerMode 属性时可用。
+
+<a id="api-869d6eecbd4df213"></a>
+
+##### 串口名称 · 字段
+
+```csharp
+public static readonly VmQueryField<string> Name;
+```
+
+虚拟串口的显示名称。
+
+<a id="api-731a875ef2462904"></a>
+
+##### 命名管道路径 · 字段
+
+```csharp
+public static readonly VmQueryField<string> PipePath;
+```
+
+虚拟串口连接到的宿主机命名管道路径；为空字符串表示未连接。
+
+**取值说明：** Windows 命名管道路径，例如 `\\.\pipe\my-vm-com1`；留空表示未连接。
+
+**缺测与错误：** 串口未连接任何命名管道时为空字符串。
+
+<a id="api-75b55b87f52f76e2"></a>
+
+##### 串口编号 · 字段
+
+```csharp
+public static readonly VmQueryField<int> PortNumber;
+```
+
+虚拟串口的固定端口号。
+
+**单位与格式：** 端口编号
+
+**取值说明：** `1`：COM 1；`2`：COM 2。
+
+<a id="api-9c7ebe4fe5817e13"></a>
+
+### `VmSerialPortService` 类
+
+查询和修改虚拟机串口（COM 1 / COM 2）的命名管道连接与内核调试模式。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 串口 |
+| 源文件 | ` Management/VirtualMachines/Serial/VmSerialPortService.cs ` |
+
+#### 成员概览
+
+**静态方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static VmModificationCondition GetModificationCondition(VmState state) `](#api-d54fd2d134f4af32) | 评估当前虚拟机电源状态下是否允许修改串口配置。 |
+| [` public static string? GetPipePathError(string? pipePath) `](#api-7290832203844617) | 校验命名管道路径格式；为空表示断开连接，视为有效。 |
+| [` public static async Task<ApiResponse<List<VmSerialPort>>> GetSerialPortsAsync(Guid vmId) `](#api-6b20e3ff115688a7) | 读取指定虚拟机的全部虚拟串口配置（COM 1 与 COM 2）。 |
+| [` public static string NormalizePipePath(string? input) `](#api-a2dc045b249ad8b5) | 规范化命名管道路径；仅输入短名称时自动补全为 \\\\.\\pipe\\名称，留空返回空字符串。 |
+| [` public static Task<ApiResponse> SetDebuggerModeAsync(Guid vmId, int portNumber, bool enabled) `](#api-d304344da733cf8c) | 启用或关闭指定串口的 Windows 内核调试模式；不改变当前命名管道连接。 |
+| [` public static Task<ApiResponse> SetPipePathAsync(Guid vmId, int portNumber, string? pipePath) `](#api-1b03f509700065cb) | 开启、更新或断开指定串口的宿主机命名管道连接；不改变内核调试模式。 |
+
+#### 详细说明
+
+```csharp
+public static class VmSerialPortService
+```
+
+示例：
+
+启用虚拟机的 COM 1 命名管道连接并开启内核调试模式：
+
+
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using ExHyperV.Services;
+using ExHyperV.Tools;
+
+public static class SerialPortExample
+{
+    public static async Task<ApiResponse> EnableKernelDebugPipeAsync(Guid vmId)
+    {
+        var pipeResult = await VmSerialPortService.SetPipePathAsync(vmId, 1, "win11-debug");
+        if (!pipeResult.Success) return pipeResult;
+        return await VmSerialPortService.SetDebuggerModeAsync(vmId, 1, true);
+    }
+}
+```
+
+#### 静态方法说明
+
+<a id="api-d54fd2d134f4af32"></a>
+
+##### 评估修改条件 · 方法
+
+```csharp
+public static VmModificationCondition GetModificationCondition(VmState state);
+```
+
+功能归属：管理层面 / 虚拟机 / 串口。
+
+评估当前虚拟机电源状态下是否允许修改串口配置。
+
+| 参数 | 说明 |
+| --- | --- |
+| `state` | 查询得到的虚拟机电源状态。 |
+
+返回：虚拟机完全关机时允许修改；否则返回需要关机的原因。
+
+<a id="api-7290832203844617"></a>
+
+##### 检查命名管道路径 · 方法
+
+```csharp
+public static string? GetPipePathError(string? pipePath);
+```
+
+功能归属：管理层面 / 虚拟机 / 串口。
+
+校验命名管道路径格式；为空表示断开连接，视为有效。
+
+| 参数 | 说明 |
+| --- | --- |
+| `pipePath` | 待校验的短管道名、完整管道路径或空字符串。 |
+
+返回：路径无效时返回错误说明；有效或留空断开时返回 null。
+
+<a id="api-6b20e3ff115688a7"></a>
+
+##### 读取串口列表 · 方法
+
+```csharp
+public static async Task<ApiResponse<List<VmSerialPort>>> GetSerialPortsAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 串口。
+
+读取指定虚拟机的全部虚拟串口配置（COM 1 与 COM 2）。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+
+返回：按端口号升序排列的串口配置列表。
+
+<a id="api-a2dc045b249ad8b5"></a>
+
+##### 规范化命名管道路径 · 方法
+
+```csharp
+public static string NormalizePipePath(string? input);
+```
+
+功能归属：管理层面 / 虚拟机 / 串口。
+
+规范化命名管道路径；仅输入短名称时自动补全为 \\.\pipe\名称，留空返回空字符串。
+
+| 参数 | 说明 |
+| --- | --- |
+| `input` | 用户输入的管道短名称或完整 UNC 管道路径。 |
+
+返回：规范化后的命名管道路径，空输入返回空字符串。
+
+<a id="api-d304344da733cf8c"></a>
+
+##### 设置内核调试模式 · 方法
+
+```csharp
+public static Task<ApiResponse> SetDebuggerModeAsync(Guid vmId, int portNumber, bool enabled);
+```
+
+功能归属：管理层面 / 虚拟机 / 串口。
+
+启用或关闭指定串口的 Windows 内核调试模式；不改变当前命名管道连接。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `portNumber` | 串口编号：1 表示 COM 1，2 表示 COM 2。 |
+| `enabled` | true 启用内核调试模式优化；false 关闭。 |
+
+返回：结构化修改结果。
+
+<a id="api-1b03f509700065cb"></a>
+
+##### 设置命名管道连接 · 方法
+
+```csharp
+public static Task<ApiResponse> SetPipePathAsync(Guid vmId, int portNumber, string? pipePath);
+```
+
+功能归属：管理层面 / 虚拟机 / 串口。
+
+开启、更新或断开指定串口的宿主机命名管道连接；不改变内核调试模式。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `portNumber` | 串口编号：1 表示 COM 1，2 表示 COM 2。 |
+| `pipePath` | 短管道名或完整管道路径；传入空字符串或 null 表示断开命名管道连接。 |
+
+返回：结构化修改结果。
+
 <a id="api-6cbffda7f312d0d5"></a>
 
 ### `VmSettingsSnapshot<T>` 类
@@ -34276,14 +34982,18 @@ public string VhdType { get; init; } = "Dynamic";
 | [` public static readonly VmQueryField<int> DiskNumber `](#api-ef04025f80055eb9) | 宿主物理磁盘编号：物理直通盘对应的宿主磁盘编号。 |
 | [` public static readonly VmQueryField<string> DiskType `](#api-718dccc22f411245) | 挂接来源类型：槽位的介质来源类型：虚拟磁盘、物理磁盘或空槽位。 |
 | [` public static readonly VmQueryField<string> DriveType `](#api-bd6c9f99df57f35f) | 驱动器类型：挂接槽位的驱动器类型：硬盘或光驱。 |
+| [` public static readonly VmQueryField<long> ErrorCount `](#api-4c186ae3b5f54c19) | 磁盘错误计数：虚拟存储设备累计发生的 IO 错误次数。 |
 | [` public static readonly VmQueryField<long> FileSizeBytes `](#api-4be25331f6b1240c) | 磁盘文件大小：虚拟磁盘映像文件当前的长度，单位为字节。 |
 | [` public static readonly VmQueryField<bool> IsPassthroughStale `](#api-0b703edfa9822c90) | 物理磁盘挂接失效：当前物理磁盘挂接目标是否已从 Hyper-V 物理磁盘清单中消失。 |
 | [` public static readonly VmQueryField<string> Path `](#api-deb0ab5b07658929) | 挂接目标路径：槽位当前挂接的映像文件路径或宿主设备引用。 |
 | [` public static readonly VmQueryField<string> PnpDeviceId `](#api-a620c20cce4cdaff) | 宿主磁盘设备身份：物理直通盘对应的宿主 PnP 设备标识。 |
+| [` public static readonly VmQueryField<long> QueueLength `](#api-fcca8426c35e7e82) | 磁盘队列深度：当前虚拟存储设备的平均 IO 队列长度。 |
 | [` public static readonly VmQueryField<long> ReadBytesPerSecond `](#api-537997a327a2db1c) | 磁盘读取速率：磁盘当前的读取速率，单位为字节每秒。 |
+| [` public static readonly VmQueryField<long> ReadOperationsPerSecond `](#api-bd21f870574c94df) | 磁盘读取 IOPS：磁盘当前每秒发生的读取操作次数。 |
 | [` public static readonly VmQueryField<string> SerialNumber `](#api-f136f8ff301b9625) | 宿主磁盘序列号：物理直通盘对应的宿主磁盘序列号。 |
 | [` public static readonly VmQueryField<string> VirtualDiskType `](#api-4b7c31cc73cad6ba) | 虚拟磁盘分配类型：虚拟磁盘的空间分配方式：固定磁盘预先分配容量，动态磁盘随写入增长，差分磁盘保存相对父盘的变化。 |
 | [` public static readonly VmQueryField<long> WriteBytesPerSecond `](#api-d5e61ae4a382ef8a) | 磁盘写入速率：磁盘当前的写入速率，单位为字节每秒。 |
+| [` public static readonly VmQueryField<long> WriteOperationsPerSecond `](#api-9508a3069fa10990) | 磁盘写入 IOPS：磁盘当前每秒发生的写入操作次数。 |
 
 #### 详细说明
 
@@ -34403,6 +35113,18 @@ public static readonly VmQueryField<string> DriveType;
 
 **取值说明：** HardDisk：硬盘；DvdDrive：光驱。光驱可以没有挂载介质。
 
+<a id="api-4c186ae3b5f54c19"></a>
+
+##### 磁盘错误计数 · 字段
+
+```csharp
+public static readonly VmQueryField<long> ErrorCount;
+```
+
+虚拟存储设备累计报告的 IO 错误次数。
+
+**取值说明：** 正常为 `0`；大于 0 表示出现过存储 IO 错误。
+
 <a id="api-4be25331f6b1240c"></a>
 
 ##### 磁盘文件大小 · 字段
@@ -34457,6 +35179,18 @@ public static readonly VmQueryField<string> PnpDeviceId;
 
 **适用条件：** 适用于物理直通盘。
 
+<a id="api-fcca8426c35e7e82"></a>
+
+##### 磁盘队列深度 · 字段
+
+```csharp
+public static readonly VmQueryField<long> QueueLength;
+```
+
+当前虚拟存储设备的平均队列长度。
+
+**取值说明：** 非负整数，值越大表示正在排队的 IO 请求越多。
+
 <a id="api-537997a327a2db1c"></a>
 
 ##### 磁盘读取速率 · 字段
@@ -34468,6 +35202,18 @@ public static readonly VmQueryField<long> ReadBytesPerSecond;
 磁盘当前的读取速率。
 
 **取值说明：** 单位为字节/秒；例如 `1048576` 表示 1 MiB/s。
+
+<a id="api-bd21f870574c94df"></a>
+
+##### 磁盘读取 IOPS · 字段
+
+```csharp
+public static readonly VmQueryField<long> ReadOperationsPerSecond;
+```
+
+磁盘当前每秒读取操作数。
+
+**取值说明：** 单位为次/秒（IOPS）。
 
 <a id="api-f136f8ff301b9625"></a>
 
@@ -34504,6 +35250,18 @@ public static readonly VmQueryField<long> WriteBytesPerSecond;
 磁盘当前的写入速率。
 
 **取值说明：** 单位为字节/秒；例如 `1048576` 表示 1 MiB/s。
+
+<a id="api-9508a3069fa10990"></a>
+
+##### 磁盘写入 IOPS · 字段
+
+```csharp
+public static readonly VmQueryField<long> WriteOperationsPerSecond;
+```
+
+磁盘当前每秒写入操作数。
+
+**取值说明：** 单位为次/秒（IOPS）。
 
 <a id="api-7599034e4f313f52"></a>
 
