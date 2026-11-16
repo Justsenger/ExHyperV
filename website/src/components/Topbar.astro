@@ -1,9 +1,11 @@
 ---
 const { module } = Astro.props;
-const links = [ ['home', '首页', '/'], ['wiki', '系统图鉴', '/os/'], ['docs', '文档', '/docs/'] ];
+const links = [ ['home', '首页', '/'], ['wiki', '系统图鉴', '/os/'], ['docs', '文档', '/docs/'], ['uiDesign', '在线体验', '/desktop/'] ];
 ---
 <header class="ex-top"><nav aria-label="主站导航" data-i18n-aria="navigation"><div class="nav-wrapper">
-  <a class="site-brand" href="/"><span class="brand-text">ExHyperV</span></a>
+  <a class="topbar-brand" href="/" aria-label="ExHyperV">
+    <img src="/favicon-32x32.png?v=2" width="19" height="19" alt="" />
+  </a>
   <div class="topbar-links">{links.map(([key, label, href]) => <a href={href} data-module={key} data-i18n={key} aria-current={module === key ? 'page' : undefined}>{label}</a>)}</div>
   <div class="topbar-actions">
     <select class="site-language" data-site-language aria-label="语言" data-i18n-aria="language" hidden>
@@ -12,6 +14,119 @@ const links = [ ['home', '首页', '/'], ['wiki', '系统图鉴', '/os/'], ['doc
       <option value="zh-TW">繁體中文</option>
       <option value="en">English</option>
     </select>
+    <a class="topbar-github" href="https://github.com/Justsenger/ExHyperV" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" /></svg>
+    </a>
     {module === 'wiki' && <button id="sidebar-toggle" class="sidenav-trigger" aria-label="展开分类" data-i18n-aria="expandCategories" aria-controls="slide-out" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button>}
   </div>
 </div></nav></header>
+
+<style is:global>
+  header.ex-top {
+    padding: 14px 20px 0;
+    pointer-events: none;
+  }
+  header.ex-top nav {
+    pointer-events: auto;
+    width: fit-content;
+    max-width: calc(100vw - 24px);
+    height: 44px;
+    margin: 0 auto;
+    border-radius: 999px;
+    background: rgba(13, 18, 28, 0.72);
+    backdrop-filter: blur(24px) saturate(150%);
+    -webkit-backdrop-filter: blur(24px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+  }
+  header.ex-top .nav-wrapper {
+    grid-template-columns: auto auto auto;
+    padding: 0 14px;
+    gap: 6px;
+  }
+  header.ex-top .topbar-brand {
+    display: inline-flex;
+    align-items: center;
+    padding-right: 10px;
+    margin-right: 4px;
+    border-right: 1px solid rgba(255, 255, 255, 0.09);
+  }
+  header.ex-top .topbar-brand img {
+    display: block;
+    width: 19px;
+    height: 19px;
+  }
+  header.ex-top .topbar-links {
+    gap: 2px;
+  }
+  header.ex-top .topbar-links a {
+    height: 30px;
+    padding: 0 13px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.62);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  header.ex-top .topbar-links a:hover {
+    color: rgba(255, 255, 255, 0.94);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  header.ex-top .topbar-links a[aria-current="page"] {
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+  }
+  header.ex-top .topbar-actions {
+    padding-left: 10px;
+    margin-left: 4px;
+    border-left: 1px solid rgba(255, 255, 255, 0.09);
+    gap: 6px;
+  }
+  header.ex-top .topbar-github {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    color: rgba(255, 255, 255, 0.62);
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  header.ex-top .topbar-github:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  header.ex-top .topbar-github svg {
+    width: 17px;
+    height: 17px;
+  }
+  header.ex-top .sidenav-trigger {
+    height: 28px;
+    padding: 0 7px;
+    border-radius: 999px;
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  @media (max-width: 640px) {
+    header.ex-top {
+      padding: 10px 10px 0;
+    }
+    header.ex-top .nav-wrapper {
+      padding: 0 10px;
+      gap: 4px;
+    }
+    header.ex-top .topbar-brand {
+      padding-right: 8px;
+      margin-right: 2px;
+    }
+    header.ex-top .topbar-actions {
+      padding-left: 8px;
+      margin-left: 2px;
+    }
+    header.ex-top .topbar-links a {
+      padding: 0 9px;
+      font-size: 13px;
+    }
+  }
+</style>

@@ -37,6 +37,10 @@
   apply();
   document.addEventListener('DOMContentLoaded', () => {
     if (onWebsite) {
+      const roundedFont = document.createElement('link');
+      roundedFont.rel = 'stylesheet';
+      roundedFont.href = '/typefaces/resource-rounded.css';
+      document.head.appendChild(roundedFont);
       document.querySelector('[data-site-navigation]').hidden = false;
       const home = document.querySelector('[data-site-home]');
       home.href = '/';
@@ -69,15 +73,9 @@
 <a class="skip-link" href="#main-content">跳到正文</a>
 <header class="site-header">
   <div class="topbar">
-    <a class="brand" href="#overview" data-site-home aria-label="ExHyperV API 文档首页"><span class="brand-text">ExHyperV</span></a>
-    <nav class="site-links" data-site-navigation aria-label="主站导航" hidden><a href="/">首页</a><a href="/os/">系统图鉴</a><a href="/docs/" aria-current="page">文档</a></nav>
+    <div class="topbar-brand"><button class="mobile-menu" id="mobile-menu" type="button" aria-label="展开类型目录" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button><a class="brand" href="#overview" data-site-home aria-label="ExHyperV API 文档首页"><span class="brand-text">ExHyperV</span></a></div>
+    <nav class="site-links" data-site-navigation aria-label="主站导航" hidden><a href="/">首页</a><a href="/os/">系统图鉴</a><a href="/docs/" aria-current="page">文档</a><a href="/desktop/">在线体验</a></nav>
     <div class="topbar-actions"><select id="theme-select" class="theme-select" aria-label="文档主题" title="文档主题"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></div>
-  </div>
-  <div class="subbar">
-    <button class="mobile-menu" id="mobile-menu" type="button" aria-label="展开类型目录" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button>
-    <div class="breadcrumb" aria-label="当前位置"><span class="current" id="breadcrumb-current"></span></div>
-    <nav class="toplinks" aria-label="文档导航"><a href="#overview" id="reference-tab">API 文档</a><a href="#design" id="design-tab">设计图</a></nav>
-    <span class="version" id="version"></span>
   </div>
 </header>
 <div class="nav-scrim" id="nav-scrim"></div>
@@ -123,6 +121,7 @@
   const referenceTarget = id => referenceTargets.get(id) || referenceTargets.get(id.split('--')[0]) || id;
   const referenceLinks = html => html.replace(/href="#([^"]+)"/g,(_,id) => `href="#${referenceTarget(id)}"`);
   const main = document.getElementById('main-content');
+  const setBreadcrumb = text => main.setAttribute('data-breadcrumb', text);
   const navigation = document.getElementById('navigation');
   const search = document.getElementById('api-search');
   const clearSearch = document.getElementById('clear-search');
@@ -422,7 +421,6 @@
     if (!query || index < 0) return escape(text);
     return escape(text.slice(0, index)) + '<mark class="search-result-highlight">' + escape(text.slice(index, index + query.length)) + '</mark>' + escape(text.slice(index + query.length));
   };
-  document.getElementById('version').textContent = `Core ${data.version || ''}`;
   navigation.addEventListener('toggle',event => {
     if (event.target.matches('details[data-node]')) expanded.set(event.target.dataset.node,event.target.open);
   },true);
@@ -550,7 +548,7 @@
     renderedContracts = new Set();
     main.className = 'article';
     main.innerHTML = member ? memberCard(type,member,member.displayName,1) : typeContent(type);
-    document.getElementById('breadcrumb-current').textContent = pathKey(displayPath(typePaths(type)[0])) + ' / ' + typeTitle(type);
+    setBreadcrumb(pathKey(displayPath(typePaths(type)[0])) + ' / ' + typeTitle(type));
   }
   function valueList(enumTypeId,fieldId) {
     const type = typeMap.get(enumTypeId);
@@ -644,16 +642,16 @@
       + extra + '</dl></section>';
   }
   const categoryHubs = [
-    {id:'category-vm',label:'虚拟机',description:'生命周期与配置'},
-    {id:'category-host',label:'宿主',description:'资源与系统设置'},
-    {id:'category-tools',label:'工具',description:'配置文件与磁盘映像'}
+    {id:'category-vm',label:'虚拟机',description:'实例创建与导入导出，以及处理器、内存、磁盘、网卡、GPU 等配置读写'},
+    {id:'category-host',label:'宿主',description:'宿主机硬件信息、调度器、处理器组与设备直通设置'},
+    {id:'category-tools',label:'工具',description:'VMCX 配置文件读写、ISO 映像构建与磁盘分区解析'}
   ];
   const categoryHubMap = new Map(categoryHubs.map(hub => [hub.id,hub]));
   const businessDescriptions = {
-    '连接':'建立与管理会话',
-    '视频':'画面与截图',
-    '控制':'键盘与鼠标',
-    '剪贴板':'文本与图像传输'
+    '连接':'发现控制台后端并建立虚拟机连接会话',
+    '视频':'获取实时屏幕帧流与单帧截图',
+    '控制':'向来宾发送键盘按键与鼠标输入',
+    '剪贴板':'在宿主机与来宾之间传输文本和图像'
   };
   const toolDescriptions = {
     'VMCX 文件':'读取、查找、编辑和校验虚拟机配置文件。',
@@ -675,17 +673,16 @@
       '剪贴板':'<path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2M8 12h8M8 16h6"/><rect x="8" y="2" width="8" height="5" rx="1.5"/>'
     };
     return `<nav class="overview-entries" aria-label="${escape(label)}">${items.map(item =>
-      link(item.id,`<svg class="overview-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[item.label]}</svg><span class="overview-entry-copy"><span class="overview-entry-name">${escape(item.label)}</span><span class="overview-entry-description">${escape(item.description)}</span></span><span class="overview-entry-arrow" aria-hidden="true">→</span>`,'overview-entry')).join('')}</nav>`;
+      link(item.id,`<svg class="overview-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[item.label]}</svg><span class="overview-entry-name">${escape(item.label)}</span>`,'overview-entry')).join('')}</nav>`;
   }
   function renderOverview() {
     currentType = null;
     main.className = 'article overview-page';
     const business = referenceGroups.filter(group => group.path[0] === '业务层面')
-      .map(group => ({id:group.id,label:group.path[1],description:businessDescriptions[group.path[1]]}));
-    main.innerHTML = `<header id="overview"><h1>概览</h1></header>`
-      + `<div class="overview-columns"><section class="overview-domain" aria-labelledby="overview-management"><header class="overview-domain-heading"><h2 id="overview-management">管理层面</h2></header>${overviewEntries(categoryHubs,'管理分类')}</section>`
+      .map(group => ({id:group.id,label:group.path[1]}));
+    main.innerHTML = `<div class="overview-columns" id="overview"><section class="overview-domain" aria-labelledby="overview-management"><header class="overview-domain-heading"><h2 id="overview-management">管理层面</h2></header>${overviewEntries(categoryHubs,'管理分类')}</section>`
       + `<section class="overview-domain" aria-labelledby="overview-business"><header class="overview-domain-heading"><h2 id="overview-business">业务层面</h2></header>${overviewEntries(business,'业务分类')}</section></div>`;
-    document.getElementById('breadcrumb-current').textContent = '概览';
+    setBreadcrumb('概览');
   }
   function renderCategoryHub(hub) {
     currentType = null;
@@ -702,7 +699,7 @@
         .map(group => ({id:group.id,label:group.path.at(-1),description:toolDescriptions[group.path.at(-1)]})),'工具分类');
     }
     main.innerHTML = `<header id="${hub.id}"><h1>${escape(hub.label)}</h1></header>${content}`;
-    document.getElementById('breadcrumb-current').textContent = '管理层面 / '+hub.label;
+    setBreadcrumb('管理层面 / '+hub.label);
   }
   function affinityGroupLinks(area) {
     const entries = hostEntries.filter(entry => entry.area === area && entry.category === '处理器组' && ['CpuCap','Priority','IdleProcessorReserve','RelativeWeight','SetCpuCapAsync','SetPriorityAsync','SetIdleProcessorReserveAsync','SetRelativeWeightAsync'].includes(entry.member.name));
@@ -713,14 +710,14 @@
     main.className = 'article';
     main.innerHTML = `<h1 id="query-fields">可查询字段</h1>${usageSection(`<p class="lead">这里列出 ${vmQueryFields.length} 项。每一项都可独立选择，分类只用于查找，不要求整组查询。另有 ${hostGroupFields.length} 项分组字段归入${link(hostGroupQuery.id,'宿主 / 查询 / 分组')}，仍可使用同一查询接口组合读取。</p><p>调用：${link(queryMethod.id,'<code>VmQueryService.QueryAsync</code>')} · 参数：${typeLink(queryTypes.find(type => type.shortName === 'VmQueryRequest'))} · 结果：${typeLink(queryTypes.find(type => type.shortName === 'VmQueryResult'))}</p>`,'query-fields--description')}${queryGroups.map(group => `<section><h2 class="query-group-title" id="${escape(group.id)}">${escape(group.path.at(-1))}</h2>${group.path.at(-1) === '处理器' ? affinityGroupLinks('查询') : ''}<table class="query-field-table"><thead><tr><th>查询项</th><th>类型</th><th>说明</th></tr></thead><tbody>${group.fields.map(field => `<tr><td class="query-field-name">${link(field.member.id,escape(field.label))}<code>${escape(field.expression)}</code></td><td class="query-field-type"><code>${escape(field.valueType)}</code></td><td>${field.summaryHtml}</td></tr>`).join('')}</tbody></table>${queryEntryTable(group)}</section>`).join('')}`;
 
-    document.getElementById('breadcrumb-current').textContent = '查询 / 可查询字段';
+    setBreadcrumb('查询 / 可查询字段');
   }
   function renderModificationCatalog() {
     currentType = null;
     main.className = 'article';
     main.innerHTML = `<h1 id="modification-fields">修改</h1>${modificationGroups.map(group => `<section><h2 class="query-group-title" id="${escape(group.id)}">${escape(group.path.at(-1))}</h2>${group.path.at(-1) === '处理器' ? affinityGroupLinks('修改') : ''}${group.fields.length ? `<table class="query-field-table"><thead><tr><th>修改项</th><th>类型</th><th>说明</th></tr></thead><tbody>${group.fields.map(field => `<tr><td class="query-field-name">${link(field.id,escape(field.label))}${field.change.kind === 'unavailable' ? '<div class="entry-status">只读</div>' : ''}</td><td class="query-field-type"><code>${escape(field.valueType)}</code></td><td>${field.summaryHtml}<div class="modification-description">${field.change.kind === 'supported' ? escape(field.change.submission) : field.change.html}</div></td></tr>`).join('')}</tbody></table>` : ''}${group.actions.length ? `<table class="modification-actions"><thead><tr><th>操作</th><th>说明</th></tr></thead><tbody>${group.actions.map(action => `<tr><td>${link(action.member.id,escape(action.label))}</td><td>${action.member.summaryHtml}</td></tr>`).join('')}</tbody></table>` : ''}</section>`).join('')}`;
 
-    document.getElementById('breadcrumb-current').textContent = '修改';
+    setBreadcrumb('修改');
   }
   function renderModificationField(field) {
     currentType = null;
@@ -728,7 +725,7 @@
     const group = hostGroupFields.some(item => item.member.id === field.member.id) ? hostGroupModification : modificationGroups.find(group => group.path.at(-1) === field.category);
     main.innerHTML = modificationCard(field,1);
 
-    document.getElementById('breadcrumb-current').textContent = `${pathKey(group.path.slice(1))} / ${field.label}`;
+    setBreadcrumb(`${pathKey(group.path.slice(1))} / ${field.label}`);
   }
   function modificationCard(field,level=2) {
     const values = valueList(field.enumTypeId) + field.valuesHtml;
@@ -747,14 +744,14 @@
     main.innerHTML = '<h1 id="instances">实例</h1>' + usageSection('<p>每次创建、删除、导入或导出一台虚拟机。名称与磁盘方案由调用方指定；多台任务的命名、调度、失败处理和后续启动由上层应用安排。</p>','instances--description')
       + '<table><thead><tr><th>入口</th><th>方法</th><th>用途</th></tr></thead><tbody>' + orderedInstanceActions.map(action => {const group=instanceGroupFor(action);return '<tr id="' + group.id + '"><td>' + link(action.id,escape(action.label)) + '</td><td>' + action.variants.map(variant => '<div><code>' + escape(variant.type.shortName + '.' + variant.member.name) + '</code></div>').join('') + '</td><td>' + action.variants.map(variant => '<div>' + (variant.mode ? '<strong>' + escape(variant.mode) + '：</strong>' : '') + variant.member.summaryHtml + '</div>').join('') + '</td></tr>';}).join('') + '</tbody></table>';
 
-    document.getElementById('breadcrumb-current').textContent = '虚拟机 / 实例';
+    setBreadcrumb('虚拟机 / 实例');
   }
   function renderInstanceEntry(action) {
     currentType = null; main.className = 'article';
     const section = instanceSection;
     main.innerHTML = `<div id="${action.id}">${action.variants.map(variant => `<section id="${variant.id}--usage">${memberCard(variant.type,variant.member,action.label + (variant.mode ? ' · ' + variant.mode : ''),action.variants.length === 1 ? 1 : 2)}</section>`).join('')}</div>`;
 
-    document.getElementById('breadcrumb-current').textContent = pathKey(section.path.slice(1)) + ' / ' + action.label;
+    setBreadcrumb(pathKey(section.path.slice(1)) + ' / ' + action.label);
   }
   function usageSection(html, id, level = 2) {
     return html.trim() ? `<section class="capability-usage" id="${escape(id)}" aria-labelledby="${escape(id)}--heading"><h${level} class="member-group-heading" id="${escape(id)}--heading">功能说明</h${level}><div class="usage-content">${html}</div></section>` : '';
@@ -785,7 +782,7 @@
       + groups.map(group => '<section><h2 class="query-group-title" id="' + group.id + '">' + escape(group.path.at(-1)) + '</h2><table class="query-field-table"><thead><tr><th>' + area + '项</th><th>' + (area === '查询' ? '值／返回类型' : '调用方法') + '</th><th>说明</th></tr></thead><tbody>'
         + group.entries.map(entry => '<tr><td class="query-field-name">' + link(entry.member.id,escape(entry.label)) + '</td><td class="query-field-type"><code>' + escape(area === '查询' ? entry.valueType : entry.type.shortName + '.' + entry.member.name) + '</code></td><td>' + entry.member.summaryHtml + '</td></tr>').join('') + '</tbody></table>' + hostUsageHtml(area,group.path.at(-1)) + '</section>').join('');
 
-    document.getElementById('breadcrumb-current').textContent = '宿主 / ' + area;
+    setBreadcrumb('宿主 / ' + area);
   }
   function renderHostEntry(entry) {
     currentType = entry.type; main.className = 'article';
@@ -799,7 +796,7 @@
     main.innerHTML += `<span id="${member.id}--usage"></span>`
       + (reader ? `<section id="${member.id}--read"><h2 class="member-group-heading">读取</h2>${memberCard(reader.type,reader.member)}</section>` : '');
 
-    document.getElementById('breadcrumb-current').textContent = '宿主 / ' + entry.area + ' / ' + entry.category + ' / ' + entry.label;
+    setBreadcrumb('宿主 / ' + entry.area + ' / ' + entry.category + ' / ' + entry.label);
   }
   function modificationDescription(change) {
     if (!change) return '';
@@ -841,7 +838,7 @@
     const group = field.member.navigationPath[1] === '宿主' ? hostGroupQuery : queryGroups.find(group => group.fields.some(item => item.member.id === field.member.id));
     main.innerHTML = `<section class="field-sheet" id="${escape(member.id)}"><h1>${escape(field.label)}</h1>${queryFieldContent(field)}</section>`;
 
-    document.getElementById('breadcrumb-current').textContent = `${pathKey(group.path.slice(1))} / ${field.label}`;
+    setBreadcrumb(`${pathKey(group.path.slice(1))} / ${field.label}`);
   }
   function resolveGroupPage(id) {
     const target = managementAliases.get(id.split('--')[0]) || id.split('--')[0];
@@ -945,15 +942,14 @@
         + usageSection(usage,group.id+'--description') + capabilityContent(selected,group);
     }
     main.innerHTML = `<div id="${group.id}">${content || '<p class="empty">本分类暂无公开成员。</p>'}</div>`;
-    document.getElementById('breadcrumb-current').textContent = pathKey(group.path[0] === '管理层面' ? group.path.slice(1) : group.path);
+    setBreadcrumb(pathKey(group.path[0] === '管理层面' ? group.path.slice(1) : group.path));
   }
   function renderDesign(design) {
     currentType = null;
     main.className = 'article design-article';
     const draft = design.status === 'draft';
     main.innerHTML = `<header id="${escape(design.id)}"><div class="design-heading"><h1>${escape(design.title)}</h1><span class="design-state ${draft ? 'draft' : ''}">${draft ? '规划草案' : '当前结构'}</span></div><p class="lead">${escape(design.summary)}</p></header>${design.sections.map(section => `<section><h2 id="${escape(section.id)}">${escape(section.title)}</h2>${section.html}</section>`).join('')}`;
-    document.getElementById('breadcrumb-current').textContent = '设计图 / ' + design.title;
-
+    setBreadcrumb('设计图 / ' + design.title);
   }
   function closeNavigation(focusTarget) {
     const wasOpen = document.body.classList.contains('nav-open');
@@ -965,7 +961,7 @@
     try { id = decodeURIComponent(location.hash.slice(1)); } catch { id = ''; }
     if (id === 'main-content') { main.focus(); return; }
     if (!id) id = 'overview';
-    if (id === 'design') id = designs[0]?.id || id;
+    if (id === 'design') id = (designs.find(design => design.status !== 'draft') || designs[0])?.id || 'overview';
     const previousIndexes = {'query-reference':'overview','modification-reference':'overview',
       'query-fields':'overview','modification-fields':'overview','host-query':'overview','host-modification':'overview',
       'guide-接入与基本约定':'guide-开始使用','guide-自由组合查询':'guide-查询数据',
@@ -1026,7 +1022,7 @@
       else {
         currentType = null; main.className = 'article';
         main.innerHTML = `<h1>未找到文档</h1><p>此链接指向的类型或成员不在当前版本中。</p><p>${link('overview','返回概览')}</p>`;
-        document.getElementById('breadcrumb-current').textContent = '未找到文档';
+        setBreadcrumb('未找到文档');
       }
       main.innerHTML = referenceLinks(main.innerHTML);
       currentRoute = page;
@@ -1034,8 +1030,6 @@
     }
     revealNavigationGroup(id);
     renderNavigation();
-    document.getElementById('reference-tab').setAttribute('aria-current', selectedDesign ? 'false' : 'page');
-    document.getElementById('design-tab').setAttribute('aria-current', selectedDesign ? 'page' : 'false');
     closeNavigation(main);
     requestAnimationFrame(() => {
       const target = document.getElementById(id);

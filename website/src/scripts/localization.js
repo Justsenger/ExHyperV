@@ -65,7 +65,7 @@ export function initializeLocalization(preference = activePreference()) {
   for (const image of document.querySelectorAll('[data-os-image-name]')) image.alt = `${image.dataset.osImageName} ${translate('imageScreenshot', language)}`;
   for (const select of document.querySelectorAll('[data-site-language]')) select.value = preference;
   const rawTitle = document.body.dataset.pageTitle;
-  const titleKeys = { '首页': 'home', '系统图鉴': 'wiki', '文档': 'docs', '更新日志': 'changelog' };
+  const titleKeys = { '首页': 'home', '系统图鉴': 'wiki', '文档': 'docs', '在线体验': 'uiDesign', '界面设计': 'uiDesign', 'UI设计': 'uiDesign', '更新日志': 'changelog' };
   const title = titleKeys[rawTitle] ? translate(titleKeys[rawTitle], language) : rawTitle;
   const main = document.querySelector('#wiki-content');
   if (title) {

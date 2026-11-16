@@ -53,7 +53,7 @@ function page({ hash = '', languages = ['zh-CN'] } = {}) {
     get navigation() { return nodes.get('navigation').innerHTML; },
     get content() { return nodes.get('main-content').innerHTML; },
     get title() { return context.document.title; },
-    get breadcrumb() { return nodes.get('breadcrumb-current').textContent; },
+    get breadcrumb() { return nodes.get('main-content').attrs.get('data-breadcrumb'); },
     get target() { return scrolled; },
   };
 }
@@ -70,7 +70,7 @@ test('the API home is a concise overview with seven working category buttons', (
   const view = page();
   assert.equal(view.breadcrumb, '概览');
   const content = view.content;
-  assert.match(content, /<h1>概览<\/h1>/);
+  assert.match(content, /id="overview"/);
   assert.doesNotMatch(content, /管理虚拟机，连接来宾。|虚拟机、宿主与文件工具|连接、画面与输入交互/);
   assert.match(content, /class="overview-columns"/);
   assert.match(content, /id="overview-management">管理层面/);
@@ -99,7 +99,7 @@ test('the API home is a concise overview with seven working category buttons', (
 test('document title stays fixed across routes and follows browser language changes', () => {
   assert.match(html, /<title>API 文档<\/title>/);
   assert.ok(titleScript);
-  const routes = ['overview','category-tools',data.types[0].id,data.types[0].members[0].id,data.designs[0].id,'missing-route'];
+  const routes = ['overview','category-tools',data.types[0].id,data.types[0].members[0].id,...(data.designs.length ? [data.designs[0].id] : []),'missing-route'];
   const view = page();
   for (const [language, title] of [['zh-CN','API 文档'],['en-US','API Documentation'],['zh-TW','API 文件'],['zh-HK','API 文件'],['zh-CN','API 文档']]) {
     view.setLanguage(language);
@@ -123,13 +123,15 @@ test('partition parsing is reachable from tools and GPU without exposing the int
   assert.ok(!data.types.some(item => item.shortName === 'DiskParser'));
 });
 
-test('the separate guide section is removed while API examples and result types remain accessible', async () => {
-  assert.doesNotMatch(html.slice(0,html.indexOf('<script type="application/json"')), /guide-tab|使用说明/);
-  assert.equal(data.guides.length,0);
+test('the secondary bar, design pages, and separate guide section are hidden while API examples and result types remain accessible', async () => {
+  const head = html.slice(0,html.indexOf('<script type="application/json"'));
+  assert.doesNotMatch(head, /class="subbar"|guide-tab|design-tab|breadcrumb-current|id="version"/);
+  assert.equal(data.guides.length, 0);
+  assert.equal(data.designs.length, 0);
   const view = page();
   for (const id of ['guide','guide-开始使用','guide-查询数据','guide-结果取消和资源释放']) {
     assert.doesNotMatch(view.open(id), /未找到文档|guide-article/);
-    assert.doesNotMatch(view.navigation, /使用说明/);
+    assert.doesNotMatch(view.navigation, /快速上手|使用说明/);
   }
   const clipboard = data.types.find(item => item.shortName === 'IConsoleClipboard');
   assert.ok(view.open(clipboard.id).includes('ClipboardExample'));
