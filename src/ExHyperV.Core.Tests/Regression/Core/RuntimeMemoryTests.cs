@@ -40,4 +40,48 @@ public sealed class RuntimeMemoryTests
         Assert.AreSame(assigned, result.AssignedSample);
         Assert.AreEqual(1024L, result.AssignedMiB);
     }
+
+    [TestMethod]
+    public void DynamicMemoryExtractsAvailableBufferDemandAndRejectsMaxValueSentinel()
+    {
+        var observed = DateTimeOffset.UtcNow;
+        var ready = VmQueryService.MapRuntimeMemory(2048L, 30, 2, true, observed, 125);
+        Assert.AreEqual(2048L, ready.AssignedMiB);
+        Assert.AreEqual(30, ready.AvailablePercent);
+        Assert.AreEqual(125, ready.AvailableBufferPercent);
+        Assert.IsTrue(ready.AvailableBufferSample!.IsValid);
+        Assert.AreEqual(1434L, ready.DemandMiB);
+        Assert.IsTrue(ready.DemandSample!.IsValid);
+
+        var notReady = VmQueryService.MapRuntimeMemory(2048L, 30, 2, true, observed, int.MaxValue);
+        Assert.AreEqual(PerformanceSampleState.Unavailable, notReady.AvailableBufferSample!.State);
+        Assert.AreEqual(0, notReady.AvailableBufferPercent);
+
+        var fixedMem = VmQueryService.MapRuntimeMemory(2048L, null, 2, false, observed, 20);
+        Assert.AreEqual(PerformanceSampleState.NotApplicable, fixedMem.AvailableBufferSample!.State);
+    }
+
+    [TestMethod]
+    public void BalancerCountersPopulatePressureGuestSizesAndSmartPagingWithoutOverwritingDynamicSummary()
+    {
+        var observed = DateTimeOffset.UtcNow;
+        var initial = VmQueryService.MapRuntimeMemory(2048L, 25, 2, true, observed, 40);
+        var updated = VmQueryService.MapBalancerMemoryCounters(initial, 80, 2560L, 2048L, 720L, 64L, true, observed);
+        Assert.AreEqual(80, updated.PressurePercent);
+        Assert.IsTrue(updated.PressureSample!.IsValid);
+        Assert.AreEqual(2560L, updated.GuestVisibleMiB);
+        Assert.AreEqual(720L, updated.GuestAvailableMiB);
+        Assert.AreEqual(64L, updated.SmartPagingMiB);
+        Assert.AreEqual(25, updated.AvailablePercent);
+        Assert.AreEqual(1536L, updated.DemandMiB);
+
+        var fixedInitial = VmQueryService.MapRuntimeMemory(2048L, null, 2, false, observed, null);
+        var fixedUpdated = VmQueryService.MapBalancerMemoryCounters(fixedInitial, 70, 2048L, 2048L, 614L, 0L, false, observed);
+        Assert.AreEqual(70, fixedUpdated.PressurePercent);
+        Assert.AreEqual(1434L, fixedUpdated.DemandMiB);
+        Assert.AreEqual(30, fixedUpdated.AvailablePercent);
+        Assert.AreEqual(614L, fixedUpdated.GuestAvailableMiB);
+        Assert.AreEqual(0L, fixedUpdated.SmartPagingMiB);
+        Assert.IsTrue(fixedUpdated.SmartPagingSample!.IsValid);
+    }
 }

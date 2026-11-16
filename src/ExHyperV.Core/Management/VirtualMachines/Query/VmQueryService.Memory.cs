@@ -34,15 +34,21 @@ public partial class VmQueryService
                     return ApiResponse<Dictionary<Guid, VmDynamicMemoryData>>.Fail(
                         "内存摘要包含无效或重复的虚拟机 GUID，不能归属样本。", kind: ApiErrorKind.AmbiguousTarget);
                 bool? dynamicEnabled = settings.Success ? dynamicSettings.GetValueOrDefault(id) : null;
-                var data = MapRuntimeMemory(row.Assigned, row.Available, row.State, dynamicEnabled, observed);
-                if (!settings.Success && data.AvailableSample?.State != PerformanceSampleState.NotApplicable)
-                    data = data with { AvailableSample = new(PerformanceSampleState.Failed, observed, settings.Error) };
+                var data = MapRuntimeMemory(row.Assigned, row.Available, row.State, dynamicEnabled, observed, row.AvailableBuffer);
+                if (!settings.Success)
+                {
+                    if (data.AvailableSample?.State != PerformanceSampleState.NotApplicable)
+                        data = data with { AvailableSample = new(PerformanceSampleState.Failed, observed, settings.Error) };
+                    if (data.AvailableBufferSample?.State != PerformanceSampleState.NotApplicable)
+                        data = data with { AvailableBufferSample = new(PerformanceSampleState.Failed, observed, settings.Error) };
+                }
                 result.Add(id, data);
             }
-            var fixedMemory = (summary.Data ?? []).Where(row => Guid.TryParse(row.Id, out var id)
-                && dynamicSettings.GetValueOrDefault(id) == false && VmMapper.IsActiveState(row.State)).ToArray();
-            if (settings.Success && fixedMemory.Length > 0)
-                await ReadFixedMemoryDemandAsync(result, summary.Data ?? [], fixedMemory).ConfigureAwait(false);
+            var balancerTargets = (summary.Data ?? []).Where(row => Guid.TryParse(row.Id, out var id)
+                && dynamicSettings.ContainsKey(id) && VmMapper.IsActiveState(row.State)).ToArray();
+            if (settings.Success && balancerTargets.Length > 0)
+                await ReadBalancerMemoryCountersAsync(result, summary.Data ?? [], balancerTargets,
+                    id => dynamicSettings.GetValueOrDefault(id)).ConfigureAwait(false);
             return ApiResponse<Dictionary<Guid, VmDynamicMemoryData>>.Ok(result);
         }
         catch (Exception error)
@@ -53,33 +59,36 @@ public partial class VmQueryService
     }
 
     internal sealed record MemoryRuntimeSummary(string? Id, string? Name, ushort State,
-        object? Assigned, object? Available, ulong Uptime);
+        object? Assigned, object? Available, ulong Uptime, object? AvailableBuffer = null);
 
     private static Task<ApiResponse<List<MemoryRuntimeSummary>>> QueryMemorySummaryAsync() => WmiApi.QueryAsync(
-        "SELECT Name, ElementName, EnabledState, UpTime, MemoryUsage, MemoryAvailable FROM Msvm_SummaryInformation",
+        "SELECT Name, ElementName, EnabledState, UpTime, MemoryUsage, MemoryAvailable, AvailableMemoryBuffer FROM Msvm_SummaryInformation",
         obj => new MemoryRuntimeSummary(obj["Name"]?.ToString(), obj["ElementName"]?.ToString(),
             Convert.ToUInt16(obj["EnabledState"] ?? (ushort)0), obj["MemoryUsage"], obj["MemoryAvailable"],
-            Convert.ToUInt64(obj["UpTime"] ?? 0)), WmiScope.HyperV);
+            Convert.ToUInt64(obj["UpTime"] ?? 0), obj["AvailableMemoryBuffer"]), WmiScope.HyperV);
 
-    internal static async Task ReadFixedMemoryDemandAsync(Dictionary<Guid, VmDynamicMemoryData> result,
-        IReadOnlyList<MemoryRuntimeSummary> before, IReadOnlyList<MemoryRuntimeSummary> fixedMemory)
+    internal static async Task ReadBalancerMemoryCountersAsync(Dictionary<Guid, VmDynamicMemoryData> result,
+        IReadOnlyList<MemoryRuntimeSummary> before, IReadOnlyList<MemoryRuntimeSummary> targets,
+        Func<Guid, bool?> dynamicLookup)
     {
         // MemoryAvailable is explicitly undefined for fixed-memory VMs. Azure Migrate instead
         // derives memory demand from Current Pressure * Guest Visible Physical Memory / 100.
         // https://learn.microsoft.com/azure/migrate/discovered-metadata
         var counters = await WmiApi.QueryAsync(
-            "SELECT Name, CurrentPressure, GuestVisiblePhysicalMemory, PhysicalMemory FROM Win32_PerfFormattedData_BalancerStats_HyperVDynamicMemoryVM",
+            "SELECT Name, CurrentPressure, GuestVisiblePhysicalMemory, GuestAvailableMemory, PhysicalMemory, SmartPagingWorkingSetSize FROM Win32_PerfFormattedData_BalancerStats_HyperVDynamicMemoryVM",
             obj => (Name: obj["Name"]?.ToString(), Pressure: obj["CurrentPressure"],
-                Visible: obj["GuestVisiblePhysicalMemory"], Physical: obj["PhysicalMemory"]), WmiScope.CimV2).ConfigureAwait(false);
+                Visible: obj["GuestVisiblePhysicalMemory"], GuestAvailable: obj["GuestAvailableMemory"],
+                Physical: obj["PhysicalMemory"], SmartPaging: obj["SmartPagingWorkingSetSize"]), WmiScope.CimV2).ConfigureAwait(false);
         // These counter instances have display names, not IDs. Recheck their owners after reading;
         // never select the first duplicate or interpret a generated '#n' suffix as a VM identity.
         var after = counters.Success ? await QueryMemorySummaryAsync().ConfigureAwait(false) : null;
         var afterRows = after?.Data ?? [];
         var observed = DateTimeOffset.UtcNow;
-        foreach (var row in fixedMemory)
+        foreach (var row in targets)
         {
             var id = Guid.Parse(row.Id!);
             var data = result[id];
+            bool? dynamicEnabled = dynamicLookup(id);
             PerformanceSampleInfo failure;
             if (!counters.Success || after?.Success != true)
                 failure = new(!counters.Success && (counters.ErrorKind == ApiErrorKind.Unsupported
@@ -104,16 +113,22 @@ public partial class VmQueryService
                         observed, "未取得唯一的来宾内存需求计数器。");
                 else
                 {
-                    result[id] = MapFixedMemoryDemand(data, matches[0].Pressure, matches[0].Visible, matches[0].Physical, observed);
+                    result[id] = MapBalancerMemoryCounters(data, matches[0].Pressure, matches[0].Visible,
+                        matches[0].Physical, matches[0].GuestAvailable, matches[0].SmartPaging, dynamicEnabled, observed);
                     continue;
                 }
             }
-            result[id] = data with { AvailableSample = failure };
+            result[id] = ApplyBalancerFailure(data, failure, dynamicEnabled);
         }
     }
 
     internal static VmDynamicMemoryData MapFixedMemoryDemand(VmDynamicMemoryData data,
         object? pressure, object? visible, object? physical, DateTimeOffset observed)
+        => MapBalancerMemoryCounters(data, pressure, visible, physical, null, null, false, observed);
+
+    internal static VmDynamicMemoryData MapBalancerMemoryCounters(VmDynamicMemoryData data,
+        object? pressure, object? visible, object? physical, object? guestAvailable, object? smartPaging,
+        bool? dynamicEnabled, DateTimeOffset observed)
     {
         try
         {
@@ -123,15 +138,67 @@ public partial class VmQueryService
             // A zero/uninitialized pressure must not manufacture an empty-memory sample.
             if (data.AssignedSample?.IsValid != true || data.AssignedMiB <= 0
                 || pressurePercent <= 0 || visibleMiB <= 0 || physicalMiB != data.AssignedMiB)
-                return data with { AvailableSample = new(PerformanceSampleState.Unavailable, observed, "来宾内存需求尚未就绪，或计数器分配量与虚拟机摘要不一致。") };
-            var availablePercent = checked((int)decimal.Round(100m - pressurePercent * visibleMiB / data.AssignedMiB,
-                0, MidpointRounding.AwayFromZero));
-            return data with { AvailablePercent = availablePercent, AvailableSample = new(PerformanceSampleState.Valid, observed) };
+                return ApplyBalancerFailure(data, new(PerformanceSampleState.Unavailable, observed,
+                    "来宾内存需求尚未就绪，或计数器分配量与虚拟机摘要不一致。"), dynamicEnabled);
+
+            var demandMiB = checked((long)decimal.Round(pressurePercent * visibleMiB / 100m, 0, MidpointRounding.AwayFromZero));
+            var roundedPressure = checked((int)decimal.Round(pressurePercent, 0, MidpointRounding.AwayFromZero));
+            var valid = new PerformanceSampleInfo(PerformanceSampleState.Valid, observed);
+
+            var updated = data with
+            {
+                PressurePercent = roundedPressure,
+                PressureSample = valid,
+                GuestVisibleMiB = visibleMiB,
+                GuestVisibleSample = valid,
+                GuestAvailableMiB = guestAvailable != null ? Math.Max(0L, Convert.ToInt64(guestAvailable)) : 0,
+                GuestAvailableSample = guestAvailable != null ? valid : new(PerformanceSampleState.Unavailable, observed, "未取得来宾可用内存计数器。"),
+                SmartPagingMiB = smartPaging != null ? Math.Max(0L, Convert.ToInt64(smartPaging)) : 0,
+                SmartPagingSample = smartPaging != null ? valid : new(PerformanceSampleState.Unavailable, observed, "未取得智能分页计数器。")
+            };
+
+            if (dynamicEnabled != true)
+            {
+                var availablePercent = checked((int)decimal.Round(100m - pressurePercent * visibleMiB / data.AssignedMiB,
+                    0, MidpointRounding.AwayFromZero));
+                updated = updated with
+                {
+                    AvailablePercent = availablePercent,
+                    AvailableSample = valid,
+                    DemandMiB = demandMiB,
+                    DemandSample = valid
+                };
+            }
+            else if (updated.DemandSample?.IsValid != true)
+            {
+                updated = updated with { DemandMiB = demandMiB, DemandSample = valid };
+            }
+            return updated;
         }
         catch (Exception error)
         {
-            return data with { AvailableSample = new(PerformanceSampleState.Failed, observed, error.Message) };
+            return ApplyBalancerFailure(data, new(PerformanceSampleState.Failed, observed, error.Message), dynamicEnabled);
         }
+    }
+
+    private static VmDynamicMemoryData ApplyBalancerFailure(VmDynamicMemoryData data, PerformanceSampleInfo failure, bool? dynamicEnabled)
+    {
+        var updated = data with
+        {
+            PressureSample = failure,
+            GuestVisibleSample = failure,
+            GuestAvailableSample = failure,
+            SmartPagingSample = failure
+        };
+        if (dynamicEnabled != true)
+        {
+            updated = updated with { AvailableSample = failure, DemandSample = failure };
+        }
+        else if (updated.DemandSample?.IsValid != true)
+        {
+            updated = updated with { DemandSample = failure };
+        }
+        return updated;
     }
 
     internal static bool TryGetMemoryVmId(string? instanceId, out Guid id)
@@ -144,17 +211,46 @@ public partial class VmQueryService
     }
 
     internal static VmDynamicMemoryData MapRuntimeMemory(object? assigned, object? available,
-        ushort state, bool? dynamicEnabled, DateTimeOffset observed)
+        ushort state, bool? dynamicEnabled, DateTimeOffset observed, object? availableBuffer = null)
     {
         var assignedInfo = new PerformanceSampleInfo(PerformanceSampleState.Unavailable, observed, "未取得已分配内存。");
         var availableInfo = new PerformanceSampleInfo(PerformanceSampleState.Unavailable, observed, "未确认动态内存配置或来宾可用内存。");
+        var bufferInfo = new PerformanceSampleInfo(PerformanceSampleState.Unavailable, observed, "未确认动态内存配置或可用内存缓冲。");
+        var demandInfo = new PerformanceSampleInfo(PerformanceSampleState.Unavailable, observed, "未取得内存需求。");
+        var balancerPending = new PerformanceSampleInfo(PerformanceSampleState.Unavailable, observed, "未取得动态内存平衡器计数器。");
         long assignedMiB = 0;
         int availablePercent = 0;
+        int availableBufferPercent = 0;
+        long demandMiB = 0;
         if (VmMapper.MapState(state) is VmState.PoweredOff or VmState.Saved or VmState.FastSaved or VmState.Hibernated)
-            return new() { AssignedSample = new(PerformanceSampleState.NotApplicable, observed),
-                AvailableSample = new(PerformanceSampleState.NotApplicable, observed) };
+        {
+            var notApp = new PerformanceSampleInfo(PerformanceSampleState.NotApplicable, observed);
+            return new()
+            {
+                AssignedSample = notApp,
+                AvailableSample = notApp,
+                AvailableBufferSample = notApp,
+                DemandSample = notApp,
+                PressureSample = notApp,
+                GuestVisibleSample = notApp,
+                GuestAvailableSample = notApp,
+                SmartPagingSample = notApp
+            };
+        }
         if (!VmMapper.IsActiveState(state))
-            return new() { AssignedSample = assignedInfo, AvailableSample = availableInfo };
+        {
+            return new()
+            {
+                AssignedSample = assignedInfo,
+                AvailableSample = availableInfo,
+                AvailableBufferSample = bufferInfo,
+                DemandSample = demandInfo,
+                PressureSample = balancerPending,
+                GuestVisibleSample = balancerPending,
+                GuestAvailableSample = balancerPending,
+                SmartPagingSample = balancerPending
+            };
+        }
 
         if (assigned != null)
         {
@@ -168,21 +264,62 @@ public partial class VmQueryService
             catch (Exception error) { assignedInfo = new(PerformanceSampleState.Failed, observed, error.Message); }
         }
         if (dynamicEnabled == false)
-            availableInfo = new(PerformanceSampleState.NotApplicable, observed, "未启用动态内存，此字段不适用。");
-        else if (dynamicEnabled == true && available != null)
         {
-            try
-            {
-                availablePercent = Convert.ToInt32(available);
-                // Microsoft documents negative MemoryAvailable as demand exceeding assigned memory.
-                availableInfo = availablePercent <= 100
-                    ? new(PerformanceSampleState.Valid, observed)
-                    : new(PerformanceSampleState.Unavailable, observed, "来宾可用内存比例超出有效范围。");
-            }
-            catch (Exception error) { availableInfo = new(PerformanceSampleState.Failed, observed, error.Message); }
+            availableInfo = new(PerformanceSampleState.NotApplicable, observed, "未启用动态内存，此字段不适用。");
+            bufferInfo = availableInfo;
         }
-        return new() { AssignedMiB = assignedInfo.IsValid ? assignedMiB : 0,
+        else if (dynamicEnabled == true)
+        {
+            if (available != null)
+            {
+                try
+                {
+                    availablePercent = Convert.ToInt32(available);
+                    // Microsoft documents negative MemoryAvailable as demand exceeding assigned memory.
+                    availableInfo = availablePercent <= 100
+                        ? new(PerformanceSampleState.Valid, observed)
+                        : new(PerformanceSampleState.Unavailable, observed, "来宾可用内存比例超出有效范围。");
+                }
+                catch (Exception error) { availableInfo = new(PerformanceSampleState.Failed, observed, error.Message); }
+            }
+            if (availableBuffer != null)
+            {
+                try
+                {
+                    int rawBuffer = Convert.ToInt32(availableBuffer);
+                    if (rawBuffer != int.MaxValue)
+                    {
+                        availableBufferPercent = rawBuffer;
+                        bufferInfo = new(PerformanceSampleState.Valid, observed);
+                    }
+                    else
+                    {
+                        bufferInfo = new(PerformanceSampleState.Unavailable, observed, "可用内存缓冲尚未就绪。");
+                    }
+                }
+                catch (Exception error) { bufferInfo = new(PerformanceSampleState.Failed, observed, error.Message); }
+            }
+            if (assignedInfo.IsValid && availableInfo.IsValid)
+            {
+                demandMiB = Math.Max(0L, checked((long)decimal.Round(
+                    assignedMiB * (100m - availablePercent) / 100m, 0, MidpointRounding.AwayFromZero)));
+                demandInfo = new(PerformanceSampleState.Valid, observed);
+            }
+        }
+        return new()
+        {
+            AssignedMiB = assignedInfo.IsValid ? assignedMiB : 0,
             AvailablePercent = availableInfo.IsValid ? availablePercent : 0,
-            AssignedSample = assignedInfo, AvailableSample = availableInfo };
+            AvailableBufferPercent = bufferInfo.IsValid ? availableBufferPercent : 0,
+            DemandMiB = demandInfo.IsValid ? demandMiB : 0,
+            AssignedSample = assignedInfo,
+            AvailableSample = availableInfo,
+            AvailableBufferSample = bufferInfo,
+            DemandSample = demandInfo,
+            PressureSample = balancerPending,
+            GuestVisibleSample = balancerPending,
+            GuestAvailableSample = balancerPending,
+            SmartPagingSample = balancerPending
+        };
     }
 }

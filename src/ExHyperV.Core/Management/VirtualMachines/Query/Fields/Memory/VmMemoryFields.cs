@@ -284,5 +284,77 @@ public static class VmMemoryFields
     /// </fielddoc>
     public static readonly VmQueryField<int> AvailablePercent = new("Memory.AvailablePercent", "来宾可用内存比例", "内存", VmQueryCollection.VirtualMachine, "RuntimeMemory", "AvailablePercent");
 
-    internal static readonly VmQueryField[] Items = [Startup, DynamicMemoryEnabled, Minimum, Maximum, Buffer, Weight, BackingPageSize, BackingType, DynMemOperationAlignment, MemoryAccessTrackingPolicy, MemoryAccessTrackingState, SgxEnabled, SgxSize, SgxLaunchControlMode, EnableGpaPinning, CxlEnabled, EnableColdHint, EnableHotHint, EnableEpf, EnablePrivateCompressionStore, MaxMemoryBlocksPerNumaNode, SgxLaunchControlDefault, MemoryEncryptionPolicy, AssignedMiB, AvailablePercent];
+    /// <summary>可用内存缓冲比例：动态内存模式下，当前可用缓冲相对目标缓冲的百分比，单位为 %。</summary>
+    /// <fielddoc>
+    /// <meaning>当前可用内存缓冲相对于配置目标缓冲（Buffer）的比例，单位为 %。</meaning>
+    /// <unit>%</unit>
+    /// <values>启用动态内存且运行中时返回整数百分比；未开启或关机返回 NotApplicable，未就绪或值为 2147483647 时返回 Unavailable。</values>
+    /// <source>读取 Msvm_SummaryInformation.AvailableMemoryBuffer，并结合动态内存开关与运行状态。</source>
+    /// <references><see cref="Buffer"/>；<see cref="VmQueryService.GetVmRuntimeMemoryDataAsync"/>。</references>
+    /// <modification kind="readonly" />
+    /// </fielddoc>
+    public static readonly VmQueryField<int> AvailableBufferPercent = new("Memory.AvailableBufferPercent", "可用内存缓冲比例", "内存", VmQueryCollection.VirtualMachine, "RuntimeMemory", "AvailableBufferPercent");
+
+    /// <summary>内存需求：Hyper-V 计算的虚拟机当前所需内存总量，单位为 MiB。</summary>
+    /// <fielddoc>
+    /// <meaning>虚拟机当前工作负载所需的内存容量（MiB）。可能高于或低于已分配内存 AssignedMiB。</meaning>
+    /// <unit>MiB</unit>
+    /// <source>固定内存及已连接平衡器计数器按 CurrentPressure × GuestVisiblePhysicalMemory / 100 计算；动态内存也可由摘要 MemoryUsage 与 MemoryAvailable 换算。</source>
+    /// <references><see cref="AssignedMiB"/>；<see cref="PressurePercent"/>；<see cref="VmQueryService.GetVmRuntimeMemoryDataAsync"/>。</references>
+    /// <modification kind="readonly" />
+    /// </fielddoc>
+    public static readonly VmQueryField<long> DemandMiB = new("Memory.DemandMiB", "内存需求", "内存", VmQueryCollection.VirtualMachine, "RuntimeMemory", "DemandMiB");
+
+    /// <summary>当前内存压力：Hyper-V 动态内存平衡器测得的实时内存压力百分比，单位为 %。</summary>
+    /// <fielddoc>
+    /// <meaning>内存需求与来宾可见物理内存之比（%）。100% 表示恰好饱和，大于 100% 表示正在发生内存竞争。</meaning>
+    /// <unit>%</unit>
+    /// <applicability>运行中且虚拟化动态内存平衡器计数器已就绪时有效；未安装或未激活集成服务的虚拟机返回 Unavailable，重名虚拟机返回 Ambiguous。</applicability>
+    /// <source>Win32_PerfFormattedData_BalancerStats_HyperVDynamicMemoryVM.CurrentPressure。</source>
+    /// <references><see cref="DemandMiB"/>；<see cref="GuestVisibleMiB"/>；<see cref="VmQueryService.GetVmRuntimeMemoryDataAsync"/>。</references>
+    /// <modification kind="readonly" />
+    /// </fielddoc>
+    public static readonly VmQueryField<int> PressurePercent = new("Memory.PressurePercent", "当前内存压力", "内存", VmQueryCollection.VirtualMachine, "RuntimeMemory", "PressurePercent");
+
+    /// <summary>来宾可见物理内存：虚拟机操作系统内部当前看到的物理内存总量，单位为 MiB。</summary>
+    /// <fielddoc>
+    /// <meaning>来宾操作系统内部视角可见的总物理内存容量（MiB）。动态内存热添加或气球回收时可能与 AssignedMiB 不同。</meaning>
+    /// <unit>MiB</unit>
+    /// <source>Win32_PerfFormattedData_BalancerStats_HyperVDynamicMemoryVM.GuestVisiblePhysicalMemory。</source>
+    /// <references><see cref="AssignedMiB"/>；<see cref="GuestAvailableMiB"/>。</references>
+    /// <modification kind="readonly" />
+    /// </fielddoc>
+    public static readonly VmQueryField<long> GuestVisibleMiB = new("Memory.GuestVisibleMiB", "来宾可见内存", "内存", VmQueryCollection.VirtualMachine, "RuntimeMemory", "GuestVisibleMiB");
+
+    /// <summary>来宾可用内存：虚拟机操作系统内部当前报告的可用内存容量，单位为 MiB。</summary>
+    /// <fielddoc>
+    /// <meaning>来宾操作系统内部视角报告的可用内存（MiB），仅在运行中且平衡器计数器就绪时有效。</meaning>
+    /// <unit>MiB</unit>
+    /// <source>Win32_PerfFormattedData_BalancerStats_HyperVDynamicMemoryVM.GuestAvailableMemory。</source>
+    /// <references><see cref="GuestVisibleMiB"/>；<see cref="AvailablePercent"/>。</references>
+    /// <modification kind="readonly" />
+    /// </fielddoc>
+    public static readonly VmQueryField<long> GuestAvailableMiB = new("Memory.GuestAvailableMiB", "来宾可用内存", "内存", VmQueryCollection.VirtualMachine, "RuntimeMemory", "GuestAvailableMiB");
+
+    /// <summary>智能分页工作集：Hyper-V 为虚拟机使用的智能分页磁盘工作集大小，单位为 MiB。</summary>
+    /// <fielddoc>
+    /// <meaning>Hyper-V 智能分页工作集当前占用量（MiB）。正常运行应为 0，非 0 表示主机曾在内存紧张下使用磁盘智能分页。</meaning>
+    /// <unit>MiB</unit>
+    /// <source>Win32_PerfFormattedData_BalancerStats_HyperVDynamicMemoryVM.SmartPagingWorkingSetSize。</source>
+    /// <references><see cref="SwapFilesInUse"/>；<see cref="VmQueryService.GetVmRuntimeMemoryDataAsync"/>。</references>
+    /// <modification kind="readonly" />
+    /// </fielddoc>
+    public static readonly VmQueryField<long> SmartPagingMiB = new("Memory.SmartPagingMiB", "智能分页占用", "内存", VmQueryCollection.VirtualMachine, "RuntimeMemory", "SmartPagingMiB");
+
+    /// <summary>交换文件状态：虚拟机当前是否正在使用 Hyper-V 交换/分页文件。</summary>
+    /// <fielddoc>
+    /// <meaning>指示 Hyper-V 当前是否在使用二级交换文件承载该虚拟机内存。</meaning>
+    /// <values kind="options"><c>true</c>：正在使用交换文件；<c>false</c>：未使用。</values>
+    /// <source>直接读取 Msvm_SummaryInformation.SwapFilesInUse。</source>
+    /// <references><see cref="SmartPagingMiB"/>。</references>
+    /// <modification kind="readonly" />
+    /// </fielddoc>
+    public static readonly VmQueryField<bool> SwapFilesInUse = new("Memory.SwapFilesInUse", "交换文件使用状态", "内存", VmQueryCollection.VirtualMachine, "Summary", "SwapFilesInUse");
+
+    internal static readonly VmQueryField[] Items = [Startup, DynamicMemoryEnabled, Minimum, Maximum, Buffer, Weight, BackingPageSize, BackingType, DynMemOperationAlignment, MemoryAccessTrackingPolicy, MemoryAccessTrackingState, SgxEnabled, SgxSize, SgxLaunchControlMode, EnableGpaPinning, CxlEnabled, EnableColdHint, EnableHotHint, EnableEpf, EnablePrivateCompressionStore, MaxMemoryBlocksPerNumaNode, SgxLaunchControlDefault, MemoryEncryptionPolicy, AssignedMiB, AvailablePercent, AvailableBufferPercent, DemandMiB, PressurePercent, GuestVisibleMiB, GuestAvailableMiB, SmartPagingMiB, SwapFilesInUse];
 }

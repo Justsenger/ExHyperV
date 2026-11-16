@@ -27,7 +27,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
     private readonly SemaphoreSlim _domainGate = new(4, 4);
     private Guid[] _ids = [];
     private ReadResult _summary = new([], VmQueryValueState.Unavailable, default);
-    private readonly Dictionary<Guid, VmQueryService.VmDynamicMemoryData> _fixedMemorySamples = new();
+    private readonly Dictionary<Guid, VmQueryService.VmDynamicMemoryData> _runtimeMemorySamples = new();
 
     private static readonly IReadOnlyDictionary<string, Source> Sources = new Dictionary<string, Source>
     {
@@ -96,7 +96,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
                         Need("Settings", "ConfigurationDataRoot", "ConfigurationFile");
                     break;
                 case "RuntimeMemory":
-                    Need("Summary", "ElementName", "EnabledState", "UpTime", "MemoryUsage", "MemoryAvailable");
+                    Need("Summary", "ElementName", "EnabledState", "UpTime", "MemoryUsage", "MemoryAvailable", "AvailableMemoryBuffer");
                     Need("Memory", "DynamicMemoryEnabled"); break;
                 case "Metadata":
                     Need("Settings", "InstanceID"); Need("MetadataRaw", "HostOnlyItems"); break;
@@ -175,7 +175,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
             // Only GUIDs produced by the request are interpolated. No user WQL is accepted.
             bool networkPerformance = request.Fields.Any(f => f.Source == "NetworkPerformance");
             bool globalIdentity = name == "Summary" && (networkPerformance || request.Fields.Any(f => f.Source == "ProcessorPerformance")
-                || request.Fields.Contains(VmMemoryFields.AvailablePercent));
+                || request.Fields.Any(NeedsMemoryBalancer));
             bool globalAdapters = networkPerformance && name is "Ports" or "EmulatedPorts";
             bool historicalDisks = name == "Sasd" && request.Fields.Any(f => f.Source == "CheckpointDisks");
             if (!globalIdentity && !globalAdapters && !historicalDisks && request.VmIds is { Count: > 0 } targets && (source.TargetByPrefix || name is "Summary" or "Settings" or "Computer"))
@@ -286,12 +286,25 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
             var memory = Read("Memory");
             var rows = memory.Rows.Where(r => Owned(r, id)).ToArray();
             bool? dynamic = rows.Length == 1 ? rows[0]["DynamicMemoryEnabled"] as bool? : null;
-            var data = _fixedMemorySamples.TryGetValue(id, out var fixedSample) ? fixedSample
+            var data = _runtimeMemorySamples.TryGetValue(id, out var balancerSample) ? balancerSample
                 : VmQueryService.MapRuntimeMemory(summary["MemoryUsage"], summary["MemoryAvailable"],
-                    Convert.ToUInt16(summary["EnabledState"] ?? 0), dynamic, _summary.Time);
-            var sample = field == VmMemoryFields.AssignedMiB ? data.AssignedSample : data.AvailableSample;
-            if (field == VmMemoryFields.AvailablePercent && memory.State != VmQueryValueState.Available) return Failure(field, memory);
-            return field.Make(SampleState(sample), field == VmMemoryFields.AssignedMiB ? (object)data.AssignedMiB : data.AvailablePercent, sample?.ObservedAtUtc ?? _summary.Time, sample?.Error);
+                    Convert.ToUInt16(summary["EnabledState"] ?? 0), dynamic, _summary.Time, summary["AvailableMemoryBuffer"]);
+            if ((field == VmMemoryFields.AvailablePercent || field == VmMemoryFields.AvailableBufferPercent)
+                && memory.State != VmQueryValueState.Available)
+                return Failure(field, memory);
+            (PerformanceSampleInfo? sample, object? value) = field.Property switch
+            {
+                "AssignedMiB" => (data.AssignedSample, (object)data.AssignedMiB),
+                "AvailablePercent" => (data.AvailableSample, data.AvailablePercent),
+                "AvailableBufferPercent" => (data.AvailableBufferSample, data.AvailableBufferPercent),
+                "DemandMiB" => (data.DemandSample, data.DemandMiB),
+                "PressurePercent" => (data.PressureSample, data.PressurePercent),
+                "GuestVisibleMiB" => (data.GuestVisibleSample, data.GuestVisibleMiB),
+                "GuestAvailableMiB" => (data.GuestAvailableSample, data.GuestAvailableMiB),
+                "SmartPagingMiB" => (data.SmartPagingSample, data.SmartPagingMiB),
+                _ => (null, null)
+            };
+            return field.Make(SampleState(sample), value, sample?.ObservedAtUtc ?? _summary.Time, sample?.Error);
         }
         if (sourceName == "DisplayPresence")
         {
@@ -318,25 +331,49 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
         return Cell(field, matched.FirstOrDefault(), source);
     }
 
+    private static bool NeedsMemoryBalancer(VmQueryField field) =>
+        field == VmMemoryFields.AvailablePercent
+        || field == VmMemoryFields.DemandMiB
+        || field == VmMemoryFields.PressurePercent
+        || field == VmMemoryFields.GuestVisibleMiB
+        || field == VmMemoryFields.GuestAvailableMiB
+        || field == VmMemoryFields.SmartPagingMiB;
+
+    private static bool RequestsDirectBalancerCounter(VmQueryField field) =>
+        field == VmMemoryFields.PressurePercent
+        || field == VmMemoryFields.GuestVisibleMiB
+        || field == VmMemoryFields.GuestAvailableMiB
+        || field == VmMemoryFields.SmartPagingMiB;
+
     private async Task ReadFixedMemorySamplesAsync()
     {
-        if (!request.Fields.Contains(VmMemoryFields.AvailablePercent)) return;
+        bool needsDirect = request.Fields.Any(RequestsDirectBalancerCounter);
+        bool needsDemand = needsDirect || request.Fields.Contains(VmMemoryFields.AvailablePercent) || request.Fields.Contains(VmMemoryFields.DemandMiB);
+        if (!needsDemand) return;
         var memory = Read("Memory");
         if (memory.State != VmQueryValueState.Available) return;
         var before = _summary.Rows.Select(row => new VmQueryService.MemoryRuntimeSummary(row.Key,
             row.Text("ElementName"), Convert.ToUInt16(row["EnabledState"] ?? 0), row["MemoryUsage"],
-            row["MemoryAvailable"], Convert.ToUInt64(row["UpTime"] ?? 0))).ToArray();
-        var targets = before.Where(row => _ids.Contains(Guid.Parse(row.Id!)) && VmMapper.IsActiveState(row.State)
-            && memory.Rows.Count(setting => Owned(setting, Guid.Parse(row.Id!))) == 1
-            && memory.Rows.Single(setting => Owned(setting, Guid.Parse(row.Id!)))["DynamicMemoryEnabled"] is false).ToArray();
+            row["MemoryAvailable"], Convert.ToUInt64(row["UpTime"] ?? 0), row["AvailableMemoryBuffer"])).ToArray();
+        var dynamicMap = _ids.ToDictionary(vmId => vmId, vmId =>
+        {
+            var matched = memory.Rows.Where(setting => Owned(setting, vmId)).ToArray();
+            return matched.Length == 1 ? matched[0]["DynamicMemoryEnabled"] as bool? : null;
+        });
+        var targets = before.Where(row => Guid.TryParse(row.Id, out var vmId) && _ids.Contains(vmId) && VmMapper.IsActiveState(row.State)
+            && dynamicMap.TryGetValue(vmId, out var dynamicEnabled) && dynamicEnabled.HasValue
+            && (needsDirect || dynamicEnabled == false)).ToArray();
         if (targets.Length == 0) return;
         foreach (var row in targets)
-            _fixedMemorySamples.Add(Guid.Parse(row.Id!), VmQueryService.MapRuntimeMemory(row.Assigned,
-                row.Available, row.State, false, _summary.Time));
+        {
+            var vmId = Guid.Parse(row.Id!);
+            _runtimeMemorySamples.Add(vmId, VmQueryService.MapRuntimeMemory(row.Assigned,
+                row.Available, row.State, dynamicMap[vmId], _summary.Time, row.AvailableBuffer));
+        }
         token.ThrowIfCancellationRequested();
         var watch = Stopwatch.StartNew();
-        try { await VmQueryService.ReadFixedMemoryDemandAsync(_fixedMemorySamples, before, targets).ConfigureAwait(false); }
-        finally { _timings.Enqueue(new("FixedMemoryPerformance", watch.Elapsed)); }
+        try { await VmQueryService.ReadBalancerMemoryCountersAsync(_runtimeMemorySamples, before, targets, vmId => dynamicMap.GetValueOrDefault(vmId)).ConfigureAwait(false); }
+        finally { _timings.Enqueue(new("RuntimeMemoryPerformance", watch.Elapsed)); }
     }
 
     private Task<ReadResult> DerivedAsync(string source, Guid id = default)

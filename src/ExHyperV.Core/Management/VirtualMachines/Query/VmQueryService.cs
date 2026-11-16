@@ -29,16 +29,40 @@ namespace ExHyperV.Services
     /// <remarks>列表读取是一次快照，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp；仅有效样本用于更新数值。更新方法直接修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样；部分普通 WMI 查询不依赖计数器。</remarks>
     public partial class VmQueryService : IDisposable, IAsyncDisposable
     {
-        /// <summary>虚拟机当前内存占用与可用百分比。</summary>
+        /// <summary>虚拟机当前内存占用与压力、需求及来宾视角指标。</summary>
         public struct VmDynamicMemoryData {
             /// <summary>当前分配内存，单位 MiB；仅 AssignedSample.IsValid 时表示本次有效值。</summary>
             public long AssignedMiB;
             /// <summary>来宾可用内存百分比；仅 AvailableSample.IsValid 时有效。负数表示内存需求超过分配量，保留原值，不把缺失值截断成零。</summary>
             public int AvailablePercent;
+            /// <summary>当前可用缓冲比例（相对于配置的目标缓冲百分比）；仅 AvailableBufferSample.IsValid 且启用动态内存时有效。</summary>
+            public int AvailableBufferPercent;
+            /// <summary>当前来宾内存需求，单位 MiB；仅 DemandSample.IsValid 时有效，大于 AssignedMiB 表示超额需求。</summary>
+            public long DemandMiB;
+            /// <summary>Hyper-V 动态内存平衡器报告的当前内存压力百分比；仅 PressureSample.IsValid 时有效，大于 100 表示需求超过来宾可见物理内存。</summary>
+            public int PressurePercent;
+            /// <summary>来宾操作系统当前可见的物理内存总量，单位 MiB；仅 GuestVisibleSample.IsValid 时有效。</summary>
+            public long GuestVisibleMiB;
+            /// <summary>来宾操作系统内部报告的可用内存，单位 MiB；仅 GuestAvailableSample.IsValid 时有效。</summary>
+            public long GuestAvailableMiB;
+            /// <summary>智能分页工作集当前占用量，单位 MiB；仅 SmartPagingSample.IsValid 时有效。</summary>
+            public long SmartPagingMiB;
             /// <summary>已分配内存的本次读取状态及时间。</summary>
             public PerformanceSampleInfo? AssignedSample { get; init; }
             /// <summary>来宾可用百分比的本次读取状态及时间；可能独立于已分配内存缺测。</summary>
             public PerformanceSampleInfo? AvailableSample { get; init; }
+            /// <summary>可用内存缓冲比例的本次读取状态及时间。</summary>
+            public PerformanceSampleInfo? AvailableBufferSample { get; init; }
+            /// <summary>内存需求的本次读取状态及时间。</summary>
+            public PerformanceSampleInfo? DemandSample { get; init; }
+            /// <summary>当前内存压力百分比的本次读取状态及时间。</summary>
+            public PerformanceSampleInfo? PressureSample { get; init; }
+            /// <summary>来宾可见物理内存的本次读取状态及时间。</summary>
+            public PerformanceSampleInfo? GuestVisibleSample { get; init; }
+            /// <summary>来宾可用内存容量的本次读取状态及时间。</summary>
+            public PerformanceSampleInfo? GuestAvailableSample { get; init; }
+            /// <summary>智能分页工作集占用的本次读取状态及时间。</summary>
+            public PerformanceSampleInfo? SmartPagingSample { get; init; }
         }
 
         /// <summary>按 GPU 引擎类别聚合的一次虚拟机采样结果。</summary>
