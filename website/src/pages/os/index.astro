@@ -1,35 +1,129 @@
 ---
 import SiteLayout from '../../layouts/SiteLayout.astro';
 import SystemIcon from '../../components/SystemIcon.astro';
-import { categories } from '../../data/catalog';
+import { versions } from '../../data/catalog';
+
+const versionMap = new Map(versions.map(v => [v.codename, v]));
+
+function pickVersion(codename: string) {
+  const v: any = versionMap.get(codename);
+  if (!v) return null;
+  return {
+    codename: v.codename,
+    icon: v.family === 'Ubuntu' ? 'ubuntu' : 'windows',
+    name: v.family === 'Ubuntu' ? v.name.replace('Ubuntu', `Ubuntu ${v.branch}`) : v.name,
+  };
+}
+
+const groups = [
+  {
+    title: '桌面操作系统',
+    items: [
+      pickVersion('windows-11-26h2'),
+      pickVersion('windows-10-22h2'),
+      pickVersion('ubuntu-24-04-5'),
+    ].filter(Boolean),
+  },
+  {
+    title: '服务器系统',
+    items: [
+      pickVersion('server-2025'),
+      pickVersion('ubuntu-server-24-04-5'),
+    ].filter(Boolean),
+  },
+  {
+    title: '备用系统',
+    items: [
+      pickVersion('windows-pe-10-0-26100'),
+      pickVersion('windows-server-iot-2025'),
+    ].filter(Boolean),
+  },
+];
 ---
 <SiteLayout module="wiki">
-  <section class="os-home" aria-label="系统分类" data-i18n-aria="categories">
-    <div class="os-home-entries">
-      {categories.map((category, index) => (
-        <button class="os-home-entry" type="button" data-open-family={category.name} aria-controls={`family-${index}`}>
-          <SystemIcon name={category.icon} />
-          <span>{category.name}</span>
-        </button>
+  <section class="os-home" data-os-home aria-label="常用系统推荐">
+    <header class="os-hero">
+      <h1>常用系统推荐</h1>
+      <button type="button" class="mobile-catalog-btn" data-open-catalog>全部目录</button>
+    </header>
+
+    <div class="os-groups">
+      {groups.map(group => (
+        <section class="os-group">
+          <h2>{group.title}</h2>
+          <div class="os-entries">
+            {group.items.map(item => item && (
+              <a class="os-entry" href={`/os/${item.codename}/`}>
+                <SystemIcon name={item.icon} />
+                <span>{item.name}</span>
+              </a>
+            ))}
+          </div>
+        </section>
       ))}
     </div>
   </section>
 </SiteLayout>
 
-<style>
-  .os-home { padding: 32px 24px; }
-  .os-home-entries { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; width: 100%; }
-  .os-home-entry { display: grid; grid-template-columns: 40px minmax(0, 1fr); align-items: center; gap: 18px; width: 100%; min-height: 72px; padding: 14px 18px; border: 1px solid var(--ui-border); border-radius: 10px; background: var(--surface-raised); text-align: left; font-size: 18px; }
-  .os-home-entry :global(.system-icon) { width: 40px; height: 40px; margin: 0; }
-  .os-home-entry > span { white-space: nowrap; }
-  .os-home-entry:hover { background: var(--surface-hover); border-color: var(--accent); }
-  .os-home-entry:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  @media (max-width: 640px) {
-    .os-home { padding: 24px 16px; }
-    .os-home-entry { gap: 14px; padding-inline: 16px; }
+<script>
+  function setupOsHome() {
+    const root = document.querySelector('[data-os-home]');
+    if (!root || root.dataset.bound) return;
+    root.dataset.bound = 'true';
+
+    root.addEventListener('click', (event) => {
+      if (!event.target.closest('[data-open-catalog]')) return;
+      const toggle = document.querySelector('#sidebar-toggle');
+      const sidebar = document.querySelector('#slide-out');
+      if (toggle && matchMedia('(max-width: 999px)').matches) {
+        sidebar?.classList.add('is-open');
+        toggle.setAttribute('aria-expanded', 'true');
+        const backdrop = document.querySelector('#wiki-backdrop');
+        if (backdrop) backdrop.hidden = false;
+      }
+      sidebar?.querySelector('#version-search')?.focus();
+    });
   }
-  @media (max-width: 480px) {
-    .os-home-entry { grid-template-columns: 28px minmax(0, 1fr); min-height: 64px; gap: 10px; padding: 12px; font-size: 15px; }
-    .os-home-entry :global(.system-icon) { width: 28px; height: 28px; }
+
+  document.addEventListener('astro:page-load', setupOsHome);
+</script>
+
+<style>
+  .os-home { max-width: 1080px; margin: 0 auto; padding: 32px 24px 48px; }
+
+  .os-hero {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    margin-bottom: 28px;
+  }
+  .os-hero h1 { margin: 0; font-size: 22px; line-height: 1.3; }
+  .mobile-catalog-btn {
+    display: none; flex-shrink: 0; padding: 7px 14px;
+    border: 1px solid var(--accent); border-radius: 8px;
+    background: var(--container); color: var(--textHighlight); font-size: 13px;
+  }
+
+  .os-groups { display: flex; flex-direction: column; gap: 28px; }
+  .os-group h2 { margin: 0 0 12px; font-size: 14px; color: var(--muted); }
+
+  .os-entries { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .os-entry {
+    display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: center; gap: 14px;
+    min-height: 60px; padding: 12px 16px;
+    border: 1px solid var(--ui-border); border-radius: 10px;
+    background: var(--surface-raised); font-size: 15px;
+    transition: border-color .15s, background-color .15s;
+  }
+  .os-entry :global(.system-icon) { width: 28px; height: 28px; margin: 0; }
+  .os-entry > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .os-entry:hover { background: var(--surface-hover); border-color: var(--accent); }
+  .os-entry:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  @media (max-width: 999px) {
+    .mobile-catalog-btn { display: inline-flex; }
+    .os-entries { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 640px) {
+    .os-home { padding: 24px 16px 36px; }
+    .os-entries { grid-template-columns: 1fr; }
   }
 </style>

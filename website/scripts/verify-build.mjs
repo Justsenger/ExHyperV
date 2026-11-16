@@ -110,14 +110,17 @@ for (const route of ['changelog']) {
   assert(main && main[1].trim() === '', `Unexpected placeholder content in ${route}`);
 }
 const home = await readFile(path.join(root, 'dist/index.html'), 'utf8');
-assert(home.includes('id="home-title"') && home.includes('src="/images/exhyperv-app-icon.webp"'), 'Homepage must show the product and current app icon');
+assert(home.includes('id="home-title"') && home.includes('src="/images/home-model-poster.webp"'), 'Homepage must show the product and 3D model poster');
 assert(home.includes('<home-model'), 'Homepage must include the interactive model');
-await access(path.join(root, 'dist/images/exhyperv-app-icon.webp'));
+await access(path.join(root, 'dist/images/home-model-poster.webp'));
 await access(path.join(root, 'dist/models/exhyperv-icon.glb'));
 const osHome = await readFile(path.join(root, 'dist/os/index.html'), 'utf8');
-const familyEntries = [...osHome.matchAll(/data-open-family="([^"]+)" aria-controls="([^"]+)"/g)];
-assert.deepEqual(familyEntries.map(entry => entry[1]), catalog.categories.map(category => category.name), 'OS home must expose each available system family');
-for (const entry of familyEntries) assert(osHome.includes(`id="${entry[2]}"`), `Missing family navigation target: ${entry[1]}`);
+assert(osHome.includes('data-os-home') && osHome.includes('data-open-catalog'), 'OS home must render recommended entries and catalog trigger');
+const sidebarFamilies = [...osHome.matchAll(/data-family="([^"]+)"/g)];
+assert.deepEqual(sidebarFamilies.map(entry => entry[1]), catalog.categories.map(category => category.name), 'OS home sidebar must expose each available system family');
+const homeEntries = [...osHome.matchAll(/class="os-entry" href="\/os\/([^/"]+)\/"/g)].map(entry => entry[1]);
+assert(homeEntries.length > 0, 'OS home must render recommended system entries');
+for (const codename of homeEntries) assert(ids.includes(codename), `OS home links to unknown system: ${codename}`);
 const docs = await readFile(path.join(root, 'dist/docs/index.html'), 'utf8');
 assert(docs.includes('href="/api/"') && docs.includes('data-astro-reload'), 'API entry must load the standalone Core document');
 assert(!docs.includes('href="/sdk/"'), 'Old SDK entry remains');

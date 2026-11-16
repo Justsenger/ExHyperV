@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { coreRoot, websiteRoot, syncCoreApi } from './sync-core-api.mjs';
@@ -10,9 +11,21 @@ export default function coreApi() {
     name: 'exhyperv-core-api',
     hooks: {
       'astro:server:setup': async ({ server, logger }) => {
+        const hasFallbackApi = existsSync(path.join(websiteRoot, 'public/api/manifest.json'))
+          && existsSync(path.join(websiteRoot, 'public/api/index.html'));
+        let initialSync = true;
         stop = await watchCore({
           root: [coreRoot, path.resolve(websiteRoot, '../doc/api'), path.resolve(websiteRoot, '../tools/api-docs'), path.join(websiteRoot, 'src/api')],
-          generate: () => syncCoreApi({ updateMarkdown: true }),
+          generate: async () => {
+            try {
+              await syncCoreApi({ updateMarkdown: true });
+            } catch (error) {
+              if (!initialSync || !hasFallbackApi) throw error;
+              logger.warn(`API 首次同步跳过（保留已有页面并继续监听源码变更）：${error.message}`);
+            } finally {
+              initialSync = false;
+            }
+          },
           onSuccess: () => server.ws.send({ type: 'full-reload' }),
           onError: error => logger.error(`API 更新失败，保留上次成功页面；修正源码后自动重试。${error.message}`),
         });
