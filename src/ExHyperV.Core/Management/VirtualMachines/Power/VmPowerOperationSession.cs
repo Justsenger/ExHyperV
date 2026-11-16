@@ -222,6 +222,23 @@ public sealed class VmPowerOperationSession
 
     private async Task PrepareRepairAsync()
     {
+        if (Failure?.DiagnosticCode is CoreErrorCode.InsufficientMemory
+            or CoreErrorCode.DiskFull
+            or CoreErrorCode.FileInUse
+            or CoreErrorCode.FileNotFound
+            or CoreErrorCode.DifferencingParentNotFound
+            or CoreErrorCode.VirtualSwitchNotFound
+            or CoreErrorCode.StartFailedProcessorTopology
+            or CoreErrorCode.StartFailedGen1OnArm64
+            or CoreErrorCode.StartUnsupportedWithSuspects
+            or CoreErrorCode.StartFailedUnsupported
+            or CoreErrorCode.AccessDenied
+            or CoreErrorCode.VmmsUnavailableOrShuttingDown)
+        {
+            Stage = VmPowerOperationStage.Failed;
+            return;
+        }
+
         var gpuQuery = await _backend.FindGpuAsync(VmId);
         if (!gpuQuery.HasData)
         {

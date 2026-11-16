@@ -50,10 +50,12 @@ namespace ExHyperV.Services
                 return ApiResponse.Fail("不支持指定的 MMIO 属性。", kind: ApiErrorKind.InvalidArgument);
             var state = await VmConfigurationState.ReadAsync(vmId);
             if (!state.HasData)
-                return ApiResponse.Fail(state.Success ? Properties.Resources.Error_Net_VmNotFound : state.Error,
-                    state.Code, state.ErrorSource, state.Exception, state.Success ? ApiErrorKind.NotFound : state.ErrorKind);
+                return state.Success
+                    ? ApiResponse.Fail(Properties.Resources.Error_Net_VmNotFound, kind: ApiErrorKind.NotFound)
+                    : ApiResponse.FromFailure(state);
             var condition = GetModificationCondition(state.Data!.State);
             if (!condition.CanModify) return condition.ToResponse();
+            using var _ = HyperVServiceCoordination.BeginActiveSettingsWrite();
             return await WmiApi.WithObjectAsync(
                 wql: RealizedSettingsWql(vmId),
                 modifier: obj =>

@@ -229,19 +229,9 @@ internal static partial class WmiApi
 
                 return ApiResponse<List<T>>.Ok(list);
             }
-            catch (ManagementException ex)
-            {
-                return ApiResponse<List<T>>.Fail(
-                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return ApiResponse<List<T>>.Fail(
-                    ex.Message, 5, ApiErrorSource.Win32, ex);
-            }
             catch (Exception ex)
             {
-                return ApiResponse<List<T>>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+                return WmiJobWaiter.FromQueryException<List<T>>(ex);
             }
         });
     }
@@ -280,7 +270,12 @@ internal static partial class WmiApi
         var response = await QueryAsync(wql, mapper, scope, ctx);
 
         if (!response.Success)
-            return ApiResponse<T>.Fail(response.Error, response.Code, response.ErrorSource, response.Exception, response.ErrorKind);
+        {
+            var failure = ApiResponse<T>.Fail(response.Error, response.Code, response.ErrorSource, response.Exception, response.ErrorKind);
+            return response.DiagnosticCode == CoreErrorCode.None
+                ? failure
+                : failure.WithDiagnostic(response.DiagnosticCode, response.DiagnosticArgs.ToArray());
+        }
 
         if (response.Data == null || response.Data.Count == 0)
             return ApiResponse<T>.Empty();
@@ -607,19 +602,9 @@ internal static partial class WmiApi
 
                 return ApiResponse<string>.Ok(instance.GetText(TextFormat.CimDtd20));
             }
-            catch (ManagementException ex)
-            {
-                return ApiResponse<string>.Fail(
-                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return ApiResponse<string>.Fail(
-                    ex.Message, 5, ApiErrorSource.Win32, ex);
-            }
             catch (Exception ex)
             {
-                return ApiResponse<string>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+                return WmiJobWaiter.FromQueryException<string>(ex);
             }
         });
     }
@@ -752,14 +737,9 @@ internal static partial class WmiApi
 
                 return ApiResponse<List<T>>.Ok(list);
             }
-            catch (ManagementException ex)
-            {
-                return ApiResponse<List<T>>.Fail(
-                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
-            }
             catch (Exception ex)
             {
-                return ApiResponse<List<T>>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+                return WmiJobWaiter.FromQueryException<List<T>>(ex);
             }
         });
     }
@@ -830,14 +810,9 @@ internal static partial class WmiApi
 
                 return ApiResponse<List<T>>.Ok(list);
             }
-            catch (ManagementException ex)
-            {
-                return ApiResponse<List<T>>.Fail(
-                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
-            }
             catch (Exception ex)
             {
-                return ApiResponse<List<T>>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+                return WmiJobWaiter.FromQueryException<List<T>>(ex);
             }
         });
     }
@@ -868,14 +843,9 @@ internal static partial class WmiApi
                 var result = await callback(obj);
                 return ApiResponse<T>.Ok(result);
             }
-            catch (ManagementException ex)
-            {
-                return ApiResponse<T>.Fail(
-                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
-            }
             catch (Exception ex)
             {
-                return ApiResponse<T>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+                return WmiJobWaiter.FromQueryException<T>(ex);
             }
         });
     }
@@ -910,14 +880,9 @@ internal static partial class WmiApi
             {
                 return ApiResponse<T>.Empty();
             }
-            catch (ManagementException ex)
-            {
-                return ApiResponse<T>.Fail(
-                    ex.Message, (int)ex.ErrorCode, ApiErrorSource.Wmi, ex);
-            }
             catch (Exception ex)
             {
-                return ApiResponse<T>.Fail(ex.Message, -1, ApiErrorSource.None, ex);
+                return WmiJobWaiter.FromQueryException<T>(ex);
             }
         });
     }
@@ -1131,8 +1096,13 @@ internal static partial class WmiApi
     private static int ReadReturnCode(ManagementBaseObject output) =>
         Convert.ToInt32(output["ReturnValue"] ?? throw new InvalidOperationException("WMI 方法缺少 ReturnValue。"));
 
-    private static ApiResponse<T> CopyFailure<T>(ApiResponse response) =>
-        ApiResponse<T>.Fail(response.Error, response.Code, response.ErrorSource, response.Exception, response.ErrorKind);
+    private static ApiResponse<T> CopyFailure<T>(ApiResponse response)
+    {
+        var failure = ApiResponse<T>.Fail(response.Error, response.Code, response.ErrorSource, response.Exception, response.ErrorKind);
+        return response.DiagnosticCode == CoreErrorCode.None
+            ? failure
+            : failure.WithDiagnostic(response.DiagnosticCode, response.DiagnosticArgs.ToArray());
+    }
 }
 
 // ══════════════════════════════════════════════════════════════════

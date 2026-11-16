@@ -2,6 +2,7 @@ using ExHyperV.Tools;
 using ExHyperV.Models;
 using System.Diagnostics;
 using System.Management;
+using System.Runtime.InteropServices;
 
 namespace ExHyperV.Services;
 
@@ -149,36 +150,111 @@ public static class VmMemoryService
     /// <param name="state">查询得到的虚拟机电源状态。</param>
     /// <returns>是否允许修改及原因。具体取值和配置组合在提交时校验。</returns>
     public static VmModificationCondition GetModificationCondition(VmMemorySettings settings, string propertyName, VmState state)
+        => GetModificationConditionCore(settings, propertyName, state, isIntelHost: null);
+
+    private static VmModificationCondition GetModificationConditionCore(VmMemorySettings settings, string propertyName, VmState state, bool? isIntelHost)
     {
         if (!SupportsSingleMemorySetting(propertyName))
-            return VmModificationCondition.Denied("未知的内存设置。", ApiErrorKind.InvalidArgument);
+            return VmModificationCondition.Denied("Unknown memory setting.", ApiErrorKind.InvalidArgument, ConditionReasonCode.UnknownSetting);
         if (settings.SupportedProps is { } props && !props.Contains(MemoryPropertyName(propertyName))
             && !(propertyName == nameof(VmMemorySettings.BackingPageSize) && props.Contains("HugePagesEnabled")))
-            return VmModificationCondition.Unsupported("当前宿主未提供此设置。");
-        return GetMemoryStateCondition(settings, propertyName, state);
+            return VmModificationCondition.MissingOnHost();
+        return GetMemoryStateCondition(settings, propertyName, state, isIntelHost);
     }
 
-    private static VmModificationCondition GetMemoryStateCondition(VmMemorySettings current, string propertyName, VmState state)
+    private static bool IsSgxSetting(string propertyName) => propertyName is
+        nameof(VmMemorySettings.SgxEnabled) or
+        nameof(VmMemorySettings.SgxSize) or
+        nameof(VmMemorySettings.SgxLaunchControlMode) or
+        nameof(VmMemorySettings.SgxLaunchControlDefault);
+
+    private static VmModificationCondition GetMemoryStateCondition(VmMemorySettings current, string propertyName, VmState state, bool? isIntelHost)
     {
+        bool nonIntel = isIntelHost.HasValue
+            ? !isIntelHost.Value
+            : HostProcessorPlatformService.GetArchitecture() == Architecture.Arm64;
+        if (IsSgxSetting(propertyName) && nonIntel)
+        {
+            if (state != VmState.PoweredOff) return VmModificationCondition.PoweredOff(state);
+            return propertyName == nameof(VmMemorySettings.SgxEnabled) && current.SgxEnabled == true
+                ? VmModificationCondition.Allowed
+                : VmModificationCondition.RequiresIntel();
+        }
         if (state == VmState.PoweredOff || propertyName == nameof(VmMemorySettings.Weight)) return VmModificationCondition.Allowed;
         if (propertyName == nameof(VmMemorySettings.Startup)) return current.DynamicMemoryEnabled
-            ? VmModificationCondition.PoweredOff(state, Properties.Resources.Warn_DynRamRunning) : VmModificationCondition.Allowed;
+            ? VmModificationCondition.PoweredOff(state, Properties.Resources.Warn_DynRamRunning, ConditionReasonCode.DynamicMemoryRunningStartupLocked)
+            : VmModificationCondition.Allowed;
         if (propertyName is nameof(VmMemorySettings.Minimum) or nameof(VmMemorySettings.Maximum) or nameof(VmMemorySettings.Buffer))
             if (current.DynamicMemoryEnabled) return VmModificationCondition.Allowed;
         return VmModificationCondition.PoweredOff(state);
     }
 
-    internal static ApiResponse ValidateMemoryChange(VmMemorySettings current, VmMemorySettings requested, VmState state, string? changedProperty = null)
+    internal static ApiResponse ValidateMemoryChange(VmMemorySettings current, VmMemorySettings requested, VmState state,
+        string? changedProperty = null, VmProcessorService.HostCapabilities? host = null)
     {
         if (changedProperty != null && !SupportsSingleMemorySetting(changedProperty))
             return ApiResponse.Fail($"不支持单独修改内存字段 {changedProperty}。", kind: ApiErrorKind.InvalidArgument);
+        bool? isIntel = host?.IsIntel;
+        bool nonIntelHost = isIntel.HasValue ? !isIntel.Value : HostProcessorPlatformService.GetArchitecture() == Architecture.Arm64;
         foreach (var property in typeof(VmMemorySettings).GetProperties())
         {
             if (property.SetMethod?.IsPublic != true || (changedProperty != null && property.Name != changedProperty)) continue;
-            if (Equals(property.GetValue(current), property.GetValue(requested))) continue;
-            var condition = GetModificationCondition(current, property.Name, state);
+            object? oldVal = property.GetValue(current);
+            object? newVal = property.GetValue(requested);
+            if (Equals(oldVal, newVal)) continue;
+            if (IsSgxSetting(property.Name) && nonIntelHost)
+            {
+                bool allowingTurnOff = property.Name == nameof(VmMemorySettings.SgxEnabled)
+                    && oldVal is true
+                    && newVal is not true;
+                if (!allowingTurnOff)
+                    return VmModificationCondition.RequiresIntel().ToResponse();
+            }
+            var condition = GetModificationConditionCore(current, property.Name, state, isIntel);
             if (!condition.CanModify) return condition.ToResponse();
         }
+        return ValidateMemoryValues(current, requested);
+    }
+
+    private static ApiResponse ValidateMemoryValues(VmMemorySettings current, VmMemorySettings requested)
+    {
+        if (requested.Startup <= 0)
+            return ApiResponse.Fail("启动内存必须大于 0 MiB。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.Weight > 10000)
+            return ApiResponse.Fail("内存权重必须在 0 到 10000 之间。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.DynamicMemoryEnabled)
+        {
+            if (requested.Minimum <= 0 || requested.Maximum <= 0)
+                return ApiResponse.Fail("动态内存最小值与最大值必须大于 0 MiB。", kind: ApiErrorKind.InvalidArgument);
+            if (requested.Minimum > requested.Maximum)
+                return ApiResponse.Fail("动态内存最小值不能大于最大值。", kind: ApiErrorKind.InvalidArgument);
+            if (requested.Startup < requested.Minimum || requested.Startup > requested.Maximum)
+                return ApiResponse.Fail("启动内存必须在最小内存与最大内存之间。", kind: ApiErrorKind.InvalidArgument);
+            if (requested.Buffer is < 5 or > 2000)
+                return ApiResponse.Fail("内存缓冲比例必须在 5% 到 2000% 之间。", kind: ApiErrorKind.InvalidArgument);
+        }
+        if (requested.BackingPageSize is > 2)
+            return ApiResponse.Fail("不支持的后备页大小编码。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.BackingType != current.BackingType)
+        {
+            if (requested.BackingType == 2)
+                return ApiResponse.Fail("暂不支持全局写入混合（按节点配置）模式，请选择物理后备或虚拟后备。", kind: ApiErrorKind.Unsupported);
+            if (requested.BackingType > 2)
+                return ApiResponse.Fail("不支持的内存后备方式编码。", kind: ApiErrorKind.InvalidArgument);
+        }
+        if (requested.MemoryAccessTrackingState != current.MemoryAccessTrackingState)
+        {
+            if (requested.MemoryAccessTrackingState == 2)
+                return ApiResponse.Fail("暂不支持按 NUMA 节点配置内存访问跟踪。", kind: ApiErrorKind.Unsupported);
+            if (requested.MemoryAccessTrackingState > 2)
+                return ApiResponse.Fail("不支持的内存访问跟踪状态编码。", kind: ApiErrorKind.InvalidArgument);
+        }
+        if (requested.MemoryAccessTrackingPolicy is > 3)
+            return ApiResponse.Fail("不支持的内存访问跟踪粒度编码。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.MemoryEncryptionPolicy is > 2)
+            return ApiResponse.Fail("不支持的内存加密策略编码。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.SgxLaunchControlMode is > 2)
+            return ApiResponse.Fail("不支持的 SGX 启动控制模式编码。", kind: ApiErrorKind.InvalidArgument);
         return ApiResponse.Ok();
     }
 
@@ -276,6 +352,7 @@ public static class VmMemoryService
 
     private static async Task<ApiResponse> ApplyMemorySettingsAsync(Guid vmId, SettingsSelection<VmMemorySettings> selection)
     {
+        using var _ = HyperVServiceCoordination.BeginActiveSettingsWrite();
         bool isVmRunning;
         bool numaDisabled = false, memoryApplied = false;
         var steps = new List<OperationStepResult>();
@@ -284,9 +361,11 @@ public static class VmMemoryService
             var vm = await WmiApi.QueryFirstAsync(
                 $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}",
                 obj => VmMapper.MapState(Convert.ToUInt16(obj["EnabledState"])));
-            if (!vm.Success) return ApiResponse.Fail(vm.Error, vm.Code, vm.ErrorSource, vm.Exception, vm.ErrorKind);
+            if (!vm.Success) return ApiResponse.FromFailure(vm);
             if (!vm.HasData) return ApiResponse.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound);
             isVmRunning = vm.Data != VmState.PoweredOff;
+            var hostResponse = await VmProcessorService.GetHostCapabilitiesAsync().ConfigureAwait(false);
+            var hostCapabilities = hostResponse.HasData ? hostResponse.Data : null;
             ApiResponse? validation = null;
             ApiResponse? selectionError = null;
             var plan = await WmiApi.QueryFirstAsync(
@@ -298,13 +377,13 @@ public static class VmMemoryService
                     if (selectionError != null) return null;
                     var current = MapMemory(obj);
                     var target = MergeMemorySelection(current, selection);
-                    validation = ValidateMemoryChange(current, target, vm.Data);
+                    validation = ValidateMemoryChange(current, target, vm.Data, host: hostCapabilities);
                     if (!validation.Success) return null;
                     var writes = BuildMemoryWrites(raw, target, selection, isVmRunning);
                     foreach (var (name, value) in writes) obj[name] = value;
-                    return new { Xml = obj.GetText(TextFormat.CimDtd20), Target = target };
+                    return new { Xml = obj.GetText(TextFormat.CimDtd20), Target = target, Before = current };
                 });
-            if (!plan.Success) return ApiResponse.Fail(plan.Error, plan.Code, plan.ErrorSource, plan.Exception, plan.ErrorKind);
+            if (!plan.Success) return ApiResponse.FromFailure(plan);
             if (selectionError != null) return selectionError;
             if (validation is { Success: false }) return validation;
             if (!plan.HasData) return ApiResponse.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound);
@@ -319,7 +398,17 @@ public static class VmMemoryService
             var result = await WmiApi.InvokeAsync("SELECT * FROM Msvm_VirtualSystemManagementService",
                 "ModifyResourceSettings", p => p["ResourceSettings"] = new[] { plan.Data.Xml });
             steps.Add(OperationStepResult.From("Memory", result));
-            if (!result.Success) return PartialMemoryFailure(result, numaDisabled, false).WithSteps(steps);
+            if (!result.Success)
+            {
+                var recovered = await RecoverFromVmmsCrashAsync(vmId, plan.Data.Before, selection, result, numaDisabled, steps);
+                if (recovered != null) return recovered;
+                if (isVmRunning && result.DiagnosticCode == CoreErrorCode.MethodFailed
+                    && selection.Contains(nameof(VmMemorySettings.Startup)) && !plan.Data.Target.DynamicMemoryEnabled)
+                {
+                    result = result.WithDiagnostic(CoreErrorCode.RuntimeMemoryResizeFailed);
+                }
+                return PartialMemoryFailure(result, numaDisabled, false).WithSteps(steps);
+            }
             memoryApplied = true;
             if (dynamicChanged && !isVmRunning && !plan.Data.Target.DynamicMemoryEnabled)
             {
@@ -333,6 +422,84 @@ public static class VmMemoryService
         {
             return PartialMemoryFailure(ApiResponse.Fail(ex.Message, exception: ex, kind: ApiErrorKind.OperationFailed), numaDisabled, memoryApplied).WithSteps(steps);
         }
+    }
+
+    private static async Task<ApiResponse?> RecoverFromVmmsCrashAsync(
+        Guid vmId,
+        VmMemorySettings before,
+        SettingsSelection<VmMemorySettings> selection,
+        ApiResponse failure,
+        bool numaDisabled,
+        List<OperationStepResult> steps)
+    {
+        var recovery = await VmmsServiceRecovery.TryRecoverIfStoppedAsync().ConfigureAwait(false);
+        if (!recovery.Attempted) return null;
+
+        steps.Add(OperationStepResult.From("RecoverVmms",
+            recovery.Recovered ? ApiResponse.Ok() : ApiResponse.Fail(recovery.Error ?? "拉起 vmms 服务失败。")));
+
+        if (!recovery.Recovered)
+        {
+            return PartialMemoryFailure(ApiResponse.Fail(
+                $"Hyper-V service stopped and restart failed: {recovery.Error}",
+                failure.Code, failure.ErrorSource, failure.Exception, failure.ErrorKind)
+                .WithDiagnostic(CoreErrorCode.VmmsRecoveryFailed, recovery.Error ?? ""),
+                numaDisabled, false).WithSteps(steps);
+        }
+
+        var readBack = await GetVmMemorySettingsAsync(vmId).ConfigureAwait(false);
+        if (readBack.HasData)
+        {
+            bool unchanged = true;
+            foreach (string name in selection.Names)
+            {
+                var prop = typeof(VmMemorySettings).GetProperty(name);
+                if (prop != null && !Equals(prop.GetValue(before), prop.GetValue(readBack.Data.Values)))
+                {
+                    unchanged = false;
+                    break;
+                }
+            }
+
+            if (unchanged)
+            {
+                bool vnumaRestored = true;
+                if (numaDisabled)
+                {
+                    var numaOn = await SetVirtualNumaEnabledAsync(vmId, true).ConfigureAwait(false);
+                    steps.Add(OperationStepResult.From("RestoreVirtualNuma", numaOn));
+                    vnumaRestored = numaOn.Success;
+                }
+
+                bool isCxl = selection.Contains(nameof(VmMemorySettings.CxlEnabled));
+                string msg = isCxl
+                    ? "Failed to enable CXL: Hyper-V service restarted automatically and settings were not changed."
+                    : "Failed to apply memory settings: Hyper-V service restarted automatically and settings were not changed.";
+                if (numaDisabled && !vnumaRestored)
+                    return ApiResponse.Fail(msg + " (vNUMA could not be restored)", failure.Code, failure.ErrorSource, failure.Exception, ApiErrorKind.OutcomeUnknown)
+                        .WithDiagnostic(CoreErrorCode.VmmsCrashedVnumaUnrestored)
+                        .WithSteps(steps);
+
+                var diagCode = isCxl ? CoreErrorCode.VmmsCrashedCxlRecovered : CoreErrorCode.VmmsCrashedRecovered;
+                // 已核实设置未写入，将此前不确定的 Memory 步骤归档为确定失败，避免前端误判锁定页面。
+                for (int i = 0; i < steps.Count; i++)
+                {
+                    if (steps[i].Name == "Memory" && steps[i].State == OperationStepState.OutcomeUnknown)
+                    {
+                        steps[i] = OperationStepResult.From("Memory", ApiResponse.Fail(msg, failure.Code, failure.ErrorSource, failure.Exception, ApiErrorKind.OperationFailed).WithDiagnostic(diagCode));
+                    }
+                }
+                return ApiResponse.Fail(msg, failure.Code, failure.ErrorSource, failure.Exception, ApiErrorKind.OperationFailed)
+                    .WithDiagnostic(diagCode)
+                    .WithSteps(steps);
+            }
+        }
+
+        return PartialMemoryFailure(ApiResponse.Fail(
+            "Hyper-V service restarted during apply; final memory state is unconfirmed.",
+            failure.Code, failure.ErrorSource, failure.Exception, ApiErrorKind.OutcomeUnknown)
+            .WithDiagnostic(CoreErrorCode.VmmsRecoveredOutcomeUnknown),
+            numaDisabled, false).WithSteps(steps);
     }
 
     internal static VmMemorySettings MergeMemorySelection(VmMemorySettings current, SettingsSelection<VmMemorySettings> selection)
@@ -391,9 +558,15 @@ public static class VmMemoryService
 
     internal static ApiResponse PartialMemoryFailure(ApiResponse failure, bool numaDisabled, bool memoryApplied)
     {
-        string prefix = memoryApplied ? "内存已修改，但 vNUMA 设置失败："
-            : numaDisabled ? "vNUMA 已关闭，但内存设置失败：" : "";
-        return ApiResponse.Fail(prefix + failure.Error, failure.Code, failure.ErrorSource, failure.Exception, failure.ErrorKind);
+        if (!numaDisabled && !memoryApplied) return failure;
+        string prefix = memoryApplied ? "Memory updated, but restoring vNUMA failed: "
+            : "vNUMA was disabled, but updating memory failed: ";
+        var wrapped = ApiResponse.Fail(prefix + failure.Error, failure.Code, failure.ErrorSource, failure.Exception, failure.ErrorKind);
+        if (failure.DiagnosticCode != CoreErrorCode.None)
+            return wrapped.WithDiagnostic(failure.DiagnosticCode, failure.DiagnosticArgs.ToArray());
+        return wrapped.WithDiagnostic(
+            memoryApplied ? CoreErrorCode.PartialVnumaRestoreFailed : CoreErrorCode.PartialVnumaDisableFailed,
+            failure.Error);
     }
 
     /// <summary>切换 VM 的 VirtualNumaEnabled（vNUMA 与动态内存互斥，对齐 Set-VMMemory；仅离线可改）。</summary>

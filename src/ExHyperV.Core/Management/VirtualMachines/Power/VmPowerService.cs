@@ -2,6 +2,8 @@ using ExHyperV.Tools;
 using ExHyperV.Models;
 
 using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.InteropServices;
 
 namespace ExHyperV.Services
 {
@@ -63,7 +65,7 @@ namespace ExHyperV.Services
                 wql, "RequestStateChange", parameters => parameters["RequestedState"] = state);
             var backend = new PowerActionBackend(RequestAsync,
                 () => ForceTurnOffAsync(vmId.ToString("D"), wql, predicate),
-                () => HostAzureFeatureSetService.RunTemporarilyDisabledAsync(() => RequestAsync(2)),
+                () => StartWithDiagnosticsAsync(vmId, () => HostAzureFeatureSetService.RunTemporarilyDisabledAsync(() => RequestAsync(2))),
                 () => { _ = ApplyStartupAffinityAsync(predicate); });
             return ExecuteControlActionAsync(action, backend);
         }
@@ -239,6 +241,134 @@ namespace ExHyperV.Services
                 CancellationToken.None,
                 TaskContinuationOptions.OnlyOnFaulted,
                 TaskScheduler.Default);
+        }
+
+        private static async Task<ApiResponse> StartWithDiagnosticsAsync(Guid vmId, Func<Task<ApiResponse>> startCore)
+        {
+            var result = await startCore().ConfigureAwait(false);
+            if (result.Success) return result;
+
+            if (result.DiagnosticCode == CoreErrorCode.InsufficientMemory)
+            {
+                long requiredMiB = await TryReadRequiredMemoryMiBAsync(vmId).ConfigureAwait(false);
+                return requiredMiB > 0
+                    ? result.WithDiagnostic(CoreErrorCode.InsufficientMemory, requiredMiB.ToString(CultureInfo.InvariantCulture))
+                    : result;
+            }
+
+            if (result.DiagnosticCode == CoreErrorCode.FileNotFound
+                && RuntimeInformation.OSArchitecture == Architecture.Arm64)
+            {
+                try
+                {
+                    var state = await VmConfigurationState.ReadAsync(vmId).ConfigureAwait(false);
+                    if (state.HasData && state.Data.Generation == 1)
+                        return result.WithDiagnostic(CoreErrorCode.StartFailedGen1OnArm64);
+                }
+                catch
+                {
+                    // 后验排查失败不影响保留原始启动错误。
+                }
+            }
+
+            if (result.DiagnosticCode == CoreErrorCode.Unsupported)
+            {
+                string[] suspects = await TryDetectUnsupportedStartFeaturesAsync(vmId).ConfigureAwait(false);
+                if (suspects.Length > 0)
+                    return result.WithDiagnostic(CoreErrorCode.StartUnsupportedWithSuspects, suspects);
+                return string.IsNullOrWhiteSpace(result.Error)
+                    ? result.WithDiagnostic(CoreErrorCode.StartFailedUnsupported)
+                    : result.WithDiagnostic(CoreErrorCode.StartFailedUnsupported, result.Error);
+            }
+
+            if (result.DiagnosticCode == CoreErrorCode.MethodFailed)
+            {
+                var diag = await TryDiagnoseStartMethodFailedAsync(vmId, result).ConfigureAwait(false);
+                if (diag != null)
+                    return diag;
+            }
+
+            return result;
+        }
+
+        private static async Task<ApiResponse?> TryDiagnoseStartMethodFailedAsync(Guid vmId, ApiResponse original)
+        {
+            try
+            {
+                var procResult = await VmProcessorService.GetVmProcessorAsync(vmId).ConfigureAwait(false);
+                if (!procResult.HasData) return null;
+                var proc = procResult.Data.Values;
+                int hostCount = Environment.ProcessorCount;
+                if (hostCount > 0 && proc.Count > hostCount)
+                {
+                    return original.WithDiagnostic(
+                        CoreErrorCode.StartFailedProcessorTopology,
+                        proc.Count.ToString(CultureInfo.InvariantCulture),
+                        hostCount.ToString(CultureInfo.InvariantCulture));
+                }
+                if (proc.ExposeVirtualizationExtensions == true)
+                    return original.WithDiagnostic(CoreErrorCode.StartUnsupportedWithSuspects, "NestedVirt");
+            }
+            catch
+            {
+                // 后验排查失败不影响保留原始启动错误。
+            }
+            return null;
+        }
+
+        private static async Task<long> TryReadRequiredMemoryMiBAsync(Guid vmId)
+        {
+            try
+            {
+                var memResult = await VmMemoryService.GetVmMemorySettingsAsync(vmId).ConfigureAwait(false);
+                return memResult.HasData ? Math.Max(0, memResult.Data.Values.Startup) : 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private static async Task<string[]> TryDetectUnsupportedStartFeaturesAsync(Guid vmId)
+        {
+            var suspects = new List<string>();
+            try
+            {
+                var memTask = VmMemoryService.GetVmMemorySettingsAsync(vmId);
+                var procTask = VmProcessorService.GetVmProcessorAsync(vmId);
+                var hostTask = VmProcessorService.GetHostCapabilitiesAsync();
+                await Task.WhenAll(memTask, procTask, hostTask).ConfigureAwait(false);
+
+                var mem = (await memTask.ConfigureAwait(false)) is { HasData: true } mr ? mr.Data.Values : null;
+                var proc = (await procTask.ConfigureAwait(false)) is { HasData: true } pr ? pr.Data.Values : null;
+                var host = (await hostTask.ConfigureAwait(false)) is { HasData: true } hr ? hr.Data : null;
+
+                // Even Intel hosts without SGX (e.g. 11th+ Gen Core) fail Start with 0xC0350005 when SgxEnabled=true.
+                if (mem?.SgxEnabled == true)
+                    suspects.Add("SGX");
+                if (proc?.ExposeVirtualizationExtensions == true && host is { IsArm64: true })
+                    suspects.Add("NestedVirt");
+                if (proc != null && host is { IsIntel: false } &&
+                    (proc.EnablePerfmonPmu == true || proc.EnablePerfmonLbr == true || proc.EnablePerfmonPebs == true || proc.EnablePerfmonIpt == true))
+                    suspects.Add("IntelPerfmon");
+                if (proc?.HardwareIsolationExtensionsEnabled == true && host is { HardwareIsolationSupported: false })
+                    suspects.Add("HwIsolation");
+                if (host?.IsArm64 == true && proc?.ApicMode is not null and not VmApicMode.Default)
+                    suspects.Add("ApicMode");
+                if (host is { IsArm64: false } && proc?.LpiMode is not null and not LpiMode.Default)
+                    suspects.Add("LpiMode");
+                if (mem?.CxlEnabled == true)
+                    suspects.Add("CXL");
+                if (mem?.BackingPageSize == 2)
+                    suspects.Add("HugePages1Gb");
+                if (mem?.MemoryEncryptionPolicy == 2)
+                    suspects.Add("MemEncryption");
+            }
+            catch
+            {
+                // 后验排查失败不影响保留原始启动错误。
+            }
+            return suspects.ToArray();
         }
     }
 }

@@ -10,7 +10,7 @@
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <!-- Keep one build configuration for all consumers; MCP also reads these API comments. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <SatelliteResourceLanguages>en;zh-Hans</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages>en;zh-Hans;zh-CN</SatelliteResourceLanguages>
   </PropertyGroup>
   <ItemGroup>
     <None Update="ThirdPartyNotices\SharpZipLib.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

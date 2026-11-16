@@ -1,5 +1,7 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Management;
+using System.Runtime.InteropServices;
 
 namespace ExHyperV.Tools;
 
@@ -31,14 +33,20 @@ internal static class WmiJobWaiter
             && job.OperationalStatus.Contains((ushort)6);
         if (completed && job.ErrorCode == 0) return ApiResponse.Ok();
         if ((completed || completedException || job.State == 8) && job.ErrorCode is ushort error)
-            return ApiResponse.Fail(string.IsNullOrWhiteSpace(job.Description)
-                ? $"WMI 作业已结束但未成功 (state={job.State}, error={error})。" : job.Description,
+        {
+            var desc = job.Description?.Trim();
+            var failed = ApiResponse.Fail(
+                string.IsNullOrWhiteSpace(desc) ? $"WMI job failed (state={job.State}, error={error})." : desc,
                 error, ApiErrorSource.Wmi, kind: ApiErrorKind.OperationFailed);
+            if (!string.IsNullOrWhiteSpace(desc) && failed.DiagnosticCode != CoreErrorCode.None)
+                failed = failed.WithDiagnostic(failed.DiagnosticCode, desc);
+            return failed;
+        }
 
         // Killed 可能仍留有子进程；Exception/Service/未知值也不能推断为已停止。
         return Unknown(string.IsNullOrWhiteSpace(job.Description)
-            ? $"无法确认 WMI 作业最终结果 (state={job.State})；请核对目标状态后再处理。"
-            : job.Description + " 无法确认 WMI 作业最终结果，请核对目标状态后再处理。");
+            ? $"WMI job outcome could not be confirmed (state={job.State})."
+            : job.Description.Trim());
     }
 
     internal static async Task<ApiResponse> WaitAsync(Func<WmiJobObservation> read,
@@ -63,9 +71,9 @@ internal static class WmiJobWaiter
             }
             catch (OperationCanceledException ex)
             {
-                return Unknown(timeoutCts.IsCancellationRequested
-                    ? "等待 WMI 作业超时，底层操作可能仍在运行；请核对目标状态后再处理。"
-                    : "已停止等待 WMI 作业，底层操作可能仍在运行；请核对目标状态后再处理。", exception: ex);
+                return timeoutCts.IsCancellationRequested
+                    ? Unknown("Operation timed out.", exception: ex).WithDiagnostic(CoreErrorCode.OperationTimedOut)
+                    : Unknown("Operation wait canceled.", exception: ex).WithDiagnostic(CoreErrorCode.OperationCancelled);
             }
         }
         catch (Exception ex)
@@ -80,16 +88,30 @@ internal static class WmiJobWaiter
 
     internal static ApiResponse FromException(Exception ex, bool submitted)
     {
-        var source = ex is ManagementException ? ApiErrorSource.Wmi :
-            ex is UnauthorizedAccessException ? ApiErrorSource.Win32 : ApiErrorSource.None;
-        int code = ex is ManagementException management ? (int)management.ErrorCode :
-            ex is UnauthorizedAccessException ? 5 : -1;
+        var source = ex is ManagementException ? ApiErrorSource.Wmi
+            : ex is UnauthorizedAccessException or Win32Exception ? ApiErrorSource.Win32
+            : ex is COMException ? ApiErrorSource.Com
+            : ApiErrorSource.None;
+        int code = ex is ManagementException management ? (int)management.ErrorCode
+            : ex is UnauthorizedAccessException ? 5
+            : ex is Win32Exception native ? native.NativeErrorCode
+            : ex.HResult;
+        if (ex is ManagementException or COMException || CoreErrorClassifier.IsServiceUnavailable(code, source, ex))
+            WmiConnectionCache.Clear();
         var kind = submitted ? ApiErrorKind.OutcomeUnknown :
             ex is OperationCanceledException ? ApiErrorKind.Cancelled :
-            ex is UnauthorizedAccessException ? ApiErrorKind.AccessDenied : ApiErrorKind.OperationFailed;
-        return ApiResponse.Fail(submitted
-            ? ex.Message + " 请求可能已提交，最终结果尚未确认；请核对目标状态后再处理。"
-            : ex.Message, code, source, ex, kind);
+            ex is UnauthorizedAccessException or Win32Exception { NativeErrorCode: 5 } ? ApiErrorKind.AccessDenied :
+            ApiErrorKind.OperationFailed;
+        return ApiResponse.Fail(ex.Message, code, source, ex, kind);
+    }
+
+    internal static ApiResponse<T> FromQueryException<T>(Exception ex)
+    {
+        var failure = FromException(ex, submitted: false);
+        var typed = ApiResponse<T>.Fail(failure.Error, failure.Code, failure.ErrorSource, failure.Exception, failure.ErrorKind);
+        return failure.DiagnosticCode == CoreErrorCode.None
+            ? typed
+            : typed.WithDiagnostic(failure.DiagnosticCode, failure.DiagnosticArgs.ToArray());
     }
 
     private static void Report(IProgress<int>? progress, int value)

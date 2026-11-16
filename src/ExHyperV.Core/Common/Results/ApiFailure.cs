@@ -1,4 +1,5 @@
 using System.Management;
+using System.Runtime.InteropServices;
 
 namespace ExHyperV.Tools;
 
@@ -16,7 +17,7 @@ public sealed record ApiFailure(ApiErrorKind Kind, int Code, ApiErrorSource Sour
         : new(error is OperationCanceledException ? ApiErrorKind.Cancelled : error is UnauthorizedAccessException or System.ComponentModel.Win32Exception { NativeErrorCode: 5 } ? ApiErrorKind.AccessDenied
             : error is ArgumentException ? ApiErrorKind.InvalidArgument : ApiErrorKind.OperationFailed,
             error is ManagementException management ? (int)management.ErrorCode : error is System.ComponentModel.Win32Exception native ? native.NativeErrorCode : error is UnauthorizedAccessException ? 5 : error.HResult,
-            error is ManagementException ? ApiErrorSource.Wmi : error is UnauthorizedAccessException or System.ComponentModel.Win32Exception ? ApiErrorSource.Win32 : ApiErrorSource.None, error.Message);
+            error is ManagementException ? ApiErrorSource.Wmi : error is UnauthorizedAccessException or System.ComponentModel.Win32Exception ? ApiErrorSource.Win32 : error is COMException ? ApiErrorSource.Com : ApiErrorSource.None, error.Message);
 }
 
 /// <summary>一个修改步骤的执行情况，区分未执行、明确结束和结果不明。</summary>

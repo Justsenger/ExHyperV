@@ -81,6 +81,26 @@ public sealed class ApiResponse<T>
     /// <summary>失败时保留的原始异常；未提供时为 null。</summary>
     public Exception? Exception { get; private init; }
 
+    /// <summary>语言无关的诊断归类标识；未命中标准码时为 None。</summary>
+    public CoreErrorCode DiagnosticCode { get; private init; }
+
+    /// <summary>配合 DiagnosticCode 使用的结构化上下文参数。</summary>
+    public IReadOnlyList<string> DiagnosticArgs { get; private init; } = Array.Empty<string>();
+
+    internal ApiResponse<T> WithDiagnostic(CoreErrorCode diagnosticCode, params string[] args) => new()
+    {
+        Success = Success,
+        IsEmpty = IsEmpty,
+        Data = Data,
+        Error = Error,
+        Code = Code,
+        ErrorSource = ErrorSource,
+        ErrorKind = ErrorKind,
+        Exception = Exception,
+        DiagnosticCode = diagnosticCode,
+        DiagnosticArgs = Array.AsReadOnly(args ?? Array.Empty<string>())
+    };
+
     /// <summary>创建成功响应并保存给定数据。</summary>
     /// <returns>数据非 null 时为成功数据响应；null 时与 Empty() 等价。</returns>
     /// <param name="data">成功响应要携带的数据；不复制数据，null 统一表示成功空结果。</param>
@@ -114,7 +134,9 @@ public sealed class ApiResponse<T>
         Exception? exception = null,
         ApiErrorKind kind = ApiErrorKind.Unspecified)
     {
-        Debug.WriteLine($"[ApiResponse.Fail] source={source} code={code} error={error}");
+        var normalizedKind = kind != ApiErrorKind.None && Enum.IsDefined(kind) ? kind : ApiErrorKind.Unspecified;
+        var diagnostic = CoreErrorClassifier.Classify(normalizedKind, source, code, exception, error);
+        Debug.WriteLine($"[ApiResponse.Fail] source={source} code={code} diag={diagnostic} error={error}");
         return new()
         {
             Success = false,
@@ -122,8 +144,9 @@ public sealed class ApiResponse<T>
             Error = error ?? string.Empty,
             Code = code,
             ErrorSource = source,
-            ErrorKind = kind != ApiErrorKind.None && Enum.IsDefined(kind) ? kind : ApiErrorKind.Unspecified,
+            ErrorKind = normalizedKind,
             Exception = exception,
+            DiagnosticCode = diagnostic,
         };
     }
 
@@ -164,7 +187,8 @@ public sealed class ApiResponse
         return new()
         {
             Success = Success, Error = Error, Code = Code, ErrorSource = ErrorSource,
-            ErrorKind = ErrorKind, Exception = Exception, Steps = Array.AsReadOnly(snapshot),
+            ErrorKind = ErrorKind, Exception = Exception, DiagnosticCode = DiagnosticCode, DiagnosticArgs = DiagnosticArgs,
+            Steps = Array.AsReadOnly(snapshot),
             RequiresRestart = RequiresRestart || snapshot.Any(step => step.RequiresRestart) || reasons.Length != 0,
             RestartReasons = Array.AsReadOnly(reasons)
         };
@@ -180,7 +204,7 @@ public sealed class ApiResponse
     internal ApiResponse WithRestartRequired(bool required) => new()
     {
         Success = Success, Error = Error, Code = Code, ErrorSource = ErrorSource,
-        ErrorKind = ErrorKind, Exception = Exception, Steps = Steps,
+        ErrorKind = ErrorKind, Exception = Exception, DiagnosticCode = DiagnosticCode, DiagnosticArgs = DiagnosticArgs, Steps = Steps,
         RequiresRestart = RequiresRestart || required, RestartReasons = RestartReasons
     };
 
@@ -194,7 +218,7 @@ public sealed class ApiResponse
         return new()
         {
             Success = Success, Error = Error, Code = Code, ErrorSource = ErrorSource,
-            ErrorKind = ErrorKind, Exception = Exception, Steps = Steps,
+            ErrorKind = ErrorKind, Exception = Exception, DiagnosticCode = DiagnosticCode, DiagnosticArgs = DiagnosticArgs, Steps = Steps,
             RequiresRestart = RequiresRestart || snapshot.Length != 0,
             RestartReasons = Array.AsReadOnly(snapshot)
         };
@@ -214,6 +238,35 @@ public sealed class ApiResponse
     /// <summary>失败时保留的原始异常；未提供时为 null。</summary>
     public Exception? Exception { get; private init; }
 
+    /// <summary>语言无关的诊断归类标识；未命中标准码时为 None。</summary>
+    public CoreErrorCode DiagnosticCode { get; private init; }
+
+    /// <summary>配合 DiagnosticCode 使用的结构化上下文参数。</summary>
+    public IReadOnlyList<string> DiagnosticArgs { get; private init; } = Array.Empty<string>();
+
+    internal ApiResponse WithDiagnostic(CoreErrorCode diagnosticCode, params string[] args) => new()
+    {
+        Success = Success,
+        Error = Error,
+        Code = Code,
+        ErrorSource = ErrorSource,
+        ErrorKind = ErrorKind,
+        Exception = Exception,
+        DiagnosticCode = diagnosticCode,
+        DiagnosticArgs = Array.AsReadOnly(args ?? Array.Empty<string>()),
+        Steps = Steps,
+        RequiresRestart = RequiresRestart,
+        RestartReasons = RestartReasons
+    };
+
+    internal static ApiResponse FromFailure<T>(ApiResponse<T> failure)
+    {
+        var result = Fail(failure.Error, failure.Code, failure.ErrorSource, failure.Exception, failure.ErrorKind);
+        return failure.DiagnosticCode == CoreErrorCode.None
+            ? result
+            : result.WithDiagnostic(failure.DiagnosticCode, failure.DiagnosticArgs.ToArray());
+    }
+
     /// <summary>创建不携带数据的成功响应。</summary>
     /// <returns>新的成功响应。</returns>
     public static ApiResponse Ok() => new() { Success = true };
@@ -232,15 +285,18 @@ public sealed class ApiResponse
         Exception? exception = null,
         ApiErrorKind kind = ApiErrorKind.Unspecified)
     {
-        Debug.WriteLine($"[ApiResponse.Fail] source={source} code={code} error={error}");
+        var normalizedKind = kind != ApiErrorKind.None && Enum.IsDefined(kind) ? kind : ApiErrorKind.Unspecified;
+        var diagnostic = CoreErrorClassifier.Classify(normalizedKind, source, code, exception, error);
+        Debug.WriteLine($"[ApiResponse.Fail] source={source} code={code} diag={diagnostic} error={error}");
         return new()
         {
             Success = false,
             Error = error ?? string.Empty,
             Code = code,
             ErrorSource = source,
-            ErrorKind = kind != ApiErrorKind.None && Enum.IsDefined(kind) ? kind : ApiErrorKind.Unspecified,
+            ErrorKind = normalizedKind,
             Exception = exception,
+            DiagnosticCode = diagnostic,
         };
     }
 

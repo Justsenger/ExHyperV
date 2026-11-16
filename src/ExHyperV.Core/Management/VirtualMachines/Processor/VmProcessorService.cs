@@ -124,6 +124,25 @@ public static partial class VmProcessorService
             if (!condition.CanModify) return condition.ToResponse();
         }
 
+        if (requested.Count != current.Count && requested.Count <= 0)
+            return ApiResponse.Fail("虚拟处理器数量必须大于 0。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.Limit != current.Limit && requested.Limit > 100000)
+            return ApiResponse.Fail("处理器限制比例必须在 0 到 100000 之间。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.RelativeWeight != current.RelativeWeight && requested.RelativeWeight is < 1 or > 10000)
+            return ApiResponse.Fail("处理器权重必须在 1 到 10000 之间。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.SmtMode is { } smt && !Equals(smt, current.SmtMode) && !Enum.IsDefined(typeof(SmtMode), smt))
+            return ApiResponse.Fail("不支持的处理器超线程（SMT）模式。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.ApicMode is { } apic && !Equals(apic, current.ApicMode) && !Enum.IsDefined(typeof(VmApicMode), apic))
+            return ApiResponse.Fail("不支持的中断控制器模式。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.LpiMode is { } lpi && !Equals(lpi, current.LpiMode) && !Enum.IsDefined(typeof(LpiMode), lpi))
+            return ApiResponse.Fail("不支持的局部外设中断模式。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.PageShatterMode is { } shatter && !Equals(shatter, current.PageShatterMode) && !Enum.IsDefined(typeof(PageShatterMode), shatter))
+            return ApiResponse.Fail("不支持的大页拆分缓解模式。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.CompatibilityForMigrationMode is { } mig && !Equals(mig, current.CompatibilityForMigrationMode) && !Enum.IsDefined(typeof(VmMigrationCompatibilityMode), mig))
+            return ApiResponse.Fail("不支持的处理器迁移兼容模式。", kind: ApiErrorKind.InvalidArgument);
+        if (requested.L3DistributionPolicy is { } l3 && !Equals(l3, current.L3DistributionPolicy) && !Enum.IsDefined(typeof(L3DistributionPolicy), l3))
+            return ApiResponse.Fail("不支持的 L3 缓存分布策略。", kind: ApiErrorKind.InvalidArgument);
+
         return GetPerfmonCondition(current, requested).ToResponse();
     }
 
@@ -138,9 +157,9 @@ public static partial class VmProcessorService
         VmState state, HostCapabilities host)
     {
         if (!ProcessorProperties.TryGetValue(propertyName, out var mapping))
-            return VmModificationCondition.Denied("未知的处理器设置。", ApiErrorKind.InvalidArgument);
+            return VmModificationCondition.Denied("Unknown processor setting.", ApiErrorKind.InvalidArgument, ConditionReasonCode.UnknownSetting);
         if (!settings.SupportedProps.Contains(mapping.NativeName))
-            return VmModificationCondition.Unsupported("当前宿主未提供此设置。");
+            return VmModificationCondition.MissingOnHost();
         var condition = GetProcessorCondition(propertyName, state, host);
         if (!condition.CanModify) return condition;
         var requested = new VmProcessorSettings
@@ -161,21 +180,21 @@ public static partial class VmProcessorService
 
     private static VmModificationCondition GetProcessorCondition(string propertyName, VmState state, HostCapabilities host)
     {
-            if (state != VmState.PoweredOff && !IsRuntimeSetting(propertyName))
-                return VmModificationCondition.PoweredOff(state);
-            bool available = propertyName switch
-            {
-                nameof(VmProcessorSettings.CompatibilityForOlderOperatingSystemsEnabled) or
-                nameof(VmProcessorSettings.CpuBrandString) or nameof(VmProcessorSettings.ApicMode) or
-                nameof(VmProcessorSettings.AllowAcountMcount) => host.IsX64,
-                nameof(VmProcessorSettings.LpiMode) => host.IsArm64,
-                nameof(VmProcessorSettings.EnablePerfmonPmu) or nameof(VmProcessorSettings.EnablePerfmonLbr) or
-                nameof(VmProcessorSettings.EnablePerfmonPebs) or nameof(VmProcessorSettings.EnablePerfmonIpt) => host.IsIntel,
-                nameof(VmProcessorSettings.HardwareIsolationExtensionsEnabled) or nameof(VmProcessorSettings.MaxHwIsolatedGuests) => host.HardwareIsolationSupported,
-                _ => true
-            };
-            if (!available) return VmModificationCondition.Unsupported();
-        return VmModificationCondition.Allowed;
+        if (state != VmState.PoweredOff && !IsRuntimeSetting(propertyName))
+            return VmModificationCondition.PoweredOff(state);
+        return propertyName switch
+        {
+            nameof(VmProcessorSettings.CompatibilityForMigrationEnabled) or
+            nameof(VmProcessorSettings.CompatibilityForMigrationMode) or
+            nameof(VmProcessorSettings.CompatibilityForOlderOperatingSystemsEnabled) or
+            nameof(VmProcessorSettings.CpuBrandString) or nameof(VmProcessorSettings.ApicMode) or
+            nameof(VmProcessorSettings.AllowAcountMcount) => host.IsX64 ? VmModificationCondition.Allowed : VmModificationCondition.RequiresX64(),
+            nameof(VmProcessorSettings.LpiMode) => host.IsArm64 ? VmModificationCondition.Allowed : VmModificationCondition.RequiresArm64(),
+            nameof(VmProcessorSettings.EnablePerfmonPmu) or nameof(VmProcessorSettings.EnablePerfmonLbr) or
+            nameof(VmProcessorSettings.EnablePerfmonPebs) or nameof(VmProcessorSettings.EnablePerfmonIpt) => host.IsIntel ? VmModificationCondition.Allowed : VmModificationCondition.RequiresIntel(),
+            nameof(VmProcessorSettings.HardwareIsolationExtensionsEnabled) or nameof(VmProcessorSettings.MaxHwIsolatedGuests) => host.HardwareIsolationSupported ? VmModificationCondition.Allowed : VmModificationCondition.RequiresHardwareIsolation(),
+            _ => VmModificationCondition.Allowed
+        };
     }
 
     private static VmModificationCondition GetPerfmonCondition(VmProcessorSettings current, VmProcessorSettings requested)
@@ -185,7 +204,7 @@ public static partial class VmProcessorService
         {
             int currentDependents = (current.EnablePerfmonPebs == true ? 1 : 0) + (current.EnablePerfmonIpt == true ? 1 : 0);
             if (!(current.EnablePerfmonPmu != true && requestedDependents < currentDependents))
-                return VmModificationCondition.Denied(Properties.Resources.Cpu_PerfmonPmuRequired, ApiErrorKind.InvalidArgument);
+                return VmModificationCondition.RequiresPerfmonPmu();
         }
         return VmModificationCondition.Allowed;
     }
@@ -273,11 +292,12 @@ public static partial class VmProcessorService
 
     private static async Task<ApiResponse> ApplyProcessorSettingsAsync(Guid vmId, SettingsSelection<VmProcessorSettings> selection)
     {
+        using var _ = HyperVServiceCoordination.BeginActiveSettingsWrite();
         try
         {
             var host = await GetHostCapabilitiesAsync();
             if (!host.HasData)
-                return ApiResponse.Fail(host.Error, host.Code, host.ErrorSource, host.Exception, host.ErrorKind);
+                return ApiResponse.FromFailure(host);
             string query = $"SELECT * FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}";
             ApiResponse? validation = null;
             ApiResponse? selectionError = null;
@@ -327,7 +347,7 @@ public static partial class VmProcessorService
             });
 
             if (!xmlResults.Success)
-                return ApiResponse.Fail(xmlResults.Error, xmlResults.Code, xmlResults.ErrorSource, xmlResults.Exception, xmlResults.ErrorKind);
+                return ApiResponse.FromFailure(xmlResults);
             if (selectionError != null) return selectionError;
             if (validation is { Success: false }) return validation;
             if (noChanges) return ApiResponse.Ok();
@@ -345,14 +365,18 @@ public static partial class VmProcessorService
             var readBack = await WmiApi.GetByPathAsync(processorPath!,
                 row => checkAfterWrite.Keys.ToDictionary(name => name, name => row[name]));
             if (!readBack.HasData)
-                return ApiResponse.Fail("处理器设置已提交，无法核验实际值。" + readBack.Error, readBack.Code,
-                    readBack.ErrorSource, readBack.Exception, ApiErrorKind.OutcomeUnknown);
+                return ApiResponse.Fail("Processor settings were submitted, but verification readback failed: " + readBack.Error, readBack.Code,
+                    readBack.ErrorSource, readBack.Exception, ApiErrorKind.OutcomeUnknown)
+                    .WithDiagnostic(CoreErrorCode.ReadBackUnavailable);
             foreach (var (name, expected) in checkAfterWrite)
             {
                 var actual = readBack.Data![name];
-                if (actual is null) return ApiResponse.Fail($"宿主在提交后未提供 {name} 的值，无法确认修改结果。", kind: ApiErrorKind.OutcomeUnknown);
+                if (actual is null)
+                    return ApiResponse.Fail($"Host did not report {name} after apply.", kind: ApiErrorKind.OutcomeUnknown)
+                        .WithDiagnostic(CoreErrorCode.ReadBackUnavailable, name);
                 if (!Equals(actual, expected))
-                    return ApiResponse.Fail($"{name} 提交后读回 {actual}，预期 {expected}。", kind: ApiErrorKind.Conflict);
+                    return ApiResponse.Fail($"{name} read back as {actual}, expected {expected}.", kind: ApiErrorKind.Conflict)
+                        .WithDiagnostic(CoreErrorCode.ReadBackMismatch, name, actual.ToString() ?? "", expected.ToString() ?? "");
             }
             return result;
         }

@@ -12,7 +12,6 @@ internal sealed class OperationOutcomeUnknownException(ApiResponse result) : Cor
     internal static void ThrowIfUnknown<T>(ApiResponse<T> result)
     {
         if (result.ErrorKind == ApiErrorKind.OutcomeUnknown)
-            throw new OperationOutcomeUnknownException(ApiResponse.Fail(result.Error, result.Code,
-                result.ErrorSource, result.Exception, result.ErrorKind));
+            throw new OperationOutcomeUnknownException(ApiResponse.FromFailure(result));
     }
 }
