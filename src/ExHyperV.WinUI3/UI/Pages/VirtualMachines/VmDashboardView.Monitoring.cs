@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -136,7 +137,7 @@ public sealed partial class VmDashboardView
                     catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
                     catch (Exception error)
                     {
-                        if (IsCurrentPreview(id, source, version)) ShowError("虚拟机预览读取失败：" + error.Message);
+                        if (IsCurrentPreview(id, source, version)) ShowError(L10n.Format("Dash_PreviewReadError", CoreMessageResolver.ResolveException(error)));
                     }
                 }
                 nextPoll = await WaitForNextPollAsync(nextPoll, PreviewInterval, token);

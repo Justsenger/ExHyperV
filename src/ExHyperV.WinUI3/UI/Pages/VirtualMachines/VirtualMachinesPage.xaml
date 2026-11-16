@@ -12,16 +12,16 @@
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <Grid Margin="8">
-                    <TextBox PlaceholderText="搜索虚拟机..." MinHeight="28" Padding="10,0,32,0" VerticalContentAlignment="Center"
-                        Text="{x:Bind ViewModel.Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="搜索虚拟机" />
+                    <TextBox x:Name="SearchBox" MinHeight="28" Padding="10,0,32,0" VerticalContentAlignment="Center"
+                        Text="{x:Bind ViewModel.Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                     <FontIcon Glyph="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0"
                         IsHitTestVisible="False" Visibility="{x:Bind ViewModel.IsFilterEmpty, Mode=OneWay}" />
                 </Grid>
                 <TextBlock Grid.Row="1" Text="{x:Bind ViewModel.Error, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}"
                     TextWrapping="Wrap" Margin="8,0,8,4" MaxHeight="96" ToolTipService.ToolTip="{x:Bind ViewModel.Error, Mode=OneWay}"
                     FontSize="12" Foreground="{ThemeResource SystemFillColorCautionBrush}" />
-                <ListView Grid.Row="2" Margin="4,0,4,4" ItemsSource="{x:Bind ViewModel.Items, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Selected, Mode=TwoWay}"
-                    SelectionMode="Single" HorizontalContentAlignment="Stretch" AutomationProperties.Name="虚拟机列表">
+                <ListView x:Name="VmList" Grid.Row="2" Margin="4,0,4,4" ItemsSource="{x:Bind ViewModel.Items, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Selected, Mode=TwoWay}"
+                    SelectionMode="Single" HorizontalContentAlignment="Stretch">
                     <ListView.ItemContainerStyle><Style TargetType="ListViewItem"><Setter Property="Padding" Value="0" /><Setter Property="MinHeight" Value="40" /><Setter Property="Margin" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="VerticalContentAlignment" Value="Stretch" /></Style></ListView.ItemContainerStyle>
                     <ListView.ItemTemplate><DataTemplate x:DataType="local:VmListItem">
                         <Grid Padding="2,6" ToolTipService.ToolTip="{x:Bind Name, Mode=OneWay}">

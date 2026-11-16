@@ -1,25 +1,33 @@
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Tools;
+using ExHyperV.WinUI3.Localization;
+using ExHyperV.WinUI3.UI.Shared;
 using System.Diagnostics;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines;
 
-public sealed partial class VmDashboardView : UserControl
+public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHost
 {
+    private enum NoticeOrigin { Dashboard, Settings }
     private CancellationTokenSource? cancellation;
     private readonly SemaphoreSlim queryGate = new(1, 1);
     private readonly Dictionary<int, VmUsageChart> charts = new();
     private readonly List<Task> work = new();
-    private readonly VmUsageChart memoryChart = new("内存使用趋势", VmUsageChartKind.Memory);
+    private readonly VmUsageChart memoryChart = new(L10n.Get("Overview_MemoryUsageTrend"), VmUsageChartKind.Memory, chartHeight: 148);
     private bool? hasGpu;
     private bool? gpuDriverBound;
     private VmListItem? current;
     private VmState? state;
     private bool powerPending;
     private bool stateVerified;
+    private bool transientServiceBanner;
+    private NoticeOrigin activeNoticeOrigin;
+    private readonly DispatcherTimer successToastTimer = new() { Interval = TimeSpan.FromMilliseconds(2600) };
+    private string? activeSuccessToastText;
     private VmInfoCache? cache;
     private VmQueryRow? displayedConfiguration;
     public Task PendingWork { get; private set; } = Task.CompletedTask;
@@ -28,14 +36,19 @@ public sealed partial class VmDashboardView : UserControl
     internal static readonly VmQueryField[] ConfigurationFields = [
         VmIdentityFields.Name, VmIdentityFields.State, VmIdentityFields.Uptime, VmIdentityFields.Generation,
         VmIdentityFields.ConfigurationVersion, VmIdentityFields.ConfigurationFilePath,
-        VmProcessorFields.Count, VmMemoryFields.Startup,
-        VmStorageFields.Path, VmStorageFields.DriveType, VmStorageFields.DiskType, VmStorageFields.VirtualDiskType, VmStorageFields.CapacityBytes, VmStorageFields.FileSizeBytes, VmStorageFields.DiskModel,
+        VmProcessorFields.Count, VmProcessorFields.ExposeVirtualizationExtensions, VmProcessorFields.SmtMode,
+        VmMemoryFields.Startup, VmMemoryFields.DynamicMemoryEnabled, VmMemoryFields.Minimum, VmMemoryFields.Maximum,
+        VmStorageFields.Path, VmStorageFields.DriveType, VmStorageFields.DiskType, VmStorageFields.VirtualDiskType,
+        VmStorageFields.CapacityBytes, VmStorageFields.FileSizeBytes, VmStorageFields.DiskModel,
+        VmStorageFields.ControllerType, VmStorageFields.ControllerNumber, VmStorageFields.ControllerLocation, VmStorageFields.DiskNumber,
         VmNetworkFields.Name, VmNetworkFields.SwitchName, VmNetworkFields.MacAddress, VmNetworkFields.IpAddresses, VmNetworkFields.IsConnected,
-        VmGpuFields.Name, VmMetadataFields.Key, VmMetadataFields.Value];
+        VmGpuFields.Name, VmGpuFields.Manu, VmGpuFields.Vendor, VmGpuFields.DriverVersion, VmGpuFields.MemoryBytes, VmGpuFields.HostDeviceInstanceId,
+        VmMetadataFields.Key, VmMetadataFields.Value];
+
     private static readonly VmQueryField[] MetricFields = [
         VmIdentityFields.State, VmIdentityFields.Uptime, VmProcessorFields.UsagePercent,
         VmProcessorMetricFields.Index, VmProcessorMetricFields.UsagePercent,
-        VmMemoryFields.AssignedMiB, VmMemoryFields.AvailablePercent,
+        VmMemoryFields.AssignedMiB, VmMemoryFields.AvailablePercent, VmMemoryFields.PressurePercent, VmMemoryFields.DemandMiB, VmMemoryFields.SmartPagingMiB,
         VmStorageFields.ReadBytesPerSecond, VmStorageFields.WriteBytesPerSecond,
         VmNetworkFields.SendBytesPerSecond, VmNetworkFields.ReceiveBytesPerSecond, VmNetworkFields.IpAddresses,
         VmGpuPerformanceFields.Gpu3d, VmGpuPerformanceFields.GpuCopy, VmGpuPerformanceFields.GpuEncode, VmGpuPerformanceFields.GpuDecode, VmGpuPerformanceFields.HasGpuEngineInstance];
@@ -43,15 +56,28 @@ public sealed partial class VmDashboardView : UserControl
     public VmDashboardView()
     {
         InitializeComponent();
+        ApplyLocalization();
         InitializeUptimeClock();
         InitializeNavigation();
-        MemoryContent.Children.Insert(0, memoryChart);
-        ResourceDetails.SizeChanged += (_, _) => LayoutCoreCharts();
-        foreach (var grid in new[] { GpuSelectors, DiskSelectors, NetworkSelectors })
-            grid.SizeChanged += (_, _) => LayoutDeviceSelectors(grid);
+        InitializeOverview();
         InitializeGpuCharts();
-        ActualThemeChanged += (_, _) => UpdateDeviceTheme();
-        Unloaded += (_, _) => Stop();
+        successToastTimer.Tick += (_, _) => HideSuccessToast();
+        Body.SizeChanged += (_, _) => UpdateSuccessToastLayout();
+        Loaded += (_, _) =>
+        {
+            AttachAppearanceEvents();
+            UpdateOverviewTheme();
+        };
+        ActualThemeChanged += (_, _) =>
+        {
+            UpdateDeviceTheme();
+            UpdateOverviewTheme();
+        };
+        Unloaded += (_, _) =>
+        {
+            DetachAppearanceEvents();
+            Stop();
+        };
     }
 
     public void Stop()
@@ -59,12 +85,14 @@ public sealed partial class VmDashboardView : UserControl
         FreezeUptimeClock();
         cancellation?.Cancel();
     }
+
     public async Task StopAsync()
     {
         await CloseSettings();
         Stop();
         await Task.WhenAll(work.Append(PowerWork));
     }
+
     public VmListItem? SelectedVm => current;
     private int selectionVersion;
 
@@ -73,13 +101,16 @@ public sealed partial class VmDashboardView : UserControl
         int version = ++selectionVersion;
         int pageIndex = PageTabs.SelectedIndex;
         int sectionIndex = SettingsNavigation.SelectedIndex;
+        string deviceSub = activeDeviceSubKey;
+        string advSub = activeAdvancedSubKey;
         if (!await TryCloseSettingsAsync()) return false;
         if (version == selectionVersion)
         {
             Select(vm);
-            if (vm != null && pageIndex > 0 && pageIndex <= settingsKeys.Length)
+            if (vm != null && pageIndex > 0 && pageIndex < topTabKeys.Length)
             {
-                OpenSettings(settingsKeys[pageIndex - 1]);
+                string key = topTabKeys[pageIndex];
+                OpenTopTab(key, key == "devices" ? deviceSub : key == "advanced" ? advSub : null);
                 if (sectionedSettings != null && SettingsNavigation.Items.Count > 0)
                 {
                     int restored = Math.Clamp(sectionIndex, 0, SettingsNavigation.Items.Count - 1);
@@ -89,7 +120,11 @@ public sealed partial class VmDashboardView : UserControl
                     sectionedSettings.ShowSection(restored);
                 }
             }
-            else PageTabs.Select(0);
+            else
+            {
+                activeTopKey = "overview";
+                PageTabs.Select(0);
+            }
         }
         return true;
     }
@@ -105,42 +140,54 @@ public sealed partial class VmDashboardView : UserControl
         displayedConfiguration = null;
         PowerMenu.Visibility = Visibility.Collapsed;
         PowerMenu.IsEnabled = false;
-        copiedIp = "";
         ClearNetworkAddresses();
         Body.Visibility = vm == null ? Visibility.Collapsed : Visibility.Visible;
         if (vm == null) return;
+
         VmName.Text = vm.Name;
         StateText.Text = vm.State;
         UptimeText.Text = vm.Uptime;
         ToolTipService.SetToolTip(VmName, vm.Id.ToString());
-        ConfigText.Text = "";
-        OsText.Text = GpuText.Text = IpText.Text = CpuCard.Value = MemoryCard.Value = "";
-        MemoryCard.SecondValue = "";
+        OsText.Text = VersionText.Text = "";
+        GuidText.Text = vm.Id.ToString("D").ToUpperInvariant();
+        GenerationPanel.Visibility = Visibility.Collapsed;
+        VersionPanel.Visibility = Visibility.Collapsed;
         hasGpu = gpuDriverBound = null;
         GpuCharts.Visibility = Visibility.Collapsed;
         GpuMessage.Text = "";
         Preview.Source = null;
-        PreviewBorder.Visibility = GenerationBadge.Visibility = VersionBadge.Visibility = Visibility.Collapsed;
+        PreviewBorder.Visibility = Visibility.Collapsed;
         OsImage.Source = null;
         GenericIcon.Visibility = Visibility.Visible;
         ShowVmArtwork(vm.IsRunning);
-        ErrorBar.IsOpen = false;
-        ErrorBar.Visibility = Visibility.Collapsed;
-        ResourcesPanel.Visibility = Visibility.Collapsed;
+        transientServiceBanner = false;
+        HideSuccessToast();
+        DashboardNoticeBanner.Hide();
+        OverviewPane.Visibility = Visibility.Collapsed;
         LoadingBar.Visibility = Visibility.Visible;
         PowerButton.Visibility = Visibility.Collapsed;
-        charts.Clear(); CoreCharts.Children.Clear();
-        diskRates.Clear(); networkRates.Clear(); Array.Clear(gpuValues);
+
+        charts.Clear();
+        CoreCharts.Children.Clear();
+        diskRates.Clear();
+        networkRates.Clear();
+        Array.Clear(gpuValues);
         foreach (var chart in gpuCharts) chart.Clear();
         ResetDeviceSelection();
+        ResetOverviewTelemetry();
         memoryChart.Clear();
+
         if (cache?.GetSnapshot(vm.Id) is { } cached)
         {
             ShowConfiguration(cached);
-            ResourcesPanel.Visibility = Visibility.Visible;
+            OverviewPane.Visibility = Visibility.Visible;
             LoadingBar.Visibility = Visibility.Collapsed;
         }
-        else if (cache?.GetBasic(vm.Id) is { } basics) ShowBasicConfiguration(basics);
+        else if (cache?.GetBasic(vm.Id) is { } basics)
+        {
+            ShowBasicConfiguration(basics);
+        }
+
         var source = new CancellationTokenSource();
         cancellation = source;
         PendingWork = RunAsync(vm.Id, source);
@@ -170,15 +217,16 @@ public sealed partial class VmDashboardView : UserControl
             else
             {
                 var response = await Task.Run(() => query.QueryAsync(new VmQueryRequest(ConfigurationFields, [id]), token), token);
-                if (!response.HasData) throw new InvalidOperationException(response.Error ?? "无法读取虚拟机信息。");
-                row = response.Data!.VirtualMachines.FirstOrDefault() ?? throw new InvalidOperationException("此虚拟机已不在宿主清单中。");
+                if (!response.HasData) throw new InvalidOperationException(
+                    response.Success ? L10n.Get("Dash_ReadVmError") : CoreMessageResolver.ResolveError(response));
+                row = response.Data!.VirtualMachines.FirstOrDefault() ?? throw new InvalidOperationException(L10n.Get("Dash_VmNotInHost"));
             }
             token.ThrowIfCancellationRequested();
             if (!ReferenceEquals(displayedConfiguration, row)) ShowConfiguration(row);
             LoadingBar.Visibility = Visibility.Collapsed;
-            ResourcesPanel.Visibility = Visibility.Visible;
+            OverviewPane.Visibility = Visibility.Visible;
             long nextPoll = Stopwatch.GetTimestamp();
-            long? assigned = null;
+            int consecutiveServiceMisses = 0;
             while (!token.IsCancellationRequested)
             {
                 long queryStarted = Stopwatch.GetTimestamp();
@@ -189,57 +237,52 @@ public sealed partial class VmDashboardView : UserControl
                 {
                     state = null;
                     PowerButton.Visibility = PowerMenu.Visibility = Visibility.Collapsed;
-                    throw new InvalidOperationException("虚拟机已从宿主清单中移除。");
+                    throw new InvalidOperationException(L10n.Get("Dash_VmRemoved"));
                 }
                 if (metrics.HasData && metrics.Data!.VirtualMachines.FirstOrDefault() is { } sample)
                 {
+                    consecutiveServiceMisses = 0;
+                    if (transientServiceBanner)
+                    {
+                        transientServiceBanner = false;
+                        if (DashboardNoticeBanner.IsOpen)
+                            DashboardNoticeBanner.Hide();
+                    }
                     ShowIdentity(sample, live: true, queryElapsed: queryElapsed);
                     if (stateVerified && state == VmState.Running)
                     {
-                        CpuCard.Unit = "%"; MemoryCard.Unit = "GB";
-                        UpdateGpuCharts(sample);
-                        UpdateDeviceRates(sample);
-                        UpdateNetworkAddresses(sample);
-                        if (sample.Get(VmProcessorFields.UsagePercent) is { HasValue: true } cpu) CpuCard.Value = $"{cpu.Value:N1}";
-                        foreach (var core in sample.GetCollection(VmQueryCollection.Processors).Rows)
-                        {
-                            var index = core.Get(VmProcessorMetricFields.Index);
-                            var usage = core.Get(VmProcessorMetricFields.UsagePercent);
-                            if (index.HasValue && usage.HasValue && charts.TryGetValue(index.Value, out var chart)) chart.Add(usage.Value, $"{usage.Value:N1}%");
-                        }
-                        if (sample.Get(VmMemoryFields.AssignedMiB) is { HasValue: true } memory) { assigned = memory.Value; MemoryCard.SecondValue = $"{memory.Value / 1024d:N1}"; }
-                        if (sample.Get(VmMemoryFields.AvailablePercent) is { HasValue: true } available)
-                        {
-                            double used = 100 - available.Value;
-                            memoryChart.Add(used, $"{used:N0}%");
-                            if (assigned.HasValue) MemoryCard.Value = $"{assigned.Value * used / 100 / 1024:N1}";
-                        }
+                        UpdateOverviewLiveMetrics(sample);
                     }
                     else if (stateVerified && state is VmState.PoweredOff or VmState.Saved or VmState.Suspended)
                     {
-                        CpuCard.Value = "0.0"; CpuCard.Unit = "%";
-                        foreach (var chart in charts.Values) chart.SetInactive();
-                        memoryChart.SetInactive();
-                        MemoryCard.Value = MemoryCard.SecondValue = "0.0"; MemoryCard.Unit = "GB";
-                        SetGpuReadings("0.0");
-                        UpdateGpuVisibility();
-                        foreach (var chart in gpuCharts) chart.SetInactive();
-                        Array.Clear(gpuValues);
-                        assigned = null;
-                        ClearNetworkAddresses();
-                        foreach (var rate in diskRates.Values.Concat(networkRates.Values)) rate.SetInactive();
+                        SetOverviewInactive();
                     }
                 }
                 else if (!metrics.HasData)
                 {
-                    FreezeUptimeClock();
-                    stateVerified = false;
-                    PowerButton.IsEnabled = false;
-                    ShowError(metrics.Error);
+                    bool serviceUnavailable = CoreErrorClassifier.IsServiceUnavailable(metrics.Code, metrics.ErrorSource, metrics.Exception);
+                    bool coordinatedOperation = HyperVServiceCoordination.IsRecovering || HyperVServiceCoordination.HasActiveSettingsWrite;
+                    if (serviceUnavailable && coordinatedOperation)
+                    {
+                        // 主动操作或服务自动恢复期间，静默等待下一拍轮询，避免后台黄条与页面提示打架。
+                        consecutiveServiceMisses = 0;
+                    }
+                    else if (serviceUnavailable && ++consecutiveServiceMisses < 2)
+                    {
+                        // 单次瞬断先静默重连一次。
+                    }
+                    else
+                    {
+                        FreezeUptimeClock();
+                        stateVerified = false;
+                        PowerButton.IsEnabled = false;
+                        transientServiceBanner = serviceUnavailable;
+                        ShowError(CoreMessageResolver.ResolveError(metrics),
+                            serviceUnavailable ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
+                    }
                 }
                 if (!previewStarted && stateVerified && state == VmState.Running)
                 {
-                    // The preview has its own clock; its WMI call and JPEG decoding do not delay metrics.
                     previewStarted = true;
                     previewWork = RunPreviewAsync(id, source);
                 }
@@ -249,7 +292,11 @@ public sealed partial class VmDashboardView : UserControl
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception exception)
         {
-            if (!token.IsCancellationRequested) { ShowError(exception.Message); LoadingBar.Visibility = Visibility.Collapsed; }
+            if (!token.IsCancellationRequested)
+            {
+                ShowError(CoreMessageResolver.ResolveException(exception));
+                LoadingBar.Visibility = Visibility.Collapsed;
+            }
         }
         finally
         {
@@ -284,69 +331,76 @@ public sealed partial class VmDashboardView : UserControl
     private void ShowBasicConfiguration(VmQueryRow row)
     {
         ShowIdentity(row);
-        var summary = new List<string>();
-        if (row.Get(VmProcessorFields.Count) is { HasValue: true } cores) summary.Add($"{cores.Value} 核");
-        if (row.Get(VmMemoryFields.Startup) is { HasValue: true } memory) summary.Add($"{memory.Value / 1024d:0.#} GB");
-        ConfigText.Text = string.Join(" / ", summary);
+        UpdateOverviewConfiguration(row);
         ShowOperatingSystem(row);
     }
 
     private void ShowIdentity(VmQueryRow row, bool live = false, TimeSpan queryElapsed = default)
     {
         if (row.Get(VmIdentityFields.Name) is { HasValue: true } name) VmName.Text = name.Value;
+        if (row.Get(VmIdentityFields.Generation) is { HasValue: true } generation)
+        {
+            GenerationText.Text = L10n.Format("Dash_GenFormat", generation.Value);
+            GenerationPanel.Visibility = Visibility.Visible;
+        }
+        if (row.Get(VmIdentityFields.ConfigurationVersion) is { HasValue: true } version && !string.IsNullOrWhiteSpace(version.Value))
+        {
+            VersionText.Text = L10n.Format("Dash_VersionFormat", version.Value);
+            VersionPanel.Visibility = Visibility.Visible;
+        }
         if (row.Get(VmIdentityFields.State) is { HasValue: true } status)
         {
             if (status.Value != state) runtimeVersion++;
             if (status.Value == VmState.Running && state != VmState.Running)
-            {
-                // A stopped VM's zero values are not samples from its next running session.
-                CpuCard.Value = MemoryCard.Value = MemoryCard.SecondValue = "";
-                foreach (var chart in charts.Values) chart.Clear();
-                memoryChart.Clear();
-            }
+                ClearOverviewMetricsOnStart();
             state = status.Value;
             ShowVmArtwork(state == VmState.Running);
             if (live) stateVerified = true;
             StateText.Text = VirtualMachinesPageViewModel.StateText(status.Value);
             if (live && current != null) current.State = StateText.Text;
             UpdatePowerAppearance();
-            PowerButton.Visibility = state is VmState.Running or VmState.PoweredOff or VmState.Saved or VmState.Suspended ? Visibility.Visible : Visibility.Collapsed;
-            PowerButton.IsEnabled = stateVerified && !powerPending;
+            PowerButton.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
+            bool actionable = state is VmState.Running or VmState.PoweredOff or VmState.Saved or VmState.Suspended;
+            PowerButton.IsEnabled = actionable && !powerPending;
+            PowerMenu.IsEnabled = actionable && !powerPending;
         }
         else if (live)
         {
             stateVerified = false;
             PowerButton.IsEnabled = false;
+            PowerMenu.IsEnabled = false;
         }
         UpdateUptimeClock(row, live, queryElapsed);
     }
 
-    private static string Text<T>(VmQueryRow row, VmQueryField<T> field) => row.Get(field) is { HasValue: true } result ? result.Value?.ToString() ?? "" : "未取得";
+    private static string MissingText => L10n.Get("Common_Unavailable");
+    private static bool IsMissingText(string? value) => string.IsNullOrWhiteSpace(value) || string.Equals(value, MissingText, StringComparison.Ordinal);
+
+    private static string Text<T>(VmQueryRow row, VmQueryField<T> field)
+        => row.Get(field) is { HasValue: true } result ? result.Value?.ToString() ?? "" : MissingText;
 
     private void ShowConfiguration(VmQueryRow row, bool preserveLiveIdentity = false)
     {
         displayedConfiguration = row;
         if (!preserveLiveIdentity) ShowIdentity(row);
         var count = row.Get(VmProcessorFields.Count);
-        var startup = row.Get(VmMemoryFields.Startup);
-        var summary = new List<string>();
         if (count.HasValue)
         {
-            summary.Add($"{count.Value} 核");
-            
             if (charts.Count != count.Value)
             {
-                charts.Clear(); CoreCharts.Children.Clear();
-                for (int i = 0; i < count.Value; i++) { var chart = new VmUsageChart(i.ToString()); charts.Add(i, chart); CoreCharts.Children.Add(chart); }
+                charts.Clear();
+                CoreCharts.Children.Clear();
+                for (int i = 0; i < count.Value; i++)
+                {
+                    var chart = new VmUsageChart(i.ToString(), VmUsageChartKind.Processor, VmUsageChart.ProcessorHeight);
+                    charts.Add(i, chart);
+                    CoreCharts.Children.Add(chart);
+                }
             }
             LayoutCoreCharts();
         }
-        if (startup.HasValue) summary.Add($"{startup.Value / 1024d:0.#} GB");
-        var disks = row.GetCollection(VmQueryCollection.Storage);
-        var capacities = disks.Rows.Select(d => d.Get(VmStorageFields.CapacityBytes)).Where(v => v.HasValue).ToArray();
-        if (capacities.Length > 0 && capacities.Length == disks.Rows.Count(d => Text(d, VmStorageFields.DiskType) != "Empty")) summary.Add(string.Join(" + ", capacities.OrderByDescending(v => v.Value).Select(v => v.Value >= 1073741824 ? $"{v.Value / 1073741824d:0.#} GB" : $"{v.Value / 1048576d:0} MB")));
-        ConfigText.Text = string.Join(" / ", summary);
         ToolTipService.SetToolTip(VmName, $"{current?.Id}\n{Text(row, VmIdentityFields.ConfigurationFilePath)}");
+        UpdateOverviewConfiguration(row);
         ShowDevices(row);
         ShowOperatingSystem(row);
     }
@@ -356,10 +410,16 @@ public sealed partial class VmDashboardView : UserControl
         var metadata = row.GetCollection(VmQueryCollection.Metadata);
         var os = metadata.Rows.FirstOrDefault(m => m.Get(VmMetadataFields.Key).Value == VmMetadataService.OsTypeKey)?.Get(VmMetadataFields.Value);
         if (metadata.State == VmQueryValueState.Available)
-        {
-            OsText.Text = OsIconSource.GetResourceName(os is { HasValue: true } ? os.Value : null);
-            OsImage.Source = OsIconSource.Get(OsText.Text); GenericIcon.Visibility = OsImage.Source == null ? Visibility.Visible : Visibility.Collapsed;
-        }
+            ApplyOperatingSystem(os is { HasValue: true } ? os.Value : null);
+    }
+
+    private void ApplyOperatingSystem(string? osType)
+    {
+        var name = OsIconSource.GetResourceName(osType);
+        var image = OsIconSource.Get(name);
+        OsText.Text = name;
+        OsImage.Source = image;
+        GenericIcon.Visibility = image == null ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void ShowVmArtwork(bool running)
@@ -368,21 +428,9 @@ public sealed partial class VmDashboardView : UserControl
         MonitorPreview.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
         if (!running)
         {
-            // A later start must wait for a new snapshot, never reuse the previous session's image.
             Preview.Source = null;
             PreviewBorder.Visibility = Visibility.Collapsed;
         }
-    }
-
-    private static void AddEmptyRow(StackPanel target, string text)
-        => target.Children.Add(new TextBlock { Text = text, FontSize = 14, Opacity = .4, Margin = new Thickness(30), HorizontalAlignment = HorizontalAlignment.Center });
-
-    private static void AddRow(StackPanel target, string title, params string[] lines)
-    {
-        var panel = new StackPanel { Spacing = 5 };
-        panel.Children.Add(new TextBlock { Text = title, FontSize = 14, TextWrapping = TextWrapping.Wrap });
-        foreach (var line in lines.Where(s => !string.IsNullOrWhiteSpace(s))) panel.Children.Add(new TextBlock { Text = line, FontSize = 12, Opacity = .7, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true });
-        target.Children.Add(panel);
     }
 
     private async void OnPowerClick(object sender, RoutedEventArgs args)
@@ -391,25 +439,124 @@ public sealed partial class VmDashboardView : UserControl
         PowerWork = ChangePowerAsync(current, state);
         await PowerWork;
     }
+
     private async Task ChangePowerAsync(VmListItem vm, VmState? originalState, VmPowerAction? requestedAction = null)
     {
-        powerPending = true; PowerButton.IsEnabled = false;
+        powerPending = true;
+        PowerButton.IsEnabled = false;
         try
         {
             var action = requestedAction ?? (originalState == VmState.Running ? VmPowerAction.Stop : VmPowerAction.Start);
             if (action != VmPowerAction.Start)
             {
-                var dialog = new ContentDialog { XamlRoot = XamlRoot, Title = $"{action switch { VmPowerAction.Stop => "关闭", VmPowerAction.Restart => "重启", VmPowerAction.Suspend => "暂停", VmPowerAction.Save => "保存", _ => "强制关闭" }} {vm.Name}？", Content = action == VmPowerAction.TurnOff ? "强制断电会丢失来宾系统中未保存的数据。" : "执行所选电源操作，不会在失败后自动强制断电。", PrimaryButtonText = "确定", CloseButtonText = "取消", DefaultButton = ContentDialogButton.Close };
+                string verb = action switch
+                {
+                    VmPowerAction.Stop => L10n.Get("Dash_PowerAction_Stop"),
+                    VmPowerAction.Restart => L10n.Get("Dash_PowerAction_Restart"),
+                    VmPowerAction.Suspend => L10n.Get("Dash_PowerAction_Suspend"),
+                    VmPowerAction.Save => L10n.Get("Dash_PowerAction_Save"),
+                    _ => L10n.Get("Dash_PowerAction_TurnOff")
+                };
+                var dialog = new ContentDialog
+                {
+                    XamlRoot = XamlRoot,
+                    Title = L10n.Format("Dash_PowerConfirmTitle", verb, vm.Name),
+                    Content = L10n.Get(action == VmPowerAction.TurnOff ? "Dash_PowerConfirm_TurnOffBody" : "Dash_PowerConfirm_NormalBody"),
+                    PrimaryButtonText = L10n.Get("Common_Confirm"),
+                    CloseButtonText = L10n.Get("Common_Cancel"),
+                    DefaultButton = ContentDialogButton.Close
+                };
                 if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
             }
-            var result = await VmPowerService.ExecuteControlActionAsync(vm.Id, action);
+            var session = new VmPowerOperationSession(vm.Id, action, vm.Name);
+            await session.AdvanceAsync();
+            while (session.Stage == VmPowerOperationStage.AwaitingConfirmation && session.Confirmation is { } repair)
+            {
+                if (current?.Id != vm.Id || XamlRoot == null)
+                {
+                    await session.SubmitDecisionAsync(repair.RequestId, approve: false);
+                    break;
+                }
+                var (approved, gpuSelections) = await PromptPowerRepairAsync(repair);
+                await session.SubmitDecisionAsync(repair.RequestId, approved, gpuSelections);
+                if (session.Stage == VmPowerOperationStage.ReadyToRetry)
+                    await session.AdvanceAsync();
+            }
+
             cache?.Invalidate(vm.Id);
-            if (!result.Success && current?.Id == vm.Id) ShowError(result.Error);
-            if (result.Success && action is VmPowerAction.Start or VmPowerAction.Restart)
-                await RestoreAffinityAfterStartAsync(vm.Id);
+            if (session.Stage == VmPowerOperationStage.Completed)
+            {
+                if (!string.IsNullOrWhiteSpace(session.RepairNotice) && current?.Id == vm.Id)
+                {
+                    ShowError(session.RepairNotice, InfoBarSeverity.Informational);
+                    _ = RefreshConfigurationAsync(vm.Id);
+                }
+                if (action is VmPowerAction.Start or VmPowerAction.Restart)
+                    await RestoreAffinityAfterStartAsync(vm.Id);
+            }
+            else if (session.Stage == VmPowerOperationStage.Failed && current?.Id == vm.Id)
+            {
+                string message = session.Failure != null
+                    ? CoreMessageResolver.ResolveError(session.Failure)
+                    : session.Error;
+                ShowError(message);
+            }
         }
-        catch (Exception ex) { if (current?.Id == vm.Id) ShowError(ex.Message); }
+        catch (Exception ex) { if (current?.Id == vm.Id) ShowError(CoreMessageResolver.ResolveException(ex)); }
         finally { powerPending = false; PowerButton.IsEnabled = true; }
+    }
+
+    private async Task<(bool Approved, Dictionary<Guid, string>? GpuSelections)> PromptPowerRepairAsync(VmPowerRepairConfirmation repair)
+    {
+        var panel = new StackPanel { Spacing = 12 };
+        panel.Children.Add(new TextBlock { Text = repair.Message, TextWrapping = TextWrapping.Wrap });
+
+        var pickers = new List<(Guid InstanceId, ComboBox Box)>();
+        foreach (var target in repair.GpuTargets.Where(t => t.RequiresSelection))
+        {
+            if (!Guid.TryParse(target.Instance.Trim('{', '}', '_', ' '), out var instanceGuid)) continue;
+            var box = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
+            foreach (var candidate in target.Candidates)
+            {
+                box.Items.Add(new ComboBoxItem
+                {
+                    Content = candidate.DeviceInstanceId,
+                    Tag = candidate.Id
+                });
+            }
+            if (box.Items.Count > 0) box.SelectedIndex = 0;
+            panel.Children.Add(new TextBlock
+            {
+                Text = L10n.Format("Dash_PowerRepair_SelectGpu", target.VdevNumber),
+                FontSize = 12.5
+            });
+            panel.Children.Add(box);
+            pickers.Add((instanceGuid, box));
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            RequestedTheme = ActualTheme,
+            Title = repair.Title,
+            Content = panel,
+            PrimaryButtonText = repair.ConfirmText,
+            CloseButtonText = L10n.Get("Common_Cancel"),
+            DefaultButton = ContentDialogButton.Close
+        };
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            return (false, null);
+
+        if (pickers.Count == 0)
+            return (true, null);
+
+        var selections = new Dictionary<Guid, string>();
+        foreach (var (instanceId, box) in pickers)
+        {
+            if (box.SelectedItem is ComboBoxItem { Tag: string id })
+                selections[instanceId] = id;
+        }
+        return (true, selections);
     }
 
     private async Task RestoreAffinityAfterStartAsync(Guid vmId)
@@ -420,20 +567,97 @@ public sealed partial class VmDashboardView : UserControl
             var result = await Task.Run(() => CpuAffinityService.ApplySavedAffinityAfterStartAsync(vmId));
             if (current?.Id == vmId && result is CpuAffinityService.StartupApplyStatus.Exhausted
                 or CpuAffinityService.StartupApplyStatus.InvalidConfiguration or CpuAffinityService.StartupApplyStatus.ReselectionRequired)
-                ShowError("虚拟机已启动，但保存的 CPU 亲和性未能恢复，请进入处理器亲和性设置核对。" + Environment.NewLine + result);
+                ShowError(L10n.Format("Dash_AffinityRestoreFailed", result));
         }
         catch (ExHyperV.Tools.CoreOperationException exception)
         {
             if (exception.Result.ErrorKind == ExHyperV.Tools.ApiErrorKind.OutcomeUnknown)
                 Settings.VmCpuAffinitySettingsView.MarkUnknownOperation(vmId);
-            if (current?.Id == vmId) ShowError("虚拟机已启动，但恢复处理器亲和性未完成：" + exception.Message);
+            if (current?.Id == vmId) ShowError(L10n.Format("Dash_AffinityRestoreError", CoreMessageResolver.ResolveError(exception.Result)));
         }
     }
-    private void ShowError(string? message)
+
+    private void ApplyLocalization()
     {
-        ErrorBar.Message = message;
-        ErrorBar.Visibility = Visibility.Visible;
-        ErrorBar.IsOpen = true;
+        ToolTipService.SetToolTip(SystemIconPanel, L10n.Get("Dash_IconPickerTooltip"));
+        ToolTipService.SetToolTip(OsBadgeButton, L10n.Get("Dash_IconPickerTooltip"));
+        ToolTipService.SetToolTip(GuidBadgeButton, L10n.Get("Dash_CopyGuidTooltip"));
+        AutomationProperties.SetName(PowerMenu, L10n.Get("Dash_MorePowerActions"));
+        PowerMenuRestart.Text = L10n.Get("Dash_Power_Restart");
+        PowerMenuSuspend.Text = L10n.Get("Dash_Power_Pause");
+        PowerMenuSave.Text = L10n.Get("Dash_Power_SaveState");
+        PowerMenuTurnOff.Text = L10n.Get("Dash_Power_ForceTurnOff");
+        ConnectButton.Content = L10n.Get("Dash_Connect");
+        string gearTip = L10n.Get("Dash_OpenGearTooltip");
+        ToolTipService.SetToolTip(OverviewDetailGear, gearTip);
+        AutomationProperties.SetName(OverviewDetailGear, gearTip);
+        AutomationProperties.SetName(SettingsNavigation, L10n.Get("Dash_SettingsNavAria"));
+        AutomationProperties.SetName(SettingsLoadingBar, L10n.Get("Dash_LoadingSettingsAria"));
     }
-    private void OnErrorClosed(InfoBar sender, InfoBarClosedEventArgs args) => sender.Visibility = Visibility.Collapsed;
+
+    bool IDashboardFeedbackHost.HasSettingsError =>
+        DashboardNoticeBanner.IsOpen
+        && DashboardNoticeBanner.Severity == InfoBarSeverity.Error
+        && activeNoticeOrigin == NoticeOrigin.Settings;
+
+    void IDashboardFeedbackHost.ShowSuccessToast(string? text) => ShowSuccessToast(text);
+    void IDashboardFeedbackHost.HideSuccessToast() => HideSuccessToast();
+    void IDashboardFeedbackHost.ShowSettingsNotice(string? text, InfoBarSeverity severity, Button? actionButton)
+    {
+        transientServiceBanner = false;
+        activeNoticeOrigin = NoticeOrigin.Settings;
+        DashboardNoticeBanner.Show(text, severity, actionButton);
+    }
+
+    void IDashboardFeedbackHost.ClearSettingsNotice() => ClearSettingsNotice();
+
+    private void ClearSettingsNotice()
+    {
+        if (activeNoticeOrigin == NoticeOrigin.Settings && DashboardNoticeBanner.IsOpen)
+            DashboardNoticeBanner.Hide();
+    }
+
+    private void ShowSuccessToast(string? text)
+    {
+        activeSuccessToastText = string.IsNullOrWhiteSpace(text) ? L10n.Get("Common_Applied") : text;
+        successToastTimer.Stop();
+        UpdateSuccessToastLayout();
+        successToastTimer.Start();
+    }
+
+    private void HideSuccessToast()
+    {
+        successToastTimer.Stop();
+        activeSuccessToastText = null;
+        TabSuccessToast.Hide();
+        OverlaySuccessToast.Hide();
+    }
+
+    private void UpdateSuccessToastLayout()
+    {
+        if (activeSuccessToastText == null) return;
+        bool useTabSlot = Body.ActualWidth >= 700;
+        if (useTabSlot)
+        {
+            OverlaySuccessToast.Hide();
+            TabSuccessToast.Show(activeSuccessToastText, elevated: false);
+        }
+        else
+        {
+            TabSuccessToast.Hide();
+            OverlaySuccessToast.Show(activeSuccessToastText, elevated: true);
+        }
+    }
+
+    private void ShowError(string? message, InfoBarSeverity severity = InfoBarSeverity.Error)
+    {
+        activeNoticeOrigin = NoticeOrigin.Dashboard;
+        if (severity != InfoBarSeverity.Warning) transientServiceBanner = false;
+        DashboardNoticeBanner.Show(message, severity);
+    }
+
+    private void OnErrorClosed(object? sender, EventArgs args)
+    {
+        transientServiceBanner = false;
+    }
 }

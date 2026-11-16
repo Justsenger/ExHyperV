@@ -1,4 +1,6 @@
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 
@@ -14,6 +16,9 @@ public sealed partial class VirtualMachinesPage : Page
     public VirtualMachinesPage()
     {
         InitializeComponent();
+        SearchBox.PlaceholderText = L10n.Get("VmList_SearchPlaceholder");
+        AutomationProperties.SetName(SearchBox, L10n.Get("VmList_SearchAria"));
+        AutomationProperties.SetName(VmList, L10n.Get("VmList_ListAria"));
         Dashboard.SetCache(ViewModel.Cache);
         Loaded += OnLoaded;
         Unloaded += (_, _) => { ViewModel.Cancel(); Dashboard.Stop(); };

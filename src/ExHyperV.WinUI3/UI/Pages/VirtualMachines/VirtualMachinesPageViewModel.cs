@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.WinUI3.Localization;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 
@@ -53,7 +54,8 @@ public sealed class VirtualMachinesPageViewModel : ObservableObject
                     [VmIdentityFields.Name, VmIdentityFields.State, VmIdentityFields.Uptime]), cancellationToken).ConfigureAwait(false);
             }, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
-            if (!response.HasData) throw new InvalidOperationException(response.Error ?? "无法读取虚拟机列表。");
+            if (!response.HasData) throw new InvalidOperationException(
+                response.Success ? L10n.Get("VmList_ReadFailed") : CoreMessageResolver.ResolveError(response));
             var previous = all.ToDictionary(vm => vm.Id);
             var updated = new List<VmListItem>();
             int missingFields = 0;
@@ -66,7 +68,7 @@ public sealed class VirtualMachinesPageViewModel : ObservableObject
                 var uptime = row.Get(VmIdentityFields.Uptime);
                 if (!name.HasValue || !state.HasValue || !uptime.HasValue) missingFields++;
                 // 同一虚拟机沿用原列表对象，刷新不应被视为切换虚拟机并结束设置流程。
-                var item = old ?? new VmListItem(id, id.ToString(), "未取得状态", "未取得运行时长");
+                var item = old ?? new VmListItem(id, id.ToString(), L10n.Get("VmList_StateUnavailable"), L10n.Get("VmList_UptimeUnavailable"));
                 if (name.HasValue) item.Name = name.Value!;
                 if (state.HasValue) item.State = StateText(state.Value);
                 if (uptime.HasValue) item.Uptime = uptime.Value.ToString(@"d\.hh\:mm\:ss");
@@ -77,14 +79,14 @@ public sealed class VirtualMachinesPageViewModel : ObservableObject
             foreach (var vm in all) vm.PropertyChanged += OnVmPropertyChanged;
             Cache.StartPreload(all.Select(vm => vm.Id).ToArray());
             ApplyFilter();
-            if (missingFields > 0) Error = $"{missingFields} 台虚拟机有字段暂时无法读取；已有有效值已保留。";
+            if (missingFields > 0) Error = L10n.Format("VmList_MissingFields", missingFields);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
         catch (Exception exception)
         {
-            Error = exception.Message;
+            Error = CoreMessageResolver.ResolveException(exception);
         }
     }
 
@@ -111,15 +113,30 @@ public sealed class VirtualMachinesPageViewModel : ObservableObject
         Selected = Items.FirstOrDefault(vm => vm.Id == selectedId) ?? Items.FirstOrDefault();
     }
 
-    internal static string StateText(VmState state) => state switch
+    internal static string StateText(VmState state) => L10n.Get(state switch
     {
-        VmState.Running => "正在运行", VmState.PoweredOff => "已关机", VmState.Saved => "已保存",
-        VmState.Suspended => "已暂停", VmState.Starting => "正在启动", VmState.ShuttingDown => "正在关机",
-        VmState.Saving => "正在保存", VmState.Stopping => "正在停止", VmState.Resuming => "正在恢复",
-        VmState.Suspending => "正在暂停", VmState.MergingDisks => "正在合并磁盘", VmState.Processing => "处理中",
-        VmState.WaitingToStart => "等待启动", VmState.FastSaved => "已快速保存", VmState.FastSaving => "正在快速保存",
-        VmState.ForceShuttingDown => "正在强制关机", VmState.ForceRestarting => "正在强制重启",
-        VmState.Hibernated => "已休眠", VmState.InTest => "测试中", VmState.Deferred => "已延期",
-        VmState.NotApplicable => "不适用", VmState.Other => "其他状态", _ => "未知状态"
-    };
+        VmState.Running => "VmState_Running",
+        VmState.PoweredOff => "VmState_PoweredOff",
+        VmState.Saved => "VmState_Saved",
+        VmState.Suspended => "VmState_Suspended",
+        VmState.Starting => "VmState_Starting",
+        VmState.ShuttingDown => "VmState_ShuttingDown",
+        VmState.Saving => "VmState_Saving",
+        VmState.Stopping => "VmState_Stopping",
+        VmState.Resuming => "VmState_Resuming",
+        VmState.Suspending => "VmState_Suspending",
+        VmState.MergingDisks => "VmState_MergingDisks",
+        VmState.Processing => "VmState_Processing",
+        VmState.WaitingToStart => "VmState_WaitingToStart",
+        VmState.FastSaved => "VmState_FastSaved",
+        VmState.FastSaving => "VmState_FastSaving",
+        VmState.ForceShuttingDown => "VmState_ForceShuttingDown",
+        VmState.ForceRestarting => "VmState_ForceRestarting",
+        VmState.Hibernated => "VmState_Hibernated",
+        VmState.InTest => "VmState_InTest",
+        VmState.Deferred => "VmState_Deferred",
+        VmState.NotApplicable => "VmState_NotApplicable",
+        VmState.Other => "VmState_Other",
+        _ => "VmState_Unknown"
+    });
 }

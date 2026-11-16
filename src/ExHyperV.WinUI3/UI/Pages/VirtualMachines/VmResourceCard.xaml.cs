@@ -1,3 +1,4 @@
+using ExHyperV.WinUI3.Localization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Animation;
@@ -14,7 +15,7 @@ public sealed partial class VmResourceCard : UserControl
     }
     public event EventHandler? SettingsRequested;
     private bool headerHovered;
-    public string Title { get => Heading.Text; set { Heading.Text = value; Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(HeaderButton, value); Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(SettingsButton, $"{value}设置"); ToolTipService.SetToolTip(SettingsButton, $"{value}设置"); } }
+    public string Title { get => Heading.Text; set { Heading.Text = value; Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(HeaderButton, value); string settingsTip = L10n.Format("Card_SettingsTooltip", value); Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(SettingsButton, settingsTip); ToolTipService.SetToolTip(SettingsButton, settingsTip); } }
     public string Description { get => DescriptionText.Text; set => DescriptionText.Text = value; }
     public string Glyph
     {
@@ -49,8 +50,8 @@ public sealed partial class VmResourceCard : UserControl
         UnitText.Opacity = expanded ? 1 : Glyph == "\uEDA2" ? .6 : .8;
         SecondUnitText.Opacity = expanded ? 1 : .8;
         DetailBorder.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetItemStatus(HeaderButton, expanded ? "已展开" : "已收起");
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(HeaderButton, expanded ? "激活可收起详细信息" : "激活可展开详细信息");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetItemStatus(HeaderButton, L10n.Get(expanded ? "Card_Expanded" : "Card_Collapsed"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(HeaderButton, L10n.Get(expanded ? "Card_CollapseHelp" : "Card_ExpandHelp"));
         var animation = new DoubleAnimation { To = expanded ? 180 : 0, Duration = new Duration(TimeSpan.FromMilliseconds(167)), EnableDependentAnimation = true };
         Storyboard.SetTarget(animation, ChevronRotation); Storyboard.SetTargetProperty(animation, "Angle");
         var storyboard = new Storyboard(); storyboard.Children.Add(animation); storyboard.Begin();
