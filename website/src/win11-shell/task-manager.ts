@@ -134,7 +134,7 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
 
   // Performance state
   let activePerfKey: PerfResourceKey = 'cpu';
-  let sidebarWidth = 246;
+  let sidebarWidth = 218;
   let hideGraphs = typeof saved.hideGraphs === 'boolean' ? saved.hideGraphs : false;
   let cpuGraphMode: 'overall' | 'logical' | 'numa' = saved.cpuGraphMode ?? 'logical';
   let showKernelTimes = typeof saved.showKernelTimes === 'boolean' ? saved.showKernelTimes : false;
@@ -729,7 +729,7 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
   function renderPerfDetail(isGraphOnly = false): string {
     if (activePerfKey === 'cpu') {
       const cores = Math.max(1, hw.cpu.logicalCores);
-      const cols = cores <= 2 ? cores : cores <= 4 ? 2 : cores <= 9 ? 3 : cores <= 12 ? 4 : cores <= 20 ? 5 : 6;
+      const cols = cores <= 2 ? cores : cores <= 4 ? 2 : cores === 6 ? 3 : cores <= 8 ? 4 : cores <= 12 ? 4 : cores <= 20 ? 5 : 6;
       const kernelOverall = showKernelTimes ? hw.cpu.history.map((v) => Math.max(1, Math.round(v * 0.32))) : undefined;
 
       const chartHtml =
@@ -744,8 +744,8 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
                     primaryPts: pts,
                     secondaryPts: kPts,
                     secondaryMode: 'kernel-overlay',
-                    cols: 5,
-                    rows: 4,
+                    cols: 12,
+                    rows: 10,
                     color: TM_SERIES_COLORS.cpu,
                   })}</div>`;
                 })
@@ -1487,8 +1487,7 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
     ];
   }
 
-  // Event delegation on tmShell
-  tmShell.addEventListener('click', (e) => {
+  function handleShellClick(e: Event) {
     const target = e.target as HTMLElement;
 
     if (target.closest('[data-tm-nav-toggle]')) {
@@ -1505,17 +1504,20 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
       return;
     }
 
-    const cmdBtn = target.closest<HTMLElement>('[data-tm-cmd]');
+    const cmdBtn = target.closest<HTMLElement>('[data-tm-cmd]') ?? target.closest<HTMLElement>('[data-tm-action]');
     if (cmdBtn) {
-      const cmd = cmdBtn.dataset.tmCmd;
+      const cmd = cmdBtn.dataset.tmCmd ?? cmdBtn.dataset.tmAction;
       if (cmd === 'new-task') {
-        openRunNewTaskDialog();
+        if (tmShell) openRunNewTaskDialog();
+        else shell.openApp('exhyperv');
       } else if (cmd === 'end-task') {
         const node = findProcessById(selectedProcId);
         if (node) {
           if (node.appId) {
             const win = shell.getWindows().find((w) => w.appId === node.appId);
-            if (win) shell.closeWindow(win.pid);
+            shell.closeWindow(win ? win.pid : node.pid);
+          } else if (selectedProcId?.startsWith('win-')) {
+            shell.closeWindow(node.pid);
           }
           if (node.id === 'tm-self' || node.id === 'tm-self-main') {
             shell.closeWindow(pid);
@@ -1669,9 +1671,9 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
     }
 
     // Row selection
-    const procRow = target.closest<HTMLElement>('[data-proc-id]');
-    if (procRow?.dataset.procId) {
-      selectedProcId = procRow.dataset.procId;
+    const procRow = target.closest<HTMLElement>('[data-proc-id]') ?? target.closest<HTMLElement>('[data-tm-proc]');
+    if (procRow?.dataset.procId || procRow?.dataset.tmProc) {
+      selectedProcId = procRow.dataset.procId ?? procRow.dataset.tmProc ?? null;
       renderTopbar();
       renderContent();
       return;
@@ -1718,78 +1720,91 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
       persistPrefs();
       renderContent();
     }
-  });
+  }
 
-  // Settings selects & checkboxes
-  tmShell.addEventListener('change', (e) => {
-    const t = e.target as HTMLElement;
-    if (t instanceof HTMLSelectElement && t.dataset.setSelect) {
-      const key = t.dataset.setSelect;
-      if (key === 'themePref') {
-        settings.themePref = t.value as TmThemePref;
-        applyTheme();
-      } else if (key === 'defaultTab') {
-        settings.defaultTab = t.value as Exclude<TmTabId, 'settings'>;
-      } else if (key === 'updateSpeed') {
-        settings.updateSpeed = t.value as TmUpdateSpeed;
-      }
-      persistPrefs();
-    } else if (t instanceof HTMLInputElement && t.dataset.setChk) {
-      const key = t.dataset.setChk as keyof TmSettingsState;
-      if (typeof settings[key] === 'boolean') {
-        (settings[key] as boolean) = t.checked;
+  function handleHeadlessInput(e: Event) {
+    const input = e.target as HTMLInputElement | null;
+    if (!input || typeof input.matches !== 'function' || !input.matches('[data-tm-search]')) return;
+    searchQuery = input.value ?? '';
+    renderContent();
+  }
+
+  if (tmShell) {
+    const shellEl = tmShell;
+    const tip = tipCtrl!;
+    const menu = menuCtrl!;
+    shellEl.addEventListener('click', handleShellClick);
+
+    // Settings selects & checkboxes
+    shellEl.addEventListener('change', (e) => {
+      const t = e.target as HTMLElement;
+      if (t instanceof HTMLSelectElement && t.dataset.setSelect) {
+        const key = t.dataset.setSelect;
+        if (key === 'themePref') {
+          settings.themePref = t.value as TmThemePref;
+          applyTheme();
+        } else if (key === 'defaultTab') {
+          settings.defaultTab = t.value as Exclude<TmTabId, 'settings'>;
+        } else if (key === 'updateSpeed') {
+          settings.updateSpeed = t.value as TmUpdateSpeed;
+        }
         persistPrefs();
+      } else if (t instanceof HTMLInputElement && t.dataset.setChk) {
+        const key = t.dataset.setChk as keyof TmSettingsState;
+        if (typeof settings[key] === 'boolean') {
+          (settings[key] as boolean) = t.checked;
+          persistPrefs();
+        }
       }
-    }
-  });
+    });
 
-  // Double click performance charts -> toggle Graph Summary View (tm_31)
-  tmShell.addEventListener('dblclick', (e) => {
-    const target = e.target as HTMLElement;
-    if (activeTab === 'performance' && (target.closest('[data-perf-chart-area]') || target.closest('.w11-tm-perf-detail.is-graph-only'))) {
-      summaryMode = summaryMode === 'graph-only' ? 'none' : 'graph-only';
-      renderChromeAndLayout();
-      return;
-    }
-    const cardBtn = target.closest<HTMLElement>('[data-perf-key]');
-    if (cardBtn?.dataset.perfKey && summaryMode === 'perf-cards') {
-      activePerfKey = cardBtn.dataset.perfKey as PerfResourceKey;
-      summaryMode = 'none';
-      renderChromeAndLayout();
-    }
-  });
+    // Double click performance charts -> toggle Graph Summary View (tm_31)
+    shellEl.addEventListener('dblclick', (e) => {
+      const target = e.target as HTMLElement;
+      if (activeTab === 'performance' && (target.closest('[data-perf-chart-area]') || target.closest('.w11-tm-perf-detail.is-graph-only'))) {
+        summaryMode = summaryMode === 'graph-only' ? 'none' : 'graph-only';
+        renderChromeAndLayout();
+        return;
+      }
+      const cardBtn = target.closest<HTMLElement>('[data-perf-key]');
+      if (cardBtn?.dataset.perfKey && summaryMode === 'perf-cards') {
+        activePerfKey = cardBtn.dataset.perfKey as PerfResourceKey;
+        summaryMode = 'none';
+        renderChromeAndLayout();
+      }
+    });
 
-  // Draggable performance splitter
-  tmShell.addEventListener('pointerdown', (e) => {
-    const splitter = (e.target as HTMLElement).closest<HTMLElement>('[data-tm-perf-splitter]');
-    if (!splitter || e.button !== 0) return;
-    const listEl = tmShell.querySelector<HTMLElement>('[data-tm-perf-list]');
-    if (!listEl) return;
-    e.preventDefault();
-    splitter.classList.add('is-dragging');
-    const startX = e.clientX;
-    const startW = listEl.offsetWidth || sidebarWidth;
-    const maxW = Math.min(440, Math.max(220, (contentEl.clientWidth || 720) - 320));
-    const onMove = (me: PointerEvent) => {
-      sidebarWidth = Math.max(172, Math.min(maxW, Math.round(startW + me.clientX - startX)));
-      listEl.style.width = `${sidebarWidth}px`;
-    };
-    const onUp = () => {
-      splitter.classList.remove('is-dragging');
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onUp);
-    };
-    window.addEventListener('pointermove', onMove);
-    window.addEventListener('pointerup', onUp);
-    window.addEventListener('pointercancel', onUp);
-  });
+    // Draggable performance splitter
+    shellEl.addEventListener('pointerdown', (e) => {
+      const splitter = (e.target as HTMLElement).closest<HTMLElement>('[data-tm-perf-splitter]');
+      if (!splitter || e.button !== 0) return;
+      const listEl = shellEl.querySelector<HTMLElement>('[data-tm-perf-list]');
+      if (!listEl) return;
+      e.preventDefault();
+      splitter.classList.add('is-dragging');
+      const startX = e.clientX;
+      const startW = listEl.offsetWidth || sidebarWidth;
+      const maxW = Math.min(440, Math.max(220, ((contentEl?.clientWidth ?? 720) - 320)));
+      const onMove = (me: PointerEvent) => {
+        sidebarWidth = Math.max(172, Math.min(maxW, Math.round(startW + me.clientX - startX)));
+        listEl.style.width = `${sidebarWidth}px`;
+      };
+      const onUp = () => {
+        splitter.classList.remove('is-dragging');
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
+      };
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
+    });
 
-  // Context Menus across all tabs!
-  tmShell.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    const t = e.target as HTMLElement;
-    tipCtrl.hide();
+    // Context Menus across all tabs!
+    shellEl.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const t = e.target as HTMLElement;
+      tip.hide();
 
     // 1. Processes column header picker (tm_13, tm_65)
     if (t.closest('[data-tm-col-hdr]') && activeTab === 'processes') {
@@ -1922,13 +1937,17 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
         { label: '停止(O)', disabled: svc.status === '已停止', onSelect: () => { svc.status = '已停止'; svc.pid = null; renderChromeAndLayout(); } },
         { label: '重新启动(R)', onSelect: () => { svc.status = '正在运行'; svc.pid = svc.pid ?? 2400 + Math.floor(Math.random() * 800); renderChromeAndLayout(); } },
         { type: 'divider' },
-        { label: '打开服务(V)', onSelect: () => showTmModal(tmShell, { title: '服务 (services.msc)', width: 380, bodyHtml: `<p class="w11-tm-modal-text">服务名: <strong>${esc(svc.name)}</strong><br/>状态: ${esc(svc.status)}<br/>说明: ${esc(svc.desc)}</p>`, footerButtons: [{ label: '确定', primary: true, onClick: (_, close) => close() }] }) },
+        { label: '打开服务(V)', onSelect: () => showTmModal(shellEl, { title: '服务 (services.msc)', width: 380, bodyHtml: `<p class="w11-tm-modal-text">服务名: <strong>${esc(svc.name)}</strong><br/>状态: ${esc(svc.status)}<br/>说明: ${esc(svc.desc)}</p>`, footerButtons: [{ label: '确定', primary: true, onClick: (_, close) => close() }] }) },
         { label: '在线搜索(S)', onSelect: () => window.open(`https://www.bing.com/search?q=${encodeURIComponent(`Windows service ${svc.name}`)}`, '_blank', 'noopener') },
         { label: '转到详细信息(G)', disabled: svc.pid === null, onSelect: () => { if (svc.pid !== null) { selectedDetailPid = svc.pid; activeTab = 'details'; renderChromeAndLayout(); } } },
       ]);
       return;
     }
-  });
+    });
+  } else {
+    container.addEventListener('click', handleShellClick);
+    container.addEventListener('input', handleHeadlessInput);
+  }
 
   // Periodic UI cadence respecting updateSpeed ('high' 500ms, 'normal' 1000ms, 'low' 2000ms, 'paused')
   const refreshTimer = window.setInterval(() => {
@@ -1941,10 +1960,7 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
 
     // Skip rebuilding Settings page if select dropdown is open, or list if user has a floating context menu open
     if (activeTab === 'settings') return;
-    if (tmShell.querySelector('.w11-tm-menu-layer') || tmShell.querySelector('.w11-tm-modal-backdrop')) return;
-    if (tmShell.matches(':hover') && (activeTab === 'processes' || activeTab === 'details' || activeTab === 'services') && document.activeElement !== titleSearchInput) {
-      // Gently jitter CPU/memory numbers only on Performance or unpaused overview, keeping tables responsive
-    }
+    if (tmShell?.querySelector('.w11-tm-menu-layer') || tmShell?.querySelector('.w11-tm-modal-backdrop')) return;
 
     // Update throughput histories smoothly from snapshot
     diskWritePts = [...diskWritePts.slice(1), Math.max(2, Math.round((hw.storage.writeKb / 12) + Math.random() * 6))];
@@ -1957,9 +1973,7 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
       else if (p.group === 'app' || idx % 3 === 0) p.cpu = Math.max(0, +(p.cpu + (Math.random() - 0.5) * 0.2).toFixed(1));
     });
 
-    if (activeTab === 'performance') {
-      renderContent();
-    } else if (activeTab === 'processes' || activeTab === 'users') {
+    if (activeTab === 'performance' || activeTab === 'processes' || activeTab === 'users') {
       renderContent();
     }
   }, 500);
@@ -1975,15 +1989,24 @@ export function mountTaskManager(ctx: WinAppHostContext): WinAppLifecycle {
     },
     onHardwareUpdate: (next) => {
       hw = next;
-      if (settings.updateSpeed !== 'paused' && activeTab === 'performance' && !tmShell.querySelector('.w11-tm-menu-layer')) {
+      if (!tmShell) {
+        renderHeadlessSnapshot();
+        return;
+      }
+      if (settings.updateSpeed !== 'paused' && (activeTab === 'performance' || activeTab === 'processes') && !tmShell.querySelector('.w11-tm-menu-layer')) {
         renderContent();
       }
     },
     destroy: () => {
       window.clearInterval(refreshTimer);
-      menuCtrl.destroy();
-      tipCtrl.destroy();
-      titleSearchWrap?.remove();
+      if (tmShell) {
+        menuCtrl?.destroy();
+        tipCtrl?.destroy();
+        titleSearchWrap?.remove();
+      } else {
+        container.removeEventListener('click', handleShellClick);
+        container.removeEventListener('input', handleHeadlessInput);
+      }
     },
   };
 }

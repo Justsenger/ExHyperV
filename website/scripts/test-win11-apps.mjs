@@ -32,6 +32,7 @@ let placeholderAppMod;
 let appsIndexMod;
 let taskManagerMod;
 let virtualHwMod;
+let uiHostMod;
 
 before(async () => {
   const vite = await loadVite();
@@ -51,6 +52,7 @@ before(async () => {
   appsIndexMod = await viteServer.ssrLoadModule('/src/win11-shell/apps/index.ts');
   taskManagerMod = await viteServer.ssrLoadModule('/src/win11-shell/task-manager.ts');
   virtualHwMod = await viteServer.ssrLoadModule('/src/win11-shell/virtual-hardware.ts');
+  uiHostMod = await viteServer.ssrLoadModule('/src/scripts/ui-design-host.js');
 });
 
 after(async () => {
@@ -659,6 +661,129 @@ test('virtualHardwareService shares identical live snapshots across taskManagerA
     assert.ok(clearedTimers.length >= 1);
   } finally {
     globalThis.window = prevWindow;
+    globalThis.document = prevDocument;
+  }
+});
+
+test('ExHyperV host hardware sync maps real snapshot GPUs/disks without leftover 4090 or 24564 MB defaults', () => {
+  const prevDocument = globalThis.document;
+  try {
+    const fakePageHost = {
+      hidden: false,
+      innerHTML: '',
+      contains: () => false,
+      querySelectorAll: () => [],
+      querySelector: () => null,
+    };
+    globalThis.document = {
+      activeElement: null,
+      getElementById: (id) => (id === 'pageHost' ? fakePageHost : null),
+    };
+
+    const sampleHw = {
+      timestamp: '2026-11-17T10:00:00',
+      probed: true,
+      system: {
+        osName: { value: 'Windows', provenance: 'real' },
+        osVersion: '19.0.0',
+        architecture: { value: 'arm64', provenance: 'real' },
+        formFactor: 'Desktop',
+      },
+      cpu: {
+        displayName: { value: 'Snapdragon X Elite', provenance: 'inferred' },
+        shortName: 'Snapdragon X',
+        vendor: 'Qualcomm',
+        architecture: 'arm64',
+        logicalCores: 12,
+        physicalCores: { value: 12, provenance: 'real' },
+        isVmFallback: false,
+        baseClockGhz: { value: 3.4, provenance: 'inferred' },
+        currentClockGhz: 3.42,
+        boostClockGhz: 3.8,
+        cache: {},
+        usagePct: 21,
+        history: [15, 20, 21],
+        coreHistories: Array.from({ length: 12 }, () => [10, 20, 21]),
+        procCount: 180,
+        threadCount: 1900,
+        handleCount: 64000,
+      },
+      memory: {
+        totalGb: 16,
+        usableGb: 16,
+        usedGb: 5.2,
+        availGb: 10.8,
+        usagePct: 33,
+        history: [30, 32, 33],
+        realDeviceGb: 16,
+        capped: true,
+        capText: '16.0 GB',
+        capTip: 'navigator.deviceMemory 在 16.0 GB 处封顶',
+        compressedMb: 120,
+        cachedText: '4.1 GB',
+        standbyPct: 25,
+        committedGb: 7.2,
+        commitLimitGb: 21.6,
+        pagedPoolMb: 400,
+        nonPagedPoolMb: 300,
+        specProvenance: 'simulated',
+      },
+      gpus: [
+        {
+          id: 'gpu-0',
+          index: 0,
+          name: 'Qualcomm Adreno X1-85 GPU',
+          vendor: 'Qualcomm',
+          isSoftwareRenderer: false,
+          webglVersion: 'WebGL 2.0',
+          usagePct: 14,
+          pts3d: [10, 12, 14],
+          ptsCopy: [1, 2, 2],
+          ptsEnc: [0, 0, 0],
+          ptsDec: [3, 4, 3],
+          zeroHistory: [0, 0, 0],
+          memUtilPct: 18,
+          memPts: [18, 18, 18],
+          provenance: 'real',
+        },
+      ],
+      npu: null,
+      storage: {
+        probe: { supported: true, isSecureContext: true, quotaBytes: 4e10, usageBytes: 1e6, quotaGiB: 37.25, quotaGB: 40, usageMB: 1.0, usageDetails: null, persisted: false, opfsSupported: true, opfsReady: true, fsAccessSupported: true },
+        activePct: 2,
+        activeHistory: [1, 2, 2],
+        rateHistory: [10, 14, 18],
+        readKb: 18,
+        writeKb: 6,
+      },
+      network: {
+        onLine: true,
+        isWifiReal: true,
+        adapterName: { value: 'WLAN', provenance: 'real' },
+        rxHistory: [4, 8, 12],
+        sendKbps: 5,
+        recvKbps: 12,
+      },
+      display: null,
+      battery: null,
+      peripheralsAndApis: null,
+    };
+
+    const entries = uiHostMod.buildVirtualGpuEntries(sampleHw);
+    assert.equal(entries.length, 1);
+    assert.equal(entries[0].name, 'Qualcomm Adreno X1-85 GPU');
+    assert.equal(entries[0].partitionable, true);
+    assert.ok(!entries[0].memoryText.includes('24564'));
+
+    uiHostMod.applyVirtualHardwareToHost(sampleHw);
+    assert.ok(fakePageHost.innerHTML.includes('Snapdragon X Elite'));
+    assert.ok(fakePageHost.innerHTML.includes('Qualcomm Adreno X1-85 GPU'));
+    assert.ok(fakePageHost.innerHTML.includes('浏览器存储配额'));
+    assert.ok(!fakePageHost.innerHTML.includes('RTX 4090'));
+    assert.ok(!fakePageHost.innerHTML.includes('AMD Radeon'));
+    assert.ok(!fakePageHost.innerHTML.includes('24564 MB'));
+    assert.ok(!fakePageHost.innerHTML.includes('WD_BLACK SN850X'));
+  } finally {
     globalThis.document = prevDocument;
   }
 });

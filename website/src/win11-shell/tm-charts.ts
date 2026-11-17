@@ -10,10 +10,10 @@ export interface PerfSeriesColor {
 
 export const TM_SERIES_COLORS: Record<'cpu' | 'mem' | 'disk' | 'net' | 'gpu' | 'npu', PerfSeriesColor> = {
   cpu: {
-    stroke: '#3598db',
-    fill: 'rgba(53, 152, 219, 0.22)',
-    kernelFill: 'rgba(53, 152, 219, 0.42)',
-    dot: '#3598db',
+    stroke: '#2e9ae0',
+    fill: 'rgba(46, 154, 224, 0.22)',
+    kernelFill: 'rgba(46, 154, 224, 0.42)',
+    dot: '#2e9ae0',
   },
   mem: {
     stroke: '#70a5fa',
@@ -82,13 +82,15 @@ export function renderPerfChartSvg(opts: {
   const rows = opts.rows ?? (opts.thumb ? 3 : 8);
 
   const gridLines: string[] = [];
-  for (let i = 1; i < cols; i++) {
-    const x = ((i / cols) * w).toFixed(1);
-    gridLines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${h}" />`);
-  }
-  for (let j = 1; j < rows; j++) {
-    const y = ((j / rows) * h).toFixed(1);
-    gridLines.push(`<line x1="0" y1="${y}" x2="${w}" y2="${y}" />`);
+  if (!opts.thumb) {
+    for (let i = 1; i < cols; i++) {
+      const x = ((i / cols) * w).toFixed(1);
+      gridLines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${h}" />`);
+    }
+    for (let j = 1; j < rows; j++) {
+      const y = ((j / rows) * h).toFixed(1);
+      gridLines.push(`<line x1="0" y1="${y}" x2="${w}" y2="${y}" />`);
+    }
   }
 
   const linePts = sampleToSvgPoints(opts.primaryPts, w, h, maxY);
@@ -122,7 +124,7 @@ export function renderPerfChartSvg(opts: {
       <g class="w11-tm-grid-lines">${gridLines.join('')}</g>
       ${peakLineSvg}
       <polygon points="${areaPts}" fill="${opts.color.fill}" />
-      <polyline points="${linePts}" fill="none" stroke="${opts.color.stroke}" stroke-width="${opts.thumb ? '1.3' : '1.6'}" vector-effect="non-scaling-stroke" />
+      <polyline points="${linePts}" fill="none" stroke="${opts.color.stroke}" stroke-width="1" vector-effect="non-scaling-stroke" />
       ${extraSvg}
     </svg>
   `;

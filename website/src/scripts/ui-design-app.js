@@ -21,7 +21,7 @@ import {
   isComputeSectionDirty
 } from './ui-design-compute.js';
 import { renderGpuWorkbench } from './ui-design-devices.js';
-import { initHostPage, renderHostPage } from './ui-design-host.js';
+import { buildVirtualGpuEntries, initHostPage, renderHostPage } from './ui-design-host.js';
 
 export function initUiDesignWorkbench() {
   const winEl = document.getElementById('winuiWindow');
@@ -146,8 +146,11 @@ export function initUiDesignWorkbench() {
       dragTooltip: true,
       weightPresetMode: false
     },
-    computeByVm: {}
+    computeByVm: {},
+    hostLogicalCores: 16
   };
+
+  let latestVirtualHw = null;
 
   const getVm = () => VM_ITEMS.find((v) => v.id === state.selectedVmId) || VM_ITEMS[0];
 
@@ -971,11 +974,32 @@ export function initUiDesignWorkbench() {
     `;
   }
 
-  function buildGpuCanvasHtml(gpu, vm, chartHeight = 82) {
+  function resolveLiveGpuTelemetry(gpu, idx = 0) {
+    const hwGpu = latestVirtualHw?.gpus?.[idx] || latestVirtualHw?.gpus?.[0];
+    if (hwGpu && gpu && (!gpu.name || gpu.name === hwGpu.name || idx === 0)) {
+      return {
+        pct: typeof hwGpu.usagePct === 'number' ? hwGpu.usagePct : 18,
+        pts3d: Array.isArray(hwGpu.pts3d) && hwGpu.pts3d.length > 1 ? hwGpu.pts3d : [10, 14, 22, 16, 19, 18],
+        ptsCopy: Array.isArray(hwGpu.ptsCopy) && hwGpu.ptsCopy.length > 1 ? hwGpu.ptsCopy : [2, 3, 5, 4, 4, 4],
+        ptsEnc: Array.isArray(hwGpu.ptsEnc) && hwGpu.ptsEnc.length > 1 ? hwGpu.ptsEnc : [0, 0, 0, 0, 0, 0],
+        ptsDec: Array.isArray(hwGpu.ptsDec) && hwGpu.ptsDec.length > 1 ? hwGpu.ptsDec : [3, 5, 8, 6, 7, 6]
+      };
+    }
+    return {
+      pct: idx === 0 ? 18 : 6,
+      pts3d: [10, 14, 22, 16, 19, 18],
+      ptsCopy: [2, 3, 5, 4, 4, 4],
+      ptsEnc: [0, 0, 0, 0, 0, 0],
+      ptsDec: [3, 5, 8, 6, 7, 6]
+    };
+  }
+
+  function buildGpuCanvasHtml(gpu, vm, chartHeight = 82, gpuIdx = 0) {
     if (!gpu) {
       return `<div style="opacity:0.65;font-size:13px;padding:18px 4px;">未分配显卡</div>`;
     }
     const active = Boolean(vm && vm.running);
+    const live = resolveLiveGpuTelemetry(gpu, gpuIdx);
     const manuText =
       gpu.manu ||
       (gpu.name && gpu.name.includes('AMD')
@@ -983,16 +1007,16 @@ export function initUiDesignWorkbench() {
         : gpu.name && gpu.name.includes('Intel')
           ? 'Intel'
           : 'NVIDIA');
-    const vendorText = gpu.vendor || 'ASUS (华硕)';
-    const vramText = (gpu.memoryText || '24564 MB').replace(/,/g, '');
+    const vendorText = gpu.vendor || manuText;
+    const vramText = (gpu.memoryText || '未知').replace(/,/g, '');
     const drvText = gpu.driverVersion || '---';
     const instText = gpu.instanceId || '---';
     const chartsHtml = `
       <div class="gpu-charts-grid">
-        ${createUsageChartHtml('3D', active, '18%', [10, 14, 22, 16, 19, 18], true, chartHeight)}
-        ${createUsageChartHtml('数据复制', active, '4%', [2, 3, 5, 4, 4, 4], true, chartHeight)}
-        ${createUsageChartHtml('视频编码', active, '0%', [0, 0, 0, 0, 0, 0], true, chartHeight)}
-        ${createUsageChartHtml('视频解码', active, '6%', [3, 5, 8, 6, 7, 6], true, chartHeight)}
+        ${createUsageChartHtml('3D', active, `${live.pct}%`, live.pts3d, true, chartHeight)}
+        ${createUsageChartHtml('数据复制', active, `${live.ptsCopy.at(-1) ?? 0}%`, live.ptsCopy, true, chartHeight)}
+        ${createUsageChartHtml('视频编码', active, `${live.ptsEnc.at(-1) ?? 0}%`, live.ptsEnc, true, chartHeight)}
+        ${createUsageChartHtml('视频解码', active, `${live.ptsDec.at(-1) ?? 0}%`, live.ptsDec, true, chartHeight)}
       </div>
     `;
     const kvItems = [
@@ -1586,17 +1610,19 @@ export function initUiDesignWorkbench() {
       cfgLabel = '内存';
       bodyHtml = buildMemCanvasHtml(vm, t, chartH);
     } else if (sel.kind === 'gpu') {
-      const g = gpuAssigns[sel.idx] || gpuAssigns[0];
+      const gIdx = gpuAssigns[sel.idx] ? sel.idx : 0;
+      const g = gpuAssigns[gIdx];
+      const live = resolveLiveGpuTelemetry(g, gIdx);
       icon = '&#xF211;';
       rotate = 0;
       title = g ? g.name : '未分配显卡';
       pill = '';
       sub = '';
-      reading = vm.running && g ? `${sel.idx === 0 ? '18%' : '6%'}` : g ? '0%' : '';
+      reading = vm.running && g ? `${live.pct}%` : g ? '0%' : '';
       cfgTab = 'devices';
       cfgDev = 'gpu';
       cfgLabel = '显卡';
-      bodyHtml = buildGpuCanvasHtml(g, vm, 82);
+      bodyHtml = buildGpuCanvasHtml(g, vm, 82, gIdx);
     } else if (sel.kind === 'disk') {
       const diskIdx = vm.disks[sel.idx] ? sel.idx : 0;
       const d = vm.disks[diskIdx] || vm.disks[0];
@@ -1723,13 +1749,14 @@ export function initUiDesignWorkbench() {
     });
 
     gpuAssigns.forEach((g, idx) => {
+      const live = resolveLiveGpuTelemetry(g, idx);
       rows.push({
         kind: 'gpu',
         idx,
         title: gpuAssigns.length > 1 ? `GPU ${idx}` : 'GPU',
         sub: g.name,
-        stat: vm.running ? `${idx === 0 ? '18%' : '6%'}` : '0%',
-        pts: [10, 14, 22, 16, 19, 18],
+        stat: vm.running ? `${live.pct}%` : '0%',
+        pts: live.pts3d,
         color: '#8B5CF6',
         fill: 'rgba(139, 92, 246, 0.24)',
         tip: g.name
@@ -2378,7 +2405,8 @@ export function initUiDesignWorkbench() {
     // Section 2: 核心绑定 (VmCpuAffinitySettingsView.cs lines 16-295)
     if (sec.kind === 'affinity') {
       if (!state.savedAffinityMask) state.savedAffinityMask = new Set(state.affinityMask);
-      const totalCores = 16;
+      const totalCores = Math.max(1, state.hostLogicalCores || 16);
+      const splitIdx = Math.ceil(totalCores / 2);
       const isAffinityDirty = () => {
         if (state.affinityMask.size !== state.savedAffinityMask.size) return true;
         for (const id of state.affinityMask) {
@@ -2393,7 +2421,7 @@ export function initUiDesignWorkbench() {
 
       const coreMeta = Array.from({ length: totalCores }, (_, i) => {
         // Hybrid P/E demo when cores carry distinct types (matches WinUI3 CpuCoreType check)
-        const type = i < 8 ? 'perf' : 'eff';
+        const type = totalCores >= 8 ? (i < splitIdx ? 'perf' : 'eff') : 'perf';
         return { index: i, type };
       });
       const hasHybridCores =
@@ -2512,8 +2540,8 @@ export function initUiDesignWorkbench() {
           const mode = btn.getAttribute('data-affinity-quick');
           if (mode === 'all') state.affinityMask = new Set(Array.from({ length: totalCores }, (_, i) => i));
           else if (mode === 'clear') state.affinityMask = new Set();
-          else if (mode === 'perf') state.affinityMask = new Set([0, 1, 2, 3, 4, 5, 6, 7]);
-          else if (mode === 'eff') state.affinityMask = new Set([8, 9, 10, 11, 12, 13, 14, 15]);
+          else if (mode === 'perf') state.affinityMask = new Set(Array.from({ length: splitIdx }, (_, i) => i));
+          else if (mode === 'eff') state.affinityMask = new Set(Array.from({ length: Math.max(0, totalCores - splitIdx) }, (_, i) => splitIdx + i));
           syncAffinityDom();
         });
       });
@@ -6646,19 +6674,23 @@ export function initUiDesignWorkbench() {
         state.gpuScenario = 'normal';
       } else if (s === 'dual') {
         const g1 = structuredClone(INITIAL_GPU_ASSIGNMENTS[0]);
-        const h2 = HOST_GPUS[1];
-        const g2 = {
-          id: 'gpu-2',
-          name: h2.name,
-          manu: h2.manu,
-          vendor: h2.vendor,
-          memoryText: h2.memoryText,
-          driverVersion: h2.driverVersion,
-          instanceId: h2.instanceId,
-          partitionPath: h2.partitionPath,
-          expanded: true
-        };
-        state.gpuAssignmentsByVm[vm.id] = [g1, g2];
+        const h2 = HOST_GPUS[1] || HOST_GPUS[0];
+        if (g1 && h2) {
+          const g2 = {
+            id: 'gpu-2',
+            name: h2.name,
+            manu: h2.manu,
+            vendor: h2.vendor,
+            memoryText: h2.memoryText,
+            driverVersion: h2.driverVersion,
+            instanceId: h2.instanceId,
+            partitionPath: h2.partitionPath,
+            expanded: true
+          };
+          state.gpuAssignmentsByVm[vm.id] = h2 === HOST_GPUS[0] && !HOST_GPUS[1] ? [g1] : [g1, g2];
+        } else {
+          state.gpuAssignmentsByVm[vm.id] = g1 ? [g1] : [];
+        }
         state.gpuScenario = 'normal';
         state.gpuVmReady = true;
       } else if (s === 'stale') {
@@ -6695,22 +6727,163 @@ export function initUiDesignWorkbench() {
     renderActiveWorkspace();
   });
 
+  let vmInitialRendered = false;
+  let lastSyncedHwSig = '';
+  let lastSyncedDefaultGpuInstance = INITIAL_GPU_ASSIGNMENTS[0]?.instanceId || '';
+
   function syncVirtualHardwareToVm(hw) {
-    const cpuName = hw?.cpu?.displayName?.value;
-    if (!cpuName) return;
-    const prevSingle = CPU_TOPOLOGY_PRESETS.single;
-    CPU_TOPOLOGY_PRESETS.single = cpuName;
-    const affinitySec = PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity');
-    if (affinitySec && affinitySec.cpuModel === prevSingle) {
-      affinitySec.cpuModel = cpuName;
+    if (!hw || typeof hw !== 'object') return;
+    latestVirtualHw = hw;
+
+    const cpuName = hw.cpu?.displayName?.value || '';
+    const logicalCores = Math.max(1, Number(hw.cpu?.logicalCores) || state.hostLogicalCores || 16);
+    const mappedGpus = buildVirtualGpuEntries(hw);
+    const gpuSig = mappedGpus.map((g) => `${g.name}@${g.driverVersion}@${g.instanceId}`).join(';');
+    const hwSig = `${cpuName}|${logicalCores}|${gpuSig}`;
+    const structuralChanged = hwSig !== lastSyncedHwSig;
+
+    if (cpuName) {
+      const prevSingle = CPU_TOPOLOGY_PRESETS.single;
+      CPU_TOPOLOGY_PRESETS.single = cpuName;
+      const affinitySec = PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity');
+      if (affinitySec && affinitySec.cpuModel === prevSingle) {
+        affinitySec.cpuModel = cpuName;
+      }
+      const brandField = getProcessorField('CpuBrandString');
+      if (brandField && brandField.value === prevSingle) {
+        brandField.value = cpuName;
+      }
+      const hostModelEl = document.getElementById('hostCpuModelText');
+      if (hostModelEl && hostModelEl.textContent?.trim() === prevSingle) {
+        hostModelEl.innerHTML = formatCpuTitleHtml(cpuName);
+      }
     }
-    const brandField = getProcessorField('CpuBrandString');
-    if (brandField && brandField.value === prevSingle) {
-      brandField.value = cpuName;
-    }
-    const hostModelEl = document.getElementById('hostCpuModelText');
-    if (hostModelEl && hostModelEl.textContent?.trim() === prevSingle) {
-      hostModelEl.innerHTML = formatCpuTitleHtml(cpuName);
+
+    if (structuralChanged) {
+      const isFirstHwSync = !lastSyncedHwSig;
+      lastSyncedHwSig = hwSig;
+
+      state.hostLogicalCores = logicalCores;
+      const clampedMask = new Set([...state.affinityMask].filter((idx) => idx >= 0 && idx < logicalCores));
+      if (clampedMask.size === 0 && state.affinityMask.size > 0) {
+        for (let i = 0; i < Math.min(logicalCores, Math.ceil(logicalCores / 2)); i++) clampedMask.add(i);
+      }
+      state.affinityMask = clampedMask;
+      if (state.savedAffinityMask) {
+        state.savedAffinityMask = new Set([...state.savedAffinityMask].filter((idx) => idx >= 0 && idx < logicalCores));
+      }
+
+      const countField = getProcessorField('Count');
+      if (countField) {
+        countField.max = Math.max(1, logicalCores);
+        const curCount = Number(countField.value);
+        if (Number.isFinite(curCount) && curCount > logicalCores) {
+          countField.value = String(logicalCores);
+        }
+      }
+
+      if (mappedGpus.length > 0) {
+        HOST_GPUS.splice(0, HOST_GPUS.length, ...mappedGpus);
+        const validSelected = HOST_GPUS.find((g) => g.id === state.selectedHostGpuId && g.partitionable);
+        state.selectedHostGpuId = (validSelected || HOST_GPUS.find((g) => g.partitionable) || HOST_GPUS[0]).id;
+
+        const primaryGpu = HOST_GPUS.find((g) => g.partitionable) || HOST_GPUS[0];
+        const nextAssign = {
+          id: 'gpu-1',
+          name: primaryGpu.name,
+          manu: primaryGpu.manu,
+          vendor: primaryGpu.vendor,
+          memoryText: primaryGpu.memoryText,
+          driverVersion: primaryGpu.driverVersion,
+          instanceId: primaryGpu.instanceId,
+          partitionPath: primaryGpu.partitionPath,
+          expanded: true
+        };
+        if (primaryGpu.partitionable) {
+          INITIAL_GPU_ASSIGNMENTS.splice(0, INITIAL_GPU_ASSIGNMENTS.length, nextAssign);
+        } else {
+          INITIAL_GPU_ASSIGNMENTS.splice(0, INITIAL_GPU_ASSIGNMENTS.length);
+        }
+
+        if (STRESS_GPUS[0]) {
+          STRESS_GPUS[0].name = `${primaryGpu.name} (DDA 直通)`;
+          STRESS_GPUS[0].vendor = primaryGpu.manu;
+          STRESS_GPUS[0].memoryText = primaryGpu.memoryText;
+          STRESS_GPUS[0].driverVersion = primaryGpu.driverVersion;
+          STRESS_GPUS[0].instanceId = primaryGpu.instanceId;
+        }
+
+        const pcieTemplate = {
+          id: 'pcie-1',
+          name: `${primaryGpu.name} (vPCI)`,
+          classType: 'Display',
+          glyph: '\uF211',
+          guestMode: '0',
+          instanceId: primaryGpu.instanceId,
+          path: '浏览器隐藏物理 PCIe 拓扑',
+          vendor: primaryGpu.vendor,
+          expanded: true
+        };
+        const prevPcieInst = INITIAL_PCIE_DEVICES[0]?.instanceId;
+        INITIAL_PCIE_DEVICES.splice(0, INITIAL_PCIE_DEVICES.length, pcieTemplate);
+
+        VM_ITEMS.forEach((vmItem) => {
+          if (isFirstHwSync && vmItem.cores > logicalCores) {
+            vmItem.cores = logicalCores;
+            vmItem.configText = `${vmItem.cores} 核 / ${vmItem.memoryGb} GB / ${vmItem.disks.map((d) => d.capacityText).join(' + ')}`;
+          }
+          vmItem.gpuText = primaryGpu.name;
+          vmItem.gpus = [
+            {
+              key: 'gpu-0',
+              title: primaryGpu.name,
+              vendor: primaryGpu.manu,
+              memoryText: primaryGpu.memoryText,
+              driverVersion: primaryGpu.driverVersion,
+              instanceId: primaryGpu.instanceId
+            }
+          ];
+
+          const curAssigns = state.gpuAssignmentsByVm[vmItem.id];
+          const isUntouchedDefault =
+            Array.isArray(curAssigns) &&
+            curAssigns.length === 1 &&
+            curAssigns[0]?.id === 'gpu-1' &&
+            curAssigns[0]?.instanceId === lastSyncedDefaultGpuInstance;
+          if (isUntouchedDefault) {
+            state.gpuAssignmentsByVm[vmItem.id] = structuredClone(INITIAL_GPU_ASSIGNMENTS);
+          }
+
+          const curPcie = state.pcieDevicesByVm[vmItem.id];
+          if (
+            Array.isArray(curPcie) &&
+            curPcie.length === 1 &&
+            curPcie[0]?.id === 'pcie-1' &&
+            (!prevPcieInst || curPcie[0]?.instanceId === prevPcieInst)
+          ) {
+            state.pcieDevicesByVm[vmItem.id] = structuredClone(INITIAL_PCIE_DEVICES);
+          }
+        });
+
+        lastSyncedDefaultGpuInstance = nextAssign.instanceId;
+      }
+
+      if (vmInitialRendered) {
+        const activeEl = document.activeElement;
+        const pageVm = document.getElementById('pageVirtualMachines');
+        const editingInput =
+          activeEl &&
+          pageVm?.contains(activeEl) &&
+          ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName);
+        if (!editingInput) {
+          syncDcpGpuButton();
+          renderVmList();
+          renderDashboardSummary();
+          renderActiveWorkspace();
+        }
+      }
+    } else if (vmInitialRendered && state.navTarget === 'vm' && state.activeTabKey === 'overview' && getVm().running) {
+      renderOverview();
     }
   }
 
@@ -6730,4 +6903,5 @@ export function initUiDesignWorkbench() {
   renderDashboardSummary();
   renderPageTabs();
   renderActiveWorkspace();
+  vmInitialRendered = true;
 }

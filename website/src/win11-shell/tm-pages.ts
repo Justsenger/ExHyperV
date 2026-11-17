@@ -50,8 +50,8 @@ export function renderHistoryPage(opts: {
     (r) => (opts.showAllHistory || !r.isSystemProcess) && matchesSearch(opts.search, r.name, r.publisher),
   );
   return `
-    <div class="w11-tm-subbar">
-      <span>显示从 ${esc(opts.historySince)} 开始的应用资源使用情况</span>
+    <div class="w11-tm-subbar is-stacked">
+      <span>自 ${esc(opts.historySince)} 以来，当前用户和系统账户的资源使用情况。</span>
       <button type="button" class="w11-tm-link-btn" data-hist-clear>删除使用情况历史记录</button>
     </div>
     <div class="w11-tm-proc-wrap">
@@ -300,39 +300,38 @@ export function renderDetailsPage(opts: {
 
   return `
     <div class="w11-tm-proc-wrap">
-      <table class="w11-tm-proc-table is-bounded">
+      <table class="w11-tm-proc-table is-fill">
         <thead>
           <tr>
-            <th data-det-sort="name" style="width:178px">名称${caret('name')}</th>
-            <th data-det-sort="pid" class="is-num" style="width:74px">PID${caret('pid')}</th>
-            <th data-det-sort="status" style="width:106px">状态${caret('status')}</th>
-            <th data-det-sort="user" style="width:128px">用户名${caret('user')}</th>
-            <th data-det-sort="cpu" class="is-num" style="width:74px">CPU${caret('cpu')}</th>
-            <th data-det-sort="mem" class="is-num" style="width:136px">内存(活动专用工作集)${caret('mem')}</th>
-            <th data-det-sort="arch" style="width:82px">体系结构${caret('arch')}</th>
-            <th data-det-sort="desc" style="width:240px">描述${caret('desc')}</th>
-            <th class="is-spacer" aria-hidden="true"></th>
+            <th data-det-sort="name" style="width:170px">名称${caret('name')}</th>
+            <th data-det-sort="pid" class="is-num" style="width:68px">PID${caret('pid')}</th>
+            <th data-det-sort="status" style="width:120px">状态${caret('status')}</th>
+            <th data-det-sort="user" style="width:110px">用户名${caret('user')}</th>
+            <th data-det-sort="cpu" class="is-num" style="width:68px">CPU${caret('cpu')}</th>
+            <th data-det-sort="mem" class="is-num" style="width:118px" title="内存(活动专用工作集)">内存(活动专用工作集)${caret('mem')}</th>
+            <th data-det-sort="arch" style="width:78px">体系结构${caret('arch')}</th>
+            <th data-det-sort="desc" style="width:auto;min-width:190px">描述${caret('desc')}</th>
           </tr>
         </thead>
         <tbody>
           ${
             flat.length === 0
-              ? `<tr><td colspan="9" class="w11-tm-empty">没有匹配的进程详细信息</td></tr>`
+              ? `<tr><td colspan="8" class="w11-tm-empty">没有匹配的进程详细信息</td></tr>`
               : flat
                   .map((p) => {
                     const sel = opts.selectedPid === p.pid ? 'is-selected' : '';
                     const cpuStr = String(Math.round(p.cpu)).padStart(2, '0');
+                    const st = statusLabel(p.status);
                     return `
                       <tr class="w11-tm-proc-row ${sel}" data-det-pid="${p.pid}">
                         <td class="w11-tm-name-cell"><span class="w11-tm-appdot is-exe"></span><span class="w11-tm-ellipsis">${esc(p.processName)}</span></td>
                         <td class="w11-tm-num-cell">${p.pid}</td>
-                        <td>${statusLabel(p.status)}</td>
+                        <td title="${esc(st)}"><span class="w11-tm-ellipsis">${st}</span></td>
                         <td><span class="w11-tm-ellipsis">${esc(userLabel(p.user))}</span></td>
                         <td class="w11-tm-num-cell">${cpuStr}</td>
                         <td class="w11-tm-num-cell">${formatMemKb(p.memMb)}</td>
                         <td>${esc(p.arch)}</td>
                         <td><span class="w11-tm-ellipsis">${esc(p.desc)}</span></td>
-                        <td class="w11-tm-spacer-cell"></td>
                       </tr>
                     `;
                   })
@@ -372,21 +371,20 @@ export function renderServicesPage(opts: {
 
   return `
     <div class="w11-tm-proc-wrap">
-      <table class="w11-tm-proc-table is-bounded">
+      <table class="w11-tm-proc-table is-fill">
         <thead>
           <tr>
             <th data-svc-sort="name" style="width:190px">名称${caret('name')}</th>
-            <th data-svc-sort="pid" class="is-num" style="width:76px">PID${caret('pid')}</th>
-            <th data-svc-sort="desc" style="width:320px">描述${caret('desc')}</th>
+            <th data-svc-sort="pid" class="is-num" style="width:74px">PID${caret('pid')}</th>
+            <th data-svc-sort="desc" style="width:auto;min-width:240px">描述${caret('desc')}</th>
             <th data-svc-sort="status" style="width:94px">状态${caret('status')}</th>
-            <th data-svc-sort="group" style="width:180px">组${caret('group')}</th>
-            <th class="is-spacer" aria-hidden="true"></th>
+            <th data-svc-sort="group" style="width:170px">组${caret('group')}</th>
           </tr>
         </thead>
         <tbody>
           ${
             list.length === 0
-              ? `<tr><td colspan="6" class="w11-tm-empty">没有匹配的服务</td></tr>`
+              ? `<tr><td colspan="5" class="w11-tm-empty">没有匹配的服务</td></tr>`
               : list
                   .map(
                     (s) => `
@@ -396,7 +394,6 @@ export function renderServicesPage(opts: {
                         <td><span class="w11-tm-ellipsis">${esc(s.desc)}</span></td>
                         <td>${esc(s.status)}</td>
                         <td><span class="w11-tm-ellipsis">${esc(s.group)}</span></td>
-                        <td class="w11-tm-spacer-cell"></td>
                       </tr>
                     `,
                   )

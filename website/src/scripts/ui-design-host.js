@@ -1232,6 +1232,47 @@ function revertKeys(keys) {
 }
 
 let hasAppliedHwOnce = false;
+let hasSyncedHostEntities = false;
+let hasProbedHostEntities = false;
+
+/**
+ * 将虚拟硬件层快照中的 GPU 列表转换为宿主/虚拟机通用的标准设备结构。
+ */
+export function buildVirtualGpuEntries(hw) {
+  const list = Array.isArray(hw?.gpus) ? hw.gpus : [];
+  return list.map((g, idx) => {
+    const devHex = g.pciDeviceIdHex ? g.pciDeviceIdHex.replace(/^0x/i, '').toUpperCase() : '';
+    const archSuffix = g.architecture ? ` (${g.architecture})` : '';
+    const instanceId = devHex
+      ? `PCI\\DEV_${devHex}${archSuffix}`
+      : g.tooltip || (g.isSoftwareRenderer ? 'ROOT\\BASICDISPLAY\\0000' : `WEBGL\\GPU_${idx}`);
+    const partitionPath = g.isSoftwareRenderer
+      ? ''
+      : devHex
+        ? `\\\\?\\PCI#DEV_${devHex}#{064092b3-625e-43bf-9eb5-dc845897dd95}\\GPUPARAV`
+        : `\\\\?\\DISPLAY#WEBGL_GPU_${idx}#{064092b3-625e-43bf-9eb5-dc845897dd95}\\GPUPARAV`;
+    const vendor = g.vendor || 'GPU';
+    return {
+      id: `host-gpu-${idx + 1}`,
+      hostId: g.id || `gpu-${idx}`,
+      name: g.name || 'GPU',
+      manu: vendor,
+      vendor,
+      memoryText: '浏览器受限（未知）',
+      driverVersion: g.webglVersion || (hw?.probed ? 'WebGL' : '---'),
+      instanceId,
+      partitionPath,
+      partitionable: !g.isSoftwareRenderer,
+      unpartitionableReason: g.isSoftwareRenderer ? '当前检测到软件渲染/基础显示驱动，不支持 GPU-PV 分区' : '',
+      usagePct: typeof g.usagePct === 'number' ? g.usagePct : 0,
+      pts3d: Array.isArray(g.pts3d) && g.pts3d.length > 1 ? g.pts3d : [0, 0, 0, 0, 0, 0],
+      ptsCopy: Array.isArray(g.ptsCopy) && g.ptsCopy.length > 1 ? g.ptsCopy : [0, 0, 0, 0, 0, 0],
+      ptsEnc: Array.isArray(g.ptsEnc) && g.ptsEnc.length > 1 ? g.ptsEnc : [0, 0, 0, 0, 0, 0],
+      ptsDec: Array.isArray(g.ptsDec) && g.ptsDec.length > 1 ? g.ptsDec : [0, 0, 0, 0, 0, 0],
+      tooltip: g.tooltip || ''
+    };
+  });
+}
 
 export function applyVirtualHardwareToHost(hw) {
   if (!hw || typeof hw !== 'object') return;
@@ -1263,28 +1304,101 @@ export function applyVirtualHardwareToHost(hw) {
     if (Array.isArray(hw.memory.history) && hw.memory.history.length > 1) HOST_SYS.memHistory = hw.memory.history;
     HOST_SYS.memNote = hw.memory.capTip || `物理内存 ${HOST_SYS.memoryGb} GB`;
   }
-  const primaryGpu = hw.gpus?.[0];
-  const hostGpu0 = hostState.gpus[0];
-  if (primaryGpu && hostGpu0) {
-    if (primaryGpu.name) hostGpu0.name = primaryGpu.name;
-    if (primaryGpu.vendor) {
-      hostGpu0.manu = primaryGpu.vendor;
-      hostGpu0.vendor = primaryGpu.vendor;
+
+  const mappedGpus = buildVirtualGpuEntries(hw);
+  if (mappedGpus.length > 0) {
+    hostState.gpus = mappedGpus.map((mg, idx) => ({
+      id: mg.hostId,
+      name: mg.name,
+      manu: mg.manu,
+      vendor: mg.vendor,
+      vram: mg.memoryText,
+      driver: mg.driverVersion,
+      instanceId: mg.instanceId,
+      partitionable: mg.partitionable,
+      assignedVms: mg.partitionable && idx === 0 ? ['test', 'Windows11-ARM64'] : [],
+      pct: mg.usagePct,
+      pts3d: mg.pts3d,
+      ptsCopy: mg.ptsCopy,
+      ptsEnc: mg.ptsEnc,
+      ptsDec: mg.ptsDec
+    }));
+    if (hostState.selectedRail.kind === 'gpu' && hostState.selectedRail.idx >= hostState.gpus.length) {
+      hostState.selectedRail.idx = 0;
     }
-    if (typeof primaryGpu.usagePct === 'number') hostGpu0.pct = primaryGpu.usagePct;
-    if (Array.isArray(primaryGpu.pts3d) && primaryGpu.pts3d.length > 1) hostGpu0.pts3d = primaryGpu.pts3d;
-    if (Array.isArray(primaryGpu.ptsCopy) && primaryGpu.ptsCopy.length > 1) hostGpu0.ptsCopy = primaryGpu.ptsCopy;
-    if (Array.isArray(primaryGpu.ptsEnc) && primaryGpu.ptsEnc.length > 1) hostGpu0.ptsEnc = primaryGpu.ptsEnc;
-    if (Array.isArray(primaryGpu.ptsDec) && primaryGpu.ptsDec.length > 1) hostGpu0.ptsDec = primaryGpu.ptsDec;
-    if (primaryGpu.pciDeviceIdHex) {
-      hostGpu0.instanceId = `PCI\\DEV_${primaryGpu.pciDeviceIdHex.replace(/^0x/i, '').toUpperCase()}${primaryGpu.architecture ? ` (${primaryGpu.architecture})` : ''}`;
+  }
+
+  if (hw.storage) {
+    const quotaGiB = hw.storage.probe?.quotaGiB;
+    const usageMb = hw.storage.probe?.usageMB;
+    const ratePts =
+      Array.isArray(hw.storage.rateHistory) && hw.storage.rateHistory.length > 1
+        ? hw.storage.rateHistory
+        : [0, 0, 0, 0, 0, 0];
+    hostState.disks = [
+      {
+        number: 0,
+        name: hw.storage.probe?.supported ? '浏览器存储配额 (Origin Storage)' : '虚拟系统卷 (C:)',
+        sizeText: typeof quotaGiB === 'number' ? `${quotaGiB.toFixed(2)} GiB` : '未知',
+        serial: typeof usageMb === 'number' ? `已用 ${usageMb.toFixed(1)} MB` : 'BROWSER-SANDBOX',
+        path: 'navigator.storage.estimate()',
+        status: hw.storage.probe?.supported ? '沙盒配额可见（物理磁盘受浏览器隔离）' : '浏览器限制（不可直通）',
+        offline: false,
+        readOnly: false,
+        canPassthrough: false,
+        pct: typeof hw.storage.activePct === 'number' ? hw.storage.activePct : 0,
+        readRate: `${hw.storage.readKb ?? 0} KB/s`,
+        writeRate: `${hw.storage.writeKb ?? 0} KB/s`,
+        readPts: ratePts,
+        writePts: ratePts.map((v) => Math.max(0, Math.round(v * 0.45)))
+      }
+    ];
+    if (hostState.selectedRail.kind === 'disk' && hostState.selectedRail.idx >= hostState.disks.length) {
+      hostState.selectedRail.idx = 0;
     }
-    if (primaryGpu.webglVersion) {
-      hostGpu0.driver = primaryGpu.webglVersion;
+  }
+
+  if (hw.network && hostState.switches[0]) {
+    hostState.switches[0].upstream = hw.network.adapterName?.value || '浏览器网络接口';
+    hostState.switches[0].sendRate = `${hw.network.sendKbps ?? 0} Kbps`;
+    hostState.switches[0].recvRate = `${hw.network.recvKbps ?? 0} Kbps`;
+    if (Array.isArray(hw.network.rxHistory) && hw.network.rxHistory.length > 1) {
+      hostState.switches[0].recvPts = hw.network.rxHistory;
+      hostState.switches[0].sendPts = hw.network.rxHistory.map((v) => Math.max(0, Math.round(v * 0.45)));
     }
-    if (primaryGpu.isSoftwareRenderer) {
-      hostGpu0.partitionable = false;
+  }
+
+  const shouldInitEntities = !hasSyncedHostEntities || (Boolean(hw.probed) && !hasProbedHostEntities);
+  if (shouldInitEntities) {
+    hasSyncedHostEntities = true;
+    if (hw.probed) hasProbedHostEntities = true;
+    if (mappedGpus.length > 0) {
+      hostState.pcieDevices = mappedGpus.map((mg, idx) => ({
+        id: `pcie-gpu-${idx}`,
+        name: mg.name,
+        classType: 'Display',
+        vendor: mg.vendor,
+        instanceId: mg.instanceId,
+        path: '浏览器隐藏物理 PCIe 拓扑',
+        ownerKind: 'host',
+        ownerName: '宿主',
+        expanded: idx === 0
+      }));
     }
+    const maxThreadIdx = Math.max(0, (HOST_SYS.threads || 8) - 1);
+    hostState.cpuGroups = [
+      {
+        id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+        name: `宿主逻辑核心组 (0-${maxThreadIdx})`,
+        processors: `0 - ${maxThreadIdx}`,
+        members: ['test', 'Windows11-ARM64'],
+        cpuCap: 100,
+        priority: 5,
+        idleReserve: 2,
+        weight: 1000,
+        expanded: true
+      }
+    ];
   }
 
   const page = document.getElementById('pageHost');

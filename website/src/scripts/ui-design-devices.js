@@ -170,7 +170,7 @@ export function renderGpuWorkbench(host, ctx) {
         name: picked.name,
         manu: picked.manu,
         vendor: picked.vendor || picked.manu,
-        memoryText: picked.memoryText || '24564 MB',
+        memoryText: picked.memoryText || '未知',
         driverVersion: picked.driverVersion,
         instanceId: picked.instanceId,
         partitionPath: picked.partitionPath,
