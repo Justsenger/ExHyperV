@@ -5,6 +5,7 @@ import type {
   DesktopIconSize,
   DesktopSortMode,
   ThemeMode,
+  WinAppLaunchArgs,
   WindowInstance,
 } from './types';
 
@@ -124,7 +125,9 @@ export function createShellStore() {
 
   function setTheme(theme: ThemeMode) {
     state.theme = theme;
-    document.documentElement.setAttribute('data-theme', theme);
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
     persist();
     notify();
   }
@@ -298,26 +301,40 @@ export function createShellStore() {
     }
   }
 
-  function openApp(appId: string, viewport: { width: number; height: number }) {
+  function openApp(
+    appId: string,
+    viewport: { width: number; height: number },
+    launchArgs?: WinAppLaunchArgs,
+  ): number | null {
     const manifest = getManifestById(appId);
-    if (!manifest) return;
+    if (!manifest || manifest.runtime === 'command') return null;
 
     state.activeFlyout = 'none';
 
-    const existing = state.windows.find((w) => w.appId === appId);
-    if (existing) {
-      existing.minimized = false;
-      nextZ += 1;
-      existing.zIndex = nextZ;
-      state.activePid = existing.pid;
-      notify();
-      return;
+    if (manifest.singleton !== false) {
+      const existing = state.windows.find((w) => w.appId === appId);
+      if (existing) {
+        existing.minimized = false;
+        if (launchArgs !== undefined) {
+          existing.launchArgs = launchArgs;
+        }
+        nextZ += 1;
+        existing.zIndex = nextZ;
+        state.activePid = existing.pid;
+        notify();
+        return existing.pid;
+      }
     }
 
-    const workW = viewport.width;
+    const winSpec = manifest.window ?? {};
+    const workW = Math.max(360, viewport.width);
     const workH = Math.max(320, viewport.height - 48);
-    const width = Math.min(manifest.defaultWidth ?? 820, Math.max(340, workW - 48));
-    const height = Math.min(manifest.defaultHeight ?? 520, Math.max(260, workH - 32));
+    const minWidth = winSpec.minWidth ?? 340;
+    const minHeight = winSpec.minHeight ?? 240;
+    const effectiveMinW = Math.min(minWidth, Math.max(240, workW - 24));
+    const effectiveMinH = Math.min(minHeight, Math.max(200, workH - 24));
+    const width = Math.max(effectiveMinW, Math.min(winSpec.defaultWidth ?? 820, workW - 48));
+    const height = Math.max(effectiveMinH, Math.min(winSpec.defaultHeight ?? 520, workH - 32));
     const cascadeOffset = (state.windows.length % 6) * 24;
     const rawX = Math.round((workW - width) / 2 + cascadeOffset);
     const rawY = Math.round((workH - height) / 2 + cascadeOffset);
@@ -335,20 +352,39 @@ export function createShellStore() {
       y,
       width,
       height,
+      minWidth,
+      minHeight,
+      resizable: winSpec.resizable ?? true,
+      maximizable: winSpec.maximizable ?? true,
       zIndex: nextZ,
       minimized: false,
       maximized: false,
-      entryUrl: manifest.entryUrl,
-      seamlessTitlebar: manifest.seamlessTitlebar,
+      seamlessTitlebar: winSpec.seamlessTitlebar,
+      background: winSpec.background,
+      launchArgs,
     };
     state.windows.push(win);
     state.activePid = win.pid;
+    notify();
+    return win.pid;
+  }
+
+  function setWindowTitle(pid: number, title: string) {
+    const win = state.windows.find((w) => w.pid === pid);
+    if (!win) return;
+    const manifest = getManifestById(win.appId);
+    const nextTitle = title.trim() || manifest?.name || win.title;
+    if (nextTitle === win.title) return;
+    win.title = nextTitle;
     notify();
   }
 
   function focusWindow(pid: number) {
     const win = state.windows.find((w) => w.pid === pid);
     if (!win) return;
+    if (!win.minimized && state.activePid === pid && state.activeFlyout === 'none') {
+      return;
+    }
     win.minimized = false;
     nextZ += 1;
     win.zIndex = nextZ;
@@ -372,7 +408,7 @@ export function createShellStore() {
 
   function toggleMaximizeWindow(pid: number, viewport: { width: number; height: number }) {
     const win = state.windows.find((w) => w.pid === pid);
-    if (!win) return;
+    if (!win || !win.maximizable) return;
     nextZ += 1;
     win.zIndex = nextZ;
     state.activePid = pid;
@@ -490,8 +526,10 @@ export function createShellStore() {
           changed = true;
         }
       } else {
-        const nextW = Math.min(win.width, Math.max(340, workW - 24));
-        const nextH = Math.min(win.height, Math.max(240, workH - 24));
+        const minW = Math.min(win.minWidth, Math.max(240, workW - 24));
+        const minH = Math.min(win.minHeight, Math.max(200, workH - 24));
+        const nextW = Math.max(minW, Math.min(win.width, Math.max(minW, workW - 24)));
+        const nextH = Math.max(minH, Math.min(win.height, Math.max(minH, workH - 24)));
         const nextX = Math.max(0, Math.min(win.x, Math.max(0, workW - nextW)));
         const nextY = Math.max(0, Math.min(win.y, Math.max(0, workH - nextH)));
         if (nextW !== win.width || nextH !== win.height || nextX !== win.x || nextY !== win.y) {
@@ -515,7 +553,9 @@ export function createShellStore() {
     state.autoArrange = false;
     state.alignToGrid = true;
     state.theme = 'dark';
-    document.documentElement.setAttribute('data-theme', 'dark');
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
     persist();
     notify();
   }
@@ -536,6 +576,7 @@ export function createShellStore() {
     setActiveFlyout,
     closeFlyouts,
     openApp,
+    setWindowTitle,
     focusWindow,
     minimizeWindow,
     toggleMaximizeWindow,

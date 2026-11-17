@@ -1,5 +1,8 @@
 ---
+import './task-manager.css';
 import { getAppIconSvg, UI_ICONS } from './icons';
+
+const { showCandidatesPanel = true } = Astro.props;
 ---
 
 <div class="w11-shell" data-win11-root>
@@ -37,11 +40,20 @@ import { getAppIconSvg, UI_ICONS } from './icons';
     <footer class="w11-start-footer">
       <div class="w11-start-user">
         <span class="w11-start-avatar" set:html={UI_ICONS.user} />
-        <span>Administrator</span>
+        <span>admin</span>
       </div>
-      <button type="button" class="w11-icon-btn" data-start-reset title="重置桌面布局">
-        <span set:html={UI_ICONS.power} />
-      </button>
+      <div class="w11-start-power-wrap">
+        <button type="button" class="w11-icon-btn" data-start-power aria-haspopup="menu" aria-expanded="false" title="电源选项">
+          <span set:html={UI_ICONS.power} />
+        </button>
+        <div class="w11-power-popover" data-start-power-menu hidden role="menu">
+          <button type="button" class="w11-power-item" data-power-action="lock" role="menuitem">锁定</button>
+          <button type="button" class="w11-power-item" data-power-action="signout" role="menuitem">注销</button>
+          <button type="button" class="w11-power-item" data-power-action="restart" role="menuitem">重启</button>
+          <div class="w11-power-divider"></div>
+          <button type="button" class="w11-power-item" data-power-action="reset-layout" role="menuitem">重置桌面布局</button>
+        </div>
+      </div>
     </footer>
   </section>
 
@@ -119,6 +131,7 @@ import { getAppIconSvg, UI_ICONS } from './icons';
   <div class="w11-context-menu" data-context-menu></div>
 
   <!-- 右侧浮动设计候选菜单（与 ExHyperV 设备·显卡同步） -->
+  {showCandidatesPanel && (
   <aside class="w11-dcp-panel" id="desktopCandidatesPanel" aria-label="显卡设计候选菜单">
     <div class="w11-dcp-header" id="desktopDcpHeader">
       <span class="w11-dcp-title">显卡界面候选</span>
@@ -148,6 +161,7 @@ import { getAppIconSvg, UI_ICONS } from './icons';
       </div>
     </div>
   </aside>
+  )}
 
   <!-- 底部任务栏 -->
   <footer class="w11-taskbar" data-taskbar>
@@ -179,6 +193,106 @@ import { getAppIconSvg, UI_ICONS } from './icons';
       <button type="button" class="w11-show-desktop" data-show-desktop title="显示桌面" aria-label="显示桌面"></button>
     </div>
   </footer>
+
+  <!-- Windows 11 锁屏与登录界面（1:1 复刻 MOBAN11 Bloom 锁屏 / admin 登录 / 欢迎页） -->
+  <section class="w11-lockscreen is-hidden" data-lock-screen aria-label="Windows 登录屏幕">
+    <div class="w11-lock-bg" style="background-image: url('/win11/wallpapers/bloom-dark.webp');"></div>
+    <div class="w11-lock-blur-veil"></div>
+
+    <!-- Phase 1: 锁屏时钟界面 -->
+    <div class="w11-lock-curtain" data-lock-curtain>
+      <div class="w11-lock-clock-box">
+        <div class="w11-lock-time" data-lock-time>9:11</div>
+        <div class="w11-lock-date" data-lock-date>11月17日, 星期二</div>
+      </div>
+      <div class="w11-lock-hint">单击或按任意键解锁</div>
+      <div class="w11-lock-curtain-tray" title="以太网: Internet 访问">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="2" y="4" width="14" height="10" rx="1.2" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M6 17H12M9 14V17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          <path d="M18.5 7V15M18.5 7L21 9.5M18.5 7L16 9.5M18.5 15L21 12.5M18.5 15L16 12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Phase 2 & 3: 登录凭据界面与“欢迎”过渡 -->
+    <div class="w11-signin-pane" data-signin-pane>
+      <div class="w11-signin-card">
+        <div class="w11-signin-avatar" aria-hidden="true">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="21" r="10.5" fill="rgba(255,255,255,0.92)"/>
+            <path d="M16.5 47.5C17.8 39.2 24.1 34.5 32 34.5C39.9 34.5 46.2 39.2 47.5 47.5C47.8 49.4 46.3 51 44.4 51H19.6C17.7 51 16.2 49.4 16.5 47.5Z" fill="rgba(255,255,255,0.92)"/>
+          </svg>
+        </div>
+        <h2 class="w11-signin-user">admin</h2>
+
+        <form class="w11-signin-form" data-signin-form autocomplete="off">
+          <div class="w11-signin-input-box">
+            <input
+              type="password"
+              class="w11-signin-input"
+              data-signin-input
+              placeholder="密码"
+              aria-label="密码"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button type="button" class="w11-signin-eye" data-signin-eye hidden title="显示密码" aria-label="显示密码">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M1.5 8C3 4.8 5.3 3.5 8 3.5C10.7 3.5 13 4.8 14.5 8C13 11.2 10.7 12.5 8 12.5C5.3 12.5 3 11.2 1.5 8Z" stroke="currentColor" stroke-width="1.25"/>
+                <circle cx="8" cy="8" r="2" fill="currentColor"/>
+              </svg>
+            </button>
+            <button type="submit" class="w11-signin-submit" title="提交" aria-label="提交密码">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8H13M13 8L8.8 3.8M13 8L8.8 12.2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          <div class="w11-signin-tip">输入密码 <code>qwer1234</code> 登录</div>
+        </form>
+
+        <div class="w11-signin-error" data-signin-error hidden>
+          <p class="w11-signin-error-msg">密码不正确。请再试一次。</p>
+          <p class="w11-signin-error-hint">密码提示: qwer1234</p>
+          <button type="button" class="w11-signin-ok-btn" data-signin-ok>确定</button>
+        </div>
+
+        <div class="w11-signin-welcome" data-signin-welcome hidden>
+          <div class="w11-signin-spinner" aria-hidden="true"></div>
+          <div class="w11-signin-welcome-text" data-welcome-text>欢迎</div>
+        </div>
+      </div>
+
+      <div class="w11-signin-tray">
+        <button type="button" class="w11-signin-tray-btn is-ime" data-signin-ime title="输入法切换">英</button>
+        <span class="w11-signin-tray-pill" data-signin-ime-badge>拼</span>
+        <button type="button" class="w11-signin-tray-btn" title="网络: 以太网 (Internet 访问)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="4" width="14" height="10" rx="1.2" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M6 17H12M9 14V17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M18.5 7V15M18.5 7L21 9.5M18.5 7L16 9.5M18.5 15L21 12.5M18.5 15L16 12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <button type="button" class="w11-signin-tray-btn" title="辅助功能" data-signin-a11y>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="5.5" r="2" fill="currentColor"/>
+            <path d="M6 9.5H18M12 9.5V14.5M12 14.5L8.5 20.5M12 14.5L15.5 20.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="w11-signin-power-wrap">
+          <button type="button" class="w11-signin-tray-btn" data-signin-power title="电源">
+            <span set:html={UI_ICONS.power} />
+          </button>
+          <div class="w11-power-popover is-login" data-signin-power-menu hidden role="menu">
+            <button type="button" class="w11-power-item" data-login-power="sleep">睡眠</button>
+            <button type="button" class="w11-power-item" data-login-power="lock">返回锁屏</button>
+            <button type="button" class="w11-power-item" data-login-power="restart">重启</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <script is:inline>
@@ -609,700 +723,6 @@ import { getAppIconSvg, UI_ICONS } from './icons';
     font-weight: 600;
   }
 
-  .w11-tm-probe {
-    margin: 0 0 14px;
-    padding: 12px 14px;
-    max-height: 290px;
-    overflow: auto;
-    border-radius: 8px;
-    border: 1px solid var(--win-divider);
-    background: var(--win-card-bg);
-    color: var(--win-text);
-    font-family: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
-    font-size: 12px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-    word-break: break-word;
-    user-select: text;
-    -webkit-user-select: text;
-  }
-
-  .w11-tm-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12.5px;
-  }
-
-  .w11-tm-table th,
-  .w11-tm-table td {
-    padding: 10px 12px;
-    text-align: left;
-    vertical-align: middle;
-    border-bottom: 1px solid var(--win-divider);
-  }
-
-  .w11-tm-table th {
-    color: var(--win-text-secondary);
-    font-weight: 500;
-  }
-
-  .w11-tm-name {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  /* Win11 任务管理器 1:1 原图像素对齐 */
-  .w11-window[data-app='task-manager'] {
-    background: #202020;
-    color: #f3f3f3;
-  }
-
-  .w11-window[data-app='task-manager'] .w11-win-titlebar {
-    height: 40px;
-    padding-left: 14px;
-    background: #202020 !important;
-    color: #f3f3f3;
-    border-bottom: none;
-  }
-
-  .w11-window[data-app='task-manager'] .w11-win-ctrl {
-    color: #f3f3f3;
-  }
-
-  .w11-window[data-app='task-manager'] .w11-win-body {
-    overflow: hidden;
-    background: #202020;
-  }
-
-  .w11-tm-shell {
-    display: flex;
-    height: 100%;
-    min-height: 0;
-    background: #202020;
-    color: #f3f3f3;
-    font-size: 12px;
-    font-family: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
-  }
-
-  .w11-tm-shell *::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
-
-  .w11-tm-shell *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .w11-tm-shell *::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 999px;
-  }
-
-  .w11-tm-nav {
-    width: 48px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 6px 4px 10px;
-    background: #202020;
-    transition: width 0.14s ease;
-  }
-
-  .w11-tm-nav-top {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-  }
-
-  .w11-tm-shell.is-nav-expanded .w11-tm-nav {
-    width: 156px;
-  }
-
-  .w11-tm-nav-btn {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    height: 40px;
-    padding: 0 12px;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: #e4e4e4;
-    cursor: pointer;
-    text-align: left;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-
-  .w11-tm-nav-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .w11-tm-nav-btn.is-muted {
-    color: #d0d0d0;
-    cursor: default;
-  }
-
-  .w11-tm-nav-btn.is-active {
-    background: rgba(255, 255, 255, 0.065);
-    color: #ffffff;
-  }
-
-  .w11-tm-nav-btn.is-active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 11px;
-    bottom: 11px;
-    width: 3px;
-    border-radius: 2px;
-    background: #4cc2ff;
-  }
-
-  .w11-tm-nav-icon {
-    width: 16px;
-    height: 16px;
-    display: grid;
-    place-items: center;
-    flex-shrink: 0;
-  }
-
-  .w11-tm-fi {
-    font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', 'FluentSystemIcons-Regular', sans-serif;
-    font-style: normal;
-    font-weight: normal;
-    font-size: 16px;
-    line-height: 1;
-    width: 16px;
-    height: 16px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .w11-tm-fi-fluent {
-    font-family: 'FluentSystemIcons-Regular', 'Segoe Fluent Icons', sans-serif;
-  }
-
-  .w11-tm-fi svg {
-    width: 16px;
-    height: 16px;
-    display: block;
-    fill: currentColor;
-  }
-
-  .w11-tm-nav-icon svg {
-    width: 16px;
-    height: 16px;
-    display: block;
-  }
-
-  .w11-tm-nav-text {
-    font-size: 13px;
-    opacity: 0;
-    transition: opacity 0.1s ease;
-  }
-
-  .w11-tm-shell.is-nav-expanded .w11-tm-nav-text {
-    opacity: 1;
-  }
-
-  .w11-tm-workspace {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: #1c1c1c;
-    border-top-left-radius: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.045);
-    border-left: 1px solid rgba(255, 255, 255, 0.045);
-  }
-
-  .w11-tm-topbar {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 52px;
-    padding: 0 14px 0 22px;
-    border-bottom: 1px solid #282828;
-    flex-shrink: 0;
-  }
-
-  .w11-tm-page-title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-    color: #f3f3f3;
-    margin-right: auto;
-  }
-
-  .w11-tm-search {
-    width: 260px;
-    max-width: 45%;
-    height: 28px;
-    padding: 0 10px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.45);
-    background: #2b2b2b;
-    color: #f3f3f3;
-    font-size: 12px;
-    outline: none;
-  }
-
-  .w11-tm-search:focus {
-    border-bottom: 2px solid #4cc2ff;
-  }
-
-  .w11-tm-cmd-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .w11-tm-cmd-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    height: 32px;
-    padding: 0 10px;
-    border-radius: 4px;
-    border: none;
-    background: transparent;
-    color: #f3f3f3;
-    font-size: 12.5px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-
-  .w11-tm-cmd-btn .w11-tm-fi,
-  .w11-tm-cmd-btn svg {
-    width: 16px;
-    height: 16px;
-    font-size: 16px;
-    flex-shrink: 0;
-  }
-
-  .w11-tm-cmd-btn:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.07);
-  }
-
-  .w11-tm-cmd-btn:disabled {
-    color: rgba(255, 255, 255, 0.35);
-    cursor: default;
-  }
-
-  .w11-tm-cmd-more {
-    width: 32px;
-    height: 32px;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: #f3f3f3;
-    cursor: pointer;
-    display: grid;
-    place-items: center;
-  }
-
-  .w11-tm-cmd-more .w11-tm-fi,
-  .w11-tm-cmd-more svg {
-    width: 16px;
-    height: 16px;
-    font-size: 16px;
-    display: block;
-  }
-
-  .w11-tm-cmd-more:hover {
-    background: rgba(255, 255, 255, 0.07);
-  }
-
-  .w11-tm-content {
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .w11-tm-perf-layout {
-    display: flex;
-    height: 100%;
-    min-height: 0;
-  }
-
-  .w11-tm-perf-list {
-    width: 248px;
-    min-width: 172px;
-    max-width: 440px;
-    flex-shrink: 0;
-    padding: 8px 8px 8px 10px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .w11-tm-perf-splitter {
-    width: 8px;
-    margin: 8px -3px;
-    flex-shrink: 0;
-    cursor: col-resize;
-    position: relative;
-    z-index: 2;
-    touch-action: none;
-    user-select: none;
-  }
-
-  .w11-tm-perf-splitter::after {
-    content: '';
-    position: absolute;
-    top: 6px;
-    bottom: 6px;
-    left: 3px;
-    width: 2px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.06);
-    transition: background 0.12s ease;
-  }
-
-  .w11-tm-perf-splitter:hover::after,
-  .w11-tm-perf-splitter.is-dragging::after {
-    background: rgba(76, 194, 255, 0.72);
-  }
-
-  .w11-tm-perf-card {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 8px 10px;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: #f3f3f3;
-    text-align: left;
-    cursor: pointer;
-  }
-
-  .w11-tm-perf-card:hover {
-    background: rgba(255, 255, 255, 0.045);
-  }
-
-  .w11-tm-perf-card.is-active {
-    background: #2d2d2d;
-  }
-
-  .w11-tm-perf-thumb {
-    width: 58px;
-    height: 40px;
-    flex-shrink: 0;
-    background: #181818;
-    border: 1px solid #4d4d4d;
-    overflow: hidden;
-  }
-
-  .w11-tm-perf-meta {
-    min-width: 0;
-    flex: 1;
-  }
-
-  .w11-tm-perf-title {
-    font-size: 13.5px;
-    font-weight: 400;
-    color: #f3f3f3;
-    line-height: 1.25;
-    margin-bottom: 1px;
-  }
-
-  .w11-tm-perf-sub {
-    font-size: 11.5px;
-    color: #b8b8b8;
-    line-height: 1.3;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .w11-tm-perf-detail {
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    padding: 16px 28px 16px 24px;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
-  }
-
-  .w11-tm-detail-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    flex-shrink: 0;
-    margin-bottom: 6px;
-  }
-
-  .w11-tm-detail-head h2 {
-    margin: 0;
-    font-size: 26px;
-    font-weight: 600;
-    color: #ffffff;
-    line-height: 1.15;
-  }
-
-  .w11-tm-detail-hw {
-    font-size: 16px;
-    color: #f3f3f3;
-    font-weight: 400;
-  }
-
-  .w11-tm-chart-caption {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11.5px;
-    color: #9c9c9c;
-    margin: 0 0 4px;
-    flex-shrink: 0;
-  }
-
-  .w11-tm-core-grid {
-    flex: 1;
-    min-height: 110px;
-    display: grid;
-    gap: 5px;
-  }
-
-  .w11-tm-core-cell {
-    min-height: 0;
-    border: 1px solid #484848;
-    background: #181818;
-    overflow: hidden;
-  }
-
-  .w11-tm-single-chart {
-    flex: 1;
-    min-height: 100px;
-    border: 1px solid #484848;
-    background: #181818;
-    overflow: hidden;
-  }
-
-  .w11-tm-gpu-grid {
-    flex: 1;
-    min-height: 120px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    gap: 8px 10px;
-    margin-bottom: 4px;
-  }
-
-  .w11-tm-gpu-box {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-  }
-
-  .w11-tm-gpu-box .w11-tm-core-cell {
-    flex: 1;
-    min-height: 0;
-  }
-
-  .w11-tm-mem-bar {
-    display: flex;
-    height: 36px;
-    flex-shrink: 0;
-    border: 1px solid rgba(79, 134, 214, 0.7);
-    background: #191919;
-    overflow: hidden;
-  }
-
-  .w11-tm-mem-used {
-    background: rgba(59, 130, 246, 0.28);
-    border-right: 1px solid #4f86d6;
-  }
-
-  .w11-tm-mem-compressed {
-    width: 14px;
-    background: rgba(96, 165, 250, 0.16);
-    border-right: 1px solid #4f86d6;
-  }
-
-  .w11-tm-mem-standby {
-    background: transparent;
-    border-right: 1px solid rgba(79, 134, 214, 0.6);
-  }
-
-  .w11-tm-svg {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  .w11-tm-grid-lines line {
-    stroke: rgba(255, 255, 255, 0.06);
-    stroke-width: 1;
-    vector-effect: non-scaling-stroke;
-  }
-
-  .w11-tm-bottom-stats {
-    display: flex;
-    align-items: flex-start;
-    gap: 56px;
-    flex-shrink: 0;
-    padding: 18px 0 4px;
-  }
-
-  .w11-tm-kpis {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 224px;
-  }
-
-  .w11-tm-kpi-row {
-    display: flex;
-    gap: 26px;
-    flex-wrap: wrap;
-  }
-
-  .w11-tm-kpi {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .w11-tm-kpi > span {
-    font-size: 12px;
-    color: #a8a8a8;
-    line-height: 1.25;
-  }
-
-  .w11-tm-kpi strong {
-    font-size: 20px;
-    font-weight: 400;
-    line-height: 1.2;
-    color: #f3f3f3;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .w11-tm-kv-table {
-    display: grid;
-    grid-template-columns: 98px auto;
-    row-gap: 6px;
-    column-gap: 22px;
-    font-size: 12.5px;
-    line-height: 1.38;
-  }
-
-  .w11-tm-kv-table.is-cpu-kv {
-    grid-template-columns: 88px auto;
-  }
-
-  .w11-tm-kv-table.is-mem-kv {
-    grid-template-columns: 124px auto;
-  }
-
-  .w11-tm-kv-table.is-disk-kv {
-    grid-template-columns: 116px auto;
-  }
-
-  .w11-tm-kv-label {
-    color: #a8a8a8;
-  }
-
-  .w11-tm-kv-val {
-    color: #f3f3f3;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .w11-tm-inferred {
-    color: #f6b94d !important;
-  }
-
-  .w11-tm-fake {
-    color: #ff6b6b !important;
-  }
-
-  .w11-tm-proc-wrap {
-    height: 100%;
-    overflow: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
-  }
-
-  .w11-tm-proc-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 12px;
-  }
-
-  .w11-tm-proc-table th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: #191919;
-    padding: 8px 12px;
-    text-align: left;
-    font-weight: 400;
-    color: #bcbcbc;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .w11-tm-proc-table th.is-num {
-    text-align: right;
-    min-width: 82px;
-  }
-
-  .w11-tm-proc-table th.is-num div {
-    font-size: 15px;
-    font-weight: 400;
-    color: #f3f3f3;
-  }
-
-  .w11-tm-proc-row {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    cursor: pointer;
-  }
-
-  .w11-tm-proc-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-  }
-
-  .w11-tm-proc-row.is-selected {
-    outline: 1px solid #4cc2ff;
-    outline-offset: -1px;
-  }
-
-  .w11-tm-proc-row td {
-    padding: 5px 12px;
-  }
-
-  .w11-tm-num-cell {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    border-left: 1px solid rgba(255, 255, 255, 0.06);
-  }
-
-  .w11-tm-status-cell {
-    color: #bcbcbc;
-    font-size: 11.5px;
-  }
-
-  .w11-tm-empty {
-    text-align: center;
-    padding: 24px;
-    color: #a6a6a6;
-  }
 
   /* 8向窗口缩放手柄 */
   .w11-resize-handle {
@@ -1310,7 +730,8 @@ import { getAppIconSvg, UI_ICONS } from './icons';
     z-index: 10;
     touch-action: none;
   }
-  .w11-window.is-maximized .w11-resize-handle {
+  .w11-window.is-maximized .w11-resize-handle,
+  .w11-window.is-non-resizable .w11-resize-handle {
     display: none;
   }
   .w11-resize-handle.is-n { top: -3px; left: 8px; right: 8px; height: 6px; cursor: ns-resize; }
@@ -2103,5 +1524,422 @@ import { getAppIconSvg, UI_ICONS } from './icons';
     font-size: 11px;
     color: #4CC2FF;
     flex-shrink: 0;
+  }
+
+  /* Power Flyouts (Start Menu & Sign-in) */
+  .w11-start-power-wrap,
+  .w11-signin-power-wrap {
+    position: relative;
+  }
+
+  .w11-power-popover {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: -6px;
+    min-width: 152px;
+    padding: 5px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(34, 34, 38, 0.94);
+    backdrop-filter: blur(28px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 60;
+  }
+
+  :root[data-theme='light'] .w11-power-popover:not(.is-login) {
+    background: rgba(246, 246, 248, 0.96);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .w11-power-popover[hidden] {
+    display: none;
+  }
+
+  .w11-power-item {
+    border: none;
+    background: transparent;
+    color: var(--win-text);
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: default;
+  }
+
+  .w11-power-popover.is-login .w11-power-item {
+    color: #ffffff;
+  }
+
+  .w11-power-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  :root[data-theme='light'] .w11-power-popover:not(.is-login) .w11-power-item:hover {
+    background: rgba(0, 0, 0, 0.055);
+  }
+
+  .w11-power-divider {
+    height: 1px;
+    margin: 3px 6px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Win11 Lock Screen & Sign-in Overlay */
+  .w11-lockscreen {
+    position: absolute;
+    inset: 0;
+    z-index: 9500;
+    overflow: hidden;
+    color: #ffffff;
+    font-family: 'Segoe UI Variable Display', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+    transition: opacity 260ms ease, visibility 260ms ease;
+  }
+
+  .w11-lockscreen.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .w11-lock-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(1.16) saturate(1.18);
+    transform: scale(1.02);
+    transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), filter 380ms ease;
+  }
+
+  .w11-lockscreen.is-signin .w11-lock-bg {
+    transform: scale(1.07);
+    filter: brightness(0.9) saturate(1.08);
+  }
+
+  .w11-lock-blur-veil {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    background: radial-gradient(circle at 50% 42%, rgba(8, 22, 68, 0.16), rgba(4, 10, 32, 0.42));
+    backdrop-filter: blur(26px) saturate(1.1);
+    -webkit-backdrop-filter: blur(26px) saturate(1.1);
+    transition: opacity 320ms ease;
+  }
+
+  .w11-lockscreen.is-signin .w11-lock-blur-veil {
+    opacity: 1;
+  }
+
+  .w11-lock-curtain {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: min(12vh, 106px);
+    cursor: default;
+    transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1), opacity 240ms ease;
+  }
+
+  .w11-lockscreen.is-signin .w11-lock-curtain {
+    transform: translateY(-64px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .w11-lock-clock-box {
+    text-align: center;
+    text-shadow: 0 4px 24px rgba(0, 0, 0, 0.32);
+  }
+
+  .w11-lock-time {
+    font-size: 96px;
+    font-weight: 600;
+    line-height: 1.02;
+    letter-spacing: -1.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .w11-lock-date {
+    margin-top: 8px;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+    color: rgba(255, 255, 255, 0.96);
+  }
+
+  .w11-lock-hint {
+    position: absolute;
+    bottom: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.24);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.78);
+    letter-spacing: 0.3px;
+    opacity: 0.72;
+    transition: opacity 180ms ease;
+  }
+
+  .w11-lock-curtain:hover .w11-lock-hint {
+    opacity: 1;
+  }
+
+  .w11-lock-curtain-tray {
+    position: absolute;
+    right: 28px;
+    bottom: 24px;
+    color: rgba(255, 255, 255, 0.92);
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+  }
+
+  .w11-signin-pane {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(18px);
+    transition: opacity 280ms ease 60ms, transform 300ms cubic-bezier(0.22, 1, 0.36, 1) 60ms;
+  }
+
+  .w11-lockscreen.is-signin .w11-signin-pane {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .w11-signin-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: -40px;
+  }
+
+  .w11-signin-avatar {
+    width: 148px;
+    height: 148px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .w11-signin-avatar svg {
+    width: 78px;
+    height: 78px;
+  }
+
+  .w11-signin-user {
+    margin: 18px 0 18px;
+    font-size: 24px;
+    font-weight: 500;
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  }
+
+  .w11-signin-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .w11-signin-form[hidden] {
+    display: none;
+  }
+
+  .w11-signin-input-box {
+    position: relative;
+    width: 262px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    background: rgba(16, 20, 34, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: 2px solid #4cc2ff;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  }
+
+  .w11-signin-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0 8px 0 12px;
+    border: none;
+    background: transparent;
+    color: #ffffff;
+    font-size: 13.5px;
+    outline: none;
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  .w11-signin-input::placeholder {
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .w11-signin-eye,
+  .w11-signin-submit {
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.85);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .w11-signin-eye[hidden] {
+    display: none;
+  }
+
+  .w11-signin-eye:hover,
+  .w11-signin-submit:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+
+  .w11-signin-tip {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.62);
+  }
+
+  .w11-signin-tip code {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    font-family: 'Cascadia Code', Consolas, monospace;
+    font-size: 11.5px;
+  }
+
+  .w11-signin-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .w11-signin-error[hidden] {
+    display: none;
+  }
+
+  .w11-signin-error-msg {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.94);
+  }
+
+  .w11-signin-error-hint {
+    margin: 0;
+    font-size: 12.5px;
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  .w11-signin-ok-btn {
+    min-width: 112px;
+    height: 34px;
+    padding: 0 24px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+
+  .w11-signin-ok-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .w11-signin-welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    margin-top: 8px;
+  }
+
+  .w11-signin-welcome[hidden] {
+    display: none;
+  }
+
+  .w11-signin-spinner {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #ffffff;
+    border-right-color: rgba(255, 255, 255, 0.72);
+    animation: w11Spin 0.85s linear infinite;
+  }
+
+  @keyframes w11Spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .w11-signin-welcome-text {
+    font-size: 18px;
+    font-weight: 400;
+    color: #ffffff;
+  }
+
+  .w11-signin-tray {
+    position: absolute;
+    right: 26px;
+    bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .w11-signin-tray-btn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 6px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 14px;
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+  }
+
+  .w11-signin-tray-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .w11-signin-tray-pill {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 2px;
+    background: #ffffff;
+    color: #101628;
+    font-size: 13px;
+    font-weight: 700;
   }
 </style>

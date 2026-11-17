@@ -4,5 +4,9 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
+/apps/*
+  ! X-Frame-Options
+  Content-Security-Policy: frame-ancestors 'self'
+
 /api/*
   Cache-Control: public, max-age=0, must-revalidate

@@ -12,7 +12,16 @@ const HOST_SYS = {
   curClock: '4.18 GHz',
   numaNodes: 1,
   memoryGb: 64,
-  usedMemoryGb: 22.4
+  usedMemoryGb: 22.4,
+  cpuPct: 18,
+  cpuHistory: [15, 20, 17, 24, 19, 21, 18],
+  coreHistories: Array.from({ length: 16 }, (_, i) => {
+    const base = 10 + ((i * 7) % 28);
+    return [base - 4, base + 5, base - 2, base + 8, base + 2, base + 4, base];
+  }),
+  memHistory: [32, 33, 34, 35, 34, 35, 35],
+  memPct: 35,
+  memNote: '物理内存 64 GB'
 };
 
 const POWER_PLANS = [
@@ -402,16 +411,16 @@ function renderStateTab() {
   const strokeOf = (fallback) => (accentMode ? 'var(--VmAccentBrush)' : fallback);
   const fillOf = (fallback) => (accentMode ? 'var(--VmChartFillBrush)' : fallback);
 
-  const memPct = Math.round((HOST_SYS.usedMemoryGb / HOST_SYS.memoryGb) * 100);
+  const memPct = HOST_SYS.memPct ?? Math.round((HOST_SYS.usedMemoryGb / Math.max(0.1, HOST_SYS.memoryGb)) * 100);
   const rows = [
     {
       kind: 'cpu',
       idx: 0,
       title: '处理器',
       sub: HOST_SYS.cpuShort,
-      stat: `18% ${HOST_SYS.cores} 核心`,
+      stat: `${HOST_SYS.cpuPct}% ${HOST_SYS.cores} 核心`,
       active: true,
-      pts: [15, 20, 17, 24, 19, 21, 18],
+      pts: HOST_SYS.cpuHistory,
       color: '#3898EC',
       fill: 'rgba(56, 152, 236, 0.22)',
       tip: HOST_SYS.cpu
@@ -423,10 +432,10 @@ function renderStateTab() {
       sub: '',
       stat: `${memPct}% ${HOST_SYS.usedMemoryGb.toFixed(1)}/${HOST_SYS.memoryGb.toFixed(1)} GB`,
       active: true,
-      pts: [32, 33, 34, 35, 34, 35, memPct],
+      pts: HOST_SYS.memHistory,
       color: '#9D5CE6',
       fill: 'rgba(157, 92, 230, 0.22)',
-      tip: `物理内存 ${HOST_SYS.memoryGb} GB`
+      tip: HOST_SYS.memNote
     }
   ];
 
@@ -496,18 +505,19 @@ function renderStateTab() {
   let icon = '&#xF58E;';
   let rotate = 90;
   let title = HOST_SYS.cpu;
-  let reading = '18%';
+  let reading = `${HOST_SYS.cpuPct}%`;
   let jumpTab = 'compute';
   let jumpSub = 'scheduler';
   let jumpLabel = '配置调度与处理器';
   let bodyHtml = '';
 
   if (sel.kind === 'cpu') {
-    const coreCharts = Array.from({ length: 16 }, (_, i) => {
-      const base = 10 + ((i * 7) % 28);
-      const pts = [base - 4, base + 5, base - 2, base + 8, base + 2, base + 4, base];
-      return createUsageChartHtml(String(i), true, `${base}%`, pts, false, 84);
-    }).join('');
+    const coreCharts = HOST_SYS.coreHistories
+      .map((pts, i) => {
+        const cur = pts[pts.length - 1] ?? 0;
+        return createUsageChartHtml(String(i), true, `${cur}%`, pts, false, 84);
+      })
+      .join('');
     const kvItems = [
       renderTitleFirstKvItemHtml({ title: '核心 / 逻辑处理器', stateText: `${HOST_SYS.cores} 核 / ${HOST_SYS.threads} 线程` }),
       renderTitleFirstKvItemHtml({ title: '基准 / 当前速度', stateText: `${HOST_SYS.baseClock} / ${HOST_SYS.curClock}` }),
@@ -538,7 +548,7 @@ function renderStateTab() {
       renderTitleFirstKvItemHtml({ title: '电源方案', stateText: POWER_PLANS.find((p) => p.id === hostState.saved.powerPlanId)?.name || '高性能' })
     ];
     bodyHtml = `
-      ${createUsageChartHtml('内存使用趋势', true, `${memPct}%`, [32, 33, 34, 35, 34, 35, memPct], false, 136)}
+      ${createUsageChartHtml('内存使用趋势', true, `${memPct}%`, HOST_SYS.memHistory, false, 136)}
       <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
     `;
   } else if (sel.kind === 'disk') {
@@ -1221,11 +1231,88 @@ function revertKeys(keys) {
   });
 }
 
+let hasAppliedHwOnce = false;
+
+export function applyVirtualHardwareToHost(hw) {
+  if (!hw || typeof hw !== 'object') return;
+
+  if (hw.system?.osName?.value) {
+    const ver = hw.system.osVersion ? ` (${hw.system.osVersion})` : '';
+    HOST_SYS.os = `${hw.system.osName.value}${ver}`;
+  }
+  if (hw.system?.architecture?.value) {
+    HOST_SYS.arch = String(hw.system.architecture.value).toUpperCase();
+  }
+  if (hw.cpu) {
+    if (hw.cpu.displayName?.value) HOST_SYS.cpu = hw.cpu.displayName.value;
+    if (hw.cpu.shortName) HOST_SYS.cpuShort = hw.cpu.shortName;
+    if (typeof hw.cpu.physicalCores?.value === 'number') HOST_SYS.cores = hw.cpu.physicalCores.value;
+    if (typeof hw.cpu.logicalCores === 'number') HOST_SYS.threads = hw.cpu.logicalCores;
+    if (typeof hw.cpu.baseClockGhz?.value === 'number') HOST_SYS.baseClock = `${hw.cpu.baseClockGhz.value.toFixed(2)} GHz`;
+    if (typeof hw.cpu.currentClockGhz === 'number') HOST_SYS.curClock = `${hw.cpu.currentClockGhz.toFixed(2)} GHz`;
+    if (typeof hw.cpu.usagePct === 'number') HOST_SYS.cpuPct = hw.cpu.usagePct;
+    if (Array.isArray(hw.cpu.history) && hw.cpu.history.length > 1) HOST_SYS.cpuHistory = hw.cpu.history;
+    if (Array.isArray(hw.cpu.coreHistories) && hw.cpu.coreHistories.length > 0) {
+      HOST_SYS.coreHistories = hw.cpu.coreHistories;
+    }
+  }
+  if (hw.memory) {
+    if (typeof hw.memory.totalGb === 'number') HOST_SYS.memoryGb = hw.memory.totalGb;
+    if (typeof hw.memory.usedGb === 'number') HOST_SYS.usedMemoryGb = hw.memory.usedGb;
+    if (typeof hw.memory.usagePct === 'number') HOST_SYS.memPct = hw.memory.usagePct;
+    if (Array.isArray(hw.memory.history) && hw.memory.history.length > 1) HOST_SYS.memHistory = hw.memory.history;
+    HOST_SYS.memNote = hw.memory.capTip || `物理内存 ${HOST_SYS.memoryGb} GB`;
+  }
+  const primaryGpu = hw.gpus?.[0];
+  const hostGpu0 = hostState.gpus[0];
+  if (primaryGpu && hostGpu0) {
+    if (primaryGpu.name) hostGpu0.name = primaryGpu.name;
+    if (primaryGpu.vendor) {
+      hostGpu0.manu = primaryGpu.vendor;
+      hostGpu0.vendor = primaryGpu.vendor;
+    }
+    if (typeof primaryGpu.usagePct === 'number') hostGpu0.pct = primaryGpu.usagePct;
+    if (Array.isArray(primaryGpu.pts3d) && primaryGpu.pts3d.length > 1) hostGpu0.pts3d = primaryGpu.pts3d;
+    if (Array.isArray(primaryGpu.ptsCopy) && primaryGpu.ptsCopy.length > 1) hostGpu0.ptsCopy = primaryGpu.ptsCopy;
+    if (Array.isArray(primaryGpu.ptsEnc) && primaryGpu.ptsEnc.length > 1) hostGpu0.ptsEnc = primaryGpu.ptsEnc;
+    if (Array.isArray(primaryGpu.ptsDec) && primaryGpu.ptsDec.length > 1) hostGpu0.ptsDec = primaryGpu.ptsDec;
+    if (primaryGpu.pciDeviceIdHex) {
+      hostGpu0.instanceId = `PCI\\DEV_${primaryGpu.pciDeviceIdHex.replace(/^0x/i, '').toUpperCase()}${primaryGpu.architecture ? ` (${primaryGpu.architecture})` : ''}`;
+    }
+    if (primaryGpu.webglVersion) {
+      hostGpu0.driver = primaryGpu.webglVersion;
+    }
+    if (primaryGpu.isSoftwareRenderer) {
+      hostGpu0.partitionable = false;
+    }
+  }
+
+  const page = document.getElementById('pageHost');
+  if (!page || page.hidden) return;
+  const activeEl = document.activeElement;
+  if (activeEl && page.contains(activeEl) && ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName)) {
+    return;
+  }
+  if (hostState.activeTab === 'state' || !hasAppliedHwOnce) {
+    hasAppliedHwOnce = true;
+    renderHostPage();
+  }
+}
+
 export function initHostPage(options = {}) {
   onHostRenderCallback = options.onRender || null;
   const page = document.getElementById('pageHost');
   if (!page || page.dataset.bound === 'true') return;
   page.dataset.bound = 'true';
+
+  if (typeof window !== 'undefined') {
+    if (window.__WIN11_HARDWARE__) {
+      applyVirtualHardwareToHost(window.__WIN11_HARDWARE__);
+    }
+    window.addEventListener('win11:hardware', (e) => {
+      applyVirtualHardwareToHost(e.detail);
+    });
+  }
 
   page.addEventListener('click', (e) => {
     const copyBtn = e.target.closest('[data-copy]');

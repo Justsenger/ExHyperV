@@ -1,0 +1,1593 @@
+.w11-tm-probe {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  max-height: 290px;
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid var(--win-divider);
+  background: var(--win-card-bg);
+  color: var(--win-text);
+  font-family: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.w11-tm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.w11-tm-table th,
+.w11-tm-table td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--win-divider);
+}
+
+.w11-tm-table th {
+  color: var(--win-text-secondary);
+  font-weight: 500;
+}
+
+.w11-tm-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Win11 任务管理器 1:1 原图像素对齐 */
+.w11-window[data-app='task-manager'] {
+  background: #202020;
+  color: #f3f3f3;
+}
+
+.w11-window[data-app='task-manager'] .w11-win-titlebar {
+  height: 40px;
+  padding-left: 14px;
+  background: #202020 !important;
+  color: #f3f3f3;
+  border-bottom: none;
+}
+
+.w11-window[data-app='task-manager'] .w11-win-ctrl {
+  color: #f3f3f3;
+}
+
+.w11-window[data-app='task-manager'] .w11-win-body {
+  overflow: hidden;
+  background: #202020;
+}
+
+.w11-tm-shell {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  background: #202020;
+  color: #f3f3f3;
+  font-size: 12px;
+  font-family: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+}
+
+.w11-tm-shell *::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.w11-tm-shell *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.w11-tm-shell *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+}
+
+.w11-tm-nav {
+  width: 48px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6px 4px 10px;
+  background: #202020;
+  transition: width 0.14s ease;
+}
+
+.w11-tm-nav-top {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.w11-tm-shell.is-nav-expanded .w11-tm-nav {
+  width: 184px;
+}
+
+.w11-tm-nav-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #e4e4e4;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.w11-tm-nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.w11-tm-nav-btn.is-muted {
+  color: #d0d0d0;
+  cursor: default;
+}
+
+.w11-tm-nav-btn.is-active {
+  background: rgba(255, 255, 255, 0.065);
+  color: #ffffff;
+}
+
+.w11-tm-nav-btn.is-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 11px;
+  bottom: 11px;
+  width: 3px;
+  border-radius: 2px;
+  background: #4cc2ff;
+}
+
+.w11-tm-nav-icon {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.w11-tm-fi {
+  font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', 'FluentSystemIcons-Regular', sans-serif;
+  font-style: normal;
+  font-weight: normal;
+  font-size: 16px;
+  line-height: 1;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.w11-tm-fi-fluent {
+  font-family: 'FluentSystemIcons-Regular', 'Segoe Fluent Icons', sans-serif;
+}
+
+.w11-tm-fi svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  fill: currentColor;
+}
+
+.w11-tm-nav-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.w11-tm-nav-text {
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.w11-tm-shell.is-nav-expanded .w11-tm-nav-text {
+  opacity: 1;
+}
+
+.w11-tm-workspace {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #1c1c1c;
+  border-top-left-radius: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
+  border-left: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.w11-tm-topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 14px 0 22px;
+  border-bottom: 1px solid #282828;
+  flex-shrink: 0;
+}
+
+.w11-tm-page-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: #f3f3f3;
+  margin-right: auto;
+}
+
+.w11-tm-search {
+  width: 260px;
+  max-width: 45%;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.45);
+  background: #2b2b2b;
+  color: #f3f3f3;
+  font-size: 12px;
+  outline: none;
+}
+
+.w11-tm-search:focus {
+  border-bottom: 2px solid #4cc2ff;
+}
+
+.w11-tm-cmd-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.w11-tm-cmd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #f3f3f3;
+  font-size: 12.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.w11-tm-cmd-btn .w11-tm-fi,
+.w11-tm-cmd-btn svg {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.w11-tm-cmd-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.w11-tm-cmd-btn:disabled {
+  color: rgba(255, 255, 255, 0.35);
+  cursor: default;
+}
+
+.w11-tm-cmd-more {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #f3f3f3;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.w11-tm-cmd-more .w11-tm-fi,
+.w11-tm-cmd-more svg {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  display: block;
+}
+
+.w11-tm-cmd-more:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.w11-tm-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.w11-tm-perf-layout {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.w11-tm-perf-list {
+  width: 248px;
+  min-width: 172px;
+  max-width: 440px;
+  flex-shrink: 0;
+  padding: 8px 8px 8px 10px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.w11-tm-perf-splitter {
+  width: 8px;
+  margin: 8px -3px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  position: relative;
+  z-index: 2;
+  touch-action: none;
+  user-select: none;
+}
+
+.w11-tm-perf-splitter::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 3px;
+  width: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  transition: background 0.12s ease;
+}
+
+.w11-tm-perf-splitter:hover::after,
+.w11-tm-perf-splitter.is-dragging::after {
+  background: rgba(76, 194, 255, 0.72);
+}
+
+.w11-tm-perf-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #f3f3f3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.w11-tm-perf-card:hover {
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.w11-tm-perf-card.is-active {
+  background: #2d2d2d;
+}
+
+.w11-tm-perf-thumb {
+  width: 58px;
+  height: 40px;
+  flex-shrink: 0;
+  background: #181818;
+  border: 1px solid #4d4d4d;
+  overflow: hidden;
+}
+
+.w11-tm-perf-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.w11-tm-perf-title {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: #f3f3f3;
+  line-height: 1.25;
+  margin-bottom: 1px;
+}
+
+.w11-tm-perf-sub {
+  font-size: 11.5px;
+  color: #b8b8b8;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.w11-tm-perf-detail {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 16px 28px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.w11-tm-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  margin-bottom: 6px;
+}
+
+.w11-tm-detail-head h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  color: #ffffff;
+  line-height: 1.15;
+}
+
+.w11-tm-detail-hw {
+  font-size: 16px;
+  color: #f3f3f3;
+  font-weight: 400;
+}
+
+.w11-tm-chart-caption {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: #9c9c9c;
+  margin: 0 0 4px;
+  flex-shrink: 0;
+}
+
+.w11-tm-core-grid {
+  flex: 1;
+  min-height: 110px;
+  display: grid;
+  gap: 5px;
+}
+
+.w11-tm-core-cell {
+  min-height: 0;
+  border: 1px solid #484848;
+  background: #181818;
+  overflow: hidden;
+}
+
+.w11-tm-single-chart {
+  flex: 1;
+  min-height: 100px;
+  border: 1px solid #484848;
+  background: #181818;
+  overflow: hidden;
+}
+
+.w11-tm-gpu-grid {
+  flex: 1;
+  min-height: 120px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+  margin-bottom: 4px;
+}
+
+.w11-tm-gpu-box {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.w11-tm-gpu-box .w11-tm-core-cell {
+  flex: 1;
+  min-height: 0;
+}
+
+.w11-tm-mem-bar {
+  display: flex;
+  height: 36px;
+  flex-shrink: 0;
+  border: 1px solid rgba(79, 134, 214, 0.7);
+  background: #191919;
+  overflow: hidden;
+}
+
+.w11-tm-mem-used {
+  background: rgba(59, 130, 246, 0.28);
+  border-right: 1px solid #4f86d6;
+}
+
+.w11-tm-mem-compressed {
+  width: 6px;
+  background: rgba(96, 165, 250, 0.16);
+  border-right: 1px solid #4f86d6;
+}
+
+.w11-tm-mem-standby {
+  background: transparent;
+  border-right: 1px solid rgba(79, 134, 214, 0.6);
+}
+
+.w11-tm-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.w11-tm-grid-lines line {
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.w11-tm-bottom-stats {
+  display: flex;
+  align-items: flex-start;
+  gap: 56px;
+  flex-shrink: 0;
+  padding: 18px 0 4px;
+}
+
+.w11-tm-kpis {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 224px;
+}
+
+.w11-tm-kpi-row {
+  display: flex;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+
+.w11-tm-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.w11-tm-kpi > span {
+  font-size: 12px;
+  color: #a8a8a8;
+  line-height: 1.25;
+}
+
+.w11-tm-kpi strong {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1.2;
+  color: #f3f3f3;
+  font-variant-numeric: tabular-nums;
+}
+
+.w11-tm-kv-table {
+  display: grid;
+  grid-template-columns: 98px auto;
+  row-gap: 6px;
+  column-gap: 22px;
+  font-size: 12.5px;
+  line-height: 1.38;
+}
+
+.w11-tm-kv-table.is-cpu-kv {
+  grid-template-columns: 88px auto;
+}
+
+.w11-tm-kv-table.is-mem-kv {
+  grid-template-columns: 124px auto;
+}
+
+.w11-tm-kv-table.is-disk-kv {
+  grid-template-columns: 116px auto;
+}
+
+.w11-tm-kv-label {
+  color: #a8a8a8;
+}
+
+.w11-tm-kv-val {
+  color: #f3f3f3;
+  font-variant-numeric: tabular-nums;
+}
+
+.w11-tm-inferred {
+  color: #f6b94d !important;
+}
+
+.w11-tm-fake {
+  color: #ff6b6b !important;
+}
+
+.w11-tm-proc-wrap {
+  height: 100%;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.w11-tm-proc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.w11-tm-proc-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #191919;
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 400;
+  color: #bcbcbc;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  user-select: none;
+}
+
+.w11-tm-proc-table th.is-num {
+  text-align: right;
+  min-width: 82px;
+}
+
+.w11-tm-proc-table th.is-num div {
+  font-size: 15px;
+  font-weight: 400;
+  color: #f3f3f3;
+}
+
+.w11-tm-proc-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+
+.w11-tm-proc-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.w11-tm-proc-row.is-selected {
+  outline: 1px solid #4cc2ff;
+  outline-offset: -1px;
+}
+
+.w11-tm-proc-row td {
+  padding: 5px 12px;
+}
+
+.w11-tm-num-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.w11-tm-status-cell {
+  color: #bcbcbc;
+  font-size: 11.5px;
+}
+
+.w11-tm-empty {
+  text-align: center;
+  padding: 24px;
+  color: #a6a6a6;
+}
+
+/* Titlebar centered search box (Real Win11 TM seamless chrome) */
+.w11-tm-title-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(360px, 40%);
+  height: 28px;
+  margin: 0 auto;
+  padding: 0 8px 0 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+}
+
+.w11-tm-title-search:focus-within {
+  background: #2b2b2b;
+  border-bottom: 2px solid #4cc2ff;
+}
+
+.w11-tm-title-search-ico {
+  color: rgba(255, 255, 255, 0.68);
+  display: grid;
+  place-items: center;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.w11-tm-title-search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: #f3f3f3;
+  font-size: 12px;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.w11-tm-title-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.w11-tm-title-search-clear {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 11px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.w11-tm-title-search-clear[hidden] {
+  display: none;
+}
+
+.w11-tm-title-search-clear:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* Task Manager position & Summary Views */
+.w11-tm-shell {
+  position: relative;
+}
+
+.w11-tm-shell.is-summary-cards .w11-tm-nav,
+.w11-tm-shell.is-summary-cards .w11-tm-topbar,
+.w11-tm-shell.is-summary-graph .w11-tm-nav,
+.w11-tm-shell.is-summary-graph .w11-tm-topbar {
+  display: none;
+}
+
+.w11-tm-shell.is-summary-cards .w11-tm-workspace,
+.w11-tm-shell.is-summary-graph .w11-tm-workspace {
+  border-top-left-radius: 0;
+  border: none;
+}
+
+.w11-tm-perf-list.is-summary-only {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  padding: 10px 14px;
+}
+
+.w11-tm-perf-detail.is-graph-only {
+  padding: 10px 14px 12px;
+}
+
+.w11-tm-detail-head.is-compact {
+  margin-bottom: 4px;
+}
+
+.w11-tm-detail-head.is-compact h2 {
+  font-size: 16px;
+}
+
+.w11-tm-perf-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin: 0 6px;
+}
+
+/* Charts: peak label, vertical KPI accent bars, 4-segment memory */
+.w11-tm-single-chart.is-rate {
+  position: relative;
+}
+
+.w11-tm-peak-label {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+  pointer-events: none;
+}
+
+.w11-tm-kpi.is-bar {
+  position: relative;
+  padding-left: 11px;
+}
+
+.w11-tm-kpi.is-bar::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+}
+
+.w11-tm-kpi.is-solid-disk::before {
+  background: #4db854;
+}
+
+.w11-tm-kpi.is-dashed-disk::before {
+  background: repeating-linear-gradient(to bottom, #66d66d 0 5px, transparent 5px 9px);
+}
+
+.w11-tm-kpi.is-solid-net::before {
+  background: #c85a98;
+}
+
+.w11-tm-kpi.is-dashed-net::before {
+  background: repeating-linear-gradient(to bottom, #e27cb6 0 5px, transparent 5px 9px);
+}
+
+.w11-tm-mem-bar {
+  border: 1px solid #5c9efa;
+  background: #0f1d34;
+}
+
+.w11-tm-mem-used {
+  background: rgba(92, 158, 250, 0.34);
+  border-right: 1px solid #5c9efa;
+}
+
+.w11-tm-mem-compressed {
+  width: 8px;
+  background: rgba(92, 158, 250, 0.56);
+  border-right: 1px solid #5c9efa;
+}
+
+.w11-tm-mem-modified {
+  background: rgba(92, 158, 250, 0.18);
+  border-right: 1px solid #5c9efa;
+}
+
+.w11-tm-mem-standby {
+  background: rgba(255, 255, 255, 0.04);
+  border-right: 1px solid rgba(92, 158, 250, 0.5);
+}
+
+.w11-tm-mem-free {
+  background: transparent;
+}
+
+/* Bounded tables, grouping, expanders, heatmaps */
+.w11-tm-proc-table.is-bounded {
+  width: max-content;
+  min-width: 100%;
+  table-layout: fixed;
+}
+
+.w11-tm-proc-table th.is-spacer,
+.w11-tm-proc-row td.w11-tm-spacer-cell {
+  width: auto;
+  border-left: none;
+  padding: 0;
+  cursor: default;
+}
+
+.w11-tm-group-row td {
+  padding: 12px 12px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f3f3f3;
+  background: rgba(255, 255, 255, 0.015);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.w11-tm-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.w11-tm-ellipsis {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.w11-tm-exp-btn {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #c8c8c8;
+  font-size: 13px;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.w11-tm-exp-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.w11-tm-exp-pad {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.w11-tm-appdot {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: #3b82f6;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.w11-tm-appdot.is-edge {
+  background: radial-gradient(circle at 35% 35%, #38bdf8, #0284c7 65%, #1d4ed8);
+  border-radius: 50%;
+}
+
+.w11-tm-appdot.is-win {
+  background: #6b7280;
+}
+
+.w11-tm-appdot.is-exe,
+.w11-tm-appdot.is-child,
+.w11-tm-appdot.is-startup {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.w11-tm-appdot.is-lg {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.w11-tm-user-badge {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 600;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.w11-tm-svc-gear {
+  color: #93c5fd;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.w11-tm-status-ico.is-leaf {
+  color: #6ccb5f;
+  display: inline-flex;
+  align-items: center;
+}
+
+.w11-tm-status-ico.is-paused {
+  color: #eab308;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.w11-tm-num-cell.is-heat-0 {
+  background: rgba(31, 88, 168, 0.08);
+}
+
+.w11-tm-num-cell.is-heat-1 {
+  background: rgba(31, 88, 168, 0.24);
+}
+
+.w11-tm-num-cell.is-heat-2 {
+  background: rgba(36, 108, 206, 0.44);
+}
+
+.w11-tm-num-cell.is-heat-3 {
+  background: rgba(45, 130, 238, 0.66);
+  color: #ffffff;
+}
+
+.w11-tm-muted-text {
+  color: #9f9f9f;
+}
+
+.w11-tm-subbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 18px;
+  font-size: 12px;
+  color: #b8b8b8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.w11-tm-subbar.is-right {
+  justify-content: flex-end;
+}
+
+.w11-tm-link-btn {
+  border: none;
+  background: transparent;
+  color: #60cdff;
+  font-size: 12px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.w11-tm-link-btn:hover {
+  text-decoration: underline;
+}
+
+/* Settings page */
+.w11-tm-settings-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 18px 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.w11-tm-set-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 880px;
+}
+
+.w11-tm-set-heading {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f3f3f3;
+}
+
+.w11-tm-set-card,
+.w11-tm-set-expander {
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.w11-tm-set-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+}
+
+.w11-tm-set-exp-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.w11-tm-set-exp-head:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.w11-tm-set-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.w11-tm-set-info strong {
+  font-size: 13.5px;
+  font-weight: 400;
+  color: #f3f3f3;
+}
+
+.w11-tm-set-info span {
+  font-size: 12px;
+  color: #a6a6a6;
+}
+
+.w11-tm-set-chev {
+  font-size: 15px;
+  color: #b4b4b4;
+}
+
+.w11-tm-set-exp-body {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 18px 12px 36px;
+  gap: 10px;
+}
+
+.w11-tm-select {
+  min-width: 152px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #2b2b2b;
+  color: #f3f3f3;
+  font-size: 12.5px;
+  outline: none;
+}
+
+.w11-tm-set-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #ececec;
+  cursor: pointer;
+}
+
+.w11-tm-set-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #4cc2ff;
+}
+
+/* Context Menus & Submenus */
+.w11-tm-menu-layer {
+  position: absolute;
+  z-index: 40;
+}
+
+.w11-tm-menu {
+  min-width: 188px;
+  padding: 4px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #2c2c2c;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.48);
+  color: #f3f3f3;
+}
+
+.w11-tm-menu-item {
+  position: relative;
+  height: 30px;
+  padding: 0 10px 0 8px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.w11-tm-menu-item:hover:not(.is-disabled),
+.w11-tm-menu-item.is-sub-open:not(.is-disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.w11-tm-menu-item.is-disabled {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.w11-tm-menu-mark {
+  width: 14px;
+  font-size: 11px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.w11-tm-menu-dot {
+  font-size: 8px;
+}
+
+.w11-tm-menu-label {
+  flex: 1;
+}
+
+.w11-tm-menu-key {
+  font-size: 11.5px;
+  color: #a6a6a6;
+  margin-left: 16px;
+}
+
+.w11-tm-menu-arrow {
+  font-size: 14px;
+  color: #c2c2c2;
+  margin-left: 10px;
+}
+
+.w11-tm-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.w11-tm-menu-sub {
+  position: absolute;
+  left: calc(100% + 2px);
+  top: -4px;
+  display: none;
+  z-index: 42;
+}
+
+.w11-tm-menu-item.is-sub-open > .w11-tm-menu-sub {
+  display: block;
+}
+
+/* Hover Tooltip */
+.w11-tm-tooltip {
+  position: absolute;
+  z-index: 45;
+  max-width: 310px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #2b2b2b;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  color: #f3f3f3;
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+}
+
+.w11-tm-tooltip[hidden] {
+  display: none;
+}
+
+.w11-tm-tip-body {
+  margin-top: 3px;
+  color: #cfcfcf;
+  white-space: pre-line;
+}
+
+/* Modal Dialogs */
+.w11-tm-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.46);
+  display: grid;
+  place-items: center;
+}
+
+.w11-tm-modal {
+  max-width: calc(100% - 28px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #242424;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+  color: #f3f3f3;
+  overflow: hidden;
+}
+
+.w11-tm-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.w11-tm-modal-x {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #cfcfcf;
+  cursor: pointer;
+}
+
+.w11-tm-modal-x:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.w11-tm-modal-body {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 12.5px;
+}
+
+.w11-tm-modal-text {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.w11-tm-modal-sub {
+  margin: 0;
+  color: #b4b4b4;
+}
+
+.w11-tm-modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.16);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.w11-tm-btn {
+  min-width: 78px;
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #333333;
+  color: #f3f3f3;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.w11-tm-btn:hover {
+  background: #3d3d3d;
+}
+
+.w11-tm-btn.is-primary {
+  background: #4cc2ff;
+  border-color: #4cc2ff;
+  color: #0b1926;
+  font-weight: 600;
+}
+
+.w11-tm-btn.is-primary:hover {
+  background: #67cbff;
+}
+
+.w11-tm-run-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.w11-tm-run-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: #0078d4;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.w11-tm-run-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.w11-tm-input {
+  flex: 1;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-bottom: 2px solid #4cc2ff;
+  background: #1c1c1c;
+  color: #f3f3f3;
+  font-size: 12.5px;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.w11-tm-prop-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.w11-tm-prop-grid > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.w11-tm-prop-head {
+  justify-content: flex-start !important;
+  align-items: center;
+}
+
+.w11-tm-prop-sep {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
+}
+
+.w11-tm-aff-list {
+  max-height: 200px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 8px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.w11-tm-netdet-wrap {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+}
+
+.w11-tm-resmon {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+/* Light Theme Override for Task Manager (`设置 -> 应用主题: 浅色` or system light) */
+.w11-window[data-app='task-manager'][data-tm-theme='light'],
+.w11-window[data-app='task-manager'][data-tm-theme='light'] .w11-win-titlebar,
+.w11-window[data-app='task-manager'][data-tm-theme='light'] .w11-win-body,
+.w11-tm-shell[data-tm-theme='light'],
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-nav {
+  background: #f3f3f3 !important;
+  color: #1f1f1f;
+}
+
+.w11-window[data-app='task-manager'][data-tm-theme='light'] .w11-win-ctrl {
+  color: #1f1f1f;
+}
+
+.w11-window[data-app='task-manager'][data-tm-theme='light'] .w11-tm-title-search {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  border-bottom-color: rgba(0, 0, 0, 0.35);
+}
+
+.w11-window[data-app='task-manager'][data-tm-theme='light'] .w11-tm-title-search-input,
+.w11-window[data-app='task-manager'][data-tm-theme='light'] .w11-tm-title-search-ico {
+  color: #1f1f1f;
+}
+
+.w11-window[data-app='task-manager'][data-tm-theme='light'] .w11-tm-title-search-input::placeholder {
+  color: #6b6b6b;
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-workspace {
+  background: #f9f9f9;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-nav-btn,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-page-title,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-cmd-btn,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-cmd-more,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-perf-card,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-perf-title,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-detail-head h2,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-detail-hw,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-kpi strong,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-kv-val,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-group-row td,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-proc-table th.is-num div,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-set-heading,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-set-info strong,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-set-check {
+  color: #1f1f1f;
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-nav-btn.is-active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-nav-btn.is-active::before {
+  background: #0067c0;
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-topbar {
+  border-bottom-color: rgba(0, 0, 0, 0.07);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-proc-table th {
+  background: #f5f5f5;
+  color: #555555;
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-proc-row:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-perf-card.is-active {
+  background: #e9e9e9;
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-core-cell,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-single-chart,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-perf-thumb {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.18);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-grid-lines line {
+  stroke: rgba(0, 0, 0, 0.07);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-perf-sub,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-kpi > span,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-kv-label,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-chart-caption,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-set-info span {
+  color: #5c5c5c;
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-set-card,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-set-expander {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-select {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.16);
+  color: #1f1f1f;
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-menu,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-tooltip,
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-modal {
+  background: #fbfbfb;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1f1f1f;
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-menu-item:hover:not(.is-disabled),
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-menu-item.is-sub-open:not(.is-disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.w11-tm-shell[data-tm-theme='light'] .w11-tm-peak-label {
+  color: #555555;
+}

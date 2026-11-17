@@ -1,9 +1,17 @@
-import { collectDeviceHardwareReport, type DeviceProbeReport } from './device-probe';
+import { executeCommandApp, mountAppInstance } from './apps';
+import type { DeviceProbeReport } from './device-probe';
 import { getAppIconSvg, UI_ICONS } from './icons';
-import { APP_REGISTRY, getManifestById } from './registry';
+import { APP_REGISTRY, getAppDisplayName, getManifestById, hasAppCapability } from './registry';
 import { createShellStore } from './store';
-import { mountTaskManager, type TaskManagerController } from './task-manager';
-import type { DesktopIconSize, SnapZone, WindowInstance } from './types';
+import type {
+  DesktopIconSize,
+  SnapZone,
+  WinAppLaunchArgs,
+  WinAppLifecycle,
+  WinAppShellApi,
+  WindowInstance,
+} from './types';
+import { createVirtualHardwareService } from './virtual-hardware';
 import { WALLPAPERS } from './wallpaper';
 
 interface GridMetrics {
@@ -55,33 +63,137 @@ export function initWin11Desktop(root: HTMLElement) {
   const imeBtnEl = root.querySelector<HTMLElement>('[data-ime-btn]')!;
 
   let lastRenderedTheme: string | null = null;
+  let lastRenderedVolume: number = store.state.volume;
+  let lastPrefsSignature: string | null = null;
+  let lastWindowsSignature: string | null = null;
   let searchQuery = '';
   let showDesktopIcons = true;
-  let latestProbeReport: DeviceProbeReport | null = null;
-  let probeInFlight = false;
+  const virtualHw = createVirtualHardwareService();
+  let virtualHwUnsub: (() => void) | null = null;
+  let initialHwProbeStarted = false;
 
   function escapeHtml(text: string): string {
     return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  async function runHardwareProbe(force = false) {
-    if (probeInFlight && !force) return;
-    probeInFlight = true;
-    try {
-      const report = await collectDeviceHardwareReport();
-      latestProbeReport = report;
-      const formatted = JSON.stringify(report, null, 2);
-      windowsLayerEl.querySelectorAll<HTMLElement>('[data-tm-probe-output]').forEach((el) => {
-        el.textContent = formatted;
-      });
-      taskManagers.forEach((ctrl) => ctrl.setReport(report));
-    } finally {
-      probeInFlight = false;
-    }
+  interface MountedWindowApp {
+    appId: string;
+    lifecycle: WinAppLifecycle;
+    lastFocused: boolean;
+    lastMinimized: boolean;
   }
 
   const windowElements = new Map<number, HTMLElement>();
-  const taskManagers = new Map<number, TaskManagerController>();
+  const mountedApps = new Map<number, MountedWindowApp>();
+  const appEventListeners = new Map<
+    string,
+    Set<(channel: string, payload: unknown, pid: number) => void>
+  >();
+
+  function syncVirtualHardwareSubscription() {
+    let needsHw = false;
+    mountedApps.forEach((entry) => {
+      if (hasAppCapability(getManifestById(entry.appId), 'hardware-probe')) {
+        needsHw = true;
+      }
+    });
+
+    if (needsHw && !virtualHwUnsub) {
+      virtualHwUnsub = virtualHw.subscribe((snapshot) => {
+        mountedApps.forEach((entry) => {
+          if (hasAppCapability(getManifestById(entry.appId), 'hardware-probe')) {
+            entry.lifecycle.onHardwareUpdate?.(snapshot);
+          }
+        });
+      });
+      if (!initialHwProbeStarted) {
+        initialHwProbeStarted = true;
+        void virtualHw.refreshProbe();
+      }
+    } else if (!needsHw && virtualHwUnsub) {
+      virtualHwUnsub();
+      virtualHwUnsub = null;
+    }
+  }
+
+  function sendMessageToApp(appId: string, channel: string, payload?: unknown) {
+    mountedApps.forEach((entry) => {
+      if (entry.appId === appId) {
+        entry.lifecycle.onMessage?.(channel, payload);
+      }
+    });
+  }
+
+  function subscribeAppEvents(
+    appId: string,
+    listener: (channel: string, payload: unknown, pid: number) => void,
+  ): () => void {
+    let set = appEventListeners.get(appId);
+    if (!set) {
+      set = new Set();
+      appEventListeners.set(appId, set);
+    }
+    set.add(listener);
+    return () => {
+      set?.delete(listener);
+    };
+  }
+
+  async function runHardwareProbe(force = false): Promise<DeviceProbeReport> {
+    const snap = await virtualHw.refreshProbe(force);
+    const report = virtualHw.getProbeReport();
+    if (report) {
+      mountedApps.forEach((entry) => {
+        entry.lifecycle.onHardwareReport?.(report);
+      });
+    }
+    return (
+      report ?? {
+        timestamp: snap.timestamp,
+        context: {
+          origin: window.location.origin,
+          isSecureContext: window.isSecureContext,
+          language: navigator.language,
+          languages: navigator.languages,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          userAgent: navigator.userAgent,
+          platformLegacy: navigator.platform,
+        },
+        cpu: { hardwareConcurrency: snap.cpu.logicalCores, computePressureSupport: false },
+        memory: { deviceMemoryGiB: snap.memory.realDeviceGb ?? 'unknown' },
+        gpu: { webgpuSupported: false },
+        display: snap.display ?? {
+          screenResolution: '',
+          availableScreen: '',
+          viewport: '',
+          devicePixelRatio: 1,
+          colorDepth: 24,
+          orientation: 'unknown',
+          hdrSupported: false,
+          p3GamutSupported: false,
+          maxTouchPoints: 0,
+          coarsePointer: false,
+        },
+        battery: snap.battery ?? 'unknown',
+        network: { onLine: snap.network.onLine, sessionResourcesCount: 0, sessionTransferKB: 0 },
+        storage: snap.storage.probe ?? {
+          supported: false,
+          isSecureContext: window.isSecureContext,
+          quotaBytes: null,
+          usageBytes: null,
+          quotaGiB: null,
+          quotaGB: null,
+          usageMB: null,
+          usageDetails: null,
+          persisted: null,
+          opfsSupported: false,
+          opfsReady: null,
+          fsAccessSupported: false,
+        },
+        peripheralsAndApis: snap.peripheralsAndApis ?? {},
+      }
+    );
+  }
 
   function applyDesktopScale() {
     const vw = window.innerWidth;
@@ -202,14 +314,8 @@ export function initWin11Desktop(root: HTMLElement) {
     document.documentElement.setAttribute('data-theme', theme);
     wallpaperEl.style.backgroundImage = `url("${WALLPAPERS[theme]}")`;
 
-    windowsLayerEl.querySelectorAll<HTMLIFrameElement>('iframe.w11-win-iframe').forEach((frame) => {
-      try {
-        if (frame.contentWindow) {
-          frame.contentWindow.postMessage({ type: 'w11-theme', theme }, window.location.origin);
-        }
-      } catch {
-        // Ignore cross-origin iframes
-      }
+    mountedApps.forEach((entry) => {
+      entry.lifecycle.onThemeChange?.(theme);
     });
   }
 
@@ -227,12 +333,41 @@ export function initWin11Desktop(root: HTMLElement) {
     }
   }
 
-  function launchShellItem(appId: string) {
-    if (appId === 'fullscreen') {
-      toggleDesktopFullscreen();
-      return;
+  const shellApi: WinAppShellApi = {
+    getTheme: () => store.state.theme,
+    setTheme: (theme) => store.setTheme(theme),
+    getVolume: () => store.state.volume,
+    setVolume: (value) => store.setVolume(value),
+    getBrightness: () => store.state.brightness,
+    setBrightness: (value) => store.setBrightness(value),
+    getIconSize: () => store.state.iconSize,
+    setIconSize: (size) => store.setIconSize(size, getMaxGridRows(size)),
+    resetDesktopLayout: () => store.resetDesktopLayout(),
+    getWindows: () => store.state.windows,
+    openApp: (appId, args) => launchShellItem(appId, args),
+    closeWindow: (pid) => store.closeWindow(pid),
+    focusWindow: (pid) => store.focusWindow(pid),
+    minimizeWindow: (pid) => store.minimizeWindow(pid),
+    toggleMaximizeWindow: (pid) => store.toggleMaximizeWindow(pid, getViewport()),
+    setWindowTitle: (pid, title) => store.setWindowTitle(pid, title),
+    isFullscreen: () => Boolean(document.fullscreenElement),
+    toggleFullscreen: () => toggleDesktopFullscreen(),
+    getVirtualHardware: () => virtualHw.getSnapshot(),
+    refreshVirtualHardware: (force) => virtualHw.refreshProbe(force),
+    refreshVirtualStorage: () => virtualHw.refreshStorage(),
+    getHardwareReport: () => virtualHw.getProbeReport(),
+    refreshHardwareReport: (force) => runHardwareProbe(force),
+  };
+
+  function launchShellItem(appId: string, launchArgs?: WinAppLaunchArgs): number | null {
+    const manifest = getManifestById(appId);
+    if (!manifest) return null;
+    store.closeFlyouts();
+    if (manifest.runtime === 'command') {
+      executeCommandApp(appId, shellApi, launchArgs);
+      return null;
     }
-    store.openApp(appId, getViewport());
+    return store.openApp(appId, getViewport(), launchArgs);
   }
 
   function renderDesktopIcons() {
@@ -263,6 +398,7 @@ export function initWin11Desktop(root: HTMLElement) {
       });
     }
 
+    const isFullscreen = Boolean(document.fullscreenElement);
     desktopApps.forEach((app) => {
       const rawPos = iconPositions[app.id] ?? { col: 0, row: 0 };
       let pos: { col: number; row: number };
@@ -286,7 +422,7 @@ export function initWin11Desktop(root: HTMLElement) {
       btn.style.top = `${m.pad + pos.row * m.rowH}px`;
       btn.style.width = `${m.colW - 6}px`;
       btn.style.height = `${m.rowH - 4}px`;
-      const label = app.id === 'fullscreen' && document.fullscreenElement ? '退出全屏' : app.name;
+      const label = escapeHtml(getAppDisplayName(app, { isFullscreen }));
       btn.innerHTML = `
         <span class="w11-desktop-icon__glyph">${getAppIconSvg(app.iconKey, m.iconPx)}</span>
         <span class="w11-desktop-icon__label">${label}</span>
@@ -295,82 +431,12 @@ export function initWin11Desktop(root: HTMLElement) {
     });
   }
 
-  function buildWindowContent(win: WindowInstance): string {
-    if (win.entryUrl) {
-      let src = win.entryUrl;
-      if (src.startsWith('/')) {
-        const sep = src.includes('?') ? '&' : '?';
-        src = `${src}${sep}theme=${encodeURIComponent(store.state.theme)}`;
-      }
-      return `<iframe class="w11-win-iframe" src="${src}" title="${win.title}"></iframe>`;
-    }
-
-    if (win.appId === 'settings') {
-      const { theme, iconSize } = store.state;
-      return `
-        <div class="w11-stub w11-stub--panel">
-          <div class="w11-stub-header">
-            <div class="w11-stub-icon">${getAppIconSvg(win.iconKey, 36)}</div>
-            <div>
-              <h2>个性化与桌面设置</h2>
-              <p>基础外壳外观选项，修改后实时同步到桌面。</p>
-            </div>
-          </div>
-          <div class="w11-stub-group">
-            <div class="w11-stub-row">
-              <div>
-                <strong>系统主题模式</strong>
-                <span>切换 Windows 11 暗色 / 浅色 Bloom 外观</span>
-              </div>
-              <div class="w11-pill-group">
-                <button type="button" class="w11-pill-btn ${theme === 'dark' ? 'is-active' : ''}" data-action="theme-dark">深色</button>
-                <button type="button" class="w11-pill-btn ${theme === 'light' ? 'is-active' : ''}" data-action="theme-light">浅色</button>
-              </div>
-            </div>
-            <div class="w11-stub-row">
-              <div>
-                <strong>桌面图标尺寸</strong>
-                <span>对应桌面右键“查看”中的图标大小</span>
-              </div>
-              <div class="w11-pill-group">
-                <button type="button" class="w11-pill-btn ${iconSize === 'large' ? 'is-active' : ''}" data-action="icon-large">大</button>
-                <button type="button" class="w11-pill-btn ${iconSize === 'medium' ? 'is-active' : ''}" data-action="icon-medium">中</button>
-                <button type="button" class="w11-pill-btn ${iconSize === 'small' ? 'is-active' : ''}" data-action="icon-small">小</button>
-              </div>
-            </div>
-            <div class="w11-stub-row">
-              <div>
-                <strong>重置桌面布局</strong>
-                <span>恢复图标排列、固定应用与默认深色模式</span>
-              </div>
-              <button type="button" class="w11-pill-btn" data-action="reset-layout">恢复默认</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    if (win.appId === 'task-manager') {
-      return '';
-    }
-
-    const manifest = getManifestById(win.appId);
-    return `
-      <div class="w11-stub">
-        <div class="w11-stub-icon">${getAppIconSvg(win.iconKey, 56)}</div>
-        <h2>${win.title}</h2>
-        <p>${manifest?.description ?? '基础窗口容器占位'}</p>
-        <span class="w11-stub-badge">PID ${win.pid} · 窗口壳已就绪</span>
-      </div>
-    `;
-  }
-
   function renderWindows() {
     const activeSet = new Set(store.state.windows.map((w) => w.pid));
     for (const [pid, el] of windowElements.entries()) {
       if (!activeSet.has(pid)) {
-        taskManagers.get(pid)?.destroy();
-        taskManagers.delete(pid);
+        mountedApps.get(pid)?.lifecycle.destroy?.();
+        mountedApps.delete(pid);
         el.remove();
         windowElements.delete(pid);
       }
@@ -387,7 +453,7 @@ export function initWin11Desktop(root: HTMLElement) {
           <header class="w11-win-titlebar" data-win-drag="${win.pid}">
             <div class="w11-win-title">
               <span class="w11-win-title-icon">${getAppIconSvg(win.iconKey, 16)}</span>
-              <span class="w11-win-title-text">${win.title}</span>
+              <span class="w11-win-title-text">${escapeHtml(win.title)}</span>
             </div>
             <div class="w11-win-controls">
               <button type="button" class="w11-win-ctrl" data-win-min="${win.pid}" aria-label="最小化">${UI_ICONS.minimize}</button>
@@ -414,6 +480,7 @@ export function initWin11Desktop(root: HTMLElement) {
       winEl.classList.toggle('is-minimized', win.minimized);
       winEl.classList.toggle('is-maximized', win.maximized);
       winEl.classList.toggle('is-seamless-app', Boolean(win.seamlessTitlebar));
+      winEl.classList.toggle('is-non-resizable', !win.resizable);
 
       winEl.style.left = `${win.x}px`;
       winEl.style.top = `${win.y}px`;
@@ -421,36 +488,62 @@ export function initWin11Desktop(root: HTMLElement) {
       winEl.style.height = `${win.height}px`;
       winEl.style.zIndex = String(win.zIndex);
 
+      const titleTextEl = winEl.querySelector<HTMLElement>('.w11-win-title-text');
+      if (titleTextEl && titleTextEl.textContent !== win.title) {
+        titleTextEl.textContent = win.title;
+      }
+
       const maxBtn = winEl.querySelector<HTMLElement>(`[data-win-max="${win.pid}"]`);
       if (maxBtn) {
+        maxBtn.hidden = !win.maximizable;
         maxBtn.innerHTML = win.maximized ? UI_ICONS.restore : UI_ICONS.maximize;
         maxBtn.setAttribute('aria-label', win.maximized ? '向下还原' : '最大化');
       }
 
       const bodyEl = winEl.querySelector<HTMLElement>(`[data-win-body="${win.pid}"]`);
       if (bodyEl) {
-        if (win.appId === 'task-manager') {
-          if (!taskManagers.has(win.pid)) {
-            if (!latestProbeReport && !probeInFlight) {
-              void runHardwareProbe();
-            }
-            const ctrl = mountTaskManager({
-              container: bodyEl,
-              getWindows: () => store.state.windows,
-              getInitialReport: () => latestProbeReport,
-              onReportUpdated: (next) => {
-                latestProbeReport = next;
-              },
-              onCloseWindow: (pid) => store.closeWindow(pid),
-              onOpenNewTask: () => store.openApp('exhyperv', getViewport()),
-            });
-            taskManagers.set(win.pid, ctrl);
+        if (!mountedApps.has(win.pid)) {
+          if (win.background) {
+            bodyEl.style.background = win.background;
           }
-        } else if (!win.entryUrl || bodyEl.childElementCount === 0) {
-          bodyEl.innerHTML = buildWindowContent(win);
+          const manifest = getManifestById(win.appId);
+          if (manifest) {
+            const lifecycle = mountAppInstance(
+              {
+                pid: win.pid,
+                appId: win.appId,
+                manifest,
+                container: bodyEl,
+                launchArgs: win.launchArgs,
+                shell: shellApi,
+              },
+              {
+                onAppEvent: (appId, pid, channel, payload) => {
+                  appEventListeners.get(appId)?.forEach((fn) => fn(channel, payload, pid));
+                },
+              },
+            );
+            mountedApps.set(win.pid, {
+              appId: win.appId,
+              lifecycle,
+              lastFocused: isActive,
+              lastMinimized: win.minimized,
+            });
+          }
+        } else {
+          const mounted = mountedApps.get(win.pid)!;
+          if (mounted.lastFocused !== isActive) {
+            mounted.lastFocused = isActive;
+            mounted.lifecycle.onFocusChange?.(isActive);
+          }
+          if (mounted.lastMinimized !== win.minimized) {
+            mounted.lastMinimized = win.minimized;
+            mounted.lifecycle.onVisibilityChange?.(win.minimized);
+          }
         }
       }
     });
+    syncVirtualHardwareSubscription();
   }
 
   function renderTaskbar() {
@@ -600,6 +693,33 @@ export function initWin11Desktop(root: HTMLElement) {
     trayOverflowEl.classList.toggle('is-open', store.state.activeFlyout === 'trayOverflow');
   }
 
+  function syncAppBroadcasts() {
+    if (lastRenderedVolume !== store.state.volume) {
+      lastRenderedVolume = store.state.volume;
+      mountedApps.forEach((entry) => {
+        entry.lifecycle.onVolumeChange?.(store.state.volume);
+      });
+    }
+
+    const prefsSig = `${store.state.theme}|${store.state.iconSize}|${store.state.autoArrange}|${store.state.alignToGrid}`;
+    if (lastPrefsSignature !== prefsSig) {
+      lastPrefsSignature = prefsSig;
+      mountedApps.forEach((entry) => {
+        entry.lifecycle.onShellPrefsChange?.();
+      });
+    }
+
+    const winSig = store.state.windows
+      .map((w) => `${w.pid}:${w.minimized ? 1 : 0}:${w.title}`)
+      .join('|');
+    if (lastWindowsSignature !== winSig) {
+      lastWindowsSignature = winSig;
+      mountedApps.forEach((entry) => {
+        entry.lifecycle.onWindowsChanged?.();
+      });
+    }
+  }
+
   function renderAll() {
     renderWallpaper();
     renderOverlays();
@@ -610,7 +730,10 @@ export function initWin11Desktop(root: HTMLElement) {
     renderQuickSettings();
     renderCalendarFlyout();
     renderTrayOverflow();
+    syncAppBroadcasts();
   }
+
+  const LOCK_DAYS_ZH = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
 
   function updateClock() {
     const now = new Date();
@@ -618,7 +741,221 @@ export function initWin11Desktop(root: HTMLElement) {
     const mm = String(now.getMinutes()).padStart(2, '0');
     clockTimeEl.textContent = `${hh}:${mm}`;
     clockDateEl.textContent = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()}`;
+
+    const lockTimeEl = root.querySelector<HTMLElement>('[data-lock-time]');
+    const lockDateEl = root.querySelector<HTMLElement>('[data-lock-date]');
+    if (lockTimeEl) lockTimeEl.textContent = `${now.getHours()}:${mm}`;
+    if (lockDateEl) lockDateEl.textContent = `${now.getMonth() + 1}月${now.getDate()}日, ${LOCK_DAYS_ZH[now.getDay()]}`;
   }
+
+  function createLockController() {
+    const screenEl = root.querySelector<HTMLElement>('[data-lock-screen]');
+    const curtainEl = root.querySelector<HTMLElement>('[data-lock-curtain]');
+    const formEl = root.querySelector<HTMLFormElement>('[data-signin-form]');
+    const inputEl = root.querySelector<HTMLInputElement>('[data-signin-input]');
+    const eyeBtn = root.querySelector<HTMLButtonElement>('[data-signin-eye]');
+    const errorEl = root.querySelector<HTMLElement>('[data-signin-error]');
+    const okBtn = root.querySelector<HTMLButtonElement>('[data-signin-ok]');
+    const welcomeEl = root.querySelector<HTMLElement>('[data-signin-welcome]');
+    const welcomeTextEl = root.querySelector<HTMLElement>('[data-welcome-text]');
+    const imeBtn = root.querySelector<HTMLButtonElement>('[data-signin-ime]');
+    const imeBadge = root.querySelector<HTMLElement>('[data-signin-ime-badge]');
+    const powerBtn = root.querySelector<HTMLButtonElement>('[data-signin-power]');
+    const powerMenu = root.querySelector<HTMLElement>('[data-signin-power-menu]');
+
+    let mode: 'unlocked' | 'locked' | 'signin' | 'welcoming' = 'unlocked';
+    let timerId: number | null = null;
+    const SESSION_KEY = 'w11:session-unlocked';
+
+    const syncUi = () => {
+      if (!screenEl) return;
+      screenEl.classList.toggle('is-hidden', mode === 'unlocked');
+      screenEl.classList.toggle('is-signin', mode === 'signin' || mode === 'welcoming');
+      if (formEl) formEl.hidden = mode !== 'signin';
+      if (errorEl) errorEl.hidden = true;
+      if (welcomeEl) welcomeEl.hidden = mode !== 'welcoming';
+      if (powerMenu) powerMenu.hidden = true;
+    };
+
+    const showError = () => {
+      if (formEl) formEl.hidden = true;
+      if (errorEl) errorEl.hidden = false;
+      window.setTimeout(() => okBtn?.focus(), 20);
+    };
+
+    const resetFromError = () => {
+      if (errorEl) errorEl.hidden = true;
+      if (formEl) formEl.hidden = false;
+      if (inputEl) {
+        inputEl.value = '';
+        inputEl.type = 'password';
+        if (eyeBtn) eyeBtn.hidden = true;
+        window.setTimeout(() => inputEl.focus(), 20);
+      }
+    };
+
+    const showLock = (target: 'locked' | 'signin' = 'locked') => {
+      if (timerId) {
+        window.clearTimeout(timerId);
+        timerId = null;
+      }
+      try {
+        sessionStorage.removeItem(SESSION_KEY);
+      } catch {}
+      mode = target;
+      if (inputEl) {
+        inputEl.value = '';
+        inputEl.type = 'password';
+      }
+      if (eyeBtn) eyeBtn.hidden = true;
+      if (welcomeTextEl) welcomeTextEl.textContent = '欢迎';
+      syncUi();
+      if (target === 'signin') {
+        window.setTimeout(() => inputEl?.focus(), 140);
+      }
+    };
+
+    const unlockSuccess = () => {
+      if (timerId) window.clearTimeout(timerId);
+      mode = 'welcoming';
+      if (welcomeTextEl) welcomeTextEl.textContent = '欢迎';
+      syncUi();
+      timerId = window.setTimeout(() => {
+        mode = 'unlocked';
+        try {
+          sessionStorage.setItem(SESSION_KEY, '1');
+        } catch {}
+        syncUi();
+        timerId = null;
+      }, 650);
+    };
+
+    const restartCycle = () => {
+      if (timerId) window.clearTimeout(timerId);
+      mode = 'welcoming';
+      if (welcomeTextEl) welcomeTextEl.textContent = '正在重启';
+      syncUi();
+      timerId = window.setTimeout(() => {
+        showLock('locked');
+      }, 850);
+    };
+
+    curtainEl?.addEventListener('click', () => {
+      if (mode !== 'locked') return;
+      mode = 'signin';
+      syncUi();
+      window.setTimeout(() => inputEl?.focus(), 180);
+    });
+
+    inputEl?.addEventListener('input', () => {
+      if (eyeBtn) eyeBtn.hidden = inputEl.value.length === 0;
+    });
+
+    eyeBtn?.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (inputEl) inputEl.type = 'text';
+    });
+    const hidePassword = () => {
+      if (inputEl) inputEl.type = 'password';
+    };
+    eyeBtn?.addEventListener('pointerup', hidePassword);
+    eyeBtn?.addEventListener('pointerleave', hidePassword);
+
+    formEl?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (mode !== 'signin') return;
+      const val = inputEl?.value ?? '';
+      if (val === 'qwer1234') {
+        unlockSuccess();
+      } else {
+        showError();
+      }
+    });
+
+    okBtn?.addEventListener('click', resetFromError);
+
+    imeBtn?.addEventListener('click', () => {
+      const next = imeBtn.textContent === '英' ? '中' : '英';
+      imeBtn.textContent = next;
+      if (imeBadge) imeBadge.textContent = next === '英' ? '拼' : '中';
+    });
+
+    powerBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (powerMenu) powerMenu.hidden = !powerMenu.hidden;
+    });
+
+    powerMenu?.addEventListener('click', (e) => {
+      const item = (e.target as HTMLElement).closest<HTMLElement>('[data-login-power]');
+      if (!item) return;
+      const act = item.dataset.loginPower;
+      powerMenu.hidden = true;
+      if (act === 'lock' || act === 'sleep') {
+        showLock('locked');
+      } else if (act === 'restart') {
+        restartCycle();
+      }
+    });
+
+    screenEl?.addEventListener('click', (e) => {
+      if (powerMenu && !powerMenu.hidden && !(e.target as HTMLElement).closest('.w11-signin-power-wrap')) {
+        powerMenu.hidden = true;
+      }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('desktop') === '1') {
+      mode = 'unlocked';
+      syncUi();
+    } else if (params.get('signin') === '1') {
+      showLock('signin');
+    } else if (params.get('lock') === '1') {
+      showLock('locked');
+    } else {
+      let alreadyUnlocked = false;
+      try {
+        alreadyUnlocked = sessionStorage.getItem(SESSION_KEY) === '1';
+      } catch {}
+      if (alreadyUnlocked) {
+        mode = 'unlocked';
+        syncUi();
+      } else {
+        showLock('locked');
+      }
+    }
+
+    return {
+      isLocked: () => mode !== 'unlocked',
+      handleKeyDown: (e: KeyboardEvent) => {
+        if (mode === 'locked') {
+          if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return false;
+          e.preventDefault();
+          mode = 'signin';
+          syncUi();
+          window.setTimeout(() => inputEl?.focus(), 180);
+          return true;
+        }
+        if (mode === 'signin') {
+          if (errorEl && !errorEl.hidden && (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape')) {
+            e.preventDefault();
+            resetFromError();
+            return true;
+          }
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            showLock('locked');
+            return true;
+          }
+          return true;
+        }
+        return mode === 'welcoming';
+      },
+      showLock,
+      restartCycle,
+    };
+  }
+
+  const lockController = createLockController();
 
   function closeContextMenu() {
     contextMenuEl.classList.remove('is-open');
@@ -784,9 +1121,14 @@ export function initWin11Desktop(root: HTMLElement) {
     if (!store.state.selectedIconIds.includes(appId)) {
       store.selectIcons([appId]);
     }
+    const manifest = getManifestById(appId);
+    const openLabel =
+      manifest?.runtime === 'command'
+        ? getAppDisplayName(manifest, { isFullscreen: Boolean(document.fullscreenElement) })
+        : '打开';
     const pinned = store.state.pinnedTaskbarIds.includes(appId);
     openContextMenu(clientX, clientY, [
-      { label: appId === 'fullscreen' && document.fullscreenElement ? '退出全屏' : '打开', onSelect: () => launchShellItem(appId) },
+      { label: openLabel, onSelect: () => launchShellItem(appId) },
       {
         label: pinned ? '从任务栏取消固定' : '固定到任务栏',
         onSelect: () => store.togglePinToTaskbar(appId),
@@ -1095,6 +1437,10 @@ export function initWin11Desktop(root: HTMLElement) {
         label: '显示桌面',
         onSelect: () => store.toggleShowDesktop(),
       },
+      {
+        label: '锁定电脑',
+        onSelect: () => lockController.showLock('locked'),
+      },
       { type: 'divider' },
       {
         label: '桌面与任务栏设置',
@@ -1138,20 +1484,22 @@ export function initWin11Desktop(root: HTMLElement) {
     const pid = Number(winEl.dataset.pid);
     store.focusWindow(pid);
 
-    if (target.closest('.w11-win-controls')) return;
+    if (target.closest('.w11-win-controls, [data-no-drag], input, button, select, textarea')) return;
 
     const resizeHandle = target.closest<HTMLElement>('.w11-resize-handle');
     if (resizeHandle) {
       const dir = resizeHandle.dataset.resize ?? '';
       const win = store.state.windows.find((w) => w.pid === pid);
-      if (!win || win.maximized) return;
+      if (!win || win.maximized || !win.resizable) return;
       e.preventDefault();
 
       const startX = e.clientX;
       const startY = e.clientY;
       const orig = { x: win.x, y: win.y, w: win.width, h: win.height };
-      const minW = 340;
-      const minH = 240;
+      const { width: workW, height: rawH } = getViewport();
+      const workH = Math.max(280, rawH - 48);
+      const minW = Math.min(win.minWidth, Math.max(240, workW - 24));
+      const minH = Math.min(win.minHeight, Math.max(200, workH - 24));
       windowsLayerEl.classList.add('is-interacting');
 
       const onMove = (me: PointerEvent) => {
@@ -1284,8 +1632,9 @@ export function initWin11Desktop(root: HTMLElement) {
   });
 
   windowsLayerEl.addEventListener('dblclick', (e) => {
-    const dragBar = (e.target as HTMLElement).closest<HTMLElement>('[data-win-drag]');
-    if (!dragBar || (e.target as HTMLElement).closest('.w11-win-controls')) return;
+    const target = e.target as HTMLElement;
+    const dragBar = target.closest<HTMLElement>('[data-win-drag]');
+    if (!dragBar || target.closest('.w11-win-controls, [data-no-drag], input, button')) return;
     store.toggleMaximizeWindow(Number(dragBar.dataset.winDrag), getViewport());
   });
 
@@ -1305,36 +1654,6 @@ export function initWin11Desktop(root: HTMLElement) {
     if (closeBtn) {
       store.closeWindow(Number(closeBtn.dataset.winClose));
       return;
-    }
-
-    const endTaskBtn = target.closest<HTMLElement>('[data-end-task]');
-    if (endTaskBtn) {
-      store.closeWindow(Number(endTaskBtn.dataset.endTask));
-      return;
-    }
-
-    const actionBtn = target.closest<HTMLElement>('[data-action]');
-    if (actionBtn) {
-      const action = actionBtn.dataset.action;
-      if (action === 'theme-dark') store.setTheme('dark');
-      else if (action === 'theme-light') store.setTheme('light');
-      else if (action === 'icon-large') store.setIconSize('large', getMaxGridRows('large'));
-      else if (action === 'icon-medium') store.setIconSize('medium', getMaxGridRows('medium'));
-      else if (action === 'icon-small') store.setIconSize('small', getMaxGridRows('small'));
-      else if (action === 'reset-layout') store.resetDesktopLayout();
-      else if (action === 'reprobe-hw') {
-        windowsLayerEl.querySelectorAll<HTMLElement>('[data-tm-probe-output]').forEach((el) => {
-          el.textContent = '正在重新探测...';
-        });
-        void runHardwareProbe(true);
-      } else if (action === 'copy-hw-json' && latestProbeReport) {
-        void navigator.clipboard?.writeText(JSON.stringify(latestProbeReport, null, 2)).then(() => {
-          actionBtn.textContent = '已复制';
-          window.setTimeout(() => {
-            actionBtn.textContent = '复制 JSON';
-          }, 1200);
-        });
-      }
     }
   });
 
@@ -1375,7 +1694,12 @@ export function initWin11Desktop(root: HTMLElement) {
     }
     const tbApp = target.closest<HTMLElement>('[data-tb-app]');
     if (tbApp?.dataset.tbApp) {
-      store.toggleTaskbarApp(tbApp.dataset.tbApp, getViewport());
+      const manifest = getManifestById(tbApp.dataset.tbApp);
+      if (manifest?.runtime === 'command') {
+        launchShellItem(manifest.id);
+      } else {
+        store.toggleTaskbarApp(tbApp.dataset.tbApp, getViewport());
+      }
     }
   });
 
@@ -1394,9 +1718,35 @@ export function initWin11Desktop(root: HTMLElement) {
       launchShellItem(appBtn.dataset.launchApp);
       return;
     }
-    if (target.closest('[data-start-reset]')) {
-      store.resetDesktopLayout();
+    const startPowerBtn = target.closest<HTMLElement>('[data-start-power]');
+    if (startPowerBtn) {
+      const menu = startMenuEl.querySelector<HTMLElement>('[data-start-power-menu]');
+      if (menu) {
+        menu.hidden = !menu.hidden;
+        startPowerBtn.setAttribute('aria-expanded', String(!menu.hidden));
+      }
+      return;
+    }
+    const powerActionBtn = target.closest<HTMLElement>('[data-power-action]');
+    if (powerActionBtn) {
+      const action = powerActionBtn.dataset.powerAction;
+      const menu = startMenuEl.querySelector<HTMLElement>('[data-start-power-menu]');
+      if (menu) menu.hidden = true;
       store.closeFlyouts();
+      if (action === 'reset-layout') {
+        store.resetDesktopLayout();
+      } else if (action === 'lock') {
+        lockController.showLock('locked');
+      } else if (action === 'signout') {
+        lockController.showLock('signin');
+      } else if (action === 'restart') {
+        lockController.restartCycle();
+      }
+      return;
+    }
+    const menu = startMenuEl.querySelector<HTMLElement>('[data-start-power-menu]');
+    if (menu && !menu.hidden && !target.closest('.w11-start-power-wrap')) {
+      menu.hidden = true;
     }
   });
 
@@ -1477,6 +1827,14 @@ export function initWin11Desktop(root: HTMLElement) {
       e.preventDefault();
       return;
     }
+    if (lockController.isLocked() && lockController.handleKeyDown(e)) {
+      return;
+    }
+    if (e.altKey && (e.key === 'l' || e.key === 'L')) {
+      e.preventDefault();
+      lockController.showLock('locked');
+      return;
+    }
     if (e.key === 'Escape') {
       closeContextMenu();
       store.closeFlyouts();
@@ -1527,24 +1885,16 @@ export function initWin11Desktop(root: HTMLElement) {
   updateClock();
   window.setInterval(updateClock, 1000);
   renderAll();
-  store.openApp('exhyperv', getViewport());
+  store.openApp('task-manager', getViewport());
 
   // Right-side Design Candidates Panel (GPU-PV layout options synced with ExHyperV iframe)
   const dcpPanel = root.querySelector<HTMLElement>('#desktopCandidatesPanel');
   const dcpHeader = root.querySelector<HTMLElement>('#desktopDcpHeader');
   const dcpCollapseBtn = root.querySelector<HTMLButtonElement>('#desktopDcpCollapseBtn');
   if (dcpPanel) {
-    let pendingCandidateMsg: Record<string, unknown> | null = null;
-
     const sendGpuCandidateMsg = (payload: Record<string, unknown>) => {
-      store.openApp('exhyperv', getViewport());
-      const frame = windowsLayerEl.querySelector<HTMLIFrameElement>('iframe.w11-win-iframe');
-      if (frame?.contentWindow) {
-        frame.contentWindow.postMessage({ type: 'exhyperv-gpu-candidate', ...payload }, window.location.origin);
-        pendingCandidateMsg = null;
-      } else {
-        pendingCandidateMsg = payload;
-      }
+      launchShellItem('exhyperv');
+      sendMessageToApp('exhyperv', 'exhyperv:gpu-candidate', payload);
     };
 
     const setActiveChip = (selector: string, attr: string, val: string) => {
@@ -1613,16 +1963,9 @@ export function initWin11Desktop(root: HTMLElement) {
       });
     }
 
-    window.addEventListener('message', (event) => {
-      if (event.origin !== window.location.origin) return;
-      const data = event.data;
-      if (!data || data.type !== 'exhyperv-gpu-sync') return;
-      if (pendingCandidateMsg) {
-        const payload = pendingCandidateMsg;
-        pendingCandidateMsg = null;
-        sendGpuCandidateMsg(payload);
-        return;
-      }
+    subscribeAppEvents('exhyperv', (channel, payload) => {
+      if (channel !== 'exhyperv:gpu-sync' || !payload || typeof payload !== 'object') return;
+      const data = payload as { variant?: string; status?: string; mode?: string };
       if (data.variant) setActiveChip('[data-dcp-gpu-variant]', 'data-dcp-gpu-variant', data.variant);
       if (data.status) setActiveChip('[data-dcp-gpu-status]', 'data-dcp-gpu-status', data.status);
       if (data.mode) setActiveChip('[data-dcp-gpu-mode]', 'data-dcp-gpu-mode', data.mode);

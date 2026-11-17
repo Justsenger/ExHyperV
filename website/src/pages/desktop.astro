@@ -3,6 +3,8 @@ import '../win11-shell/win11-tokens.css';
 import '../styles/brand.css';
 import Topbar from '../components/Topbar.astro';
 import Win11Desktop from '../win11-shell/Win11Desktop.astro';
+
+const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
 ---
 
 <!doctype html>
@@ -17,8 +19,8 @@ import Win11Desktop from '../win11-shell/Win11Desktop.astro';
     <link rel="preload" as="image" href="/win11/wallpapers/bloom-dark.webp" />
   </head>
   <body data-module="uiDesign">
-    <Topbar module="uiDesign" />
-    <Win11Desktop />
+    {!cleanMode && <Topbar module="uiDesign" />}
+    <Win11Desktop showCandidatesPanel={!cleanMode} />
     <script>
       import { initializeLocalization } from '../scripts/localization.js';
       initializeLocalization();

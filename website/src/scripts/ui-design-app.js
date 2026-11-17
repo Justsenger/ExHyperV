@@ -6586,12 +6586,16 @@ export function initUiDesignWorkbench() {
     try {
       window.parent.postMessage(
         {
-          type: 'exhyperv-gpu-sync',
-          activeTabKey: state.activeTabKey,
-          deviceSubKey: state.deviceSubKey,
-          variant: state.gpuVariant || 'expander',
-          status,
-          mode: state.gpuMode || 'list'
+          protocol: 'win11-app/v1',
+          type: 'w11:app-event',
+          channel: 'exhyperv:gpu-sync',
+          payload: {
+            activeTabKey: state.activeTabKey,
+            deviceSubKey: state.deviceSubKey,
+            variant: state.gpuVariant || 'expander',
+            status,
+            mode: state.gpuMode || 'list'
+          }
         },
         window.location.origin
       );
@@ -6602,13 +6606,29 @@ export function initUiDesignWorkbench() {
 
   window.addEventListener('message', (event) => {
     if (event.origin !== window.location.origin) return;
-    const data = event.data;
-    if (!data || typeof data !== 'object') return;
-    if (data.type === 'exhyperv-gpu-request-sync') {
+    const raw = event.data;
+    if (!raw || typeof raw !== 'object') return;
+    if (
+      (raw.protocol === 'win11-app/v1' && raw.type === 'w11:init') ||
+      raw.type === 'exhyperv-gpu-request-sync'
+    ) {
       notifyParentGpuState();
       return;
     }
-    if (data.type !== 'exhyperv-gpu-candidate') return;
+
+    let data = null;
+    if (
+      raw.protocol === 'win11-app/v1' &&
+      raw.type === 'w11:app-message' &&
+      raw.channel === 'exhyperv:gpu-candidate' &&
+      raw.payload &&
+      typeof raw.payload === 'object'
+    ) {
+      data = raw.payload;
+    } else if (raw.type === 'exhyperv-gpu-candidate') {
+      data = raw;
+    }
+    if (!data) return;
 
     const vm = getVm();
     if (state.navTarget !== 'vm') switchNavigationTarget('vm');
@@ -6673,6 +6693,32 @@ export function initUiDesignWorkbench() {
     renderPageTabs();
     renderDashboardSummary();
     renderActiveWorkspace();
+  });
+
+  function syncVirtualHardwareToVm(hw) {
+    const cpuName = hw?.cpu?.displayName?.value;
+    if (!cpuName) return;
+    const prevSingle = CPU_TOPOLOGY_PRESETS.single;
+    CPU_TOPOLOGY_PRESETS.single = cpuName;
+    const affinitySec = PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity');
+    if (affinitySec && affinitySec.cpuModel === prevSingle) {
+      affinitySec.cpuModel = cpuName;
+    }
+    const brandField = getProcessorField('CpuBrandString');
+    if (brandField && brandField.value === prevSingle) {
+      brandField.value = cpuName;
+    }
+    const hostModelEl = document.getElementById('hostCpuModelText');
+    if (hostModelEl && hostModelEl.textContent?.trim() === prevSingle) {
+      hostModelEl.innerHTML = formatCpuTitleHtml(cpuName);
+    }
+  }
+
+  if (window.__WIN11_HARDWARE__) {
+    syncVirtualHardwareToVm(window.__WIN11_HARDWARE__);
+  }
+  window.addEventListener('win11:hardware', (e) => {
+    syncVirtualHardwareToVm(e.detail);
   });
 
   // Initial render
