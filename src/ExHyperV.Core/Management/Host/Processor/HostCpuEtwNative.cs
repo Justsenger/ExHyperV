@@ -1,3 +1,4 @@
+using ExHyperV.Tools;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.ComponentModel;
@@ -182,7 +183,7 @@ internal static unsafe class HostCpuEtwNative
                 finally { Marshal.FreeHGlobal(buffer); }
             }
         }
-        catch { }
+        catch (Exception diagnosticError) { CoreDiagnostics.Report("EtwPropertyReadFailed", error: diagnosticError); }
         return null;
     }
 

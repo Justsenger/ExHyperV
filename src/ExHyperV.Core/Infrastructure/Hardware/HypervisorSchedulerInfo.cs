@@ -19,7 +19,7 @@ internal static class HypervisorSchedulerInfo
         }
         catch (Exception error)
         {
-            Debug.WriteLine($"[Hyper-V scheduler] Kernel query failed: {error.Message}");
+            CoreDiagnostics.Report("KernelSchedulerQueryFailed", error: error);
             return (null, 0);
         }
     }

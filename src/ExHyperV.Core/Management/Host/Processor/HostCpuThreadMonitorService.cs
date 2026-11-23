@@ -88,7 +88,7 @@ public sealed class HostCpuThreadMonitorService : IDisposable, IAsyncDisposable
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"[HostCpuMonitor] Initial thread seed failed: {ex.Message}");
+                    CoreDiagnostics.Report("InitialThreadSeedFailed", error: ex);
                 }
             }
             else
@@ -223,7 +223,7 @@ public sealed class HostCpuThreadMonitorService : IDisposable, IAsyncDisposable
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[HostCpuMonitor] Toolhelp32 snapshot failed: {ex.Message}");
+                CoreDiagnostics.Report("ThreadSnapshotFailed", error: ex);
             }
             trace.ClearProcessTopologyDirty();
         }
@@ -604,7 +604,7 @@ public sealed class HostCpuThreadMonitorService : IDisposable, IAsyncDisposable
             catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[HostCpuMonitor] CPU group query skipped: {ex.Message}");
+                CoreDiagnostics.Report("CpuGroupQueryFailed", error: ex);
             }
         }
 

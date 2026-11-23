@@ -1,3 +1,4 @@
+using ExHyperV.Tools;
 // VMCX 配置工具：文档模型、编辑流程及 VmDataStore 原生接口。
 using ExHyperV.Vmcx.Internal;
 using System.Buffers.Binary;
@@ -872,8 +873,8 @@ namespace ExHyperV.Vmcx
         }
 
         void ReleaseInterfaces() {
-            try { if (_ikv != IntPtr.Zero) D<DRel>(Slot(_ikv, 2))(_ikv); } catch { }
-            try { if (_store != IntPtr.Zero) D<DRel>(Slot(_store, 2))(_store); } catch { }
+            try { if (_ikv != IntPtr.Zero) D<DRel>(Slot(_ikv, 2))(_ikv); } catch (Exception diagnosticError) { CoreDiagnostics.Report("ReleaseKeyValueInterfaceFailed", error: diagnosticError); }
+            try { if (_store != IntPtr.Zero) D<DRel>(Slot(_store, 2))(_store); } catch (Exception diagnosticError) { CoreDiagnostics.Report("ReleaseStoreInterfaceFailed", error: diagnosticError); }
             _ikv = _store = IntPtr.Zero;
         }
 

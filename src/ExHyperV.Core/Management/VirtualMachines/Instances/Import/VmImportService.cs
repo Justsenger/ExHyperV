@@ -1894,7 +1894,7 @@ public static partial class VmImportService
                     removed = IsImportPathMissing(path);
                     if (removed) break;
                 }
-                catch { }
+                catch (Exception diagnosticError) { CoreDiagnostics.Report("ImportCleanupAttemptFailed", error: diagnosticError); }
                 if (attempt < 5) await Task.Delay(250);
             }
             if (!removed) remaining.Add(path);

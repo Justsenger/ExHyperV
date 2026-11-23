@@ -1,3 +1,4 @@
+using ExHyperV.Tools;
 using System.IO;
 using System.Xml.Linq;
 namespace ExHyperV.Services;
@@ -26,6 +27,6 @@ internal static class MmioSettingsStore
             {
                 AppConfigurationStore.Update(root => root.SetElementValue("MmioCeilingMb", ceilingMb.ToString()));
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("MmioCeilingSaveFailed", error: diagnosticError); }
         }
 }

@@ -3,7 +3,6 @@ using System.Globalization;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using ExHyperV.Tools;
-using Microsoft.Win32;
 
 namespace ExHyperV.Services;
 
@@ -154,25 +153,9 @@ public sealed class HostDeviceTelemetryService : IDisposable
                     a.Address.AddressFamily == AddressFamily.InterNetwork && !System.Net.IPAddress.IsLoopback(a.Address));
                 result[id] = new(ip?.Address.ToString() ?? "", adapter.GetPhysicalAddress().ToString());
             }
-            catch (NetworkInformationException) { }
+            catch (NetworkInformationException ex) { CoreDiagnostics.Report("AdapterMetadataReadFailed", error: ex); }
         }
         return result;
-    }
-
-    /// <summary>探测本机 usbipd 安装，无法访问服务注册信息时返回未知。</summary>
-    /// <returns>安装证据存在时为 true，完成探测且未找到时为 false，访问失败时为 null。</returns>
-    public static bool? IsUsbipdInstalled()
-    {
-        try
-        {
-            using var service = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\usbipd");
-            if (service != null) return true;
-            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            if (File.Exists(Path.Combine(programFiles, "usbipd-win", "usbipd.exe"))) return true;
-            return (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Any(dir => File.Exists(Path.Combine(dir, "usbipd.exe")));
-        }
-        catch (Exception ex) when (ex is UnauthorizedAccessException or System.Security.SecurityException or IOException) { return null; }
     }
 
     /// <summary>释放全部计数器及采样基线。</summary>

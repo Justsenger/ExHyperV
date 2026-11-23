@@ -18,7 +18,6 @@ internal static partial class ApiCaseRegistry
 
         Register(HostTelemetryContractCases.RunAsync, exclusive: false, hostResources: true,
             "HostDeviceTelemetryService.Read()",
-            "HostDeviceTelemetryService.IsUsbipdInstalled()",
             "HostDeviceTelemetryService.ReadAdapterAddresses()",
             "HostNetworkTelemetryService.GetAdapterThroughput()",
             "HostNetworkTelemetryService.GetSwitchThroughput()",

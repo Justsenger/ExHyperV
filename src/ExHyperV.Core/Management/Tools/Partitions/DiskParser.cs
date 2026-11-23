@@ -46,7 +46,7 @@ namespace ExHyperV.Tools
                             else if (CheckGptSignatureAt(diskStream, 4096)) bytesPerSector = 4096;
                             else
                             {
-                                Debug.WriteLine(Properties.Resources.DiskParser_LogErrGptNotFound);
+                                CoreDiagnostics.Report("GptHeaderMissing");
                                 return Filter(partitions);
                             }
                         }
@@ -60,7 +60,7 @@ namespace ExHyperV.Tools
                 catch (Exception ex)
                 {
                     // 分区表内容损坏：容忍，带着已解析出的部分返回（设备打开失败已在 using 处向上抛）
-                    Debug.WriteLine(string.Format(Properties.Resources.DiskParser_LogErrReadFailed, ex.Message));
+                    CoreDiagnostics.Report("PartitionReadFailed", error: ex);
                 }
             }
 

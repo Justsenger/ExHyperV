@@ -97,7 +97,7 @@ namespace ExHyperV.Services
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[GetVmAdaptersOnSwitchAsync] error: {ex.Message}");
+                        CoreDiagnostics.Report("SwitchAdapterQueryFailed", error: ex);
                         return null;
                     }
                 }
@@ -193,7 +193,7 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Error in GetNetworkInfoAsync: {ex}");
+                    CoreDiagnostics.Report("NetworkInfoQueryFailed", error: ex);
                     throw;
                 }
             });
@@ -357,7 +357,7 @@ namespace ExHyperV.Services
 
             if (!switchObjects.Success || switchObjects.Data == null)
             {
-                Debug.WriteLine($"[NetworkService] GetSwitchList WMI error: {switchObjects.Error}");
+                CoreDiagnostics.Report("SwitchListQueryFailed", details: $"errorCode={switchObjects.Code} errorKind={switchObjects.ErrorKind}");
                 if (requireSuccess) throw new InvalidOperationException(switchObjects.Error);
                 return new List<SwitchInfo>();
             }
@@ -372,7 +372,7 @@ namespace ExHyperV.Services
                         // A runtime port can outlive its configuration association.
                         // Keep this switch visible without losing every healthy switch.
                         // Configuration transactions still use the strict reader below.
-                        Debug.WriteLine(ex);
+                        CoreDiagnostics.Report("SwitchProjectionFailed", error: ex);
                         return new SwitchInfo
                         {
                             SwitchName = switchObj["ElementName"]?.ToString() ?? string.Empty,
@@ -529,7 +529,7 @@ namespace ExHyperV.Services
                     }
                 }
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("AdapterAddressLookupFailed", error: diagnosticError); }
             return [];
         }
 
@@ -578,7 +578,7 @@ namespace ExHyperV.Services
                     }
                 }
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("SwitchPrefixLookupFailed", error: diagnosticError); }
             return null;
         }
 
@@ -836,7 +836,7 @@ namespace ExHyperV.Services
             catch (SwitchConfigurationConflictException) { throw; }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in DeleteSwitchAsync: {ex}");
+                CoreDiagnostics.Report("SwitchDeletionFailed", error: ex);
                 throw ConfigurationFailure(ex);
             }
         }
@@ -1425,7 +1425,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error getting full network state for switch '{switchName}': {ex.Message}");
+                CoreDiagnostics.Report("SwitchStateReadFailed", error: ex);
                 return new List<SwitchEndpointInfo>();
             }
         }

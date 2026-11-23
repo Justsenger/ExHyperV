@@ -96,7 +96,7 @@ namespace ExHyperV.Services
                 if (fallbackStaging != null && Directory.Exists(fallbackStaging))
                 {
                     try { Directory.Delete(fallbackStaging, recursive: true); }
-                    catch { }
+                    catch (Exception diagnosticError) { CoreDiagnostics.Report("IsoStagingCleanupFailed", error: diagnosticError); }
                 }
             }
         }
@@ -216,7 +216,7 @@ namespace ExHyperV.Services
                 if (progressPercent == null || percent == lastPercent) return;
                 lastPercent = percent;
                 try { progressPercent(percent); }
-                catch { }
+                catch (Exception diagnosticError) { CoreDiagnostics.Report("IsoProgressObserverFailed", error: diagnosticError); }
             }
 
             int chunkSize = blockSize >= MaxStreamReadBufferBytes

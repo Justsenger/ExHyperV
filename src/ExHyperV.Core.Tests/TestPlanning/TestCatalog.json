@@ -6812,19 +6812,6 @@
     "operation": "采样宿主设备"
   },
   {
-    "id": "contract.hostdevicetelemetryservice.isusbipdinstalled",
-    "api": "HostDeviceTelemetryService.IsUsbipdInstalled()",
-    "group": "管理层面 / 宿主 / 查询 / 基本信息",
-    "name": "检测 usbipd 安装",
-    "expected": "与服务注册项、安装路径及 PATH 中的文件对照",
-    "requirements": [
-      "windows"
-    ],
-    "recovery": [],
-    "order": 1,
-    "operation": "检测 usbipd 安装"
-  },
-  {
     "id": "contract.hostdevicetelemetryservice.dispose",
     "api": "HostDeviceTelemetryService.Dispose()",
     "group": "管理层面 / 宿主 / 查询 / 基本信息",

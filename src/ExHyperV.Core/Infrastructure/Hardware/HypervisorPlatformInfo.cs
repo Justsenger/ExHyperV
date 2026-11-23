@@ -27,7 +27,7 @@ internal static class HypervisorPlatformInfo
         }
         catch (Exception error)
         {
-            Debug.WriteLine($"[Hyper-V platform] Runtime query unavailable: {error.Message}");
+            CoreDiagnostics.Report("PlatformQueryUnavailable", error: error);
             return null;
         }
     }

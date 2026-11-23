@@ -11,6 +11,8 @@ internal sealed record AppearanceSettings
     public ElementTheme Theme { get; init; } = ElementTheme.Default;
     public bool AccentEnabled { get; init; } = true;
     public string AccentColor { get; init; } = "#4CC2FF";
+    public bool LoggingEnabled { get; init; } = true;
+    public bool VerboseDiagnostics { get; init; }
     public string Language { get; init; } = "system";
     public bool AutoOpenConsole { get; init; } = false;
     public string DefaultPowerAction { get; init; } = "Shutdown";

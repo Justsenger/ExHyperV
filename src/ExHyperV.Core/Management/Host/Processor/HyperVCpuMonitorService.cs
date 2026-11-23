@@ -190,7 +190,7 @@ namespace ExHyperV.Services
         private static void ReleaseCounter(Counter counter)
         {
             try { counter.Dispose(); }
-            catch (Exception error) { Debug.WriteLine($"[CpuMonitor] Counter cleanup failed: {error.Message}"); }
+            catch (Exception error) { CoreDiagnostics.Report("CounterCleanupFailed", error: error); }
         }
 
         private const string HostCategory = "Hyper-V Hypervisor Logical Processor";

@@ -90,9 +90,6 @@
   <data name="Main_WindowNotCreated" xml:space="preserve">
     <value>Main window has not been created yet.</value>
   </data>
-  <data name="Main_InvalidProductPage" xml:space="preserve">
-    <value>Product pages require valid Id, Title, and Create delegate.</value>
-  </data>
   <data name="Main_CloseFailedTitle" xml:space="preserve">
     <value>Not safely closed</value>
   </data>
@@ -2205,15 +2202,6 @@ Fixed tries to hold the target MHz.</value>
   </data>
   <data name="Host_Env_PendingSwitch" xml:space="preserve">
     <value>Pending product type switch to {0} (awaiting restart)</value>
-  </data>
-  <data name="Host_Env_Group_Usb" xml:space="preserve">
-    <value>USB Passthrough Requirements</value>
-  </data>
-  <data name="Host_Env_Usbipd" xml:space="preserve">
-    <value>usbipd-win Installed</value>
-  </data>
-  <data name="Host_Env_UsbipdMissing" xml:space="preserve">
-    <value>usbipd-win service or binary not found</value>
   </data>
   <data name="Host_Set_Sub_Scheduler" xml:space="preserve">
     <value>CPU Scheduler</value>
@@ -4666,4 +4654,15 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <value>插槽</value>
     <comment>TODO: en</comment>
   </data>
+  <data name="Settings_Diagnostics" xml:space="preserve"><value>Diagnostics and logs</value></data>
+  <data name="Settings_EnableLogging" xml:space="preserve"><value>Enable runtime logging</value></data>
+  <data name="Settings_VerboseDiagnostics" xml:space="preserve"><value>Detailed diagnostics</value></data>
+  <data name="Settings_DiagnosticsHint" xml:space="preserve"><value>Detailed mode also records routine monitoring samples. Logs use up to 12 MiB.</value></data>
+  <data name="Settings_ExportLogs" xml:space="preserve"><value>Export diagnostic bundle</value></data>
+  <data name="Settings_OpenLogs" xml:space="preserve"><value>Open log folder</value></data>
+  <data name="Settings_ClearLogs" xml:space="preserve"><value>Clear logs</value></data>
+  <data name="Settings_ZipType" xml:space="preserve"><value>Diagnostic bundle (.zip)</value></data>
+  <data name="Settings_Exported" xml:space="preserve"><value>Diagnostic bundle saved.</value></data>
+  <data name="Settings_ClearConfirm" xml:space="preserve"><value>Delete all retained runtime logs? New events will be recorded while logging is enabled.</value></data>
+  <data name="Settings_Cleared" xml:space="preserve"><value>Runtime logs cleared.</value></data>
 </root>

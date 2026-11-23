@@ -64,8 +64,7 @@ public sealed class AppStructureTests
         {
             _ when path.StartsWith("UI/Pages/Host/", StringComparison.Ordinal) => ["UI.Pages.VirtualMachines"],
             _ when path.StartsWith("UI/Shared/", StringComparison.Ordinal) => ["UI.Pages", "UI.Shell"],
-            _ when path.StartsWith("Localization/", StringComparison.Ordinal)
-                || path.StartsWith("Composition/", StringComparison.Ordinal) => ["UI"],
+            _ when path.StartsWith("Localization/", StringComparison.Ordinal) => ["UI"],
             _ => []
         };
         foreach (string branch in forbidden)

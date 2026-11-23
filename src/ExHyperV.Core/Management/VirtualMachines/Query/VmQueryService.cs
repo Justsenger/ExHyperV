@@ -980,7 +980,7 @@ namespace ExHyperV.Services
                             {
                                 _gpuCounters.Remove(counter);
                                 _gpuCounterOwners.Remove(name);
-                                try { counter.Dispose(); } catch { }
+                                try { counter.Dispose(); } catch (Exception diagnosticError) { CoreDiagnostics.Report("GpuCounterCleanupFailed", error: diagnosticError); }
                             }
                         }
                     }
@@ -1117,7 +1117,7 @@ namespace ExHyperV.Services
                         if (counter != null)
                         {
                             _networkCounters.Remove(counter);
-                            try { counter.Dispose(); } catch { }
+                            try { counter.Dispose(); } catch (Exception diagnosticError) { CoreDiagnostics.Report("NetworkCounterCleanupFailed", error: diagnosticError); }
                         }
                     }
                 }
@@ -1404,7 +1404,7 @@ namespace ExHyperV.Services
                 var service = _service;
                 _service = null;
                 // Cleanup failure must not replace the existing per-disk fallback or abort the list.
-                try { service?.Dispose(); } catch { }
+                try { service?.Dispose(); } catch (Exception diagnosticError) { CoreDiagnostics.Report("StorageServiceCleanupFailed", error: diagnosticError); }
             }
 
             public void Dispose()

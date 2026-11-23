@@ -152,7 +152,7 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
         // and editors work with the authoritative GUID catalog while that read completes.
         List<SwitchInfo> details;
         try { (details, _) = await HyperVSwitchService.GetNetworkInfoAsync(); }
-        catch (Exception ex) { System.Diagnostics.Debug.WriteLine(ex); return; }
+        catch (Exception ex) { Diagnostics.AppDiagnostics.Failure("VmNetworkSettings", "SwitchModeLookupFailed", ex); return; }
         if (IsStopped || !ReferenceEquals(snapshot, adapters)) return;
         foreach (var item in details)
         {

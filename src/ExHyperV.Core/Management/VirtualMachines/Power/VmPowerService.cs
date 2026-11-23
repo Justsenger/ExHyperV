@@ -54,11 +54,11 @@ namespace ExHyperV.Services
         /// <returns>参数校验或电源请求的结果；亲和性恢复在启动后由后台继续执行。</returns>
         /// <remarks>Stop 和 Restart 返回来宾请求结果。TurnOff 请求下电，请求结果未知时停止，只有已结束的请求才进入工作进程核验。</remarks>
         /// <editentry label="电源控制" category="电源"/>
-        public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action)
+        public static async Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action)
         {
-            if (!Enum.IsDefined(action)) return Task.FromResult(InvalidAction());
+            if (!Enum.IsDefined(action)) return InvalidAction();
             if (vmId == Guid.Empty)
-                return Task.FromResult(ApiResponse.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument));
+                return ApiResponse.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
             string predicate = VmIdentity.ComputerSystemPredicate(vmId);
             string wql = $"SELECT * FROM Msvm_ComputerSystem WHERE {predicate}";
             Task<ApiResponse> RequestAsync(ushort state) => WmiApi.InvokeAsync(
@@ -67,7 +67,10 @@ namespace ExHyperV.Services
                 () => ForceTurnOffAsync(vmId.ToString("D"), wql, predicate),
                 () => StartWithDiagnosticsAsync(vmId, () => HostAzureFeatureSetService.RunTemporarilyDisabledAsync(() => RequestAsync(2))),
                 () => { _ = ApplyStartupAffinityAsync(predicate); });
-            return ExecuteControlActionAsync(action, backend);
+            CoreDiagnostics.Report("PowerRequested", TraceEventType.Information, details: $"action={action}", vmId: vmId);
+            var result = await ExecuteControlActionAsync(action, backend).ConfigureAwait(false);
+            CoreDiagnostics.Report("PowerCompleted", TraceEventType.Information, details: $"action={action} success={result.Success}", vmId: vmId);
+            return result;
         }
 
         internal static bool TryParseAction(string? action, out VmPowerAction parsed)
@@ -119,11 +122,11 @@ namespace ExHyperV.Services
                 var result = await CpuAffinityService.ApplySavedAffinityAfterStartAsync(vm.Data).ConfigureAwait(false);
                 if (result is CpuAffinityService.StartupApplyStatus.Exhausted or CpuAffinityService.StartupApplyStatus.InvalidConfiguration
                     or CpuAffinityService.StartupApplyStatus.ReselectionRequired)
-                    Debug.WriteLine($"[ExHyperV] CPU affinity restore for {vm.Data:D}: {result}");
+                    CoreDiagnostics.Report("StartupAffinityRestoreFailed", details: $"status={result}", vmId: vm.Data);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.VmPage_AffinityApplyException, ex.Message));
+                CoreDiagnostics.Report("StartupAffinityException", error: ex);
             }
         }
 
@@ -288,10 +291,7 @@ namespace ExHyperV.Services
                     if (state.HasData && state.Data.Generation == 1)
                         return result.WithDiagnostic(CoreErrorCode.StartFailedGen1OnArm64);
                 }
-                catch
-                {
-                    // 后验排查失败不影响保留原始启动错误。
-                }
+                catch (Exception diagnosticError) { CoreDiagnostics.Report("GenerationDiagnosisFailed", error: diagnosticError); }
             }
 
             if (result.DiagnosticCode == CoreErrorCode.Unsupported)
@@ -336,10 +336,7 @@ namespace ExHyperV.Services
                         return original.WithDiagnostic(CoreErrorCode.StartUnsupportedWithSuspects, suspects);
                 }
             }
-            catch
-            {
-                // 后验排查失败不影响保留原始启动错误。
-            }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("StartFeatureDiagnosisFailed", error: diagnosticError); }
             return null;
         }
 
@@ -396,10 +393,7 @@ namespace ExHyperV.Services
                 if (mem?.MemoryEncryptionPolicy == 2)
                     suspects.Add("MemEncryption");
             }
-            catch
-            {
-                // 后验排查失败不影响保留原始启动错误。
-            }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("MemoryDiagnosisFailed", error: diagnosticError); }
             return suspects.ToArray();
         }
     }

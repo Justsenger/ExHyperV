@@ -411,7 +411,6 @@ const hostState = {
   gpuPvOk: true,
   iommuOk: true,
   isWindowsServer: false,
-  usbipdOk: true,
 
   notice: null,
 
@@ -1857,10 +1856,6 @@ function renderEnvTab() {
           <div class="host-platform-group-title">PCIe 直通要求</div>
           ${statusRowHtml(hostState.iommuOk, HOST_SYS.arch === 'ARM64' ? 'SMMU 状态' : 'IOMMU 状态')}
           ${statusRowHtml(hostState.isWindowsServer, '属于 Windows Server 系统')}
-        </div>
-        <div class="host-platform-group">
-          <div class="host-platform-group-title">USB 直通要求</div>
-          ${statusRowHtml(hostState.usbipdOk, '已安装 usbipd-win')}
         </div>
       </div>
     </div>

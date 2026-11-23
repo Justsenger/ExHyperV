@@ -216,7 +216,7 @@ public static partial class VmStorageService
 
     private sealed class DiskProgress(Action<int> report) : IProgress<int>
     {
-        public void Report(int value) { try { report(Math.Clamp(value, 0, 100)); } catch { /* Observers cannot undo a completed write. */ } }
+        public void Report(int value) { try { report(Math.Clamp(value, 0, 100)); } catch (Exception diagnosticError) { CoreDiagnostics.Report("DiskProgressObserverFailed", error: diagnosticError); } }
     }
 
     /// <summary>转换到同目录的新文件并切换原槽位。原文件保留，目标已存在时停止。</summary>

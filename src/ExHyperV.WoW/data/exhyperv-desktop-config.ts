@@ -27,7 +27,7 @@ export const EXHYPERV_HOST_CONFIG = {
       id: 'exhyperv',
       name: 'ExHyperV',
       iconKey: 'exhyperv',
-      description: '为 Windows 上的 Hyper-V 带来卓越的现代化桌面体验。',
+      description: '为 Windows 上的 Hyper-V 带来现代化桌面体验。',
       category: 'app',
       runtime: 'iframe',
       onDesktop: true,

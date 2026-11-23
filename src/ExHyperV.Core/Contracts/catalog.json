@@ -4152,6 +4152,24 @@
         "安全"
       ],
       "group": "vm"
+    },
+    "ExHyperV.Tools.CoreDiagnosticEvent": {
+      "title": "本地诊断事件",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "共用类型"
+      ],
+      "group": "core"
+    },
+    "ExHyperV.Tools.CoreDiagnostics": {
+      "title": "进程内诊断通道",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "共用类型"
+      ],
+      "group": "core"
     }
   },
   "members": {
@@ -31991,19 +32009,6 @@
       "group": "host",
       "readOnly": false
     },
-    "M:ExHyperV.Services.HostDeviceTelemetryService.IsUsbipdInstalled": {
-      "title": "检测 usbipd 安装状态",
-      "paths": [
-        [
-          "管理层面",
-          "宿主",
-          "查询",
-          "基本信息"
-        ]
-      ],
-      "group": "host",
-      "readOnly": true
-    },
     "M:ExHyperV.Services.HostDeviceTelemetryService.Read(System.Collections.Generic.IReadOnlyCollection{System.Int32})": {
       "title": "采样宿主设备负载",
       "paths": [
@@ -32937,6 +32942,171 @@
       ],
       "group": "vm",
       "readOnly": false
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.Timestamp": {
+      "title": "事件产生的 UTC 时间",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.Level": {
+      "title": "诊断等级。Verbose 表示详细采样",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.Category": {
+      "title": "产生事件的 Core 模块名",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.EventName": {
+      "title": "语言无关的操作或事件标识",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.Caller": {
+      "title": "产生事件的成员名",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.Details": {
+      "title": "经过选择的数值、状态和分类字段",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.VmId": {
+      "title": "已知的虚拟机标识",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.ExceptionType": {
+      "title": "发生异常时的托管异常类型",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.HResult": {
+      "title": "发生异常时的 HRESULT",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.Stack": {
+      "title": "不含源文件路径的调用栈",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "E:ExHyperV.Tools.CoreDiagnostics.Reported": {
+      "title": "订阅进程内诊断事件",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": false
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.ErrorKind": {
+      "title": "失败响应归一化后的错误类别",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.ErrorSource": {
+      "title": "失败响应数值码的来源",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.ErrorCode": {
+      "title": "失败响应携带的原生或业务错误码",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Tools.CoreDiagnosticEvent.Diagnostic": {
+      "title": "失败响应的语言无关诊断分类",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
     }
   },
   "hostEntries": [
@@ -33667,13 +33837,6 @@
       "area": "查询",
       "category": "网络",
       "label": "查询宿主接口地址"
-    },
-    {
-      "owner": "HostDeviceTelemetryService",
-      "member": "IsUsbipdInstalled",
-      "area": "查询",
-      "category": "基本信息",
-      "label": "检测 usbipd 安装状态"
     },
     {
       "owner": "HostSystemInfoService",

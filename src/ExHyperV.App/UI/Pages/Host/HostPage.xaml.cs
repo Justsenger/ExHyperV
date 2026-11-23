@@ -256,6 +256,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
         {
             await previous;
             token.ThrowIfCancellationRequested();
+            Diagnostics.AppDiagnostics.Write("HostMonitor", "Started");
             await using var cpu = await Task.Run(() => new HostCpuThreadMonitorService(), token);
             using var devices = new HostDeviceTelemetryService();
             using var network = new HostNetworkTelemetryService();
@@ -272,6 +273,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
 
                     if (pageActive && windowVisible && !stopping && activeTabIndex == 0 && ReferenceEquals(inventory, currentInv))
                     {
+                        Diagnostics.AppDiagnostics.Write("HostMonitor", "Sample", level: TraceEventType.Verbose);
                         statusView.ApplySample(sample);
                         ShowVmSummary(sample.VmSummary);
                     }
@@ -291,10 +293,11 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning("Host telemetry loop stopped: {0}", ex.Message);
+            Trace.TraceWarning("Host telemetry loop stopped: {0}", ex);
         }
         finally
         {
+            Diagnostics.AppDiagnostics.Write("HostMonitor", "Stopped");
             if (ReferenceEquals(telemetryCts, cts)) telemetryCts = null;
             cts.Dispose();
         }

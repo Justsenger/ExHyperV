@@ -631,7 +631,7 @@ public sealed class GpuDeploymentSession
         };
         Volatile.Write(ref snapshot, next);
         try { report?.Invoke(next); }
-        catch (Exception exception) { System.Diagnostics.Debug.WriteLine(exception); }
+        catch (Exception exception) { CoreDiagnostics.Report("DeploymentObserverFailed", error: exception); }
     }
 
     private static DiskPartitionInfo ClonePartition(DiskPartitionInfo p) => new(p.PartitionNumber, p.SizeInBytes, p.OsType, p.TypeDescription)

@@ -30,7 +30,7 @@ internal static class DxgiGpuMemory
                     int descriptionResult = getDescription(adapter, &description);
                     if (descriptionResult < 0)
                     {
-                        Debug.WriteLine($"[DXGI GPU memory] GetDesc1: 0x{descriptionResult:X8}");
+                        CoreDiagnostics.Report("GetAdapterDescriptionFailed", details: $"hresult=0x{descriptionResult:X8}");
                         continue;
                     }
                     if ((description.Flags & 3) != 0) continue; // REMOTE / SOFTWARE，不冒充物理显卡
@@ -44,7 +44,7 @@ internal static class DxgiGpuMemory
         }
         catch (Exception error)
         {
-            Debug.WriteLine($"[DXGI GPU memory] {error.Message}");
+            CoreDiagnostics.Report("GpuMemoryQueryFailed", error: error);
             // 枚举未完成时不发布可能漏掉冲突项的部分结果；不回退注册表或按名称猜测。
             return new Dictionary<string, ulong?>(StringComparer.OrdinalIgnoreCase);
         }
@@ -103,7 +103,7 @@ internal static class DxgiGpuMemory
         {
             uint handle = open.Handle;
             int close = Native.D3DKMTCloseAdapter(ref handle);
-            if (close < 0) Debug.WriteLine($"[DXGI GPU memory] D3DKMTCloseAdapter: 0x{close:X8}");
+            if (close < 0) CoreDiagnostics.Report("CloseAdapterFailed", details: $"ntstatus=0x{close:X8}");
         }
     }
 

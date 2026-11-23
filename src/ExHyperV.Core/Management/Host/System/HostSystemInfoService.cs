@@ -1,3 +1,4 @@
+using ExHyperV.Tools;
 using System.Runtime.InteropServices;
 using System.Management;
 
@@ -92,7 +93,7 @@ namespace ExHyperV.Services
                     break;
                 }
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("OsInfoReadFailed", error: diagnosticError); }
 
             // CPU 信息
             try
@@ -123,7 +124,7 @@ namespace ExHyperV.Services
                         : $"{name}{speedSuffix}";
                 }
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("ProcessorInfoReadFailed", error: diagnosticError); }
 
             // 内存信息
             try
@@ -142,7 +143,7 @@ namespace ExHyperV.Services
                 if (totalGb > 0)
                     memoryInfo = $"{Math.Round(totalGb, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)} GB";
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("MemoryInfoReadFailed", error: diagnosticError); }
 
             return new SystemInfo(osCaption, osArch, cpuInfo, memoryInfo);
         }

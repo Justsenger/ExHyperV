@@ -169,7 +169,7 @@ public sealed unsafe class ArpSnoopService : IDisposable
             RememberFailure(operation, error);
             ThreadPool.QueueUserWorkItem(_ => Dispose());
         }
-        catch { }
+        catch (Exception diagnosticError) { CoreDiagnostics.Report("ArpFaultCleanupFailed", error: diagnosticError); }
     }
 
     private void RememberFailure(string operation, Exception error)

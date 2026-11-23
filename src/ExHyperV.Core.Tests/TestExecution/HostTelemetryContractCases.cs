@@ -1,5 +1,4 @@
 using System.Net.NetworkInformation;
-using Microsoft.Win32;
 using ExHyperV.Models;
 using ExHyperV.Services;
 
@@ -27,17 +26,6 @@ internal static class HostTelemetryContractCases
                 c.Call(devices.Dispose);
                 c.Call(devices.Dispose);
                 c.Throws<ObjectDisposedException>(() => devices.Read([]), "释放后关闭采样入口");
-                break;
-            case "HostDeviceTelemetryService.IsUsbipdInstalled()":
-                var installed = c.Call(HostDeviceTelemetryService.IsUsbipdInstalled);
-                using (var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\usbipd"))
-                {
-                    var directories = (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator,
-                        StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-                        .Append(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "usbipd-win"));
-                    c.Equal<bool?>(key != null || directories.Any(dir => File.Exists(Path.Combine(dir, "usbipd.exe"))),
-                        installed, "服务登记或可执行文件独立对照");
-                }
                 break;
             case "HostDeviceTelemetryService.ReadAdapterAddresses()":
                 var addresses = c.Call(HostDeviceTelemetryService.ReadAdapterAddresses);

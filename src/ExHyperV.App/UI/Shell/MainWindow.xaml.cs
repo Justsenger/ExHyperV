@@ -1,5 +1,4 @@
 
-using ExHyperV.App.Composition;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Pages.Host;
 using ExHyperV.App.UI.Pages.Settings;
@@ -26,14 +25,12 @@ public sealed partial class MainWindow : Window
     private bool restoringNavigation;
     private int navigationVersion;
     private object? activeNavigationItem;
-    private readonly Dictionary<string, ProductPageDefinition> productPages = new();
 
     public MainWindow()
     {
         InitializeComponent();
         Navigation.DisplayModeChanged += OnNavigationDisplayModeChanged;
         UpdateNavigationContentInset();
-        Title = TitleText.Text = ((App)Application.Current).Product.DisplayName;
         AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
         themeSettings = ThemeSettings.CreateForWindowId(AppWindow.Id);
         themeSettings.Changed += OnSystemThemeChanged;
@@ -48,18 +45,6 @@ public sealed partial class MainWindow : Window
         Root.ActualThemeChanged += OnThemeChanged;
         AppWindow.Changed += OnAppWindowChanged;
         Activated += OnActivated;
-        foreach (var page in ((App)Application.Current).Product.Pages)
-        {
-            if (string.IsNullOrWhiteSpace(page.Id) || string.IsNullOrWhiteSpace(page.Title) || page.Create is null)
-                throw new ArgumentException(L10n.Get("Main_InvalidProductPage"));
-            var route = "product." + page.Id;
-            productPages.Add(route, page);
-            Navigation.MenuItems.Add(new NavigationViewItem
-            {
-                Content = page.Title, Tag = route,
-                Icon = new FontIcon { Glyph = page.Glyph, FontSize = 18 }
-            });
-        }
         ApplyNavigationLocalization();
         Navigation.SelectedItem = Navigation.MenuItems[0];
         AppWindow.Closing += OnClosing;
@@ -200,14 +185,13 @@ public sealed partial class MainWindow : Window
                 "settings" => new SettingsPage(),
                 "host" => new HostPage(),
                 "web" => new WebPage(),
-                _ => productPages.TryGetValue(route, out var definition)
-                    ? definition.Create(new ProductPageContext(AppWindow.Id))
-                    : throw new InvalidOperationException($"Unknown page: {route}")
+                _ => throw new InvalidOperationException($"Unknown page: {route}")
             };
             pages.Add(route, page);
         }
         if (route != "virtual-machines") SetImmersiveMode(false);
         if (page is HostPage host) host.SetWindowVisible(ContentVisible);
+        Diagnostics.AppDiagnostics.Write("Navigation", "PageSelected", $"page={page.GetType().Name}");
         PageContent.Content = page;
         activeNavigationItem = args.SelectedItem;
     });
@@ -221,8 +205,7 @@ public sealed partial class MainWindow : Window
 
     private async void OnClosed(object sender, WindowEventArgs args) => await UiEvent.RunAsync(async () =>
     {
-        // Window.Close() can bypass AppWindow.Closing. The native product windows
-        // still need releasing; normal title-bar closure already did this above.
+        // Window.Close() can bypass AppWindow.Closing; normal title-bar closure already stopped active pages above.
         if (!closeAfterCleanup)
         {
             foreach (var page in pages.Values.OfType<VirtualMachinesPage>().ToArray())
@@ -235,13 +218,6 @@ public sealed partial class MainWindow : Window
                 try { await page.StopAsync(); }
                 catch (Exception error) { System.Diagnostics.Trace.TraceError("Host page cleanup failed: {0}", error); }
             }
-            foreach (var page in pages.Values.OfType<IProductPageLifetime>())
-            {
-                try { page.Dispose(); }
-                catch (Exception error) { System.Diagnostics.Trace.TraceError("Product page cleanup failed: {0}", error); }
-            }
-            try { ((App)Application.Current).Product.DesktopWindows?.CloseAll(); }
-            catch (Exception error) { System.Diagnostics.Trace.TraceError("Product desktop cleanup failed after shell closure: {0}", error); }
         }
         ((App)Application.Current).Appearance.Changed -= OnAppearanceChanged;
         themeSettings.Changed -= OnSystemThemeChanged;
@@ -268,10 +244,7 @@ public sealed partial class MainWindow : Window
         try
         {
             await Task.WhenAll(active.Select(page => page.StopAsync()));
-            foreach (var page in pages.Values.OfType<IProductPageLifetime>()) await page.StopAsync();
-            ((App)Application.Current).Product.DesktopWindows?.CloseAll();
             await Task.WhenAll(hostPages.Select(page => page.StopAsync()));
-            foreach (var page in pages.Values.OfType<IProductPageLifetime>()) page.Dispose();
             closeAfterCleanup = true;
             if (!Root.DispatcherQueue.TryEnqueue(Close)) Close();
         }

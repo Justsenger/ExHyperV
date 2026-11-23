@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using ExHyperV.Tools;
 using System.Buffers.Binary;
 
 namespace ExHyperV.Services;
@@ -93,6 +95,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
         IConsoleNativeConnection? owned = null;
         try
         {
+            CoreDiagnostics.Report("ConsoleConnecting", TraceEventType.Information, details: $"enhanced={enhanced}", vmId: options.VmId);
             owned = backend.Create(options, OnNativeEvent, OnNativeFrame);
             lock (gate)
             {
@@ -127,6 +130,8 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
                 clipboardAvailable = false;
             }
             // A Disconnected subscriber can safely await/perform disposal: native cleanup is finished.
+            CoreDiagnostics.Report("ConsoleDisconnected", error == 0 ? TraceEventType.Information : TraceEventType.Error,
+                details: $"errorCode={error}", vmId: options.VmId);
             completion.TrySetResult();
             if (notifyClipboard) Raise(ClipboardAvailabilityChanged, false);
             Raise(Disconnected, new ConsoleDisconnectInfo(error, message));
@@ -140,6 +145,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
         {
             case 1:
                 lock (gate) { if (stopping || state == ConsoleConnectionState.Connected) return; state = ConsoleConnectionState.Connected; }
+                CoreDiagnostics.Report("ConsoleConnected", TraceEventType.Information, vmId: options.VmId);
                 Raise(Connected);
                 break;
             case 2:
@@ -194,7 +200,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
             // observer cannot invalidate another observer's independently retained lease.
             using var borrowed = frame.Retain();
             try { handler(borrowed); }
-            catch { /* Observer failures cannot unwind into the native output thread. */ }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("FrameObserverFailed", error: diagnosticError); }
         }
     }
 
@@ -329,7 +335,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
         {
             if (!CanSendInput) return;
             try { inputs.Flush(); ScheduleInputRetry(); }
-            catch { _ = DisconnectAsync(); } // Never let a retry timer exception escape a ThreadPool callback.
+            catch (Exception ex) { CoreDiagnostics.Report("InputRetryFailed", error: ex, vmId: options.VmId); _ = DisconnectAsync(); } // Never let a retry timer exception escape a ThreadPool callback.
         }
     }
 
@@ -373,7 +379,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
 
     // An observer exception must never unwind through a native FreeRDP callback.
     private static void Raise(Action? handlers)
-    { if (handlers is not null) foreach (Action handler in handlers.GetInvocationList()) { try { handler(); } catch { } } }
+    { if (handlers is not null) foreach (Action handler in handlers.GetInvocationList()) { try { handler(); } catch (Exception diagnosticError) { CoreDiagnostics.Report("ConsoleObserverFailed", error: diagnosticError); } } }
     private static void Raise<T>(Action<T>? handlers, T value)
-    { if (handlers is not null) foreach (Action<T> handler in handlers.GetInvocationList()) { try { handler(value); } catch { } } }
+    { if (handlers is not null) foreach (Action<T> handler in handlers.GetInvocationList()) { try { handler(value); } catch (Exception diagnosticError) { CoreDiagnostics.Report("ConsoleObserverFailed", error: diagnosticError); } } }
 }

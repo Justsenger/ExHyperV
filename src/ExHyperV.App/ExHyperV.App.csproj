@@ -78,8 +78,6 @@
                      '%(ResolvedFileToPublish.Filename)' == 'Microsoft.Windows.ApplicationModel.Background.UniversalBGTask'" />
     </ItemGroup>
   </Target>
-  <!-- Explicit build-time composition; never scan or load arbitrary plugin directories. -->
-  <Import Project="$(ProductIntegrationTargets)" Condition="'$(ProductIntegrationTargets)' != ''" />
   <ItemGroup>
     <BrotliResource Include="../ExHyperV.Core/Contracts/FieldHelp.json" LogicalName="ExHyperV.ApiFieldHelp.json.br" Kind="json" />
   </ItemGroup>

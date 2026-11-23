@@ -3,7 +3,7 @@
   "version": "2.0.0-Alpha",
   "source": {
     "revision": null,
-    "contentSha256": "d4551db900ade84e385bff4bba6fe6a973fb2c6a46dd55def7d568a1ac990033"
+    "contentSha256": "a16759e75c0be3d7bdbc1f9915190a5e423526a435b4fdaed7791c1079b3c53d"
   },
   "defaultTypeId": "overview",
   "queryPath": [
@@ -55263,7 +55263,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 26,
+          "order": 25,
           "signature": "public HostAdapterAddress(string IPv4, string Mac);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-cf4bd5ffb7a2e5ec\u0022\u003EHostAdapterAddress\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E IPv4, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Mac);",
           "presentation": {
@@ -55320,7 +55320,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 26,
+          "order": 25,
           "signature": "public string IPv4 { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E IPv4 { get; init; }",
           "presentation": {
@@ -55377,7 +55377,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 26,
+          "order": 25,
           "signature": "public string Mac { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Mac { get; init; }",
           "presentation": {
@@ -57891,7 +57891,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 179,
+          "order": 162,
           "signature": "public void Dispose();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Evoid\u003C/span\u003E Dispose();",
           "presentation": {
@@ -57924,71 +57924,6 @@
           "summaryText": "\u91CA\u653E\u5168\u90E8\u8BA1\u6570\u5668\u53CA\u91C7\u6837\u57FA\u7EBF\u3002"
         },
         {
-          "id": "api-6086d03ab833cc5d",
-          "uid": "M:ExHyperV.Services.HostDeviceTelemetryService.IsUsbipdInstalled",
-          "toolGroup": "host",
-          "readOnly": true,
-          "name": "IsUsbipdInstalled",
-          "displayName": "\u68C0\u6D4B usbipd \u5B89\u88C5\u72B6\u6001",
-          "isPrimary": false,
-          "navigationPath": [
-            "\u7BA1\u7406\u5C42\u9762",
-            "\u5BBF\u4E3B",
-            "\u67E5\u8BE2",
-            "\u57FA\u672C\u4FE1\u606F"
-          ],
-          "navigationPaths": [
-            [
-              "\u7BA1\u7406\u5C42\u9762",
-              "\u5BBF\u4E3B",
-              "\u67E5\u8BE2",
-              "\u57FA\u672C\u4FE1\u606F"
-            ]
-          ],
-          "source": "Management/Host/System/HostDeviceTelemetryService.cs",
-          "kind": "\u65B9\u6CD5",
-          "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 164,
-          "signature": "public static bool? IsUsbipdInstalled();",
-          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E? IsUsbipdInstalled();",
-          "presentation": {
-            "expression": "HostDeviceTelemetryService.IsUsbipdInstalled",
-            "valueType": "bool?",
-            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E?",
-            "enumTypeId": null,
-            "callable": true,
-            "valuesHtml": "",
-            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u63A2\u6D4B\u672C\u673A usbipd \u5B89\u88C5\uFF0C\u65E0\u6CD5\u8BBF\u95EE\u670D\u52A1\u6CE8\u518C\u4FE1\u606F\u65F6\u8FD4\u56DE\u672A\u77E5\u3002\u003C/div\u003E",
-            "notesHtml": "",
-            "parametersHtml": "",
-            "returnsHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5B89\u88C5\u8BC1\u636E\u5B58\u5728\u65F6\u4E3A true\uFF0C\u5B8C\u6210\u63A2\u6D4B\u4E14\u672A\u627E\u5230\u65F6\u4E3A false\uFF0C\u8BBF\u95EE\u5931\u8D25\u65F6\u4E3A null\u3002\u003C/div\u003E",
-            "exceptionsHtml": "",
-            "examplesHtml": ""
-          },
-          "usage": {
-            "parameters": [],
-            "returns": [],
-            "value": [],
-            "exceptions": []
-          },
-          "queryField": null,
-          "hostEntry": {
-            "area": "\u67E5\u8BE2",
-            "category": "\u57FA\u672C\u4FE1\u606F",
-            "label": "\u68C0\u6D4B usbipd \u5B89\u88C5\u72B6\u6001",
-            "order": 97,
-            "valueType": "bool?",
-            "reader": null,
-            "related": null
-          },
-          "modification": null,
-          "editEntry": null,
-          "queryEntry": null,
-          "instanceEntry": null,
-          "summaryHtml": "\u63A2\u6D4B\u672C\u673A usbipd \u5B89\u88C5\uFF0C\u65E0\u6CD5\u8BBF\u95EE\u670D\u52A1\u6CE8\u518C\u4FE1\u606F\u65F6\u8FD4\u56DE\u672A\u77E5\u3002",
-          "summaryText": "\u63A2\u6D4B\u672C\u673A usbipd \u5B89\u88C5\uFF0C\u65E0\u6CD5\u8BBF\u95EE\u670D\u52A1\u6CE8\u518C\u4FE1\u606F\u65F6\u8FD4\u56DE\u672A\u77E5\u3002"
-        },
-        {
           "id": "api-056fc5191d82e3b0",
           "uid": "M:ExHyperV.Services.HostDeviceTelemetryService.Read(System.Collections.Generic.IReadOnlyCollection{System.Int32})",
           "toolGroup": "host",
@@ -58013,7 +57948,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 38,
+          "order": 37,
           "signature": "public (double? CpuGHz, IReadOnlyDictionary\u003Cint, HostDiskActivity\u003E Disks, IReadOnlyDictionary\u003Cstring, HostGpuActivity\u003E Gpus) Read(IReadOnlyCollection\u003Cint\u003E diskNumbers);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E (\u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? CpuGHz, IReadOnlyDictionary\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E, \u003Ca href=\u0022#api-1dbae22381fe2cda\u0022\u003EHostDiskActivity\u003C/a\u003E\u0026gt; Disks, IReadOnlyDictionary\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E, \u003Ca href=\u0022#api-578b881883fc969a\u0022\u003EHostGpuActivity\u003C/a\u003E\u0026gt; Gpus) Read(IReadOnlyCollection\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E\u0026gt; diskNumbers);",
           "presentation": {
@@ -58086,7 +58021,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 145,
+          "order": 144,
           "signature": "public static IReadOnlyDictionary\u003CGuid, HostAdapterAddress\u003E ReadAdapterAddresses();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E IReadOnlyDictionary\u0026lt;Guid, \u003Ca href=\u0022#api-cf4bd5ffb7a2e5ec\u0022\u003EHostAdapterAddress\u003C/a\u003E\u0026gt; ReadAdapterAddresses();",
           "presentation": {
@@ -58187,7 +58122,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 14,
+          "order": 13,
           "signature": "public HostDiskActivity(double ActivePercent, double ReadBytesPerSec, double WriteBytesPerSec);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-1dbae22381fe2cda\u0022\u003EHostDiskActivity\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E ActivePercent, \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E ReadBytesPerSec, \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E WriteBytesPerSec);",
           "presentation": {
@@ -58244,7 +58179,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 14,
+          "order": 13,
           "signature": "public double ActivePercent { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E ActivePercent { get; init; }",
           "presentation": {
@@ -58301,7 +58236,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 14,
+          "order": 13,
           "signature": "public double ReadBytesPerSec { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E ReadBytesPerSec { get; init; }",
           "presentation": {
@@ -58358,7 +58293,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 14,
+          "order": 13,
           "signature": "public double WriteBytesPerSec { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E WriteBytesPerSec { get; init; }",
           "presentation": {
@@ -60585,7 +60520,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 21,
+          "order": 20,
           "signature": "public HostGpuActivity(double? Pct3D, double? PctCopy, double? PctEnc, double? PctDec);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-578b881883fc969a\u0022\u003EHostGpuActivity\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? Pct3D, \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? PctCopy, \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? PctEnc, \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? PctDec);",
           "presentation": {
@@ -60642,7 +60577,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 21,
+          "order": 20,
           "signature": "public double? Pct3D { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? Pct3D { get; init; }",
           "presentation": {
@@ -60699,7 +60634,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 21,
+          "order": 20,
           "signature": "public double? PctCopy { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? PctCopy { get; init; }",
           "presentation": {
@@ -60756,7 +60691,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 21,
+          "order": 20,
           "signature": "public double? PctDec { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? PctDec { get; init; }",
           "presentation": {
@@ -60813,7 +60748,7 @@
           "source": "Management/Host/System/HostDeviceTelemetryService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 21,
+          "order": 20,
           "signature": "public double? PctEnc { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E? PctEnc { get; init; }",
           "presentation": {
@@ -65056,7 +64991,7 @@
           "source": "Management/Host/System/HostSystemInfoService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 33,
+          "order": 34,
           "signature": "public static Task\u003Cstring\u003E GetProcessorDisplayNameAsync();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E Task\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; GetProcessorDisplayNameAsync();",
           "presentation": {
@@ -65121,7 +65056,7 @@
           "source": "Management/Host/System/HostSystemInfoService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 29,
+          "order": 30,
           "signature": "public static Task\u003CSystemInfo\u003E GetSystemInfoAsync();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E Task\u0026lt;\u003Ca href=\u0022#api-0f0119c09ea17f4b\u0022\u003ESystemInfo\u003C/a\u003E\u0026gt; GetSystemInfoAsync();",
           "presentation": {
@@ -65188,7 +65123,7 @@
           "source": "Management/Host/System/HostSystemInfoService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 55,
+          "order": 56,
           "signature": "public static (long AvailableMiB, long TotalMiB)? TryReadHostMemoryMiB();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E (\u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E AvailableMiB, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E TotalMiB)? TryReadHostMemoryMiB();",
           "presentation": {
@@ -65216,7 +65151,7 @@
             "area": "\u67E5\u8BE2",
             "category": "\u5185\u5B58",
             "label": "\u67E5\u8BE2\u5BBF\u4E3B\u7269\u7406\u5185\u5B58",
-            "order": 98,
+            "order": 97,
             "valueType": "(long AvailableMiB, long TotalMiB)?",
             "reader": null,
             "related": null
@@ -65311,7 +65246,7 @@
           "source": "Management/Host/System/HostSystemInfoService.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 17,
+          "order": 18,
           "signature": "public SystemInfo(string Caption, string OSArchitecture, string CpuModel, string MemCap);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-0f0119c09ea17f4b\u0022\u003ESystemInfo\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Caption, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E OSArchitecture, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E CpuModel, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E MemCap);",
           "presentation": {
@@ -65368,7 +65303,7 @@
           "source": "Management/Host/System/HostSystemInfoService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 18,
+          "order": 19,
           "signature": "public string Caption { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Caption { get; init; }",
           "presentation": {
@@ -65436,7 +65371,7 @@
           "source": "Management/Host/System/HostSystemInfoService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 20,
+          "order": 21,
           "signature": "public string CpuModel { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E CpuModel { get; init; }",
           "presentation": {
@@ -65504,7 +65439,7 @@
           "source": "Management/Host/System/HostSystemInfoService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 21,
+          "order": 22,
           "signature": "public string MemCap { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E MemCap { get; init; }",
           "presentation": {
@@ -65572,7 +65507,7 @@
           "source": "Management/Host/System/HostSystemInfoService.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 19,
+          "order": 20,
           "signature": "public string OSArchitecture { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E OSArchitecture { get; init; }",
           "presentation": {
@@ -92096,7 +92031,7 @@
           "source": "Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 472,
+          "order": 473,
           "signature": "public async Task\u003CApiResponse\u003E AssignGpuPartitionAsync(Guid vmId, HostGpuInfo gpu);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026gt; AssignGpuPartitionAsync(Guid vmId, \u003Ca href=\u0022#api-7e834c339070727a\u0022\u003EHostGpuInfo\u003C/a\u003E gpu);",
           "presentation": {
@@ -92171,7 +92106,7 @@
           "source": "Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 238,
+          "order": 239,
           "signature": "public async Task\u003CApiResponse\u003Cbool\u003E\u003E CheckVmForGpuAsync(Guid vmId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E\u0026gt;\u0026gt; CheckVmForGpuAsync(Guid vmId);",
           "presentation": {
@@ -92300,7 +92235,7 @@
           "source": "Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 265,
+          "order": 266,
           "signature": "public async Task\u003CApiResponse\u003E OptimizeVmForGpuAsync(Guid vmId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026gt; OptimizeVmForGpuAsync(Guid vmId);",
           "presentation": {
@@ -92369,7 +92304,7 @@
           "source": "Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 619,
+          "order": 620,
           "signature": "public Task\u003CApiResponse\u003E RemoveGpuPartitionAsync(Guid vmId, VmGpuAssignment assignment);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Task\u0026lt;ApiResponse\u0026gt; RemoveGpuPartitionAsync(Guid vmId, \u003Ca href=\u0022#api-51ff6610dbb72a26\u0022\u003EVmGpuAssignment\u003C/a\u003E assignment);",
           "presentation": {
@@ -92449,7 +92384,7 @@
           "source": "Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 278,
+          "order": 279,
           "signature": "public async Task\u003CVmPartitionScanResult\u003E ScanVmPartitionsAsync(Guid vmId, CancellationToken cancellationToken = default);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;\u003Ca href=\u0022#api-d9b095e53b531a9d\u0022\u003EVmPartitionScanResult\u003C/a\u003E\u0026gt; ScanVmPartitionsAsync(Guid vmId, CancellationToken cancellationToken = \u003Cspan class=\u0022keyword\u0022\u003Edefault\u003C/span\u003E);",
           "presentation": {
@@ -92517,7 +92452,7 @@
           "source": "Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 693,
+          "order": 694,
           "signature": "public Task\u003CApiResponse\u003E SyncWindowsDriversAsync(Guid vmId, string gpuInstancePath, string gpuManu, DiskPartitionInfo selectedPartition, Action\u003Cstring\u003E progressCallback = null);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Task\u0026lt;ApiResponse\u0026gt; SyncWindowsDriversAsync(Guid vmId, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E gpuInstancePath, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E gpuManu, \u003Ca href=\u0022#api-c2f9b2df9da28fb2\u0022\u003EDiskPartitionInfo\u003C/a\u003E selectedPartition, Action\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; progressCallback = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E);",
           "presentation": {
@@ -115028,8 +114963,8 @@
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
           "order": 57,
-          "signature": "public static Task\u003CApiResponse\u003E ExecuteControlActionAsync(Guid vmId, VmPowerAction action);",
-          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E Task\u0026lt;ApiResponse\u0026gt; ExecuteControlActionAsync(Guid vmId, \u003Ca href=\u0022#api-c38f561557cd3ed7\u0022\u003EVmPowerAction\u003C/a\u003E action);",
+          "signature": "public static async Task\u003CApiResponse\u003E ExecuteControlActionAsync(Guid vmId, VmPowerAction action);",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026gt; ExecuteControlActionAsync(Guid vmId, \u003Ca href=\u0022#api-c38f561557cd3ed7\u0022\u003EVmPowerAction\u003C/a\u003E action);",
           "presentation": {
             "expression": "VmPowerService.ExecuteControlActionAsync",
             "valueType": "Task\u003CApiResponse\u003E",
@@ -140260,7 +140195,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 281,
+          "order": 282,
           "signature": "public static ApiResponse Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E ApiResponse Fail(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E error, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E code = -\u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E, \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E source = \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E.None, Exception? exception = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E kind = \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E.Unspecified);",
           "presentation": {
@@ -140270,7 +140205,7 @@
             "enumTypeId": null,
             "callable": true,
             "valuesHtml": "",
-            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u5199\u5165\u8C03\u8BD5\u8F93\u51FA\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002\u003C/div\u003E",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u53D1\u5E03\u7ED3\u6784\u5316\u8BCA\u65AD\u4E8B\u4EF6\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002\u003C/div\u003E",
             "notesHtml": "",
             "parametersHtml": "\u003Ctable class=\u0022parameter-table\u0022\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth\u003E\u53C2\u6570\u003C/th\u003E\u003Cth\u003E\u8BF4\u660E\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Eerror\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u53EF\u4F9B\u4EBA\u9605\u8BFB\u7684\u9519\u8BEF\u8BF4\u660E\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Ecode\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u63A5\u53E3\u6216\u4E1A\u52A1\u9519\u8BEF\u7801\uFF1B\u9ED8\u8BA4 -1\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Esource\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u9519\u8BEF\u7801\u6765\u6E90\uFF1B\u9ED8\u8BA4\u672A\u5206\u7C7B\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Eexception\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u53EF\u9009\u539F\u59CB\u5F02\u5E38\uFF0C\u4FDD\u5B58\u5728\u54CD\u5E94\u4E2D\u4F9B\u8BCA\u65AD\u4F7F\u7528\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Ekind\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u5931\u8D25\u7C7B\u522B\uFF1BNone \u6216\u672A\u5B9A\u4E49\u503C\u6309 Unspecified \u5904\u7406\u3002\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E",
             "returnsHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4FDD\u5B58\u9519\u8BEF\u4FE1\u606F\u7684\u5931\u8D25\u54CD\u5E94\u3002\u003C/div\u003E",
@@ -140316,8 +140251,8 @@
           "editEntry": null,
           "queryEntry": null,
           "instanceEntry": null,
-          "summaryHtml": "\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u5199\u5165\u8C03\u8BD5\u8F93\u51FA\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002",
-          "summaryText": "\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u5199\u5165\u8C03\u8BD5\u8F93\u51FA\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002"
+          "summaryHtml": "\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u53D1\u5E03\u7ED3\u6784\u5316\u8BCA\u65AD\u4E8B\u4EF6\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002",
+          "summaryText": "\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u53D1\u5E03\u7ED3\u6784\u5316\u8BCA\u65AD\u4E8B\u4EF6\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002"
         },
         {
           "id": "api-308387f87df9c37a",
@@ -140340,7 +140275,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 272,
+          "order": 273,
           "signature": "public static ApiResponse Ok();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E ApiResponse Ok();",
           "presentation": {
@@ -140395,7 +140330,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 310,
+          "order": 312,
           "signature": "public override string ToString();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eoverride\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E ToString();",
           "presentation": {
@@ -140448,7 +140383,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u8FD0\u7B97\u7B26",
-          "order": 306,
+          "order": 308,
           "signature": "public static implicit operator bool (ApiResponse? response);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eimplicit\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eoperator\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E (ApiResponse? response);",
           "presentation": {
@@ -140508,7 +140443,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 231,
+          "order": 232,
           "signature": "public int Code { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E Code { get; }",
           "presentation": {
@@ -140561,7 +140496,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 245,
+          "order": 246,
           "signature": "public IReadOnlyList\u003Cstring\u003E DiagnosticArgs { get; } = Array.Empty\u003Cstring\u003E();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; DiagnosticArgs { get; } = Array.Empty\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt;();",
           "presentation": {
@@ -140614,7 +140549,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 242,
+          "order": 243,
           "signature": "public CoreErrorCode DiagnosticCode { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E DiagnosticCode { get; }",
           "presentation": {
@@ -140669,7 +140604,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 229,
+          "order": 230,
           "signature": "public string Error { get; } = string.Empty;",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Error { get; } = \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E.Empty;",
           "presentation": {
@@ -140722,7 +140657,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 236,
+          "order": 237,
           "signature": "public ApiErrorKind ErrorKind { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E ErrorKind { get; }",
           "presentation": {
@@ -140777,7 +140712,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 233,
+          "order": 234,
           "signature": "public ApiErrorSource ErrorSource { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E ErrorSource { get; }",
           "presentation": {
@@ -140832,7 +140767,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 239,
+          "order": 240,
           "signature": "public Exception? Exception { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Exception? Exception { get; }",
           "presentation": {
@@ -140885,7 +140820,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 198,
+          "order": 199,
           "signature": "public bool RequiresRestart { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E RequiresRestart { get; }",
           "presentation": {
@@ -140938,7 +140873,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 202,
+          "order": 203,
           "signature": "public IReadOnlyList\u003CRestartReason\u003E RestartReasons { get; } = Array.Empty\u003CRestartReason\u003E();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-ec6d13ee818c895b\u0022\u003ERestartReason\u003C/a\u003E\u0026gt; RestartReasons { get; } = Array.Empty\u0026lt;\u003Ca href=\u0022#api-ec6d13ee818c895b\u0022\u003ERestartReason\u003C/a\u003E\u0026gt;();",
           "presentation": {
@@ -140993,7 +140928,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 181,
+          "order": 182,
           "signature": "public IReadOnlyList\u003COperationStepResult\u003E Steps { get; } = Array.Empty\u003COperationStepResult\u003E();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-824369b51a27da0a\u0022\u003EOperationStepResult\u003C/a\u003E\u0026gt; Steps { get; } = Array.Empty\u0026lt;\u003Ca href=\u0022#api-824369b51a27da0a\u0022\u003EOperationStepResult\u003C/a\u003E\u0026gt;();",
           "presentation": {
@@ -141048,7 +140983,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 227,
+          "order": 228,
           "signature": "public bool Success { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E Success { get; }",
           "presentation": {
@@ -141198,7 +141133,7 @@
             "enumTypeId": null,
             "callable": true,
             "valuesHtml": "",
-            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u5199\u5165\u8C03\u8BD5\u8F93\u51FA\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002\u003C/div\u003E",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u53D1\u5E03\u7ED3\u6784\u5316\u8BCA\u65AD\u4E8B\u4EF6\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002\u003C/div\u003E",
             "notesHtml": "",
             "parametersHtml": "\u003Ctable class=\u0022parameter-table\u0022\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth\u003E\u53C2\u6570\u003C/th\u003E\u003Cth\u003E\u8BF4\u660E\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Eerror\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u53EF\u4F9B\u4EBA\u9605\u8BFB\u7684\u9519\u8BEF\u8BF4\u660E\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Ecode\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u63A5\u53E3\u6216\u4E1A\u52A1\u9519\u8BEF\u7801\uFF1B\u9ED8\u8BA4 -1\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Esource\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u9519\u8BEF\u7801\u6765\u6E90\uFF1B\u9ED8\u8BA4\u672A\u5206\u7C7B\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Eexception\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u53EF\u9009\u539F\u59CB\u5F02\u5E38\uFF0C\u4FDD\u5B58\u5728\u54CD\u5E94\u4E2D\u4F9B\u8BCA\u65AD\u4F7F\u7528\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003Ekind\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u5931\u8D25\u7C7B\u522B\uFF1BNone \u6216\u672A\u5B9A\u4E49\u503C\u6309 Unspecified \u5904\u7406\u3002\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E",
             "returnsHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4FDD\u5B58\u9519\u8BEF\u4FE1\u606F\u7684\u5931\u8D25\u54CD\u5E94\u3002\u003C/div\u003E",
@@ -141244,8 +141179,8 @@
           "editEntry": null,
           "queryEntry": null,
           "instanceEntry": null,
-          "summaryHtml": "\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u5199\u5165\u8C03\u8BD5\u8F93\u51FA\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002",
-          "summaryText": "\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u5199\u5165\u8C03\u8BD5\u8F93\u51FA\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002"
+          "summaryHtml": "\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u53D1\u5E03\u7ED3\u6784\u5316\u8BCA\u65AD\u4E8B\u4EF6\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002",
+          "summaryText": "\u521B\u5EFA\u5931\u8D25\u54CD\u5E94\u5E76\u53D1\u5E03\u7ED3\u6784\u5316\u8BCA\u65AD\u4E8B\u4EF6\uFF0C\u4E0D\u629B\u51FA\u4F20\u5165\u5F02\u5E38\u3002"
         },
         {
           "id": "api-ca7826aa38f9355f",
@@ -141328,7 +141263,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 164,
+          "order": 165,
           "signature": "public override string ToString();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eoverride\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E ToString();",
           "presentation": {
@@ -141381,7 +141316,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u8FD0\u7B97\u7B26",
-          "order": 160,
+          "order": 161,
           "signature": "public static implicit operator bool (ApiResponse\u003CT\u003E? response);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eimplicit\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eoperator\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E (ApiResponse\u0026lt;T\u0026gt;? response);",
           "presentation": {
@@ -141871,7 +141806,7 @@
           "source": "Common/Results/ApiResponse.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 154,
+          "order": 155,
           "signature": "public bool HasData { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasData { get; }",
           "presentation": {
@@ -142755,6 +142690,873 @@
           "instanceEntry": null,
           "summaryHtml": "\u5F53\u524D\u865A\u62DF\u673A\u914D\u7F6E\u7248\u672C\u4E0D\u652F\u6301\u6B64\u529F\u80FD\u3002",
           "summaryText": "\u5F53\u524D\u865A\u62DF\u673A\u914D\u7F6E\u7248\u672C\u4E0D\u652F\u6301\u6B64\u529F\u80FD\u3002"
+        }
+      ]
+    },
+    {
+      "id": "api-aa68340cabbf71cd",
+      "uid": "T:ExHyperV.Tools.CoreDiagnosticEvent",
+      "name": "ExHyperV.Tools.CoreDiagnosticEvent",
+      "toolGroup": "core",
+      "displayName": "\u672C\u5730\u8BCA\u65AD\u4E8B\u4EF6",
+      "role": "contract",
+      "shortName": "CoreDiagnosticEvent",
+      "namespace": "ExHyperV.Tools",
+      "kind": "\u7C7B",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u5171\u7528\u7C7B\u578B",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u5171\u7528\u7C7B\u578B"
+        ]
+      ],
+      "signature": "public sealed class CoreDiagnosticEvent",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eclass\u003C/span\u003E \u003Ca href=\u0022#api-aa68340cabbf71cd\u0022\u003ECoreDiagnosticEvent\u003C/a\u003E",
+      "baseTypeHtml": "",
+      "interfacesHtml": "",
+      "derivedTypesHtml": "",
+      "source": "Common/Results/CoreDiagnostics.cs",
+      "sources": [
+        "Common/Results/CoreDiagnostics.cs"
+      ],
+      "summaryHtml": "\u4E00\u6761\u672C\u5730\u8BCA\u65AD\u4E8B\u4EF6\u7684\u53EA\u8BFB\u5FEB\u7167\u3002\u5185\u5BB9\u4EC5\u5305\u542B\u64CD\u4F5C\u5143\u6570\u636E\u548C\u7ECF\u8FC7\u9009\u62E9\u7684\u8BCA\u65AD\u5B57\u6BB5\u3002",
+      "descriptionHtml": "",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-e2b2921ad05467f8",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.Caller",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "Caller",
+          "displayName": "\u4EA7\u751F\u4E8B\u4EF6\u7684\u6210\u5458\u540D",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 60,
+          "signature": "public string Caller { get; } = \u0022\u0022;",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Caller { get; } = \u003Cspan class=\u0022literal\u0022\u003E\u0026quot;\u0026quot;\u003C/span\u003E;",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.Caller",
+            "valueType": "string",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4EA7\u751F\u4E8B\u4EF6\u7684\u6210\u5458\u540D\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4EA7\u751F\u4E8B\u4EF6\u7684\u6210\u5458\u540D\u3002",
+          "summaryText": "\u4EA7\u751F\u4E8B\u4EF6\u7684\u6210\u5458\u540D\u3002"
+        },
+        {
+          "id": "api-f17d503332e5a836",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.Category",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "Category",
+          "displayName": "\u4EA7\u751F\u4E8B\u4EF6\u7684 Core \u6A21\u5757\u540D",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 56,
+          "signature": "public string Category { get; } = \u0022\u0022;",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Category { get; } = \u003Cspan class=\u0022literal\u0022\u003E\u0026quot;\u0026quot;\u003C/span\u003E;",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.Category",
+            "valueType": "string",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4EA7\u751F\u4E8B\u4EF6\u7684 Core \u6A21\u5757\u540D\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4EA7\u751F\u4E8B\u4EF6\u7684 Core \u6A21\u5757\u540D\u3002",
+          "summaryText": "\u4EA7\u751F\u4E8B\u4EF6\u7684 Core \u6A21\u5757\u540D\u3002"
+        },
+        {
+          "id": "api-633a2de54ed4360a",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.Details",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "Details",
+          "displayName": "\u7ECF\u8FC7\u9009\u62E9\u7684\u6570\u503C\u3001\u72B6\u6001\u548C\u5206\u7C7B\u5B57\u6BB5",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 62,
+          "signature": "public string? Details { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Details { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.Details",
+            "valueType": "string?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u7ECF\u8FC7\u9009\u62E9\u7684\u6570\u503C\u3001\u72B6\u6001\u548C\u5206\u7C7B\u5B57\u6BB5\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u7ECF\u8FC7\u9009\u62E9\u7684\u6570\u503C\u3001\u72B6\u6001\u548C\u5206\u7C7B\u5B57\u6BB5\u3002",
+          "summaryText": "\u7ECF\u8FC7\u9009\u62E9\u7684\u6570\u503C\u3001\u72B6\u6001\u548C\u5206\u7C7B\u5B57\u6BB5\u3002"
+        },
+        {
+          "id": "api-936ff83befd91619",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.Diagnostic",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "Diagnostic",
+          "displayName": "\u5931\u8D25\u54CD\u5E94\u7684\u8BED\u8A00\u65E0\u5173\u8BCA\u65AD\u5206\u7C7B",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 72,
+          "signature": "public CoreErrorCode? Diagnostic { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E? Diagnostic { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.Diagnostic",
+            "valueType": "CoreErrorCode?",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-c159b3ca11e89ee0\u0022\u003ECoreErrorCode\u003C/a\u003E?",
+            "enumTypeId": "api-c159b3ca11e89ee0",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5931\u8D25\u54CD\u5E94\u7684\u8BED\u8A00\u65E0\u5173\u8BCA\u65AD\u5206\u7C7B\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-c159b3ca11e89ee0"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5931\u8D25\u54CD\u5E94\u7684\u8BED\u8A00\u65E0\u5173\u8BCA\u65AD\u5206\u7C7B\u3002",
+          "summaryText": "\u5931\u8D25\u54CD\u5E94\u7684\u8BED\u8A00\u65E0\u5173\u8BCA\u65AD\u5206\u7C7B\u3002"
+        },
+        {
+          "id": "api-b7688aeff85e4e30",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.ErrorCode",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "ErrorCode",
+          "displayName": "\u5931\u8D25\u54CD\u5E94\u643A\u5E26\u7684\u539F\u751F\u6216\u4E1A\u52A1\u9519\u8BEF\u7801",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 70,
+          "signature": "public int? ErrorCode { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E? ErrorCode { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.ErrorCode",
+            "valueType": "int?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5931\u8D25\u54CD\u5E94\u643A\u5E26\u7684\u539F\u751F\u6216\u4E1A\u52A1\u9519\u8BEF\u7801\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5931\u8D25\u54CD\u5E94\u643A\u5E26\u7684\u539F\u751F\u6216\u4E1A\u52A1\u9519\u8BEF\u7801\u3002",
+          "summaryText": "\u5931\u8D25\u54CD\u5E94\u643A\u5E26\u7684\u539F\u751F\u6216\u4E1A\u52A1\u9519\u8BEF\u7801\u3002"
+        },
+        {
+          "id": "api-7d95042f14f836a3",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.ErrorKind",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "ErrorKind",
+          "displayName": "\u5931\u8D25\u54CD\u5E94\u5F52\u4E00\u5316\u540E\u7684\u9519\u8BEF\u7C7B\u522B",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 66,
+          "signature": "public ApiErrorKind? ErrorKind { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E? ErrorKind { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.ErrorKind",
+            "valueType": "ApiErrorKind?",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-972639a130eb0cc2\u0022\u003EApiErrorKind\u003C/a\u003E?",
+            "enumTypeId": "api-972639a130eb0cc2",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5931\u8D25\u54CD\u5E94\u5F52\u4E00\u5316\u540E\u7684\u9519\u8BEF\u7C7B\u522B\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-972639a130eb0cc2"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5931\u8D25\u54CD\u5E94\u5F52\u4E00\u5316\u540E\u7684\u9519\u8BEF\u7C7B\u522B\u3002",
+          "summaryText": "\u5931\u8D25\u54CD\u5E94\u5F52\u4E00\u5316\u540E\u7684\u9519\u8BEF\u7C7B\u522B\u3002"
+        },
+        {
+          "id": "api-702d5428f20d28ff",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.ErrorSource",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "ErrorSource",
+          "displayName": "\u5931\u8D25\u54CD\u5E94\u6570\u503C\u7801\u7684\u6765\u6E90",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 68,
+          "signature": "public ApiErrorSource? ErrorSource { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E? ErrorSource { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.ErrorSource",
+            "valueType": "ApiErrorSource?",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-acee855ddcf0dd3d\u0022\u003EApiErrorSource\u003C/a\u003E?",
+            "enumTypeId": "api-acee855ddcf0dd3d",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5931\u8D25\u54CD\u5E94\u6570\u503C\u7801\u7684\u6765\u6E90\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-acee855ddcf0dd3d"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5931\u8D25\u54CD\u5E94\u6570\u503C\u7801\u7684\u6765\u6E90\u3002",
+          "summaryText": "\u5931\u8D25\u54CD\u5E94\u6570\u503C\u7801\u7684\u6765\u6E90\u3002"
+        },
+        {
+          "id": "api-8f06d87bc27ec719",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.EventName",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "EventName",
+          "displayName": "\u8BED\u8A00\u65E0\u5173\u7684\u64CD\u4F5C\u6216\u4E8B\u4EF6\u6807\u8BC6",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 58,
+          "signature": "public string EventName { get; } = \u0022\u0022;",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E EventName { get; } = \u003Cspan class=\u0022literal\u0022\u003E\u0026quot;\u0026quot;\u003C/span\u003E;",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.EventName",
+            "valueType": "string",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u8BED\u8A00\u65E0\u5173\u7684\u64CD\u4F5C\u6216\u4E8B\u4EF6\u6807\u8BC6\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u8BED\u8A00\u65E0\u5173\u7684\u64CD\u4F5C\u6216\u4E8B\u4EF6\u6807\u8BC6\u3002",
+          "summaryText": "\u8BED\u8A00\u65E0\u5173\u7684\u64CD\u4F5C\u6216\u4E8B\u4EF6\u6807\u8BC6\u3002"
+        },
+        {
+          "id": "api-b7b326ce71f12947",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.ExceptionType",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "ExceptionType",
+          "displayName": "\u53D1\u751F\u5F02\u5E38\u65F6\u7684\u6258\u7BA1\u5F02\u5E38\u7C7B\u578B",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 74,
+          "signature": "public string? ExceptionType { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? ExceptionType { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.ExceptionType",
+            "valueType": "string?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u53D1\u751F\u5F02\u5E38\u65F6\u7684\u6258\u7BA1\u5F02\u5E38\u7C7B\u578B\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u53D1\u751F\u5F02\u5E38\u65F6\u7684\u6258\u7BA1\u5F02\u5E38\u7C7B\u578B\u3002",
+          "summaryText": "\u53D1\u751F\u5F02\u5E38\u65F6\u7684\u6258\u7BA1\u5F02\u5E38\u7C7B\u578B\u3002"
+        },
+        {
+          "id": "api-54016d7da59772e1",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.HResult",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "HResult",
+          "displayName": "\u53D1\u751F\u5F02\u5E38\u65F6\u7684 HRESULT",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 76,
+          "signature": "public int? HResult { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E? HResult { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.HResult",
+            "valueType": "int?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u53D1\u751F\u5F02\u5E38\u65F6\u7684 HRESULT\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u53D1\u751F\u5F02\u5E38\u65F6\u7684 HRESULT\u3002",
+          "summaryText": "\u53D1\u751F\u5F02\u5E38\u65F6\u7684 HRESULT\u3002"
+        },
+        {
+          "id": "api-7d7b21e86dbc7af2",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.Level",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "Level",
+          "displayName": "\u8BCA\u65AD\u7B49\u7EA7\u3002Verbose \u8868\u793A\u8BE6\u7EC6\u91C7\u6837",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 54,
+          "signature": "public TraceEventType Level { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E TraceEventType Level { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.Level",
+            "valueType": "TraceEventType",
+            "valueTypeHtml": "TraceEventType",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u8BCA\u65AD\u7B49\u7EA7\u3002Verbose \u8868\u793A\u8BE6\u7EC6\u91C7\u6837\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u8BCA\u65AD\u7B49\u7EA7\u3002Verbose \u8868\u793A\u8BE6\u7EC6\u91C7\u6837\u3002",
+          "summaryText": "\u8BCA\u65AD\u7B49\u7EA7\u3002Verbose \u8868\u793A\u8BE6\u7EC6\u91C7\u6837\u3002"
+        },
+        {
+          "id": "api-2d1b8c4183d9918f",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.Stack",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "Stack",
+          "displayName": "\u4E0D\u542B\u6E90\u6587\u4EF6\u8DEF\u5F84\u7684\u8C03\u7528\u6808",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 78,
+          "signature": "public string? Stack { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Stack { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.Stack",
+            "valueType": "string?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4E0D\u542B\u6E90\u6587\u4EF6\u8DEF\u5F84\u7684\u8C03\u7528\u6808\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4E0D\u542B\u6E90\u6587\u4EF6\u8DEF\u5F84\u7684\u8C03\u7528\u6808\u3002",
+          "summaryText": "\u4E0D\u542B\u6E90\u6587\u4EF6\u8DEF\u5F84\u7684\u8C03\u7528\u6808\u3002"
+        },
+        {
+          "id": "api-a6ffe29ee1f4c64c",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.Timestamp",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "Timestamp",
+          "displayName": "\u4E8B\u4EF6\u4EA7\u751F\u7684 UTC \u65F6\u95F4",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 52,
+          "signature": "public DateTimeOffset Timestamp { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E DateTimeOffset Timestamp { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.Timestamp",
+            "valueType": "DateTimeOffset",
+            "valueTypeHtml": "DateTimeOffset",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4E8B\u4EF6\u4EA7\u751F\u7684 UTC \u65F6\u95F4\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4E8B\u4EF6\u4EA7\u751F\u7684 UTC \u65F6\u95F4\u3002",
+          "summaryText": "\u4E8B\u4EF6\u4EA7\u751F\u7684 UTC \u65F6\u95F4\u3002"
+        },
+        {
+          "id": "api-dc2b6ed94b68f45e",
+          "uid": "P:ExHyperV.Tools.CoreDiagnosticEvent.VmId",
+          "toolGroup": "core",
+          "readOnly": true,
+          "name": "VmId",
+          "displayName": "\u5DF2\u77E5\u7684\u865A\u62DF\u673A\u6807\u8BC6",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 64,
+          "signature": "public Guid? VmId { get; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Guid? VmId { get; }",
+          "presentation": {
+            "expression": "CoreDiagnosticEvent.VmId",
+            "valueType": "Guid?",
+            "valueTypeHtml": "Guid?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5DF2\u77E5\u7684\u865A\u62DF\u673A\u6807\u8BC6\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5DF2\u77E5\u7684\u865A\u62DF\u673A\u6807\u8BC6\u3002",
+          "summaryText": "\u5DF2\u77E5\u7684\u865A\u62DF\u673A\u6807\u8BC6\u3002"
+        }
+      ]
+    },
+    {
+      "id": "api-4e231d2702bfc1dd",
+      "uid": "T:ExHyperV.Tools.CoreDiagnostics",
+      "name": "ExHyperV.Tools.CoreDiagnostics",
+      "toolGroup": "core",
+      "displayName": "\u8FDB\u7A0B\u5185\u8BCA\u65AD\u901A\u9053",
+      "role": "contract",
+      "shortName": "CoreDiagnostics",
+      "namespace": "ExHyperV.Tools",
+      "kind": "\u7C7B",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u5171\u7528\u7C7B\u578B",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u5171\u7528\u7C7B\u578B"
+        ]
+      ],
+      "signature": "public static class CoreDiagnostics",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eclass\u003C/span\u003E \u003Ca href=\u0022#api-4e231d2702bfc1dd\u0022\u003ECoreDiagnostics\u003C/a\u003E",
+      "baseTypeHtml": "",
+      "interfacesHtml": "",
+      "derivedTypesHtml": "",
+      "source": "Common/Results/CoreDiagnostics.cs",
+      "sources": [
+        "Common/Results/CoreDiagnostics.cs"
+      ],
+      "summaryHtml": "\u5411\u8FDB\u7A0B\u5185\u5BBF\u4E3B\u62A5\u544A Core \u8BCA\u65AD\u4E8B\u4EF6\u3002",
+      "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5BBF\u4E3B\u8BA2\u9605\u540E\u53EF\u6309\u7B49\u7EA7\u4FDD\u5B58\u7ED3\u6784\u5316\u4E8B\u4EF6\u3002\u56DE\u8C03\u5728\u4EA7\u751F\u4E8B\u4EF6\u7684\u7EBF\u7A0B\u8FD0\u884C\uFF0C\u7ED3\u675F\u8BA2\u9605\u65F6\u79FB\u9664\u5904\u7406\u7A0B\u5E8F\u3002\u003C/div\u003E",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-15e3a1032bf986d4",
+          "uid": "E:ExHyperV.Tools.CoreDiagnostics.Reported",
+          "toolGroup": "core",
+          "readOnly": false,
+          "name": "Reported",
+          "displayName": "\u8BA2\u9605\u8FDB\u7A0B\u5185\u8BCA\u65AD\u4E8B\u4EF6",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u5171\u7528\u7C7B\u578B"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u5171\u7528\u7C7B\u578B"
+            ]
+          ],
+          "source": "Common/Results/CoreDiagnostics.cs",
+          "kind": "\u4E8B\u4EF6",
+          "group": "\u4E8B\u4EF6",
+          "order": 11,
+          "signature": "public static event Action\u003CCoreDiagnosticEvent\u003E? Reported;",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eevent\u003C/span\u003E Action\u0026lt;\u003Ca href=\u0022#api-aa68340cabbf71cd\u0022\u003ECoreDiagnosticEvent\u003C/a\u003E\u0026gt;? Reported;",
+          "presentation": {
+            "expression": "CoreDiagnostics.Reported",
+            "valueType": "Action\u003CCoreDiagnosticEvent\u003E?",
+            "valueTypeHtml": "Action\u0026lt;\u003Ca href=\u0022#api-aa68340cabbf71cd\u0022\u003ECoreDiagnosticEvent\u003C/a\u003E\u0026gt;?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u64CD\u4F5C\u3001\u63A2\u6D4B\u6216\u9519\u8BEF\u53D1\u751F\u65F6\u901A\u77E5\u8BA2\u9605\u8005\uFF0C\u5355\u4E2A\u8BA2\u9605\u8005\u5F02\u5E38\u4E0D\u4F1A\u5F71\u54CD\u64CD\u4F5C\u6216\u5176\u4ED6\u8BA2\u9605\u8005\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-aa68340cabbf71cd"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u64CD\u4F5C\u3001\u63A2\u6D4B\u6216\u9519\u8BEF\u53D1\u751F\u65F6\u901A\u77E5\u8BA2\u9605\u8005\uFF0C\u5355\u4E2A\u8BA2\u9605\u8005\u5F02\u5E38\u4E0D\u4F1A\u5F71\u54CD\u64CD\u4F5C\u6216\u5176\u4ED6\u8BA2\u9605\u8005\u3002",
+          "summaryText": "\u64CD\u4F5C\u3001\u63A2\u6D4B\u6216\u9519\u8BEF\u53D1\u751F\u65F6\u901A\u77E5\u8BA2\u9605\u8005\uFF0C\u5355\u4E2A\u8BA2\u9605\u8005\u5F02\u5E38\u4E0D\u4F1A\u5F71\u54CD\u64CD\u4F5C\u6216\u5176\u4ED6\u8BA2\u9605\u8005\u3002"
         }
       ]
     },
@@ -145745,7 +146547,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 599,
+          "order": 600,
           "signature": "public string DeviceType { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DeviceType { get; }",
           "presentation": {
@@ -145800,7 +146602,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 597,
+          "order": 598,
           "signature": "public string Instance { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Instance { get; }",
           "presentation": {
@@ -145855,7 +146657,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 601,
+          "order": 602,
           "signature": "public string Name { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Name { get; }",
           "presentation": {
@@ -145910,7 +146712,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 595,
+          "order": 596,
           "signature": "public int Number { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E Number { get; }",
           "presentation": {
@@ -145998,7 +146800,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 585,
+          "order": 586,
           "signature": "GpuPartition = 2",
           "signatureHtml": "GpuPartition = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
           "presentation": {
@@ -146055,7 +146857,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 581,
+          "order": 582,
           "signature": "NetworkAdapter = 0",
           "signatureHtml": "NetworkAdapter = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
           "presentation": {
@@ -146112,7 +146914,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 587,
+          "order": 588,
           "signature": "PcieDevice = 3",
           "signatureHtml": "PcieDevice = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
           "presentation": {
@@ -146169,7 +146971,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 583,
+          "order": 584,
           "signature": "ScsiController = 1",
           "signatureHtml": "ScsiController = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
           "presentation": {
@@ -146259,7 +147061,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 120,
+          "order": 121,
           "signature": "public VmcxEditSession BeginEdit();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-0dd8fc721201a6a9\u0022\u003EVmcxEditSession\u003C/a\u003E BeginEdit();",
           "presentation": {
@@ -146316,7 +147118,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 109,
+          "order": 110,
           "signature": "public IReadOnlyList\u003CVmcxEntry\u003E Find(string path);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E\u0026gt; Find(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E path);",
           "presentation": {
@@ -146378,7 +147180,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 113,
+          "order": 114,
           "signature": "public IReadOnlyList\u003CVmcxEntry\u003E GetChildren(VmcxEntry parent);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E\u0026gt; GetChildren(\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E parent);",
           "presentation": {
@@ -146442,7 +147244,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 126,
+          "order": 127,
           "signature": "public IReadOnlyList\u003CVmcxDevice\u003E GetDevices();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-a52eae53275a8dfa\u0022\u003EVmcxDevice\u003C/a\u003E\u0026gt; GetDevices();",
           "presentation": {
@@ -146499,7 +147301,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 76,
+          "order": 77,
           "signature": "public static VmcxDocument Read(string path);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-bf0a3c9cc5591d9f\u0022\u003EVmcxDocument\u003C/a\u003E Read(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E path);",
           "presentation": {
@@ -146563,7 +147365,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 123,
+          "order": 124,
           "signature": "public IReadOnlyList\u003Cstring\u003E Validate();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; Validate();",
           "presentation": {
@@ -146618,7 +147420,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 58,
+          "order": 59,
           "signature": "public IReadOnlyList\u003CVmcxEntry\u003E Entries { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E\u0026gt; Entries { get; }",
           "presentation": {
@@ -146675,7 +147477,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 50,
+          "order": 51,
           "signature": "public string FilePath { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E FilePath { get; }",
           "presentation": {
@@ -146730,7 +147532,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 60,
+          "order": 61,
           "signature": "public VmcxEntry Root { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E Root { get; }",
           "presentation": {
@@ -146787,7 +147589,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 56,
+          "order": 57,
           "signature": "public long SourceLength { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E SourceLength { get; }",
           "presentation": {
@@ -146842,7 +147644,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 53,
+          "order": 54,
           "signature": "public string SourceSha256 { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E SourceSha256 { get; }",
           "presentation": {
@@ -146930,7 +147732,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 629,
+          "order": 630,
           "signature": "public string? BackupPath { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? BackupPath { get; }",
           "presentation": {
@@ -146985,7 +147787,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 633,
+          "order": 634,
           "signature": "public bool OriginalIntact { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E OriginalIntact { get; }",
           "presentation": {
@@ -147040,7 +147842,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 637,
+          "order": 638,
           "signature": "public IReadOnlyList\u003Cstring\u003E RecoveryPaths { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; RecoveryPaths { get; }",
           "presentation": {
@@ -147095,7 +147897,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 635,
+          "order": 636,
           "signature": "public string? RestoreError { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? RestoreError { get; }",
           "presentation": {
@@ -147150,7 +147952,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 631,
+          "order": 632,
           "signature": "public bool TargetWasModified { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E TargetWasModified { get; }",
           "presentation": {
@@ -147238,7 +148040,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 615,
+          "order": 616,
           "signature": "public string? BackupPath { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? BackupPath { get; }",
           "presentation": {
@@ -147293,7 +148095,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 613,
+          "order": 614,
           "signature": "public bool Changed { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E Changed { get; }",
           "presentation": {
@@ -147348,7 +148150,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 611,
+          "order": 612,
           "signature": "public string FilePath { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E FilePath { get; }",
           "presentation": {
@@ -147403,7 +148205,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 617,
+          "order": 618,
           "signature": "public string OriginalSha256 { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E OriginalSha256 { get; }",
           "presentation": {
@@ -147458,7 +148260,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 619,
+          "order": 620,
           "signature": "public string ResultSha256 { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E ResultSha256 { get; }",
           "presentation": {
@@ -147546,7 +148348,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 203,
+          "order": 204,
           "signature": "public VmcxEntry AddContainer(VmcxEntry parent, string key);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E AddContainer(\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E parent, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E key);",
           "presentation": {
@@ -147614,7 +148416,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 320,
+          "order": 321,
           "signature": "public Guid AddDevice(VmcxDeviceKind kind, string? hostResource = null);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Guid AddDevice(\u003Ca href=\u0022#api-70be9275005910c6\u0022\u003EVmcxDeviceKind\u003C/a\u003E kind, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? hostResource = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E);",
           "presentation": {
@@ -147680,7 +148482,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 407,
+          "order": 408,
           "signature": "public VmcxEntry AddScsiDrive(Guid scsiInstance, string mediaPath, bool optical = false, int controller = 0);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E AddScsiDrive(Guid scsiInstance, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E mediaPath, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E optical = \u003Cspan class=\u0022keyword\u0022\u003Efalse\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E controller = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E);",
           "presentation": {
@@ -147754,7 +148556,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 210,
+          "order": 211,
           "signature": "public VmcxEntry AddValue(VmcxEntry parent, string key, VmcxValue value, bool isSelector = false);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E AddValue(\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E parent, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E key, \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E value, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E isSelector = \u003Cspan class=\u0022keyword\u0022\u003Efalse\u003C/span\u003E);",
           "presentation": {
@@ -147832,7 +148634,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 251,
+          "order": 252,
           "signature": "public VmcxEditResult Commit();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-955a4f3832150289\u0022\u003EVmcxEditResult\u003C/a\u003E Commit();",
           "presentation": {
@@ -147891,7 +148693,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 179,
+          "order": 180,
           "signature": "public IReadOnlyList\u003CVmcxEntry\u003E Find(string path);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E\u0026gt; Find(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E path);",
           "presentation": {
@@ -147953,7 +148755,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 183,
+          "order": 184,
           "signature": "public IReadOnlyList\u003CVmcxEntry\u003E GetChildren(VmcxEntry parent);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E\u0026gt; GetChildren(\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E parent);",
           "presentation": {
@@ -148017,7 +148819,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 313,
+          "order": 314,
           "signature": "public IReadOnlyList\u003CVmcxDevice\u003E GetDevices();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-a52eae53275a8dfa\u0022\u003EVmcxDevice\u003C/a\u003E\u0026gt; GetDevices();",
           "presentation": {
@@ -148074,7 +148876,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 379,
+          "order": 380,
           "signature": "public void RemoveDevice(Guid instance);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Evoid\u003C/span\u003E RemoveDevice(Guid instance);",
           "presentation": {
@@ -148134,7 +148936,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 221,
+          "order": 222,
           "signature": "public void RemoveSubtree(VmcxEntry entry);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Evoid\u003C/span\u003E RemoveSubtree(\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E entry);",
           "presentation": {
@@ -148196,7 +148998,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 233,
+          "order": 234,
           "signature": "public void Rename(VmcxEntry entry, string key);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Evoid\u003C/span\u003E Rename(\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E entry, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E key);",
           "presentation": {
@@ -148262,7 +149064,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 192,
+          "order": 193,
           "signature": "public void SetValue(VmcxEntry entry, VmcxValue value);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Evoid\u003C/span\u003E SetValue(\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E entry, \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E value);",
           "presentation": {
@@ -148330,7 +149132,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 243,
+          "order": 244,
           "signature": "public IReadOnlyList\u003Cstring\u003E Validate();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; Validate();",
           "presentation": {
@@ -148385,7 +149187,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 175,
+          "order": 176,
           "signature": "public IReadOnlyList\u003CVmcxEntry\u003E Entries { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-d80d4fe6c5be0ca7\u0022\u003EVmcxEntry\u003C/a\u003E\u0026gt; Entries { get; }",
           "presentation": {
@@ -148475,7 +149277,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 455,
+          "order": 456,
           "signature": "public int Id { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E Id { get; }",
           "presentation": {
@@ -148530,7 +149332,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 468,
+          "order": 469,
           "signature": "public bool IsContainer { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsContainer { get; }",
           "presentation": {
@@ -148585,7 +149387,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 470,
+          "order": 471,
           "signature": "public bool IsSelector { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsSelector { get; }",
           "presentation": {
@@ -148640,7 +149442,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 460,
+          "order": 461,
           "signature": "public string Key { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Key { get; }",
           "presentation": {
@@ -148695,7 +149497,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 458,
+          "order": 459,
           "signature": "public int? ParentId { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E? ParentId { get; }",
           "presentation": {
@@ -148750,7 +149552,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 463,
+          "order": 464,
           "signature": "public string Path { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Path { get; }",
           "presentation": {
@@ -148805,7 +149607,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 466,
+          "order": 467,
           "signature": "public VmcxValue? Value { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E? Value { get; }",
           "presentation": {
@@ -148895,7 +149697,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5B57\u6BB5",
           "group": "\u5B57\u6BB5\u4E0E\u5E38\u91CF",
-          "order": 648,
+          "order": 649,
           "signature": "public int HResultCode;",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E HResultCode;",
           "presentation": {
@@ -148950,7 +149752,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 652,
+          "order": 653,
           "signature": "public VmcxException(string msg, int hr);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-3156373219b7a844\u0022\u003EVmcxException\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E msg, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E hr);",
           "presentation": {
@@ -149047,7 +149849,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 537,
+          "order": 538,
           "signature": "public static VmcxValue Boolean(bool value);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E Boolean(\u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E value);",
           "presentation": {
@@ -149109,7 +149911,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 517,
+          "order": 518,
           "signature": "public static VmcxValue Double(double value);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E Double(\u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E value);",
           "presentation": {
@@ -149171,7 +149973,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 556,
+          "order": 557,
           "signature": "public bool GetBoolean();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E GetBoolean();",
           "presentation": {
@@ -149226,7 +150028,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 547,
+          "order": 548,
           "signature": "public double GetDouble();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E GetDouble();",
           "presentation": {
@@ -149281,7 +150083,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 541,
+          "order": 542,
           "signature": "public long GetInteger();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E GetInteger();",
           "presentation": {
@@ -149336,7 +150138,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 553,
+          "order": 554,
           "signature": "public byte[] GetRaw();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebyte\u003C/span\u003E[] GetRaw();",
           "presentation": {
@@ -149391,7 +150193,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 550,
+          "order": 551,
           "signature": "public string GetString();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E GetString();",
           "presentation": {
@@ -149446,7 +150248,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 544,
+          "order": 545,
           "signature": "public ulong GetUnsignedInteger();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eulong\u003C/span\u003E GetUnsignedInteger();",
           "presentation": {
@@ -149501,7 +150303,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 508,
+          "order": 509,
           "signature": "public static VmcxValue Integer(long value);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E Integer(\u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E value);",
           "presentation": {
@@ -149563,7 +150365,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 533,
+          "order": 534,
           "signature": "public static VmcxValue Raw(ReadOnlySpan\u003Cbyte\u003E value);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E Raw(ReadOnlySpan\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Ebyte\u003C/span\u003E\u0026gt; value);",
           "presentation": {
@@ -149625,7 +150427,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 524,
+          "order": 525,
           "signature": "public static VmcxValue String(string value);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E String(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E value);",
           "presentation": {
@@ -149687,7 +150489,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 512,
+          "order": 513,
           "signature": "public static VmcxValue UnsignedInteger(ulong value);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-727cf80a4878b3e2\u0022\u003EVmcxValue\u003C/a\u003E UnsignedInteger(\u003Cspan class=\u0022keyword\u0022\u003Eulong\u003C/span\u003E value);",
           "presentation": {
@@ -149749,7 +150551,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 502,
+          "order": 503,
           "signature": "public string Text { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Text { get; }",
           "presentation": {
@@ -149804,7 +150606,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 499,
+          "order": 500,
           "signature": "public VmcxValueType Type { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-1dcabda321eccb67\u0022\u003EVmcxValueType\u003C/a\u003E Type { get; }",
           "presentation": {
@@ -149894,7 +150696,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 491,
+          "order": 492,
           "signature": "Boolean = 8",
           "signatureHtml": "Boolean = \u003Cspan class=\u0022literal\u0022\u003E8\u003C/span\u003E",
           "presentation": {
@@ -149951,7 +150753,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 485,
+          "order": 486,
           "signature": "Double = 5",
           "signatureHtml": "Double = \u003Cspan class=\u0022literal\u0022\u003E5\u003C/span\u003E",
           "presentation": {
@@ -150008,7 +150810,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 481,
+          "order": 482,
           "signature": "Integer = 3",
           "signatureHtml": "Integer = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
           "presentation": {
@@ -150065,7 +150867,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 489,
+          "order": 490,
           "signature": "Raw = 7",
           "signatureHtml": "Raw = \u003Cspan class=\u0022literal\u0022\u003E7\u003C/span\u003E",
           "presentation": {
@@ -150122,7 +150924,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 487,
+          "order": 488,
           "signature": "String = 6",
           "signatureHtml": "String = \u003Cspan class=\u0022literal\u0022\u003E6\u003C/span\u003E",
           "presentation": {
@@ -150179,7 +150981,7 @@
           "source": "Management/Tools/Vmcx/Vmcx.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 483,
+          "order": 484,
           "signature": "UnsignedInteger = 4",
           "signatureHtml": "UnsignedInteger = \u003Cspan class=\u0022literal\u0022\u003E4\u003C/span\u003E",
           "presentation": {

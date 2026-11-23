@@ -448,7 +448,7 @@ namespace ExHyperV.Services
                 foreach (var path in requestedPaths)
                 {
                     try { if (File.Exists(path)) result[path] = new FileInfo(path).Length; }
-                    catch { }
+                    catch (Exception diagnosticError) { CoreDiagnostics.Report("DiskLengthReadFailed", error: diagnosticError); }
                 }
                 return result;
             });

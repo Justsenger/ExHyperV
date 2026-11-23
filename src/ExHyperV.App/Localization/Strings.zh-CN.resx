@@ -90,9 +90,6 @@
   <data name="Main_WindowNotCreated" xml:space="preserve">
     <value>主窗口尚未创建。</value>
   </data>
-  <data name="Main_InvalidProductPage" xml:space="preserve">
-    <value>产品页面需要有效的标识、名称和创建函数。</value>
-  </data>
   <data name="Main_CloseFailedTitle" xml:space="preserve">
     <value>尚未安全结束</value>
   </data>
@@ -2207,15 +2204,6 @@
   <data name="Host_Env_PendingSwitch" xml:space="preserve">
     <value>存在待重启切换：{0}</value>
   </data>
-  <data name="Host_Env_Group_Usb" xml:space="preserve">
-    <value>USB 直通要求</value>
-  </data>
-  <data name="Host_Env_Usbipd" xml:space="preserve">
-    <value>已安装 usbipd-win</value>
-  </data>
-  <data name="Host_Env_UsbipdMissing" xml:space="preserve">
-    <value>未检测到 usbipd 服务或命令行程序</value>
-  </data>
   <data name="Host_Set_Sub_Scheduler" xml:space="preserve">
     <value>CPU 调度</value>
   </data>
@@ -4137,4 +4125,15 @@
   <data name="Storage_Slot" xml:space="preserve">
     <value>插槽</value>
   </data>
+  <data name="Settings_Diagnostics" xml:space="preserve"><value>诊断与日志</value></data>
+  <data name="Settings_EnableLogging" xml:space="preserve"><value>启用运行日志</value></data>
+  <data name="Settings_VerboseDiagnostics" xml:space="preserve"><value>详细诊断模式</value></data>
+  <data name="Settings_DiagnosticsHint" xml:space="preserve"><value>详细模式会额外记录常规监控采样。日志最多占用 12 MiB。</value></data>
+  <data name="Settings_ExportLogs" xml:space="preserve"><value>导出诊断包</value></data>
+  <data name="Settings_OpenLogs" xml:space="preserve"><value>打开日志文件夹</value></data>
+  <data name="Settings_ClearLogs" xml:space="preserve"><value>清空日志</value></data>
+  <data name="Settings_ZipType" xml:space="preserve"><value>诊断包 (.zip)</value></data>
+  <data name="Settings_Exported" xml:space="preserve"><value>诊断包已保存。</value></data>
+  <data name="Settings_ClearConfirm" xml:space="preserve"><value>要删除所有已保留的运行日志吗？启用日志期间，新事件会继续写入。</value></data>
+  <data name="Settings_Cleared" xml:space="preserve"><value>运行日志已清空。</value></data>
 </root>

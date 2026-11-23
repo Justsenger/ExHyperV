@@ -113,12 +113,6 @@ internal sealed partial class HostEnvironmentView : UserControl
         AddGroup(L10n.Get("Host_Env_Group_Pcie"),
             BuildStatusRow(inventory.IommuOk, iommuLabel),
             BuildStatusRow(inventory.IsServerSystem, L10n.Get("Host_Env_ServerOs"), serverSub));
-
-        // 4. USB Passthrough Requirements
-        AddGroup(L10n.Get("Host_Env_Group_Usb"),
-            BuildStatusRow(inventory.UsbipdInstalled,
-                L10n.Get("Host_Env_Usbipd"),
-                inventory.UsbipdInstalled switch { true => string.Empty, false => L10n.Get("Host_Env_UsbipdMissing"), null => L10n.Get("Common_Unavailable") }));
     }
 
     private void AddGroup(string title, params Border[] cards)

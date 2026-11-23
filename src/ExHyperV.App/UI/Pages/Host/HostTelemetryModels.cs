@@ -22,7 +22,6 @@ internal sealed class HostInventorySnapshot
     public bool GpuPvSupported { get; init; }
     public bool IommuOk { get; init; }
     public bool IsServerSystem { get; init; }
-    public bool? UsbipdInstalled { get; init; }
     public string? ProductSwitchReadError { get; init; }
     public HostProductTypePendingSwitch? PendingProductSwitch { get; init; }
     public HyperVEnvironmentStatus? Diagnostics { get; init; }

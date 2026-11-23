@@ -97,6 +97,7 @@ public sealed partial class VmDashboardView
 
     private async Task RunPreviewAsync(Guid id, CancellationTokenSource source)
     {
+        Diagnostics.AppDiagnostics.Write("VmPreview", "Started", $"vmId={id:D}");
         var token = source.Token;
         long nextPoll = Stopwatch.GetTimestamp();
         try
@@ -137,6 +138,7 @@ public sealed partial class VmDashboardView
                     catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
                     catch (Exception error)
                     {
+                        Diagnostics.AppDiagnostics.Failure("VmPreview", "CaptureFailed", error);
                         if (IsCurrentPreview(id, source, version)) ShowError(L10n.Format("Dash_PreviewReadError", CoreMessageResolver.ResolveException(error)));
                     }
                 }
@@ -147,5 +149,6 @@ public sealed partial class VmDashboardView
         {
             // Changing the selection stops preview polling.
         }
+        finally { Diagnostics.AppDiagnostics.Write("VmPreview", "Stopped", $"vmId={id:D}"); }
     }
 }

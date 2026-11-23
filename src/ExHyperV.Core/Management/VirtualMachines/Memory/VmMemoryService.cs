@@ -57,7 +57,7 @@ public static class VmMemoryService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.VmMemoryService_ErrReadConfig, ex));
+            CoreDiagnostics.Report("MemoryConfigurationReadFailed", error: ex);
             return ApiResponse<VmSettingsSnapshot<VmMemorySettings>>.Fail(ex.Message, exception: ex, kind: ApiErrorKind.OperationFailed);
         }
     }

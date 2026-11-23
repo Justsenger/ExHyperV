@@ -1,3 +1,4 @@
+using ExHyperV.Tools;
 using System.IO;
 
 namespace ExHyperV.Services;
@@ -16,7 +17,7 @@ internal static class AppDataPaths
 
         // 不迁移、不读取、也不回退到 EXE 或工作目录旁的旧配置。
         try { Directory.CreateDirectory(appDataDirectory); }
-        catch { }
+        catch (Exception diagnosticError) { CoreDiagnostics.Report("ConfigurationDirectoryCreationFailed", error: diagnosticError); }
 
         return Path.Combine(appDataDirectory, "Config.xml");
     }

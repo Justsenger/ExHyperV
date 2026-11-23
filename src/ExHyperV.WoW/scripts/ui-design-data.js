@@ -79,7 +79,7 @@ export const VM_ITEMS = [
         readIops: 142,
         writeIops: 38,
         queueLength: 1,
-        path: 'C:\\Users\\saniye\\Downloads\\usbip\\新建虚拟磁盘.vhdx',
+        path: 'C:\\Users\\saniye\\Downloads\\vms\\新建虚拟磁盘.vhdx',
         physicalInfo: {
           model: 'WDC SN850X 1000GB',
           diskNumber: 2,
@@ -457,7 +457,7 @@ export const INITIAL_STORAGE_ITEMS = [
     controllerType: 'SCSI',
     controllerNumber: 0,
     controllerLocation: 0,
-    path: 'C:\\Users\\saniye\\Downloads\\usbip\\新建虚拟磁盘.vhdx',
+    path: 'C:\\Users\\saniye\\Downloads\\vms\\新建虚拟磁盘.vhdx',
     hasIsoMedia: false,
     isPassthroughStale: false,
     expanded: false

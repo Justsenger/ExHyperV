@@ -654,7 +654,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: d4551db900ade84e385bff4bba6fe6a973fb2c6a46dd55def7d568a1ac990033 -->
+<!-- source-sha256: a16759e75c0be3d7bdbc1f9915190a5e423526a435b4fdaed7791c1079b3c53d -->
 
 程序集：`ExHyperV.Core.dll`，版本：`2.0.0-Alpha`。
 
@@ -1327,6 +1327,8 @@ Core 负责传输；宿主剪贴板的读取和写入由调用方完成。 一�
 | [` ApiResponse `](#api-422efc6c1478ebfe) | ` ExHyperV.Tools ` | 表示不携带数据的操作结果，提供成功标志及失败信息。 |
 | [` ApiResponse<T> `](#api-dd3269fca7449cd0) | ` ExHyperV.Tools ` | 表示带数据操作的结果，区分失败、成功空结果和成功数据。 |
 | [` ConditionReasonCode `](#api-c6b312ed6e71ad87) | ` ExHyperV.Tools ` | 语言无关的设置修改前置条件原因码。 |
+| [` CoreDiagnosticEvent `](#api-aa68340cabbf71cd) | ` ExHyperV.Tools ` | 一条本地诊断事件的只读快照。 |
+| [` CoreDiagnostics `](#api-4e231d2702bfc1dd) | ` ExHyperV.Tools ` | 向进程内宿主报告 Core 诊断事件。 |
 | [` CoreErrorClassifier `](#api-472bbf4a51177686) | ` ExHyperV.Tools ` | 根据跨语言的原生错误码与失败类别归类标准错误。 |
 | [` CoreErrorCode `](#api-c159b3ca11e89ee0) | ` ExHyperV.Tools ` | 语言无关的核心错误归一化标识。 |
 | [` CoreOperationException `](#api-d508b5ee4db3a2d0) | ` ExHyperV.Tools ` | Core 操作抛出的失败异常；Result 保留错误类别和执行结果。 |
@@ -17567,7 +17569,6 @@ public HostCpuThreadReport GetThreadUsage();
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static bool? IsUsbipdInstalled() `](#api-6086d03ab833cc5d) | 探测本机 usbipd 安装，无法访问服务注册信息时返回未知。 |
 | [` public static IReadOnlyDictionary<Guid, HostAdapterAddress> ReadAdapterAddresses() `](#api-60412e45a22b662f) | 按接口 GUID 返回本地 IPv4 与 MAC 地址，缺失的接口不产生记录。 |
 
 **方法**
@@ -17584,20 +17585,6 @@ public sealed class HostDeviceTelemetryService : IDisposable
 ```
 
 #### 静态方法说明
-
-<a id="api-6086d03ab833cc5d"></a>
-
-##### 检测 usbipd 安装状态（方法）
-
-```csharp
-public static bool? IsUsbipdInstalled();
-```
-
-功能归属：管理层面 / 宿主 / 基本信息。
-
-探测本机 usbipd 安装，无法访问服务注册信息时返回未知。
-
-返回：安装证据存在时为 true，完成探测且未找到时为 false，访问失败时为 null。
 
 <a id="api-60412e45a22b662f"></a>
 
@@ -34502,7 +34489,7 @@ PassthroughDisk = 1
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action) `](#api-820886e49b7ca692) | 使用虚拟机 GUID 和电源动作枚举执行电源操作。 |
+| [` public static async Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action) `](#api-820886e49b7ca692) | 使用虚拟机 GUID 和电源动作枚举执行电源操作。 |
 | [` public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, string action) `](#api-fcc28063736ec953) | 按稳定身份执行指定名称的电源动作。 |
 | [` public static async Task<ApiResponse> ExecuteControlActionAsync(string vmName, VmPowerAction action) `](#api-2347873620c306f7) | 按唯一显示名称定位虚拟机并执行类型化电源动作。 |
 | [` public static Task<ApiResponse> ExecuteControlActionAsync(string vmName, string action) `](#api-e76167868dc4f2a0) | 按唯一显示名称定位虚拟机并执行指定电源动作。 |
@@ -34525,7 +34512,7 @@ public static partial class VmPowerService
 ##### 执行电源操作（按 ID）（方法）
 
 ```csharp
-public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action);
+public static async Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action);
 ```
 
 功能归属：管理层面 / 虚拟机 / 电源。
@@ -41390,7 +41377,7 @@ public ApiErrorSource Source { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static ApiResponse Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified) `](#api-0a0e41c001f1d02c) | 创建失败响应并写入调试输出，不抛出传入异常。 |
+| [` public static ApiResponse Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified) `](#api-0a0e41c001f1d02c) | 创建失败响应并发布结构化诊断事件，不抛出传入异常。 |
 | [` public static ApiResponse Ok() `](#api-308387f87df9c37a) | 创建不携带数据的成功响应。 |
 | [` public static implicit operator bool (ApiResponse? response) `](#api-8b7b70e45ccc66eb) | 将响应按是否成功转换为布尔值；响应对象为 null 时为 false。 |
 
@@ -41536,7 +41523,7 @@ public bool Success { get; }
 public static ApiResponse Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified);
 ```
 
-创建失败响应并写入调试输出，不抛出传入异常。
+创建失败响应并发布结构化诊断事件，不抛出传入异常。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -41627,7 +41614,7 @@ public override string ToString();
 | 成员 | 说明 |
 | --- | --- |
 | [` public static ApiResponse<T> Empty() `](#api-4da81e85512bf4cd) | 创建成功但没有查询匹配项的响应。 |
-| [` public static ApiResponse<T> Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified) `](#api-49f48ccb175ec724) | 创建失败响应并写入调试输出，不抛出传入异常。 |
+| [` public static ApiResponse<T> Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified) `](#api-49f48ccb175ec724) | 创建失败响应并发布结构化诊断事件，不抛出传入异常。 |
 | [` public static ApiResponse<T> Ok(T? data) `](#api-ca7826aa38f9355f) | 创建成功响应并保存给定数据。 |
 | [` public static implicit operator bool (ApiResponse<T>? response) `](#api-d476883b504758e1) | 将响应按是否成功转换为布尔值；空响应对象为 false，成功空结果为 true。 |
 
@@ -41783,7 +41770,7 @@ public static ApiResponse<T> Empty();
 public static ApiResponse<T> Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified);
 ```
 
-创建失败响应并写入调试输出，不抛出传入异常。
+创建失败响应并发布结构化诊断事件，不抛出传入异常。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -42012,6 +41999,231 @@ UnsupportedVmVersion = 4
 ```
 
 当前虚拟机配置版本不支持此功能。
+
+<a id="api-aa68340cabbf71cd"></a>
+
+### `CoreDiagnosticEvent` 类
+
+一条本地诊断事件的只读快照。内容仅包含操作元数据和经过选择的诊断字段。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Tools ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 共用类型 |
+| 源文件 | ` Common/Results/CoreDiagnostics.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public string Caller { get; } = "" `](#api-e2b2921ad05467f8) | 产生事件的成员名。 |
+| [` public string Category { get; } = "" `](#api-f17d503332e5a836) | 产生事件的 Core 模块名。 |
+| [` public string? Details { get; } `](#api-633a2de54ed4360a) | 经过选择的数值、状态和分类字段。 |
+| [` public CoreErrorCode? Diagnostic { get; } `](#api-936ff83befd91619) | 失败响应的语言无关诊断分类。 |
+| [` public int? ErrorCode { get; } `](#api-b7688aeff85e4e30) | 失败响应携带的原生或业务错误码。 |
+| [` public ApiErrorKind? ErrorKind { get; } `](#api-7d95042f14f836a3) | 失败响应归一化后的错误类别。 |
+| [` public ApiErrorSource? ErrorSource { get; } `](#api-702d5428f20d28ff) | 失败响应数值码的来源。 |
+| [` public string EventName { get; } = "" `](#api-8f06d87bc27ec719) | 语言无关的操作或事件标识。 |
+| [` public string? ExceptionType { get; } `](#api-b7b326ce71f12947) | 发生异常时的托管异常类型。 |
+| [` public int? HResult { get; } `](#api-54016d7da59772e1) | 发生异常时的 HRESULT。 |
+| [` public TraceEventType Level { get; } `](#api-7d7b21e86dbc7af2) | 诊断等级。 |
+| [` public string? Stack { get; } `](#api-2d1b8c4183d9918f) | 不含源文件路径的调用栈。 |
+| [` public DateTimeOffset Timestamp { get; } `](#api-a6ffe29ee1f4c64c) | 事件产生的 UTC 时间。 |
+| [` public Guid? VmId { get; } `](#api-dc2b6ed94b68f45e) | 已知的虚拟机标识。 |
+
+#### 详细说明
+
+```csharp
+public sealed class CoreDiagnosticEvent
+```
+
+#### 属性说明
+
+<a id="api-e2b2921ad05467f8"></a>
+
+##### 产生事件的成员名（属性）
+
+```csharp
+public string Caller { get; } = "";
+```
+
+产生事件的成员名。
+
+<a id="api-f17d503332e5a836"></a>
+
+##### 产生事件的 Core 模块名（属性）
+
+```csharp
+public string Category { get; } = "";
+```
+
+产生事件的 Core 模块名。
+
+<a id="api-633a2de54ed4360a"></a>
+
+##### 经过选择的数值、状态和分类字段（属性）
+
+```csharp
+public string? Details { get; }
+```
+
+经过选择的数值、状态和分类字段。
+
+<a id="api-936ff83befd91619"></a>
+
+##### 失败响应的语言无关诊断分类（属性）
+
+```csharp
+public CoreErrorCode? Diagnostic { get; }
+```
+
+失败响应的语言无关诊断分类。
+
+<a id="api-b7688aeff85e4e30"></a>
+
+##### 失败响应携带的原生或业务错误码（属性）
+
+```csharp
+public int? ErrorCode { get; }
+```
+
+失败响应携带的原生或业务错误码。
+
+<a id="api-7d95042f14f836a3"></a>
+
+##### 失败响应归一化后的错误类别（属性）
+
+```csharp
+public ApiErrorKind? ErrorKind { get; }
+```
+
+失败响应归一化后的错误类别。
+
+<a id="api-702d5428f20d28ff"></a>
+
+##### 失败响应数值码的来源（属性）
+
+```csharp
+public ApiErrorSource? ErrorSource { get; }
+```
+
+失败响应数值码的来源。
+
+<a id="api-8f06d87bc27ec719"></a>
+
+##### 语言无关的操作或事件标识（属性）
+
+```csharp
+public string EventName { get; } = "";
+```
+
+语言无关的操作或事件标识。
+
+<a id="api-b7b326ce71f12947"></a>
+
+##### 发生异常时的托管异常类型（属性）
+
+```csharp
+public string? ExceptionType { get; }
+```
+
+发生异常时的托管异常类型。
+
+<a id="api-54016d7da59772e1"></a>
+
+##### 发生异常时的 HRESULT（属性）
+
+```csharp
+public int? HResult { get; }
+```
+
+发生异常时的 HRESULT。
+
+<a id="api-7d7b21e86dbc7af2"></a>
+
+##### 诊断等级。Verbose 表示详细采样（属性）
+
+```csharp
+public TraceEventType Level { get; }
+```
+
+诊断等级。Verbose 表示详细采样。
+
+<a id="api-2d1b8c4183d9918f"></a>
+
+##### 不含源文件路径的调用栈（属性）
+
+```csharp
+public string? Stack { get; }
+```
+
+不含源文件路径的调用栈。
+
+<a id="api-a6ffe29ee1f4c64c"></a>
+
+##### 事件产生的 UTC 时间（属性）
+
+```csharp
+public DateTimeOffset Timestamp { get; }
+```
+
+事件产生的 UTC 时间。
+
+<a id="api-dc2b6ed94b68f45e"></a>
+
+##### 已知的虚拟机标识（属性）
+
+```csharp
+public Guid? VmId { get; }
+```
+
+已知的虚拟机标识。
+
+<a id="api-4e231d2702bfc1dd"></a>
+
+### `CoreDiagnostics` 类
+
+向进程内宿主报告 Core 诊断事件。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Tools ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 共用类型 |
+| 源文件 | ` Common/Results/CoreDiagnostics.cs ` |
+
+#### 成员概览
+
+**事件**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static event Action<CoreDiagnosticEvent>? Reported `](#api-15e3a1032bf986d4) | 操作、探测或错误发生时通知订阅者，单个订阅者异常不会影响操作或其他订阅者。 |
+
+#### 详细说明
+
+```csharp
+public static class CoreDiagnostics
+```
+
+调用约定：宿主订阅后可按等级保存结构化事件。回调在产生事件的线程运行，结束订阅时移除处理程序。
+
+#### 事件说明
+
+<a id="api-15e3a1032bf986d4"></a>
+
+##### 订阅进程内诊断事件（事件）
+
+```csharp
+public static event Action<CoreDiagnosticEvent>? Reported;
+```
+
+操作、探测或错误发生时通知订阅者，单个订阅者异常不会影响操作或其他订阅者。
 
 <a id="api-472bbf4a51177686"></a>
 

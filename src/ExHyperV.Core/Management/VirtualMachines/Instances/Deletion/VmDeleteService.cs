@@ -569,10 +569,7 @@ public static class VmDeleteService
                                      SearchOption.AllDirectories))
                             files.Add(NormalizePath(file));
                     }
-                    catch
-                    {
-                        // 单个根无法枚举时不扩大范围；目标计算保持 fail-closed。
-                    }
+                    catch (Exception diagnosticError) { CoreDiagnostics.Report("DeleteRootEnumerationFailed", error: diagnosticError); }
                 }
             }
         }

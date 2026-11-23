@@ -1,3 +1,4 @@
+using ExHyperV.Tools;
 using System.ComponentModel;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
@@ -44,7 +45,7 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
                     if (length != 0) Marshal.Copy(data, copy, 0, copy.Length);
                     receiver(kind, copy, a, b);
                 }
-                catch { /* Never unwind a managed exception into the transport or framebuffer thread. */ }
+                catch (Exception diagnosticError) { CoreDiagnostics.Report("NativeCallbackFailed", error: diagnosticError); }
             };
             handle = api.Create(options.VmId.ToString("D"), enhanced ? 1u : 0u,
                 (uint)options.Width, (uint)options.Height, options.DesktopScale,

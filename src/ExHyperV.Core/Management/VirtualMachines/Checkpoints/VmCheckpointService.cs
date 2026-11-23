@@ -381,7 +381,7 @@ public static class VmCheckpointService
         catch (CheckpointReadException) { throw; }
         catch (Exception ex)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.VmCheckpointService_ErrLookupFailed, ex.Message));
+            CoreDiagnostics.Report("CheckpointLookupFailed", error: ex);
             throw;
         }
     }
@@ -399,7 +399,7 @@ public static class VmCheckpointService
             string? wormholePath = diskPaths.FirstOrDefault(p =>
                 p.Contains("_wormhole_tmp", StringComparison.OrdinalIgnoreCase));
 
-            Debug.WriteLine(string.Format(Properties.Resources.VmCheckpointService_LogWormholeDisk, wormholePath ?? "未找到"));
+            CoreDiagnostics.Report("WormholeDiskProbed", TraceEventType.Verbose, details: $"found={wormholePath != null}");
             if (wormholePath == null) return;
 
             string renamedParentPath = await GetVhdParentPathAsync(wormholePath);
@@ -424,12 +424,12 @@ public static class VmCheckpointService
             targetNode.WormholeCtrlNum = slot.CtrlNum;
             targetNode.WormholeCtrlLoc = slot.CtrlLoc;
 
-            Debug.WriteLine(string.Format(Properties.Resources.VmCheckpointService_LogWormholeMarkedOk, targetNode.Name));
+            CoreDiagnostics.Report("WormholeMarked", TraceEventType.Verbose);
         }
         catch (CheckpointReadException) { throw; }
         catch (Exception ex)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.VmCheckpointService_LogWormholeDetectFailed, ex.Message));
+            CoreDiagnostics.Report("WormholeDetectionFailed", error: ex);
             throw;
         }
     }
@@ -445,7 +445,7 @@ public static class VmCheckpointService
         RefreshNodeOperationState(targetNode, currentNode);
 
         var existsResult = await CheckAnyWormholeExistsAsync(vmId);
-        Debug.WriteLine($"[OpenWormhole] CheckAnyWormholeExists={existsResult}");
+        CoreDiagnostics.Report("WormholeExists", TraceEventType.Verbose, details: $"exists={existsResult}");
         if (existsResult)
             return (false, Properties.Resources.VmCheckpointService_ErrWormholeAlreadyExists);
 

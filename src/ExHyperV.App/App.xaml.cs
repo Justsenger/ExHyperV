@@ -1,4 +1,5 @@
 
+using ExHyperV.App.Diagnostics;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shell;
@@ -17,8 +18,6 @@ public partial class App : Microsoft.UI.Xaml.Application
             Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    public Composition.ProductConfiguration Product { get; private set; } = new();
-    partial void ConfigureProduct(ref Composition.ProductConfiguration product);
     private MainWindow? window;
     internal Microsoft.UI.WindowId MainWindowId => window?.AppWindow.Id
         ?? throw new InvalidOperationException(L10n.Get("Main_WindowNotCreated"));
@@ -27,15 +26,16 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public App()
     {
-        L10n.ApplyLanguage(AppearanceSettings.Load().Language);
+        var settings = AppearanceSettings.Load();
+        AppDiagnostics.Start(settings);
+        UnhandledException += (_, args) => AppDiagnostics.Crash("WinUIUnhandledException", args.Exception);
+        L10n.ApplyLanguage(settings.Language);
+        AppDiagnostics.StartupHeader(settings);
         InitializeComponent();
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        var product = Product;
-        ConfigureProduct(ref product);
-        Product = product;
         // Application.Current's resource projection is available once application construction has finished.
         Appearance = new AppAppearance();
         window = new MainWindow();

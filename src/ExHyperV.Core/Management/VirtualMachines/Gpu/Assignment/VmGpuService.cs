@@ -48,7 +48,7 @@ namespace ExHyperV.Services
                 var warnings = _linkWarnings.Value;
                 GpuRegistryEnhancement.Apply(hivePath, mountKey, edit, warning =>
                 {
-                    Debug.WriteLine(warning);
+                    CoreDiagnostics.Report("RegistryEnhancementWarning");
                     warnings?.Enqueue(warning);
                 });
             }
@@ -156,7 +156,8 @@ namespace ExHyperV.Services
 
         /// <summary>查询虚拟 GPU 适配器并保留成功标记，区分无设备和查询失败。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <returns>Success 表示查询成功；Adapters 为 Id 与 InstancePath 列表，失败时为空。</returns>
+        /// <param name="allowDisplayFallback">是否允许读取资源池首项作为显示候选。</param>
+        /// <returns>Success 表示查询成功，Adapters 为 Id 与 InstancePath 列表，失败时为空。</returns>
         /// <remarks>旧版宿主缺少适配器资源路径时，使用资源池首项作为候选；多 GPU 环境需进一步核对物理设备。</remarks>
         internal async Task<(bool Success, List<(string Id, string InstancePath)> Adapters)> TryGetVmGpuAdaptersAsync(Guid vmId, bool allowDisplayFallback = true)
         {
@@ -208,7 +209,7 @@ namespace ExHyperV.Services
                             partitionableGpu.Get();
                             instancePath = partitionableGpu["Name"]?.ToString();
                         }
-                        catch { }
+                        catch (Exception diagnosticError) { CoreDiagnostics.Report("PartitionableGpuLookupFailed", error: diagnosticError); }
                     }
 
                     // HostResource 空/Unknown(Win10 早期) → 兜底用首张可分区 GPU 的 Name(单卡准确)
@@ -224,7 +225,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"WMI Query Error: {ex.Message}");
+                CoreDiagnostics.Report("GpuWmiQueryFailed", error: ex);
                 return (false, new List<(string Id, string InstancePath)>());
             }
             return (true, result);
@@ -977,7 +978,7 @@ namespace ExHyperV.Services
                 while (linkWarnings.TryDequeue(out string warning))
                 {
                     try { Log(warning); }
-                    catch { }
+                    catch (Exception diagnosticError) { CoreDiagnostics.Report("WarningObserverFailed", error: diagnosticError); }
                 }
                 _linkWarnings.Value = null;
                 _activeDriverPackagePlan.Value = null;
@@ -1124,7 +1125,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex) when (!GuestVolumeBoundaryException.IsBoundaryFailure(ex))
             {
-                Debug.WriteLine($"Universal Registry Promotion error: {ex.Message}");
+                CoreDiagnostics.Report("RegistryPromotionFailed", error: ex);
             }
         }
 
@@ -1364,7 +1365,7 @@ namespace ExHyperV.Services
                     if (promotionMode != GpuFilePromotionMode.PreserveExisting || requirePreferredPackage)
                     {
                         string warning = $"[GPU Link] Required promotion source not found: {sourceName}.";
-                        Debug.WriteLine(warning);
+                        CoreDiagnostics.Report("PromotionSourceMissing");
                         _linkWarnings.Value?.Enqueue(warning);
                     }
                     return;
@@ -1372,7 +1373,7 @@ namespace ExHyperV.Services
                 if (foundFiles.Count > 1)
                 {
                     string warning = $"[GPU Link] Promotion source is ambiguous: {sourceName}.";
-                    Debug.WriteLine(warning);
+                    CoreDiagnostics.Report("PromotionSourceAmbiguous");
                     _linkWarnings.Value?.Enqueue(warning);
                     return;
                 }
@@ -1414,7 +1415,9 @@ namespace ExHyperV.Services
                     isReparsePoint = File.GetAttributes(hostLinkPath).HasFlag(FileAttributes.ReparsePoint);
                     targetPathExists = true;
                 }
-                catch { }
+                catch (FileNotFoundException) { }
+                catch (DirectoryNotFoundException) { }
+                catch (Exception diagnosticError) { CoreDiagnostics.Report("LinkAttributesReadFailed", error: diagnosticError); }
 
                 if (isReparsePoint)
                 {
@@ -1427,7 +1430,7 @@ namespace ExHyperV.Services
                     if (targetIsDirectory)
                     {
                         string warning = $"[GPU Link] Refusing to replace directory {hostLinkPath}.";
-                        Debug.WriteLine(warning);
+                        CoreDiagnostics.Report("PromotionTargetIsDirectory");
                         _linkWarnings.Value?.Enqueue(warning);
                         return;
                     }
@@ -1451,7 +1454,7 @@ namespace ExHyperV.Services
             catch (Exception ex) when (!GuestVolumeBoundaryException.IsBoundaryFailure(ex))
             {
                 string warning = $"[GPU Link] {sourceName}: {ex.Message}";
-                Debug.WriteLine(warning);
+                CoreDiagnostics.Report("LinkPromotionFailed", error: ex);
                 _linkWarnings.Value?.Enqueue(warning);
             }
         }
@@ -1523,7 +1526,7 @@ namespace ExHyperV.Services
                         using var directory = volume.PinDirectory(searchRoot);
                         matches.AddRange(new DirectoryInfo(searchRoot).GetFiles(filePattern, options));
                     }
-                    catch (UnauthorizedAccessException) { }
+                    catch (UnauthorizedAccessException ex) { CoreDiagnostics.Report("PromotionSourceAccessDenied", error: ex); }
                     catch (DirectoryNotFoundException) { }
                 }
             }

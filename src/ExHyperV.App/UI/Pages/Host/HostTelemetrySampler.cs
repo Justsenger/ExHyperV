@@ -36,7 +36,6 @@ internal sealed class HostTelemetrySampler
         var vmMem = await vmSummaryTask;
 
         bool cpuVirtOk = false, gpuPv = false, iommuOk = false, isServer = false;
-        bool? usbipd = null;
         string? productSwitchReadError = null;
         HyperVSchedulerType runSched = HyperVSchedulerType.Unknown;
         HyperVSchedulerType cfgSched = HyperVSchedulerType.Unknown;
@@ -51,7 +50,6 @@ internal sealed class HostTelemetrySampler
             gpuPv = HostGpuService.IsGpuPartitioningVersionSupported();
             iommuOk = HyperVHostService.IsIommuEnabled();
             isServer = HostProductTypeService.IsServerSystem();
-            usbipd = HostDeviceTelemetryService.IsUsbipdInstalled();
             runSched = HyperVSchedulerService.GetSchedulerType();
             cfgSched = HyperVSchedulerService.GetConfiguredSchedulerType();
             try
@@ -105,7 +103,6 @@ internal sealed class HostTelemetrySampler
             GpuPvSupported = gpuPv,
             IommuOk = iommuOk,
             IsServerSystem = isServer,
-            UsbipdInstalled = usbipd,
             PendingProductSwitch = pendingSwitch,
             ProductSwitchReadError = productSwitchReadError,
             Diagnostics = diag,

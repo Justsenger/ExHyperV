@@ -107,7 +107,7 @@ internal static class GpuDriverIsoService
             if (Directory.Exists(stagingDir))
             {
                 try { Directory.Delete(stagingDir, recursive: true); }
-                catch { }
+                catch (Exception diagnosticError) { CoreDiagnostics.Report("DriverStagingCleanupFailed", error: diagnosticError); }
             }
         }
     }
@@ -206,8 +206,8 @@ internal static class GpuDriverIsoService
                 foreach (DirectoryInfo sub in dir.GetDirectories())
                     stack.Push(sub);
             }
-            catch (UnauthorizedAccessException) { }
-            catch (IOException) { }
+            catch (UnauthorizedAccessException ex) { CoreDiagnostics.Report("DriverDirectoryAccessDenied", error: ex); }
+            catch (IOException ex) { CoreDiagnostics.Report("DriverDirectoryReadFailed", error: ex); }
         }
         return sum;
     }

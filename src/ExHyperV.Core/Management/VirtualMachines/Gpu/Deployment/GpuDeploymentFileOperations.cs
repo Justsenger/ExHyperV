@@ -37,7 +37,7 @@ internal sealed class GpuDeploymentFileOperations(GuestVolumeFiles volume, Actio
             }
             catch (Exception error)
             {
-                Warn($"[GPU Permissions] {fullPath}: Owner update failed: {error.Message}");
+                Warn("GuestFileOwnerUpdateFailed", error, $"[GPU Permissions] {fullPath}: Owner update failed: {error.Message}");
             }
 
             try
@@ -59,7 +59,7 @@ internal sealed class GpuDeploymentFileOperations(GuestVolumeFiles volume, Actio
             }
             catch (Exception error)
             {
-                Warn($"[GPU Permissions] {fullPath}: ACL grant failed: {error.Message}");
+                Warn("GuestFileAclUpdateFailed", error, $"[GPU Permissions] {fullPath}: ACL grant failed: {error.Message}");
             }
 
             if (ownershipSucceeded && accessSucceeded)
@@ -109,15 +109,15 @@ internal sealed class GpuDeploymentFileOperations(GuestVolumeFiles volume, Actio
             }
             catch (Exception error)
             {
-                Warn($"[GPU Link] Link created, but backup cleanup failed for {backupPath}: {error.Message}");
+                Warn("GuestLinkBackupCleanupFailed", error, $"[GPU Link] Link created, but backup cleanup failed for {backupPath}: {error.Message}");
             }
         }
     }
 
-    private void Warn(string message)
+    private void Warn(string eventName, Exception error, string message)
     {
-        Debug.WriteLine(message);
+        CoreDiagnostics.Report(eventName, error: error);
         try { reportWarning(message); }
-        catch { /* 诊断回调不得改变文件操作的结果。 */ }
+        catch (Exception diagnosticError) { CoreDiagnostics.Report("WarningObserverFailed", error: diagnosticError); }
     }
 }

@@ -19,7 +19,7 @@ namespace ExHyperV.Tools
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[SafeFireAndForget] {ex}");
+                CoreDiagnostics.Report("BackgroundTaskFailed", error: ex);
                 onError?.Invoke(ex);
             }
         }

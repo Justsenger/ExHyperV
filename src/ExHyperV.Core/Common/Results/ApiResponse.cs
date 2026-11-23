@@ -120,7 +120,7 @@ public sealed class ApiResponse<T>
         Data = default,
     };
 
-    /// <summary>创建失败响应并写入调试输出，不抛出传入异常。</summary>
+    /// <summary>创建失败响应并发布结构化诊断事件，不抛出传入异常。</summary>
     /// <returns>保存错误信息的失败响应。</returns>
     /// <param name="error">可供人阅读的错误说明。</param>
     /// <param name="code">接口或业务错误码；默认 -1。</param>
@@ -136,7 +136,8 @@ public sealed class ApiResponse<T>
     {
         var normalizedKind = kind != ApiErrorKind.None && Enum.IsDefined(kind) ? kind : ApiErrorKind.Unspecified;
         var diagnostic = CoreErrorClassifier.Classify(normalizedKind, source, code, exception, error);
-        Debug.WriteLine($"[ApiResponse.Fail] source={source} code={code} diag={diagnostic} error={error}");
+        CoreDiagnostics.Report("ApiResponse.Fail", TraceEventType.Error, exception,
+            errorKind: normalizedKind, errorSource: source, errorCode: code, diagnostic: diagnostic);
         return new()
         {
             Success = false,
@@ -271,7 +272,7 @@ public sealed class ApiResponse
     /// <returns>新的成功响应。</returns>
     public static ApiResponse Ok() => new() { Success = true };
 
-    /// <summary>创建失败响应并写入调试输出，不抛出传入异常。</summary>
+    /// <summary>创建失败响应并发布结构化诊断事件，不抛出传入异常。</summary>
     /// <returns>保存错误信息的失败响应。</returns>
     /// <param name="error">可供人阅读的错误说明。</param>
     /// <param name="code">接口或业务错误码；默认 -1。</param>
@@ -287,7 +288,8 @@ public sealed class ApiResponse
     {
         var normalizedKind = kind != ApiErrorKind.None && Enum.IsDefined(kind) ? kind : ApiErrorKind.Unspecified;
         var diagnostic = CoreErrorClassifier.Classify(normalizedKind, source, code, exception, error);
-        Debug.WriteLine($"[ApiResponse.Fail] source={source} code={code} diag={diagnostic} error={error}");
+        CoreDiagnostics.Report("ApiResponse.Fail", TraceEventType.Error, exception,
+            errorKind: normalizedKind, errorSource: source, errorCode: code, diagnostic: diagnostic);
         return new()
         {
             Success = false,

@@ -66,7 +66,7 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Thumbnail] {ex.Message}");
+                    CoreDiagnostics.Report("ThumbnailReadFailed", error: ex);
                     return null;
                 }
             });

@@ -90,7 +90,7 @@ public static class HyperVSchedulerService
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(string.Format(Properties.Resources.HyperVScheduler_LogEventLogQueryFail, ex.Message));
+            CoreDiagnostics.Report("SchedulerEventLogQueryFailed", error: ex);
         }
 
         return HyperVSchedulerType.Unknown;
