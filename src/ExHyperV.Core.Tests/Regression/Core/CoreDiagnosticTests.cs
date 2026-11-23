@@ -312,5 +312,15 @@ public class CoreDiagnosticTests
             .WithDiagnostic(CoreErrorCode.InsufficientMemory, "16384", "6000", "15975", "10384");
         Assert.AreEqual(CoreErrorCode.InsufficientMemory, enriched.DiagnosticCode);
         CollectionAssert.AreEqual(new[] { "16384", "6000", "15975", "10384" }, enriched.DiagnosticArgs.ToArray());
+
+        var emptyPreview = await VmProcessorService.GetVmProcessorAsync(Guid.Empty, includePreviewSettings: true);
+        Assert.IsFalse(emptyPreview.Success);
+        Assert.AreEqual(ApiErrorKind.InvalidArgument, emptyPreview.ErrorKind);
+
+        var nativeCoreTypes = HostCpuEtwNative.ReadCoreTypesByGroupBit();
+        foreach (var (key, expectedType) in nativeCoreTypes)
+            Assert.AreEqual(expectedType, HyperVCpuMonitorService.GetCoreType(key.Bit + key.Group * 64));
+        Assert.AreEqual(CpuCoreType.Unknown, HyperVCpuMonitorService.GetCoreType(-1));
+        Assert.AreEqual(CpuCoreType.Unknown, HyperVCpuMonitorService.GetCoreType(int.MaxValue));
     }
 }

@@ -453,25 +453,16 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         Grid.SetColumn(badge, 0);
         rowGrid.Children.Add(badge);
 
-        var textStack = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
-        textStack.Children.Add(new TextBlock
+        var title = new TextBlock
         {
-            Text = isEmpty ? L10n.Get("Gpu_NoneAssigned") : L10n.Get("Gpu_Add"),
+            Text = L10n.Get("Gpu_Add"),
+            VerticalAlignment = VerticalAlignment.Center,
             FontSize = 13.5,
             FontWeight = FontWeights.Medium,
             Foreground = Brush("TextFillColorPrimaryBrush")
-        });
-        if (isEmpty)
-        {
-            textStack.Children.Add(new TextBlock
-            {
-                Text = L10n.Get("Gpu_SelectHostHelp"),
-                FontSize = 12,
-                Foreground = Brush("TextFillColorSecondaryBrush")
-            });
-        }
-        Grid.SetColumn(textStack, 1);
-        rowGrid.Children.Add(textStack);
+        };
+        Grid.SetColumn(title, 1);
+        rowGrid.Children.Add(title);
 
         var button = new Button
         {

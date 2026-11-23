@@ -1,4 +1,6 @@
 
+using System.Diagnostics;
+using ExHyperV.App.Diagnostics;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Controls;
@@ -188,6 +190,7 @@ public abstract partial class VmSettingsView : UserControl
             if (!stopFailures.Contains(detail)) stopFailures.Add(detail);
             return;
         }
+        AppDiagnostics.Write("UI", "SettingsErrorShown", $"view={GetType().Name} hasAction={onAction != null}", TraceEventType.Warning);
         HideAppliedToast();
         var button = CreateInfoBarActionButton(actionLabel, onAction);
         if (feedbackHost != null)

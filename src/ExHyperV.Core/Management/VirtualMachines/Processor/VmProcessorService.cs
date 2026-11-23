@@ -235,7 +235,23 @@ public static partial class VmProcessorService
     /// <summary>读取虚拟机的处理器配置。</summary>
     /// <param name="vmId">目标虚拟机的标识。</param>
     /// <returns>处理器配置及支持的设置项。虚拟机或配置不存在时返回 NotFound；查询失败时附带原因。可空值的含义见 <see cref="VmProcessorSettings"/>。</returns>
-    public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId)
+    public static Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId)
+        => GetVmProcessorCoreAsync(vmId);
+
+    /// <summary>读取虚拟机的处理器配置，可选择临时启用宿主预览功能开关以读回隐藏频率设置。</summary>
+    /// <param name="vmId">目标虚拟机的标识。</param>
+    /// <param name="includePreviewSettings">为 true 时在查询期间临时启用宿主预览功能开关；需要管理员权限。</param>
+    /// <returns>处理器配置及支持的设置项。虚拟机或配置不存在时返回 NotFound；查询失败或恢复失败时附带原因。</returns>
+    public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId, bool includePreviewSettings)
+    {
+        if (vmId == Guid.Empty)
+            return ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
+        return includePreviewSettings
+            ? await HostAzureFeatureSetService.RunTemporarilyEnabledResponseAsync(() => GetVmProcessorCoreAsync(vmId)).ConfigureAwait(false)
+            : await GetVmProcessorCoreAsync(vmId).ConfigureAwait(false);
+    }
+
+    private static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorCoreAsync(Guid vmId)
     {
         if (vmId == Guid.Empty)
             return ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);

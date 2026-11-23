@@ -21,6 +21,17 @@ internal static class HostAzureFeatureSetService
     public static Task<ApiResponse> RunTemporarilyEnabledAsync(Func<Task<ApiResponse>> action) =>
         RunResponseAsync(() => RunTemporarilyEnabledAsync<ApiResponse>(action));
 
+    /// <summary>临时启用开关并执行返回数据响应的业务；锁、权限及恢复失败转换为失败响应。</summary>
+    public static async Task<ApiResponse<T>> RunTemporarilyEnabledResponseAsync<T>(Func<Task<ApiResponse<T>>> action)
+    {
+        try { return await RunTemporarilyEnabledAsync<ApiResponse<T>>(action).ConfigureAwait(false); }
+        catch (Exception error)
+        {
+            var failure = ClassifyFailure(error);
+            return ApiResponse<T>.Fail(error.Message, failure.Code, failure.Source, error, failure.Kind);
+        }
+    }
+
     /// <summary>临时移除开关并执行返回响应的业务；恢复失败明确标记为 CleanupRequired。</summary>
     public static Task<ApiResponse> RunTemporarilyDisabledAsync(Func<Task<ApiResponse>> action) =>
         RunResponseAsync(() => RunTemporarilyDisabledAsync<ApiResponse>(action));
@@ -30,18 +41,24 @@ internal static class HostAzureFeatureSetService
         try { return await action().ConfigureAwait(false); }
         catch (Exception error)
         {
-            var unknown = FindUnknownResult(error);
-            if (unknown is not null)
-                return ApiResponse.Fail(error.Message, unknown.Code, unknown.ErrorSource, error, ApiErrorKind.OutcomeUnknown);
-            ApiErrorKind kind = ContainsException<RestoreFailureException>(error) || ContainsException<AbandonedMutexException>(error)
-                ? ApiErrorKind.CleanupRequired
-                : ContainsException<UnauthorizedAccessException>(error) || ContainsException<SecurityException>(error)
-                    || FindNativeAccessFailure(error) is not null
-                    ? ApiErrorKind.AccessDenied : ApiErrorKind.OperationFailed;
-            return ApiResponse.Fail(error.Message,
-                error is Win32Exception native ? native.NativeErrorCode : error.HResult,
-                error is Win32Exception ? ApiErrorSource.Win32 : ApiErrorSource.None, error, kind);
+            var failure = ClassifyFailure(error);
+            return ApiResponse.Fail(error.Message, failure.Code, failure.Source, error, failure.Kind);
         }
+    }
+
+    private static (ApiErrorKind Kind, int Code, ApiErrorSource Source) ClassifyFailure(Exception error)
+    {
+        var unknown = FindUnknownResult(error);
+        if (unknown is not null)
+            return (ApiErrorKind.OutcomeUnknown, unknown.Code, unknown.ErrorSource);
+        ApiErrorKind kind = ContainsException<RestoreFailureException>(error) || ContainsException<AbandonedMutexException>(error)
+            ? ApiErrorKind.CleanupRequired
+            : ContainsException<UnauthorizedAccessException>(error) || ContainsException<SecurityException>(error)
+                || FindNativeAccessFailure(error) is not null
+                ? ApiErrorKind.AccessDenied : ApiErrorKind.OperationFailed;
+        return (kind,
+            error is Win32Exception native ? native.NativeErrorCode : error.HResult,
+            error is Win32Exception ? ApiErrorSource.Win32 : ApiErrorSource.None);
     }
 
     private static ApiResponse? FindUnknownResult(Exception error)

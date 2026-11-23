@@ -147,7 +147,7 @@ public sealed partial class VmProcessorSettingsView : VmSettingsView
 
     private void SetDraftAvailability(SettingFieldEditor field, bool allowed, string? reason)
     {
-        bool observed = fieldStates.TryGetValue(field.Property.Name, out var state) && state == VmQueryValueState.Available;
+        bool observed = fieldStates.TryGetValue(field.Property.Name, out var state) && IsStateReadable(field.Property.Name, state);
         field.SetAvailability(!uncertain && observed && allowed, observed ? reason : L10n.Get("Err_NoValidData"));
     }
 

@@ -241,7 +241,7 @@ public sealed partial class VmProcessorSettingsView
         Grid.SetColumn(valText, 1);
         header.Children.Add(valText);
 
-        var slider = new SettingsEnergySlider(EnergySliderKind.Custom, compact: true) { HorizontalAlignment = HorizontalAlignment.Stretch };
+        var slider = new SettingsEnergySlider(EnergySliderKind.Custom, compact: false) { HorizontalAlignment = HorizontalAlignment.Stretch };
         slider.CustomHintFormatter = customHintFormatter ?? (pos =>
         {
             var counts = VmProcessorTopologyPreview.GetAchievableCounts(ReadVmCoreCount());

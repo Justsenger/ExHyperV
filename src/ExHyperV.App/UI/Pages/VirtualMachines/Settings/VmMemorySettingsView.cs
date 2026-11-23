@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
+using ExHyperV.App.Diagnostics;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared;
 using ExHyperV.App.UI.Shared.Controls;
@@ -576,6 +578,7 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
 
         var (hostMemMax, dynamicMaxLimit) = GetHostMemorySliderBounds();
         Updating = true;
+        List<string>? unavailableFields = null;
         try
         {
             foreach (var field in fields)
@@ -591,9 +594,11 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
                         ? (SettingOption[])[new((byte)0, L10n.Get("Mem_PageSize_Default")), new((byte)1, L10n.Get("Mem_PageSize_Large")), new((byte)2, L10n.Get("Mem_PageSize_Huge"))]
                         : (SettingOption[])[new((byte)1, L10n.Get("Mem_PageSize_Large")), new((byte)2, L10n.Get("Mem_PageSize_Huge"))]);
                 var (canModify, condReason) = GetEffectiveCondition(memory, name, powerState);
+                bool fieldUnavailable = canModify && observation.States.GetValueOrDefault(name) != VmQueryValueState.Available;
+                if (fieldUnavailable) (unavailableFields ??= []).Add(name);
                 string? error = !canModify
                     ? condReason
-                    : observation.States.GetValueOrDefault(name) != VmQueryValueState.Available
+                    : fieldUnavailable
                         ? L10n.Get("Err_NoValidData")
                         : null;
                 field.Load(value, error == null && !uncertain, error);
@@ -607,8 +612,12 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
                     : condition.CanModify ? null : CoreMessageResolver.ResolveConditionReason(condition);
                 field.Load(value, error == null && !uncertain, error);
             }
-            if (observation.States.Any(pair => pair.Value == VmQueryValueState.Unavailable))
+            if (unavailableFields is { Count: > 0 })
+            {
+                AppDiagnostics.Write("UI", "MemorySettingsUnavailable",
+                    $"fields={string.Join(',', unavailableFields)}", TraceEventType.Warning);
                 ShowError(L10n.Get("Err_PartialReadUnavailable"), L10n.Get("Action_RefreshStatus"), UnlockAndReloadAsync);
+            }
         }
         finally
         {
@@ -616,7 +625,7 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
         }
         UpdateGroupActions();
         if (uncertain) ShowError(L10n.Get("Err_UncertainLock"), L10n.Get("Action_RefreshStatus"), UnlockAndReloadAsync);
-        else if (host is { IsIntel: false } && memory.SgxEnabled == true && !observation.States.Any(pair => pair.Value == VmQueryValueState.Unavailable))
+        else if (host is { IsIntel: false } && memory.SgxEnabled == true && unavailableFields == null)
             ShowInformation(L10n.Get("Mem_Info_SgxUnsupportedEnabled"));
     }
 

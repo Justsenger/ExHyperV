@@ -25283,6 +25283,19 @@
       "group": "vm",
       "readOnly": true
     },
+    "M:ExHyperV.Services.VmProcessorService.GetVmProcessorAsync(System.Guid,System.Boolean)": {
+      "title": "读取含预览项的处理器配置",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
     "M:ExHyperV.Services.VmProcessorService.SetVmProcessorAsync(System.Guid,ExHyperV.Models.VmProcessorSettings,System.Collections.Generic.IReadOnlyCollection{System.String})": {
       "title": "设置处理器配置",
       "paths": [

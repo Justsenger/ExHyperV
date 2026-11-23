@@ -654,7 +654,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: a16759e75c0be3d7bdbc1f9915190a5e423526a435b4fdaed7791c1079b3c53d -->
+<!-- source-sha256: b683ce6b8b4e2907e0b788a89459a036e19b963ba3dacf7e72fe59b6d7d463f3 -->
 
 程序集：`ExHyperV.Core.dll`，版本：`2.0.0-Alpha`。
 
@@ -35276,7 +35276,8 @@ public static readonly VmQueryField<double> UsagePercent;
 | [` public static async Task<ApiResponse<HostCapabilities>> GetHostCapabilitiesAsync() `](#api-4bba2c7324aef3f9) | 查询宿主处理器架构和硬件隔离能力。 |
 | [` public static async Task<int?> GetHostMaxVirtualCpuCountAsync(Guid vmId) `](#api-9245e38da2de39b1) | 读取宿主报告的虚拟处理器上限并应用代数限制。 |
 | [` public static VmModificationCondition GetModificationCondition(VmProcessorSettings settings, string propertyName, VmState state, HostCapabilities host) `](#api-454fcb1f6077d615) | 评估一项处理器设置的修改条件。 |
-| [` public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId) `](#api-07efb27da397e312) | 读取虚拟机的处理器配置。 |
+| [` public static Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId) `](#api-07efb27da397e312) | 读取虚拟机的处理器配置。 |
+| [` public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId, bool includePreviewSettings) `](#api-cf4b1b860682d278) | 读取虚拟机的处理器配置，可选择临时启用宿主预览功能开关以读回隐藏频率设置。 |
 | [` public static async Task<ApiResponse> SetVmProcessorAsync(Guid vmId, VmProcessorSettings newSettings, IReadOnlyCollection<string> changedProperties) `](#api-b0226efc49c61356) | 修改选中的处理器设置。 |
 
 #### 详细说明
@@ -35401,7 +35402,7 @@ public static VmModificationCondition GetModificationCondition(VmProcessorSettin
 ##### 读取处理器配置（方法）
 
 ```csharp
-public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId);
+public static Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId);
 ```
 
 功能归属：管理层面 / 虚拟机 / 处理器。
@@ -35413,6 +35414,25 @@ public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> G
 | `vmId` | 目标虚拟机的标识。 |
 
 返回：处理器配置及支持的设置项。虚拟机或配置不存在时返回 NotFound；查询失败时附带原因。可空值的含义见 `VmProcessorSettings`。
+
+<a id="api-cf4b1b860682d278"></a>
+
+##### 读取含预览项的处理器配置（方法）
+
+```csharp
+public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId, bool includePreviewSettings);
+```
+
+功能归属：管理层面 / 虚拟机 / 处理器。
+
+读取虚拟机的处理器配置，可选择临时启用宿主预览功能开关以读回隐藏频率设置。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的标识。 |
+| `includePreviewSettings` | 为 true 时在查询期间临时启用宿主预览功能开关；需要管理员权限。 |
+
+返回：处理器配置及支持的设置项。虚拟机或配置不存在时返回 NotFound；查询失败或恢复失败时附带原因。
 
 <a id="api-b0226efc49c61356"></a>
 

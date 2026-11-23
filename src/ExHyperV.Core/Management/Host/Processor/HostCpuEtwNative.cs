@@ -113,7 +113,7 @@ internal static unsafe class HostCpuEtwNative
         return items;
     }
 
-    private static Dictionary<(int Group, int Bit), CpuCoreType> ReadCoreTypesByGroupBit()
+    internal static Dictionary<(int Group, int Bit), CpuCoreType> ReadCoreTypesByGroupBit()
     {
         var map = new Dictionary<(int Group, int Bit), CpuCoreType>();
         var coreBytes = QueryLogicalProcessorBuffer(RelationProcessorCore);

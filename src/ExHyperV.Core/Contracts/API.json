@@ -3,7 +3,7 @@
   "version": "2.0.0-Alpha",
   "source": {
     "revision": null,
-    "contentSha256": "a16759e75c0be3d7bdbc1f9915190a5e423526a435b4fdaed7791c1079b3c53d"
+    "contentSha256": "b683ce6b8b4e2907e0b788a89459a036e19b963ba3dacf7e72fe59b6d7d463f3"
   },
   "defaultTypeId": "overview",
   "queryPath": [
@@ -66659,7 +66659,7 @@
           "source": "Management/Host/Processor/HyperVCpuMonitorService.cs",
           "kind": "\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 134,
+          "order": 64,
           "signature": "public HyperVCpuMonitorService();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-3d00ec7a4b276e23\u0022\u003EHyperVCpuMonitorService\u003C/a\u003E();",
           "presentation": {
@@ -66716,7 +66716,7 @@
           "source": "Management/Host/Processor/HyperVCpuMonitorService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 156,
+          "order": 86,
           "signature": "public void Dispose();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Evoid\u003C/span\u003E Dispose();",
           "presentation": {
@@ -66773,7 +66773,7 @@
           "source": "Management/Host/Processor/HyperVCpuMonitorService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 159,
+          "order": 89,
           "signature": "public ValueTask DisposeAsync();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E ValueTask DisposeAsync();",
           "presentation": {
@@ -66830,7 +66830,7 @@
           "source": "Management/Host/Processor/HyperVCpuMonitorService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 29,
+          "order": 22,
           "signature": "public static CpuCoreType GetCoreType(int coreId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E \u003Ca href=\u0022#api-ed1be2be550b34d3\u0022\u003ECpuCoreType\u003C/a\u003E GetCoreType(\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E coreId);",
           "presentation": {
@@ -66902,7 +66902,7 @@
           "source": "Management/Host/Processor/HyperVCpuMonitorService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 382,
+          "order": 312,
           "signature": "public List\u003CVmCpuCoreMetric\u003E GetCpuUsage();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E List\u0026lt;\u003Ca href=\u0022#api-49f6c6fb73044013\u0022\u003EVmCpuCoreMetric\u003C/a\u003E\u0026gt; GetCpuUsage();",
           "presentation": {
@@ -66969,7 +66969,7 @@
           "source": "Management/Host/Processor/HyperVCpuMonitorService.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 373,
+          "order": 303,
           "signature": "public PerformanceSampleInfo VirtualMachineIdentitySample { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-9943890d17e165f0\u0022\u003EPerformanceSampleInfo\u003C/a\u003E VirtualMachineIdentitySample { get; }",
           "presentation": {
@@ -119129,8 +119129,8 @@
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
           "order": 238,
-          "signature": "public static async Task\u003CApiResponse\u003CVmSettingsSnapshot\u003CVmProcessorSettings\u003E\u003E\u003E GetVmProcessorAsync(Guid vmId);",
-          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026lt;\u003Ca href=\u0022#api-6cbffda7f312d0d5\u0022\u003EVmSettingsSnapshot\u003C/a\u003E\u0026lt;\u003Ca href=\u0022#api-1bd5c358d4233af8\u0022\u003EVmProcessorSettings\u003C/a\u003E\u0026gt;\u0026gt;\u0026gt; GetVmProcessorAsync(Guid vmId);",
+          "signature": "public static Task\u003CApiResponse\u003CVmSettingsSnapshot\u003CVmProcessorSettings\u003E\u003E\u003E GetVmProcessorAsync(Guid vmId);",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E Task\u0026lt;ApiResponse\u0026lt;\u003Ca href=\u0022#api-6cbffda7f312d0d5\u0022\u003EVmSettingsSnapshot\u003C/a\u003E\u0026lt;\u003Ca href=\u0022#api-1bd5c358d4233af8\u0022\u003EVmProcessorSettings\u003C/a\u003E\u0026gt;\u0026gt;\u0026gt; GetVmProcessorAsync(Guid vmId);",
           "presentation": {
             "expression": "VmProcessorService.GetVmProcessorAsync",
             "valueType": "Task\u003CApiResponse\u003CVmSettingsSnapshot\u003CVmProcessorSettings\u003E\u003E\u003E",
@@ -119170,6 +119170,76 @@
           "summaryText": "\u8BFB\u53D6\u865A\u62DF\u673A\u7684\u5904\u7406\u5668\u914D\u7F6E\u3002"
         },
         {
+          "id": "api-cf4b1b860682d278",
+          "uid": "M:ExHyperV.Services.VmProcessorService.GetVmProcessorAsync(System.Guid,System.Boolean)",
+          "toolGroup": "vm",
+          "readOnly": false,
+          "name": "GetVmProcessorAsync",
+          "displayName": "\u8BFB\u53D6\u542B\u9884\u89C8\u9879\u7684\u5904\u7406\u5668\u914D\u7F6E",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u67E5\u8BE2",
+            "\u5904\u7406\u5668"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u67E5\u8BE2",
+              "\u5904\u7406\u5668"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Processor/VmProcessorService.cs",
+          "kind": "\u65B9\u6CD5",
+          "group": "\u9759\u6001\u65B9\u6CD5",
+          "order": 245,
+          "signature": "public static async Task\u003CApiResponse\u003CVmSettingsSnapshot\u003CVmProcessorSettings\u003E\u003E\u003E GetVmProcessorAsync(Guid vmId, bool includePreviewSettings);",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026lt;\u003Ca href=\u0022#api-6cbffda7f312d0d5\u0022\u003EVmSettingsSnapshot\u003C/a\u003E\u0026lt;\u003Ca href=\u0022#api-1bd5c358d4233af8\u0022\u003EVmProcessorSettings\u003C/a\u003E\u0026gt;\u0026gt;\u0026gt; GetVmProcessorAsync(Guid vmId, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E includePreviewSettings);",
+          "presentation": {
+            "expression": "VmProcessorService.GetVmProcessorAsync",
+            "valueType": "Task\u003CApiResponse\u003CVmSettingsSnapshot\u003CVmProcessorSettings\u003E\u003E\u003E",
+            "valueTypeHtml": "Task\u0026lt;ApiResponse\u0026lt;\u003Ca href=\u0022#api-6cbffda7f312d0d5\u0022\u003EVmSettingsSnapshot\u003C/a\u003E\u0026lt;\u003Ca href=\u0022#api-1bd5c358d4233af8\u0022\u003EVmProcessorSettings\u003C/a\u003E\u0026gt;\u0026gt;\u0026gt;",
+            "enumTypeId": null,
+            "callable": true,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u8BFB\u53D6\u865A\u62DF\u673A\u7684\u5904\u7406\u5668\u914D\u7F6E\uFF0C\u53EF\u9009\u62E9\u4E34\u65F6\u542F\u7528\u5BBF\u4E3B\u9884\u89C8\u529F\u80FD\u5F00\u5173\u4EE5\u8BFB\u56DE\u9690\u85CF\u9891\u7387\u8BBE\u7F6E\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "\u003Ctable class=\u0022parameter-table\u0022\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth\u003E\u53C2\u6570\u003C/th\u003E\u003Cth\u003E\u8BF4\u660E\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EvmId\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u76EE\u6807\u865A\u62DF\u673A\u7684\u6807\u8BC6\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EincludePreviewSettings\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u4E3A true \u65F6\u5728\u67E5\u8BE2\u671F\u95F4\u4E34\u65F6\u542F\u7528\u5BBF\u4E3B\u9884\u89C8\u529F\u80FD\u5F00\u5173\uFF1B\u9700\u8981\u7BA1\u7406\u5458\u6743\u9650\u3002\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E",
+            "returnsHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5904\u7406\u5668\u914D\u7F6E\u53CA\u652F\u6301\u7684\u8BBE\u7F6E\u9879\u3002\u865A\u62DF\u673A\u6216\u914D\u7F6E\u4E0D\u5B58\u5728\u65F6\u8FD4\u56DE NotFound\uFF1B\u67E5\u8BE2\u5931\u8D25\u6216\u6062\u590D\u5931\u8D25\u65F6\u9644\u5E26\u539F\u56E0\u3002\u003C/div\u003E",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [
+              {
+                "name": "vmId",
+                "types": []
+              },
+              {
+                "name": "includePreviewSettings",
+                "types": []
+              }
+            ],
+            "returns": [
+              "api-dd3269fca7449cd0",
+              "api-6cbffda7f312d0d5",
+              "api-1bd5c358d4233af8"
+            ],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u8BFB\u53D6\u865A\u62DF\u673A\u7684\u5904\u7406\u5668\u914D\u7F6E\uFF0C\u53EF\u9009\u62E9\u4E34\u65F6\u542F\u7528\u5BBF\u4E3B\u9884\u89C8\u529F\u80FD\u5F00\u5173\u4EE5\u8BFB\u56DE\u9690\u85CF\u9891\u7387\u8BBE\u7F6E\u3002",
+          "summaryText": "\u8BFB\u53D6\u865A\u62DF\u673A\u7684\u5904\u7406\u5668\u914D\u7F6E\uFF0C\u53EF\u9009\u62E9\u4E34\u65F6\u542F\u7528\u5BBF\u4E3B\u9884\u89C8\u529F\u80FD\u5F00\u5173\u4EE5\u8BFB\u56DE\u9690\u85CF\u9891\u7387\u8BBE\u7F6E\u3002"
+        },
+        {
           "id": "api-b0226efc49c61356",
           "uid": "M:ExHyperV.Services.VmProcessorService.SetVmProcessorAsync(System.Guid,ExHyperV.Models.VmProcessorSettings,System.Collections.Generic.IReadOnlyCollection{System.String})",
           "toolGroup": "vm",
@@ -119194,7 +119264,7 @@
           "source": "Management/VirtualMachines/Processor/VmProcessorService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u9759\u6001\u65B9\u6CD5",
-          "order": 291,
+          "order": 307,
           "signature": "public static async Task\u003CApiResponse\u003E SetVmProcessorAsync(Guid vmId, VmProcessorSettings newSettings, IReadOnlyCollection\u003Cstring\u003E changedProperties);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026gt; SetVmProcessorAsync(Guid vmId, \u003Ca href=\u0022#api-1bd5c358d4233af8\u0022\u003EVmProcessorSettings\u003C/a\u003E newSettings, IReadOnlyCollection\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; changedProperties);",
           "presentation": {

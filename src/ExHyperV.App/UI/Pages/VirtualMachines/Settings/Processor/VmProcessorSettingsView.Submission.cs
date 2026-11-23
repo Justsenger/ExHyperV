@@ -1,4 +1,6 @@
 
+using System.Diagnostics;
+using ExHyperV.App.Diagnostics;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Controls;
 using ExHyperV.App.UI.Shared;
@@ -18,11 +20,24 @@ public sealed partial class VmProcessorSettingsView
 
     private IReadOnlyDictionary<string, VmQueryValueState> fieldStates = new Dictionary<string, VmQueryValueState>();
 
+    private static bool IsOptionalDefaultWhenNull(string propertyName) => propertyName is
+        nameof(VmProcessorSettings.PageShatterMode) or
+        nameof(VmProcessorSettings.L3CacheWays) or
+        nameof(VmProcessorSettings.PerfCpuFreqMinMhz) or
+        nameof(VmProcessorSettings.PerfCpuFreqDesiredMhz) or
+        nameof(VmProcessorSettings.PerfCpuEnergyPerformancePreference) or
+        nameof(VmProcessorSettings.PerfCpuAutonomousActivityWindow) or
+        nameof(VmProcessorSettings.PerfCpuIgnoreHostMaxFrequency);
+
+    private static bool IsStateReadable(string propertyName, VmQueryValueState state) =>
+        state == VmQueryValueState.Available ||
+        (state == VmQueryValueState.Unavailable && IsOptionalDefaultWhenNull(propertyName));
+
     protected override async Task LoadAsync()
     {
         snapshot = null;
         foreach (var field in fields) field.Editor.SetAvailability(false, null);
-        var settingsTask = VmProcessorService.GetVmProcessorAsync(VmId);
+        var settingsTask = VmProcessorService.GetVmProcessorAsync(VmId, includePreviewSettings: true);
         var hostTask = ReadHostCapabilitiesAsync();
         var contextTask = ReadContextAsync();
         var maxCpuTask = VmProcessorService.GetHostMaxVirtualCpuCountAsync(VmId);
@@ -38,7 +53,7 @@ public sealed partial class VmProcessorSettingsView
         fieldStates = observation.States;
         snapshot = settings;
         Updating = true;
-        bool hasUnavailable = false;
+        List<string>? unavailableFields = null;
         try
         {
             foreach (var (field, capability) in fields)
@@ -49,6 +64,7 @@ public sealed partial class VmProcessorSettingsView
                     field.UpdateSliderBounds(1, hostMaxVirtualCpus);
                     if (reportedMaximum == null)
                     {
+                        AppDiagnostics.Write("UI", "ProcessorMaxCountUnavailable", level: TraceEventType.Warning);
                         field.Load(value, false, L10n.Get("Err_NoValidData"));
                         continue;
                     }
@@ -67,17 +83,24 @@ public sealed partial class VmProcessorSettingsView
                     continue;
                 }
 
-                bool unavailable = state != VmQueryValueState.Available;
-                if (unavailable) hasUnavailable = true;
-                field.Load(value, !uncertain && !unavailable, unavailable ? L10n.Get("Err_NoValidData") : null);
+                bool unavailable = !IsStateReadable(field.Property.Name, state);
+                if (unavailable) (unavailableFields ??= []).Add(field.Property.Name);
+                object? displayValue = value;
+                if (displayValue == null && field.Property.Name == nameof(VmProcessorSettings.PageShatterMode))
+                    displayValue = PageShatterMode.Default;
+                field.Load(displayValue, !uncertain && !unavailable, unavailable ? L10n.Get("Err_NoValidData") : null);
             }
         }
         finally { Updating = false; }
         UpdateGroupActions();
         if (uncertain)
             ShowError(L10n.Get("Err_UncertainLock"), L10n.Get("Action_RefreshStatus"), UnlockAndReloadAsync);
-        else if (hasUnavailable)
+        else if (unavailableFields is { Count: > 0 })
+        {
+            AppDiagnostics.Write("UI", "ProcessorSettingsUnavailable",
+                $"fields={string.Join(',', unavailableFields)}", TraceEventType.Warning);
             ShowError(L10n.Get("Err_PartialReadUnavailable"), L10n.Get("Action_RefreshStatus"), UnlockAndReloadAsync);
+        }
     }
 
     private async Task<bool> ApplyAsync(params SettingFieldEditor[] submitted)
@@ -87,7 +110,7 @@ public sealed partial class VmProcessorSettingsView
         var changed = new List<string>();
         foreach (var field in submitted)
         {
-            if (!field.IsFieldEnabled || !fieldStates.TryGetValue(field.Property.Name, out var availability) || availability != VmQueryValueState.Available)
+            if (!field.IsFieldEnabled || !fieldStates.TryGetValue(field.Property.Name, out var availability) || !IsStateReadable(field.Property.Name, availability))
                 throw new InvalidOperationException(L10n.Get("Err_NoValidData"));
             object? value = field.Read();
             if (Equals(field.Property.GetValue(snapshot), value)) continue;
