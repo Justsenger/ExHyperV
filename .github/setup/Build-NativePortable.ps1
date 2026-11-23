@@ -9,12 +9,11 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-& (Join-Path $repo 'tools/Use-RepositoryDotNet.ps1')
 $null = New-Item -Type Directory -Force -Path $WorkDirectory
-$tool = Join-Path $repo 'tools/winui-publish/WinUI.Publish.csproj'
+$tool = Join-Path $repo '.github/build/winui-publish/WinUI.Publish.csproj'
 & $MSBuild $tool /restore /t:Build /nologo /nr:false /v:q /p:Configuration=Release /p:UseArtifactsOutput=true "/p:ArtifactsPath=$WorkDirectory/tool"
 if ($LASTEXITCODE) { throw "Native archive tool build failed" }
-$assets = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $WorkDirectory 'obj/ExHyperV.WinUI3/project.assets.json') | ConvertFrom-Json
+$assets = Get-Content -Raw -Encoding UTF8 -LiteralPath (Join-Path $WorkDirectory 'obj/ExHyperV.App/project.assets.json') | ConvertFrom-Json
 $pack = "Microsoft.NETCore.App.Runtime.NativeAOT.win-$Architecture"
 $download = $assets.project.frameworks.PSObject.Properties.Value.downloadDependencies | Where-Object name -eq $pack | Select-Object -First 1
 if (!$download -or $download.version -notmatch '^\[([^,\]]+)') { throw "Cannot resolve the NativeAOT runtime pack for $Architecture" }
@@ -32,7 +31,7 @@ $payload = Join-Path $WorkDirectory 'payload.br'
 & dotnet (Join-Path $WorkDirectory 'tool/bin/WinUI.Publish/release/WinUI.Publish.dll') native-archive $PublishDirectory $payload "win-$Architecture"
 if ($LASTEXITCODE) { throw "Invalid native application payload" }
 
-$source = Join-Path $repo 'src/ExHyperV.WinUI3'
+$source = Join-Path $repo 'src/ExHyperV.App'
 $icon = (Join-Path $source 'Assets/AppIcon.ico').Replace('\','/')
 $manifest = (Join-Path $source 'app.manifest').Replace('\','/')
 $payloadPath = $payload.Replace('\','/')
@@ -70,6 +69,6 @@ END
 # The RC compiler does not track changes to RCDATA embedded through a generated .rc.
 # The resource script is regenerated for every new payload.
 $platform = if ($Architecture -eq 'arm64') { 'ARM64' } else { 'x64' }
-$project = Join-Path $repo 'tools/native-portable/Portable.vcxproj'
+$project = Join-Path $repo '.github/build/native-portable/Portable.vcxproj'
 & $MSBuild $project /t:Build /nologo /nr:false /v:m /p:Configuration=Release "/p:Platform=$platform" "/p:BrotliLibraryDirectory=$lib" "/p:PortableResourceFile=$rc" "/p:OutDir=$WorkDirectory/portable/" "/p:IntDir=$WorkDirectory/launcher-obj/"
 if ($LASTEXITCODE) { throw "Native portable launcher build failed for $Architecture" }

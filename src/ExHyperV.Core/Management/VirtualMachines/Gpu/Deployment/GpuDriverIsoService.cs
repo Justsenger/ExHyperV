@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using ExHyperV.Models;
@@ -217,13 +218,24 @@ internal static class GpuDriverIsoService
         string payloadDir = Path.Combine(stagingDir, "_payload");
         Directory.CreateDirectory(payloadDir);
 
-        string installer = Path.Combine(AppContext.BaseDirectory, "GpuGuestInstaller");
-        File.Copy(Path.Combine(installer, "install.cmd"), Path.Combine(stagingDir, "安装显卡驱动.cmd"));
-        File.Copy(Path.Combine(installer, "install.ps1"), Path.Combine(payloadDir, "install.ps1"));
+        using Stream resource = typeof(GpuDriverIsoService).Assembly.GetManifestResourceStream("ExHyperV.GpuGuestInstaller.zip")
+            ?? throw new InvalidOperationException("缺少内嵌显卡驱动安装资源包：ExHyperV.GpuGuestInstaller.zip");
+        using var archive = new ZipArchive(resource, ZipArchiveMode.Read);
+        ExtractArchiveEntry(archive, "install.cmd", Path.Combine(stagingDir, "安装显卡驱动.cmd"));
+        ExtractArchiveEntry(archive, "install.ps1", Path.Combine(payloadDir, "install.ps1"));
         File.WriteAllText(
             Path.Combine(payloadDir, "manifest.json"),
             JsonSerializer.Serialize(manifest, DriverManifestJson.Default.GpuDriverIsoManifest),
             new UTF8Encoding(false));
+    }
+
+    private static void ExtractArchiveEntry(ZipArchive archive, string entryName, string targetPath)
+    {
+        ZipArchiveEntry entry = archive.GetEntry(entryName)
+            ?? throw new InvalidOperationException($"内嵌显卡驱动资源包缺少条目：{entryName}");
+        using Stream input = entry.Open();
+        using FileStream output = File.Create(targetPath);
+        input.CopyTo(output);
     }
 
     internal static async Task<ApiResponse> MountIsoToVmAsync(Guid vmId, string isoPath)

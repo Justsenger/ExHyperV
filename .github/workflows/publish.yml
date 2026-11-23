@@ -45,18 +45,18 @@ jobs:
       - name: Verify launch, shortcuts, upgrade and uninstall
         shell: pwsh
         run: |
-          [xml]$project = Get-Content src/ExHyperV.WinUI3/ExHyperV.WinUI3.csproj -Raw
+          [xml]$project = Get-Content src/ExHyperV.App/ExHyperV.App.csproj -Raw
           $version = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
-          $base = ".artifacts/release/ExHyperV_V$version"
+          $base = ".cache/release/ExHyperV_V$version"
           $env:DOTNET_ROOT = $env:DOTNET_ROOT_ARM64 = $env:DOTNET_ROOT_X64 = Join-Path $env:RUNNER_TEMP 'missing-dotnet'
           $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'dotnet' }) -join ';'
-          $hash = Get-Content '.artifacts/installer-work/win-${{ matrix.architecture }}/application.sha256'
+          $hash = Get-Content '.cache/installer-work/win-${{ matrix.architecture }}/application.sha256'
           ./.github/setup/Test-Installer.ps1 -ExpectedVersion $version -VerifyLaunch `
             -ExpectedApplicationHash $hash `
             -InstallerPath "${base}_Setup_${{ matrix.architecture }}.exe" -PortablePath "${base}_${{ matrix.architecture }}.exe"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: ExHyperV-${{ matrix.architecture }}
-          path: .artifacts/release/*.exe
+          path: .cache/release/*.exe
           include-hidden-files: true
           if-no-files-found: error

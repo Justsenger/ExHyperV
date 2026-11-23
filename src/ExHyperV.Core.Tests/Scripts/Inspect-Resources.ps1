@@ -15,7 +15,6 @@ $OutputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $OutputEncoding
 $projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
-& (Join-Path $repo 'tools/Use-RepositoryDotNet.ps1')
 $pagePath = [IO.Path]::GetFullPath((Join-Path $projectDirectory 'ResourceInspection/Page.html'))
 $defaultConfiguration = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'ExHyperV.Core.Tests/resources.json'
 $expectedConfiguration = if ($Configuration) { [IO.Path]::GetFullPath($Configuration) } else { $defaultConfiguration }
@@ -74,7 +73,7 @@ if (!$BuildOnly -and !$ReportOnly) {
         if ($Elevated) { throw '管理员启动未取得所需权限，请检查 Windows 提权设置。' }
         $configurationPath = if ($Configuration) { [IO.Path]::GetFullPath($Configuration) }
             else { Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'ExHyperV.Core.Tests/resources.json' }
-        $logDirectory = Join-Path $repo '.artifacts/resource-inspection'
+        $logDirectory = Join-Path $repo '.cache/resource-inspection'
         $null = New-Item -ItemType Directory -Path $logDirectory -Force
         $logPath = Join-Path $logDirectory ('launcher-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log')
         # Quote PowerShell literals before encoding; paths may contain spaces or apostrophes.
@@ -131,7 +130,7 @@ $hasher = [Security.Cryptography.SHA256]::Create()
 try { $buildKey = ([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($repo.ToUpperInvariant())))).Replace('-', '').Substring(0, 16) }
 finally { $hasher.Dispose() }
 $build = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) "ExHyperV.Core.Tests/Build/$buildKey/$runtime"
-$reports = Join-Path $repo '.artifacts/resource-inspection/reports'
+$reports = Join-Path $repo '.cache/resource-inspection/reports'
 $launchLock = $null
 try {
 if (!$BuildOnly -and !$ReportOnly) {

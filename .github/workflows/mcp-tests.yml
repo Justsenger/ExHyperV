@@ -2,9 +2,9 @@ name: MCP 接入检查
 
 on:
   push:
-    paths: ['src/ExHyperV.Core/**', 'src/ExHyperV.Mcp/**', 'src/ExHyperV.Mcp.Tests/**', '.github/workflows/mcp-tests.yml', 'global.json', 'tools/Use-RepositoryDotNet.ps1']
+    paths: ['src/ExHyperV.Core/**', 'src/ExHyperV.Mcp/**', 'src/ExHyperV.Mcp.Tests/**', '.github/workflows/mcp-tests.yml', 'global.json']
   pull_request:
-    paths: ['src/ExHyperV.Core/**', 'src/ExHyperV.Mcp/**', 'src/ExHyperV.Mcp.Tests/**', '.github/workflows/mcp-tests.yml', 'global.json', 'tools/Use-RepositoryDotNet.ps1']
+    paths: ['src/ExHyperV.Core/**', 'src/ExHyperV.Mcp/**', 'src/ExHyperV.Mcp.Tests/**', '.github/workflows/mcp-tests.yml', 'global.json']
   workflow_dispatch:
 
 permissions:
@@ -39,7 +39,7 @@ jobs:
         with:
           name: mcp-tests-${{ matrix.runtime }}
           path: |
-            .artifacts/mcp/tests/${{ matrix.runtime }}/results/
-            .artifacts/mcp/tests/${{ matrix.runtime }}/build.log
+            .cache/mcp/tests/${{ matrix.runtime }}/results/
+            .cache/mcp/tests/${{ matrix.runtime }}/build.log
           include-hidden-files: true
           retention-days: 14

@@ -383,10 +383,22 @@ internal static class GpuWorkflowChecks
             string jsonPath = Path.Combine(stagingDir, "_payload", "manifest.json");
             check(File.Exists(cmdPath) && File.Exists(ps1Path) && File.Exists(jsonPath),
                 "Driver ISO staging creates visible UAC launcher CMD plus _payload manifest and PowerShell script");
-            string installer = Path.Combine(AppContext.BaseDirectory, "GpuGuestInstaller");
-            check(File.ReadAllBytes(ps1Path).SequenceEqual(File.ReadAllBytes(Path.Combine(installer, "install.ps1")))
-                && File.ReadAllBytes(cmdPath).SequenceEqual(File.ReadAllBytes(Path.Combine(installer, "install.cmd"))),
-                "Driver ISO stages both separately delivered guest installer assets without rewriting them");
+            check(!Directory.Exists(Path.Combine(AppContext.BaseDirectory, "GpuGuestInstaller")),
+                "Guest installer scripts stay packaged inside Core instead of shipping loose .cmd/.ps1 files beside the app");
+            using var archiveStream = typeof(GpuDriverIsoService).Assembly.GetManifestResourceStream("ExHyperV.GpuGuestInstaller.zip")
+                ?? throw new InvalidOperationException("Missing embedded ExHyperV.GpuGuestInstaller.zip resource.");
+            using var archive = new System.IO.Compression.ZipArchive(archiveStream, System.IO.Compression.ZipArchiveMode.Read);
+            byte[] ReadZipEntry(string name)
+            {
+                var entry = archive.GetEntry(name) ?? throw new InvalidOperationException($"Missing entry {name} in guest installer archive.");
+                using var entryStream = entry.Open();
+                using var copy = new MemoryStream();
+                entryStream.CopyTo(copy);
+                return copy.ToArray();
+            }
+            check(File.ReadAllBytes(ps1Path).SequenceEqual(ReadZipEntry("install.ps1"))
+                && File.ReadAllBytes(cmdPath).SequenceEqual(ReadZipEntry("install.cmd")),
+                "Driver ISO stages both packaged guest installer assets without rewriting them");
         }
         finally
         {

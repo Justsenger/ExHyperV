@@ -3,8 +3,8 @@ import '../shells/win11/win11-tokens.css';
 import '../styles/brand.css';
 import Topbar from '../components/Topbar.astro';
 import Win11Desktop from '../shells/win11/Win11Desktop.astro';
-import { EXHYPERV_HOST_CONFIG } from '../data/exhyperv-desktop-config';
-import { HOST_CANDIDATE_PANEL } from '../data/exhyperv-design-candidates';
+import { EXHYPERV_HOST_CONFIG } from '../../../src/ExHyperV.WoW/data/exhyperv-desktop-config';
+import { HOST_CANDIDATE_PANEL } from '../../../src/ExHyperV.WoW/data/exhyperv-design-candidates';
 
 const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
 ---
@@ -59,7 +59,6 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
     )}
     <script>
       import { initializeLocalization } from '../scripts/localization.js';
-      import { initFluentGlyphFallback } from '../scripts/fluent-glyph-fallback.js';
       initializeLocalization();
 
       type DesktopApi = {
@@ -80,7 +79,9 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
           api.launchApp('exhyperv');
           return;
         }
-        initFluentGlyphFallback(dcpPanel);
+        import('../../../src/ExHyperV.WoW/scripts/fluent-glyph-fallback.js').then(({ initFluentGlyphFallback }) => {
+          initFluentGlyphFallback(dcpPanel);
+        });
         if (dcpPanel.dataset.bound === '1') return;
         dcpPanel.dataset.bound = '1';
 

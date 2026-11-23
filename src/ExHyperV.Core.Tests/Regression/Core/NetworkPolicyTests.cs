@@ -1,7 +1,7 @@
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
-using ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
+using ExHyperV.App.UI.Pages.VirtualMachines.Settings.Network;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExHyperV.Core.Tests;

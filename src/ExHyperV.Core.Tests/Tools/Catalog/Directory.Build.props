@@ -1,6 +1,7 @@
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)../../../Directory.Build.props" />
   <PropertyGroup>
     <UseArtifactsOutput>true</UseArtifactsOutput>
-    <ArtifactsPath>$(MSBuildThisFileDirectory)../../../../.artifacts/tests/core-catalog</ArtifactsPath>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)../../../../.cache/tests/core-catalog</ArtifactsPath>
   </PropertyGroup>
 </Project>

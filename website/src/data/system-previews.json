@@ -8,7 +8,7 @@
       "wddm_scope": "os-supported"
     },
     "arm64": {
-      "image": "/screenshots/Windows-11-26H2-ARM64.png",
+      "image": "/screenshots/Windows-11-26H2-ARM64.webp",
       "image_width": 1531,
       "image_height": 1151,
       "build_number": "26300",

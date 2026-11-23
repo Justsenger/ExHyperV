@@ -1,0 +1,423 @@
+---
+import '../styles/ui-design.css';
+import { HOST_CANDIDATE_PANEL } from '../data/exhyperv-design-candidates';
+const swatches = [
+  ['蓝色', '#4CC2FF'],
+  ['紫色', '#B69CFF'],
+  ['粉色', '#F39BC1'],
+  ['橙色', '#FFB36B'],
+  ['黄色', '#F2D66D'],
+  ['绿色', '#7BDCB5'],
+  ['青色', '#64D8E4']
+];
+---
+<div class="ui-workbench-page">
+  <!-- 1:1 ExHyperV.App Application Window -->
+  <div class="winui-window" id="winuiWindow" data-theme="dark">
+    <!-- Row 0: TitleBar (MainWindow.xaml Height="48", draggable) -->
+    <div class="winui-titlebar" id="winuiTitleBar">
+      <div class="winui-titlebar-left">
+        <img class="app-icon-img" src="/ui-design/app-icon.webp" alt="ExHyperV" draggable="false" />
+        <span class="app-title-text">ExHyperV</span>
+      </div>
+      <div class="caption-buttons">
+        <div class="caption-btn" id="winMinimizeBtn" title="最小化"><span class="fi">&#xE921;</span></div>
+        <div class="caption-btn" id="winMaximizeBtn" title="最大化/还原"><span class="fi" id="winMaximizeIcon">&#xE922;</span></div>
+        <div class="caption-btn close" id="winCloseBtn" title="关闭"><span class="fi">&#xE8BB;</span></div>
+      </div>
+    </div>
+
+    <!-- Row 1: NavigationView (MainWindow.xaml OpenPaneLength="212", default closed/compact) -->
+    <div class="winui-navview compact" id="winuiNavView">
+      <div class="nav-drawer-backdrop" id="navDrawerBackdrop" hidden></div>
+      <div class="winui-navpane">
+        <div class="nav-top-group">
+          <button class="pane-toggle-btn" id="paneToggleBtn" title="打开/折叠导航窗格">
+            <span class="fi" style="font-size:16px;">&#xE700;</span>
+          </button>
+          <span class="minimal-nav-title" id="minimalNavTitle">虚拟机</span>
+          <div class="nav-item selected" data-nav-target="vm">
+            <span class="fi fi-fluent" style="font-size:16px;">&#xF5ED;</span>
+            <span class="nav-label">虚拟机</span>
+          </div>
+          <div class="nav-item" data-nav-target="host">
+            <span class="fi fi-fluent" style="font-size:16px;">&#xE90F;</span>
+            <span class="nav-label">宿主</span>
+          </div>
+          <div class="nav-item" data-nav-target="web">
+            <span class="fi" style="font-size:16px;">&#xE774;</span>
+            <span class="nav-label">Web</span>
+          </div>
+        </div>
+        <div class="nav-top-group">
+          <div class="nav-item" data-nav-target="settings">
+            <span class="fi" style="font-size:16px;">&#xE713;</span>
+            <span class="nav-label">应用设置</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-content-frame">
+        <!-- ==================== Page 1: VirtualMachinesPage.xaml ==================== -->
+        <div class="vm-page-grid" id="pageVirtualMachines">
+          <!-- Column 0: VM List (Width="216") -->
+          <div class="vm-list-pane">
+            <div class="vm-search-grid">
+              <input type="text" class="vm-search-input" id="vmSearchBox" placeholder="搜索虚拟机..." />
+              <span class="fi vm-search-icon">&#xE721;</span>
+            </div>
+            <div class="vm-listview" id="vmListContainer"></div>
+          </div>
+
+          <!-- Column 1: VmDashboardView.xaml -->
+          <div class="vm-dashboard-border" id="vmDashboardBorder">
+            <!-- Row 0: Summary Card (Midpoint default: 120px) -->
+            <div class="vm-summary-card" id="vmSummaryCard" data-summary-variant="mid-3row">
+              <div class="vm-summary-grid">
+                <div class="vm-artwork-box">
+                  <div class="vm-system-icon-panel" id="vmSystemIconPanel">
+                    <img class="vm-os-image" id="vmOsImage" src="/ui-design/os/Windows.svg" alt="OS" draggable="false" />
+                  </div>
+                  <!-- MonitorPreview (VmDashboardView.xaml lines 19-25) -->
+                  <div class="vm-monitor-preview" id="vmPreviewBorder" hidden>
+                    <div class="vm-monitor-neck"></div>
+                    <div class="vm-monitor-base"></div>
+                    <div class="vm-monitor-screen">
+                      <div class="vm-monitor-inner"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="vm-summary-right">
+                  <!-- Title & Action Buttons (Start / Connect) -->
+                  <div class="vm-title-row">
+                    <div class="vm-name-text" id="vmTitleText">test</div>
+                    <div class="vm-summary-actions" id="vmSummaryActions">
+                      <div class="power-split-wrap stopped" id="vmPowerWrap">
+                        <button class="power-main-btn" id="vmPowerMainBtn" type="button">启动</button>
+                        <button class="power-drop-btn" id="vmPowerDropBtn" type="button" title="更多电源操作" hidden>
+                          <span class="fi" style="font-size:10px;">&#xE70D;</span>
+                        </button>
+                        <div class="power-flyout" id="vmPowerFlyout" hidden>
+                          <button class="power-flyout-item" data-power-action="restart">
+                            <span class="fi fi-fluent">&#xF140;</span><span>重启</span>
+                          </button>
+                          <button class="power-flyout-item" data-power-action="pause">
+                            <span class="fi fi-fluent">&#xF5A2;</span><span>暂停</span>
+                          </button>
+                          <div class="power-flyout-sep"></div>
+                          <button class="power-flyout-item" data-power-action="save">
+                            <span class="fi fi-fluent">&#xF680;</span><span>保存状态</span>
+                          </button>
+                          <button class="power-flyout-item danger" data-power-action="turnoff">
+                            <span class="fi fi-fluent">&#xF60F;</span><span>强制关闭</span>
+                          </button>
+                        </div>
+                      </div>
+                      <button class="vm-connect-btn" id="vmConnectBtn" type="button">连接</button>
+                    </div>
+                  </div>
+
+                  <!-- State & Uptime + Gen + Version Badges -->
+                  <div class="vm-state-row">
+                    <div class="vm-badge">
+                      <span class="fi fi-fluent vm-badge-icon">&#xE9DD;</span>
+                      <span class="vm-badge-text" id="vmStateText">已关机</span>
+                    </div>
+                    <div class="vm-badge">
+                      <span class="fi fi-fluent vm-badge-icon">&#xF827;</span>
+                      <span class="vm-badge-text" id="vmUptimeText">00:00:00</span>
+                    </div>
+                    <button class="vm-badge" id="vmGenSwitchBtn" type="button" title="点击切换 1代 / 2代 预览">
+                      <span class="fi vm-badge-icon" id="vmGenIcon">&#xF54C;</span>
+                      <span class="vm-badge-text" id="vmGenText">2代</span>
+                    </button>
+                    <div class="vm-badge" id="vmStateVersionWrap">
+                      <span class="fi vm-badge-icon">&#xE946;</span>
+                      <span class="vm-badge-text" id="vmStateVersionText">版本 11.0</span>
+                    </div>
+                  </div>
+
+                  <!-- Badge Row 1: Combined Config Badge + Optional Gen/Ver -->
+                  <div class="vm-badges-row row-1" id="vmBadgeRow1">
+                    <div class="vm-badge" id="vmConfigBadgeBox">
+                      <span class="fi vm-badge-icon">&#xE81E;</span>
+                      <span class="vm-badge-text" id="vmConfigBadgeText">12 核 / 2 GB / 128 GB + 128 GB</span>
+                    </div>
+                    <div class="vm-badge" id="vmGenerationBadge" hidden>
+                      <span class="fi vm-badge-icon">&#xE8C8;</span>
+                      <span class="vm-badge-text" id="vmGenerationBadgeText"></span>
+                    </div>
+                    <div class="vm-badge" id="vmVersionBadge" hidden>
+                      <span class="fi vm-badge-icon">&#xE946;</span>
+                      <span class="vm-badge-text" id="vmVersionBadgeText"></span>
+                    </div>
+                  </div>
+
+                  <!-- Badge Row 2: OsText -->
+                  <div class="vm-os-picker-anchor">
+                    <div class="vm-badges-row row-2" id="vmBadgeRow2">
+                      <button class="vm-badge" id="vmOsBadgeBtn" title="点击切换系统标志">
+                        <span class="fi vm-badge-icon">&#xE74C;</span>
+                        <span class="vm-badge-text" id="vmOsBadgeText">Windows</span>
+                        <span class="fi vm-os-badge-chevron">&#xE70D;</span>
+                      </button>
+                    </div>
+                    <div class="os-picker-flyout" id="osPickerFlyout" hidden>
+                      <div class="os-picker-search-wrap">
+                        <span class="fi os-picker-search-icon">&#xE721;</span>
+                        <input type="text" class="os-picker-search" id="osPickerSearch" placeholder="搜索系统..." autocomplete="off" />
+                      </div>
+                      <div class="os-picker-grid" id="osPickerGrid"></div>
+                    </div>
+                  </div>
+
+                  <!-- Candidate D Matrix (Right-side 3-cell key-value grid) -->
+                  <div class="vm-summary-matrix" id="vmSummaryMatrix">
+                    <div class="vm-matrix-cell">
+                      <span class="vm-matrix-label">系统</span>
+                      <span class="vm-matrix-val" id="vmMatrixOs">Windows</span>
+                    </div>
+                    <div class="vm-matrix-cell">
+                      <span class="vm-matrix-label">核心 / 内存</span>
+                      <span class="vm-matrix-val" id="vmMatrixSpec">12 核 / 2 GB</span>
+                    </div>
+                    <div class="vm-matrix-cell" id="vmMatrixIpCell" title="点击复制 IP">
+                      <span class="vm-matrix-label">网络 IP</span>
+                      <span class="vm-matrix-val" id="vmMatrixIp">---</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 1: PageTabs (Margin="24,16,24,12") -->
+            <div class="vm-pagetabs" id="vmPageTabsBar"></div>
+
+            <!-- Row 2A: DashboardScroll (状态) -->
+            <div class="vm-overview-scroll" id="vmOverviewScroll">
+              <div class="vm-overview-stack" id="vmOverviewOriginal" hidden>
+                <!-- Card 1: CPU & Memory Resource Card -->
+                <div class="vm-overview-card">
+                  <div class="metric-selectors-grid">
+                    <button class="vm-metric-card selected" id="metricCpuCard">
+                      <span class="fi vm-metric-icon" style="transform:rotate(90deg);">&#xF58E;</span>
+                      <div class="vm-metric-text-stack">
+                        <div class="vm-metric-title">处理器</div>
+                      </div>
+                      <div class="vm-metric-reading" id="cpuReadingVal">0.0<span class="unit"> %</span></div>
+                    </button>
+                    <button class="vm-metric-card" id="metricMemCard">
+                      <span class="fi vm-metric-icon">&#xEEA0;</span>
+                      <div class="vm-metric-text-stack">
+                        <div class="vm-metric-title">内存</div>
+                      </div>
+                      <div class="vm-metric-reading" id="memReadingVal">0.0 / 0.0<span class="unit"> GB</span></div>
+                    </button>
+                  </div>
+
+                  <!-- ResourceDetails: CoreCharts and MemoryContent share the exact same height -->
+                  <div class="resource-details-box" id="resourceDetailsBox">
+                    <!-- CoreCharts (shown when CpuCard selected) -->
+                    <div class="core-charts-grid" id="overviewCoreCharts"></div>
+
+                    <!-- MemoryContent (shown when MemoryCard selected: ONLY memoryChart, no summary grid!) -->
+                    <div class="memory-content-box" id="overviewMemoryBox" hidden>
+                      <div id="overviewMemoryChartHost" style="height:100%;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card 2: Devices Card (显卡 / 存储 / 网络) -->
+                <div class="vm-overview-card">
+                  <div class="device-tabs-bar" id="deviceTabsBar"></div>
+
+                  <div class="device-panel-stack" id="devPanelGpu"></div>
+                  <div class="device-panel-stack" id="devPanelStorage" hidden></div>
+                  <div class="device-panel-stack" id="devPanelNetwork" hidden></div>
+                </div>
+              </div>
+
+              <!-- Candidate Overview Layouts (A / B / C) -->
+              <div class="vm-overview-alt-host mode-fill" id="vmOverviewAltHost"></div>
+            </div>
+
+            <!-- Row 2B: SettingsArea (Margin="24,0,24,24" ColumnSpacing="16") -->
+            <div class="vm-settings-area" id="vmSettingsArea" hidden>
+              <div class="settings-subnav" id="vmSettingsSubnav"></div>
+              <div class="vm-settings-right">
+                <div class="settings-host-scroll" id="vmSettingsHost"></div>
+              </div>
+            </div>
+
+            <!-- ExHyperV.App Bottom Center Floating Feedback (FloatingSuccessToast + FloatingNoticeBanner) -->
+            <div class="winui-floating-toast" id="vmSuccessToast" role="status" hidden>
+              <span class="winui-floating-toast-badge"><span class="fi">&#xE73E;</span></span>
+              <span id="vmSuccessToastText">已应用</span>
+            </div>
+            <div class="winui-floating-banner is-error" id="vmNoticeBanner" hidden>
+              <span class="winui-floating-banner-badge"><span class="fi" id="vmNoticeBannerIcon">&#xE711;</span></span>
+              <span class="winui-floating-banner-text" id="vmNoticeBannerText"></span>
+              <div class="winui-floating-banner-actions">
+                <button type="button" class="winui-btn winui-floating-banner-details" id="vmNoticeDetailsBtn" hidden>查看详情</button>
+                <button type="button" class="winui-floating-banner-close" id="vmNoticeCloseBtn" title="关闭">
+                  <span class="fi" style="font-size:11px;">&#xE711;</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== Page 2: HostPage.xaml (Prototype) ==================== -->
+        <div id="pageHost" class="vm-dashboard-border host-page-root" hidden></div>
+
+        <!-- ==================== Page 3: WebPage.xaml (Placeholder) ==================== -->
+        <div id="pageWeb" style="height:100%;overflow-y:auto;padding:32px;" hidden>
+          <div style="max-width:800px;display:flex;flex-direction:column;gap:24px;">
+            <div style="font-size:28px;font-weight:600;">Web</div>
+          </div>
+        </div>
+
+        <!-- ==================== Page 3: SettingsPage.xaml ==================== -->
+        <div id="pageSettings" style="height:100%;overflow-y:auto;padding:32px;" hidden>
+          <div style="max-width:800px;display:flex;flex-direction:column;gap:24px;">
+            <div style="font-size:28px;font-weight:600;">应用设置</div>
+            <div style="background:var(--CardBackgroundFillColorDefaultBrush);border:1px solid var(--CardStrokeColorDefaultBrush);border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:20px;">
+              <div style="font-size:20px;font-weight:600;">外观</div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <label style="font-size:14px;">应用主题</label>
+                <select class="winui-select" id="settingsThemePicker" style="width:220px;">
+                  <option value="default">跟随系统</option>
+                  <option value="light">浅色</option>
+                  <option value="dark" selected>深色</option>
+                </select>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <span style="font-size:14px;">主题色</span>
+                <div class="winui-switch on" id="settingsAccentSwitch">
+                  <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
+                  <span id="settingsAccentSwitchLabel" style="font-size:14px;">开启</span>
+                </div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  {swatches.map(([name, hex], i) => (
+                    <button
+                      data-swatch-hex={hex}
+                      title={name}
+                      style={`width:36px;height:36px;border-radius:18px;border:none;background:${hex};display:inline-flex;align-items:center;justify-content:center;padding:0;`}
+                    >
+                      <span class="fi swatch-check" style={`font-size:16px;color:#000;visibility:${i === 0 ? 'visible' : 'hidden'};`}>&#xE73E;</span>
+                    </button>
+                  ))}
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <button class="winui-btn" id="settingsCustomColorBtn">自定义颜色</button>
+                  <button class="winui-btn" id="settingsResetColorBtn">恢复默认蓝色</button>
+                </div>
+              </div>
+
+              <div style="font-size:14px;color:var(--TextFillColorSecondaryBrush);">展开的监控卡片使用主题色，关闭后使用灰色。</div>
+
+              <div style="background:var(--VmHeaderCheckedBrush);color:var(--VmHeaderForegroundBrush);border-radius:4px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+                <span>展开状态</span>
+                <span id="settingsColorValueText">#4CC2FF</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FloatingNoticeBanner Details Dialog (FloatingFeedbackControls.cs OpenDetailsDialogAsync) -->
+    <div class="winui-dialog-backdrop" id="vmNoticeDetailsModal" hidden>
+      <div class="winui-dialog" role="dialog" aria-modal="true" aria-labelledby="vmNoticeDetailsTitle">
+        <div class="winui-dialog-title" id="vmNoticeDetailsTitle">错误详情</div>
+        <div class="winui-dialog-body-box">
+          <pre class="winui-dialog-body-text" id="vmNoticeDetailsText"></pre>
+        </div>
+        <div class="winui-dialog-footer">
+          <button type="button" class="winui-btn" id="vmNoticeCopyAllBtn">全部复制</button>
+          <button type="button" class="winui-btn" id="vmNoticeModalCloseBtn">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SettingInfoButton Flyout (SettingInfoButton.cs lines 24-25) -->
+    <div class="setting-info-flyout" id="settingInfoFlyout" hidden></div>
+
+    <!-- 8-Way Window Resize Handles (Top, Bottom, Left, Right, and 4 Corners) -->
+    <div class="win-resize-handle win-resize-t" id="winResizeT" title="上下拖动调整高度"></div>
+    <div class="win-resize-handle win-resize-b" id="winResizeB" title="上下拖动调整高度"></div>
+    <div class="win-resize-handle win-resize-l" id="winResizeL" title="左右拖动调整宽度"></div>
+    <div class="win-resize-handle win-resize-r" id="winResizeR" title="左右拖动调整宽度"></div>
+    <div class="win-resize-handle win-resize-tl" id="winResizeTL"></div>
+    <div class="win-resize-handle win-resize-tr" id="winResizeTR"></div>
+    <div class="win-resize-handle win-resize-bl" id="winResizeBL"></div>
+    <div class="win-resize-handle win-resize-br" id="winResizeBR"></div>
+  </div>
+
+  <!-- Right-side Floating Design Candidates Panel -->
+  <aside
+    class="design-candidates-panel"
+    id="designCandidatesPanel"
+    data-dcp-mappings={JSON.stringify(HOST_CANDIDATE_PANEL.mappings)}
+    data-has-static={HOST_CANDIDATE_PANEL.sections.length > 0 ? 'true' : 'false'}
+    hidden={HOST_CANDIDATE_PANEL.sections.length === 0}
+  >
+    <div class="dcp-header" id="dcpHeader">
+      <div class="dcp-title" id="dcpTitle">{HOST_CANDIDATE_PANEL.title}</div>
+    </div>
+    {HOST_CANDIDATE_PANEL.sections.map((sec) => (
+      <>
+        <div class="dcp-subheader" data-dcp-scope={sec.scope || ''}>{sec.subhead}</div>
+        <div class="dcp-list" id={sec.id} data-dcp-scope={sec.scope || ''}>
+          {sec.items.map((item) => (
+            <button
+              class={`dcp-chip ${item.active ? 'active' : ''}`}
+              type="button"
+              {...{ [item.attr]: item.value }}
+            >
+              <span class="dcp-chip-main">
+                {item.icon && <span class="fi dcp-chip-icon" aria-hidden="true">{item.icon}</span>}
+                <span>{item.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </>
+    ))}
+    <div id="dcpDynamicSections"></div>
+  </aside>
+</div>
+
+<script>
+  import { initUiDesignWorkbench } from '../scripts/ui-design-app.js';
+  function hasNativeSegoeFluent() {
+    try {
+      const ctx = document.createElement('canvas').getContext('2d');
+      if (!ctx) return false;
+      ctx.font = '32px "Segoe Fluent Icons", monospace';
+      const w1 = ctx.measureText('\uE713').width;
+      ctx.font = '32px monospace';
+      return w1 > 0 && w1 !== ctx.measureText('\uE713').width;
+    } catch { return false; }
+  }
+  function bootWorkbench() {
+    try {
+      initUiDesignWorkbench();
+      if (!hasNativeSegoeFluent()) {
+        import('../scripts/fluent-glyph-fallback.js').then(({ initFluentGlyphFallback }) => {
+          initFluentGlyphFallback(document.querySelector('.ui-workbench-page') || document.body);
+        });
+      }
+    } finally {
+      document.documentElement.classList.remove('winui-hydrating');
+    }
+  }
+  document.addEventListener('astro:page-load', bootWorkbench);
+  bootWorkbench();
+</script>

@@ -17,7 +17,7 @@ public sealed class ArchitectureTests
     [TestMethod]
     public void Core_DoesNotReferenceDesktopUiAssemblies()
     {
-        string[] forbidden = ["ExHyperV", "Wpf.Ui", "Wpf.Ui.Tray", "Wpf.Ui.Abstractions",
+        string[] forbidden = ["ExHyperV", "ExHyperV.App", "Wpf.Ui", "Wpf.Ui.Tray", "Wpf.Ui.Abstractions",
             "ExHyperV.WinUI3", "Microsoft.WinUI", "Microsoft.UI.Xaml", "Microsoft.InteractiveExperiences.Projection", "PresentationFramework", "PresentationCore", "WindowsBase", "System.Windows.Forms"];
         var references = typeof(VmIpService).Assembly.GetReferencedAssemblies().Select(a => a.Name);
         Assert.IsFalse(references.Any(name => name != null && (name.StartsWith("Microsoft.WindowsApp", StringComparison.OrdinalIgnoreCase)

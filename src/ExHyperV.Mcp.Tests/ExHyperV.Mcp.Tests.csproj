@@ -1,8 +1,6 @@
 <Project Sdk="MSTest.Sdk/4.5.2">
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <TestingExtensionsProfile>None</TestingExtensionsProfile>
     <EnableMicrosoftTestingExtensionsTrxReport>true</EnableMicrosoftTestingExtensionsTrxReport>
     <IsPackable>false</IsPackable>

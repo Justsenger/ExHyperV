@@ -138,7 +138,7 @@ test('the secondary bar, design pages, and separate guide section are hidden whi
   const response = data.types.find(item => item.shortName === 'ApiResponse');
   const responsePage = view.open(response.id);
   assert.ok(responsePage.includes(`id="${view.target || response.id}"`));
-  const examples = await readFile(new URL('../../doc/api/UsageExamples.cs',import.meta.url),'utf8');
+  const examples = await readFile(new URL('../../src/ExHyperV.Core/Contracts/UsageExamples.cs',import.meta.url),'utf8');
   const expected = [...examples.matchAll(/\/\/ example:([\w-]+):start/g)].map(match => match[1]).sort();
   const actual = [];
   for (const {member:item} of members) {

@@ -7,6 +7,7 @@ import { after, before, test } from 'node:test';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const websiteRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const exhypervWowRoot = path.resolve(websiteRoot, '../src/ExHyperV.WoW');
 
 async function loadVite() {
   try {
@@ -47,12 +48,12 @@ before(async () => {
     root: websiteRoot,
     cacheDir: path.join(os.tmpdir(), 'exhyperv-vite-test-cache'),
     optimizeDeps: { noDiscovery: true },
-    server: { middlewareMode: true, watch: null, ws: false },
+    server: { middlewareMode: true, watch: null, ws: false, fs: { allow: [websiteRoot, exhypervWowRoot] } },
     appType: 'custom',
     logLevel: 'silent',
   });
   const hostConfigMod = await viteServer.ssrLoadModule('/src/shells/win11/host-config.ts');
-  exhvConfigMod = await viteServer.ssrLoadModule('/src/data/exhyperv-desktop-config.ts');
+  exhvConfigMod = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'data/exhyperv-desktop-config.ts'));
   hostConfigMod.configureWinDesktopHost(exhvConfigMod.EXHYPERV_HOST_CONFIG);
 
   registryMod = await viteServer.ssrLoadModule('/src/shells/win11/shell/registry.ts');
@@ -70,7 +71,7 @@ before(async () => {
   virtualHwMod = await viteServer.ssrLoadModule('/src/wow/hal/hardware.ts');
   virtualStorageMod = await viteServer.ssrLoadModule('/src/shells/win11/system/virtual-storage.ts');
   win11FsSkeletonMod = await viteServer.ssrLoadModule('/src/shells/win11/system/win11-fs-skeleton.ts');
-  uiHostMod = await viteServer.ssrLoadModule('/src/scripts/ui-design-host.js');
+  uiHostMod = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'scripts/ui-design-host.js'));
 });
 
 after(async () => {

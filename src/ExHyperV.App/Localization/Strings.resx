@@ -1,0 +1,4733 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Common_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Common_Revert" xml:space="preserve">
+    <value>Revert</value>
+  </data>
+  <data name="Common_Applied" xml:space="preserve">
+    <value>Applied</value>
+  </data>
+  <data name="Common_Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Common_Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Common_Disable" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Common_Enable" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="Common_On" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Common_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common_Confirm" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="Common_Unavailable" xml:space="preserve">
+    <value>Not available</value>
+  </data>
+  <data name="Action_RefreshStatus" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="Action_ApplyPageChanges" xml:space="preserve">
+    <value>Apply changes</value>
+  </data>
+  <data name="Action_RevertPageChanges" xml:space="preserve">
+    <value>Revert changes</value>
+  </data>
+  <data name="Action_ViewDetails" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Action_CopyAll" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Dialog_ErrorDetailsTitle" xml:space="preserve">
+    <value>Error details</value>
+  </data>
+  <data name="Common_ListSeparator" xml:space="preserve">
+    <value>, </value>
+  </data>
+  <data name="Nav_VirtualMachines" xml:space="preserve">
+    <value>Virtual Machines</value>
+  </data>
+  <data name="Nav_Host" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Nav_Web" xml:space="preserve">
+    <value>Web</value>
+  </data>
+  <data name="Web_Title" xml:space="preserve">
+    <value>Web</value>
+  </data>
+  <data name="Nav_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Main_WindowNotCreated" xml:space="preserve">
+    <value>Main window has not been created yet.</value>
+  </data>
+  <data name="Main_InvalidProductPage" xml:space="preserve">
+    <value>Product pages require valid Id, Title, and Create delegate.</value>
+  </data>
+  <data name="Main_CloseFailedTitle" xml:space="preserve">
+    <value>Not safely closed</value>
+  </data>
+  <data name="Main_CloseFailedButton" xml:space="preserve">
+    <value>Go back</value>
+  </data>
+  <data name="Host_Title" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Host_QueryErrorTitle" xml:space="preserve">
+    <value>Unable to read host info</value>
+  </data>
+  <data name="Host_Os" xml:space="preserve">
+    <value>Operating System</value>
+  </data>
+  <data name="Host_Processor" xml:space="preserve">
+    <value>Processor</value>
+  </data>
+  <data name="Host_Arch" xml:space="preserve">
+    <value>Architecture</value>
+  </data>
+  <data name="Host_Memory" xml:space="preserve">
+    <value>Physical Memory</value>
+  </data>
+  <data name="Settings_Title" xml:space="preserve">
+    <value>App Settings</value>
+  </data>
+  <data name="Settings_Appearance" xml:space="preserve">
+    <value>Appearance</value>
+  </data>
+  <data name="Settings_Theme" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="Settings_Theme_System" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Settings_Theme_Light" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="Settings_Theme_Dark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="Settings_Accent" xml:space="preserve">
+    <value>Accent color</value>
+  </data>
+  <data name="Settings_CustomColor" xml:space="preserve">
+    <value>Custom color</value>
+  </data>
+  <data name="Settings_ResetColor" xml:space="preserve">
+    <value>Reset to default blue</value>
+  </data>
+  <data name="Settings_ColorHint" xml:space="preserve">
+    <value>Expanded monitoring cards use the accent color, or gray when off.</value>
+  </data>
+  <data name="Settings_ExpandedState" xml:space="preserve">
+    <value>Expanded state</value>
+  </data>
+  <data name="Settings_Gray" xml:space="preserve">
+    <value>Gray</value>
+  </data>
+  <data name="Settings_Selected" xml:space="preserve">
+    <value>Selected</value>
+  </data>
+  <data name="Settings_Unselected" xml:space="preserve">
+    <value>Not selected</value>
+  </data>
+  <data name="Settings_ColorPaletteName" xml:space="preserve">
+    <value>Accent swatches</value>
+  </data>
+  <data name="Settings_Color_Blue" xml:space="preserve">
+    <value>Blue</value>
+  </data>
+  <data name="Settings_Color_Purple" xml:space="preserve">
+    <value>Purple</value>
+  </data>
+  <data name="Settings_Color_Pink" xml:space="preserve">
+    <value>Pink</value>
+  </data>
+  <data name="Settings_Color_Orange" xml:space="preserve">
+    <value>Orange</value>
+  </data>
+  <data name="Settings_Color_Yellow" xml:space="preserve">
+    <value>Yellow</value>
+  </data>
+  <data name="Settings_Color_Green" xml:space="preserve">
+    <value>Green</value>
+  </data>
+  <data name="Settings_Color_Cyan" xml:space="preserve">
+    <value>Cyan</value>
+  </data>
+  <data name="Settings_LanguageGroup" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Settings_Language" xml:space="preserve">
+    <value>Display language</value>
+  </data>
+  <data name="Settings_Language_System" xml:space="preserve">
+    <value>Follow system</value>
+  </data>
+  <data name="Settings_Language_ZhCn" xml:space="preserve">
+    <value>简体中文</value>
+  </data>
+  <data name="Settings_Language_En" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Settings_Language_RestartHint" xml:space="preserve">
+    <value>Language preference saved. Restart the app so every page updates.</value>
+  </data>
+  <data name="Settings_AppearanceSaveFailed" xml:space="preserve">
+    <value>Appearance applied for this session, but could not be saved: {0}</value>
+  </data>
+  <data name="Cond_PoweredOff" xml:space="preserve">
+    <value>Shut down the VM to edit</value>
+  </data>
+  <data name="Cond_DynRamStartup" xml:space="preserve">
+    <value>Shut down the VM to edit startup memory while dynamic memory is enabled</value>
+  </data>
+  <data name="Cond_HostSettingMissing" xml:space="preserve">
+    <value>Not supported on this host OS or hardware</value>
+  </data>
+  <data name="Cond_UnsupportedVmVersion" xml:space="preserve">
+    <value>Not supported by this VM configuration version</value>
+  </data>
+  <data name="Cond_RequiresX64" xml:space="preserve">
+    <value>Requires an x64 processor</value>
+  </data>
+  <data name="Cond_RequiresArm64" xml:space="preserve">
+    <value>Requires an ARM64 processor</value>
+  </data>
+  <data name="Cond_RequiresIntel" xml:space="preserve">
+    <value>Requires an Intel processor</value>
+  </data>
+  <data name="Cond_RequiresHardwareIsolation" xml:space="preserve">
+    <value>Host lacks hardware isolation support</value>
+  </data>
+  <data name="Cond_RequiresPerfmonPmu" xml:space="preserve">
+    <value>Enable Hardware Performance Counters (PMU) first</value>
+  </data>
+  <data name="Cond_UnknownSetting" xml:space="preserve">
+    <value>Unsupported setting</value>
+  </data>
+  <data name="Cond_DisabledLine" xml:space="preserve">
+    <value>Unavailable now: {0}</value>
+  </data>
+  <data name="Err_VmmsCrashedCxlRecovered" xml:space="preserve">
+    <value>Failed to enable CXL: not supported on this host.</value>
+  </data>
+  <data name="Err_VmmsCrashedRecovered" xml:space="preserve">
+    <value>Changes not applied: the Hyper-V service stopped unexpectedly.</value>
+  </data>
+  <data name="Err_VmmsCrashedVnumaUnrestored" xml:space="preserve">
+    <value>Changes not applied, and virtual NUMA could not be restored. Refresh status.</value>
+  </data>
+  <data name="Err_VmmsRecoveryFailed" xml:space="preserve">
+    <value>Hyper-V service stopped. Check host services and refresh.</value>
+  </data>
+  <data name="Err_VmmsRecoveryFailedWithDetail" xml:space="preserve">
+    <value>Hyper-V service stopped: {0}</value>
+  </data>
+  <data name="Err_VmmsRecoveredOutcomeUnknown" xml:space="preserve">
+    <value>The Hyper-V service was interrupted and the outcome could not be confirmed.</value>
+  </data>
+  <data name="Err_VmmsUnavailable" xml:space="preserve">
+    <value>Hyper-V service is temporarily unavailable. Refresh and try again.</value>
+  </data>
+  <data name="Err_AccessDenied" xml:space="preserve">
+    <value>Access denied. Run as administrator and try again.</value>
+  </data>
+  <data name="Err_NotFound" xml:space="preserve">
+    <value>VM or configuration not found. Refresh and try again.</value>
+  </data>
+  <data name="Err_Unsupported" xml:space="preserve">
+    <value>This setting is not supported by this host OS or hardware.</value>
+  </data>
+  <data name="Err_InvalidState" xml:space="preserve">
+    <value>The VM's current power state does not allow this operation.</value>
+  </data>
+  <data name="Err_InvalidParameter" xml:space="preserve">
+    <value>Invalid parameter or host constraint not met.</value>
+  </data>
+  <data name="Err_TimedOut" xml:space="preserve">
+    <value>Timed out waiting for Hyper-V. Refresh to verify current state.</value>
+  </data>
+  <data name="Err_Cancelled" xml:space="preserve">
+    <value>Stopped waiting for completion. Refresh to verify current state.</value>
+  </data>
+  <data name="Err_MethodFailed" xml:space="preserve">
+    <value>Failed to apply setting in Hyper-V. Refresh to check state.</value>
+  </data>
+  <data name="Err_PartialVnumaDisable" xml:space="preserve">
+    <value>Virtual NUMA was disabled, but memory changes failed: {0}</value>
+  </data>
+  <data name="Err_PartialVnumaRestore" xml:space="preserve">
+    <value>Memory updated, but restoring virtual NUMA failed: {0}</value>
+  </data>
+  <data name="Err_ReadBackUnavailable" xml:space="preserve">
+    <value>Changes submitted, but readback check failed. Refresh to verify.</value>
+  </data>
+  <data name="Err_ReadBackMismatch" xml:space="preserve">
+    <value>{0} read back as {1} (expected {2}). Refresh to verify.</value>
+  </data>
+  <data name="Err_InsufficientMemory" xml:space="preserve">
+    <value>Not enough free host memory for this operation. Lower VM memory or free up host RAM.</value>
+  </data>
+  <data name="Err_InsufficientMemoryWithSize" xml:space="preserve">
+    <value>Failed to start VM: not enough free host memory (requires {0} MiB). Lower startup memory or free up host RAM.</value>
+  </data>
+  <data name="Err_InsufficientMemoryDeficit" xml:space="preserve">
+    <value>Can't start: {0} MiB more memory needed.</value>
+  </data>
+  <data name="Err_InsufficientMemoryExceedsTotal" xml:space="preserve">
+    <value>Can't start: {0} MiB more memory needed (exceeds physical RAM).</value>
+  </data>
+  <data name="Err_InsufficientMemoryOverhead" xml:space="preserve">
+    <value>Can't start: not enough free host memory for VM overhead.</value>
+  </data>
+  <data name="Err_FileInUse" xml:space="preserve">
+    <value>A virtual disk or image file required by this VM is currently in use by another process.</value>
+  </data>
+  <data name="Err_FileNotFound" xml:space="preserve">
+    <value>A disk, image, or configuration file required by this VM could not be found.</value>
+  </data>
+  <data name="Err_DiskFull" xml:space="preserve">
+    <value>Not enough free disk space on the host to complete this operation.</value>
+  </data>
+  <data name="Err_DifferencingParentNotFound" xml:space="preserve">
+    <value>Virtual disk differencing chain is broken: its parent virtual hard disk could not be found.</value>
+  </data>
+  <data name="Err_VirtualSwitchNotFound" xml:space="preserve">
+    <value>A virtual switch bound to this VM's network adapter no longer exists. Update the network adapter settings and try again.</value>
+  </data>
+  <data name="Err_StartFailedProcessorTopology" xml:space="preserve">
+    <value>Failed to start VM: {0} configured vCPUs exceed the host's {1} logical processors.</value>
+  </data>
+  <data name="Err_RuntimeMemoryResizeFailed" xml:space="preserve">
+    <value>Failed to resize memory while running: make sure the guest OS has finished booting and supports hot memory resize, or shut down the VM first.</value>
+  </data>
+  <data name="Err_StartFailedGen1OnArm64" xml:space="preserve">
+    <value>Cannot start a Generation 1 VM on an ARM64 host (Virtual BIOS firmware is not available on ARM64).</value>
+  </data>
+  <data name="Err_StartUnsupportedWithSuspects" xml:space="preserve">
+    <value>Failed to start VM: this host does not support active VM setting(s): {0}. Turn them off and try again.</value>
+  </data>
+  <data name="Err_StartFailedUnsupported" xml:space="preserve">
+    <value>Failed to start VM: one or more settings or devices are not supported on this host.</value>
+  </data>
+  <data name="Suspect_SGX" xml:space="preserve">
+    <value>SGX</value>
+  </data>
+  <data name="Suspect_CXL" xml:space="preserve">
+    <value>CXL memory expansion</value>
+  </data>
+  <data name="Suspect_HugePages1Gb" xml:space="preserve">
+    <value>Huge backing pages (1 GB)</value>
+  </data>
+  <data name="Suspect_MemEncryption" xml:space="preserve">
+    <value>Always-on memory encryption</value>
+  </data>
+  <data name="Suspect_IntelPerfmon" xml:space="preserve">
+    <value>Intel hardware performance counters</value>
+  </data>
+  <data name="Suspect_HwIsolation" xml:space="preserve">
+    <value>Hardware isolation extensions</value>
+  </data>
+  <data name="Suspect_ApicMode" xml:space="preserve">
+    <value>x64 APIC interrupt mode</value>
+  </data>
+  <data name="Suspect_LpiMode" xml:space="preserve">
+    <value>ARM64 LPI interrupt mode</value>
+  </data>
+  <data name="Suspect_NestedVirt" xml:space="preserve">
+    <value>Nested virtualization</value>
+  </data>
+  <data name="Err_GenericDefault" xml:space="preserve">
+    <value>Operation could not be completed.</value>
+  </data>
+  <data name="Err_ReloadFailed" xml:space="preserve">
+    <value>Failed to reload settings: {0}</value>
+  </data>
+  <data name="Err_UncertainLock" xml:space="preserve">
+    <value>Previous operation outcome is unconfirmed. Editing is paused until refreshed.</value>
+  </data>
+  <data name="Err_UncertainAfterFail" xml:space="preserve">
+    <value>{0}
+Editing is paused, refresh status first.</value>
+  </data>
+  <data name="Err_PartialReadUnavailable" xml:space="preserve">
+    <value>Some settings could not be read and are disabled. Refresh to retry.</value>
+  </data>
+  <data name="Err_NoValidData" xml:space="preserve">
+    <value>No valid data returned.</value>
+  </data>
+  <data name="SettingsView_VmNotFound" xml:space="preserve">
+    <value>VM not found.</value>
+  </data>
+  <data name="SettingsView_LeavePending" xml:space="preserve">
+    <value>{0}
+View kept open so you can review before leaving.</value>
+  </data>
+  <data name="SettingsView_ReadbackSuffix" xml:space="preserve">
+    <value>{0}
+Reload failed: {1}</value>
+  </data>
+  <data name="SettingsView_InfoAriaSuffix" xml:space="preserve">
+    <value>{0} info</value>
+  </data>
+  <data name="VmList_SearchPlaceholder" xml:space="preserve">
+    <value>Search VMs...</value>
+  </data>
+  <data name="VmList_SearchAria" xml:space="preserve">
+    <value>Search VMs</value>
+  </data>
+  <data name="VmList_ListAria" xml:space="preserve">
+    <value>Virtual machines</value>
+  </data>
+  <data name="VmList_ReadFailed" xml:space="preserve">
+    <value>Failed to load virtual machine list.</value>
+  </data>
+  <data name="VmList_StateUnavailable" xml:space="preserve">
+    <value>Unknown state</value>
+  </data>
+  <data name="VmList_UptimeUnavailable" xml:space="preserve">
+    <value>Unknown uptime</value>
+  </data>
+  <data name="VmList_MissingFields" xml:space="preserve">
+    <value>{0} VM(s) have temporarily unavailable fields, previous values kept.</value>
+  </data>
+  <data name="VmState_Running" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="VmState_PoweredOff" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="VmState_Saved" xml:space="preserve">
+    <value>Saved</value>
+  </data>
+  <data name="VmState_Suspended" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="VmState_Starting" xml:space="preserve">
+    <value>Starting</value>
+  </data>
+  <data name="VmState_ShuttingDown" xml:space="preserve">
+    <value>Shutting down</value>
+  </data>
+  <data name="VmState_Saving" xml:space="preserve">
+    <value>Saving</value>
+  </data>
+  <data name="VmState_Stopping" xml:space="preserve">
+    <value>Stopping</value>
+  </data>
+  <data name="VmState_Resuming" xml:space="preserve">
+    <value>Resuming</value>
+  </data>
+  <data name="VmState_Suspending" xml:space="preserve">
+    <value>Pausing</value>
+  </data>
+  <data name="VmState_MergingDisks" xml:space="preserve">
+    <value>Merging disks</value>
+  </data>
+  <data name="VmState_Processing" xml:space="preserve">
+    <value>Processing</value>
+  </data>
+  <data name="VmState_WaitingToStart" xml:space="preserve">
+    <value>Waiting to start</value>
+  </data>
+  <data name="VmState_FastSaved" xml:space="preserve">
+    <value>Fast-saved</value>
+  </data>
+  <data name="VmState_FastSaving" xml:space="preserve">
+    <value>Fast-saving</value>
+  </data>
+  <data name="VmState_ForceShuttingDown" xml:space="preserve">
+    <value>Force stopping</value>
+  </data>
+  <data name="VmState_ForceRestarting" xml:space="preserve">
+    <value>Force restarting</value>
+  </data>
+  <data name="VmState_Hibernated" xml:space="preserve">
+    <value>Hibernated</value>
+  </data>
+  <data name="VmState_InTest" xml:space="preserve">
+    <value>In test</value>
+  </data>
+  <data name="VmState_Deferred" xml:space="preserve">
+    <value>Deferred</value>
+  </data>
+  <data name="VmState_NotApplicable" xml:space="preserve">
+    <value>N/A</value>
+  </data>
+  <data name="VmState_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="VmState_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Dash_IconPickerTooltip" xml:space="preserve">
+    <value>Click to change OS icon</value>
+  </data>
+  <data name="Dash_CopyGuidTooltip" xml:space="preserve">
+    <value>Click to copy VM GUID</value>
+  </data>
+  <data name="Dash_CopyGuidFailed" xml:space="preserve">
+    <value>Failed to copy GUID: {0}</value>
+  </data>
+  <data name="Dash_GenFormat" xml:space="preserve">
+    <value>Gen {0}</value>
+  </data>
+  <data name="Dash_VersionFormat" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="Dash_MorePowerActions" xml:space="preserve">
+    <value>More power actions</value>
+  </data>
+  <data name="Dash_Connect" xml:space="preserve">
+    <value>Connect</value>
+  </data>
+  <data name="Dash_ConnectFailed" xml:space="preserve">
+    <value>Failed to launch VM Connect: {0}</value>
+  </data>
+  <data name="Dash_Power_Start" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="Dash_Power_ShutDown" xml:space="preserve">
+    <value>Shut down</value>
+  </data>
+  <data name="Dash_Power_Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Dash_Power_Restart" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="Dash_Power_Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Dash_Power_SaveState" xml:space="preserve">
+    <value>Save state</value>
+  </data>
+  <data name="Dash_Power_ForceTurnOff" xml:space="preserve">
+    <value>Turn off</value>
+  </data>
+  <data name="Dash_PowerConfirmTitle" xml:space="preserve">
+    <value>{0} {1}?</value>
+  </data>
+  <data name="Dash_PowerAction_Stop" xml:space="preserve">
+    <value>Shut down</value>
+  </data>
+  <data name="Dash_PowerAction_Restart" xml:space="preserve">
+    <value>Restart</value>
+  </data>
+  <data name="Dash_PowerAction_Suspend" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Dash_PowerAction_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Dash_PowerAction_TurnOff" xml:space="preserve">
+    <value>Turn off</value>
+  </data>
+  <data name="Dash_PowerConfirm_TurnOffBody" xml:space="preserve">
+    <value>Turning off the VM immediately may lose unsaved guest data.</value>
+  </data>
+  <data name="Dash_PowerConfirm_NormalBody" xml:space="preserve">
+    <value>Run the selected power action cleanly without forcing power off if it fails.</value>
+  </data>
+  <data name="Dash_PowerRepair_SelectGpu" xml:space="preserve">
+    <value>Target GPU for device #{0}:</value>
+  </data>
+  <data name="Dash_Tab_Overview" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="Dash_Tab_Processor" xml:space="preserve">
+    <value>Processor</value>
+  </data>
+  <data name="Dash_Tab_Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Dash_Tab_Devices" xml:space="preserve">
+    <value>Devices</value>
+  </data>
+  <data name="Dash_Tab_Checkpoints" xml:space="preserve">
+    <value>Checkpoints</value>
+  </data>
+  <data name="Dash_Tab_Advanced" xml:space="preserve">
+    <value>Advanced</value>
+  </data>
+  <data name="Dash_Sub_Gpu" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="Dash_Sub_Storage" xml:space="preserve">
+    <value>Storage</value>
+  </data>
+  <data name="Dash_Sub_Network" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="Dash_Sub_Vtpm" xml:space="preserve">
+    <value>vTPM</value>
+  </data>
+  <data name="Dash_Sub_Serial" xml:space="preserve">
+    <value>Serial Port</value>
+  </data>
+  <data name="Dash_Sub_Pcie" xml:space="preserve">
+    <value>PCIe</value>
+  </data>
+  <data name="Dash_Sub_Boot" xml:space="preserve">
+    <value>Boot Order</value>
+  </data>
+  <data name="Dash_Sub_Security" xml:space="preserve">
+    <value>Security</value>
+  </data>
+  <data name="Dash_Sub_Console" xml:space="preserve">
+    <value>Console</value>
+  </data>
+  <data name="Dash_Sub_Power" xml:space="preserve">
+    <value>Power</value>
+  </data>
+  <data name="Dash_Sub_HardwareCompatibility" xml:space="preserve">
+    <value>Hardware compatibility</value>
+  </data>
+  <data name="Dash_Sub_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Pcie_Emulation" xml:space="preserve">
+    <value>PCIe emulation</value>
+  </data>
+  <data name="Pcie_EmulationHelp" xml:space="preserve">
+    <value>Present standard PCIe devices to the guest. Enabling emulation is permanent.</value>
+  </data>
+  <data name="Pcie_PermanentConfirmation" xml:space="preserve">
+    <value>This will permanently enable PCIe emulation for this virtual machine. Continue?</value>
+  </data>
+  <data name="Pcie_Topology" xml:space="preserve">
+    <value>PCIe topology</value>
+  </data>
+  <data name="Pcie_TopologyHelp" xml:space="preserve">
+    <value>Choose the PCIe topology presented to the guest. Mirroring the host requires PCIe emulation.</value>
+  </data>
+  <data name="Pcie_HostTopology" xml:space="preserve">
+    <value>Mirror host</value>
+  </data>
+  <data name="Pcie_UnknownValue" xml:space="preserve">
+    <value>Current value {0}</value>
+  </data>
+  <data name="Pcie_Boot" xml:space="preserve">
+    <value>Boot from PCIe devices</value>
+  </data>
+  <data name="Pcie_BootHelp" xml:space="preserve">
+    <value>Load the vPCI driver during UEFI startup to boot from supported PCIe devices, including assigned NVMe drives.</value>
+  </data>
+  <data name="Pcie_Gen2Only" xml:space="preserve">
+    <value>Only generation 2 virtual machines can load the vPCI driver during UEFI startup.</value>
+  </data>
+  <data name="Pcie_FullScsi" xml:space="preserve">
+    <value>Enable the full SCSI command set</value>
+  </data>
+  <data name="Pcie_FullScsiHelp" xml:space="preserve">
+    <value>Allow the guest to read SMART data and use storage management tools on physical pass-through disks. This setting has no effect on VHDX disks and should normally remain off.</value>
+  </data>
+  <data name="Pcie_GuestMode" xml:space="preserve">
+    <value>Guest presentation mode</value>
+  </data>
+  <data name="Pcie_Paravirtualized" xml:space="preserve">
+    <value>Paravirtualized</value>
+  </data>
+  <data name="Pcie_Emulated" xml:space="preserve">
+    <value>Emulated</value>
+  </data>
+  <data name="Pcie_Disconnect" xml:space="preserve">
+    <value>Disconnect and return to host</value>
+  </data>
+  <data name="Pcie_DisconnectOff" xml:space="preserve">
+    <value>Shut down the virtual machine before disconnecting this device.</value>
+  </data>
+  <data name="Pcie_IdentityChanged" xml:space="preserve">
+    <value>The device identity, path or owner could not be verified. Reload the device list.</value>
+  </data>
+  <data name="Pcie_AddDevice" xml:space="preserve">
+    <value>Add PCIe device</value>
+  </data>
+  <data name="Pcie_AddOff" xml:space="preserve">
+    <value>Shut down the virtual machine before assigning PCIe devices.</value>
+  </data>
+  <data name="Pcie_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Pcie_Returned" xml:space="preserve">
+    <value>Disconnected {0} and returned it to the host.</value>
+  </data>
+  <data name="Pcie_Class" xml:space="preserve">
+    <value>Class</value>
+  </data>
+  <data name="Pcie_Vendor" xml:space="preserve">
+    <value>Manufacturer</value>
+  </data>
+  <data name="Pcie_InstanceId" xml:space="preserve">
+    <value>Instance ID</value>
+  </data>
+  <data name="Pcie_Path" xml:space="preserve">
+    <value>PCIe path</value>
+  </data>
+  <data name="Pcie_Collapse" xml:space="preserve">
+    <value>Collapse details</value>
+  </data>
+  <data name="Pcie_Expand" xml:space="preserve">
+    <value>Expand details</value>
+  </data>
+  <data name="Pcie_InUse" xml:space="preserve">
+    <value>In use</value>
+  </data>
+  <data name="Pcie_Unavailable" xml:space="preserve">
+    <value>Unavailable for passthrough</value>
+  </data>
+  <data name="Pcie_OwnerUnknown" xml:space="preserve">
+    <value>The owning virtual machine's power state could not be verified.</value>
+  </data>
+  <data name="Pcie_OtherVm" xml:space="preserve">
+    <value>Used by another VM</value>
+  </data>
+  <data name="Pcie_OtherRunning" xml:space="preserve">
+    <value>Used by another VM (running)</value>
+  </data>
+  <data name="Pcie_TransferFrom" xml:space="preserve">
+    <value>Used by {0}. Select to transfer it to this virtual machine.</value>
+  </data>
+  <data name="Pcie_OwnerMustStop" xml:space="preserve">
+    <value>Used by {0}. Shut down that virtual machine first.</value>
+  </data>
+  <data name="Pcie_SourceChanged" xml:space="preserve">
+    <value>The owning virtual machine is no longer powered off. The device cannot be transferred.</value>
+  </data>
+  <data name="Pcie_Host" xml:space="preserve">
+    <value>Used by host</value>
+  </data>
+  <data name="Pcie_Unassigned" xml:space="preserve">
+    <value>Unassigned</value>
+  </data>
+  <data name="Pcie_SystemDisk" xml:space="preserve">
+    <value>This controller connects a host system or boot disk and cannot be dismounted.</value>
+  </data>
+  <data name="Pcie_DiskQueryFailed" xml:space="preserve">
+    <value>Could not verify the attached disks. {0}</value>
+  </data>
+  <data name="Pcie_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Pcie_EmptyPool" xml:space="preserve">
+    <value>No PCIe devices were found.</value>
+  </data>
+  <data name="Pcie_PowerContinue" xml:space="preserve">
+    <value>Power off and continue</value>
+  </data>
+  <data name="Pcie_PowerOff" xml:space="preserve">
+    <value>Power off virtual machine</value>
+  </data>
+  <data name="Pcie_Adjust" xml:space="preserve">
+    <value>Adjust settings</value>
+  </data>
+  <data name="Pcie_AddDevices" xml:space="preserve">
+    <value>Add devices</value>
+  </data>
+  <data name="Pcie_RelatedPrompt" xml:space="preserve">
+    <value>Assign the related devices to {0} as well?</value>
+  </data>
+  <data name="Pcie_SameDevice" xml:space="preserve">
+    <value>Another function of {0}</value>
+  </data>
+  <data name="Pcie_Related" xml:space="preserve">
+    <value>Related device</value>
+  </data>
+  <data name="Pcie_Skip" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="Pcie_DeviceError" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Pcie_Failed" xml:space="preserve">
+    <value>Passthrough failed</value>
+  </data>
+  <data name="Pcie_Partial" xml:space="preserve">
+    <value>Partially failed ({0} assigned)</value>
+  </data>
+  <data name="Pcie_SkippedCount" xml:space="preserve">
+    <value>Assigned {0}, skipped {1}</value>
+  </data>
+  <data name="Pcie_BackList" xml:space="preserve">
+    <value>Back to PCIe list</value>
+  </data>
+  <data name="Dash_OpenGearTooltip" xml:space="preserve">
+    <value>Open settings</value>
+  </data>
+  <data name="Dash_SettingsNavAria" xml:space="preserve">
+    <value>Settings sections</value>
+  </data>
+  <data name="Dash_LoadingSettingsAria" xml:space="preserve">
+    <value>Loading VM settings</value>
+  </data>
+  <data name="Dash_ReadVmError" xml:space="preserve">
+    <value>Unable to read VM information.</value>
+  </data>
+  <data name="Dash_VmNotInHost" xml:space="preserve">
+    <value>This VM is no longer present on the host.</value>
+  </data>
+  <data name="Dash_VmRemoved" xml:space="preserve">
+    <value>The VM was removed from the host.</value>
+  </data>
+  <data name="Dash_RefreshConfigError" xml:space="preserve">
+    <value>Unable to refresh VM configuration.</value>
+  </data>
+  <data name="Dash_PreviewReadError" xml:space="preserve">
+    <value>Failed to load VM preview: {0}</value>
+  </data>
+  <data name="Dash_SearchOsPlaceholder" xml:space="preserve">
+    <value>Search OS...</value>
+  </data>
+  <data name="Dash_NoMatchingOs" xml:space="preserve">
+    <value>No matching OS found</value>
+  </data>
+  <data name="Dash_SaveOsFailed" xml:space="preserve">
+    <value>Failed to save OS badge.</value>
+  </data>
+  <data name="Dash_AffinityRestoreFailed" xml:space="preserve">
+    <value>VM started, but saved CPU affinity could not be restored. Check Core Binding settings.
+{0}</value>
+  </data>
+  <data name="Dash_AffinityRestoreError" xml:space="preserve">
+    <value>VM started, but restoring CPU affinity failed: {0}</value>
+  </data>
+  <data name="Overview_MemoryUsageTrend" xml:space="preserve">
+    <value>Memory usage</value>
+  </data>
+  <data name="Overview_VirtualProcessor" xml:space="preserve">
+    <value>Virtual Processor</value>
+  </data>
+  <data name="Overview_Cpu" xml:space="preserve">
+    <value>CPU</value>
+  </data>
+  <data name="Overview_Memory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="Overview_Disk" xml:space="preserve">
+    <value>Disk</value>
+  </data>
+  <data name="Overview_DiskIndexed" xml:space="preserve">
+    <value>Disk {0}</value>
+  </data>
+  <data name="Overview_Network" xml:space="preserve">
+    <value>Network</value>
+  </data>
+  <data name="Overview_NetworkIndexed" xml:space="preserve">
+    <value>Network {0}</value>
+  </data>
+  <data name="Overview_Disconnected" xml:space="preserve">
+    <value>Disconnected</value>
+  </data>
+  <data name="Overview_NoGpu" xml:space="preserve">
+    <value>No GPU assigned</value>
+  </data>
+  <data name="Overview_NestedVirt" xml:space="preserve">
+    <value>Nested virtualization</value>
+  </data>
+  <data name="Overview_Hyperthreading" xml:space="preserve">
+    <value>Hyper-threading</value>
+  </data>
+  <data name="Overview_SmtMulti" xml:space="preserve">
+    <value>Simultaneous Multithreading (SMT): Enabled</value>
+  </data>
+  <data name="Overview_SmtSingle" xml:space="preserve">
+    <value>Simultaneous Multithreading (SMT): Single thread</value>
+  </data>
+  <data name="Overview_SmtInherit" xml:space="preserve">
+    <value>Simultaneous Multithreading (SMT): Follow host (Auto)</value>
+  </data>
+  <data name="Overview_DynamicMemory" xml:space="preserve">
+    <value>Dynamic memory</value>
+  </data>
+  <data name="Overview_DynamicMemoryTip" xml:space="preserve">
+    <value>Dynamic memory enabled (DynamicMemoryEnabled)</value>
+  </data>
+  <data name="Overview_MemoryRange" xml:space="preserve">
+    <value>Memory range</value>
+  </data>
+  <data name="Overview_MemoryRangeTip" xml:space="preserve">
+    <value>Minimum to Maximum dynamic memory</value>
+  </data>
+  <data name="Overview_MemoryPressure" xml:space="preserve">
+    <value>Memory pressure</value>
+  </data>
+  <data name="Overview_MemoryPressureTip" xml:space="preserve">
+    <value>Guest memory demand vs assigned pressure (%)</value>
+  </data>
+  <data name="Overview_MemoryDemand" xml:space="preserve">
+    <value>Memory demand</value>
+  </data>
+  <data name="Overview_MemoryDemandTip" xml:space="preserve">
+    <value>Estimated guest memory demand</value>
+  </data>
+  <data name="Overview_SmartPaging" xml:space="preserve">
+    <value>Smart Paging</value>
+  </data>
+  <data name="Overview_SmartPagingActive" xml:space="preserve">
+    <value>{0}, active</value>
+  </data>
+  <data name="Overview_SmartPagingTip" xml:space="preserve">
+    <value>Disk Smart Paging file is currently in use</value>
+  </data>
+  <data name="Overview_CpuUsageWithCores" xml:space="preserve">
+    <value>{0} ({1} cores)</value>
+  </data>
+  <data name="Overview_GpuCardTitle" xml:space="preserve">
+    <value>GPU</value>
+  </data>
+  <data name="Overview_GpuChipVendor" xml:space="preserve">
+    <value>Chipset vendor</value>
+  </data>
+  <data name="Overview_GpuBoardVendor" xml:space="preserve">
+    <value>Board vendor</value>
+  </data>
+  <data name="Overview_GpuDedicatedVram" xml:space="preserve">
+    <value>Dedicated memory</value>
+  </data>
+  <data name="Overview_GpuDriverVersion" xml:space="preserve">
+    <value>Driver version</value>
+  </data>
+  <data name="Overview_GpuDevicePath" xml:space="preserve">
+    <value>Device instance path</value>
+  </data>
+  <data name="Overview_GpuMultiWait" xml:space="preserve">
+    <value>Multi-GPU per-adapter metrics are not separated in Core yet.</value>
+  </data>
+  <data name="Overview_GpuWaitingDriver" xml:space="preserve">
+    <value>Waiting for GPU engine counters</value>
+  </data>
+  <data name="Overview_GpuReadFailed" xml:space="preserve">
+    <value>Unable to read GPU details</value>
+  </data>
+  <data name="Overview_Gpu3d" xml:space="preserve">
+    <value>3D</value>
+  </data>
+  <data name="Overview_GpuCopy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Overview_GpuEncode" xml:space="preserve">
+    <value>Video Encode</value>
+  </data>
+  <data name="Overview_GpuDecode" xml:space="preserve">
+    <value>Video Decode</value>
+  </data>
+  <data name="Dev_ControllerLocation" xml:space="preserve">
+    <value>{0} Controller {1}, Location {2}</value>
+  </data>
+  <data name="Dev_VirtualStorageController" xml:space="preserve">
+    <value>Virtual Storage Controller</value>
+  </data>
+  <data name="Dev_VirtualOpticalDrive" xml:space="preserve">
+    <value>Virtual Optical Drive</value>
+  </data>
+  <data name="Dev_VirtualDisk" xml:space="preserve">
+    <value>Virtual Disk</value>
+  </data>
+  <data name="Dev_VirtualHardDisk" xml:space="preserve">
+    <value>Virtual Hard Disk</value>
+  </data>
+  <data name="Dev_PhysicalOpticalDrive" xml:space="preserve">
+    <value>Physical Optical Drive</value>
+  </data>
+  <data name="Dev_PhysicalDisk" xml:space="preserve">
+    <value>Physical Disk</value>
+  </data>
+  <data name="Dev_Source" xml:space="preserve">
+    <value>Media</value>
+  </data>
+  <data name="Dev_Path" xml:space="preserve">
+    <value>Path</value>
+  </data>
+  <data name="Dev_NoMedia" xml:space="preserve">
+    <value>No media inserted</value>
+  </data>
+  <data name="Dev_Empty" xml:space="preserve">
+    <value>Empty</value>
+  </data>
+  <data name="Dev_Serial" xml:space="preserve">
+    <value>Serial number</value>
+  </data>
+  <data name="Dev_Type" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="Dev_VhdDynamic" xml:space="preserve">
+    <value>Dynamically expanding</value>
+  </data>
+  <data name="Dev_VhdFixed" xml:space="preserve">
+    <value>Fixed size</value>
+  </data>
+  <data name="Dev_VhdDifferencing" xml:space="preserve">
+    <value>Differencing</value>
+  </data>
+  <data name="Dev_DiskRate" xml:space="preserve">
+    <value>R {0} W {1}</value>
+  </data>
+  <data name="Dev_NetRate" xml:space="preserve">
+    <value>S {0} R {1}</value>
+  </data>
+  <data name="Dev_DiskUsageAria" xml:space="preserve">
+    <value>File size {0}, capacity {1}</value>
+  </data>
+  <data name="Dev_Ipv4" xml:space="preserve">
+    <value>IPv4 Address</value>
+  </data>
+  <data name="Dev_Mac" xml:space="preserve">
+    <value>MAC Address</value>
+  </data>
+  <data name="Dev_Ipv6" xml:space="preserve">
+    <value>IPv6 Address</value>
+  </data>
+  <data name="Dev_CopyTooltip" xml:space="preserve">
+    <value>Click to copy</value>
+  </data>
+  <data name="Dev_CopyValueTooltip" xml:space="preserve">
+    <value>Click to copy: {0}</value>
+  </data>
+  <data name="Dev_CopyValueAria" xml:space="preserve">
+    <value>Copy {0}: {1}</value>
+  </data>
+  <data name="Dev_CopyTypeAria" xml:space="preserve">
+    <value>Copy {0}: {1}</value>
+  </data>
+  <data name="Dev_Copied" xml:space="preserve">
+    <value>Copied</value>
+  </data>
+  <data name="Dev_CopyFailed" xml:space="preserve">
+    <value>Copy failed: {0}</value>
+  </data>
+  <data name="Dev_CopyAddrFailed" xml:space="preserve">
+    <value>Failed to copy address: {0}</value>
+  </data>
+  <data name="Dev_Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Dev_Receive" xml:space="preserve">
+    <value>Receive</value>
+  </data>
+  <data name="Dev_Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Dev_Write" xml:space="preserve">
+    <value>Write</value>
+  </data>
+  <data name="Card_SettingsTooltip" xml:space="preserve">
+    <value>{0} settings</value>
+  </data>
+  <data name="Card_Expanded" xml:space="preserve">
+    <value>Expanded</value>
+  </data>
+  <data name="Card_Collapsed" xml:space="preserve">
+    <value>Collapsed</value>
+  </data>
+  <data name="Card_CollapseHelp" xml:space="preserve">
+    <value>Activate to collapse details</value>
+  </data>
+  <data name="Card_ExpandHelp" xml:space="preserve">
+    <value>Activate to expand details</value>
+  </data>
+  <data name="Energy_HostPercent" xml:space="preserve">
+    <value>{0}% of host</value>
+  </data>
+  <data name="Energy_ReserveCores" xml:space="preserve">
+    <value>Min ~{0} cores</value>
+  </data>
+  <data name="Energy_LimitCores" xml:space="preserve">
+    <value>Max ~{0} cores</value>
+  </data>
+  <data name="Energy_WeightBalanced" xml:space="preserve">
+    <value>Equal CPU share (Default)</value>
+  </data>
+  <data name="Energy_WeightLow" xml:space="preserve">
+    <value>Lower CPU share ({0}x)</value>
+  </data>
+  <data name="Energy_WeightHigh" xml:space="preserve">
+    <value>Higher CPU share ({0}x)</value>
+  </data>
+  <data name="Step_Decrease" xml:space="preserve">
+    <value>Decrease {0}</value>
+  </data>
+  <data name="Step_Increase" xml:space="preserve">
+    <value>Increase {0}</value>
+  </data>
+  <data name="Editor_InvalidNumberRange" xml:space="preserve">
+    <value>Enter a valid number within range.</value>
+  </data>
+  <data name="Mem_Group_Compute" xml:space="preserve">
+    <value>Compute Resources</value>
+  </data>
+  <data name="Mem_Group_Mmio" xml:space="preserve">
+    <value>MMIO Space</value>
+  </data>
+  <data name="Mem_Group_Pages" xml:space="preserve">
+    <value>Page Management</value>
+  </data>
+  <data name="Mem_Group_Mapping" xml:space="preserve">
+    <value>Memory Mapping</value>
+  </data>
+  <data name="Mem_Group_Security" xml:space="preserve">
+    <value>Confidential Computing</value>
+  </data>
+  <data name="Mem_Group_Extensions" xml:space="preserve">
+    <value>Advanced Extensions</value>
+  </data>
+  <data name="Mem_Startup_Title" xml:space="preserve">
+    <value>Startup memory</value>
+  </data>
+  <data name="Mem_Startup_Desc" xml:space="preserve">
+    <value>Memory assigned when the VM starts. When Dynamic Memory is off, this stays fixed.</value>
+  </data>
+  <data name="Mem_Weight_Title" xml:space="preserve">
+    <value>Memory weight</value>
+  </data>
+  <data name="Mem_Weight_Desc" xml:space="preserve">
+    <value>Priority when multiple VMs compete for host RAM. Higher values keep more memory.</value>
+  </data>
+  <data name="Mem_Weight_Equal" xml:space="preserve">
+    <value>Equal share under pressure (Default)</value>
+  </data>
+  <data name="Mem_Weight_Low" xml:space="preserve">
+    <value>Lower priority ({0}x)</value>
+  </data>
+  <data name="Mem_Weight_High" xml:space="preserve">
+    <value>Higher priority ({0}x)</value>
+  </data>
+  <data name="Mem_Dynamic_Title" xml:space="preserve">
+    <value>Dynamic memory</value>
+  </data>
+  <data name="Mem_Dynamic_Desc" xml:space="preserve">
+    <value>Automatically adds or reclaims RAM at runtime so idle memory stays available for the host.</value>
+  </data>
+  <data name="Mem_Min_Title" xml:space="preserve">
+    <value>Minimum memory</value>
+  </data>
+  <data name="Mem_Min_Desc" xml:space="preserve">
+    <value>Lowest memory limit when reclaiming RAM so the guest stays responsive.</value>
+  </data>
+  <data name="Mem_Max_Title" xml:space="preserve">
+    <value>Maximum memory</value>
+  </data>
+  <data name="Mem_Max_Desc" xml:space="preserve">
+    <value>Highest memory limit the VM can grow to, preventing one VM from draining host RAM.</value>
+  </data>
+  <data name="Mem_Buffer_Title" xml:space="preserve">
+    <value>Memory buffer</value>
+  </data>
+  <data name="Mem_Buffer_Desc" xml:space="preserve">
+    <value>Extra RAM reserve above current guest demand to handle sudden usage spikes.</value>
+  </data>
+  <data name="Mem_LowMmio_Title" xml:space="preserve">
+    <value>Low MMIO space (32-bit)</value>
+  </data>
+  <data name="Mem_LowMmio_Desc" xml:space="preserve">
+    <value>Address space below 4 GB for legacy 32-bit PCI devices. Usually keep default.</value>
+  </data>
+  <data name="Mem_HighMmio_Title" xml:space="preserve">
+    <value>High MMIO space (64-bit)</value>
+  </data>
+  <data name="Mem_HighMmio_Desc" xml:space="preserve">
+    <value>Address space above 4 GB for 64-bit PCIe devices. Increase this for GPU passthrough (DDA) with large VRAM.</value>
+  </data>
+  <data name="Mem_HighBase_Title" xml:space="preserve">
+    <value>High MMIO base address</value>
+  </data>
+  <data name="Mem_HighBase_Desc" xml:space="preserve">
+    <value>Starting physical address offset for high MMIO space. Leave at default unless hardware conflicts occur.</value>
+  </data>
+  <data name="Mem_BackingPageSize_Title" xml:space="preserve">
+    <value>Backing page size</value>
+  </data>
+  <data name="Mem_BackingPageSize_Desc" xml:space="preserve">
+    <value>Chunk size used to back guest memory on the host. Keep Default (4 KB) normally, or use 2 MB / 1 GB pages to cut lookup overhead for heavy RAM workloads.</value>
+  </data>
+  <data name="Mem_PageSize_Default" xml:space="preserve">
+    <value>Default (4 KB)</value>
+  </data>
+  <data name="Mem_PageSize_Large" xml:space="preserve">
+    <value>Large (2 MB)</value>
+  </data>
+  <data name="Mem_PageSize_Huge" xml:space="preserve">
+    <value>Huge (1 GB)</value>
+  </data>
+  <data name="Mem_DynAlign_Title" xml:space="preserve">
+    <value>Dynamic memory alignment</value>
+  </data>
+  <data name="Mem_DynAlign_Desc" xml:space="preserve">
+    <value>Alignment chunk size when dynamic memory expands or shrinks, helping reduce fragmentation. Keep default normally.</value>
+  </data>
+  <data name="Mem_Align_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Mem_Align_Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Mem_Align_Large" xml:space="preserve">
+    <value>Large</value>
+  </data>
+  <data name="Mem_Align_Huge" xml:space="preserve">
+    <value>Huge</value>
+  </data>
+  <data name="Mem_NumaBlocks_Title" xml:space="preserve">
+    <value>Max memory per NUMA node</value>
+  </data>
+  <data name="Mem_NumaBlocks_Desc" xml:space="preserve">
+    <value>Maximum memory block limit for a single virtual NUMA node. Only needed when tuning multi-node servers.</value>
+  </data>
+  <data name="Mem_BackingType_Title" xml:space="preserve">
+    <value>Memory backing type</value>
+  </data>
+  <data name="Mem_BackingType_Desc" xml:space="preserve">
+    <value>Physical locks real host RAM (lowest latency, allows 1 GB huge pages), while Virtual allocates on demand with compression and page hints. Keep default normally.</value>
+  </data>
+  <data name="Mem_Backing_Physical" xml:space="preserve">
+    <value>Physical</value>
+  </data>
+  <data name="Mem_Backing_Virtual" xml:space="preserve">
+    <value>Virtual</value>
+  </data>
+  <data name="Mem_Backing_Hybrid" xml:space="preserve">
+    <value>Hybrid (per node)</value>
+  </data>
+  <data name="Mem_ColdHint_Title" xml:space="preserve">
+    <value>Cold page hint</value>
+  </data>
+  <data name="Mem_ColdHint_Desc" xml:space="preserve">
+    <value>Marks rarely accessed pages so the host reclaims or swaps them first when RAM is tight.</value>
+  </data>
+  <data name="Mem_HotHint_Title" xml:space="preserve">
+    <value>Hot page hint</value>
+  </data>
+  <data name="Mem_HotHint_Desc" xml:space="preserve">
+    <value>Marks frequently used pages to keep them resident in fast physical RAM.</value>
+  </data>
+  <data name="Mem_Epf_Title" xml:space="preserve">
+    <value>Extended Page Faults (EPF)</value>
+  </data>
+  <data name="Mem_Epf_Desc" xml:space="preserve">
+    <value>Optimizes page-fault scheduling under virtualization. Usually keep default unless tuning specific workloads.</value>
+  </data>
+  <data name="Mem_Compression_Title" xml:space="preserve">
+    <value>Private compression store</value>
+  </data>
+  <data name="Mem_Compression_Desc" xml:space="preserve">
+    <value>Gives this VM a dedicated compressed RAM pool to ease host memory pressure without disk paging.</value>
+  </data>
+  <data name="Mem_GpaPinning_Title" xml:space="preserve">
+    <value>Pin guest memory (GPA)</value>
+  </data>
+  <data name="Mem_GpaPinning_Desc" xml:space="preserve">
+    <value>Locks guest physical memory in place so the host won't move or page it out (common for device passthrough, consumes host RAM upfront).</value>
+  </data>
+  <data name="Mem_EncPolicy_Title" xml:space="preserve">
+    <value>Memory encryption</value>
+  </data>
+  <data name="Mem_EncPolicy_Desc" xml:space="preserve">
+    <value>Protects guest RAM with hardware encryption when supported by the host CPU.</value>
+  </data>
+  <data name="Mem_Enc_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Mem_Enc_IfSupported" xml:space="preserve">
+    <value>When supported</value>
+  </data>
+  <data name="Mem_Enc_Always" xml:space="preserve">
+    <value>Always enabled</value>
+  </data>
+  <data name="Mem_Sgx_Title" xml:space="preserve">
+    <value>SGX</value>
+  </data>
+  <data name="Mem_Sgx_Desc" xml:space="preserve">
+    <value>Enables Intel SGX confidential computing enclaves inside the VM (Intel CPUs only).</value>
+  </data>
+  <data name="Mem_Info_SgxUnsupportedEnabled" xml:space="preserve">
+    <value>This host does not support SGX. Turn SGX off in Confidential Computing, and once disabled it cannot be re-enabled.</value>
+  </data>
+  <data name="Mem_SgxMode_Title" xml:space="preserve">
+    <value>SGX launch control</value>
+  </data>
+  <data name="Mem_SgxMode_Desc" xml:space="preserve">
+    <value>Sets guest permission to access SGX launch control registers.</value>
+  </data>
+  <data name="Mem_SgxMode_Deny" xml:space="preserve">
+    <value>No access</value>
+  </data>
+  <data name="Mem_SgxMode_ReadOnly" xml:space="preserve">
+    <value>Read-only</value>
+  </data>
+  <data name="Mem_SgxMode_ReadWrite" xml:space="preserve">
+    <value>Read/Write</value>
+  </data>
+  <data name="Mem_SgxSize_Title" xml:space="preserve">
+    <value>SGX memory size</value>
+  </data>
+  <data name="Mem_SgxSize_Desc" xml:space="preserve">
+    <value>Dedicated RAM reserved for SGX enclaves (min 2 MiB, 2 MiB steps).</value>
+  </data>
+  <data name="Mem_SgxDefault_Title" xml:space="preserve">
+    <value>SGX default launch control</value>
+  </data>
+  <data name="Mem_SgxDefault_Placeholder" xml:space="preserve">
+    <value>Auto (default)</value>
+  </data>
+  <data name="Mem_SgxDefault_Desc" xml:space="preserve">
+    <value>Optional launch control configuration string. Leave blank for automatic defaults.</value>
+  </data>
+  <data name="Mem_TrackingState_Title" xml:space="preserve">
+    <value>Access tracking</value>
+  </data>
+  <data name="Mem_TrackingState_Desc" xml:space="preserve">
+    <value>Monitors which guest memory pages are active for performance tuning or live migration.</value>
+  </data>
+  <data name="Mem_Tracking_Disabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Mem_Tracking_Enabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="Mem_Tracking_PerNuma" xml:space="preserve">
+    <value>Per NUMA node</value>
+  </data>
+  <data name="Mem_TrackingPolicy_Title" xml:space="preserve">
+    <value>Tracking granularity</value>
+  </data>
+  <data name="Mem_TrackingPolicy_Desc" xml:space="preserve">
+    <value>Page size unit used for access tracking. Coarser sizes use less CPU overhead.</value>
+  </data>
+  <data name="Mem_Tracking_Large" xml:space="preserve">
+    <value>Large</value>
+  </data>
+  <data name="Mem_Tracking_Huge" xml:space="preserve">
+    <value>Huge</value>
+  </data>
+  <data name="Mem_Cxl_Title" xml:space="preserve">
+    <value>CXL memory expansion</value>
+  </data>
+  <data name="Mem_Cxl_Desc" xml:space="preserve">
+    <value>Enables CXL memory pool expansion (requires CXL hardware and compatible Windows build).</value>
+  </data>
+  <data name="Mem_Link_VirtualNo1Gb" xml:space="preserve">
+    <value>Virtual backing does not support 1 GB huge pages, switched to 2 MB large pages.</value>
+  </data>
+  <data name="Mem_Link_1GbNeedsPhysical" xml:space="preserve">
+    <value>1 GB huge pages require physical backing, switched backing type automatically.</value>
+  </data>
+  <data name="Mem_Cond_NeedDynRam" xml:space="preserve">
+    <value>Enable Dynamic Memory first</value>
+  </data>
+  <data name="Mem_Cond_NeedVirtualBacking" xml:space="preserve">
+    <value>Requires Virtual backing (switch from Physical first)</value>
+  </data>
+  <data name="Mem_Cond_NeedTracking" xml:space="preserve">
+    <value>Enable Access Tracking first</value>
+  </data>
+  <data name="Mem_Cond_NeedSgx" xml:space="preserve">
+    <value>Enable SGX first</value>
+  </data>
+  <data name="Mem_Err_MmioEmpty" xml:space="preserve">
+    <value>Enter a valid MMIO value.</value>
+  </data>
+  <data name="Mem_Val_StartupPositive" xml:space="preserve">
+    <value>Startup memory must be greater than 0 MiB.</value>
+  </data>
+  <data name="Mem_Val_MinPositive" xml:space="preserve">
+    <value>Minimum memory must be greater than 0 MiB.</value>
+  </data>
+  <data name="Mem_Val_MaxPositive" xml:space="preserve">
+    <value>Maximum memory must be greater than 0 MiB.</value>
+  </data>
+  <data name="Mem_Val_WeightRange" xml:space="preserve">
+    <value>Memory weight must be between 0 and 10000.</value>
+  </data>
+  <data name="Mem_Val_BufferRange" xml:space="preserve">
+    <value>Memory buffer must be between 5% and 2000%.</value>
+  </data>
+  <data name="Mem_Val_MinGtMax" xml:space="preserve">
+    <value>Minimum memory ({0} MiB) cannot exceed maximum memory ({1} MiB).</value>
+  </data>
+  <data name="Mem_Val_MinGtStartup" xml:space="preserve">
+    <value>Minimum memory ({0} MiB) cannot exceed startup memory ({1} MiB).</value>
+  </data>
+  <data name="Mem_Val_StartupGtMax" xml:space="preserve">
+    <value>Startup memory ({0} MiB) cannot exceed maximum memory ({1} MiB).</value>
+  </data>
+  <data name="Cpu_Group_Compute" xml:space="preserve">
+    <value>Compute Resources</value>
+  </data>
+  <data name="Cpu_Group_Affinity" xml:space="preserve">
+    <value>Core Binding</value>
+  </data>
+  <data name="Cpu_Group_Isa" xml:space="preserve">
+    <value>Instruction Set</value>
+  </data>
+  <data name="Cpu_Group_Topology" xml:space="preserve">
+    <value>Processor Topology</value>
+  </data>
+  <data name="Cpu_Group_Interrupt" xml:space="preserve">
+    <value>Interrupt Control</value>
+  </data>
+  <data name="Cpu_Group_Perfmon" xml:space="preserve">
+    <value>Performance Monitoring</value>
+  </data>
+  <data name="Cpu_Group_Frequency" xml:space="preserve">
+    <value>Frequency Control</value>
+  </data>
+  <data name="Cpu_Group_Addressing" xml:space="preserve">
+    <value>Addressing &amp; Paging</value>
+  </data>
+  <data name="Cpu_Group_Security" xml:space="preserve">
+    <value>Security Isolation</value>
+  </data>
+  <data name="Cpu_Count_Title" xml:space="preserve">
+    <value>Cores (vCPU)</value>
+  </data>
+  <data name="Cpu_Count_Desc" xml:space="preserve">
+    <value>Number of virtual CPU cores assigned to this VM (editable when off).</value>
+  </data>
+  <data name="Cpu_Reserve_Title" xml:space="preserve">
+    <value>Reservation (%)</value>
+  </data>
+  <data name="Cpu_Reserve_Desc" xml:space="preserve">
+    <value>Minimum host CPU capacity guaranteed for this VM even under heavy load.</value>
+  </data>
+  <data name="Cpu_Limit_Title" xml:space="preserve">
+    <value>Limit (%)</value>
+  </data>
+  <data name="Cpu_Limit_Desc" xml:space="preserve">
+    <value>Maximum host CPU capacity this VM can consume to keep the host responsive.</value>
+  </data>
+  <data name="Cpu_Weight_Title" xml:space="preserve">
+    <value>Weight</value>
+  </data>
+  <data name="Cpu_Weight_Desc" xml:space="preserve">
+    <value>Scheduling priority when multiple VMs compete for CPU. Higher gets more share.</value>
+  </data>
+  <data name="Cpu_ReserveMaxLimit" xml:space="preserve">
+    <value>Cannot exceed Limit ({0}%)</value>
+  </data>
+  <data name="Cpu_LimitMinReserve" xml:space="preserve">
+    <value>Cannot be below Reservation ({0}%)</value>
+  </data>
+  <data name="Affinity_Desc" xml:space="preserve">
+    <value>Drag with left mouse button to select multiple cores. Deselect all to unbind and schedule freely.</value>
+  </data>
+  <data name="Affinity_SelectAll" xml:space="preserve">
+    <value>Select all</value>
+  </data>
+  <data name="Affinity_Clear" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="Affinity_PerfOnly" xml:space="preserve">
+    <value>P-cores only</value>
+  </data>
+  <data name="Affinity_EffOnly" xml:space="preserve">
+    <value>E-cores only</value>
+  </data>
+  <data name="Affinity_FreeSchedule" xml:space="preserve">
+    <value>Unbound (auto)</value>
+  </data>
+  <data name="Affinity_BoundCount" xml:space="preserve">
+    <value>Pinned {0} / {1}</value>
+  </data>
+  <data name="Affinity_NoHostProcessors" xml:space="preserve">
+    <value>Host returned no processors available for affinity binding.</value>
+  </data>
+  <data name="Affinity_Tooltip_Logical" xml:space="preserve">
+    <value>Logical CPU {0}</value>
+  </data>
+  <data name="Affinity_Tooltip_Socket" xml:space="preserve">
+    <value>Socket {0}</value>
+  </data>
+  <data name="Affinity_Tooltip_Core" xml:space="preserve">
+    <value>Physical core {0}</value>
+  </data>
+  <data name="Affinity_Tooltip_Numa" xml:space="preserve">
+    <value>NUMA node {0}</value>
+  </data>
+  <data name="Affinity_Aria_Logical" xml:space="preserve">
+    <value>Logical processor {0}</value>
+  </data>
+  <data name="Affinity_ReselectRequired" xml:space="preserve">
+    <value>Saved core preference no longer matches host topology. Pick cores again or clear all and Apply.</value>
+  </data>
+  <data name="Affinity_SavedApplied" xml:space="preserve">
+    <value>Core affinity applied.</value>
+  </data>
+  <data name="Affinity_SavedQueued" xml:space="preserve">
+    <value>Core affinity saved and will take effect after VM starts.</value>
+  </data>
+  <data name="Affinity_SaveIncomplete" xml:space="preserve">
+    <value>Failed to save core affinity.</value>
+  </data>
+  <data name="Affinity_PrefSaved" xml:space="preserve">
+    <value>Startup preference saved.</value>
+  </data>
+  <data name="Affinity_PrefNotSaved" xml:space="preserve">
+    <value>Startup preference not saved.</value>
+  </data>
+  <data name="Affinity_Cleanup" xml:space="preserve">
+    <value>Cleanup note: {0}</value>
+  </data>
+  <data name="Affinity_CurrentGroup" xml:space="preserve">
+    <value>Current CPU group: {0}</value>
+  </data>
+  <data name="Affinity_RetainedGroup" xml:space="preserve">
+    <value>Retained CPU group: {0}</value>
+  </data>
+  <data name="Cpu_Nested_Title" xml:space="preserve">
+    <value>Nested virtualization</value>
+  </data>
+  <data name="Cpu_Nested_Desc" xml:space="preserve">
+    <value>Allows running Hyper-V VMs, containers, or WSL2 inside this VM.</value>
+  </data>
+  <data name="Cpu_LegacyOs_Title" xml:space="preserve">
+    <value>Legacy OS compatibility</value>
+  </data>
+  <data name="Cpu_LegacyOs_Desc" xml:space="preserve">
+    <value>Hides newer CPU instructions so older OSes like Windows 7 can install and boot.</value>
+  </data>
+  <data name="Cpu_Migration_Title" xml:space="preserve">
+    <value>Cross-host migration</value>
+  </data>
+  <data name="Cpu_Migration_Desc" xml:space="preserve">
+    <value>Minimum: keeps baseline instructions to migrate across different CPUs.
+Cluster: keeps features shared across cluster nodes.</value>
+  </data>
+  <data name="Cpu_Mig_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Cpu_Mig_Minimum" xml:space="preserve">
+    <value>Minimum</value>
+  </data>
+  <data name="Cpu_Mig_Cluster" xml:space="preserve">
+    <value>Cluster</value>
+  </data>
+  <data name="Cpu_Brand_Title" xml:space="preserve">
+    <value>Custom CPU name</value>
+  </data>
+  <data name="Cpu_Brand_Desc" xml:space="preserve">
+    <value>Overrides the CPU model name visible inside the VM. Leave blank to show the host CPU.</value>
+  </data>
+  <data name="Cpu_Smt_Title" xml:space="preserve">
+    <value>Hyper-threading (SMT)</value>
+  </data>
+  <data name="Cpu_Smt_Desc" xml:space="preserve">
+    <value>Auto: follows the host.
+Off: 1 thread per virtual core.
+On: groups every 2 vCPUs as threads of 1 dual-thread core.</value>
+  </data>
+  <data name="Cpu_Smt_Inherit" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="Cpu_Smt_Single" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Cpu_Smt_Multi" xml:space="preserve">
+    <value>On</value>
+  </data>
+  <data name="Cpu_Sockets_Title" xml:space="preserve">
+    <value>Sockets</value>
+  </data>
+  <data name="Cpu_Sockets_Desc" xml:space="preserve">
+    <value>Number of virtual CPU sockets presented to the VM (affects per-socket software licenses, keep 1 normally).</value>
+  </data>
+  <data name="Cpu_Sockets_Value" xml:space="preserve">
+    <value>{0} socket(s)</value>
+  </data>
+  <data name="Cpu_Numa_Title" xml:space="preserve">
+    <value>NUMA nodes</value>
+  </data>
+  <data name="Cpu_Numa_Desc" xml:space="preserve">
+    <value>Splits virtual cores into NUMA memory zones for multi-node tuning, keep 1 normally.</value>
+  </data>
+  <data name="Cpu_Numa_Value" xml:space="preserve">
+    <value>{0} node(s)</value>
+  </data>
+  <data name="Cpu_L3_Title" xml:space="preserve">
+    <value>L3 domains per node</value>
+  </data>
+  <data name="Cpu_L3_Desc" xml:space="preserve">
+    <value>Splits L3 cache groups inside each NUMA node. Auto shares one L3 cache per node.</value>
+  </data>
+  <data name="Cpu_L3_Value" xml:space="preserve">
+    <value>{0} group(s)</value>
+  </data>
+  <data name="Cpu_Cluster_Title" xml:space="preserve">
+    <value>Clusters per socket</value>
+  </data>
+  <data name="Cpu_Cluster_Desc" xml:space="preserve">
+    <value>Number of CPU clusters inside each virtual socket. Leave Auto for Hyper-V defaults.</value>
+  </data>
+  <data name="Cpu_Cluster_Value" xml:space="preserve">
+    <value>{0} cluster(s)</value>
+  </data>
+  <data name="Cpu_L3Policy_Title" xml:space="preserve">
+    <value>L3 remainder distribution</value>
+  </data>
+  <data name="Cpu_L3Policy_Desc" xml:space="preserve">
+    <value>When cores don't divide evenly across L3 domains, sets where extra cores are placed.
+Small to large / Large to small: pack toward end or front.
+Even: spread evenly across groups.</value>
+  </data>
+  <data name="Cpu_L3Policy_Current" xml:space="preserve">
+    <value>Current per-node L3 layout: {0} ({1} groups)</value>
+  </data>
+  <data name="Cpu_L3Pol_S2L" xml:space="preserve">
+    <value>Small -&gt; Large</value>
+  </data>
+  <data name="Cpu_L3Pol_L2S" xml:space="preserve">
+    <value>Large -&gt; Small</value>
+  </data>
+  <data name="Cpu_L3Pol_EvenS2L" xml:space="preserve">
+    <value>Even S -&gt; L</value>
+  </data>
+  <data name="Cpu_L3Pol_EvenL2S" xml:space="preserve">
+    <value>Even L -&gt; S</value>
+  </data>
+  <data name="Cpu_Ways_Title" xml:space="preserve">
+    <value>L3 cache ways</value>
+  </data>
+  <data name="Cpu_Ways_Desc" xml:space="preserve">
+    <value>Sets L3 cache associativity reported to the engine (0 = default). Usually leave at default.</value>
+  </data>
+  <data name="Cpu_Ways_Value" xml:space="preserve">
+    <value>{0} way(s)</value>
+  </data>
+  <data name="Cpu_Cond_Only1Vcpu" xml:space="preserve">
+    <value>Only 1 vCPU assigned, cannot split further</value>
+  </data>
+  <data name="Cpu_Cond_Only1PerNuma" xml:space="preserve">
+    <value>Only 1 vCPU per NUMA node, no need to split</value>
+  </data>
+  <data name="Cpu_Cond_L3Auto" xml:space="preserve">
+    <value>Not needed when L3 domains are set to Auto</value>
+  </data>
+  <data name="Cpu_Cond_L3SingleGroup" xml:space="preserve">
+    <value>Not needed when each node has only 1 L3 domain</value>
+  </data>
+  <data name="Topo_PreviewTitle" xml:space="preserve">
+    <value>Preview</value>
+  </data>
+  <data name="Topo_SummaryTotal" xml:space="preserve">
+    <value>Total {0} vCPUs</value>
+  </data>
+  <data name="Topo_SocketLabel" xml:space="preserve">
+    <value>Socket {0}</value>
+  </data>
+  <data name="Topo_NumaLabel" xml:space="preserve">
+    <value>NUMA Node {0}</value>
+  </data>
+  <data name="Topo_ClusterBadge" xml:space="preserve">
+    <value>, {0} clusters</value>
+  </data>
+  <data name="Topo_CoresUnit" xml:space="preserve">
+    <value>{0} cores</value>
+  </data>
+  <data name="Topo_CoreLabel" xml:space="preserve">
+    <value>Core {0}</value>
+  </data>
+  <data name="Topo_PlainRange" xml:space="preserve">
+    <value>{0} logical CPUs (CPU {1}-{2})</value>
+  </data>
+  <data name="Cpu_Apic_Title" xml:space="preserve">
+    <value>Interrupt controller</value>
+  </data>
+  <data name="Cpu_Apic_Desc" xml:space="preserve">
+    <value>Virtual APIC interrupt mode on x64 VMs, keep Default normally.</value>
+  </data>
+  <data name="Cpu_Apic_Legacy" xml:space="preserve">
+    <value>Legacy</value>
+  </data>
+  <data name="Cpu_Lpi_Title" xml:space="preserve">
+    <value>Local peripheral interrupts (LPI)</value>
+  </data>
+  <data name="Cpu_Lpi_Desc" xml:space="preserve">
+    <value>ARM64 peripheral interrupt delivery mode, keep Default normally.</value>
+  </data>
+  <data name="Cpu_HostProtect_Title" xml:space="preserve">
+    <value>Host resource protection</value>
+  </data>
+  <data name="Cpu_HostProtect_Desc" xml:space="preserve">
+    <value>Gently throttles a VM if it keeps hogging host CPU responsiveness so the whole host won't freeze.</value>
+  </data>
+  <data name="Cpu_Acount_Title" xml:space="preserve">
+    <value>Actual frequency counter</value>
+  </data>
+  <data name="Cpu_Acount_Desc" xml:space="preserve">
+    <value>Lets x64 guests read real boost clock ratios so Task Manager shows accurate CPU speed.</value>
+  </data>
+  <data name="Cpu_Pmu_Title" xml:space="preserve">
+    <value>Hardware performance counters (PMU)</value>
+  </data>
+  <data name="Cpu_Pmu_Desc" xml:space="preserve">
+    <value>Exposes Intel hardware performance counters for profilers like VTune.</value>
+  </data>
+  <data name="Cpu_Lbr_Title" xml:space="preserve">
+    <value>Last branch record (LBR)</value>
+  </data>
+  <data name="Cpu_Lbr_Desc" xml:space="preserve">
+    <value>Exposes recent branch history for low-overhead code profiling.</value>
+  </data>
+  <data name="Cpu_Pebs_Title" xml:space="preserve">
+    <value>Precise event sampling (PEBS)</value>
+  </data>
+  <data name="Cpu_Pebs_Desc" xml:space="preserve">
+    <value>Captures exact instruction address and register snapshots during PMU sampling (requires PMU).</value>
+  </data>
+  <data name="Cpu_Ipt_Title" xml:space="preserve">
+    <value>Instruction trace (IPT)</value>
+  </data>
+  <data name="Cpu_Ipt_Desc" xml:space="preserve">
+    <value>Continuously records instruction execution trace in hardware for deep debugging (requires PMU).</value>
+  </data>
+  <data name="Cpu_FreqMin_Title" xml:space="preserve">
+    <value>Minimum frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqMin_Desc" xml:space="preserve">
+    <value>Floor clock frequency to avoid idle wake-up lag. Leave Auto for normal power saving.</value>
+  </data>
+  <data name="Cpu_FreqMax_Title" xml:space="preserve">
+    <value>Maximum frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqMax_Desc" xml:space="preserve">
+    <value>Caps maximum clock speed for thermal or power control. Leave Auto normally.</value>
+  </data>
+  <data name="Cpu_FreqMode_Title" xml:space="preserve">
+    <value>Frequency scaling</value>
+  </data>
+  <data name="Cpu_FreqMode_Desc" xml:space="preserve">
+    <value>Auto scales clock speed with load (recommended).
+Fixed tries to hold the target MHz.</value>
+  </data>
+  <data name="Cpu_FreqMode_Auto" xml:space="preserve">
+    <value>Auto scaling</value>
+  </data>
+  <data name="Cpu_FreqMode_Manual" xml:space="preserve">
+    <value>Fixed frequency</value>
+  </data>
+  <data name="Cpu_FreqDesired_Title" xml:space="preserve">
+    <value>Target frequency (MHz)</value>
+  </data>
+  <data name="Cpu_FreqDesired_Desc" xml:space="preserve">
+    <value>Target clock frequency maintained in Fixed frequency mode.</value>
+  </data>
+  <data name="Cpu_FreqTooltip_Unlimited" xml:space="preserve">
+    <value>Auto (unlimited)</value>
+  </data>
+  <data name="Cpu_Epp_Title" xml:space="preserve">
+    <value>Performance preference</value>
+  </data>
+  <data name="Cpu_Epp_Desc" xml:space="preserve">
+    <value>Auto-scaling bias: left saves more power, right prioritizes peak responsiveness.</value>
+  </data>
+  <data name="Cpu_Epp_Power" xml:space="preserve">
+    <value>Power saver</value>
+  </data>
+  <data name="Cpu_Epp_MorePower" xml:space="preserve">
+    <value>Prefer power</value>
+  </data>
+  <data name="Cpu_Epp_Balanced" xml:space="preserve">
+    <value>Balanced</value>
+  </data>
+  <data name="Cpu_Epp_MorePerf" xml:space="preserve">
+    <value>Prefer performance</value>
+  </data>
+  <data name="Cpu_Epp_Perf" xml:space="preserve">
+    <value>Max performance</value>
+  </data>
+  <data name="Cpu_Window_Title" xml:space="preserve">
+    <value>Activity sampling window</value>
+  </data>
+  <data name="Cpu_Window_Desc" xml:space="preserve">
+    <value>Hardware evaluation window before scaling clocks. Leave blank for Auto.</value>
+  </data>
+  <data name="Cpu_IgnoreHostMax_Title" xml:space="preserve">
+    <value>Ignore host frequency cap</value>
+  </data>
+  <data name="Cpu_IgnoreHostMax_Desc" xml:space="preserve">
+    <value>Allows this VM to boost above a power-saving host cap when hardware limits permit.</value>
+  </data>
+  <data name="Cpu_PageShatter_Title" xml:space="preserve">
+    <value>Large page mitigation</value>
+  </data>
+  <data name="Cpu_PageShatter_Desc" xml:space="preserve">
+    <value>Security mitigation for older Intel CPUs against guest-triggered crashes. Keep Default to decide automatically.</value>
+  </data>
+  <data name="Cpu_PaWidth_Title" xml:space="preserve">
+    <value>Physical address width</value>
+  </data>
+  <data name="Cpu_PaWidth_Desc" xml:space="preserve">
+    <value>Caps physical memory and device MMIO address bits (e.g. 40-bit ≈ 1 TB). Leave Auto unless required by passthrough GPUs.</value>
+  </data>
+  <data name="Cpu_PaWidth_Tooltip" xml:space="preserve">
+    <value>{0}-bit ({1})</value>
+  </data>
+  <data name="Cpu_InvalidBitWidth" xml:space="preserve">
+    <value>Invalid width</value>
+  </data>
+  <data name="Cpu_DisableSpec_Title" xml:space="preserve">
+    <value>Hide speculation controls</value>
+  </data>
+  <data name="Cpu_DisableSpec_Desc" xml:space="preserve">
+    <value>Hides CPU speculation side-channel mitigation controls from the guest (keep off normally).</value>
+  </data>
+  <data name="Cpu_HwIso_Title" xml:space="preserve">
+    <value>Hardware isolation extensions</value>
+  </data>
+  <data name="Cpu_HwIso_Desc" xml:space="preserve">
+    <value>Allows running nested hardware-encrypted isolated VMs (requires host support such as SEV-SNP).</value>
+  </data>
+  <data name="Cpu_HwIsoLimit_Title" xml:space="preserve">
+    <value>Max hardware-isolated guests</value>
+  </data>
+  <data name="Cpu_HwIsoLimit_Desc" xml:space="preserve">
+    <value>Maximum number of nested hardware-isolated VMs allowed.</value>
+  </data>
+  <data name="Cpu_Cond_NeedHwIso" xml:space="preserve">
+    <value>Enable Hardware Isolation Extensions first</value>
+  </data>
+  <data name="Cpu_Val_CountRange" xml:space="preserve">
+    <value>Cores (vCPU) must be between 1 and {0}.</value>
+  </data>
+  <data name="Cpu_Val_ResRange" xml:space="preserve">
+    <value>Processor reservation must be between 0% and 100%.</value>
+  </data>
+  <data name="Cpu_Val_LimRange" xml:space="preserve">
+    <value>Processor limit must be between 0% and 100%.</value>
+  </data>
+  <data name="Cpu_Val_WeightRange" xml:space="preserve">
+    <value>Processor weight must be between 1 and 10000.</value>
+  </data>
+  <data name="Cpu_Val_ResGtLim" xml:space="preserve">
+    <value>Reservation ({0}%) cannot exceed Limit ({1}%).</value>
+  </data>
+  <data name="Cpu_Val_FreqMinGtCap" xml:space="preserve">
+    <value>Minimum frequency ({0} MHz) cannot exceed maximum frequency ({1} MHz).</value>
+  </data>
+  <data name="Cpu_Val_FreqDesiredGtCap" xml:space="preserve">
+    <value>Target frequency ({0} MHz) cannot exceed maximum frequency ({1} MHz).</value>
+  </data>
+  <data name="Cpu_Val_FreqDesiredLtMin" xml:space="preserve">
+    <value>Target frequency ({0} MHz) cannot be below minimum frequency ({1} MHz).</value>
+  </data>
+  <data name="Host_Tab_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Host_Tab_Env" xml:space="preserve">
+    <value>Environment</value>
+  </data>
+  <data name="Host_Tab_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Host_Tab_Switches" xml:space="preserve">
+    <value>Switches</value>
+  </data>
+  <data name="Host_VmRunningSummary" xml:space="preserve">
+    <value>{0}/{1} running</value>
+  </data>
+  <data name="Host_UptimeContinuous" xml:space="preserve">
+    <value>Uptime {0}</value>
+  </data>
+  <data name="Host_HyperVReady" xml:space="preserve">
+    <value>Hyper-V Ready</value>
+  </data>
+  <data name="Host_HyperVNotReady" xml:space="preserve">
+    <value>Hyper-V Not Ready</value>
+  </data>
+  <data name="Host_HyperVCheckTooltip" xml:space="preserve">
+    <value>Inspect Hyper-V platform and readiness checks</value>
+  </data>
+  <data name="Host_Badge_VirtGpuPv" xml:space="preserve">
+    <value>{0} / GPU-PV</value>
+  </data>
+  <data name="Host_Badge_VirtTooltip" xml:space="preserve">
+    <value>CPU virtualization and GPU-PV readiness</value>
+  </data>
+  <data name="Host_Badge_IommuReady" xml:space="preserve">
+    <value>{0} Enabled</value>
+  </data>
+  <data name="Host_Badge_IommuOff" xml:space="preserve">
+    <value>{0} Disabled</value>
+  </data>
+  <data name="Host_Badge_IommuTooltip" xml:space="preserve">
+    <value>{0} device passthrough support</value>
+  </data>
+  <data name="Host_Badge_SchedPowerTooltip" xml:space="preserve">
+    <value>Hyper-V scheduler and active host power plan</value>
+  </data>
+  <data name="Host_Sched_Classic" xml:space="preserve">
+    <value>Classic</value>
+  </data>
+  <data name="Host_Sched_Core" xml:space="preserve">
+    <value>Core</value>
+  </data>
+  <data name="Host_Sched_Root" xml:space="preserve">
+    <value>Root</value>
+  </data>
+  <data name="Host_Sched_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Host_Sched_ClassicFull" xml:space="preserve">
+    <value>Classic Scheduler</value>
+  </data>
+  <data name="Host_Sched_CoreFull" xml:space="preserve">
+    <value>Core Scheduler</value>
+  </data>
+  <data name="Host_Sched_RootFull" xml:space="preserve">
+    <value>Root Scheduler</value>
+  </data>
+  <data name="Host_Cpu_Thread" xml:space="preserve">
+    <value>Thread {0}</value>
+  </data>
+  <data name="Host_Cpu_HostOwner" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Host_Cpu_UnattributedGuest" xml:space="preserve">
+    <value>Guest (Shared)</value>
+  </data>
+  <data name="Host_Cpu_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Host_Cpu_PerfCore" xml:space="preserve">
+    <value>P-Core</value>
+  </data>
+  <data name="Host_Cpu_EffCore" xml:space="preserve">
+    <value>E-Core</value>
+  </data>
+  <data name="Host_Cpu_WarmingUp" xml:space="preserve">
+    <value>Warming up CPU thread sampling...</value>
+  </data>
+  <data name="Host_Cpu_AttributionExact" xml:space="preserve">
+    <value>Root (ETW Per-VM)</value>
+  </data>
+  <data name="Host_Cpu_AttributionCounter" xml:space="preserve">
+    <value>{0} (Shared Counters)</value>
+  </data>
+  <data name="Host_Cpu_LegendTip" xml:space="preserve">
+    <value>Hover to preview, click to lock highlight</value>
+  </data>
+  <data name="Host_Mem_PhysicalCap" xml:space="preserve">
+    <value>Physical Memory</value>
+  </data>
+  <data name="Host_Mem_InUse" xml:space="preserve">
+    <value>In Use</value>
+  </data>
+  <data name="Host_Mem_Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="Host_Mem_VmAllocated" xml:space="preserve">
+    <value>VM Allocated</value>
+  </data>
+  <data name="Host_Mem_VmAllocatedVal" xml:space="preserve">
+    <value>{0} ({1} running)</value>
+  </data>
+  <data name="Host_Mem_NumaSpanning" xml:space="preserve">
+    <value>NUMA Spanning</value>
+  </data>
+  <data name="Host_Mem_PowerPlan" xml:space="preserve">
+    <value>Power Plan</value>
+  </data>
+  <data name="Host_Mem_UsageScale" xml:space="preserve">
+    <value>Memory Usage</value>
+  </data>
+  <data name="Host_Mem_PhysicalSub" xml:space="preserve">
+    <value>{0} physical memory</value>
+  </data>
+  <data name="Host_Mem_RingInUseTitle" xml:space="preserve">
+    <value>Physical Memory In Use</value>
+  </data>
+  <data name="Host_Mem_HostSub" xml:space="preserve">
+    <value>Host OS and processes</value>
+  </data>
+  <data name="Host_Mem_ModeDynamic" xml:space="preserve">
+    <value>Dynamic memory</value>
+  </data>
+  <data name="Host_Mem_ModeFixed" xml:space="preserve">
+    <value>Fixed memory</value>
+  </data>
+  <data name="Host_Mem_FreeTitle" xml:space="preserve">
+    <value>Free Memory</value>
+  </data>
+  <data name="Host_Mem_IdleSubFmt" xml:space="preserve">
+    <value>{0} GB free</value>
+  </data>
+  <data name="Host_Gpu_Partition" xml:space="preserve">
+    <value>GPU-PV Partition</value>
+  </data>
+  <data name="Host_Gpu_Supported" xml:space="preserve">
+    <value>Supported</value>
+  </data>
+  <data name="Host_Gpu_Unsupported" xml:space="preserve">
+    <value>Unsupported</value>
+  </data>
+  <data name="Host_Gpu_Policy" xml:space="preserve">
+    <value>Partition Policy</value>
+  </data>
+  <data name="Host_Gpu_PolicyUnlocked" xml:space="preserve">
+    <value>Restrictions Relaxed</value>
+  </data>
+  <data name="Host_Gpu_PolicyDefault" xml:space="preserve">
+    <value>Default Policy</value>
+  </data>
+  <data name="Host_Gpu_Scale" xml:space="preserve">
+    <value>GPU Engine Utilization</value>
+  </data>
+  <data name="Host_Gpu_UnavailableNote" xml:space="preserve">
+    <value>GPU engine performance counters are unavailable for this adapter.</value>
+  </data>
+  <data name="Host_Disk_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Host_Disk_Title" xml:space="preserve">
+    <value>Disk {0}</value>
+  </data>
+  <data name="Host_Disk_Status" xml:space="preserve">
+    <value>Disk Status</value>
+  </data>
+  <data name="Host_Disk_Capacity" xml:space="preserve">
+    <value>Capacity</value>
+  </data>
+  <data name="Host_Disk_Passthrough" xml:space="preserve">
+    <value>Passthrough Eligibility</value>
+  </data>
+  <data name="Host_Disk_PassthroughOk" xml:space="preserve">
+    <value>Eligible</value>
+  </data>
+  <data name="Host_Disk_PassthroughNo" xml:space="preserve">
+    <value>Excluded (System/Active)</value>
+  </data>
+  <data name="Host_Disk_AutoMount" xml:space="preserve">
+    <value>Auto-Mount Volumes</value>
+  </data>
+  <data name="Host_Disk_NativeNvme" xml:space="preserve">
+    <value>Native NVMe Stack</value>
+  </data>
+  <data name="Host_Disk_Serial" xml:space="preserve">
+    <value>Serial Number</value>
+  </data>
+  <data name="Host_Disk_Path" xml:space="preserve">
+    <value>Device Identifier</value>
+  </data>
+  <data name="Host_Disk_Scale" xml:space="preserve">
+    <value>Active Time / Transfer Rate</value>
+  </data>
+  <data name="Host_Disk_Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Host_Disk_Write" xml:space="preserve">
+    <value>Write</value>
+  </data>
+  <data name="Host_Nic_Media_Wired" xml:space="preserve">
+    <value>Ethernet</value>
+  </data>
+  <data name="Host_Nic_Media_WiFi" xml:space="preserve">
+    <value>Wi-Fi</value>
+  </data>
+  <data name="Host_Nic_Media_Cellular" xml:space="preserve">
+    <value>Cellular</value>
+  </data>
+  <data name="Host_Nic_Media_Tunnel" xml:space="preserve">
+    <value>Tunnel Adapter</value>
+  </data>
+  <data name="Host_Nic_Media_Other" xml:space="preserve">
+    <value>Network Adapter</value>
+  </data>
+  <data name="Host_Nic_LinkState" xml:space="preserve">
+    <value>Link Status</value>
+  </data>
+  <data name="Host_Nic_Connected" xml:space="preserve">
+    <value>Connected ({0})</value>
+  </data>
+  <data name="Host_Nic_ConnectedSimple" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="Host_Nic_MediaBridge" xml:space="preserve">
+    <value>Media &amp; Bridge</value>
+  </data>
+  <data name="Host_Nic_CanBridge" xml:space="preserve">
+    <value>Supports L2 Bridge</value>
+  </data>
+  <data name="Host_Nic_NatOnly" xml:space="preserve">
+    <value>NAT / L3 Only</value>
+  </data>
+  <data name="Host_Nic_Binding" xml:space="preserve">
+    <value>Role / Bound Switch</value>
+  </data>
+  <data name="Host_Nic_Idle" xml:space="preserve">
+    <value>Idle (Bridge / NAT Ready)</value>
+  </data>
+  <data name="Host_Nic_Ipv4" xml:space="preserve">
+    <value>IPv4 Address</value>
+  </data>
+  <data name="Host_Nic_Mac" xml:space="preserve">
+    <value>MAC Address</value>
+  </data>
+  <data name="Host_Nic_AdapterName" xml:space="preserve">
+    <value>Adapter Description</value>
+  </data>
+  <data name="Host_Nic_Scale" xml:space="preserve">
+    <value>Adapter Throughput</value>
+  </data>
+  <data name="Host_Net_Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Host_Net_Recv" xml:space="preserve">
+    <value>Receive</value>
+  </data>
+  <data name="Host_Net_CompactRate" xml:space="preserve">
+    <value>S {0} R {1}</value>
+  </data>
+  <data name="Host_Sw_Scale" xml:space="preserve">
+    <value>Switch Throughput</value>
+  </data>
+  <data name="Host_Sw_Mode" xml:space="preserve">
+    <value>Connection Mode</value>
+  </data>
+  <data name="Host_Sw_Mode_Bridge" xml:space="preserve">
+    <value>Bridge</value>
+  </data>
+  <data name="Host_Sw_Mode_Nat" xml:space="preserve">
+    <value>NAT</value>
+  </data>
+  <data name="Host_Sw_Mode_Isolated" xml:space="preserve">
+    <value>Isolated</value>
+  </data>
+  <data name="Host_Sw_Mode_BridgeFull" xml:space="preserve">
+    <value>Bridge (External)</value>
+  </data>
+  <data name="Host_Sw_Mode_IsolatedFull" xml:space="preserve">
+    <value>Isolated (Private/Internal)</value>
+  </data>
+  <data name="Host_Sw_HostAttach" xml:space="preserve">
+    <value>Host Connection</value>
+  </data>
+  <data name="Host_Sw_HostAttached" xml:space="preserve">
+    <value>Attached</value>
+  </data>
+  <data name="Host_Sw_HostDetached" xml:space="preserve">
+    <value>Not Attached</value>
+  </data>
+  <data name="Host_Sw_HostIpv4" xml:space="preserve">
+    <value>Host Port IPv4</value>
+  </data>
+  <data name="Host_Sw_Endpoints" xml:space="preserve">
+    <value>Connected VMs</value>
+  </data>
+  <data name="Host_Sw_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Host_Sw_MacPool" xml:space="preserve">
+    <value>Dynamic MAC Pool</value>
+  </data>
+  <data name="Host_CopiedNotice" xml:space="preserve">
+    <value>Copied to clipboard: {0}</value>
+  </data>
+  <data name="Host_Env_Refresh" xml:space="preserve">
+    <value>Refresh Checks</value>
+  </data>
+  <data name="Host_Env_Group_Basic" xml:space="preserve">
+    <value>Basic Requirements</value>
+  </data>
+  <data name="Host_Env_CpuVirt" xml:space="preserve">
+    <value>CPU Virtualization</value>
+  </data>
+  <data name="Host_Env_HyperVService" xml:space="preserve">
+    <value>Hyper-V Services</value>
+  </data>
+  <data name="Host_Env_HyperVNotRunning" xml:space="preserve">
+    <value>Not enabled or service stopped</value>
+  </data>
+  <data name="Host_Env_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Host_Env_Disable" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="Host_Env_ToggleConfirmTitle" xml:space="preserve">
+    <value>{0} Hyper-V?</value>
+  </data>
+  <data name="Host_Env_ToggleConfirmBody" xml:space="preserve">
+    <value>Changing Windows Hyper-V features and boot configuration requires Administrator privileges and usually requires a host restart.</value>
+  </data>
+  <data name="Host_Env_ToggleSuccessRestart" xml:space="preserve">
+    <value>Hyper-V configuration updated. Restart the host to apply changes.</value>
+  </data>
+  <data name="Host_Env_ToggleSuccess" xml:space="preserve">
+    <value>Hyper-V configuration updated.</value>
+  </data>
+  <data name="Host_Env_Group_GpuPv" xml:space="preserve">
+    <value>GPU-PV Requirements</value>
+  </data>
+  <data name="Host_Env_OsVersion" xml:space="preserve">
+    <value>OS Version: {0}</value>
+  </data>
+  <data name="Host_Env_PartitionableGpus" xml:space="preserve">
+    <value>Partitionable GPUs detected: {0}</value>
+  </data>
+  <data name="Host_Env_Group_Pcie" xml:space="preserve">
+    <value>PCIe Passthrough Requirements</value>
+  </data>
+  <data name="Host_Env_SmmuStatus" xml:space="preserve">
+    <value>SMMU Status</value>
+  </data>
+  <data name="Host_Env_IommuStatus" xml:space="preserve">
+    <value>IOMMU Status</value>
+  </data>
+  <data name="Host_Env_ServerOs" xml:space="preserve">
+    <value>Windows Server Edition</value>
+  </data>
+  <data name="Host_Env_PendingSwitch" xml:space="preserve">
+    <value>Pending product type switch to {0} (awaiting restart)</value>
+  </data>
+  <data name="Host_Env_Group_Usb" xml:space="preserve">
+    <value>USB Passthrough Requirements</value>
+  </data>
+  <data name="Host_Env_Usbipd" xml:space="preserve">
+    <value>usbipd-win Installed</value>
+  </data>
+  <data name="Host_Env_UsbipdMissing" xml:space="preserve">
+    <value>usbipd-win service or binary not found</value>
+  </data>
+  <data name="Host_Set_Sub_Scheduler" xml:space="preserve">
+    <value>CPU Scheduler</value>
+  </data>
+  <data name="Host_Set_Sub_Power" xml:space="preserve">
+    <value>Power Plan</value>
+  </data>
+  <data name="Host_Set_Sub_Paths" xml:space="preserve">
+    <value>Default Paths</value>
+  </data>
+  <data name="Host_Set_Sub_Storage" xml:space="preserve">
+    <value>Storage Policy</value>
+  </data>
+  <data name="Host_Set_Sub_Mac" xml:space="preserve">
+    <value>Network Policy</value>
+  </data>
+  <data name="Host_Set_Sub_Compat" xml:space="preserve">
+    <value>Compatibility</value>
+  </data>
+  <data name="Host_Set_Sub_Preferences" xml:space="preserve">
+    <value>Session Prefs</value>
+  </data>
+  <data name="Host_Set_Sched_Title" xml:space="preserve">
+    <value>Scheduler</value>
+  </data>
+  <data name="Host_Set_Sched_Desc" xml:space="preserve">
+    <value>Choose Classic, Core, or Root Hyper-V CPU scheduling mode. Changes take effect after a host restart.</value>
+  </data>
+  <data name="Host_Set_Sched_PendingMismatch" xml:space="preserve">
+    <value>Configured for next boot: {0} (currently active: {1})</value>
+  </data>
+  <data name="Host_Set_Sched_ChangedNotice" xml:space="preserve">
+    <value>Scheduler switched to {0}. Restart the host for changes to take effect.</value>
+  </data>
+  <data name="Host_Set_Sched_ClassicBody" xml:space="preserve">
+    <value>Scheduled by the Hypervisor across all logical threads cleanly, so multiple VMs may share the same hardware thread. Best for general performance, and supports CPU groups, cap, weight, and reserve.</value>
+  </data>
+  <data name="Host_Set_Sched_CoreBody" xml:space="preserve">
+    <value>Scheduled by the Hypervisor so sibling SMT threads of a physical core belong exclusively to the same VM. Best for isolation, and supports CPU groups, cap, weight, and reserve.</value>
+  </data>
+  <data name="Host_Set_Sched_RootBody" xml:space="preserve">
+    <value>Scheduled by the Windows kernel scheduler with full hybrid P/E core awareness and dynamic power scaling. CPU groups, cap, weight, and reserve are unsupported, and affinity uses process pinning.</value>
+  </data>
+  <data name="Host_Set_Numa_Title" xml:space="preserve">
+    <value>NUMA Spanning</value>
+  </data>
+  <data name="Host_Set_Numa_Desc" xml:space="preserve">
+    <value>Relevant on multi-NUMA processors. Allows VMs to allocate memory across NUMA nodes at the expense of higher memory latency.</value>
+  </data>
+  <data name="Host_Set_Power_Title" xml:space="preserve">
+    <value>Power Plan</value>
+  </data>
+  <data name="Host_Set_Power_Desc" xml:space="preserve">
+    <value>Enumerate installed Windows power schemes and switch the active plan.</value>
+  </data>
+  <data name="Host_Set_PathVm_Title" xml:space="preserve">
+    <value>Default VM Location</value>
+  </data>
+  <data name="Host_Set_PathVm_Desc" xml:space="preserve">
+    <value>Default host folder for storing new virtual machine configuration files (.vmcx).</value>
+  </data>
+  <data name="Host_Set_PathVhd_Title" xml:space="preserve">
+    <value>Default VHD Location</value>
+  </data>
+  <data name="Host_Set_PathVhd_Desc" xml:space="preserve">
+    <value>Default host folder for storing new virtual hard disk files (.vhdx).</value>
+  </data>
+  <data name="Host_Set_Browse" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Host_Set_AutoMount_Title" xml:space="preserve">
+    <value>Auto-Mount New Disk Volumes</value>
+  </data>
+  <data name="Host_Set_AutoMount_Desc" xml:space="preserve">
+    <value>Controls whether Windows automatically assigns drive letters when new disks or partitions attach. Disable to keep new volumes offline until manually mounted.</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Title" xml:space="preserve">
+    <value>Host Native NVMe</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Desc" xml:space="preserve">
+    <value>Bypasses the legacy SCSI layer to access NVMe SSDs directly for higher random I/O throughput. Requires Windows Build 26100+ and a host restart.</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Restart" xml:space="preserve">
+    <value>Host Native NVMe setting updated. Restart the host to apply changes.</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Unsupported" xml:space="preserve">
+    <value>Requires Windows Build 26100 or later</value>
+  </data>
+  <data name="Host_Set_Mac_Title" xml:space="preserve">
+    <value>Dynamic MAC Address Pool</value>
+  </data>
+  <data name="Host_Set_Mac_Desc" xml:space="preserve">
+    <value>Allocation range for VMs using dynamic MAC addresses. Stagger ranges across multiple Hyper-V hosts on the same network.</value>
+  </data>
+  <data name="Host_Set_Mac_Reset" xml:space="preserve">
+    <value>Restore Default</value>
+  </data>
+  <data name="Host_Set_Mac_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Host_Set_GpuUnlock_Title" xml:space="preserve">
+    <value>Unlock Consumer Hardware Checks</value>
+  </data>
+  <data name="Host_Set_GpuUnlock_Desc" xml:space="preserve">
+    <value>Clears RequireSecureDeviceAssignment and RequireSupportedDeviceAssignment policies so consumer GPUs can be partitioned or assigned.</value>
+  </data>
+  <data name="Host_Set_OpenHcl_Title" xml:space="preserve">
+    <value>Load OpenHCL Firmware from File</value>
+  </data>
+  <data name="Host_Set_OpenHcl_Desc" xml:space="preserve">
+    <value>Allows Hyper-V to load custom OpenHCL or IGVM firmware binaries from local files for customized VM boot environments.</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Title" xml:space="preserve">
+    <value>Switch ProductType to Server</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Desc" xml:space="preserve">
+    <value>Experimental: updates SYSTEM hive ProductType to ServerNT to unlock server features such as native DDA PCIe passthrough after restart. Client-only drivers may fail or BSOD, so proceed carefully.</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmTitle" xml:space="preserve">
+    <value>Confirm Experimental ProductType Switch</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmToServer" xml:space="preserve">
+    <value>This modifies the offline SYSTEM registry hive to switch ProductType to ServerNT after the next reboot. Incompatible drivers may fail during boot. Recovery backups are saved under LocalAppData. Continue?</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmToClient" xml:space="preserve">
+    <value>This prepares switching ProductType back to WinNT on the next reboot. Recovery backups are saved under LocalAppData. Continue?</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Restart" xml:space="preserve">
+    <value>ProductType switch to {0} is queued. Restart the host to apply changes.</value>
+  </data>
+  <data name="Host_Set_EnhancedSession_Title" xml:space="preserve">
+    <value>Enhanced Session Mode</value>
+  </data>
+  <data name="Host_Set_EnhancedSession_Desc" xml:space="preserve">
+    <value>Host-side policy allowing virtual machine consoles to connect using Enhanced Session mode.</value>
+  </data>
+  <data name="Host_Set_AutoConsole_Title" xml:space="preserve">
+    <value>Auto-Open Console on Start</value>
+  </data>
+  <data name="Host_Set_AutoConsole_Desc" xml:space="preserve">
+    <value>Automatically open the console window after starting a powered-off virtual machine.</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Title" xml:space="preserve">
+    <value>Default Power Button Action</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Desc" xml:space="preserve">
+    <value>Default action performed when clicking the main power button for a running VM.</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Shutdown" xml:space="preserve">
+    <value>Shut Down</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Save" xml:space="preserve">
+    <value>Save State</value>
+  </data>
+  <data name="Host_Switches_New" xml:space="preserve">
+    <value>New Switch</value>
+  </data>
+  <data name="Host_Switches_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Host_Switches_Empty" xml:space="preserve">
+    <value>No Hyper-V virtual switches found.</value>
+  </data>
+  <data name="Host_Switches_EndpointsCount" xml:space="preserve">
+    <value>{0} connected VMs</value>
+  </data>
+  <data name="Host_Switches_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Host_Switches_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Host_Switches_DefaultProtected" xml:space="preserve">
+    <value>Default Switch is system-managed and protected</value>
+  </data>
+  <data name="Host_Switches_ModeLabel" xml:space="preserve">
+    <value>Connection Mode</value>
+  </data>
+  <data name="Host_Switches_ModeDesc" xml:space="preserve">
+    <value>Bridge connects to a physical adapter. NAT shares internet through the host. Isolated creates an internal/private switch.</value>
+  </data>
+  <data name="Host_Switches_UpstreamLabel" xml:space="preserve">
+    <value>Upstream Physical Adapter</value>
+  </data>
+  <data name="Host_Switches_UpstreamDesc" xml:space="preserve">
+    <value>Physical upstream adapter identified by HyperVSwitchService.</value>
+  </data>
+  <data name="Host_Switches_UpstreamNone" xml:space="preserve">
+    <value>No upstream / isolated</value>
+  </data>
+  <data name="Host_Switches_MgmtOsLabel" xml:space="preserve">
+    <value>Allow Host OS Sharing</value>
+  </data>
+  <data name="Host_Switches_MgmtOsDesc" xml:space="preserve">
+    <value>Attaches the host OS through an internal virtual adapter on this switch.</value>
+  </data>
+  <data name="Host_Switches_Allow" xml:space="preserve">
+    <value>Allowed</value>
+  </data>
+  <data name="Host_Switches_Deny" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Host_Switches_EndpointsLabel" xml:space="preserve">
+    <value>Connected Endpoints</value>
+  </data>
+  <data name="Host_Switches_EndpointsDesc" xml:space="preserve">
+    <value>Virtual machine adapters discovered on this virtual switch.</value>
+  </data>
+  <data name="Host_Switches_NoEndpoints" xml:space="preserve">
+    <value>No connected VMs</value>
+  </data>
+  <data name="Host_Switches_DialogTitle" xml:space="preserve">
+    <value>New Virtual Switch</value>
+  </data>
+  <data name="Host_Switches_NamePlaceholder" xml:space="preserve">
+    <value>Switch name (e.g. Lab Bridge)</value>
+  </data>
+  <data name="Host_Switches_CreateConfirm" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Host_Switches_DeleteTitle" xml:space="preserve">
+    <value>Delete switch "{0}"?</value>
+  </data>
+  <data name="Host_Switches_DeleteBody" xml:space="preserve">
+    <value>Virtual machine adapters connected to this switch will disconnect and associated ICS sharing will stop.</value>
+  </data>
+  <data name="Host_Switches_Subnet" xml:space="preserve">
+    <value>Subnet: {0}</value>
+  </data>
+  <data name="Host_Cpu_Unattributed" xml:space="preserve"><value>Unattributed</value></data>
+  <data name="Gpu_ForceOffContinue" xml:space="preserve">
+    <value>Force power off and continue</value>
+  </data>
+  <data name="Cp_Delete" xml:space="preserve">
+    <value>Delete checkpoint</value>
+  </data>
+  <data name="Cp_Restore" xml:space="preserve">
+    <value>Apply checkpoint</value>
+  </data>
+  <data name="Cp_Merge" xml:space="preserve">
+    <value>Merge checkpoint</value>
+  </data>
+  <data name="Cp_DeleteBranchBody" xml:space="preserve">
+    <value>Delete "{0}" and all {1} subsequent child checkpoints ({2})? This cannot be undone. To keep subsequent checkpoints, use Merge instead.</value>
+  </data>
+  <data name="Cp_DeleteLeafBody" xml:space="preserve">
+    <value>Permanently delete "{0}"? This cannot be undone.</value>
+  </data>
+  <data name="Cp_RestoreConfirmBody" xml:space="preserve">
+    <value>Restore this VM to "{0}"? Unsaved changes in the current state will be lost, and a running or suspended VM may restart.</value>
+  </data>
+  <data name="Cp_MergeConfirmBody" xml:space="preserve">
+    <value>Merge "{0}" into its parent checkpoint "{1}"? The parent name and all subsequent checkpoints will be kept.</value>
+  </data>
+  <data name="Cp_BadgeCurrent" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Cp_MenuApply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Cp_MenuMerge" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Cp_MenuDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Cp_MenuCreate" xml:space="preserve">
+    <value>New checkpoint</value>
+  </data>
+  <data name="Cp_MenuRename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Cp_RenameLabel" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Cp_SaveAction" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Cp_FullscreenEnter" xml:space="preserve">
+    <value>Fullscreen</value>
+  </data>
+  <data name="Cp_FullscreenExit" xml:space="preserve">
+    <value>Exit fullscreen</value>
+  </data>
+  <data name="Cp_DisabledBanner" xml:space="preserve">
+    <value>Checkpoints are disabled for this VM</value>
+  </data>
+  <data name="Cp_EnableAction" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Cp_Unresolved" xml:space="preserve">
+    <value>Checkpoint writes are paused. Verify the original Hyper-V job and any remaining mounts before making further changes.</value>
+  </data>
+  <data name="Vtpm_ReissueTitle" xml:space="preserve">
+    <value>Replace the VM unlock key?</value>
+  </data>
+  <data name="Vtpm_ReissueBody" xml:space="preserve">
+    <value>VM {0}
+Replacing the key may require the BitLocker recovery key on the next boot. The previous protector can only be restored during this application session.</value>
+  </data>
+  <data name="Host_ProductUnconfirmed" xml:space="preserve">
+    <value>A pending change requires verification.</value>
+  </data>
+  <data name="Host_ProductRecovery" xml:space="preserve">
+    <value>Recovery materials</value>
+  </data>
+  <data name="Host_ProductSubmitted" xml:space="preserve">
+    <value>The hive replacement has been submitted.</value>
+  </data>
+  <data name="Cp_Verified" xml:space="preserve">
+    <value>I verified the original job and remaining resources</value>
+  </data>
+  <data name="Cp_Recheck" xml:space="preserve">
+    <value>Refresh checkpoint state</value>
+  </data>
+  <data name="Cp_Changed" xml:space="preserve">
+    <value>The checkpoint tree changed. Review the updated scope before confirming.</value>
+  </data>
+  <data name="Host_Cpu_Incomplete" xml:space="preserve">
+    <value>Some CPU readings are unavailable. Last valid values are shown where available.</value>
+  </data>
+  <data name="Cp_CleanupMount" xml:space="preserve">
+    <value>Retry cleanup of the original mount</value>
+  </data>
+  <data name="ApiFieldHelp_Missing" xml:space="preserve">
+    <value>缺少字段说明资源。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="ApiFieldHelp_Empty" xml:space="preserve">
+    <value>字段说明资源为空。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Tabs_SelectedSuffix" xml:space="preserve">
+    <value>，已选中</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Dev_CopyLabeledValue" xml:space="preserve">
+    <value>复制{0}：{1}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Dev_OpenFolder" xml:space="preserve">
+    <value>打开所在文件夹</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Dev_ClipboardFailure" xml:space="preserve">
+    <value>无法复制。{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_DefaultResolution" xml:space="preserve">
+    <value>默认分辨率</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_DefaultResolutionHelp" xml:space="preserve">
+    <value>控制台使用基本会话时的默认窗口分辨率，需在关机状态下修改</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_AllowHibernation" xml:space="preserve">
+    <value>允许休眠</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_HibernationHelp" xml:space="preserve">
+    <value>向虚拟机开放 ACPI 休眠（S4）能力，允许来宾系统启用休眠或 Windows 快速启动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ShutdownOnRestart" xml:space="preserve">
+    <value>重启时关机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ShutdownOnRestartHelp" xml:space="preserve">
+    <value>当虚拟机内部请求重启时，改为直接关机而不是重新启动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_BatteryPassthrough" xml:space="preserve">
+    <value>电池透传</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_BatteryHelp" xml:space="preserve">
+    <value>将宿主电池电量与充电状态同步给虚拟机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_EnableConsole" xml:space="preserve">
+    <value>启用控制台</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ConsoleHelp" xml:space="preserve">
+    <value>仅第 2 代虚拟机有效。关闭后会移除虚拟显示与键鼠，无法点击“连接”打开画面，适合纯 RDP、SSH 或显卡直通串流场景</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_LockOnDisconnect" xml:space="preserve">
+    <value>断开时锁屏</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_LockOnDisconnectHelp" xml:space="preserve">
+    <value>关闭控制台连接窗口时，自动锁定虚拟机内的系统</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_NumLock" xml:space="preserve">
+    <value>开机数字小键盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_NumLockHelp" xml:space="preserve">
+    <value>开机时默认开启 NumLock，避免连接控制台时同步关闭宿主小键盘。第 1 代与第 2 代均支持（关机状态可修改）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ConsoleShielded" xml:space="preserve">
+    <value>已在「安全」中开启受防护模式并锁定关闭，需先关闭受防护模式才能启用</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_MaxResolution" xml:space="preserve">
+    <value>最大分辨率（{0} x {1}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_CurrentResolutionPolicy" xml:space="preserve">
+    <value>当前策略 {0}（{1} x {2}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ConsoleDisabled" xml:space="preserve">
+    <value>未启用控制台</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ResolutionShielded" xml:space="preserve">
+    <value>已在「安全」中开启受防护模式并锁定关闭控制台，当前无基本会话显示控制器，需先关闭受防护模式并启用控制台</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ResolutionConsoleDisabled" xml:space="preserve">
+    <value>已关闭「启用控制台」，当前无基本会话显示控制器，开启控制台后才可设置默认分辨率</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ResolutionUnavailable" xml:space="preserve">
+    <value>当前虚拟机没有可用的显示分辨率配置。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ResolutionPolicyUnsupported" xml:space="preserve">
+    <value>当前分辨率策略尚不支持编辑，已保留原值。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_ResolutionPrefix" xml:space="preserve">
+    <value>分辨率：</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_ReadFailed" xml:space="preserve">
+    <value>读取失败</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_InvalidResolution" xml:space="preserve">
+    <value>请输入有效分辨率，如 1280 x 720。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="SettingsView_PageRetained" xml:space="preserve">
+    <value>
+页面已保留，查看后可以再次返回。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Cp_CyclicTree" xml:space="preserve">
+    <value>检查点关系存在循环，无法绘制。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Cp_ReadWriteFailed" xml:space="preserve">
+    <value>无法读取或修改检查点。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_ReadAgain" xml:space="preserve">
+    <value>重新读取</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_SecureBootHelp" xml:space="preserve">
+    <value>决定开机时允许启动哪些系统：Windows 选 Windows，Linux 或第三方签名系统选 UEFI / CA，PE、macOS 或未签名系统选关闭</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_EncryptionHelp" xml:space="preserve">
+    <value>加密保存状态、检查点内存文件以及跨宿主实时迁移数据，开启时会自动启用 vTPM 并签发宿主密钥</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_ShieldingHelp" xml:space="preserve">
+    <value>企业级隔离模式，会强制锁定安全启动、vTPM 与状态加密，并禁用控制台画面与增强会话，仅能通过 RDP 或 SSH 远程连接，个人单机通常无需开启</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_SecureBoot" xml:space="preserve">
+    <value>安全启动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_OpenSourceShielded" xml:space="preserve">
+    <value>受防护的开源 VM</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_StateEncryption" xml:space="preserve">
+    <value>状态与迁移加密</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_Shielding" xml:space="preserve">
+    <value>受防护模式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_InvalidTemplate" xml:space="preserve">
+    <value>安全启动模板标识无效。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_TpmLocksTemplate" xml:space="preserve">
+    <value>若该虚拟机已启用并初始化 vTPM，Hyper-V 会锁定安全启动模板，如需更换请先在「设备」的「vTPM」关闭 vTPM</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_SecureBootGeneration" xml:space="preserve">
+    <value>仅第 2 代虚拟机支持安全启动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_ShieldedLocked" xml:space="preserve">
+    <value>已由受防护模式锁定，需先关闭受防护模式才能更改</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_NoTemplates" xml:space="preserve">
+    <value>宿主机未提供可用的安全启动模板。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_EncryptionGeneration" xml:space="preserve">
+    <value>仅第 2 代虚拟机支持状态与迁移加密</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_ShieldedOn" xml:space="preserve">
+    <value>已由受防护模式锁定开启</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Security_ShieldingGeneration" xml:space="preserve">
+    <value>仅第 2 代虚拟机支持受防护模式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_NoDevice" xml:space="preserve">
+    <value>未检测到虚拟串口设备。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_RunningLocked" xml:space="preserve">
+    <value>虚拟机运行中，串口配置已锁定</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_ConfigLocked" xml:space="preserve">
+    <value>串口配置已锁定</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_OfflineHelp" xml:space="preserve">
+    <value>关闭虚拟机后才可开关连接或修改管道与内核调试设置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_ClearPipe" xml:space="preserve">
+    <value>关闭并清空命名管道</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_EnableDefaultPipe" xml:space="preserve">
+    <value>开启默认命名管道连接</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_ModifyWhenOff" xml:space="preserve">
+    <value>关闭虚拟机后可修改</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_KernelDebug" xml:space="preserve">
+    <value>内核调试</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_Configure" xml:space="preserve">
+    <value>配置串口设置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_PipePath" xml:space="preserve">
+    <value>命名管道路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_Unconfigured" xml:space="preserve">
+    <value>未配置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_PipePlaceholder" xml:space="preserve">
+    <value>管道名或 \\.\pipe\名称</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_NoDebuggerMode" xml:space="preserve">
+    <value>当前宿主未提供 DebuggerMode 属性</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_ToggleDebugger" xml:space="preserve">
+    <value>切换内核调试模式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_PipeRequired" xml:space="preserve">
+    <value>需先配置命名管道后才可开启内核调试模式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_PipeHelp" xml:space="preserve">
+    <value>输入短名称会自动补全为 \\.\pipe\名称，供 PuTTY / WinDbg 连接，留空后应用可断开连接。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_DebuggerMode" xml:space="preserve">
+    <value>内核调试模式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_DebuggerHelp" xml:space="preserve">
+    <value>为 Windows 内核调试器（WinDbg）优化传输，普通串口控制台无需开启，需配置命名管道后启用。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Serial_DebuggerUnavailable" xml:space="preserve">
+    <value>当前宿主未提供 DebuggerMode 属性。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="SettingsView_UnsupportedByHost" xml:space="preserve">
+    <value>当前宿主未提供此设置。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_GenerationUnsupported" xml:space="preserve">
+    <value>第 1 代虚拟机不支持</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_MissingHostKey" xml:space="preserve">
+    <value>缺少当前宿主密钥</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_NotEnabled" xml:space="preserve">
+    <value>未启用</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_AuthorizedHosts" xml:space="preserve">
+    <value>已授权 {0} 个宿主</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_RequiresGen2" xml:space="preserve">
+    <value>仅第 2 代虚拟机支持 vTPM</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_TurnOff" xml:space="preserve">
+    <value>关闭 vTPM</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_TurnOn" xml:space="preserve">
+    <value>启用 vTPM</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_Configure" xml:space="preserve">
+    <value>配置 vTPM 密钥与高级安全设置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_ConfirmOff" xml:space="preserve">
+    <value>确认关闭</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_DisableEncryptionWarning" xml:space="preserve">
+    <value>关闭将同时关闭「状态与迁移加密」，且系统内 BitLocker 可能要求恢复密钥。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_BitLockerWarning" xml:space="preserve">
+    <value>关闭后系统内依赖 vTPM 的 BitLocker 或安全解锁功能将受影响。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_DisablePrompt" xml:space="preserve">
+    <value>确认关闭 vTPM？</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_Unbound" xml:space="preserve">
+    <value>未绑定</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_CurrentHostLabel" xml:space="preserve">
+    <value>{0}（当前宿主）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_NotGenerated" xml:space="preserve">
+    <value>未生成</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_BoundHosts" xml:space="preserve">
+    <value>绑定宿主</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_CopyFingerprint" xml:space="preserve">
+    <value>点击复制签名指纹：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_StateFile" xml:space="preserve">
+    <value>状态文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_OpenStateFolder" xml:space="preserve">
+    <value>打开状态文件所在文件夹</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_RunningLocked" xml:space="preserve">
+    <value>虚拟机运行中，vTPM 开关已锁定</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_OfflineToggle" xml:space="preserve">
+    <value>关闭虚拟机后才可开启或关闭 vTPM</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_HostCannotUnlock" xml:space="preserve">
+    <value>当前宿主无法解开此 vTPM</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_RebindHint" xml:space="preserve">
+    <value>虚拟机可能从其他宿主拷贝而来，需重新绑定后才可启动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_RebindHost" xml:space="preserve">
+    <value>重新绑定当前宿主</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_ShieldingLocksTpm" xml:space="preserve">
+    <value>已启用受防护模式，vTPM 已锁定开启</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_DisableShieldingHint" xml:space="preserve">
+    <value>如需关闭请先前往「高级 → 策略」关闭受防护模式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_Keys" xml:space="preserve">
+    <value>密钥</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_Policy" xml:space="preserve">
+    <value>策略</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_OnlyGen2" xml:space="preserve">
+    <value>仅第 2 代虚拟机支持</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_Reissue" xml:space="preserve">
+    <value>重新签发</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_ReissueHelp" xml:space="preserve">
+    <value>使用当前宿主证书重新生成 vTPM 解锁密钥，适用于从其他宿主迁移后无法开机时修复。若系统内启用了 BitLocker，下次开机需要输入恢复密钥</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_Issue" xml:space="preserve">
+    <value>签发</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_UndoChange" xml:space="preserve">
+    <value>撤销上次修改</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_RestoreHelp" xml:space="preserve">
+    <value>恢复到上一次修改或重签之前还能正常启动的解锁密钥</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_Restore" xml:space="preserve">
+    <value>还原</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_NoPreviousKey" xml:space="preserve">
+    <value>本次会话暂无可还原的历史密钥</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_ExportCertificate" xml:space="preserve">
+    <value>导出宿主证书</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_AddAuthorization" xml:space="preserve">
+    <value>添加授权</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_CurrentHost" xml:space="preserve">
+    <value>当前宿主</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_UnboundHost" xml:space="preserve">
+    <value>尚未绑定  {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_Remove" xml:space="preserve">
+    <value>移除</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_Authorized" xml:space="preserve">
+    <value>已授权</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_AuthorizeOtherHost" xml:space="preserve">
+    <value>授权其他宿主启动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_AuthorizationHelp" xml:space="preserve">
+    <value>导出当前宿主证书供其他宿主导入，或选择其他宿主导出的证书文件以允许其直接启动此虚拟机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_RunningPolicyLocked" xml:space="preserve">
+    <value>虚拟机运行中，密钥操作与安全策略已锁定</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_OfflinePolicy" xml:space="preserve">
+    <value>关闭虚拟机后才可修改密钥授权与安全隔离策略</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_OpenFolderFailed" xml:space="preserve">
+    <value>无法打开状态文件所在文件夹。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_HostCertificate" xml:space="preserve">
+    <value>宿主证书</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_CertificatePassword" xml:space="preserve">
+    <value>证书密码（无密码时留空）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_ReadCertificate" xml:space="preserve">
+    <value>读取宿主证书</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_Continue" xml:space="preserve">
+    <value>继续</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_VerifyCertificate" xml:space="preserve">
+    <value>核对宿主证书</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_SelectHostXml" xml:space="preserve">
+    <value>选择宿主 XML</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_BindPhysicalTpm" xml:space="preserve">
+    <value>绑定宿主物理 TPM</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_BindPhysicalTpmHelp" xml:space="preserve">
+    <value>将解锁密钥绑定到当前宿主主板的物理 TPM 芯片，整机拷贝到其他宿主将无法启动，更换主板后也无法解锁</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_DisableVbs" xml:space="preserve">
+    <value>禁用 VBS</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_DisableVbsHelp" xml:space="preserve">
+    <value>关闭虚拟机内部的基于虚拟化的安全（VBS，如内核隔离与内存完整性），仅在兼容排障时开启</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_DisallowMigration" xml:space="preserve">
+    <value>禁止跨宿主迁移</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_DisallowMigrationHelp" xml:space="preserve">
+    <value>限制此虚拟机禁止在多台 Hyper-V 宿主之间进行实时迁移或导出受保护状态</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_PolicyLocked" xml:space="preserve">
+    <value>策略已锁定</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_PolicyRequiresGen2" xml:space="preserve">
+    <value>仅第 2 代虚拟机支持 vTPM 策略。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_ShieldedPolicyLocked" xml:space="preserve">
+    <value>已启用受防护模式，安全策略已锁定</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_PolicyUnlockHelp" xml:space="preserve">
+    <value>如需修改请先前往「高级 → 策略」关闭受防护模式，密钥修复不受影响</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_ShieldingLock" xml:space="preserve">
+    <value>已由受防护模式锁定</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_UnknownPolicy" xml:space="preserve">
+    <value>当前宿主未提供可识别的策略值</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Vtpm_EnableFirst" xml:space="preserve">
+    <value>需先开启 vTPM 后才可修改</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_ToggleLabel" xml:space="preserve">
+    <value>切换{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_StartSetup" xml:space="preserve">
+    <value>开始配置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_OperationDetails" xml:space="preserve">
+    <value>操作详情</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_InstallDrivers" xml:space="preserve">
+    <value>安装驱动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_InstallDriversHelp" xml:space="preserve">
+    <value>添加显卡后继续识别系统分区并部署驱动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_Remove" xml:space="preserve">
+    <value>移除显卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_HostVersion" xml:space="preserve">
+    <value>{0}（宿主 {1}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_NotDeployed" xml:space="preserve">
+    <value>未部署（宿主 {0}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_HostDedicatedMemory" xml:space="preserve">
+    <value>宿主专用显存</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_UpdateDriverVersion" xml:space="preserve">
+    <value>更新驱动（宿主新版本 {0}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_InstallDriverVersion" xml:space="preserve">
+    <value>安装/更新驱动（宿主版本 {0}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_NoneAssigned" xml:space="preserve">
+    <value>未添加显卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_Add" xml:space="preserve">
+    <value>添加显卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_SelectHostHelp" xml:space="preserve">
+    <value>选择宿主机显卡以启用硬件图形加速</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_NoHostAdapters" xml:space="preserve">
+    <value>未找到宿主显卡。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_PartitionUnsupported" xml:space="preserve">
+    <value>不支持 GPU 分区</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_DedicatedMemory" xml:space="preserve">
+    <value>专用显存 {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_NoPartitionSupport" xml:space="preserve">
+    <value>不支持分区</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_AlreadyAdded" xml:space="preserve">
+    <value>已添加</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_NoLinuxScripts" xml:space="preserve">
+    <value>未取得 Linux 部署脚本清单，可能是网络或索引不可用。Windows 驱动部署不受影响。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_HostGpuMissing" xml:space="preserve">
+    <value>找不到对应的宿主 GPU，无法确认可同步的驱动版本。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_RemoveAssignment" xml:space="preserve">
+    <value>移除显卡分配</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ConfirmRemove" xml:space="preserve">
+    <value>确定要从当前虚拟机移除“{0}”？</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_RemovedAdapter" xml:space="preserve">
+    <value>移除适配器：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ResultSuccess" xml:space="preserve">
+    <value>成功：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ErrorKind" xml:space="preserve">
+    <value>错误类型：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ResultMessage" xml:space="preserve">
+    <value>信息：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_RemovalUnknown" xml:space="preserve">
+    <value>移除操作的最终结果尚未确认，不会自动重试，请先核实底层操作。
+</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_RefreshAssignmentsFailed" xml:space="preserve">
+    <value>分配清单刷新失败：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_EffectiveAfterRestart" xml:space="preserve">
+    <value>虚拟机重启后生效。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_AssignmentRemoved" xml:space="preserve">
+    <value>GPU 分配已移除。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_OperationIncomplete" xml:space="preserve">
+    <value>操作未完成</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_CopiedLabel" xml:space="preserve">
+    <value>已复制{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ReselectPartition" xml:space="preserve">
+    <value>重选分区</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_SkipDriver" xml:space="preserve">
+    <value>跳过驱动</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_MountDriverDisc" xml:space="preserve">
+    <value>挂载驱动光盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_StartAndContinue" xml:space="preserve">
+    <value>开机并继续</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BitLockerHelp" xml:space="preserve">
+    <value>无法向 BitLocker 分区安装驱动，需要先解锁，或挂载驱动光盘。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_DeploymentPlan" xml:space="preserve">
+    <value>部署方案</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ScriptAttribution" xml:space="preserve">
+    <value>{0}（作者：{1}，版本：{2}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ScriptListPending" xml:space="preserve">
+    <value>正在加载或未取得脚本清单，如确认网络可用，请返回重选后重试。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_SelectLinuxScript" xml:space="preserve">
+    <value>请选择适用于目标 Linux 发行版的部署脚本。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_HostAddress" xml:space="preserve">
+    <value>主机 / IP</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_Port" xml:space="preserve">
+    <value>端口</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_UserName" xml:space="preserve">
+    <value>用户名</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_Password" xml:space="preserve">
+    <value>密码</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_InstallGraphics" xml:space="preserve">
+    <value>安装图形支持</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_UseDownloadProxy" xml:space="preserve">
+    <value>来宾脚本下载使用 HTTP 代理</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ProxyHost" xml:space="preserve">
+    <value>代理主机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ProxyPort" xml:space="preserve">
+    <value>代理端口</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_StartDeployment" xml:space="preserve">
+    <value>开始部署</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ProxyHelp" xml:space="preserve">
+    <value>代理供来宾下载部署脚本使用，不用于 SSH 连接。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_CancelDeployment" xml:space="preserve">
+    <value>取消部署</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_Reconcile" xml:space="preserve">
+    <value>核实原操作</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_RetryCleanup" xml:space="preserve">
+    <value>重试清理</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BackToList" xml:space="preserve">
+    <value>返回显卡列表</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_Reselect" xml:space="preserve">
+    <value>重新选择显卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_RecoveryDetails" xml:space="preserve">
+    <value>部署日志与恢复详情</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_CopyLog" xml:space="preserve">
+    <value>复制日志</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_ReadVmNameFailed" xml:space="preserve">
+    <value>无法读取虚拟机名称。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_EmptyVmName" xml:space="preserve">
+    <value>虚拟机名称为空。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_RefreshFailed" xml:space="preserve">
+    <value>GPU 清单刷新失败：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_DeploymentFailed" xml:space="preserve">
+    <value>部署失败</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_OutcomeUnknown" xml:space="preserve">
+    <value>原操作结果尚未确认</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_CleanupRequired" xml:space="preserve">
+    <value>仍有资源需要清理</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_DeploymentCancelled" xml:space="preserve">
+    <value>部署已取消</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_StatusNotice" xml:space="preserve">
+    <value>状态提示</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_Skipped" xml:space="preserve">
+    <value>已跳过</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_UnfinishedDeployment" xml:space="preserve">
+    <value>当前已有尚未清理完成的 GPU 部署，请先处理清理结果。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_CleanupPending" xml:space="preserve">
+    <value>GPU 部署尚未完成清理。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_DeploymentId" xml:space="preserve">
+    <value>部署编号：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_StatusAndOutcome" xml:space="preserve">
+    <value>状态：{0}，结果未知：{1}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_AddedAdapter" xml:space="preserve">
+    <value>本次新增适配器：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_PendingCleanupAdapter" xml:space="preserve">
+    <value>待清理适配器：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_LogCopied" xml:space="preserve">
+    <value>已复制部署日志</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_InvalidVlanId" xml:space="preserve">
+    <value>VLAN ID 必须是 1 至 4094 之间的整数。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_InvalidVlanList" xml:space="preserve">
+    <value>允许的 VLAN 列表须使用 1 至 4094 的编号或升序区间，例如 10,20-30。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_InvalidSecondaryVlan" xml:space="preserve">
+    <value>辅助 VLAN ID 必须是 1 至 4094 之间的整数，并且与主 VLAN ID 不同。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_LegacyUnsupported" xml:space="preserve">
+    <value>第 2 代虚拟机不支持旧版网卡。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_LegacyNeedsShutdown" xml:space="preserve">
+    <value>关闭第 1 代虚拟机后可添加旧版网卡。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_LegacyUnknownGeneration" xml:space="preserve">
+    <value>无法确认虚拟机代数，旧版网卡不可用。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_LegacyAdapter" xml:space="preserve">
+    <value>旧版网卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_LegacyAdapterHelp" xml:space="preserve">
+    <value>默认关闭，绝大多数系统请使用标准高速网卡。仅在第 1 代虚机安装 XP 等老旧系统，或需要传统 BIOS PXE 引导时开启。只能在关机状态添加，且不支持硬件加速。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AddedConnected" xml:space="preserve">
+    <value>已添加网卡并连接到 {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AddedDisconnected" xml:space="preserve">
+    <value>已添加未连接的网卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_RetainedAdapter" xml:space="preserve">
+    <value>保留的网卡：{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_CurrentlyUnavailable" xml:space="preserve">
+    <value>{0}（当前不可用）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_NoSwitchCanCreate" xml:space="preserve">
+    <value>宿主机没有可用的虚拟交换机，可以先创建未连接的网卡。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_NoSwitch" xml:space="preserve">
+    <value>宿主机没有可用的虚拟交换机。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_ChooseSwitchHelp" xml:space="preserve">
+    <value>选择要连接的宿主机虚拟交换机，或设为“未连接”</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_ChangeSwitchHelp" xml:space="preserve">
+    <value>切换网卡接入的虚拟交换机，或设为“未连接”拔出虚拟网线</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_VirtualSwitch" xml:space="preserve">
+    <value>虚拟交换机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_InvalidStaticMac" xml:space="preserve">
+    <value>静态 MAC 地址须为 12 位十六进制字符。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_InvalidStaticMacExample" xml:space="preserve">
+    <value>静态 MAC 地址须为 12 位十六进制字符，例如 {0}。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_StaticMac" xml:space="preserve">
+    <value>静态 MAC 地址</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_EnterStaticMac" xml:space="preserve">
+    <value>请输入静态 MAC 地址</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_StaticMacInput" xml:space="preserve">
+    <value>静态 MAC 地址输入框</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AutoAssign" xml:space="preserve">
+    <value>自动分配</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Unassigned" xml:space="preserve">
+    <value>尚未分配</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_CopyMac" xml:space="preserve">
+    <value>复制 MAC 地址</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_CopiedMac" xml:space="preserve">
+    <value>已复制 MAC 地址</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AddStaticMacHelp" xml:space="preserve">
+    <value>关闭时由地址池动态分配，开启后可手动指定 12 位十六进制静态 MAC 地址，仅关机状态下可设置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_ChangeStaticMacHelp" xml:space="preserve">
+    <value>关闭时由地址池自动分配，开启后可手动指定 12 位十六进制静态 MAC 地址，仅关机状态下可修改</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_StaticMacRequiresShutdown" xml:space="preserve">
+    <value>关闭虚拟机后可设置静态 MAC 地址。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Bridged" xml:space="preserve">
+    <value>外部桥接</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Isolated" xml:space="preserve">
+    <value>内部隔离</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Private" xml:space="preserve">
+    <value>专用</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_IpQueryIncomplete" xml:space="preserve">
+    <value>IP 地址查询未完成</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_OutcomeUnknown" xml:space="preserve">
+    <value>网卡操作结果待确认</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_VerifyConfiguration" xml:space="preserve">
+    <value>请核对网卡配置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Loading" xml:space="preserve">
+    <value>正在加载网卡配置…</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_ListLoadFailed" xml:space="preserve">
+    <value>未能加载网卡列表</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_ReloadHelp" xml:space="preserve">
+    <value>读取当前虚拟机网卡配置未完成，可重新加载。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_Reload" xml:space="preserve">
+    <value>重新加载</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AddAdapter" xml:space="preserve">
+    <value>添加网卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_ConfigurePort" xml:space="preserve">
+    <value>配置端口策略</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_RemoveAdapter" xml:space="preserve">
+    <value>移除网卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_CollapseDetails" xml:space="preserve">
+    <value>折叠网卡详情</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_ExpandDetails" xml:space="preserve">
+    <value>展开网卡详情</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Querying" xml:space="preserve">
+    <value>正在查询…</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_NotRetrieved" xml:space="preserve">
+    <value>未获取</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_CopyFirstIpv4" xml:space="preserve">
+    <value>复制首个 IPv4 地址</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_CopyLabel" xml:space="preserve">
+    <value>复制 {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AdapterType" xml:space="preserve">
+    <value>网卡类型</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_StandardAdapter" xml:space="preserve">
+    <value>标准网卡</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PortPolicy" xml:space="preserve">
+    <value>端口策略</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Legacy" xml:space="preserve">
+    <value>旧版</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_LimitRate" xml:space="preserve">
+    <value>限速 {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AllowMacSpoofing" xml:space="preserve">
+    <value>允许 MAC 欺骗</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_DhcpGuard" xml:space="preserve">
+    <value>DHCP 防护</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_RouterGuard" xml:space="preserve">
+    <value>路由器防护</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Teaming" xml:space="preserve">
+    <value>网卡组队</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_MirrorSourceSummary" xml:space="preserve">
+    <value>镜像: 源</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_MirrorSource" xml:space="preserve">
+    <value>镜像源</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_MirrorDestinationSummary" xml:space="preserve">
+    <value>镜像: 目标</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_MirrorDestination" xml:space="preserve">
+    <value>镜像目标</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_StormLimitSummary" xml:space="preserve">
+    <value>风暴限制 {0} 包/秒</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_RemovePrompt" xml:space="preserve">
+    <value>移除“{0}”后，将断开这张网卡的连接。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Removed" xml:space="preserve">
+    <value>已移除“{0}”</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PausedUnknown" xml:space="preserve">
+    <value>{0}
+底层任务的最终结果尚未确认，已暂停本次程序内对此虚拟机的网卡修改。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_RefreshFailure" xml:space="preserve">
+    <value>{0}
+刷新失败：{1}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SriovBandwidthCaution" xml:space="preserve">
+    <value>已启用 SR-IOV 硬件直通，出站带宽上限限速可能被硬件通道绕过</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PacketsPerSecond" xml:space="preserve">
+    <value>包/秒</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_UnlimitedRate" xml:space="preserve">
+    <value>不限速</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_NoLimit" xml:space="preserve">
+    <value>不限制</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_OutboundLimit" xml:space="preserve">
+    <value>出站带宽上限</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_StormLimit" xml:space="preserve">
+    <value>风暴限制</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_OutboundLimitHelp" xml:space="preserve">
+    <value>限制此网卡向外部发送数据的最大速率，0 表示不限速</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_StormLimitHelp" xml:space="preserve">
+    <value>限制每秒广播、组播与未知单播风暴流量上限，0 表示不限制</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_FieldValue" xml:space="preserve">
+    <value>{0}数值</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_VlanMode" xml:space="preserve">
+    <value>VLAN 模式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_VlanModeHelp" xml:space="preserve">
+    <value>划分虚拟局域网隔离广播域，支持 Access、Trunk 与 PVLAN 模式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_VlanListHelp" xml:space="preserve">
+    <value>VLAN 列表须使用 1 至 4094 的编号或升序区间，例如 10, 20, 30-40</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_VlanDisconnected" xml:space="preserve">
+    <value>未连接虚拟交换机，策略将在接入后生效</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_NatVlanWarning" xml:space="preserve">
+    <value>NAT 交换机开启 VLAN 后无法访问外网</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_BridgeVlanWarning" xml:space="preserve">
+    <value>需物理网卡与上游交换机放行对应 VLAN</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_TrunkVlanWarning" xml:space="preserve">
+    <value>须在虚拟机系统内配置对应 VLAN 子接口</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PrivateVlanWarning" xml:space="preserve">
+    <value>隔离与团体端口需同主 VLAN 混杂端口才可通网关</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AccessVlanId" xml:space="preserve">
+    <value>接入 VLAN ID</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AccessVlanHelp" xml:space="preserve">
+    <value>该端口仅收发此单一 VLAN 标签流量</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_NativeVlan" xml:space="preserve">
+    <value>本征 VLAN</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_NativeVlanHelp" xml:space="preserve">
+    <value>未标记帧所属的默认 VLAN</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AllowedVlans" xml:space="preserve">
+    <value>允许的 VLAN 列表</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PrivateVlanRole" xml:space="preserve">
+    <value>专用 VLAN 端口角色</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PrivateVlanRoleHelp" xml:space="preserve">
+    <value>隔离端口仅可与混杂端口通信，团体端口可在同团体内互访</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_IsolatedPort" xml:space="preserve">
+    <value>隔离</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_CommunityPort" xml:space="preserve">
+    <value>团体</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PromiscuousPort" xml:space="preserve">
+    <value>混杂</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PrimaryVlanId" xml:space="preserve">
+    <value>主 VLAN ID</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PrimaryVlanHelp" xml:space="preserve">
+    <value>指定主 VLAN 编号</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SecondaryVlanId" xml:space="preserve">
+    <value>辅助 VLAN ID</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SecondaryVlanHelp" xml:space="preserve">
+    <value>指定次级隔离或团体 VLAN 编号</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_UnknownVlanMode" xml:space="preserve">
+    <value>无法识别当前 VLAN 模式，选择模式后可以重新配置此端口</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_VlanRangeHelp" xml:space="preserve">
+    <value>{0}，有效范围 1 至 4094</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_VlanRangeExamples" xml:space="preserve">
+    <value>支持逗号与区间，例如 10, 20, 30-40</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_LegacyNoSriov" xml:space="preserve">
+    <value>旧版网卡不支持 SR-IOV。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SriovSwitchRequired" xml:space="preserve">
+    <value>请先连接支持 SR-IOV 的虚拟交换机。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_NoVirtualFunctions" xml:space="preserve">
+    <value>所选交换机报告的虚拟功能容量为 0，无法启用 SR-IOV。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_MacSpoofingHelp" xml:space="preserve">
+    <value>允许虚拟机修改发出帧的源 MAC 地址，软路由、嵌套虚拟化或负载均衡场景需开启</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AllowTeaming" xml:space="preserve">
+    <value>允许网卡组队</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_TeamingHelp" xml:space="preserve">
+    <value>仅开启组队权限，需进入虚拟机系统内将此网卡与同一台虚拟机的其他网卡绑定聚合，不可在此选择成员</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_DhcpGuardHelp" xml:space="preserve">
+    <value>拦截来自该虚拟机的非法 DHCP 响应报文，防止局域网地址欺骗</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_RouterGuardHelp" xml:space="preserve">
+    <value>拦截来自该虚拟机的非法 IPv6 路由器通告与重定向报文</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PortMirroring" xml:space="preserve">
+    <value>端口镜像</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PortMirroringHelp" xml:space="preserve">
+    <value>将此网卡设为端口流量抓包监控的源端口或接收镜像的目标端口</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SourcePort" xml:space="preserve">
+    <value>源端口</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_DestinationPort" xml:space="preserve">
+    <value>目标端口</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SriovHelp" xml:space="preserve">
+    <value>为虚拟机直通物理网卡硬件通道，需物理网卡与虚拟交换机同时支持，启用后将绕过软交换机策略、镜像与限速</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_UnknownHardwareHelp" xml:space="preserve">
+    <value>。无法读取所选交换机的硬件能力，实际支持情况由 Hyper-V 确认。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_Sriov" xml:space="preserve">
+    <value>SR-IOV 硬件直通</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SriovWarning" xml:space="preserve">
+    <value>SR-IOV 硬件直通可能绕过虚拟交换机的软件策略、镜像与流量限制</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_EnterStaticMacExample" xml:space="preserve">
+    <value>请输入有效的静态 MAC 地址，例如 {0}。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_InvalidBandwidth" xml:space="preserve">
+    <value>请输入有效的 Mbps 数值，出站带宽上限不能低于已配置的带宽保留值。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_InvalidStormLimit" xml:space="preserve">
+    <value>风暴限制须为 0 至 4294967295 之间的整数。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SwitchConnection" xml:space="preserve">
+    <value>交换机连接</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_SecurityAndPassthrough" xml:space="preserve">
+    <value>安全与硬件直通设置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PortSecurity" xml:space="preserve">
+    <value>端口安全策略</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_AppliedStep" xml:space="preserve">
+    <value>已应用{0}。
+</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_StepIncomplete" xml:space="preserve">
+    <value>{0}{1}未完成。{2}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Net_PortPolicyApplied" xml:space="preserve">
+    <value>已应用“{0}”的端口策略</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_HardDisk" xml:space="preserve">
+    <value>硬盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_OpticalDrive" xml:space="preserve">
+    <value>光驱</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AttachFile" xml:space="preserve">
+    <value>连接文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CreateIso" xml:space="preserve">
+    <value>新建 ISO</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CreateDisk" xml:space="preserve">
+    <value>新建硬盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AddMethod" xml:space="preserve">
+    <value>添加方式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VhdCapacityLimit" xml:space="preserve">
+    <value>VHD 格式上限为 2040 GiB</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UseVhdx" xml:space="preserve">
+    <value>改存 .vhdx</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CapacityRange" xml:space="preserve">
+    <value>容量须为 1 至 {0} GiB 的整数</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SequentialSlots" xml:space="preserve">
+    <value>已选 {0} 项，将从所选插槽起依次挂接</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_NotEnoughSlots" xml:space="preserve">
+    <value>可用插槽不足，请减少所选设备</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ProbingDevices" xml:space="preserve">
+    <value>正在检测宿主设备…</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CheckingPath" xml:space="preserve">
+    <value>正在检查路径…</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CheckingParentChain" xml:space="preserve">
+    <value>正在核验父链…</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_NoParentSelected" xml:space="preserve">
+    <value>未选择父盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_NoHostOptical" xml:space="preserve">
+    <value>未检测到宿主机物理光驱</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_NoHostDisks" xml:space="preserve">
+    <value>未检测到宿主机物理磁盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SelectIsoFolder" xml:space="preserve">
+    <value>请选择可读取的 ISO 来源目录。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ParentExtensionMismatch" xml:space="preserve">
+    <value>保存后缀与父盘 {0} 不一致</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ChangeExtension" xml:space="preserve">
+    <value>改为 {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_PhysicalDvdRequiresIde" xml:space="preserve">
+    <value>第 2 代虚拟机不支持物理光驱直通（仅第 1 代 IDE 支持）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SwitchToFile" xml:space="preserve">
+    <value>改用连接文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_HostDvd" xml:space="preserve">
+    <value>宿主光驱</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_HostDisk" xml:space="preserve">
+    <value>宿主磁盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Rescan" xml:space="preserve">
+    <value>重新检测</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SourceFolder" xml:space="preserve">
+    <value>来源目录</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VolumeLabel" xml:space="preserve">
+    <value>卷标</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_OutputPath" xml:space="preserve">
+    <value>输出路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SaveTo" xml:space="preserve">
+    <value>保存到</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DiskFilePath" xml:space="preserve">
+    <value>虚拟磁盘文件路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DiskExtensionHelp" xml:space="preserve">
+    <value>按文件扩展名区分 .vhd / .vhdx</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DiskType" xml:space="preserve">
+    <value>磁盘类型</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DiskTypeHelp" xml:space="preserve">
+    <value>动态扩展：按写入块动态分配宿主机空间。
+固定大小：创建时按逻辑容量一次性预分配全部空间。
+差异磁盘：链接只读父盘，仅记录增量写入块。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DifferencingDisk" xml:space="preserve">
+    <value>差异磁盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ParentPath" xml:space="preserve">
+    <value>父盘路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_InheritParentFormat" xml:space="preserve">
+    <value>容量与扇区格式自动继承父盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SelectReadOnlyParent" xml:space="preserve">
+    <value>选择只读父盘文件 (.vhd / .vhdx)</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VirtualCapacity" xml:space="preserve">
+    <value>虚拟容量</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VirtualCapacityHelp" xml:space="preserve">
+    <value>暴露给来宾系统的逻辑容量（GiB），.vhd 上限 2040 GiB，.vhdx 上限 64 TiB。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AdvancedFormat" xml:space="preserve">
+    <value>高级格式参数</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_PhysicalSectorFormat" xml:space="preserve">
+    <value>物理扇区格式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_PhysicalSectorFormatHelp" xml:space="preserve">
+    <value>默认不指定参数。512n 为 512/512，512e 为 512/4096，4Kn 为 4096/4096。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_BlockSize" xml:space="preserve">
+    <value>虚拟块大小</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_BlockSizeHelp" xml:space="preserve">
+    <value>.vhdx 块分配表单个有效载荷块大小。块越小粒度越细，块越大元数据开销越低。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_IsoImageFile" xml:space="preserve">
+    <value>ISO 映像文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_EmptyDvdPlaceholder" xml:space="preserve">
+    <value>D:\ISO\system.iso（可留空以添加空光驱）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_OfflineGen1Dvd" xml:space="preserve">
+    <value>第 1 代虚拟机运行中不支持热添加光驱，请先关机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AddStateRequired" xml:space="preserve">
+    <value>请在虚拟机已关机或正在运行时添加设备。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AvailablePassthrough" xml:space="preserve">
+    <value>可直通</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AssignedHere" xml:space="preserve">
+    <value>已分配给当前虚拟机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AssignedElsewhere" xml:space="preserve">
+    <value>已分配给其他虚拟机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_PackAttachIso" xml:space="preserve">
+    <value>打包并挂接 ISO</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AddDevice" xml:space="preserve">
+    <value>添加存储设备</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_PassthroughChanged" xml:space="preserve">
+    <value>设备身份或分配状态已变化，请重新选择直通设备。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SlotChanged" xml:space="preserve">
+    <value>可用插槽已变化，请核对位置后重新提交。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AttachDiskStep" xml:space="preserve">
+    <value>挂接磁盘 {0}（{1}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AttachDvdStep" xml:space="preserve">
+    <value>挂接光驱 {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AddPhysicalDevice" xml:space="preserve">
+    <value>添加物理直通设备</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_Completed" xml:space="preserve">
+    <value>已完成</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ResizeStep" xml:space="preserve">
+    <value>调整容量至 {0} GiB</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConvertFixed" xml:space="preserve">
+    <value>转换为固定大小</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConvertDynamic" xml:space="preserve">
+    <value>转换为动态扩展</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ReconnectParent" xml:space="preserve">
+    <value>重新连接父盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UpdateMediaPath" xml:space="preserve">
+    <value>更新介质路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MoveSlot" xml:space="preserve">
+    <value>迁移控制器插槽</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ApplyDeviceSettings" xml:space="preserve">
+    <value>应用设备设置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_EditedDeviceChanged" xml:space="preserve">
+    <value>编辑期间设备或介质已变化，请重新打开设置。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AttachmentUnconfirmed" xml:space="preserve">
+    <value>已提交「{0}」，无法确认原设备的预期状态。请核对实际挂接。{1}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_Browse" xml:space="preserve">
+    <value>浏览</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_IsoImage" xml:space="preserve">
+    <value>ISO 映像</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CapacityPreset" xml:space="preserve">
+    <value>容量档位</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AttachEmptyDvd" xml:space="preserve">
+    <value>将连接空光驱。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AbsolutePathRequired" xml:space="preserve">
+    <value>请输入完整的介质文件路径。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_IsoExtensionRequired" xml:space="preserve">
+    <value>请选择 .iso 文件。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_NewDiskExtensionRequired" xml:space="preserve">
+    <value>新磁盘须使用 .vhd 或 .vhdx 扩展名。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SelectDiskFile" xml:space="preserve">
+    <value>请选择 VHD 或 VHDX 磁盘文件。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_TargetExists" xml:space="preserve">
+    <value>目标路径已存在，请选择新的文件名。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_TargetFolderMissing" xml:space="preserve">
+    <value>目标文件夹不存在。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_IsoDescriptorMissing" xml:space="preserve">
+    <value>未识别到 ISO 9660 或 UDF 卷描述符，请核对映像文件。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DiskFormatMismatch" xml:space="preserve">
+    <value>文件内容与磁盘扩展名不匹配。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_FormatVerified" xml:space="preserve">
+    <value>文件可读取，介质格式检查通过。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MediaBusyVerification" xml:space="preserve">
+    <value>介质正在使用，暂时无法核验文件内容。请检查宿主挂载和其他进程。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ControllerType" xml:space="preserve">
+    <value>控制器类型</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ControllerNumber" xml:space="preserve">
+    <value>编号</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Location" xml:space="preserve">
+    <value>位置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ControllerSlot" xml:space="preserve">
+    <value>控制器插槽</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AutoSlotSummary" xml:space="preserve">
+    <value>自动分配：{0} 控制器 {1}（位置 {2}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ManualSlotHelp" xml:space="preserve">
+    <value>手动选择控制器、编号和位置</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AutoSlot" xml:space="preserve">
+    <value>自动选择插槽</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_LoadingDevices" xml:space="preserve">
+    <value>正在读取存储设备…</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_LoadDevicesFailed" xml:space="preserve">
+    <value>读取存储设备失败。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Unmounted" xml:space="preserve">
+    <value>未挂载</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_StalePassthrough" xml:space="preserve">
+    <value>直通引用失效</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_FileMissing" xml:space="preserve">
+    <value>文件缺失</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MediaBusy" xml:space="preserve">
+    <value>介质被占用</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DeviceSettingsTools" xml:space="preserve">
+    <value>设备设置与磁盘工具</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_EjectIso" xml:space="preserve">
+    <value>弹出 ISO</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_RemoveDevice" xml:space="preserve">
+    <value>移除存储设备</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Source" xml:space="preserve">
+    <value>存储来源</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_HostPhysicalDevice" xml:space="preserve">
+    <value>宿主物理设备</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_EmptyDvd" xml:space="preserve">
+    <value>空光驱</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VirtualMediaFile" xml:space="preserve">
+    <value>虚拟介质文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SlotSummary" xml:space="preserve">
+    <value>{0} 控制器 {1}（位置 {2}）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Format" xml:space="preserve">
+    <value>格式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_FileSize" xml:space="preserve">
+    <value>文件大小</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MediaPath" xml:space="preserve">
+    <value>介质路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_HostDiskNumber" xml:space="preserve">
+    <value>宿主磁盘 {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Passthrough" xml:space="preserve">
+    <value>物理直通</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Differencing" xml:space="preserve">
+    <value>差异</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UnknownCapacity" xml:space="preserve">
+    <value>容量未知</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_OpenFolderFailed" xml:space="preserve">
+    <value>无法打开介质所在的文件夹。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Common_Edit" xml:space="preserve">
+    <value>编辑</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ProbingMedia" xml:space="preserve">
+    <value>正在检测介质和可用操作…</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_LocatePath" xml:space="preserve">
+    <value>定位路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Dismount" xml:space="preserve">
+    <value>卸载挂载</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_OfflineMaintenance" xml:space="preserve">
+    <value>关闭虚拟机后可修改或执行磁盘维护</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ShutdownToEdit" xml:space="preserve">
+    <value>请彻底关闭虚拟机后再编辑</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_RelocateMissingMedia" xml:space="preserve">
+    <value>介质文件缺失，请先在路径页重新定位</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DismountFirst" xml:space="preserve">
+    <value>已在宿主机挂载，请先卸载后再操作</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ReleaseBusyMedia" xml:space="preserve">
+    <value>正被其他虚拟机或进程占用，请先解除占用</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_HasDependents" xml:space="preserve">
+    <value>其他磁盘正在引用此文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MoveSlotHint" xml:space="preserve">
+    <value>可在「路径」页签迁移控制器插槽</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MoveSlotRestricted" xml:space="preserve">
+    <value>当前状态限制插槽迁移，请核对直通设备并关闭虚拟机</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_FixedCannotCompactSentence" xml:space="preserve">
+    <value>固定大小磁盘不支持压缩体积。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MountedCompactHelp" xml:space="preserve">
+    <value>已在宿主机挂载，压缩将直接执行文件系统感知回收。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CompactHelp" xml:space="preserve">
+    <value>回收未分配空闲块以缩小宿主机磁盘文件体积。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ReclaimSpace" xml:space="preserve">
+    <value>释放空间</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Compact" xml:space="preserve">
+    <value>压缩</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CompactDisk" xml:space="preserve">
+    <value>压缩磁盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_FixedCannotCompact" xml:space="preserve">
+    <value>固定大小磁盘不支持压缩体积</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UpgradeVhdxFormat" xml:space="preserve">
+    <value>升级为 VHDX 格式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UpgradeVhdxHelp" xml:space="preserve">
+    <value>转换为 .vhdx 容器以突破 2040 GB 容量限制并启用日志保护。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConvertFormat" xml:space="preserve">
+    <value>转换格式</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UpgradeVhdx" xml:space="preserve">
+    <value>升级为 VHDX</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConvertAndSwitch" xml:space="preserve">
+    <value>转换并切换磁盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConvertingVhdx" xml:space="preserve">
+    <value>正在转换并核验 VHDX。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DismountHost" xml:space="preserve">
+    <value>卸载宿主挂载</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CheckingMedia" xml:space="preserve">
+    <value>正在检查介质…</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_EjectIsoPlaceholder" xml:space="preserve">
+    <value>D:\ISO\system.iso（可留空弹出介质）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DiskPathPlaceholder" xml:space="preserve">
+    <value>输入 .vhd / .vhdx 路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ClearMedia" xml:space="preserve">
+    <value>清空介质</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_IsoPath" xml:space="preserve">
+    <value>ISO 映像路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DiskPath" xml:space="preserve">
+    <value>磁盘文件路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ResizeUnavailable" xml:space="preserve">
+    <value>当前无法取得可调整的容量范围</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ChangeCapacity" xml:space="preserve">
+    <value>修改容量</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ResizeHelp" xml:space="preserve">
+    <value>自动检测分区末尾与安全收缩下限，.vhd 不支持收缩，SCSI .vhdx 支持联机扩展。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ChangeType" xml:space="preserve">
+    <value>修改类型</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ChangeTypeHelp" xml:space="preserve">
+    <value>动态扩展按需分配空间，固定大小一次性预分配全部空间。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ResizeUnavailableSentence" xml:space="preserve">
+    <value>当前无法取得可调整的容量范围。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_NoShrinkSpace" xml:space="preserve">
+    <value>磁盘尾部没有可收缩空间。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConservativeShrink" xml:space="preserve">
+    <value>BitLocker 或 Linux 等分区仅能按已知边界保守收缩。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_NoPartitions" xml:space="preserve">
+    <value>未检测到已分配的分区。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CorruptPartitionTable" xml:space="preserve">
+    <value>分区表损坏，已禁止收缩。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MinimumCapacity" xml:space="preserve">
+    <value>安全下限为 {0} GiB。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_EnterCapacity" xml:space="preserve">
+    <value>请输入 1 至 {0} GiB 的整数。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VerifyCapacityFailed" xml:space="preserve">
+    <value>无法核实当前容量。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ExtendGuestPartition" xml:space="preserve">
+    <value>扩展后需在系统内扩容分区。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UnsafeShrinkSuffix" xml:space="preserve">
+    <value> 当前无法安全收缩。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ShrinkTargetSuffix" xml:space="preserve">
+    <value> 将收缩至 {0} GiB。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_IsoFile" xml:space="preserve">
+    <value>ISO 文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DiskFile" xml:space="preserve">
+    <value>磁盘文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DeletePermanently" xml:space="preserve">
+    <value>彻底删除</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConfirmDeleteFile" xml:space="preserve">
+    <value>确认彻底删除{0}？</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ForceParentEnabled" xml:space="preserve">
+    <value>已允许忽略 ID 强制连接</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ParentConnected" xml:space="preserve">
+    <value>已连接到父盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ParentIdMismatch" xml:space="preserve">
+    <value>父盘 ID 不一致</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ParentFormatMismatch" xml:space="preserve">
+    <value>父盘格式与当前磁盘不一致</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ChainMounted" xml:space="preserve">
+    <value>父盘或链上磁盘已在宿主挂载</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ParentBusy" xml:space="preserve">
+    <value>父盘文件正被占用</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_AncestorMissing" xml:space="preserve">
+    <value>上游父盘缺失</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ChainCycle" xml:space="preserve">
+    <value>磁盘父链存在循环引用</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ChainUnverified" xml:space="preserve">
+    <value>无法验证磁盘链</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MissingPath" xml:space="preserve">
+    <value>{0} (缺失)</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ParentFilePlaceholder" xml:space="preserve">
+    <value>输入 .vhd 或 .vhdx 文件路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_NoChainRetry" xml:space="preserve">
+    <value>未取得父链，请重新检测</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_DisableForce" xml:space="preserve">
+    <value>取消强制</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ForceConnect" xml:space="preserve">
+    <value>强制连接</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ForceConnectHelp" xml:space="preserve">
+    <value>若确认父盘内容完全一致，可跳过 ID 校验直接连接</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ParentPathPlaceholder" xml:space="preserve">
+    <value>输入父盘路径 (.vhd / .vhdx)</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_RelocateParentHelp" xml:space="preserve">
+    <value>重新定位差异磁盘父盘。容量与扇区格式由父盘继承，如需调整容量请先导出完整磁盘或合并到父盘。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ExportChainHelp" xml:space="preserve">
+    <value>将整条父盘链与当前增量合成为新的独立虚拟磁盘文件，不改动现有差异链与父盘。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UnverifiedExport" xml:space="preserve">
+    <value>当前差异链未验证完整，暂不支持导出完整磁盘。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ExportStandaloneDisk" xml:space="preserve">
+    <value>导出完整磁盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Export" xml:space="preserve">
+    <value>导出</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MergeParentHelp" xml:space="preserve">
+    <value>将增量写入所选父盘并清理已并入差异盘，同时自动切换当前磁盘挂载路径。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UnverifiedMerge" xml:space="preserve">
+    <value>当前差异链未验证完整，暂不支持合并操作。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MergeIntoParent" xml:space="preserve">
+    <value>合并到父盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_StartExport" xml:space="preserve">
+    <value>开始导出</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VerifySourceChain" xml:space="preserve">
+    <value>验证源磁盘链</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ExportDynamicDisk" xml:space="preserve">
+    <value>导出独立动态磁盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VerifyExport" xml:space="preserve">
+    <value>核验导出文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ExportTargetPath" xml:space="preserve">
+    <value>导出目标路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_RootParent" xml:space="preserve">
+    <value>根父盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ChainDepth" xml:space="preserve">
+    <value>深度 {0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_WriteTarget" xml:space="preserve">
+    <value>写入目标</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MergeSource" xml:space="preserve">
+    <value>并入</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConfirmMerge" xml:space="preserve">
+    <value>确认合并</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_VerifyAncestors" xml:space="preserve">
+    <value>验证父链和目标祖先</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MergeDifferencingDisk" xml:space="preserve">
+    <value>合并差异磁盘</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_SwitchAndVerify" xml:space="preserve">
+    <value>切换并核验挂接</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_CleanMergedFiles" xml:space="preserve">
+    <value>清理已并入的文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_MergeWarning" xml:space="preserve">
+    <value>将改写「{0}」并删除原差异盘，完成后自动切换磁盘路径</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_OutcomeUnknown" xml:space="preserve">
+    <value>操作结果尚未确认</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_RemainingResources" xml:space="preserve">
+    <value>需要处理剩余资源</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_UnconfirmedTask" xml:space="preserve">
+    <value>{0}。{1}
+请核对底层任务和实际资源。本次程序运行期间已停止对此虚拟机的存储修改。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ReadBackFailed" xml:space="preserve">
+    <value>回读存储状态失败。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_BackToList" xml:space="preserve">
+    <value>返回存储列表</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_BackToEdit" xml:space="preserve">
+    <value>返回编辑</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Card_ToggleDetails" xml:space="preserve">
+    <value>展开或收起</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_Slot" xml:space="preserve">
+    <value>插槽</value>
+    <comment>TODO: en</comment>
+  </data>
+</root>

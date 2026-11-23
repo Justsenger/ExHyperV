@@ -78,6 +78,9 @@ function linkOrCopyDir(sourceDir, targetDir, preferCopy = false) {
 }
 
 const { dir: winOnWebDir, mode } = resolveSourceRoot();
+if (mode === 'local-sibling' || mode === 'env') {
+  rmSync(CACHE_CLONE, { recursive: true, force: true });
+}
 const preferCopy = Boolean(process.env.CI) || mode === 'remote-clone' || mode === 'cached-offline';
 rmSync(path.join(WEBSITE_ROOT, 'src', 'win11-shell'), { recursive: true, force: true });
 linkOrCopyDir(path.join(winOnWebDir, 'src', 'shells', 'win11'), path.join(WEBSITE_ROOT, 'src', 'shells', 'win11'), preferCopy);

@@ -23,10 +23,10 @@ export async function syncCoreApi({ updateMarkdown = false } = {}) {
   const temporary = await mkdtemp(path.join(cache, 'core-api-'));
   try {
     if (updateMarkdown) {
-      await run('dotnet', ['run', '--project', path.resolve(websiteRoot, '../tools/api-docs'),
+      await run('dotnet', ['run', '--project', path.join(coreRoot, 'Contracts/Generator'),
         '--configuration', 'Release', '--', '--write', '--root', coreRoot]);
     }
-    await run(process.execPath, [path.resolve(websiteRoot, '../tools/api-docs/export.mjs'), temporary,
+    await run(process.execPath, [path.join(coreRoot, 'Contracts/Generator/export.mjs'), temporary,
       ...(isCI ? ['--require-clean'] : [])]);
     const manifest = await installBundle(await readBundle(temporary), path.join(websiteRoot, 'public/api'), {
       allowDirty: !isCI, stagingDirectory: cache,

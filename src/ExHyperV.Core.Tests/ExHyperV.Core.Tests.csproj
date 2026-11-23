@@ -1,8 +1,6 @@
 <Project Sdk="MSTest.Sdk/4.5.2">
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <TestingExtensionsProfile>None</TestingExtensionsProfile>
     <EnableMicrosoftTestingExtensionsTrxReport>true</EnableMicrosoftTestingExtensionsTrxReport>
     <IsPackable>false</IsPackable>
@@ -13,6 +11,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Drawing.Common" Version="10.0.7" />
+    <!-- Inspect App source with the compiler shipped in the selected SDK. -->
+    <Reference Include="Microsoft.CodeAnalysis" HintPath="$(NetCoreRoot)sdk/$(NETCoreSdkVersion)/Roslyn/bincore/Microsoft.CodeAnalysis.dll" />
+    <Reference Include="Microsoft.CodeAnalysis.CSharp" HintPath="$(NetCoreRoot)sdk/$(NETCoreSdkVersion)/Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <EmbeddedResource Include="ResourceInspection/Page.html" />
     <EmbeddedResource Include="ResourceInspection/Assets/Tabler/tabler.min.css" />
@@ -20,7 +21,7 @@
     <ProjectReference Include="../ExHyperV.Core/ExHyperV.Core.csproj" />
     <PackageReference Include="coverlet.MTP" Version="10.1.0" />
     <!-- Keep the existing diagnostic executable usable; share its verified scenarios. -->
-    <Compile Include="../ExHyperV.WinUI3/UI/Pages/VirtualMachines/Settings/VmNetworkPolicyDraft.cs" Link="Scenarios/VmNetworkPolicyDraft.cs" />
+    <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Settings/Network/VmNetworkPolicyDraft.cs" Link="Scenarios/VmNetworkPolicyDraft.cs" />
     <Compile Remove="Diagnostics/**;Tools/**" />
     <Compile Include="Diagnostics/*Checks.cs"
              Exclude="Diagnostics/NativeChecks.cs;Diagnostics/HostNetworkChecks.cs"

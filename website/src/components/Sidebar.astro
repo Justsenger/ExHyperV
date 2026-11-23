@@ -8,6 +8,7 @@ import { relativeName } from '../data/navigation-labels';
 const { selectedId = '' } = Astro.props;
 ---
 <aside id="slide-out" class="sidenav" aria-label="系统分类" data-i18n-aria="categories" transition:persist>
+  <svg hidden aria-hidden="true"><symbol id="sb-dd" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5z" /></symbol></svg>
   <div class="sidebar">
     <div class="rounded searchbar"><div class="search-wrapper">
       <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20 20-5-5m2-6a6 6 0 1 1-12 0 6 6 0 0 1 12 0" /></svg>

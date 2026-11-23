@@ -517,8 +517,8 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
-# Local verification artifacts
-.artifacts/
+# Local verification cache
+.cache/
 
 # External WinOnWeb desktop shell & runtime (synced from sibling WinOnWeb repo or GitHub)
 website/src/win11-shell/
@@ -528,3 +528,6 @@ website/public/win11/
 website/public/wow/
 website/public/wow-bundles/
 website/public/packages/
+
+# Extracted ExHyperV.WoW static assets (synced from src/ExHyperV.WoW/public/ui-design)
+website/public/ui-design/

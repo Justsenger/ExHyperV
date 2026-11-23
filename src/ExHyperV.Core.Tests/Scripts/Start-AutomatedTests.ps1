@@ -22,7 +22,6 @@ if (!([Security.Principal.WindowsPrincipal]::new($identity)).IsInRole([Security.
 }
 $projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
-& (Join-Path $repo 'tools/Use-RepositoryDotNet.ps1')
 $root = [IO.Path]::GetFullPath($RunDirectory)
 $parent = Split-Path $root -Parent
 $null = New-Item -ItemType Directory -Path $parent -Force

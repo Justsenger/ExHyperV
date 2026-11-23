@@ -4,7 +4,6 @@ param([ValidateSet('win-arm64', 'win-x64')][string]$Runtime)
 
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
-& (Join-Path $repo 'tools/Use-RepositoryDotNet.ps1')
 if (!$Runtime) {
     $architecture = $env:PROCESSOR_ARCHITEW6432
     if (!$architecture) { $architecture = $env:PROCESSOR_ARCHITECTURE }
@@ -13,7 +12,7 @@ if (!$Runtime) {
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 $msbuild = @(& $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -find 'MSBuild\Current\Bin\MSBuild.exe') | Select-Object -First 1
 if (!$msbuild) { throw '请安装 VS 2026 MSBuild 和 .NET 11 SDK。' }
-$artifacts = Join-Path $repo ".artifacts/mcp/tests/$Runtime"
+$artifacts = Join-Path $repo ".cache/mcp/tests/$Runtime"
 New-Item -ItemType Directory -Path $artifacts -Force | Out-Null
 & $msbuild (Join-Path $PSScriptRoot 'ExHyperV.Mcp.Tests.csproj') /restore /t:Build /nologo /nr:false `
     /p:Configuration=Release "/p:RuntimeIdentifier=$Runtime" /p:RestoreLockedMode=true `

@@ -14,8 +14,7 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
-& (Join-Path $repo 'tools/Use-RepositoryDotNet.ps1')
-$artifactRoot = Join-Path $repo '.artifacts/1x/core-tests'
+$artifactRoot = Join-Path $repo '.cache/1x/core-tests'
 $buildRoot = Join-Path $artifactRoot "build/$Runtime"
 $runId = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
 $results = Join-Path $artifactRoot "results/$Runtime/$runId"

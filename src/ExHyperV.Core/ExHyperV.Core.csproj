@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net11.0-windows</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <DefaultItemExcludes>$(DefaultItemExcludes);external\**\runtimes\*\native\**</DefaultItemExcludes>
-    <Nullable>enable</Nullable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);external\**\runtimes\*\native\**;Contracts\**</DefaultItemExcludes>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Version>2.0.0-Alpha</Version>
     <RootNamespace>ExHyperV</RootNamespace>
@@ -19,10 +17,26 @@
     <IntermediateOutputPath Condition="'$(UseArtifactsOutput)' != 'true'">$(BaseIntermediateOutputPath)$(Configuration)\desktop_$(ExHyperVConsoleRuntime)\</IntermediateOutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="../../tools/gpu-guest-installer/install.cmd;../../tools/gpu-guest-installer/install.ps1"
-             Link="GpuGuestInstaller/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Compile Remove="Contracts\**" />
+    <EmbeddedResource Remove="Contracts\**" />
+    <None Remove="Contracts\**" />
+    <None Include="Management/VirtualMachines/Gpu/Deployment/GuestInstaller/install.cmd;Management/VirtualMachines/Gpu/Deployment/GuestInstaller/install.ps1" />
     <None Update="ThirdPartyNotices\SharpZipLib.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="PackageGpuGuestInstaller" BeforeTargets="AssignTargetPaths"
+          Inputs="Management/VirtualMachines/Gpu/Deployment/GuestInstaller/install.cmd;Management/VirtualMachines/Gpu/Deployment/GuestInstaller/install.ps1"
+          Outputs="$(IntermediateOutputPath)GpuGuestInstaller.zip">
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <ZipDirectory SourceDirectory="Management/VirtualMachines/Gpu/Deployment/GuestInstaller"
+                  DestinationFile="$(IntermediateOutputPath)GpuGuestInstaller.zip"
+                  Overwrite="true" />
+  </Target>
+  <Target Name="CollectGpuGuestInstaller" BeforeTargets="AssignTargetPaths" DependsOnTargets="PackageGpuGuestInstaller">
+    <ItemGroup>
+      <EmbeddedResource Include="$(IntermediateOutputPath)GpuGuestInstaller.zip"
+                        LogicalName="ExHyperV.GpuGuestInstaller.zip" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <EmbeddedResource Include="external/freerdp/runtimes/win-arm64/console-native.zip"
         Condition="'$(ExHyperVConsoleRuntime)' == ''" LogicalName="ExHyperV.ConsoleNative.win-arm64.zip" />
@@ -55,5 +69,5 @@
     <Error Condition="'%(EmbeddedResource.Extension)' == '.zip' And !Exists('%(EmbeddedResource.FullPath)')"
            Text="Core 缺少原生包 %(EmbeddedResource.Identity)。" />
   </Target>
-  <Import Project="../../tools/winui-publish/CompressedResources.targets" />
+  <Import Project="../../.github/build/winui-publish/CompressedResources.targets" />
 </Project>

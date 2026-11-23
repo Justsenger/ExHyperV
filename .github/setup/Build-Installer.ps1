@@ -5,17 +5,16 @@ param(
     [ValidateSet("x64", "arm64")]
     [string[]]$Architecture = @("x64", "arm64"),
 
-    [string]$OutputDirectory = ".artifacts/release",
+    [string]$OutputDirectory = ".cache/release",
 
-    [string]$ApplicationOutputDirectory = ".artifacts/installer-work",
+    [string]$ApplicationOutputDirectory = ".cache/installer-work",
 
     [switch]$EnableSigning
 )
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-& (Join-Path $repoRoot 'tools/Use-RepositoryDotNet.ps1')
-$projectPath = Join-Path $repoRoot "src\ExHyperV.WinUI3\ExHyperV.WinUI3.csproj"
+$projectPath = Join-Path $repoRoot "src\ExHyperV.App\ExHyperV.App.csproj"
 $installerScript = Join-Path $PSScriptRoot "ExHyperV.iss"
 $singleFileSigningScript = Join-Path $PSScriptRoot "Sign-File.ps1"
 
