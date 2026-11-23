@@ -65,6 +65,12 @@ internal static class DxgiGpuMemory
         return result;
     }
 
+    internal static string? ReadInstanceId(uint high, uint low)
+    {
+        try { return ReadInstanceId(new Luid { High = unchecked((int)high), Low = low }); }
+        catch (Exception ex) when (ex is DllNotFoundException or EntryPointNotFoundException) { return null; }
+    }
+
     private static unsafe string? ReadInstanceId(Luid luid)
     {
         var open = new OpenAdapter { AdapterLuid = luid };

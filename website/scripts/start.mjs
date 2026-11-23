@@ -64,9 +64,10 @@ function probeManifest(port, useHttps) {
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+spawnSync(process.execPath, [path.join(root, 'scripts/sync-winonweb.mjs')], { cwd: root, stdio: 'inherit', windowsHide: true });
 const astro = path.join(root, 'node_modules/astro/bin/astro.mjs');
 if (!existsSync(astro)) {
-  console.log('首次启动：安装 website 的锁定依赖，需要 Node.js 24、pnpm 11.25 和 .NET 10 SDK。');
+  console.log('首次启动：安装 website 的锁定依赖，需要 Node.js 24、pnpm 11.25 和 .NET 11 SDK。');
   const windows = process.platform === 'win32';
   const install = spawnSync(windows ? 'cmd.exe' : 'pnpm', windows
     ? ['/d', '/s', '/c', 'pnpm install --frozen-lockfile'] : ['install', '--frozen-lockfile'],

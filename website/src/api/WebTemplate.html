@@ -325,7 +325,7 @@
       assigned.push(type);
     }
     pending=pending.filter(type => !contractHomes.has(type.id));
-    candidates=assigned.flatMap(type => type.members.map(member => ({...contractHomes.get(type.id),type,member})));
+    candidates=assigned.flatMap(type => type.shortName === 'VmModificationCondition' ? [] : type.members.map(member => ({...contractHomes.get(type.id),type,member})));
   }
   // Modification metadata identifies the exact input property for an existing
   // field. Ambiguous relationships are deliberately not merged by name alone.
@@ -708,7 +708,7 @@
   function renderQueryCatalog() {
     currentType = null;
     main.className = 'article';
-    main.innerHTML = `<h1 id="query-fields">可查询字段</h1>${usageSection(`<p class="lead">这里列出 ${vmQueryFields.length} 项。每一项都可独立选择，分类只用于查找，不要求整组查询。另有 ${hostGroupFields.length} 项分组字段归入${link(hostGroupQuery.id,'宿主 / 查询 / 分组')}，仍可使用同一查询接口组合读取。</p><p>调用：${link(queryMethod.id,'<code>VmQueryService.QueryAsync</code>')} · 参数：${typeLink(queryTypes.find(type => type.shortName === 'VmQueryRequest'))} · 结果：${typeLink(queryTypes.find(type => type.shortName === 'VmQueryResult'))}</p>`,'query-fields--description')}${queryGroups.map(group => `<section><h2 class="query-group-title" id="${escape(group.id)}">${escape(group.path.at(-1))}</h2>${group.path.at(-1) === '处理器' ? affinityGroupLinks('查询') : ''}<table class="query-field-table"><thead><tr><th>查询项</th><th>类型</th><th>说明</th></tr></thead><tbody>${group.fields.map(field => `<tr><td class="query-field-name">${link(field.member.id,escape(field.label))}<code>${escape(field.expression)}</code></td><td class="query-field-type"><code>${escape(field.valueType)}</code></td><td>${field.summaryHtml}</td></tr>`).join('')}</tbody></table>${queryEntryTable(group)}</section>`).join('')}`;
+    main.innerHTML = `<h1 id="query-fields">可查询字段</h1>${usageSection(`<p class="lead">这里列出 ${vmQueryFields.length} 项。每一项都可独立选择，分类只用于查找，不要求整组查询。另有 ${hostGroupFields.length} 项分组字段归入${link(hostGroupQuery.id,'宿主 / 查询 / 分组')}，仍可使用同一查询接口组合读取。</p><p>调用：${link(queryMethod.id,'<code>VmQueryService.QueryAsync</code>')} / 参数：${typeLink(queryTypes.find(type => type.shortName === 'VmQueryRequest'))} / 结果：${typeLink(queryTypes.find(type => type.shortName === 'VmQueryResult'))}</p>`,'query-fields--description')}${queryGroups.map(group => `<section><h2 class="query-group-title" id="${escape(group.id)}">${escape(group.path.at(-1))}</h2>${group.path.at(-1) === '处理器' ? affinityGroupLinks('查询') : ''}<table class="query-field-table"><thead><tr><th>查询项</th><th>类型</th><th>说明</th></tr></thead><tbody>${group.fields.map(field => `<tr><td class="query-field-name">${link(field.member.id,escape(field.label))}<code>${escape(field.expression)}</code></td><td class="query-field-type"><code>${escape(field.valueType)}</code></td><td>${field.summaryHtml}</td></tr>`).join('')}</tbody></table>${queryEntryTable(group)}</section>`).join('')}`;
 
     setBreadcrumb('查询 / 可查询字段');
   }
@@ -741,7 +741,7 @@
   }
   function renderInstances() {
     currentType = null; main.className = 'article';
-    main.innerHTML = '<h1 id="instances">实例</h1>' + usageSection('<p>每次创建、删除、导入或导出一台虚拟机。名称与磁盘方案由调用方指定；多台任务的命名、调度、失败处理和后续启动由上层应用安排。</p>','instances--description')
+    main.innerHTML = '<h1 id="instances">实例</h1>' + usageSection('<p>每次创建、删除、导入或导出一台虚拟机。名称与磁盘方案由调用方指定。多台任务的命名、调度、失败处理和后续启动由上层应用安排。</p>','instances--description')
       + '<table><thead><tr><th>入口</th><th>方法</th><th>用途</th></tr></thead><tbody>' + orderedInstanceActions.map(action => {const group=instanceGroupFor(action);return '<tr id="' + group.id + '"><td>' + link(action.id,escape(action.label)) + '</td><td>' + action.variants.map(variant => '<div><code>' + escape(variant.type.shortName + '.' + variant.member.name) + '</code></div>').join('') + '</td><td>' + action.variants.map(variant => '<div>' + (variant.mode ? '<strong>' + escape(variant.mode) + '：</strong>' : '') + variant.member.summaryHtml + '</div>').join('') + '</td></tr>';}).join('') + '</tbody></table>';
 
     setBreadcrumb('虚拟机 / 实例');
@@ -749,7 +749,7 @@
   function renderInstanceEntry(action) {
     currentType = null; main.className = 'article';
     const section = instanceSection;
-    main.innerHTML = `<div id="${action.id}">${action.variants.map(variant => `<section id="${variant.id}--usage">${memberCard(variant.type,variant.member,action.label + (variant.mode ? ' · ' + variant.mode : ''),action.variants.length === 1 ? 1 : 2)}</section>`).join('')}</div>`;
+    main.innerHTML = `<div id="${action.id}">${action.variants.map(variant => `<section id="${variant.id}--usage">${memberCard(variant.type,variant.member,action.label + (variant.mode ? ' / ' + variant.mode : ''),action.variants.length === 1 ? 1 : 2)}</section>`).join('')}</div>`;
 
     setBreadcrumb(pathKey(section.path.slice(1)) + ' / ' + action.label);
   }
@@ -934,7 +934,7 @@
       content += group.entries.filter(entry => entry.reader).map(entry => `<span id="${entry.member.id}--read"></span>`).join('');
       content += hostUsageHtml(group.hostArea,group.path.at(-1));
     } else if (group.kind === 'instance') {
-      content = group.actions.map(action => action.variants.map(variant => `<section id="${variant.id}"><span id="${variant.id}--usage"></span>${memberCard(variant.type,variant.member,action.label + (variant.mode ? ' · ' + variant.mode : ''),2)}</section>`).join('')).join('');
+      content = group.actions.map(action => action.variants.map(variant => `<section id="${variant.id}"><span id="${variant.id}--usage"></span>${memberCard(variant.type,variant.member,action.label + (variant.mode ? ' / ' + variant.mode : ''),2)}</section>`).join('')).join('');
     } else {
       const selected = types.filter(type => typePaths(type).some(path => insideArea(path,group.area)));
       const usage = group.path[0] === '业务层面' ? (data.businessUsage || []).find(item => item.category === group.path[1])?.html || '' : '';

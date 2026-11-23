@@ -18,13 +18,8 @@
     <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
     <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
     <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
     <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
         <value>[base64 mime encoded serialized .NET Framework object]</value>
-    </data>
-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-        <comment>This is a comment</comment>
     </data>
                 
     There are any number of "resheader" rows that contain simple 
@@ -1330,25 +1325,25 @@ The existing NAT switch is: '{0}'</value>
     <value>Preparing host environment...</value>
   </data>
   <data name="Task_Gpu_Power" xml:space="preserve">
-    <value>Power Check</value>
+    <value>Shut down VM</value>
   </data>
   <data name="Msg_Gpu_CheckingPower" xml:space="preserve">
     <value>Checking VM power status...</value>
   </data>
   <data name="Task_Gpu_Opt" xml:space="preserve">
-    <value>Optimization</value>
+    <value>Adjust parameters</value>
   </data>
   <data name="Msg_Gpu_Mmio" xml:space="preserve">
     <value>Configuring MMIO space...</value>
   </data>
   <data name="Task_Gpu_Assign" xml:space="preserve">
-    <value>Assign GPU</value>
+    <value>Add GPU</value>
   </data>
   <data name="Msg_Gpu_Creating" xml:space="preserve">
     <value>Creating GPU partition...</value>
   </data>
   <data name="Task_Gpu_Driver" xml:space="preserve">
-    <value>Driver Install</value>
+    <value>Install drivers</value>
   </data>
   <data name="Msg_Gpu_WaitingScan" xml:space="preserve">
     <value>Waiting for partition scan...</value>
@@ -2388,137 +2383,119 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmBootService_SystemBuiltinBootEntry" xml:space="preserve">
     <value>System Built-in Boot Entry</value>
   </data>
-  <data name="VmSpacetimeService_NodeLabelOrigin" xml:space="preserve">
+  <data name="VmCheckpointService_NodeLabelOrigin" xml:space="preserve">
     <value>Origin</value>
   </data>
-  <data name="VmSpacetimeService_NodeLabelCurrent" xml:space="preserve">
+  <data name="VmCheckpointService_NodeLabelCurrent" xml:space="preserve">
     <value>Current</value>
   </data>
-  <data name="VmSpacetimeService_ErrLookupFailed" xml:space="preserve">
-    <value>Spacetime lookup failed: {0}</value>
+  <data name="VmCheckpointService_ErrLookupFailed" xml:space="preserve">
+    <value>Checkpoint lookup failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeDisk" xml:space="preserve">
-    <value>[Wormhole] Wormhole disk: {0}</value>
+  <data name="VmCheckpointService_LogWormholeDisk" xml:space="preserve">
+    <value>[Checkpoint] Mounted historical disk: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeMarkedOk" xml:space="preserve">
-    <value>[Wormhole] Marked successfully: {0}</value>
+  <data name="VmCheckpointService_LogWormholeMarkedOk" xml:space="preserve">
+    <value>[Checkpoint] Marked historical mount: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeDetectFailed" xml:space="preserve">
-    <value>[Wormhole] Detection failed: {0}</value>
+  <data name="VmCheckpointService_LogWormholeDetectFailed" xml:space="preserve">
+    <value>[Checkpoint] Historical mount detection failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrWormholeAlreadyExists" xml:space="preserve">
-    <value>A wormhole already exists in the current spacetime. Please close the existing wormhole before opening a new one, or a spacetime paradox will occur.</value>
+  <data name="VmCheckpointService_ErrWormholeAlreadyExists" xml:space="preserve">
+    <value>A historical disk mount is already active. Unmount it before mounting another one.</value>
   </data>
-  <data name="VmSpacetimeService_ErrParentChainNode" xml:space="preserve">
-    <value>This node is a parent-chain node of the current spacetime. Opening a wormhole would cause a spacetime paradox.</value>
+  <data name="VmCheckpointService_ErrParentChainNode" xml:space="preserve">
+    <value>This node is on the active chain and cannot be mounted as a secondary disk.</value>
   </data>
-  <data name="VmSpacetimeService_ErrOnlySnapshotNode" xml:space="preserve">
-    <value>Wormholes can only be opened on snapshot nodes.</value>
+  <data name="VmCheckpointService_ErrOnlySnapshotNode" xml:space="preserve">
+    <value>Only historical checkpoint disks can be mounted.</value>
   </data>
-  <data name="VmSpacetimeService_ErrSnapshotPathInvalid" xml:space="preserve">
-    <value>Snapshot disk path is invalid.</value>
+  <data name="VmCheckpointService_ErrSnapshotPathInvalid" xml:space="preserve">
+    <value>Checkpoint disk path is invalid.</value>
   </data>
-  <data name="VmSpacetimeService_ErrNodeHasWormhole" xml:space="preserve">
-    <value>This node already has an active wormhole.</value>
+  <data name="VmCheckpointService_ErrNodeHasWormhole" xml:space="preserve">
+    <value>This checkpoint already has an active disk mount.</value>
   </data>
-  <data name="VmSpacetimeService_ErrCannotDetermineDiskDir" xml:space="preserve">
+  <data name="VmCheckpointService_ErrCannotDetermineDiskDir" xml:space="preserve">
     <value>Unable to determine the disk directory.</value>
   </data>
-  <data name="VmSpacetimeService_ErrNoScsiSlot" xml:space="preserve">
+  <data name="VmCheckpointService_ErrNoScsiSlot" xml:space="preserve">
     <value>No available SCSI slots.</value>
   </data>
-  <data name="VmSpacetimeService_ErrCreateDiffDiskFailed" xml:space="preserve">
+  <data name="VmCheckpointService_ErrCreateDiffDiskFailed" xml:space="preserve">
     <value>Failed to create temporary differencing disk: {0}</value>
   </data>
-  <data name="VmSpacetimeService_MsgWormholeOpened" xml:space="preserve">
-    <value>Wormhole opened</value>
+  <data name="VmCheckpointService_MsgWormholeOpened" xml:space="preserve">
+    <value>Historical disk mounted</value>
   </data>
-  <data name="VmSpacetimeService_ErrSpacetimeException" xml:space="preserve">
-    <value>Spacetime exception: {0}</value>
+  <data name="VmCheckpointService_ErrNoActiveWormhole" xml:space="preserve">
+    <value>This checkpoint has no active disk mount.</value>
   </data>
-  <data name="VmSpacetimeService_ErrNoActiveWormhole" xml:space="preserve">
-    <value>This node has no active wormhole.</value>
+  <data name="VmCheckpointService_MsgWormholeClosed" xml:space="preserve">
+    <value>Historical disk unmounted.</value>
   </data>
-  <data name="VmSpacetimeService_MsgWormholeClosed" xml:space="preserve">
-    <value>Wormhole closed. Timeline restored to normal.</value>
+  <data name="VmCheckpointService_ErrCloseWormholeException" xml:space="preserve">
+    <value>Exception while unmounting historical disk: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrCloseWormholeException" xml:space="preserve">
-    <value>Exception while closing wormhole: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
+  <data name="VmCheckpointService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
     <value>WMI management service not found</value>
   </data>
-  <data name="VmSpacetimeService_MsgNameUpdated" xml:space="preserve">
+  <data name="VmCheckpointService_MsgNameUpdated" xml:space="preserve">
     <value>Name updated successfully</value>
   </data>
-  <data name="VmSpacetimeService_ErrUpdateWmiCode" xml:space="preserve">
+  <data name="VmCheckpointService_ErrUpdateWmiCode" xml:space="preserve">
     <value>Update failed: WMI error code: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrRenameException" xml:space="preserve">
+  <data name="VmCheckpointService_ErrRenameException" xml:space="preserve">
     <value>Rename service exception: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOnlyHistoricalNode" xml:space="preserve">
-    <value>Can only travel to historical snapshot points.</value>
+  <data name="VmCheckpointService_ErrOnlyHistoricalNode" xml:space="preserve">
+    <value>This action only applies to historical checkpoints.</value>
   </data>
-  <data name="VmSpacetimeService_MsgTravelInitiated" xml:space="preserve">
-    <value>Travel initiated, restoring running state...</value>
+  <data name="VmCheckpointService_ErrVmCarrierNotFound" xml:space="preserve">
+    <value>Specified virtual machine not found.</value>
   </data>
-  <data name="VmSpacetimeService_MsgTravelSucceeded" xml:space="preserve">
-    <value>Travel succeeded. VM has returned to the specified spacetime point (powered off).</value>
+  <data name="VmCheckpointService_ErrCreateFailed" xml:space="preserve">
+    <value>Create checkpoint failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrTravelFailed" xml:space="preserve">
-    <value>Travel failed: {0}</value>
+  <data name="VmCheckpointService_MsgCreated" xml:space="preserve">
+    <value>Checkpoint created.</value>
   </data>
-  <data name="VmSpacetimeService_ErrVmCarrierNotFound" xml:space="preserve">
-    <value>Specified VM carrier not found.</value>
+  <data name="VmCheckpointService_ErrOriginCurrentNoDelete" xml:space="preserve">
+    <value>Origin and current nodes cannot be deleted.</value>
   </data>
-  <data name="VmSpacetimeService_ErrSpacetimeCollapse" xml:space="preserve">
-    <value>Spacetime collapse: {0}</value>
+  <data name="VmCheckpointService_MsgDeleted" xml:space="preserve">
+    <value>Checkpoint branch deleted.</value>
   </data>
-  <data name="VmSpacetimeService_MsgAnchorSet" xml:space="preserve">
-    <value>Spacetime anchor set.</value>
+  <data name="VmCheckpointService_ErrDeleteFailed" xml:space="preserve">
+    <value>Delete checkpoint failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOriginCurrentNoAnnihilate" xml:space="preserve">
-    <value>Origin and current nodes cannot be annihilated.</value>
+  <data name="VmCheckpointService_ErrCannotMerge" xml:space="preserve">
+    <value>Cannot merge into the origin node or a parent node with other branches.</value>
   </data>
-  <data name="VmSpacetimeService_MsgAnnihilated" xml:space="preserve">
-    <value>Spacetime branch fully annihilated.</value>
+  <data name="VmCheckpointService_MsgMerged" xml:space="preserve">
+    <value>Checkpoints merged.</value>
   </data>
-  <data name="VmSpacetimeService_ErrAnnihilateFailed" xml:space="preserve">
-    <value>Annihilation failed: {0}</value>
+  <data name="VmCheckpointService_ErrMergeFailed" xml:space="preserve">
+    <value>Merge checkpoints failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOriginCurrentNoConverge" xml:space="preserve">
-    <value>Origin and current nodes cannot be converged.</value>
+  <data name="VmCheckpointService_LogReadCheckpointFailed" xml:space="preserve">
+    <value>[Checkpoint] Failed to read checkpoint state: {0}</value>
   </data>
-  <data name="VmSpacetimeService_MsgConverging" xml:space="preserve">
-    <value>Converging spacetime...</value>
-  </data>
-  <data name="VmSpacetimeService_ErrConvergeFailed" xml:space="preserve">
-    <value>Convergence failed: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogReadCheckpointFailed" xml:space="preserve">
-    <value>[Spacetime] Failed to read checkpoint state: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_ErrVmNotFound" xml:space="preserve">
+  <data name="VmCheckpointService_ErrVmNotFound" xml:space="preserve">
     <value>Virtual machine not found</value>
   </data>
-  <data name="VmSpacetimeService_MsgCheckpointEnabled" xml:space="preserve">
+  <data name="VmCheckpointService_MsgCheckpointEnabled" xml:space="preserve">
     <value>Checkpoint enabled</value>
   </data>
-  <data name="VmSpacetimeService_MsgCheckpointDisabled" xml:space="preserve">
+  <data name="VmCheckpointService_MsgCheckpointDisabled" xml:space="preserve">
     <value>Checkpoint disabled</value>
   </data>
-  <data name="VmSpacetimeService_ErrOperationWmiCode" xml:space="preserve">
+  <data name="VmCheckpointService_ErrOperationWmiCode" xml:space="preserve">
     <value>Operation failed: WMI error code {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOperationException" xml:space="preserve">
+  <data name="VmCheckpointService_ErrOperationException" xml:space="preserve">
     <value>Operation exception: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogSnapshotScreenCleaned" xml:space="preserve">
-    <value>[Spacetime] Snapshot screenshot cleaned: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogCleanScreenFailed" xml:space="preserve">
-    <value>[Spacetime] Failed to clean screenshot: {0}</value>
   </data>
   <data name="VmMmio_LogFinalResult" xml:space="preserve">
     <value>[MMIO] Final calculation result:</value>
@@ -2811,69 +2788,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmRAMSettings_DescGpaPinning" xml:space="preserve">
     <value>Allow the VM operating system to request pinning or unpinning of GPA ranges at runtime</value>
   </data>
-  <data name="VmSpacetimeSettings_TitleMgmt" xml:space="preserve">
-    <value>Spacetime Management</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelCheckpoint" xml:space="preserve">
-    <value>Checkpoint</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnExportTopology" xml:space="preserve">
-    <value>Export Topology Map</value>
-  </data>
-  <data name="VmSpacetimeSettings_MsgSyncing" xml:space="preserve">
-    <value>Syncing...</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelDetails" xml:space="preserve">
-    <value>Spacetime Details</value>
-  </data>
-  <data name="VmSpacetimeSettings_MsgNoAnchor" xml:space="preserve">
-    <value>No anchor selected</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelAction" xml:space="preserve">
-    <value>Action</value>
-  </data>
-  <data name="VmSpacetimeSettings_TypeContinuous" xml:space="preserve">
-    <value>Continuous Spacetime</value>
-  </data>
-  <data name="VmSpacetimeSettings_DescContinuous" xml:space="preserve">
-    <value>Save disk and memory state</value>
-  </data>
-  <data name="VmSpacetimeSettings_TypeStatic" xml:space="preserve">
-    <value>Static Spacetime</value>
-  </data>
-  <data name="VmSpacetimeSettings_DescStatic" xml:space="preserve">
-    <value>Save disk state</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnCreate" xml:space="preserve">
-    <value>Create Spacetime</value>
-  </data>
-  <data name="VmSpacetimeSettings_StateWormholeActive" xml:space="preserve">
-    <value>Wormhole Interfering</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnCloseWormhole" xml:space="preserve">
-    <value>Close Wormhole</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnTravel" xml:space="preserve">
-    <value>Travel</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnOpenWormhole" xml:space="preserve">
-    <value>Open Wormhole</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnConverge" xml:space="preserve">
-    <value>Spacetime Convergence</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnDelete" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="VmSpacetimeSettings_DlgExportTitle" xml:space="preserve">
-    <value>Export Spacetime Topology Map</value>
-  </data>
-  <data name="VmSpacetimeSettings_DlgExportFilter" xml:space="preserve">
-    <value>PNG Image|*.png</value>
-  </data>
-  <data name="VmSpacetimeSettings_LogAbnormalDelta" xml:space="preserve">
-    <value>[DRAG] !!! Abnormal displacement delta=({0},{1}) discarded</value>
-  </data>
   <data name="VmStorageSettings_BtnOptimizeDisk" xml:space="preserve">
     <value>Optimize Disk</value>
   </data>
@@ -3072,8 +2986,8 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
     <value>Error: {0}</value>
   </data>
-  <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
-    <value>A wormhole is open — close it before you can create / delete / converge spacetimes.</value>
+  <data name="VmCheckpointService_HintCloseWormholeFirst" xml:space="preserve">
+    <value>A historical disk mount is open. Unmount it before creating, deleting, or merging checkpoints.</value>
   </data>
   <data name="Cpu_ApicMode" xml:space="preserve">
     <value>APIC Mode</value>
@@ -3931,6 +3845,11 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Gpu_InvalidPartition" xml:space="preserve"><value>The selected partition is unavailable, changed, or is not a supported Windows/Linux system partition.</value></data>
   <data name="Gpu_InvalidSshPort" xml:space="preserve"><value>The SSH port must be between 1 and 65535.</value></data>
   <data name="Gpu_CleanupRequired" xml:space="preserve"><value>The GPU assignment added by this deployment could not be removed. Retry cleanup before starting another deployment.</value></data>
+  <data name="Task_Gpu_MountIso" xml:space="preserve"><value>Mount driver ISO</value></data>
+  <data name="Msg_Gpu_MountingIso" xml:space="preserve"><value>Building and mounting driver ISO...</value></data>
+  <data name="Msg_Gpu_IsoMounted" xml:space="preserve"><value>Driver ISO mounted to VM</value></data>
+  <data name="Msg_Gpu_DriverSkipped" xml:space="preserve"><value>Skipped</value></data>
+  <data name="Msg_Gpu_FallbackPrompt" xml:space="preserve"><value>Unable to inject drivers directly into the selected disk. Skip drivers or mount the driver ISO instead.</value></data>
   <data name="ConsoleWindow_FrameStatistics" xml:space="preserve"><value>Frame statistics</value></data>
   <data name="ConsoleWindow_FrameStatisticsHint" xml:space="preserve"><value>Toggle received FPS and completed window bitmap updates. Maximum interval and intervals ≥50 ms cover the last 5 seconds, including the ongoing interval. A static desktop produces few updates. These are not monitor or remote-desktop FPS.</value></data>
   <data name="ConsoleWindow_FrameStatisticsFormat" xml:space="preserve"><value>UPDATE {0:F1} FPS · RECEIVE {1:F1} FPS
@@ -3938,4 +3857,19 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="PCIePage_Msg_ConfirmMmioUpdate" xml:space="preserve">
     <value>Updating MMIO will turn off virtual machine “{0}”. If this host has no saved limit, the operation will also change MMIO settings and start and turn off the VM to probe the limit. The VM will remain off. Declining a later device confirmation will not undo these changes. Continue?</value>
   </data>
+  <data name="GenerationUpgradePrerequisites" xml:space="preserve"><value>Generation upgrade requires a valid VM identifier and an x64 Hyper-V host.</value></data>
+  <data name="GenerationUpgrade_Preflight" xml:space="preserve"><value>The original VM could not pass preflight.</value></data>
+  <data name="GenerationUpgrade_PrepareStorage" xml:space="preserve"><value>Could not convert the VHD containers.</value></data>
+  <data name="GenerationUpgrade_ExportRecovery" xml:space="preserve"><value>Could not verify the recovery package.</value></data>
+  <data name="GenerationUpgrade_CreateCandidate" xml:space="preserve"><value>Could not prepare the generation 2 VM.</value></data>
+  <data name="GenerationUpgrade_VerifyStaged" xml:space="preserve"><value>The staged VM configuration failed readback.</value></data>
+  <data name="GenerationUpgrade_RecheckSource" xml:space="preserve"><value>The original configuration could not be confirmed.</value></data>
+  <data name="GenerationUpgrade_DestroySource" xml:space="preserve"><value>Could not confirm unregistration of the original VM.</value></data>
+  <data name="GenerationUpgrade_PublishStorage" xml:space="preserve"><value>Could not publish the converted disks.</value></data>
+  <data name="GenerationUpgrade_RestoreDevices" xml:space="preserve"><value>Could not restore the original device settings.</value></data>
+  <data name="GenerationUpgrade_VerifyFinal" xml:space="preserve"><value>Could not confirm the final configuration.</value></data>
+  <data name="GenerationUpgrade_Cleanup" xml:space="preserve"><value>The upgrade was committed. Recovery files still need attention.</value></data>
+  <data name="GenerationUpgrade_Rollback" xml:space="preserve"><value>Could not confirm restoration of the original VM.</value></data>
+  <data name="GenerationUpgrade_Complete" xml:space="preserve"><value>The completed upgrade receipt could not be verified.</value></data>
+  <data name="GenerationUpgrade_Journal" xml:space="preserve"><value>Could not open or lock the upgrade journal.</value></data>
 </root>

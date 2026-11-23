@@ -33,10 +33,10 @@ public enum GpuDecisionKind
 {
     /// <summary>确认强制关闭虚拟机（TurnOff）。</summary>
     PowerOff,
-    /// <summary>选择目标系统分区。</summary>
+    /// <summary>选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。</summary>
     SelectPartition,
-    /// <summary>确认向离线 Windows 系统分区部署驱动文件。</summary>
-    InstallWindows,
+    /// <summary>无法直接向分区写入驱动（如启用 BitLocker），选择跳过驱动或挂载驱动光盘。</summary>
+    DriverFallback,
     /// <summary>确认启动 Linux 来宾以继续在线部署。</summary>
     StartLinux,
     /// <summary>提交部署脚本和 SSH 凭据。</summary>
@@ -47,10 +47,20 @@ public enum GpuDecisionInput
 {
     /// <summary>使用 GpuConfirmation 接受或拒绝。</summary>
     Confirmation,
-    /// <summary>使用 GpuPartitionSelection 提交分区 ID。</summary>
+    /// <summary>使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。</summary>
     Partition,
+    /// <summary>使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。</summary>
+    DriverFallback,
     /// <summary>使用 GpuLinuxInput 提交脚本和 SSH 凭据。</summary>
     LinuxCredentials
+}
+/// <summary>无法直接写入离线驱动或用户选择不直接注入时的回退动作。</summary>
+public enum GpuDriverFallbackAction
+{
+    /// <summary>跳过驱动安装，仅保留已分配的显卡分区与优化配置。</summary>
+    SkipDriver,
+    /// <summary>打包宿主显卡驱动为 ISO 并挂载到虚拟机光驱，由用户进入系统后自行安装。</summary>
+    MountIso
 }
 /// <summary>当前部署快照允许调用方发起的动作。</summary>
 public enum GpuDeploymentAction
@@ -72,18 +82,14 @@ public enum GpuDeploymentAction
 /// <summary>GPU 部署流程中的步骤类别。</summary>
 public enum GpuDeploymentStepKind
 {
-    /// <summary>准备宿主 GPU 分配环境。</summary>
-    Prepare,        // 环境准备
-    /// <summary>检查虚拟机的 GPU 所需设置。</summary>
-    ConfigCheck,    // 检查虚拟机设置
     /// <summary>检查并按用户决定处理虚拟机电源状态。</summary>
-    PowerCheck,     // 电源检查
-    /// <summary>调整 GPU 所需的缓存和 MMIO 设置。</summary>
-    Optimization,   // 系统优化
+    PowerCheck,     // 关闭虚拟机
+    /// <summary>放宽宿主限制并调整 GPU 所需的缓存和 MMIO 设置。</summary>
+    Optimization,   // 参数调整
     /// <summary>新增虚拟 GPU 分区适配器。</summary>
-    Assign,         // 分配显卡
-    /// <summary>安装或更新来宾 GPU 驱动。</summary>
-    Driver          // 驱动安装
+    Assign,         // 添加显卡
+    /// <summary>安装、跳过或挂载光盘部署来宾 GPU 驱动。</summary>
+    Driver          // 安装驱动
 }
 
 /// <summary>单个 GPU 部署步骤的执行状态。</summary>
@@ -116,7 +122,7 @@ public sealed record GpuDeploymentStep(GpuDeploymentStepKind Type, string Name, 
 /// <param name="DiskPath">虚拟磁盘文件路径或物理磁盘编号字符串。</param>
 /// <param name="DiskDisplayName">所属磁盘的显示名称。</param>
 /// <param name="IsPhysicalDisk">是否来自物理直通磁盘。</param>
-/// <param name="IsBitLocker">是否检测到 BitLocker 签名；加密分区不能直接用于此部署。</param>
+/// <param name="IsBitLocker">是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。</param>
 public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulong SizeInBytes,
     OperatingSystemType OsType, string TypeDescription, string DiskPath, string DiskDisplayName,
     bool IsPhysicalDisk, bool IsBitLocker)
@@ -142,11 +148,12 @@ public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Ti
     public GpuDecisionInput Input => Kind switch
     {
         GpuDecisionKind.SelectPartition => GpuDecisionInput.Partition,
+        GpuDecisionKind.DriverFallback => GpuDecisionInput.DriverFallback,
         GpuDecisionKind.LinuxCredentials => GpuDecisionInput.LinuxCredentials,
         _ => GpuDecisionInput.Confirmation
     };
-    /// <summary>是否为直接关闭虚拟机或写入离线 Windows 驱动的确认；其他步骤仍可能有配置副作用。</summary>
-    public bool IsDestructive => Kind is GpuDecisionKind.PowerOff or GpuDecisionKind.InstallWindows;
+    /// <summary>是否为直接关闭虚拟机等具有破坏性的确认；其他步骤仍可能有配置副作用。</summary>
+    public bool IsDestructive => Kind == GpuDecisionKind.PowerOff;
 }
 
 /// <summary>部署会话发布的状态快照。步骤、动作和分区集合为只读；手动构造时应传入不可变集合。</summary>
@@ -156,7 +163,7 @@ public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Ti
 /// <param name="Steps">当前各步骤的状态快照。</param>
 /// <param name="PendingDecision">当前待确认事项；不在等待决定时为 null。</param>
 /// <param name="AllowedActions">当前状态允许的调用动作。</param>
-/// <param name="HasAddedAdapter">本次部署是否新增并识别到适配器。</param>
+/// <param name="HasAddedAdapter">本次部署是否新增并识别到至少一个适配器。</param>
 /// <param name="HasPendingCleanup">是否有已识别且尚待清理的适配器；false 时仍应检查 State 和 CleanupError。</param>
 /// <param name="Error">部署错误说明；无错误时为 null。</param>
 /// <param name="CleanupError">清理失败说明；没有清理错误时为 null。</param>
@@ -168,10 +175,20 @@ public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDep
 {
     /// <summary>底层操作结果尚未确认；此状态不允许重试清理。AllowedActions 包含 Reconcile 时可只读核实原任务和资源。</summary>
     public bool OutcomeUnknown { get; init; }
-    /// <summary>本次原生回执返回且已核对属于目标 VM 的 GPU 适配器身份；未确认时为 null，不通过清单差异推断。</summary>
+    /// <summary>本次原生回执返回且已核对属于目标 VM 的最后一个 GPU 适配器身份；未确认时为 null。</summary>
     public string? AddedAdapterId { get; init; }
-    /// <summary>已确认归属且待清理的适配器标识；清理时机由 AllowedActions 指示。</summary>
+    /// <summary>本次部署批量新增且已确认属于目标 VM 的全部 GPU 适配器标识。</summary>
+    public IReadOnlyList<string> AddedAdapterIds { get; init; } = Array.Empty<string>();
+    /// <summary>已确认归属且待清理的第一个适配器标识；清理时机由 AllowedActions 指示。</summary>
     public string? PendingCleanupAdapterId { get; init; }
+    /// <summary>已确认归属且待清理的全部适配器标识。</summary>
+    public IReadOnlyList<string> PendingCleanupAdapterIds { get; init; } = Array.Empty<string>();
+    /// <summary>打包与挂载驱动 ISO 的百分比进度（0-100）；未处于光盘部署阶段时为 null。</summary>
+    public int? DriverIsoProgressPercent { get; init; }
+    /// <summary>本次部署是否因用户选择而跳过了驱动安装。</summary>
+    public bool IsDriverSkipped { get; init; }
+    /// <summary>本次部署是否通过挂载驱动 ISO 完成驱动准备。</summary>
+    public bool IsDriverIsoMounted { get; init; }
     /// <summary>本次部署与恢复的任务、资源、原状态及核实结果；无记录时为 null，可保存用于排查。</summary>
     public GpuDeploymentRecovery? Recovery { get; init; }
 
@@ -183,7 +200,9 @@ public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDep
             addedAdapterId != null, pendingCleanupAdapterId != null, error, cleanupError, lastLog)
     {
         AddedAdapterId = addedAdapterId;
+        AddedAdapterIds = addedAdapterId == null ? Array.Empty<string>() : [addedAdapterId];
         PendingCleanupAdapterId = pendingCleanupAdapterId;
+        PendingCleanupAdapterIds = pendingCleanupAdapterId == null ? Array.Empty<string>() : [pendingCleanupAdapterId];
     }
 }
 
@@ -198,6 +217,10 @@ public sealed record GpuConfirmation(Guid RequestId, bool Accepted) : GpuDeploym
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 /// <param name="PartitionId">当前 PendingDecision.Partitions 中的分区 Id。</param>
 public sealed record GpuPartitionSelection(Guid RequestId, string PartitionId) : GpuDeploymentDecision(RequestId);
+/// <summary>当分区加密或无法直接写入时，提交跳过驱动或挂载驱动光盘的回退决定。</summary>
+/// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
+/// <param name="Action">要执行的替代动作。</param>
+public sealed record GpuDriverFallbackSelection(Guid RequestId, GpuDriverFallbackAction Action) : GpuDeploymentDecision(RequestId);
 /// <summary>为 Linux 部署提供脚本和 SSH 凭据；会话在处理前复制二者，避免后续调用方修改影响待执行操作。</summary>
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 /// <param name="Script">选定的部署脚本；类型允许 null，但提交 Linux 决定时不能为空。</param>

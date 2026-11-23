@@ -126,23 +126,6 @@ public class CoreDiagnosticTests
         Assert.AreEqual(0, backend.DiskQueries);
     }
 
-    [TestMethod]
-    public void ServiceCoordination_RefCountsActiveSettingsWrites()
-    {
-        Assert.IsFalse(HyperVServiceCoordination.HasActiveSettingsWrite);
-
-        using (HyperVServiceCoordination.BeginActiveSettingsWrite())
-        {
-            Assert.IsTrue(HyperVServiceCoordination.HasActiveSettingsWrite);
-            using (HyperVServiceCoordination.BeginActiveSettingsWrite())
-            {
-                Assert.IsTrue(HyperVServiceCoordination.HasActiveSettingsWrite);
-            }
-            Assert.IsTrue(HyperVServiceCoordination.HasActiveSettingsWrite);
-        }
-
-        Assert.IsFalse(HyperVServiceCoordination.HasActiveSettingsWrite);
-    }
 
     [TestMethod]
     public void ProcessorConditions_ReturnAccurateReasonCodesInsteadOfUnsupportedVersion()
@@ -302,5 +285,32 @@ public class CoreDiagnosticTests
             armHost);
         Assert.IsFalse(invalidLpi.Success);
         Assert.AreEqual(ApiErrorKind.InvalidArgument, invalidLpi.ErrorKind);
+    }
+
+    [TestMethod]
+    public async Task HostMemoryAndCaseInsensitiveProcessorSnapshot_WorkCleanly()
+    {
+        var hostMem = HostSystemInfoService.TryReadHostMemoryMiB();
+        Assert.IsNotNull(hostMem);
+        Assert.IsTrue(hostMem.Value.TotalMiB > 0);
+        Assert.IsTrue(hostMem.Value.AvailableMiB >= 0 && hostMem.Value.AvailableMiB <= hostMem.Value.TotalMiB);
+
+        Assert.IsNull(await VmProcessorService.GetHostMaxVirtualCpuCountAsync(Guid.Empty));
+
+        var rawMixedCase = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["VirtualQuantity"] = 4UL,
+            ["Reservation"] = 0UL,
+            ["Limit"] = 100000UL,
+            ["Weight"] = 100U,
+            ["AllowACountMCount"] = null
+        };
+        var snapshot = VmProcessorService.MapProcessorSnapshot(new VmProcessorSettings { Count = 4 }, rawMixedCase);
+        Assert.AreEqual(VmQueryValueState.Unavailable, snapshot.States[nameof(VmProcessorSettings.AllowAcountMcount)]);
+
+        var enriched = ApiResponse.Fail("Out of memory (0x8007000E)", 32768, ApiErrorSource.Wmi)
+            .WithDiagnostic(CoreErrorCode.InsufficientMemory, "16384", "6000", "15975", "10384");
+        Assert.AreEqual(CoreErrorCode.InsufficientMemory, enriched.DiagnosticCode);
+        CollectionAssert.AreEqual(new[] { "16384", "6000", "15975", "10384" }, enriched.DiagnosticArgs.ToArray());
     }
 }

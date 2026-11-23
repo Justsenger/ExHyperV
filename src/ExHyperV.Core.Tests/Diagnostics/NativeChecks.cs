@@ -72,10 +72,10 @@ internal static class NativeChecks
                     check(disk.Success, "Core creates and attaches a fixture-only dynamic VHDX: " + disk.Error);
                     var storage = await VmStorageService.GetVmStorageItemsAsync(vmId);
                     check(storage.HasData && storage.Data!.Any(d => string.Equals(d.PathOrDiskNumber, diskPath, StringComparison.OrdinalIgnoreCase)), "Detached storage snapshot reports the actual attached disk");
-                    var checkpoint = await VmSpacetimeService.CaptureMomentAsync(vmId, SpacetimeMode.Still);
+                    var checkpoint = await VmCheckpointService.CaptureMomentAsync(vmId);
                     check(checkpoint.Success, "Core creates a checkpoint of the fixture: " + checkpoint.Error);
-                    var nodes = await VmSpacetimeService.GetSpacetimeNodesAsync(vmId);
-                    check(nodes.HasData && nodes.Data.Count(n => n.NodeType == SpacetimeNodeType.Snapshot) == 1, "Checkpoint tree retains genesis, checkpoint and current nodes");
+                    var nodes = await VmCheckpointService.GetCheckpointNodesAsync(vmId);
+                    check(nodes.HasData && nodes.Data.Count(n => n.NodeType == CheckpointNodeType.Snapshot) == 1, "Checkpoint tree retains genesis, checkpoint and current nodes");
                     string exportRoot = Path.Combine(ownedRoot, "export");
                     Directory.CreateDirectory(exportRoot);
                     var exported = await VmExportService.ExportAsync(vmId, exportRoot, true, [], VmExportCheckpointMode.All, null, false);

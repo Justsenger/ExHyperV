@@ -1,5 +1,6 @@
 ---
 import '../../styles/ui-design.css';
+import { HOST_CANDIDATE_PANEL } from '../../data/exhyperv-design-candidates';
 const swatches = [
   ['蓝色', '#4CC2FF'],
   ['紫色', '#B69CFF'],
@@ -175,7 +176,7 @@ const swatches = [
                     </div>
                     <div class="vm-matrix-cell">
                       <span class="vm-matrix-label">核心 / 内存</span>
-                      <span class="vm-matrix-val" id="vmMatrixSpec">12 核 · 2 GB</span>
+                      <span class="vm-matrix-val" id="vmMatrixSpec">12 核 / 2 GB</span>
                     </div>
                     <div class="vm-matrix-cell" id="vmMatrixIpCell" title="点击复制 IP">
                       <span class="vm-matrix-label">网络 IP</span>
@@ -189,18 +190,7 @@ const swatches = [
             <!-- Row 1: PageTabs (Margin="24,16,24,12") -->
             <div class="vm-pagetabs" id="vmPageTabsBar"></div>
 
-            <!-- Page InfoBar (mirrors WinUI3 ErrorBar / InfoBar row below PageTabs) -->
-            <div class="winui-infobar" id="dashboardNoticeBar" hidden>
-              <div class="winui-infobar-main">
-                <span class="fi winui-infobar-icon">&#xE73E;</span>
-                <span id="dashboardNoticeText"></span>
-              </div>
-              <button class="pane-toggle-btn" id="dashboardNoticeCloseBtn" style="width:24px;height:24px;margin:0;">
-                <span class="fi" style="font-size:10px;">&#xE711;</span>
-              </button>
-            </div>
-
-            <!-- Row 3A: DashboardScroll (状态) -->
+            <!-- Row 2A: DashboardScroll (状态) -->
             <div class="vm-overview-scroll" id="vmOverviewScroll">
               <div class="vm-overview-stack" id="vmOverviewOriginal" hidden>
                 <!-- Card 1: CPU & Memory Resource Card -->
@@ -248,20 +238,27 @@ const swatches = [
               <div class="vm-overview-alt-host mode-fill" id="vmOverviewAltHost"></div>
             </div>
 
-            <!-- Row 3B: SettingsArea (Margin="24,0,24,24" ColumnSpacing="16") -->
+            <!-- Row 2B: SettingsArea (Margin="24,0,24,24" ColumnSpacing="16") -->
             <div class="vm-settings-area" id="vmSettingsArea" hidden>
               <div class="settings-subnav" id="vmSettingsSubnav"></div>
               <div class="vm-settings-right">
-                <div class="winui-infobar is-settings-bar" id="settingsNoticeBar" hidden>
-                  <div class="winui-infobar-main">
-                    <span class="fi winui-infobar-icon">&#xE73E;</span>
-                    <span id="settingsNoticeText"></span>
-                  </div>
-                  <button class="pane-toggle-btn" id="settingsNoticeCloseBtn" style="width:24px;height:24px;margin:0;">
-                    <span class="fi" style="font-size:10px;">&#xE711;</span>
-                  </button>
-                </div>
                 <div class="settings-host-scroll" id="vmSettingsHost"></div>
+              </div>
+            </div>
+
+            <!-- ExHyperV.WinUI3 Bottom Center Floating Feedback (FloatingSuccessToast + FloatingNoticeBanner) -->
+            <div class="winui-floating-toast" id="vmSuccessToast" role="status" hidden>
+              <span class="winui-floating-toast-badge"><span class="fi">&#xE73E;</span></span>
+              <span id="vmSuccessToastText">已应用</span>
+            </div>
+            <div class="winui-floating-banner is-error" id="vmNoticeBanner" hidden>
+              <span class="winui-floating-banner-badge"><span class="fi" id="vmNoticeBannerIcon">&#xE711;</span></span>
+              <span class="winui-floating-banner-text" id="vmNoticeBannerText"></span>
+              <div class="winui-floating-banner-actions">
+                <button type="button" class="winui-btn winui-floating-banner-details" id="vmNoticeDetailsBtn" hidden>查看详情</button>
+                <button type="button" class="winui-floating-banner-close" id="vmNoticeCloseBtn" title="关闭">
+                  <span class="fi" style="font-size:11px;">&#xE711;</span>
+                </button>
               </div>
             </div>
           </div>
@@ -312,7 +309,7 @@ const swatches = [
                 </div>
               </div>
 
-              <div style="font-size:14px;color:var(--TextFillColorSecondaryBrush);">展开的监控卡片使用主题色；关闭后使用灰色。</div>
+              <div style="font-size:14px;color:var(--TextFillColorSecondaryBrush);">展开的监控卡片使用主题色，关闭后使用灰色。</div>
 
               <div style="background:var(--VmHeaderCheckedBrush);color:var(--VmHeaderForegroundBrush);border-radius:4px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
                 <span>展开状态</span>
@@ -320,6 +317,20 @@ const swatches = [
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FloatingNoticeBanner Details Dialog (FloatingFeedbackControls.cs OpenDetailsDialogAsync) -->
+    <div class="winui-dialog-backdrop" id="vmNoticeDetailsModal" hidden>
+      <div class="winui-dialog" role="dialog" aria-modal="true" aria-labelledby="vmNoticeDetailsTitle">
+        <div class="winui-dialog-title" id="vmNoticeDetailsTitle">错误详情</div>
+        <div class="winui-dialog-body-box">
+          <pre class="winui-dialog-body-text" id="vmNoticeDetailsText"></pre>
+        </div>
+        <div class="winui-dialog-footer">
+          <button type="button" class="winui-btn" id="vmNoticeCopyAllBtn">全部复制</button>
+          <button type="button" class="winui-btn" id="vmNoticeModalCloseBtn">关闭</button>
         </div>
       </div>
     </div>
@@ -339,32 +350,36 @@ const swatches = [
   </div>
 
   <!-- Right-side Floating Design Candidates Panel -->
-  <aside class="design-candidates-panel" id="designCandidatesPanel">
+  <aside
+    class="design-candidates-panel"
+    id="designCandidatesPanel"
+    data-dcp-mappings={JSON.stringify(HOST_CANDIDATE_PANEL.mappings)}
+    data-has-static={HOST_CANDIDATE_PANEL.sections.length > 0 ? 'true' : 'false'}
+    hidden={HOST_CANDIDATE_PANEL.sections.length === 0}
+  >
     <div class="dcp-header" id="dcpHeader">
-      <div class="dcp-title">处理器拓扑方案</div>
+      <div class="dcp-title" id="dcpTitle">{HOST_CANDIDATE_PANEL.title}</div>
     </div>
-    <div class="dcp-subheader">交互方式</div>
-    <div class="dcp-list" id="dcpTopoModeList">
-      <button class="dcp-chip active" data-topo-uimode="intent" type="button">可视化拓扑图</button>
-      <button class="dcp-chip" data-topo-uimode="raw" type="button">原始：填每组上限</button>
-    </div>
-    <div class="dcp-subheader">自动换算的 WMI 参数</div>
-    <div class="dcp-list" id="dcpTopoWmiBox" style="font-size:11.5px;color:rgba(255,255,255,0.72);gap:6px;">
-      <div>单节点最大核数: <b id="dcpWmiNuma" style="color:#4CC2FF;">12</b></div>
-      <div>单插槽最大节点: <b id="dcpWmiSocket" style="color:#4CC2FF;">1</b></div>
-      <div>单 L3 最大核数: <b id="dcpWmiL3" style="color:#4CC2FF;">自动</b></div>
-      <div>单插槽最大簇数: <b id="dcpWmiCluster" style="color:#4CC2FF;">自动</b></div>
-    </div>
-    <div class="dcp-subheader" style="margin-top:8px;">内存 · 计算资源排布</div>
-    <div class="dcp-list" id="dcpMemLayoutList">
-      <button class="dcp-chip active" data-mem-layout="2-1-3" type="button">宽松2列+通栏</button>
-      <button class="dcp-chip" data-mem-layout="2x3" type="button">2×3（严格2列）</button>
-    </div>
-    <div class="dcp-subheader">动态内存关闭时</div>
-    <div class="dcp-list" id="dcpMemDynOffList">
-      <button class="dcp-chip active" data-mem-dynoff="disable" type="button">置灰禁用</button>
-      <button class="dcp-chip" data-mem-dynoff="hide" type="button">折叠隐藏</button>
-    </div>
+    {HOST_CANDIDATE_PANEL.sections.map((sec) => (
+      <>
+        <div class="dcp-subheader" data-dcp-scope={sec.scope || ''}>{sec.subhead}</div>
+        <div class="dcp-list" id={sec.id} data-dcp-scope={sec.scope || ''}>
+          {sec.items.map((item) => (
+            <button
+              class={`dcp-chip ${item.active ? 'active' : ''}`}
+              type="button"
+              {...{ [item.attr]: item.value }}
+            >
+              <span class="dcp-chip-main">
+                {item.icon && <span class="fi dcp-chip-icon" aria-hidden="true">{item.icon}</span>}
+                <span>{item.label}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </>
+    ))}
+    <div id="dcpDynamicSections"></div>
   </aside>
 </div>
 
@@ -374,7 +389,7 @@ const swatches = [
   function bootWorkbench() {
     try {
       initUiDesignWorkbench();
-      initFluentGlyphFallback(document.getElementById('winuiWindow') || document.body);
+      initFluentGlyphFallback(document.querySelector('.ui-workbench-page') || document.body);
     } finally {
       document.documentElement.classList.remove('winui-hydrating');
     }

@@ -519,3 +519,12 @@ $RECYCLE.BIN/
 
 # Local verification artifacts
 .artifacts/
+
+# External WinOnWeb desktop shell & runtime (synced from sibling WinOnWeb repo or GitHub)
+website/src/win11-shell/
+website/src/shells/win11/
+website/src/wow/
+website/public/win11/
+website/public/wow/
+website/public/wow-bundles/
+website/public/packages/

@@ -1,9 +1,12 @@
-// HostPage Prototype: Task Manager-style State tab (1:1 replica of VmDashboardView Overview)
-// + clean Core Host capability tabs (交换机 / 设备 / 计算 / 设置) with NO top summary clutter.
+// HostPage Prototype: Mirrors VirtualMachinesPage / VmDashboardView structure:
+// Top PageTabs ('状态' first, followed by Host settings tabs: '交换机' | '设备' | '计算' | '设置')
+// '状态' tab uses the Task Manager-style left rail + right detail card for Host telemetry & inventory.
 
 const HOST_SYS = {
   os: 'Windows 11 专业工作站版 (26100)',
   arch: 'X64',
+  hostName: 'WORKSTATION-HOST',
+  uptime: '3 天 14:49:43',
   cpu: 'AMD Ryzen 9 9950X 16-Core Processor',
   cpuShort: 'AMD Ryzen 9 9950X',
   cores: 16,
@@ -21,7 +24,11 @@ const HOST_SYS = {
   }),
   memHistory: [32, 33, 34, 35, 34, 35, 35],
   memPct: 35,
-  memNote: '物理内存 64 GB'
+  memNote: '物理内存 64 GB',
+  runningVmCount: 2,
+  totalVmCount: 3,
+  vmAllocatedRamGb: 10.0,
+  vmAllocatedVcpu: 12
 };
 
 const POWER_PLANS = [
@@ -32,10 +39,16 @@ const POWER_PLANS = [
 ];
 
 const SCHEDULER_OPTIONS = [
-  { value: 'Classic', label: 'Classic' },
-  { value: 'Core', label: 'Core' },
-  { value: 'Root', label: 'Root' }
+  { value: 'Classic', label: '经典', fullLabel: '经典调度器' },
+  { value: 'Core', label: '核心', fullLabel: '核心调度器' },
+  { value: 'Root', label: '根', fullLabel: '根调度器' }
 ];
+
+function getSchedulerLabel(value, full = false) {
+  const opt = SCHEDULER_OPTIONS.find((o) => o.value === value);
+  if (!opt) return value || '';
+  return full ? opt.fullLabel : opt.label;
+}
 
 const PATH_PRESETS = {
   vm: [
@@ -50,6 +63,77 @@ const PATH_PRESETS = {
   ]
 };
 
+const INITIAL_NICS = [
+  {
+    id: 'nic-eth',
+    name: '以太网',
+    media: 'wired',
+    canBridge: true,
+    mediaNote: '有线以太网，支持 Bridge / NAT',
+    description: 'Intel(R) Ethernet Controller I226-V',
+    linkUp: true,
+    speed: '2.5 Gbps',
+    ipv4: '192.168.1.100',
+    mac: 'A8-A1-59-7B-2C-10',
+    boundSwitch: 'External vSwitch (Bridge)',
+    sendRate: '1.2 Mbps',
+    recvRate: '4.8 Mbps',
+    sendPts: [12, 18, 15, 26, 20, 24, 18],
+    recvPts: [22, 34, 28, 46, 38, 42, 36]
+  },
+  {
+    id: 'nic-wifi',
+    name: 'WLAN',
+    media: 'wifi',
+    canBridge: true,
+    mediaNote: '802.11 Wi-Fi，Msvm_WiFiPort 可桥接',
+    description: 'Qualcomm FastConnect 7800 Wi-Fi 7',
+    linkUp: true,
+    speed: '1.2 Gbps',
+    ipv4: '192.168.1.108',
+    mac: '4C-D5-77-9A-12-E4',
+    boundSwitch: '空闲（可桥接 / NAT）',
+    sendRate: '180 Kbps',
+    recvRate: '640 Kbps',
+    sendPts: [6, 9, 7, 14, 10, 12, 9],
+    recvPts: [14, 20, 16, 28, 22, 24, 19]
+  },
+  {
+    id: 'nic-cell',
+    name: '手机网络',
+    media: 'cellular',
+    canBridge: false,
+    mediaNote: '蜂窝 SIM (MBIM)，不可桥接（仅 NAT），按流量计费',
+    description: 'Qualcomm Snapdragon X65 5G Modem',
+    linkUp: true,
+    speed: '5G NR (420 Mbps)',
+    ipv4: '10.168.42.19',
+    mac: '---（Raw IP 无二层 MAC）',
+    boundSwitch: 'Default Switch 自动路由备选',
+    sendRate: '24 Kbps',
+    recvRate: '96 Kbps',
+    sendPts: [2, 3, 2, 5, 3, 4, 2],
+    recvPts: [5, 8, 6, 12, 9, 10, 7]
+  },
+  {
+    id: 'nic-tun',
+    name: 'Clash TUN',
+    media: 'tunnel',
+    canBridge: false,
+    mediaNote: '三层 Wintun 隧道，不可桥接，可承载宿主路由',
+    description: 'Meta / Wintun Userspace Tunnel',
+    linkUp: true,
+    speed: '虚拟隧道',
+    ipv4: '198.18.0.1',
+    mac: '---（三层隧道）',
+    boundSwitch: '宿主路由 / ICS 代理出口',
+    sendRate: '420 Kbps',
+    recvRate: '2.4 Mbps',
+    sendPts: [8, 12, 10, 16, 14, 15, 11],
+    recvPts: [18, 26, 22, 38, 30, 34, 28]
+  }
+];
+
 const INITIAL_SWITCHES = [
   {
     id: 'sw-ext',
@@ -58,10 +142,10 @@ const INITIAL_SWITCHES = [
     allowManagementOs: true,
     upstream: 'Intel(R) Ethernet Controller I226-V',
     ipv4: '192.168.1.100',
-    sendRate: '1.2 Mbps',
-    recvRate: '4.8 Mbps',
-    sendPts: [12, 18, 15, 26, 20, 24, 18],
-    recvPts: [22, 34, 28, 46, 38, 42, 36],
+    sendRate: '184 Kbps',
+    recvRate: '428 Kbps',
+    sendPts: [18, 34, 24, 58, 30, 42, 36],
+    recvPts: [36, 78, 44, 88, 52, 74, 62],
     endpoints: ['ubuntu-dev'],
     expanded: true
   },
@@ -70,12 +154,12 @@ const INITIAL_SWITCHES = [
     name: 'Default Switch',
     mode: 'NAT',
     allowManagementOs: true,
-    upstream: '内部 NAT (ICS)',
-    ipv4: '172.24.112.1',
+    upstream: '宿主当前活跃网络 (NAT)',
+    ipv4: '172.30.240.1',
     sendRate: '0.4 Mbps',
     recvRate: '1.6 Mbps',
-    sendPts: [4, 8, 6, 12, 9, 10, 8],
-    recvPts: [10, 16, 14, 22, 18, 20, 16],
+    sendPts: [6, 9, 8, 14, 11, 12, 10],
+    recvPts: [12, 18, 15, 24, 20, 22, 18],
     endpoints: ['test', 'win11-arm64', 'ubuntu-dev'],
     expanded: false
   },
@@ -84,13 +168,13 @@ const INITIAL_SWITCHES = [
     name: 'Lab Isolated',
     mode: 'Isolated',
     allowManagementOs: false,
-    upstream: '无物理上行网卡',
+    upstream: '无上游出口',
     ipv4: '---',
-    sendRate: '0 Kbps',
-    recvRate: '0 Kbps',
-    sendPts: [0, 0, 0, 0, 0, 0, 0],
-    recvPts: [0, 0, 0, 0, 0, 0, 0],
-    endpoints: [],
+    sendRate: '12.4 Mbps',
+    recvRate: '12.8 Mbps',
+    sendPts: [18, 28, 22, 36, 30, 34, 29],
+    recvPts: [20, 30, 24, 38, 32, 36, 31],
+    endpoints: ['ubuntu-dev', 'win11-arm64'],
     expanded: false
   }
 ];
@@ -153,7 +237,7 @@ const INITIAL_DISKS = [
     sizeText: '1863.02 GB',
     serial: 'S73WNJ0W412089',
     path: '\\\\.\\PhysicalDrive1',
-    status: '脱机 · 可直通',
+    status: '脱机，可直通',
     offline: true,
     readOnly: false,
     canPassthrough: true,
@@ -232,28 +316,100 @@ const INITIAL_VM_GROUPS = [
   { id: 'grp-lin', name: 'Linux 编译节点', kind: 'VirtualMachines', children: [], vms: ['ubuntu-dev'] }
 ];
 
-const HOST_TABS = [
-  { key: 'state', label: '状态', icon: '&#xE9D2;' },
-  { key: 'switches', label: '交换机', icon: '&#xE774;' },
-  { key: 'devices', label: '设备', icon: '&#xE950;' },
-  { key: 'compute', label: '计算', icon: '&#xEA86;' },
-  { key: 'settings', label: '设置', icon: '&#xE713;' }
+const HOST_TABS_BASE = [
+  { key: 'state', label: '状态', icon: '&#xE9D9;' },
+  { key: 'env', label: '环境', icon: '&#xE9D5;' },
+  { key: 'policy', label: '设置', icon: '&#xE713;' },
+  { key: 'switches', label: '交换机', icon: '&#xE774;' }
 ];
 
-const hostState = {
-  activeTab: 'state',
-  selectedRail: { kind: 'cpu', idx: 0 }, // 'cpu' | 'mem' | 'disk' | 'net' | 'gpu'
+const CARD_STYLE_CANDIDATES = ['vm-3row', 'compact-2row', 'kpi-matrix', 'merged-tabs', 'slim-bar'];
+const CARD_CONTENT_CANDIDATES = ['identity-ready', 'ops-summary', 'full-workstation'];
+const CPU_DETAIL_STYLES = [
+  'art-winui-bar',
+  'art-fill-x',
+  'art-fill-y',
+  'art-history-bars',
+  'art-micro-leds',
+  'art-chunky-bar',
+  'art-ring',
+  'art-aurora',
+  'art-blocks'
+];
+const HIGHLIGHT_STYLES = ['fluent-tint', 'pill-accent', 'elevated-card', 'focus-ring', 'top-accent'];
 
-  switchesSub: 'list',
-  devicesSub: 'gpu',
-  computeSub: 'scheduler',
-  settingsSub: 'environment',
+const HOST_LED_HOST_COLOR = 'var(--VmAccentBrush, #4CC2FF)';
+const HOST_LED_GUEST_COLOR = '#60CDFF';
+const HOST_LED_OTHER_COLOR = '#4B5563';
+const HOST_LED_VM_PALETTE = ['#6CCB5F', '#4AA86C', '#348E7B', '#3D7A8A', '#4B6B7F', '#566475', '#5C616B'];
+const HOST_LED_MOCK_NAMES = [
+  'test',
+  'win11-arm64',
+  'Windows11-Enterprise-Dev-ARM64',
+  'ubuntu-build-runner-01',
+  'sql-prod-replica',
+  'docker-swarm-node-alpha',
+  'macos-ci-sandbox',
+  'debian-kernel-lab',
+  'win10-ltsc-compat-test',
+  'freebsd-router-gw',
+  'alpine-edge-proxy',
+  'arch-dev-workstation'
+];
+const HOST_VM_CPU_ALLOCATIONS = [
+  { name: 'test', running: true, vcpu: 8, pct: 18, weight: 100, limit: 100, reserve: 0, affinity: '绑定 0-7', allowedLps: [0, 1, 2, 3, 4, 5, 6, 7], color: '#FFB900', cpuGroup: '宿主逻辑核心组' },
+  { name: 'win11-arm64', running: true, vcpu: 4, pct: 11, weight: 100, limit: 100, reserve: 10, affinity: '自动调度', allowedLps: null, color: '#6CCB5F', cpuGroup: '宿主逻辑核心组' },
+  { name: 'ubuntu-dev', running: false, vcpu: 4, pct: 0, weight: 100, limit: 80, reserve: 0, affinity: '自动调度', allowedLps: null, color: '#C299FF', cpuGroup: '未分组' }
+];
+
+function getRunningLedVms(hostThreads) {
+  const count = hostState.mockVmCount;
+  if (!count) return HOST_VM_CPU_ALLOCATIONS.filter((v) => v.running);
+  return Array.from({ length: count }, (_, i) => {
+    const name = HOST_LED_MOCK_NAMES[i] || `vm-node-${i + 1}`;
+    const vcpu = Math.min(hostThreads, i % 3 === 0 ? 8 : 4);
+    const hasSubset = i % 2 === 0 && hostThreads >= 8;
+    const allowedLps = hasSubset
+      ? Array.from({ length: Math.max(2, Math.floor(hostThreads * 0.65)) }, (_, k) => (k + i) % hostThreads)
+      : null;
+    return {
+      name,
+      running: true,
+      vcpu,
+      pct: Math.max(4, 22 - i * 2),
+      color: i < HOST_LED_VM_PALETTE.length ? HOST_LED_VM_PALETTE[i] : HOST_LED_OTHER_COLOR,
+      allowedLps
+    };
+  });
+}
+
+const hostState = {
+  cardStyle: 'compact-2row', // 'vm-3row' | 'compact-2row' | 'kpi-matrix' | 'merged-tabs' | 'slim-bar'
+  cardContent: 'ops-summary', // 'identity-ready' | 'ops-summary' | 'full-workstation'
+  cpuDetailStyle: 'art-ring',
+  highlightStyle: 'elevated-card', // 'fluent-tint' | 'pill-accent' | 'elevated-card' | 'focus-ring' | 'top-accent'
+  legendPlacement: 'right', // 'right' | 'bottom'
+  mockThreads: '12',
+  mockVmCount: '2',
+  cpuStatsView: false,
+  memStatsView: false,
+  selectedLedVm: null,
+  hoveredLedVm: null,
+  hoveredLedLp: null,
+  selectedMemKey: null,
+  hoveredMemKey: null,
+  hoveredMemSeg: null,
+  activeTab: 'state',
+  policySub: 'scheduler',
+  powerComboOpen: false,
+  selectedRail: { kind: 'cpu', idx: 0 }, // 'cpu' | 'mem' | 'nic' | 'switch' | 'gpu' | 'disk'
 
   hyperVEnabled: true,
   cpuVirtOk: true,
   gpuPvOk: true,
   iommuOk: true,
   isWindowsServer: false,
+  usbipdOk: true,
 
   notice: null,
 
@@ -276,6 +432,7 @@ const hostState = {
   },
   draft: null,
 
+  nics: structuredClone(INITIAL_NICS),
   switches: structuredClone(INITIAL_SWITCHES),
   gpus: structuredClone(INITIAL_GPUS),
   disks: structuredClone(INITIAL_DISKS),
@@ -406,19 +563,532 @@ function renderTitleFirstKvItemHtml({ title, stateText, caution = false, wide = 
   `;
 }
 
+function renderTmScaleBar(leftText, rightText) {
+  return `
+    <div class="host-tm-scale-row">
+      <span>${esc(leftText)}</span>
+      <span>${esc(rightText)}</span>
+    </div>
+  `;
+}
+
+function annularSectorPath(cx, cy, rIn, rOut, startDeg, endDeg, cornerR = 2.5) {
+  const sweep = endDeg - startDeg;
+  if (sweep <= 0.6) return '';
+  const rad = Math.PI / 180;
+  const pt = (r, deg) => [cx + r * Math.cos(deg * rad), cy + r * Math.sin(deg * rad)];
+  const maxCr = Math.min(cornerR, (rOut - rIn) * 0.42, (sweep * rad * rIn) * 0.42);
+  if (maxCr < 0.6) {
+    const [x1, y1] = pt(rOut, startDeg);
+    const [x2, y2] = pt(rOut, endDeg);
+    const [x3, y3] = pt(rIn, endDeg);
+    const [x4, y4] = pt(rIn, startDeg);
+    const large = sweep > 180 ? 1 : 0;
+    return `M${x1.toFixed(2)},${y1.toFixed(2)} A${rOut},${rOut} 0 ${large} 1 ${x2.toFixed(2)},${y2.toFixed(2)} L${x3.toFixed(2)},${y3.toFixed(2)} A${rIn},${rIn} 0 ${large} 0 ${x4.toFixed(2)},${y4.toFixed(2)} Z`;
+  }
+  const dOut = (maxCr / rOut) / rad;
+  const dIn = (maxCr / rIn) / rad;
+  const [p1x, p1y] = pt(rOut, startDeg + dOut);
+  const [p2x, p2y] = pt(rOut, endDeg - dOut);
+  const [p3x, p3y] = pt(rOut - maxCr, endDeg);
+  const [p4x, p4y] = pt(rIn + maxCr, endDeg);
+  const [p5x, p5y] = pt(rIn, endDeg - dIn);
+  const [p6x, p6y] = pt(rIn, startDeg + dIn);
+  const [p7x, p7y] = pt(rIn + maxCr, startDeg);
+  const [p8x, p8y] = pt(rOut - maxCr, startDeg);
+  const largeOut = (endDeg - dOut) - (startDeg + dOut) > 180 ? 1 : 0;
+  const largeIn = (endDeg - dIn) - (startDeg + dIn) > 180 ? 1 : 0;
+  return [
+    `M${p1x.toFixed(2)},${p1y.toFixed(2)}`,
+    `A${rOut},${rOut} 0 ${largeOut} 1 ${p2x.toFixed(2)},${p2y.toFixed(2)}`,
+    `A${maxCr.toFixed(2)},${maxCr.toFixed(2)} 0 0 1 ${p3x.toFixed(2)},${p3y.toFixed(2)}`,
+    `L${p4x.toFixed(2)},${p4y.toFixed(2)}`,
+    `A${maxCr.toFixed(2)},${maxCr.toFixed(2)} 0 0 1 ${p5x.toFixed(2)},${p5y.toFixed(2)}`,
+    `A${rIn},${rIn} 0 ${largeIn} 0 ${p6x.toFixed(2)},${p6y.toFixed(2)}`,
+    `A${maxCr.toFixed(2)},${maxCr.toFixed(2)} 0 0 1 ${p7x.toFixed(2)},${p7y.toFixed(2)}`,
+    `L${p8x.toFixed(2)},${p8y.toFixed(2)}`,
+    `A${maxCr.toFixed(2)},${maxCr.toFixed(2)} 0 0 1 ${p1x.toFixed(2)},${p1y.toFixed(2)}`,
+    'Z'
+  ].join(' ');
+}
+
+function renderHostTopCard() {
+  const style = hostState.topCardStyle;
+  const content = hostState.topCardContent;
+  const planName = POWER_PLANS.find((p) => p.id === hostState.saved.powerPlanId)?.name || '高性能';
+  const virtText = HOST_SYS.arch === 'ARM64' ? 'EL2' : 'VT-x';
+  const iommuLabel = HOST_SYS.arch === 'ARM64' ? 'SMMU' : 'IOMMU';
+  const hvOk = hostState.hyperVEnabled;
+  const hvColor = hvOk ? '#6CCB5F' : '#FCE100';
+  const hvIcon = hvOk ? '&#xE73E;' : '&#xE7BA;';
+  const hvText = hvOk ? 'Hyper-V 已就绪' : 'Hyper-V 未启用';
+
+  const actionBtnHtml = `
+    <button type="button" class="winui-btn host-summary-action-btn" data-host-jump="policy:platform" title="查看 Hyper-V 平台与策略设置">
+      <span class="fi" style="font-size:12px;color:${hvColor};">${hvIcon}</span>
+      <span>${hvText}</span>
+    </button>
+  `;
+
+  // Essential badges (shown in all content presets)
+  const essentialBadges = [
+    `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE7F4;</span><span class="vm-badge-text">${esc(HOST_SYS.arch)}</span></div>`,
+    `<div class="vm-badge" title="正在运行的虚拟机 / 全部虚拟机"><span class="fi vm-badge-icon">&#xE770;</span><span class="vm-badge-text">${HOST_SYS.runningVmCount}/${HOST_SYS.totalVmCount} 台运行</span></div>`
+  ];
+
+  // Standard badges (virtualization & compute policy)
+  const standardBadges = [
+    `<div class="vm-badge" title="CPU 虚拟化与 GPU-PV 支持状态"><span class="fi vm-badge-icon" style="color:${hostState.cpuVirtOk && hostState.gpuPvOk ? '#6CCB5F' : '#FCE100'};">&#xE73E;</span><span class="vm-badge-text">${virtText} / GPU-PV</span></div>`,
+    `<div class="vm-badge" title="${iommuLabel} 设备直通支持"><span class="fi vm-badge-icon" style="color:${hostState.iommuOk ? '#6CCB5F' : '#FCE100'};">&#xE950;</span><span class="vm-badge-text">${iommuLabel} ${hostState.iommuOk ? '已开启' : '未启用'}</span></div>`,
+    `<div class="vm-badge" title="Hyper-V 调度器与宿主电源方案"><span class="fi vm-badge-icon">&#xEA86;</span><span class="vm-badge-text">${esc(getSchedulerLabel(hostState.saved.scheduler, true))} / ${esc(planName)}</span></div>`
+  ];
+
+  // Detailed badges / footer (enhanced session & default paths)
+  const detailedPathsHtml =
+    content === 'detailed'
+      ? `
+        <div class="host-summary-detail-strip">
+          <button type="button" class="host-summary-path-chip" data-copy="${esc(hostState.saved.defaultVmPath)}" title="点击复制默认虚拟机路径：${esc(hostState.saved.defaultVmPath)}">
+            <span class="fi">&#xE8B7;</span>
+            <span class="host-summary-path-label">VM</span>
+            <span class="host-summary-path-val">${esc(hostState.saved.defaultVmPath)}</span>
+            <span class="fi host-summary-copy-ico">&#xE8C8;</span>
+          </button>
+          <button type="button" class="host-summary-path-chip" data-copy="${esc(hostState.saved.defaultVhdPath)}" title="点击复制默认虚拟硬盘路径：${esc(hostState.saved.defaultVhdPath)}">
+            <span class="fi">&#xEDA2;</span>
+            <span class="host-summary-path-label">VHD</span>
+            <span class="host-summary-path-val">${esc(hostState.saved.defaultVhdPath)}</span>
+            <span class="fi host-summary-copy-ico">&#xE8C8;</span>
+          </button>
+          <span class="host-summary-policy-pill">${hostState.saved.enhancedSession ? '增强会话允许' : '增强会话禁止'}，${hostState.saved.volumeAutoMount ? '自动挂载卷' : '隐藏挂载'}</span>
+        </div>
+      `
+      : '';
+
+  const badgesForCompact =
+    content === 'essential' ? essentialBadges : [...essentialBadges, ...standardBadges.slice(0, style === 'merged-tabs' ? 1 : 2)];
+
+  const subtitleParts =
+    content === 'essential'
+      ? [HOST_SYS.os]
+      : [HOST_SYS.os, `连续运行 ${HOST_SYS.uptime}`];
+  const subtitleHtml = subtitleParts
+    .map((p) => `<span>${esc(p)}</span>`)
+    .join('');
+
+  if (style === 'slim-strip') {
+    const slimPills =
+      content === 'essential'
+        ? [`${HOST_SYS.arch}`, `${HOST_SYS.runningVmCount}/${HOST_SYS.totalVmCount} 台运行`]
+        : [`${HOST_SYS.arch}`, `${virtText} / GPU-PV`, `${hostState.saved.scheduler} 调度`, `${HOST_SYS.runningVmCount}/${HOST_SYS.totalVmCount} 台运行`, `运行 ${HOST_SYS.uptime}`];
+    return `
+      <div class="vm-summary-card host-summary-card" data-host-card-style="slim-strip" data-host-card-content="${content}">
+        <div class="host-slim-row">
+          <div class="host-slim-left">
+            <div class="host-summary-icon-box is-slim">
+              <span class="fi">&#xE770;</span>
+            </div>
+            <span class="host-slim-name">${esc(HOST_SYS.hostName)}</span>
+            <span class="host-slim-os">${esc(HOST_SYS.os)}</span>
+            <div class="host-slim-pills">
+              ${slimPills.map((t) => `<span class="host-slim-pill">${esc(t)}</span>`).join('')}
+            </div>
+          </div>
+          <div class="host-slim-right">${actionBtnHtml}</div>
+        </div>
+        ${detailedPathsHtml}
+      </div>
+    `;
+  }
+
+  if (style === 'right-matrix') {
+    const capText =
+      content === 'essential'
+        ? `${virtText} ${hostState.cpuVirtOk ? '就绪' : '未启用'}`
+        : `${virtText} / GPU-PV / ${iommuLabel}`;
+    const schedOrUptimeLabel = content === 'essential' ? '虚拟机汇总' : '调度器 / 运行时间';
+    const schedOrUptimeVal =
+      content === 'essential'
+        ? `${HOST_SYS.runningVmCount} / ${HOST_SYS.totalVmCount} 台运行`
+        : `${hostState.saved.scheduler} / ${HOST_SYS.uptime}`;
+    return `
+      <div class="vm-summary-card host-summary-card" data-host-card-style="right-matrix" data-host-card-content="${content}">
+        <div class="host-matrix-grid">
+          <div class="host-summary-icon-box">
+            <span class="fi">&#xE770;</span>
+          </div>
+          <div class="host-matrix-id">
+            <div class="vm-name-text">${esc(HOST_SYS.hostName)}</div>
+            <div class="host-summary-sub"><span>${esc(HOST_SYS.os)}</span><span>${esc(HOST_SYS.arch)}</span></div>
+          </div>
+          <div class="vm-summary-matrix host-summary-matrix">
+            <div class="vm-matrix-cell">
+              <span class="vm-matrix-label">Hyper-V 平台</span>
+              <span class="vm-matrix-val" style="color:${hvColor};">${hvOk ? '3 项服务正常' : '未启用'}</span>
+            </div>
+            <div class="vm-matrix-cell">
+              <span class="vm-matrix-label">虚拟化能力</span>
+              <span class="vm-matrix-val">${esc(capText)}</span>
+            </div>
+            <div class="vm-matrix-cell" data-host-jump="policy:scheduler" title="点击跳转到 CPU 调度策略">
+              <span class="vm-matrix-label">${schedOrUptimeLabel}</span>
+              <span class="vm-matrix-val">${esc(schedOrUptimeVal)}</span>
+            </div>
+          </div>
+          <div class="host-matrix-actions">${actionBtnHtml}</div>
+        </div>
+        ${detailedPathsHtml}
+      </div>
+    `;
+  }
+
+  if (style === 'mid-3row') {
+    const row2Badges = [
+      `<div class="vm-badge"><span class="fi vm-badge-icon" style="color:${hvColor};">${hvIcon}</span><span class="vm-badge-text">${hvText}</span></div>`,
+      `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE7F4;</span><span class="vm-badge-text">${esc(HOST_SYS.arch)}</span></div>`,
+      `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE770;</span><span class="vm-badge-text">${HOST_SYS.runningVmCount}/${HOST_SYS.totalVmCount} 台运行</span></div>`,
+      ...(content === 'essential' ? [] : [`<div class="vm-badge"><span class="fi vm-badge-icon">&#xE916;</span><span class="vm-badge-text">${esc(HOST_SYS.uptime)}</span></div>`])
+    ];
+    const row3Badges =
+      content === 'essential'
+        ? [`<div class="vm-badge"><span class="fi vm-badge-icon">&#xE74C;</span><span class="vm-badge-text">${esc(HOST_SYS.os)}</span></div>`]
+        : [
+            `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE74C;</span><span class="vm-badge-text">${esc(HOST_SYS.os)}</span></div>`,
+            ...standardBadges
+          ];
+    return `
+      <div class="vm-summary-card host-summary-card" data-host-card-style="mid-3row" data-host-card-content="${content}">
+        <div class="host-mid3-grid">
+          <div class="host-summary-icon-box is-lg">
+            <span class="fi">&#xE770;</span>
+          </div>
+          <div class="host-mid3-center">
+            <div class="vm-name-text">${esc(HOST_SYS.hostName)}</div>
+            <div class="vm-badges-row host-summary-badges">${row2Badges.join('')}</div>
+            <div class="vm-badges-row host-summary-badges">${row3Badges.join('')}</div>
+          </div>
+        </div>
+        ${detailedPathsHtml}
+      </div>
+    `;
+  }
+
+  // 'compact-2row' & 'merged-tabs' share the crisp 2-row geometry (merged-tabs attaches seamlessly to PageTabs below)
+  return `
+    <div class="vm-summary-card host-summary-card" data-host-card-style="${style}" data-host-card-content="${content}">
+      <div class="host-compact-grid">
+        <div class="host-summary-icon-box ${style === 'merged-tabs' ? 'is-sm' : ''}">
+          <span class="fi">&#xE770;</span>
+        </div>
+        <div class="host-compact-right">
+          <div class="host-compact-top">
+            <div class="vm-name-text">${esc(HOST_SYS.hostName)}</div>
+            <div class="vm-badges-row host-summary-badges">${badgesForCompact.join('')}</div>
+            <div class="host-compact-actions">${actionBtnHtml}</div>
+          </div>
+          <div class="host-summary-sub">${subtitleHtml}</div>
+        </div>
+      </div>
+      ${detailedPathsHtml}
+    </div>
+  `;
+}
+
+function formatCompactRate(sendRate, recvRate, format = hostState.railRateFormat) {
+  const parse = (s) => {
+    const m = String(s || '0 Kbps').trim().match(/^([\d.]+)\s*(Kbps|Mbps|Gbps)$/i);
+    return m ? { val: m[1], unit: m[2] } : { val: '0', unit: 'Kbps' };
+  };
+  const tx = parse(sendRate);
+  const rx = parse(recvRate);
+  if (tx.val === '0' && rx.val === '0') return '0 Kbps';
+  const sameUnit = tx.unit.toLowerCase() === rx.unit.toLowerCase();
+  const shortU = (u) => (u[0] || '').toUpperCase();
+  const txStr = sameUnit ? tx.val : `${tx.val}${shortU(tx.unit)}`;
+  const rxStr = sameUnit ? rx.val : `${rx.val}${shortU(rx.unit)}`;
+  const tail = sameUnit ? ` ${rx.unit}` : '';
+  if (format === 'arrow-compact') return `↑ ${txStr} ↓ ${rxStr}${tail}`;
+  if (format === 'slash-compact') return `${txStr} / ${rxStr}${tail}`;
+  return `发 ${txStr} 收 ${rxStr}${tail}`;
+}
+
+function getSwitchModeLabel(sw, style = hostState.railSwitchSubStyle) {
+  const mode = sw.mode || 'Isolated';
+  if (style === 'isolated-3way') {
+    if (mode === 'Bridge') return '桥接';
+    return mode === 'NAT' ? 'NAT' : '隔离';
+  }
+  if (style === 'intranet-3way') {
+    if (mode === 'Bridge') return '桥接';
+    return mode === 'NAT' ? 'NAT' : '仅内网';
+  }
+  if (style === 'en-3way') {
+    return mode;
+  }
+  // 'upstream-3way'（用户初始设计：桥接 / NAT / 无上游）
+  if (mode === 'Bridge') return '桥接';
+  return mode === 'NAT' ? 'NAT' : '无上游';
+}
+
+function getNicRailCopy(nic, layout = hostState.railNicLayout) {
+  const mediaTitles = {
+    wired: '以太网',
+    wifi: 'Wi-Fi',
+    cellular: '蜂窝网络',
+    tunnel: '虚拟隧道'
+  };
+  const mediaCap = {
+    wired: nic.linkUp ? `有线 ${nic.speed}` : '有线以太网',
+    wifi: nic.linkUp ? `Wi-Fi ${nic.speed}` : 'Wi-Fi 无线',
+    cellular: '蜂窝移动 计费连接',
+    tunnel: '三层虚拟隧道'
+  };
+  if (layout === 'media-name-rate') {
+    return { title: mediaTitles[nic.media] || '网络适配器', sub: nic.name };
+  }
+  if (layout === 'name-media-rate') {
+    return { title: nic.name, sub: mediaCap[nic.media] || nic.mediaNote || '' };
+  }
+  if (layout === 'name-rate-2line') {
+    return { title: nic.name, sub: '' };
+  }
+  // 'name-model-rate'
+  return { title: nic.name, sub: nic.description };
+}
+
+function getSwitchRailCopy(sw, layout = hostState.railSwitchLayout) {
+  const modeLabel = getSwitchModeLabel(sw);
+  const rate = formatCompactRate(sw.sendRate, sw.recvRate);
+  if (layout === 'kind-name-rate') {
+    return { title: modeLabel, sub: sw.name, stat: rate, modeLabel };
+  }
+  if (layout === 'name-rate-2line') {
+    return { title: sw.name, sub: '', stat: rate, modeLabel };
+  }
+  if (layout === 'name-inline-2line') {
+    return { title: sw.name, sub: '', stat: `${modeLabel} ${rate}`, modeLabel };
+  }
+  // 'name-l2l3-rate'
+  return { title: sw.name, sub: modeLabel, stat: rate, modeLabel };
+}
+
+// ============================================================================
+// Host Memory Object Model (Step 1: Pure Object Ownership without Diagrams)
+// ============================================================================
+function buildHostMemoryBreakdown() {
+  const totalGb = Math.max(1, Number(HOST_SYS.memoryGb) || 16);
+  const rawUsed = Number(HOST_SYS.usedMemoryGb) || totalGb * 0.55;
+  const vmCount = Math.max(1, Number(hostState.mockVmCount) || HOST_SYS.runningVmCount || 2);
+
+  const inUseGb = Number(Math.min(totalGb - 0.1, Math.max(0.4, rawUsed)).toFixed(1));
+  const freeGb = Number(Math.max(0.1, totalGb - inUseGb).toFixed(1));
+
+  const vmShareOfUsed = vmCount >= 12 ? 0.78 : vmCount >= 4 ? 0.68 : 0.54;
+  const vmBudgetGb = inUseGb * vmShareOfUsed;
+  const weightTable = Array.from({ length: vmCount }, (_, i) => {
+    const baseName = HOST_LED_MOCK_NAMES[i] || `vm-node-${String(i + 1).padStart(2, '0')}`;
+    const isDynamic = i % 2 === 1;
+    const weight = Math.max(0.35, 1.4 - i * 0.05);
+    return {
+      name: baseName,
+      dynamic: isDynamic,
+      locked: !isDynamic,
+      modeText: isDynamic ? '动态内存' : '固定内存',
+      weight
+    };
+  });
+  const totalWeight = weightTable.reduce((s, item) => s + item.weight, 0) || 1;
+
+  let vmSumGb = 0;
+  const sortedVms = weightTable
+    .map((item) => {
+      const assignedGb = Number(Math.max(0.1, vmBudgetGb * (item.weight / totalWeight)).toFixed(1));
+      vmSumGb += assignedGb;
+      return {
+        key: `vm:${item.name}`,
+        name: item.name,
+        modeText: item.modeText,
+        locked: item.locked,
+        dynamic: item.dynamic,
+        assignedGb,
+        gb: assignedGb,
+        sharePct: Math.max(1, Math.round((assignedGb / totalGb) * 100))
+      };
+    })
+    .sort((a, b) => b.assignedGb - a.assignedGb)
+    .map((item, idx) => ({
+      ...item,
+      kind: 'vm',
+      tag: item.modeText,
+      color: idx < HOST_LED_VM_PALETTE.length ? HOST_LED_VM_PALETTE[idx] : HOST_LED_OTHER_COLOR
+    }));
+
+  vmSumGb = Number(vmSumGb.toFixed(1));
+  const hostGb = Number(Math.max(0, inUseGb - vmSumGb).toFixed(1));
+  const hostSharePct = hostGb > 0 ? Math.max(1, Math.round((hostGb / totalGb) * 100)) : 0;
+  const freePct = Math.max(1, Math.round((freeGb / totalGb) * 100));
+
+  const hostItem = {
+    key: '__host__',
+    name: '宿主',
+    gb: hostGb,
+    sharePct: hostSharePct,
+    color: HOST_LED_HOST_COLOR,
+    kind: 'host',
+    tag: '宿主系统与进程占用'
+  };
+  const freeItem = {
+    key: '__free__',
+    name: '空闲内存',
+    gb: freeGb,
+    sharePct: freePct,
+    color: 'rgba(128, 136, 148, 0.32)',
+    kind: 'free',
+    tag: ''
+  };
+
+  return {
+    totalGb,
+    inUseGb,
+    inUsePct: Math.max(1, Math.round((inUseGb / totalGb) * 100)),
+    hostGb,
+    hostSharePct,
+    vmSumGb,
+    freeGb,
+    freePct,
+    vms: sortedVms,
+    hostItem,
+    freeItem,
+    orderedItems: [hostItem, ...sortedVms, freeItem]
+  };
+}
+
+function renderHostStatsBackFooter(kind) {
+  return `
+    <div class="host-rel-mode-footer">
+      <button type="button" class="host-led-chip host-rel-back-btn" data-host-toggle-stats="${esc(kind)}" title="返回详情界面" aria-label="返回详情">
+        <span class="fi">&#xE72B;</span>
+        <span class="host-led-chip-name">返回详情</span>
+      </button>
+    </div>
+  `;
+}
+
+function renderHostMemoryLegendSidebar(mem, focusKey) {
+  const makeChip = (it, extraCls = '') => `
+    <button type="button"
+      class="host-led-chip host-mem-side-chip ${extraCls} ${hostState.selectedMemKey === it.key ? 'is-selected' : ''} ${focusKey === it.key ? 'is-hovered' : ''}"
+      data-mem-key="${esc(it.key)}"
+      title="${esc(it.name)} (${it.gb.toFixed(1)} GB)"
+      style="--led-color:${it.color};">
+      <span class="host-led-swatch"></span>
+      <span class="host-led-chip-name">${esc(it.name)}</span>
+      <span class="host-mem-chip-gb">${it.gb.toFixed(1)}G</span>
+    </button>
+  `;
+
+  return `
+    <div class="host-rel-summary-box">
+      <div class="host-led-pin-host">
+        ${makeChip(mem.hostItem)}
+      </div>
+      <div class="host-led-legend host-led-vm-scroll">
+        ${mem.vms.map((v) => makeChip(v)).join('')}
+      </div>
+      ${renderHostStatsBackFooter('mem')}
+    </div>
+  `;
+}
+
+function renderHostMemoryPieView(mem, focusKey, hlCls) {
+  const focusItem = focusKey ? mem.orderedItems.find((it) => it.key === focusKey) : null;
+  const cx = 180;
+  const cy = 180;
+  const rIn = 96;
+  const rOutBase = 152;
+  const rMid = (rIn + rOutBase) / 2;
+  const ringW = rOutBase - rIn;
+
+  const positive = mem.orderedItems.filter((it) => it.gb > 0);
+  const sumGb = positive.reduce((s, it) => s + it.gb, 0) || 1;
+  const nonFreeCount = positive.filter((it) => it.kind !== 'free').length;
+  const gapDeg = nonFreeCount > 14 ? 0.85 : nonFreeCount > 6 ? 1.4 : 2.1;
+
+  let curDeg = -90;
+  const slicesHtml = positive
+    .map((it) => {
+      const spanDeg = (it.gb / sumGb) * 360;
+      const isFree = it.kind === 'free';
+      const isFocused = focusKey === it.key;
+      const isDimmed = Boolean(focusKey) && !isFocused;
+      const effGap = spanDeg > gapDeg * 2.2 ? gapDeg : spanDeg > 1.2 ? 0.35 : 0;
+      const aStart = curDeg + effGap / 2;
+      const aEnd = curDeg + spanDeg - effGap / 2;
+      curDeg += spanDeg;
+
+      const rOut = isFocused ? rOutBase + 5 : rOutBase;
+      const d = annularSectorPath(cx, cy, rIn, rOut, aStart, aEnd, spanDeg >= 6 ? 5 : 2.5);
+      if (!d) return '';
+
+      if (isFree) {
+        const freeCls = ['host-mem-pie-slice', 'is-free', isFocused ? 'is-focused' : ''].filter(Boolean).join(' ');
+        return `<path class="${freeCls}" d="${d}" data-mem-key="${esc(it.key)}" />`;
+      }
+
+      const op = isDimmed ? 0.16 : 1;
+      const sliceCls = ['host-mem-pie-slice', isFocused ? 'is-focused' : ''].filter(Boolean).join(' ');
+      return `<path class="${sliceCls}" d="${d}" fill="${it.color}" opacity="${op}" data-mem-key="${esc(it.key)}" />`;
+    })
+    .join('');
+
+  const centerTitle = focusItem ? focusItem.name : '物理内存已用';
+  const centerPct = focusItem ? focusItem.sharePct : mem.inUsePct;
+  const centerColor = focusItem && focusItem.kind !== 'free' ? focusItem.color : '';
+  const centerGb = `${(focusItem ? focusItem.gb : mem.inUseGb).toFixed(1)} / ${mem.totalGb.toFixed(1)} GB`;
+  const centerSub = focusItem ? (focusItem.tag || '') : `空闲 ${mem.freeGb.toFixed(1)} GB`;
+
+  return `
+    <div class="host-rel-wrap is-legend-right ${hlCls}">
+      <div class="host-mem-pie-card">
+        <div class="host-mem-pie-stage-box">
+          <svg class="host-mem-pie-svg" viewBox="0 0 360 360">
+            <circle cx="${cx}" cy="${cy}" r="${rMid}" fill="none" stroke="color-mix(in srgb, var(--TextFillColorPrimaryBrush) 6%, transparent)" stroke-width="${ringW}" />
+            ${slicesHtml}
+          </svg>
+          <div class="host-mem-pie-center">
+            <span class="host-mem-pie-label" title="${esc(centerTitle)}">${esc(centerTitle)}</span>
+            <span class="host-mem-pie-pct" style="${centerColor ? `color:${centerColor};` : ''}">${centerPct}%</span>
+            <span class="host-mem-pie-gb">${esc(centerGb)}</span>
+            ${centerSub ? `<span class="host-mem-pie-sub" title="${esc(centerSub)}">${esc(centerSub)}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      ${renderHostMemoryLegendSidebar(mem, focusKey)}
+    </div>
+  `;
+}
+
+// ============================================================================
+// Tab 1: 状态 (Task Manager-style Left Rail + Host Telemetry & Inventory)
+// ============================================================================
 function renderStateTab() {
   const accentMode = isAccentMode();
   const strokeOf = (fallback) => (accentMode ? 'var(--VmAccentBrush)' : fallback);
   const fillOf = (fallback) => (accentMode ? 'var(--VmChartFillBrush)' : fallback);
 
   const memPct = HOST_SYS.memPct ?? Math.round((HOST_SYS.usedMemoryGb / Math.max(0.1, HOST_SYS.memoryGb)) * 100);
-  const rows = [
+  if (hostState.selectedRail.kind === 'overview') {
+    hostState.selectedRail = { kind: 'cpu', idx: 0 };
+  }
+  const isSel = (kind, idx) => hostState.selectedRail.kind === kind && hostState.selectedRail.idx === idx;
+
+  const railEntries = [
     {
       kind: 'cpu',
       idx: 0,
-      title: '处理器',
-      sub: HOST_SYS.cpuShort,
-      stat: `${HOST_SYS.cpuPct}% ${HOST_SYS.cores} 核心`,
+      title: 'CPU',
+      sub: '',
+      stat: `${HOST_SYS.cpuPct}% ${HOST_SYS.curClock}`,
       active: true,
       pts: HOST_SYS.cpuHistory,
       color: '#3898EC',
@@ -430,7 +1100,7 @@ function renderStateTab() {
       idx: 0,
       title: '内存',
       sub: '',
-      stat: `${memPct}% ${HOST_SYS.usedMemoryGb.toFixed(1)}/${HOST_SYS.memoryGb.toFixed(1)} GB`,
+      stat: `${HOST_SYS.usedMemoryGb.toFixed(1)}/${HOST_SYS.memoryGb.toFixed(1)} GB (${memPct}%)`,
       active: true,
       pts: HOST_SYS.memHistory,
       color: '#9D5CE6',
@@ -439,39 +1109,9 @@ function renderStateTab() {
     }
   ];
 
-  hostState.disks.forEach((d, idx) => {
-    rows.push({
-      kind: 'disk',
-      idx,
-      title: `磁盘 ${d.number}`,
-      sub: d.name,
-      stat: d.offline ? '已脱机' : `${d.pct}%`,
-      active: !d.offline,
-      pts: d.readPts,
-      color: '#6CCB5F',
-      fill: 'rgba(108, 203, 95, 0.22)',
-      tip: `${d.name}\n${d.path}`
-    });
-  });
-
-  hostState.switches.slice(0, 2).forEach((sw, idx) => {
-    const active = sw.mode !== 'Isolated';
-    rows.push({
-      kind: 'net',
-      idx,
-      title: idx === 0 ? '网卡' : '交换机',
-      sub: sw.name,
-      stat: active ? `发 ${sw.sendRate} 收 ${sw.recvRate}` : '未连接',
-      active,
-      pts: sw.recvPts,
-      color: '#46B3E6',
-      fill: 'rgba(70, 179, 230, 0.22)',
-      tip: `${sw.name} (${sw.upstream})`
-    });
-  });
-
+  // 显卡（宿主端网络和磁盘较多，显卡放在内存之下）
   hostState.gpus.forEach((g, idx) => {
-    rows.push({
+    railEntries.push({
       kind: 'gpu',
       idx,
       title: `GPU ${idx}`,
@@ -485,15 +1125,72 @@ function renderStateTab() {
     });
   });
 
-  const isSel = (kind, idx) => hostState.selectedRail.kind === kind && hostState.selectedRail.idx === idx;
-  const railHtml = rows
+  // 存储磁盘
+  hostState.disks.forEach((d, idx) => {
+    railEntries.push({
+      kind: 'disk',
+      idx,
+      title: `磁盘 ${d.number}`,
+      sub: d.name,
+      stat: d.offline ? '已脱机' : `${d.pct}%`,
+      active: !d.offline,
+      pts: d.readPts,
+      color: '#6CCB5F',
+      fill: 'rgba(108, 203, 95, 0.22)',
+      tip: `${d.name}\n${d.path}`
+    });
+  });
+
+  // 上游网卡（仅列出已连接的网卡，按有线 / Wi-Fi / 蜂窝 / 隧道区分配色与图标）
+  const nicPalette = {
+    wired: { color: '#46B3E6', fill: 'rgba(70, 179, 230, 0.22)' },
+    wifi: { color: '#38BDF8', fill: 'rgba(56, 189, 248, 0.22)' },
+    cellular: { color: '#F59E0B', fill: 'rgba(245, 158, 11, 0.22)' },
+    tunnel: { color: '#10B981', fill: 'rgba(16, 185, 129, 0.22)' }
+  };
+  hostState.nics.forEach((nic, idx) => {
+    if (!nic.linkUp) return;
+    const pal = nicPalette[nic.media] || nicPalette.wired;
+    const nicCopy = getNicRailCopy(nic);
+    railEntries.push({
+      kind: 'nic',
+      idx,
+      title: nicCopy.title,
+      sub: nicCopy.sub,
+      stat: formatCompactRate(nic.sendRate, nic.recvRate),
+      active: true,
+      pts: nic.recvPts,
+      color: pal.color,
+      fill: pal.fill,
+      tip: `${nic.name} (${nic.mediaNote || ''})\n${nic.description}`
+    });
+  });
+
+  // 虚拟交换机（中游 2.0：支持多维度行结构与类型文案组合对比）
+  hostState.switches.forEach((sw, idx) => {
+    const swCopy = getSwitchRailCopy(sw);
+    railEntries.push({
+      kind: 'switch',
+      idx,
+      title: swCopy.title,
+      sub: swCopy.sub,
+      stat: swCopy.stat,
+      active: true,
+      pts: sw.recvPts,
+      color: '#00B7C3',
+      fill: 'rgba(0, 183, 195, 0.20)',
+      tip: `${sw.name} (${swCopy.modeLabel}，${sw.upstream})`
+    });
+  });
+
+  const railHtml = railEntries
     .map(
       (r) => `
       <button type="button" class="tmw-item ${accentMode ? 'accent-mode' : ''} ${isSel(r.kind, r.idx) ? 'selected' : ''}" data-host-rail="${r.kind}:${r.idx}" title="${esc(r.tip)}">
         <div class="tmw-thumb">${renderSparkThumbSvg(r.pts, r.active, strokeOf(r.color), fillOf(r.fill))}</div>
         <div class="tmw-info">
           <div class="tmw-title-row"><span class="tmw-title">${esc(r.title)}</span></div>
-          ${r.sub ? `<div class="tmw-sub tc-mid-fit">${esc(r.sub)}</div>` : ''}
+          ${r.sub ? `<div class="tmw-sub">${esc(r.sub)}</div>` : ''}
           <div class="tmw-stat">${esc(r.stat)}</div>
         </div>
       </button>
@@ -504,136 +1201,520 @@ function renderStateTab() {
   const sel = hostState.selectedRail;
   let icon = '&#xF58E;';
   let rotate = 90;
-  let title = HOST_SYS.cpu;
+  let title = 'CPU';
+  let hwSubtitle = HOST_SYS.cpu;
   let reading = `${HOST_SYS.cpuPct}%`;
-  let jumpTab = 'compute';
+  let jumpTab = 'policy';
   let jumpSub = 'scheduler';
-  let jumpLabel = '配置调度与处理器';
+  let jumpLabel = '配置 CPU 调度策略';
+  let showStatsBtn = false;
   let bodyHtml = '';
 
-  if (sel.kind === 'cpu') {
-    const coreCharts = HOST_SYS.coreHistories
-      .map((pts, i) => {
-        const cur = pts[pts.length - 1] ?? 0;
-        return createUsageChartHtml(String(i), true, `${cur}%`, pts, false, 84);
-      })
-      .join('');
-    const kvItems = [
-      renderTitleFirstKvItemHtml({ title: '核心 / 逻辑处理器', stateText: `${HOST_SYS.cores} 核 / ${HOST_SYS.threads} 线程` }),
-      renderTitleFirstKvItemHtml({ title: '基准 / 当前速度', stateText: `${HOST_SYS.baseClock} / ${HOST_SYS.curClock}` }),
-      renderTitleFirstKvItemHtml({ title: '虚拟化', stateText: hostState.cpuVirtOk ? '已启用' : '未启用', caution: !hostState.cpuVirtOk }),
-      renderTitleFirstKvItemHtml({ title: 'Hyper-V 平台', stateText: hostState.hyperVEnabled ? '已启用' : '未启用', caution: !hostState.hyperVEnabled }),
-      renderTitleFirstKvItemHtml({ title: '核心调度器', stateText: hostState.saved.scheduler }),
-      renderTitleFirstKvItemHtml({ title: 'NUMA 节点', stateText: `${HOST_SYS.numaNodes}` }),
-      renderTitleFirstKvItemHtml({ title: '系统架构', stateText: HOST_SYS.arch }),
-      renderTitleFirstKvItemHtml({ title: '操作系统', stateText: HOST_SYS.os, copyVal: HOST_SYS.os })
-    ];
-    bodyHtml = `
-      <div class="dt-core-grid">${coreCharts}</div>
-      <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
+  if (sel.kind === 'cpu' || sel.kind === 'overview') {
+    icon = '&#xF58E;';
+    rotate = 90;
+    title = 'CPU';
+    reading = `${HOST_SYS.cpuPct}%`;
+    if (!hostState.cpuStatsView) {
+      hwSubtitle = HOST_SYS.cpu;
+      showStatsBtn = true;
+      const coreCharts = HOST_SYS.coreHistories
+        .map((pts, i) => {
+          const cur = pts[pts.length - 1] ?? 0;
+          return createUsageChartHtml(String(i), true, `${cur}%`, pts, false, 84);
+        })
+        .join('');
+      const kvItems = [
+        renderTitleFirstKvItemHtml({ title: '核心 / 逻辑处理器', stateText: `${HOST_SYS.cores} 核 / ${HOST_SYS.threads} 线程` }),
+        renderTitleFirstKvItemHtml({ title: '基准 / 当前速度', stateText: `${HOST_SYS.baseClock} / ${HOST_SYS.curClock}` }),
+        renderTitleFirstKvItemHtml({ title: '虚拟化', stateText: hostState.cpuVirtOk ? '已启用' : '未启用', caution: !hostState.cpuVirtOk }),
+        renderTitleFirstKvItemHtml({ title: 'Hyper-V 平台', stateText: hostState.hyperVEnabled ? '已启用' : '未启用', caution: !hostState.hyperVEnabled }),
+        renderTitleFirstKvItemHtml({ title: '核心调度器', stateText: hostState.saved.scheduler }),
+        renderTitleFirstKvItemHtml({ title: 'NUMA 节点', stateText: `${HOST_SYS.numaNodes}` }),
+        renderTitleFirstKvItemHtml({ title: '系统架构', stateText: HOST_SYS.arch }),
+        renderTitleFirstKvItemHtml({ title: '操作系统', stateText: HOST_SYS.os, copyVal: HOST_SYS.os })
+      ];
+      bodyHtml = `
+        <div class="dt-core-grid">${coreCharts}</div>
+        <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
+      `;
+    } else {
+      const hostThreads = Math.max(1, Number(hostState.mockThreads) || HOST_SYS.threads || HOST_SYS.coreHistories.length || 12);
+      const runningVms = getRunningLedVms(hostThreads);
+      const totalAllocVcpu = runningVms.reduce((sum, v) => sum + v.vcpu, 0);
+      const isClassicDegraded = hostState.cpuDetailStyle === 'led-classic';
+      hwSubtitle = '';
+
+    // Build per-thread time-slice breakdown from live coreHistories
+    const lpRows = Array.from({ length: hostThreads }, (_, lp) => {
+      const hist = HOST_SYS.coreHistories[lp] || HOST_SYS.coreHistories[lp % Math.max(1, HOST_SYS.coreHistories.length)] || [12];
+      const rawTotal = Math.max(4, Math.min(96, Math.round((hist[hist.length - 1] ?? 12) + ((lp * 5) % 14))));
+      const slices = [];
+      let vmUsed = 0;
+
+      const eligibleVms = runningVms.filter((v) => !v.allowedLps || v.allowedLps.includes(lp));
+      const vmBudget = Math.max(0, rawTotal - 2);
+      eligibleVms.forEach((vm, idx) => {
+        if (vmUsed >= vmBudget) return;
+        const remain = vmBudget - vmUsed;
+        const share = idx === eligibleVms.length - 1
+          ? Math.min(remain, Math.max(1, Math.round(vmBudget / Math.max(1, eligibleVms.length))))
+          : Math.min(remain, Math.max(1, Math.round((vmBudget / Math.max(1, eligibleVms.length)) * (((lp + idx) % 2 === 0) ? 1.15 : 0.78))));
+        if (share > 0) {
+          slices.push({ vm: vm.name, label: vm.name, pct: share, color: vm.color });
+          vmUsed += share;
+        }
+      });
+      const hostPct = Math.max(2, rawTotal - vmUsed);
+      slices.push({ vm: '__host__', label: '宿主', pct: hostPct, color: HOST_LED_HOST_COLOR });
+      const totalPct = Math.min(100, vmUsed + hostPct);
+      const dominant = slices.slice().sort((a, b) => b.pct - a.pct)[0];
+      return { lp, totalPct, vmUsed, hostPct, slices, dominant };
+    });
+
+    const hovered = hostState.hoveredLedVm || hostState.selectedLedVm;
+    const isRightLegend = hostState.legendPlacement !== 'bottom';
+    const hostChipHtml = `
+      <button type="button" class="host-led-chip ${hostState.selectedLedVm === '__host__' ? 'is-selected' : ''} ${hovered === '__host__' ? 'is-hovered' : ''}" data-host-led-vm="__host__" style="--led-color:${HOST_LED_HOST_COLOR};">
+        <span class="host-led-swatch"></span>
+        <span class="host-led-chip-name">宿主</span>
+      </button>
     `;
+    const guestChipHtml = isClassicDegraded ? `
+      <button type="button" class="host-led-chip ${hostState.selectedLedVm === '__guest__' ? 'is-selected' : ''} ${hovered === '__guest__' ? 'is-hovered' : ''}" data-host-led-vm="__guest__" style="--led-color:${HOST_LED_GUEST_COLOR};">
+        <span class="host-led-swatch"></span>
+        <span class="host-led-chip-name">虚拟机</span>
+      </button>
+    ` : '';
+    const vmChipsHtml = runningVms.map((v) => `
+      <button type="button" class="host-led-chip ${hostState.selectedLedVm === v.name ? 'is-selected' : ''} ${hovered === v.name ? 'is-hovered' : ''}" data-host-led-vm="${esc(v.name)}" title="${esc(v.name)}" style="--led-color:${v.color};">
+        <span class="host-led-swatch"></span>
+        <span class="host-led-chip-name">${esc(v.name)}</span>
+      </button>
+    `).join('');
+
+    const legendHtml = isRightLegend
+      ? `
+        <div class="host-led-pin-host">
+          ${hostChipHtml}
+          ${guestChipHtml}
+        </div>
+        <div class="host-led-legend host-led-vm-scroll">
+          ${vmChipsHtml}
+        </div>
+      `
+      : `
+        <div class="host-led-legend">
+          ${hostChipHtml}
+          ${guestChipHtml}
+          ${vmChipsHtml}
+        </div>
+      `;
+
+    const artStyle = hostState.cpuDetailStyle || 'art-winui-bar';
+    const tiles = lpRows.map((row) => {
+      const hasHovered = !hovered || row.slices.some((s) => s.vm === hovered && s.pct > 0);
+      const focusSlice = hovered ? row.slices.find((s) => s.vm === hovered) : row.dominant;
+      const focusColor = focusSlice?.color || row.dominant.color;
+      const cls = [
+        'host-led-tile',
+        'is-art',
+        hovered && !hasHovered ? 'is-dimmed' : '',
+        hovered && hasHovered ? 'is-highlighted' : ''
+      ].filter(Boolean).join(' ');
+      const fullTip = row.slices.map((s) => `${s.label}  ${s.pct}%`).join('\n');
+
+      if (artStyle === 'art-winui-bar') {
+        const activeSlice = hovered ? row.slices.find((s) => s.vm === hovered) : null;
+        const displayPct = hovered ? (activeSlice ? activeSlice.pct : 0) : row.totalPct;
+        const activeColor = hovered
+          ? (hovered === '__host__'
+              ? HOST_LED_HOST_COLOR
+              : (runningVms.find((v) => v.name === hovered)?.color || HOST_LED_GUEST_COLOR))
+          : '';
+        const segsHtml = row.slices.map((s) => {
+          const op = hovered && s.vm !== hovered ? 0.2 : 1;
+          return `<div class="host-led-winui-seg" style="width:${s.pct}%;background:${s.color};opacity:${op};"></div>`;
+        }).join('');
+        return `
+          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
+            <div class="host-led-tile-head">
+              <span class="host-led-lp">线程 ${row.lp}</span>
+              <span class="host-led-pct" style="${activeColor ? `color:${activeColor};` : ''}">${displayPct}%</span>
+            </div>
+            <div class="host-led-winui-bar">${segsHtml}</div>
+          </div>
+        `;
+      }
+
+      if (artStyle === 'art-fill-x' || artStyle === 'art-fill-y') {
+        const isVert = artStyle === 'art-fill-y';
+        const fillSlices = row.slices.map((s) => {
+          const dimOp = hovered && s.vm !== hovered ? 0.14 : 0.34;
+          const dimProp = isVert ? `height:${s.pct}%;` : `width:${s.pct}%;`;
+          return `<div class="host-led-fill-slice" style="${dimProp}--slice-color:${s.color};background:color-mix(in srgb, ${s.color} ${Math.round(dimOp * 100)}%, transparent);"></div>`;
+        }).join('');
+        return `
+          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
+            <div class="host-led-fill-bg ${isVert ? 'is-vertical' : ''}">${fillSlices}</div>
+            <div class="host-led-tile-head">
+              <span class="host-led-lp">线程 ${row.lp}</span>
+              <span class="host-led-pct">${row.totalPct}%</span>
+            </div>
+          </div>
+        `;
+      }
+
+      if (artStyle === 'art-history-bars') {
+        const hist = HOST_SYS.coreHistories[row.lp] || [12];
+        const colsHtml = Array.from({ length: 12 }, (_, ci) => {
+          const base = Math.max(4, Math.min(95, Math.round(hist[ci % hist.length] ?? row.totalPct)));
+          const segsHtml = row.slices.map((s) => {
+            const ratioShare = Math.max(1, Math.round((s.pct / Math.max(1, row.totalPct)) * base));
+            const op = hovered && s.vm !== hovered ? 0.18 : 0.92;
+            return `<div class="host-led-hist-seg" style="height:${ratioShare}%;background:${s.color};opacity:${op};"></div>`;
+          }).join('');
+          return `<div class="host-led-hist-col">${segsHtml}</div>`;
+        }).join('');
+        return `
+          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
+            <div class="host-led-tile-head">
+              <span class="host-led-lp">线程 ${row.lp}</span>
+              <span class="host-led-pct">${row.totalPct}%</span>
+            </div>
+            <div class="host-led-hist">${colsHtml}</div>
+          </div>
+        `;
+      }
+
+      if (artStyle === 'art-micro-leds') {
+        const dotSlots = [];
+        row.slices.forEach((s) => {
+          const count = Math.round((s.pct / 100) * 20);
+          for (let i = 0; i < count && dotSlots.length < 20; i++) {
+            dotSlots.push({ color: s.color, vm: s.vm });
+          }
+        });
+        while (dotSlots.length < 20) dotSlots.push(null);
+        const dotsHtml = dotSlots.map((d) => {
+          if (!d) return '<div class="host-led-microdot"></div>';
+          const op = hovered && d.vm !== hovered ? 0.16 : 1;
+          return `<div class="host-led-microdot is-lit" style="--dot-color:${d.color};background:${d.color};opacity:${op};"></div>`;
+        }).join('');
+        return `
+          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
+            <div class="host-led-tile-head">
+              <span class="host-led-lp">线程 ${row.lp}</span>
+              <span class="host-led-pct">${row.totalPct}%</span>
+            </div>
+            <div class="host-led-microgrid">${dotsHtml}</div>
+          </div>
+        `;
+      }
+
+      if (artStyle === 'art-chunky-bar') {
+        const segsHtml = row.slices.map((s) => {
+          const op = hovered && s.vm !== hovered ? 0.2 : 0.92;
+          return `<div class="host-led-chunky-seg" style="width:${s.pct}%;background:${s.color};opacity:${op};">${s.pct >= 14 ? `${s.pct}%` : ''}</div>`;
+        }).join('');
+        return `
+          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
+            <div class="host-led-tile-head">
+              <span class="host-led-lp">线程 ${row.lp}</span>
+              <span class="host-led-pct">${row.totalPct}%</span>
+            </div>
+            <div class="host-led-chunky">${segsHtml}</div>
+          </div>
+        `;
+      }
+
+      if (artStyle === 'art-ring') {
+        const rIn = 12;
+        const rOut = 23;
+        const rMid = (rIn + rOut) / 2;
+        const ringW = rOut - rIn;
+        const fullTipJson = JSON.stringify({
+          lp: row.lp,
+          slices: row.slices.filter((s) => s.pct > 0).map((s) => ({ label: s.label, pct: s.pct, color: s.color }))
+        });
+        // Aggregate tiny tail slices (< 2% or beyond top 5) into one clean "other" arc
+        const sortedForArc = row.slices.filter((s) => s.pct > 0);
+        const keptArcs = [];
+        let otherArcPct = 0;
+        sortedForArc.forEach((s) => {
+          const isFocused = hovered && s.vm === hovered;
+          if (isFocused || (keptArcs.length < 5 && s.pct >= 2)) {
+            keptArcs.push(s);
+          } else {
+            otherArcPct += s.pct;
+          }
+        });
+        if (otherArcPct > 0) {
+          keptArcs.push({ vm: '__other__', label: '其他', pct: otherArcPct, color: HOST_LED_OTHER_COLOR });
+        }
+        let curDeg = -90;
+        const arcsHtml = keptArcs.map((s) => {
+          const spanDeg = (s.pct / 100) * 360;
+          const gap = spanDeg > 5 ? 2.4 : 0;
+          const d = annularSectorPath(29, 29, rIn, rOut, curDeg + gap / 2, curDeg + spanDeg - gap / 2, 2.5);
+          curDeg += spanDeg;
+          if (!d) return '';
+          const op = hovered && s.vm !== hovered ? 0.16 : 1;
+          return `<path d="${d}" fill="${s.color}" opacity="${op}" />`;
+        }).join('');
+        const activeSlice = hovered ? row.slices.find((s) => s.vm === hovered) : null;
+        const displayPct = hovered ? (activeSlice ? activeSlice.pct : 0) : row.totalPct;
+        const activeColor = hovered
+          ? (displayPct > 0
+              ? (hovered === '__host__'
+                  ? HOST_LED_HOST_COLOR
+                  : (runningVms.find((v) => v.name === hovered)?.color || HOST_LED_GUEST_COLOR))
+              : 'var(--TextFillColorTertiaryBrush)')
+          : '';
+        return `
+          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(fullTipJson)}">
+            <div class="host-led-ring-wrap">
+              <svg class="host-led-ring-svg" viewBox="0 0 58 58">
+                <circle cx="29" cy="29" r="${rMid}" fill="none" stroke="color-mix(in srgb, var(--TextFillColorPrimaryBrush) 6%, transparent)" stroke-width="${ringW}" />
+                ${arcsHtml}
+              </svg>
+              <div class="host-led-ring-meta">
+                <span class="host-led-lp">线程 ${row.lp}</span>
+                <span class="host-led-pct" style="${activeColor ? `color:${activeColor};` : ''}">${displayPct}%</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      if (artStyle === 'art-aurora') {
+        const bgStops = row.slices
+          .filter((s) => s.pct > 0)
+          .map((s, idx) => {
+            const x = idx === 0 ? '20% 80%' : idx === 1 ? '75% 75%' : '50% 25%';
+            const alpha = Math.max(12, Math.min(48, Math.round(s.pct * 0.9 + 10)));
+            return `radial-gradient(circle at ${x}, color-mix(in srgb, ${s.color} ${alpha}%, transparent) 0%, transparent 72%)`;
+          })
+          .join(', ');
+        const stripHtml = row.slices.map((s) => `<div class="host-led-seg" style="width:${s.pct}%;background:${s.color};opacity:${hovered && s.vm !== hovered ? 0.2 : 1};"></div>`).join('');
+        return `
+          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
+            <div class="host-led-aurora-bg" style="background:${bgStops};"></div>
+            <div class="host-led-tile-head">
+              <span class="host-led-lp">线程 ${row.lp}</span>
+            </div>
+            <div class="host-led-aurora-center">
+              <span class="host-led-aurora-pct">${row.totalPct}%</span>
+              <div class="host-led-aurora-strip">${stripHtml}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      // 8. art-blocks: Proportional Rounded Blocks
+      const idlePct = Math.max(0, 100 - row.totalPct);
+      const blocksHtml = [
+        ...row.slices.map((s) => {
+          const op = hovered && s.vm !== hovered ? 0.2 : 0.9;
+          return `<div class="host-led-block" style="flex:${Math.max(2, s.pct)} 1 0;background:${s.color};opacity:${op};">${s.pct >= 18 ? `${s.pct}%` : ''}</div>`;
+        }),
+        idlePct > 0 ? `<div class="host-led-block is-idle" style="flex:${idlePct} 1 0;"></div>` : ''
+      ].join('');
+      return `
+        <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}：${fullTip}`)}">
+          <div class="host-led-tile-head">
+            <span class="host-led-lp">线程 ${row.lp}</span>
+            <span class="host-led-pct">${row.totalPct}%</span>
+          </div>
+          <div class="host-led-blocks">${blocksHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    const gridDensityCls =
+      !isRightLegend && hostThreads <= 4
+        ? 'is-cols-2'
+        : hostThreads > 32
+          ? 'is-cols-8'
+          : hostThreads > 16
+            ? 'is-cols-6'
+            : '';
+    const hlCls = `is-hl-${hostState.highlightStyle || 'elevated-card'}`;
+      bodyHtml = `
+        <div class="host-rel-wrap ${isRightLegend ? 'is-legend-right' : ''} ${hlCls}">
+          <div class="host-led-tile-grid ${gridDensityCls}">${tiles}</div>
+          <div class="host-rel-summary-box">
+            ${legendHtml}
+            ${renderHostStatsBackFooter('cpu')}
+          </div>
+        </div>
+      `;
+    }
   } else if (sel.kind === 'mem') {
-    icon = '&#xEEA0;';
+    if (!hostState.memStatsView) {
+      icon = '&#xEEA0;';
+      rotate = 0;
+      title = '内存';
+      hwSubtitle = HOST_SYS.memNote || `物理内存 ${HOST_SYS.memoryGb.toFixed(1)} GB`;
+      reading = `${HOST_SYS.usedMemoryGb.toFixed(1)} / ${HOST_SYS.memoryGb.toFixed(1)} GB`;
+      jumpTab = 'policy';
+      jumpSub = 'scheduler';
+      jumpLabel = '配置 NUMA 与电源';
+      showStatsBtn = true;
+      const kvItems = [
+        renderTitleFirstKvItemHtml({ title: '使用中', stateText: `${HOST_SYS.usedMemoryGb.toFixed(1)} GB` }),
+        renderTitleFirstKvItemHtml({ title: '可用', stateText: `${Math.max(0, HOST_SYS.memoryGb - HOST_SYS.usedMemoryGb).toFixed(1)} GB` }),
+        renderTitleFirstKvItemHtml({ title: '物理总容量', stateText: `${HOST_SYS.memoryGb.toFixed(1)} GB` }),
+        renderTitleFirstKvItemHtml({ title: 'NUMA 跨越', stateText: hostState.saved.numaSpanning ? '开启' : '关闭' }),
+        renderTitleFirstKvItemHtml({ title: '电源方案', stateText: POWER_PLANS.find((p) => p.id === hostState.saved.powerPlanId)?.name || '高性能' })
+      ];
+      bodyHtml = `
+        ${createUsageChartHtml('内存使用趋势', true, `${memPct}%`, HOST_SYS.memHistory, false, 136)}
+        <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
+      `;
+    } else {
+      const mem = buildHostMemoryBreakdown();
+      const rawFocusKey = hostState.hoveredMemKey || hostState.selectedMemKey;
+      const focusKey = rawFocusKey && mem.orderedItems.some((it) => it.key === rawFocusKey) ? rawFocusKey : null;
+      const hlCls = `is-hl-${hostState.highlightStyle || 'elevated-card'}`;
+
+      bodyHtml = renderHostMemoryPieView(mem, focusKey, hlCls);
+    }
+  } else if (sel.kind === 'nic') {
+    const nic = hostState.nics[sel.idx] || hostState.nics[0];
+    const mediaIcons = {
+      wired: '&#xE839;',
+      wifi: '&#xE701;',
+      cellular: '&#xEC3B;',
+      tunnel: '&#xE705;'
+    };
+    icon = mediaIcons[nic.media] || '&#xE774;';
     rotate = 0;
-    title = '内存';
-    reading = `${HOST_SYS.usedMemoryGb.toFixed(1)} / ${HOST_SYS.memoryGb.toFixed(1)} GB`;
-    jumpTab = 'compute';
-    jumpSub = 'scheduler';
-    jumpLabel = '配置 NUMA 与电源';
-    const kvItems = [
-      renderTitleFirstKvItemHtml({ title: '使用中', stateText: `${HOST_SYS.usedMemoryGb.toFixed(1)} GB` }),
-      renderTitleFirstKvItemHtml({ title: '可用', stateText: `${(HOST_SYS.memoryGb - HOST_SYS.usedMemoryGb).toFixed(1)} GB` }),
-      renderTitleFirstKvItemHtml({ title: '物理总容量', stateText: `${HOST_SYS.memoryGb.toFixed(1)} GB` }),
-      renderTitleFirstKvItemHtml({ title: 'NUMA 跨越', stateText: hostState.saved.numaSpanning ? '开启' : '关闭' }),
-      renderTitleFirstKvItemHtml({ title: '电源方案', stateText: POWER_PLANS.find((p) => p.id === hostState.saved.powerPlanId)?.name || '高性能' })
-    ];
-    bodyHtml = `
-      ${createUsageChartHtml('内存使用趋势', true, `${memPct}%`, HOST_SYS.memHistory, false, 136)}
-      <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
-    `;
-  } else if (sel.kind === 'disk') {
-    const d = hostState.disks[sel.idx] || hostState.disks[0];
-    icon = '&#xEDA2;';
-    rotate = 0;
-    title = d.name;
-    reading = d.offline ? '已脱机' : d.sizeText;
-    jumpTab = 'devices';
-    jumpSub = 'disks';
-    jumpLabel = '管理物理磁盘';
-    const kvItems = [
-      renderTitleFirstKvItemHtml({ title: '状态', stateText: d.status, caution: d.offline }),
-      renderTitleFirstKvItemHtml({ title: '容量', stateText: d.sizeText }),
-      renderTitleFirstKvItemHtml({ title: '直通资格', stateText: d.canPassthrough ? '支持直通' : '系统盘排除' }),
-      renderTitleFirstKvItemHtml({ title: '序列号', stateText: d.serial, copyVal: d.serial }),
-      renderTitleFirstKvItemHtml({ title: '设备路径', stateText: d.path, copyVal: d.path, wide: true })
-    ];
-    bodyHtml = `
-      <div class="transfer-charts-grid">
-        ${createUsageChartHtml('读取', !d.offline, d.readRate, d.readPts, false, 136)}
-        ${createUsageChartHtml('写入', !d.offline, d.writeRate, d.writePts, false, 136)}
-      </div>
-      <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
-    `;
-  } else if (sel.kind === 'net') {
-    const sw = hostState.switches[sel.idx] || hostState.switches[0];
-    icon = '&#xE774;';
-    rotate = 0;
-    title = sw.name;
-    reading = sw.mode;
+    title = nic.name;
+    hwSubtitle = nic.description;
+    reading = nic.linkUp ? nic.speed : '未连接';
     jumpTab = 'switches';
     jumpSub = 'list';
     jumpLabel = '管理虚拟交换机';
     const kvItems = [
-      renderTitleFirstKvItemHtml({ title: '模式', stateText: sw.mode }),
-      renderTitleFirstKvItemHtml({ title: '宿主共享', stateText: sw.allowManagementOs ? '允许' : '禁止' }),
-      renderTitleFirstKvItemHtml({ title: 'IPv4 地址', stateText: sw.ipv4, copyVal: sw.ipv4 !== '---' ? sw.ipv4 : '' }),
-      renderTitleFirstKvItemHtml({ title: '接入虚拟机', stateText: sw.endpoints.length ? sw.endpoints.join(', ') : '无' }),
-      renderTitleFirstKvItemHtml({ title: '上行适配器', stateText: sw.upstream, copyVal: sw.upstream, wide: true })
+      renderTitleFirstKvItemHtml({ title: '链路状态', stateText: nic.linkUp ? `已连接 (${nic.speed})` : '未连接', caution: !nic.linkUp }),
+      renderTitleFirstKvItemHtml({ title: '介质与桥接能力', stateText: nic.mediaNote || (nic.canBridge ? '支持桥接' : '仅支持 NAT') }),
+      renderTitleFirstKvItemHtml({ title: '当前用途 / 绑定交换机', stateText: nic.boundSwitch }),
+      renderTitleFirstKvItemHtml({ title: 'IPv4 地址', stateText: nic.ipv4, copyVal: nic.ipv4 !== '---' ? nic.ipv4 : '' }),
+      renderTitleFirstKvItemHtml({ title: 'MAC 地址', stateText: nic.mac, copyVal: !nic.mac.startsWith('---') ? nic.mac : '' }),
+      renderTitleFirstKvItemHtml({ title: '适配器名称', stateText: nic.description, copyVal: nic.description })
     ];
     bodyHtml = `
+      ${renderTmScaleBar('物理网卡吞吐量', nic.linkUp ? nic.speed : '无链路')}
       <div class="transfer-charts-grid">
-        ${createUsageChartHtml('发送', sw.mode !== 'Isolated', sw.sendRate, sw.sendPts, false, 136)}
-        ${createUsageChartHtml('接收', sw.mode !== 'Isolated', sw.recvRate, sw.recvPts, false, 136)}
+        ${createUsageChartHtml('发送', nic.linkUp, nic.sendRate, nic.sendPts, false, 136)}
+        ${createUsageChartHtml('接收', nic.linkUp, nic.recvRate, nic.recvPts, false, 136)}
       </div>
-      <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
+      <div class="dt-kv-grid is-title-first is-2col" style="margin-top:8px;">${kvItems.join('')}</div>
     `;
-  } else {
+  } else if (sel.kind === 'switch') {
+    const sw = hostState.switches[sel.idx] || hostState.switches[0];
+    const modeLabel = getSwitchModeLabel(sw);
+    icon = '&#xE774;';
+    rotate = 0;
+    title = sw.name;
+    hwSubtitle = sw.upstream;
+    reading = modeLabel;
+    jumpTab = 'switches';
+    jumpSub = 'list';
+    jumpLabel = '管理虚拟交换机';
+    const kvItems = [
+      renderTitleFirstKvItemHtml({ title: '连接模式', stateText: modeLabel }),
+      renderTitleFirstKvItemHtml({ title: '宿主机接入', stateText: sw.allowManagementOs ? '已接入' : '未接入' }),
+      renderTitleFirstKvItemHtml({ title: '宿主端口 IPv4', stateText: sw.ipv4, copyVal: sw.ipv4 !== '---' ? sw.ipv4 : '' }),
+      renderTitleFirstKvItemHtml({ title: '已接入虚拟机', stateText: sw.endpoints.length ? sw.endpoints.join(', ') : '无' }),
+      renderTitleFirstKvItemHtml({ title: '动态 MAC 池', stateText: `${hostState.saved.macMin} → ${hostState.saved.macMax}`, wide: true })
+    ];
+    bodyHtml = `
+      ${renderTmScaleBar('交换机吞吐量', modeLabel)}
+      <div class="transfer-charts-grid">
+        ${createUsageChartHtml('发送', true, sw.sendRate, sw.sendPts, false, 136)}
+        ${createUsageChartHtml('接收', true, sw.recvRate, sw.recvPts, false, 136)}
+      </div>
+      <div class="dt-kv-grid is-title-first is-2col" style="margin-top:8px;">${kvItems.join('')}</div>
+    `;
+  } else if (sel.kind === 'gpu') {
     const g = hostState.gpus[sel.idx] || hostState.gpus[0];
     icon = '&#xF211;';
     rotate = 0;
-    title = g.name;
+    title = `GPU ${sel.idx}`;
+    hwSubtitle = g.name;
     reading = `${g.pct}%`;
-    jumpTab = 'devices';
-    jumpSub = 'gpu';
-    jumpLabel = '查看显卡与分区';
+    jumpTab = 'policy';
+    jumpSub = 'compat';
+    jumpLabel = '查看兼容策略';
     const kvItems = [
       renderTitleFirstKvItemHtml({ title: '芯片厂商', stateText: g.manu, copyVal: g.manu }),
       renderTitleFirstKvItemHtml({ title: '板卡厂商', stateText: g.vendor, copyVal: g.vendor }),
       renderTitleFirstKvItemHtml({ title: '专用显存', stateText: g.vram, copyVal: g.vram }),
       renderTitleFirstKvItemHtml({ title: '驱动版本', stateText: g.driver, copyVal: g.driver }),
-      renderTitleFirstKvItemHtml({ title: 'GPU-PV 分区', stateText: g.partitionable ? `支持 (${g.assignedVms.length} 台 VM)` : '不支持' }),
-      renderTitleFirstKvItemHtml({ title: 'IOMMU / DDA', stateText: hostState.isWindowsServer && hostState.iommuOk ? '已就绪' : '需 Windows Server', caution: !hostState.isWindowsServer }),
+      renderTitleFirstKvItemHtml({ title: 'GPU-PV 分区', stateText: g.partitionable ? `支持 (已分配 ${g.assignedVms.length} 台 VM)` : '不支持' }),
+      renderTitleFirstKvItemHtml({ title: '分区策略', stateText: hostState.saved.pciePolicyUnlocked ? '已解锁' : '默认策略' }),
       renderTitleFirstKvItemHtml({ title: '设备实例路径', stateText: g.instanceId, copyVal: g.instanceId, wide: true })
     ];
     bodyHtml = `
+      ${renderTmScaleBar('GPU 引擎利用率', '100%')}
       <div class="gpu-charts-grid">
         ${createUsageChartHtml('3D', true, `${g.pct}%`, g.pts3d, true, 82)}
         ${createUsageChartHtml('数据复制', true, `${g.ptsCopy.at(-1)}%`, g.ptsCopy, true, 82)}
         ${createUsageChartHtml('视频编码', true, `${g.ptsEnc.at(-1)}%`, g.ptsEnc, true, 82)}
         ${createUsageChartHtml('视频解码', true, `${g.ptsDec.at(-1)}%`, g.ptsDec, true, 82)}
       </div>
-      <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
+      <div class="dt-kv-grid is-title-first is-2col" style="margin-top:8px;">${kvItems.join('')}</div>
+    `;
+  } else if (sel.kind === 'disk') {
+    const d = hostState.disks[sel.idx] || hostState.disks[0];
+    icon = '&#xEDA2;';
+    rotate = 0;
+    title = `磁盘 ${d.number}`;
+    hwSubtitle = d.name;
+    reading = d.offline ? '已脱机' : d.sizeText;
+    jumpTab = 'policy';
+    jumpSub = 'storage';
+    jumpLabel = '管理存储策略';
+    const kvItems = [
+      renderTitleFirstKvItemHtml({ title: '磁盘状态', stateText: d.status, caution: d.offline }),
+      renderTitleFirstKvItemHtml({ title: '容量', stateText: d.sizeText }),
+      renderTitleFirstKvItemHtml({ title: '直通资格', stateText: d.canPassthrough ? '支持直通' : '系统盘排除' }),
+      renderTitleFirstKvItemHtml({ title: '只读保护', stateText: d.readOnly ? '只读' : '读写' }),
+      renderTitleFirstKvItemHtml({ title: '自动挂载盘符', stateText: hostState.saved.volumeAutoMount ? '开启' : '关闭' }),
+      renderTitleFirstKvItemHtml({ title: '原生 NVMe 栈', stateText: hostState.saved.nativeNvme ? '已开启' : '关闭' }),
+      renderTitleFirstKvItemHtml({ title: '序列号', stateText: d.serial, copyVal: d.serial }),
+      renderTitleFirstKvItemHtml({ title: '设备路径', stateText: d.path, copyVal: d.path })
+    ];
+    bodyHtml = `
+      ${renderTmScaleBar('活动时间 / 传输速率', d.sizeText)}
+      <div class="transfer-charts-grid">
+        ${createUsageChartHtml('读取', !d.offline, d.readRate, d.readPts, false, 136)}
+        ${createUsageChartHtml('写入', !d.offline, d.writeRate, d.writePts, false, 136)}
+      </div>
+      <div class="dt-kv-grid is-title-first is-2col" style="margin-top:8px;">${kvItems.join('')}</div>
     `;
   }
 
-  return `
-    <div class="vm-overview-scroll">
-      <div class="vm-overview-alt-host mode-fill">
-        <div class="tc-shell tm-wide">
-          <div class="tc-left-rail">${railHtml}</div>
-          <div class="tc-right-card">
+  const identitySingleLine = !hwSubtitle;
+  const isCpuStats = (sel.kind === 'cpu' || sel.kind === 'overview') && hostState.cpuStatsView;
+  const isMemStats = sel.kind === 'mem' && hostState.memStatsView;
+  const hideCanvasHead = isCpuStats || isMemStats;
+  const statsKind = sel.kind === 'mem' ? 'mem' : 'cpu';
+  const headStatsBtnHtml = showStatsBtn
+    ? `
+      <button type="button" class="tc-head-stats-btn" data-host-toggle-stats="${statsKind}" title="查看宿主与虚拟机占用统计图" aria-label="统计图">
+        <span class="fi">&#xE9D2;</span>
+        <span>统计图</span>
+      </button>
+    `
+    : '';
+  const canvasHeadHtml = hideCanvasHead
+    ? ''
+    : `
             <div class="tc-canvas-head">
-              <div class="tc-canvas-identity is-single-line">
+              <div class="tc-canvas-identity ${identitySingleLine ? 'is-single-line' : ''}">
                 <div class="tc-head-icon-box">
                   <span class="fi" style="${rotate ? `transform:rotate(${rotate}deg);` : ''}">${icon}</span>
                 </div>
@@ -641,16 +1722,24 @@ function renderStateTab() {
                   <div class="tc-canvas-title-row">
                     <span class="tc-canvas-title">${esc(title)}</span>
                   </div>
+                  ${hwSubtitle ? `<div class="tc-canvas-sub">${esc(hwSubtitle)}</div>` : ''}
                 </div>
               </div>
               <div class="tc-canvas-head-right">
                 <div class="tc-canvas-reading">${esc(reading)}</div>
-                <button type="button" class="tc-cfg-icon-btn" data-host-jump="${jumpTab}:${jumpSub}" title="${esc(jumpLabel)}">
-                  <span class="fi">&#xE713;</span>
-                </button>
+                ${headStatsBtnHtml}
               </div>
             </div>
-            <div class="tc-canvas-body">${bodyHtml}</div>
+    `;
+
+  return `
+    <div class="vm-overview-scroll">
+      <div class="vm-overview-alt-host mode-fill">
+        <div class="tc-shell tm-wide">
+          <div class="tc-left-rail">${railHtml}</div>
+          <div class="tc-right-card">
+            ${canvasHeadHtml}
+            <div class="tc-canvas-body" style="${hideCanvasHead ? 'flex:1;min-height:0;' : ''}">${bodyHtml}</div>
           </div>
         </div>
       </div>
@@ -658,363 +1747,344 @@ function renderStateTab() {
   `;
 }
 
+// ============================================================================
+// Tab 2: 交换机 (Full-width Flat Virtual Switch Management)
+// ============================================================================
 function renderSwitchesTab() {
-  const subnav = [
-    { key: 'list', label: '虚拟交换机', icon: '&#xE774;' },
-    { key: 'mac', label: 'MAC 地址池', icon: '&#xE839;' }
-  ];
-  const subHtml = subnav
+  const cards = hostState.switches
     .map(
-      (s) => `
-      <button type="button" class="subnav-btn ${hostState.switchesSub === s.key ? 'selected' : ''}" data-host-sub="switches:${s.key}">
-        <span class="fi subnav-icon">${s.icon}</span><span>${esc(s.label)}</span>
-      </button>
-    `
-    )
-    .join('');
-
-  let bodyHtml = '';
-  if (hostState.switchesSub === 'list') {
-    const cards = hostState.switches
-      .map(
-        (sw) => `
-        <div class="winui-expander ${sw.expanded ? 'expanded' : ''}">
-          <div class="winui-expander-header" data-host-expand="switch:${sw.id}">
-            <div class="host-exp-head">
-              <span class="fi" style="font-size:18px;">&#xE774;</span>
-              <span class="host-exp-title">${esc(sw.name)}</span>
-              <span class="vm-badge"><span class="vm-badge-text">${esc(sw.mode)}</span></span>
-              <span class="host-exp-muted">${sw.endpoints.length} 台虚拟机接入</span>
-            </div>
-            <span class="fi winui-expander-chevron">${sw.expanded ? '&#xE70E;' : '&#xE70D;'}</span>
+      (sw) => `
+      <div class="winui-expander ${sw.expanded ? 'expanded' : ''}">
+        <div class="winui-expander-header" data-host-expand="switch:${sw.id}">
+          <div class="host-exp-head">
+            <span class="fi" style="font-size:18px;">&#xE774;</span>
+            <span class="host-exp-title">${esc(sw.name)}</span>
+            <span class="vm-badge"><span class="vm-badge-text">${esc(getSwitchModeLabel(sw))}</span></span>
+            <span class="host-exp-muted">${sw.endpoints.length} 台虚拟机接入</span>
           </div>
-          <div class="winui-expander-body">
-            <div class="settings-field-panel">
-              <div class="field-editor-stack">
-                ${labelHtml('连接模式', 'Bridge：桥接物理网卡；NAT：内部共享上网；Isolated：完全隔离内网。')}
-                <select class="winui-select" data-host-sw-mode="${sw.id}">
-                  <option value="Bridge" ${sw.mode === 'Bridge' ? 'selected' : ''}>外部桥接 (Bridge)</option>
-                  <option value="NAT" ${sw.mode === 'NAT' ? 'selected' : ''}>内部 NAT</option>
-                  <option value="Isolated" ${sw.mode === 'Isolated' ? 'selected' : ''}>仅主机隔离 (Isolated)</option>
-                </select>
+          <span class="fi winui-expander-chevron">${sw.expanded ? '&#xE70E;' : '&#xE70D;'}</span>
+        </div>
+        <div class="winui-expander-body">
+          <div class="settings-field-panel">
+            <div class="field-editor-stack">
+              ${labelHtml('连接模式', '桥接：连接物理网卡。NAT：内部共享上网。仅内网：完全隔离内网。')}
+              <select class="winui-select" data-host-sw-mode="${sw.id}">
+                <option value="Bridge" ${sw.mode === 'Bridge' ? 'selected' : ''}>桥接 (Bridge)</option>
+                <option value="NAT" ${sw.mode === 'NAT' ? 'selected' : ''}>NAT</option>
+                <option value="Isolated" ${sw.mode === 'Isolated' ? 'selected' : ''}>仅内网 (Isolated)</option>
+              </select>
+            </div>
+            <div class="field-editor-stack">
+              ${labelHtml('上游物理网卡 / 共享接口', '由 HyperVSwitchService 识别的物理上联适配器。')}
+              <input type="text" class="winui-textbox" value="${esc(sw.upstream)}" readonly />
+            </div>
+            <div class="field-editor-toggle-row">
+              ${labelHtml('允许宿主 OS 共享', '开启后宿主操作系统会通过内部虚拟端口接入该交换机。')}
+              <div class="winui-switch ${sw.allowManagementOs ? 'on' : ''}" data-host-sw-mgmt="${sw.id}">
+                <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
+                <span class="switch-state-label">${sw.allowManagementOs ? '允许' : '禁止'}</span>
               </div>
-              <div class="field-editor-stack">
-                ${labelHtml('上游物理网卡 / 共享接口', '由 HyperVSwitchService 识别的物理上联适配器。')}
-                <input type="text" class="winui-textbox" value="${esc(sw.upstream)}" readonly />
-              </div>
-              <div class="field-editor-toggle-row">
-                ${labelHtml('允许宿主 OS 共享', '开启后宿主操作系统会通过内部虚拟端口接入该交换机。')}
-                <div class="winui-switch ${sw.allowManagementOs ? 'on' : ''}" data-host-sw-mgmt="${sw.id}">
-                  <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-                  <span class="switch-state-label">${sw.allowManagementOs ? '允许' : '禁止'}</span>
-                </div>
-              </div>
-              <div class="field-editor-stack">
-                ${labelHtml('已接入端点', '通过 GetFullSwitchNetworkStateAsync 查到的连接虚拟机。')}
-                <div class="host-inline-tags">
-                  ${sw.endpoints.length ? sw.endpoints.map((vm) => `<span class="vm-badge"><span class="vm-badge-text">${esc(vm)}</span></span>`).join('') : '<span class="host-exp-muted">无已连接虚拟机</span>'}
-                </div>
+            </div>
+            <div class="field-editor-stack">
+              ${labelHtml('已接入端点', '通过 GetFullSwitchNetworkStateAsync 查到的连接虚拟机。')}
+              <div class="host-inline-tags">
+                ${sw.endpoints.length ? sw.endpoints.map((vm) => `<span class="vm-badge"><span class="vm-badge-text">${esc(vm)}</span></span>`).join('') : '<span class="host-exp-muted">无已连接虚拟机</span>'}
               </div>
             </div>
           </div>
         </div>
-      `
-      )
-      .join('');
+      </div>
+    `
+    )
+    .join('');
 
-    bodyHtml = `
+  return `
+    <div class="host-flat-scroll">
       <div class="host-toolbar">
         <button type="button" class="winui-btn primary" id="hostAddSwitchBtn">新建交换机</button>
         <button type="button" class="winui-btn" id="hostRefreshSwitchesBtn">刷新</button>
       </div>
       <div class="host-exp-list">${cards}</div>
-    `;
-  } else {
-    bodyHtml = `
-      <div class="winui-field-card">
-        <div class="settings-section-title">全局动态 MAC 地址池</div>
-        <div class="settings-field-panel">
-          <div class="field-editor-stack host-span-2">
-            ${labelHtml('MAC 地址范围', '上下限通过一次 WMI ModifyServiceSettings 原子提交，格式 XX-XX-XX-XX-XX-XX。')}
-            <div class="host-mac-row">
-              <input type="text" class="winui-textbox host-mac-input" id="hostMacMinInput" maxlength="17" value="${esc(hostState.draft.macMin)}" />
-              <span class="host-mac-arrow">→</span>
-              <input type="text" class="winui-textbox host-mac-input" id="hostMacMaxInput" maxlength="17" value="${esc(hostState.draft.macMax)}" />
+    </div>
+  `;
+}
+
+// ============================================================================
+// Tab 2: 环境 (V1.5.2 平台能力自检)
+// ============================================================================
+function renderEnvTab() {
+  const statusRowHtml = (ok, label, { subText = '', actionHtml = '' } = {}) => {
+    const iconCls = ok === true ? 'is-ok' : ok === false ? 'is-fail' : 'is-muted';
+    const iconGlyph = ok === true ? '&#xEC61;' : ok === false ? '&#xEB90;' : '&#xE946;';
+    return `
+      <div class="isa-card">
+        <div class="host-platform-row">
+          <div class="host-platform-left">
+            <span class="fi host-platform-status-icon ${iconCls}">${iconGlyph}</span>
+            <div class="host-platform-text">
+              <div class="host-platform-label">${esc(label)}</div>
+              ${subText ? `<div class="host-platform-sub">${esc(subText)}</div>` : ''}
             </div>
           </div>
+          ${actionHtml}
         </div>
-        ${actionRowHtml('mac', ['macMin', 'macMax'])}
       </div>
     `;
-  }
-
+  };
+  const hypervActionHtml = `
+    <button type="button" class="winui-btn ${hostState.hyperVEnabled ? '' : 'primary'}" id="hostToggleHyperVBtn" style="flex-shrink:0;">
+      ${hostState.hyperVEnabled ? '禁用' : '启用'}
+    </button>
+  `;
   return `
-    <div class="vm-settings-area">
-      <div class="settings-subnav">${subHtml}</div>
-      <div class="vm-settings-right">
-        <div class="settings-host-scroll">${bodyHtml}</div>
+    <div class="host-flat-scroll">
+      <div class="proc-group-stack">
+        <div class="host-platform-group">
+          <div class="host-platform-group-title">基本要求</div>
+          ${statusRowHtml(hostState.cpuVirtOk, 'CPU 虚拟化')}
+          ${statusRowHtml(hostState.hyperVEnabled, 'Hyper-V 服务', {
+            subText: hostState.hyperVEnabled ? '' : '未启用或服务未运行',
+            actionHtml: hypervActionHtml
+          })}
+        </div>
+        <div class="host-platform-group">
+          <div class="host-platform-group-title">GPU-PV 要求</div>
+          ${statusRowHtml(hostState.gpuPvOk, `系统版本：${HOST_SYS.os}`)}
+        </div>
+        <div class="host-platform-group">
+          <div class="host-platform-group-title">PCIe 直通要求</div>
+          ${statusRowHtml(hostState.iommuOk, HOST_SYS.arch === 'ARM64' ? 'SMMU 状态' : 'IOMMU 状态')}
+          ${statusRowHtml(hostState.isWindowsServer, '属于 Windows Server 系统')}
+        </div>
+        <div class="host-platform-group">
+          <div class="host-platform-group-title">USB 直通要求</div>
+          ${statusRowHtml(hostState.usbipdOk, '已安装 usbipd-win')}
+        </div>
       </div>
     </div>
   `;
 }
 
-function renderDevicesTab() {
-  const subnav = [
-    { key: 'gpu', label: '显卡 (GPU-PV)', icon: '&#xF211;' },
-    { key: 'pcie', label: 'PCIe 设备 (DDA)', icon: '&#xF0B9;' },
-    { key: 'disks', label: '物理磁盘与镜像', icon: '&#xEDA2;' }
-  ];
-  const subHtml = subnav
-    .map(
-      (s) => `
-      <button type="button" class="subnav-btn ${hostState.devicesSub === s.key ? 'selected' : ''}" data-host-sub="devices:${s.key}">
-        <span class="fi subnav-icon">${s.icon}</span><span>${esc(s.label)}</span>
-      </button>
-    `
-    )
-    .join('');
-
-  let bodyHtml = '';
-  if (hostState.devicesSub === 'gpu') {
-    bodyHtml = `
-      <div class="host-exp-list">
-        ${hostState.gpus
-          .map(
-            (g) => `
-          <div class="winui-expander expanded">
-            <div class="winui-expander-header">
-              <div class="host-exp-head">
-                <span class="fi" style="font-size:18px;">&#xF211;</span>
-                <span class="host-exp-title">${esc(g.name)}</span>
-                <span class="vm-badge"><span class="vm-badge-text">${g.partitionable ? '支持 GPU-PV' : '不支持分区'}</span></span>
-              </div>
-            </div>
-            <div class="winui-expander-body">
-              <div class="settings-field-panel">
-                <div class="field-editor-stack"><span class="setting-label-title">显存容量</span><span>${esc(g.vram)}</span></div>
-                <div class="field-editor-stack"><span class="setting-label-title">驱动版本</span><span>${esc(g.driver)}</span></div>
-                <div class="field-editor-stack host-span-2">
-                  <span class="setting-label-title">已分配虚拟机</span>
-                  <div class="host-inline-tags">
-                    ${g.assignedVms.length ? g.assignedVms.map((v) => `<span class="vm-badge"><span class="vm-badge-text">${esc(v)}</span></span>`).join('') : '<span class="host-exp-muted">尚未分配分区</span>'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-    `;
-  } else if (hostState.devicesSub === 'pcie') {
-    const warnBanner = !hostState.isWindowsServer
-      ? `<div class="winui-infobar is-warning" style="margin:0 0 12px 0;"><div class="winui-infobar-main"><span class="fi winui-infobar-icon">&#xE7BA;</span><span>当前宿主为消费级 Windows，原生 DDA 直通需要 Windows Server。</span></div></div>`
-      : '';
-    bodyHtml = `
-      ${warnBanner}
-      <div class="host-exp-list">
-        ${hostState.pcieDevices
-          .map(
-            (d) => `
-          <div class="winui-expander ${d.expanded ? 'expanded' : ''}">
-            <div class="winui-expander-header" data-host-expand="pcie:${d.id}">
-              <div class="host-exp-head">
-                <span class="fi" style="font-size:18px;">&#xF0B9;</span>
-                <span class="host-exp-title">${esc(d.name)}</span>
-                <span class="vm-badge"><span class="vm-badge-text">${esc(d.ownerName)}</span></span>
-              </div>
-              <span class="fi winui-expander-chevron">${d.expanded ? '&#xE70E;' : '&#xE70D;'}</span>
-            </div>
-            <div class="winui-expander-body">
-              <div class="settings-field-panel">
-                <div class="field-editor-stack"><span class="setting-label-title">设备类别</span><span>${esc(d.classType)} · ${esc(d.vendor)}</span></div>
-                <div class="field-editor-stack"><span class="setting-label-title">位置路径</span><span class="host-mono">${esc(d.path)}</span></div>
-                <div class="field-editor-stack host-span-2"><span class="setting-label-title">InstanceId</span><span class="host-mono">${esc(d.instanceId)}</span></div>
-              </div>
-              <div class="host-actions-row">
-                <button type="button" class="winui-btn" data-host-pcie-toggle="${d.id}">
-                  ${d.ownerKind === 'host' ? '从宿主卸下 (准备直通)' : '归还给宿主'}
-                </button>
-              </div>
-            </div>
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-    `;
-  } else {
-    bodyHtml = `
-      <div class="host-toolbar">
-        <button type="button" class="winui-btn primary" id="hostMountVhdxBtn">挂载 VHDX / ISO</button>
-        <button type="button" class="winui-btn" id="hostRefreshDisksBtn">刷新磁盘</button>
-      </div>
-      <div class="host-exp-list">
-        ${hostState.disks
-          .map(
-            (disk) => `
-          <div class="winui-expander expanded">
-            <div class="winui-expander-header">
-              <div class="host-exp-head">
-                <span class="fi" style="font-size:18px;">&#xEDA2;</span>
-                <span class="host-exp-title">磁盘 ${disk.number} · ${esc(disk.name)}</span>
-                <span class="vm-badge"><span class="vm-badge-text">${esc(disk.sizeText)}</span></span>
-                <span class="vm-badge"><span class="vm-badge-text">${esc(disk.status)}</span></span>
-              </div>
-            </div>
-            <div class="winui-expander-body">
-              <div class="settings-field-panel">
-                <div class="field-editor-toggle-row">
-                  ${labelHtml('脱机状态', '磁盘直通 (Pass-through) 给虚拟机前通常需先设为脱机。')}
-                  <div class="winui-switch ${disk.offline ? 'on' : ''} ${disk.number === 0 ? 'disabled' : ''}" data-host-disk-offline="${disk.number}">
-                    <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-                    <span class="switch-state-label">${disk.offline ? '脱机' : '联机'}</span>
-                  </div>
-                </div>
-                <div class="field-editor-toggle-row">
-                  ${labelHtml('只读保护', '防止宿主误写入直通盘或只读挂载的虚拟磁盘。')}
-                  <div class="winui-switch ${disk.readOnly ? 'on' : ''} ${disk.number === 0 ? 'disabled' : ''}" data-host-disk-ro="${disk.number}">
-                    <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-                    <span class="switch-state-label">${disk.readOnly ? '只读' : '读写'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        `
-          )
-          .join('')}
-      </div>
-    `;
-  }
-
+// ============================================================================
+// Tab 4: 设置 (Left Subnav + Single-Row WinUI Settings Cards)
+// ============================================================================
+function policySwitchCardHtml(key, title, desc, { span2 = false, disabled = false } = {}) {
+  const on = Boolean(hostState.draft[key]);
   return `
-    <div class="vm-settings-area">
-      <div class="settings-subnav">${subHtml}</div>
-      <div class="vm-settings-right">
-        <div class="settings-host-scroll">${bodyHtml}</div>
+    <div class="isa-card uniform-1row ${span2 ? 'span-2' : ''} ${disabled ? 'is-disabled' : ''}">
+      <div class="isa-card-row">
+        ${labelHtml(title, desc)}
+        <div class="winui-switch ${on ? 'on' : ''} ${disabled ? 'disabled' : ''}" data-host-draft-switch="${key}" role="switch" aria-checked="${on}" tabindex="${disabled ? -1 : 0}">
+          <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
+        </div>
       </div>
     </div>
   `;
 }
 
-function renderComputeTab() {
+function renderPolicyTab() {
   const subnav = [
-    { key: 'scheduler', label: '电源与调度', icon: '&#xEA86;' },
-    { key: 'cpugroups', label: 'CPU 资源组', icon: '&#xF58E;' },
-    { key: 'vmgroups', label: '虚拟机分组', icon: '&#xE8F1;' }
+    { key: 'scheduler', label: 'CPU 调度' },
+    { key: 'power', label: '电源方案' },
+    { key: 'paths', label: '默认目录' },
+    { key: 'storage', label: '存储策略' },
+    { key: 'mac', label: '网络策略' },
+    { key: 'compat', label: '兼容策略' },
+    { key: 'preferences', label: '会话偏好' }
   ];
+
+  const activeSub = subnav.some((s) => s.key === hostState.policySub) ? hostState.policySub : 'scheduler';
   const subHtml = subnav
     .map(
       (s) => `
-      <button type="button" class="subnav-btn ${hostState.computeSub === s.key ? 'selected' : ''}" data-host-sub="compute:${s.key}">
-        <span class="fi subnav-icon">${s.icon}</span><span>${esc(s.label)}</span>
+      <button type="button" class="subnav-btn ${activeSub === s.key ? 'selected' : ''}" data-host-policy-sub="${s.key}">
+        <span>${esc(s.label)}</span>
       </button>
     `
     )
     .join('');
 
-  let bodyHtml = '';
-  if (hostState.computeSub === 'scheduler') {
-    const powerOpts = POWER_PLANS.map(
-      (p) => `<option value="${p.id}" ${p.id === hostState.draft.powerPlanId ? 'selected' : ''}>${esc(p.name)}</option>`
-    ).join('');
+  let contentHtml = '';
+  if (activeSub === 'scheduler') {
     const schedBtns = SCHEDULER_OPTIONS.map(
-      (o) => `<button type="button" class="host-seg-btn ${hostState.draft.scheduler === o.value ? 'active' : ''}" data-host-sched="${o.value}">${esc(o.label)}</button>`
+      (o) => `<button type="button" class="isa-pill-btn ${hostState.draft.scheduler === o.value ? 'active' : ''}" data-host-sched="${o.value}">${esc(o.label)}</button>`
     ).join('');
-
-    bodyHtml = `
-      <div class="winui-field-card">
-        <div class="settings-section-title">电源与核心调度</div>
-        <div class="settings-field-panel">
-          <div class="field-editor-stack">
-            ${labelHtml('宿主电源方案', '枚举现有 Windows 电源计划并切换。')}
-            <select class="winui-select" id="hostPowerPlanSelect">${powerOpts}</select>
+    const schedGuides = [
+      {
+        value: 'Classic',
+        title: '经典调度器',
+        selectedCores: [0, 1, 2, 3],
+        isAuto: false,
+        body: '由 Hypervisor 调度，可自由分配所有线程，多个虚拟机可能会共用同一个线程。适合个人高性能场景，支持 CPU 组、CPU 配额、权重和预留。'
+      },
+      {
+        value: 'Core',
+        title: '核心调度器',
+        selectedCores: [0, 2],
+        isAuto: false,
+        body: '由 Hypervisor 调度，同一个物理核心的所有线程只分给同一台虚拟机。适合多机隔离、服务器场景，支持 CPU 组、CPU 配额、权重和预留。'
+      },
+      {
+        value: 'Root',
+        title: '根调度器',
+        selectedCores: [],
+        isAuto: true,
+        body: '由系统内核调度，能识别大小核并动态调节功耗与性能。不支持 CPU 组、CPU 配额、权重和预留，核心绑定通过宿主机进程亲和性实现。'
+      }
+    ];
+    const schedGuideHtml = schedGuides
+      .map((g) => {
+        const tilesHtml = [0, 1, 2, 3]
+          .map(
+            (core) => `
+            <button type="button" class="cpu-affinity-tile is-demo ${g.selectedCores.includes(core) ? 'selected' : ''}" tabindex="-1">
+              <span class="cpu-affinity-num">${core}</span>
+            </button>
+          `
+          )
+          .join('');
+        return `
+        <div class="host-sched-guide-item ${hostState.draft.scheduler === g.value ? 'is-active' : ''}">
+          <div class="host-sched-guide-title">${esc(g.title)}</div>
+          <div class="host-sched-demo-wrap ${g.isAuto ? 'is-auto' : ''}">
+            <div class="host-sched-demo-grid">${tilesHtml}</div>
+            ${g.isAuto ? '<span class="host-sched-demo-auto">Auto</span>' : ''}
           </div>
-          <div class="field-editor-stack">
-            ${labelHtml('Hyper-V 核心调度器', 'Classic / Core / Root 引导调度模式，更改后需重启宿主生效。')}
-            <div class="host-segmented">${schedBtns}</div>
-          </div>
-          ${toggleFieldHtml('numaSpanning', 'NUMA 跨越', '允许虚拟机跨越多个物理 NUMA 节点分配内存。', { span2: true })}
+          <p class="host-sched-guide-body">${esc(g.body)}</p>
         </div>
-        ${actionRowHtml('compute', ['powerPlanId', 'scheduler', 'numaSpanning'])}
+      `;
+      })
+      .join('');
+    contentHtml = `
+      <div class="proc-group-stack">
+        <div class="isa-grid-2x2">
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${labelHtml('调度器', '经典 / 核心 / 根三种 Hyper-V CPU 调度模式，更改后需重启宿主生效。')}
+              <div class="isa-pill-track cols-3" style="width:310px;flex-shrink:0;">${schedBtns}</div>
+            </div>
+          </div>
+          <div class="isa-card span-2">
+            <div class="host-sched-guide">${schedGuideHtml}</div>
+          </div>
+          ${policySwitchCardHtml('numaSpanning', 'NUMA 跨越', '仅对多 NUMA 节点处理器生效。开启后允许虚拟机跨节点分配内存，但会增加内存延迟。', { span2: true })}
+        </div>
       </div>
     `;
-  } else if (hostState.computeSub === 'cpugroups') {
-    bodyHtml = `
-      <div class="host-exp-list">
-        ${hostState.cpuGroups
-          .map(
-            (g) => `
-          <div class="winui-expander ${g.expanded ? 'expanded' : ''}">
-            <div class="winui-expander-header" data-host-expand="cpugroup:${g.id}">
-              <div class="host-exp-head">
-                <span class="fi" style="font-size:18px;">&#xF58E;</span>
-                <span class="host-exp-title">${esc(g.name)}</span>
-                <span class="vm-badge"><span class="vm-badge-text">核心 ${esc(g.processors)}</span></span>
-                <span class="host-exp-muted">${g.members.length} 台虚拟机</span>
-              </div>
-              <span class="fi winui-expander-chevron">${g.expanded ? '&#xE70E;' : '&#xE70D;'}</span>
-            </div>
-            <div class="winui-expander-body">
-              <div class="settings-field-panel">
-                <div class="field-editor-stack">
-                  ${labelHtml('组总算力配额 (%)', 'HostCpuGroupService.SetCpuCapAsync (0–65536 映射为百分比)。')}
-                  <input type="number" class="winui-textbox" min="1" max="100" value="${g.cpuCap}" />
-                </div>
-                <div class="field-editor-stack">
-                  ${labelHtml('调度优先级 (0–7)', '数值越大优先级越高。')}
-                  <input type="number" class="winui-textbox" min="0" max="7" value="${g.priority}" />
-                </div>
-                <div class="field-editor-stack">
-                  ${labelHtml('空闲保留核心数', '组空闲时仍为本组保留、不出借的逻辑处理器数。')}
-                  <input type="number" class="winui-textbox" min="0" max="32" value="${g.idleReserve}" />
-                </div>
-                <div class="field-editor-stack">
-                  ${labelHtml('相对权重', 'HCS 组竞争时间片的权重 (1–65535)。')}
-                  <input type="number" class="winui-textbox" min="1" max="65535" value="${g.weight}" />
-                </div>
-                <div class="field-editor-stack host-span-2">
-                  <span class="setting-label-title">成员虚拟机</span>
-                  <div class="host-inline-tags">
-                    ${g.members.map((m) => `<span class="vm-badge"><span class="vm-badge-text">${esc(m)}</span></span>`).join('')}
-                  </div>
+  } else if (activeSub === 'power') {
+    const activePlan = POWER_PLANS.find((p) => p.id === hostState.draft.powerPlanId) || POWER_PLANS[0];
+    const comboItems = POWER_PLANS.map(
+      (p) => `
+        <button type="button" class="winui-combo-item ${p.id === activePlan.id ? 'is-selected' : ''}" data-host-power-plan="${p.id}" role="option" aria-selected="${p.id === activePlan.id}">
+          <span>${esc(p.name)}</span>
+        </button>
+      `
+    ).join('');
+    contentHtml = `
+      <div class="proc-group-stack">
+        <div class="isa-grid-2x2">
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${labelHtml('电源方案', '枚举现有 Windows 电源计划并切换。')}
+              <div class="winui-combo ${hostState.powerComboOpen ? 'is-open' : ''}" id="hostPowerPlanCombo">
+                <button type="button" class="winui-combo-trigger" id="hostPowerPlanTrigger" aria-haspopup="listbox" aria-expanded="${hostState.powerComboOpen}">
+                  <span>${esc(activePlan.name)}</span>
+                  <span class="fi winui-combo-chevron">&#xE70D;</span>
+                </button>
+                <div class="winui-combo-flyout" role="listbox" ${hostState.powerComboOpen ? '' : 'hidden'}>
+                  ${comboItems}
                 </div>
               </div>
             </div>
           </div>
-        `
-          )
-          .join('')}
+        </div>
+      </div>
+    `;
+  } else if (activeSub === 'paths') {
+    contentHtml = `
+      <div class="proc-group-stack">
+        <div class="isa-grid-2x2">
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${labelHtml('新建虚拟机默认位置', '新建虚拟机配置文件 (.vmcx) 的默认存放目录。')}
+              <div class="host-path-row" style="width:360px;flex-shrink:0;">
+                <input type="text" class="winui-textbox" style="height:36px;" value="${esc(hostState.draft.defaultVmPath)}" readonly />
+                <button type="button" class="winui-btn" data-host-pick="vm">选择</button>
+              </div>
+            </div>
+          </div>
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${labelHtml('新建虚拟硬盘默认位置', '新建虚拟磁盘文件 (.vhdx) 的默认存放目录。')}
+              <div class="host-path-row" style="width:360px;flex-shrink:0;">
+                <input type="text" class="winui-textbox" style="height:36px;" value="${esc(hostState.draft.defaultVhdPath)}" readonly />
+                <button type="button" class="winui-btn" data-host-pick="vhd">选择</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (activeSub === 'storage') {
+    contentHtml = `
+      <div class="proc-group-stack">
+        <div class="isa-grid-2x2">
+          ${policySwitchCardHtml('volumeAutoMount', '插入磁盘自动挂载盘符', '控制 Windows 检测到新磁盘或新分区时是否自动分配盘符并挂载。关闭后，新接入的卷不会自动显示盘符，需要手动分配。')}
+          ${policySwitchCardHtml('nativeNvme', '主机原生 NVMe', '绕过传统的 SCSI 转换层，用原生 NVMe 驱动访问固态硬盘以提升随机读写性能。仅支持 Build 26100 及以上系统，需重启宿主生效，部分设备可能不兼容。')}
+        </div>
+      </div>
+    `;
+  } else if (activeSub === 'mac') {
+    const macDirty = isGroupDirty(['macMin', 'macMax']);
+    const isDefaultMac =
+      hostState.draft.macMin === '00-15-5D-01-00-00' &&
+      hostState.draft.macMax === '00-15-5D-01-FF-FF' &&
+      hostState.saved.macMin === '00-15-5D-01-00-00' &&
+      hostState.saved.macMax === '00-15-5D-01-FF-FF';
+    contentHtml = `
+      <div class="proc-group-stack">
+        <div class="isa-grid-2x2">
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${labelHtml('全局动态 MAC 地址池', '设置虚拟机使用动态 MAC 地址时的分配范围。局域网内有多台 Hyper-V 宿主机时，建议错开号段避免地址冲突。')}
+              <div class="host-mac-row" style="flex-shrink:0;">
+                <input type="text" class="winui-textbox host-mac-input" style="height:36px;" id="hostMacMinInput" maxlength="17" value="${esc(hostState.draft.macMin)}" />
+                <span class="host-mac-arrow">→</span>
+                <input type="text" class="winui-textbox host-mac-input" style="height:36px;" id="hostMacMaxInput" maxlength="17" value="${esc(hostState.draft.macMax)}" />
+                <button type="button" class="winui-btn" id="hostResetMacBtn" ${isDefaultMac ? 'disabled' : ''}>恢复默认</button>
+                <button type="button" class="winui-btn primary" id="hostSaveMacBtn" ${macDirty ? '' : 'disabled'}>保存</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  } else if (activeSub === 'compat') {
+    contentHtml = `
+      <div class="proc-group-stack">
+        <div class="isa-grid-2x2">
+          ${policySwitchCardHtml('pciePolicyUnlocked', '解锁消费级硬件限制', '关闭 RequireSecureDeviceAssignment 和 RequireSupportedDeviceAssignment 两项检查，使消费级硬件或未认证设备也能显卡分区或设备直通。')}
+          ${policySwitchCardHtml('openHclFirmware', '从文件加载 OpenHCL 固件', '允许 Hyper-V 从本地文件加载自定义的 OpenHCL 或 IGVM 固件，用于自定义虚拟机引导环境。')}
+          ${policySwitchCardHtml('serverProductTypeSpoof', '切换系统为服务器版本', '将系统内核的产品标识切换为 ServerNT，用于解锁原生 PCIe 直通等服务器专属能力，更改后需重启宿主生效。部分没有为服务器系统设计的驱动，可能会在系统引导时蓝屏无法启动，或无法正常工作，需谨慎开启。', { span2: true })}
+        </div>
       </div>
     `;
   } else {
-    bodyHtml = `
-      <div class="host-toolbar">
-        <button type="button" class="winui-btn primary" id="hostAddVmGroupBtn">新建分组</button>
-      </div>
-      <div class="host-exp-list">
-        ${hostState.vmGroups
-          .map(
-            (vg) => `
-          <div class="winui-expander expanded">
-            <div class="winui-expander-header">
-              <div class="host-exp-head">
-                <span class="fi" style="font-size:18px;">&#xE8F1;</span>
-                <span class="host-exp-title">${esc(vg.name)}</span>
-                <span class="vm-badge"><span class="vm-badge-text">${vg.kind === 'Groups' ? '管理分组' : '虚拟机集合'}</span></span>
-              </div>
-            </div>
-            <div class="winui-expander-body">
-              <div class="host-inline-tags">
-                ${(vg.kind === 'Groups' ? vg.children : vg.vms).map((item) => `<span class="vm-badge"><span class="vm-badge-text">${esc(item)}</span></span>`).join('')}
+    contentHtml = `
+      <div class="proc-group-stack">
+        <div class="isa-grid-2x2">
+          ${policySwitchCardHtml('enhancedSession', '增强会话模式', '主机侧许可：允许虚拟机控制台通过增强会话连接。')}
+          ${policySwitchCardHtml('autoOpenConsole', '启动后自动打开控制台', '单台虚拟机从关机状态启动成功后，自动打开连接窗口。')}
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${labelHtml('默认电源按钮动作', '点击运行中虚拟机主电源按钮时的默认动作。')}
+              <div class="isa-pill-track" style="width:220px;flex-shrink:0;">
+                <button type="button" class="isa-pill-btn ${hostState.draft.defaultPowerAction === 'Shutdown' ? 'active' : ''}" data-host-power-action="Shutdown">关机</button>
+                <button type="button" class="isa-pill-btn ${hostState.draft.defaultPowerAction === 'Save' ? 'active' : ''}" data-host-power-action="Save">保存状态</button>
               </div>
             </div>
           </div>
-        `
-          )
-          .join('')}
+        </div>
       </div>
     `;
   }
@@ -1022,185 +2092,299 @@ function renderComputeTab() {
   return `
     <div class="vm-settings-area">
       <div class="settings-subnav">${subHtml}</div>
-      <div class="vm-settings-right">
-        <div class="settings-host-scroll">${bodyHtml}</div>
-      </div>
+      <div class="vm-settings-right"><div class="settings-host-scroll">${contentHtml}</div></div>
     </div>
   `;
 }
 
-function renderSettingsTab() {
-  const subnav = [
-    { key: 'environment', label: 'Hyper-V 平台', icon: '&#xE9D9;' },
-    { key: 'paths', label: '路径与会话', icon: '&#xE8B7;' },
-    { key: 'experimental', label: '高级策略', icon: '&#xEC7A;' },
-    { key: 'preferences', label: '客户端偏好', icon: '&#xE771;' }
-  ];
-
-  const subHtml = subnav
-    .map(
-      (s) => `
-      <button type="button" class="subnav-btn ${hostState.settingsSub === s.key ? 'selected' : ''}" data-host-sub="settings:${s.key}">
-        <span class="fi subnav-icon">${s.icon}</span><span>${esc(s.label)}</span>
-      </button>
-    `
-    )
-    .join('');
-
-  let bodyHtml = '';
-  if (hostState.settingsSub === 'environment') {
-    bodyHtml = `
-      <div class="winui-field-card">
-        <div class="settings-section-title">Hyper-V 服务与环境诊断</div>
-        <div class="settings-field-panel">
-          <div class="field-editor-toggle-row host-span-2">
-            ${labelHtml('Hyper-V 平台与管理服务', '控制 Hypervisor 引导与 VMMS 管理服务，变更需重启宿主。')}
-            <div class="host-inline-tags">
-              <span class="vm-badge"><span class="vm-badge-text">${hostState.hyperVEnabled ? '运行中' : '未启用'}</span></span>
-              <button type="button" class="winui-btn ${hostState.hyperVEnabled ? '' : 'primary'}" id="hostToggleHyperVBtn">
-                ${hostState.hyperVEnabled ? '禁用' : '启用'}
-              </button>
-            </div>
-          </div>
-          <div class="field-editor-stack">
-            ${labelHtml('CPU 硬件虚拟化', 'Intel VT-x / AMD-V / ARM64 虚拟化扩展。')}
-            <span>${hostState.cpuVirtOk ? '已支持并启用' : '未启用'}</span>
-          </div>
-          <div class="field-editor-stack">
-            ${labelHtml('GPU-PV 系统要求', '需要 Windows 10 2004 (Build 19041) 及以上。')}
-            <span>${hostState.gpuPvOk ? '符合要求 (Build 26100)' : '版本过低'}</span>
-          </div>
-          <div class="field-editor-stack">
-            ${labelHtml(HOST_SYS.arch === 'ARM64' ? 'SMMU 硬件隔离' : 'IOMMU (VT-d / AMD-Vi)', 'DDA 直通所需硬件隔离支持。')}
-            <span>${hostState.iommuOk ? '已开启' : '未检测到'}</span>
-          </div>
-          <div class="field-editor-stack">
-            ${labelHtml('Windows Server 系统', '原生 DDA 直通需要 Server 版本。')}
-            <span>${hostState.isWindowsServer ? '是' : '否 (客户端系统)'}</span>
-          </div>
-        </div>
-      </div>
-    `;
-  } else if (hostState.settingsSub === 'paths') {
-    bodyHtml = `
-      <div class="winui-field-card">
-        <div class="settings-section-title">默认目录与宿主会话</div>
-        <div class="settings-field-panel">
-          <div class="field-editor-stack host-span-2">
-            ${labelHtml('新建虚拟机默认位置', '新建虚拟机配置文件 (.vmcx) 的默认存放目录。')}
-            <div class="host-path-row">
-              <input type="text" class="winui-textbox" value="${esc(hostState.draft.defaultVmPath)}" readonly />
-              <button type="button" class="winui-btn" data-host-pick="vm">选择</button>
-            </div>
-          </div>
-          <div class="field-editor-stack host-span-2">
-            ${labelHtml('新建虚拟硬盘默认位置', '新建虚拟磁盘文件 (.vhdx) 的默认存放目录。')}
-            <div class="host-path-row">
-              <input type="text" class="winui-textbox" value="${esc(hostState.draft.defaultVhdPath)}" readonly />
-              <button type="button" class="winui-btn" data-host-pick="vhd">选择</button>
-            </div>
-          </div>
-          ${toggleFieldHtml('enhancedSession', '增强会话模式', '主机侧许可：允许虚拟机控制台通过增强会话连接。')}
-          ${toggleFieldHtml('volumeAutoMount', '卷自动挂载盘符', '控制 Mount Manager 是否为新挂载磁盘卷自动分配盘符。')}
-        </div>
-        ${actionRowHtml('paths', ['defaultVmPath', 'defaultVhdPath', 'enhancedSession', 'volumeAutoMount'])}
-      </div>
-    `;
-  } else if (hostState.settingsSub === 'experimental') {
-    bodyHtml = `
-      <div class="winui-field-card">
-        <div class="settings-section-title">系统策略与实验特性</div>
-        <div class="settings-field-panel">
-          ${toggleFieldHtml('pciePolicyUnlocked', '解锁 PCIe / GPU 策略', '放宽 Hyper-V 主机对 GPU 分区与 PCIe 设备分配的策略限制。')}
-          ${toggleFieldHtml('serverProductTypeSpoof', '切换 Server 系统标识', '将 ProductType 调整为 ServerNT，需重启宿主生效。')}
-          ${toggleFieldHtml('nativeNvme', '主机原生 NVMe', 'Windows 11 24H2+ / Server 2025 原生 NVMe 存储栈，需重启宿主。')}
-          ${toggleFieldHtml('openHclFirmware', 'OpenHCL / IGVM 固件', '允许虚拟机加载自定义 OpenHCL / IGVM 开发固件。')}
-        </div>
-        ${actionRowHtml('experimental', ['pciePolicyUnlocked', 'serverProductTypeSpoof', 'nativeNvme', 'openHclFirmware'])}
-      </div>
-    `;
-  } else {
-    bodyHtml = `
-      <div class="winui-field-card">
-        <div class="settings-section-title">客户端偏好</div>
-        <div class="settings-field-panel">
-          ${toggleFieldHtml('autoOpenConsole', '启动后自动打开控制台', '单台虚拟机从关机状态启动成功后，自动打开连接窗口。')}
-          <div class="field-editor-stack">
-            ${labelHtml('默认电源按钮动作', '点击运行中虚拟机主电源按钮时的默认动作。')}
-            <select class="winui-select" id="hostPowerActionSelect">
-              <option value="Shutdown" ${hostState.draft.defaultPowerAction === 'Shutdown' ? 'selected' : ''}>关机</option>
-              <option value="Save" ${hostState.draft.defaultPowerAction === 'Save' ? 'selected' : ''}>保存状态</option>
-            </select>
-          </div>
-        </div>
-        ${actionRowHtml('preferences', ['autoOpenConsole', 'defaultPowerAction'])}
-      </div>
-    `;
-  }
-
-  return `
-    <div class="vm-settings-area">
-      <div class="settings-subnav">${subHtml}</div>
-      <div class="vm-settings-right">
-        <div class="settings-host-scroll">${bodyHtml}</div>
-      </div>
-    </div>
-  `;
+function getHostTabs() {
+  return HOST_TABS_BASE;
 }
 
 function renderBodyByActiveTab() {
   switch (hostState.activeTab) {
     case 'state':
       return renderStateTab();
+    case 'env':
+      return renderEnvTab();
     case 'switches':
       return renderSwitchesTab();
-    case 'devices':
-      return renderDevicesTab();
-    case 'compute':
-      return renderComputeTab();
-    case 'settings':
+    case 'policy':
     default:
-      return renderSettingsTab();
+      return renderPolicyTab();
   }
 }
 
 let onHostRenderCallback = null;
 
+export function getHostOverviewCandidate() {
+  return {
+    cardStyle: hostState.cardStyle,
+    cardContent: hostState.cardContent,
+    cpuDetailStyle: hostState.cpuDetailStyle,
+    highlightStyle: hostState.highlightStyle || 'elevated-card',
+    legendPlacement: hostState.legendPlacement || 'right',
+    mockThreads: String(hostState.mockThreads || '12'),
+    mockVmCount: String(hostState.mockVmCount || '2')
+  };
+}
+
+export function setHostOverviewCandidate(payloadOrPlacement) {
+  if (typeof payloadOrPlacement === 'string') {
+    if (CARD_STYLE_CANDIDATES.includes(payloadOrPlacement)) {
+      hostState.cardStyle = payloadOrPlacement;
+    } else if (CPU_DETAIL_STYLES.includes(payloadOrPlacement)) {
+      hostState.cpuDetailStyle = payloadOrPlacement;
+      hostState.cpuStatsView = true;
+      hostState.activeTab = 'state';
+      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+    }
+  } else if (payloadOrPlacement && typeof payloadOrPlacement === 'object') {
+    if (CARD_STYLE_CANDIDATES.includes(payloadOrPlacement.cardStyle)) {
+      hostState.cardStyle = payloadOrPlacement.cardStyle;
+    }
+    if (CARD_CONTENT_CANDIDATES.includes(payloadOrPlacement.cardContent)) {
+      hostState.cardContent = payloadOrPlacement.cardContent;
+    }
+    if (CPU_DETAIL_STYLES.includes(payloadOrPlacement.cpuDetailStyle)) {
+      hostState.cpuDetailStyle = payloadOrPlacement.cpuDetailStyle;
+      hostState.cpuStatsView = true;
+      hostState.activeTab = 'state';
+      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+    }
+    if (payloadOrPlacement.legendPlacement === 'right' || payloadOrPlacement.legendPlacement === 'bottom') {
+      hostState.legendPlacement = payloadOrPlacement.legendPlacement;
+      hostState.cpuStatsView = true;
+      hostState.activeTab = 'state';
+      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+    }
+    if (HIGHLIGHT_STYLES.includes(payloadOrPlacement.highlightStyle)) {
+      hostState.highlightStyle = payloadOrPlacement.highlightStyle;
+      hostState.cpuStatsView = true;
+      hostState.activeTab = 'state';
+      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+      if (!hostState.selectedLedVm && !hostState.hoveredLedVm) {
+        const firstVm = getMockRunningVms(hostState.mockVmCount)[0];
+        hostState.selectedLedVm = firstVm ? firstVm.name : '__host__';
+      }
+    }
+    if (payloadOrPlacement.mockThreads) {
+      hostState.mockThreads = String(payloadOrPlacement.mockThreads);
+      hostState.cpuStatsView = true;
+      hostState.activeTab = 'state';
+      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+    }
+    if (payloadOrPlacement.mockVmCount) {
+      hostState.mockVmCount = String(payloadOrPlacement.mockVmCount);
+      hostState.cpuStatsView = true;
+      hostState.selectedLedVm = null;
+      hostState.hoveredLedVm = null;
+      hostState.activeTab = 'state';
+      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+    }
+  } else {
+    return;
+  }
+
+  renderHostPage();
+}
+
+let hostNoticeTimer = null;
+
 export function renderHostPage() {
   const page = document.getElementById('pageHost');
   if (!page) return;
 
-  const tabsHtml = HOST_TABS.map(
-    (t) => `
+  const scrollSelectors = ['.tc-left-rail', '.tc-right-card', '.tc-canvas-body', '.vm-overview-scroll', '.settings-host-scroll', '.host-flat-scroll', '.host-led-legend', '.host-led-vm-scroll', '.host-led-tile-grid'];
+  const savedScrolls = scrollSelectors.map((sel) => {
+    const el = page.querySelector?.(sel);
+    return el ? { sel, top: el.scrollTop, left: el.scrollLeft } : null;
+  });
+
+  page.classList?.toggle('has-twin-summary', true);
+  page.classList?.toggle('host-merged-tabs-mode', hostState.topCardStyle === 'merged-tabs');
+
+  const tabs = getHostTabs();
+  if (!tabs.some((t) => t.key === hostState.activeTab)) {
+    hostState.activeTab = tabs[0].key;
+  }
+
+  const tabsHtml = tabs
+    .map(
+      (t) => `
       <button type="button" class="vm-tab-btn ${hostState.activeTab === t.key ? 'selected' : ''}" data-host-tab="${t.key}">
         <span class="fi" style="font-size:15px;">${t.icon}</span>
         <span>${esc(t.label)}</span>
       </button>
     `
-  ).join('');
+    )
+    .join('');
 
-  const noticeHtml = hostState.notice
-    ? `
-      <div class="winui-infobar is-${hostState.notice.severity}">
-        <div class="winui-infobar-main">
-          <span class="fi winui-infobar-icon">${hostState.notice.severity === 'warning' ? '&#xE7BA;' : '&#xE73E;'}</span>
+  if (hostNoticeTimer) {
+    clearTimeout(hostNoticeTimer);
+    hostNoticeTimer = null;
+  }
+
+  let toastHtml = '';
+  let bannerHtml = '';
+  if (hostState.notice) {
+    const sev = hostState.notice.severity || 'info';
+    if (sev === 'success') {
+      toastHtml = `
+        <div class="winui-floating-toast" role="status">
+          <span class="winui-floating-toast-badge"><span class="fi">&#xE73E;</span></span>
           <span>${esc(hostState.notice.text)}</span>
         </div>
-        <button type="button" class="pane-toggle-btn" id="hostNoticeCloseBtn" style="width:24px;height:24px;margin:0;">
-          <span class="fi" style="font-size:10px;">&#xE711;</span>
-        </button>
-      </div>
-    `
-    : '<div></div>';
+      `;
+      if (typeof setTimeout === 'function') {
+        hostNoticeTimer = setTimeout(() => {
+          if (hostState.notice && hostState.notice.severity === 'success') {
+            hostState.notice = null;
+            renderHostPage();
+          }
+        }, 2600);
+      }
+    } else {
+      const iconMap = { warning: '&#xE7BA;', info: '&#xE946;', error: '&#xE711;' };
+      bannerHtml = `
+        <div class="winui-floating-banner is-${sev}" role="alert">
+          <span class="winui-floating-banner-badge"><span class="fi">${iconMap[sev] || '&#xE946;'}</span></span>
+          <span class="winui-floating-banner-text">${esc(hostState.notice.text)}</span>
+          <button type="button" class="winui-floating-banner-close" id="hostNoticeCloseBtn" title="关闭">
+            <span class="fi" style="font-size:11px;">&#xE711;</span>
+          </button>
+        </div>
+      `;
+    }
+  }
 
   page.innerHTML = `
+    ${renderHostTopCard()}
     <div class="vm-pagetabs host-pagetabs">${tabsHtml}</div>
-    ${noticeHtml}
     ${renderBodyByActiveTab()}
+    ${bannerHtml}
+    ${toastHtml}
   `;
+
+  savedScrolls.forEach((entry) => {
+    if (!entry) return;
+    const el = page.querySelector?.(entry.sel);
+    if (el) {
+      el.scrollTop = entry.top;
+      el.scrollLeft = entry.left;
+    }
+  });
 
   if (onHostRenderCallback) {
     requestAnimationFrame(() => onHostRenderCallback());
+  }
+  syncHostLedTooltip(page);
+}
+
+function getHostLedTooltipEl() {
+  if (typeof document === 'undefined' || typeof document.createElement !== 'function' || !document.body) return null;
+  let tip = document.getElementById('hostLedTooltip');
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'hostLedTooltip';
+    tip.className = 'host-led-tooltip';
+    tip.hidden = true;
+    document.body.appendChild(tip);
+  }
+  return tip;
+}
+
+function syncHostLedTooltip(page) {
+  const tip = getHostLedTooltipEl();
+  if (!tip) return;
+  if (hostState.activeTab !== 'state') {
+    tip.hidden = true;
+    return;
+  }
+
+  let anchorEl = null;
+  if (hostState.hoveredMemSeg !== null && hostState.selectedRail.kind === 'mem') {
+    anchorEl = page?.querySelector?.(`[data-mem-seg="${CSS?.escape ? CSS.escape(hostState.hoveredMemSeg) : hostState.hoveredMemSeg}"]`);
+    const rawMemTip = anchorEl?.getAttribute?.('data-mem-tip');
+    if (anchorEl && rawMemTip) {
+      if (typeof getComputedStyle === 'function') {
+        const accent = getComputedStyle(anchorEl).getPropertyValue('--VmAccentBrush').trim();
+        if (accent) tip.style.setProperty('--VmAccentBrush', accent);
+      }
+      try {
+        const parsed = JSON.parse(rawMemTip);
+        const rowsHtml = (parsed.rows || [])
+          .map(
+            (r) => `
+              <div class="host-led-tip-row">
+                <span class="host-led-tip-left">
+                  <span class="host-led-tip-dot" style="background:${r.color};"></span>
+                  <span class="host-led-tip-name">${esc(r.label)}</span>
+                </span>
+                <span class="host-led-tip-pct">${esc(r.value)}</span>
+              </div>
+            `
+          )
+          .join('');
+        const noteHtml = parsed.note ? `<div class="host-mem-tip-note">${esc(parsed.note)}</div>` : '';
+        tip.innerHTML = `<div class="host-led-tip-head">${esc(parsed.title)}</div>${rowsHtml}${noteHtml}`;
+      } catch {
+        tip.textContent = rawMemTip;
+      }
+      tip.hidden = false;
+      const rect = anchorEl.getBoundingClientRect?.();
+      if (rect) {
+        const tipRect = tip.getBoundingClientRect();
+        const left = Math.max(8, Math.min(window.innerWidth - tipRect.width - 8, rect.left + rect.width / 2 - tipRect.width / 2));
+        const top = rect.top - tipRect.height - 6 >= 8 ? rect.top - tipRect.height - 6 : rect.bottom + 6;
+        tip.style.left = `${Math.round(left)}px`;
+        tip.style.top = `${Math.round(top)}px`;
+      }
+      return;
+    }
+  }
+
+  if (hostState.hoveredLedLp === null) {
+    tip.hidden = true;
+    return;
+  }
+  const tile = page?.querySelector?.(`[data-led-lp="${hostState.hoveredLedLp}"]`);
+  const rawTip = tile?.getAttribute?.('data-led-tip');
+  if (!tile || !rawTip) {
+    tip.hidden = true;
+    return;
+  }
+  if (typeof getComputedStyle === 'function') {
+    const accent = getComputedStyle(tile).getPropertyValue('--VmAccentBrush').trim();
+    if (accent) tip.style.setProperty('--VmAccentBrush', accent);
+  }
+  try {
+    const parsed = JSON.parse(rawTip);
+    const rowsHtml = (parsed.slices || [])
+      .map(
+        (s) => `
+          <div class="host-led-tip-row">
+            <span class="host-led-tip-left">
+              <span class="host-led-tip-dot" style="background:${s.color};"></span>
+              <span class="host-led-tip-name">${esc(s.label)}</span>
+            </span>
+            <span class="host-led-tip-pct">${s.pct}%</span>
+          </div>
+        `
+      )
+      .join('');
+    tip.innerHTML = `<div class="host-led-tip-head">线程 ${parsed.lp}</div>${rowsHtml}`;
+  } catch {
+    tip.textContent = rawTip;
+  }
+  tip.hidden = false;
+  const rect = tile.getBoundingClientRect?.();
+  if (rect) {
+    const tipRect = tip.getBoundingClientRect();
+    const left = Math.max(8, Math.min(window.innerWidth - tipRect.width - 8, rect.left + rect.width / 2 - tipRect.width / 2));
+    const top = rect.top - tipRect.height - 6 >= 8 ? rect.top - tipRect.height - 6 : rect.bottom + 6;
+    tip.style.left = `${Math.round(left)}px`;
+    tip.style.top = `${Math.round(top)}px`;
   }
 }
 
@@ -1329,42 +2513,46 @@ export function applyVirtualHardwareToHost(hw) {
   }
 
   if (hw.storage) {
-    const quotaGiB = hw.storage.probe?.quotaGiB;
-    const usageMb = hw.storage.probe?.usageMB;
-    const ratePts =
-      Array.isArray(hw.storage.rateHistory) && hw.storage.rateHistory.length > 1
-        ? hw.storage.rateHistory
-        : [0, 0, 0, 0, 0, 0];
-    hostState.disks = [
-      {
-        number: 0,
-        name: hw.storage.probe?.supported ? '浏览器存储配额 (Origin Storage)' : '虚拟系统卷 (C:)',
-        sizeText: typeof quotaGiB === 'number' ? `${quotaGiB.toFixed(2)} GiB` : '未知',
-        serial: typeof usageMb === 'number' ? `已用 ${usageMb.toFixed(1)} MB` : 'BROWSER-SANDBOX',
-        path: 'navigator.storage.estimate()',
-        status: hw.storage.probe?.supported ? '沙盒配额可见（物理磁盘受浏览器隔离）' : '浏览器限制（不可直通）',
-        offline: false,
-        readOnly: false,
-        canPassthrough: false,
-        pct: typeof hw.storage.activePct === 'number' ? hw.storage.activePct : 0,
-        readRate: `${hw.storage.readKb ?? 0} KB/s`,
-        writeRate: `${hw.storage.writeKb ?? 0} KB/s`,
-        readPts: ratePts,
-        writePts: ratePts.map((v) => Math.max(0, Math.round(v * 0.45)))
-      }
-    ];
+    // 宿主磁盘始终使用 ExHyperV 物理磁盘模拟数据（不使用浏览器 Origin Storage 配额），仅同步实时活动率波动
+    if (hostState.disks[0] && typeof hw.storage.activePct === 'number') {
+      const ratePts =
+        Array.isArray(hw.storage.rateHistory) && hw.storage.rateHistory.length > 1
+          ? hw.storage.rateHistory
+          : hostState.disks[0].readPts;
+      hostState.disks[0].pct = hw.storage.activePct;
+      hostState.disks[0].readPts = ratePts;
+      hostState.disks[0].writePts = ratePts.map((v) => Math.max(0, Math.round(v * 0.35)));
+    }
     if (hostState.selectedRail.kind === 'disk' && hostState.selectedRail.idx >= hostState.disks.length) {
       hostState.selectedRail.idx = 0;
     }
   }
 
-  if (hw.network && hostState.switches[0]) {
-    hostState.switches[0].upstream = hw.network.adapterName?.value || '浏览器网络接口';
-    hostState.switches[0].sendRate = `${hw.network.sendKbps ?? 0} Kbps`;
-    hostState.switches[0].recvRate = `${hw.network.recvKbps ?? 0} Kbps`;
-    if (Array.isArray(hw.network.rxHistory) && hw.network.rxHistory.length > 1) {
-      hostState.switches[0].recvPts = hw.network.rxHistory;
-      hostState.switches[0].sendPts = hw.network.rxHistory.map((v) => Math.max(0, Math.round(v * 0.45)));
+  if (hw.network) {
+    const rxPts = Array.isArray(hw.network.rxHistory) && hw.network.rxHistory.length > 1
+      ? hw.network.rxHistory
+      : [0, 0, 0, 0, 0, 0];
+    const txPts = rxPts.map((v) => Math.max(0, Math.round(v * 0.45)));
+    // 保留 4 类上游介质（有线 / Wi-Fi / 蜂窝 SIM / Tunnel）供原型展示，只同步主物理网卡实时波形
+    if (hostState.nics[0]) {
+      hostState.nics[0].sendRate = `${hw.network.sendKbps ?? 0} Kbps`;
+      hostState.nics[0].recvRate = `${hw.network.recvKbps ?? 0} Kbps`;
+      hostState.nics[0].sendPts = txPts;
+      hostState.nics[0].recvPts = rxPts;
+    }
+    if (hostState.selectedRail.kind === 'nic' && hostState.selectedRail.idx >= hostState.nics.length) {
+      hostState.selectedRail.idx = 0;
+    }
+    if (hostState.switches[0]) {
+      // 虚拟交换机是中游汇总（上游物理口 + 下游宿主 vEthernet + 下游 VM 东西向流量），不应与物理网卡波形完全一致
+      const swRxPts = rxPts.map((v, i) => Math.min(96, Math.max(4, Math.round(v * 1.35 + ((i * 7 + 9) % 16)))));
+      const swTxPts = txPts.map((v, i) => Math.min(96, Math.max(2, Math.round(v * 1.45 + ((i * 5 + 6) % 12)))));
+      const swSendKbps = Math.round((hw.network.sendKbps ?? 0) * 1.4 + 180);
+      const swRecvKbps = Math.round((hw.network.recvKbps ?? 0) * 1.3 + 420);
+      hostState.switches[0].sendRate = swSendKbps >= 1000 ? `${(swSendKbps / 1000).toFixed(1)} Mbps` : `${swSendKbps} Kbps`;
+      hostState.switches[0].recvRate = swRecvKbps >= 1000 ? `${(swRecvKbps / 1000).toFixed(1)} Mbps` : `${swRecvKbps} Kbps`;
+      hostState.switches[0].recvPts = swRxPts;
+      hostState.switches[0].sendPts = swTxPts;
     }
   }
 
@@ -1403,8 +2591,13 @@ export function applyVirtualHardwareToHost(hw) {
 
   const page = document.getElementById('pageHost');
   if (!page || page.hidden) return;
+  if (hostState.powerComboOpen) return;
   const activeEl = document.activeElement;
-  if (activeEl && page.contains(activeEl) && ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName)) {
+  if (
+    activeEl &&
+    page.contains(activeEl) &&
+    (['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName) || activeEl.closest?.('.winui-combo'))
+  ) {
     return;
   }
   if (hostState.activeTab === 'state' || !hasAppliedHwOnce) {
@@ -1427,6 +2620,54 @@ export function initHostPage(options = {}) {
       applyVirtualHardwareToHost(e.detail);
     });
   }
+
+  page.addEventListener('mouseover', (e) => {
+    const target = e.target.closest?.('[data-host-led-vm]');
+    const nextVm = target ? target.getAttribute('data-host-led-vm') : null;
+    if (hostState.hoveredLedVm !== nextVm) {
+      hostState.hoveredLedVm = nextVm;
+      renderHostPage();
+    }
+    const memTarget = e.target.closest?.('[data-mem-key]');
+    const nextMem = memTarget ? memTarget.getAttribute('data-mem-key') : null;
+    if (hostState.hoveredMemKey !== nextMem) {
+      hostState.hoveredMemKey = nextMem;
+      renderHostPage();
+    }
+    const memSeg = e.target.closest?.('[data-mem-seg]');
+    const nextMemSeg = memSeg ? memSeg.getAttribute('data-mem-seg') : null;
+    if (hostState.hoveredMemSeg !== nextMemSeg) {
+      hostState.hoveredMemSeg = nextMemSeg;
+      syncHostLedTooltip(page);
+    }
+    const lpTile = e.target.closest?.('[data-led-lp]');
+    const nextLp = lpTile ? lpTile.getAttribute('data-led-lp') : null;
+    if (hostState.hoveredLedLp !== nextLp) {
+      hostState.hoveredLedLp = nextLp;
+      syncHostLedTooltip(page);
+    }
+  });
+
+  page.addEventListener('mouseleave', () => {
+    let changed = false;
+    if (hostState.hoveredLedVm) {
+      hostState.hoveredLedVm = null;
+      changed = true;
+    }
+    if (hostState.hoveredMemKey) {
+      hostState.hoveredMemKey = null;
+      changed = true;
+    }
+    if (hostState.hoveredMemSeg !== null) {
+      hostState.hoveredMemSeg = null;
+      syncHostLedTooltip(page);
+    }
+    if (hostState.hoveredLedLp !== null) {
+      hostState.hoveredLedLp = null;
+      syncHostLedTooltip(page);
+    }
+    if (changed) renderHostPage();
+  });
 
   page.addEventListener('click', (e) => {
     const copyBtn = e.target.closest('[data-copy]');
@@ -1454,9 +2695,42 @@ export function initHostPage(options = {}) {
       return;
     }
 
+    const ledChip = e.target.closest('[data-host-led-vm]');
+    if (ledChip) {
+      const vmKey = ledChip.getAttribute('data-host-led-vm');
+      hostState.selectedLedVm = hostState.selectedLedVm === vmKey ? null : vmKey;
+      renderHostPage();
+      return;
+    }
+
+    const memChip = e.target.closest('[data-mem-key]');
+    if (memChip) {
+      const memKey = memChip.getAttribute('data-mem-key');
+      hostState.selectedMemKey = hostState.selectedMemKey === memKey ? null : memKey;
+      renderHostPage();
+      return;
+    }
+
     const tabBtn = e.target.closest('[data-host-tab]');
     if (tabBtn) {
       hostState.activeTab = tabBtn.getAttribute('data-host-tab') || 'state';
+      renderHostPage();
+      return;
+    }
+
+    const statsToggleBtn = e.target.closest('[data-host-toggle-stats]');
+    if (statsToggleBtn) {
+      const kind = statsToggleBtn.getAttribute('data-host-toggle-stats');
+      if (kind === 'mem') {
+        hostState.memStatsView = !hostState.memStatsView;
+      } else {
+        hostState.cpuStatsView = !hostState.cpuStatsView;
+      }
+      hostState.hoveredLedVm = null;
+      hostState.hoveredLedLp = null;
+      hostState.hoveredMemKey = null;
+      hostState.hoveredMemSeg = null;
+      syncHostLedTooltip(page);
       renderHostPage();
       return;
     }
@@ -1471,23 +2745,18 @@ export function initHostPage(options = {}) {
 
     const jumpBtn = e.target.closest('[data-host-jump]');
     if (jumpBtn) {
-      const [tab, sub] = (jumpBtn.getAttribute('data-host-jump') || 'settings:environment').split(':');
-      hostState.activeTab = tab;
-      if (tab === 'switches') hostState.switchesSub = sub;
-      else if (tab === 'devices') hostState.devicesSub = sub;
-      else if (tab === 'compute') hostState.computeSub = sub;
-      else if (tab === 'settings') hostState.settingsSub = sub;
+      const [tab, section] = (jumpBtn.getAttribute('data-host-jump') || 'policy:platform').split(':');
+      hostState.activeTab = tab === 'switches' ? 'switches' : 'policy';
+      if (hostState.activeTab === 'policy' && section) {
+        hostState.policySub = section;
+      }
       renderHostPage();
       return;
     }
 
-    const subBtn = e.target.closest('[data-host-sub]');
-    if (subBtn) {
-      const [group, key] = (subBtn.getAttribute('data-host-sub') || '').split(':');
-      if (group === 'switches') hostState.switchesSub = key;
-      else if (group === 'devices') hostState.devicesSub = key;
-      else if (group === 'compute') hostState.computeSub = key;
-      else if (group === 'settings') hostState.settingsSub = key;
+    const policySubBtn = e.target.closest('[data-host-policy-sub]');
+    if (policySubBtn) {
+      hostState.policySub = policySubBtn.getAttribute('data-host-policy-sub') || 'scheduler';
       renderHostPage();
       return;
     }
@@ -1498,12 +2767,6 @@ export function initHostPage(options = {}) {
       if (kind === 'switch') {
         const sw = hostState.switches.find((x) => x.id === id);
         if (sw) sw.expanded = !sw.expanded;
-      } else if (kind === 'pcie') {
-        const dev = hostState.pcieDevices.find((x) => x.id === id);
-        if (dev) dev.expanded = !dev.expanded;
-      } else if (kind === 'cpugroup') {
-        const cg = hostState.cpuGroups.find((x) => x.id === id);
-        if (cg) cg.expanded = !cg.expanded;
       }
       renderHostPage();
       return;
@@ -1530,50 +2793,17 @@ export function initHostPage(options = {}) {
       return;
     }
 
-    const pcieBtn = e.target.closest('[data-host-pcie-toggle]');
-    if (pcieBtn) {
-      const id = pcieBtn.getAttribute('data-host-pcie-toggle');
-      const dev = hostState.pcieDevices.find((x) => x.id === id);
-      if (dev) {
-        dev.ownerKind = dev.ownerKind === 'host' ? 'unassigned' : 'host';
-        dev.ownerName = dev.ownerKind === 'host' ? '宿主' : '已从宿主卸下（待分配）';
-        hostState.notice = { severity: 'success', text: `${dev.name} 状态已更新为：${dev.ownerName}` };
-        renderHostPage();
-      }
-      return;
-    }
-
-    const diskOff = e.target.closest('[data-host-disk-offline]');
-    if (diskOff && !diskOff.classList.contains('disabled')) {
-      const num = Number(diskOff.getAttribute('data-host-disk-offline'));
-      const d = hostState.disks.find((x) => x.number === num);
-      if (d) {
-        d.offline = !d.offline;
-        d.status = d.offline ? '脱机 · 可直通' : '联机';
-        renderHostPage();
-      }
-      return;
-    }
-
-    const diskRo = e.target.closest('[data-host-disk-ro]');
-    if (diskRo && !diskRo.classList.contains('disabled')) {
-      const num = Number(diskRo.getAttribute('data-host-disk-ro'));
-      const d = hostState.disks.find((x) => x.number === num);
-      if (d) {
-        d.readOnly = !d.readOnly;
-        renderHostPage();
-      }
-      return;
-    }
-
     if (e.target.closest('#hostAddSwitchBtn')) {
       const idx = hostState.switches.length + 1;
       hostState.switches.push({
         id: `sw-custom-${idx}`,
         name: `Custom Switch ${idx}`,
+        switchKind: 'Private',
+        natEngine: 'None',
+        subnetPrefix: null,
         mode: 'Isolated',
         allowManagementOs: false,
-        upstream: '无物理上行网卡',
+        upstream: '无宿主机或外网连接',
         ipv4: '---',
         sendRate: '0 Kbps',
         recvRate: '0 Kbps',
@@ -1582,32 +2812,53 @@ export function initHostPage(options = {}) {
         endpoints: [],
         expanded: true
       });
-      hostState.notice = { severity: 'success', text: `已新建内部隔离交换机 Custom Switch ${idx}` };
-      renderHostPage();
-      return;
-    }
-
-    if (e.target.closest('#hostMountVhdxBtn')) {
-      hostState.notice = { severity: 'info', text: '原型演示：此处将调用 HostDiskService.MountVhdxAsync 弹出文件选择器。' };
-      renderHostPage();
-      return;
-    }
-
-    if (e.target.closest('#hostAddVmGroupBtn')) {
-      hostState.vmGroups.push({
-        id: `grp-${Date.now()}`,
-        name: `新建分组 ${hostState.vmGroups.length + 1}`,
-        kind: 'VirtualMachines',
-        children: [],
-        vms: []
-      });
+      hostState.notice = { severity: 'success', text: `已新建专用交换机 Custom Switch ${idx}` };
       renderHostPage();
       return;
     }
 
     const schedBtn = e.target.closest('[data-host-sched]');
     if (schedBtn) {
-      hostState.draft.scheduler = schedBtn.getAttribute('data-host-sched') || 'Core';
+      const next = schedBtn.getAttribute('data-host-sched') || 'Core';
+      if (hostState.saved.scheduler !== next) {
+        hostState.draft.scheduler = next;
+        hostState.saved.scheduler = next;
+        hostState.notice = {
+          severity: 'warning',
+          text: `调度器已切换为「${getSchedulerLabel(next, true)}」，需重启宿主后生效。`
+        };
+      }
+      renderHostPage();
+      return;
+    }
+
+    if (e.target.closest('#hostPowerPlanTrigger')) {
+      e.stopPropagation();
+      hostState.powerComboOpen = !hostState.powerComboOpen;
+      renderHostPage();
+      return;
+    }
+
+    const powerPlanBtn = e.target.closest('[data-host-power-plan]');
+    if (powerPlanBtn) {
+      const next = powerPlanBtn.getAttribute('data-host-power-plan') || 'high';
+      hostState.draft.powerPlanId = next;
+      hostState.saved.powerPlanId = next;
+      hostState.powerComboOpen = false;
+      renderHostPage();
+      return;
+    }
+
+    if (hostState.powerComboOpen && !e.target.closest('#hostPowerPlanCombo')) {
+      hostState.powerComboOpen = false;
+      renderHostPage();
+    }
+
+    const powerActionBtn = e.target.closest('[data-host-power-action]');
+    if (powerActionBtn) {
+      const next = powerActionBtn.getAttribute('data-host-power-action') || 'Shutdown';
+      hostState.draft.defaultPowerAction = next;
+      hostState.saved.defaultPowerAction = next;
       renderHostPage();
       return;
     }
@@ -1617,7 +2868,9 @@ export function initHostPage(options = {}) {
       const kind = pickBtn.getAttribute('data-host-pick');
       const presets = kind === 'vm' ? PATH_PRESETS.vm : PATH_PRESETS.vhd;
       const key = kind === 'vm' ? 'defaultVmPath' : 'defaultVhdPath';
-      hostState.draft[key] = presets[(presets.indexOf(hostState.draft[key]) + 1) % presets.length];
+      const next = presets[(presets.indexOf(hostState.draft[key]) + 1) % presets.length];
+      hostState.draft[key] = next;
+      hostState.saved[key] = next;
       renderHostPage();
       return;
     }
@@ -1626,57 +2879,76 @@ export function initHostPage(options = {}) {
     if (draftSw && !draftSw.classList.contains('disabled')) {
       const key = draftSw.getAttribute('data-host-draft-switch');
       if (key && key in hostState.draft) {
-        hostState.draft[key] = !hostState.draft[key];
+        const next = !hostState.draft[key];
+        hostState.draft[key] = next;
+        hostState.saved[key] = next;
+        if (key === 'serverProductTypeSpoof' || key === 'nativeNvme') {
+          hostState.notice = {
+            severity: 'warning',
+            text: `${key === 'nativeNvme' ? '主机原生 NVMe' : 'Server 系统标识'}已更新，需重启宿主后生效。`
+          };
+        }
         renderHostPage();
       }
       return;
     }
 
-    const applyBtn = e.target.closest('[data-host-apply]');
-    if (applyBtn) {
-      const grp = applyBtn.getAttribute('data-host-apply');
-      const map = {
-        mac: ['macMin', 'macMax'],
-        compute: ['powerPlanId', 'scheduler', 'numaSpanning'],
-        paths: ['defaultVmPath', 'defaultVhdPath', 'enhancedSession', 'volumeAutoMount'],
-        experimental: ['pciePolicyUnlocked', 'serverProductTypeSpoof', 'nativeNvme', 'openHclFirmware'],
-        preferences: ['autoOpenConsole', 'defaultPowerAction']
-      };
-      const keys = map[grp] || [];
-      const needReboot =
-        (keys.includes('scheduler') && hostState.draft.scheduler !== hostState.saved.scheduler) ||
-        (keys.includes('serverProductTypeSpoof') && hostState.draft.serverProductTypeSpoof !== hostState.saved.serverProductTypeSpoof) ||
-        (keys.includes('nativeNvme') && hostState.draft.nativeNvme !== hostState.saved.nativeNvme);
-      applyKeys(keys);
-      hostState.notice = {
-        severity: needReboot ? 'warning' : 'success',
-        text: needReboot ? '设置已保存，部分系统级修改需重启宿主后生效。' : '宿主设置已应用。'
-      };
+    if (e.target.closest('#hostResetMacBtn')) {
+      hostState.draft.macMin = '00-15-5D-01-00-00';
+      hostState.draft.macMax = '00-15-5D-01-FF-FF';
+      applyKeys(['macMin', 'macMax']);
+      hostState.notice = { severity: 'success', text: '已恢复默认 MAC 地址池。' };
       renderHostPage();
       return;
     }
 
-    const revertBtn = e.target.closest('[data-host-revert]');
-    if (revertBtn) {
-      const grp = revertBtn.getAttribute('data-host-revert');
-      const map = {
-        mac: ['macMin', 'macMax'],
-        compute: ['powerPlanId', 'scheduler', 'numaSpanning'],
-        paths: ['defaultVmPath', 'defaultVhdPath', 'enhancedSession', 'volumeAutoMount'],
-        experimental: ['pciePolicyUnlocked', 'serverProductTypeSpoof', 'nativeNvme', 'openHclFirmware'],
-        preferences: ['autoOpenConsole', 'defaultPowerAction']
-      };
-      revertKeys(map[grp] || []);
+    if (e.target.closest('#hostSaveMacBtn')) {
+      const norm = (v) => String(v || '').trim().toUpperCase().replace(/:/g, '-');
+      const macRe = /^([0-9A-F]{2}-){5}[0-9A-F]{2}$/;
+      const minMac = norm(hostState.draft.macMin);
+      const maxMac = norm(hostState.draft.macMax);
+      if (!macRe.test(minMac) || !macRe.test(maxMac)) {
+        hostState.notice = {
+          severity: 'error',
+          text: 'MAC 地址格式无效，请输入有效的 12 位十六进制地址（格式 XX-XX-XX-XX-XX-XX）。'
+        };
+        renderHostPage();
+        return;
+      }
+      if (minMac.replace(/-/g, '') > maxMac.replace(/-/g, '')) {
+        hostState.notice = {
+          severity: 'error',
+          text: 'MAC 地址范围无效：起始地址不能大于结束地址。'
+        };
+        renderHostPage();
+        return;
+      }
+      hostState.draft.macMin = minMac;
+      hostState.draft.macMax = maxMac;
+      applyKeys(['macMin', 'macMax']);
+      hostState.notice = { severity: 'success', text: '全局动态 MAC 地址池已更新。' };
       renderHostPage();
+      return;
     }
   });
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', (e) => {
+      if (hostState.powerComboOpen && !e.target.closest('#hostPowerPlanCombo')) {
+        hostState.powerComboOpen = false;
+        renderHostPage();
+      }
+    });
+  }
 
   page.addEventListener('change', (e) => {
     if (e.target.id === 'hostPowerPlanSelect') {
       hostState.draft.powerPlanId = e.target.value;
+      hostState.saved.powerPlanId = e.target.value;
       renderHostPage();
     } else if (e.target.id === 'hostPowerActionSelect') {
       hostState.draft.defaultPowerAction = e.target.value;
+      hostState.saved.defaultPowerAction = e.target.value;
       renderHostPage();
     } else if (e.target.matches('[data-host-sw-mode]')) {
       const id = e.target.getAttribute('data-host-sw-mode');
@@ -1693,10 +2965,15 @@ export function initHostPage(options = {}) {
       if (e.target.id === 'hostMacMinInput') hostState.draft.macMin = e.target.value;
       else hostState.draft.macMax = e.target.value;
       const dirty = isGroupDirty(['macMin', 'macMax']);
-      const applyBtn = page.querySelector('[data-host-apply="mac"]');
-      const revertBtn = page.querySelector('[data-host-revert="mac"]');
-      if (applyBtn) applyBtn.disabled = !dirty;
-      if (revertBtn) revertBtn.disabled = !dirty;
+      const isDefaultMac =
+        hostState.draft.macMin === '00-15-5D-01-00-00' &&
+        hostState.draft.macMax === '00-15-5D-01-FF-FF' &&
+        hostState.saved.macMin === '00-15-5D-01-00-00' &&
+        hostState.saved.macMax === '00-15-5D-01-FF-FF';
+      const saveMacBtn = page.querySelector('#hostSaveMacBtn');
+      const resetMacBtn = page.querySelector('#hostResetMacBtn');
+      if (saveMacBtn) saveMacBtn.disabled = !dirty;
+      if (resetMacBtn) resetMacBtn.disabled = isDefaultMac;
     }
   });
 

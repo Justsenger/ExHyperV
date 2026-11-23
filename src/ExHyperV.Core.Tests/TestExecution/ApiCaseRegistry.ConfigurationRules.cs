@@ -92,7 +92,7 @@ internal static partial class ApiCaseRegistry
         foreach (var state in api == "interlocks" ? new[] { VmState.PoweredOff } : Enum.GetValues<VmState>())
         {
             bool allowed = api == "interlocks" || generation == 2 && state == VmState.PoweredOff;
-            bool[] expected = [allowed, allowed && !shield, allowed && !shield && secure, allowed && !shield, allowed && !shield && tpm, allowed];
+            bool[] expected = [allowed, allowed && !shield, allowed && !shield && secure, allowed && !shield, allowed && !shield, allowed];
             if (api == "error")
             {
                 var settings = Enum.GetValues<VmSecurityService.Setting>();

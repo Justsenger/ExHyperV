@@ -9,7 +9,7 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines;
 public enum VmUsageChartKind { Processor, Memory, Gpu, Transfer }
 
 // The three appearances follow the corresponding graphs in the WPF dashboard.
-public sealed class VmUsageChart : Grid
+public sealed partial class VmUsageChart : Grid
 {
     internal const double ProcessorHeight = 84;
     private const int HistoryLength = 60;

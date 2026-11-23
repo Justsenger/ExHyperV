@@ -139,7 +139,7 @@
     <value>Reset to default blue</value>
   </data>
   <data name="Settings_ColorHint" xml:space="preserve">
-    <value>Expanded monitoring cards use the accent color; gray when off.</value>
+    <value>Expanded monitoring cards use the accent color, or gray when off.</value>
   </data>
   <data name="Settings_ExpandedState" xml:space="preserve">
     <value>Expanded state</value>
@@ -294,6 +294,15 @@
   <data name="Err_InsufficientMemoryWithSize" xml:space="preserve">
     <value>Failed to start VM: not enough free host memory (requires {0} MiB). Lower startup memory or free up host RAM.</value>
   </data>
+  <data name="Err_InsufficientMemoryDeficit" xml:space="preserve">
+    <value>Can't start: {0} MiB more memory needed.</value>
+  </data>
+  <data name="Err_InsufficientMemoryExceedsTotal" xml:space="preserve">
+    <value>Can't start: {0} MiB more memory needed (exceeds physical RAM).</value>
+  </data>
+  <data name="Err_InsufficientMemoryOverhead" xml:space="preserve">
+    <value>Can't start: not enough free host memory for VM overhead.</value>
+  </data>
   <data name="Err_FileInUse" xml:space="preserve">
     <value>A virtual disk or image file required by this VM is currently in use by another process.</value>
   </data>
@@ -358,11 +367,11 @@
     <value>Failed to reload settings: {0}</value>
   </data>
   <data name="Err_UncertainLock" xml:space="preserve">
-    <value>Previous operation outcome is unconfirmed; editing is paused until refreshed.</value>
+    <value>Previous operation outcome is unconfirmed. Editing is paused until refreshed.</value>
   </data>
   <data name="Err_UncertainAfterFail" xml:space="preserve">
     <value>{0}
-Editing is paused; refresh status first.</value>
+Editing is paused, refresh status first.</value>
   </data>
   <data name="Err_PartialReadUnavailable" xml:space="preserve">
     <value>Some settings could not be read and are disabled. Refresh to retry.</value>
@@ -403,7 +412,7 @@ Reload failed: {1}</value>
     <value>Unknown uptime</value>
   </data>
   <data name="VmList_MissingFields" xml:space="preserve">
-    <value>{0} VM(s) have temporarily unavailable fields; previous values kept.</value>
+    <value>{0} VM(s) have temporarily unavailable fields, previous values kept.</value>
   </data>
   <data name="VmState_Running" xml:space="preserve">
     <value>Running</value>
@@ -573,6 +582,9 @@ Reload failed: {1}</value>
   <data name="Dash_Sub_Network" xml:space="preserve">
     <value>Network</value>
   </data>
+  <data name="Dash_Sub_Vtpm" xml:space="preserve">
+    <value>vTPM</value>
+  </data>
   <data name="Dash_Sub_Serial" xml:space="preserve">
     <value>Serial Port</value>
   </data>
@@ -580,7 +592,7 @@ Reload failed: {1}</value>
     <value>PCIe</value>
   </data>
   <data name="Dash_Sub_Boot" xml:space="preserve">
-    <value>Boot</value>
+    <value>Boot Order</value>
   </data>
   <data name="Dash_Sub_Security" xml:space="preserve">
     <value>Security</value>
@@ -590,6 +602,177 @@ Reload failed: {1}</value>
   </data>
   <data name="Dash_Sub_Power" xml:space="preserve">
     <value>Power</value>
+  </data>
+  <data name="Dash_Sub_HardwareCompatibility" xml:space="preserve">
+    <value>Hardware compatibility</value>
+  </data>
+  <data name="Dash_Sub_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Pcie_Emulation" xml:space="preserve">
+    <value>PCIe emulation</value>
+  </data>
+  <data name="Pcie_EmulationHelp" xml:space="preserve">
+    <value>Present standard PCIe devices to the guest. Enabling emulation is permanent.</value>
+  </data>
+  <data name="Pcie_PermanentConfirmation" xml:space="preserve">
+    <value>This will permanently enable PCIe emulation for this virtual machine. Continue?</value>
+  </data>
+  <data name="Pcie_Topology" xml:space="preserve">
+    <value>PCIe topology</value>
+  </data>
+  <data name="Pcie_TopologyHelp" xml:space="preserve">
+    <value>Choose the PCIe topology presented to the guest. Mirroring the host requires PCIe emulation.</value>
+  </data>
+  <data name="Pcie_HostTopology" xml:space="preserve">
+    <value>Mirror host</value>
+  </data>
+  <data name="Pcie_UnknownValue" xml:space="preserve">
+    <value>Current value {0}</value>
+  </data>
+  <data name="Pcie_Boot" xml:space="preserve">
+    <value>Boot from PCIe devices</value>
+  </data>
+  <data name="Pcie_BootHelp" xml:space="preserve">
+    <value>Load the vPCI driver during UEFI startup to boot from supported PCIe devices, including assigned NVMe drives.</value>
+  </data>
+  <data name="Pcie_Gen2Only" xml:space="preserve">
+    <value>Only generation 2 virtual machines can load the vPCI driver during UEFI startup.</value>
+  </data>
+  <data name="Pcie_FullScsi" xml:space="preserve">
+    <value>Enable the full SCSI command set</value>
+  </data>
+  <data name="Pcie_FullScsiHelp" xml:space="preserve">
+    <value>Allow the guest to read SMART data and use storage management tools on physical pass-through disks. This setting has no effect on VHDX disks and should normally remain off.</value>
+  </data>
+  <data name="Pcie_GuestMode" xml:space="preserve">
+    <value>Guest presentation mode</value>
+  </data>
+  <data name="Pcie_Paravirtualized" xml:space="preserve">
+    <value>Paravirtualized</value>
+  </data>
+  <data name="Pcie_Emulated" xml:space="preserve">
+    <value>Emulated</value>
+  </data>
+  <data name="Pcie_Disconnect" xml:space="preserve">
+    <value>Disconnect and return to host</value>
+  </data>
+  <data name="Pcie_DisconnectOff" xml:space="preserve">
+    <value>Shut down the virtual machine before disconnecting this device.</value>
+  </data>
+  <data name="Pcie_IdentityChanged" xml:space="preserve">
+    <value>The device identity, path or owner could not be verified. Reload the device list.</value>
+  </data>
+  <data name="Pcie_AddDevice" xml:space="preserve">
+    <value>Add PCIe device</value>
+  </data>
+  <data name="Pcie_AddOff" xml:space="preserve">
+    <value>Shut down the virtual machine before assigning PCIe devices.</value>
+  </data>
+  <data name="Pcie_Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="Pcie_Returned" xml:space="preserve">
+    <value>Disconnected {0} and returned it to the host.</value>
+  </data>
+  <data name="Pcie_Class" xml:space="preserve">
+    <value>Class</value>
+  </data>
+  <data name="Pcie_Vendor" xml:space="preserve">
+    <value>Manufacturer</value>
+  </data>
+  <data name="Pcie_InstanceId" xml:space="preserve">
+    <value>Instance ID</value>
+  </data>
+  <data name="Pcie_Path" xml:space="preserve">
+    <value>PCIe path</value>
+  </data>
+  <data name="Pcie_Collapse" xml:space="preserve">
+    <value>Collapse details</value>
+  </data>
+  <data name="Pcie_Expand" xml:space="preserve">
+    <value>Expand details</value>
+  </data>
+  <data name="Pcie_InUse" xml:space="preserve">
+    <value>In use</value>
+  </data>
+  <data name="Pcie_Unavailable" xml:space="preserve">
+    <value>Unavailable for passthrough</value>
+  </data>
+  <data name="Pcie_OwnerUnknown" xml:space="preserve">
+    <value>The owning virtual machine's power state could not be verified.</value>
+  </data>
+  <data name="Pcie_OtherVm" xml:space="preserve">
+    <value>Used by another VM</value>
+  </data>
+  <data name="Pcie_OtherRunning" xml:space="preserve">
+    <value>Used by another VM (running)</value>
+  </data>
+  <data name="Pcie_TransferFrom" xml:space="preserve">
+    <value>Used by {0}. Select to transfer it to this virtual machine.</value>
+  </data>
+  <data name="Pcie_OwnerMustStop" xml:space="preserve">
+    <value>Used by {0}. Shut down that virtual machine first.</value>
+  </data>
+  <data name="Pcie_SourceChanged" xml:space="preserve">
+    <value>The owning virtual machine is no longer powered off. The device cannot be transferred.</value>
+  </data>
+  <data name="Pcie_Host" xml:space="preserve">
+    <value>Used by host</value>
+  </data>
+  <data name="Pcie_Unassigned" xml:space="preserve">
+    <value>Unassigned</value>
+  </data>
+  <data name="Pcie_SystemDisk" xml:space="preserve">
+    <value>This controller connects a host system or boot disk and cannot be dismounted.</value>
+  </data>
+  <data name="Pcie_DiskQueryFailed" xml:space="preserve">
+    <value>Could not verify the attached disks. {0}</value>
+  </data>
+  <data name="Pcie_Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Pcie_EmptyPool" xml:space="preserve">
+    <value>No PCIe devices were found.</value>
+  </data>
+  <data name="Pcie_PowerContinue" xml:space="preserve">
+    <value>Power off and continue</value>
+  </data>
+  <data name="Pcie_PowerOff" xml:space="preserve">
+    <value>Power off virtual machine</value>
+  </data>
+  <data name="Pcie_Adjust" xml:space="preserve">
+    <value>Adjust settings</value>
+  </data>
+  <data name="Pcie_AddDevices" xml:space="preserve">
+    <value>Add devices</value>
+  </data>
+  <data name="Pcie_RelatedPrompt" xml:space="preserve">
+    <value>Assign the related devices to {0} as well?</value>
+  </data>
+  <data name="Pcie_SameDevice" xml:space="preserve">
+    <value>Another function of {0}</value>
+  </data>
+  <data name="Pcie_Related" xml:space="preserve">
+    <value>Related device</value>
+  </data>
+  <data name="Pcie_Skip" xml:space="preserve">
+    <value>Skip</value>
+  </data>
+  <data name="Pcie_DeviceError" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="Pcie_Failed" xml:space="preserve">
+    <value>Passthrough failed</value>
+  </data>
+  <data name="Pcie_Partial" xml:space="preserve">
+    <value>Partially failed ({0} assigned)</value>
+  </data>
+  <data name="Pcie_SkippedCount" xml:space="preserve">
+    <value>Assigned {0}, skipped {1}</value>
+  </data>
+  <data name="Pcie_BackList" xml:space="preserve">
+    <value>Back to PCIe list</value>
   </data>
   <data name="Dash_OpenGearTooltip" xml:space="preserve">
     <value>Open settings</value>
@@ -773,7 +956,7 @@ Reload failed: {1}</value>
     <value>Physical Disk</value>
   </data>
   <data name="Dev_Source" xml:space="preserve">
-    <value>Source</value>
+    <value>Media</value>
   </data>
   <data name="Dev_Path" xml:space="preserve">
     <value>Path</value>
@@ -977,7 +1160,7 @@ Reload failed: {1}</value>
     <value>Backing page size</value>
   </data>
   <data name="Mem_BackingPageSize_Desc" xml:space="preserve">
-    <value>Chunk size used to back guest memory on the host. Keep Default (4 KB) normally; 2 MB or 1 GB pages cut lookup overhead for heavy RAM workloads.</value>
+    <value>Chunk size used to back guest memory on the host. Keep Default (4 KB) normally, or use 2 MB / 1 GB pages to cut lookup overhead for heavy RAM workloads.</value>
   </data>
   <data name="Mem_PageSize_Default" xml:space="preserve">
     <value>Default (4 KB)</value>
@@ -1016,7 +1199,7 @@ Reload failed: {1}</value>
     <value>Memory backing type</value>
   </data>
   <data name="Mem_BackingType_Desc" xml:space="preserve">
-    <value>Physical locks real host RAM (lowest latency, allows 1 GB huge pages); Virtual allocates on demand with compression and page hints. Keep default normally.</value>
+    <value>Physical locks real host RAM (lowest latency, allows 1 GB huge pages), while Virtual allocates on demand with compression and page hints. Keep default normally.</value>
   </data>
   <data name="Mem_Backing_Physical" xml:space="preserve">
     <value>Physical</value>
@@ -1055,7 +1238,7 @@ Reload failed: {1}</value>
     <value>Pin guest memory (GPA)</value>
   </data>
   <data name="Mem_GpaPinning_Desc" xml:space="preserve">
-    <value>Locks guest physical memory in place so the host won't move or page it out (common for device passthrough; consumes host RAM upfront).</value>
+    <value>Locks guest physical memory in place so the host won't move or page it out (common for device passthrough, consumes host RAM upfront).</value>
   </data>
   <data name="Mem_EncPolicy_Title" xml:space="preserve">
     <value>Memory encryption</value>
@@ -1079,7 +1262,7 @@ Reload failed: {1}</value>
     <value>Enables Intel SGX confidential computing enclaves inside the VM (Intel CPUs only).</value>
   </data>
   <data name="Mem_Info_SgxUnsupportedEnabled" xml:space="preserve">
-    <value>This host does not support SGX. Turn SGX off in Confidential Computing; once disabled, it cannot be re-enabled.</value>
+    <value>This host does not support SGX. Turn SGX off in Confidential Computing, and once disabled it cannot be re-enabled.</value>
   </data>
   <data name="Mem_SgxMode_Title" xml:space="preserve">
     <value>SGX launch control</value>
@@ -1145,10 +1328,10 @@ Reload failed: {1}</value>
     <value>Enables CXL memory pool expansion (requires CXL hardware and compatible Windows build).</value>
   </data>
   <data name="Mem_Link_VirtualNo1Gb" xml:space="preserve">
-    <value>Virtual backing does not support 1 GB huge pages; switched to 2 MB large pages.</value>
+    <value>Virtual backing does not support 1 GB huge pages, switched to 2 MB large pages.</value>
   </data>
   <data name="Mem_Link_1GbNeedsPhysical" xml:space="preserve">
-    <value>1 GB huge pages require physical backing; switched backing type automatically.</value>
+    <value>1 GB huge pages require physical backing, switched backing type automatically.</value>
   </data>
   <data name="Mem_Cond_NeedDynRam" xml:space="preserve">
     <value>Enable Dynamic Memory first</value>
@@ -1238,7 +1421,7 @@ Reload failed: {1}</value>
     <value>Weight</value>
   </data>
   <data name="Cpu_Weight_Desc" xml:space="preserve">
-    <value>Scheduling priority when multiple VMs compete for CPU; higher gets more share.</value>
+    <value>Scheduling priority when multiple VMs compete for CPU. Higher gets more share.</value>
   </data>
   <data name="Cpu_ReserveMaxLimit" xml:space="preserve">
     <value>Cannot exceed Limit ({0}%)</value>
@@ -1344,7 +1527,7 @@ Cluster: keeps features shared across cluster nodes.</value>
     <value>Custom CPU name</value>
   </data>
   <data name="Cpu_Brand_Desc" xml:space="preserve">
-    <value>Overrides the CPU model name visible inside the VM; leave blank to show the host CPU.</value>
+    <value>Overrides the CPU model name visible inside the VM. Leave blank to show the host CPU.</value>
   </data>
   <data name="Cpu_Smt_Title" xml:space="preserve">
     <value>Hyper-threading (SMT)</value>
@@ -1367,7 +1550,7 @@ On: groups every 2 vCPUs as threads of 1 dual-thread core.</value>
     <value>Sockets</value>
   </data>
   <data name="Cpu_Sockets_Desc" xml:space="preserve">
-    <value>Number of virtual CPU sockets presented to the VM (affects per-socket software licenses; keep 1 normally).</value>
+    <value>Number of virtual CPU sockets presented to the VM (affects per-socket software licenses, keep 1 normally).</value>
   </data>
   <data name="Cpu_Sockets_Value" xml:space="preserve">
     <value>{0} socket(s)</value>
@@ -1376,7 +1559,7 @@ On: groups every 2 vCPUs as threads of 1 dual-thread core.</value>
     <value>NUMA nodes</value>
   </data>
   <data name="Cpu_Numa_Desc" xml:space="preserve">
-    <value>Splits virtual cores into NUMA memory zones for multi-node tuning; keep 1 normally.</value>
+    <value>Splits virtual cores into NUMA memory zones for multi-node tuning, keep 1 normally.</value>
   </data>
   <data name="Cpu_Numa_Value" xml:space="preserve">
     <value>{0} node(s)</value>
@@ -1385,7 +1568,7 @@ On: groups every 2 vCPUs as threads of 1 dual-thread core.</value>
     <value>L3 domains per node</value>
   </data>
   <data name="Cpu_L3_Desc" xml:space="preserve">
-    <value>Splits L3 cache groups inside each NUMA node; Auto shares one L3 cache per node.</value>
+    <value>Splits L3 cache groups inside each NUMA node. Auto shares one L3 cache per node.</value>
   </data>
   <data name="Cpu_L3_Value" xml:space="preserve">
     <value>{0} group(s)</value>
@@ -1394,7 +1577,7 @@ On: groups every 2 vCPUs as threads of 1 dual-thread core.</value>
     <value>Clusters per socket</value>
   </data>
   <data name="Cpu_Cluster_Desc" xml:space="preserve">
-    <value>Number of CPU clusters inside each virtual socket; leave Auto for Hyper-V defaults.</value>
+    <value>Number of CPU clusters inside each virtual socket. Leave Auto for Hyper-V defaults.</value>
   </data>
   <data name="Cpu_Cluster_Value" xml:space="preserve">
     <value>{0} cluster(s)</value>
@@ -1432,10 +1615,10 @@ Even: spread evenly across groups.</value>
     <value>{0} way(s)</value>
   </data>
   <data name="Cpu_Cond_Only1Vcpu" xml:space="preserve">
-    <value>Only 1 vCPU assigned; cannot split further</value>
+    <value>Only 1 vCPU assigned, cannot split further</value>
   </data>
   <data name="Cpu_Cond_Only1PerNuma" xml:space="preserve">
-    <value>Only 1 vCPU per NUMA node; no need to split</value>
+    <value>Only 1 vCPU per NUMA node, no need to split</value>
   </data>
   <data name="Cpu_Cond_L3Auto" xml:space="preserve">
     <value>Not needed when L3 domains are set to Auto</value>
@@ -1471,7 +1654,7 @@ Even: spread evenly across groups.</value>
     <value>Interrupt controller</value>
   </data>
   <data name="Cpu_Apic_Desc" xml:space="preserve">
-    <value>Virtual APIC interrupt mode on x64 VMs; keep Default normally.</value>
+    <value>Virtual APIC interrupt mode on x64 VMs, keep Default normally.</value>
   </data>
   <data name="Cpu_Apic_Legacy" xml:space="preserve">
     <value>Legacy</value>
@@ -1480,7 +1663,7 @@ Even: spread evenly across groups.</value>
     <value>Local peripheral interrupts (LPI)</value>
   </data>
   <data name="Cpu_Lpi_Desc" xml:space="preserve">
-    <value>ARM64 peripheral interrupt delivery mode; keep Default normally.</value>
+    <value>ARM64 peripheral interrupt delivery mode, keep Default normally.</value>
   </data>
   <data name="Cpu_HostProtect_Title" xml:space="preserve">
     <value>Host resource protection</value>
@@ -1522,13 +1705,13 @@ Even: spread evenly across groups.</value>
     <value>Minimum frequency (MHz)</value>
   </data>
   <data name="Cpu_FreqMin_Desc" xml:space="preserve">
-    <value>Floor clock frequency to avoid idle wake-up lag; leave Auto for normal power saving.</value>
+    <value>Floor clock frequency to avoid idle wake-up lag. Leave Auto for normal power saving.</value>
   </data>
   <data name="Cpu_FreqMax_Title" xml:space="preserve">
     <value>Maximum frequency (MHz)</value>
   </data>
   <data name="Cpu_FreqMax_Desc" xml:space="preserve">
-    <value>Caps maximum clock speed for thermal or power control; leave Auto normally.</value>
+    <value>Caps maximum clock speed for thermal or power control. Leave Auto normally.</value>
   </data>
   <data name="Cpu_FreqMode_Title" xml:space="preserve">
     <value>Frequency scaling</value>
@@ -1577,7 +1760,7 @@ Fixed tries to hold the target MHz.</value>
     <value>Activity sampling window</value>
   </data>
   <data name="Cpu_Window_Desc" xml:space="preserve">
-    <value>Hardware evaluation window before scaling clocks; leave blank for Auto.</value>
+    <value>Hardware evaluation window before scaling clocks. Leave blank for Auto.</value>
   </data>
   <data name="Cpu_IgnoreHostMax_Title" xml:space="preserve">
     <value>Ignore host frequency cap</value>
@@ -1589,7 +1772,7 @@ Fixed tries to hold the target MHz.</value>
     <value>Large page mitigation</value>
   </data>
   <data name="Cpu_PageShatter_Desc" xml:space="preserve">
-    <value>Security mitigation for older Intel CPUs against guest-triggered crashes; keep Default to decide automatically.</value>
+    <value>Security mitigation for older Intel CPUs against guest-triggered crashes. Keep Default to decide automatically.</value>
   </data>
   <data name="Cpu_PaWidth_Title" xml:space="preserve">
     <value>Physical address width</value>
@@ -1647,5 +1830,706 @@ Fixed tries to hold the target MHz.</value>
   </data>
   <data name="Cpu_Val_FreqDesiredLtMin" xml:space="preserve">
     <value>Target frequency ({0} MHz) cannot be below minimum frequency ({1} MHz).</value>
+  </data>
+  <data name="Host_Tab_Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Host_Tab_Env" xml:space="preserve">
+    <value>Environment</value>
+  </data>
+  <data name="Host_Tab_Settings" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="Host_Tab_Switches" xml:space="preserve">
+    <value>Switches</value>
+  </data>
+  <data name="Host_VmRunningSummary" xml:space="preserve">
+    <value>{0}/{1} running</value>
+  </data>
+  <data name="Host_UptimeContinuous" xml:space="preserve">
+    <value>Uptime {0}</value>
+  </data>
+  <data name="Host_HyperVReady" xml:space="preserve">
+    <value>Hyper-V Ready</value>
+  </data>
+  <data name="Host_HyperVNotReady" xml:space="preserve">
+    <value>Hyper-V Not Ready</value>
+  </data>
+  <data name="Host_HyperVCheckTooltip" xml:space="preserve">
+    <value>Inspect Hyper-V platform and readiness checks</value>
+  </data>
+  <data name="Host_Badge_VirtGpuPv" xml:space="preserve">
+    <value>{0} / GPU-PV</value>
+  </data>
+  <data name="Host_Badge_VirtTooltip" xml:space="preserve">
+    <value>CPU virtualization and GPU-PV readiness</value>
+  </data>
+  <data name="Host_Badge_IommuReady" xml:space="preserve">
+    <value>{0} Enabled</value>
+  </data>
+  <data name="Host_Badge_IommuOff" xml:space="preserve">
+    <value>{0} Disabled</value>
+  </data>
+  <data name="Host_Badge_IommuTooltip" xml:space="preserve">
+    <value>{0} device passthrough support</value>
+  </data>
+  <data name="Host_Badge_SchedPowerTooltip" xml:space="preserve">
+    <value>Hyper-V scheduler and active host power plan</value>
+  </data>
+  <data name="Host_Sched_Classic" xml:space="preserve">
+    <value>Classic</value>
+  </data>
+  <data name="Host_Sched_Core" xml:space="preserve">
+    <value>Core</value>
+  </data>
+  <data name="Host_Sched_Root" xml:space="preserve">
+    <value>Root</value>
+  </data>
+  <data name="Host_Sched_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="Host_Sched_ClassicFull" xml:space="preserve">
+    <value>Classic Scheduler</value>
+  </data>
+  <data name="Host_Sched_CoreFull" xml:space="preserve">
+    <value>Core Scheduler</value>
+  </data>
+  <data name="Host_Sched_RootFull" xml:space="preserve">
+    <value>Root Scheduler</value>
+  </data>
+  <data name="Host_Cpu_Thread" xml:space="preserve">
+    <value>Thread {0}</value>
+  </data>
+  <data name="Host_Cpu_HostOwner" xml:space="preserve">
+    <value>Host</value>
+  </data>
+  <data name="Host_Cpu_UnattributedGuest" xml:space="preserve">
+    <value>Guest (Shared)</value>
+  </data>
+  <data name="Host_Cpu_Other" xml:space="preserve">
+    <value>Other</value>
+  </data>
+  <data name="Host_Cpu_PerfCore" xml:space="preserve">
+    <value>P-Core</value>
+  </data>
+  <data name="Host_Cpu_EffCore" xml:space="preserve">
+    <value>E-Core</value>
+  </data>
+  <data name="Host_Cpu_WarmingUp" xml:space="preserve">
+    <value>Warming up CPU thread sampling...</value>
+  </data>
+  <data name="Host_Cpu_AttributionExact" xml:space="preserve">
+    <value>Root (ETW Per-VM)</value>
+  </data>
+  <data name="Host_Cpu_AttributionCounter" xml:space="preserve">
+    <value>{0} (Shared Counters)</value>
+  </data>
+  <data name="Host_Cpu_LegendTip" xml:space="preserve">
+    <value>Hover to preview, click to lock highlight</value>
+  </data>
+  <data name="Host_Mem_PhysicalCap" xml:space="preserve">
+    <value>Physical Memory</value>
+  </data>
+  <data name="Host_Mem_InUse" xml:space="preserve">
+    <value>In Use</value>
+  </data>
+  <data name="Host_Mem_Available" xml:space="preserve">
+    <value>Available</value>
+  </data>
+  <data name="Host_Mem_VmAllocated" xml:space="preserve">
+    <value>VM Allocated</value>
+  </data>
+  <data name="Host_Mem_VmAllocatedVal" xml:space="preserve">
+    <value>{0} ({1} running)</value>
+  </data>
+  <data name="Host_Mem_NumaSpanning" xml:space="preserve">
+    <value>NUMA Spanning</value>
+  </data>
+  <data name="Host_Mem_PowerPlan" xml:space="preserve">
+    <value>Power Plan</value>
+  </data>
+  <data name="Host_Mem_UsageScale" xml:space="preserve">
+    <value>Memory Usage</value>
+  </data>
+  <data name="Host_Mem_PhysicalSub" xml:space="preserve">
+    <value>{0} physical memory</value>
+  </data>
+  <data name="Host_Mem_RingInUseTitle" xml:space="preserve">
+    <value>Physical Memory In Use</value>
+  </data>
+  <data name="Host_Mem_HostSub" xml:space="preserve">
+    <value>Host OS and processes</value>
+  </data>
+  <data name="Host_Mem_ModeDynamic" xml:space="preserve">
+    <value>Dynamic memory</value>
+  </data>
+  <data name="Host_Mem_ModeFixed" xml:space="preserve">
+    <value>Fixed memory</value>
+  </data>
+  <data name="Host_Mem_FreeTitle" xml:space="preserve">
+    <value>Free Memory</value>
+  </data>
+  <data name="Host_Mem_IdleSubFmt" xml:space="preserve">
+    <value>{0} GB free</value>
+  </data>
+  <data name="Host_Gpu_Partition" xml:space="preserve">
+    <value>GPU-PV Partition</value>
+  </data>
+  <data name="Host_Gpu_Supported" xml:space="preserve">
+    <value>Supported</value>
+  </data>
+  <data name="Host_Gpu_Unsupported" xml:space="preserve">
+    <value>Unsupported</value>
+  </data>
+  <data name="Host_Gpu_Policy" xml:space="preserve">
+    <value>Partition Policy</value>
+  </data>
+  <data name="Host_Gpu_PolicyUnlocked" xml:space="preserve">
+    <value>Restrictions Relaxed</value>
+  </data>
+  <data name="Host_Gpu_PolicyDefault" xml:space="preserve">
+    <value>Default Policy</value>
+  </data>
+  <data name="Host_Gpu_Scale" xml:space="preserve">
+    <value>GPU Engine Utilization</value>
+  </data>
+  <data name="Host_Gpu_UnavailableNote" xml:space="preserve">
+    <value>GPU engine performance counters are unavailable for this adapter.</value>
+  </data>
+  <data name="Host_Disk_Offline" xml:space="preserve">
+    <value>Offline</value>
+  </data>
+  <data name="Host_Disk_Title" xml:space="preserve">
+    <value>Disk {0}</value>
+  </data>
+  <data name="Host_Disk_Status" xml:space="preserve">
+    <value>Disk Status</value>
+  </data>
+  <data name="Host_Disk_Capacity" xml:space="preserve">
+    <value>Capacity</value>
+  </data>
+  <data name="Host_Disk_Passthrough" xml:space="preserve">
+    <value>Passthrough Eligibility</value>
+  </data>
+  <data name="Host_Disk_PassthroughOk" xml:space="preserve">
+    <value>Eligible</value>
+  </data>
+  <data name="Host_Disk_PassthroughNo" xml:space="preserve">
+    <value>Excluded (System/Active)</value>
+  </data>
+  <data name="Host_Disk_AutoMount" xml:space="preserve">
+    <value>Auto-Mount Volumes</value>
+  </data>
+  <data name="Host_Disk_NativeNvme" xml:space="preserve">
+    <value>Native NVMe Stack</value>
+  </data>
+  <data name="Host_Disk_Serial" xml:space="preserve">
+    <value>Serial Number</value>
+  </data>
+  <data name="Host_Disk_Path" xml:space="preserve">
+    <value>Device Identifier</value>
+  </data>
+  <data name="Host_Disk_Scale" xml:space="preserve">
+    <value>Active Time / Transfer Rate</value>
+  </data>
+  <data name="Host_Disk_Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Host_Disk_Write" xml:space="preserve">
+    <value>Write</value>
+  </data>
+  <data name="Host_Nic_Media_Wired" xml:space="preserve">
+    <value>Ethernet</value>
+  </data>
+  <data name="Host_Nic_Media_WiFi" xml:space="preserve">
+    <value>Wi-Fi</value>
+  </data>
+  <data name="Host_Nic_Media_Cellular" xml:space="preserve">
+    <value>Cellular</value>
+  </data>
+  <data name="Host_Nic_Media_Tunnel" xml:space="preserve">
+    <value>Tunnel Adapter</value>
+  </data>
+  <data name="Host_Nic_Media_Other" xml:space="preserve">
+    <value>Network Adapter</value>
+  </data>
+  <data name="Host_Nic_LinkState" xml:space="preserve">
+    <value>Link Status</value>
+  </data>
+  <data name="Host_Nic_Connected" xml:space="preserve">
+    <value>Connected ({0})</value>
+  </data>
+  <data name="Host_Nic_ConnectedSimple" xml:space="preserve">
+    <value>Connected</value>
+  </data>
+  <data name="Host_Nic_MediaBridge" xml:space="preserve">
+    <value>Media &amp; Bridge</value>
+  </data>
+  <data name="Host_Nic_CanBridge" xml:space="preserve">
+    <value>Supports L2 Bridge</value>
+  </data>
+  <data name="Host_Nic_NatOnly" xml:space="preserve">
+    <value>NAT / L3 Only</value>
+  </data>
+  <data name="Host_Nic_Binding" xml:space="preserve">
+    <value>Role / Bound Switch</value>
+  </data>
+  <data name="Host_Nic_Idle" xml:space="preserve">
+    <value>Idle (Bridge / NAT Ready)</value>
+  </data>
+  <data name="Host_Nic_Ipv4" xml:space="preserve">
+    <value>IPv4 Address</value>
+  </data>
+  <data name="Host_Nic_Mac" xml:space="preserve">
+    <value>MAC Address</value>
+  </data>
+  <data name="Host_Nic_AdapterName" xml:space="preserve">
+    <value>Adapter Description</value>
+  </data>
+  <data name="Host_Nic_Scale" xml:space="preserve">
+    <value>Adapter Throughput</value>
+  </data>
+  <data name="Host_Net_Send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="Host_Net_Recv" xml:space="preserve">
+    <value>Receive</value>
+  </data>
+  <data name="Host_Net_CompactRate" xml:space="preserve">
+    <value>S {0} R {1}</value>
+  </data>
+  <data name="Host_Sw_Scale" xml:space="preserve">
+    <value>Switch Throughput</value>
+  </data>
+  <data name="Host_Sw_Mode" xml:space="preserve">
+    <value>Connection Mode</value>
+  </data>
+  <data name="Host_Sw_Mode_Bridge" xml:space="preserve">
+    <value>Bridge</value>
+  </data>
+  <data name="Host_Sw_Mode_Nat" xml:space="preserve">
+    <value>NAT</value>
+  </data>
+  <data name="Host_Sw_Mode_Isolated" xml:space="preserve">
+    <value>Isolated</value>
+  </data>
+  <data name="Host_Sw_Mode_BridgeFull" xml:space="preserve">
+    <value>Bridge (External)</value>
+  </data>
+  <data name="Host_Sw_Mode_IsolatedFull" xml:space="preserve">
+    <value>Isolated (Private/Internal)</value>
+  </data>
+  <data name="Host_Sw_HostAttach" xml:space="preserve">
+    <value>Host Connection</value>
+  </data>
+  <data name="Host_Sw_HostAttached" xml:space="preserve">
+    <value>Attached</value>
+  </data>
+  <data name="Host_Sw_HostDetached" xml:space="preserve">
+    <value>Not Attached</value>
+  </data>
+  <data name="Host_Sw_HostIpv4" xml:space="preserve">
+    <value>Host Port IPv4</value>
+  </data>
+  <data name="Host_Sw_Endpoints" xml:space="preserve">
+    <value>Connected VMs</value>
+  </data>
+  <data name="Host_Sw_None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Host_Sw_MacPool" xml:space="preserve">
+    <value>Dynamic MAC Pool</value>
+  </data>
+  <data name="Host_CopiedNotice" xml:space="preserve">
+    <value>Copied to clipboard: {0}</value>
+  </data>
+  <data name="Host_Env_Refresh" xml:space="preserve">
+    <value>Refresh Checks</value>
+  </data>
+  <data name="Host_Env_Group_Basic" xml:space="preserve">
+    <value>Basic Requirements</value>
+  </data>
+  <data name="Host_Env_CpuVirt" xml:space="preserve">
+    <value>CPU Virtualization</value>
+  </data>
+  <data name="Host_Env_HyperVService" xml:space="preserve">
+    <value>Hyper-V Services</value>
+  </data>
+  <data name="Host_Env_HyperVNotRunning" xml:space="preserve">
+    <value>Not enabled or service stopped</value>
+  </data>
+  <data name="Host_Env_Enable" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Host_Env_Disable" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="Host_Env_ToggleConfirmTitle" xml:space="preserve">
+    <value>{0} Hyper-V?</value>
+  </data>
+  <data name="Host_Env_ToggleConfirmBody" xml:space="preserve">
+    <value>Changing Windows Hyper-V features and boot configuration requires Administrator privileges and usually requires a host restart.</value>
+  </data>
+  <data name="Host_Env_ToggleSuccessRestart" xml:space="preserve">
+    <value>Hyper-V configuration updated. Restart the host to apply changes.</value>
+  </data>
+  <data name="Host_Env_ToggleSuccess" xml:space="preserve">
+    <value>Hyper-V configuration updated.</value>
+  </data>
+  <data name="Host_Env_Group_GpuPv" xml:space="preserve">
+    <value>GPU-PV Requirements</value>
+  </data>
+  <data name="Host_Env_OsVersion" xml:space="preserve">
+    <value>OS Version: {0}</value>
+  </data>
+  <data name="Host_Env_PartitionableGpus" xml:space="preserve">
+    <value>Partitionable GPUs detected: {0}</value>
+  </data>
+  <data name="Host_Env_Group_Pcie" xml:space="preserve">
+    <value>PCIe Passthrough Requirements</value>
+  </data>
+  <data name="Host_Env_SmmuStatus" xml:space="preserve">
+    <value>SMMU Status</value>
+  </data>
+  <data name="Host_Env_IommuStatus" xml:space="preserve">
+    <value>IOMMU Status</value>
+  </data>
+  <data name="Host_Env_ServerOs" xml:space="preserve">
+    <value>Windows Server Edition</value>
+  </data>
+  <data name="Host_Env_PendingSwitch" xml:space="preserve">
+    <value>Pending product type switch to {0} (awaiting restart)</value>
+  </data>
+  <data name="Host_Env_Group_Usb" xml:space="preserve">
+    <value>USB Passthrough Requirements</value>
+  </data>
+  <data name="Host_Env_Usbipd" xml:space="preserve">
+    <value>usbipd-win Installed</value>
+  </data>
+  <data name="Host_Env_UsbipdMissing" xml:space="preserve">
+    <value>usbipd-win service or binary not found</value>
+  </data>
+  <data name="Host_Set_Sub_Scheduler" xml:space="preserve">
+    <value>CPU Scheduler</value>
+  </data>
+  <data name="Host_Set_Sub_Power" xml:space="preserve">
+    <value>Power Plan</value>
+  </data>
+  <data name="Host_Set_Sub_Paths" xml:space="preserve">
+    <value>Default Paths</value>
+  </data>
+  <data name="Host_Set_Sub_Storage" xml:space="preserve">
+    <value>Storage Policy</value>
+  </data>
+  <data name="Host_Set_Sub_Mac" xml:space="preserve">
+    <value>Network Policy</value>
+  </data>
+  <data name="Host_Set_Sub_Compat" xml:space="preserve">
+    <value>Compatibility</value>
+  </data>
+  <data name="Host_Set_Sub_Preferences" xml:space="preserve">
+    <value>Session Prefs</value>
+  </data>
+  <data name="Host_Set_Sched_Title" xml:space="preserve">
+    <value>Scheduler</value>
+  </data>
+  <data name="Host_Set_Sched_Desc" xml:space="preserve">
+    <value>Choose Classic, Core, or Root Hyper-V CPU scheduling mode. Changes take effect after a host restart.</value>
+  </data>
+  <data name="Host_Set_Sched_PendingMismatch" xml:space="preserve">
+    <value>Configured for next boot: {0} (currently active: {1})</value>
+  </data>
+  <data name="Host_Set_Sched_ChangedNotice" xml:space="preserve">
+    <value>Scheduler switched to {0}. Restart the host for changes to take effect.</value>
+  </data>
+  <data name="Host_Set_Sched_ClassicBody" xml:space="preserve">
+    <value>Scheduled by the Hypervisor across all logical threads cleanly, so multiple VMs may share the same hardware thread. Best for general performance, and supports CPU groups, cap, weight, and reserve.</value>
+  </data>
+  <data name="Host_Set_Sched_CoreBody" xml:space="preserve">
+    <value>Scheduled by the Hypervisor so sibling SMT threads of a physical core belong exclusively to the same VM. Best for isolation, and supports CPU groups, cap, weight, and reserve.</value>
+  </data>
+  <data name="Host_Set_Sched_RootBody" xml:space="preserve">
+    <value>Scheduled by the Windows kernel scheduler with full hybrid P/E core awareness and dynamic power scaling. CPU groups, cap, weight, and reserve are unsupported, and affinity uses process pinning.</value>
+  </data>
+  <data name="Host_Set_Numa_Title" xml:space="preserve">
+    <value>NUMA Spanning</value>
+  </data>
+  <data name="Host_Set_Numa_Desc" xml:space="preserve">
+    <value>Relevant on multi-NUMA processors. Allows VMs to allocate memory across NUMA nodes at the expense of higher memory latency.</value>
+  </data>
+  <data name="Host_Set_Power_Title" xml:space="preserve">
+    <value>Power Plan</value>
+  </data>
+  <data name="Host_Set_Power_Desc" xml:space="preserve">
+    <value>Enumerate installed Windows power schemes and switch the active plan.</value>
+  </data>
+  <data name="Host_Set_PathVm_Title" xml:space="preserve">
+    <value>Default VM Location</value>
+  </data>
+  <data name="Host_Set_PathVm_Desc" xml:space="preserve">
+    <value>Default host folder for storing new virtual machine configuration files (.vmcx).</value>
+  </data>
+  <data name="Host_Set_PathVhd_Title" xml:space="preserve">
+    <value>Default VHD Location</value>
+  </data>
+  <data name="Host_Set_PathVhd_Desc" xml:space="preserve">
+    <value>Default host folder for storing new virtual hard disk files (.vhdx).</value>
+  </data>
+  <data name="Host_Set_Browse" xml:space="preserve">
+    <value>Select</value>
+  </data>
+  <data name="Host_Set_AutoMount_Title" xml:space="preserve">
+    <value>Auto-Mount New Disk Volumes</value>
+  </data>
+  <data name="Host_Set_AutoMount_Desc" xml:space="preserve">
+    <value>Controls whether Windows automatically assigns drive letters when new disks or partitions attach. Disable to keep new volumes offline until manually mounted.</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Title" xml:space="preserve">
+    <value>Host Native NVMe</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Desc" xml:space="preserve">
+    <value>Bypasses the legacy SCSI layer to access NVMe SSDs directly for higher random I/O throughput. Requires Windows Build 26100+ and a host restart.</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Restart" xml:space="preserve">
+    <value>Host Native NVMe setting updated. Restart the host to apply changes.</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Unsupported" xml:space="preserve">
+    <value>Requires Windows Build 26100 or later</value>
+  </data>
+  <data name="Host_Set_Mac_Title" xml:space="preserve">
+    <value>Dynamic MAC Address Pool</value>
+  </data>
+  <data name="Host_Set_Mac_Desc" xml:space="preserve">
+    <value>Allocation range for VMs using dynamic MAC addresses. Stagger ranges across multiple Hyper-V hosts on the same network.</value>
+  </data>
+  <data name="Host_Set_Mac_Reset" xml:space="preserve">
+    <value>Restore Default</value>
+  </data>
+  <data name="Host_Set_Mac_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Host_Set_GpuUnlock_Title" xml:space="preserve">
+    <value>Unlock Consumer Hardware Checks</value>
+  </data>
+  <data name="Host_Set_GpuUnlock_Desc" xml:space="preserve">
+    <value>Clears RequireSecureDeviceAssignment and RequireSupportedDeviceAssignment policies so consumer GPUs can be partitioned or assigned.</value>
+  </data>
+  <data name="Host_Set_OpenHcl_Title" xml:space="preserve">
+    <value>Load OpenHCL Firmware from File</value>
+  </data>
+  <data name="Host_Set_OpenHcl_Desc" xml:space="preserve">
+    <value>Allows Hyper-V to load custom OpenHCL or IGVM firmware binaries from local files for customized VM boot environments.</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Title" xml:space="preserve">
+    <value>Switch ProductType to Server</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Desc" xml:space="preserve">
+    <value>Experimental: updates SYSTEM hive ProductType to ServerNT to unlock server features such as native DDA PCIe passthrough after restart. Client-only drivers may fail or BSOD, so proceed carefully.</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmTitle" xml:space="preserve">
+    <value>Confirm Experimental ProductType Switch</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmToServer" xml:space="preserve">
+    <value>This modifies the offline SYSTEM registry hive to switch ProductType to ServerNT after the next reboot. Incompatible drivers may fail during boot. Recovery backups are saved under LocalAppData. Continue?</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmToClient" xml:space="preserve">
+    <value>This prepares switching ProductType back to WinNT on the next reboot. Recovery backups are saved under LocalAppData. Continue?</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Restart" xml:space="preserve">
+    <value>ProductType switch to {0} is queued. Restart the host to apply changes.</value>
+  </data>
+  <data name="Host_Set_EnhancedSession_Title" xml:space="preserve">
+    <value>Enhanced Session Mode</value>
+  </data>
+  <data name="Host_Set_EnhancedSession_Desc" xml:space="preserve">
+    <value>Host-side policy allowing virtual machine consoles to connect using Enhanced Session mode.</value>
+  </data>
+  <data name="Host_Set_AutoConsole_Title" xml:space="preserve">
+    <value>Auto-Open Console on Start</value>
+  </data>
+  <data name="Host_Set_AutoConsole_Desc" xml:space="preserve">
+    <value>Automatically open the console window after starting a powered-off virtual machine.</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Title" xml:space="preserve">
+    <value>Default Power Button Action</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Desc" xml:space="preserve">
+    <value>Default action performed when clicking the main power button for a running VM.</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Shutdown" xml:space="preserve">
+    <value>Shut Down</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Save" xml:space="preserve">
+    <value>Save State</value>
+  </data>
+  <data name="Host_Switches_New" xml:space="preserve">
+    <value>New Switch</value>
+  </data>
+  <data name="Host_Switches_Refresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="Host_Switches_Empty" xml:space="preserve">
+    <value>No Hyper-V virtual switches found.</value>
+  </data>
+  <data name="Host_Switches_EndpointsCount" xml:space="preserve">
+    <value>{0} connected VMs</value>
+  </data>
+  <data name="Host_Switches_Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Host_Switches_Apply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Host_Switches_DefaultProtected" xml:space="preserve">
+    <value>Default Switch is system-managed and protected</value>
+  </data>
+  <data name="Host_Switches_ModeLabel" xml:space="preserve">
+    <value>Connection Mode</value>
+  </data>
+  <data name="Host_Switches_ModeDesc" xml:space="preserve">
+    <value>Bridge connects to a physical adapter. NAT shares internet through the host. Isolated creates an internal/private switch.</value>
+  </data>
+  <data name="Host_Switches_UpstreamLabel" xml:space="preserve">
+    <value>Upstream Physical Adapter</value>
+  </data>
+  <data name="Host_Switches_UpstreamDesc" xml:space="preserve">
+    <value>Physical upstream adapter identified by HyperVSwitchService.</value>
+  </data>
+  <data name="Host_Switches_UpstreamNone" xml:space="preserve">
+    <value>No upstream / isolated</value>
+  </data>
+  <data name="Host_Switches_MgmtOsLabel" xml:space="preserve">
+    <value>Allow Host OS Sharing</value>
+  </data>
+  <data name="Host_Switches_MgmtOsDesc" xml:space="preserve">
+    <value>Attaches the host OS through an internal virtual adapter on this switch.</value>
+  </data>
+  <data name="Host_Switches_Allow" xml:space="preserve">
+    <value>Allowed</value>
+  </data>
+  <data name="Host_Switches_Deny" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="Host_Switches_EndpointsLabel" xml:space="preserve">
+    <value>Connected Endpoints</value>
+  </data>
+  <data name="Host_Switches_EndpointsDesc" xml:space="preserve">
+    <value>Virtual machine adapters discovered on this virtual switch.</value>
+  </data>
+  <data name="Host_Switches_NoEndpoints" xml:space="preserve">
+    <value>No connected VMs</value>
+  </data>
+  <data name="Host_Switches_DialogTitle" xml:space="preserve">
+    <value>New Virtual Switch</value>
+  </data>
+  <data name="Host_Switches_NamePlaceholder" xml:space="preserve">
+    <value>Switch name (e.g. Lab Bridge)</value>
+  </data>
+  <data name="Host_Switches_CreateConfirm" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Host_Switches_DeleteTitle" xml:space="preserve">
+    <value>Delete switch "{0}"?</value>
+  </data>
+  <data name="Host_Switches_DeleteBody" xml:space="preserve">
+    <value>Virtual machine adapters connected to this switch will disconnect and associated ICS sharing will stop.</value>
+  </data>
+  <data name="Host_Switches_Subnet" xml:space="preserve">
+    <value>Subnet: {0}</value>
+  </data>
+  <data name="Host_Cpu_Unattributed" xml:space="preserve"><value>Unattributed</value></data>
+  <data name="Gpu_ForceOffContinue" xml:space="preserve">
+    <value>Force power off and continue</value>
+  </data>
+  <data name="Cp_Delete" xml:space="preserve">
+    <value>Delete checkpoint</value>
+  </data>
+  <data name="Cp_Restore" xml:space="preserve">
+    <value>Apply checkpoint</value>
+  </data>
+  <data name="Cp_Merge" xml:space="preserve">
+    <value>Merge checkpoint</value>
+  </data>
+  <data name="Cp_DeleteBranchBody" xml:space="preserve">
+    <value>Delete "{0}" and all {1} subsequent child checkpoints ({2})? This cannot be undone. To keep subsequent checkpoints, use Merge instead.</value>
+  </data>
+  <data name="Cp_DeleteLeafBody" xml:space="preserve">
+    <value>Permanently delete "{0}"? This cannot be undone.</value>
+  </data>
+  <data name="Cp_RestoreConfirmBody" xml:space="preserve">
+    <value>Restore this VM to "{0}"? Unsaved changes in the current state will be lost, and a running or suspended VM may restart.</value>
+  </data>
+  <data name="Cp_MergeConfirmBody" xml:space="preserve">
+    <value>Merge "{0}" into its parent checkpoint "{1}"? The parent name and all subsequent checkpoints will be kept.</value>
+  </data>
+  <data name="Cp_BadgeCurrent" xml:space="preserve">
+    <value>Current</value>
+  </data>
+  <data name="Cp_MenuApply" xml:space="preserve">
+    <value>Apply</value>
+  </data>
+  <data name="Cp_MenuMerge" xml:space="preserve">
+    <value>Merge</value>
+  </data>
+  <data name="Cp_MenuDelete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Cp_MenuCreate" xml:space="preserve">
+    <value>New checkpoint</value>
+  </data>
+  <data name="Cp_MenuRename" xml:space="preserve">
+    <value>Rename</value>
+  </data>
+  <data name="Cp_RenameLabel" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Cp_SaveAction" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Cp_FullscreenEnter" xml:space="preserve">
+    <value>Fullscreen</value>
+  </data>
+  <data name="Cp_FullscreenExit" xml:space="preserve">
+    <value>Exit fullscreen</value>
+  </data>
+  <data name="Cp_DisabledBanner" xml:space="preserve">
+    <value>Checkpoints are disabled for this VM</value>
+  </data>
+  <data name="Cp_EnableAction" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="Cp_Unresolved" xml:space="preserve">
+    <value>Checkpoint writes are paused. Verify the original Hyper-V job and any remaining mounts before making further changes.</value>
+  </data>
+  <data name="Vtpm_ReissueTitle" xml:space="preserve">
+    <value>Replace the VM unlock key?</value>
+  </data>
+  <data name="Vtpm_ReissueBody" xml:space="preserve">
+    <value>VM {0}
+Replacing the key may require the BitLocker recovery key on the next boot. The previous protector can only be restored during this application session.</value>
+  </data>
+  <data name="Host_ProductUnconfirmed" xml:space="preserve">
+    <value>A pending change requires verification.</value>
+  </data>
+  <data name="Host_ProductRecovery" xml:space="preserve">
+    <value>Recovery materials</value>
+  </data>
+  <data name="Host_ProductSubmitted" xml:space="preserve">
+    <value>The hive replacement has been submitted.</value>
+  </data>
+  <data name="Cp_Verified" xml:space="preserve">
+    <value>I verified the original job and remaining resources</value>
+  </data>
+  <data name="Cp_Recheck" xml:space="preserve">
+    <value>Refresh checkpoint state</value>
+  </data>
+  <data name="Cp_Changed" xml:space="preserve">
+    <value>The checkpoint tree changed. Review the updated scope before confirming.</value>
+  </data>
+  <data name="Host_Cpu_Incomplete" xml:space="preserve">
+    <value>Some CPU readings are unavailable. Last valid values are shown where available.</value>
+  </data>
+  <data name="Cp_CleanupMount" xml:space="preserve">
+    <value>Retry cleanup of the original mount</value>
   </data>
 </root>

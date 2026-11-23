@@ -27,6 +27,19 @@ internal static partial class ApiCaseRegistry
                 cases.Add(plans[i].Id, new(plans[i].Id, api, context => { handler(context); return Task.CompletedTask; }));
             }
         }
+        foreach (var plan in TestPlanner.Catalog.Where(p => p.Api == "VmGenerationUpgradeService.UpgradeToGeneration2Async()"))
+        {
+            var fixture = plan.Id switch
+            {
+                "T-26c65804ad30f5f3-1" => GenerationUpgradeApiCases.Fixture.Empty,
+                "T-26c65804ad30f5f3-2" => GenerationUpgradeApiCases.Fixture.MixedDisks,
+                "T-62c4adf495365c46-1" => GenerationUpgradeApiCases.Fixture.Optical,
+                _ => throw new InvalidDataException(plan.Id)
+            };
+            cases.Add(plan.Id, new(plan.Id, plan.Api, c => GenerationUpgradeApiCases.RunAsync(c, fixture),
+                Exclusive: true, UsesHostResources: true, TimeoutSeconds: 3600));
+        }
+        AddCurrentContractCases(cases);
         AddValueCases(Add);
         AddRuleCases(Add);
         AddQueryCases(Add);
@@ -89,6 +102,8 @@ internal static partial class ApiCaseRegistry
             cases.Add(plan.Id, new(plan.Id, plan.Api, context => ConsoleApiCases.RunAsync(plan, context), Exclusive: ConsoleApiCases.IsLive(plan), UsesHostResources: ConsoleApiCases.IsLive(plan), TimeoutSeconds: ConsoleApiCases.IsLive(plan) ? 2400 : 60));
         foreach (var plan in TestPlanner.Catalog.Where(CpuMonitorApiCases.Supports))
             cases.Add(plan.Id, new(plan.Id, plan.Api, context => CpuMonitorApiCases.RunAsync(plan, context), Exclusive: true, UsesHostResources: true, TimeoutSeconds: 60));
+        foreach (var plan in TestPlanner.Catalog.Where(HostCpuThreadMonitorApiCases.Supports))
+            cases.Add(plan.Id, new(plan.Id, plan.Api, context => HostCpuThreadMonitorApiCases.RunAsync(plan, context), Exclusive: true, UsesHostResources: true, TimeoutSeconds: 120));
         foreach (var plan in TestPlanner.Catalog.Where(HostInventoryApiCases.Supports))
             cases.Add(plan.Id, new(plan.Id, plan.Api, context => HostInventoryApiCases.RunAsync(plan, context), Exclusive: true, UsesHostResources: true, TimeoutSeconds: 300));
         foreach (var plan in TestPlanner.Catalog.Where(CpuAffinityApiCases.Supports))

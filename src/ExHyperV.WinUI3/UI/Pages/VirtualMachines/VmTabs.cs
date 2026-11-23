@@ -10,7 +10,7 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines;
 internal sealed record VmTabIcon(string Glyph, string FontFamily = "Segoe Fluent Icons", double Rotation = 0);
 
 /// <summary>Compact tabs with a short accent underline, shared by both dashboard tab levels.</summary>
-public sealed class VmTabs : UserControl
+public sealed partial class VmTabs : UserControl
 {
     private readonly StackPanel buttons = new() { Orientation = Orientation.Horizontal, Spacing = 4 };
     private readonly List<Grid> tabs = [];

@@ -8,10 +8,14 @@
     "node": ">=24.19.0 <25"
   },
   "scripts": {
+    "winonweb:sync": "node scripts/sync-winonweb.mjs",
+    "predev": "node scripts/sync-winonweb.mjs",
     "dev": "node scripts/start.mjs",
+    "prebuild": "node scripts/sync-winonweb.mjs",
     "build": "node scripts/sync-core-api.mjs && astro build",
     "api:sync": "node scripts/sync-core-api.mjs",
     "api:verify": "node scripts/verify-core-api.mjs",
+    "prepreview": "node scripts/sync-winonweb.mjs",
     "preview": "astro preview --host 0.0.0.0 --port 5189",
     "verify": "node scripts/verify-build.mjs && node scripts/verify-core-api.mjs --dist && node --test scripts/verify-source-localization.mjs scripts/verify-display-models.mjs scripts/verify-reviewed-sources.mjs scripts/test-core-api.mjs scripts/test-api-navigation.mjs scripts/test-watch-core.mjs scripts/test-review-panel.mjs scripts/test-home-model.mjs scripts/test-win11-apps.mjs"
   },

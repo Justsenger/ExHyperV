@@ -259,7 +259,7 @@ internal sealed partial class VmQueryEngine
                 string? parentId = nodes.FirstOrDefault(r => r.Key.Equals(parent, StringComparison.OrdinalIgnoreCase))?.Text("ConfigurationID");
                 var row = Row(node.Key, id, ("Id", nodeId), ("Name", node["ElementName"]),
                     ("CreatedDate", node["CreationTime"] == null ? null : ManagementDateTimeConverter.ToDateTime(node.Text("CreationTime"))),
-                    ("ParentId", parentId ?? ""), ("NodeType", node == current ? SpacetimeNodeType.Current : SpacetimeNodeType.Snapshot),
+                    ("ParentId", parentId ?? ""), ("NodeType", node == current ? CheckpointNodeType.Current : CheckpointNodeType.Snapshot),
                     ("IsCurrent", node == current || current != null && RefId(current.Text("Parent")).Equals(node.Key, StringComparison.OrdinalIgnoreCase)));
                 result.Add(row);
             }
@@ -300,7 +300,7 @@ internal sealed partial class VmQueryEngine
     private readonly ConcurrentDictionary<Guid, Lazy<Task<ReadResult>>> _checkpointStates = new();
     private Task<ReadResult> GetCheckpointStateAsync(Guid id) => _checkpointStates.GetOrAdd(id, vm => new(async () =>
     {
-        try { return Done((await VmSpacetimeService.ReadSpacetimeStateAsync(vm).ConfigureAwait(false)).Select(n => Row(n.Id, vm, ("IsWormhole", n.IsWormhole)))); }
+        try { return Done((await VmCheckpointService.ReadCheckpointStateAsync(vm).ConfigureAwait(false)).Select(n => Row(n.Id, vm, ("IsWormhole", n.IsWormhole)))); }
         catch (Exception error) { return new([], VmQueryValueState.Failed, DateTimeOffset.UtcNow, error.Message); }
     })).Value;
 }

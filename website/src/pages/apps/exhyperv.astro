@@ -1,6 +1,6 @@
 ---
 import WinUiWorkbench from '../../components/ui-design/WinUiWorkbench.astro';
-import '../../win11-shell/win11-tokens.css';
+import '../../shells/win11/win11-tokens.css';
 ---
 
 <!doctype html>
@@ -28,10 +28,11 @@ import '../../win11-shell/win11-tokens.css';
     <WinUiWorkbench />
 
     <script>
-      import { createWin11AppClient } from '../../win11-shell/app-protocol';
+      import { createWowClient } from '../../wow/runtime/protocol';
 
       function applyTheme(nextTheme: string) {
         const normalized = nextTheme === 'light' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', normalized);
         document.documentElement.style.background = normalized === 'light' ? '#F3F3F3' : '#202020';
         if (document.body) {
           document.body.style.background = normalized === 'light' ? '#F3F3F3' : '#202020';
@@ -54,15 +55,34 @@ import '../../win11-shell/win11-tokens.css';
         window.dispatchEvent(new CustomEvent('win11:hardware', { detail: hw }));
       }
 
-      const client = createWin11AppClient({
+      const client = createWowClient({
+        onInit: (info) => {
+          applyTheme(info.theme);
+          (window as unknown as Record<string, unknown>).__WOW_APP_READY__ = true;
+          window.dispatchEvent(new CustomEvent('exhyperv:wow-init', { detail: info }));
+          void client.getHwSnapshot().then(publishVirtualHardware).catch(() => {});
+        },
         onThemeChange: applyTheme,
-        onHardwareUpdate: publishVirtualHardware,
+        onEvent: (name, value) => {
+          if (name === 'hardware') {
+            publishVirtualHardware(value);
+          } else if (name === 'message' && value && typeof value === 'object') {
+            window.dispatchEvent(new CustomEvent('exhyperv:wow-message', { detail: value }));
+          }
+        },
       });
+
+      (window as unknown as Record<string, unknown>).__WOW_APP_CLIENT__ = {
+        emitAppEvent: (channel: string, payload?: unknown) => {
+          if (!client.isEmbedded) return;
+          void client.request('app.event', { channel, payload }).catch(() => {});
+        },
+      };
 
       window.addEventListener(
         'pointerdown',
         () => {
-          client.focusSelf();
+          if (client.isEmbedded) void client.windowControl('focus').catch(() => {});
         },
         { passive: true },
       );

@@ -16,7 +16,7 @@ namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 internal enum EnergySliderKind { Count, Reservation, Limit, RelativeWeight, Custom }
 
-internal sealed class SettingsEnergySlider : UserControl
+internal sealed partial class SettingsEnergySlider : UserControl
 {
     private const double ThumbWidth = 12;
 
@@ -168,11 +168,10 @@ internal sealed class SettingsEnergySlider : UserControl
 
     public void SetRange(int minimum, int maximum)
     {
-        int nextMax = Math.Max(minimum + 1, maximum);
+        int nextMax = Math.Max(minimum, maximum);
         if (min == minimum && max == nextMax) return;
         min = minimum;
         max = nextMax;
-        if (kind == EnergySliderKind.Count) hostThreads = max;
         currentValue = Math.Clamp(currentValue, min, max);
         UpdateVisuals();
     }

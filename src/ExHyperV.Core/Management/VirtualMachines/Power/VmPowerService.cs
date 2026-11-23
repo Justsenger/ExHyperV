@@ -52,7 +52,7 @@ namespace ExHyperV.Services
         /// <param name="vmId">目标虚拟机的非空 GUID。</param>
         /// <param name="action">要执行的动作；未定义的枚举值返回失败。</param>
         /// <returns>参数校验或电源请求的结果；亲和性恢复在启动后由后台继续执行。</returns>
-        /// <remarks>Stop 和 Restart 返回来宾请求结果。TurnOff 请求下电，失败或超时后核对进程归属及创建时间，再终止对应 vmwp 进程。</remarks>
+        /// <remarks>Stop 和 Restart 返回来宾请求结果。TurnOff 请求下电，请求结果未知时停止，只有已结束的请求才进入工作进程核验。</remarks>
         /// <editentry label="电源控制" category="电源"/>
         public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action)
         {
@@ -132,22 +132,18 @@ namespace ExHyperV.Services
             var requestTask = WmiApi.InvokeAsync(wql, "RequestStateChange",
                 p => p["RequestedState"] = (ushort)3);
 
-            ApiResponse? requestResult = null;
-            if (await Task.WhenAny(requestTask, Task.Delay(PowerRequestTimeout)) == requestTask)
-                requestResult = await requestTask;
-            else
-                ObserveFault(requestTask);
+            var requestResult = await WaitForTurnOffRequestAsync(requestTask, PowerRequestTimeout);
+            if (requestResult.ErrorKind == ApiErrorKind.OutcomeUnknown)
+                return requestResult;
 
-            if (requestResult?.Success == true &&
-                await WaitForPoweredOffAsync(predicate, PowerOffWaitTimeout))
-                return ApiResponse.Ok();
+            if (requestResult.Success)
+                return await WaitForPoweredOffAsync(predicate, PowerOffWaitTimeout)
+                    ? ApiResponse.Ok() : WmiJobWaiter.Unknown("已接受关机请求，但尚未确认虚拟机已关闭。");
 
             var state = await GetRuntimeStateAsync(predicate, TimeSpan.FromSeconds(3));
             if (state is null)
             {
-                return requestResult is { Success: false }
-                    ? requestResult
-                    : ApiResponse.Fail(Properties.Resources.Error_VmPower_WorkerNotFound);
+                return requestResult;
             }
 
             if (state.EnabledState == 3)
@@ -155,9 +151,7 @@ namespace ExHyperV.Services
 
             if (state.ProcessId <= 0)
             {
-                return requestResult is { Success: false }
-                    ? requestResult
-                    : ApiResponse.Fail(Properties.Resources.Error_VmPower_WorkerNotFound);
+                return requestResult;
             }
 
             try
@@ -199,6 +193,23 @@ namespace ExHyperV.Services
             return await WaitForPoweredOffAsync(predicate, PowerOffWaitTimeout)
                 ? ApiResponse.Ok()
                 : ApiResponse.Fail(string.Format(Properties.Resources.Error_VmPower_StillNotOff, vmName));
+        }
+
+        internal static async Task<ApiResponse> WaitForTurnOffRequestAsync(Task<ApiResponse> request, TimeSpan timeout)
+        {
+            try
+            {
+                var result = await request.WaitAsync(timeout).ConfigureAwait(false);
+                if (result.ErrorKind == ApiErrorKind.OutcomeUnknown) return result;
+                if (result.ErrorKind == ApiErrorKind.Cancelled || result.DiagnosticCode == CoreErrorCode.OperationTimedOut)
+                    return WmiJobWaiter.Unknown(result.Error, result.Code, result.ErrorSource, result.Exception);
+                return result;
+            }
+            catch (Exception error)
+            {
+                ObserveFault(request);
+                return WmiJobWaiter.FromException(error, submitted: true);
+            }
         }
 
         private static async Task<bool> WaitForPoweredOffAsync(string predicate, TimeSpan timeout)
@@ -251,6 +262,18 @@ namespace ExHyperV.Services
             if (result.DiagnosticCode == CoreErrorCode.InsufficientMemory)
             {
                 long requiredMiB = await TryReadRequiredMemoryMiBAsync(vmId).ConfigureAwait(false);
+                var hostMemory = HostSystemInfoService.TryReadHostMemoryMiB();
+                if (requiredMiB > 0 && hostMemory is { TotalMiB: > 0 } hm)
+                {
+                    long deficitMiB = Math.Max(0L, requiredMiB - hm.AvailableMiB);
+                    return result.WithDiagnostic(
+                        CoreErrorCode.InsufficientMemory,
+                        requiredMiB.ToString(CultureInfo.InvariantCulture),
+                        hm.AvailableMiB.ToString(CultureInfo.InvariantCulture),
+                        hm.TotalMiB.ToString(CultureInfo.InvariantCulture),
+                        deficitMiB.ToString(CultureInfo.InvariantCulture));
+                }
+
                 return requiredMiB > 0
                     ? result.WithDiagnostic(CoreErrorCode.InsufficientMemory, requiredMiB.ToString(CultureInfo.InvariantCulture))
                     : result;
@@ -307,7 +330,11 @@ namespace ExHyperV.Services
                         hostCount.ToString(CultureInfo.InvariantCulture));
                 }
                 if (proc.ExposeVirtualizationExtensions == true)
-                    return original.WithDiagnostic(CoreErrorCode.StartUnsupportedWithSuspects, "NestedVirt");
+                {
+                    string[] suspects = await TryDetectUnsupportedStartFeaturesAsync(vmId, proc).ConfigureAwait(false);
+                    if (suspects.Length > 0)
+                        return original.WithDiagnostic(CoreErrorCode.StartUnsupportedWithSuspects, suspects);
+                }
             }
             catch
             {
@@ -329,18 +356,23 @@ namespace ExHyperV.Services
             }
         }
 
-        private static async Task<string[]> TryDetectUnsupportedStartFeaturesAsync(Guid vmId)
+        private static async Task<string[]> TryDetectUnsupportedStartFeaturesAsync(
+            Guid vmId,
+            VmProcessorSettings? prefetchedProc = null)
         {
             var suspects = new List<string>();
             try
             {
                 var memTask = VmMemoryService.GetVmMemorySettingsAsync(vmId);
-                var procTask = VmProcessorService.GetVmProcessorAsync(vmId);
+                var procTask = prefetchedProc == null ? VmProcessorService.GetVmProcessorAsync(vmId) : null;
                 var hostTask = VmProcessorService.GetHostCapabilitiesAsync();
-                await Task.WhenAll(memTask, procTask, hostTask).ConfigureAwait(false);
+                if (procTask != null)
+                    await Task.WhenAll(memTask, procTask, hostTask).ConfigureAwait(false);
+                else
+                    await Task.WhenAll(memTask, hostTask).ConfigureAwait(false);
 
                 var mem = (await memTask.ConfigureAwait(false)) is { HasData: true } mr ? mr.Data.Values : null;
-                var proc = (await procTask.ConfigureAwait(false)) is { HasData: true } pr ? pr.Data.Values : null;
+                var proc = prefetchedProc ?? ((await procTask!.ConfigureAwait(false)) is { HasData: true } pr ? pr.Data.Values : null);
                 var host = (await hostTask.ConfigureAwait(false)) is { HasData: true } hr ? hr.Data : null;
 
                 // Even Intel hosts without SGX (e.g. 11th+ Gen Core) fail Start with 0xC0350005 when SgxEnabled=true.

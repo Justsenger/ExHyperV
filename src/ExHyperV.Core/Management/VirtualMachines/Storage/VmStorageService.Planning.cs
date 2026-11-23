@@ -340,6 +340,9 @@ public static partial class VmStorageService
     /// <returns>限制说明；允许继续时为 null。</returns>
     internal static string? GetEditStoragePathError(VmStorageAttachment item, bool isRunning)
     {
+        // The legacy picker accepts a path for a running SCSI drive. Submission uses
+        // the full power-state rule and detailed settings use InspectDiskAsync.
+        if (isRunning && item.ControllerType == "SCSI" && CanEditStoragePath(item)) return null;
         var condition = GetMediaModificationCondition(item, isRunning ? VmState.Running : VmState.PoweredOff);
         return condition.CanModify ? null : condition.Reason;
     }
@@ -347,27 +350,30 @@ public static partial class VmStorageService
     /// <summary>评估更换存储介质路径的条件。</summary>
     /// <param name="item">查询返回的存储挂接。</param>
     /// <param name="state">查询得到的虚拟机电源状态。</param>
-    /// <returns>是否允许更换及原因；IDE 硬盘需要关机，光驱和 SCSI 设备由实际提交结果判断。</returns>
+    /// <returns>硬盘需要彻底关机，虚拟光驱可在运行时更换 ISO。</returns>
     public static VmModificationCondition GetMediaModificationCondition(VmStorageAttachment item, VmState state)
         => !CanEditStoragePath(item) ? VmModificationCondition.Unsupported(Properties.Resources.Error_Storage_PhysicalMod)
-            : item.DriveType == "HardDisk" && item.ControllerType == "IDE" ? VmModificationCondition.PoweredOff(state)
-            : VmModificationCondition.Allowed;
+            : item.DriveType == "DvdDrive" && state == VmState.Running ? VmModificationCondition.Allowed
+            : VmModificationCondition.PoweredOff(state);
 
     /// <summary>评估压缩虚拟机所挂接磁盘的条件。</summary>
     /// <param name="item">查询返回的存储挂接。</param>
     /// <param name="state">查询得到的虚拟机电源状态。</param>
     /// <returns>是否允许发起压缩及原因；文件占用情况由压缩操作检查。</returns>
     public static VmModificationCondition GetCompactionCondition(VmStorageAttachment item, VmState state)
+        => GetCompactionTargetCondition(item) is { CanModify: false } invalid ? invalid : VmModificationCondition.PoweredOff(state);
+
+    private static VmModificationCondition GetCompactionTargetCondition(VmStorageAttachment item)
         => item.DriveType != "HardDisk" || item.DiskType != "Virtual" || string.IsNullOrWhiteSpace(item.PathOrDiskNumber)
-            ? VmModificationCondition.Unsupported("请选择虚拟硬盘文件。")
-            : VmModificationCondition.PoweredOff(state);
+            ? VmModificationCondition.Unsupported("请选择虚拟硬盘文件。") : VmModificationCondition.Allowed;
 
     /// <summary>评估移除存储挂接的条件。</summary>
     /// <param name="item">查询返回的存储挂接。</param>
     /// <param name="state">查询得到的虚拟机电源状态。</param>
     /// <returns>是否允许移除及原因。</returns>
     public static VmModificationCondition GetRemovalCondition(VmStorageAttachment item, VmState state)
-        => item.ControllerType == "IDE" ? VmModificationCondition.PoweredOff(state) : VmModificationCondition.Allowed;
+        => item.ControllerType == "SCSI" && state == VmState.Running ? VmModificationCondition.Allowed
+            : VmModificationCondition.PoweredOff(state);
 
     /// <summary>校验介质路径是否存在；空路径按弹出介质处理。</summary>
     /// <param name="newPath">要引用的介质文件路径；允许空值的光驱校验入口将其视为无介质。</param>

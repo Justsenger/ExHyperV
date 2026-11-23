@@ -70,29 +70,26 @@ internal static class ComApi
     /// <param name="snapshot">先前读取的网络连接共享快照，按连接 GUID 匹配。</param>
     public static Task RestoreConnectionsAsync(IReadOnlyList<IcsConnection> snapshot) => Task.Run(() => RunOnSta(() =>
     {
-        dynamic manager = Activator.CreateInstance(Type.GetTypeFromProgID("HNetCfg.HNetShare")!)!;
-        try
+        using var apartment = new NativeComApartment(sta: true);
+        using (var connections = NetSharingConnections.Open())
         {
-            var configs = new Dictionary<Guid, object>();
-            foreach (var connection in manager.EnumEveryConnection)
-                configs[Guid.Parse((string)manager.NetConnectionProps[connection].Guid)] = manager.INetSharingConfigurationForINetConnection[connection];
+            var configs = new Dictionary<Guid, NetSharingConnections.Connection>();
+            foreach (var connection in connections.Items) configs[connection.Id] = connection;
             foreach (var saved in snapshot.Where(c => c.Enabled))
                 if (!configs.ContainsKey(saved.Id)) throw new IcsException($"ICS recovery target is missing: {saved.Id}");
-            foreach (var current in configs)
+            foreach (var config in configs.Values)
             {
-                dynamic config = current.Value;
-                var desired = snapshot.SingleOrDefault(c => c.Id == current.Key && c.Enabled);
-                if ((bool)config.SharingEnabled && (desired == null || (int)config.SharingConnectionType != desired.Type))
+                var desired = snapshot.SingleOrDefault(c => c.Id == config.Id && c.Enabled);
+                if (config.SharingEnabled && (desired == null || config.SharingConnectionType != desired.Type))
                     config.DisableSharing();
             }
             foreach (var saved in snapshot.Where(c => c.Enabled).OrderBy(c => c.Type))
             {
-                dynamic config = configs[saved.Id];
-                if (!(bool)config.SharingEnabled || (int)config.SharingConnectionType != saved.Type)
+                var config = configs[saved.Id];
+                if (!config.SharingEnabled || config.SharingConnectionType != saved.Type)
                     config.EnableSharing(saved.Type);
             }
         }
-        finally { Marshal.FinalReleaseComObject(manager); }
         var actual = IcsCore.GetConnections().Where(c => c.Enabled).Select(c => (c.Id, c.Type)).ToHashSet();
         if (!actual.SetEquals(snapshot.Where(c => c.Enabled).Select(c => (c.Id, c.Type))))
             throw new IcsException("ICS recovery readback mismatch.");
@@ -190,8 +187,6 @@ internal static class ComApi
 // ══════════════════════════════════════════════════════════════════
 internal static class IcsCore
 {
-    private const string ProgId = "HNetCfg.HNetShare";
-
     // ICS 共享类型常量
     // 0 = ICSSHARINGTYPE_PUBLIC  （上游，连外网的那侧）
     // 1 = ICSSHARINGTYPE_PRIVATE （下游，虚拟机那侧）
@@ -205,47 +200,31 @@ internal static class IcsCore
     /// </summary>
     public static void Enable(string publicAdapterName, string privateAdapterName)
     {
-        dynamic netShare = CreateNetShare();
-        try
-        {
-            EnableOnManager(netShare, publicAdapterName, privateAdapterName);
-        }
-        finally
-        {
-            Marshal.FinalReleaseComObject(netShare);
-        }
-    }
-
-    // 使用同一次 ICS 枚举定位并操作连接，避免先在另一套接口列表猜名称，再查找失败。
-    internal static void EnableOnManager(
-        dynamic netShare, string publicAdapterName, string privateAdapterName)
-    {
-        dynamic? publicConfig = null;
-        dynamic? privateConfig = null;
-        var enabledOthers = new List<object>();
-        var previous = new List<(object Config, int Type)>();
+        using var apartment = new NativeComApartment(sta: true);
+        using var connections = NetSharingConnections.Open();
+        NetSharingConnections.Connection? publicConfig = null;
+        NetSharingConnections.Connection? privateConfig = null;
+        var enabledOthers = new List<NetSharingConnections.Connection>();
+        var previous = new List<(NetSharingConnections.Connection Config, int Type)>();
         int publicMatches = 0;
         int privateMatches = 0;
         bool sameConnection = false;
 
         // 先完成目标定位，再修改全局 ICS 配置。
-        foreach (var conn in netShare.EnumEveryConnection)
+        foreach (var cfg in connections.Items)
         {
             try
             {
-                dynamic props = netShare.NetConnectionProps[conn];
-                dynamic cfg = netShare.INetSharingConfigurationForINetConnection[conn];
-
-                string connectionId = Guid.Parse((string)props.Guid).ToString();
+                string connectionId = cfg.Id.ToString();
                 bool isPublic = string.Equals(connectionId, publicAdapterName, StringComparison.OrdinalIgnoreCase);
                 bool isPrivate = string.Equals(connectionId, privateAdapterName, StringComparison.OrdinalIgnoreCase);
                 if (isPublic) { publicConfig = cfg; publicMatches++; }
                 if (isPrivate) { privateConfig = cfg; privateMatches++; }
                 if (isPublic && isPrivate) sameConnection = true;
                 bool isTarget = isPublic || isPrivate;
-                if ((bool)cfg.SharingEnabled)
+                if (cfg.SharingEnabled)
                 {
-                    previous.Add((cfg, (int)cfg.SharingConnectionType));
+                    previous.Add((cfg, cfg.SharingConnectionType));
                     if (!isTarget) enabledOthers.Add(cfg);
                 }
             }
@@ -268,28 +247,28 @@ internal static class IcsCore
         string stage = "Disable previous sharing";
         try
         {
-            foreach (dynamic cfg in enabledOthers) cfg.DisableSharing();
-            if ((bool)publicConfig.SharingEnabled) publicConfig.DisableSharing();
-            if ((bool)privateConfig.SharingEnabled) privateConfig.DisableSharing();
+            foreach (var cfg in enabledOthers) cfg.DisableSharing();
+            if (publicConfig.SharingEnabled) publicConfig.DisableSharing();
+            if (privateConfig.SharingEnabled) privateConfig.DisableSharing();
             stage = $"Enable public ICS connection {publicAdapterName}";
             publicConfig.EnableSharing(Public);
             stage = $"Enable private ICS connection {privateAdapterName}";
             privateConfig.EnableSharing(Private);
             stage = "Verify ICS configuration";
-            if (!(bool)publicConfig.SharingEnabled || (int)publicConfig.SharingConnectionType != Public ||
-                !(bool)privateConfig.SharingEnabled || (int)privateConfig.SharingConnectionType != Private)
+            if (!publicConfig.SharingEnabled || publicConfig.SharingConnectionType != Public ||
+                !privateConfig.SharingEnabled || privateConfig.SharingConnectionType != Private)
                 throw new IcsException("ICS readback did not match the requested connection pair.");
         }
         catch (Exception ex)
         {
             var recoveryErrors = new List<string>();
-            foreach (dynamic cfg in new object[] { privateConfig, publicConfig })
+            foreach (var cfg in new[] { privateConfig, publicConfig })
             {
                 try { cfg.DisableSharing(); } catch (Exception recovery) { recoveryErrors.Add(recovery.Message); }
             }
             foreach (var old in previous.OrderBy(p => p.Type))
             {
-                try { ((dynamic)old.Config).EnableSharing(old.Type); }
+                try { old.Config.EnableSharing(old.Type); }
                 catch (Exception recovery) { recoveryErrors.Add(recovery.Message); }
             }
             throw new IcsException($"{stage}: {ex.Message} (0x{ex.HResult:X8}). " +
@@ -300,30 +279,18 @@ internal static class IcsCore
 
     public static List<IcsConnection> GetConnections()
     {
-        dynamic manager = CreateNetShare();
-        try
+        using var apartment = new NativeComApartment(sta: true);
+        using var connections = NetSharingConnections.Open();
+        var result = new List<IcsConnection>(connections.Items.Count);
+        foreach (var connection in connections.Items)
         {
-            var result = new List<IcsConnection>();
-            foreach (var connection in manager.EnumEveryConnection)
-            {
-                dynamic props = manager.NetConnectionProps[connection];
-                dynamic config = manager.INetSharingConfigurationForINetConnection[connection];
-                bool enabled = (bool)config.SharingEnabled;
-                result.Add(new IcsConnection(Guid.Parse((string)props.Guid), (string)props.Name,
-                    enabled, enabled ? (int)config.SharingConnectionType : -1));
-            }
-            return result;
+            bool enabled = connection.SharingEnabled;
+            result.Add(new IcsConnection(connection.Id, connection.Name, enabled,
+                enabled ? connection.SharingConnectionType : -1));
         }
-        finally { Marshal.FinalReleaseComObject(manager); }
+        return result;
     }
 
-    private static dynamic CreateNetShare()
-    {
-        Type? comType = Type.GetTypeFromProgID(ProgId)
-            ?? throw new IcsException($"COM ProgID not found: {ProgId}");
-        return Activator.CreateInstance(comType)
-            ?? throw new IcsException($"Failed to create COM object: {ProgId}");
-    }
 }
 
 // ══════════════════════════════════════════════════════════════════

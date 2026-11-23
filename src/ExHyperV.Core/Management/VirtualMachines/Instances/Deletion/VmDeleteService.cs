@@ -281,7 +281,7 @@ public static class VmDeleteService
         }
     }
 
-    private static async Task<ApiResponse<List<string>>> ReadRegisteredDiskPathsAsync()
+    internal static async Task<ApiResponse<List<string>>> ReadRegisteredDiskPathsAsync()
     {
         var response = await WmiApi.QueryAsync(
             "SELECT HostResource FROM Msvm_StorageAllocationSettingData WHERE ResourceSubType = 'Microsoft:Hyper-V:Virtual Hard Disk'",
@@ -393,7 +393,7 @@ public static class VmDeleteService
     }
 
     // 取 VM 路径并 DestroySystem（含回查确认真注销）。
-    private static async Task<VmDeletionResult> DestroyAsync(string vmName, Guid vmId)
+    internal static async Task<VmDeletionResult> DestroyAsync(string vmName, Guid vmId)
     {
         var vm = await WmiApi.QueryFirstAsync(
             $"SELECT * FROM Msvm_ComputerSystem WHERE Name = '{vmId:D}'",

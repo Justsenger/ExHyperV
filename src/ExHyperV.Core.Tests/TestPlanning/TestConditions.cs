@@ -37,6 +37,7 @@ internal static class TestConditions
         ["import"] = new("自动导出专属虚拟机作为导入样本", "test-vm"),
         ["gpupv"] = new("可分区 GPU", "gpu-partitions"),
         ["driver"] = new("宿主 GPU 驱动；执行时核验包内文件", "gpu"),
+        ["gen1upgrade"] = new("支持一代虚拟机的 x64 Hyper-V 宿主", "platform"),
         ["guestdisk"] = new("完整副本的离线系统磁盘", "template-copy"),
         ["template"] = new("共用完整虚拟机模板", "templates", "template-copy"),
         ["pcie"] = new("选定 PCIe 设备与宿主准入", "pcie-host", "test-pcie"),

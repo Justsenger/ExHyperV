@@ -92,7 +92,10 @@ public static partial class VmConsoleSupportService
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <param name="enable">true 请求启用该设置，false 请求关闭。</param>
     /// <returns>操作结果；步骤失败时返回错误，并保留此前已完成的设备变更。</returns>
-    public static Task<ApiResponse> SetConsoleSupportAsync(Guid vmId, bool enable) => Task.Run(async () =>
+    public static Task<ApiResponse> SetConsoleSupportAsync(Guid vmId, bool enable) =>
+        VmSettingsWriteLock.RunAsync(vmId, () => SetConsoleUnderLockAsync(vmId, enable));
+
+    internal static Task<ApiResponse> SetConsoleUnderLockAsync(Guid vmId, bool enable) => Task.Run(async () =>
     {
         if (vmId == Guid.Empty) return ApiResponse.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
         try
@@ -103,6 +106,12 @@ public static partial class VmConsoleSupportService
         var state = VmConfigurationState.Read(vm);
         var condition = GetModificationCondition(state.Generation, state.State);
         if (!condition.CanModify) return condition.ToResponse();
+        if (enable)
+        {
+            var security = await VmSecurityService.GetSecuritySettingsAsync(vmId);
+            if (!security.HasData) return ApiResponse.FromFailure(security);
+            if (security.Data.Shielded) return ApiResponse.Fail("受防护模式已锁定控制台支持。", kind: ApiErrorKind.InvalidState);
+        }
         using var svcForScope = WmiApi.GetVirtualSystemManagementService();
         var scope = svcForScope.Scope;
         string guid = vm["Name"]?.ToString() ?? "";

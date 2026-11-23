@@ -29,7 +29,7 @@
    <Setter Property="Padding" Value="14,10"/>
   </Style>
  </UserControl.Resources>
- <Border Background="{ThemeResource VmSurfaceBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1" CornerRadius="8">
+ <Border x:Name="OuterFrame" Background="{ThemeResource VmSurfaceBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1" CornerRadius="8">
   <Grid x:Name="Body" Visibility="Collapsed">
    <Grid.RowDefinitions>
     <RowDefinition Height="Auto"/>
@@ -38,7 +38,7 @@
    </Grid.RowDefinitions>
 
    <!-- 顶部摘要卡片（mid-3row） -->
-   <Border Margin="16,12,16,0" Padding="20,16,20,16" MinHeight="120" CornerRadius="8"
+   <Border x:Name="SummaryCard" Margin="16,12,16,0" Padding="20,16,20,16" MinHeight="120" CornerRadius="8"
            Background="{ThemeResource VmSummaryBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1">
     <Grid ColumnSpacing="20">
      <Grid.ColumnDefinitions>
@@ -160,13 +160,13 @@
     </Grid>
    </Border>
 
-   <Grid Grid.Row="1" Margin="16,12,16,8" ColumnSpacing="8">
+   <Grid x:Name="PageTabsRow" Grid.Row="1" Margin="16,12,16,8" ColumnSpacing="8">
     <Grid.ColumnDefinitions>
      <ColumnDefinition Width="*"/>
      <ColumnDefinition Width="Auto"/>
     </Grid.ColumnDefinitions>
     <local:VmTabs x:Name="PageTabs" Grid.Column="0"/>
-    <shared:FloatingSuccessToast x:Name="TabSuccessToast" Grid.Column="1" VerticalAlignment="Center" Visibility="Collapsed"/>
+    <ContentControl x:Name="PageTabsTrailingHost" Grid.Column="1" IsTabStop="False" VerticalAlignment="Center" Visibility="Collapsed"/>
    </Grid>
 
    <!-- 状态概览：Win11 任务管理器双栏视图 -->
@@ -289,8 +289,8 @@
     </Grid>
    </Grid>
 
-   <shared:FloatingSuccessToast x:Name="OverlaySuccessToast" Grid.Row="2" HorizontalAlignment="Right" VerticalAlignment="Top"
-                                Margin="0,8,20,0" Visibility="Collapsed"/>
+   <shared:FloatingSuccessToast x:Name="OverlaySuccessToast" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                MaxWidth="780" Margin="20,0,20,18" Visibility="Collapsed"/>
    <shared:FloatingNoticeBanner x:Name="DashboardNoticeBanner" Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
                                 MaxWidth="780" Margin="20,0,20,16" Visibility="Collapsed" Closed="OnErrorClosed"/>
   </Grid>

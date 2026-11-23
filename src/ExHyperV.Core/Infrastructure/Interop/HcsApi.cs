@@ -6,6 +6,10 @@ using System.Text.Json.Serialization;
 
 namespace ExHyperV.Tools;
 
+internal sealed record SetCpuGroupRequest(string PropertyType, SetCpuGroupSettings Settings);
+internal sealed record SetCpuGroupSettings(string Operation, SetCpuGroupProperty OperationDetails);
+internal sealed record SetCpuGroupProperty(Guid GroupId, uint PropertyCode, uint PropertyValue);
+
 // ══════════════════════════════════════════════════════════════════
 //  HCS 数据模型
 //  与 ComputeCore.dll 通信的 JSON 结构
@@ -111,10 +115,6 @@ internal sealed class HcsLogicalProcessor
 /// <remarks>需要系统 HCS 支持及相应管理权限；返回响应包含原生失败，不提供取消入口。</remarks>
 internal static class HcsApi
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
 
     // ── CPU Group 操作 ────────────────────────────────────────────
 
@@ -314,15 +314,8 @@ internal static class HcsApi
         {
             try
             {
-                string json = JsonSerializer.Serialize(new
-                {
-                    PropertyType = "CpuGroup",
-                    Settings = new
-                    {
-                        Operation = "SetProperty",
-                        OperationDetails = new { GroupId = groupId, PropertyCode = propertyCode, PropertyValue = value }
-                    }
-                });
+                string json = JsonSerializer.Serialize(new SetCpuGroupRequest("CpuGroup",
+                    new("SetProperty", new(groupId, propertyCode, value))), CoreJson.Default.SetCpuGroupRequest);
                 HcsCore.Invoke(json);
                 return ApiResponse.Ok();
             }
@@ -357,7 +350,7 @@ internal static class HcsApi
         if (groupsElement.ValueKind != JsonValueKind.Array)
             throw new JsonException("HCS CpuGroups 必须是数组。");
 
-        var groups = groupsElement.Deserialize<List<HcsCpuGroupDetail>>(_jsonOptions)!;
+        var groups = groupsElement.Deserialize(ExternalJson.Default.ListHcsCpuGroupDetail)!;
         var ids = new HashSet<Guid>();
         foreach (var group in groups)
         {
@@ -391,7 +384,7 @@ internal static class HcsApi
             || processorsElement.ValueKind != JsonValueKind.Array)
             throw new JsonException("HCS 处理器拓扑缺少有效的数量或处理器列表。");
 
-        var processors = processorsElement.Deserialize<List<HcsLogicalProcessor>>(_jsonOptions)!;
+        var processors = processorsElement.Deserialize(ExternalJson.Default.ListHcsLogicalProcessor)!;
         var ids = new HashSet<uint>();
         if (count != processors.Count)
             throw new JsonException("HCS 处理器拓扑数量与列表不一致。");

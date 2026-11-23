@@ -108,7 +108,14 @@ public sealed partial class MainWindow : Window
     private void OnSystemThemeChanged(ThemeSettings sender, object args) => Root.DispatcherQueue.TryEnqueue(() =>
         ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast));
     private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args) => UpdateTitleBar();
-    private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args) => UpdateTitleBar();
+    private bool ContentVisible => AppWindow.IsVisible &&
+        AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized };
+
+    private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs args)
+    {
+        UpdateTitleBar();
+        if (PageContent.Content is HostPage host) host.SetWindowVisible(ContentVisible);
+    }
     private void OnActivated(object sender, WindowActivatedEventArgs args)
         => TitleContent.Opacity = args.WindowActivationState == WindowActivationState.Deactivated ? .55 : 1;
 
@@ -125,7 +132,14 @@ public sealed partial class MainWindow : Window
     private void UpdateNavigationContentInset()
     {
         // Minimal mode puts the toggle above the content instead of reserving a left rail.
-        PageContent.Margin = new Thickness(0, Navigation.DisplayMode == NavigationViewDisplayMode.Minimal ? 48 : 0, 0, 0);
+        PageContent.Margin = new Thickness(0, Navigation.IsPaneVisible && Navigation.DisplayMode == NavigationViewDisplayMode.Minimal ? 48 : 0, 0, 0);
+    }
+
+    internal void SetImmersiveMode(bool immersive)
+    {
+        Navigation.IsPaneVisible = !immersive;
+        if (immersive) Navigation.IsPaneOpen = false;
+        UpdateNavigationContentInset();
     }
 
     private void UpdateTitleBar()
@@ -177,7 +191,7 @@ public sealed partial class MainWindow : Window
         {
             page = route switch
             {
-                "virtual-machines" => new VirtualMachinesPage(),
+                "virtual-machines" => CreateVirtualMachinesPage(),
                 "settings" => new SettingsPage(),
                 "host" => new HostPage(),
                 _ => productPages.TryGetValue(route, out var definition)
@@ -186,16 +200,35 @@ public sealed partial class MainWindow : Window
             };
             pages.Add(route, page);
         }
+        if (route != "virtual-machines") SetImmersiveMode(false);
+        if (page is HostPage host) host.SetWindowVisible(ContentVisible);
         PageContent.Content = page;
         activeNavigationItem = args.SelectedItem;
     }
 
-    private void OnClosed(object sender, WindowEventArgs args)
+    private VirtualMachinesPage CreateVirtualMachinesPage()
+    {
+        var page = new VirtualMachinesPage();
+        page.ImmersiveRequested += SetImmersiveMode;
+        return page;
+    }
+
+    private async void OnClosed(object sender, WindowEventArgs args)
     {
         // Window.Close() can bypass AppWindow.Closing. The native product windows
         // still need releasing; normal title-bar closure already did this above.
         if (!closeAfterCleanup)
         {
+            foreach (var page in pages.Values.OfType<VirtualMachinesPage>().ToArray())
+            {
+                try { await page.StopAsync(); }
+                catch (Exception error) { System.Diagnostics.Trace.TraceError("VM page cleanup failed: {0}", error); }
+            }
+            foreach (var page in pages.Values.OfType<HostPage>().ToArray())
+            {
+                try { await page.StopAsync(); }
+                catch (Exception error) { System.Diagnostics.Trace.TraceError("Host page cleanup failed: {0}", error); }
+            }
             foreach (var page in pages.Values.OfType<IProductPageLifetime>())
             {
                 try { page.Dispose(); }
@@ -219,9 +252,10 @@ public sealed partial class MainWindow : Window
     private async void OnClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
     {
         if (closeAfterCleanup) return;
-        if (cleanupInProgress) { args.Cancel = true; return; }
-        var active = pages.Values.OfType<VirtualMachinesPage>().ToArray();
         args.Cancel = true;
+        if (cleanupInProgress) return;
+        var active = pages.Values.OfType<VirtualMachinesPage>().ToArray();
+        var hostPages = pages.Values.OfType<HostPage>().ToArray();
         cleanupInProgress = true;
         Root.IsHitTestVisible = false;
         Navigation.IsEnabled = false;
@@ -230,9 +264,10 @@ public sealed partial class MainWindow : Window
             await Task.WhenAll(active.Select(page => page.StopAsync()));
             foreach (var page in pages.Values.OfType<IProductPageLifetime>()) await page.StopAsync();
             ((App)Application.Current).Product.DesktopWindows?.CloseAll();
+            await Task.WhenAll(hostPages.Select(page => page.StopAsync()));
             foreach (var page in pages.Values.OfType<IProductPageLifetime>()) page.Dispose();
             closeAfterCleanup = true;
-            Close();
+            Root.DispatcherQueue.TryEnqueue(Close);
         }
         catch (Exception exception)
         {

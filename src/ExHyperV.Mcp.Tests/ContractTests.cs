@@ -48,6 +48,16 @@ public sealed class ContractTests
         var start = catalog.Find("M:ExHyperV.Services.ArpSnoopService.Start");
         Assert.IsFalse(catalog.IsReadOnly(start));
         Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(start));
+        var vmPolicy = new ApiPolicy(catalog, McpLaunchOptions.Parse(["--read-only", "--toolsets", "vm"]));
+        foreach (var memberName in new[] { "GetVtpmStateAsync", "InspectDiskAsync", "InspectDifferencingChainAsync" })
+            vmPolicy.Demand(catalog.Members.Values.Single(member => member.Name == memberName));
+        foreach (var memberName in new[] { "ExportLocalGuardianAsync", "SetVtpmPolicyAsync", "InspectResizeSafetyAsync",
+            "ResizeVirtualDiskAsync", "DeleteAttachedMediaFileAsync", "MergeDifferencingDiskAsync", "CaptureMomentAsync" })
+        {
+            var member = catalog.Members.Values.Single(item => item.Name == memberName);
+            Assert.IsFalse(catalog.IsReadOnly(member), memberName);
+            Assert.Throws<UnauthorizedAccessException>(() => vmPolicy.Demand(member));
+        }
         var vm = catalog.Members.Values.First(member => member.Name == "ExecuteControlActionAsync");
         Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(vm));
     }

@@ -8,7 +8,7 @@ using Microsoft.UI.Xaml.Media;
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 /// <summary>说明通过悬停提示或点击浮层显示；编辑器禁用时仍可清晰区分用途说明与不可用原因。</summary>
-internal sealed class SettingInfoButton : Button
+internal sealed partial class SettingInfoButton : Button
 {
     private readonly TextBlock detail = new() { TextWrapping = TextWrapping.Wrap, MaxWidth = 340 };
     private readonly Border reasonDivider = new() { Height = 1, Margin = new Thickness(0, 8, 0, 8), Visibility = Visibility.Collapsed };

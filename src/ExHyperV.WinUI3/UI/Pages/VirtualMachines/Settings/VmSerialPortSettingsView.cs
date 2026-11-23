@@ -1,204 +1,235 @@
-using System.Text;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Windows.ApplicationModel.DataTransfer;
+using static ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings.DeviceWorkbench;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
-/// <summary>虚拟机串口（COM 1 / COM 2）设置视图。</summary>
-public sealed class VmSerialPortSettingsView : VmSettingsView
+/// <summary>虚拟串口概览与单口设置。</summary>
+public sealed partial class VmSerialPortSettingsView : VmSettingsView
 {
-    private readonly StackPanel portsPanel = new() { Margin = new(0, 8, 0, 0), Spacing = 4 };
-    private string? cachedVmName;
-    private bool canModify;
+    private static string BuildDefaultPipePath(string? vmName, int portNumber)
+    {
+        string prefix = System.Text.RegularExpressions.Regex.Replace(vmName?.Trim() ?? "", "[^A-Za-z0-9._-]+", "-").Trim('-');
+        if (prefix.Length == 0) prefix = "vm";
+        return $@"\\.\pipe\{prefix}-com{portNumber}";
+    }
+
+    private readonly StackPanel panel = new() { Margin = new(0, 0, 0, 20), Spacing = 12 };
+    private IReadOnlyList<VmSerialPort> ports = [];
+    private string? vmName;
+    private VmState powerState = VmState.Unknown;
+    private string? lockReason;
+    private bool hasLoadedData;
+    private int? editing;
+    private string draftPipePath = string.Empty;
+    private bool draftDebuggerMode;
 
     public VmSerialPortSettingsView(Guid vmId) : base(vmId)
     {
-        SetBody(portsPanel);
+        SetBody(panel);
+        ActualThemeChanged += (_, _) =>
+        {
+            if (hasLoadedData && !IsStopped) Render();
+        };
     }
 
     protected override async Task LoadAsync()
     {
-        var portsTask = VmSerialPortService.GetSerialPortsAsync(VmId);
-        var contextTask = ReadContextAsync();
-        var nameTask = cachedVmName is null ? ReadVmNameAsync() : Task.FromResult<string?>(cachedVmName);
-        await Task.WhenAll(portsTask, contextTask, nameTask);
-
-        var portsResult = await portsTask;
-        if (!portsResult.HasData) throw new InvalidOperationException(portsResult.Error);
+        var devices = VmSerialPortService.GetSerialPortsAsync(VmId);
+        var state = ReadContextAsync();
+        var identity = QueryAsync(VmIdentityFields.Name);
+        await Task.WhenAll(devices, state, identity);
+        var result = await devices;
+        if (!result.HasData) throw new InvalidOperationException(result.Error);
         if (IsStopped) return;
+        ports = result.Data;
+        vmName = (await identity).Get(VmIdentityFields.Name).Value;
+        powerState = (await state).State;
+        var condition = VmSerialPortService.GetModificationCondition(powerState);
+        lockReason = condition.CanModify ? null : condition.Reason;
+        hasLoadedData = true;
+        Render();
+    }
 
-        cachedVmName ??= await nameTask;
-        var context = await contextTask;
-        var condition = VmSerialPortService.GetModificationCondition(context.State);
-        canModify = condition.CanModify;
-        if (IsStopped) return;
+    private void Render()
+    {
+        panel.Children.Clear();
+        if (ports.FirstOrDefault(p => p.PortNumber == editing) is { } port)
+        {
+            BuildEditor(port);
+            return;
+        }
 
+        editing = null;
+        var cards = new StackPanel { Spacing = 10 };
+        foreach (var device in ports) cards.Children.Add(BuildCard(device));
+        if (ports.Count == 0)
+            cards.Children.Add(new TextBlock
+            {
+                Text = "未检测到虚拟串口设备。",
+                Foreground = ThemeBrush(this, "TextFillColorSecondaryBrush")
+            });
+        panel.Children.Add(cards);
+        AddLockNotice();
+    }
+
+    private void AddLockNotice()
+    {
+        if (lockReason == null) return;
+        string title = powerState == VmState.Running ? "虚拟机运行中，串口配置已锁定" : "串口配置已锁定";
+        string message = powerState == VmState.Running ? "关闭虚拟机后才可开关连接或修改管道与内核调试设置" : lockReason;
+        panel.Children.Add(Notice(title, message));
+    }
+
+    private void OpenEditor(VmSerialPort port)
+    {
+        editing = port.PortNumber;
+        draftPipePath = port.PipePath;
+        draftDebuggerMode = port.DebuggerMode;
+        Render();
+    }
+
+    private Border BuildCard(VmSerialPort port)
+    {
+        string title = $"COM {port.PortNumber}";
+        var toggle = Switch();
         Updating = true;
-        try
+        try { toggle.IsOn = port.IsConnected; }
+        finally { Updating = false; }
+        toggle.IsEnabled = lockReason == null;
+        ToolTipService.SetToolTip(toggle, lockReason == null
+            ? (port.IsConnected ? "关闭并清空命名管道" : "开启默认命名管道连接")
+            : "关闭虚拟机后可修改");
+        toggle.Toggled += async (_, _) =>
         {
-            portsPanel.Children.Clear();
-            var ports = portsResult.Data!;
-            if (ports.Count == 0)
-            {
-                portsPanel.Children.Add(new TextBlock { Text = "未检测到虚拟串口设备。", Margin = new(0, 12, 0, 12) });
-            }
-            else
-            {
-                foreach (var port in ports)
-                    AddSection(portsPanel, port.Name, BuildPortCard(port, condition.Reason));
-            }
-        }
-        finally
-        {
-            Updating = false;
-        }
+            if (Updating || IsBusy || IsStopped) return;
+            string path = toggle.IsOn ? BuildDefaultPipePath(vmName, port.PortNumber) : "";
+            await ApplyAsync(() => VmSerialPortService.SetPipePathAsync(VmId, port.PortNumber, path));
+        };
+
+        var header = Header(
+            scope: this,
+            fluentGlyph: "\uF6A3",
+            title: title,
+            subtitle: null,
+            active: port.IsConnected,
+            badge: port.DebuggerMode ? "内核调试" : null,
+            toggle: toggle,
+            configure: () => OpenEditor(port),
+            configureTooltip: "配置串口设置");
+
+        var body = KvTile(
+            this,
+            "命名管道路径",
+            port.IsConnected ? port.PipePath : "未配置",
+            copyValue: port.IsConnected ? port.PipePath : null,
+            copyLabel: port.IsConnected ? $"点击复制：{port.PipePath}" : null,
+            onError: ShowError);
+
+        return CardShell(this, header, body);
     }
 
-    private async Task<string?> ReadVmNameAsync()
+    private void BuildEditor(VmSerialPort port)
     {
-        await using var query = new VmQueryService();
-        var result = await query.QueryAsync(new([VmIdentityFields.Name], [VmId]));
-        if (!result.HasData || result.Data!.VirtualMachines.Count == 0) return null;
-        var cell = result.Data.VirtualMachines[0].Get(VmIdentityFields.Name);
-        return cell.HasValue ? cell.Value : null;
-    }
-
-    private Border BuildPortCard(VmSerialPort port, string? lockReason)
-    {
-        bool hasPipe = !string.IsNullOrWhiteSpace(port.PipePath);
-        string fallbackLock = lockReason ?? "关闭虚拟机后可修改";
-
-        var enableToggle = Switch();
-        enableToggle.IsOn = hasPipe;
-        enableToggle.IsEnabled = canModify;
-
-        var pipeBox = new TextBox
+        bool canModify = lockReason == null;
+        var input = new TextBox
         {
-            Text = port.PipePath,
-            PlaceholderText = @"管道名或 \\.\pipe\名称",
+            Text = draftPipePath,
             Width = 260,
-            IsEnabled = canModify && hasPipe
+            PlaceholderText = @"管道名或 \\.\pipe\名称",
+            IsEnabled = canModify
         };
+        var debug = Switch();
+        Updating = true;
+        try { debug.IsOn = draftDebuggerMode; }
+        finally { Updating = false; }
 
-        var applyPipe = new Button
+        var apply = new Button { Content = "应用", Style = (Style)Application.Current.Resources["AccentButtonStyle"] };
+        bool PipeChanged() => !string.Equals(VmSerialPortService.NormalizePipePath(input.Text), port.PipePath, StringComparison.OrdinalIgnoreCase);
+        bool DebugChanged() => port.DebuggerModeAvailable && debug.IsOn != port.DebuggerMode;
+
+        void Sync()
         {
-            Content = "应用",
-            IsEnabled = canModify && hasPipe,
-            Style = (Style)Application.Current.Resources["AccentButtonStyle"]
-        };
-
-        var copyPipe = new Button
-        {
-            Content = "复制",
-            IsEnabled = hasPipe
-        };
-
-        var debuggerToggle = Switch();
-        debuggerToggle.IsOn = port.DebuggerMode;
-        debuggerToggle.IsEnabled = canModify && port.DebuggerModeAvailable && (hasPipe || port.DebuggerMode);
-
-        enableToggle.Toggled += async (_, _) =>
-        {
-            if (Updating || IsBusy || IsStopped) return;
-            string nextPipe = enableToggle.IsOn
-                ? BuildDefaultPipePath(cachedVmName, VmId, port.PortNumber)
-                : string.Empty;
-            await ApplyChangeAsync(() => VmSerialPortService.SetPipePathAsync(VmId, port.PortNumber, nextPipe));
-        };
-
-        applyPipe.Click += async (_, _) =>
-        {
-            if (Updating || IsBusy || IsStopped || !enableToggle.IsOn) return;
-            string input = pipeBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                ShowError("请输入命名管道名称或完整路径；如需断开连接，请关闭“命名管道连接”开关。");
-                return;
-            }
-            if (VmSerialPortService.GetPipePathError(input) is { } pipeError)
-            {
-                ShowError(pipeError);
-                return;
-            }
-            await ApplyChangeAsync(() => VmSerialPortService.SetPipePathAsync(VmId, port.PortNumber, input));
-        };
-
-        copyPipe.Click += (_, _) =>
-        {
-            string text = !string.IsNullOrWhiteSpace(pipeBox.Text) ? pipeBox.Text : port.PipePath;
-            string normalized = VmSerialPortService.NormalizePipePath(text);
-            if (string.IsNullOrEmpty(normalized)) return;
-            var package = new DataPackage();
-            package.SetText(normalized);
-            Clipboard.SetContent(package);
-            ShowAppliedToast("已复制管道路径");
-        };
-
-        debuggerToggle.Toggled += async (_, _) =>
-        {
-            if (Updating || IsBusy || IsStopped) return;
-            await ApplyChangeAsync(() =>
-                VmSerialPortService.SetDebuggerModeAsync(VmId, port.PortNumber, debuggerToggle.IsOn));
-        };
-
-        var pipeEditor = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        pipeEditor.Children.Add(pipeBox);
-        pipeEditor.Children.Add(applyPipe);
-        pipeEditor.Children.Add(copyPipe);
-
-        string enableDesc = canModify
-            ? "开启后将此串口连接到宿主机命名管道；关闭则断开连接并清空管道配置。"
-            : fallbackLock;
-        string pipeDesc = !canModify
-            ? fallbackLock
-            : hasPipe
-                ? (ApiFieldHelp.For(typeof(VmSerialPort).GetProperty(nameof(VmSerialPort.PipePath))!) ?? "输入管道短名会自动补全为 \\\\.\\pipe\\名称")
-                : "请先开启上方开关以启用命名管道连接。";
-        string debugDesc = !port.DebuggerModeAvailable
-            ? "当前宿主未提供 DebuggerMode 属性"
-            : !canModify
-                ? fallbackLock
-                : hasPipe || port.DebuggerMode
-                    ? (ApiFieldHelp.For(typeof(VmSerialPort).GetProperty(nameof(VmSerialPort.DebuggerMode))!) ?? "为 Windows 内核调试器（WinDbg）优化传输；普通串口控制台无需开启")
-                    : "需先启用命名管道后才可开启内核调试模式。";
-
-        return Card(
-            Row("命名管道连接", enableDesc, enableToggle),
-            Row("命名管道路径", pipeDesc, pipeEditor),
-            Row("内核调试模式", debugDesc, debuggerToggle));
-    }
-
-    private static string BuildDefaultPipePath(string? vmName, Guid vmId, int portNumber)
-    {
-        var sb = new StringBuilder();
-        bool lastDash = false;
-        foreach (char ch in (vmName ?? string.Empty).Trim())
-        {
-            if (ch is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9') or '.' or '_' or '-')
-            {
-                sb.Append(char.ToLowerInvariant(ch));
-                lastDash = ch == '-';
-            }
-            else if (!lastDash && sb.Length > 0)
-            {
-                sb.Append('-');
-                lastDash = true;
-            }
+            bool hasPipe = !string.IsNullOrWhiteSpace(input.Text);
+            bool canDebug = canModify && port.DebuggerModeAvailable && (hasPipe || debug.IsOn);
+            debug.IsEnabled = canDebug;
+            apply.IsEnabled = canModify && (PipeChanged() || DebugChanged());
+            ToolTipService.SetToolTip(debug, !canModify
+                ? "关闭虚拟机后可修改"
+                : !port.DebuggerModeAvailable
+                    ? "当前宿主未提供 DebuggerMode 属性"
+                    : canDebug ? "切换内核调试模式" : "需先配置命名管道后才可开启内核调试模式");
         }
-        string prefix = sb.ToString().Trim('-');
-        if (string.IsNullOrEmpty(prefix))
-            prefix = $"vm-{vmId.ToString("N")[..8]}";
-        return $@"\\.\pipe\{prefix}-com{portNumber}";
+
+        input.TextChanged += (_, _) =>
+        {
+            draftPipePath = input.Text;
+            Sync();
+        };
+        debug.Toggled += (_, _) =>
+        {
+            if (Updating) return;
+            draftDebuggerMode = debug.IsOn;
+            Sync();
+        };
+        Sync();
+
+        panel.Children.Add(SettingCard(
+            this,
+            "命名管道路径",
+            @"输入短名称会自动补全为 \\.\pipe\名称，供 PuTTY / WinDbg 连接，留空后应用可断开连接。",
+            input,
+            enabled: canModify,
+            disabledTooltip: "关闭虚拟机后可修改"));
+
+        panel.Children.Add(SettingCard(
+            this,
+            "内核调试模式",
+            port.DebuggerModeAvailable
+                ? "为 Windows 内核调试器（WinDbg）优化传输，普通串口控制台无需开启，需配置命名管道后启用。"
+                : "当前宿主未提供 DebuggerMode 属性。",
+            debug,
+            enabled: canModify,
+            disabledTooltip: "关闭虚拟机后可修改"));
+
+        AddLockNotice();
+
+        var back = new Button { Content = "返回" };
+        back.Click += (_, _) => { editing = null; Render(); };
+
+        apply.Click += async (_, _) =>
+        {
+            if (VmSerialPortService.GetPipePathError(input.Text) is { } error)
+            {
+                ShowError(error);
+                return;
+            }
+            bool pipeChanged = PipeChanged(), debugChanged = DebugChanged();
+            if (!pipeChanged && !debugChanged) return;
+            var path = input.Text;
+            bool mode = debug.IsOn;
+            await ApplyAsync(() => pipeChanged && debugChanged
+                ? VmSerialPortService.SetPortSettingsAsync(VmId, port.PortNumber, path, mode)
+                : pipeChanged ? VmSerialPortService.SetPipePathAsync(VmId, port.PortNumber, path)
+                : VmSerialPortService.SetDebuggerModeAsync(VmId, port.PortNumber, mode), closeEditor: true);
+        };
+
+        var actions = Actions(back, apply);
+        actions.HorizontalAlignment = HorizontalAlignment.Right;
+        panel.Children.Add(actions);
     }
 
-    private Task ApplyChangeAsync(Func<Task<ApiResponse>> write) => RunAsync(async () =>
+    private Task ApplyAsync(Func<Task<ApiResponse>> write, bool closeEditor = false) => RunAsync(async () =>
     {
         var result = await write();
+        if (result.Success)
+        {
+            if (closeEditor) editing = null;
+            NotifyChanged();
+        }
         await ReloadAfterWriteAsync(result);
-        NotifyChanged();
     });
 }

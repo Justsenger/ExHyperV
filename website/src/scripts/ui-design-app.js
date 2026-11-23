@@ -6,22 +6,42 @@ import {
   PROCESSOR_SECTIONS,
   MEMORY_SECTIONS,
   INITIAL_STORAGE_ITEMS,
+  HOST_PHYSICAL_DISKS,
+  HOST_OPTICAL_DRIVES,
   INITIAL_GPU_ASSIGNMENTS,
   HOST_GPUS,
   INITIAL_GPU_PARTITIONS,
   LINUX_GPU_SCRIPTS,
   INITIAL_BOOT_ENTRIES,
   INITIAL_SERIAL_PORTS,
+  INITIAL_VTPM_BY_VM,
   INITIAL_PCIE_DEVICES,
-  SPACETIME_NODES
+  HOST_PCIE_DEVICES,
+  CHECKPOINT_NODES
 } from './ui-design-data.js';
 import {
   initComputePlayground,
   renderComputeSection,
   isComputeSectionDirty
 } from './ui-design-compute.js';
-import { renderGpuWorkbench } from './ui-design-devices.js';
-import { buildVirtualGpuEntries, initHostPage, renderHostPage } from './ui-design-host.js';
+import {
+  renderGpuWorkbench,
+  renderStorageWorkbench,
+  renderNetworkWorkbench,
+  renderSerialWorkbench,
+  renderVtpmWorkbench,
+  renderPcieWorkbench,
+  ensureVtpmHostKeyForVm,
+  resetNetworkAdaptersForScenario
+} from './ui-design-devices.js';
+import {
+  buildVirtualGpuEntries,
+  getHostOverviewCandidate,
+  initHostPage,
+  renderHostPage,
+  setHostOverviewCandidate
+} from './ui-design-host.js';
+import { renderCheckpointWorkbench } from './ui-checkpoint-designs.js';
 
 export function initUiDesignWorkbench() {
   const winEl = document.getElementById('winuiWindow');
@@ -35,13 +55,21 @@ export function initUiDesignWorkbench() {
     searchQuery: '',
     activeTabKey: 'overview',
     deviceSubKey: 'gpu',
-    advancedSubKey: 'boot',
-    tailOrder: 'spacetime-first',
+    advancedSubKey: 'power',
+    tailOrder: 'checkpoints-first',
     advSettings: {
+      secureBoot: true,
+      secureBootTemplate: 'Microsoft Windows',
+      tpmEnabled: true,
+      encryptState: false,
+      shielding: false,
+      bindHostTpm: false,
+      vbsOptOut: false,
+      migratableDisabled: false,
       fullScsi: false,
       numLock: false,
       consoleSupport: true,
-      resolution: '默认（自适应）',
+      resolution: '默认',
       lockOnDisconnect: false,
       hibernation: false,
       turnOffOnRestart: false,
@@ -61,29 +89,49 @@ export function initUiDesignWorkbench() {
     memorySectionIdx: 0,
     affinityMask: new Set([0, 1, 2, 3, 4, 5, 6, 7]),
     storageItems: structuredClone(INITIAL_STORAGE_ITEMS),
-    storageAddingMode: false,
+    storageItemsByVm: {
+      'vm-test': structuredClone(INITIAL_STORAGE_ITEMS)
+    },
+    storageMode: 'list', // 'list' | 'add' | 'progress'
+    storageAddIntent: 'existing', // 'existing' | 'new-disk' | 'new-iso' | 'physical'
+    storageInlineEditIdx: null,
     storageForm: {
       driveType: 'HardDisk',
+      sourceMode: 'existing',
       mediaSource: 'Virtual',
       operation: 'Existing',
       filePath: 'D:\\Hyper-V\\Virtual Hard Disks\\extra_disk.vhdx',
+      existingFilePath: 'D:\\Hyper-V\\Virtual Hard Disks\\extra_disk.vhdx',
+      newDiskPath: 'D:\\Hyper-V\\Virtual Hard Disks\\new_disk.vhdx',
+      isoPath: '',
       sizeGb: '128',
       vhdType: 'Dynamic',
+      sectorFormat: 'Default',
+      blockSize: 'Default',
       parentPath: '',
+      showAdvancedDiskOptions: false,
+      isoSourceDir: 'C:\\Drivers\\Qualcomm_GPU',
+      isoVolumeLabel: 'Qualcomm_GPU',
+      isoOutputPath: 'D:\\Hyper-V\\ISO\\Qualcomm_GPU.iso',
+      isoOutputCustom: false,
+      physicalKind: 'disk',
+      selectedPhysicalDiskNumber: 1,
+      selectedPhysicalOpticalId: 'opt-0',
       autoLocation: true,
       controllerType: 'SCSI',
       controllerNumber: 0,
-      location: 2
+      location: 3
     },
     gpuMode: 'list', // 'list' | 'select' | 'deploy'
-    gpuVariant: 'expander', // 'expander' | 'tiles' | 'compact' | 'layered'
-    gpuEnvExpanded: false,
+    gpuVariant: 'tiles', // 'expander' | 'tiles' | 'compact' | 'layered'
+    gpuAddPlacement: 'list-bottom-row', // 'list-bottom-row' | 'below-right' | 'floating-fab' | 'tabs-right'
+    gpuAddBtnStyle: 'secondary-icon-text', // 'accent-icon-text' | 'accent-text' | 'accent-circle' | 'round-icon' | 'secondary-icon-text'
+    gpuIconStyle: 'vector', // 'fluent' | 'vector'
+    gpuDriverMismatch: true,
+    gpuUpdateIcon: 'upgrade-base',
+    gpuUpdateColor: 'white', // 'white' | 'accent' | 'red'
     selectedHostGpuId: HOST_GPUS[0].id,
     installGpuDrivers: true,
-    gpuScenario: 'normal', // 'normal' | 'stale-single' | 'stale-multi' | 'stale-none'
-    gpuVmReady: true,
-    gpuHostPolicyRelaxed: false,
-    gpuSelectedRebindId: '',
     gpuDeployMode: 'add-with-drivers',
     gpuDeployDecision: 'SelectPartition',
     gpuSelectedPartitionId: INITIAL_GPU_PARTITIONS[0].id,
@@ -97,19 +145,66 @@ export function initUiDesignWorkbench() {
     },
     gpuAssignmentsByVm: {
       'vm-test': structuredClone(INITIAL_GPU_ASSIGNMENTS),
-      'vm-win11-arm64': structuredClone(INITIAL_GPU_ASSIGNMENTS)
+      'vm-win11-arm64': structuredClone(INITIAL_GPU_ASSIGNMENTS),
+      'vm-win7-gen1': []
     },
     netVlanMode: 'Access',
+    nicVariant: 'unified', // 'unified' | 'inline-converged' | 'pill-tabs' | 'legacy'
+    nicScenario: 'single', // 'single' | 'multi' | 'empty'
+    nicMode: 'list', // 'list' | 'add' | 'policy'
+    nicHostSwitches: 'one', // 'one' | 'many' | 'none'
+    nicEditTargetId: null,
+    nicPolicyTab: 'connection',
+    nicAdvLabel: '策略',
+    nicAdvIcon: 'E71C',
+    networkAdaptersByVm: {},
     bootEntries: structuredClone(INITIAL_BOOT_ENTRIES),
     serialPortsByVm: {
       'vm-test': structuredClone(INITIAL_SERIAL_PORTS),
-      'vm-win11-arm64': structuredClone(INITIAL_SERIAL_PORTS)
+      'vm-win11-arm64': structuredClone(INITIAL_SERIAL_PORTS),
+      'vm-win7-gen1': structuredClone(INITIAL_SERIAL_PORTS)
     },
+    vtpmByVm: structuredClone(INITIAL_VTPM_BY_VM),
+    vtpmMode: 'main',
+    vtpmSettingsTab: 'keys',
+    vtpmConfirmDisable: false,
     pcieDevicesByVm: {
-      'vm-test': [],
-      'vm-win11-arm64': structuredClone(INITIAL_PCIE_DEVICES)
+      'vm-test': [
+        {
+          id: 'pcie-nic-test',
+          hostId: 'host-pcie-nic',
+          name: 'Intel(R) Ethernet Controller I226-V',
+          classType: 'Net',
+          glyph: '\uE774',
+          guestMode: '0',
+          instanceId: 'PCI\\VEN_8086&DEV_125C&SUBSYS_00008086\\6&3B912A&0&0010',
+          path: 'PCIROOT(0)#PCI(0201)#PCI(0000)',
+          vendor: 'Intel Corporation',
+          expanded: false
+        }
+      ],
+      'vm-win11-arm64': structuredClone(INITIAL_PCIE_DEVICES),
+      'vm-win7-gen1': []
     },
-    spacetimeSelectedId: 'node-current',
+    checkpointSelectedId: 'node-current',
+    checkpointCandidate: 'c-brand-matte', // 'c-brand-matte' | 'c-iso-chain' | 'a-vm-desktop' | 'a-console-shell'
+    checkpointFocusId: 'node-root',
+    checkpointPanX: 0,
+    checkpointPanY: 0,
+    checkpointMenuOpenId: null,
+    checkpointCreatePopover: false,
+    checkpointActiveBranchIdx: 0,
+    checkpointExpandedBranches: {},
+    checkpointShowThumbs: true,
+    checkpointSearch: '',
+    checkpointFilter: 'all', // 'all' | 'active' | 'wormhole'
+    checkpointZoom: 1,
+    checkpointNewMode: 'standard', // 'standard' | 'production'
+    checkpointNewName: '',
+    checkpointConfirmAction: null, // null | 'restore' | 'merge' | 'delete'
+    checkpointRenaming: false,
+    checkpointNodes: structuredClone(CHECKPOINT_NODES),
+    checkpointEnabled: true,
     useThemeAccentForHeader: true,
     accentHex: '#4CC2FF',
     dcpMode: 'isa',
@@ -121,7 +216,7 @@ export function initUiDesignWorkbench() {
     computeVariant: 'energy-fader',
     computeThumbStyle: 'slim-bar',
     computeActionMode: 'winui-rect',
-    noticeMode: 'banner',
+    noticeMode: 'toast',
     memComputeLayoutMode: '2-1-3',
     memDynamicOffMode: 'disable',
     memSmartPagingAlert: false,
@@ -129,6 +224,8 @@ export function initUiDesignWorkbench() {
     diskCandidate: 'a', // 'a' | 'b' | 'c'
     isoChartMode: 'single', // 'single' | 'dual'
     diffParentMode: 'wide', // 'wide' | 'top-right'
+    storageAddVariant: 'pivot-2x3', // 'pivot-2x3' | 'pivot-3x2' | 'matrix-card'
+    diskCapLayout: 'header-edge-6', // 'header-edge-6' | 'header-edge-8' | 'header-edge' | 'bar-only' | 'bar-pct'
     diskPreviewMode: 'virtual', // 'virtual' | 'fixed' | 'differencing' | 'iso' | 'physical' | 'stale'
     netPreviewMode: 'connected', // 'connected' | 'bridge' | 'disconnected'
     netCandidate: 'a', // 'a' | 'b' | 'c'
@@ -196,14 +293,17 @@ export function initUiDesignWorkbench() {
 
   let noticeTimer = null;
   let inlineNoticeTimer = null;
+  let lastNoticeFullText = '';
+  let noticeCopyResetTimer = null;
 
-  function showNotice(message) {
-    const inSettings = state.activeTabKey && state.activeTabKey !== 'overview';
-    const settingsBar = document.getElementById('settingsNoticeBar');
-    const settingsTxt = document.getElementById('settingsNoticeText');
-    const bar = document.getElementById('dashboardNoticeBar');
-    const txt = document.getElementById('dashboardNoticeText');
-    const mode = state.noticeMode || 'banner';
+  function showNotice(message, severity = 'success') {
+    const toast = document.getElementById('vmSuccessToast');
+    const toastTxt = document.getElementById('vmSuccessToastText');
+    const banner = document.getElementById('vmNoticeBanner');
+    const bannerTxt = document.getElementById('vmNoticeBannerText');
+    const bannerIcon = document.getElementById('vmNoticeBannerIcon');
+    const detailsBtn = document.getElementById('vmNoticeDetailsBtn');
+    const mode = state.noticeMode || 'toast';
 
     if (noticeTimer) {
       clearTimeout(noticeTimer);
@@ -214,24 +314,48 @@ export function initUiDesignWorkbench() {
       inlineNoticeTimer = null;
     }
 
-    if (inSettings && settingsBar && settingsTxt) {
-      if (bar) bar.hidden = true;
-      settingsTxt.textContent = message;
-      settingsBar.hidden = false;
+    const useToast = severity === 'success' && mode !== 'banner';
+    if (useToast && toast && toastTxt) {
+      if (banner) banner.hidden = true;
+      toastTxt.textContent = message;
+      toast.hidden = false;
       noticeTimer = setTimeout(() => {
-        settingsBar.hidden = true;
+        toast.hidden = true;
       }, 2600);
       return;
     }
 
-    if (settingsBar) settingsBar.hidden = true;
-    if (!bar || !txt) return;
-    txt.textContent = message;
-    bar.classList.toggle('is-toast', mode !== 'banner');
-    bar.hidden = false;
-    noticeTimer = setTimeout(() => {
-      bar.hidden = true;
-    }, 2600);
+    if (toast) toast.hidden = true;
+    if (!banner || !bannerTxt) return;
+    banner.classList.remove('is-success', 'is-warning', 'is-info', 'is-error');
+    banner.classList.add(`is-${severity}`);
+    if (bannerIcon) {
+      const icons = { warning: '\uE7BA', info: '\uE946', success: '\uE73E', error: '\uE711' };
+      bannerIcon.textContent = icons[severity] || '\uE711';
+    }
+    const rawText = String(message || '').trim() || '操作失败';
+    lastNoticeFullText = rawText;
+    const lines = rawText
+      .replace(/\r\n/g, '\n')
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const explicitOverflow = lines.length > 2 || rawText.length > 110;
+    bannerTxt.textContent = lines.length > 2 ? lines.join(' ') : rawText;
+    banner.hidden = false;
+    if (detailsBtn) {
+      detailsBtn.hidden = !explicitOverflow;
+      requestAnimationFrame(() => {
+        if (!banner.hidden) {
+          detailsBtn.hidden = !(explicitOverflow || bannerTxt.scrollHeight > bannerTxt.clientHeight + 2);
+        }
+      });
+    }
+    if (severity === 'success' || severity === 'info') {
+      noticeTimer = setTimeout(() => {
+        banner.hidden = true;
+      }, 2600);
+    }
   }
 
   // Generate smooth SVG area + stroke path for VmUsageChart when VM is running
@@ -317,7 +441,7 @@ export function initUiDesignWorkbench() {
     {
       key: 's-disk-0',
       title: 'Windows11_24H2_Enterprise_SystemBoot_OSDisk_Gen2.vhdx',
-      subtitle: '动态扩展 · SCSI 0:0',
+      subtitle: '动态扩展 (SCSI 0:0)',
       glyph: '\uEC59',
       fileSizeText: '68.4 GB',
       capacityText: '128 GB',
@@ -329,7 +453,7 @@ export function initUiDesignWorkbench() {
     {
       key: 's-disk-1',
       title: 'Production_SQL_Server_Cluster_Node01_TransactionLogs_Volume.vhdx',
-      subtitle: '固定大小 · SCSI 0:1',
+      subtitle: '固定大小 (SCSI 0:1)',
       glyph: '\uEC59',
       fileSizeText: '184.2 GB',
       capacityText: '512 GB',
@@ -341,7 +465,7 @@ export function initUiDesignWorkbench() {
     {
       key: 's-disk-2',
       title: 'NVMe_Scratch_Cache_TempDB_HighIOPS_Passthrough_Disk_03.vhdx',
-      subtitle: '物理直通 · SCSI 0:2',
+      subtitle: '物理直通 (SCSI 0:2)',
       glyph: '\uEC59',
       fileSizeText: '12.8 GB',
       capacityText: '256 GB',
@@ -353,7 +477,7 @@ export function initUiDesignWorkbench() {
     {
       key: 's-disk-3',
       title: 'Cold_Archive_Backup_Snapshots_Repository_2026_Q4_Mirror.vhdx',
-      subtitle: '差分磁盘 · SCSI 0:3',
+      subtitle: '差异磁盘 (SCSI 0:3)',
       glyph: '\uEC59',
       fileSizeText: '410.0 GB',
       capacityText: '1 TB',
@@ -443,10 +567,18 @@ export function initUiDesignWorkbench() {
         state.selectedDiskIdx = 0;
         state.selectedNetIdx = 0;
         state.gpuMode = 'list';
+        state.storageMode = 'list';
+        state.storageInlineEditIdx = null;
+        state.nicMode = 'list';
+        state.vtpmMode = 'main';
+        state.vtpmSettingsTab = 'keys';
+        state.vtpmConfirmDisable = false;
         state.gpuScenario = 'normal';
         state.gpuSelectedRebindId = '';
         state.ribbonComboOpen = false;
         syncDcpGpuButton();
+        syncStandaloneHostRailPanel();
+        notifyParentHostState();
         renderVmList();
         renderDashboardSummary();
         renderActiveWorkspace();
@@ -571,7 +703,7 @@ export function initUiDesignWorkbench() {
       }
       if (t.spec) {
         chips.push(
-          `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE81E;</span><span class="vm-badge-text">${vm.cores} 核 · ${vm.memoryGb} GB</span></div>`
+          `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE81E;</span><span class="vm-badge-text">${vm.cores} 核 / ${vm.memoryGb} GB</span></div>`
         );
       }
       if (t.ip) {
@@ -632,7 +764,7 @@ export function initUiDesignWorkbench() {
     const matrixSpec = document.getElementById('vmMatrixSpec');
     const matrixIp = document.getElementById('vmMatrixIp');
     if (matrixOs) matrixOs.textContent = vm.osText;
-    if (matrixSpec) matrixSpec.textContent = `${vm.cores} 核 · ${vm.memoryGb} GB`;
+    if (matrixSpec) matrixSpec.textContent = `${vm.cores} 核 / ${vm.memoryGb} GB`;
     if (matrixIp) matrixIp.textContent = ipVal;
   }
 
@@ -727,9 +859,10 @@ export function initUiDesignWorkbench() {
     const bar = document.getElementById('vmPageTabsBar');
     if (!bar) return;
     const prevScroll = bar.scrollLeft;
+
     const tabs = [...PAGE_TABS];
     if (state.tailOrder === 'advanced-first') {
-      const spIdx = tabs.findIndex((t) => t.key === 'spacetime');
+      const spIdx = tabs.findIndex((t) => t.key === 'checkpoints');
       const adIdx = tabs.findIndex((t) => t.key === 'advanced');
       if (spIdx !== -1 && adIdx !== -1 && spIdx < adIdx) {
         [tabs[spIdx], tabs[adIdx]] = [tabs[adIdx], tabs[spIdx]];
@@ -912,7 +1045,7 @@ export function initUiDesignWorkbench() {
       pressureText: vm.running ? `${t.memPct}%` : '---',
       demandText: vm.running ? formatMibCapacity(demandMib) : '---',
       smartPagingActive,
-      smartPagingText: smartPagingActive ? '256 MB · 使用中' : ''
+      smartPagingText: smartPagingActive ? '256 MB（使用中）' : ''
     };
   }
 
@@ -1006,7 +1139,9 @@ export function initUiDesignWorkbench() {
         ? 'AMD'
         : gpu.name && gpu.name.includes('Intel')
           ? 'Intel'
-          : 'NVIDIA');
+          : gpu.name && (gpu.name.includes('Qualcomm') || gpu.name.includes('Adreno'))
+            ? 'Qualcomm Incorporated'
+            : 'NVIDIA');
     const vendorText = gpu.vendor || manuText;
     const vramText = (gpu.memoryText || '未知').replace(/,/g, '');
     const drvText = gpu.driverVersion || '---';
@@ -1199,11 +1334,12 @@ export function initUiDesignWorkbench() {
         slot,
         sourceState: '虚拟磁盘',
         rightTitle: '类型',
-        rightState: '差分',
+        rightState: '差异',
         rightCopy: '',
         title: diffName,
         fileSizeText,
         capacityText,
+        ratio: 4.2 / 128,
         pctText,
         headerReading: `${fileSizeText} / ${capacityText}`,
         railStat: vm.running ? `读 ${readRate} 写 ${writeRate}` : '',
@@ -1215,7 +1351,7 @@ export function initUiDesignWorkbench() {
         readPts: [12, 22, 16, 28, 19, 21],
         writePts: [6, 12, 9, 15, 11, 10],
         diskFormatState: 'VHDX',
-        diskTypeState: '差分',
+        diskTypeState: '差异',
         parentPath,
         pathTitle: '路径',
         pathText: diffPath,
@@ -1226,8 +1362,8 @@ export function initUiDesignWorkbench() {
     const forceFixed = mode === 'fixed';
     const rawType = forceFixed ? '固定大小' : disk.vhdFormat || disk.subtitle || '动态扩展';
     const isFixed = forceFixed || rawType.includes('固定');
-    const isDiff = rawType.includes('差分');
-    const diskTypeState = isFixed ? '固定大小' : isDiff ? '差分' : '动态扩展';
+    const isDiff = rawType.includes('差异') || rawType.includes('差分');
+    const diskTypeState = isFixed ? '固定大小' : isDiff ? '差异' : '动态扩展';
     const ext = (disk.path || '').toLowerCase().endsWith('.vhd') ? 'VHD' : 'VHDX';
     const fileSizeText = isFixed ? disk.capacityText : disk.fileSizeText;
     const capacityText = disk.capacityText;
@@ -1251,6 +1387,7 @@ export function initUiDesignWorkbench() {
       title: disk.title,
       fileSizeText,
       capacityText,
+      ratio,
       pctText,
       headerReading: `${fileSizeText} / ${capacityText}`,
       railStat: vm.running ? `读 ${readRate} 写 ${writeRate}` : '',
@@ -1270,21 +1407,43 @@ export function initUiDesignWorkbench() {
     };
   }
 
-  function renderTitleFirstKvItemHtml({ title, stateText, caution = false, wide = false, copyVal = '' }) {
+  function renderTitleFirstKvItemHtml({ title, stateText, caution = false, wide = false, copyVal = '', revealVal = '' }) {
     const itemCls = wide ? 'dt-kv-item is-wide' : 'dt-kv-item';
     const stateCls = `${caution ? 'dt-kv-state is-caution' : 'dt-kv-state'}${wide ? ' tc-mid-fit' : ''}`;
     const copyBtn = copyVal
-      ? `<button class="dt-kv-head-copy" data-copy="${copyVal}" title="点击复制：${copyVal}" type="button"><span class="fi" style="font-size:11.5px;">&#xE8C8;</span></button>`
+      ? `<button class="dt-kv-head-copy" data-copy="${copyVal}" title="点击复制：${copyVal}" type="button"><span class="fi fi-fluent" style="font-size:14px;">&#xF32C;</span></button>`
       : '';
+    const revealBtn = revealVal
+      ? `<button class="dt-kv-head-copy" data-reveal="${revealVal}" title="打开所在文件夹：${revealVal}" type="button"><span class="fi fi-fluent" style="font-size:14px;">&#xF42F;</span></button>`
+      : '';
+    const headActions =
+      copyBtn || revealBtn ? `<span class="dt-kv-head-actions">${copyBtn}${revealBtn}</span>` : '';
     return `
       <div class="${itemCls}">
         <div class="dt-kv-head">
           <span class="dt-kv-title">${title}</span>
-          ${copyBtn}
+          ${headActions}
         </div>
         <span class="${stateCls}" title="${stateText}">${stateText}</span>
       </div>
     `;
+  }
+
+  const DISK_CAP_EDGE_CLASS = {
+    'header-edge': '',
+    'header-edge-6': 'is-edge-6',
+    'header-edge-8': 'is-edge-8'
+  };
+
+  function getDiskCapacityMeta(info) {
+    if (!info || info.isIso || info.isPhysical) return { show: false };
+    const ratioNum = Number.isFinite(info.ratio) ? Math.max(0, Math.min(1, info.ratio)) : 0;
+    const ratioPct = ratioNum * 100;
+    const fillStyle =
+      ratioNum <= 0 ? 'width:0%;' : `width:${ratioPct.toFixed(1)}%;min-width:6px;`;
+    const pctLabel = info.pctText || `${ratioPct.toFixed(1)}%`;
+    const tooltip = `文件占用 ${info.fileSizeText} / 虚拟容量 ${info.capacityText} (${pctLabel})`;
+    return { show: true, ratioPct, fillStyle, pctLabel, tooltip };
   }
 
   function buildDiskCanvasHtml(disk, idx, vm, chartHeight = 136) {
@@ -1295,7 +1454,7 @@ export function initUiDesignWorkbench() {
 
     const kvItems = [
       renderTitleFirstKvItemHtml({
-        title: '来源',
+        title: '介质',
         stateText: info.sourceState,
         caution: info.isStale
       })
@@ -1304,7 +1463,7 @@ export function initUiDesignWorkbench() {
     if (diffTopRight) {
       kvItems.push(
         renderTitleFirstKvItemHtml({
-          title: '父盘（差分）',
+          title: '父盘（差异）',
           stateText: parentFileName || info.parentPath,
           copyVal: info.parentPath
         })
@@ -1325,6 +1484,7 @@ export function initUiDesignWorkbench() {
           title: '父盘路径',
           stateText: info.parentPath,
           copyVal: info.parentPath,
+          revealVal: info.parentPath,
           wide: true
         })
       );
@@ -1336,9 +1496,32 @@ export function initUiDesignWorkbench() {
         title: info.pathTitle,
         stateText: info.pathText,
         copyVal: info.pathCopy,
+        revealVal: !info.isPhysical && info.pathCopy ? info.pathCopy : '',
         wide: true
       })
     );
+
+    const cap = getDiskCapacityMeta(info);
+    const capMode = state.diskCapLayout || 'header-edge-6';
+    let capacityBarHtml = '';
+    if (cap.show && !(capMode in DISK_CAP_EDGE_CLASS)) {
+      if (capMode === 'bar-only') {
+        capacityBarHtml = `
+          <div class="storage-capacity-meter is-slim" style="margin:2px 0 0 0;" title="${cap.tooltip}">
+            <div class="storage-capacity-fill" style="${cap.fillStyle}"></div>
+          </div>
+        `;
+      } else {
+        capacityBarHtml = `
+          <div class="storage-cap-inline" title="${cap.tooltip}">
+            <div class="storage-capacity-meter is-slim">
+              <div class="storage-capacity-fill" style="${cap.fillStyle}"></div>
+            </div>
+            <span class="storage-cap-pct">${cap.pctLabel}</span>
+          </div>
+        `;
+      }
+    }
 
     const chartsHtml =
       info.isIso && state.isoChartMode === 'single'
@@ -1351,6 +1534,7 @@ export function initUiDesignWorkbench() {
         `;
 
     return `
+      ${capacityBarHtml}
       ${chartsHtml}
       <div class="dt-kv-grid is-title-first is-2col">${kvItems.join('')}</div>
     `;
@@ -1599,6 +1783,9 @@ export function initUiDesignWorkbench() {
 
     const chartH = state.singleChartHeight || 136;
 
+    let headCapEdgeHtml = '';
+    let headCapEdgeCls = '';
+
     if (sel.kind === 'mem') {
       icon = '&#xEEA0;';
       rotate = 0;
@@ -1637,6 +1824,16 @@ export function initUiDesignWorkbench() {
       cfgDev = 'storage';
       cfgLabel = '存储';
       bodyHtml = buildDiskCanvasHtml(d, diskIdx, vm, chartH);
+      const cap = getDiskCapacityMeta(dInfo);
+      const capMode = state.diskCapLayout || 'header-edge-6';
+      if (cap.show && capMode in DISK_CAP_EDGE_CLASS) {
+        headCapEdgeCls = DISK_CAP_EDGE_CLASS[capMode];
+        headCapEdgeHtml = `
+          <div class="tc-head-cap-edge" title="${cap.tooltip}">
+            <div class="tc-head-cap-fill" style="${cap.fillStyle}"></div>
+          </div>
+        `;
+      }
     } else if (sel.kind === 'net') {
       const n = vm.adapters[sel.idx] || vm.adapters[0];
       const netInfo = resolveNetViewModel(n, vm);
@@ -1662,7 +1859,7 @@ export function initUiDesignWorkbench() {
 
     return `
       <div class="tc-right-card">
-        <div class="tc-canvas-head">
+        <div class="tc-canvas-head${headCapEdgeHtml ? ` has-cap-edge${headCapEdgeCls ? ` ${headCapEdgeCls}` : ''}` : ''}">
           <div class="tc-canvas-identity ${identitySingleLine ? 'is-single-line' : ''}">
             ${headIconBoxHtml}
             <div class="tc-canvas-title-wrap">
@@ -1679,6 +1876,7 @@ export function initUiDesignWorkbench() {
               <span class="fi">&#xE713;</span>
             </button>
           </div>
+          ${headCapEdgeHtml}
         </div>
         <div class="tc-canvas-body">${bodyHtml}</div>
       </div>
@@ -1697,13 +1895,13 @@ export function initUiDesignWorkbench() {
       {
         kind: 'cpu',
         idx: 0,
-        title: '处理器',
+        title: 'CPU',
         sub: '',
         stat: `${vm.running ? '24.8%' : '0%'} ${vm.cores} 核心`,
         pts: [18, 22, 20, 29, 26, 25, 25],
         color: '#3898EC',
         fill: 'rgba(56, 152, 236, 0.22)',
-        tip: `处理器 (${vm.cores} 核)`
+        tip: `CPU (${vm.cores} 核)`
       },
       {
         kind: 'mem',
@@ -1788,16 +1986,33 @@ export function initUiDesignWorkbench() {
     `;
   }
 
-  function bindDesktopAltEvents(altHost) {
-    altHost.querySelectorAll('[data-copy]').forEach((btn) => {
+  function bindInlinePathActions(scope) {
+    if (!scope) return;
+    scope.querySelectorAll('[data-copy]').forEach((btn) => {
+      if (btn.dataset.copyBound) return;
+      btn.dataset.copyBound = 'true';
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const val = btn.getAttribute('data-copy');
+        const val = btn.getAttribute('data-copy') || '';
         if (!val) return;
         navigator.clipboard?.writeText(val).catch(() => {});
         showNotice(`已复制到剪贴板：${val}`);
       });
     });
+    scope.querySelectorAll('[data-reveal]').forEach((btn) => {
+      if (btn.dataset.revealBound) return;
+      btn.dataset.revealBound = 'true';
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const val = btn.getAttribute('data-reveal') || '';
+        if (!val) return;
+        showNotice(`已在资源管理器定位：${val}`);
+      });
+    });
+  }
+
+  function bindDesktopAltEvents(altHost) {
+    bindInlinePathActions(altHost);
     altHost.querySelectorAll('[data-tc-select]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const [kind, idxStr] = (btn.getAttribute('data-tc-select') || 'cpu:0').split(':');
@@ -2231,7 +2446,7 @@ export function initUiDesignWorkbench() {
   // Helper: SettingLabel (VmSettingsView.cs lines 262-275: title on left, \uE946 32x32 info button on right)
   function renderSettingLabelHtml(title, desc) {
     const infoBtn = desc
-      ? `<button class="setting-info-btn" data-info-desc="${desc.replace(/"/g, '&quot;')}" title="${desc.replace(/"/g, '&quot;')}"><span class="fi" style="font-size:15px;">&#xE946;</span></button>`
+      ? `<button class="setting-info-btn" type="button" data-info-desc="${desc.replace(/"/g, '&quot;')}" title="${desc.replace(/"/g, '&quot;')}"><span class="fi" style="font-size:15px;">&#xE946;</span></button>`
       : '';
     return `
       <div class="setting-label-grid">
@@ -2286,17 +2501,7 @@ export function initUiDesignWorkbench() {
       });
     });
 
-    host.querySelectorAll('[data-copy]').forEach((btn) => {
-      if (btn.dataset.copyBound) return;
-      btn.dataset.copyBound = 'true';
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const val = btn.getAttribute('data-copy') || '';
-        if (!val) return;
-        navigator.clipboard?.writeText(val).catch(() => {});
-        showNotice(`已复制到剪贴板：${val}`);
-      });
-    });
+    bindInlinePathActions(host);
 
     host.querySelectorAll('[data-info-desc]').forEach((btn) => {
       if (btn.dataset.infoBound) return;
@@ -2323,6 +2528,7 @@ export function initUiDesignWorkbench() {
     const subnav = document.getElementById('vmSettingsSubnav');
     const host = document.getElementById('vmSettingsHost');
     if (!settingsArea || !subnav || !host) return;
+    setPageTabsTrailingAction('', null);
 
     const key = state.activeTabKey;
     const hasSubnav = key === 'processor' || key === 'memory' || key === 'devices' || key === 'advanced';
@@ -2334,12 +2540,13 @@ export function initUiDesignWorkbench() {
       storage: renderStorageTab,
       network: renderNetworkTab,
       serial: renderSerialTab,
+      vtpm: renderVtpmTab,
       pcie: renderPcieTab,
-      boot: renderBootTab,
-      security: renderSecurityTab,
-      console: renderConsoleTab,
       power: renderPowerTab,
-      'storage-policy': renderStoragePolicyTab
+      security: renderSecurityTab,
+      boot: renderBootTab,
+      console: renderConsoleTab,
+      compat: renderCompatTab
     };
 
     if (key === 'processor') {
@@ -2364,8 +2571,8 @@ export function initUiDesignWorkbench() {
         renderSettingsArea();
       });
       renderMemorySection(host, MEMORY_SECTIONS[state.memorySectionIdx]);
-    } else if (key === 'spacetime') {
-      renderSpacetimeTab(host);
+    } else if (key === 'checkpoints') {
+      renderCheckpointsTab(host);
     } else if (key === 'devices' || key === 'advanced') {
       const items = MERGED_SUBNAV_GROUPS[key] || [];
       const subProp = key === 'devices' ? 'deviceSubKey' : 'advancedSubKey';
@@ -2637,7 +2844,7 @@ export function initUiDesignWorkbench() {
       );
       const migModeLabel = renderSettingLabelHtml(
         t.subCardTitle,
-        `${t.minLabel}：只保留基础指令，可在不同型号的 CPU 间迁移；${t.clusterLabel}：保留集群各节点共有的指令。`
+        `${t.minLabel}：只保留基础指令，可在不同型号的 CPU 间迁移。${t.clusterLabel}：保留集群各节点共有的指令。`
       );
       const brandLabel = renderSettingLabelHtml(
         '自定义 CPU 名称',
@@ -4836,263 +5043,56 @@ export function initUiDesignWorkbench() {
     });
   }
 
-  // Tab 3: 存储 (VmStorageSettingsView.cs + VmStorageSettingsView.Add.cs + Screenshot 4)
+  // Tab 3: 存储 (Mirrors GPU-PV Workbench Style & VmStorageSettingsView Capabilities)
   function renderStorageTab(host) {
-    const vm = getVm();
-    if (state.storageAddingMode) {
-      const f = state.storageForm;
-      const isDisk = f.driveType === 'HardDisk';
-      const isVirtual = f.mediaSource === 'Virtual';
-      const isNew = isVirtual && f.operation === 'New';
-      host.innerHTML = `
-        <div style="padding:12px 24px 24px 24px;display:flex;flex-direction:column;gap:12px;">
-          <div class="settings-section-title">存储设备</div>
-          <div class="winui-card" style="margin-bottom:0;">
-            <div class="winui-card-row">
-              ${renderSettingLabelHtml('驱动器类型', null)}
-              <select class="winui-select" id="stFormDriveType" style="width:240px;">
-                <option value="HardDisk" ${isDisk ? 'selected' : ''}>硬盘驱动器</option>
-                <option value="DvdDrive" ${!isDisk ? 'selected' : ''}>光驱</option>
-              </select>
-            </div>
-            <div class="winui-card-row">
-              ${renderSettingLabelHtml('介质来源', null)}
-              <select class="winui-select" id="stFormMediaSource" style="width:240px;">
-                <option value="Virtual" ${isVirtual ? 'selected' : ''}>${isDisk ? '虚拟磁盘文件' : '光盘映像文件'}</option>
-                <option value="Physical" ${!isVirtual ? 'selected' : ''}>${isDisk ? '物理磁盘' : '空光驱'}</option>
-              </select>
-            </div>
-            ${
-              isDisk && isVirtual
-                ? `
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('操作方式', null)}
-                <select class="winui-select" id="stFormOperation" style="width:240px;">
-                  <option value="Existing" ${!isNew ? 'selected' : ''}>选择现有文件</option>
-                  <option value="New" ${isNew ? 'selected' : ''}>创建新的虚拟硬盘</option>
-                </select>
-              </div>
-            `
-                : ''
-            }
-            ${
-              isVirtual
-                ? `
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('文件路径', null)}
-                <div style="display:flex;gap:8px;align-items:center;">
-                  <input type="text" class="winui-textbox" id="stFormFilePath" style="width:280px;" value="${f.filePath}" placeholder="${isNew ? '新虚拟硬盘保存路径 (.vhdx/.vhd)' : '选择现有虚拟硬盘文件'}" />
-                  <button class="winui-btn">浏览</button>
-                </div>
-              </div>
-            `
-                : ''
-            }
-            ${
-              isDisk && isNew
-                ? `
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('容量 (GB)', null)}
-                <input type="number" class="winui-textbox" id="stFormSizeGb" style="width:240px;" value="${f.sizeGb}" />
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('虚拟磁盘类型', null)}
-                <select class="winui-select" id="stFormVhdType" style="width:240px;">
-                  <option value="Dynamic" ${f.vhdType === 'Dynamic' ? 'selected' : ''}>动态扩展</option>
-                  <option value="Fixed" ${f.vhdType === 'Fixed' ? 'selected' : ''}>固定大小</option>
-                  <option value="Differencing" ${f.vhdType === 'Differencing' ? 'selected' : ''}>差异磁盘</option>
-                </select>
-              </div>
-            `
-                : ''
-            }
-          </div>
-
-          <div class="settings-section-title" style="margin-top:8px;">插槽分配</div>
-          <div class="winui-card" style="margin-bottom:0;">
-            <div class="winui-card-row">
-              ${renderSettingLabelHtml('自动分配插槽', null)}
-              <div class="winui-switch ${f.autoLocation ? 'on' : ''}" id="stFormAutoSwitch">
-                <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-              </div>
-            </div>
-            ${
-              !f.autoLocation
-                ? `
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('控制器类型', null)}
-                <select class="winui-select" style="width:240px;"><option>SCSI</option><option>IDE</option></select>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('控制器编号', null)}
-                <select class="winui-select" style="width:240px;"><option>0</option></select>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('插槽位置', null)}
-                <select class="winui-select" style="width:240px;"><option>2</option><option>3</option></select>
-              </div>
-            `
-                : ''
-            }
-          </div>
-
-          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px;">
-            <button class="winui-btn" id="stFormCancelBtn">取消</button>
-            <button class="winui-btn accent" id="stFormConfirmBtn">添加</button>
-          </div>
-        </div>
-      `;
-
-      host.querySelector('#stFormDriveType')?.addEventListener('change', (e) => {
-        state.storageForm.driveType = e.target.value;
-        renderStorageTab(host);
-      });
-      host.querySelector('#stFormMediaSource')?.addEventListener('change', (e) => {
-        state.storageForm.mediaSource = e.target.value;
-        renderStorageTab(host);
-      });
-      host.querySelector('#stFormOperation')?.addEventListener('change', (e) => {
-        state.storageForm.operation = e.target.value;
-        renderStorageTab(host);
-      });
-      host.querySelector('#stFormAutoSwitch')?.addEventListener('click', () => {
-        state.storageForm.autoLocation = !state.storageForm.autoLocation;
-        renderStorageTab(host);
-      });
-      host.querySelector('#stFormCancelBtn')?.addEventListener('click', () => {
-        state.storageAddingMode = false;
-        renderStorageTab(host);
-      });
-      host.querySelector('#stFormConfirmBtn')?.addEventListener('click', () => {
-        const pathVal = host.querySelector('#stFormFilePath')?.value || 'D:\\Hyper-V\\new_disk.vhdx';
-        const name = pathVal.split('\\').pop() || 'new_disk.vhdx';
-        state.storageItems.push({
-          id: `st-${Date.now()}`,
-          driveType: state.storageForm.driveType,
-          diskType: 'Virtual',
-          displayName: name,
-          sizeText: `${state.storageForm.sizeGb}.0 GB`,
-          controllerType: 'SCSI',
-          controllerNumber: 0,
-          controllerLocation: state.storageItems.length,
-          path: pathVal,
-          hasIsoMedia: false,
-          isPassthroughStale: false,
-          expanded: true
-        });
-        state.storageAddingMode = false;
-        renderStorageTab(host);
-      });
-      return;
-    }
-
-    // Normal storage list view — 1:1 match to Screenshot 4 (media_1794659693841_045a2033.png)
-    const itemsHtml = state.storageItems
-      .map((item, idx) => {
-        const isDvd = item.driveType === 'DvdDrive';
-        const glyph = isDvd ? '&#xE958;' : '&#xEC59;';
-        const sourceText =
-          item.diskType === 'Physical' ? '物理磁盘直通' : isDvd && !item.path ? '空光驱' : '虚拟介质文件';
-        const showCompact = !isDvd && item.diskType === 'Virtual' && !vm.running;
-
-        return `
-          <div class="winui-expander ${item.expanded ? 'expanded' : ''}">
-            <div class="winui-expander-header" data-st-toggle="${idx}">
-              <div style="display:grid;grid-template-columns:auto 1fr auto;column-gap:16px;align-items:center;">
-                <span class="fi" style="font-size:26px;">${glyph}</span>
-                <div style="display:flex;flex-direction:column;gap:4px;">
-                  <div style="font-size:15px;">${item.displayName}</div>
-                  ${item.sizeText ? `<div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);">${item.sizeText}</div>` : ''}
-                </div>
-                <div style="display:flex;align-items:center;gap:4px;" data-stop-prop>
-                  ${
-                    item.path
-                      ? `<button class="round-icon-btn" title="在资源管理器中定位" data-st-action="locate"><span class="fi fi-fluent" style="font-size:16px;">&#xF6B0;</span></button>`
-                      : ''
-                  }
-                  ${
-                    showCompact
-                      ? `<button class="round-icon-btn" title="压缩虚拟磁盘" data-st-action="compact"><span class="fi fi-fluent" style="font-size:16px;">&#xF202;</span></button>`
-                      : ''
-                  }
-                  <button class="round-icon-btn" title="${isDvd ? '更换 ISO' : '更换虚拟磁盘'}" data-st-action="edit">
-                    <span class="fi fi-fluent" style="font-size:16px;">&#xF3DE;</span>
-                  </button>
-                  ${
-                    item.hasIsoMedia
-                      ? `<button class="round-icon-btn" title="弹出 ISO" data-st-action="eject"><span class="fi fi-fluent" style="font-size:16px;">&#xE0BE;</span></button>`
-                      : ''
-                  }
-                  <button class="round-icon-btn" title="移除挂接（保留磁盘文件）" data-st-remove="${idx}">
-                    <span class="fi fi-fluent" style="font-size:16px;">&#xF34D;</span>
-                  </button>
-                </div>
-              </div>
-              <span class="fi winui-expander-chevron">${item.expanded ? '&#xE70E;' : '&#xE70D;'}</span>
-            </div>
-            ${
-              item.expanded
-                ? `
-              <div class="winui-expander-body">
-                <div style="display:flex;flex-direction:column;gap:10px;">
-                  <div style="display:grid;grid-template-columns:64px 1fr;column-gap:16px;">
-                    <span style="color:var(--TextFillColorSecondaryBrush);">类型</span>
-                    <span>${sourceText}</span>
-                  </div>
-                  <div style="display:grid;grid-template-columns:64px 1fr;column-gap:16px;">
-                    <span style="color:var(--TextFillColorSecondaryBrush);">插槽</span>
-                    <span>${item.controllerType} 控制器 ${item.controllerNumber} · 位置 ${item.controllerLocation}</span>
-                  </div>
-                  <div style="display:grid;grid-template-columns:64px 1fr;column-gap:16px;">
-                    <span style="color:var(--TextFillColorSecondaryBrush);">路径</span>
-                    <span style="word-break:break-all;">${item.path || '无'}</span>
-                  </div>
-                </div>
-              </div>
-            `
-                : ''
-            }
-          </div>
-        `;
-      })
-      .join('');
-
-    host.innerHTML = `
-      <div style="padding:12px 24px 24px 24px;display:flex;flex-direction:column;gap:12px;">
-        <div style="display:flex;justify-content:flex-end;gap:8px;">
-          <button class="winui-btn" id="storageRefreshBtn">刷新</button>
-          <button class="winui-btn accent" id="storageAddBtn">添加存储</button>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          ${itemsHtml || `<div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);">当前虚拟机没有挂载任何存储设备</div>`}
-        </div>
-      </div>
-    `;
-
-    host.querySelectorAll('[data-stop-prop]').forEach((el) => {
-      el.addEventListener('click', (e) => e.stopPropagation());
-    });
-    host.querySelectorAll('[data-st-toggle]').forEach((hdr) => {
-      hdr.addEventListener('click', () => {
-        const idx = Number(hdr.getAttribute('data-st-toggle'));
-        state.storageItems[idx].expanded = !state.storageItems[idx].expanded;
-        renderStorageTab(host);
-      });
-    });
-    host.querySelectorAll('[data-st-remove]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = Number(btn.getAttribute('data-st-remove'));
-        state.storageItems.splice(idx, 1);
-        renderStorageTab(host);
-      });
-    });
-    host.querySelector('#storageAddBtn')?.addEventListener('click', () => {
-      state.storageAddingMode = true;
-      renderStorageTab(host);
+    renderStorageWorkbench(host, {
+      state,
+      vm: getVm(),
+      HOST_PHYSICAL_DISKS,
+      HOST_OPTICAL_DRIVES,
+      INITIAL_STORAGE_ITEMS,
+      renderTitleFirstKvItemHtml,
+      renderSettingLabelHtml,
+      renderDashboardSummary,
+      showNotice,
+      onLayoutNeeded: layoutDynamicGrids,
+      bindHostControls: bindSettingsHostControls,
+      setPageTabsTrailingAction,
+      onVmGenerationChange: (gen) => {
+        const curVm = getVm();
+        if (!curVm) return;
+        curVm.generation = gen === 1 ? 1 : 2;
+        curVm.gen = curVm.generation;
+        renderVmList();
+        renderDashboardSummary();
+        syncStandaloneHostRailPanel();
+        notifyParentHostState();
+      }
     });
   }
 
   // Tab 4: 显卡 (GPU-PV Layout Candidates)
+  function setPageTabsTrailingAction(html, onClick) {
+    const bar = document.getElementById('vmPageTabsBar');
+    if (!bar) return;
+    bar.querySelector('#vmPageTabsTrailing')?.remove();
+    if (!html) return;
+    const slot = document.createElement('div');
+    slot.id = 'vmPageTabsTrailing';
+    slot.className = 'vm-pagetabs-trailing';
+    slot.style.gap = '8px';
+    slot.innerHTML = html;
+    bar.appendChild(slot);
+
+    if (onClick) {
+      const btn = slot.querySelector('button');
+      btn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onClick();
+      });
+    }
+  }
+
   function renderGpuTab(host) {
     renderGpuWorkbench(host, {
       state,
@@ -5108,295 +5108,235 @@ export function initUiDesignWorkbench() {
       showNotice,
       onLayoutNeeded: layoutDynamicGrids,
       bindHostControls: bindSettingsHostControls,
+      setPageTabsTrailingAction,
       notifyParentGpuState
     });
   }
 
-  // Tab 5: 网络 (VmNetworkSettingsView.cs lines 19-210)
+  // Tab 5: 网络 (VmNetworkSettingsView.cs — 3 Redesign Candidates + Legacy Reference)
   function renderNetworkTab(host) {
-    const vm = getVm();
-    const adapter = vm.adapters[0];
-    const vlanMode = state.netVlanMode;
-    let vlanExtraRows = '';
-    if (vlanMode === 'Access') {
-      vlanExtraRows = `
-        <div class="winui-card-row">
-          ${renderSettingLabelHtml('VLAN ID', '0 表示不标记')}
-          <input type="number" class="winui-textbox" style="width:180px;" value="0" />
-        </div>
-      `;
-    } else if (vlanMode === 'Trunk') {
-      vlanExtraRows = `
-        <div class="winui-card-row">
-          ${renderSettingLabelHtml('Native VLAN ID', null)}
-          <input type="number" class="winui-textbox" style="width:180px;" value="1" />
-        </div>
-        <div class="winui-card-row">
-          ${renderSettingLabelHtml('允许的 VLAN', '如 1-100,200')}
-          <input type="text" class="winui-textbox" style="width:220px;" value="1-100" />
-        </div>
-      `;
-    } else {
-      vlanExtraRows = `
-        <div class="winui-card-row">
-          ${renderSettingLabelHtml('PVLAN 角色', null)}
-          <select class="winui-select" style="width:180px;"><option>隔离</option><option>团体</option><option>混杂</option></select>
-        </div>
-        <div class="winui-card-row">
-          ${renderSettingLabelHtml('主 VLAN ID', null)}
-          <input type="number" class="winui-textbox" style="width:180px;" value="10" />
-        </div>
-        <div class="winui-card-row">
-          ${renderSettingLabelHtml('辅助 VLAN ID', '混杂模式可填辅助列表，如 20-30')}
-          <input type="text" class="winui-textbox" style="width:220px;" value="20" />
-        </div>
-      `;
-    }
-
-    host.innerHTML = `
-      <div style="padding:8px 24px 24px 24px;display:flex;flex-direction:column;gap:16px;">
-        <div style="display:flex;gap:8px;">
-          <button class="winui-btn">添加网卡</button>
-          <button class="winui-btn">刷新</button>
-        </div>
-
-        <div class="winui-expander expanded">
-          <div class="winui-expander-header">
-            <span style="font-size:15px;">${adapter.title}</span>
-            <span class="fi winui-expander-chevron">&#xE70E;</span>
-          </div>
-          <div class="winui-expander-body">
-            <div class="settings-section-title">基本连接</div>
-            <div class="winui-card">
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('连接', null)}
-                <div class="winui-switch on" data-on-text="已连接" data-off-text="已断开">
-                  <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-                  <span class="switch-state-label">已连接</span>
-                </div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('虚拟交换机', null)}
-                <div style="display:flex;gap:8px;">
-                  <select class="winui-select" style="width:200px;">
-                    <option selected>Default Switch</option>
-                    <option>External vSwitch</option>
-                  </select>
-                  <button class="winui-btn">应用</button>
-                </div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('MAC 地址', vm.running ? '关闭虚拟机后可修改' : '留空恢复自动分配')}
-                <div style="display:flex;gap:8px;">
-                  <input type="text" class="winui-textbox" style="width:180px;" value="${adapter.mac}" ${vm.running ? 'disabled' : ''} />
-                  <button class="winui-btn" ${vm.running ? 'disabled' : ''}>应用</button>
-                  <button class="winui-btn">复制</button>
-                </div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('IP 地址', null)}
-                <div>${vm.running ? `<button class="winui-btn">${vm.ipWhenRunning}  复制</button>` : `<span style="opacity:0.6;">暂无 IP 地址</span>`}</div>
-              </div>
-            </div>
-
-            <div class="winui-card">
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('VLAN 隔离', null)}
-                <select class="winui-select" id="netVlanModeSelect" style="width:180px;">
-                  <option value="Access" ${vlanMode === 'Access' ? 'selected' : ''}>Access</option>
-                  <option value="Trunk" ${vlanMode === 'Trunk' ? 'selected' : ''}>Trunk</option>
-                  <option value="PrivateVlan" ${vlanMode === 'PrivateVlan' ? 'selected' : ''}>Private VLAN</option>
-                </select>
-              </div>
-              ${vlanExtraRows}
-              <div class="winui-card-row">
-                <span></span>
-                <button class="winui-btn">应用</button>
-              </div>
-            </div>
-
-            <div class="winui-card">
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('最低带宽', 'Mbit/s，0 表示不保留')}
-                <input type="text" class="winui-textbox" style="width:160px;" value="0" />
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('最高带宽', 'Mbit/s，0 表示不限速')}
-                <input type="text" class="winui-textbox" style="width:160px;" value="0" />
-              </div>
-              <div class="winui-card-row">
-                <span></span>
-                <button class="winui-btn">应用</button>
-              </div>
-            </div>
-
-            <div class="winui-card">
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('MAC 地址欺骗', null)}
-                <div class="winui-switch"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('DHCP 防护', null)}
-                <div class="winui-switch"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('路由器通告防护', null)}
-                <div class="winui-switch"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('允许网卡组队', null)}
-                <div class="winui-switch"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('端口镜像', null)}
-                <select class="winui-select" style="width:140px;"><option>禁用</option><option>源端口</option><option>目标端口</option></select>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('风暴限制', '0 表示不限')}
-                <input type="number" class="winui-textbox" style="width:140px;" value="0" />
-              </div>
-              <div class="winui-card-row">
-                <span></span>
-                <button class="winui-btn">应用</button>
-              </div>
-            </div>
-
-            <div class="winui-card">
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('虚拟机队列 VMQ', null)}
-                <div class="winui-switch on"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('SR-IOV', '需要宿主硬件与交换机支持')}
-                <div class="winui-switch"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-              </div>
-              <div class="winui-card-row">
-                ${renderSettingLabelHtml('IPsec 任务卸载', null)}
-                <div class="winui-switch on"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-              </div>
-              <div class="winui-card-row">
-                <span></span>
-                <button class="winui-btn">应用</button>
-              </div>
-            </div>
-
-            <button class="winui-btn">移除网卡</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    host.querySelector('#netVlanModeSelect')?.addEventListener('change', (e) => {
-      state.netVlanMode = e.target.value;
-      renderSettingsArea();
+    renderNetworkWorkbench(host, {
+      state,
+      vm: getVm(),
+      renderTitleFirstKvItemHtml,
+      renderSettingLabelHtml,
+      renderDashboardSummary,
+      showNotice,
+      onLayoutNeeded: layoutDynamicGrids,
+      bindHostControls: bindSettingsHostControls,
+      setPageTabsTrailingAction,
+      notifyParentNicState: () => {
+        syncStandaloneHostRailPanel();
+        notifyParentHostState();
+      }
     });
   }
 
-  // Tab 6: 引导 (VmBootSettingsView.cs lines 16-64)
+  // 高级 -> 引导顺序 (纯启动设备排序 · 单击设为首选 + 按住拖拽微调)
   function renderBootTab(host) {
+    const flipReorder = (mutateFn) => {
+      const before = new Map();
+      host.querySelectorAll('[data-boot-id]').forEach((el) => {
+        const r = el.getBoundingClientRect();
+        before.set(el.dataset.bootId, { x: r.left, y: r.top });
+      });
+
+      mutateFn();
+      renderBootTab(host);
+
+      host.querySelectorAll('[data-boot-id]').forEach((el) => {
+        const old = before.get(el.dataset.bootId);
+        if (!old) return;
+        const r = el.getBoundingClientRect();
+        const dx = old.x - r.left;
+        const dy = old.y - r.top;
+        if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+          el.style.transition = 'none';
+          el.style.transform = `translate(${dx}px, ${dy}px)`;
+          el.getBoundingClientRect();
+          el.style.transition = 'transform 280ms cubic-bezier(0.2, 0.85, 0.25, 1)';
+          el.style.transform = '';
+        }
+      });
+    };
+
     const itemsHtml = state.bootEntries
-      .map(
-        (b, idx) => `
-        <div class="boot-order-item" data-boot-idx="${idx}" title="点击可将此引导项上移">
-          <span class="fi" style="font-size:20px;">${b.glyph}</span>
-          <div style="display:grid;grid-template-columns:auto 1fr;column-gap:16px;align-items:center;">
-            <span style="font-size:15px;font-weight:500;">${b.name}</span>
-            <span style="font-size:14px;opacity:0.5;">${b.description}</span>
+      .map((b, idx) => {
+        const isFirst = idx === 0;
+
+        return `
+          <div class="boot-cascade-row" data-boot-row="${idx}">
+            <div class="boot-order-item${isFirst ? ' is-primary' : ''}" data-boot-id="${b.id}" data-boot-idx="${idx}">
+              <span class="fi boot-order-icon">${b.glyph}</span>
+              <div class="boot-order-text">
+                <span class="boot-order-name">${b.name}</span>
+                <span class="boot-order-desc">${b.description}</span>
+              </div>
+            </div>
           </div>
-          <span class="fi" style="font-size:18px;color:var(--TextFillColorSecondaryBrush);">&#xE700;</span>
-        </div>
-      `
-      )
+        `;
+      })
       .join('');
 
-    host.innerHTML = `<div style="padding:4px 24px 24px 24px;">${itemsHtml}</div>`;
-    host.querySelectorAll('[data-boot-idx]').forEach((item) => {
-      item.addEventListener('click', () => {
-        const idx = Number(item.getAttribute('data-boot-idx'));
-        if (idx > 0) {
-          const tmp = state.bootEntries[idx - 1];
-          state.bootEntries[idx - 1] = state.bootEntries[idx];
-          state.bootEntries[idx] = tmp;
-          renderBootTab(host);
-        }
+    host.innerHTML = `
+      <div class="boot-cascade-list">
+        <div class="boot-order-group">${itemsHtml}</div>
+      </div>
+    `;
+
+    host.querySelectorAll('[data-boot-idx]').forEach((card) => {
+      const startIdx = Number(card.getAttribute('data-boot-idx'));
+      card.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
+
+        const startY = e.clientY;
+        let dragging = false;
+        let currentIdx = startIdx;
+        const rows = Array.from(host.querySelectorAll('[data-boot-row]'));
+        const rects = rows.map((r) => r.getBoundingClientRect());
+        const stride = rects.length > 1 ? rects[1].top - rects[0].top : rects[0].height + 10;
+
+        const onMove = (ev) => {
+          const dy = ev.clientY - startY;
+          if (!dragging && Math.abs(dy) < 5) return;
+
+          if (!dragging) {
+            dragging = true;
+            card.setPointerCapture(e.pointerId);
+            card.classList.add('is-dragging');
+            card.style.transition = 'none';
+          }
+
+          card.style.transform = `translateY(${dy}px) scale(1.012)`;
+          const targetIdx = Math.max(0, Math.min(state.bootEntries.length - 1, startIdx + Math.round(dy / stride)));
+
+          if (targetIdx !== currentIdx) {
+            currentIdx = targetIdx;
+            rows.forEach((row, i) => {
+              if (i === startIdx) return;
+              let shift = 0;
+              if (startIdx < currentIdx && i > startIdx && i <= currentIdx) shift = -stride;
+              else if (startIdx > currentIdx && i >= currentIdx && i < startIdx) shift = stride;
+              const inner = row.querySelector('[data-boot-id]');
+              if (inner) {
+                inner.style.transition = 'transform 200ms cubic-bezier(0.2, 0.85, 0.25, 1)';
+                inner.style.transform = shift ? `translateY(${shift}px)` : '';
+              }
+            });
+          }
+        };
+
+        const onUp = () => {
+          window.removeEventListener('pointermove', onMove);
+          window.removeEventListener('pointerup', onUp);
+          window.removeEventListener('pointercancel', onUp);
+
+          if (!dragging) {
+            if (startIdx > 0) {
+              flipReorder(() => {
+                const [moved] = state.bootEntries.splice(startIdx, 1);
+                state.bootEntries.unshift(moved);
+              });
+            }
+            return;
+          }
+
+          card.classList.remove('is-dragging');
+          if (currentIdx !== startIdx) {
+            flipReorder(() => {
+              const [moved] = state.bootEntries.splice(startIdx, 1);
+              state.bootEntries.splice(currentIdx, 0, moved);
+            });
+          } else {
+            card.style.transition = 'transform 180ms cubic-bezier(0.2, 0.85, 0.25, 1)';
+            card.style.transform = '';
+            rows.forEach((row, i) => {
+              if (i !== startIdx) {
+                const inner = row.querySelector('[data-boot-id]');
+                if (inner) inner.style.transform = '';
+              }
+            });
+          }
+        };
+
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('pointercancel', onUp);
       });
     });
   }
 
-  // Tab 7: 安全 (VmSecuritySettingsView.cs lines 17-38 — uses VmSettingsView.Row with \uE946 info button!)
-  function renderSecurityTab(host) {
-    host.innerHTML = `
-      <div style="padding:4px 24px 24px 24px;">
-        <div class="settings-section-title">安全启动</div>
-        <div class="winui-card">
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('启用安全启动', '帮助防止启动时运行未经授权的代码')}
-            <div class="winui-switch on"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-          </div>
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('安全模板', null)}
-            <select class="winui-select" style="width:260px;">
-              <option selected>Microsoft Windows</option>
-              <option>Microsoft UEFI 证书颁发机构</option>
-              <option>开源屏蔽虚拟机</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="settings-section-title">加密支持</div>
-        <div class="winui-card">
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('启用 TPM', '可为虚拟机提供加密服务的受信任的平台模块')}
-            <div class="winui-switch on"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-          </div>
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('加密状态和虚拟机迁移流量', '加密虚拟机的保存状态与实时迁移流量')}
-            <div class="winui-switch"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-          </div>
-        </div>
-
-        <div class="settings-section-title">安全策略</div>
-        <div class="winui-card">
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('启用防护', '将虚拟机标记为受防护，会强制启用 TPM 与加密')}
-            <div class="winui-switch"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-          </div>
-        </div>
-      </div>
-    `;
+  // 设备 -> vTPM (虚拟可信平台模块 + 密钥保护器)
+  function renderVtpmTab(host) {
+    renderVtpmWorkbench(host, {
+      state,
+      vm: getVm(),
+      INITIAL_VTPM_BY_VM,
+      renderTitleFirstKvItemHtml,
+      renderSettingLabelHtml,
+      showNotice,
+      onLayoutNeeded: layoutDynamicGrids,
+      bindHostControls: bindSettingsHostControls,
+      setPageTabsTrailingAction
+    });
   }
 
-  // 控制台 (split from legacy VmAdvancedSettingsView: VmConsoleSupportService + VmDisplaySettingsService + Keyboard)
+  // 控制台 (VmConsoleSupportService + VmDisplaySettingsService)
   function renderConsoleTab(host) {
-    const resOptions = ['默认（自适应）', '3840 x 2160', '2560 x 1440', '1920 x 1080']
+    const vm = getVm();
+    const isGen1 = vm?.generation === 1 || vm?.gen === 1;
+    const consoleLockedByShield = !isGen1 && Boolean(state.advSettings.shielding);
+    const consoleOn = !consoleLockedByShield && Boolean(state.advSettings.consoleSupport);
+    const resPresets = [
+      '默认',
+      '3840 x 2160',
+      '2560 x 1440',
+      '1920 x 1200',
+      '1920 x 1080',
+      '1600 x 900',
+      '1366 x 768',
+      '1280 x 1024',
+      '1280 x 720',
+      '1024 x 768',
+      '800 x 600'
+    ];
+    const resOptions = resPresets
       .map((r) => `<option ${state.advSettings.resolution === r ? 'selected' : ''}>${r}</option>`)
       .join('');
     host.innerHTML = `
       <div style="padding:4px 24px 24px 24px;">
-        <div class="settings-section-title">控制台与显示</div>
-        <div class="winui-card">
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('控制台支持', '仅第 2 代虚拟机有效。关闭后无法经控制台访问，适合串流/RDP 直连。')}
-            <div class="winui-switch ${state.advSettings.consoleSupport ? 'on' : ''}" data-setting-key="consoleSupport"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-          </div>
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('基本会话默认分辨率', '默认、预设或手动输入，宽高不可为奇数。')}
-            <div style="display:flex;gap:8px;">
-              <select class="winui-select" id="consoleResSelect" style="width:180px;">${resOptions}</select>
-              <button class="winui-btn accent" id="consoleResApplyBtn">应用</button>
+        <div class="isa-grid-2x2">
+          <div class="isa-card uniform-1row span-2${consoleLockedByShield ? ' is-disabled' : ''}">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml(
+                '启用控制台',
+                consoleLockedByShield
+                  ? '已在「安全」中开启受防护模式并锁定关闭，需先关闭受防护模式才能启用'
+                  : '仅第 2 代虚拟机有效。关闭后会移除虚拟显示与键鼠，无法点击“连接”打开画面，适合纯 RDP、SSH 或显卡直通串流场景'
+              )}
+              <div class="winui-switch ${consoleOn ? 'on' : ''}${consoleLockedByShield ? ' disabled is-locked' : ''}" data-setting-key="consoleSupport"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
             </div>
           </div>
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('断开时锁定', '断开虚拟机控制台时锁定虚拟机系统')}
-            <div class="winui-switch ${state.advSettings.lockOnDisconnect ? 'on' : ''}" data-setting-key="lockOnDisconnect"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+          <div class="isa-card uniform-1row">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('断开时锁屏', '关闭控制台连接窗口时，自动锁定虚拟机内的系统')}
+              <div class="winui-switch ${state.advSettings.lockOnDisconnect ? 'on' : ''}" data-setting-key="lockOnDisconnect"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
           </div>
-        </div>
-
-        <div class="settings-section-title">输入行为</div>
-        <div class="winui-card" style="margin-bottom:0;">
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('开机时启用数字小键盘', null)}
-            <div class="winui-switch ${state.advSettings.numLock ? 'on' : ''}" data-setting-key="numLock"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+          <div class="isa-card uniform-1row">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('开机数字小键盘', '开机时默认开启 NumLock，避免连接控制台时同步关闭宿主小键盘。第 1 代与第 2 代均支持（关机状态可修改）')}
+              <div class="winui-switch ${state.advSettings.numLock ? 'on' : ''}" data-setting-key="numLock"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
+          </div>
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('默认分辨率', '控制台使用基本会话时的默认窗口分辨率，需在关机状态下修改')}
+              <div style="display:flex;gap:8px;flex-shrink:0;">
+                <select class="winui-select" id="consoleResSelect" style="width:180px;">${resOptions}</select>
+                <button class="winui-btn accent" id="consoleResApplyBtn">应用</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -5407,337 +5347,283 @@ export function initUiDesignWorkbench() {
     });
   }
 
-  // 电源 (split from legacy VmAdvancedSettingsView: VmPowerService)
+  // 电源 (VmPowerService)
   function renderPowerTab(host) {
     host.innerHTML = `
       <div style="padding:4px 24px 24px 24px;">
-        <div class="settings-section-title">电源行为与电池</div>
-        <div class="winui-card" style="margin-bottom:0;">
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('虚拟机休眠（S4）', '允许虚拟机使用 S4 休眠和快速启动')}
-            <div class="winui-switch ${state.advSettings.hibernation ? 'on' : ''}" data-setting-key="hibernation"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+        <div class="isa-grid-2x2">
+          <div class="isa-card uniform-1row">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('允许休眠', '向虚拟机开放 ACPI 休眠（S4）能力，允许来宾系统启用休眠或 Windows 快速启动')}
+              <div class="winui-switch ${state.advSettings.hibernation ? 'on' : ''}" data-setting-key="hibernation"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
           </div>
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('重启时改为关机', '虚拟机系统请求重启时，关闭虚拟机而不是重新启动')}
-            <div class="winui-switch ${state.advSettings.turnOffOnRestart ? 'on' : ''}" data-setting-key="turnOffOnRestart"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+          <div class="isa-card uniform-1row">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('重启时关机', '当虚拟机内部请求重启时，改为直接关机而不是重新启动')}
+              <div class="winui-switch ${state.advSettings.turnOffOnRestart ? 'on' : ''}" data-setting-key="turnOffOnRestart"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
           </div>
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('电池状态透传', '允许虚拟机读取主机的电池状态和剩余电量')}
-            <div class="winui-switch ${state.advSettings.batteryPassthrough ? 'on' : ''}" data-setting-key="batteryPassthrough"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('电池透传', '将宿主电池电量与充电状态同步给虚拟机')}
+              <div class="winui-switch ${state.advSettings.batteryPassthrough ? 'on' : ''}" data-setting-key="batteryPassthrough"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
           </div>
         </div>
       </div>
     `;
   }
 
-  // 串口 (VmSerialPortSettingsView.cs)
+  // 串口 (VmSerialPortSettingsView.cs — 对齐设备工作台风格)
   function renderSerialTab(host) {
+    renderSerialWorkbench(host, {
+      state,
+      vm: getVm(),
+      INITIAL_SERIAL_PORTS,
+      renderTitleFirstKvItemHtml,
+      renderSettingLabelHtml,
+      showNotice,
+      onLayoutNeeded: layoutDynamicGrids,
+      bindHostControls: bindSettingsHostControls,
+      setPageTabsTrailingAction
+    });
+  }
+
+  // 高级 -> 安全 (安全启动、状态与迁移加密、受防护模式，全部来自 VmSecurityService)
+  function renderSecurityTab(host) {
     const vm = getVm();
-    const canModify = !vm.running;
-    const ports = state.serialPortsByVm[vm.id] || (state.serialPortsByVm[vm.id] = structuredClone(INITIAL_SERIAL_PORTS));
-    const lockReason = '关闭虚拟机后可修改';
+    const isGen1 = vm?.generation === 1 || vm?.gen === 1;
+    const isRunning = Boolean(vm?.running);
+    const adv = state.advSettings;
+    const canEditShield = !isGen1 && !isRunning;
+    const canEditEnc = canEditShield && !adv.shielding;
+    const sbLocked = !canEditEnc;
+    const sbValue = !isGen1 && adv.secureBoot ? adv.secureBootTemplate : 'off';
+    const encOn = !isGen1 && Boolean(adv.encryptState);
+    const shieldOn = !isGen1 && Boolean(adv.shielding);
 
-    const normalizePipe = (raw) => {
-      const trimmed = String(raw || '').trim();
-      if (!trimmed) return '';
-      if (trimmed.startsWith('\\\\')) return trimmed;
-      return `\\\\.\\pipe\\${trimmed.replace(/^\\+/, '')}`;
-    };
-
-    const sanitizePipeSegment = (name) =>
-      String(name || 'vm')
-        .trim()
-        .replace(/[^A-Za-z0-9._-]+/g, '-')
-        .replace(/^-+|-+$/g, '') || 'vm';
-
-    const buildDefaultPipe = (port) =>
-      `\\\\.\\pipe\\${sanitizePipeSegment(vm.name)}-com${port.portNumber}`;
-
-    const portsHtml = ports.map((port, idx) => {
-      const isEnabled = Boolean(port.pipePath && port.pipePath.trim());
-      const pipeEditable = canModify && isEnabled;
-      const debugEditable = canModify && (isEnabled || Boolean(port.debuggerMode));
-      const enableDesc = canModify
-        ? '开启后将此串口连接到宿主机命名管道；关闭则断开连接并清空管道配置。'
-        : lockReason;
-      const pipeDesc = !canModify
-        ? lockReason
-        : isEnabled
-          ? '输入短名称会自动补全为 \\\\.\\pipe\\名称，供 PuTTY / WinDbg 连接。'
-          : '请先开启上方开关以启用命名管道连接。';
-      const debugDesc = !canModify
-        ? lockReason
-        : isEnabled
-          ? '为 Windows 内核调试器（WinDbg）优化传输；普通串口控制台无需开启。'
-          : '需先启用命名管道后才可开启内核调试模式。';
-      return `
-        <div>
-          <div class="settings-section-title">${port.name}</div>
-          <div class="winui-card" style="margin-bottom:0;" data-serial-idx="${idx}">
-            <div class="winui-card-row">
-              ${renderSettingLabelHtml('命名管道连接', enableDesc)}
-              <div class="winui-switch serial-enable-switch ${isEnabled ? 'on' : ''} ${canModify ? '' : 'disabled'}" data-serial-idx="${idx}" data-bound-switch="true">
-                <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-              </div>
-            </div>
-            <div class="winui-card-row">
-              ${renderSettingLabelHtml('命名管道路径', pipeDesc)}
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <input type="text" class="winui-textbox serial-pipe-input" data-serial-idx="${idx}" value="${escapeHtmlText(port.pipePath || '')}" placeholder="管道名或 \\\\.\\pipe\\名称" style="width:240px;" ${pipeEditable ? '' : 'disabled'} />
-                <button type="button" class="winui-btn accent serial-pipe-apply" data-serial-idx="${idx}" ${pipeEditable ? '' : 'disabled'}>应用</button>
-                <button type="button" class="winui-btn serial-pipe-copy" data-serial-idx="${idx}" ${isEnabled ? '' : 'disabled'}>复制</button>
-              </div>
-            </div>
-            <div class="winui-card-row">
-              ${renderSettingLabelHtml('内核调试模式', debugDesc)}
-              <div class="winui-switch serial-debug-switch ${port.debuggerMode ? 'on' : ''} ${debugEditable ? '' : 'disabled'}" data-serial-idx="${idx}" data-bound-switch="true">
-                <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    host.innerHTML = `
-      <div style="padding:4px 24px 24px 24px;display:flex;flex-direction:column;gap:4px;">
-        ${portsHtml}
-      </div>
-    `;
-
-    host.querySelectorAll('.serial-enable-switch').forEach((sw) => {
-      sw.addEventListener('click', () => {
-        if (!canModify) return;
-        const idx = Number(sw.dataset.serialIdx);
-        const port = ports[idx];
-        const isEnabled = Boolean(port.pipePath && port.pipePath.trim());
-        port.pipePath = isEnabled ? '' : buildDefaultPipe(port);
-        renderSerialTab(host);
-      });
-    });
-
-    host.querySelectorAll('.serial-pipe-apply').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        if (!canModify) return;
-        const idx = Number(btn.dataset.serialIdx);
-        const port = ports[idx];
-        if (!port.pipePath || !port.pipePath.trim()) return;
-        const input = host.querySelector(`.serial-pipe-input[data-serial-idx="${idx}"]`);
-        const normalized = normalizePipe(input?.value);
-        if (!normalized) return;
-        port.pipePath = normalized;
-        renderSerialTab(host);
-      });
-    });
-
-    host.querySelectorAll('.serial-pipe-copy').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = Number(btn.dataset.serialIdx);
-        const port = ports[idx];
-        if (!port.pipePath) return;
-        navigator.clipboard?.writeText(port.pipePath).catch(() => {});
-      });
-    });
-
-    host.querySelectorAll('.serial-debug-switch').forEach((sw) => {
-      sw.addEventListener('click', () => {
-        if (!canModify) return;
-        const idx = Number(sw.dataset.serialIdx);
-        const port = ports[idx];
-        const isEnabled = Boolean(port.pipePath && port.pipePath.trim());
-        if (!isEnabled && !port.debuggerMode) return;
-        port.debuggerMode = !port.debuggerMode;
-        renderSerialTab(host);
-      });
-    });
-
-    bindSettingsHostControls(host);
-  }
-
-  // 存储策略 (split from legacy VmAdvancedSettingsView: VmStorageService)
-  function renderStoragePolicyTab(host) {
-    host.innerHTML = `
-      <div style="padding:4px 24px 24px 24px;">
-        <div class="settings-section-title">存储与控制器策略</div>
-        <div class="winui-card" style="margin-bottom:0;">
-          <div class="winui-card-row">
-            ${renderSettingLabelHtml('完整 SCSI 命令集', '允许虚拟机向挂载的物理磁盘发送未经筛选的 SCSI 命令')}
-            <div class="winui-switch ${state.advSettings.fullScsi ? 'on' : ''}" data-setting-key="fullScsi"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // Tab 9: PCIe (VmPcieSettingsView.cs lines 104-186 — uses 2-line title + subtitle and OnContent="启用" OffContent="关闭")
-  function renderPcieTab(host) {
-    const vm = getVm();
-    const devices = state.pcieDevicesByVm[vm.id] || [];
-    const devHtml =
-      devices.length === 0
-        ? `<div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);">没有已分配的 PCIe 设备</div>`
-        : devices
-            .map(
-              (d) => `
-          <div class="winui-expander expanded">
-            <div class="winui-expander-header">
-              <div style="display:grid;grid-template-columns:auto 1fr auto;column-gap:16px;align-items:center;">
-                <span class="fi" style="font-size:20px;">${d.glyph}</span>
-                <span style="font-size:15px;">${d.name}</span>
-                <select class="winui-select" style="width:140px;"><option selected>半虚拟化</option><option>仿真</option></select>
-              </div>
-              <span class="fi winui-expander-chevron">&#xE70E;</span>
-            </div>
-            <div class="winui-expander-body">
-              <div style="display:flex;flex-direction:column;gap:10px;">
-                <div style="display:grid;grid-template-columns:80px 1fr;column-gap:16px;"><span style="color:var(--TextFillColorSecondaryBrush);">类别</span><span>${d.classType}</span></div>
-                <div style="display:grid;grid-template-columns:80px 1fr;column-gap:16px;"><span style="color:var(--TextFillColorSecondaryBrush);">实例 ID</span><span>${d.instanceId}</span></div>
-                <div style="display:grid;grid-template-columns:80px 1fr;column-gap:16px;"><span style="color:var(--TextFillColorSecondaryBrush);">路径</span><span>${d.path}</span></div>
-                <div style="display:grid;grid-template-columns:80px 1fr;column-gap:16px;"><span style="color:var(--TextFillColorSecondaryBrush);">制造商</span><span>${d.vendor}</span></div>
-              </div>
-            </div>
-          </div>
-        `
-            )
-            .join('');
-
-    host.innerHTML = `
-      <div style="padding:4px 24px 24px 24px;display:flex;flex-direction:column;gap:18px;">
-        <div>
-          <div class="settings-section-title">PCIe 呈现方式</div>
-          <div class="winui-card" style="margin-bottom:0;">
-            <div class="winui-card-row">
-              <div>
-                <div>PCIe 仿真</div>
-                <div class="winui-row-desc">让设备以标准 PCIe 设备的方式出现在虚拟机中</div>
-              </div>
-              <div class="winui-switch on" data-on-text="启用" data-off-text="关闭">
-                <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-                <span class="switch-state-label">启用</span>
-              </div>
-            </div>
-            <div class="winui-card-row">
-              <div>
-                <div>PCIe 拓扑</div>
-                <div class="winui-row-desc">呈现设备的 PCIe 拓扑结构</div>
-              </div>
-              <select class="winui-select" style="width:140px;"><option selected>默认</option><option>仿照主机</option></select>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="settings-section-title">启动</div>
-          <div class="winui-card" style="margin-bottom:0;">
-            <div class="winui-card-row">
-              <div>
-                <div>启动阶段 vPCI</div>
-                <div class="winui-row-desc">在 UEFI 中加载 vPCI 驱动，以识别受支持的设备（NVMe、AziHsm）</div>
-              </div>
-              <div class="winui-switch" data-on-text="启用" data-off-text="关闭">
-                <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-                <span class="switch-state-label">关闭</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="settings-section-title">已分配的 PCIe 设备</div>
-          ${devHtml}
-        </div>
-      </div>
-    `;
-  }
-
-  // Bonus View: 时空 (VmSpacetimeSettingsView.cs lines 48-366)
-  function renderSpacetimeTab(host) {
-    const sel = SPACETIME_NODES.find((n) => n.id === state.spacetimeSelectedId) || SPACETIME_NODES[3];
-    const isCurrent = sel.type === 'Current';
-
-    const linesSvg = SPACETIME_NODES.filter((n) => n.parentId)
-      .map((n) => {
-        const p = SPACETIME_NODES.find((x) => x.id === n.parentId);
-        if (!p) return '';
-        const x1 = p.x + 140;
-        const y1 = p.y + 40;
-        const x2 = n.x;
-        const y2 = n.y + 40;
-        if (n.wormhole) {
-          return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="Gold" stroke-width="4" />`;
-        }
-        return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(160,160,160,0.6)" stroke-width="2" stroke-dasharray="4,3" />`;
-      })
+    const sbChoices = [
+      { value: 'off', label: '关闭' },
+      { value: 'Microsoft Windows', label: 'Windows' },
+      { value: 'Microsoft UEFI 证书颁发机构', label: 'UEFI / CA' },
+      { value: '受防护的开源 VM', label: '受防护的开源 VM' }
+    ];
+    const sbPillsHtml = sbChoices
+      .map(
+        (c) =>
+          `<button type="button" class="isa-pill-btn${sbValue === c.value ? ' active' : ''}" data-security-sb-val="${c.value}" ${sbLocked ? 'disabled' : ''}>${c.label}</button>`
+      )
       .join('');
 
-    const nodesHtml = SPACETIME_NODES.map((n) => {
-      const active = n.id === sel.id;
-      const borderCol = active ? 'var(--VmAccentBrush)' : n.wormhole ? 'Gold' : 'var(--CardStrokeColorDefaultBrush)';
-      return `
-        <div data-st-node="${n.id}" style="position:absolute;left:${n.x}px;top:${n.y}px;width:140px;height:80px;border-radius:8px;border:2px solid ${borderCol};background:#1A2230;overflow:hidden;cursor:pointer;display:flex;align-items:flex-end;">
-          <div style="width:100%;padding:4px 6px;background:rgba(0,0,0,0.65);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n.name}</div>
-        </div>
-      `;
-    }).join('');
+    const sbDesc = isGen1
+      ? '仅第 2 代虚拟机支持安全启动'
+      : isRunning
+        ? '虚拟机运行中，关闭后才可修改'
+        : adv.shielding
+          ? '已由受防护模式锁定，需先关闭受防护模式才能更改'
+          : '决定开机时允许启动哪些系统：Windows 选 Windows，Linux 或第三方签名系统选 UEFI / CA，PE、macOS 或未签名系统选关闭';
+    const encDesc = isGen1
+      ? '仅第 2 代虚拟机支持状态与迁移加密'
+      : isRunning
+        ? '虚拟机运行中，关闭后才可修改'
+        : adv.shielding
+          ? '已由受防护模式锁定开启'
+          : '加密保存状态、检查点内存文件以及跨宿主实时迁移数据，开启时会自动启用 vTPM 并签发宿主密钥';
+    const shieldDesc = isGen1
+      ? '仅第 2 代虚拟机支持受防护模式'
+      : isRunning
+        ? '虚拟机运行中，关闭后才可修改'
+        : '企业级隔离模式，会强制锁定安全启动、vTPM 与状态加密，并禁用控制台画面与增强会话，仅能通过 RDP 或 SSH 远程连接，个人单机通常无需开启';
 
     host.innerHTML = `
-      <div style="padding:4px 12px 12px 12px;height:100%;display:grid;grid-template-rows:auto 1fr;row-gap:12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span>检查点</span>
-            <div class="winui-switch on" data-on-text="启用" data-off-text="关闭">
-              <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-              <span class="switch-state-label">启用</span>
-            </div>
-          </div>
-          <button class="winui-btn">导出拓扑图</button>
+      <div style="padding:4px 24px 24px 24px;">
+        <div class="settings-section-title" style="margin-top:0;">
+          ${renderSettingLabelHtml('安全启动', sbDesc)}
         </div>
-
-        <div style="display:grid;grid-template-columns:1fr 220px;column-gap:12px;min-height:420px;">
-          <div style="position:relative;border-radius:8px;border:1px solid var(--CardStrokeColorDefaultBrush);background:var(--ControlFillColorDefaultBrush);overflow:auto;">
-            <svg width="900" height="420" style="position:absolute;inset:0;pointer-events:none;">${linesSvg}</svg>
-            ${nodesHtml}
-          </div>
-
-          <div style="border-radius:8px;border:1px solid var(--CardStrokeColorDefaultBrush);background:var(--CardBackgroundFillColorDefaultBrush);padding:12px;display:flex;flex-direction:column;gap:8px;">
-            <div style="font-size:13px;font-weight:600;">时空详情</div>
-            <div style="padding:8px;border-radius:4px;background:var(--ControlFillColorTertiaryBrush);">
-              <div style="font-weight:600;">${sel.name}</div>
-              <div style="font-size:11px;opacity:0.6;margin-top:2px;">${sel.date}</div>
+        <div class="isa-pill-track cols-4">
+          ${sbPillsHtml}
+        </div>
+        <div class="isa-grid-2x2" style="margin-top:14px;">
+          <div class="isa-card uniform-1row${canEditEnc ? '' : ' is-disabled'}">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('状态与迁移加密', encDesc)}
+              <div class="winui-switch ${encOn ? 'on' : ''}${canEditEnc ? '' : ' disabled is-locked'}" data-security-key="encryptState" data-custom-switch="true"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
             </div>
-            <div style="font-size:13px;font-weight:600;margin-top:4px;">操作</div>
-            ${
-              isCurrent
-                ? `
-              <label style="font-size:12px;display:flex;gap:6px;align-items:center;"><input type="radio" name="stMode" checked /> 连续时空</label>
-              <div style="font-size:11px;opacity:0.6;margin-left:20px;">不中断当前运行</div>
-              <label style="font-size:12px;display:flex;gap:6px;align-items:center;"><input type="radio" name="stMode" /> 静止时空</label>
-              <div style="font-size:11px;opacity:0.6;margin-left:20px;">短暂冻结以保持一致</div>
-              <button class="winui-btn accent" style="width:100%;margin-top:6px;">创建时空</button>
-            `
-                : `
-              <button class="winui-btn" style="width:100%;justify-content:flex-start;"><span class="fi">&#xE8AB;</span><span>穿梭</span></button>
-              <button class="winui-btn" style="width:100%;justify-content:flex-start;"><span class="fi">&#xE71B;</span><span>${sel.wormhole ? '关闭虫洞' : '开启虫洞'}</span></button>
-              <button class="winui-btn" style="width:100%;justify-content:flex-start;"><span class="fi">&#xE97A;</span><span>时空收束</span></button>
-              <button class="winui-btn danger" style="width:100%;justify-content:flex-start;"><span class="fi">&#xE74D;</span><span>删除</span></button>
-            `
-            }
+          </div>
+          <div class="isa-card uniform-1row${canEditShield ? '' : ' is-disabled'}">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('受防护模式', shieldDesc)}
+              <div class="winui-switch ${shieldOn ? 'on' : ''}${canEditShield ? '' : ' disabled is-locked'}" data-security-key="shielding" data-custom-switch="true"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
           </div>
         </div>
       </div>
     `;
 
-    host.querySelectorAll('[data-st-node]').forEach((el) => {
-      el.addEventListener('click', () => {
-        state.spacetimeSelectedId = el.getAttribute('data-st-node');
-        renderSpacetimeTab(host);
+    host.querySelectorAll('[data-security-sb-val]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (sbLocked) return;
+        const val = btn.getAttribute('data-security-sb-val');
+        if (val === 'off') {
+          adv.secureBoot = false;
+        } else {
+          adv.secureBoot = true;
+          adv.secureBootTemplate = val;
+        }
+        renderSecurityTab(host);
+        bindSettingsHostControls(host);
       });
     });
-    bindSettingsHostControls(host);
+
+    host.querySelectorAll('[data-security-key]').forEach((sw) => {
+      sw.addEventListener('click', () => {
+        const key = sw.dataset.securityKey;
+        if (key === 'encryptState') {
+          if (!canEditEnc) return;
+          adv.encryptState = !adv.encryptState;
+          if (adv.encryptState) {
+            adv.tpmEnabled = true;
+            ensureVtpmHostKeyForVm(state, vm, INITIAL_VTPM_BY_VM);
+          }
+        } else if (key === 'shielding') {
+          if (!canEditShield) return;
+          adv.shielding = !adv.shielding;
+          if (adv.shielding) {
+            adv.secureBoot = true;
+            adv.tpmEnabled = true;
+            ensureVtpmHostKeyForVm(state, vm, INITIAL_VTPM_BY_VM);
+            adv.encryptState = true;
+            adv.consoleSupport = false;
+          }
+        }
+        renderSecurityTab(host);
+        bindSettingsHostControls(host);
+      });
+    });
+  }
+
+  // 高级 -> 其他 (PCIe 设备引导 + 完整 SCSI 命令集)
+  function renderCompatTab(host) {
+    const vm = getVm();
+    const isGen1 = vm?.generation === 1 || vm?.gen === 1;
+    const isRunning = Boolean(vm?.running);
+    const adv = state.advSettings;
+    const pcieCfg = ((state.pcieSettingsByVm ??= {})[vm.id] ??= { emulationEnabled: true, topology: '0', bootVpci: false });
+    const canEditPcieBoot = !isGen1 && !isRunning;
+    const bootVpciOn = !isGen1 && Boolean(pcieCfg.bootVpci);
+
+    const bootVpciDesc = isGen1
+      ? '仅第 2 代虚拟机支持通过 UEFI 加载 vPCI 驱动引导'
+      : isRunning
+        ? '虚拟机运行中，关闭后才可修改'
+        : '在 UEFI 启动阶段加载 vPCI 驱动，使虚拟机能够直接从直通的 NVMe 等受支持 PCIe 设备引导系统';
+
+    host.innerHTML = `
+      <div style="padding:4px 24px 24px 24px;">
+        <div class="isa-grid-2x2">
+          <div class="isa-card uniform-1row span-2${canEditPcieBoot ? '' : ' is-disabled'}">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('PCIe 设备引导', bootVpciDesc)}
+              <div class="winui-switch ${bootVpciOn ? 'on' : ''}${canEditPcieBoot ? '' : ' disabled is-locked'}" data-compat-key="bootVpci" data-custom-switch="true"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
+          </div>
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('启用完整 SCSI 命令集', '仅对物理直通硬盘生效，关闭命令过滤后可供虚拟机读取硬盘 SMART 信息或使用专业存储管理工具。使用普通 VHDX 虚拟磁盘时无效，平时建议关闭')}
+              <div class="winui-switch ${adv.fullScsi ? 'on' : ''}" data-compat-key="fullScsi" data-custom-switch="true"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    host.querySelectorAll('[data-compat-key]').forEach((sw) => {
+      sw.addEventListener('click', () => {
+        const key = sw.dataset.compatKey;
+        if (key === 'bootVpci') {
+          if (!canEditPcieBoot) return;
+          pcieCfg.bootVpci = !pcieCfg.bootVpci;
+        } else if (key === 'fullScsi') {
+          adv.fullScsi = !adv.fullScsi;
+        }
+        renderCompatTab(host);
+        bindSettingsHostControls(host);
+      });
+    });
+  }
+
+  // Tab 9: PCIe (对齐存储物理磁盘直通交互：单机列表 + 全局设备池)
+  function renderPcieTab(host) {
+    renderPcieWorkbench(host, {
+      state,
+      vm: getVm(),
+      vmItems: VM_ITEMS,
+      HOST_PCIE_DEVICES,
+      renderTitleFirstKvItemHtml,
+      renderSettingLabelHtml,
+      showNotice,
+      onLayoutNeeded: layoutDynamicGrids,
+      bindHostControls: bindSettingsHostControls,
+      setPageTabsTrailingAction
+    });
+  }
+
+  function syncDesignCandidatesPanel() {
+    const panel = document.getElementById('designCandidatesPanel');
+    const dyn = document.getElementById('dcpDynamicSections');
+    const titleEl = document.getElementById('dcpTitle');
+    if (!panel || !dyn) return;
+    const isEmbedded = window.self !== window.top;
+    if (isEmbedded) {
+      panel.hidden = true;
+      return;
+    }
+    const isCheckpointTab = state.navTarget === 'vm' && state.activeTabKey === 'checkpoints';
+    panel.hidden = !isCheckpointTab;
+    if (panel.hidden) {
+      dyn.innerHTML = '';
+      return;
+    }
+    panel.querySelectorAll(':scope > .dcp-subheader, :scope > .dcp-list').forEach((el) => {
+      const scope = el.getAttribute('data-dcp-scope');
+      el.hidden = Boolean(scope && scope !== 'checkpoints');
+    });
+    if (titleEl) titleEl.textContent = '检查点视觉方案';
+    dyn.innerHTML = `
+      <div class="dcp-footer">
+        <button class="dcp-action-btn" type="button" id="dcpCpResetDemo">重置演示检查点</button>
+      </div>
+    `;
+    const resetBtn = document.getElementById('dcpCpResetDemo');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        state.checkpointNodes = structuredClone(CHECKPOINT_NODES);
+        state.checkpointSelectedId = 'node-current';
+        state.checkpointConfirmAction = null;
+        state.checkpointRenaming = false;
+        state.checkpointSearch = '';
+        state.checkpointFilter = 'all';
+        state.checkpointZoom = 1;
+        const host = document.getElementById('vmSettingsHost');
+        if (host && state.activeTabKey === 'checkpoints') renderCheckpointsTab(host);
+      });
+    }
+    syncStandaloneHostRailPanel();
+  }
+
+  function renderCheckpointsTab(host) {
+    renderCheckpointWorkbench(host, { state, initialNodes: CHECKPOINT_NODES });
   }
 
   // Switch between OverviewScroll and SettingsArea, and sync bottom workbench bar
   function renderActiveWorkspace() {
+    if ((state.activeTabKey !== 'checkpoints' || state.navTarget !== 'vm') && state.checkpointFullscreen) {
+      state.checkpointFullscreen = false;
+      winEl.classList.remove('is-cp-fullscreen');
+    }
+    syncDesignCandidatesPanel();
+    setPageTabsTrailingAction('', null);
     const overviewScroll = document.getElementById('vmOverviewScroll');
     const settingsArea = document.getElementById('vmSettingsArea');
     const isOverview = state.activeTabKey === 'overview';
@@ -5810,6 +5696,8 @@ export function initUiDesignWorkbench() {
     const vm = getVm();
     vm.running = !vm.running;
     syncDcpMemoryAssembler();
+    syncStandaloneHostRailPanel();
+    notifyParentHostState();
     renderVmList();
     renderDashboardSummary();
     renderActiveWorkspace();
@@ -5880,14 +5768,42 @@ export function initUiDesignWorkbench() {
     renderOverview();
   });
 
-  document.getElementById('dashboardNoticeCloseBtn')?.addEventListener('click', () => {
-    const bar = document.getElementById('dashboardNoticeBar');
-    if (bar) bar.hidden = true;
+  document.getElementById('vmNoticeCloseBtn')?.addEventListener('click', () => {
+    const banner = document.getElementById('vmNoticeBanner');
+    if (banner) banner.hidden = true;
   });
 
-  document.getElementById('settingsNoticeCloseBtn')?.addEventListener('click', () => {
-    const bar = document.getElementById('settingsNoticeBar');
-    if (bar) bar.hidden = true;
+  document.getElementById('vmNoticeDetailsBtn')?.addEventListener('click', () => {
+    const modal = document.getElementById('vmNoticeDetailsModal');
+    const bodyEl = document.getElementById('vmNoticeDetailsText');
+    const copyBtn = document.getElementById('vmNoticeCopyAllBtn');
+    if (!modal || !bodyEl || !lastNoticeFullText) return;
+    bodyEl.textContent = lastNoticeFullText;
+    if (copyBtn) copyBtn.textContent = '全部复制';
+    modal.hidden = false;
+  });
+
+  const closeNoticeModal = () => {
+    const modal = document.getElementById('vmNoticeDetailsModal');
+    if (modal) modal.hidden = true;
+  };
+  document.getElementById('vmNoticeModalCloseBtn')?.addEventListener('click', closeNoticeModal);
+  document.getElementById('vmNoticeDetailsModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'vmNoticeDetailsModal') closeNoticeModal();
+  });
+  document.getElementById('vmNoticeCopyAllBtn')?.addEventListener('click', async () => {
+    if (!lastNoticeFullText) return;
+    try {
+      await navigator.clipboard?.writeText(lastNoticeFullText);
+    } catch {}
+    const copyBtn = document.getElementById('vmNoticeCopyAllBtn');
+    if (copyBtn) {
+      copyBtn.textContent = '已复制';
+      if (noticeCopyResetTimer) clearTimeout(noticeCopyResetTimer);
+      noticeCopyResetTimer = setTimeout(() => {
+        copyBtn.textContent = '全部复制';
+      }, 1600);
+    }
   });
 
   // SettingsPage.xaml appearance bindings
@@ -6322,7 +6238,7 @@ export function initUiDesignWorkbench() {
   // Live visual icon pickers & tail tab order switcher in right-side panel
   document.querySelectorAll('#dcpCheckpointIcons [data-cp-glyph]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const cpTab = PAGE_TABS.find((t) => t.key === 'spacetime');
+      const cpTab = PAGE_TABS.find((t) => t.key === 'checkpoints');
       if (cpTab) {
         cpTab.glyph = btn.getAttribute('data-cp-glyph') || cpTab.glyph;
         cpTab.fluent = btn.getAttribute('data-cp-fluent') === 'true';
@@ -6364,9 +6280,9 @@ export function initUiDesignWorkbench() {
   });
 
   document.getElementById('dcpToggleTailOrderBtn')?.addEventListener('click', (e) => {
-    state.tailOrder = state.tailOrder === 'spacetime-first' ? 'advanced-first' : 'spacetime-first';
+    state.tailOrder = state.tailOrder === 'checkpoints-first' ? 'advanced-first' : 'checkpoints-first';
     e.currentTarget.textContent =
-      state.tailOrder === 'spacetime-first' ? '顶栏顺序: 检查点 · 高级' : '顶栏顺序: 高级 · 检查点';
+      state.tailOrder === 'checkpoints-first' ? '顶栏顺序：检查点 / 高级' : '顶栏顺序：高级 / 检查点';
     renderPageTabs();
   });
 
@@ -6561,8 +6477,10 @@ export function initUiDesignWorkbench() {
       document.querySelectorAll('#dcpNoticeModes [data-notice-mode]').forEach((b) => {
         b.classList.toggle('active', b.getAttribute('data-notice-mode') === state.noticeMode);
       });
-      const bar = document.getElementById('dashboardNoticeBar');
-      if (bar) bar.hidden = true;
+      const banner = document.getElementById('vmNoticeBanner');
+      if (banner) banner.hidden = true;
+      const toast = document.getElementById('vmSuccessToast');
+      if (toast) toast.hidden = true;
       const inlineEl = document.getElementById('computeInlineNotice');
       if (inlineEl) inlineEl.classList.remove('is-visible');
       showNotice(state.uiLang === 'en' ? 'Compute settings applied.' : '已应用「计算资源」设置');
@@ -6602,28 +6520,19 @@ export function initUiDesignWorkbench() {
     });
   });
 
-  function notifyParentGpuState() {
-    if (window.parent === window) return;
-    const vm = getVm();
-    const assigns = state.gpuAssignmentsByVm[vm.id] || [];
-    let status = 'single';
-    if (state.gpuScenario === 'stale') status = 'stale';
-    else if (!state.gpuVmReady) status = 'mmio-pending';
-    else if (assigns.length === 0) status = 'empty';
-    else if (assigns.length >= 2) status = 'dual';
+  function emitHostAppEvent(channel, payload) {
     try {
+      if (window.__WOW_APP_CLIENT__ && typeof window.__WOW_APP_CLIENT__.emitAppEvent === 'function') {
+        window.__WOW_APP_CLIENT__.emitAppEvent(channel, payload);
+        return;
+      }
+      if (window.parent === window) return;
       window.parent.postMessage(
         {
           protocol: 'win11-app/v1',
           type: 'w11:app-event',
-          channel: 'exhyperv:gpu-sync',
-          payload: {
-            activeTabKey: state.activeTabKey,
-            deviceSubKey: state.deviceSubKey,
-            variant: state.gpuVariant || 'expander',
-            status,
-            mode: state.gpuMode || 'list'
-          }
+          channel,
+          payload
         },
         window.location.origin
       );
@@ -6632,32 +6541,253 @@ export function initUiDesignWorkbench() {
     }
   }
 
-  window.addEventListener('message', (event) => {
-    if (event.origin !== window.location.origin) return;
-    const raw = event.data;
-    if (!raw || typeof raw !== 'object') return;
-    if (
-      (raw.protocol === 'win11-app/v1' && raw.type === 'w11:init') ||
-      raw.type === 'exhyperv-gpu-request-sync'
-    ) {
-      notifyParentGpuState();
-      return;
+  function notifyParentGpuState() {
+    if (window.parent === window && !window.__WOW_APP_CLIENT__) return;
+    const vm = getVm();
+    const assigns = state.gpuAssignmentsByVm[vm.id] || [];
+    let status = 'single';
+    if (assigns.length === 0) status = 'empty';
+    else if (assigns.length >= 2) status = 'dual';
+    emitHostAppEvent('exhyperv:gpu-sync', {
+      activeTabKey: state.activeTabKey,
+      deviceSubKey: state.deviceSubKey,
+      variant: state.gpuVariant || 'tiles',
+      addPlacement: state.gpuAddPlacement || 'list-bottom-row',
+      addBtnStyle: state.gpuAddBtnStyle || 'secondary-icon-text',
+      iconStyle: state.gpuIconStyle || 'vector',
+      driverMismatch: Boolean(state.gpuDriverMismatch),
+      updateIcon: state.gpuUpdateIcon || 'upgrade-base',
+      updateColor: state.gpuUpdateColor || 'white',
+      status,
+      mode: state.gpuMode || 'list'
+    });
+  }
+
+  const hostCandidateMappings = (() => {
+    try {
+      const panel = document.getElementById('designCandidatesPanel');
+      return JSON.parse(panel?.dataset?.dcpMappings || '[]');
+    } catch {
+      return [];
+    }
+  })();
+
+  const VALID_STORAGE_ADD_VARIANTS = new Set(['pivot-2x3', 'pivot-3x2', 'matrix-card']);
+  const VALID_DISK_CAP_LAYOUTS = new Set(['header-edge-6', 'header-edge-8', 'header-edge', 'bar-only', 'bar-pct']);
+  const VALID_NIC_VARIANTS = new Set(['unified', 'inline-converged', 'pill-tabs', 'legacy']);
+  const VALID_NIC_MODES = new Set(['list', 'add', 'policy']);
+  const VALID_NIC_HOST_SWITCHES = new Set(['one', 'many', 'none']);
+  const VALID_NIC_VM_ENVS = new Set(['gen1-off', 'gen2-off', 'gen1-on']);
+  const VALID_NIC_SCENARIOS = new Set(['single', 'multi', 'empty']);
+  const VALID_NIC_ADV_LABELS = new Set(['策略']);
+  const VALID_NIC_ADV_ICONS = new Set(['E9E9', 'F8A6', 'E9D5', 'E71C', 'E90F', 'E713']);
+
+  const VALID_CHECKPOINT_CANDIDATES = new Set([
+    'a-vm-desktop',
+    'a-console-shell',
+    'c-brand-matte',
+    'c-iso-chain'
+  ]);
+
+  function getHostPanelSyncState() {
+    const vm = getVm();
+    return {
+      ...getHostOverviewCandidate(),
+      checkpointCandidate: state.checkpointCandidate || 'c-brand-matte',
+      storageAddVariant: state.storageAddVariant || 'pivot-2x3',
+      storageVmGen: String(Number(vm?.generation) === 1 ? 1 : 2),
+      diskCapLayout: state.diskCapLayout || 'header-edge-6',
+      nicVariant: state.nicVariant || 'unified',
+      nicMode: state.nicMode || 'list',
+      nicHostSwitches: state.nicHostSwitches || 'one',
+      nicVmEnv: Number(vm?.generation) === 1 ? (vm?.running ? 'gen1-on' : 'gen1-off') : 'gen2-off',
+      nicScenario: state.nicScenario || 'single',
+      nicPower: vm?.running ? 'on' : 'off',
+      nicAdvLabel: state.nicAdvLabel || '策略',
+      nicAdvIcon: state.nicAdvIcon || 'E71C'
+    };
+  }
+
+  function syncStandaloneHostRailPanel() {
+    const cfg = getHostPanelSyncState();
+    hostCandidateMappings.forEach(([attr, key]) => {
+      document.querySelectorAll(`#designCandidatesPanel [${attr}]`).forEach((btn) => {
+        const raw = btn.getAttribute(attr);
+        btn.classList.toggle('active', raw === 'toggle' ? cfg[key] === 'on' : raw === cfg[key]);
+      });
+    });
+  }
+
+  function notifyParentHostState() {
+    emitHostAppEvent('exhyperv:host-sync', getHostPanelSyncState());
+  }
+
+  function focusStorageAddTab() {
+    if (state.navTarget !== 'vm') switchNavigationTarget('vm');
+    state.activeTabKey = 'devices';
+    state.deviceSubKey = 'storage';
+    state.storageMode = 'add';
+    renderPageTabs();
+    renderDashboardSummary();
+    renderActiveWorkspace();
+  }
+
+  function focusNetworkSettingsTab() {
+    if (state.navTarget !== 'vm') switchNavigationTarget('vm');
+    state.activeTabKey = 'devices';
+    state.deviceSubKey = 'network';
+    renderPageTabs();
+    renderDashboardSummary();
+    renderActiveWorkspace();
+  }
+
+  function focusCheckpointsTab() {
+    if (state.navTarget !== 'vm') switchNavigationTarget('vm');
+    state.activeTabKey = 'checkpoints';
+    renderPageTabs();
+    renderDashboardSummary();
+    renderActiveWorkspace();
+  }
+
+  function applyHostCandidatePayload(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    const {
+      checkpointCandidate,
+      checkpointShowThumbs,
+      storageAddVariant,
+      storageVmGen,
+      diskCapLayout,
+      nicVariant,
+      nicMode,
+      nicHostSwitches,
+      nicVmEnv,
+      nicScenario,
+      nicPower,
+      nicAdvLabel,
+      nicAdvIcon,
+      ...hostPayload
+    } = payload;
+
+    let handledCheckpoint = false;
+    if (typeof checkpointCandidate === 'string' && VALID_CHECKPOINT_CANDIDATES.has(checkpointCandidate)) {
+      state.checkpointCandidate = checkpointCandidate;
+      state.checkpointConfirmAction = null;
+      handledCheckpoint = true;
+    }
+    if (checkpointShowThumbs === 'on' || checkpointShowThumbs === 'off') {
+      state.checkpointShowThumbs = checkpointShowThumbs === 'on';
+      handledCheckpoint = true;
     }
 
-    let data = null;
-    if (
-      raw.protocol === 'win11-app/v1' &&
-      raw.type === 'w11:app-message' &&
-      raw.channel === 'exhyperv:gpu-candidate' &&
-      raw.payload &&
-      typeof raw.payload === 'object'
-    ) {
-      data = raw.payload;
-    } else if (raw.type === 'exhyperv-gpu-candidate') {
-      data = raw;
+    let handledNic = false;
+    const vm = getVm();
+    if (typeof nicVariant === 'string' && VALID_NIC_VARIANTS.has(nicVariant)) {
+      state.nicVariant = nicVariant;
+      if (nicVariant !== 'unified' && (state.nicMode === 'policy' || state.nicMode === 'add')) {
+        state.nicMode = 'list';
+      }
+      handledNic = true;
     }
-    if (!data) return;
+    if (typeof nicMode === 'string' && VALID_NIC_MODES.has(nicMode)) {
+      if (nicMode === 'policy' && state.nicScenario === 'empty' && vm) {
+        state.nicScenario = 'single';
+        resetNetworkAdaptersForScenario(state, vm, 'single');
+      }
+      if (nicMode === 'policy' || nicMode === 'add') {
+        state.nicVariant = 'unified';
+      }
+      state.nicMode = nicMode;
+      handledNic = true;
+    }
+    if (typeof nicHostSwitches === 'string' && VALID_NIC_HOST_SWITCHES.has(nicHostSwitches)) {
+      state.nicHostSwitches = nicHostSwitches;
+      state.nicMode = 'add';
+      handledNic = true;
+    }
+    if (typeof nicVmEnv === 'string' && VALID_NIC_VM_ENVS.has(nicVmEnv)) {
+      state.nicVmEnv = nicVmEnv;
+      if (vm) {
+        vm.generation = nicVmEnv === 'gen2-off' ? 2 : 1;
+        vm.gen = vm.generation;
+        vm.running = nicVmEnv === 'gen1-on';
+      }
+      renderVmList();
+      handledNic = true;
+    }
+    if (typeof nicScenario === 'string' && VALID_NIC_SCENARIOS.has(nicScenario)) {
+      state.nicScenario = nicScenario;
+      if (vm) resetNetworkAdaptersForScenario(state, vm, nicScenario);
+      handledNic = true;
+    }
+    if (typeof nicPower === 'string' && (nicPower === 'on' || nicPower === 'off')) {
+      if (vm) vm.running = nicPower === 'on';
+      renderVmList();
+      handledNic = true;
+    }
+    if (typeof nicAdvLabel === 'string' && VALID_NIC_ADV_LABELS.has(nicAdvLabel)) {
+      state.nicAdvLabel = nicAdvLabel;
+      if (state.nicScenario === 'empty' && vm) {
+        state.nicScenario = 'single';
+        resetNetworkAdaptersForScenario(state, vm, 'single');
+      }
+      state.nicVariant = 'unified';
+      state.nicMode = 'policy';
+      state.nicPolicyTab = 'security';
+      handledNic = true;
+    }
+    if (typeof nicAdvIcon === 'string' && VALID_NIC_ADV_ICONS.has(nicAdvIcon)) {
+      state.nicAdvIcon = nicAdvIcon;
+      if (state.nicScenario === 'empty' && vm) {
+        state.nicScenario = 'single';
+        resetNetworkAdaptersForScenario(state, vm, 'single');
+      }
+      state.nicVariant = 'unified';
+      state.nicMode = 'policy';
+      state.nicPolicyTab = 'security';
+      handledNic = true;
+    }
 
+    if (handledCheckpoint) {
+      focusCheckpointsTab();
+    } else if (handledNic) {
+      focusNetworkSettingsTab();
+    } else if (typeof storageAddVariant === 'string' && VALID_STORAGE_ADD_VARIANTS.has(storageAddVariant)) {
+      state.storageAddVariant = storageAddVariant;
+      focusStorageAddTab();
+    } else if (storageVmGen === '1' || storageVmGen === '2') {
+      if (vm) {
+        vm.generation = Number(storageVmGen);
+        vm.gen = vm.generation;
+      }
+      renderVmList();
+      focusStorageAddTab();
+    } else if (typeof diskCapLayout === 'string' && VALID_DISK_CAP_LAYOUTS.has(diskCapLayout)) {
+      state.diskCapLayout = diskCapLayout;
+      const curIdx = state.tcSelected?.kind === 'disk' ? state.tcSelected.idx : 0;
+      focusOverviewDevice('disk', curIdx);
+    }
+
+    if (Object.keys(hostPayload).length > 0) {
+      if (state.navTarget !== 'host') switchNavigationTarget('host');
+      setHostOverviewCandidate(hostPayload);
+    }
+    syncStandaloneHostRailPanel();
+    notifyParentHostState();
+  }
+
+  hostCandidateMappings.forEach(([attr, key]) => {
+    document.querySelectorAll(`#designCandidatesPanel [${attr}]`).forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute(attr);
+        if (!val) return;
+        const nextVal = val === 'toggle' ? (btn.classList.contains('active') ? 'off' : 'on') : val;
+        applyHostCandidatePayload({ [key]: nextVal });
+      });
+    });
+  });
+
+  function applyGpuCandidateData(data) {
+    if (!data || typeof data !== 'object') return;
     const vm = getVm();
     if (state.navTarget !== 'vm') switchNavigationTarget('vm');
     state.activeTabKey = 'devices';
@@ -6667,11 +6797,30 @@ export function initUiDesignWorkbench() {
       state.gpuVariant = data.variant;
       if (!data.mode) state.gpuMode = 'list';
     }
+    if (data.addPlacement) {
+      state.gpuAddPlacement = data.addPlacement;
+      if (!data.mode) state.gpuMode = 'list';
+    }
+    if (data.addBtnStyle) {
+      state.gpuAddBtnStyle = data.addBtnStyle;
+      if (!data.mode) state.gpuMode = 'list';
+    }
+    if (data.iconStyle) {
+      state.gpuIconStyle = data.iconStyle;
+    }
+    if (typeof data.driverMismatch === 'boolean') {
+      state.gpuDriverMismatch = data.driverMismatch;
+    }
+    if (data.updateIcon) {
+      state.gpuUpdateIcon = data.updateIcon;
+    }
+    if (data.updateColor) {
+      state.gpuUpdateColor = data.updateColor;
+    }
     if (data.status) {
       const s = data.status;
       if (s === 'empty') {
         state.gpuAssignmentsByVm[vm.id] = [];
-        state.gpuScenario = 'normal';
       } else if (s === 'dual') {
         const g1 = structuredClone(INITIAL_GPU_ASSIGNMENTS[0]);
         const h2 = HOST_GPUS[1] || HOST_GPUS[0];
@@ -6685,29 +6834,14 @@ export function initUiDesignWorkbench() {
             driverVersion: h2.driverVersion,
             instanceId: h2.instanceId,
             partitionPath: h2.partitionPath,
-            expanded: true
+            expanded: false
           };
           state.gpuAssignmentsByVm[vm.id] = h2 === HOST_GPUS[0] && !HOST_GPUS[1] ? [g1] : [g1, g2];
         } else {
           state.gpuAssignmentsByVm[vm.id] = g1 ? [g1] : [];
         }
-        state.gpuScenario = 'normal';
-        state.gpuVmReady = true;
-      } else if (s === 'stale') {
-        if ((state.gpuAssignmentsByVm[vm.id] || []).length === 0) {
-          state.gpuAssignmentsByVm[vm.id] = structuredClone(INITIAL_GPU_ASSIGNMENTS);
-        }
-        state.gpuScenario = 'stale';
-      } else if (s === 'mmio-pending') {
-        if ((state.gpuAssignmentsByVm[vm.id] || []).length === 0) {
-          state.gpuAssignmentsByVm[vm.id] = structuredClone(INITIAL_GPU_ASSIGNMENTS);
-        }
-        state.gpuScenario = 'normal';
-        state.gpuVmReady = false;
       } else {
         state.gpuAssignmentsByVm[vm.id] = structuredClone(INITIAL_GPU_ASSIGNMENTS);
-        state.gpuScenario = 'normal';
-        state.gpuVmReady = true;
       }
       if (!data.mode) state.gpuMode = 'list';
     }
@@ -6725,6 +6859,58 @@ export function initUiDesignWorkbench() {
     renderPageTabs();
     renderDashboardSummary();
     renderActiveWorkspace();
+  }
+
+  function syncParentStateAll() {
+    notifyParentGpuState();
+    notifyParentHostState();
+  }
+
+  window.addEventListener('exhyperv:wow-init', syncParentStateAll);
+  if (window.__WOW_APP_READY__) {
+    syncParentStateAll();
+  }
+
+  window.addEventListener('exhyperv:wow-message', (event) => {
+    const msg = event.detail;
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.channel === 'exhyperv:host-candidate') {
+      applyHostCandidatePayload(msg.payload);
+    } else if (msg.channel === 'exhyperv:gpu-candidate') {
+      applyGpuCandidateData(msg.payload);
+    }
+  });
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+    const raw = event.data;
+    if (!raw || typeof raw !== 'object') return;
+    if (
+      (raw.protocol === 'win11-app/v1' && raw.type === 'w11:init') ||
+      raw.type === 'exhyperv-gpu-request-sync'
+    ) {
+      syncParentStateAll();
+      return;
+    }
+
+    if (
+      raw.protocol === 'win11-app/v1' &&
+      raw.type === 'w11:app-message' &&
+      raw.channel === 'exhyperv:host-candidate'
+    ) {
+      applyHostCandidatePayload(raw.payload);
+      return;
+    }
+
+    if (
+      raw.protocol === 'win11-app/v1' &&
+      raw.type === 'w11:app-message' &&
+      raw.channel === 'exhyperv:gpu-candidate'
+    ) {
+      applyGpuCandidateData(raw.payload);
+    } else if (raw.type === 'exhyperv-gpu-candidate') {
+      applyGpuCandidateData(raw);
+    }
   });
 
   let vmInitialRendered = false;
@@ -6783,7 +6969,23 @@ export function initUiDesignWorkbench() {
       }
 
       if (mappedGpus.length > 0) {
-        HOST_GPUS.splice(0, HOST_GPUS.length, ...mappedGpus);
+        const previewGpus = mappedGpus.length === 1
+          ? [
+              ...mappedGpus,
+              {
+                id: 'host-gpu-rtx4090-preview',
+                name: 'NVIDIA GeForce RTX 4090',
+                manu: 'NVIDIA',
+                vendor: 'NVIDIA Corporation',
+                memoryText: '24,564 MB',
+                driverVersion: '566.14',
+                instanceId: 'PCI\\VEN_10DE&DEV_2684&SUBSYS_409010DE&REV_A1\\4&21B4C120&0&0008',
+                partitionPath: '\\\\?\\PCI#VEN_10DE&DEV_2684&SUBSYS_409010DE&REV_A1#4&21b4c120&0&0008#{064092b3-625e-43bf-9eb5-dc845897dd95}\\GPUPARAV',
+                partitionable: true
+              }
+            ]
+          : mappedGpus;
+        HOST_GPUS.splice(0, HOST_GPUS.length, ...previewGpus);
         const validSelected = HOST_GPUS.find((g) => g.id === state.selectedHostGpuId && g.partitionable);
         state.selectedHostGpuId = (validSelected || HOST_GPUS.find((g) => g.partitionable) || HOST_GPUS[0]).id;
 
@@ -6797,7 +6999,7 @@ export function initUiDesignWorkbench() {
           driverVersion: primaryGpu.driverVersion,
           instanceId: primaryGpu.instanceId,
           partitionPath: primaryGpu.partitionPath,
-          expanded: true
+          expanded: false
         };
         if (primaryGpu.partitionable) {
           INITIAL_GPU_ASSIGNMENTS.splice(0, INITIAL_GPU_ASSIGNMENTS.length, nextAssign);
@@ -6815,12 +7017,13 @@ export function initUiDesignWorkbench() {
 
         const pcieTemplate = {
           id: 'pcie-1',
-          name: `${primaryGpu.name} (vPCI)`,
+          hostId: 'host-pcie-rtx4090',
+          name: primaryGpu.name,
           classType: 'Display',
           glyph: '\uF211',
           guestMode: '0',
           instanceId: primaryGpu.instanceId,
-          path: '浏览器隐藏物理 PCIe 拓扑',
+          path: 'PCIROOT(0)#PCI(0101)#PCI(0000)',
           vendor: primaryGpu.vendor,
           expanded: true
         };
@@ -6837,7 +7040,8 @@ export function initUiDesignWorkbench() {
             {
               key: 'gpu-0',
               title: primaryGpu.name,
-              vendor: primaryGpu.manu,
+              manu: primaryGpu.manu,
+              vendor: primaryGpu.vendor,
               memoryText: primaryGpu.memoryText,
               driverVersion: primaryGpu.driverVersion,
               instanceId: primaryGpu.instanceId
@@ -6874,7 +7078,7 @@ export function initUiDesignWorkbench() {
         const editingInput =
           activeEl &&
           pageVm?.contains(activeEl) &&
-          ['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName);
+          (['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName) || activeEl.closest?.('.winui-combo'));
         if (!editingInput) {
           syncDcpGpuButton();
           renderVmList();
@@ -6898,6 +7102,7 @@ export function initUiDesignWorkbench() {
   applyAccentVariables();
   syncDcpGpuButton();
   syncDcpMemoryAssembler();
+  syncStandaloneHostRailPanel();
   setDcpMode('overview', false);
   renderVmList();
   renderDashboardSummary();

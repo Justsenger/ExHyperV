@@ -53,6 +53,20 @@ internal static class DeviceWorkflowChecks
                 "MMIO query and expansion failures remain distinct with accurate refresh requirements");
         }
 
+        var vendorController = Device("Vendor controller", "System");
+        backend = new PcieBackend { Disks = [new(2, "boot", false, true, false)] };
+        state = await new PcieAssignmentSession(vendorController, [vendorController], TargetId, backend.Create()).AdvanceAsync();
+        check(state.Error == PcieAssignmentError.SystemDisk && backend.Calls.SequenceEqual(["mmio", "disks"]),
+            "PCIe protects a boot disk even when its controller has a vendor-specific device class");
+
+        backend = new PcieBackend { Disks = [new(3, "data", false, false, false)] };
+        session = new(vendorController, [vendorController], TargetId, backend.Create());
+        state = await session.AdvanceAsync();
+        check(state.Step == PcieAssignmentStep.ConfirmOfflineDisks, "PCIe discovers online disks by association");
+        state = await session.AdvanceAsync(new(state.RequestId!.Value, true));
+        check(state.Step == PcieAssignmentStep.Completed && backend.Calls.SequenceEqual(["mmio", "disks", "disk:3:True", "execute:Vendor controller"]),
+            "An approved vendor controller transfer offlines its data disk before assignment");
+
         var storage = Device("Controller", "SCSIAdapter");
         backend = new PcieBackend { Disks = [new(0, "system", true, false, false), new(1, "data", false, false, false)] };
         state = await new PcieAssignmentSession(storage, [storage], TargetId, backend.Create()).AdvanceAsync();

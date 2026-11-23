@@ -18,13 +18,8 @@
     <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
     <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
     <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
     <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
         <value>[base64 mime encoded serialized .NET Framework object]</value>
-    </data>
-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-        <comment>This is a comment</comment>
     </data>
                 
     There are any number of "resheader" rows that contain simple 
@@ -1330,25 +1325,25 @@
     <value>正在准备主机环境...</value>
   </data>
   <data name="Task_Gpu_Power" xml:space="preserve">
-    <value>电源检查</value>
+    <value>关闭虚拟机</value>
   </data>
   <data name="Msg_Gpu_CheckingPower" xml:space="preserve">
     <value>检查虚拟机电源状态...</value>
   </data>
   <data name="Task_Gpu_Opt" xml:space="preserve">
-    <value>系统优化</value>
+    <value>参数调整</value>
   </data>
   <data name="Msg_Gpu_Mmio" xml:space="preserve">
     <value>正在配置 MMIO 地址空间...</value>
   </data>
   <data name="Task_Gpu_Assign" xml:space="preserve">
-    <value>分配显卡</value>
+    <value>添加显卡</value>
   </data>
   <data name="Msg_Gpu_Creating" xml:space="preserve">
     <value>正在创建 GPU 分区...</value>
   </data>
   <data name="Task_Gpu_Driver" xml:space="preserve">
-    <value>驱动安装</value>
+    <value>安装驱动</value>
   </data>
   <data name="Msg_Gpu_WaitingScan" xml:space="preserve">
     <value>等待扫描分区...</value>
@@ -2388,137 +2383,119 @@
   <data name="VmBootService_SystemBuiltinBootEntry" xml:space="preserve">
     <value>系统内置引导项</value>
   </data>
-  <data name="VmSpacetimeService_NodeLabelOrigin" xml:space="preserve">
-    <value>起源</value>
+  <data name="VmCheckpointService_NodeLabelOrigin" xml:space="preserve">
+    <value>初始状态</value>
   </data>
-  <data name="VmSpacetimeService_NodeLabelCurrent" xml:space="preserve">
+  <data name="VmCheckpointService_NodeLabelCurrent" xml:space="preserve">
     <value>当前</value>
   </data>
-  <data name="VmSpacetimeService_ErrLookupFailed" xml:space="preserve">
-    <value>时空检索失败: {0}</value>
+  <data name="VmCheckpointService_ErrLookupFailed" xml:space="preserve">
+    <value>检查点查询失败: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeDisk" xml:space="preserve">
-    <value>[Wormhole] 虫洞盘: {0}</value>
+  <data name="VmCheckpointService_LogWormholeDisk" xml:space="preserve">
+    <value>[Checkpoint] 历史磁盘已挂接: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeMarkedOk" xml:space="preserve">
-    <value>[Wormhole] 标记成功: {0}</value>
+  <data name="VmCheckpointService_LogWormholeMarkedOk" xml:space="preserve">
+    <value>[Checkpoint] 已标记历史挂接: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeDetectFailed" xml:space="preserve">
-    <value>[Wormhole] 检测失败: {0}</value>
+  <data name="VmCheckpointService_LogWormholeDetectFailed" xml:space="preserve">
+    <value>[Checkpoint] 历史挂接检测失败: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrWormholeAlreadyExists" xml:space="preserve">
-    <value>当前时空中已存在虫洞，请先关闭现有虫洞后再开启新的，否则将引发时空悖论</value>
+  <data name="VmCheckpointService_ErrWormholeAlreadyExists" xml:space="preserve">
+    <value>已有激活的历史磁盘挂接，请先卸载后再挂接其他检查点</value>
   </data>
-  <data name="VmSpacetimeService_ErrParentChainNode" xml:space="preserve">
-    <value>该节点是当前时空的父链节点，开启虫洞会导致时空悖论</value>
+  <data name="VmCheckpointService_ErrParentChainNode" xml:space="preserve">
+    <value>该节点位于当前分支父链上，无法作为辅助磁盘挂接</value>
   </data>
-  <data name="VmSpacetimeService_ErrOnlySnapshotNode" xml:space="preserve">
-    <value>只能对快照节点开启虫洞</value>
+  <data name="VmCheckpointService_ErrOnlySnapshotNode" xml:space="preserve">
+    <value>只能挂接历史检查点磁盘</value>
   </data>
-  <data name="VmSpacetimeService_ErrSnapshotPathInvalid" xml:space="preserve">
-    <value>快照磁盘路径无效</value>
+  <data name="VmCheckpointService_ErrSnapshotPathInvalid" xml:space="preserve">
+    <value>检查点磁盘路径无效</value>
   </data>
-  <data name="VmSpacetimeService_ErrNodeHasWormhole" xml:space="preserve">
-    <value>该节点已有虫洞开启中</value>
+  <data name="VmCheckpointService_ErrNodeHasWormhole" xml:space="preserve">
+    <value>该检查点已有激活的磁盘挂接</value>
   </data>
-  <data name="VmSpacetimeService_ErrCannotDetermineDiskDir" xml:space="preserve">
+  <data name="VmCheckpointService_ErrCannotDetermineDiskDir" xml:space="preserve">
     <value>无法确定磁盘目录</value>
   </data>
-  <data name="VmSpacetimeService_ErrNoScsiSlot" xml:space="preserve">
+  <data name="VmCheckpointService_ErrNoScsiSlot" xml:space="preserve">
     <value>没有可用的 SCSI 插槽</value>
   </data>
-  <data name="VmSpacetimeService_ErrCreateDiffDiskFailed" xml:space="preserve">
+  <data name="VmCheckpointService_ErrCreateDiffDiskFailed" xml:space="preserve">
     <value>创建临时差分盘失败: {0}</value>
   </data>
-  <data name="VmSpacetimeService_MsgWormholeOpened" xml:space="preserve">
-    <value>虫洞已开启</value>
+  <data name="VmCheckpointService_MsgWormholeOpened" xml:space="preserve">
+    <value>历史磁盘已挂接</value>
   </data>
-  <data name="VmSpacetimeService_ErrSpacetimeException" xml:space="preserve">
-    <value>时空异常: {0}</value>
+  <data name="VmCheckpointService_ErrNoActiveWormhole" xml:space="preserve">
+    <value>该检查点没有激活的磁盘挂接</value>
   </data>
-  <data name="VmSpacetimeService_ErrNoActiveWormhole" xml:space="preserve">
-    <value>该节点没有开启虫洞</value>
+  <data name="VmCheckpointService_MsgWormholeClosed" xml:space="preserve">
+    <value>历史磁盘已卸载</value>
   </data>
-  <data name="VmSpacetimeService_MsgWormholeClosed" xml:space="preserve">
-    <value>虫洞已关闭，时间线恢复正常</value>
+  <data name="VmCheckpointService_ErrCloseWormholeException" xml:space="preserve">
+    <value>卸载历史磁盘异常: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrCloseWormholeException" xml:space="preserve">
-    <value>关闭虫洞异常: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
+  <data name="VmCheckpointService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
     <value>找不到 WMI 管理服务</value>
   </data>
-  <data name="VmSpacetimeService_MsgNameUpdated" xml:space="preserve">
+  <data name="VmCheckpointService_MsgNameUpdated" xml:space="preserve">
     <value>名称已成功更新</value>
   </data>
-  <data name="VmSpacetimeService_ErrUpdateWmiCode" xml:space="preserve">
+  <data name="VmCheckpointService_ErrUpdateWmiCode" xml:space="preserve">
     <value>更新失败: WMI 错误代码: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrRenameException" xml:space="preserve">
+  <data name="VmCheckpointService_ErrRenameException" xml:space="preserve">
     <value>重命名服务异常: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOnlyHistoricalNode" xml:space="preserve">
-    <value>只能穿梭至历史快照点</value>
+  <data name="VmCheckpointService_ErrOnlyHistoricalNode" xml:space="preserve">
+    <value>此操作仅适用于历史检查点</value>
   </data>
-  <data name="VmSpacetimeService_MsgTravelInitiated" xml:space="preserve">
-    <value>穿梭已启动，正在恢复运行状态...</value>
+  <data name="VmCheckpointService_ErrVmCarrierNotFound" xml:space="preserve">
+    <value>找不到指定的虚拟机</value>
   </data>
-  <data name="VmSpacetimeService_MsgTravelSucceeded" xml:space="preserve">
-    <value>穿梭成功，虚拟机已回到指定时空点（已关机）</value>
+  <data name="VmCheckpointService_ErrCreateFailed" xml:space="preserve">
+    <value>创建检查点失败: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrTravelFailed" xml:space="preserve">
-    <value>穿梭失败: {0}</value>
+  <data name="VmCheckpointService_MsgCreated" xml:space="preserve">
+    <value>已创建检查点</value>
   </data>
-  <data name="VmSpacetimeService_ErrVmCarrierNotFound" xml:space="preserve">
-    <value>找不到指定的虚拟机载体</value>
+  <data name="VmCheckpointService_ErrOriginCurrentNoDelete" xml:space="preserve">
+    <value>初始节点与当前节点不可删除</value>
   </data>
-  <data name="VmSpacetimeService_ErrSpacetimeCollapse" xml:space="preserve">
-    <value>时空塌陷: {0}</value>
+  <data name="VmCheckpointService_MsgDeleted" xml:space="preserve">
+    <value>检查点分支已删除</value>
   </data>
-  <data name="VmSpacetimeService_MsgAnchorSet" xml:space="preserve">
-    <value>时空锚点已锚定</value>
+  <data name="VmCheckpointService_ErrDeleteFailed" xml:space="preserve">
+    <value>删除检查点失败: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOriginCurrentNoAnnihilate" xml:space="preserve">
-    <value>起源与当前节点不可湮灭</value>
+  <data name="VmCheckpointService_ErrCannotMerge" xml:space="preserve">
+    <value>不能合并到初始节点或包含其他分支的父节点</value>
   </data>
-  <data name="VmSpacetimeService_MsgAnnihilated" xml:space="preserve">
-    <value>时空分支已彻底湮灭</value>
+  <data name="VmCheckpointService_MsgMerged" xml:space="preserve">
+    <value>检查点已合并</value>
   </data>
-  <data name="VmSpacetimeService_ErrAnnihilateFailed" xml:space="preserve">
-    <value>湮灭失败: {0}</value>
+  <data name="VmCheckpointService_ErrMergeFailed" xml:space="preserve">
+    <value>合并检查点失败: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOriginCurrentNoConverge" xml:space="preserve">
-    <value>起源与当前节点不可收束</value>
+  <data name="VmCheckpointService_LogReadCheckpointFailed" xml:space="preserve">
+    <value>[Checkpoint] 读取检查点状态失败: {0}</value>
   </data>
-  <data name="VmSpacetimeService_MsgConverging" xml:space="preserve">
-    <value>时空收束中...</value>
-  </data>
-  <data name="VmSpacetimeService_ErrConvergeFailed" xml:space="preserve">
-    <value>收束失败: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogReadCheckpointFailed" xml:space="preserve">
-    <value>[Spacetime] 读取检查点状态失败: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_ErrVmNotFound" xml:space="preserve">
+  <data name="VmCheckpointService_ErrVmNotFound" xml:space="preserve">
     <value>找不到虚拟机</value>
   </data>
-  <data name="VmSpacetimeService_MsgCheckpointEnabled" xml:space="preserve">
+  <data name="VmCheckpointService_MsgCheckpointEnabled" xml:space="preserve">
     <value>已启用检查点</value>
   </data>
-  <data name="VmSpacetimeService_MsgCheckpointDisabled" xml:space="preserve">
+  <data name="VmCheckpointService_MsgCheckpointDisabled" xml:space="preserve">
     <value>已禁用检查点</value>
   </data>
-  <data name="VmSpacetimeService_ErrOperationWmiCode" xml:space="preserve">
+  <data name="VmCheckpointService_ErrOperationWmiCode" xml:space="preserve">
     <value>操作失败: WMI 错误代码 {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOperationException" xml:space="preserve">
+  <data name="VmCheckpointService_ErrOperationException" xml:space="preserve">
     <value>操作异常: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogSnapshotScreenCleaned" xml:space="preserve">
-    <value>[Spacetime] 已清理快照截图: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogCleanScreenFailed" xml:space="preserve">
-    <value>[Spacetime] 清理截图失败: {0}</value>
   </data>
   <data name="VmMmio_LogFinalResult" xml:space="preserve">
     <value>[MMIO] 最终计算结果:</value>
@@ -2811,69 +2788,6 @@
   <data name="VmRAMSettings_DescGpaPinning" xml:space="preserve">
     <value>允许使用 GPA 固定功能</value>
   </data>
-  <data name="VmSpacetimeSettings_TitleMgmt" xml:space="preserve">
-    <value>时空管理</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelCheckpoint" xml:space="preserve">
-    <value>检查点</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnExportTopology" xml:space="preserve">
-    <value>导出拓扑图</value>
-  </data>
-  <data name="VmSpacetimeSettings_MsgSyncing" xml:space="preserve">
-    <value>同步中...</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelDetails" xml:space="preserve">
-    <value>时空详情</value>
-  </data>
-  <data name="VmSpacetimeSettings_MsgNoAnchor" xml:space="preserve">
-    <value>未选择锚点</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelAction" xml:space="preserve">
-    <value>操作</value>
-  </data>
-  <data name="VmSpacetimeSettings_TypeContinuous" xml:space="preserve">
-    <value>连续时空</value>
-  </data>
-  <data name="VmSpacetimeSettings_DescContinuous" xml:space="preserve">
-    <value>保存磁盘和内存状态</value>
-  </data>
-  <data name="VmSpacetimeSettings_TypeStatic" xml:space="preserve">
-    <value>静止时空</value>
-  </data>
-  <data name="VmSpacetimeSettings_DescStatic" xml:space="preserve">
-    <value>保存磁盘状态</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnCreate" xml:space="preserve">
-    <value>创建时空</value>
-  </data>
-  <data name="VmSpacetimeSettings_StateWormholeActive" xml:space="preserve">
-    <value>虫洞干涉中</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnCloseWormhole" xml:space="preserve">
-    <value>关闭虫洞</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnTravel" xml:space="preserve">
-    <value>穿梭</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnOpenWormhole" xml:space="preserve">
-    <value>开启虫洞</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnConverge" xml:space="preserve">
-    <value>时空收束</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnDelete" xml:space="preserve">
-    <value>删除</value>
-  </data>
-  <data name="VmSpacetimeSettings_DlgExportTitle" xml:space="preserve">
-    <value>导出时空拓扑图</value>
-  </data>
-  <data name="VmSpacetimeSettings_DlgExportFilter" xml:space="preserve">
-    <value>PNG 图片|*.png</value>
-  </data>
-  <data name="VmSpacetimeSettings_LogAbnormalDelta" xml:space="preserve">
-    <value>[DRAG] !!! 异常位移 delta=({0},{1}) 已丢弃</value>
-  </data>
   <data name="VmStorageSettings_BtnOptimizeDisk" xml:space="preserve">
     <value>优化磁盘</value>
   </data>
@@ -3072,8 +2986,8 @@
   <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
     <value>错误：{0}</value>
   </data>
-  <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
-    <value>虫洞开启中，需先关闭虫洞才能创建 / 删除 / 收束时空。</value>
+  <data name="VmCheckpointService_HintCloseWormholeFirst" xml:space="preserve">
+    <value>存在已挂载的历史磁盘，请先卸载后再创建、删除或合并检查点。</value>
   </data>
   <data name="Cpu_ApicMode" xml:space="preserve">
     <value>APIC 模式</value>
@@ -3931,6 +3845,11 @@
   <data name="Gpu_InvalidPartition" xml:space="preserve"><value>所选分区不可用、已经变化，或不是支持的 Windows/Linux 系统分区。</value></data>
   <data name="Gpu_InvalidSshPort" xml:space="preserve"><value>SSH 端口必须介于 1 和 65535 之间。</value></data>
   <data name="Gpu_CleanupRequired" xml:space="preserve"><value>无法移除本次部署新增的 GPU 分配。请重试清理后再开始新的部署。</value></data>
+  <data name="Task_Gpu_MountIso" xml:space="preserve"><value>挂载驱动光盘</value></data>
+  <data name="Msg_Gpu_MountingIso" xml:space="preserve"><value>正在生成并挂载驱动光盘...</value></data>
+  <data name="Msg_Gpu_IsoMounted" xml:space="preserve"><value>驱动光盘已挂载</value></data>
+  <data name="Msg_Gpu_DriverSkipped" xml:space="preserve"><value>已跳过</value></data>
+  <data name="Msg_Gpu_FallbackPrompt" xml:space="preserve"><value>无法直接向所选分区写入驱动，可跳过驱动或挂载驱动光盘。</value></data>
   <data name="ConsoleWindow_FrameStatistics" xml:space="preserve"><value>帧率统计</value></data>
   <data name="ConsoleWindow_FrameStatisticsHint" xml:space="preserve"><value>切换接收帧率与窗口位图更新帧率。最大间隔和 ≥50 ms 间隔次数统计最近 5 秒，也包含仍在持续的间隔；静止画面更新少是正常现象。这不是显示器或远程桌面链路的实际帧率。</value></data>
   <data name="ConsoleWindow_FrameStatisticsFormat" xml:space="preserve"><value>更新 {0:F1} FPS · 接收 {1:F1} FPS
@@ -3938,4 +3857,19 @@
   <data name="PCIePage_Msg_ConfirmMmioUpdate" xml:space="preserve">
     <value>更新 MMIO 会关闭虚拟机“{0}”。如果宿主没有已保存的上限，还会修改 MMIO 配置并启停虚拟机进行探测。结束后虚拟机保持关机；之后拒绝其他设备确认，不会撤销这些修改。是否继续？</value>
   </data>
+  <data name="GenerationUpgradePrerequisites" xml:space="preserve"><value>代际升级需要有效的虚拟机 GUID 和 x64 Hyper-V 宿主。</value></data>
+  <data name="GenerationUpgrade_Preflight" xml:space="preserve"><value>原虚拟机未通过升级预检。</value></data>
+  <data name="GenerationUpgrade_PrepareStorage" xml:space="preserve"><value>未能完成 VHD 容器转换。</value></data>
+  <data name="GenerationUpgrade_ExportRecovery" xml:space="preserve"><value>无盘恢复配置包未通过验证。</value></data>
+  <data name="GenerationUpgrade_CreateCandidate" xml:space="preserve"><value>未能建立或配置二代候选虚拟机。</value></data>
+  <data name="GenerationUpgrade_VerifyStaged" xml:space="preserve"><value>工作路径上的二代虚拟机配置未通过回读。</value></data>
+  <data name="GenerationUpgrade_RecheckSource" xml:space="preserve"><value>原机配置或磁盘未能通过切换前复核。</value></data>
+  <data name="GenerationUpgrade_DestroySource" xml:space="preserve"><value>未能确认原虚拟机的注销结果。</value></data>
+  <data name="GenerationUpgrade_PublishStorage" xml:space="preserve"><value>转换后的磁盘未能接管正式路径。</value></data>
+  <data name="GenerationUpgrade_RestoreDevices" xml:space="preserve"><value>未能还原原机的设备、元数据或分组。</value></data>
+  <data name="GenerationUpgrade_VerifyFinal" xml:space="preserve"><value>未能确认正式虚拟机配置。</value></data>
+  <data name="GenerationUpgrade_Cleanup" xml:space="preserve"><value>升级已提交，恢复材料仍待清理。</value></data>
+  <data name="GenerationUpgrade_Rollback" xml:space="preserve"><value>原机恢复结果尚待核实。</value></data>
+  <data name="GenerationUpgrade_Complete" xml:space="preserve"><value>已完成的升级回执与宿主现状未能核对。</value></data>
+  <data name="GenerationUpgrade_Journal" xml:space="preserve"><value>未能读取或独占升级事务日志。</value></data>
 </root>

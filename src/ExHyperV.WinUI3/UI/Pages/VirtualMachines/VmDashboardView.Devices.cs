@@ -113,7 +113,7 @@ public sealed partial class VmDashboardView
         {
             string titleEmpty = L10n.Get(optical ? "Dev_VirtualOpticalDrive" : "Dev_VirtualDisk");
             var emptyDetails = new StackPanel { Spacing = 10 };
-            emptyDetails.Children.Add(BuildTitleFirstKvGrid([
+            emptyDetails.Children.Add(BuildTitleFirstKvGrid((KvTileSpec[])[
                 new KvTileSpec(L10n.Get("Dev_Source"), titleEmpty),
                 new KvTileSpec(L10n.Get("Dev_Path"), L10n.Get("Dev_NoMedia"), Wide: true)
             ]));
@@ -410,7 +410,7 @@ public sealed partial class VmDashboardView
         string macText = IsMissingText(view.Mac) ? MissingText : view.Mac;
         string? macCopy = IsMissingText(macText) ? null : macText;
 
-        view.KvCard.Child = BuildTitleFirstKvGrid([
+        view.KvCard.Child = BuildTitleFirstKvGrid((KvTileSpec[])[
             BuildIpSpec(L10n.Get("Dev_Ipv4"), ipv4, wide: false),
             new KvTileSpec(L10n.Get("Dev_Mac"), macText, CopyValue: macCopy),
             BuildIpSpec(L10n.Get("Dev_Ipv6"), ipv6, wide: true)

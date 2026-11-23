@@ -87,8 +87,6 @@ public sealed partial class VmDashboardView
             LayoutCoreCharts();
         };
         CpuDetailPanel.SizeChanged += (_, _) => LayoutCoreCharts();
-        _ = LoadHostCpuDisplayNameAsync();
-        AttachAppearanceEvents();
     }
 
     private void AttachAppearanceEvents()
@@ -112,6 +110,8 @@ public sealed partial class VmDashboardView
     private void OnAppAppearanceChanged(object? sender, EventArgs e)
         => DispatcherQueue.TryEnqueue(UpdateOverviewTheme);
 
+    private Task? cpuNameTask;
+
     private async Task LoadHostCpuDisplayNameAsync()
     {
         string cpu = await HostSystemInfoService.GetProcessorDisplayNameAsync();
@@ -122,7 +122,7 @@ public sealed partial class VmDashboardView
         }
         if (string.IsNullOrWhiteSpace(cpu) || cpu == "N/A") return;
         cachedHostCpuTitle = cpu;
-        if (selectedOverviewKey == "cpu") UpdateOverviewDetailHeader();
+        if (IsLoaded && selectedOverviewKey == "cpu") UpdateOverviewDetailHeader();
     }
 
     private void ResetOverviewTelemetry()
@@ -508,6 +508,7 @@ public sealed partial class VmDashboardView
     {
         if (!overviewRailByKey.ContainsKey(key)) key = "cpu";
         selectedOverviewKey = key;
+        if (key == "cpu" && current != null && IsLoaded) cpuNameTask ??= LoadHostCpuDisplayNameAsync();
 
         CpuDetailPanel.Visibility = key == "cpu" ? Visibility.Visible : Visibility.Collapsed;
         MemoryDetailPanel.Visibility = key == "mem" ? Visibility.Visible : Visibility.Collapsed;
@@ -691,7 +692,7 @@ public sealed partial class VmDashboardView
         };
 
         CpuKvCard.Child = BuildTitleFirstKvGrid(
-        [
+        ((string, string, string?, bool)[])[
             (L10n.Get("Overview_NestedVirt"), nestedText, null, false),
             (L10n.Get("Overview_Hyperthreading"), htText, htTip, false)
         ]);
@@ -948,7 +949,7 @@ public sealed partial class VmDashboardView
     {
         if (gpu == null)
         {
-            GpuKvCard.Child = BuildTitleFirstKvGrid([new KvTileSpec(L10n.Get("Overview_GpuCardTitle"), L10n.Get("Overview_NoGpu"), Wide: true)]);
+            GpuKvCard.Child = BuildTitleFirstKvGrid((KvTileSpec[])[new KvTileSpec(L10n.Get("Overview_GpuCardTitle"), L10n.Get("Overview_NoGpu"), Wide: true)]);
             return;
         }
 
@@ -958,7 +959,7 @@ public sealed partial class VmDashboardView
         string drv = IsMissingText(gpu.DriverVersion) ? "---" : gpu.DriverVersion;
         string inst = IsMissingText(gpu.InstanceId) ? "---" : gpu.InstanceId;
 
-        GpuKvCard.Child = BuildTitleFirstKvGrid([
+        GpuKvCard.Child = BuildTitleFirstKvGrid((KvTileSpec[])[
             new KvTileSpec(L10n.Get("Overview_GpuChipVendor"), manu, CopyValue: manu != "---" ? manu : null),
             new KvTileSpec(L10n.Get("Overview_GpuBoardVendor"), vendor, CopyValue: vendor != "---" ? vendor : null),
             new KvTileSpec(L10n.Get("Overview_GpuDedicatedVram"), vram, CopyValue: vram != "---" ? vram : null),

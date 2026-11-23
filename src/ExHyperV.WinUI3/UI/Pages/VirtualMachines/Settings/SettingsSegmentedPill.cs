@@ -9,14 +9,14 @@ using Windows.UI;
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 /// <summary>分段胶囊选择器，对齐设计工作台的 isa-pill-track 视觉风格。</summary>
-internal sealed class SettingsSegmentedPill : UserControl
+internal sealed partial class SettingsSegmentedPill : UserControl
 {
     private readonly Border track = new()
     {
         CornerRadius = new CornerRadius(6),
         Padding = new Thickness(3),
         BorderThickness = new Thickness(1),
-        Height = 36
+        Height = 38
     };
     private readonly Grid buttonsGrid = new() { ColumnSpacing = 4 };
     private readonly List<PillItem> items = [];
@@ -38,10 +38,36 @@ internal sealed class SettingsSegmentedPill : UserControl
     {
         track.Child = buttonsGrid;
         Content = track;
+        IsTabStop = true;
+        UseSystemFocusVisuals = true;
         ApplyThemeBrushes();
         ActualThemeChanged += (_, _) => ApplyThemeBrushes();
         Loaded += (_, _) => UpdateVisualStates();
         IsEnabledChanged += (_, _) => UpdateVisualStates();
+        KeyDown += OnPillKeyDown;
+    }
+
+    private void OnPillKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (!controlEnabled || !IsEnabled || items.Count == 0) return;
+        int step = e.Key switch
+        {
+            Windows.System.VirtualKey.Left or Windows.System.VirtualKey.Up => -1,
+            Windows.System.VirtualKey.Right or Windows.System.VirtualKey.Down => 1,
+            _ => 0
+        };
+        if (step == 0) return;
+        int current = items.FindIndex(item => Equals(item.Value, selectedValue));
+        for (int offset = 1; offset <= items.Count; offset++)
+        {
+            int idx = ((current < 0 ? 0 : current) + step * offset + items.Count * 2) % items.Count;
+            if (!items[idx].Enabled || Equals(selectedValue, items[idx].Value)) continue;
+            selectedValue = items[idx].Value;
+            UpdateVisualStates();
+            SelectionChanged?.Invoke(selectedValue);
+            e.Handled = true;
+            return;
+        }
     }
 
     public void SetControlEnabled(bool enabled)
@@ -76,7 +102,8 @@ internal sealed class SettingsSegmentedPill : UserControl
             var label = new TextBlock
             {
                 Text = opt.Label,
-                FontSize = 12.5,
+                FontSize = 13,
+                Margin = new Thickness(0, 1.5, 0, 0),
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis

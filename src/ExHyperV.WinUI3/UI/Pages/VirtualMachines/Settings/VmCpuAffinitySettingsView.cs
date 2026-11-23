@@ -19,7 +19,7 @@ using Windows.UI;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
-public sealed class VmCpuAffinitySettingsView : VmSettingsView
+public sealed partial class VmCpuAffinitySettingsView : VmSettingsView
 {
     // 原生任务结果未确认时，离开并重新进入页面不能解除重试限制，需显式点击刷新解锁。
     private static readonly ConcurrentDictionary<Guid, byte> unknownOperations = new();
@@ -320,7 +320,7 @@ public sealed class VmCpuAffinitySettingsView : VmSettingsView
     }
 }
 
-internal sealed class CpuAffinityTile : ToggleButton
+internal sealed partial class CpuAffinityTile : ToggleButton
 {
     private readonly int index;
     public event Action<CpuAffinityTile, PointerRoutedEventArgs>? MouseSelectionStarted;
@@ -398,7 +398,7 @@ internal sealed class CpuAffinityTile : ToggleButton
     }
 }
 
-internal sealed class QuickToggleButton : ToggleButton
+internal sealed partial class QuickToggleButton : ToggleButton
 {
     public QuickToggleButton(string label)
     {

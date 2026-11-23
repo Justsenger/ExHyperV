@@ -11,7 +11,7 @@ public sealed partial class VmDashboardView
 {
     private const string FluentFont = "ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular";
 
-    private sealed record SubNavItem(string? Key, string Title, string Glyph, string? FontFamily = null, bool IsSeparator = false);
+    private sealed record SubNavItem(string? Key, string Title, string? Glyph = null, string? FontFamily = null, bool IsSeparator = false);
 
     private static readonly string[] topTabKeys = ["overview", "processor", "memory", "devices", "checkpoints", "advanced"];
 
@@ -20,18 +20,18 @@ public sealed partial class VmDashboardView
         new("gpu", L10n.Get("Dash_Sub_Gpu"), "\uF211"),
         new("storage", L10n.Get("Dash_Sub_Storage"), "\uEDA2"),
         new("network", L10n.Get("Dash_Sub_Network"), "\uE774"),
-        new("serial", L10n.Get("Dash_Sub_Serial"), "\uE950"),
-        new(null, "", "", IsSeparator: true),
+        new("serial", L10n.Get("Dash_Sub_Serial"), "\uF6A3", FluentFont),
+        new("vtpm", L10n.Get("Dash_Sub_Vtpm"), "\uEAD1", FluentFont),
         new("pcie", L10n.Get("Dash_Sub_Pcie"), "\uF0B9")
     ];
 
     private static SubNavItem[] GetAdvancedSubItems() =>
     [
-        new("boot", L10n.Get("Dash_Sub_Boot"), "\uF2C7"),
-        new("security", L10n.Get("Dash_Sub_Security"), "\uEAC9", FluentFont),
-        new("console", L10n.Get("Dash_Sub_Console"), "\uE756"),
-        new("power", L10n.Get("Dash_Sub_Power"), "\uE7E8"),
-        new("storage-policy", L10n.Get("Dash_Sub_Storage"), "\uEDA2")
+        new("power", L10n.Get("Dash_Sub_Power")),
+        new("security", L10n.Get("Dash_Sub_Security")),
+        new("boot", L10n.Get("Dash_Sub_Boot")),
+        new("console", L10n.Get("Dash_Sub_Console")),
+        new("compat", L10n.Get("Dash_Sub_Other"))
     ];
 
     private Func<Task>? stopSettings;
@@ -43,7 +43,7 @@ public sealed partial class VmDashboardView
     private bool selectingSettings;
     private string activeTopKey = "overview";
     private string activeDeviceSubKey = "gpu";
-    private string activeAdvancedSubKey = "boot";
+    private string activeAdvancedSubKey = "power";
 
     private void InitializeNavigation()
     {
@@ -162,7 +162,7 @@ public sealed partial class VmDashboardView
         {
             var items = GetAdvancedSubItems();
             string subKey = explicitSubKey ?? activeAdvancedSubKey;
-            if (!items.Any(i => i.Key == subKey)) subKey = "boot";
+            if (!items.Any(i => i.Key == subKey)) subKey = "power";
             activeAdvancedSubKey = subKey;
             ConfigureSubNavigation(items, subKey);
             OpenViewForKey(vm, subKey);
@@ -187,13 +187,14 @@ public sealed partial class VmDashboardView
             "storage" => new VmStorageSettingsView(vm.Id),
             "network" => new VmNetworkSettingsView(vm.Id),
             "serial" => new VmSerialPortSettingsView(vm.Id),
+            "vtpm" => new VmVtpmSettingsView(vm.Id),
             "pcie" => new VmPcieSettingsView(vm.Id),
-            "checkpoints" => new VmSpacetimeSettingsView(vm.Id),
+            "checkpoints" => new VmCheckpointSettingsView(vm.Id),
             "boot" => new VmBootSettingsView(vm.Id),
             "security" => new VmSecuritySettingsView(vm.Id),
             "console" => new VmAdvancedSettingsView(vm.Id, VmAdvancedSettingsView.Section.Console),
             "power" => new VmAdvancedSettingsView(vm.Id, VmAdvancedSettingsView.Section.Power),
-            "storage-policy" => new VmAdvancedSettingsView(vm.Id, VmAdvancedSettingsView.Section.StoragePolicy),
+            "compat" => new VmAdvancedSettingsView(vm.Id, VmAdvancedSettingsView.Section.Other),
             _ => throw new ArgumentOutOfRangeException(nameof(viewKey))
         };
 
@@ -221,25 +222,48 @@ public sealed partial class VmDashboardView
                 stopSettings = settings.StopAsync;
                 settings.BusyChanged += SetSettingsBusy;
                 detachSettingsProgress = () => settings.BusyChanged -= SetSettingsBusy;
-                content = settings.HandlesScrolling ? view
-                    : new ScrollViewer { Content = view, Padding = new Thickness(0, 0, 0, 72), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+                if (settings.HandlesScrolling)
+                {
+                    content = view;
+                }
+                else
+                {
+                    var fallbackScroll = new ScrollViewer
+                    {
+                        Content = view,
+                        HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+                    };
+                    Settings.VmSettingsView.AttachScrollbarClearance(fallbackScroll, bottomSpacing: 0);
+                    content = fallbackScroll;
+                }
                 break;
-            case VmPcieSettingsView pcie:
-                pcie.BindFeedbackHost(this);
-                pcie.Changed += Changed;
-                stopSettings = pcie.StopAsync;
-                pcie.BusyChanged += SetSettingsBusy;
-                detachSettingsProgress = () => pcie.BusyChanged -= SetSettingsBusy;
-                break;
-            case VmSpacetimeSettingsView spacetime:
-                spacetime.BindFeedbackHost(this);
-                spacetime.Changed += Changed;
-                stopSettings = spacetime.StopAsync;
-                spacetime.BusyChanged += SetSettingsBusy;
-                detachSettingsProgress = () => spacetime.BusyChanged -= SetSettingsBusy;
+            case VmCheckpointSettingsView checkpoint:
+                checkpoint.BindFeedbackHost(this);
+                checkpoint.Changed += Changed;
+                stopSettings = checkpoint.StopAsync;
+                checkpoint.BusyChanged += SetSettingsBusy;
+                checkpoint.FullscreenChanged += SetSettingsImmersive;
+                detachSettingsProgress = () =>
+                {
+                    checkpoint.BusyChanged -= SetSettingsBusy;
+                    checkpoint.FullscreenChanged -= SetSettingsImmersive;
+                    SetSettingsImmersive(false);
+                };
                 break;
         }
         SettingsHost.Content = content;
+    }
+
+    private void SetSettingsImmersive(bool immersive)
+    {
+        if (settingsImmersive == immersive) return;
+        settingsImmersive = immersive;
+        SummaryCard.Visibility = immersive ? Visibility.Collapsed : Visibility.Visible;
+        PageTabsRow.Visibility = immersive ? Visibility.Collapsed : Visibility.Visible;
+        OuterFrame.BorderThickness = new Thickness(immersive ? 0 : 1);
+        OuterFrame.CornerRadius = new CornerRadius(immersive ? 0 : 8);
+        SettingsArea.Margin = immersive ? new Thickness(0) : new Thickness(16, 0, 16, 16);
+        ImmersiveRequested?.Invoke(immersive);
     }
 
     private void ConfigureSectionNavigation()
@@ -301,24 +325,35 @@ public sealed partial class VmDashboardView
                     continue;
                 }
 
-                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
-                var icon = new FontIcon { Glyph = entry.Glyph, FontSize = 15, VerticalAlignment = VerticalAlignment.Center };
-                if (!string.IsNullOrEmpty(entry.FontFamily)) icon.FontFamily = new FontFamily(entry.FontFamily);
-                row.Children.Add(icon);
-                row.Children.Add(new TextBlock { Text = entry.Title, FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center });
+                bool hasGlyph = !string.IsNullOrEmpty(entry.Glyph);
+                UIElement contentElement;
+                if (hasGlyph)
+                {
+                    var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center };
+                    var icon = new FontIcon { Glyph = entry.Glyph!, FontSize = 15, VerticalAlignment = VerticalAlignment.Center };
+                    if (!string.IsNullOrEmpty(entry.FontFamily)) icon.FontFamily = new FontFamily(entry.FontFamily);
+                    row.Children.Add(icon);
+                    row.Children.Add(new TextBlock { Text = entry.Title, FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center });
+                    contentElement = row;
+                }
+                else
+                {
+                    contentElement = new TextBlock { Text = entry.Title, FontSize = 14, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
+                }
 
                 var item = new ListViewItem
                 {
-                    Content = row,
+                    Content = contentElement,
                     Tag = entry.Key,
-                    MinHeight = 40,
-                    Padding = new Thickness(12, 6, 8, 6)
+                    MinHeight = hasGlyph ? 40 : 44,
+                    Padding = hasGlyph ? new Thickness(12, 6, 8, 6) : new Thickness(14, 6, 8, 6)
                 };
                 SettingsNavigation.Items.Add(item);
                 if (entry.Key == selectedKey) selectedItem = item;
             }
             if (selectedItem != null) SettingsNavigation.SelectedItem = selectedItem;
-            SetSettingsNavigationVisible(true, width: 156);
+            bool textOnly = items.All(i => i.IsSeparator || string.IsNullOrEmpty(i.Glyph));
+            SetSettingsNavigationVisible(true, width: textOnly ? 144 : 156);
         }
         finally { selectingSettings = false; }
     }
@@ -345,6 +380,7 @@ public sealed partial class VmDashboardView
     {
         SettingsLoadingBar.IsIndeterminate = busy;
         SettingsLoadingBar.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+        PageTabsTrailingHost.IsEnabled = !busy;
     }
 
     private Task CloseSettings(bool keepSettingsAreaVisible = false)
@@ -363,6 +399,7 @@ public sealed partial class VmDashboardView
         try
         {
             if (stopSettings != null) await stopSettings();
+            SetPageTabsTrailingAction(null);
             HideSuccessToast();
             ClearSettingsNotice();
             detachSettingsProgress?.Invoke();
@@ -404,7 +441,7 @@ public sealed partial class VmDashboardView
             else
             {
                 await using var query = new VmQueryService();
-                var result = await Task.Run(() => query.QueryAsync(new VmQueryRequest(ConfigurationFields, [id]), token), token);
+                var result = await Task.Run(() => query.QueryAsync(new VmQueryRequest(ConfigurationFields, (Guid[])[id]), token), token);
                 if (!result.HasData) throw new InvalidOperationException(
                     result.Success ? L10n.Get("Dash_RefreshConfigError") : CoreMessageResolver.ResolveError(result));
                 row = result.Data!.VirtualMachines.FirstOrDefault() ?? throw new InvalidOperationException(L10n.Get("Dash_VmNotInHost"));

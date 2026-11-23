@@ -112,7 +112,7 @@ public static class ToolRegistry
             "vm_power" => ("VmPowerService", "ExecuteControlActionAsync"), "vm_rename" => ("VmEditService", "RenameVmAsync"),
             "vm_create" => ("VmCreateService", "CreateVirtualMachineAsync"), "vm_creation_options" => ("VmCreateService", "GetCreationOptionsAsync"),
             "vm_delete_preview" => ("VmDeleteService", "PreviewPurgeAsync"), "vm_unregister" => ("VmDeleteService", "DeleteVmAsync"), "vm_purge" => ("VmDeleteService", "PurgeVmAsync"),
-            "vm_network_adapters" => ("VmNetworkService", "GetNetworkAdaptersAsync"), "vm_checkpoints" => ("VmSpacetimeService", "GetSpacetimeNodesAsync"),
+            "vm_network_adapters" => ("VmNetworkService", "GetNetworkAdaptersAsync"), "vm_checkpoints" => ("VmCheckpointService", "GetCheckpointNodesAsync"),
             "vm_query" => ("VmQueryService", "QueryAsync"), "vm_gpu_assignments" => ("VmGpuService", "GetVmGpuAssignmentsAsync"),
             "host_disks" => ("HostDiskService", "GetHostDisksAsync"), "host_optical_drives" => ("HostDiskService", "GetHostOpticalDrivesAsync"),
             "host_gpus" => ("HostGpuService", "GetHostGpusAsync"), "host_switches" => ("VmNetworkService", "GetAvailableSwitchesAsync"), _ => default

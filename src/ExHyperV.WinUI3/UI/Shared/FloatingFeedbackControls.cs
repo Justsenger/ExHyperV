@@ -16,10 +16,11 @@ internal interface IDashboardFeedbackHost
     void HideSuccessToast();
     void ShowSettingsNotice(string? text, InfoBarSeverity severity = InfoBarSeverity.Error, Button? actionButton = null);
     void ClearSettingsNotice();
+    void SetPageTabsTrailingAction(UIElement? content) { }
 }
 
-/// <summary>B1 顶栏/右上轻量成功胶囊：零排版偏移且不遮挡设置卡片。</summary>
-internal sealed class FloatingSuccessToast : UserControl
+/// <summary>底部居中的单行成功提示，允许点击下方的页面内容。</summary>
+internal sealed partial class FloatingSuccessToast : UserControl
 {
     private readonly Border outerBorder = new() { CornerRadius = new CornerRadius(14) };
     private readonly Border innerBorder = new()
@@ -41,6 +42,9 @@ internal sealed class FloatingSuccessToast : UserControl
     {
         FontSize = 12.5,
         FontWeight = FontWeights.SemiBold,
+        TextWrapping = TextWrapping.NoWrap,
+        MaxLines = 1,
+        TextTrimming = TextTrimming.CharacterEllipsis,
         VerticalAlignment = VerticalAlignment.Center
     };
     private bool elevated;
@@ -48,11 +52,16 @@ internal sealed class FloatingSuccessToast : UserControl
     public FloatingSuccessToast()
     {
         Visibility = Visibility.Collapsed;
-        VerticalAlignment = VerticalAlignment.Center;
-        HorizontalAlignment = HorizontalAlignment.Right;
+        IsHitTestVisible = false;
+        VerticalAlignment = VerticalAlignment.Bottom;
+        HorizontalAlignment = HorizontalAlignment.Center;
+        MaxWidth = 780;
 
         badge.Child = checkIcon;
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 7, VerticalAlignment = VerticalAlignment.Center };
+        var row = new Grid { ColumnSpacing = 7 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(label, 1);
         row.Children.Add(badge);
         row.Children.Add(label);
         innerBorder.Child = row;
@@ -65,7 +74,7 @@ internal sealed class FloatingSuccessToast : UserControl
 
     public bool IsOpen { get; private set; }
 
-    public void Show(string? text, bool elevated = false)
+    public void Show(string? text, bool elevated)
     {
         this.elevated = elevated;
         label.Text = string.IsNullOrWhiteSpace(text) ? L10n.Get("Common_Applied") : text.Trim();
@@ -94,7 +103,7 @@ internal sealed class FloatingSuccessToast : UserControl
 }
 
 /// <summary>B1 底部悬浮限高通知条：最多 2 行摘要，长文本自动显示“查看详情”弹窗看全文与复制。</summary>
-internal sealed class FloatingNoticeBanner : UserControl
+internal sealed partial class FloatingNoticeBanner : UserControl
 {
     private readonly Border outerBorder = new()
     {

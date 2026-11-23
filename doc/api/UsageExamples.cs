@@ -49,7 +49,7 @@ public static class UsageExamples
 
     // example:archive-preview:start
     // title: 从加密压缩包预览可导入的虚拟机
-    // description: 如果导入来源是带密码的 ZIP，在预览阶段就要传入密码、临时目录和解压上限；预览和正式导入共用同一个 batch 会话。
+    // description: 如果导入来源是带密码的 ZIP，在预览阶段就要传入密码、临时目录和解压上限。预览和正式导入共用同一个 batch 会话。
     public static async Task PreviewEncryptedImportAsync(string archivePath, string password, string workDirectory,
         CancellationToken cancellationToken = default)
     {
@@ -126,7 +126,7 @@ public static class UsageExamples
 
     // example:operation:start
     // title: 重命名虚拟机
-    // description: 把虚拟机 GUID 和新名字交给服务即可；通过 result.Success 判断是否成功，失败时可以直接向用户展示 result.Error。
+    // description: 把虚拟机 GUID 和新名字交给服务即可。通过 result.Success 判断是否成功，失败时可以直接向用户展示 result.Error。
     public static async Task RenameAsync(Guid vmId, string newName)
     {
         var result = await VmEditService.RenameVmAsync(vmId, newName);
@@ -213,7 +213,7 @@ public static class UsageExamples
 
     // example:workflow:start
     // title: 驱动 GPU 分区与驱动部署流程
-    // description: GPU 部署会在需要用户拍板时暂停（例如选分区或确认关机）。每次循环读取 PendingDecision，把用户的选择通过 SubmitDecisionAsync 交回 Core 即可；返回 null 表示取消。
+    // description: GPU 部署会在需要用户拍板时暂停（例如选分区或确认关机）。每次循环读取 PendingDecision，将有效决定交给 SubmitDecisionAsync。示例中的 decide 回调返回 null 时，由调用方调用 CancelAsync。
     public static async Task<GpuDeploymentSnapshot> DeployGpuAsync(
         GpuDeploymentSession session,
         Func<GpuDecisionRequest, Task<GpuDeploymentDecision?>> decide)
@@ -262,7 +262,7 @@ public static class UsageExamples
 
     // example:resource:start
     // title: 连接虚拟机桌面并接收画面帧
-    // description: 建立基本会话连接，通过 FrameReceived 回调持续接收 BGRA32 画面；结束或取消时调用 DisconnectAsync 释放连接。
+    // description: 建立基本会话连接，通过 FrameReceived 回调持续接收 BGRA32 画面。结束或取消时调用 DisconnectAsync 释放连接。
     public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
         Guid vmId, Action<ConsoleFrame> onFrame, CancellationToken cancellationToken)
     {
@@ -291,7 +291,7 @@ public static class UsageExamples
 
     // example:monitor:start
     // title: 持续采集虚拟机的 CPU 使用率
-    // description: 过滤掉宿主机采样和还没建立好基线的无效采样；遇到无效采样时跳过即可，界面上继续保留上一帧数值。
+    // description: 过滤掉宿主机采样和还没建立好基线的无效采样。遇到无效采样时跳过即可，界面上继续保留上一帧数值。
     public static void UpdateCpuValues(HyperVCpuMonitorService monitor, Action<Guid, int, float> update)
     {
         foreach (var sample in monitor.GetCpuUsage())
@@ -301,4 +301,25 @@ public static class UsageExamples
         }
     }
     // example:monitor:end
+
+    // example:host-thread-monitor:start
+    // title: 按宿主逻辑线程拆分宿主机与虚拟机占用
+    // description: 持续每秒采样一次每个物理逻辑处理器的总占用、宿主机占比及各虚拟机时间片占比。若处于性能计数器回退或 Classic/Core 模式，先检查 Sample.IsValid 并留意 UnattributedGuestUsagePercent。
+    public static async Task SampleHostThreadsAsync(CancellationToken cancellationToken)
+    {
+        await using var monitor = new HostCpuThreadMonitorService();
+        monitor.GetThreadUsage();
+        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+
+        var report = monitor.GetThreadUsage();
+        if (!report.Sample.IsValid) return;
+
+        foreach (var lp in report.Threads)
+        {
+            if (!lp.Sample.IsValid) continue;
+            string host = lp.HostUsagePercent is float percent ? $"{percent:F1}%" : "未知";
+            Console.WriteLine($"线程 {lp.LogicalProcessorIndex} 总占用 {lp.TotalUsagePercent:F1}%，宿主 {host}，未归属 {lp.UnattributedUsagePercent:F1}%");
+        }
+    }
+    // example:host-thread-monitor:end
 }

@@ -9,9 +9,10 @@ internal static partial class ApiDocument
     {
         "VmInstance", "VmProcessorSettings", "VmMemorySettings", "VmNetworkAdapter",
         "VmStorageAttachment", "VmDiskStatus", "VmGpuAssignment", "VmPcieSettings",
-        "VmPcieDeviceSetting", "VmSerialPort", "BootOrderItem", "SpacetimeNode", "VmMmioSettings",
+        "VmPcieDeviceSetting", "VmSerialPort", "BootOrderItem", "CheckpointNode", "VmMmioSettings",
         "VmSecurityInfo", "VmDisplayResolution", "VmBatteryState",
         "VmConsoleState", "AffinityState", "VmCpuCoreMetric", "VmDynamicMemoryData", "GpuUsageData",
+        "HostCpuThreadConsumerUsage", "HostCpuThreadSnapshot", "HostCpuThreadReport",
         "VmGroup", "CheckpointInfo"
     };
 
@@ -64,8 +65,8 @@ internal static partial class ApiDocument
                 if (content == null) continue;
                 string kind = (string?)content.Attribute("kind") ?? "";
                 string prefix = ModificationKinds.GetValueOrDefault(kind, kind);
-                if (content.Attribute("input") is { } input) prefix += "；输入：" + input.Value;
-                if (content.Attribute("submission") is { } submission) prefix += "；提交方式：" + submission.Value;
+                if (content.Attribute("input") is { } input) prefix += "，输入：" + input.Value;
+                if (content.Attribute("submission") is { } submission) prefix += "，提交方式：" + submission.Value;
                 content = new XElement(section.Tag, prefix + "。", content.Nodes());
             }
             string label = queryField ? section.Tag switch

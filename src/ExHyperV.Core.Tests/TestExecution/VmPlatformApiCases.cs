@@ -18,7 +18,7 @@ internal static class VmPlatformApiCases
         ["VmConsoleSupportService.SetLockOnDisconnectAsync()"] = new(VmConsoleSupportService.SetLockOnDisconnectAsync, "LockOnDisconnect"),
         ["VmPowerService.SetHibernationEnabledAsync()"] = new(VmPowerService.SetHibernationEnabledAsync, "EnableHibernation"),
         ["VmPowerService.SetTurnOffOnGuestRestartAsync()"] = new(VmPowerService.SetTurnOffOnGuestRestartAsync, "TurnOffOnGuestRestart"),
-        ["VmSpacetimeService.SetCheckpointsEnabledAsync()"] = new(VmSpacetimeService.SetCheckpointsEnabledAsync, "UserSnapshotType"),
+        ["VmCheckpointService.SetCheckpointsEnabledAsync()"] = new(VmCheckpointService.SetCheckpointsEnabledAsync, "UserSnapshotType"),
         ["VmBootService.SetBootNumLockAsync()"] = new(VmBootService.SetBootNumLockAsync, "BIOSNumLock")
     };
     internal static bool Supports(CatalogTest plan) => Switches.ContainsKey(plan.Api) || plan.Api is
@@ -26,7 +26,7 @@ internal static class VmPlatformApiCases
         or "VmSecurityService.SetSecureBootTemplateAsync()" or "VmConsoleSupportService.GetConsoleStateAsync()"
         or "VmConsoleSupportService.IsConsoleSupportEnabledAsync()" or "VmConsoleSupportService.IsEnhancedSessionAvailableAsync()"
         or "VmConsoleSupportService.SetConsoleSupportAsync()" or "VmPowerService.GetBatteryStateAsync()"
-        or "VmPowerService.SetBatteryEnabledAsync()" or "VmSpacetimeService.GetCheckpointsEnabledAsync()" or "VmBootService.GetBootNumLockAsync()";
+        or "VmPowerService.SetBatteryEnabledAsync()" or "VmCheckpointService.GetCheckpointsEnabledAsync()" or "VmBootService.GetBootNumLockAsync()";
 
     internal static async Task RunAsync(CatalogTest plan, ApiCaseContext c)
     {
@@ -145,8 +145,8 @@ internal static class VmPlatformApiCases
                 var battery = await c.CallAsync(() => VmPowerService.GetBatteryStateAsync(vm.Id));
                 c.Require(battery.HasData, "电池状态：" + battery.Error); c.Equal(BatteryAvailable(), battery.Data!.Available, "默认模板可用性");
                 c.Equal(BatteryAvailable() && Devices(vm.Id, "Msvm_BatterySettingData").Count > 0, battery.Data!.Enabled, "电池挂接状态"); break;
-            case "VmSpacetimeService.GetCheckpointsEnabledAsync()":
-                var snapshots = await c.CallAsync(() => VmSpacetimeService.GetCheckpointsEnabledAsync(vm.Id));
+            case "VmCheckpointService.GetCheckpointsEnabledAsync()":
+                var snapshots = await c.CallAsync(() => VmCheckpointService.GetCheckpointsEnabledAsync(vm.Id));
                 c.Require(snapshots.HasData, "检查点许可：" + snapshots.Error);
                 c.Equal(Convert.ToUInt16(SystemBaseline.Settings(vm.Id)["UserSnapshotType"]) != 2, snapshots.Data, "检查点策略"); break;
             case "VmBootService.GetBootNumLockAsync()":

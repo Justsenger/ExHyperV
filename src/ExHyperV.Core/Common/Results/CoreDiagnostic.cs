@@ -97,7 +97,9 @@ public enum CoreErrorCode
     /// <summary>运行态修改静态内存大小失败（来宾未就绪或不支持热调整）。</summary>
     RuntimeMemoryResizeFailed,
     /// <summary>ARM64 宿主机未附带第 1 代虚拟机固件，不支持启动第 1 代虚拟机。</summary>
-    StartFailedGen1OnArm64
+    StartFailedGen1OnArm64,
+    /// <summary>授权此宿主需要补充 Guardian XML 以核对证书对。</summary>
+    GuardianMetadataRequired
 }
 
 /// <summary>根据跨语言的原生错误码与失败类别归类标准错误。</summary>

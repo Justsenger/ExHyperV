@@ -13,7 +13,7 @@ using Microsoft.UI.Xaml.Media;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
-public sealed class VmProcessorSettingsView : VmSettingsView
+public sealed partial class VmProcessorSettingsView : VmSettingsView
 {
     private readonly List<(SettingFieldEditor Editor, VmProcessorCapability Capability)> fields = [];
     private readonly List<(string Title, Border Content)> sections = [];
@@ -23,6 +23,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
     private VmProcessorSettings? snapshot;
     private VmProcessorService.HostCapabilities? host;
     private VmState powerState;
+    private int hostMaxVirtualCpus = Math.Max(1, Environment.ProcessorCount);
     private static readonly ConcurrentDictionary<Guid, byte> unknownOperations = new();
     private bool uncertain
     {
@@ -215,7 +216,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         var content = new StackPanel { Spacing = 14 };
         content.Children.Add(grid);
         content.Children.Add(actions);
-        sections.Add((L10n.Get("Cpu_Group_Isa"), new Border { Child = content, Margin = new Thickness(0, 0, 0, 16) }));
+        sections.Add((L10n.Get("Cpu_Group_Isa"), new Border { Child = content }));
     }
 
     private void BuildTopologyGroup()
@@ -403,7 +404,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         var content = new StackPanel { Spacing = 10 };
         content.Children.Add(grid);
         content.Children.Add(actions);
-        sections.Add((L10n.Get("Cpu_Group_Topology"), new Border { Child = content, Margin = new Thickness(0, 0, 0, 16) }));
+        sections.Add((L10n.Get("Cpu_Group_Topology"), new Border { Child = content }));
     }
 
     private void BuildFrequencyGroup()
@@ -536,7 +537,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
     private int ReadVmCoreCount()
     {
         var countEditor = fields.FirstOrDefault(f => f.Editor.Property.Name == nameof(VmProcessorSettings.Count)).Editor;
-        return Math.Max(1, countEditor?.ReadEnergyInt(Environment.ProcessorCount) ?? Environment.ProcessorCount);
+        return Math.Clamp(countEditor?.ReadEnergyInt(snapshot?.Count ?? 1) ?? 1, 1, hostMaxVirtualCpus);
     }
 
     private static int ReadFieldInt(SettingFieldEditor editor, int fallback) => editor.Read() switch
@@ -783,12 +784,18 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         VmProcessorCapability.HardwareIsolation or VmProcessorCapability.HardwareIsolatedGuestLimit or
         VmProcessorCapability.ProcessorsPerL3Domain;
 
+    private void SetDraftAvailability(SettingFieldEditor field, bool allowed, string? reason)
+    {
+        bool observed = fieldStates.TryGetValue(field.Property.Name, out var state) && state == VmQueryValueState.Available;
+        field.SetAvailability(!uncertain && observed && allowed, observed ? reason : L10n.Get("Err_NoValidData"));
+    }
+
     private void UpdateDependentAvailability()
     {
         if (Updating || snapshot == null || host == null) return;
         var draft = snapshot.Clone();
         foreach (var (field, _) in fields)
-            if (field.HasPendingEdit) field.Property.SetValue(draft, field.Read());
+            if (field.HasPendingEdit && field.TryRead(out var edited)) field.Property.SetValue(draft, edited);
 
         // 1. 性能监控（PMU -> PEBS / IPT）
         foreach (var (field, capability) in fields)
@@ -806,7 +813,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
                     if (VmProcessorService.GetModificationCondition(withPmu, field.Property.Name, powerState, host).CanModify)
                         reason = L10n.Get("Cond_RequiresPerfmonPmu");
                 }
-                field.SetAvailability(!uncertain && condition.CanModify, reason);
+                SetDraftAvailability(field, condition.CanModify, reason);
             }
         }
 
@@ -820,7 +827,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
             else if (draft.HardwareIsolationExtensionsEnabled != true)
                 hwGuestLimitField.SetAvailability(false, L10n.Get("Cpu_Cond_NeedHwIso"));
             else
-                hwGuestLimitField.SetAvailability(!uncertain, null);
+                SetDraftAvailability(hwGuestLimitField, true, null);
         }
 
         // 4. 处理器拓扑（每节点 L3 域 -> L3 余数分配）
@@ -843,7 +850,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
             else if (l3PerNode <= 1)
                 l3PolicyField.SetAvailability(false, L10n.Get("Cpu_Cond_L3SingleGroup"));
             else
-                l3PolicyField.SetAvailability(!uncertain, null);
+                SetDraftAvailability(l3PolicyField, true, null);
         }
     }
 
@@ -878,7 +885,7 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         var content = new StackPanel { Spacing = 16 };
         content.Children.Add(grid);
         content.Children.Add(actions);
-        sections.Add((title, new Border { Child = content, Margin = new Thickness(0, 0, 0, 16) }));
+        sections.Add((title, new Border { Child = content }));
     }
 
     private static SettingOption[] Options<T>(params (T Value, string Label)[] options) => options.Select(o => new SettingOption(o.Value!, o.Label)).ToArray();
@@ -1015,6 +1022,8 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         await RunAsync(LoadAsync);
     }
 
+    private IReadOnlyDictionary<string, VmQueryValueState> fieldStates = new Dictionary<string, VmQueryValueState>();
+
     protected override async Task LoadAsync()
     {
         snapshot = null;
@@ -1022,12 +1031,17 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         var settingsTask = VmProcessorService.GetVmProcessorAsync(VmId);
         var hostTask = ReadHostCapabilitiesAsync();
         var contextTask = ReadContextAsync();
-        await Task.WhenAll(settingsTask, hostTask, contextTask);
+        var maxCpuTask = VmProcessorService.GetHostMaxVirtualCpuCountAsync(VmId);
+        await Task.WhenAll(settingsTask, hostTask, contextTask, maxCpuTask);
         var observation = (await settingsTask).RequireData();
         var settings = observation.Values;
         host = await hostTask;
         powerState = (await contextTask).State;
+        int? reportedMaximum = await maxCpuTask;
+        hostMaxVirtualCpus = reportedMaximum ?? Math.Max(1, settings.Count);
         if (IsStopped) return;
+
+        fieldStates = observation.States;
         snapshot = settings;
         Updating = true;
         bool hasUnavailable = false;
@@ -1036,11 +1050,32 @@ public sealed class VmProcessorSettingsView : VmSettingsView
             foreach (var (field, capability) in fields)
             {
                 var value = field.Property.GetValue(settings);
+                if (field.Property.Name == nameof(VmProcessorSettings.Count))
+                {
+                    field.UpdateSliderBounds(1, hostMaxVirtualCpus);
+                    if (reportedMaximum == null)
+                    {
+                        field.Load(value, false, L10n.Get("Err_NoValidData"));
+                        continue;
+                    }
+                }
                 var condition = VmProcessorService.GetModificationCondition(settings, field.Property.Name, powerState, host);
-                bool available = observation.States.GetValueOrDefault(field.Property.Name) == VmQueryValueState.Available;
-                if (!available) hasUnavailable = true;
-                field.Load(value, !uncertain && available && condition.CanModify,
-                    !available ? L10n.Get("Err_NoValidData") : condition.CanModify ? null : CoreMessageResolver.ResolveConditionReason(condition));
+                if (!condition.CanModify)
+                {
+                    field.Load(value, false, CoreMessageResolver.ResolveConditionReason(condition));
+                    continue;
+                }
+
+                var state = observation.States.GetValueOrDefault(field.Property.Name, VmQueryValueState.Unavailable);
+                if (state == VmQueryValueState.Unsupported)
+                {
+                    field.Load(value, false, L10n.Get("Cond_HostSettingMissing"));
+                    continue;
+                }
+
+                bool unavailable = state != VmQueryValueState.Available;
+                if (unavailable) hasUnavailable = true;
+                field.Load(value, !uncertain && !unavailable, unavailable ? L10n.Get("Err_NoValidData") : null);
             }
         }
         finally { Updating = false; }
@@ -1058,13 +1093,15 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         var changed = new List<string>();
         foreach (var field in submitted)
         {
+            if (!field.IsFieldEnabled || !fieldStates.TryGetValue(field.Property.Name, out var availability) || availability != VmQueryValueState.Available)
+                throw new InvalidOperationException(L10n.Get("Err_NoValidData"));
             object? value = field.Read();
             if (Equals(field.Property.GetValue(snapshot), value)) continue;
             field.Property.SetValue(proposed, value);
             changed.Add(field.Property.Name);
         }
         if (changed.Count == 0) return false;
-        ValidateProcessorSubmission(proposed, changed);
+        ValidateProcessorSubmission(proposed, changed, hostMaxVirtualCpus);
         var otherDrafts = fields.Select(f => f.Editor).Where(f => f.HasPendingEdit && !submitted.Contains(f))
             .Select(f => (Field: f, Draft: f.CaptureDraft())).ToArray();
         ApiResponse? result = null;
@@ -1078,7 +1115,8 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         catch (Exception ex) { failure = ex; if (ex is CoreOperationException core && core.Result.ErrorKind == ApiErrorKind.OutcomeUnknown) uncertain = true; }
         try { await LoadAsync(); }
         catch (Exception ex) { failure ??= ex; }
-        foreach (var draft in otherDrafts) draft.Field.RestoreDraft(draft.Draft);
+        foreach (var draft in otherDrafts)
+            if (draft.Field.IsFieldEnabled) draft.Field.RestoreDraft(draft.Draft);
         UpdateGroupActions();
         if (result is { Success: false }) throw CreateApplyFailure(CoreMessageResolver.ResolveError(result), failure);
         if (failure != null) throw new InvalidOperationException(CoreMessageResolver.ResolveException(failure), failure);
@@ -1093,9 +1131,9 @@ public sealed class VmProcessorSettingsView : VmSettingsView
         return new InvalidOperationException(message);
     }
 
-    private static void ValidateProcessorSubmission(VmProcessorSettings proposed, IReadOnlyCollection<string> changed)
+    private static void ValidateProcessorSubmission(VmProcessorSettings proposed, IReadOnlyCollection<string> changed, int maxVirtualCpus)
     {
-        int maxLogical = Math.Max(1, Environment.ProcessorCount);
+        int maxLogical = Math.Max(1, maxVirtualCpus);
         if (changed.Contains(nameof(VmProcessorSettings.Count)) && (proposed.Count < 1 || proposed.Count > maxLogical))
             throw new InvalidOperationException(L10n.Format("Cpu_Val_CountRange", maxLogical));
         if (changed.Contains(nameof(VmProcessorSettings.Reservation)) && proposed.Reservation > 100000)
@@ -1141,7 +1179,7 @@ internal sealed record CustomSliderAdapter(
     Func<int, int>? SnapValue = null);
 
 /// <summary>设置值与 WinUI 控件之间的显示适配，不包含宿主业务规则。</summary>
-internal sealed class SettingFieldEditor : UserControl
+internal sealed partial class SettingFieldEditor : UserControl
 {
     private readonly Grid layout = new() { ColumnSpacing = 8 };
     private readonly decimal scale;
@@ -1160,6 +1198,8 @@ internal sealed class SettingFieldEditor : UserControl
     private Border? stepperBox;
     private decimal minimum;
     private decimal? maximum;
+    private int effectiveSliderMin;
+    private int effectiveSliderMax;
     private string loadedText = "";
     private bool loading;
     public PropertyInfo Property { get; }
@@ -1218,6 +1258,8 @@ internal sealed class SettingFieldEditor : UserControl
         this.scale = scale;
         this.deferred = deferred;
         this.customSlider = customSlider;
+        effectiveSliderMin = customSlider?.SliderMin ?? 0;
+        effectiveSliderMax = customSlider?.SliderMax ?? 0;
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         Content = layout;
@@ -1270,8 +1312,12 @@ internal sealed class SettingFieldEditor : UserControl
             text.TextChanged += (_, _) =>
             {
                 if (loading) return;
-                if (decimal.TryParse(text.Text.Trim(), NumberStyles.Number & ~NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimal parsed))
-                    energySlider.Value = (int)Math.Round(parsed);
+                if (decimal.TryParse(text.Text.Trim(), NumberStyles.Number & ~NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimal parsed) && parsed is >= 0 and <= int.MaxValue)
+                {
+                    loading = true;
+                    try { energySlider.Value = (int)Math.Round(parsed); }
+                    finally { loading = false; }
+                }
                 ValueEdited?.Invoke();
             };
         }
@@ -1282,7 +1328,7 @@ internal sealed class SettingFieldEditor : UserControl
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 CustomHintFormatter = customSlider.FormatTooltip
             };
-            energySlider.SetRange(customSlider.SliderMin, customSlider.SliderMax);
+            energySlider.SetRange(effectiveSliderMin, effectiveSliderMax);
             Grid.SetColumnSpan(energySlider, 2);
             layout.Children.Add(energySlider);
 
@@ -1330,7 +1376,7 @@ internal sealed class SettingFieldEditor : UserControl
                 CustomHintFormatter = customSlider.FormatTooltip,
                 SnapValue = customSlider.SnapValue
             };
-            energySlider.SetRange(customSlider.SliderMin, customSlider.SliderMax);
+            energySlider.SetRange(effectiveSliderMin, effectiveSliderMax);
             Grid.SetColumnSpan(energySlider, 2);
             layout.Children.Add(energySlider);
 
@@ -1356,7 +1402,7 @@ internal sealed class SettingFieldEditor : UserControl
                 {
                     currentCustomValue = ConvertSliderTypedValue(0, Property.PropertyType);
                     loading = true;
-                    try { energySlider.Value = customSlider.SliderMin; }
+                    try { energySlider.Value = effectiveSliderMin; }
                     finally { loading = false; }
                     if (customUnitText != null) customUnitText.Visibility = Visibility.Collapsed;
                     ValueEdited?.Invoke();
@@ -1373,8 +1419,8 @@ internal sealed class SettingFieldEditor : UserControl
                     try
                     {
                         int pos = customSlider.ToSliderPos(currentCustomValue);
-                        if (!customSlider.AllowAutoZero && pos > customSlider.SliderMax)
-                            energySlider.SetRange(customSlider.SliderMin, pos);
+                        if (!customSlider.AllowAutoZero && pos > effectiveSliderMax)
+                            energySlider.SetRange(effectiveSliderMin, pos);
                         energySlider.Value = pos;
                     }
                     finally { loading = false; }
@@ -1455,7 +1501,7 @@ internal sealed class SettingFieldEditor : UserControl
                     : value == null ? ""
                     : scale == 1 ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? ""
                     : (Convert.ToDecimal(value) / scale).ToString(CultureInfo.InvariantCulture);
-                if (energySlider != null && decimal.TryParse(text.Text, NumberStyles.Number & ~NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimal sliderVal))
+                if (energySlider != null && decimal.TryParse(text.Text, NumberStyles.Number & ~NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimal sliderVal) && sliderVal is >= 0 and <= int.MaxValue)
                     energySlider.Value = (int)Math.Round(sliderVal);
             }
             if (toggle != null) toggle.IsOn = value is true;
@@ -1655,6 +1701,17 @@ internal sealed class SettingFieldEditor : UserControl
         finally { loading = false; }
     }
 
+    public void UpdateSliderBounds(int min, int max)
+    {
+        int nextMax = Math.Max(min, max);
+        if (customSlider != null)
+        {
+            effectiveSliderMin = min;
+            effectiveSliderMax = nextMax;
+        }
+        energySlider?.SetRange(min, nextMax);
+    }
+
     public void Load(object? value, bool enabled, string? reason)
     {
         loading = true;
@@ -1668,7 +1725,7 @@ internal sealed class SettingFieldEditor : UserControl
                 {
                     int pos = customSlider.ToSliderPos(value);
                     if (!customSlider.AllowAutoZero)
-                        energySlider.SetRange(customSlider.SliderMin, Math.Max(customSlider.SliderMax, pos));
+                        energySlider.SetRange(effectiveSliderMin, Math.Max(effectiveSliderMax, pos));
                     energySlider.Value = pos;
                 }
                 if (text != null)
@@ -1686,7 +1743,7 @@ internal sealed class SettingFieldEditor : UserControl
                 {
                     loadedText = value == null ? "" : scale == 1 ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? "" : (Convert.ToDecimal(value) / scale).ToString(CultureInfo.InvariantCulture);
                     text.Text = loadedText;
-                    if (energySlider != null && decimal.TryParse(loadedText, NumberStyles.Number & ~NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimal sliderVal))
+                    if (energySlider != null && decimal.TryParse(loadedText, NumberStyles.Number & ~NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimal sliderVal) && sliderVal is >= 0 and <= int.MaxValue)
                         energySlider.Value = (int)Math.Round(sliderVal);
                     if (apply != null) apply.IsEnabled = false;
                 }
@@ -1699,7 +1756,7 @@ internal sealed class SettingFieldEditor : UserControl
     }
 
     public int ReadEnergyInt(int fallback) =>
-        text != null && decimal.TryParse(text.Text.Trim(), NumberStyles.Number & ~NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimal val)
+        text != null && decimal.TryParse(text.Text.Trim(), NumberStyles.Number & ~NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out decimal val) && val is >= 0 and <= int.MaxValue
             ? (int)Math.Round(val) : fallback;
 
     public void UpdateEnergyContext(int vmCoreCount, int hostLogicalCount) => energySlider?.SetContext(vmCoreCount, hostLogicalCount);
@@ -1716,6 +1773,12 @@ internal sealed class SettingFieldEditor : UserControl
         ToolTipService.SetToolTip(this, reason);
         AvailabilityChanged?.Invoke(reason);
         UpdateStepper();
+    }
+
+    public bool TryRead(out object? value)
+    {
+        try { value = Read(); return true; }
+        catch (InvalidOperationException) { value = null; return false; }
     }
 
     public object? Read()

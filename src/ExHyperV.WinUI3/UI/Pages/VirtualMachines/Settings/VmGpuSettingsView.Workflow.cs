@@ -1,63 +1,55 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using ExHyperV.Models;
 using ExHyperV.Services;
+using ExHyperV.Tools;
 using ExHyperV.WinUI3.Localization;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.UI;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 public sealed partial class VmGpuSettingsView
 {
-    private readonly StackPanel deployment = new() { Spacing = 16, Visibility = Visibility.Collapsed };
-    private readonly TextBlock deploymentTitle = Label("GPU 部署", 18);
-    private readonly InfoBar deploymentState = new() { IsOpen = true, IsClosable = false };
-    private readonly StackPanel steps = new() { Spacing = 8 };
-    private readonly StackPanel decisions = new() { Spacing = 12 };
-    private readonly ContentControl decisionsContent = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+    private readonly InfoBar deploymentState = new() { IsOpen = true, IsClosable = false, Visibility = Visibility.Collapsed };
+    private readonly StackPanel stepsPanel = new() { Spacing = 8 };
+    private readonly ContentControl stepsHost = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+    private readonly StackPanel fallbackDecisionPanel = new() { Spacing = 10 };
+    private readonly ContentControl fallbackDecisionHost = new() { Visibility = Visibility.Collapsed, HorizontalContentAlignment = HorizontalAlignment.Stretch };
     private readonly Button cancel = new() { Content = "取消部署" };
     private readonly Button reconcile = new() { Content = "核实原操作" };
     private readonly Button retryCleanup = new() { Content = "重试清理" };
     private readonly Button done = new() { Content = "返回显卡列表" };
     private readonly Button restart = new() { Content = "重新选择显卡" };
-    private readonly TextBox log = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 180, MaxHeight = 320, FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Consolas") };
-    private readonly TextBox recoveryText = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 320 };
-    private readonly Expander recoveryDetails = new() { Header = "恢复详情", Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
+    private readonly TextBox log = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 140, MaxHeight = 280, FontFamily = new FontFamily("Consolas") };
+    private readonly TextBox recoveryText = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 260 };
+    private readonly Expander recoveryDetails = new() { Header = "部署日志与恢复详情", Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
     private readonly SortedDictionary<long, string> logEntries = new();
+
+    private readonly StackPanel footerActions = new() { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Visibility = Visibility.Collapsed };
     private GpuDeploymentSession? workflow;
     private GpuDeploymentSnapshot? snapshot;
-    private Guid? displayedDecision;
     private bool cancellationRequested;
+    private string? renderedStepsSignature;
+    private TextBlock? activeIsoPctText;
+    private ColumnDefinition? activeIsoFillCol;
+    private ColumnDefinition? activeIsoTrackCol;
 
     private UIElement BuildDeploymentPanel()
     {
-        deployment.Children.Add(deploymentTitle);
-        deployment.Children.Add(deploymentState);
-        deployment.Children.Add(steps);
-        decisionsContent.Content = decisions;
-        deployment.Children.Add(decisionsContent);
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        foreach (var button in new[] { cancel, reconcile, retryCleanup, done, restart }) actions.Children.Add(button);
-        deployment.Children.Add(actions);
-        recoveryDetails.Content = recoveryText;
-        deployment.Children.Add(recoveryDetails);
-        var logHeading = new Grid();
-        logHeading.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        logHeading.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        var heading = Label("配置日志");
-        heading.VerticalAlignment = VerticalAlignment.Center;
-        logHeading.Children.Add(heading);
-        var copy = new Button { Content = "复制日志与恢复详情" };
-        Grid.SetColumn(copy, 1);
-        logHeading.Children.Add(copy);
-        deployment.Children.Add(logHeading);
-        deployment.Children.Add(log);
-        copy.Click += (_, _) => CopyReport();
         cancel.Click += async (_, _) => await CancelDeploymentAsync();
         reconcile.Click += async (_, _) => await RunGpuOperationAsync(() => PerformSessionActionAsync(GpuDeploymentAction.Reconcile));
         retryCleanup.Click += async (_, _) => await RunGpuOperationAsync(() => PerformSessionActionAsync(GpuDeploymentAction.RetryCleanup));
+        restart.Click += async (_, _) => await RunGpuOperationAsync(ShowSelectionAsync);
+        done.Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"];
         done.Click += async (_, _) => await RunGpuOperationAsync(async () =>
         {
             EnsureNoUnfinishedDeployment();
@@ -65,55 +57,91 @@ public sealed partial class VmGpuSettingsView
             overview.Visibility = Visibility.Visible;
             deployment.Visibility = selection.Visibility = Visibility.Collapsed;
         });
-        restart.Click += async (_, _) => await RunGpuOperationAsync(ShowSelectionAsync);
+
+        var copyDetails = new Button { Content = "复制日志", HorizontalAlignment = HorizontalAlignment.Right };
+        copyDetails.Click += (_, _) => CopyReport();
+
+        var detailsBody = new StackPanel { Spacing = 8 };
+        detailsBody.Children.Add(copyDetails);
+        detailsBody.Children.Add(log);
+        detailsBody.Children.Add(recoveryText);
+        recoveryDetails.Content = detailsBody;
+
+        footerActions.Children.Clear();
+        foreach (var button in new[] { cancel, reconcile, retryCleanup, restart, done })
+            footerActions.Children.Add(button);
+
+        stepsHost.Content = stepsPanel;
+        fallbackDecisionHost.Content = fallbackDecisionPanel;
+
+        deployment.Children.Add(deploymentState);
+        deployment.Children.Add(stepsHost);
+        deployment.Children.Add(fallbackDecisionHost);
+        deployment.Children.Add(footerActions);
+        deployment.Children.Add(recoveryDetails);
         return deployment;
     }
 
-    private async Task StartDeploymentAsync(HostGpuInfo gpu, GpuDeploymentMode mode)
+    private async Task StartDeploymentAsync(IReadOnlyList<HostGpuInfo> gpus, GpuDeploymentMode mode)
     {
         EnsureNoUnfinishedDeployment();
+        operationNotice.IsOpen = false;
         var identity = await QueryAsync(VmIdentityFields.Name);
         var name = identity.Get(VmIdentityFields.Name);
         if (!name.HasValue) throw new InvalidOperationException(name.Error ?? "无法读取虚拟机名称。");
         if (closing || IsStopped) return;
-        var session = new GpuDeploymentSession(VmId, name.Value ?? throw new InvalidOperationException("虚拟机名称为空。"), gpu, service, query, mode);
+
+        var vmName = name.Value ?? throw new InvalidOperationException("虚拟机名称为空。");
+        var session = new GpuDeploymentSession(VmId, vmName, gpus, service, query, mode);
         workflow = session;
         snapshot = null;
-        displayedDecision = null;
         cancellationRequested = false;
+        renderedStepsSignature = null;
+        activeIsoPctText = null;
+        activeIsoFillCol = null;
+        activeIsoTrackCol = null;
         logEntries.Clear();
         log.Text = string.Empty;
         recoveryText.Text = string.Empty;
-        decisions.Children.Clear();
+        fallbackDecisionPanel.Children.Clear();
+        fallbackDecisionHost.Visibility = Visibility.Collapsed;
         recoveryDetails.Visibility = Visibility.Collapsed;
-        deploymentTitle.Text = $"{(mode == GpuDeploymentMode.UpdateDrivers ? "更新驱动" : "配置显卡")}，{gpu.Name}";
+        deploymentState.Visibility = Visibility.Collapsed;
+
         overview.Visibility = selection.Visibility = Visibility.Collapsed;
         deployment.Visibility = Visibility.Visible;
+        _ = EnsureScriptsLoadedAsync(showWarningOnEmpty: false);
         ApplySnapshot(session, session.GetStatus());
+
         // Core 可同步调用底层能力；整步在后台执行，通知只排队，不阻塞 Core。
         var result = await Task.Run(() => session.StartAsync(value =>
         {
-            if (!DispatcherQueue.TryEnqueue(() => ApplySnapshot(session, value))) session.RequestCancellation();
+            if (IsStopped) return;
+            DispatcherQueue.TryEnqueue(() => ApplySnapshot(session, value));
         }));
         await FinishStepAsync(session, result);
     }
 
     private async Task FinishStepAsync(GpuDeploymentSession session, GpuDeploymentSnapshot result)
     {
-        if (!ReferenceEquals(session, workflow)) return;
         ApplySnapshot(session, result);
-        if (result.State is GpuDeploymentState.Completed or GpuDeploymentState.Cancelled or GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired)
+        if (result.State == GpuDeploymentState.Completed)
         {
-            NotifyChanged();
             try { await RefreshAssignmentsAsync(); }
             catch (Exception ex) { Notice($"GPU 清单刷新失败：{CoreMessageResolver.ResolveException(ex)}", InfoBarSeverity.Warning); }
+            NotifyChanged();
+        }
+        else if (result.State is GpuDeploymentState.Cancelled or GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired)
+        {
+            try { await RefreshAssignmentsAsync(); }
+            catch { }
+            NotifyChanged();
         }
     }
 
     private void ApplySnapshot(GpuDeploymentSession source, GpuDeploymentSnapshot value)
     {
         if (IsStopped || !ReferenceEquals(source, workflow)) return;
-        // 最终返回值可能先于队列里的通知抵达。旧快照的日志仍需保存，避免漏掉警告。
         if (!string.IsNullOrWhiteSpace(value.LastLog) && !logEntries.ContainsKey(value.Revision))
         {
             logEntries[value.Revision] = value.LastLog;
@@ -121,149 +149,326 @@ public sealed partial class VmGpuSettingsView
         }
         if (snapshot != null && value.Revision <= snapshot.Revision) return;
         snapshot = value;
-        deploymentState.Title = value.State switch
-        {
-            GpuDeploymentState.Created => "准备开始",
-            GpuDeploymentState.Running => cancellationRequested ? "正在安全停止" : "正在配置",
-            GpuDeploymentState.WaitingForDecision => "等待确认",
-            GpuDeploymentState.Completed => "部署完成",
-            GpuDeploymentState.Failed => "部署失败",
-            GpuDeploymentState.Cancelled => "部署已取消",
-            GpuDeploymentState.CleanupRequired => value.OutcomeUnknown ? "原操作结果尚未确认" : "仍有资源需要清理",
-            _ => "未识别的部署状态"
-        };
-        deploymentState.Severity = value.State switch
-        {
-            GpuDeploymentState.Completed => InfoBarSeverity.Success,
-            GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired => InfoBarSeverity.Error,
-            GpuDeploymentState.Cancelled => InfoBarSeverity.Warning,
-            _ => InfoBarSeverity.Informational
-        };
-        var errors = new[] { value.Error, value.CleanupError }.Where(text => !string.IsNullOrWhiteSpace(text)).Distinct();
-        deploymentState.Message = string.Join(Environment.NewLine, errors);
-        if (value.State == GpuDeploymentState.Cancelled)
-            deploymentState.Message = "已完成的策略、MMIO、文件与电源修改保留；本次临时资源按 Core 的取消流程收尾。";
-        else if (value.State == GpuDeploymentState.CleanupRequired)
-            deploymentState.Message += "\n请在此页核实或清理。结果未知时不会重新执行部署或擅自删除资源。";
-        else if (value.State == GpuDeploymentState.Completed)
-            deploymentState.Message = "执行详情与警告保留在下方配置日志中。";
 
-        steps.Children.Clear();
-        foreach (var step in value.Steps)
+        bool hasErrors = !string.IsNullOrWhiteSpace(value.Error) || !string.IsNullOrWhiteSpace(value.CleanupError);
+        if (value.State is GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired or GpuDeploymentState.Cancelled || hasErrors)
         {
-            var stateText = step.Status switch
+            deploymentState.Title = value.State switch
             {
-                GpuDeploymentStepStatus.Pending => "等待",
-                GpuDeploymentStepStatus.Running => "进行中",
-                GpuDeploymentStepStatus.Success => "完成",
-                GpuDeploymentStepStatus.Failed => "未完成",
-                _ => "未知"
+                GpuDeploymentState.Failed => "部署失败",
+                GpuDeploymentState.CleanupRequired => value.OutcomeUnknown ? "原操作结果尚未确认" : "仍有资源需要清理",
+                GpuDeploymentState.Cancelled => "部署已取消",
+                _ => "状态提示"
             };
-            var body = new StackPanel { Spacing = 4, Margin = new Thickness(16, 12, 16, 12) };
-            body.Children.Add(Label($"{step.Name}，{stateText}"));
-            if (!string.IsNullOrWhiteSpace(step.Description)) body.Children.Add(Label(step.Description, 12, secondary: true));
-            steps.Children.Add(new Border { Background = Brush("CardBackgroundFillColorDefaultBrush"), CornerRadius = new CornerRadius(8), Child = body });
-        }
-
-        recoveryText.Text = FormatRecovery(value);
-        recoveryDetails.Visibility = value.Recovery != null || value.State == GpuDeploymentState.CleanupRequired
-            ? Visibility.Visible : Visibility.Collapsed;
-        if (value.State == GpuDeploymentState.WaitingForDecision && value.PendingDecision is { } request)
-        {
-            if (displayedDecision != request.Id)
+            deploymentState.Severity = value.State switch
             {
-                displayedDecision = request.Id;
-                RenderDecision(request);
-            }
+                GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired => InfoBarSeverity.Error,
+                GpuDeploymentState.Cancelled => InfoBarSeverity.Warning,
+                _ => InfoBarSeverity.Informational
+            };
+            var errors = new[] { value.Error, value.CleanupError }.Where(text => !string.IsNullOrWhiteSpace(text)).Distinct();
+            deploymentState.Message = string.Join(Environment.NewLine, errors);
+            deploymentState.Visibility = Visibility.Visible;
         }
         else
         {
-            displayedDecision = null;
-            decisions.Children.Clear();
+            deploymentState.Visibility = Visibility.Collapsed;
         }
+
+        RenderTaskSteps(value);
+
+        recoveryText.Text = value.State is GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired or GpuDeploymentState.Cancelled
+            ? FormatRecovery(value)
+            : string.Empty;
+        recoveryDetails.Visibility = !string.IsNullOrWhiteSpace(recoveryText.Text) || (!string.IsNullOrWhiteSpace(log.Text) && hasErrors)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
         RefreshActions();
+    }
+
+    private void RenderTaskSteps(GpuDeploymentSnapshot value)
+    {
+        string stepsSignature = string.Join("|", value.Steps.Select(s =>
+        {
+            bool isIso = s.Type == GpuDeploymentStepKind.Driver
+                && (value.IsDriverIsoMounted || value.DriverIsoProgressPercent.HasValue);
+            bool hasPct = isIso && s.Status == GpuDeploymentStepStatus.Running && value.DriverIsoProgressPercent.HasValue;
+            return $"{s.Type}:{s.Name}:{s.Status}:{isIso}:{value.IsDriverSkipped}:{hasPct}";
+        })) + $"#state={value.State}#dec={value.PendingDecision?.Id}:{value.PendingDecision?.Kind}";
+
+        if (string.Equals(stepsSignature, renderedStepsSignature, StringComparison.Ordinal)
+            && value.DriverIsoProgressPercent.HasValue
+            && activeIsoPctText != null
+            && activeIsoFillCol != null
+            && activeIsoTrackCol != null)
+        {
+            int pct = Math.Clamp(value.DriverIsoProgressPercent.Value, 0, 100);
+            activeIsoPctText.Text = $"{pct}%";
+            activeIsoFillCol.Width = new GridLength(pct, GridUnitType.Star);
+            activeIsoTrackCol.Width = new GridLength(Math.Max(0, 100 - pct), GridUnitType.Star);
+            return;
+        }
+
+        renderedStepsSignature = stepsSignature;
+        activeIsoPctText = null;
+        activeIsoFillCol = null;
+        activeIsoTrackCol = null;
+
+        stepsPanel.Children.Clear();
+        fallbackDecisionPanel.Children.Clear();
+        fallbackDecisionHost.Visibility = Visibility.Collapsed;
+
+        bool placedDecisionCard = false;
+        var defaultBg = TryBrush("CardBackgroundFillColorDefaultBrush", Color.FromArgb(13, 255, 255, 255));
+        var activeBg = SubtleHighlightBrush(12, 10);
+        var defaultStroke = TryBrush("CardStrokeColorDefaultBrush", Color.FromArgb(20, 255, 255, 255));
+
+        foreach (GpuDeploymentStep step in value.Steps)
+        {
+            bool isIsoStep = step.Type == GpuDeploymentStepKind.Driver
+                && (value.IsDriverIsoMounted || value.DriverIsoProgressPercent.HasValue);
+            bool isSkipped = step.Type == GpuDeploymentStepKind.Driver && value.IsDriverSkipped;
+            string displayLabel = isIsoStep ? "挂载驱动光盘" : step.Name;
+
+            bool isActive = step.Status == GpuDeploymentStepStatus.Running;
+            bool isDone = !isSkipped && step.Status == GpuDeploymentStepStatus.Success;
+            bool isFailed = step.Status == GpuDeploymentStepStatus.Failed;
+            bool isPending = !isActive && !isDone && !isSkipped && !isFailed;
+            bool showIsoProgress = value.State == GpuDeploymentState.Running && isIsoStep && isActive && value.DriverIsoProgressPercent.HasValue;
+
+            var cardGrid = new Grid();
+            cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var mainRow = new Grid
+            {
+                ColumnSpacing = 14,
+                Margin = new Thickness(16, 12, 16, 12)
+            };
+            mainRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
+            mainRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            mainRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            FrameworkElement statusIcon = DeviceWorkbench.BuildStepIcon(isSkipped, isDone, isFailed, isActive);
+            var iconHost = new Grid { Width = 28, Height = 28, VerticalAlignment = VerticalAlignment.Center };
+            iconHost.Children.Add(statusIcon);
+            Grid.SetColumn(iconHost, 0);
+            mainRow.Children.Add(iconHost);
+
+            var titleStack = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+            titleStack.Children.Add(new TextBlock
+            {
+                Text = displayLabel,
+                FontSize = 14.5,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brush("TextFillColorPrimaryBrush"),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+            if (isActive && value.State == GpuDeploymentState.WaitingForDecision
+                && value.PendingDecision?.Kind is GpuDecisionKind.PowerOff or GpuDecisionKind.DriverFallback
+                && !string.IsNullOrWhiteSpace(value.PendingDecision.Message))
+            {
+                titleStack.Children.Add(new TextBlock
+                {
+                    Text = value.PendingDecision.Message,
+                    FontSize = 12,
+                    Foreground = Brush("TextFillColorSecondaryBrush"),
+                    TextWrapping = TextWrapping.Wrap
+                });
+            }
+            Grid.SetColumn(titleStack, 1);
+            mainRow.Children.Add(titleStack);
+
+            FrameworkElement? rightContent = null;
+            if (isSkipped)
+            {
+                rightContent = new TextBlock
+                {
+                    Text = "已跳过",
+                    FontSize = 12.5,
+                    Foreground = Brush("TextFillColorSecondaryBrush"),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+            }
+            else if (showIsoProgress)
+            {
+                int pct = Math.Clamp(value.DriverIsoProgressPercent!.Value, 0, 100);
+                var pctBlock = new TextBlock
+                {
+                    Text = $"{pct}%",
+                    FontSize = 12.5,
+                    Foreground = Brush("TextFillColorSecondaryBrush"),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(pctBlock, FontNumeralAlignment.Tabular);
+                activeIsoPctText = pctBlock;
+                rightContent = pctBlock;
+            }
+            else if (isActive && value.State == GpuDeploymentState.WaitingForDecision && value.PendingDecision != null)
+            {
+                rightContent = BuildInlineStepActions(step, value.PendingDecision);
+            }
+
+            if (rightContent != null)
+            {
+                Grid.SetColumn(rightContent, 2);
+                mainRow.Children.Add(rightContent);
+            }
+
+            Grid.SetRow(mainRow, 0);
+            cardGrid.Children.Add(mainRow);
+
+            if (showIsoProgress)
+            {
+                int pct = Math.Clamp(value.DriverIsoProgressPercent!.Value, 0, 100);
+                var fillCol = new ColumnDefinition { Width = new GridLength(pct, GridUnitType.Star) };
+                var trackCol = new ColumnDefinition { Width = new GridLength(Math.Max(0, 100 - pct), GridUnitType.Star) };
+                activeIsoFillCol = fillCol;
+                activeIsoTrackCol = trackCol;
+
+                var progressTrack = new Grid
+                {
+                    Height = 3,
+                    Background = new SolidColorBrush(Color.FromArgb(15, 255, 255, 255))
+                };
+                progressTrack.ColumnDefinitions.Add(fillCol);
+                progressTrack.ColumnDefinitions.Add(trackCol);
+                var fillBar = new Border
+                {
+                    Background = Brush("VmAccentBrush"),
+                    CornerRadius = new CornerRadius(0, 0, 0, 5)
+                };
+                Grid.SetColumn(fillBar, 0);
+                progressTrack.Children.Add(fillBar);
+
+                Grid.SetRow(progressTrack, 1);
+                cardGrid.Children.Add(progressTrack);
+            }
+
+            var taskCard = new Border
+            {
+                Background = isActive ? activeBg : defaultBg,
+                BorderBrush = isActive ? Brush("VmAccentBrush") : defaultStroke,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(6),
+                Opacity = isPending ? 0.62 : 1.0,
+                Child = cardGrid
+            };
+            stepsPanel.Children.Add(taskCard);
+
+            if (isActive && value.State == GpuDeploymentState.WaitingForDecision && value.PendingDecision != null
+                && step.Type == GpuDeploymentStepKind.Driver
+                && value.PendingDecision.Kind is GpuDecisionKind.SelectPartition or GpuDecisionKind.LinuxCredentials)
+            {
+                UIElement decisionCard = BuildDecisionPanel(value.PendingDecision);
+                stepsPanel.Children.Add(decisionCard);
+                placedDecisionCard = true;
+            }
+        }
+
+        if (value.State == GpuDeploymentState.WaitingForDecision && value.PendingDecision != null && !placedDecisionCard
+            && value.PendingDecision.Kind is GpuDecisionKind.SelectPartition or GpuDecisionKind.LinuxCredentials)
+        {
+            fallbackDecisionPanel.Children.Add(BuildDecisionPanel(value.PendingDecision));
+            fallbackDecisionHost.Visibility = Visibility.Visible;
+        }
     }
 
     private void RefreshActions()
     {
-        var idle = !working && !closing && !IsStopped;
-        workingProgress.Visibility = working ? Visibility.Visible : Visibility.Collapsed;
-        overviewContent.IsEnabled = idle;
-        selectionContent.IsEnabled = idle;
-        decisionsContent.IsEnabled = idle && snapshot?.AllowedActions.Contains(GpuDeploymentAction.SubmitDecision) == true;
-        add.IsEnabled = idle && !removalOutcomeUnknown;
-        begin.IsEnabled = idle && hosts.SelectedItem is ListViewItem { Tag: HostGpuInfo } && !removalOutcomeUnknown;
-        refresh.IsEnabled = idle;
         var actions = snapshot?.AllowedActions ?? [];
-        cancel.Visibility = actions.Contains(GpuDeploymentAction.Cancel) ? Visibility.Visible : Visibility.Collapsed;
-        cancel.IsEnabled = !closing && !cancellationRequested && !IsStopped;
+        bool busy = working || closing || IsBusy;
+        bool terminal = snapshot == null || CanReleaseWorkflow();
+        cancel.Visibility = actions.Contains(GpuDeploymentAction.Cancel)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+        cancel.IsEnabled = actions.Contains(GpuDeploymentAction.Cancel) && !closing && !cancellationRequested;
+
         reconcile.Visibility = actions.Contains(GpuDeploymentAction.Reconcile) ? Visibility.Visible : Visibility.Collapsed;
-        reconcile.IsEnabled = idle;
+        reconcile.IsEnabled = !busy && actions.Contains(GpuDeploymentAction.Reconcile);
+
         retryCleanup.Visibility = actions.Contains(GpuDeploymentAction.RetryCleanup) ? Visibility.Visible : Visibility.Collapsed;
-        retryCleanup.IsEnabled = idle;
-        done.Visibility = restart.Visibility = CanReleaseWorkflow() ? Visibility.Visible : Visibility.Collapsed;
-        done.IsEnabled = restart.IsEnabled = idle;
+        retryCleanup.IsEnabled = !busy && actions.Contains(GpuDeploymentAction.RetryCleanup);
+
+        bool canReturnToList = terminal && snapshot?.State is GpuDeploymentState.Completed or GpuDeploymentState.Cancelled or GpuDeploymentState.Failed;
+        done.Visibility = canReturnToList ? Visibility.Visible : Visibility.Collapsed;
+        done.IsEnabled = !busy && canReturnToList;
+
+        bool canRestartSelection = terminal && snapshot?.State is GpuDeploymentState.Cancelled or GpuDeploymentState.Failed;
+        restart.Visibility = canRestartSelection ? Visibility.Visible : Visibility.Collapsed;
+        restart.IsEnabled = !busy && canRestartSelection;
+
+        bool hasFooterAction = cancel.Visibility == Visibility.Visible
+            || reconcile.Visibility == Visibility.Visible
+            || retryCleanup.Visibility == Visibility.Visible
+            || done.Visibility == Visibility.Visible
+            || restart.Visibility == Visibility.Visible;
+        footerActions.Visibility = hasFooterAction ? Visibility.Visible : Visibility.Collapsed;
+
+        bool runningStep = working || snapshot?.State == GpuDeploymentState.Running;
+        overview.IsEnabled = !busy;
+        selection.IsEnabled = !busy;
+        stepsHost.IsEnabled = !busy;
+        fallbackDecisionHost.IsEnabled = !busy;
+        SetNestedBusy(false);
+        NotifyProgressBar(runningStep);
     }
 
     private bool CanReleaseWorkflow() => snapshot == null ||
         (snapshot.State is GpuDeploymentState.Completed or GpuDeploymentState.Cancelled or GpuDeploymentState.Failed
-         && !snapshot.OutcomeUnknown && !snapshot.HasPendingCleanup);
+        && !snapshot.OutcomeUnknown && !snapshot.HasPendingCleanup);
 
     private void EnsureNoUnfinishedDeployment()
     {
-        if (!CanReleaseWorkflow()) throw new InvalidOperationException("请先完成、取消或清理当前 GPU 部署。");
-        if (removalOutcomeUnknown) throw new InvalidOperationException("先前 GPU 移除操作的结果尚未确认，不能开始新的修改。");
+        if (unconfirmedRemovals.TryGetValue(VmId, out var removal)) throw new InvalidOperationException(removal.Message);
+        if (!CanReleaseWorkflow()) throw new InvalidOperationException("当前已有尚未清理完成的 GPU 部署，请先处理清理结果。");
     }
 
-    private Task CancelDeploymentAsync()
+    private async Task CancelDeploymentAsync()
     {
-        if (closing || workflow == null || cancellationRequested || !workflow.GetStatus().AllowedActions.Contains(GpuDeploymentAction.Cancel))
-            return Task.CompletedTask;
+        var session = workflow;
+        if (session == null || closing || IsStopped || cancellationRequested ||
+            snapshot?.AllowedActions.Contains(GpuDeploymentAction.Cancel) != true) return;
         cancellationRequested = true;
-        workflow.RequestCancellation();
-        deploymentState.Title = "正在安全停止";
-        deploymentState.Message = "等待当前底层操作结束并清理本次临时资源。";
         RefreshActions();
-        if (working) return operation;
-        return RunGpuOperationAsync(() => PerformSessionActionAsync(GpuDeploymentAction.Cancel));
+        session.RequestCancellation();
+        await operation;
+        if (!closing && !IsStopped && ReferenceEquals(workflow, session))
+            await RunGpuOperationAsync(async () => await FinishStepAsync(session, await Task.Run(session.CancelAsync)));
     }
 
     private async Task PerformSessionActionAsync(GpuDeploymentAction action)
     {
+        if (workflow == null) return;
         var session = workflow;
-        if (session == null || !session.GetStatus().AllowedActions.Contains(action))
-            throw new InvalidOperationException("当前部署状态不允许此操作，请根据最新状态继续。");
-        var result = action switch
+        GpuDeploymentSnapshot next = action switch
         {
-            GpuDeploymentAction.Cancel => await Task.Run(session.CancelAsync),
             GpuDeploymentAction.Reconcile => await Task.Run(session.ReconcileAsync),
             GpuDeploymentAction.RetryCleanup => await Task.Run(session.RetryCleanupAsync),
-            _ => throw new InvalidOperationException("不支持此部署操作。")
+            _ => throw new ArgumentOutOfRangeException(nameof(action))
         };
-        await FinishStepAsync(session, result);
+        await FinishStepAsync(session, next);
     }
 
     public override async Task StopAsync()
     {
         await stopGate.WaitAsync();
+        closing = true;
+        RefreshActions();
         try
         {
-            if (IsStopped) return;
-            closing = true;
-            workflow?.RequestCancellation();
-            RefreshActions();
-            await operation;
-            if (workflow is { } session)
+            if (workflow != null && !CanReleaseWorkflow())
             {
-                var current = await Task.Run(session.CancelAsync);
-                ApplySnapshot(session, current);
-                if (!CanReleaseWorkflow())
-                {
-                    deployment.Visibility = Visibility.Visible;
-                    selection.Visibility = overview.Visibility = Visibility.Collapsed;
-                    throw new InvalidOperationException(current.CleanupError ?? current.Error ?? "GPU 部署尚未安全结束，请先核实或清理，恢复详情已保留。");
-                }
+                cancellationRequested = true;
+                workflow.RequestCancellation();
+                var session = workflow;
+                var final = await Task.Run(session.CancelAsync);
+                ApplySnapshot(session, final);
+                if (final.State == GpuDeploymentState.CleanupRequired)
+                    throw new InvalidOperationException("GPU 部署尚未完成清理。");
             }
+            try { await operation; } catch { }
             await base.StopAsync();
             await query.DisposeAsync();
         }
@@ -279,13 +484,19 @@ public sealed partial class VmGpuSettingsView
     {
         var text = new StringBuilder();
         text.AppendLine($"部署编号：{value.SessionId}");
-        text.AppendLine($"状态：{value.State}；结果未知：{value.OutcomeUnknown}");
-        if (!string.IsNullOrWhiteSpace(value.AddedAdapterId)) text.AppendLine($"本次新增适配器：{value.AddedAdapterId}");
-        if (!string.IsNullOrWhiteSpace(value.PendingCleanupAdapterId)) text.AppendLine($"待清理适配器：{value.PendingCleanupAdapterId}");
+        text.AppendLine($"状态：{value.State}，结果未知：{value.OutcomeUnknown}");
+        if (value.AddedAdapterIds.Count > 0)
+            text.AppendLine($"本次新增适配器：{string.Join(", ", value.AddedAdapterIds)}");
+        else if (!string.IsNullOrWhiteSpace(value.AddedAdapterId))
+            text.AppendLine($"本次新增适配器：{value.AddedAdapterId}");
+        if (value.PendingCleanupAdapterIds.Count > 0)
+            text.AppendLine($"待清理适配器：{string.Join(", ", value.PendingCleanupAdapterIds)}");
+        else if (!string.IsNullOrWhiteSpace(value.PendingCleanupAdapterId))
+            text.AppendLine($"待清理适配器：{value.PendingCleanupAdapterId}");
         if (!string.IsNullOrWhiteSpace(value.Error)) text.AppendLine(value.Error);
         if (!string.IsNullOrWhiteSpace(value.CleanupError)) text.AppendLine(value.CleanupError);
         if (value.Recovery != null)
-            text.AppendLine(JsonSerializer.Serialize(value.Recovery, new JsonSerializerOptions { WriteIndented = true }));
+            text.AppendLine(JsonSerializer.Serialize(value.Recovery, RecoveryReportJson.Default.GpuDeploymentRecovery));
         return text.ToString();
     }
 
@@ -297,6 +508,7 @@ public sealed partial class VmGpuSettingsView
             data.SetText(log.Text + Environment.NewLine + recoveryText.Text);
             Clipboard.SetContent(data);
             Clipboard.Flush();
+            ShowAppliedToast("已复制部署日志");
         }
         catch (Exception ex) { Notice($"复制失败：{CoreMessageResolver.ResolveException(ex)}", InfoBarSeverity.Error); }
     }

@@ -8,7 +8,7 @@ using Windows.UI;
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines;
 
 /// <summary>任务管理器风格概览左侧栏的 52×46 迷你趋势缩略图。</summary>
-internal sealed class VmMiniSparkline : Grid
+internal sealed partial class VmMiniSparkline : Grid
 {
     private const int HistoryLength = 60;
     private const double BoxWidth = 52;

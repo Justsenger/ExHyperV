@@ -234,6 +234,12 @@
     ],
     [
       "管理层面",
+      "虚拟机",
+      "实例",
+      "升级"
+    ],
+    [
+      "管理层面",
       "宿主",
       "查询"
     ],
@@ -475,6 +481,17 @@
     ]
   ],
   "types": {
+    "ExHyperV.Models.AdapterMediaKind": {
+      "title": "宿主网卡底层介质类型",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "网络"
+      ],
+      "group": "host"
+    },
     "ExHyperV.Models.BootDeviceKind": {
       "title": "启动设备类型",
       "role": "contract",
@@ -683,6 +700,28 @@
       ],
       "group": "devices"
     },
+    "ExHyperV.Models.GpuDriverFallbackAction": {
+      "title": "驱动回退动作",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "修改",
+        "GPU"
+      ],
+      "group": "devices"
+    },
+    "ExHyperV.Models.GpuDriverFallbackSelection": {
+      "title": "驱动回退选择",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "修改",
+        "GPU"
+      ],
+      "group": "devices"
+    },
     "ExHyperV.Models.GpuLinuxInput": {
       "title": "Linux 部署输入",
       "role": "contract",
@@ -693,6 +732,50 @@
         "GPU"
       ],
       "group": "devices"
+    },
+    "ExHyperV.Models.HostCpuAttributionSource": {
+      "title": "宿主处理器占用归属来源",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "处理器"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Models.HostCpuThreadConsumerUsage": {
+      "title": "单逻辑处理器占用主体",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "处理器"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Models.HostCpuThreadReport": {
+      "title": "宿主处理器线程占用报告",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "处理器"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Models.HostCpuThreadSnapshot": {
+      "title": "宿主逻辑处理器线程占用",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "处理器"
+      ],
+      "group": "host"
     },
     "ExHyperV.Models.GpuPartitionSelection": {
       "title": "部署分区选择",
@@ -757,6 +840,17 @@
         "宿主",
         "查询",
         "存储"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Models.HyperVSwitchKind": {
+      "title": "虚拟交换机二层拓扑类型",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "网络"
       ],
       "group": "host"
     },
@@ -876,18 +970,7 @@
       ],
       "group": "vm"
     },
-    "ExHyperV.Models.SpacetimeMode": {
-      "title": "检查点视图模式",
-      "role": "contract",
-      "path": [
-        "管理层面",
-        "虚拟机",
-        "修改",
-        "检查点"
-      ],
-      "group": "vm"
-    },
-    "ExHyperV.Models.SpacetimeNode": {
+    "ExHyperV.Models.CheckpointNode": {
       "title": "检查点节点",
       "role": "contract",
       "path": [
@@ -898,7 +981,7 @@
       ],
       "group": "vm"
     },
-    "ExHyperV.Models.SpacetimeNodeType": {
+    "ExHyperV.Models.CheckpointNodeType": {
       "title": "检查点节点类型",
       "role": "contract",
       "path": [
@@ -944,6 +1027,17 @@
     },
     "ExHyperV.Models.SwitchMode": {
       "title": "交换机连接方式",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "网络"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Models.SwitchNatEngine": {
+      "title": "交换机宿主三层 NAT 引擎",
       "role": "contract",
       "path": [
         "管理层面",
@@ -1586,6 +1680,17 @@
       ],
       "group": "host"
     },
+    "ExHyperV.Services.HostCpuThreadMonitorService": {
+      "title": "宿主逻辑处理器线程占用监控",
+      "role": "entry",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "处理器"
+      ],
+      "group": "host"
+    },
     "ExHyperV.Services.HostDiskMountLease": {
       "title": "磁盘挂载使用权",
       "role": "contract",
@@ -1648,6 +1753,17 @@
         "管理层面",
         "宿主",
         "修改",
+        "网络"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.HostNetworkTelemetryService": {
+      "title": "宿主网络实时吞吐采样",
+      "role": "entry",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
         "网络"
       ],
       "group": "host"
@@ -2029,6 +2145,17 @@
       ],
       "group": "vm"
     },
+    "ExHyperV.Services.NetworkThroughputSample": {
+      "title": "网络实时吞吐采样",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "网络"
+      ],
+      "group": "host"
+    },
     "ExHyperV.Services.PcieAssignmentDecision": {
       "title": "PCIe 分配确认",
       "role": "contract",
@@ -2298,6 +2425,50 @@
         "虚拟机",
         "实例",
         "创建"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Services.VmGenerationUpgradeService": {
+      "title": "虚拟机代际升级",
+      "role": "entry",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "实例",
+        "升级"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmGenerationUpgradeOptions": {
+      "title": "虚拟机代际升级选项",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "实例",
+        "升级"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmGenerationUpgradeResult": {
+      "title": "虚拟机代际升级结果",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "实例",
+        "升级"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmGenerationUpgradeStatus": {
+      "title": "虚拟机代际升级状态",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "实例",
+        "升级"
       ],
       "group": "vm"
     },
@@ -3456,7 +3627,7 @@
       ],
       "group": "devices"
     },
-    "ExHyperV.Services.VmSpacetimeService": {
+    "ExHyperV.Services.VmCheckpointService": {
       "title": "检查点管理",
       "role": "entry",
       "path": [
@@ -3660,15 +3831,6 @@
       ],
       "group": "core"
     },
-    "ExHyperV.Tools.HyperVServiceCoordination": {
-      "title": "Hyper-V 服务协同状态",
-      "role": "entry",
-      "path": [
-        "管理层面",
-        "共用类型"
-      ],
-      "group": "core"
-    },
     "ExHyperV.Tools.CoreOperationException": {
       "title": "Core 操作异常",
       "role": "contract",
@@ -3825,9 +3987,272 @@
         "查询"
       ],
       "group": "vm"
+    },
+    "ExHyperV.Models.VmDiskAccessKind": {
+      "title": "磁盘访问状态",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmDiskChainInspection": {
+      "title": "磁盘父链检查结果",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmDiskChainNode": {
+      "title": "磁盘父链节点",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmDiskChainStatus": {
+      "title": "磁盘父链状态",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmDiskInspection": {
+      "title": "存储挂接检查结果",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmDiskMetadataState": {
+      "title": "磁盘元数据状态",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmPartitionLayoutMode": {
+      "title": "分区布局探测状态",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmPassthroughAvailability": {
+      "title": "物理直通可用性",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmPassthroughCandidate": {
+      "title": "物理直通候选设备",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Models.VmResizeSafety": {
+      "title": "磁盘容量调整边界",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "存储"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Services.HostAdapterAddress": {
+      "title": "宿主接口地址",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "网络"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.HostDeviceTelemetryService": {
+      "title": "宿主设备采样",
+      "role": "entry",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "基本信息"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.HostDiskActivity": {
+      "title": "宿主物理磁盘活动",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "存储"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.HostGpuActivity": {
+      "title": "宿主 GPU 引擎活动",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "GPU"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.NetworkThroughputReading": {
+      "title": "网络吞吐观测",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "网络"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.VmVtpmInfo": {
+      "title": "虚拟 TPM 状态",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "安全"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Services.VtpmHost": {
+      "title": "虚拟 TPM 授权宿主",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "安全"
+      ],
+      "group": "vm"
+    },
+    "ExHyperV.Services.VtpmPolicy": {
+      "title": "虚拟 TPM 策略",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "安全"
+      ],
+      "group": "vm"
     }
   },
   "members": {
+    "F:ExHyperV.Models.AdapterMediaKind.Cellular": {
+      "title": "Cellular",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.AdapterMediaKind.Other": {
+      "title": "Other",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.AdapterMediaKind.Tunnel": {
+      "title": "Tunnel",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.AdapterMediaKind.WiFi": {
+      "title": "WiFi",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.AdapterMediaKind.Wired": {
+      "title": "Wired",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
     "F:ExHyperV.Models.BootDeviceKind.Firmware": {
       "title": "Firmware",
       "paths": [
@@ -4247,6 +4672,19 @@
       "group": "devices",
       "readOnly": false
     },
+    "F:ExHyperV.Models.GpuDecisionInput.DriverFallback": {
+      "title": "DriverFallback",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
     "F:ExHyperV.Models.GpuDecisionInput.LinuxCredentials": {
       "title": "LinuxCredentials",
       "paths": [
@@ -4273,8 +4711,8 @@
       "group": "devices",
       "readOnly": false
     },
-    "F:ExHyperV.Models.GpuDecisionKind.InstallWindows": {
-      "title": "InstallWindows",
+    "F:ExHyperV.Models.GpuDecisionKind.DriverFallback": {
+      "title": "DriverFallback",
       "paths": [
         [
           "管理层面",
@@ -4910,6 +5348,19 @@
       "group": "devices",
       "readOnly": false
     },
+    "P:ExHyperV.Models.GpuDeploymentSnapshot.AddedAdapterIds": {
+      "title": "全部新增适配器标识",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
     "P:ExHyperV.Models.GpuDeploymentSnapshot.AllowedActions": {
       "title": "可执行动作",
       "paths": [
@@ -4925,6 +5376,19 @@
     },
     "P:ExHyperV.Models.GpuDeploymentSnapshot.CleanupError": {
       "title": "清理错误",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.GpuDeploymentSnapshot.DriverIsoProgressPercent": {
+      "title": "驱动光盘打包进度",
       "paths": [
         [
           "管理层面",
@@ -4975,6 +5439,32 @@
       "group": "devices",
       "readOnly": false
     },
+    "P:ExHyperV.Models.GpuDeploymentSnapshot.IsDriverIsoMounted": {
+      "title": "驱动光盘已挂载",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.GpuDeploymentSnapshot.IsDriverSkipped": {
+      "title": "已跳过驱动",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
     "P:ExHyperV.Models.GpuDeploymentSnapshot.LastLog": {
       "title": "最近日志",
       "paths": [
@@ -5003,6 +5493,19 @@
     },
     "P:ExHyperV.Models.GpuDeploymentSnapshot.PendingCleanupAdapterId": {
       "title": "待清理适配器标识",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.GpuDeploymentSnapshot.PendingCleanupAdapterIds": {
+      "title": "全部待清理适配器标识",
       "paths": [
         [
           "管理层面",
@@ -5261,19 +5764,6 @@
       "group": "devices",
       "readOnly": false
     },
-    "F:ExHyperV.Models.GpuDeploymentStepKind.ConfigCheck": {
-      "title": "ConfigCheck",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
     "F:ExHyperV.Models.GpuDeploymentStepKind.Driver": {
       "title": "Driver",
       "paths": [
@@ -5302,19 +5792,6 @@
     },
     "F:ExHyperV.Models.GpuDeploymentStepKind.PowerCheck": {
       "title": "PowerCheck",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "F:ExHyperV.Models.GpuDeploymentStepKind.Prepare": {
-      "title": "Prepare",
       "paths": [
         [
           "管理层面",
@@ -5367,6 +5844,97 @@
     },
     "F:ExHyperV.Models.GpuDeploymentStepStatus.Success": {
       "title": "Success",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.GpuDriverFallbackAction.MountIso": {
+      "title": "MountIso",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.GpuDriverFallbackAction.SkipDriver": {
+      "title": "SkipDriver",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.HostCpuAttributionSource.KernelContextSwitch": {
+      "title": "KernelContextSwitch",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.HostCpuAttributionSource.PerformanceCounter": {
+      "title": "PerformanceCounter",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.HostCpuAttributionSource.Unavailable": {
+      "title": "Unavailable",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "C:ExHyperV.Models.GpuDriverFallbackSelection": {
+      "title": "创建驱动回退选择对象",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.GpuDriverFallbackSelection.Action": {
+      "title": "回退动作",
       "paths": [
         [
           "管理层面",
@@ -5638,6 +6206,266 @@
       "group": "devices",
       "readOnly": false
     },
+    "P:ExHyperV.Models.HostCpuThreadConsumerUsage.IsHost": {
+      "title": "宿主机占用标记",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadConsumerUsage.Name": {
+      "title": "占用主体名称",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadConsumerUsage.UsagePercent": {
+      "title": "占用百分比",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadConsumerUsage.VmId": {
+      "title": "虚拟机标识",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadReport.AttributionNote": {
+      "title": "归属来源说明",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadReport.AttributionSource": {
+      "title": "归属数据来源",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadReport.ObservedAtUtc": {
+      "title": "观测时间",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadReport.Sample": {
+      "title": "整体采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadReport.SchedulerType": {
+      "title": "当前调度器模式",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadReport.Threads": {
+      "title": "物理逻辑处理器线程明细",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadReport.WindowDuration": {
+      "title": "采样窗口时长",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.Consumers": {
+      "title": "主体占用分布",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.CoreType": {
+      "title": "核心性能类别",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.GroupProcessorIndex": {
+      "title": "组内处理器位号",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.HostUsagePercent": {
+      "title": "宿主机占用百分比",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.LogicalProcessorIndex": {
+      "title": "逻辑处理器索引",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.ProcessorGroup": {
+      "title": "处理器组号",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.Sample": {
+      "title": "核心采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.TotalUsagePercent": {
+      "title": "总使用率百分比",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.UnattributedGuestUsagePercent": {
+      "title": "未细分来宾占用百分比",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
     "P:ExHyperV.Models.HostDiskInfo.CanPassthrough": {
       "title": "直通候选资格",
       "paths": [
@@ -5884,6 +6712,45 @@
       ],
       "group": "host",
       "readOnly": true
+    },
+    "F:ExHyperV.Models.HyperVSwitchKind.External": {
+      "title": "External",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.HyperVSwitchKind.Internal": {
+      "title": "Internal",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.HyperVSwitchKind.Private": {
+      "title": "Private",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
     },
     "F:ExHyperV.Models.L3DistributionPolicy.EvenLargeToSmall": {
       "title": "EvenLargeToSmall",
@@ -6560,33 +7427,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "F:ExHyperV.Models.SpacetimeMode.Continuous": {
-      "title": "Continuous",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "检查点"
-        ]
-      ],
-      "group": "vm",
-      "readOnly": false
-    },
-    "F:ExHyperV.Models.SpacetimeMode.Still": {
-      "title": "Still",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "检查点"
-        ]
-      ],
-      "group": "vm",
-      "readOnly": false
-    },
-    "F:ExHyperV.Models.SpacetimeNode.CurrentId": {
+    "F:ExHyperV.Models.CheckpointNode.CurrentId": {
       "title": "当前状态节点标识",
       "paths": [
         [
@@ -6599,7 +7440,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "F:ExHyperV.Models.SpacetimeNode.GenesisId": {
+    "F:ExHyperV.Models.CheckpointNode.GenesisId": {
       "title": "时间线起点标识",
       "paths": [
         [
@@ -6612,7 +7453,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.CreatedDate": {
+    "P:ExHyperV.Models.CheckpointNode.CreatedDate": {
       "title": "创建时间",
       "paths": [
         [
@@ -6625,7 +7466,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.Id": {
+    "P:ExHyperV.Models.CheckpointNode.Id": {
       "title": "标识",
       "paths": [
         [
@@ -6638,8 +7479,8 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.IsCurrent": {
-      "title": "当前时间线标记",
+    "P:ExHyperV.Models.CheckpointNode.IsCurrent": {
+      "title": "当前检查点分支标记",
       "paths": [
         [
           "管理层面",
@@ -6651,7 +7492,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.IsLogicalNode": {
+    "P:ExHyperV.Models.CheckpointNode.IsLogicalNode": {
       "title": "逻辑节点",
       "paths": [
         [
@@ -6664,7 +7505,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.IsWormhole": {
+    "P:ExHyperV.Models.CheckpointNode.IsWormhole": {
       "title": "历史磁盘挂接状态",
       "paths": [
         [
@@ -6677,7 +7518,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.Name": {
+    "P:ExHyperV.Models.CheckpointNode.Name": {
       "title": "名称",
       "paths": [
         [
@@ -6690,7 +7531,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.NodeType": {
+    "P:ExHyperV.Models.CheckpointNode.NodeType": {
       "title": "节点类型",
       "paths": [
         [
@@ -6703,7 +7544,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.ParentId": {
+    "P:ExHyperV.Models.CheckpointNode.ParentId": {
       "title": "父节点标识",
       "paths": [
         [
@@ -6716,20 +7557,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.SpacetimeNode.Thumbnail": {
-      "title": "缩略图",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "查询",
-          "检查点"
-        ]
-      ],
-      "group": "vm",
-      "readOnly": true
-    },
-    "P:ExHyperV.Models.SpacetimeNode.VhdPath": {
+    "P:ExHyperV.Models.CheckpointNode.VhdPath": {
       "title": "虚拟磁盘路径",
       "paths": [
         [
@@ -6742,7 +7570,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "F:ExHyperV.Models.SpacetimeNodeType.Current": {
+    "F:ExHyperV.Models.CheckpointNodeType.Current": {
       "title": "Current",
       "paths": [
         [
@@ -6755,7 +7583,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "F:ExHyperV.Models.SpacetimeNodeType.Genesis": {
+    "F:ExHyperV.Models.CheckpointNodeType.Genesis": {
       "title": "Genesis",
       "paths": [
         [
@@ -6768,7 +7596,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "F:ExHyperV.Models.SpacetimeNodeType.Snapshot": {
+    "F:ExHyperV.Models.CheckpointNodeType.Snapshot": {
       "title": "Snapshot",
       "paths": [
         [
@@ -6950,8 +7778,47 @@
       "group": "host",
       "readOnly": true
     },
+    "P:ExHyperV.Models.SwitchInfo.NatEngine": {
+      "title": "宿主三层 NAT 引擎",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
     "P:ExHyperV.Models.SwitchInfo.StateError": {
       "title": "状态读取错误",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.SwitchInfo.SubnetPrefix": {
+      "title": "子网前缀",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.SwitchInfo.SwitchKind": {
+      "title": "二层拓扑类型",
       "paths": [
         [
           "管理层面",
@@ -7041,6 +7908,58 @@
       "group": "host",
       "readOnly": false
     },
+    "F:ExHyperV.Models.SwitchNatEngine.HcnManaged": {
+      "title": "HcnManaged",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.SwitchNatEngine.IcsShared": {
+      "title": "IcsShared",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.SwitchNatEngine.None": {
+      "title": "None",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.SwitchNatEngine.WinNat": {
+      "title": "WinNat",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
     "C:ExHyperV.Models.SwitchUpstreamAdapter": {
       "title": "创建交换机上游网卡对象",
       "paths": [
@@ -7067,8 +7986,34 @@
       "group": "host",
       "readOnly": false
     },
+    "P:ExHyperV.Models.SwitchUpstreamAdapter.CanBridge": {
+      "title": "支持二层桥接",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
     "P:ExHyperV.Models.SwitchUpstreamAdapter.ConnectionId": {
       "title": "网络连接标识",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.SwitchUpstreamAdapter.ConnectionProfileName": {
+      "title": "网络配置文件名称",
       "paths": [
         [
           "管理层面",
@@ -7119,8 +8064,60 @@
       "group": "host",
       "readOnly": true
     },
+    "P:ExHyperV.Models.SwitchUpstreamAdapter.HasInternetAccess": {
+      "title": "外网连通状态",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.SwitchUpstreamAdapter.IsMetered": {
+      "title": "计费蜂窝连接",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.SwitchUpstreamAdapter.LinkSpeed": {
+      "title": "链路速率",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
     "P:ExHyperV.Models.SwitchUpstreamAdapter.LinkUp": {
       "title": "链路状态",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.SwitchUpstreamAdapter.MediaKind": {
+      "title": "底层介质类型",
       "paths": [
         [
           "管理层面",
@@ -7784,6 +8781,32 @@
     },
     "P:ExHyperV.Models.VmGpuAssignment.DriverVersion": {
       "title": "驱动版本",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGpuAssignment.GuestDriverVersion": {
+      "title": "来宾驱动版本",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGpuAssignment.HasDriverUpdate": {
+      "title": "驱动待更新标记",
       "paths": [
         [
           "管理层面",
@@ -9530,6 +10553,19 @@
     },
     "P:ExHyperV.Models.VmNetworkAdapter.IsConnected": {
       "title": "连接开关",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmNetworkAdapter.IsLegacy": {
+      "title": "旧版网卡",
       "paths": [
         [
           "管理层面",
@@ -13118,6 +14154,19 @@
       "group": "devices",
       "readOnly": false
     },
+    "M:ExHyperV.Services.GpuDeploymentSession.#ctor(System.Guid,System.String,System.Collections.Generic.IReadOnlyList{ExHyperV.Models.HostGpuInfo},ExHyperV.Services.VmGpuService,ExHyperV.Services.VmQueryService,ExHyperV.Models.GpuDeploymentMode)": {
+      "title": "创建批量 GPU 部署流程对象",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
     "M:ExHyperV.Services.GpuDeploymentSession.CancelAsync": {
       "title": "取消部署并清理",
       "paths": [
@@ -13578,6 +14627,74 @@
       ],
       "group": "host",
       "readOnly": false
+    },
+    "M:ExHyperV.Services.HostCpuThreadMonitorService.#ctor": {
+      "title": "创建逻辑处理器线程监控对象",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.HostCpuThreadMonitorService.Dispose": {
+      "title": "同步释放线程监控器",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.HostCpuThreadMonitorService.DisposeAsync": {
+      "title": "异步释放线程监控器",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.HostCpuThreadMonitorService.GetThreadUsage": {
+      "title": "宿主逻辑处理器占用与归属拆分",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true,
+      "examples": [
+        "host-thread-monitor"
+      ]
+    },
+    "M:ExHyperV.Services.HostCpuThreadMonitorService.SampleAsync(System.TimeSpan,System.Threading.CancellationToken)": {
+      "title": "按指定窗口采样逻辑处理器占用拆分",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
     },
     "M:ExHyperV.Services.HostDiskMountLease.DisposeAsync": {
       "title": "释放挂载租约",
@@ -14054,6 +15171,45 @@
           "管理层面",
           "宿主",
           "修改",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.HostNetworkTelemetryService.GetAdapterThroughput(System.String)": {
+      "title": "宿主网卡实时吞吐",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostNetworkTelemetryService.GetSwitchThroughput(System.String)": {
+      "title": "虚拟交换机实时吞吐",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostNetworkTelemetryService.Reset": {
+      "title": "重置网络吞吐计数器缓存",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
           "网络"
         ]
       ],
@@ -15692,6 +16848,19 @@
       "group": "host",
       "readOnly": false
     },
+    "M:ExHyperV.Services.HyperVSwitchService.GetAllUpstreamAdaptersAsync": {
+      "title": "全部宿主上游适配器",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
     "M:ExHyperV.Services.HyperVSwitchService.GetBridgeableAdaptersAsync": {
       "title": "外部交换机候选网卡",
       "paths": [
@@ -16087,6 +17256,58 @@
       ],
       "group": "vm",
       "readOnly": false
+    },
+    "C:ExHyperV.Services.NetworkThroughputSample": {
+      "title": "创建网络实时吞吐采样对象",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.NetworkThroughputSample.BytesReceivedPerSec": {
+      "title": "每秒接收字节数",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.NetworkThroughputSample.BytesSentPerSec": {
+      "title": "每秒发送字节数",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.NetworkThroughputSample.TotalBytesPerSec": {
+      "title": "每秒总字节数",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
     },
     "C:ExHyperV.Services.PcieAssignmentDecision": {
       "title": "创建PCIe 分配确认对象",
@@ -17857,6 +19078,292 @@
           "虚拟机",
           "实例",
           "创建"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmGenerationUpgradeService.UpgradeToGeneration2Async(System.Guid,ExHyperV.Models.VmGenerationUpgradeOptions,System.Threading.CancellationToken)": {
+      "title": "按选项升级为二代",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmGenerationUpgradeService.UpgradeToGeneration2Async(System.Guid,System.Threading.CancellationToken)": {
+      "title": "直接升级为二代",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "C:ExHyperV.Models.VmGenerationUpgradeResult": {
+      "title": "创建升级结果",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.OldVmId": {
+      "title": "原虚拟机 GUID",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.NewVmId": {
+      "title": "二代虚拟机 GUID",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.LogDirectory": {
+      "title": "可选来宾升级日志目录",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.ConfigurationPath": {
+      "title": "正式配置文件",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.DiskPaths": {
+      "title": "正式虚拟硬盘路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.ConfigurationDirectory": {
+      "title": "正式配置目录",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.SystemDiskPath": {
+      "title": "正式系统盘路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.FailedStage": {
+      "title": "失败阶段",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.RetainedPaths": {
+      "title": "保留路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.Error": {
+      "title": "错误说明",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeOptions.ConvertVhdToVhdx": {
+      "title": "自动转换 VHD",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeOptions.EnableSecureBoot": {
+      "title": "启用安全启动",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeOptions.SecureBootTemplateId": {
+      "title": "安全启动模板 GUID",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmGenerationUpgradeResult.Status": {
+      "title": "升级状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.VmGenerationUpgradeStatus.Succeeded": {
+      "title": "升级成功",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.VmGenerationUpgradeStatus.Rejected": {
+      "title": "拒绝升级",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.VmGenerationUpgradeStatus.RolledBack": {
+      "title": "已回滚",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.VmGenerationUpgradeStatus.CommittedCleanupPending": {
+      "title": "已提交待清理",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "F:ExHyperV.Models.VmGenerationUpgradeStatus.OutcomeUnknown": {
+      "title": "结果待核实",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "实例",
+          "升级"
         ]
       ],
       "group": "vm",
@@ -21403,6 +22910,19 @@
       "group": "vm",
       "readOnly": false
     },
+    "F:ExHyperV.Services.VmMetadataService.GpuDriversKey": {
+      "title": "GPU 驱动版本元数据键",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "自定义数据"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
     "F:ExHyperV.Services.VmMetadataService.OsTypeKey": {
       "title": "操作系统分类键",
       "paths": [
@@ -21923,6 +23443,19 @@
       "group": "vm",
       "readOnly": true
     },
+    "F:ExHyperV.Services.VmNetworkFields.IsLegacy": {
+      "title": "旧版网卡",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
     "F:ExHyperV.Services.VmNetworkFields.IsStaticMac": {
       "title": "静态 MAC 开关",
       "paths": [
@@ -22185,6 +23718,19 @@
     },
     "M:ExHyperV.Services.VmNetworkService.AddNetworkAdapterAsync(System.Guid)": {
       "title": "添加网卡",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmNetworkService.AddNetworkAdapterAsync(System.Guid,System.Nullable{System.Guid},System.Boolean,System.String,System.Boolean)": {
+      "title": "添加网卡并配置连接",
       "paths": [
         [
           "管理层面",
@@ -25854,7 +27400,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.AnnihilateAsync(System.Guid,ExHyperV.Models.SpacetimeNode)": {
+    "M:ExHyperV.Services.VmCheckpointService.AnnihilateAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
       "title": "删除检查点",
       "paths": [
         [
@@ -25867,7 +27413,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.CanCreateMoment(System.Boolean,System.Collections.Generic.IEnumerable{ExHyperV.Models.SpacetimeNode})": {
+    "M:ExHyperV.Services.VmCheckpointService.CanCreateMoment(System.Boolean,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
       "title": "检查检查点创建条件",
       "paths": [
         [
@@ -25880,7 +27426,20 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.CanMutateHistoricalNode(ExHyperV.Models.SpacetimeNode,System.Collections.Generic.IEnumerable{ExHyperV.Models.SpacetimeNode})": {
+    "M:ExHyperV.Services.VmCheckpointService.CanMergeHistoricalNode(ExHyperV.Models.CheckpointNode,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
+      "title": "检查历史检查点合并条件",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "检查点"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmCheckpointService.CanMutateHistoricalNode(ExHyperV.Models.CheckpointNode,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
       "title": "检查历史节点修改条件",
       "paths": [
         [
@@ -25893,7 +27452,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.CanOperateHistoricalNode(ExHyperV.Models.SpacetimeNode)": {
+    "M:ExHyperV.Services.VmCheckpointService.CanOperateHistoricalNode(ExHyperV.Models.CheckpointNode)": {
       "title": "检查历史节点操作条件",
       "paths": [
         [
@@ -25906,20 +27465,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.CaptureMomentAsync(System.Guid,ExHyperV.Models.SpacetimeMode,ExHyperV.Models.VmScreenshotImage,System.Func{ExHyperV.Models.VmScreenshotImage,System.Byte[]})": {
-      "title": "创建检查点",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "检查点"
-        ]
-      ],
-      "group": "vm",
-      "readOnly": false
-    },
-    "M:ExHyperV.Services.VmSpacetimeService.CloseWormholeAsync(System.Guid,ExHyperV.Models.SpacetimeNode)": {
+    "M:ExHyperV.Services.VmCheckpointService.CloseWormholeAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
       "title": "结束历史磁盘挂接",
       "paths": [
         [
@@ -25932,7 +27478,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.ConvergeAsync(System.Guid,ExHyperV.Models.SpacetimeNode)": {
+    "M:ExHyperV.Services.VmCheckpointService.ConvergeAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
       "title": "合并检查点",
       "paths": [
         [
@@ -25945,7 +27491,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.GetCheckpointsEnabledAsync(System.Guid)": {
+    "M:ExHyperV.Services.VmCheckpointService.GetCheckpointsEnabledAsync(System.Guid)": {
       "title": "读取检查点开关",
       "paths": [
         [
@@ -25958,20 +27504,7 @@
       "group": "vm",
       "readOnly": true
     },
-    "M:ExHyperV.Services.VmSpacetimeService.GetSpacetimeNodesAsync(System.Guid,System.Func{ExHyperV.Models.VmScreenshotImage,System.Byte[]})": {
-      "title": "读取检查点树",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "查询",
-          "检查点"
-        ]
-      ],
-      "group": "vm",
-      "readOnly": true
-    },
-    "M:ExHyperV.Services.VmSpacetimeService.HasOpenWormhole(System.Collections.Generic.IEnumerable{ExHyperV.Models.SpacetimeNode})": {
+    "M:ExHyperV.Services.VmCheckpointService.HasOpenWormhole(System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
       "title": "检查历史磁盘挂接",
       "paths": [
         [
@@ -25984,7 +27517,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.OpenWormholeAsync(System.Guid,ExHyperV.Models.SpacetimeNode)": {
+    "M:ExHyperV.Services.VmCheckpointService.OpenWormholeAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
       "title": "临时挂接历史磁盘",
       "paths": [
         [
@@ -25997,7 +27530,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.RenameSnapshotAsync(System.Guid,ExHyperV.Models.SpacetimeNode,System.String)": {
+    "M:ExHyperV.Services.VmCheckpointService.RenameSnapshotAsync(System.Guid,ExHyperV.Models.CheckpointNode,System.String)": {
       "title": "重命名检查点",
       "paths": [
         [
@@ -26010,7 +27543,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.SetCheckpointsEnabledAsync(System.Guid,System.Boolean)": {
+    "M:ExHyperV.Services.VmCheckpointService.SetCheckpointsEnabledAsync(System.Guid,System.Boolean)": {
       "title": "设置检查点开关",
       "paths": [
         [
@@ -26023,7 +27556,7 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmSpacetimeService.TeleportAsync(ExHyperV.Models.SpacetimeNode,System.Guid,System.Collections.Generic.IEnumerable{ExHyperV.Models.SpacetimeNode})": {
+    "M:ExHyperV.Services.VmCheckpointService.TeleportAsync(ExHyperV.Models.CheckpointNode,System.Guid,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
       "title": "恢复检查点",
       "paths": [
         [
@@ -27513,291 +29046,498 @@
     },
     "F:ExHyperV.Tools.ConditionReasonCode.None": {
       "title": "None",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.PoweredOffRequired": {
       "title": "PoweredOffRequired",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.DynamicMemoryRunningStartupLocked": {
       "title": "DynamicMemoryRunningStartupLocked",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.HostSettingMissing": {
       "title": "HostSettingMissing",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedVmVersion": {
       "title": "UnsupportedVmVersion",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.RequiresX64": {
       "title": "RequiresX64",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.RequiresArm64": {
       "title": "RequiresArm64",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.RequiresIntel": {
       "title": "RequiresIntel",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.RequiresHardwareIsolation": {
       "title": "RequiresHardwareIsolation",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.RequiresPerfmonPmu": {
       "title": "RequiresPerfmonPmu",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.UnknownSetting": {
       "title": "UnknownSetting",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedBackingTypeHybrid": {
       "title": "UnsupportedBackingTypeHybrid",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.ConditionReasonCode.UnsupportedTrackingPerNuma": {
       "title": "UnsupportedTrackingPerNuma",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "M:ExHyperV.Tools.CoreErrorClassifier.ClassifyException(System.Exception)": {
       "title": "归类异常错误码",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": true
     },
     "M:ExHyperV.Tools.CoreErrorClassifier.IsServiceUnavailable(System.Int32,ExHyperV.Tools.ApiErrorSource,System.Exception)": {
       "title": "判断服务不可用",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": true
     },
     "F:ExHyperV.Tools.CoreErrorCode.None": {
       "title": "None",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedCxlRecovered": {
       "title": "VmmsCrashedCxlRecovered",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedRecovered": {
       "title": "VmmsCrashedRecovered",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.VmmsCrashedVnumaUnrestored": {
       "title": "VmmsCrashedVnumaUnrestored",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.VmmsRecoveryFailed": {
       "title": "VmmsRecoveryFailed",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.VmmsRecoveredOutcomeUnknown": {
       "title": "VmmsRecoveredOutcomeUnknown",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.VmmsUnavailableOrShuttingDown": {
       "title": "VmmsUnavailableOrShuttingDown",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.AccessDenied": {
       "title": "AccessDenied",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.NotFound": {
       "title": "NotFound",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.Unsupported": {
       "title": "Unsupported",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.InvalidState": {
       "title": "InvalidState",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.InvalidParameter": {
       "title": "InvalidParameter",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.OperationTimedOut": {
       "title": "OperationTimedOut",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.OperationCancelled": {
       "title": "OperationCancelled",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.MethodFailed": {
       "title": "MethodFailed",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.PartialVnumaDisableFailed": {
       "title": "PartialVnumaDisableFailed",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.PartialVnumaRestoreFailed": {
       "title": "PartialVnumaRestoreFailed",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.ReadBackUnavailable": {
       "title": "ReadBackUnavailable",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.ReadBackMismatch": {
       "title": "ReadBackMismatch",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.InsufficientMemory": {
       "title": "InsufficientMemory",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.FileInUse": {
       "title": "FileInUse",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.FileNotFound": {
       "title": "FileNotFound",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.DiskFull": {
       "title": "DiskFull",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.StartUnsupportedWithSuspects": {
       "title": "StartUnsupportedWithSuspects",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.StartFailedUnsupported": {
       "title": "StartFailedUnsupported",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.DifferencingParentNotFound": {
       "title": "DifferencingParentNotFound",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.VirtualSwitchNotFound": {
       "title": "VirtualSwitchNotFound",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.StartFailedProcessorTopology": {
       "title": "StartFailedProcessorTopology",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.RuntimeMemoryResizeFailed": {
       "title": "RuntimeMemoryResizeFailed",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "F:ExHyperV.Tools.CoreErrorCode.StartFailedGen1OnArm64": {
       "title": "StartFailedGen1OnArm64",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
-    },
-    "M:ExHyperV.Tools.HyperVServiceCoordination.BeginActiveSettingsWrite": {
-      "title": "标记主动配置写入窗口",
-      "paths": [["管理层面", "共用类型"]],
-      "group": "core",
-      "readOnly": false
-    },
-    "P:ExHyperV.Tools.HyperVServiceCoordination.HasActiveSettingsWrite": {
-      "title": "是否有主动配置写入",
-      "paths": [["管理层面", "共用类型"]],
-      "group": "core",
-      "readOnly": true
-    },
-    "P:ExHyperV.Tools.HyperVServiceCoordination.IsRecovering": {
-      "title": "是否正在恢复服务",
-      "paths": [["管理层面", "共用类型"]],
-      "group": "core",
-      "readOnly": true
     },
     "M:ExHyperV.Tools.ApiResponse.Fail(System.String,System.Int32,ExHyperV.Tools.ApiErrorSource,System.Exception,ExHyperV.Tools.ApiErrorKind)": {
       "title": "创建失败结果",
@@ -27867,13 +29607,23 @@
     },
     "P:ExHyperV.Tools.ApiResponse.DiagnosticArgs": {
       "title": "诊断参数",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "P:ExHyperV.Tools.ApiResponse.DiagnosticCode": {
       "title": "诊断错误码",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
@@ -28044,13 +29794,23 @@
     },
     "P:ExHyperV.Tools.ApiResponse`1.DiagnosticArgs": {
       "title": "诊断参数",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
     "P:ExHyperV.Tools.ApiResponse`1.DiagnosticCode": {
       "title": "诊断错误码",
-      "paths": [["管理层面", "共用类型"]],
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
       "group": "core",
       "readOnly": false
     },
@@ -29197,6 +30957,2331 @@
       ],
       "group": "vm",
       "readOnly": true
+    },
+    "P:ExHyperV.Models.HostCpuThreadSnapshot.UnattributedUsagePercent": {
+      "title": "未归属占比",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.HostDiskInfo.IsOffline": {
+      "title": "磁盘脱机状态",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.SwitchEndpointInfo.IsManagementOs": {
+      "title": "宿主管理系统端口",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VlanOperationMode.Off": {
+      "title": "无标记模式",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskAccessKind.HostMounted": {
+      "title": "HostMounted",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskAccessKind.LockedExternal": {
+      "title": "LockedExternal",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskAccessKind.Missing": {
+      "title": "Missing",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskAccessKind.Normal": {
+      "title": "Normal",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskAccessKind.ParentInUse": {
+      "title": "ParentInUse",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskAccessKind.Unavailable": {
+      "title": "Unavailable",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskAccessKind.VmRunning": {
+      "title": "VmRunning",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskAccessKind.VmSavedOrPaused": {
+      "title": "VmSavedOrPaused",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "C:ExHyperV.Models.VmDiskChainInspection": {
+      "title": "创建磁盘父链检查结果",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmDiskChainInspection.IsComplete": {
+      "title": "父链完整性",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainInspection.Message": {
+      "title": "检查说明",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainInspection.Nodes": {
+      "title": "父链节点",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainInspection.Status": {
+      "title": "检查状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "C:ExHyperV.Models.VmDiskChainNode": {
+      "title": "创建磁盘父链节点",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmDiskChainNode.Depth": {
+      "title": "父链深度",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainNode.Format": {
+      "title": "磁盘容器格式",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainNode.IdMismatchIgnored": {
+      "title": "已忽略标识差异",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainNode.LinkageId": {
+      "title": "当前链标识",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainNode.ParentIdentifier": {
+      "title": "预期父盘标识",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainNode.Path": {
+      "title": "磁盘路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskChainNode.VhdType": {
+      "title": "磁盘分配类型",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskChainStatus.Complete": {
+      "title": "Complete",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskChainStatus.Cycle": {
+      "title": "Cycle",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskChainStatus.FormatMismatch": {
+      "title": "FormatMismatch",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskChainStatus.HostMounted": {
+      "title": "HostMounted",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskChainStatus.IdMismatch": {
+      "title": "IdMismatch",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskChainStatus.Locked": {
+      "title": "Locked",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskChainStatus.Missing": {
+      "title": "Missing",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskChainStatus.Unavailable": {
+      "title": "Unavailable",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "C:ExHyperV.Models.VmDiskInspection": {
+      "title": "创建存储挂接检查结果",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanChangeType": {
+      "title": "允许转换分配类型",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanCompact": {
+      "title": "允许压缩",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanDeleteFile": {
+      "title": "允许删除介质",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanEditMedia": {
+      "title": "允许更换介质",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanEditParentPath": {
+      "title": "允许连接父盘",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanEditSlot": {
+      "title": "允许迁移槽位",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanExpand": {
+      "title": "允许扩展容量",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanExport": {
+      "title": "允许导出",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanMerge": {
+      "title": "允许合并",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanOpenFile": {
+      "title": "允许打开文件",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanShrink": {
+      "title": "允许收缩容量",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.CanUpgradeVhdx": {
+      "title": "允许转换为 VHDX",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.Kind": {
+      "title": "访问状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.Message": {
+      "title": "检查说明",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskInspection.VmState": {
+      "title": "虚拟机电源状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskMetadataState.Available": {
+      "title": "Available",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskMetadataState.Locked": {
+      "title": "Locked",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskMetadataState.Missing": {
+      "title": "Missing",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskMetadataState.NotApplicable": {
+      "title": "NotApplicable",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmDiskMetadataState.Unavailable": {
+      "title": "Unavailable",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.ErrorCountSample": {
+      "title": "错误计数采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.QueueLengthSample": {
+      "title": "队列长度采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.ReadBytesSample": {
+      "title": "读取吞吐采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.ReadOperationsSample": {
+      "title": "读取 IOPS 采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.WriteBytesSample": {
+      "title": "写入吞吐采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmDiskStatus.WriteOperationsSample": {
+      "title": "写入 IOPS 采样状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmGpuAssignment.AdapterId": {
+      "title": "分区适配器身份",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "GPU"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "M:ExHyperV.Models.VmNetworkAdapter.Clone": {
+      "title": "复制网卡配置快照",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmNetworkAdapter.HasReportedMac": {
+      "title": "已报告 MAC 地址",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmNetworkAdapter.PvlanSecondaryIds": {
+      "title": "辅助 VLAN 列表",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPartitionLayoutMode.Conservative": {
+      "title": "Conservative",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPartitionLayoutMode.Corrupt": {
+      "title": "Corrupt",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPartitionLayoutMode.Empty": {
+      "title": "Empty",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPartitionLayoutMode.NoTailSpace": {
+      "title": "NoTailSpace",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPartitionLayoutMode.Regular": {
+      "title": "Regular",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPartitionLayoutMode.Unavailable": {
+      "title": "Unavailable",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPassthroughAvailability.Assigned": {
+      "title": "Assigned",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPassthroughAvailability.Available": {
+      "title": "Available",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Models.VmPassthroughAvailability.Unavailable": {
+      "title": "Unavailable",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "C:ExHyperV.Models.VmPassthroughCandidate": {
+      "title": "创建物理直通候选设备",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmPassthroughCandidate.Availability": {
+      "title": "直通可用性",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmPassthroughCandidate.Disk": {
+      "title": "物理磁盘",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmPassthroughCandidate.Message": {
+      "title": "检查说明",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmPassthroughCandidate.OpticalDrive": {
+      "title": "物理光驱",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmPassthroughCandidate.OwnerVmId": {
+      "title": "所属虚拟机标识",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "C:ExHyperV.Models.VmResizeSafety": {
+      "title": "创建磁盘容量调整边界",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Models.VmResizeSafety.Access": {
+      "title": "挂接访问条件",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.CanExpand": {
+      "title": "允许扩展容量",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.CanShrink": {
+      "title": "允许收缩容量",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.CurrentCapacityBytes": {
+      "title": "当前容量（字节）",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.CurrentCapacityGiB": {
+      "title": "当前容量（GiB）",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.LastPartitionEndBytes": {
+      "title": "末分区结束边界",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.Layout": {
+      "title": "分区布局状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.MaximumGiB": {
+      "title": "格式容量上限",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.Message": {
+      "title": "检查说明",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.MinimumInternalSizeBytes": {
+      "title": "最小内部容量",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmResizeSafety.SafeMinimumGiB": {
+      "title": "安全收缩下限",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmSerialPort.IsConnected": {
+      "title": "串口连接状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.FileSizeBytes": {
+      "title": "文件长度",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.IsHostDiskOffline": {
+      "title": "宿主磁盘脱机状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.MetadataMessage": {
+      "title": "元数据诊断",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.MetadataState": {
+      "title": "元数据读取状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.ParentPath": {
+      "title": "父盘路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.PassthroughStatus": {
+      "title": "直通设备状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.VhdFormat": {
+      "title": "磁盘容器格式",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.VhdType": {
+      "title": "磁盘分配类型",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.VirtualCapacityBytes": {
+      "title": "虚拟容量（字节）",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.VirtualCapacityGiB": {
+      "title": "虚拟容量（GiB）",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "C:ExHyperV.Services.HostAdapterAddress": {
+      "title": "创建宿主接口地址",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.HostAdapterAddress.IPv4": {
+      "title": "本地 IPv4 地址",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostAdapterAddress.Mac": {
+      "title": "物理地址",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostDeviceTelemetryService.Dispose": {
+      "title": "释放采样计数器",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "基本信息"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.HostDeviceTelemetryService.IsUsbipdInstalled": {
+      "title": "检测 usbipd 安装状态",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "基本信息"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostDeviceTelemetryService.Read(System.Collections.Generic.IReadOnlyCollection{System.Int32})": {
+      "title": "采样宿主设备负载",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "基本信息"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostDeviceTelemetryService.ReadAdapterAddresses": {
+      "title": "查询宿主接口地址",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "C:ExHyperV.Services.HostDiskActivity": {
+      "title": "创建宿主物理磁盘活动",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.HostDiskActivity.ActivePercent": {
+      "title": "磁盘活动占比",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostDiskActivity.ReadBytesPerSec": {
+      "title": "每秒读取字节数",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostDiskActivity.WriteBytesPerSec": {
+      "title": "每秒写入字节数",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "C:ExHyperV.Services.HostGpuActivity": {
+      "title": "创建宿主 GPU 引擎活动",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "GPU"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.HostGpuActivity.Pct3D": {
+      "title": "三维引擎占用",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "GPU"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostGpuActivity.PctCopy": {
+      "title": "复制引擎占用",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "GPU"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostGpuActivity.PctDec": {
+      "title": "视频解码引擎占用",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "GPU"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostGpuActivity.PctEnc": {
+      "title": "视频编码引擎占用",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "GPU"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostNetworkTelemetryService.Dispose": {
+      "title": "释放采样计数器",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.HostSystemInfoService.TryReadHostMemoryMiB": {
+      "title": "查询宿主物理内存",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "内存"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "C:ExHyperV.Services.NetworkThroughputReading": {
+      "title": "创建网络吞吐观测",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.NetworkThroughputReading.Sample": {
+      "title": "采样状态和时间",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.NetworkThroughputReading.Throughput": {
+      "title": "有效吞吐读数",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmNetworkService.GetSwitchIovCapacitiesAsync": {
+      "title": "查询交换机 SR-IOV 容量",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmNetworkService.NormalizeStaticMac(System.String)": {
+      "title": "校验并规范化静态 MAC",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "网络"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmProcessorService.GetHostMaxVirtualCpuCountAsync(System.Guid)": {
+      "title": "查询虚拟处理器数量上限",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "处理器"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmSecurityFields.BindToHostTpm": {
+      "title": "绑定宿主 TPM",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmSecurityFields.MigratablePolicy": {
+      "title": "迁移策略原始值",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmSecurityFields.VirtualizationBasedSecurityOptOut": {
+      "title": "禁用来宾 VBS",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmSecurityService.ExportLocalGuardianAsync(System.Guid,System.String)": {
+      "title": "导出本机 Guardian 公钥材料",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmSecurityService.GetVtpmStateAsync(System.Guid)": {
+      "title": "查询虚拟 TPM 与授权状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmSecurityService.GrantHostAccessAsync(System.Guid,System.String,System.String,System.String)": {
+      "title": "追加宿主授权",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmSecurityService.ReissueLocalKeyProtectorAsync(System.Guid)": {
+      "title": "重新签发本机密钥保护器",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmSecurityService.RestorePreviousKeyProtectorAsync(System.Guid)": {
+      "title": "恢复上一版密钥保护器",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmSecurityService.RevokeHostAccessAsync(System.Guid,System.String,System.String)": {
+      "title": "撤销外部宿主授权",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmSecurityService.SetVtpmPolicyAsync(System.Guid,ExHyperV.Services.VtpmPolicy,System.Boolean)": {
+      "title": "修改虚拟 TPM 策略",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmSerialPortService.SetPortSettingsAsync(System.Guid,System.Int32,System.String,System.Nullable{System.Boolean})": {
+      "title": "同时设置串口管道与调试模式",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "串口"
+        ]
+      ],
+      "group": "devices",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmCheckpointService.CaptureMomentAsync(System.Guid)": {
+      "title": "创建检查点",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "检查点"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmCheckpointService.GetCheckpointNodesAsync(System.Guid)": {
+      "title": "查询检查点树",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "检查点"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmStorageService.ConvertVirtualDiskTypeAsync(System.Guid,ExHyperV.Models.VmStorageAttachment,System.String)": {
+      "title": "转换虚拟磁盘分配类型",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmStorageService.DeleteAttachedMediaFileAsync(System.Guid,ExHyperV.Models.VmStorageAttachment)": {
+      "title": "移除挂接并删除介质文件",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmStorageService.ExportDifferencingDiskAsync(System.Guid,ExHyperV.Models.VmStorageAttachment,System.String,System.IProgress{System.ValueTuple{System.Int32,System.Int32,System.String}})": {
+      "title": "导出独立虚拟磁盘",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmStorageService.GetPassthroughCandidatesAsync(System.Guid)": {
+      "title": "查询物理直通候选",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmStorageService.InspectDifferencingChainAsync(System.String,System.String,System.Boolean)": {
+      "title": "检查差分磁盘父链",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmStorageService.InspectDiskAsync(System.Guid,ExHyperV.Models.VmStorageAttachment)": {
+      "title": "检查挂接访问条件",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmStorageService.InspectResizeSafetyAsync(System.Guid,ExHyperV.Models.VmStorageAttachment)": {
+      "title": "查询虚拟磁盘容量边界",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmStorageService.MergeDifferencingDiskAsync(System.Guid,ExHyperV.Models.VmStorageAttachment,System.String,System.IProgress{System.ValueTuple{System.Int32,System.Int32,System.String}})": {
+      "title": "合并到指定祖先磁盘",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmStorageService.ModifyDriveSlotAsync(System.Guid,ExHyperV.Models.VmStorageAttachment,System.String,System.Int32,System.Int32)": {
+      "title": "迁移存储控制器槽位",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmStorageService.ReconnectParentDiskAsync(System.Guid,ExHyperV.Models.VmStorageAttachment,System.String,System.Boolean)": {
+      "title": "重新连接父磁盘",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmStorageService.ResizeVirtualDiskAsync(System.Guid,ExHyperV.Models.VmStorageAttachment,System.Int64)": {
+      "title": "调整虚拟磁盘容量",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.VmStorageService.UpgradeVhdToVhdxAsync(System.Guid,ExHyperV.Models.VmStorageAttachment,System.IProgress{System.Int32})": {
+      "title": "将挂接 VHD 转换为 VHDX",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "C:ExHyperV.Services.VmVtpmInfo": {
+      "title": "创建虚拟 TPM 状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.AuthorizedHosts": {
+      "title": "授权宿主列表",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.BindToHostTpm": {
+      "title": "绑定宿主 TPM",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.EncryptEnabled": {
+      "title": "状态加密开关",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.GuestStateDescription": {
+      "title": "来宾状态文件说明",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.GuestStateFile": {
+      "title": "来宾状态文件路径",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.HasLocalKey": {
+      "title": "本机拥有可用密钥",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.HasPreviousKey": {
+      "title": "上一版密钥恢复点",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.KeyProtectorConfigured": {
+      "title": "密钥保护器配置状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.KeyReadError": {
+      "title": "密钥读取诊断",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.LocalGuardianName": {
+      "title": "本机 Guardian 名称",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.LocalSigningThumbprint": {
+      "title": "本机签名证书指纹",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.MigratablePolicy": {
+      "title": "迁移策略原始值",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.MigrationDisabled": {
+      "title": "禁止迁移状态",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.Shielded": {
+      "title": "屏蔽保护标志",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.TpmEnabled": {
+      "title": "虚拟 TPM 开关",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmVtpmInfo.VirtualizationBasedSecurityOptOut": {
+      "title": "禁用来宾 VBS",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "C:ExHyperV.Services.VtpmHost": {
+      "title": "创建虚拟 TPM 授权宿主",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.VtpmHost.EncryptionThumbprint": {
+      "title": "加密证书指纹",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VtpmHost.IsLocal": {
+      "title": "本机身份",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VtpmHost.IsOwner": {
+      "title": "所有者身份",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VtpmHost.Name": {
+      "title": "宿主名称",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VtpmHost.SigningThumbprint": {
+      "title": "签名证书指纹",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VtpmPolicy.BindToHostTpm": {
+      "title": "绑定宿主 TPM",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VtpmPolicy.DisableMigration": {
+      "title": "DisableMigration",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VtpmPolicy.VirtualizationBasedSecurityOptOut": {
+      "title": "禁用来宾 VBS",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "安全"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": true
+    },
+    "F:ExHyperV.Tools.CoreErrorCode.GuardianMetadataRequired": {
+      "title": "需要 Guardian 配对元数据",
+      "paths": [
+        [
+          "管理层面",
+          "共用类型"
+        ]
+      ],
+      "group": "core",
+      "readOnly": true
+    },
+    "P:ExHyperV.Models.VmStorageAttachment.MediaFileToken": {
+      "title": "介质文件身份令牌",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "存储"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
     }
   },
   "hostEntries": [
@@ -29280,6 +33365,20 @@
       "area": "查询",
       "category": "处理器",
       "label": "宿主与虚拟机处理器使用率"
+    },
+    {
+      "owner": "HostCpuThreadMonitorService",
+      "member": "GetThreadUsage",
+      "area": "查询",
+      "category": "处理器",
+      "label": "逻辑处理器时间片归属拆分"
+    },
+    {
+      "owner": "HostCpuThreadMonitorService",
+      "member": "SampleAsync",
+      "area": "查询",
+      "category": "处理器",
+      "label": "单次窗口逻辑处理器占用采样"
     },
     {
       "owner": "HostCpuGroupInfo",
@@ -29531,10 +33630,31 @@
     },
     {
       "owner": "HyperVSwitchService",
+      "member": "GetAllUpstreamAdaptersAsync",
+      "area": "查询",
+      "category": "网络",
+      "label": "全部宿主上游适配器"
+    },
+    {
+      "owner": "HyperVSwitchService",
       "member": "GetFullSwitchNetworkStateAsync",
       "area": "查询",
       "category": "网络",
       "label": "交换机连接的网卡"
+    },
+    {
+      "owner": "HostNetworkTelemetryService",
+      "member": "GetSwitchThroughput",
+      "area": "查询",
+      "category": "网络",
+      "label": "虚拟交换机实时吞吐"
+    },
+    {
+      "owner": "HostNetworkTelemetryService",
+      "member": "GetAdapterThroughput",
+      "area": "查询",
+      "category": "网络",
+      "label": "宿主网卡实时吞吐"
     },
     {
       "owner": "HyperVHostSettings",
@@ -29878,6 +33998,34 @@
       "area": "修改",
       "category": "系统产品类型",
       "label": "切换系统产品类型"
+    },
+    {
+      "owner": "HostDeviceTelemetryService",
+      "member": "Read",
+      "area": "查询",
+      "category": "基本信息",
+      "label": "采样宿主设备负载"
+    },
+    {
+      "owner": "HostDeviceTelemetryService",
+      "member": "ReadAdapterAddresses",
+      "area": "查询",
+      "category": "网络",
+      "label": "查询宿主接口地址"
+    },
+    {
+      "owner": "HostDeviceTelemetryService",
+      "member": "IsUsbipdInstalled",
+      "area": "查询",
+      "category": "基本信息",
+      "label": "检测 usbipd 安装状态"
+    },
+    {
+      "owner": "HostSystemInfoService",
+      "member": "TryReadHostMemoryMiB",
+      "area": "查询",
+      "category": "内存",
+      "label": "查询宿主物理内存"
     }
   ],
   "hostHelpers": [
@@ -29908,6 +34056,20 @@
       "area": "查询",
       "category": "处理器",
       "label": "异步释放采样器"
+    },
+    {
+      "owner": "HostCpuThreadMonitorService",
+      "member": ".ctor",
+      "area": "查询",
+      "category": "处理器",
+      "label": "创建线程占用监控器"
+    },
+    {
+      "owner": "HostCpuThreadMonitorService",
+      "member": "DisposeAsync",
+      "area": "查询",
+      "category": "处理器",
+      "label": "异步释放线程占用监控器"
     },
     {
       "owner": "HostCpuGroupService",
@@ -30015,11 +34177,25 @@
       "label": "同步释放采样器"
     },
     {
+      "owner": "HostCpuThreadMonitorService",
+      "member": "Dispose",
+      "area": "查询",
+      "category": "处理器",
+      "label": "同步释放线程占用监控器"
+    },
+    {
       "owner": "HostNetworkService",
       "member": "ValidateDynamicMacAddressRange",
       "area": "修改",
       "category": "网络",
       "label": "校验动态 MAC 地址池"
+    },
+    {
+      "owner": "HostNetworkTelemetryService",
+      "member": "Reset",
+      "area": "查询",
+      "category": "网络",
+      "label": "重置性能计数器缓存"
     },
     {
       "owner": "SwitchConfigurationRules",
@@ -30076,6 +34252,20 @@
       "area": "修改",
       "category": "分组",
       "label": "校验分组移动"
+    },
+    {
+      "owner": "HostDeviceTelemetryService",
+      "member": "Dispose",
+      "area": "查询",
+      "category": "基本信息",
+      "label": "释放采样计数器"
+    },
+    {
+      "owner": "HostNetworkTelemetryService",
+      "member": "Dispose",
+      "area": "查询",
+      "category": "网络",
+      "label": "释放采样计数器"
     }
   ],
   "hostUsage": [

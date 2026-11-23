@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Media;
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 /// <summary>设置页的加载、错误显示及离开时等待；标题与返回由仪表盘宿主提供。</summary>
-public abstract class VmSettingsView : UserControl
+public abstract partial class VmSettingsView : UserControl
 {
     private CancellationTokenSource cancellation = new();
     private readonly Grid layout = new();
@@ -48,6 +48,7 @@ public abstract class VmSettingsView : UserControl
     }
 
     internal void BindFeedbackHost(IDashboardFeedbackHost host) => feedbackHost = host;
+    protected void SetHeaderTrailingAction(UIElement? content) => feedbackHost?.SetPageTabsTrailingAction(content);
 
     public Guid VmId { get; }
     internal bool HandlesScrolling { get; private set; }
@@ -68,12 +69,37 @@ public abstract class VmSettingsView : UserControl
         sections = items.ToArray();
         sectionHost = new ContentControl
         {
-            HorizontalContentAlignment = HorizontalAlignment.Stretch,
-            Margin = new Thickness(0, 0, 0, 72)
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
         sectionScroll = new ScrollViewer { Content = sectionHost, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+        AttachScrollbarClearance(sectionScroll, sectionHost, bottomSpacing: 0);
         ShowSection(0);
         SetBody(sectionScroll, handlesScrolling: true);
+    }
+
+    internal static void AttachScrollbarClearance(
+        ScrollViewer scroll,
+        FrameworkElement? marginTarget = null,
+        double bottomSpacing = 0,
+        double gutterWidth = 18)
+    {
+        void Sync()
+        {
+            double right = scroll.ComputedVerticalScrollBarVisibility == Visibility.Visible ? gutterWidth : 0;
+            var spacing = new Thickness(0, 0, right, bottomSpacing);
+            if (marginTarget != null)
+            {
+                if (marginTarget.Margin != spacing) marginTarget.Margin = spacing;
+            }
+            else if (scroll.Padding != spacing)
+            {
+                scroll.Padding = spacing;
+            }
+        }
+
+        scroll.RegisterPropertyChangedCallback(ScrollViewer.ComputedVerticalScrollBarVisibilityProperty, (_, _) => Sync());
+        scroll.Loaded += (_, _) => Sync();
+        Sync();
     }
 
     internal void ShowSection(int index)
@@ -90,6 +116,7 @@ public abstract class VmSettingsView : UserControl
         body.IsEnabled = !stopped && !IsBusy;
         BusyChanged?.Invoke(IsBusy);
     }
+    protected void NotifyProgressBar(bool active) => BusyChanged?.Invoke(active || IsBusy);
     protected abstract Task LoadAsync();
     protected void NotifyChanged()
     {
@@ -111,7 +138,11 @@ public abstract class VmSettingsView : UserControl
         stopped = true;
         cancellation.Cancel();
         await running;
-        if (stopFailures.Count == 0) return;
+        if (stopFailures.Count == 0)
+        {
+            SetHeaderTrailingAction(null);
+            return;
+        }
 
         // 离页等待期间发生的失败必须先交给用户；下一次离页不重复拦截已显示的结果。
         string failure = string.Join(Environment.NewLine, stopFailures);
@@ -142,8 +173,7 @@ public abstract class VmSettingsView : UserControl
         operationBusy = true;
         body.IsEnabled = false;
         BusyChanged?.Invoke(true);
-        toastTimer.Stop();
-        standaloneToast?.Hide();
+        HideAppliedToast();
         standaloneNotice?.Hide();
         feedbackHost?.HideSuccessToast();
         feedbackHost?.ClearSettingsNotice();
@@ -177,8 +207,7 @@ public abstract class VmSettingsView : UserControl
             if (!stopFailures.Contains(detail)) stopFailures.Add(detail);
             return;
         }
-        toastTimer.Stop();
-        standaloneToast?.Hide();
+        HideAppliedToast();
         var button = CreateInfoBarActionButton(actionLabel, onAction);
         if (feedbackHost != null)
             feedbackHost.ShowSettingsNotice(detail, InfoBarSeverity.Error, button);
@@ -204,8 +233,7 @@ public abstract class VmSettingsView : UserControl
 
     protected void ShowInformation(string text)
     {
-        toastTimer.Stop();
-        standaloneToast?.Hide();
+        HideAppliedToast();
         if (feedbackHost != null)
             feedbackHost.ShowSettingsNotice(text, InfoBarSeverity.Informational);
         else
@@ -230,6 +258,7 @@ public abstract class VmSettingsView : UserControl
             feedbackHost.ShowSuccessToast(labelText);
             return;
         }
+        standaloneNotice?.Hide();
         EnsureStandaloneToast().Show(labelText, elevated: true);
         toastTimer.Start();
     }
@@ -261,9 +290,10 @@ public abstract class VmSettingsView : UserControl
         {
             standaloneToast = new FloatingSuccessToast
             {
-                VerticalAlignment = VerticalAlignment.Top,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 4, 4, 0)
+                VerticalAlignment = VerticalAlignment.Bottom,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                MaxWidth = 780,
+                Margin = new Thickness(12, 0, 12, 12)
             };
             layout.Children.Add(standaloneToast);
         }
@@ -294,7 +324,7 @@ public abstract class VmSettingsView : UserControl
         return await Task.Run(async () =>
         {
             await using var query = new VmQueryService();
-            var result = await query.QueryAsync(new VmQueryRequest(fields, [VmId]), CancellationToken);
+            var result = await query.QueryAsync(new VmQueryRequest(fields, (Guid[])[VmId]), CancellationToken);
             if (!result.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(result));
             return result.Data!.VirtualMachines.FirstOrDefault()
                 ?? throw new InvalidOperationException(L10n.Get("SettingsView_VmNotFound"));
@@ -459,6 +489,60 @@ public abstract class VmSettingsView : UserControl
             BorderBrush = Brush("CardStrokeColorDefaultBrush"), BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(8), Margin = new Thickness(0, 0, 0, 24), Child = content
         };
+    }
+
+    private protected static Border UniformCard(
+        string title,
+        string? description,
+        FrameworkElement editor,
+        out Grid label,
+        out SettingInfoButton info,
+        bool span2 = false)
+    {
+        var row = new Grid { ColumnSpacing = 20 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        label = SettingLabel(title, description, out info);
+        row.Children.Add(label);
+        editor.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(editor, 1);
+        row.Children.Add(editor);
+        if (editor is Control control)
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(control, title);
+
+        var card = new Border
+        {
+            Background = Brush("CardBackgroundFillColorDefaultBrush"),
+            BorderBrush = Brush("CardStrokeColorDefaultBrush"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(8),
+            Padding = new Thickness(20, 14, 20, 14),
+            MinHeight = 68,
+            Child = row
+        };
+        SettingsFieldPanel.SetSpan2(card, span2);
+        return card;
+    }
+
+    private protected static void ApplyCardState(
+        Grid label,
+        SettingInfoButton info,
+        Control control,
+        string? description,
+        bool available,
+        bool editable,
+        string? unavailableReason,
+        string? lockedReason = null)
+    {
+        bool enabled = available && editable;
+        control.IsEnabled = enabled;
+        label.Opacity = enabled ? 1.0 : 0.55;
+        string? disabledReason = !available
+            ? (unavailableReason ?? "当前宿主未提供此设置。")
+            : !editable
+                ? lockedReason
+                : null;
+        info.SetDescription(description, disabledReason);
     }
 
     protected static void AddSection(StackPanel panel, string title, Border card)

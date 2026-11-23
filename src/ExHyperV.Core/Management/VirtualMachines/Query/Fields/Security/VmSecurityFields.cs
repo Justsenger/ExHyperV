@@ -55,5 +55,27 @@ public static class VmSecurityFields
     /// </fielddoc>
     public static readonly VmQueryField<bool> Shielded = new("Security.Shielded", "屏蔽虚拟机", "安全", VmQueryCollection.VirtualMachine, "Security", "ShieldingRequested");
 
-    internal static readonly VmQueryField[] Items = [SecureBootEnabled, SecureBootTemplateId, TpmEnabled, EncryptEnabled, Shielded];
+    /// <summary>宿主支持时返回虚拟 TPM 是否绑定到物理 TPM。</summary>
+    /// <fielddoc>
+    /// <meaning>绑定到宿主物理 TPM。启用绑定前须开启虚拟 TPM。</meaning>
+    /// <modification kind="supported" input="VtpmPolicy.BindToHostTpm、enabled" submission="单项提交">要求第二代虚拟机完全关机且未开启屏蔽保护。<see cref="M:ExHyperV.Services.VmSecurityService.SetVtpmPolicyAsync(System.Guid,ExHyperV.Services.VtpmPolicy,System.Boolean)"/></modification>
+    /// </fielddoc>
+    public static readonly VmQueryField<bool> BindToHostTpm = new("Security.BindToHostTpm", "绑定宿主物理 TPM", "安全", VmQueryCollection.VirtualMachine, "Security", "BindToHostTpm");
+
+    /// <summary>是否禁止向来宾提供基于虚拟化的安全功能。</summary>
+    /// <fielddoc>
+    /// <meaning>是否禁止向来宾提供基于虚拟化的安全功能。</meaning>
+    /// <modification kind="supported" input="VtpmPolicy.VirtualizationBasedSecurityOptOut、enabled" submission="单项提交">要求第二代虚拟机完全关机且未开启屏蔽保护。<see cref="M:ExHyperV.Services.VmSecurityService.SetVtpmPolicyAsync(System.Guid,ExHyperV.Services.VtpmPolicy,System.Boolean)"/></modification>
+    /// </fielddoc>
+    public static readonly VmQueryField<bool> VirtualizationBasedSecurityOptOut = new("Security.VirtualizationBasedSecurityOptOut", "禁用 VBS", "安全", VmQueryCollection.VirtualMachine, "Security", "VirtualizationBasedSecurityOptOut");
+
+    /// <summary>迁移策略的原始枚举值。0 为默认，1 为禁止迁移。</summary>
+    /// <fielddoc>
+    /// <meaning>迁移策略的原始值。0 为默认，1 为禁止迁移。未知枚举值只读。</meaning>
+    /// <modification kind="supported" input="VtpmPolicy.DisableMigration、enabled" submission="单项提交">要求第二代虚拟机完全关机且未开启屏蔽保护。<see cref="M:ExHyperV.Services.VmSecurityService.SetVtpmPolicyAsync(System.Guid,ExHyperV.Services.VtpmPolicy,System.Boolean)"/></modification>
+    /// </fielddoc>
+    public static readonly VmQueryField<byte> MigratablePolicy = new("Security.MigratablePolicy", "跨宿主迁移策略", "安全", VmQueryCollection.VirtualMachine, "Security", "MigratablePolicy");
+
+    internal static readonly VmQueryField[] Items = [SecureBootEnabled, SecureBootTemplateId, TpmEnabled, EncryptEnabled, Shielded,
+        BindToHostTpm, VirtualizationBasedSecurityOptOut, MigratablePolicy];
 }

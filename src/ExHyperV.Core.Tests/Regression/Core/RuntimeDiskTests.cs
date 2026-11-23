@@ -74,13 +74,19 @@ public sealed class RuntimeDiskTests
         Assert.AreEqual(PerformanceSampleState.Valid, disk.PerformanceSample.State);
         Assert.AreEqual(2048L, disk.ReadBytesPerSecond);
         Assert.AreEqual(4096L, disk.WriteBytesPerSecond);
-        Assert.AreEqual(0L, disk.ReadOperationsPerSecond);
-        Assert.AreEqual(0L, disk.WriteOperationsPerSecond);
-        Assert.AreEqual(0L, disk.QueueLength);
-        Assert.AreEqual(0L, disk.ErrorCount);
+        Assert.AreEqual(PerformanceSampleState.Unavailable, disk.ReadOperationsSample.State);
+        Assert.AreEqual(PerformanceSampleState.Unavailable, disk.WriteOperationsSample.State);
+        Assert.AreEqual(PerformanceSampleState.Unavailable, disk.QueueLengthSample.State);
+        Assert.AreEqual(PerformanceSampleState.Unavailable, disk.ErrorCountSample.State);
 
-        VmQueryService.ApplyDiskPerformance([vm], [new VmQueryService.PerfItem(wmiName, (ulong)long.MaxValue + 1, 0UL)], [diskPath], observedAt);
+        VmQueryService.ApplyDiskPerformance([vm], [new VmQueryService.PerfItem(wmiName, (ulong)long.MaxValue + 1, 0UL, 0, ulong.MaxValue, 0, 7)], [diskPath], observedAt);
         Assert.AreEqual(PerformanceSampleState.Unavailable, disk.PerformanceSample.State);
+        Assert.IsTrue(disk.WriteBytesSample.IsValid);
+        Assert.IsTrue(disk.ReadOperationsSample.IsValid);
+        Assert.AreEqual(0L, disk.ReadOperationsPerSecond);
+        Assert.AreEqual(PerformanceSampleState.Unavailable, disk.WriteOperationsSample.State);
+        Assert.IsTrue(disk.ErrorCountSample.IsValid);
+        Assert.AreEqual(7L, disk.ErrorCount);
     }
 
     [TestMethod]

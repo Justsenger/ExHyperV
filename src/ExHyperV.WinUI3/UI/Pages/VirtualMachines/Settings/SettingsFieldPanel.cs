@@ -5,7 +5,7 @@ using Windows.Foundation;
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 /// <summary>设置项按行分成两列；支持 Span2 占满整行，空间不足时自动退回单列。</summary>
-internal sealed class SettingsFieldPanel : Panel
+internal sealed partial class SettingsFieldPanel : Panel
 {
     public double Spacing { get; set; } = 12;
     private const double MinimumColumnWidth = 210;

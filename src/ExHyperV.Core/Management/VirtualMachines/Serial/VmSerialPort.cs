@@ -50,5 +50,8 @@ public sealed class VmSerialPort
     /// </fielddoc>
     public bool DebuggerModeAvailable { get; init; }
 
+    /// <summary>串口是否已配置命名管道连接。</summary>
+    public bool IsConnected => !string.IsNullOrWhiteSpace(PipePath);
+
     internal string WmiInstanceId { get; init; } = string.Empty;
 }

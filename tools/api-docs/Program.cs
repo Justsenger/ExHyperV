@@ -45,7 +45,6 @@ internal static partial class ApiDocument
             if (scan.Errors.Count != 0)
                 throw new InvalidOperationException("接口说明不完整或格式有误：\n" + string.Join("\n", scan.Errors.Take(30))
                     + (scan.Errors.Count > 30 ? $"\n另有 {scan.Errors.Count - 30} 项；使用 --audit 查看完整清单。" : ""));
-            _ = HtmlDesigns(scan);
             string path = DocumentationFile(root, "API.md");
             string original = File.ReadAllText(path).Replace("\r\n", "\n");
             string version = XDocument.Load(Path.Combine(root, "ExHyperV.Core.csproj")).Descendants("Version").First().Value;
@@ -350,8 +349,8 @@ internal static partial class ApiDocument
     private static string Render(ScanResult scan, string version)
     {
         var text = new StringBuilder();
-        text.AppendLine($"程序集：`ExHyperV.Core.dll` · 版本：`{version}`。").AppendLine();
-        text.AppendLine("本参考收录公开及受保护的自有成员，包括生成属性、命令和 record 主构造器。继承成员、record 编译器基础方法、隐式默认构造器及资源文案访问器不重复列出；`DEBUG` 专用成员不属于发布接口。").AppendLine();
+        text.AppendLine($"程序集：`ExHyperV.Core.dll`，版本：`{version}`。").AppendLine();
+        text.AppendLine("本参考收录公开及受保护的自有成员，包括生成属性、命令和 record 主构造器。继承成员、record 编译器基础方法、隐式默认构造器及资源文案访问器不重复列出。`DEBUG` 专用成员不属于发布接口。").AppendLine();
         text.AppendLine("### 类型导航").AppendLine();
         string? navigationRoot = null, navigationDomain = null;
         foreach (var path in DocumentationCategoriesFor(scan).Where(path => path[0] != "使用说明"))
@@ -404,7 +403,7 @@ internal static partial class ApiDocument
             text.AppendLine($"| 类型 | {label} |");
             text.AppendLine($"| 命名空间 | {CodeCell(NamespaceName(type))} |");
             text.AppendLine("| 程序集 | `ExHyperV.Core.dll` |");
-            text.AppendLine($"| 功能归属 | {string.Join("；", NavigationPaths(type).Select(DocumentationPath).Select(NavigationKey).Distinct())} |");
+            text.AppendLine($"| 功能归属 | {string.Join("，", NavigationPaths(type).Select(DocumentationPath).Select(NavigationKey).Distinct())} |");
             text.AppendLine($"| 源文件 | {CodeCell(type.Path)} |");
             text.AppendLine();
 
@@ -438,10 +437,10 @@ internal static partial class ApiDocument
                 foreach (var member in group)
                 {
                     string memberName = MethodDisplayName(type, member);
-                    text.AppendLine($"<a id=\"{Anchor(member.Id)}\"></a>\n\n##### {memberName} · {member.Kind}\n");
+                    text.AppendLine($"<a id=\"{Anchor(member.Id)}\"></a>\n\n##### {memberName}（{member.Kind}）\n");
                     text.AppendLine("```csharp\n" + member.Signature.Trim() + "\n```\n");
                     if (NavigationPaths(type).Length > 1)
-                        text.AppendLine("功能归属：" + string.Join("；", MemberNavigationPaths(type, member).Select(DocumentationPath).Select(NavigationKey).Distinct()) + "。").AppendLine();
+                        text.AppendLine("功能归属：" + string.Join("，", MemberNavigationPaths(type, member).Select(DocumentationPath).Select(NavigationKey).Distinct()) + "。").AppendLine();
                     AppendDoc(text, MemberDescription(type, member));
                     AppendFieldDocumentation(text, type, member);
                 }

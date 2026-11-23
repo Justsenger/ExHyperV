@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
-public sealed class VmMemorySettingsView : VmSettingsView
+public sealed partial class VmMemorySettingsView : VmSettingsView
 {
     private readonly List<SettingFieldEditor> fields = [];
     private readonly List<SettingFieldEditor> mmioFields = [];
@@ -61,10 +61,24 @@ public sealed class VmMemorySettingsView : VmSettingsView
         SetSectionedBody(sections);
     }
 
+    private static (int StartupMaxMiB, int DynamicMaxMiB) GetHostMemorySliderBounds()
+    {
+        var hostMem = HostSystemInfoService.TryReadHostMemoryMiB();
+        if (hostMem is { TotalMiB: > 0 } hm)
+        {
+            int physicalMax = (int)Math.Clamp(hm.TotalMiB, 512L, 1048576L);
+            int dynamicMax = (int)Math.Clamp(Math.Max(physicalMax, hm.TotalMiB * 2L), 1024L, 1048576L);
+            return (physicalMax, dynamicMax);
+        }
+        return (65536, 131072);
+    }
+
     private void BuildComputeGroup()
     {
+        var (hostMemMax, dynamicMaxLimit) = GetHostMemorySliderBounds();
+
         var startup = MemSlider(L10n.Get("Mem_Startup_Title"), nameof(VmMemorySettings.Startup),
-            32, 65536, "MiB", maxTyped: 1048576,
+            32, hostMemMax, "MiB", maxTyped: 1048576,
             v => $"{v} MiB ({FormatGb(v, 1)})",
             v => v <= 80 ? 32 : (int)Math.Round(v / 128.0) * 128,
             L10n.Get("Mem_Startup_Desc"));
@@ -80,13 +94,13 @@ public sealed class VmMemorySettingsView : VmSettingsView
         SettingsFieldPanel.SetSpan2(dynSwitch, true);
 
         var minimum = MemSlider(L10n.Get("Mem_Min_Title"), nameof(VmMemorySettings.Minimum),
-            32, 65536, "MiB", maxTyped: 1048576,
+            32, hostMemMax, "MiB", maxTyped: 1048576,
             v => $"{v} MiB ({FormatGb(v, 1)})",
             v => v <= 80 ? 32 : (int)Math.Round(v / 128.0) * 128,
             L10n.Get("Mem_Min_Desc"));
 
         var maximum = MemSlider(L10n.Get("Mem_Max_Title"), nameof(VmMemorySettings.Maximum),
-            32, 131072, "MiB", maxTyped: 1048576,
+            32, dynamicMaxLimit, "MiB", maxTyped: 1048576,
             v => $"{v} MiB ({FormatGb(v, 1)})",
             v => v <= 144 ? 32 : (int)Math.Round(v / 256.0) * 256,
             L10n.Get("Mem_Max_Desc"));
@@ -126,15 +140,6 @@ public sealed class VmMemorySettingsView : VmSettingsView
 
     private void BuildPagesGroup()
     {
-        var backingPageSize = MemChoice(L10n.Get("Mem_BackingPageSize_Title"), nameof(VmMemorySettings.BackingPageSize),
-            [
-                new((byte)0, L10n.Get("Mem_PageSize_Default")),
-                new((byte)1, L10n.Get("Mem_PageSize_Large")),
-                new((byte)2, L10n.Get("Mem_PageSize_Huge"))
-            ],
-            width: 390, span2: true,
-            description: L10n.Get("Mem_BackingPageSize_Desc"));
-
         var dynAlignment = MemChoice(L10n.Get("Mem_DynAlign_Title"), nameof(VmMemorySettings.DynMemOperationAlignment),
             [
                 new(0u, L10n.Get("Mem_Align_Disabled")),
@@ -152,7 +157,7 @@ public sealed class VmMemorySettingsView : VmSettingsView
             L10n.Get("Mem_NumaBlocks_Desc"));
         SettingsFieldPanel.SetSpan2(maxNumaBlocks, true);
 
-        AddPanelGroup(L10n.Get("Mem_Group_Pages"), isMmio: false, backingPageSize, dynAlignment, maxNumaBlocks);
+        AddPanelGroup(L10n.Get("Mem_Group_Pages"), isMmio: false, dynAlignment, maxNumaBlocks);
     }
 
     private void BuildMappingGroup()
@@ -165,6 +170,15 @@ public sealed class VmMemorySettingsView : VmSettingsView
             ],
             width: 430, span2: true,
             description: L10n.Get("Mem_BackingType_Desc"));
+
+        var backingPageSize = MemChoice(L10n.Get("Mem_BackingPageSize_Title"), nameof(VmMemorySettings.BackingPageSize),
+            [
+                new((byte)0, L10n.Get("Mem_PageSize_Default")),
+                new((byte)1, L10n.Get("Mem_PageSize_Large")),
+                new((byte)2, L10n.Get("Mem_PageSize_Huge"))
+            ],
+            width: 390, span2: true,
+            description: L10n.Get("Mem_BackingPageSize_Desc"));
 
         var coldHint = MemToggle(L10n.Get("Mem_ColdHint_Title"), nameof(VmMemorySettings.EnableColdHint),
             L10n.Get("Mem_ColdHint_Desc"));
@@ -179,7 +193,7 @@ public sealed class VmMemorySettingsView : VmSettingsView
             L10n.Get("Mem_GpaPinning_Desc"));
         SettingsFieldPanel.SetSpan2(gpaPinning, true);
 
-        AddPanelGroup(L10n.Get("Mem_Group_Mapping"), isMmio: false, backingType, coldHint, hotHint, epf, compression, gpaPinning);
+        AddPanelGroup(L10n.Get("Mem_Group_Mapping"), isMmio: false, backingType, backingPageSize, coldHint, hotHint, epf, compression, gpaPinning);
     }
 
     private void BuildSecurityGroup()
@@ -293,7 +307,7 @@ public sealed class VmMemorySettingsView : VmSettingsView
         var content = new StackPanel { Spacing = 16 };
         content.Children.Add(bodyContent);
         content.Children.Add(actions);
-        sections.Add((title, new Border { Child = content, Margin = new Thickness(0, 0, 0, 16) }));
+        sections.Add((title, new Border { Child = content }));
     }
 
     private Grid MemSlider(
@@ -559,17 +573,22 @@ public sealed class VmMemorySettingsView : VmSettingsView
         mmioSnapshot = mmio;
         fieldStates = observation.States.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
 
+        var (hostMemMax, dynamicMaxLimit) = GetHostMemorySliderBounds();
         Updating = true;
         try
         {
             foreach (var field in fields)
             {
                 var name = field.Property.Name;
+                if (name is nameof(VmMemorySettings.Startup) or nameof(VmMemorySettings.Minimum))
+                    field.UpdateSliderBounds(32, hostMemMax);
+                else if (name == nameof(VmMemorySettings.Maximum))
+                    field.UpdateSliderBounds(32, dynamicMaxLimit);
                 object? value = field.Property.GetValue(memory);
                 if (name == nameof(VmMemorySettings.BackingPageSize))
                     field.SetOptions(memory.SupportsBackingPageSize
-                        ? [new((byte)0, L10n.Get("Mem_PageSize_Default")), new((byte)1, L10n.Get("Mem_PageSize_Large")), new((byte)2, L10n.Get("Mem_PageSize_Huge"))]
-                        : [new((byte)1, L10n.Get("Mem_PageSize_Large")), new((byte)2, L10n.Get("Mem_PageSize_Huge"))]);
+                        ? (SettingOption[])[new((byte)0, L10n.Get("Mem_PageSize_Default")), new((byte)1, L10n.Get("Mem_PageSize_Large")), new((byte)2, L10n.Get("Mem_PageSize_Huge"))]
+                        : (SettingOption[])[new((byte)1, L10n.Get("Mem_PageSize_Large")), new((byte)2, L10n.Get("Mem_PageSize_Huge"))]);
                 var (canModify, condReason) = GetEffectiveCondition(memory, name, powerState);
                 string? error = !canModify
                     ? condReason

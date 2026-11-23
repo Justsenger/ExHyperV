@@ -23,7 +23,7 @@ public sealed class RegressionTests
     [TestCategory("OperationQuery")]
     [TestMethod] public void IpAddresses_SourcePriorityAndFallback() => IpAddressRuleChecks.Run(Check);
     [TestCategory("OperationCommand")]
-    [TestMethod] public Task CheckpointsAndClones_OperationOrdering() => SpacetimeWorkflowChecks.Run(Check);
+    [TestMethod] public Task CheckpointsAndClones_OperationOrdering() => CheckpointWorkflowChecks.Run(Check);
     [TestCategory("OperationWorkflow")]
     [TestMethod] public Task Power_TransitionsAndFailureHandling() => PowerWorkflowChecks.Run(Check);
     [TestCategory("OperationCommand")] [TestCategory("OperationWorkflow")]

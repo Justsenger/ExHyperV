@@ -39,7 +39,7 @@ const FIELD_META = {
     unit: '',
     runtime: true,
     descZh: '多台虚拟机争抢处理器资源时的分配优先级。',
-    descEn: 'Scheduling priority when VMs contend for CPU; higher values receive more cycles (default 100).'
+    descEn: 'Scheduling priority when VMs contend for CPU. Higher values receive more cycles (default 100).'
   }
 };
 

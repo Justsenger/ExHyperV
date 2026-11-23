@@ -8,9 +8,9 @@
 
 ### 运行要求
 
-- **目标框架**：`net10.0-windows`（建议开启 `ImplicitUsings`）
+- **目标框架**：`net11.0-windows`（建议开启 `ImplicitUsings`）
 - **运行权限**：以**管理员权限**运行宿主进程，并在系统启用 Hyper-V 管理功能
-- **引用方式**：同仓库项目直接引用 `ExHyperV.Core.csproj`；独立发布时随应用携带 `ExHyperV.Core.dll` 及其依赖
+- **引用方式**：同仓库项目直接引用 `ExHyperV.Core.csproj`。独立发布时随应用携带 `ExHyperV.Core.dll` 及其依赖
 - **常用命名空间**：
 
 ```csharp
@@ -63,7 +63,7 @@ public static async Task ListVmsAsync()
 
 ### 按需组合字段
 
-把需要的字段放进 `VmQueryRequest`。虚拟机自身属性（如内存大小、名称）直接从虚拟机行读取；网卡、磁盘这类一对多设备从对应的子集合读取。
+把需要的字段放进 `VmQueryRequest`。虚拟机自身属性（如内存大小、名称）直接从虚拟机行读取。网卡、磁盘这类一对多设备从对应的子集合读取。
 
 <!-- api-example-query:start -->
 
@@ -102,13 +102,13 @@ public static async Task<VmQueryResult> ReadSelectedFieldsAsync(Guid vmId)
 <!-- api-example-query:end -->
 
 几个常用细节：
-- **目标范围**：`VmQueryRequest` 第二个参数传 GUID 列表；**省略不传**会查全部虚拟机，传**空列表**会直接返回空结果。查不到的 GUID 会放在 `MissingVmIds` 里。
+- **目标范围**：`VmQueryRequest` 第二个参数传 GUID 列表。**省略不传**会查全部虚拟机，传**空列表**会直接返回空结果。查不到的 GUID 会放在 `MissingVmIds` 里。
 - **动态选字段**：不知道有哪些字段名时，可以从 `VmQueryFields.All` 遍历，或用 `VmQueryFields.Find("Memory.Startup")` 按标识查找。
-- **集合里的主键**：`VmQueryRow.Key` 用来区分同一集合里的不同项（虚拟机是 GUID，设备是设备标识；引导顺序的 Key 含顺序位置，重排后会变化）。
+- **集合里的主键**：`VmQueryRow.Key` 用来区分同一集合里的不同项（虚拟机是 GUID，设备是设备标识。引导顺序的 Key 含顺序位置，重排后会变化）。
 
 ### 怎么判断有没有读到值
 
-外层 `response.HasData` 为 `true` 只代表这趟查询整体成功；具体到某一个字段，先看 `field.HasValue`（为 `true` 时再读 `field.Value`，包括合法的 `0`、`false` 或空字符串）。
+外层 `response.HasData` 为 `true` 只代表这趟查询整体成功。具体到某一个字段，先看 `field.HasValue`（为 `true` 时再读 `field.Value`，包括合法的 `0`、`false` 或空字符串）。
 
 没取到值时，可以通过 `field.State` 区分原因：
 
@@ -123,15 +123,15 @@ public static async Task<VmQueryResult> ReadSelectedFieldsAsync(Guid vmId)
 
 ### 实时性能监控
 
-做 CPU、内存或网络实时曲线时，**请复用同一个 `VmQueryService` 或 `HyperVCpuMonitorService` 实例**定时轮询——性能计数器需要靠同一个实例保留上一次基线才能算出增量。
+做 CPU、内存或网络实时曲线时，**请复用同一个 `VmQueryService`、`HyperVCpuMonitorService` 或 `HostCpuThreadMonitorService` 实例**定时轮询——性能计数器及内核上下文切换（ETW）时间片累加均需要靠同一实例衔接相邻窗口基线。
 
-一个请求里不同来源的数据可能在不同毫秒完成，可以看字段的 `ObservedAtUtc` 了解采样时间；想排查哪一步慢，看 `Timings` 即可。
+一个请求里不同来源的数据可能在不同毫秒完成，可以看字段的 `ObservedAtUtc` 了解采样时间。想排查哪一步慢，看 `Timings` 即可。
 
 <!-- api-example-monitor:start -->
 
 ### 持续采集虚拟机的 CPU 使用率
 
-过滤掉宿主机采样和还没建立好基线的无效采样；遇到无效采样时跳过即可，界面上继续保留上一帧数值。
+过滤掉宿主机采样和还没建立好基线的无效采样。遇到无效采样时跳过即可，界面上继续保留上一帧数值。
 
 ```csharp
 public static void UpdateCpuValues(HyperVCpuMonitorService monitor, Action<Guid, int, float> update)
@@ -146,6 +146,37 @@ public static void UpdateCpuValues(HyperVCpuMonitorService monitor, Action<Guid,
 
 <!-- api-example-monitor:end -->
 
+如果需要从宿主物理逻辑处理器（线程 0..N-1）视角按宿主机与每台运行中虚拟机拆分 CPU 时间片占比，可使用 `HostCpuThreadMonitorService`：
+
+<!-- api-example-host-thread-monitor:start -->
+
+### 按宿主逻辑线程拆分宿主机与虚拟机占用
+
+持续每秒采样一次每个物理逻辑处理器的总占用、宿主机占比及各虚拟机时间片占比。若处于性能计数器回退或 Classic/Core 模式，先检查 Sample.IsValid 并留意 UnattributedGuestUsagePercent。
+
+```csharp
+public static async Task SampleHostThreadsAsync(CancellationToken cancellationToken)
+{
+    await using var monitor = new HostCpuThreadMonitorService();
+    monitor.GetThreadUsage();
+    await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+
+    var report = monitor.GetThreadUsage();
+    if (!report.Sample.IsValid) return;
+
+    foreach (var lp in report.Threads)
+    {
+        if (!lp.Sample.IsValid) continue;
+        string host = lp.HostUsagePercent is float percent ? $"{percent:F1}%" : "未知";
+        Console.WriteLine($"线程 {lp.LogicalProcessorIndex} 总占用 {lp.TotalUsagePercent:F1}%，宿主 {host}，未归属 {lp.UnattributedUsagePercent:F1}%");
+    }
+}
+```
+
+<!-- api-example-host-thread-monitor:end -->
+
+缺少 Root VP 样本时，`HostUsagePercent` 为 null，总活动时间保留在 `UnattributedUsagePercent`。只有已确认属于来宾的剩余时间才计入 `UnattributedGuestUsagePercent`。宿主网络吞吐使用调用方拥有的 `HostNetworkTelemetryService`，首个观测为 `WarmingUp`，从有效观测的 `Throughput` 读取速率，使用结束后释放实例。磁盘吞吐、IOPS、队列长度和错误数分别使用各自的采样状态。
+
 ## 修改配置
 
 改配置记住三个原则：**按 GUID 指定虚拟机、改前可先校验条件、只提交你改过的字段**。直接改查询出来的对象属性不会自动写回 Hyper-V。
@@ -158,7 +189,7 @@ public static void UpdateCpuValues(HyperVCpuMonitorService monitor, Action<Guid,
 
 ### 重命名虚拟机
 
-把虚拟机 GUID 和新名字交给服务即可；通过 result.Success 判断是否成功，失败时可以直接向用户展示 result.Error。
+把虚拟机 GUID 和新名字交给服务即可。通过 result.Success 判断是否成功，失败时可以直接向用户展示 result.Error。
 
 ```csharp
 public static async Task RenameAsync(Guid vmId, string newName)
@@ -230,9 +261,11 @@ public static async Task ChangeStartupMemoryAsync(Guid vmId, long startupMiB)
 1. **怎么提前知道某个按钮该不该灰掉？**
    调用对应服务的 `GetModificationCondition(...)`（比如 `VmProcessorService.GetModificationCondition` 或 `VmMemoryService.GetModificationCondition`），它会告诉你当前电源状态下能不能改、不能改的原因，以及需要先切到什么状态。界面上可用它控制按钮状态，提交时 Core 内部也会再校验一遍。
 2. **传 `null` 是“不改”还是“恢复默认”？**
-   取决于具体属性：`CpuBrandString` 传 `null` 会清空；频率、能效偏好等部分高级属性传 `null` 会恢复为“未设置”；其余可空属性传 `null` 通常表示跳过不改。具体规则以对应设置类的说明为准，不要直接把整张查询对象当提交清单。
+   取决于具体属性：`CpuBrandString` 传 `null` 会清空。频率、能效偏好等部分高级属性传 `null` 会恢复为“未设置”。其余可空属性传 `null` 通常表示跳过不改。具体规则以对应设置类的说明为准，不要直接把整张查询对象当提交清单。
 3. **改完什么时候生效？**
-   有的配置（如动态调整部分内存、接通网卡）立即生效，有的要求关机才能改；如果操作触发了需要重启宿主机才能生效的更改，返回值里的 `RequiresRestart` 会为 `true`，`RestartReasons` 会写明原因。另外，Core 对同一台虚拟机的 CPU/内存写入会在进程间自动排队，防止并发写花。
+   有的配置（如动态调整部分内存、接通网卡）立即生效，有的要求关机才能改。如果操作触发了需要重启宿主机才能生效的更改，返回值里的 `RequiresRestart` 会为 `true`，`RestartReasons` 会写明原因。另外，Core 对同一台虚拟机的 CPU/内存写入会在进程间自动排队，防止并发写花。
+
+磁盘容量检查 `InspectResizeSafetyAsync` 在需要读取分区边界时会临时只读挂载映像。MCP 只读模式不开放此方法。导出 Guardian 公钥材料会写入文件，也需要写权限。
 
 ## 创建导入与导出
 
@@ -240,7 +273,7 @@ public static async Task ChangeStartupMemoryAsync(Guid vmId, long startupMiB)
 
 ### 创建与删除
 
-创建虚拟机时只需填充 `VmCreationParameters`；如果名字或目录撞车，Core 会按策略避让，并在结果里的 `ActualName`、`NameAdjusted`、`Notice` 告诉你最终落在哪里。
+创建虚拟机时只需填充 `VmCreationParameters`。如果名字或目录撞车，Core 会按策略避让，并在结果里的 `ActualName`、`NameAdjusted`、`Notice` 告诉你最终落在哪里。
 
 <!-- api-example-create:start -->
 
@@ -268,14 +301,32 @@ public static async Task<VmCreationResult> CreateVmAsync(string configurationDir
 
 删除分两档，按风险小心选用：
 - `VmDeleteService.DeleteVmAsync`：**只注销虚拟机**，配置文件和 `.vhdx` 磁盘文件都留着。
-- `VmDeleteService.PurgeVmAsync`：**彻底删除**，注销后还会顺带删掉确认专属于这台虚拟机的配置和磁盘；如果某个磁盘无法排除被其他虚拟机共享依赖，Core 会保留它并在结果里报告。删除前可以先调预览方法给用户二次确认。
+- `VmDeleteService.PurgeVmAsync`：**彻底删除**，注销后还会顺带删掉确认专属于这台虚拟机的配置和磁盘。如果某个磁盘无法排除被其他虚拟机共享依赖，Core 会保留它并在结果里报告。删除前可以先调预览方法给用户二次确认。
+
+### 一代虚拟机直接升级为二代
+
+在 x64 Hyper-V 宿主上，以原虚拟机 GUID 调用升级。Core 请求运行中的原机正常关机，导出无盘恢复配置，并把硬盘和光驱映射到二代 SCSI 控制器。支持无盘、仅 ISO 和多盘配置。迁移范围是虚拟机硬件和磁盘容器，来宾分区、引导程序及操作系统保持原样。原来依赖 BIOS 的系统需要另行准备 UEFI 引导，升级成功仅表示关机配置已通过回读。
+
+默认将所有独立 VHD 转为同目录同主名的 VHDX，现有 VHDX 原地复用。Core 先用工作路径挂接转换结果，确认新机配置后移到正式路径，再次核验并持久提交，最后删除原 VHD。目标文件已存在、共享盘、差分盘或直通盘会导致预检拒绝。安全启动和 TPM 默认关闭。
+
+```csharp
+var upgrade = await VmGenerationUpgradeService.UpgradeToGeneration2Async(vmId, cancellationToken);
+// 需要安全启动时传入选项，省略模板 GUID 时使用 Microsoft Windows 模板。
+var options = new VmGenerationUpgradeOptions { EnableSecureBoot = true };
+// await VmGenerationUpgradeService.UpgradeToGeneration2Async(vmId, options, cancellationToken);
+```
+
+`Succeeded` 返回关机二代机的新 GUID、原名称和配置根目录。`DiskPaths` 列出所有正式硬盘，无硬盘时列表为空。`SystemDiskPath` 按固件设备顺序选择首选硬盘，无硬盘时为空。`Rejected` 表示原注册保留，`RolledBack` 表示已核实恢复原机。`CommittedCleanupPending` 和 `OutcomeUnknown` 可用原 GUID 重入，沿用已记录的选项继续清理或对账。`RetainedPaths` 给出恢复材料的位置。
+
+关机已提交但未观察到关机、分组作业未确认结束或清理写入结果未知时，保留当前阶段和恢复材料。重入时只核实日志中的本次作业与目标。无法取得终态回执、工作盘身份缺失或目录被替换时，保留相关路径供人工核对。
+
 
 ### 导入虚拟机
 
 导入分两步：**先预览拿到 `VmImportBatchSession`，等用户选好配置后再真正导入**。
 
-- **GUID 策略必须二选一**：`Preserve` 保留原虚拟机 ID（本机已有同 ID 时会失败）；`GenerateNew` 总是分配新 ID，导入成功后拿结果里的 `VmId` 当后续标识。
-- **名称、目录与交换机**：名称和目标目录省略时沿用原名和宿主默认路径；虚拟交换机按“来源 GUID → 目标 GUID”映射，映射为 `null` 表示先断开。
+- **GUID 策略必须二选一**：`Preserve` 保留原虚拟机 ID（本机已有同 ID 时会失败）。`GenerateNew` 总是分配新 ID，导入成功后拿结果里的 `VmId` 当后续标识。
+- **名称、目录与交换机**：名称和目标目录省略时沿用原名和宿主默认路径。虚拟交换机按“来源 GUID → 目标 GUID”映射，映射为 `null` 表示先断开。
 - **用完务必 `await using` 释放**：哪怕只是看了眼预览不打算导入，也要释放会话来清理临时解压目录。
 
 <!-- api-example-import:start -->
@@ -324,7 +375,7 @@ public static async Task<VmImportResult> ImportVmAsync(string sourceDirectory, G
 
 ### 从加密压缩包预览可导入的虚拟机
 
-如果导入来源是带密码的 ZIP，在预览阶段就要传入密码、临时目录和解压上限；预览和正式导入共用同一个 batch 会话。
+如果导入来源是带密码的 ZIP，在预览阶段就要传入密码、临时目录和解压上限。预览和正式导入共用同一个 batch 会话。
 
 ```csharp
 public static async Task PreviewEncryptedImportAsync(string archivePath, string password, string workDirectory,
@@ -411,13 +462,13 @@ public static async Task PackageExportAsync(string exportDirectory, string archi
 
 ### 用一个循环跑完部署
 
-调用方只需要不断跑 `StartAsync()` / `SubmitDecisionAsync(...)`：当 `State == GpuDeploymentState.WaitingForDecision` 时，把 `PendingDecision` 里的信息弹窗给用户，拿回用户选择（带上原 `RequestId`）继续往下推；如果用户点取消，传 `null` 或调用 `CancelAsync()`。
+调用一次 `StartAsync()`。当 `State == GpuDeploymentState.WaitingForDecision` 时，展示 `PendingDecision`，将当前请求 ID 与用户选择交给 `SubmitDecisionAsync(...)`。用户取消时调用 `CancelAsync()` 并等待返回的快照。
 
 <!-- api-example-workflow:start -->
 
 ### 驱动 GPU 分区与驱动部署流程
 
-GPU 部署会在需要用户拍板时暂停（例如选分区或确认关机）。每次循环读取 PendingDecision，把用户的选择通过 SubmitDecisionAsync 交回 Core 即可；返回 null 表示取消。
+GPU 部署会在需要用户拍板时暂停（例如选分区或确认关机）。每次循环读取 PendingDecision，将有效决定交给 SubmitDecisionAsync。示例中的 decide 回调返回 null 时，由调用方调用 CancelAsync。
 
 ```csharp
 public static async Task<GpuDeploymentSnapshot> DeployGpuAsync(
@@ -451,10 +502,11 @@ public static async Task<GpuDeploymentSnapshot> DeployGpuAsync(
 
 ### 部署中途失败或被取消怎么办？
 
-看最后快照的 `State` 和 `AllowedActions` 就行，不用自己猜：
-- `Completed`：全部搞定。
+读取最后快照的 `State`、`OutcomeUnknown` 和 `AllowedActions`。
+
+- `Completed` 表示所选部署步骤已完成。挂载驱动 ISO 后，来宾内仍需执行安装。
 - `CleanupRequired`：留下了临时挂接的磁盘或刚建出来的半成品适配器。
-- `OutcomeUnknown`：底层 WMI/磁盘异步任务还没返回最终结果。**此时不要直接强行删东西**，先按 `AllowedActions` 调 `ReconcileAsync()` 核实一遍真实状态，确认安全后再调 `RetryCleanupAsync()` 清理。
+- 快照标志 `OutcomeUnknown == true` 表示底层操作的终态仍待核实。`AllowedActions` 包含 `Reconcile` 时可调用 `ReconcileAsync()`。只有该标志已清除且允许 `RetryCleanup` 时才调用 `RetryCleanupAsync()`。
 
 <!-- api-example-gpu-recovery:start -->
 
@@ -481,11 +533,11 @@ public static async Task<GpuDeploymentSnapshot> RecoverGpuAsync(GpuDeploymentSes
 
 <!-- api-example-gpu-recovery:end -->
 
-所有的进度记录和待清理资源清单都保存在原 `session` 实例的 `Recovery` 属性里；只有当次进程内的原会话对象能用来核实和收尾。
+用 `session.GetStatus()` 取得最新快照。快照的 `Steps` 记录步骤，`Recovery` 提供已有的原生操作、观测结果及待处理资源。核实和清理使用当次进程内的原会话。
 
 ## 连接与交互
 
-`ConsoleService` 负责连上虚拟机屏幕并收发键鼠/剪贴板；如果只需要列表页的静态缩略图，**不用建连接**，直接用 `VmScreenshotSource.CaptureAsync()` 通过 WMI 抓一张即可。
+`ConsoleService` 负责连上虚拟机屏幕并收发键鼠/剪贴板。如果只需要列表页的静态缩略图，**不用建连接**，直接用 `VmScreenshotSource.CaptureAsync()` 通过 WMI 抓一张即可。
 
 ### 选基本会话还是增强会话
 
@@ -498,13 +550,13 @@ public static async Task<GpuDeploymentSnapshot> RecoverGpuAsync(GpuDeploymentSes
 
 ### 连接与取图示例
 
-记住两个顺序：**先订阅事件，再调 `Start()`**；**每个连接对象只能启动一次**，断开重连请创建新对象。
+记住两个顺序：**先订阅事件，再调 `Start()`**。**每个连接对象只能启动一次**，断开重连请创建新对象。
 
 <!-- api-example-resource:start -->
 
 ### 连接虚拟机桌面并接收画面帧
 
-建立基本会话连接，通过 FrameReceived 回调持续接收 BGRA32 画面；结束或取消时调用 DisconnectAsync 释放连接。
+建立基本会话连接，通过 FrameReceived 回调持续接收 BGRA32 画面。结束或取消时调用 DisconnectAsync 释放连接。
 
 ```csharp
 public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
@@ -538,9 +590,9 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 ### 处理画面、输入和剪贴板的 4 个实战提醒
 
 1. **别在 `FrameReceived` 回调里做重活**
-   事件都在后台线程触发，界面更新记得调度回 UI 线程；回调本身要尽快返回，**绝对不要在回调里同步等待当前连接断开**，否则会死锁。
+   事件都在后台线程触发，界面更新记得调度回 UI 线程。回调本身要尽快返回，**绝对不要在回调里同步等待当前连接断开**，否则会死锁。
 2. **帧内存是借用的**
-   `FrameReceived` 回调给你的 `ConsoleFrame` 只在回调期间有效。如果想异步拿去渲染或存下来，先调 `frame.Retain()`，用完后一定要 `Dispose()`；或者直接调 `CopyPixels()` 拿一份独立字节数组。
+   `FrameReceived` 回调给你的 `ConsoleFrame` 只在回调期间有效。如果想异步拿去渲染或存下来，先调 `frame.Retain()`，用完后一定要 `Dispose()`。或者直接调 `CopyPixels()` 拿一份独立字节数组。
 3. **随时抓当前一帧**
    调 `Video.CaptureFrame()` 可以直接取当前连接的最新完整画面（没有画面时返回 `null`，取到的帧用完记得释放）。基本会话和增强会话各自的画面是独立的，互不替代。
 4. **键盘、鼠标和剪贴板**
@@ -552,8 +604,8 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 大多数操作返回 `ApiResponse` 或 `ApiResponse<T>`，少数方法会直接抛出 `CoreOperationException`（异常里的 `Result` 包含同样完整的错误信息）：
 
-- **判断是否成功**：无数据看 `Success`；有数据先检查 `HasData` 再读 `Data`（成功但查无记录会标记为 `IsEmpty`，和报错分开）。
-- **代码分支看 `ErrorKind`，提示用户看 `Error`**：`Error` 文本可能会本地化或调整措辞，代码里永远不要用字符串匹配错误，而是判断 `ErrorKind`；深挖底层 WMI/Win32 错误码再看 `ErrorSource`、`Code` 和 `Exception`。
+- **判断是否成功**：无数据看 `Success`。有数据先检查 `HasData` 再读 `Data`（成功但查无记录会标记为 `IsEmpty`，和报错分开）。
+- **代码分支看 `ErrorKind`，提示用户看 `Error`**：`Error` 文本可能会本地化或调整措辞，代码里永远不要用字符串匹配错误，而是判断 `ErrorKind`。深挖底层 WMI/Win32 错误码再看 `ErrorSource`、`Code` 和 `Exception`。
 
 | `ErrorKind` | 建议处理方式 |
 | --- | --- |
@@ -578,7 +630,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | `VmQueryService` / `HyperVCpuMonitorService` | `Dispose` 或 `await DisposeAsync` | 会等待进行中的性能计数器采样结束并回收资源 |
 | `IConsoleConnection` | `await DisconnectAsync` 或 `await DisposeAsync` | 断开桌面连接并清理 FreeRDP 会话 |
 | 手动 `Retain()` 或 `CaptureFrame()` 拿到的帧 | 每份分别 `Dispose` | 避免占满帧池 |
-| `VmImportBatchSession` / `VmImportSession` | `await DisposeAsync` | 会清理临时解压目录；释放后检查 `CleanupState` |
+| `VmImportBatchSession` / `VmImportSession` | `await DisposeAsync` | 会清理临时解压目录。释放后检查 `CleanupState` |
 | 磁盘挂载租约（历史磁盘挂接） | `await ReleaseAsync` 或 `await DisposeAsync` | 用完及时卸载 |
 
 另外，如果应用开启了局域网 ARP 辅助 IP 发现（`ArpSnoopService.Instance.Start()`），**在宿主程序最终退出时**等待一次 `SharedBackgroundServices.ShutdownAsync()` 即可（不要在每次切页面时关它，进程内关闭后不能重启）。
@@ -589,24 +641,24 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 迁移项 | 老写法 / 旧行为 | 新版写法 / 注意事项 |
 | --- | --- | --- |
-| **定位虚拟机** | 传虚拟机名称字符串 | 绝大多数接口改为传 **GUID**；设备操作传查询返回的设备引用（Linux GPU 部署保留原名称入口） |
+| **定位虚拟机** | 传虚拟机名称字符串 | 绝大多数接口改为传 **GUID**。设备操作传查询返回的设备引用（Linux GPU 部署保留原名称入口） |
 | **读取内存 / 处理器设置** | 直接读 `response.Data.Startup` | 返回值改为 `VmSettingsSnapshot<T>`：先看 `States["Startup"] == Available`，再读 `Values.Startup` |
 | **部分字段写入** | 传整个设置对象覆盖 | `VmProcessorService` / `VmMemoryService` / `VmNetworkService` 必须传 `changedProperties` 指定只改哪些字段 |
-| **单位换算** | 旧界面百分比/换算值 | 处理器 `Reservation`/`Limit` 用 `0.001%`（`100000` = 100%）；内存 `Weight` 用原始权重；网卡带宽用 `bit/s` |
-| **创建 / 电源 / 批量任务** | 内部自带批量或默认联动 | Core 统一为单台操作入口；批量顺序、命名避让、创建后是否开机由上层编排 |
-| **导入选项与未知值** | 自动按默认策略处理 | 导入通过 `VmImportOptions` 显式选 `Preserve`/`GenerateNew`；预览里的 `DynamicMemory`、`HasSavedState`、`MinimumMemoryMiB`、`MaximumMemoryMiB` 改为可空，返回 `null` 表示未解析而非关闭/零值 |
+| **单位换算** | 旧界面百分比/换算值 | 处理器 `Reservation`/`Limit` 用 `0.001%`（`100000` = 100%）。内存 `Weight` 用原始权重。网卡带宽用 `bit/s` |
+| **创建 / 电源 / 批量任务** | 内部自带批量或默认联动 | Core 统一为单台操作入口。批量顺序、命名避让、创建后是否开机由上层编排 |
+| **导入选项与未知值** | 自动按默认策略处理 | 导入通过 `VmImportOptions` 显式选 `Preserve`/`GenerateNew`。预览里的 `DynamicMemory`、`HasSavedState`、`MinimumMemoryMiB`、`MaximumMemoryMiB` 改为可空，返回 `null` 表示未解析而非关闭/零值 |
 | **控制台后端标识** | `Enhanced` 布尔值或 `freerdp` | 改用 `RdpBasic` / `RdpEnhanced` |
-| **UI 绑定与字段说明** | Core 模型带通知和文案 | Core 只管纯数据；属性通知、草稿状态和选项标签归 WinUI 视图模型，字段文案统一走生成的 `FieldHelp.json` |
+| **UI 绑定与字段说明** | Core 模型带通知和文案 | Core 只管纯数据。属性通知、草稿状态和选项标签归 WinUI 视图模型，字段文案统一走生成的 `FieldHelp.json` |
 
 ## 接口参考
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: 75b11c823d7f71f3ecb0640395e76c46f1a44b9d396255a49cd64c30d7f41fb1 -->
+<!-- source-sha256: 0f2e607c39845c3a92b1ca931b65dc45ce2ec3c53add597c06d1cd7186eed6be -->
 
-程序集：`ExHyperV.Core.dll` · 版本：`2.0.0-Alpha`。
+程序集：`ExHyperV.Core.dll`，版本：`2.0.0-Alpha`。
 
-本参考收录公开及受保护的自有成员，包括生成属性、命令和 record 主构造器。继承成员、record 编译器基础方法、隐式默认构造器及资源文案访问器不重复列出；`DEBUG` 专用成员不属于发布接口。
+本参考收录公开及受保护的自有成员，包括生成属性、命令和 record 主构造器。继承成员、record 编译器基础方法、隐式默认构造器及资源文案访问器不重复列出。`DEBUG` 专用成员不属于发布接口。
 
 ### 类型导航
 
@@ -652,6 +704,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | 键名 | 用途 | 保存内容 |
 | --- | --- | --- |
 | ` ExHyperV.CpuAffinity ` | CPU 亲和性配置 | JSON 文本，记录所选处理器、使用的后端、宿主及处理器拓扑标识。 |
+| ` ExHyperV.GpuDrivers ` | GPU 驱动版本记录 | JSON 字典，键为规范化宿主显卡实例 ID，值为最近一次由工具成功部署到来宾系统的驱动版本。 |
 | ` ExHyperV.OSType ` | 操作系统分类 | 操作系统类型名称，例如 Linux，用于界面识别和图标显示。 |
 
 | 类型 | 命名空间 | 简介 |
@@ -698,7 +751,17 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
+| [` VmDiskAccessKind `](#api-e8c98224169e2c6d) | ` ExHyperV.Models ` | 挂接的访问状态。 |
+| [` VmDiskChainInspection `](#api-f55ff32bd4a261cf) | ` ExHyperV.Models ` | 从叶盘到根盘的检查结果。 |
+| [` VmDiskChainNode `](#api-cd8e086301e74102) | ` ExHyperV.Models ` | 深度 0 为所选磁盘。 |
+| [` VmDiskChainStatus `](#api-f55d98fd291adb45) | ` ExHyperV.Models ` | 链检查的终止原因。 |
+| [` VmDiskInspection `](#api-821c05cc5fe3e734) | ` ExHyperV.Models ` | 存储详检结果和当前快照允许的操作。 |
+| [` VmDiskMetadataState `](#api-a61fd497a4f82a7f) | ` ExHyperV.Models ` | 单个文件介质的元数据读取状态。 |
 | [` VmDiskStatus `](#api-89d6aac76f2bf99b) | ` ExHyperV.Models ` | 虚拟机磁盘容量及性能采样。 |
+| [` VmPartitionLayoutMode `](#api-9e4d38b40a5aba28) | ` ExHyperV.Models ` | 只读分区探测的结果。 |
+| [` VmPassthroughAvailability `](#api-7d0121a84c691b55) | ` ExHyperV.Models ` | 稳定排序按可用、已分配和不可直通排列。 |
+| [` VmPassthroughCandidate `](#api-6efeb44af4edbef9) | ` ExHyperV.Models ` | Disk 与 OpticalDrive 仅一个有值。 |
+| [` VmResizeSafety `](#api-6253982a4eaa2e64) | ` ExHyperV.Models ` | 只在可靠读到完整边界时提供收缩下限。 |
 | [` VmStorageAttachment `](#api-5f84f3e0c5a86728) | ` ExHyperV.Models ` | VM 存储清单项：物理磁盘或虚拟磁盘均统一表达。 |
 | [` VmStorageAddPreparation `](#api-dbd3558483ca1d26) | ` ExHyperV.Services ` | 存储请求的准备结果，区分可执行请求与校验或目录操作错误。 |
 | [` VmStorageAddRequest `](#api-889fbbb37ca39d32) | ` ExHyperV.Services ` | 新增存储设备的完整请求；可先准备校验，再交给 AddDriveAsync 执行。 |
@@ -749,6 +812,8 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` GpuDeploymentStep `](#api-456c5ce4936ed611) | ` ExHyperV.Models ` | 部署步骤的显示状态快照。 |
 | [` GpuDeploymentStepKind `](#api-6beb4e13dec8c4b8) | ` ExHyperV.Models ` | GPU 部署流程中的步骤类别。 |
 | [` GpuDeploymentStepStatus `](#api-499dc8bdf05041ca) | ` ExHyperV.Models ` | 单个 GPU 部署步骤的执行状态。 |
+| [` GpuDriverFallbackAction `](#api-ef78e8b1f703128b) | ` ExHyperV.Models ` | 无法直接写入离线驱动或用户选择不直接注入时的回退动作。 |
+| [` GpuDriverFallbackSelection `](#api-1b34235597c26248) | ` ExHyperV.Models ` | 当分区加密或无法直接写入时，提交跳过驱动或挂载驱动光盘的回退决定。 |
 | [` GpuLinuxInput `](#api-b7afa42a1fa76e7e) | ` ExHyperV.Models ` | 为 Linux 部署提供脚本和 SSH 凭据；会话在处理前复制二者，避免后续调用方修改影响待执行操作。 |
 | [` GpuPartitionSelection `](#api-bb8b2e9014baee53) | ` ExHyperV.Models ` | 通过 PartitionId 从当前候选列表中选择分区。 |
 | [` GpuRecoveryOperation `](#api-f73dbd0a3968b7df) | ` ExHyperV.Models ` | 部署发起的一个原生操作及核实结果；原生引用只用于诊断。 |
@@ -816,6 +881,9 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmSecurityService.SecureBootTemplate `](#api-fd164ffe192c3a62) | ` ExHyperV.Services ` | 宿主提供的安全启动信任模板。 |
 | [` VmSecurityService.Setting `](#api-5a0351ede3d222c3) | ` ExHyperV.Services ` | 需要进行互锁及状态校验的安全设置项。 |
 | [` VmSecurityService.VmSecurityInfo `](#api-86e6f74c910a8e21) | ` ExHyperV.Services ` | 成功读取的安全设置快照；读取失败由外层 ApiResponse 表示。 |
+| [` VmVtpmInfo `](#api-5fa1afb1ba4fbbef) | ` ExHyperV.Services ` | 当前配置与宿主身份快照。 |
+| [` VtpmHost `](#api-e8a4fadb15865d11) | ` ExHyperV.Services ` | 由 HGS 解锁密钥的所有者和授权列表解析出的宿主身份。 |
+| [` VtpmPolicy `](#api-38444f6d701bd122) | ` ExHyperV.Services ` | 虚拟 TPM 的即时策略。 |
 
 **显示**
 
@@ -859,12 +927,11 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` SpacetimeMode `](#api-ce8c1d96a58120c3) | ` ExHyperV.Models ` | 检查点时间线的保存模式。 |
-| [` SpacetimeNode `](#api-f48a66d9c8bc043c) | ` ExHyperV.Models ` | 检查点时间线节点。 |
-| [` SpacetimeNodeType `](#api-390bb40cb297f1fa) | ` ExHyperV.Models ` | 时间线节点代表的对象种类。 |
+| [` CheckpointNode `](#api-5893c160d1cd3377) | ` ExHyperV.Models ` | 检查点树节点。 |
+| [` CheckpointNodeType `](#api-4bac34f523f81bc9) | ` ExHyperV.Models ` | 检查点树节点代表的对象种类。 |
 | [` VmCheckpointFields `](#api-e7b7d8ebff4f68e5) | ` ExHyperV.Services ` | 检查点的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
 | [` VmCheckpointGlobalFields `](#api-6d7251fc824bd58c) | ` ExHyperV.Services ` | 检查点的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
-| [` VmSpacetimeService `](#api-2b7baa8a8ea0e2bc) | ` ExHyperV.Services ` | 管理检查点、回退及历史磁盘临时挂接；相关操作可能修改配置和磁盘文件。 |
+| [` VmCheckpointService `](#api-a8fdfb6ce4d14741) | ` ExHyperV.Services ` | 管理检查点、应用、合并、删除及历史磁盘临时挂接，相关操作可能修改配置和磁盘文件。 |
 
 **实例**
 
@@ -930,12 +997,22 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmExportService.VirtualHardDiskInfo `](#api-25182f12944e0c0c) | ` ExHyperV.Services ` | 可供导出排除选择的虚拟硬盘；将查询返回的对象传回导出方法。 |
 | [` VmExportSourceHandling `](#api-cca6bbe6993f1c17) | ` ExHyperV.Services ` | 归档通过完整性校验后的源目录处理方式。 |
 
+**实例 / 升级**
+
+| 类型 | 命名空间 | 简介 |
+| --- | --- | --- |
+| [` VmGenerationUpgradeOptions `](#api-caea5fe211c2f859) | ` ExHyperV.Models ` | 一代虚拟机直接升级为二代时采用的存储和固件设置。 |
+| [` VmGenerationUpgradeResult `](#api-59c22efd11960c6c) | ` ExHyperV.Models ` | 一次直接升级或事务对账的结果。 |
+| [` VmGenerationUpgradeStatus `](#api-13470405c86b4bc9) | ` ExHyperV.Models ` | 代际升级完成后，宿主注册与磁盘事务的状态。 |
+| [` VmGenerationUpgradeService `](#api-caecf293ecf60a94) | ` ExHyperV.Services ` | 在宿主上迁移一代虚拟机的配置、存储挂接和设备，完成后二代虚拟机保持关机。 |
+
 ##### 宿主
 
 **基本信息**
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
+| [` HostDeviceTelemetryService `](#api-c9ea82f2f44879b3) | ` ExHyperV.Services ` | 持有一段可见采样期的性能计数器。 |
 | [` HostSystemInfoService `](#api-c97822da1d5f0c88) | ` ExHyperV.Services ` | 读取用于显示的宿主系统概况，并在进程内缓存首次查询任务。 |
 | [` HostSystemInfoService.SystemInfo `](#api-0f0119c09ea17f4b) | ` ExHyperV.Services ` | 宿主基本信息汇总，包含系统名称与构建号、系统位数、处理器型号说明和内存容量文本。 |
 
@@ -944,7 +1021,12 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
 | [` CpuCoreType `](#api-ed1be2be550b34d3) | ` ExHyperV.Models ` | 宿主处理器核心的性能类别。 |
+| [` HostCpuAttributionSource `](#api-20e7d171265ef542) | ` ExHyperV.Models ` | 宿主逻辑处理器占用拆分的采集来源；Root 模式下优先使用内核上下文切换事件，降级或 Classic/Core 模式使用性能计数器。 |
+| [` HostCpuThreadConsumerUsage `](#api-1eb7a0d4c6658e1b) | ` ExHyperV.Models ` | 单个宿主逻辑处理器上的单个占用主体（宿主机或某台虚拟机）使用率份额。 |
+| [` HostCpuThreadReport `](#api-b68a3c52cb41b509) | ` ExHyperV.Models ` | 宿主全量物理逻辑处理器线程的占用归属快照，包含调度器模式与数据源说明。 |
+| [` HostCpuThreadSnapshot `](#api-4d9647f7817a37e4) | ` ExHyperV.Models ` | 单个物理逻辑处理器在最近采样窗口内的总占用及按宿主／虚拟机划分的明细。 |
 | [` HostAffinityProcessor `](#api-671735ce8d9b8726) | ` ExHyperV.Services ` | 当前亲和性后端提供的一个宿主逻辑处理器选项。 |
+| [` HostCpuThreadMonitorService `](#api-1a01cd68ca73d9db) | ` ExHyperV.Services ` | 按物理逻辑处理器实时采样并归属宿主机与各运行中虚拟机的 CPU 时间占比；支持 Root 调度器 ETW 精确拆分及 Classic/Core 调度器计数器采样。 |
 | [` HostProcessorPlatform `](#api-be843791603a448d) | ` ExHyperV.Services ` | 虚拟处理器设置规则使用的宿主平台分类，由架构和厂商信息组合得到。 |
 | [` HostProcessorPlatformService `](#api-1d2842d5ce9c4c63) | ` ExHyperV.Services ` | 分别查询宿主架构和处理器厂商；两项可以独立读取。 |
 | [` HostProcessorService `](#api-abc371c87161ae39) | ` ExHyperV.Services ` | 读取宿主逻辑处理器及可用于虚拟机亲和性的处理器集合。 |
@@ -964,6 +1046,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
+| [` HostSystemInfoService `](#api-c97822da1d5f0c88) | ` ExHyperV.Services ` | 读取用于显示的宿主系统概况，并在进程内缓存首次查询任务。 |
 | [` HostSystemInfoService.SystemInfo `](#api-0f0119c09ea17f4b) | ` ExHyperV.Services ` | 宿主基本信息汇总，包含系统名称与构建号、系统位数、处理器型号说明和内存容量文本。 |
 | [` HyperVNumaService `](#api-8469acca0f2d44da) | ` ExHyperV.Services ` | 读取和修改宿主 Hyper-V 跨 NUMA 节点分配内存策略。 |
 
@@ -973,6 +1056,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | --- | --- | --- |
 | [` HostDiskInfo `](#api-4999a42e73dce6e6) | ` ExHyperV.Models ` | 宿主磁盘的身份、容量与直通候选状态，包含已挂载的虚拟磁盘。 |
 | [` HostOpticalDriveInfo `](#api-b89e91519a465463) | ` ExHyperV.Models ` | 具有 PnP 身份的宿主光驱查询结果；物理光驱配置用于第 1 代虚拟机，第 2 代使用 ISO 映像。 |
+| [` HostDiskActivity `](#api-1dbae22381fe2cda) | ` ExHyperV.Services ` | 一个采样间隔内的物理磁盘负载与吞吐量。 |
 | [` HostDiskMountLease `](#api-f899a0c126136eb7) | ` ExHyperV.Services ` | 一次宿主映像挂载的独占使用期。 |
 | [` HostDiskMountResult `](#api-2dc1cd9f66ce73d2) | ` ExHyperV.Services ` | 映像挂载结果，分别表达挂载状态、磁盘发现和清理责任。 |
 | [` HostDiskReference `](#api-b7abecd5b9d2180e) | ` ExHyperV.Services ` | 查询时选中的宿主磁盘身份；修改时原样回传，不以磁盘编号单独确认设备。 |
@@ -986,13 +1070,21 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
+| [` AdapterMediaKind `](#api-bca782776b23f4de) | ` ExHyperV.Models ` | 宿主出口网络适配器的底层介质分类。 |
+| [` HyperVSwitchKind `](#api-0b7bca920fae2662) | ` ExHyperV.Models ` | Hyper-V 二层虚拟交换机的原生端口拓扑类型。 |
 | [` SwitchEndpointInfo `](#api-4c71af5310c751ad) | ` ExHyperV.Models ` | 交换机端点的显示摘要，包含虚拟机网卡或宿主网卡。 |
-| [` SwitchInfo `](#api-920c0d414c414611) | ` ExHyperV.Models ` | 虚拟交换机的连接模式、上游网卡与宿主接入状态。 |
-| [` SwitchMode `](#api-84f5dcdc201f39f8) | ` ExHyperV.Models ` | Hyper-V 交换机的桥接、ICS NAT 和隔离配置模式。 |
-| [` SwitchUpstreamAdapter `](#api-2cff6962c24db25a) | ` ExHyperV.Models ` | 可用的上游物理网卡；使用连接 GUID 和设备标识匹配，不依赖显示名称。 |
+| [` SwitchInfo `](#api-920c0d414c414611) | ` ExHyperV.Models ` | 虚拟交换机的连接模式、L2 类型、宿主 NAT 引擎、上游网卡与宿主接入状态。 |
+| [` SwitchMode `](#api-84f5dcdc201f39f8) | ` ExHyperV.Models ` | Hyper-V 交换机的桥接、NAT 和隔离配置模式。 |
+| [` SwitchNatEngine `](#api-8983f1ecf07dda46) | ` ExHyperV.Models ` | 附着在内部虚拟交换机宿主端口上的三层 NAT 转发引擎类型。 |
+| [` SwitchUpstreamAdapter `](#api-2cff6962c24db25a) | ` ExHyperV.Models ` | 可用的上游网络适配器；使用连接 GUID 和设备标识匹配，不依赖显示名称。 |
+| [` HostAdapterAddress `](#api-cf4bd5ffb7a2e5ec) | ` ExHyperV.Services ` | 本机网卡可读取的 IPv4 和物理地址。 |
+| [` HostDeviceTelemetryService `](#api-c9ea82f2f44879b3) | ` ExHyperV.Services ` | 持有一段可见采样期的性能计数器。 |
 | [` HostNetworkService `](#api-90a99e60c4861486) | ` ExHyperV.Services ` | 校验并修改宿主动态 MAC 地址池。 |
+| [` HostNetworkTelemetryService `](#api-78a401eb24c09d06) | ` ExHyperV.Services ` | 按实例维护宿主网络计数器的采样基线。 |
 | [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置快照。 |
 | [` HyperVSwitchService `](#api-0f66c11c037b51ce) | ` ExHyperV.Services ` | 读取和配置本机 Hyper-V 虚拟交换机及 ICS 上游共享关系。 |
+| [` NetworkThroughputReading `](#api-0946f2df5298c59d) | ` ExHyperV.Services ` | 吞吐观测及其时间。 |
+| [` NetworkThroughputSample `](#api-d1d3d0445b251a9c) | ` ExHyperV.Services ` | 网络接口或虚拟交换机的实时吞吐采样。 |
 | [` SwitchConfigurationConflictException `](#api-c8f4e6a6deee535d) | ` ExHyperV.Services ` | 表示交换机变更违反当前配置保护或冲突规则。 |
 | [` SwitchConfigurationRules `](#api-942b8beb34283a23) | ` ExHyperV.Services ` | 对交换机配置快照进行规则判断，不直接修改主机网络。 |
 
@@ -1001,6 +1093,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
 | [` HostGpuInfo `](#api-7e834c339070727a) | ` ExHyperV.Models ` | 宿主当前存在的显示适配器，由 HostGpuService.GetHostGpusAsync 查询产生；IsPartitionable 表示当前是否存在可分区资源。 |
+| [` HostGpuActivity `](#api-578b881883fc969a) | ` ExHyperV.Services ` | 与同一 PnP 设备精确关联的 GPU 引擎占用率，缺测引擎保留空值。 |
 | [` HostGpuService `](#api-9579b5f504d1fb87) | ` ExHyperV.Services ` | 读取宿主 GPU 及分区能力，并配置宿主 GPU 分配策略。 |
 
 **PCIe**
@@ -1240,10 +1333,93 @@ Core 负责传输；宿主剪贴板的读取和写入由调用方完成。 一�
 | [` CoreErrorClassifier `](#api-472bbf4a51177686) | ` ExHyperV.Tools ` | 根据跨语言的原生错误码与失败类别归类标准错误。 |
 | [` CoreErrorCode `](#api-c159b3ca11e89ee0) | ` ExHyperV.Tools ` | 语言无关的核心错误归一化标识。 |
 | [` CoreOperationException `](#api-d508b5ee4db3a2d0) | ` ExHyperV.Tools ` | Core 操作抛出的失败异常；Result 保留错误类别和执行结果。 |
-| [` HyperVServiceCoordination `](#api-0ae38ea99e73ecdc) | ` ExHyperV.Tools ` | 跨设置写入与后台轮询共享的 Hyper-V 服务活动/恢复状态，用于抑制恢复窗口内的重复报错。 |
 | [` OperationStepResult `](#api-824369b51a27da0a) | ` ExHyperV.Tools ` | 组合操作中一个步骤的结果。 |
 | [` OperationStepState `](#api-0c0612bad12dd636) | ` ExHyperV.Tools ` | 一个修改步骤的执行情况，区分未执行、明确结束和结果不明。 |
 | [` RestartReason `](#api-ec6d13ee818c895b) | ` ExHyperV.Tools ` | 本次宿主操作报告的重启原因。 |
+
+<a id="api-bca782776b23f4de"></a>
+
+### `AdapterMediaKind` 枚举
+
+宿主出口网络适配器的底层介质分类。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 网络 |
+| 源文件 | ` Management/Host/Network/SwitchUpstreamAdapter.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Cellular = 2 `](#api-0f9f1223e5843bf3) | 蜂窝移动网络（4G / 5G WWAN MBIM）。 |
+| [` Other = 4 `](#api-f701946f86cf80a8) | 其他或不明确介质。 |
+| [` Tunnel = 3 `](#api-a66e6636cbca27e2) | 三层虚拟隧道网卡（如 Wintun / WireGuard）。 |
+| [` WiFi = 1 `](#api-aa2ec07294e53a00) | 无线局域网（802.11 Wi-Fi）。 |
+| [` Wired = 0 `](#api-e1cd8d7c94faae9d) | 有线以太网（802.3）。 |
+
+#### 详细说明
+
+```csharp
+public enum AdapterMediaKind
+```
+
+#### 枚举值说明
+
+<a id="api-0f9f1223e5843bf3"></a>
+
+##### Cellular（枚举值）
+
+```csharp
+Cellular = 2
+```
+
+蜂窝移动网络（4G / 5G WWAN MBIM）。
+
+<a id="api-f701946f86cf80a8"></a>
+
+##### Other（枚举值）
+
+```csharp
+Other = 4
+```
+
+其他或不明确介质。
+
+<a id="api-a66e6636cbca27e2"></a>
+
+##### Tunnel（枚举值）
+
+```csharp
+Tunnel = 3
+```
+
+三层虚拟隧道网卡（如 Wintun / WireGuard）。
+
+<a id="api-aa2ec07294e53a00"></a>
+
+##### WiFi（枚举值）
+
+```csharp
+WiFi = 1
+```
+
+无线局域网（802.11 Wi-Fi）。
+
+<a id="api-e1cd8d7c94faae9d"></a>
+
+##### Wired（枚举值）
+
+```csharp
+Wired = 0
+```
+
+有线以太网（802.3）。
 
 <a id="api-d8aedb8448e3e799"></a>
 
@@ -1283,7 +1459,7 @@ public enum BootDeviceKind
 
 <a id="api-60c4af9420b0e5f5"></a>
 
-##### Firmware · 枚举值
+##### Firmware（枚举值）
 
 ```csharp
 Firmware = 6
@@ -1293,7 +1469,7 @@ Firmware = 6
 
 <a id="api-11b2b0d6cdcaa2f2"></a>
 
-##### FirmwareFile · 枚举值
+##### FirmwareFile（枚举值）
 
 ```csharp
 FirmwareFile = 5
@@ -1303,7 +1479,7 @@ FirmwareFile = 5
 
 <a id="api-fd3064956013f9f4"></a>
 
-##### Floppy · 枚举值
+##### Floppy（枚举值）
 
 ```csharp
 Floppy = 1
@@ -1313,7 +1489,7 @@ Floppy = 1
 
 <a id="api-9473e440e16278da"></a>
 
-##### HardDisk · 枚举值
+##### HardDisk（枚举值）
 
 ```csharp
 HardDisk = 3
@@ -1323,7 +1499,7 @@ HardDisk = 3
 
 <a id="api-fcf1743e0a233eea"></a>
 
-##### Network · 枚举值
+##### Network（枚举值）
 
 ```csharp
 Network = 4
@@ -1333,7 +1509,7 @@ Network = 4
 
 <a id="api-593588a8f5a7295a"></a>
 
-##### OpticalDrive · 枚举值
+##### OpticalDrive（枚举值）
 
 ```csharp
 OpticalDrive = 2
@@ -1343,7 +1519,7 @@ OpticalDrive = 2
 
 <a id="api-db2558a49709b0e2"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 0
@@ -1385,7 +1561,7 @@ public partial class BootOrderItem
 
 <a id="api-118dcdafddd67646"></a>
 
-##### 说明 · 属性
+##### 说明（属性）
 
 ```csharp
 public string Description { get; set; }
@@ -1395,7 +1571,7 @@ public string Description { get; set; }
 
 <a id="api-7f92fcc74464503d"></a>
 
-##### 类别 · 属性
+##### 类别（属性）
 
 ```csharp
 public BootDeviceKind Kind { get; set; }
@@ -1405,13 +1581,232 @@ public BootDeviceKind Kind { get; set; }
 
 <a id="api-d39f45588b9af36a"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; set; }
 ```
 
 启动设备的显示名称。
+
+<a id="api-5893c160d1cd3377"></a>
+
+### `CheckpointNode` 类
+
+检查点树节点。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
+| 源文件 | ` Management/VirtualMachines/Checkpoints/CheckpointNode.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public DateTime CreatedDate { get; set; } `](#api-504c8914a80f36d5) | 检查点的本地创建时间；Genesis 为推算的起点时间，Current 为本次读取时间。 |
+| [` public string Id { get; set; } = string.Empty `](#api-773bf50f1ba76820) | 检查点 GUID 文本或 GenesisId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。 |
+| [` public bool IsCurrent { get; set; } `](#api-9728b96aef4000ee) | 是否标记为当前位置；Current 节点和它的直接父节点都会为 true，因此并非唯一选中标记。 |
+| [` public bool IsLogicalNode { get; } `](#api-8f5e9d7d2d3a0432) | 是否为起点或当前状态逻辑节点；这两类节点不能作为真实检查点修改。 |
+| [` public bool IsWormhole { get; } `](#api-eb471defbea2a107) | 查询或操作后确认的历史磁盘挂接状态；由 Core 更新。 |
+| [` public string Name { get; set; } `](#api-84be501ae10946d9) | 节点当前显示名称。 |
+| [` public CheckpointNodeType NodeType { get; set; } `](#api-8f655faf9ede8528) | 真实检查点、起点或当前状态节点的分类。 |
+| [` public string? ParentId { get; set; } `](#api-fad3b9cb442b8254) | 父节点标识；null 表示没有父节点。 |
+| [` public string VhdPath { get; set; } = string.Empty `](#api-080da4c9ada5e52f) | 查询选出的一个磁盘文件路径，可能为 .avhdx，用于历史磁盘挂接。 |
+
+**字段与常量**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public const string CurrentId = "CURRENT_RUNNING" `](#api-26813c908caf0d4e) | 当前运行位置的固定逻辑标识 CURRENT\_RUNNING。 |
+| [` public const string GenesisId = "GENESIS_ROOT" `](#api-275f2188a8fe2210) | 检查点起点的固定逻辑标识 GENESIS\_ROOT。 |
+
+#### 详细说明
+
+```csharp
+public partial class CheckpointNode
+```
+
+#### 属性说明
+
+<a id="api-504c8914a80f36d5"></a>
+
+##### 创建时间（属性）
+
+```csharp
+public DateTime CreatedDate { get; set; }
+```
+
+检查点的本地创建时间；Genesis 为推算的起点时间，Current 为本次读取时间。
+
+<a id="api-773bf50f1ba76820"></a>
+
+##### 标识（属性）
+
+```csharp
+public string Id { get; set; } = string.Empty;
+```
+
+检查点 GUID 文本或 GenesisId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。
+
+<a id="api-9728b96aef4000ee"></a>
+
+##### 当前检查点分支标记（属性）
+
+```csharp
+public bool IsCurrent { get; set; }
+```
+
+是否标记为当前位置；Current 节点和它的直接父节点都会为 true，因此并非唯一选中标记。
+
+<a id="api-8f5e9d7d2d3a0432"></a>
+
+##### 逻辑节点（属性）
+
+```csharp
+public bool IsLogicalNode { get; }
+```
+
+是否为起点或当前状态逻辑节点；这两类节点不能作为真实检查点修改。
+
+<a id="api-eb471defbea2a107"></a>
+
+##### 历史磁盘挂接状态（属性）
+
+```csharp
+public bool IsWormhole { get; }
+```
+
+查询或操作后确认的历史磁盘挂接状态；由 Core 更新。
+
+<a id="api-84be501ae10946d9"></a>
+
+##### 名称（属性）
+
+```csharp
+public string Name { get; set; }
+```
+
+节点当前显示名称。
+
+<a id="api-8f655faf9ede8528"></a>
+
+##### 节点类型（属性）
+
+```csharp
+public CheckpointNodeType NodeType { get; set; }
+```
+
+真实检查点、起点或当前状态节点的分类。
+
+<a id="api-fad3b9cb442b8254"></a>
+
+##### 父节点标识（属性）
+
+```csharp
+public string? ParentId { get; set; }
+```
+
+父节点标识；null 表示没有父节点。
+
+<a id="api-080da4c9ada5e52f"></a>
+
+##### 虚拟磁盘路径（属性）
+
+```csharp
+public string VhdPath { get; set; } = string.Empty;
+```
+
+查询选出的一个磁盘文件路径，可能为 .avhdx，用于历史磁盘挂接。
+
+#### 字段与常量说明
+
+<a id="api-26813c908caf0d4e"></a>
+
+##### 当前状态节点标识（字段）
+
+```csharp
+public const string CurrentId = "CURRENT_RUNNING";
+```
+
+当前运行位置的固定逻辑标识 CURRENT_RUNNING。
+
+<a id="api-275f2188a8fe2210"></a>
+
+##### 时间线起点标识（字段）
+
+```csharp
+public const string GenesisId = "GENESIS_ROOT";
+```
+
+检查点起点的固定逻辑标识 GENESIS_ROOT。
+
+<a id="api-4bac34f523f81bc9"></a>
+
+### `CheckpointNodeType` 枚举
+
+检查点树节点代表的对象种类。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
+| 源文件 | ` Management/VirtualMachines/Checkpoints/CheckpointNode.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Current = 2 `](#api-7786f330d9738f99) | 检查点树中标记当前运行位置的逻辑节点。 |
+| [` Genesis = 0 `](#api-d8b0d47f28e57aea) | 检查点树的初始起点。 |
+| [` Snapshot = 1 `](#api-42b167ce26c43da3) | 可操作的真实检查点。 |
+
+#### 详细说明
+
+```csharp
+public enum CheckpointNodeType
+```
+
+#### 枚举值说明
+
+<a id="api-7786f330d9738f99"></a>
+
+##### Current（枚举值）
+
+```csharp
+Current = 2
+```
+
+检查点树中标记当前运行位置的逻辑节点。
+
+<a id="api-d8b0d47f28e57aea"></a>
+
+##### Genesis（枚举值）
+
+```csharp
+Genesis = 0
+```
+
+检查点树的初始起点。
+
+<a id="api-42b167ce26c43da3"></a>
+
+##### Snapshot（枚举值）
+
+```csharp
+Snapshot = 1
+```
+
+可操作的真实检查点。
 
 <a id="api-ed1be2be550b34d3"></a>
 
@@ -1447,7 +1842,7 @@ public enum CpuCoreType
 
 <a id="api-554318f1b970d8ab"></a>
 
-##### Efficient · 枚举值
+##### Efficient（枚举值）
 
 ```csharp
 Efficient = 2
@@ -1457,7 +1852,7 @@ Efficient = 2
 
 <a id="api-81004abc96524c0b"></a>
 
-##### Performance · 枚举值
+##### Performance（枚举值）
 
 ```csharp
 Performance = 1
@@ -1467,7 +1862,7 @@ Performance = 1
 
 <a id="api-15abd67bae736749"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 0
@@ -1486,7 +1881,7 @@ Unknown = 0
 | 类型 | 类 |
 | 命名空间 | ` ExHyperV.Models ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析 |
+| 功能归属 | 管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析 |
 | 源文件 | ` Management/Tools/Partitions/DiskPartitionInfo.cs ` |
 
 #### 成员概览
@@ -1522,13 +1917,13 @@ public class DiskPartitionInfo
 
 <a id="api-cc53e3830a712bc3"></a>
 
-##### 创建部署目标分区对象 · 构造器
+##### 创建部署目标分区对象（构造器）
 
 ```csharp
 public DiskPartitionInfo(int number, ulong size, OperatingSystemType osType, string typeDescription);
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 建立分区事实记录；磁盘路径和物理盘标记由调用方另行填充。
 
@@ -1543,25 +1938,25 @@ public DiskPartitionInfo(int number, ulong size, OperatingSystemType osType, str
 
 <a id="api-c2ae757928720c5f"></a>
 
-##### 磁盘名称 · 属性
+##### 磁盘名称（属性）
 
 ```csharp
 public string DiskDisplayName { get; set; } = string.Empty;
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 所属磁盘的友好显示名称。
 
 <a id="api-37e7cb3fe5f97b2a"></a>
 
-##### 磁盘路径 · 属性
+##### 磁盘路径（属性）
 
 ```csharp
 public string DiskPath { get; set; } = string.Empty;
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 虚拟磁盘文件路径；物理直通盘则为十进制磁盘编号字符串。
 
@@ -1574,25 +1969,25 @@ public string DiskPath { get; set; } = string.Empty;
 
 <a id="api-9548137ae215094d"></a>
 
-##### 显示名称 · 属性
+##### 显示名称（属性）
 
 ```csharp
 public string DisplayName { get; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 包含磁盘名称、分区编号和容量的本地化显示文本。
 
 <a id="api-029eab86646156d3"></a>
 
-##### BitLocker 签名 · 属性
+##### BitLocker 签名（属性）
 
 ```csharp
 public bool IsBitLocker { get; set; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 是否检测到 BitLocker 分区首扇区签名；为 true 时 GPU 部署要求先解锁。
 
@@ -1605,13 +2000,13 @@ public bool IsBitLocker { get; set; }
 
 <a id="api-647582ff53c828ac"></a>
 
-##### 物理磁盘分区 · 属性
+##### 物理磁盘分区（属性）
 
 ```csharp
 public bool IsPhysicalDisk { get; set; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 是否为物理直通磁盘上的分区。
 
@@ -1624,25 +2019,25 @@ public bool IsPhysicalDisk { get; set; }
 
 <a id="api-5069018406e6b2a1"></a>
 
-##### 操作系统分类 · 属性
+##### 操作系统分类（属性）
 
 ```csharp
 public OperatingSystemType OsType { get; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 由分区类型 GUID 或 MBR 类型号推断的用途，不检查分区中的系统文件。
 
 <a id="api-2e75a37d34df9d9b"></a>
 
-##### 分区编号 · 属性
+##### 分区编号（属性）
 
 ```csharp
 public int PartitionNumber { get; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 扫描器按分区表位置分配的编号；GPT 条目和 MBR 主分区从 1 开始，MBR 逻辑分区从 5 开始。
 
@@ -1655,13 +2050,13 @@ public int PartitionNumber { get; }
 
 <a id="api-d8e53eb0ec0a56dc"></a>
 
-##### 容量 · 属性
+##### 容量（属性）
 
 ```csharp
 public double SizeGiB { get; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 按 1024&#179; 字节换算的分区容量，单位为 GiB。
 
@@ -1674,13 +2069,13 @@ public double SizeGiB { get; }
 
 <a id="api-c987017560b2fd61"></a>
 
-##### 容量 · 属性
+##### 容量（属性）
 
 ```csharp
 public ulong SizeInBytes { get; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 分区容量，单位为字节。
 
@@ -1693,13 +2088,13 @@ public ulong SizeInBytes { get; }
 
 <a id="api-073e32b33cc09bcf"></a>
 
-##### 分区类型说明 · 属性
+##### 分区类型说明（属性）
 
 ```csharp
 public string TypeDescription { get; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 文件系统或分区类型的显示说明。
 
@@ -1739,7 +2134,7 @@ public sealed record GpuBackToPartitions(Guid RequestId) : GpuDeploymentDecision
 
 <a id="api-2bc19f96fb91b787"></a>
 
-##### 创建返回分区选择对象 · 主构造器
+##### 创建返回分区选择对象（主构造器）
 
 ```csharp
 public GpuBackToPartitions(Guid RequestId);
@@ -1792,7 +2187,7 @@ public sealed record GpuConfirmation(Guid RequestId, bool Accepted) : GpuDeploym
 
 <a id="api-b9bd1100c349fb7c"></a>
 
-##### 创建部署确认决定对象 · 主构造器
+##### 创建部署确认决定对象（主构造器）
 
 ```csharp
 public GpuConfirmation(Guid RequestId, bool Accepted);
@@ -1807,7 +2202,7 @@ public GpuConfirmation(Guid RequestId, bool Accepted);
 
 <a id="api-cf1bc34d03406293"></a>
 
-##### 是否继续 · record 属性
+##### 是否继续（record 属性）
 
 ```csharp
 public bool Accepted { get; init; }
@@ -1836,8 +2231,9 @@ true 继续确认的步骤；false 取消部署。
 | 成员 | 说明 |
 | --- | --- |
 | [` Confirmation = 0 `](#api-7db0f9d1f503457d) | 使用 GpuConfirmation 接受或拒绝。 |
-| [` LinuxCredentials = 2 `](#api-7075f4eb2774fa7c) | 使用 GpuLinuxInput 提交脚本和 SSH 凭据。 |
-| [` Partition = 1 `](#api-20f31cbd82caa987) | 使用 GpuPartitionSelection 提交分区 ID。 |
+| [` DriverFallback = 2 `](#api-6ae6562adc948908) | 使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。 |
+| [` LinuxCredentials = 3 `](#api-7075f4eb2774fa7c) | 使用 GpuLinuxInput 提交脚本和 SSH 凭据。 |
+| [` Partition = 1 `](#api-20f31cbd82caa987) | 使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。 |
 
 #### 详细说明
 
@@ -1849,7 +2245,7 @@ public enum GpuDecisionInput
 
 <a id="api-7db0f9d1f503457d"></a>
 
-##### Confirmation · 枚举值
+##### Confirmation（枚举值）
 
 ```csharp
 Confirmation = 0
@@ -1857,25 +2253,35 @@ Confirmation = 0
 
 使用 GpuConfirmation 接受或拒绝。
 
-<a id="api-7075f4eb2774fa7c"></a>
+<a id="api-6ae6562adc948908"></a>
 
-##### LinuxCredentials · 枚举值
+##### DriverFallback（枚举值）
 
 ```csharp
-LinuxCredentials = 2
+DriverFallback = 2
+```
+
+使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。
+
+<a id="api-7075f4eb2774fa7c"></a>
+
+##### LinuxCredentials（枚举值）
+
+```csharp
+LinuxCredentials = 3
 ```
 
 使用 GpuLinuxInput 提交脚本和 SSH 凭据。
 
 <a id="api-20f31cbd82caa987"></a>
 
-##### Partition · 枚举值
+##### Partition（枚举值）
 
 ```csharp
 Partition = 1
 ```
 
-使用 GpuPartitionSelection 提交分区 ID。
+使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。
 
 <a id="api-16bfedc8ae936ed7"></a>
 
@@ -1897,10 +2303,10 @@ GPU 部署暂停时需要用户处理的具体事项。
 
 | 成员 | 说明 |
 | --- | --- |
-| [` InstallWindows = 2 `](#api-b07bdce72c32c2c6) | 确认向离线 Windows 系统分区部署驱动文件。 |
+| [` DriverFallback = 2 `](#api-c6c1cc6ce5ea5f32) | 无法直接向分区写入驱动（如启用 BitLocker），选择跳过驱动或挂载驱动光盘。 |
 | [` LinuxCredentials = 4 `](#api-2eefc990bc70e3ad) | 提交部署脚本和 SSH 凭据。 |
 | [` PowerOff = 0 `](#api-0484eb23f552e201) | 确认强制关闭虚拟机（TurnOff）。 |
-| [` SelectPartition = 1 `](#api-8f7d20f374dc3012) | 选择目标系统分区。 |
+| [` SelectPartition = 1 `](#api-8f7d20f374dc3012) | 选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。 |
 | [` StartLinux = 3 `](#api-aaeb19df55854987) | 确认启动 Linux 来宾以继续在线部署。 |
 
 #### 详细说明
@@ -1911,19 +2317,19 @@ public enum GpuDecisionKind
 
 #### 枚举值说明
 
-<a id="api-b07bdce72c32c2c6"></a>
+<a id="api-c6c1cc6ce5ea5f32"></a>
 
-##### InstallWindows · 枚举值
+##### DriverFallback（枚举值）
 
 ```csharp
-InstallWindows = 2
+DriverFallback = 2
 ```
 
-确认向离线 Windows 系统分区部署驱动文件。
+无法直接向分区写入驱动（如启用 BitLocker），选择跳过驱动或挂载驱动光盘。
 
 <a id="api-2eefc990bc70e3ad"></a>
 
-##### LinuxCredentials · 枚举值
+##### LinuxCredentials（枚举值）
 
 ```csharp
 LinuxCredentials = 4
@@ -1933,7 +2339,7 @@ LinuxCredentials = 4
 
 <a id="api-0484eb23f552e201"></a>
 
-##### PowerOff · 枚举值
+##### PowerOff（枚举值）
 
 ```csharp
 PowerOff = 0
@@ -1943,17 +2349,17 @@ PowerOff = 0
 
 <a id="api-8f7d20f374dc3012"></a>
 
-##### SelectPartition · 枚举值
+##### SelectPartition（枚举值）
 
 ```csharp
 SelectPartition = 1
 ```
 
-选择目标系统分区。
+选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。
 
 <a id="api-aaeb19df55854987"></a>
 
-##### StartLinux · 枚举值
+##### StartLinux（枚举值）
 
 ```csharp
 StartLinux = 3
@@ -1990,7 +2396,7 @@ StartLinux = 3
 | [` public bool CanGoBack { get; init; } `](#api-7f1293746d9ac0a3) | 是否允许从当前事项返回分区选择。 |
 | [` public Guid Id { get; init; } `](#api-6447be23505377ce) | 提交决定时必须原样携带的请求 ID。 |
 | [` public GpuDecisionInput Input { get; } `](#api-3d77add0d29ac681) | 由 Kind 推导出的输入结构类别。 |
-| [` public bool IsDestructive { get; } `](#api-12a4fe0905f6c470) | 是否为直接关闭虚拟机或写入离线 Windows 驱动的确认；其他步骤仍可能有配置副作用。 |
+| [` public bool IsDestructive { get; } `](#api-12a4fe0905f6c470) | 是否为直接关闭虚拟机等具有破坏性的确认；其他步骤仍可能有配置副作用。 |
 | [` public GpuDecisionKind Kind { get; init; } `](#api-7035d4b4ecb0f2d9) | 待确认事项的种类。 |
 | [` public string Message { get; init; } `](#api-bc2680691fa17847) | 本地化操作说明。 |
 | [` public IReadOnlyList<GpuDeploymentPartition> Partitions { get; init; } `](#api-aecfba65fe78949a) | 可供选择的分区快照；会话发布的是只读列表。 |
@@ -2018,7 +2424,7 @@ public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Ti
 
 <a id="api-ee9c33991284f7c4"></a>
 
-##### 创建部署确认请求对象 · 主构造器
+##### 创建部署确认请求对象（主构造器）
 
 ```csharp
 public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message, IReadOnlyList<GpuDeploymentPartition> Partitions, string SuggestedHost = "", bool CanGoBack = false);
@@ -2038,7 +2444,7 @@ public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Me
 
 <a id="api-7f1293746d9ac0a3"></a>
 
-##### 允许返回 · record 属性
+##### 允许返回（record 属性）
 
 ```csharp
 public bool CanGoBack { get; init; }
@@ -2048,7 +2454,7 @@ public bool CanGoBack { get; init; }
 
 <a id="api-6447be23505377ce"></a>
 
-##### 标识 · record 属性
+##### 标识（record 属性）
 
 ```csharp
 public Guid Id { get; init; }
@@ -2058,7 +2464,7 @@ public Guid Id { get; init; }
 
 <a id="api-3d77add0d29ac681"></a>
 
-##### 输入 · 属性
+##### 输入（属性）
 
 ```csharp
 public GpuDecisionInput Input { get; }
@@ -2068,17 +2474,17 @@ public GpuDecisionInput Input { get; }
 
 <a id="api-12a4fe0905f6c470"></a>
 
-##### 破坏性操作确认 · 属性
+##### 破坏性操作确认（属性）
 
 ```csharp
 public bool IsDestructive { get; }
 ```
 
-是否为直接关闭虚拟机或写入离线 Windows 驱动的确认；其他步骤仍可能有配置副作用。
+是否为直接关闭虚拟机等具有破坏性的确认；其他步骤仍可能有配置副作用。
 
 <a id="api-7035d4b4ecb0f2d9"></a>
 
-##### 类别 · record 属性
+##### 类别（record 属性）
 
 ```csharp
 public GpuDecisionKind Kind { get; init; }
@@ -2088,7 +2494,7 @@ public GpuDecisionKind Kind { get; init; }
 
 <a id="api-bc2680691fa17847"></a>
 
-##### 操作说明 · record 属性
+##### 操作说明（record 属性）
 
 ```csharp
 public string Message { get; init; }
@@ -2098,7 +2504,7 @@ public string Message { get; init; }
 
 <a id="api-aecfba65fe78949a"></a>
 
-##### 可选分区 · record 属性
+##### 可选分区（record 属性）
 
 ```csharp
 public IReadOnlyList<GpuDeploymentPartition> Partitions { get; init; }
@@ -2108,7 +2514,7 @@ public IReadOnlyList<GpuDeploymentPartition> Partitions { get; init; }
 
 <a id="api-69fd2fda7c0b3588"></a>
 
-##### 建议地址 · record 属性
+##### 建议地址（record 属性）
 
 ```csharp
 public string SuggestedHost { get; init; }
@@ -2118,7 +2524,7 @@ public string SuggestedHost { get; init; }
 
 <a id="api-0e384572dcd1d5c8"></a>
 
-##### 标题 · record 属性
+##### 标题（record 属性）
 
 ```csharp
 public string Title { get; init; }
@@ -2163,7 +2569,7 @@ public enum GpuDeploymentAction
 
 <a id="api-a52805fe5de185e0"></a>
 
-##### BackToPartitions · 枚举值
+##### BackToPartitions（枚举值）
 
 ```csharp
 BackToPartitions = 2
@@ -2173,7 +2579,7 @@ BackToPartitions = 2
 
 <a id="api-16cf1b79ac6c0bb7"></a>
 
-##### Cancel · 枚举值
+##### Cancel（枚举值）
 
 ```csharp
 Cancel = 3
@@ -2183,7 +2589,7 @@ Cancel = 3
 
 <a id="api-9f22aaaad776fcd7"></a>
 
-##### Reconcile · 枚举值
+##### Reconcile（枚举值）
 
 ```csharp
 Reconcile = 5
@@ -2193,7 +2599,7 @@ Reconcile = 5
 
 <a id="api-ba588a70efe83cce"></a>
 
-##### RetryCleanup · 枚举值
+##### RetryCleanup（枚举值）
 
 ```csharp
 RetryCleanup = 4
@@ -2203,7 +2609,7 @@ RetryCleanup = 4
 
 <a id="api-a3a5178a7b4a83fe"></a>
 
-##### Start · 枚举值
+##### Start（枚举值）
 
 ```csharp
 Start = 0
@@ -2213,7 +2619,7 @@ Start = 0
 
 <a id="api-63ca9f39ea1d2787"></a>
 
-##### SubmitDecision · 枚举值
+##### SubmitDecision（枚举值）
 
 ```csharp
 SubmitDecision = 1
@@ -2263,7 +2669,7 @@ public abstract record GpuDeploymentDecision(Guid RequestId)
 
 <a id="api-d2b5667cd106c2c2"></a>
 
-##### 创建部署决定对象 · 主构造器
+##### 创建部署决定对象（主构造器）
 
 ```csharp
 public GpuDeploymentDecision(Guid RequestId);
@@ -2277,7 +2683,7 @@ public GpuDeploymentDecision(Guid RequestId);
 
 <a id="api-a23a3b6386d94370"></a>
 
-##### 请求标识 · record 属性
+##### 请求标识（record 属性）
 
 ```csharp
 public Guid RequestId { get; init; }
@@ -2319,7 +2725,7 @@ public enum GpuDeploymentMode
 
 <a id="api-098175c825f1ad05"></a>
 
-##### AddWithDrivers · 枚举值
+##### AddWithDrivers（枚举值）
 
 ```csharp
 AddWithDrivers = 1
@@ -2329,7 +2735,7 @@ AddWithDrivers = 1
 
 <a id="api-c552d400afb7f1a2"></a>
 
-##### AddWithoutDrivers · 枚举值
+##### AddWithoutDrivers（枚举值）
 
 ```csharp
 AddWithoutDrivers = 0
@@ -2339,7 +2745,7 @@ AddWithoutDrivers = 0
 
 <a id="api-ddde5fa7477202a5"></a>
 
-##### UpdateDrivers · 枚举值
+##### UpdateDrivers（枚举值）
 
 ```csharp
 UpdateDrivers = 2
@@ -2377,7 +2783,7 @@ UpdateDrivers = 2
 | [` public string DiskPath { get; init; } `](#api-232efb38873f2fd8) | 虚拟磁盘文件路径或物理磁盘编号字符串。 |
 | [` public string DisplayName { get; } `](#api-5de66bd086578dae) | 磁盘名称、分区编号和容量组合的本地化文本。 |
 | [` public string Id { get; init; } `](#api-b3dc29a94aed7e69) | 本次分区列表中的选择标识，只应用于当前部署。 |
-| [` public bool IsBitLocker { get; init; } `](#api-02d0aa26e4b2ac0a) | 是否检测到 BitLocker 签名；加密分区不能直接用于此部署。 |
+| [` public bool IsBitLocker { get; init; } `](#api-02d0aa26e4b2ac0a) | 是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。 |
 | [` public bool IsPhysicalDisk { get; init; } `](#api-411828e7d6d8be13) | 是否来自物理直通磁盘。 |
 | [` public OperatingSystemType OsType { get; init; } `](#api-42e9a21e5fca564b) | 识别的系统类型。 |
 | [` public int PartitionNumber { get; init; } `](#api-f47310d5aa2a80f1) | 分区编号。 |
@@ -2403,13 +2809,13 @@ public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulon
 | `DiskPath` | 虚拟磁盘文件路径或物理磁盘编号字符串。 |
 | `DiskDisplayName` | 所属磁盘的显示名称。 |
 | `IsPhysicalDisk` | 是否来自物理直通磁盘。 |
-| `IsBitLocker` | 是否检测到 BitLocker 签名；加密分区不能直接用于此部署。 |
+| `IsBitLocker` | 是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。 |
 
 #### 构造函数说明
 
 <a id="api-b32df9a217bae180"></a>
 
-##### 创建可选部署分区对象 · 主构造器
+##### 创建可选部署分区对象（主构造器）
 
 ```csharp
 public GpuDeploymentPartition(string Id, int PartitionNumber, ulong SizeInBytes, OperatingSystemType OsType, string TypeDescription, string DiskPath, string DiskDisplayName, bool IsPhysicalDisk, bool IsBitLocker);
@@ -2425,13 +2831,13 @@ public GpuDeploymentPartition(string Id, int PartitionNumber, ulong SizeInBytes,
 | `DiskPath` | 虚拟磁盘文件路径或物理磁盘编号字符串。 |
 | `DiskDisplayName` | 所属磁盘的显示名称。 |
 | `IsPhysicalDisk` | 是否来自物理直通磁盘。 |
-| `IsBitLocker` | 是否检测到 BitLocker 签名；加密分区不能直接用于此部署。 |
+| `IsBitLocker` | 是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。 |
 
 #### 属性说明
 
 <a id="api-f0e5711694c4f6d8"></a>
 
-##### 磁盘名称 · record 属性
+##### 磁盘名称（record 属性）
 
 ```csharp
 public string DiskDisplayName { get; init; }
@@ -2441,7 +2847,7 @@ public string DiskDisplayName { get; init; }
 
 <a id="api-232efb38873f2fd8"></a>
 
-##### 磁盘路径 · record 属性
+##### 磁盘路径（record 属性）
 
 ```csharp
 public string DiskPath { get; init; }
@@ -2451,7 +2857,7 @@ public string DiskPath { get; init; }
 
 <a id="api-5de66bd086578dae"></a>
 
-##### 显示名称 · 属性
+##### 显示名称（属性）
 
 ```csharp
 public string DisplayName { get; }
@@ -2461,7 +2867,7 @@ public string DisplayName { get; }
 
 <a id="api-b3dc29a94aed7e69"></a>
 
-##### 标识 · record 属性
+##### 标识（record 属性）
 
 ```csharp
 public string Id { get; init; }
@@ -2471,17 +2877,17 @@ public string Id { get; init; }
 
 <a id="api-02d0aa26e4b2ac0a"></a>
 
-##### BitLocker 签名 · record 属性
+##### BitLocker 签名（record 属性）
 
 ```csharp
 public bool IsBitLocker { get; init; }
 ```
 
-是否检测到 BitLocker 签名；加密分区不能直接用于此部署。
+是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。
 
 <a id="api-411828e7d6d8be13"></a>
 
-##### 物理磁盘分区 · record 属性
+##### 物理磁盘分区（record 属性）
 
 ```csharp
 public bool IsPhysicalDisk { get; init; }
@@ -2491,7 +2897,7 @@ public bool IsPhysicalDisk { get; init; }
 
 <a id="api-42e9a21e5fca564b"></a>
 
-##### 操作系统分类 · record 属性
+##### 操作系统分类（record 属性）
 
 ```csharp
 public OperatingSystemType OsType { get; init; }
@@ -2501,7 +2907,7 @@ public OperatingSystemType OsType { get; init; }
 
 <a id="api-f47310d5aa2a80f1"></a>
 
-##### 分区编号 · record 属性
+##### 分区编号（record 属性）
 
 ```csharp
 public int PartitionNumber { get; init; }
@@ -2511,7 +2917,7 @@ public int PartitionNumber { get; init; }
 
 <a id="api-b802d8b763ba221a"></a>
 
-##### 容量 · 属性
+##### 容量（属性）
 
 ```csharp
 public double SizeGiB { get; }
@@ -2521,7 +2927,7 @@ public double SizeGiB { get; }
 
 <a id="api-8fb1c899036b75e2"></a>
 
-##### 容量 · record 属性
+##### 容量（record 属性）
 
 ```csharp
 public ulong SizeInBytes { get; init; }
@@ -2531,7 +2937,7 @@ public ulong SizeInBytes { get; init; }
 
 <a id="api-d2099aa8e6310c14"></a>
 
-##### 分区类型说明 · record 属性
+##### 分区类型说明（record 属性）
 
 ```csharp
 public string TypeDescription { get; init; }
@@ -2593,7 +2999,7 @@ public sealed record GpuDeploymentRecovery(Guid OperationId, Guid VmId, DateTime
 
 <a id="api-089676b7423e8849"></a>
 
-##### 创建部署恢复记录对象 · 主构造器
+##### 创建部署恢复记录对象（主构造器）
 
 ```csharp
 public GpuDeploymentRecovery(Guid OperationId, Guid VmId, DateTimeOffset StartedAtUtc, string? JobReference, IReadOnlyList<string> ResourceReferences);
@@ -2611,7 +3017,7 @@ public GpuDeploymentRecovery(Guid OperationId, Guid VmId, DateTimeOffset Started
 
 <a id="api-f0b17e0e653ae1be"></a>
 
-##### 任务引用 · record 属性
+##### 任务引用（record 属性）
 
 ```csharp
 public string? JobReference { get; init; }
@@ -2621,7 +3027,7 @@ GPU 适配器创建的原生作业引用；未取得时为 null，其他阶段�
 
 <a id="api-06d40deec309a784"></a>
 
-##### 已核实的当前值 · 属性
+##### 已核实的当前值（属性）
 
 ```csharp
 public IReadOnlyDictionary<string, string> ObservedValues { get; init; } = new Dictionary<string, string>();
@@ -2631,7 +3037,7 @@ public IReadOnlyDictionary<string, string> ObservedValues { get; init; } = new D
 
 <a id="api-ff8015aac46bac86"></a>
 
-##### 操作标识 · record 属性
+##### 操作标识（record 属性）
 
 ```csharp
 public Guid OperationId { get; init; }
@@ -2641,7 +3047,7 @@ Core 为本次部署恢复记录生成的编号，各原生调用另有 Operatio
 
 <a id="api-7e7b811749c0c89b"></a>
 
-##### 底层任务记录 · 属性
+##### 底层任务记录（属性）
 
 ```csharp
 public IReadOnlyList<GpuRecoveryOperation> Operations { get; init; } = [];
@@ -2651,7 +3057,7 @@ public IReadOnlyList<GpuRecoveryOperation> Operations { get; init; } = [];
 
 <a id="api-6fea4a4bbbeb4c02"></a>
 
-##### 资源引用 · record 属性
+##### 资源引用（record 属性）
 
 ```csharp
 public IReadOnlyList<string> ResourceReferences { get; init; }
@@ -2661,7 +3067,7 @@ GPU 适配器创建回执的资源引用；只有 AddedAdapterId 表示已验证
 
 <a id="api-6196f5420e906256"></a>
 
-##### 资源恢复记录 · 属性
+##### 资源恢复记录（属性）
 
 ```csharp
 public IReadOnlyList<GpuRecoveryResource> Resources { get; init; } = [];
@@ -2671,7 +3077,7 @@ public IReadOnlyList<GpuRecoveryResource> Resources { get; init; } = [];
 
 <a id="api-125e1c59d9fe64df"></a>
 
-##### 开始时间 · record 属性
+##### 开始时间（record 属性）
 
 ```csharp
 public DateTimeOffset StartedAtUtc { get; init; }
@@ -2681,7 +3087,7 @@ public DateTimeOffset StartedAtUtc { get; init; }
 
 <a id="api-bceb2324a25a90df"></a>
 
-##### 虚拟机标识 · record 属性
+##### 虚拟机标识（record 属性）
 
 ```csharp
 public Guid VmId { get; init; }
@@ -2715,15 +3121,20 @@ public Guid VmId { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public string? AddedAdapterId { get; init; } `](#api-9c68cb08f048daa9) | 本次原生回执返回且已核对属于目标 VM 的 GPU 适配器身份；未确认时为 null，不通过清单差异推断。 |
+| [` public string? AddedAdapterId { get; init; } `](#api-9c68cb08f048daa9) | 本次原生回执返回且已核对属于目标 VM 的最后一个 GPU 适配器身份；未确认时为 null。 |
+| [` public IReadOnlyList<string> AddedAdapterIds { get; init; } = Array.Empty<string>() `](#api-7da2cde5acf338d3) | 本次部署批量新增且已确认属于目标 VM 的全部 GPU 适配器标识。 |
 | [` public IReadOnlyList<GpuDeploymentAction> AllowedActions { get; init; } `](#api-a30b434db3c93a67) | 当前状态允许的调用动作。 |
 | [` public string? CleanupError { get; init; } `](#api-58374e828624fe3d) | 清理失败说明；没有清理错误时为 null。 |
+| [` public int? DriverIsoProgressPercent { get; init; } `](#api-80a64b31eb8830a0) | 打包与挂载驱动 ISO 的百分比进度（0-100）；未处于光盘部署阶段时为 null。 |
 | [` public string? Error { get; init; } `](#api-2a031d092e685776) | 部署错误说明；无错误时为 null。 |
-| [` public bool HasAddedAdapter { get; init; } `](#api-3b95afd42de013fb) | 本次部署是否新增并识别到适配器。 |
+| [` public bool HasAddedAdapter { get; init; } `](#api-3b95afd42de013fb) | 本次部署是否新增并识别到至少一个适配器。 |
 | [` public bool HasPendingCleanup { get; init; } `](#api-5db4fba4b5816944) | 是否有已识别且尚待清理的适配器；false 时仍应检查 State 和 CleanupError。 |
+| [` public bool IsDriverIsoMounted { get; init; } `](#api-2c058cb580fbffe7) | 本次部署是否通过挂载驱动 ISO 完成驱动准备。 |
+| [` public bool IsDriverSkipped { get; init; } `](#api-30699f5036b255e7) | 本次部署是否因用户选择而跳过了驱动安装。 |
 | [` public string? LastLog { get; init; } `](#api-d51e4de7fc4a52ae) | 最近一条步骤日志；尚无日志时为 null。 |
 | [` public bool OutcomeUnknown { get; init; } `](#api-293632a781a3d836) | 底层操作结果尚未确认；此状态不允许重试清理。 |
-| [` public string? PendingCleanupAdapterId { get; init; } `](#api-5d5aecaca834bbb0) | 已确认归属且待清理的适配器标识；清理时机由 AllowedActions 指示。 |
+| [` public string? PendingCleanupAdapterId { get; init; } `](#api-5d5aecaca834bbb0) | 已确认归属且待清理的第一个适配器标识；清理时机由 AllowedActions 指示。 |
+| [` public IReadOnlyList<string> PendingCleanupAdapterIds { get; init; } = Array.Empty<string>() `](#api-0c151f0ef3385700) | 已确认归属且待清理的全部适配器标识。 |
 | [` public GpuDecisionRequest? PendingDecision { get; init; } `](#api-0dce5ae59f56b76d) | 当前待确认事项；不在等待决定时为 null。 |
 | [` public GpuDeploymentRecovery? Recovery { get; init; } `](#api-e0251fb0578ad929) | 本次部署与恢复的任务、资源、原状态及核实结果；无记录时为 null，可保存用于排查。 |
 | [` public long Revision { get; init; } `](#api-da1d46719893e43e) | 同一会话中递增的快照修订号。 |
@@ -2748,7 +3159,7 @@ public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDep
 | `Steps` | 当前各步骤的状态快照。 |
 | `PendingDecision` | 当前待确认事项；不在等待决定时为 null。 |
 | `AllowedActions` | 当前状态允许的调用动作。 |
-| `HasAddedAdapter` | 本次部署是否新增并识别到适配器。 |
+| `HasAddedAdapter` | 本次部署是否新增并识别到至少一个适配器。 |
 | `HasPendingCleanup` | 是否有已识别且尚待清理的适配器；false 时仍应检查 State 和 CleanupError。 |
 | `Error` | 部署错误说明；无错误时为 null。 |
 | `CleanupError` | 清理失败说明；没有清理错误时为 null。 |
@@ -2758,7 +3169,7 @@ public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDep
 
 <a id="api-341e12306d7ecc95"></a>
 
-##### 创建部署状态对象 · 主构造器
+##### 创建部署状态对象（主构造器）
 
 ```csharp
 public GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDeploymentState State, IReadOnlyList<GpuDeploymentStep> Steps, GpuDecisionRequest? PendingDecision, IReadOnlyList<GpuDeploymentAction> AllowedActions, bool HasAddedAdapter, bool HasPendingCleanup, string? Error = null, string? CleanupError = null, string? LastLog = null);
@@ -2772,7 +3183,7 @@ public GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDeploymentState S
 | `Steps` | 当前各步骤的状态快照。 |
 | `PendingDecision` | 当前待确认事项；不在等待决定时为 null。 |
 | `AllowedActions` | 当前状态允许的调用动作。 |
-| `HasAddedAdapter` | 本次部署是否新增并识别到适配器。 |
+| `HasAddedAdapter` | 本次部署是否新增并识别到至少一个适配器。 |
 | `HasPendingCleanup` | 是否有已识别且尚待清理的适配器；false 时仍应检查 State 和 CleanupError。 |
 | `Error` | 部署错误说明；无错误时为 null。 |
 | `CleanupError` | 清理失败说明；没有清理错误时为 null。 |
@@ -2782,17 +3193,27 @@ public GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDeploymentState S
 
 <a id="api-9c68cb08f048daa9"></a>
 
-##### 新增适配器标识 · 属性
+##### 新增适配器标识（属性）
 
 ```csharp
 public string? AddedAdapterId { get; init; }
 ```
 
-本次原生回执返回且已核对属于目标 VM 的 GPU 适配器身份；未确认时为 null，不通过清单差异推断。
+本次原生回执返回且已核对属于目标 VM 的最后一个 GPU 适配器身份；未确认时为 null。
+
+<a id="api-7da2cde5acf338d3"></a>
+
+##### 全部新增适配器标识（属性）
+
+```csharp
+public IReadOnlyList<string> AddedAdapterIds { get; init; } = Array.Empty<string>();
+```
+
+本次部署批量新增且已确认属于目标 VM 的全部 GPU 适配器标识。
 
 <a id="api-a30b434db3c93a67"></a>
 
-##### 可执行动作 · record 属性
+##### 可执行动作（record 属性）
 
 ```csharp
 public IReadOnlyList<GpuDeploymentAction> AllowedActions { get; init; }
@@ -2802,7 +3223,7 @@ public IReadOnlyList<GpuDeploymentAction> AllowedActions { get; init; }
 
 <a id="api-58374e828624fe3d"></a>
 
-##### 清理错误 · record 属性
+##### 清理错误（record 属性）
 
 ```csharp
 public string? CleanupError { get; init; }
@@ -2810,9 +3231,19 @@ public string? CleanupError { get; init; }
 
 清理失败说明；没有清理错误时为 null。
 
+<a id="api-80a64b31eb8830a0"></a>
+
+##### 驱动光盘打包进度（属性）
+
+```csharp
+public int? DriverIsoProgressPercent { get; init; }
+```
+
+打包与挂载驱动 ISO 的百分比进度（0-100）；未处于光盘部署阶段时为 null。
+
 <a id="api-2a031d092e685776"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -2822,17 +3253,17 @@ public string? Error { get; init; }
 
 <a id="api-3b95afd42de013fb"></a>
 
-##### 已新增适配器 · record 属性
+##### 已新增适配器（record 属性）
 
 ```csharp
 public bool HasAddedAdapter { get; init; }
 ```
 
-本次部署是否新增并识别到适配器。
+本次部署是否新增并识别到至少一个适配器。
 
 <a id="api-5db4fba4b5816944"></a>
 
-##### 待清理资源 · record 属性
+##### 待清理资源（record 属性）
 
 ```csharp
 public bool HasPendingCleanup { get; init; }
@@ -2840,9 +3271,29 @@ public bool HasPendingCleanup { get; init; }
 
 是否有已识别且尚待清理的适配器；false 时仍应检查 State 和 CleanupError。
 
+<a id="api-2c058cb580fbffe7"></a>
+
+##### 驱动光盘已挂载（属性）
+
+```csharp
+public bool IsDriverIsoMounted { get; init; }
+```
+
+本次部署是否通过挂载驱动 ISO 完成驱动准备。
+
+<a id="api-30699f5036b255e7"></a>
+
+##### 已跳过驱动（属性）
+
+```csharp
+public bool IsDriverSkipped { get; init; }
+```
+
+本次部署是否因用户选择而跳过了驱动安装。
+
 <a id="api-d51e4de7fc4a52ae"></a>
 
-##### 最近日志 · record 属性
+##### 最近日志（record 属性）
 
 ```csharp
 public string? LastLog { get; init; }
@@ -2852,7 +3303,7 @@ public string? LastLog { get; init; }
 
 <a id="api-293632a781a3d836"></a>
 
-##### 结果未确定 · 属性
+##### 结果未确定（属性）
 
 ```csharp
 public bool OutcomeUnknown { get; init; }
@@ -2862,17 +3313,27 @@ public bool OutcomeUnknown { get; init; }
 
 <a id="api-5d5aecaca834bbb0"></a>
 
-##### 待清理适配器标识 · 属性
+##### 待清理适配器标识（属性）
 
 ```csharp
 public string? PendingCleanupAdapterId { get; init; }
 ```
 
-已确认归属且待清理的适配器标识；清理时机由 AllowedActions 指示。
+已确认归属且待清理的第一个适配器标识；清理时机由 AllowedActions 指示。
+
+<a id="api-0c151f0ef3385700"></a>
+
+##### 全部待清理适配器标识（属性）
+
+```csharp
+public IReadOnlyList<string> PendingCleanupAdapterIds { get; init; } = Array.Empty<string>();
+```
+
+已确认归属且待清理的全部适配器标识。
 
 <a id="api-0dce5ae59f56b76d"></a>
 
-##### 待确认事项 · record 属性
+##### 待确认事项（record 属性）
 
 ```csharp
 public GpuDecisionRequest? PendingDecision { get; init; }
@@ -2882,7 +3343,7 @@ public GpuDecisionRequest? PendingDecision { get; init; }
 
 <a id="api-e0251fb0578ad929"></a>
 
-##### 恢复信息 · 属性
+##### 恢复信息（属性）
 
 ```csharp
 public GpuDeploymentRecovery? Recovery { get; init; }
@@ -2892,7 +3353,7 @@ public GpuDeploymentRecovery? Recovery { get; init; }
 
 <a id="api-da1d46719893e43e"></a>
 
-##### 修订号 · record 属性
+##### 修订号（record 属性）
 
 ```csharp
 public long Revision { get; init; }
@@ -2902,7 +3363,7 @@ public long Revision { get; init; }
 
 <a id="api-bea533855f89f637"></a>
 
-##### 会话标识 · record 属性
+##### 会话标识（record 属性）
 
 ```csharp
 public Guid SessionId { get; init; }
@@ -2912,7 +3373,7 @@ public Guid SessionId { get; init; }
 
 <a id="api-1987d6fea8c8ad21"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public GpuDeploymentState State { get; init; }
@@ -2922,7 +3383,7 @@ public GpuDeploymentState State { get; init; }
 
 <a id="api-091d68578048fd7c"></a>
 
-##### 步骤列表 · record 属性
+##### 步骤列表（record 属性）
 
 ```csharp
 public IReadOnlyList<GpuDeploymentStep> Steps { get; init; }
@@ -2968,7 +3429,7 @@ public enum GpuDeploymentState
 
 <a id="api-84b9345cc6ab20e6"></a>
 
-##### Cancelled · 枚举值
+##### Cancelled（枚举值）
 
 ```csharp
 Cancelled = 5
@@ -2978,7 +3439,7 @@ Cancelled = 5
 
 <a id="api-33ef8617e3dc9e3e"></a>
 
-##### CleanupRequired · 枚举值
+##### CleanupRequired（枚举值）
 
 ```csharp
 CleanupRequired = 6
@@ -2988,7 +3449,7 @@ CleanupRequired = 6
 
 <a id="api-00390e0f4d5c56f3"></a>
 
-##### Completed · 枚举值
+##### Completed（枚举值）
 
 ```csharp
 Completed = 3
@@ -2998,7 +3459,7 @@ Completed = 3
 
 <a id="api-37b2be1efe42f1b1"></a>
 
-##### Created · 枚举值
+##### Created（枚举值）
 
 ```csharp
 Created = 0
@@ -3008,7 +3469,7 @@ Created = 0
 
 <a id="api-83e07a9a9bcb8ead"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 4
@@ -3018,7 +3479,7 @@ Failed = 4
 
 <a id="api-67643aa629a1362c"></a>
 
-##### Running · 枚举值
+##### Running（枚举值）
 
 ```csharp
 Running = 1
@@ -3028,7 +3489,7 @@ Running = 1
 
 <a id="api-cfafa4edc1d9cc29"></a>
 
-##### WaitingForDecision · 枚举值
+##### WaitingForDecision（枚举值）
 
 ```csharp
 WaitingForDecision = 2
@@ -3084,7 +3545,7 @@ public sealed record GpuDeploymentStep(GpuDeploymentStepKind Type, string Name, 
 
 <a id="api-b1472caf6c86df8f"></a>
 
-##### 创建部署步骤对象 · 主构造器
+##### 创建部署步骤对象（主构造器）
 
 ```csharp
 public GpuDeploymentStep(GpuDeploymentStepKind Type, string Name, string Description, GpuDeploymentStepStatus Status);
@@ -3101,7 +3562,7 @@ public GpuDeploymentStep(GpuDeploymentStepKind Type, string Name, string Descrip
 
 <a id="api-28c8295f24bc93e1"></a>
 
-##### 说明 · record 属性
+##### 说明（record 属性）
 
 ```csharp
 public string Description { get; init; }
@@ -3111,7 +3572,7 @@ public string Description { get; init; }
 
 <a id="api-0fc433befe5eea77"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -3121,7 +3582,7 @@ public string Name { get; init; }
 
 <a id="api-69d3a2d8ea9d52c8"></a>
 
-##### 执行状态 · record 属性
+##### 执行状态（record 属性）
 
 ```csharp
 public GpuDeploymentStepStatus Status { get; init; }
@@ -3131,7 +3592,7 @@ public GpuDeploymentStepStatus Status { get; init; }
 
 <a id="api-0fc2418077774c70"></a>
 
-##### 类型 · record 属性
+##### 类型（record 属性）
 
 ```csharp
 public GpuDeploymentStepKind Type { get; init; }
@@ -3159,12 +3620,10 @@ GPU 部署流程中的步骤类别。
 
 | 成员 | 说明 |
 | --- | --- |
-| [` Assign = 4 `](#api-141329c91b53c21f) | 新增虚拟 GPU 分区适配器。 |
-| [` ConfigCheck = 1 `](#api-816ee759dbdb8e3c) | 检查虚拟机的 GPU 所需设置。 |
-| [` Driver = 5 `](#api-1dcdb18560bd523b) | 安装或更新来宾 GPU 驱动。 |
-| [` Optimization = 3 `](#api-66a3170a736ca7ef) | 调整 GPU 所需的缓存和 MMIO 设置。 |
-| [` PowerCheck = 2 `](#api-d17eb32c160bde76) | 检查并按用户决定处理虚拟机电源状态。 |
-| [` Prepare = 0 `](#api-c4495c210703f25d) | 准备宿主 GPU 分配环境。 |
+| [` Assign = 2 `](#api-141329c91b53c21f) | 新增虚拟 GPU 分区适配器。 |
+| [` Driver = 3 `](#api-1dcdb18560bd523b) | 安装、跳过或挂载光盘部署来宾 GPU 驱动。 |
+| [` Optimization = 1 `](#api-66a3170a736ca7ef) | 放宽宿主限制并调整 GPU 所需的缓存和 MMIO 设置。 |
+| [` PowerCheck = 0 `](#api-d17eb32c160bde76) | 检查并按用户决定处理虚拟机电源状态。 |
 
 #### 详细说明
 
@@ -3176,63 +3635,43 @@ public enum GpuDeploymentStepKind
 
 <a id="api-141329c91b53c21f"></a>
 
-##### Assign · 枚举值
+##### Assign（枚举值）
 
 ```csharp
-Assign = 4
+Assign = 2
 ```
 
 新增虚拟 GPU 分区适配器。
 
-<a id="api-816ee759dbdb8e3c"></a>
-
-##### ConfigCheck · 枚举值
-
-```csharp
-ConfigCheck = 1
-```
-
-检查虚拟机的 GPU 所需设置。
-
 <a id="api-1dcdb18560bd523b"></a>
 
-##### Driver · 枚举值
+##### Driver（枚举值）
 
 ```csharp
-Driver = 5
+Driver = 3
 ```
 
-安装或更新来宾 GPU 驱动。
+安装、跳过或挂载光盘部署来宾 GPU 驱动。
 
 <a id="api-66a3170a736ca7ef"></a>
 
-##### Optimization · 枚举值
+##### Optimization（枚举值）
 
 ```csharp
-Optimization = 3
+Optimization = 1
 ```
 
-调整 GPU 所需的缓存和 MMIO 设置。
+放宽宿主限制并调整 GPU 所需的缓存和 MMIO 设置。
 
 <a id="api-d17eb32c160bde76"></a>
 
-##### PowerCheck · 枚举值
+##### PowerCheck（枚举值）
 
 ```csharp
-PowerCheck = 2
+PowerCheck = 0
 ```
 
 检查并按用户决定处理虚拟机电源状态。
-
-<a id="api-c4495c210703f25d"></a>
-
-##### Prepare · 枚举值
-
-```csharp
-Prepare = 0
-```
-
-准备宿主 GPU 分配环境。
 
 <a id="api-499dc8bdf05041ca"></a>
 
@@ -3269,7 +3708,7 @@ public enum GpuDeploymentStepStatus
 
 <a id="api-731cdee5b3b5f485"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 3
@@ -3279,7 +3718,7 @@ Failed = 3
 
 <a id="api-b3f34b6949942824"></a>
 
-##### Pending · 枚举值
+##### Pending（枚举值）
 
 ```csharp
 Pending = 0
@@ -3289,7 +3728,7 @@ Pending = 0
 
 <a id="api-bc6ed56d3d4a3f57"></a>
 
-##### Running · 枚举值
+##### Running（枚举值）
 
 ```csharp
 Running = 1
@@ -3299,13 +3738,130 @@ Running = 1
 
 <a id="api-828dce9ab940883b"></a>
 
-##### Success · 枚举值
+##### Success（枚举值）
 
 ```csharp
 Success = 2
 ```
 
 步骤已成功结束。
+
+<a id="api-ef78e8b1f703128b"></a>
+
+### `GpuDriverFallbackAction` 枚举
+
+无法直接写入离线驱动或用户选择不直接注入时的回退动作。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / GPU |
+| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` MountIso = 1 `](#api-6fb15efc92357d9a) | 打包宿主显卡驱动为 ISO 并挂载到虚拟机光驱，由用户进入系统后自行安装。 |
+| [` SkipDriver = 0 `](#api-a41264c4936172fd) | 跳过驱动安装，仅保留已分配的显卡分区与优化配置。 |
+
+#### 详细说明
+
+```csharp
+public enum GpuDriverFallbackAction
+```
+
+#### 枚举值说明
+
+<a id="api-6fb15efc92357d9a"></a>
+
+##### MountIso（枚举值）
+
+```csharp
+MountIso = 1
+```
+
+打包宿主显卡驱动为 ISO 并挂载到虚拟机光驱，由用户进入系统后自行安装。
+
+<a id="api-a41264c4936172fd"></a>
+
+##### SkipDriver（枚举值）
+
+```csharp
+SkipDriver = 0
+```
+
+跳过驱动安装，仅保留已分配的显卡分区与优化配置。
+
+<a id="api-1b34235597c26248"></a>
+
+### `GpuDriverFallbackSelection` record 类
+
+当分区加密或无法直接写入时，提交跳过驱动或挂载驱动光盘的回退决定。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / GPU |
+| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public GpuDriverFallbackSelection(Guid RequestId, GpuDriverFallbackAction Action) `](#api-bf25fdcd277fb1f4) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public GpuDriverFallbackAction Action { get; init; } `](#api-cbb957d9a4b7b2ed) | 要执行的替代动作。 |
+
+#### 详细说明
+
+```csharp
+public sealed record GpuDriverFallbackSelection(Guid RequestId, GpuDriverFallbackAction Action) : GpuDeploymentDecision(RequestId)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `RequestId` | 当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。 |
+| `Action` | 要执行的替代动作。 |
+
+#### 构造函数说明
+
+<a id="api-bf25fdcd277fb1f4"></a>
+
+##### 创建驱动回退选择对象（主构造器）
+
+```csharp
+public GpuDriverFallbackSelection(Guid RequestId, GpuDriverFallbackAction Action);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `RequestId` | 当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。 |
+| `Action` | 要执行的替代动作。 |
+
+#### 属性说明
+
+<a id="api-cbb957d9a4b7b2ed"></a>
+
+##### 回退动作（record 属性）
+
+```csharp
+public GpuDriverFallbackAction Action { get; init; }
+```
+
+要执行的替代动作。
 
 <a id="api-b7afa42a1fa76e7e"></a>
 
@@ -3352,7 +3908,7 @@ public sealed record GpuLinuxInput(Guid RequestId, LinuxGpuDeploymentScript? Scr
 
 <a id="api-e8e6f797f4627924"></a>
 
-##### 创建Linux 部署输入对象 · 主构造器
+##### 创建Linux 部署输入对象（主构造器）
 
 ```csharp
 public GpuLinuxInput(Guid RequestId, LinuxGpuDeploymentScript? Script, SshCredentials? Credentials);
@@ -3368,7 +3924,7 @@ public GpuLinuxInput(Guid RequestId, LinuxGpuDeploymentScript? Script, SshCreden
 
 <a id="api-de53addd2b67d826"></a>
 
-##### SSH 凭据 · record 属性
+##### SSH 凭据（record 属性）
 
 ```csharp
 public SshCredentials? Credentials { get; init; }
@@ -3378,7 +3934,7 @@ SSH 凭据；类型允许 null，但提交 Linux 决定时不能为空，端口�
 
 <a id="api-13bf473ff669cd8a"></a>
 
-##### 部署脚本 · record 属性
+##### 部署脚本（record 属性）
 
 ```csharp
 public LinuxGpuDeploymentScript? Script { get; init; }
@@ -3429,7 +3985,7 @@ public sealed record GpuPartitionSelection(Guid RequestId, string PartitionId) :
 
 <a id="api-f285de7494c8d272"></a>
 
-##### 创建部署分区选择对象 · 主构造器
+##### 创建部署分区选择对象（主构造器）
 
 ```csharp
 public GpuPartitionSelection(Guid RequestId, string PartitionId);
@@ -3444,7 +4000,7 @@ public GpuPartitionSelection(Guid RequestId, string PartitionId);
 
 <a id="api-5e04f2ff1a7a1ceb"></a>
 
-##### 分区标识 · record 属性
+##### 分区标识（record 属性）
 
 ```csharp
 public string PartitionId { get; init; }
@@ -3509,7 +4065,7 @@ public sealed record GpuRecoveryOperation(Guid Id, string Stage, string Method, 
 
 <a id="api-245d2f06fef917d0"></a>
 
-##### 创建恢复操作记录对象 · 主构造器
+##### 创建恢复操作记录对象（主构造器）
 
 ```csharp
 public GpuRecoveryOperation(Guid Id, string Stage, string Method, string TargetReference, string? JobReference, DateTimeOffset StartedAtUtc, bool IsSettled, ExHyperV.Tools.ApiFailure? Failure);
@@ -3530,7 +4086,7 @@ public GpuRecoveryOperation(Guid Id, string Stage, string Method, string TargetR
 
 <a id="api-01a74fdd008a83bf"></a>
 
-##### 失败详情 · record 属性
+##### 失败详情（record 属性）
 
 ```csharp
 public ExHyperV.Tools.ApiFailure? Failure { get; init; }
@@ -3540,7 +4096,7 @@ public ExHyperV.Tools.ApiFailure? Failure { get; init; }
 
 <a id="api-89cefdc1a6f0a899"></a>
 
-##### 标识 · record 属性
+##### 标识（record 属性）
 
 ```csharp
 public Guid Id { get; init; }
@@ -3550,7 +4106,7 @@ public Guid Id { get; init; }
 
 <a id="api-76c4e0e8b3da72d4"></a>
 
-##### 操作已结束 · record 属性
+##### 操作已结束（record 属性）
 
 ```csharp
 public bool IsSettled { get; init; }
@@ -3560,7 +4116,7 @@ public bool IsSettled { get; init; }
 
 <a id="api-e981884799d16591"></a>
 
-##### 任务引用 · record 属性
+##### 任务引用（record 属性）
 
 ```csharp
 public string? JobReference { get; init; }
@@ -3570,7 +4126,7 @@ public string? JobReference { get; init; }
 
 <a id="api-2f3051294368beec"></a>
 
-##### 底层方法 · record 属性
+##### 底层方法（record 属性）
 
 ```csharp
 public string Method { get; init; }
@@ -3580,7 +4136,7 @@ public string Method { get; init; }
 
 <a id="api-86a8e72f6c3a98c8"></a>
 
-##### 执行阶段 · record 属性
+##### 执行阶段（record 属性）
 
 ```csharp
 public string Stage { get; init; }
@@ -3590,7 +4146,7 @@ public string Stage { get; init; }
 
 <a id="api-cbd4e76d355433af"></a>
 
-##### 开始时间 · record 属性
+##### 开始时间（record 属性）
 
 ```csharp
 public DateTimeOffset StartedAtUtc { get; init; }
@@ -3600,7 +4156,7 @@ public DateTimeOffset StartedAtUtc { get; init; }
 
 <a id="api-223141406b77ee13"></a>
 
-##### 目标引用 · record 属性
+##### 目标引用（record 属性）
 
 ```csharp
 public string TargetReference { get; init; }
@@ -3659,7 +4215,7 @@ public sealed record GpuRecoveryResource(string Kind, string Resource,
 
 <a id="api-14a91be6f04f1c6c"></a>
 
-##### 创建临时资源恢复记录对象 · 主构造器
+##### 创建临时资源恢复记录对象（主构造器）
 
 ```csharp
 public GpuRecoveryResource(string Kind, string Resource, IReadOnlyDictionary<string, string> OriginalValues, bool Restored, ExHyperV.Tools.ApiFailure? Failure);
@@ -3677,7 +4233,7 @@ public GpuRecoveryResource(string Kind, string Resource, IReadOnlyDictionary<str
 
 <a id="api-d9c185085c4c6673"></a>
 
-##### 失败详情 · record 属性
+##### 失败详情（record 属性）
 
 ```csharp
 public ExHyperV.Tools.ApiFailure? Failure { get; init; }
@@ -3687,7 +4243,7 @@ public ExHyperV.Tools.ApiFailure? Failure { get; init; }
 
 <a id="api-18c0f950c753160e"></a>
 
-##### 类别 · record 属性
+##### 类别（record 属性）
 
 ```csharp
 public string Kind { get; init; }
@@ -3697,7 +4253,7 @@ public string Kind { get; init; }
 
 <a id="api-fef809f4a6456c00"></a>
 
-##### 恢复目标值 · record 属性
+##### 恢复目标值（record 属性）
 
 ```csharp
 public IReadOnlyDictionary<string, string> OriginalValues { get; init; }
@@ -3707,7 +4263,7 @@ public IReadOnlyDictionary<string, string> OriginalValues { get; init; }
 
 <a id="api-3bdb3941c9b22c1d"></a>
 
-##### 资源身份 · record 属性
+##### 资源身份（record 属性）
 
 ```csharp
 public string Resource { get; init; }
@@ -3717,13 +4273,546 @@ public string Resource { get; init; }
 
 <a id="api-c424be263a29ae59"></a>
 
-##### 已恢复 · record 属性
+##### 已恢复（record 属性）
 
 ```csharp
 public bool Restored { get; init; }
 ```
 
 最近核实是否已经恢复。
+
+<a id="api-20e7d171265ef542"></a>
+
+### `HostCpuAttributionSource` 枚举
+
+宿主逻辑处理器占用拆分的采集来源；Root 模式下优先使用内核上下文切换事件，降级或 Classic/Core 模式使用性能计数器。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 处理器 |
+| 源文件 | ` Management/Host/Processor/HostCpuThreadModels.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` KernelContextSwitch = 1 `](#api-94a968572b6bc442) | 通过 Windows 内核上下文切换事件（ETW CSwitch）精确按逻辑处理器归属宿主机与每台虚拟机。 |
+| [` PerformanceCounter = 2 `](#api-f93ddcbaf7b3817e) | 通过 Hyper-V 性能计数器读取每逻辑处理器总占用与宿主 Root VP 占用；仅在调度范围唯一时归属虚拟机，共享时保留为未细分来宾占用。 |
+| [` Unavailable = 0 `](#api-8210fea43c144259) | 当前未取得可用的逻辑处理器占用数据源。 |
+
+#### 详细说明
+
+```csharp
+public enum HostCpuAttributionSource
+```
+
+#### 枚举值说明
+
+<a id="api-94a968572b6bc442"></a>
+
+##### KernelContextSwitch（枚举值）
+
+```csharp
+KernelContextSwitch = 1
+```
+
+通过 Windows 内核上下文切换事件（ETW CSwitch）精确按逻辑处理器归属宿主机与每台虚拟机。
+
+<a id="api-f93ddcbaf7b3817e"></a>
+
+##### PerformanceCounter（枚举值）
+
+```csharp
+PerformanceCounter = 2
+```
+
+通过 Hyper-V 性能计数器读取每逻辑处理器总占用与宿主 Root VP 占用；仅在调度范围唯一时归属虚拟机，共享时保留为未细分来宾占用。
+
+<a id="api-8210fea43c144259"></a>
+
+##### Unavailable（枚举值）
+
+```csharp
+Unavailable = 0
+```
+
+当前未取得可用的逻辑处理器占用数据源。
+
+<a id="api-1eb7a0d4c6658e1b"></a>
+
+### `HostCpuThreadConsumerUsage` 类
+
+单个宿主逻辑处理器上的单个占用主体（宿主机或某台虚拟机）使用率份额。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 处理器 |
+| 源文件 | ` Management/Host/Processor/HostCpuThreadModels.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool IsHost { get; init; } `](#api-98a0b766e25a5b96) | 是否为宿主机（Root Partition 及宿主系统线程）占用。 |
+| [` public string Name { get; init; } = string.Empty `](#api-e1c012b2e7176bb2) | 占用主体的显示名称；宿主机固定为 Host，虚拟机为其 WMI ElementName。 |
+| [` public float UsagePercent { get; init; } `](#api-be6008aca7d9ccdd) | 该主体在当前采样窗口内占用此逻辑处理器的时间百分比。 |
+| [` public Guid? VmId { get; init; } `](#api-98a6bbf0eaf356ab) | 所属虚拟机的稳定 GUID；宿主机占用为 null。 |
+
+#### 详细说明
+
+```csharp
+public sealed class HostCpuThreadConsumerUsage
+```
+
+#### 属性说明
+
+<a id="api-98a0b766e25a5b96"></a>
+
+##### 宿主机占用标记（属性）
+
+```csharp
+public bool IsHost { get; init; }
+```
+
+是否为宿主机（Root Partition 及宿主系统线程）占用。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 标识该份额是否归属于宿主机系统与根分区（Host），用以区分来宾虚拟机，不通过名称字符串判断。 |
+| 取值与默认 | true（宿主机）／ false（来宾虚拟机） |
+| 修改对应 | 只读。运行时只读监控指标，不可直接写入。 |
+
+<a id="api-e1c012b2e7176bb2"></a>
+
+##### 占用主体名称（属性）
+
+```csharp
+public string Name { get; init; } = string.Empty;
+```
+
+占用主体的显示名称；宿主机固定为 Host，虚拟机为其 WMI ElementName。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 用于界面或报表展示的主体名称；虚拟机改名后随最新 WMI 快照更新，程序内部关联应使用 VmId。 |
+| 修改对应 | 只读。来自宿主标识或虚拟机配置显示名，监控接口不直接修改。 |
+
+<a id="api-be6008aca7d9ccdd"></a>
+
+##### 占用百分比（属性）
+
+```csharp
+public float UsagePercent { get; init; }
+```
+
+该主体在当前采样窗口内占用此逻辑处理器的时间百分比。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 采样窗口内该主体在该物理逻辑处理器上运行时间占窗口总时长的百分比。 |
+| 单位与表示 | %（百分比，0 至 100）。 |
+| 取值与默认 | 有限非负浮点数，范围为 0 至 100，同核心各主体及未细分来宾之和不超过 100。 |
+| 修改对应 | 只读。运行时只读监控指标，不可直接写入。 |
+
+<a id="api-98a6bbf0eaf356ab"></a>
+
+##### 虚拟机标识（属性）
+
+```csharp
+public Guid? VmId { get; init; }
+```
+
+所属虚拟机的稳定 GUID；宿主机占用为 null。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 占用该逻辑处理器时间片的虚拟机稳定 GUID；当 IsHost 为 true 时为 null。 |
+| 取值与默认 | RFC 4122 GUID 字符串，或宿主机行固定为 null。 |
+| 修改对应 | 只读。运行时只读监控指标，不可直接写入。 |
+
+<a id="api-b68a3c52cb41b509"></a>
+
+### `HostCpuThreadReport` 类
+
+宿主全量物理逻辑处理器线程的占用归属快照，包含调度器模式与数据源说明。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 处理器 |
+| 源文件 | ` Management/Host/Processor/HostCpuThreadModels.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public string? AttributionNote { get; init; } `](#api-419885b70e5b316b) | 归属来源降级或受限时的附加说明；精确归属且无提示时为 null。 |
+| [` public HostCpuAttributionSource AttributionSource { get; init; } `](#api-5855bc0dbee2ce9c) | 本次快照实际采用的逻辑处理器归属数据来源。 |
+| [` public DateTimeOffset ObservedAtUtc { get; init; } `](#api-948d19e22c0f1a4c) | 完成本次采样并归一化结果的 UTC 时间戳。 |
+| [` public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.NotSampled, default) `](#api-ae3920f5fb66fd29) | 本次整体报告的采样健康状态。 |
+| [` public HyperVSchedulerType SchedulerType { get; init; } `](#api-99ed9ca1225590d7) | 本次采样观测到的宿主当前 Hyper-V 调度器模式。 |
+| [` public IReadOnlyList<HostCpuThreadSnapshot> Threads { get; init; } = [] `](#api-ee106b0afe98bd33) | 宿主全部活动逻辑处理器的占用与归属明细，按物理逻辑编号升序排列。 |
+| [` public TimeSpan WindowDuration { get; init; } `](#api-f097ac5e98a55c42) | 本次占用快照所统计的时间窗口长度。 |
+
+#### 详细说明
+
+```csharp
+public sealed class HostCpuThreadReport
+```
+
+#### 属性说明
+
+<a id="api-419885b70e5b316b"></a>
+
+##### 归属来源说明（属性）
+
+```csharp
+public string? AttributionNote { get; init; }
+```
+
+归属来源降级或受限时的附加说明；精确归属且无提示时为 null。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 用于向调用方说明为何处于性能计数器回退模式、为何仅保留未细分来宾占比或权限受限原因。 |
+| 缺测与错误 | ETW 精确归属正常工作或尚未采样时可能为 null。 |
+| 修改对应 | 只读。运行时只读诊断信息，不可写入。 |
+
+<a id="api-5855bc0dbee2ce9c"></a>
+
+##### 归属数据来源（属性）
+
+```csharp
+public HostCpuAttributionSource AttributionSource { get; init; }
+```
+
+本次快照实际采用的逻辑处理器归属数据来源。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 反映本次报告是由内核 ETW 上下文切换生成、性能计数器降级／经典模式生成还是尚未可用。 |
+| 修改对应 | 只读。运行时只读采集状态，不可写入。 |
+
+<a id="api-948d19e22c0f1a4c"></a>
+
+##### 观测时间（属性）
+
+```csharp
+public DateTimeOffset ObservedAtUtc { get; init; }
+```
+
+完成本次采样并归一化结果的 UTC 时间戳。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 该帧占用快照对应的世界协调时间观测点。 |
+| 修改对应 | 只读。运行时采样时间戳，不可写入。 |
+
+<a id="api-ae3920f5fb66fd29"></a>
+
+##### 整体采样状态（属性）
+
+```csharp
+public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.NotSampled, default);
+```
+
+本次整体报告的采样健康状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 指示本次报告是处于预热、有效、权限／能力受限还是失败状态；应先检查 Sample.IsValid。 |
+| 修改对应 | 只读。运行时只读采样元数据，不可写入。 |
+
+<a id="api-99ed9ca1225590d7"></a>
+
+##### 当前调度器模式（属性）
+
+```csharp
+public HyperVSchedulerType SchedulerType { get; init; }
+```
+
+本次采样观测到的宿主当前 Hyper-V 调度器模式。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前正在运行的 Hyper-V 调度器（Root、Classic、Core 或 Unknown），决定是否具备上下文切换精确归属条件。 |
+| 修改对应 | 只读。当前运行时状态只读反馈，切换需通过 HyperVSchedulerService。 |
+
+<a id="api-ee106b0afe98bd33"></a>
+
+##### 物理逻辑处理器线程明细（属性）
+
+```csharp
+public IReadOnlyList<HostCpuThreadSnapshot> Threads { get; init; } = [];
+```
+
+宿主全部活动逻辑处理器的占用与归属明细，按物理逻辑编号升序排列。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 每个逻辑处理器对应一项，包含总数、宿主占比、已归属虚拟机份额及未细分来宾占比。 |
+| 修改对应 | 只读。运行时只读监控集合，不可写入。 |
+
+<a id="api-f097ac5e98a55c42"></a>
+
+##### 采样窗口时长（属性）
+
+```csharp
+public TimeSpan WindowDuration { get; init; }
+```
+
+本次占用快照所统计的时间窗口长度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 相邻两次采样或等待窗口的实际跨度；预热或无效帧可能为零。 |
+| 单位与表示 | TimeSpan 时间跨度。 |
+| 修改对应 | 只读。运行时采样间隔元数据，不可写入。 |
+
+<a id="api-4d9647f7817a37e4"></a>
+
+### `HostCpuThreadSnapshot` 类
+
+单个物理逻辑处理器在最近采样窗口内的总占用及按宿主／虚拟机划分的明细。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 处理器 |
+| 源文件 | ` Management/Host/Processor/HostCpuThreadModels.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public IReadOnlyList<HostCpuThreadConsumerUsage> Consumers { get; init; } = [] `](#api-ea51fe475fec34a8) | 该逻辑处理器上宿主机与各活跃虚拟机的占用明细列表。 |
+| [` public CpuCoreType CoreType { get; init; } `](#api-a0023abaf948e78b) | 混合架构处理器下的核心性能类别。 |
+| [` public int GroupProcessorIndex { get; init; } `](#api-b30dad95bdde179f) | 该逻辑处理器在其所属处理器组内的位号。 |
+| [` public float? HostUsagePercent { get; init; } `](#api-cff76b4b5a53daa2) | 宿主机系统与根分区在该逻辑处理器上的占用百分比（0 至 100）。 |
+| [` public int LogicalProcessorIndex { get; init; } `](#api-9c7c4752715cb8bf) | 宿主全局逻辑处理器编号（从 0 开始，与 Hyper-V Hv LP 及 ETW ProcessorIndex 一致）。 |
+| [` public int ProcessorGroup { get; init; } `](#api-6dc49a65f49d55a3) | 该逻辑处理器所属的 Windows 处理器组编号。 |
+| [` public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.NotSampled, default) `](#api-63389589e4823701) | 该逻辑处理器本次采样的有效性、观测时间与问题说明。 |
+| [` public float TotalUsagePercent { get; init; } `](#api-ec501c8b003b6c86) | 该逻辑处理器在采样窗口内的总使用率百分比（0 至 100）。 |
+| [` public float UnattributedGuestUsagePercent { get; init; } `](#api-ad161c40f3668e24) | 无法唯一拆分到单台虚拟机的来宾占用百分比（例如 Classic/Core 多虚拟机共享同一逻辑处理器时）。 |
+| [` public float UnattributedUsagePercent { get; init; } `](#api-950290f00b2c3f5f) | 已测得活动但无法确定属于宿主还是来宾的占比。 |
+
+#### 详细说明
+
+```csharp
+public sealed class HostCpuThreadSnapshot
+```
+
+#### 属性说明
+
+<a id="api-ea51fe475fec34a8"></a>
+
+##### 主体占用分布（属性）
+
+```csharp
+public IReadOnlyList<HostCpuThreadConsumerUsage> Consumers { get; init; } = [];
+```
+
+该逻辑处理器上宿主机与各活跃虚拟机的占用明细列表。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 包含宿主机与各已归属虚拟机的占用份额条目，所有条目 UsagePercent 与 UnattributedGuestUsagePercent 之和不超过 100。 |
+| 修改对应 | 只读。运行时只读采样集合，不可写入。 |
+
+<a id="api-a0023abaf948e78b"></a>
+
+##### 核心性能类别（属性）
+
+```csharp
+public CpuCoreType CoreType { get; init; }
+```
+
+混合架构处理器下的核心性能类别。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 根据宿主 EfficiencyClass 识别的性能核或能效核类型；同构核或未识别时为 Unknown。 |
+| 修改对应 | 只读。硬件拓扑只读属性，不可写入。 |
+
+<a id="api-b30dad95bdde179f"></a>
+
+##### 组内处理器位号（属性）
+
+```csharp
+public int GroupProcessorIndex { get; init; }
+```
+
+该逻辑处理器在其所属处理器组内的位号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | Windows 处理器组掩码中的 0 至 63 位索引。 |
+| 取值与默认 | 0 至 63 整数。 |
+| 修改对应 | 只读。硬件拓扑只读属性，不可写入。 |
+
+<a id="api-cff76b4b5a53daa2"></a>
+
+##### 宿主机占用百分比（属性）
+
+```csharp
+public float? HostUsagePercent { get; init; }
+```
+
+宿主机系统与根分区在该逻辑处理器上的占用百分比（0 至 100）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 已确认的宿主时间占比。无法分离宿主与来宾时为 null。 |
+| 单位与表示 | %（百分比，0 至 100）。 |
+| 修改对应 | 只读。运行时只读监控指标，不可直接写入。 |
+
+<a id="api-9c7c4752715cb8bf"></a>
+
+##### 逻辑处理器索引（属性）
+
+```csharp
+public int LogicalProcessorIndex { get; init; }
+```
+
+宿主全局逻辑处理器编号（从 0 开始，与 Hyper-V Hv LP 及 ETW ProcessorIndex 一致）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 按 Windows 活动处理器组顺序连续排布的全局 0 基逻辑处理器索引。 |
+| 单位与表示 | 从 0 开始的整数索引。 |
+| 修改对应 | 只读。硬件拓扑只读索引，不可写入。 |
+
+<a id="api-6dc49a65f49d55a3"></a>
+
+##### 处理器组号（属性）
+
+```csharp
+public int ProcessorGroup { get; init; }
+```
+
+该逻辑处理器所属的 Windows 处理器组编号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 多处理器组宿主机上的 Windows 处理器组号；单组宿主机固定为 0。 |
+| 单位与表示 | 从 0 开始的处理器组号。 |
+| 修改对应 | 只读。硬件拓扑只读属性，不可写入。 |
+
+<a id="api-63389589e4823701"></a>
+
+##### 核心采样状态（属性）
+
+```csharp
+public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.NotSampled, default);
+```
+
+该逻辑处理器本次采样的有效性、观测时间与问题说明。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 指示本核心样本是否已完成基线预热且数据有效；仅当 Sample.IsValid 为 true 时数值参与界面展示或统计。 |
+| 修改对应 | 只读。运行时只读采样元数据，不可写入。 |
+
+<a id="api-ec501c8b003b6c86"></a>
+
+##### 总使用率百分比（属性）
+
+```csharp
+public float TotalUsagePercent { get; init; }
+```
+
+该逻辑处理器在采样窗口内的总使用率百分比（0 至 100）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主机占比、已归属虚拟机占比及未细分来宾占比之和，经严格归一不超过 100。 |
+| 单位与表示 | %（百分比，0 至 100）。 |
+| 修改对应 | 只读。运行时只读监控指标，不可直接写入。 |
+
+<a id="api-ad161c40f3668e24"></a>
+
+##### 未细分来宾占用百分比（属性）
+
+```csharp
+public float UnattributedGuestUsagePercent { get; init; }
+```
+
+无法唯一拆分到单台虚拟机的来宾占用百分比（例如 Classic/Core 多虚拟机共享同一逻辑处理器时）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 性能计数器降级模式下可确定属于来宾虚拟机、但因多虚拟机共享核心而无法无歧义按虚拟机拆分的时间百分比。 |
+| 单位与表示 | %（百分比，0 至 100）。 |
+| 适用条件 | 使用 KernelContextSwitch 精确采集时通常为 0；Classic/Core 多机并发竞争同一核心时非零。 |
+| 修改对应 | 只读。运行时只读监控指标，不可直接写入。 |
+
+<a id="api-950290f00b2c3f5f"></a>
+
+##### 未归属占比（属性）
+
+```csharp
+public float UnattributedUsagePercent { get; init; }
+```
+
+已测得活动但无法确定属于宿主还是来宾的占比。
 
 <a id="api-4999a42e73dce6e6"></a>
 
@@ -3747,6 +4836,7 @@ public bool Restored { get; init; }
 | --- | --- |
 | [` public bool CanPassthrough { get; init; } `](#api-5ac578ba27641fe5) | 该磁盘是否可以进入直通前的进一步检查。 |
 | [` public string FriendlyName { get; init; } = string.Empty `](#api-053d1df35fd1010f) | 磁盘型号或友好名称。 |
+| [` public bool? IsOffline { get; init; } `](#api-d161d4fb56097c5c) | 磁盘实际脱机状态，未报告时为空。 |
 | [` public int Number { get; init; } `](#api-4eca52c525a05420) | Windows 为该磁盘分配的编号。 |
 | [` public Services.HostDiskReference Reference { get; } `](#api-5efe5d6c8a849a78) | 该磁盘的身份摘要，用于后续联机、只读和分区盘符修改。 |
 | [` public string SerialNumber { get; init; } = string.Empty `](#api-6a3a85fd2d5f0097) | 磁盘的硬件序列号。 |
@@ -3765,7 +4855,7 @@ public class HostDiskInfo
 
 <a id="api-5ac578ba27641fe5"></a>
 
-##### 直通候选资格 · 属性
+##### 直通候选资格（属性）
 
 ```csharp
 public bool CanPassthrough { get; init; }
@@ -3782,7 +4872,7 @@ public bool CanPassthrough { get; init; }
 
 <a id="api-053d1df35fd1010f"></a>
 
-##### 设备名称 · 属性
+##### 设备名称（属性）
 
 ```csharp
 public string FriendlyName { get; init; } = string.Empty;
@@ -3796,9 +4886,19 @@ public string FriendlyName { get; init; } = string.Empty;
 | --- | --- |
 | 详细含义 | 磁盘型号或友好名称。 |
 
+<a id="api-d161d4fb56097c5c"></a>
+
+##### 磁盘脱机状态（属性）
+
+```csharp
+public bool? IsOffline { get; init; }
+```
+
+磁盘实际脱机状态，未报告时为空。
+
 <a id="api-4eca52c525a05420"></a>
 
-##### 编号 · 属性
+##### 编号（属性）
 
 ```csharp
 public int Number { get; init; }
@@ -3815,7 +4915,7 @@ Windows 为该磁盘分配的编号。
 
 <a id="api-5efe5d6c8a849a78"></a>
 
-##### 身份引用 · 属性
+##### 身份引用（属性）
 
 ```csharp
 public Services.HostDiskReference Reference { get; }
@@ -3831,7 +4931,7 @@ public Services.HostDiskReference Reference { get; }
 
 <a id="api-6a3a85fd2d5f0097"></a>
 
-##### 序列号 · 属性
+##### 序列号（属性）
 
 ```csharp
 public string SerialNumber { get; init; } = string.Empty;
@@ -3848,7 +4948,7 @@ public string SerialNumber { get; init; } = string.Empty;
 
 <a id="api-2aeb9591a84bfc27"></a>
 
-##### 容量 · 属性
+##### 容量（属性）
 
 ```csharp
 public long SizeBytes { get; init; }
@@ -3865,7 +4965,7 @@ public long SizeBytes { get; init; }
 
 <a id="api-0610ab0863bf51f6"></a>
 
-##### 容量 · 属性
+##### 容量（属性）
 
 ```csharp
 public double SizeGiB { get; init; }
@@ -3882,7 +4982,7 @@ public double SizeGiB { get; init; }
 
 <a id="api-3a3337f1422acde5"></a>
 
-##### 执行状态 · 属性
+##### 执行状态（属性）
 
 ```csharp
 public string Status { get; init; } = string.Empty;
@@ -3899,7 +4999,7 @@ public string Status { get; init; } = string.Empty;
 
 <a id="api-3e55cc8acf07c4a9"></a>
 
-##### 唯一标识 · 属性
+##### 唯一标识（属性）
 
 ```csharp
 public string UniqueId { get; init; } = string.Empty;
@@ -3951,7 +5051,7 @@ public class HostGpuInfo
 
 <a id="api-e1ee4e8ca70cc78f"></a>
 
-##### 驱动版本 · 属性
+##### 驱动版本（属性）
 
 ```csharp
 public string DriverVersion { get; init; } = string.Empty;
@@ -3968,7 +5068,7 @@ public string DriverVersion { get; init; } = string.Empty;
 
 <a id="api-6df3f93066275072"></a>
 
-##### 设备实例标识 · 属性
+##### 设备实例标识（属性）
 
 ```csharp
 public string InstanceId { get; init; } = string.Empty;
@@ -3984,7 +5084,7 @@ public string InstanceId { get; init; } = string.Empty;
 
 <a id="api-79d05e2a353b1f39"></a>
 
-##### 支持 GPU 分区 · 属性
+##### 支持 GPU 分区（属性）
 
 ```csharp
 public bool IsPartitionable { get; }
@@ -4001,7 +5101,7 @@ public bool IsPartitionable { get; }
 
 <a id="api-be44e243c7ce20c1"></a>
 
-##### 制造商 · 属性
+##### 制造商（属性）
 
 ```csharp
 public string Manu { get; init; } = string.Empty;
@@ -4017,7 +5117,7 @@ public string Manu { get; init; } = string.Empty;
 
 <a id="api-49d88ae65e6ad164"></a>
 
-##### 专用显存容量 · 属性
+##### 专用显存容量（属性）
 
 ```csharp
 public ulong? MemoryBytes { get; set; }
@@ -4034,7 +5134,7 @@ GPU 的专用显存容量。
 
 <a id="api-b00e9a6e237303b8"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; init; } = string.Empty;
@@ -4050,7 +5150,7 @@ public string Name { get; init; } = string.Empty;
 
 <a id="api-0bbab15e5270b874"></a>
 
-##### 厂商 · 属性
+##### 厂商（属性）
 
 ```csharp
 public string Vendor { get; init; } = string.Empty;
@@ -4098,7 +5198,7 @@ public class HostOpticalDriveInfo
 
 <a id="api-44884fe943e7c151"></a>
 
-##### 盘符 · 属性
+##### 盘符（属性）
 
 ```csharp
 public string Drive { get; init; } = string.Empty;
@@ -4115,7 +5215,7 @@ public string Drive { get; init; } = string.Empty;
 
 <a id="api-88cdc9d34d8169aa"></a>
 
-##### 型号 · 属性
+##### 型号（属性）
 
 ```csharp
 public string Model { get; init; } = string.Empty;
@@ -4131,7 +5231,7 @@ public string Model { get; init; } = string.Empty;
 
 <a id="api-e3d943338e63f090"></a>
 
-##### PnP 设备标识 · 属性
+##### PnP 设备标识（属性）
 
 ```csharp
 public string PnpDeviceId { get; init; } = string.Empty;
@@ -4144,6 +5244,68 @@ public string PnpDeviceId { get; init; } = string.Empty;
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 物理光驱的 PnP 设备标识，用于第 1 代虚拟机的光驱直通。 |
+
+<a id="api-0b7bca920fae2662"></a>
+
+### `HyperVSwitchKind` 枚举
+
+Hyper-V 二层虚拟交换机的原生端口拓扑类型。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 网络 |
+| 源文件 | ` Management/Host/Network/SwitchInfo.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` External = 0 `](#api-82575fe61161e234) | 外部交换机（绑定物理外部端口）。 |
+| [` Internal = 1 `](#api-6cee980fea15bff1) | 内部交换机（无外部端口，有宿主机 vEthernet 内部端口）。 |
+| [` Private = 2 `](#api-64dde09cab977f29) | 专用交换机（无外部端口，也无宿主机内部端口）。 |
+
+#### 详细说明
+
+```csharp
+public enum HyperVSwitchKind
+```
+
+#### 枚举值说明
+
+<a id="api-82575fe61161e234"></a>
+
+##### External（枚举值）
+
+```csharp
+External = 0
+```
+
+外部交换机（绑定物理外部端口）。
+
+<a id="api-6cee980fea15bff1"></a>
+
+##### Internal（枚举值）
+
+```csharp
+Internal = 1
+```
+
+内部交换机（无外部端口，有宿主机 vEthernet 内部端口）。
+
+<a id="api-64dde09cab977f29"></a>
+
+##### Private（枚举值）
+
+```csharp
+Private = 2
+```
+
+专用交换机（无外部端口，也无宿主机内部端口）。
 
 <a id="api-6307fae9394bbacf"></a>
 
@@ -4180,7 +5342,7 @@ public enum L3DistributionPolicy : byte
 
 <a id="api-eefe799ccc12274a"></a>
 
-##### EvenLargeToSmall · 枚举值
+##### EvenLargeToSmall（枚举值）
 
 ```csharp
 EvenLargeToSmall = 3
@@ -4190,7 +5352,7 @@ EvenLargeToSmall = 3
 
 <a id="api-58c509426154efef"></a>
 
-##### EvenSmallToLarge · 枚举值
+##### EvenSmallToLarge（枚举值）
 
 ```csharp
 EvenSmallToLarge = 2
@@ -4200,7 +5362,7 @@ EvenSmallToLarge = 2
 
 <a id="api-d58b13abe44b7924"></a>
 
-##### LargeToSmall · 枚举值
+##### LargeToSmall（枚举值）
 
 ```csharp
 LargeToSmall = 1
@@ -4210,7 +5372,7 @@ LargeToSmall = 1
 
 <a id="api-7e695e8f54979bbe"></a>
 
-##### SmallToLarge · 枚举值
+##### SmallToLarge（枚举值）
 
 ```csharp
 SmallToLarge = 0
@@ -4261,7 +5423,7 @@ public class LinuxGpuDeploymentScript
 
 <a id="api-82aaa35075a853ad"></a>
 
-##### 脚本作者 · 属性
+##### 脚本作者（属性）
 
 ```csharp
 public string Author { get; set; } = "Unknown";
@@ -4271,7 +5433,7 @@ public string Author { get; set; } = "Unknown";
 
 <a id="api-cea4b182c216c82a"></a>
 
-##### 说明 · 属性
+##### 说明（属性）
 
 ```csharp
 public string Description { get; set; } = string.Empty;
@@ -4281,7 +5443,7 @@ public string Description { get; set; } = string.Empty;
 
 <a id="api-a4963c2d55c173bf"></a>
 
-##### 文件名 · 属性
+##### 文件名（属性）
 
 ```csharp
 public string FileName { get; set; } = string.Empty;
@@ -4291,7 +5453,7 @@ public string FileName { get; set; } = string.Empty;
 
 <a id="api-ad02cb35c0fe721a"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; set; } = "Unknown";
@@ -4301,7 +5463,7 @@ public string Name { get; set; } = "Unknown";
 
 <a id="api-2db21ea6cd4b1276"></a>
 
-##### 下载地址 · 属性
+##### 下载地址（属性）
 
 ```csharp
 public string SourceUrl { get; set; } = string.Empty;
@@ -4311,7 +5473,7 @@ public string SourceUrl { get; set; } = string.Empty;
 
 <a id="api-3dab3d350c3c2cc0"></a>
 
-##### 版本 · 属性
+##### 版本（属性）
 
 ```csharp
 public string Version { get; set; } = "1.0.0";
@@ -4323,7 +5485,7 @@ public string Version { get; set; } = "1.0.0";
 
 <a id="api-64b688add0b0794e"></a>
 
-##### 获取脚本名称 · 方法
+##### 获取脚本名称（方法）
 
 ```csharp
 public override string ToString();
@@ -4367,7 +5529,7 @@ public enum LpiMode : byte
 
 <a id="api-67262a7864d046aa"></a>
 
-##### Default · 枚举值
+##### Default（枚举值）
 
 ```csharp
 Default = 0
@@ -4377,7 +5539,7 @@ Default = 0
 
 <a id="api-6e9116bf6a8ec673"></a>
 
-##### Disabled · 枚举值
+##### Disabled（枚举值）
 
 ```csharp
 Disabled = 2
@@ -4387,7 +5549,7 @@ Disabled = 2
 
 <a id="api-b4d80506b6e2d029"></a>
 
-##### Enabled · 枚举值
+##### Enabled（枚举值）
 
 ```csharp
 Enabled = 3
@@ -4406,7 +5568,7 @@ Enabled = 3
 | 类型 | 枚举 |
 | 命名空间 | ` ExHyperV.Models ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析 |
+| 功能归属 | 管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析 |
 | 源文件 | ` Management/Tools/Partitions/DiskPartitionInfo.cs ` |
 
 #### 成员概览
@@ -4431,61 +5593,61 @@ public enum OperatingSystemType
 
 <a id="api-a84838fc7dcc78d2"></a>
 
-##### EFI · 枚举值
+##### EFI（枚举值）
 
 ```csharp
 EFI = 3
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 EFI 系统分区。
 
 <a id="api-4df4755551fd2b98"></a>
 
-##### Linux · 枚举值
+##### Linux（枚举值）
 
 ```csharp
 Linux = 2
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 分区类型是否属于 Linux 用途。
 
 <a id="api-9d2154baa3e11af8"></a>
 
-##### Other · 枚举值
+##### Other（枚举值）
 
 ```csharp
 Other = 4
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 已识别为其他用途的分区。
 
 <a id="api-8fde8b45b31e5e5d"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 0
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 未能识别系统类型。
 
 <a id="api-1b99c99e9b7b7261"></a>
 
-##### Windows · 枚举值
+##### Windows（枚举值）
 
 ```csharp
 Windows = 1
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 分区类型是否属于 Windows 数据分区。
 
@@ -4523,7 +5685,7 @@ public enum PageShatterMode : byte
 
 <a id="api-e0d5e335701dbb64"></a>
 
-##### AlwaysDisabled · 枚举值
+##### AlwaysDisabled（枚举值）
 
 ```csharp
 AlwaysDisabled = 2
@@ -4533,7 +5695,7 @@ AlwaysDisabled = 2
 
 <a id="api-33cb3876e957e269"></a>
 
-##### AlwaysEnabled · 枚举值
+##### AlwaysEnabled（枚举值）
 
 ```csharp
 AlwaysEnabled = 1
@@ -4543,7 +5705,7 @@ AlwaysEnabled = 1
 
 <a id="api-5f2ea6f506f16b80"></a>
 
-##### Default · 枚举值
+##### Default（枚举值）
 
 ```csharp
 Default = 0
@@ -4589,7 +5751,7 @@ public partial class PcieDeviceInfo
 
 <a id="api-e6315f7c1d691a07"></a>
 
-##### 当前归属 · 属性
+##### 当前归属（属性）
 
 ```csharp
 public PcieAssignmentTarget Assignment { get; set; }
@@ -4599,7 +5761,7 @@ public PcieAssignmentTarget Assignment { get; set; }
 
 <a id="api-8cf16802c6bcef3c"></a>
 
-##### 设备类别 · 属性
+##### 设备类别（属性）
 
 ```csharp
 public string ClassType { get; init; } = string.Empty;
@@ -4616,7 +5778,7 @@ Windows 驱动提供的 PnP 设备类别，用于设备类型判断。
 
 <a id="api-eb1caba95827d988"></a>
 
-##### 显示类别 · 属性
+##### 显示类别（属性）
 
 ```csharp
 public string DisplayClassType { get; init; } = string.Empty;
@@ -4632,7 +5794,7 @@ public string DisplayClassType { get; init; } = string.Empty;
 
 <a id="api-125d55e58d165a64"></a>
 
-##### 设备名称 · 属性
+##### 设备名称（属性）
 
 ```csharp
 public string FriendlyName { get; init; } = string.Empty;
@@ -4648,7 +5810,7 @@ PCIe 设备的友好名称。
 
 <a id="api-2996d719dac0c695"></a>
 
-##### 设备实例标识 · 属性
+##### 设备实例标识（属性）
 
 ```csharp
 public string InstanceId { get; init; } = string.Empty;
@@ -4664,7 +5826,7 @@ PCIe 设备的 PnP 实例标识，用于核对设备身份。
 
 <a id="api-5777150ec481d057"></a>
 
-##### 路径 · 属性
+##### 路径（属性）
 
 ```csharp
 public string Path { get; init; } = string.Empty;
@@ -4680,7 +5842,7 @@ DDA 分配使用的 PCIe 位置路径。操作时与同次查询的 InstanceId �
 
 <a id="api-5d9fa510299579b6"></a>
 
-##### 厂商 · 属性
+##### 厂商（属性）
 
 ```csharp
 public string Vendor { get; init; } = string.Empty;
@@ -4743,7 +5905,7 @@ public sealed record PerformanceSampleInfo(PerformanceSampleState State, DateTim
 
 <a id="api-c89fb22626b1f917"></a>
 
-##### 创建采样信息对象 · 主构造器
+##### 创建采样信息对象（主构造器）
 
 ```csharp
 public PerformanceSampleInfo(PerformanceSampleState State, DateTimeOffset ObservedAtUtc, string? Error = null);
@@ -4759,7 +5921,7 @@ public PerformanceSampleInfo(PerformanceSampleState State, DateTimeOffset Observ
 
 <a id="api-99f079c50eb91fb6"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -4769,7 +5931,7 @@ public string? Error { get; init; }
 
 <a id="api-8e446d0baa5bf74a"></a>
 
-##### 样本有效状态 · 属性
+##### 样本有效状态（属性）
 
 ```csharp
 public bool IsValid { get; }
@@ -4779,7 +5941,7 @@ public bool IsValid { get; }
 
 <a id="api-2cad823d169c9752"></a>
 
-##### 观测时间 · record 属性
+##### 观测时间（record 属性）
 
 ```csharp
 public DateTimeOffset ObservedAtUtc { get; init; }
@@ -4789,7 +5951,7 @@ public DateTimeOffset ObservedAtUtc { get; init; }
 
 <a id="api-86d39ff514b16abf"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public PerformanceSampleState State { get; init; }
@@ -4836,7 +5998,7 @@ public enum PerformanceSampleState
 
 <a id="api-e35de8616f80c022"></a>
 
-##### Ambiguous · 枚举值
+##### Ambiguous（枚举值）
 
 ```csharp
 Ambiguous = 6
@@ -4846,7 +6008,7 @@ Ambiguous = 6
 
 <a id="api-881696474e67a39a"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 5
@@ -4856,7 +6018,7 @@ Failed = 5
 
 <a id="api-f6f86ddebe2ffcc3"></a>
 
-##### NotApplicable · 枚举值
+##### NotApplicable（枚举值）
 
 ```csharp
 NotApplicable = 7
@@ -4866,7 +6028,7 @@ NotApplicable = 7
 
 <a id="api-2720bce2d8ae8cbb"></a>
 
-##### NotSampled · 枚举值
+##### NotSampled（枚举值）
 
 ```csharp
 NotSampled = 0
@@ -4876,7 +6038,7 @@ NotSampled = 0
 
 <a id="api-34031c465c7651a6"></a>
 
-##### Unavailable · 枚举值
+##### Unavailable（枚举值）
 
 ```csharp
 Unavailable = 3
@@ -4886,7 +6048,7 @@ Unavailable = 3
 
 <a id="api-ba261b4cb89dd7f3"></a>
 
-##### Unsupported · 枚举值
+##### Unsupported（枚举值）
 
 ```csharp
 Unsupported = 4
@@ -4896,7 +6058,7 @@ Unsupported = 4
 
 <a id="api-b726b901aa54b577"></a>
 
-##### Valid · 枚举值
+##### Valid（枚举值）
 
 ```csharp
 Valid = 1
@@ -4906,7 +6068,7 @@ Valid = 1
 
 <a id="api-ae93fd02dbf9073d"></a>
 
-##### WarmingUp · 枚举值
+##### WarmingUp（枚举值）
 
 ```csharp
 WarmingUp = 2
@@ -4948,7 +6110,7 @@ public enum PortMonitorMode
 
 <a id="api-8ba1df1a0da7097b"></a>
 
-##### Destination · 枚举值
+##### Destination（枚举值）
 
 ```csharp
 Destination = 1
@@ -4958,7 +6120,7 @@ Destination = 1
 
 <a id="api-315e67596c8d9837"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -4968,7 +6130,7 @@ None = 0
 
 <a id="api-29705aa8cd7d5da3"></a>
 
-##### Source · 枚举值
+##### Source（枚举值）
 
 ```csharp
 Source = 2
@@ -5011,7 +6173,7 @@ public enum PvlanMode
 
 <a id="api-3dfe0683881265f9"></a>
 
-##### Community · 枚举值
+##### Community（枚举值）
 
 ```csharp
 Community = 2
@@ -5021,7 +6183,7 @@ Community = 2
 
 <a id="api-b72bdb0c9d3ccec7"></a>
 
-##### Isolated · 枚举值
+##### Isolated（枚举值）
 
 ```csharp
 Isolated = 1
@@ -5031,7 +6193,7 @@ Isolated = 1
 
 <a id="api-f81b74c1a6789556"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -5041,7 +6203,7 @@ None = 0
 
 <a id="api-9f86cb19fcfdb666"></a>
 
-##### Promiscuous · 枚举值
+##### Promiscuous（枚举值）
 
 ```csharp
 Promiscuous = 3
@@ -5083,7 +6245,7 @@ public enum SmtMode
 
 <a id="api-0a82765575155f03"></a>
 
-##### Inherit · 枚举值
+##### Inherit（枚举值）
 
 ```csharp
 Inherit = 0
@@ -5093,7 +6255,7 @@ Inherit = 0
 
 <a id="api-a383e3edcdbb5655"></a>
 
-##### MultiThread · 枚举值
+##### MultiThread（枚举值）
 
 ```csharp
 MultiThread = 2
@@ -5103,294 +6265,13 @@ MultiThread = 2
 
 <a id="api-c44b6b261989219a"></a>
 
-##### SingleThread · 枚举值
+##### SingleThread（枚举值）
 
 ```csharp
 SingleThread = 1
 ```
 
 每个核心呈现一个线程。
-
-<a id="api-ce8c1d96a58120c3"></a>
-
-### `SpacetimeMode` 枚举
-
-检查点时间线的保存模式。
-
-| 项目 | 内容 |
-| --- | --- |
-| 类型 | 枚举 |
-| 命名空间 | ` ExHyperV.Models ` |
-| 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
-| 源文件 | ` Management/VirtualMachines/Checkpoints/SpacetimeNode.cs ` |
-
-#### 成员概览
-
-**枚举值**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` Continuous = 0 `](#api-feeec56701ff09f6) | 连续模式，保留运行状态的检查点流程。 |
-| [` Still = 1 `](#api-caa11789606f0ad7) | 静态模式，Running 状态下请求生产检查点；其他状态请求标准检查点。 |
-
-#### 详细说明
-
-```csharp
-public enum SpacetimeMode
-```
-
-#### 枚举值说明
-
-<a id="api-feeec56701ff09f6"></a>
-
-##### Continuous · 枚举值
-
-```csharp
-Continuous = 0
-```
-
-连续模式，保留运行状态的检查点流程。
-
-<a id="api-caa11789606f0ad7"></a>
-
-##### Still · 枚举值
-
-```csharp
-Still = 1
-```
-
-静态模式，Running 状态下请求生产检查点；其他状态请求标准检查点。不支持快照的磁盘可被生产检查点跳过。
-
-<a id="api-f48a66d9c8bc043c"></a>
-
-### `SpacetimeNode` 类
-
-检查点时间线节点。
-
-| 项目 | 内容 |
-| --- | --- |
-| 类型 | 类 |
-| 命名空间 | ` ExHyperV.Models ` |
-| 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
-| 源文件 | ` Management/VirtualMachines/Checkpoints/SpacetimeNode.cs ` |
-
-#### 成员概览
-
-**属性**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public DateTime CreatedDate { get; set; } `](#api-932c968f1ac54dcf) | 检查点的本地创建时间；Genesis 为推算的时间线起点，Current 为本次读取时间。 |
-| [` public string Id { get; set; } = string.Empty `](#api-17d81ba7ab599f82) | 检查点 GUID 文本或 GenesisId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。 |
-| [` public bool IsCurrent { get; set; } `](#api-9d1b99c00bdf6fad) | 是否标记为当前时间线位置；Current 节点和它的直接父节点都会为 true，因此并非唯一选中标记。 |
-| [` public bool IsLogicalNode { get; } `](#api-eb108cfa9afe1887) | 是否为起点或当前状态逻辑节点；这两类节点不能作为真实检查点修改。 |
-| [` public bool IsWormhole { get; } `](#api-bf15766522ba1990) | 查询或操作后确认的历史磁盘挂接状态；由 Core 更新。 |
-| [` public string Name { get; set; } `](#api-0aaa96d0bd2e9e58) | 节点当前显示名称。 |
-| [` public SpacetimeNodeType NodeType { get; set; } `](#api-82f5beda720ce938) | 真实检查点、起点或当前状态节点的分类。 |
-| [` public string? ParentId { get; set; } `](#api-5db1f83c52702bb5) | 父节点标识；null 表示没有父节点。 |
-| [` public VmScreenshotImage? Thumbnail { get; set; } `](#api-3ed86ee615e47c27) | 节点缩略图；null 表示未提供图像。 |
-| [` public string VhdPath { get; set; } = string.Empty `](#api-aa7e0d0c9f6b696c) | 查询选出的一个磁盘文件路径，可能为 .avhdx，用于历史磁盘挂接。 |
-
-**字段与常量**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public const string CurrentId = "CURRENT_RUNNING" `](#api-a6aa469e86953d7d) | 当前运行位置的固定逻辑标识 CURRENT\_RUNNING。 |
-| [` public const string GenesisId = "GENESIS_ROOT" `](#api-f453bbc87541f296) | 时间线起点的固定逻辑标识 GENESIS\_ROOT。 |
-
-#### 详细说明
-
-```csharp
-public partial class SpacetimeNode
-```
-
-#### 属性说明
-
-<a id="api-932c968f1ac54dcf"></a>
-
-##### 创建时间 · 属性
-
-```csharp
-public DateTime CreatedDate { get; set; }
-```
-
-检查点的本地创建时间；Genesis 为推算的时间线起点，Current 为本次读取时间。
-
-<a id="api-17d81ba7ab599f82"></a>
-
-##### 标识 · 属性
-
-```csharp
-public string Id { get; set; } = string.Empty;
-```
-
-检查点 GUID 文本或 GenesisId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。
-
-<a id="api-9d1b99c00bdf6fad"></a>
-
-##### 当前时间线标记 · 属性
-
-```csharp
-public bool IsCurrent { get; set; }
-```
-
-是否标记为当前时间线位置；Current 节点和它的直接父节点都会为 true，因此并非唯一选中标记。
-
-<a id="api-eb108cfa9afe1887"></a>
-
-##### 逻辑节点 · 属性
-
-```csharp
-public bool IsLogicalNode { get; }
-```
-
-是否为起点或当前状态逻辑节点；这两类节点不能作为真实检查点修改。
-
-<a id="api-bf15766522ba1990"></a>
-
-##### 历史磁盘挂接状态 · 属性
-
-```csharp
-public bool IsWormhole { get; }
-```
-
-查询或操作后确认的历史磁盘挂接状态；由 Core 更新。
-
-<a id="api-0aaa96d0bd2e9e58"></a>
-
-##### 名称 · 属性
-
-```csharp
-public string Name { get; set; }
-```
-
-节点当前显示名称。
-
-<a id="api-82f5beda720ce938"></a>
-
-##### 节点类型 · 属性
-
-```csharp
-public SpacetimeNodeType NodeType { get; set; }
-```
-
-真实检查点、起点或当前状态节点的分类。
-
-<a id="api-5db1f83c52702bb5"></a>
-
-##### 父节点标识 · 属性
-
-```csharp
-public string? ParentId { get; set; }
-```
-
-父节点标识；null 表示没有父节点。
-
-<a id="api-3ed86ee615e47c27"></a>
-
-##### 缩略图 · 属性
-
-```csharp
-public VmScreenshotImage? Thumbnail { get; set; }
-```
-
-节点缩略图；null 表示未提供图像。
-
-<a id="api-aa7e0d0c9f6b696c"></a>
-
-##### 虚拟磁盘路径 · 属性
-
-```csharp
-public string VhdPath { get; set; } = string.Empty;
-```
-
-查询选出的一个磁盘文件路径，可能为 .avhdx，用于历史磁盘挂接。
-
-#### 字段与常量说明
-
-<a id="api-a6aa469e86953d7d"></a>
-
-##### 当前状态节点标识 · 字段
-
-```csharp
-public const string CurrentId = "CURRENT_RUNNING";
-```
-
-当前运行位置的固定逻辑标识 CURRENT_RUNNING。
-
-<a id="api-f453bbc87541f296"></a>
-
-##### 时间线起点标识 · 字段
-
-```csharp
-public const string GenesisId = "GENESIS_ROOT";
-```
-
-时间线起点的固定逻辑标识 GENESIS_ROOT。
-
-<a id="api-390bb40cb297f1fa"></a>
-
-### `SpacetimeNodeType` 枚举
-
-时间线节点代表的对象种类。
-
-| 项目 | 内容 |
-| --- | --- |
-| 类型 | 枚举 |
-| 命名空间 | ` ExHyperV.Models ` |
-| 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
-| 源文件 | ` Management/VirtualMachines/Checkpoints/SpacetimeNode.cs ` |
-
-#### 成员概览
-
-**枚举值**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` Current = 2 `](#api-9461d3306ccc1b2e) | 时间线中标记当前运行位置的逻辑节点。 |
-| [` Genesis = 0 `](#api-d071ef197ec4fab6) | 时间线的逻辑起点。 |
-| [` Snapshot = 1 `](#api-72c5f4410ce7196c) | 可操作的真实检查点。 |
-
-#### 详细说明
-
-```csharp
-public enum SpacetimeNodeType
-```
-
-#### 枚举值说明
-
-<a id="api-9461d3306ccc1b2e"></a>
-
-##### Current · 枚举值
-
-```csharp
-Current = 2
-```
-
-时间线中标记当前运行位置的逻辑节点。
-
-<a id="api-d071ef197ec4fab6"></a>
-
-##### Genesis · 枚举值
-
-```csharp
-Genesis = 0
-```
-
-时间线的逻辑起点。
-
-<a id="api-72c5f4410ce7196c"></a>
-
-##### Snapshot · 枚举值
-
-```csharp
-Snapshot = 1
-```
-
-可操作的真实检查点。
 
 <a id="api-86effeea9b57e0d7"></a>
 
@@ -5431,7 +6312,7 @@ public class SshCredentials
 
 <a id="api-ad6f7b1fbd4a77df"></a>
 
-##### 目标地址 · 属性
+##### 目标地址（属性）
 
 ```csharp
 public string Host { get; set; } = string.Empty;
@@ -5441,7 +6322,7 @@ public string Host { get; set; } = string.Empty;
 
 <a id="api-f463d62aea11f1a2"></a>
 
-##### 安装图形支持 · 属性
+##### 安装图形支持（属性）
 
 ```csharp
 public bool InstallGraphics { get; set; } = true;
@@ -5451,7 +6332,7 @@ public bool InstallGraphics { get; set; } = true;
 
 <a id="api-18a69273299857fe"></a>
 
-##### 密码 · 属性
+##### 密码（属性）
 
 ```csharp
 public string Password { get; set; } = string.Empty;
@@ -5461,7 +6342,7 @@ SSH 密码及部署所需的 sudo 密码；由调用方安全保管，不应写�
 
 <a id="api-ecd19ab0f5676244"></a>
 
-##### 端口 · 属性
+##### 端口（属性）
 
 ```csharp
 public int Port { get; set; }
@@ -5471,7 +6352,7 @@ SSH 端口，范围 1 至 65535。
 
 <a id="api-b66aa8be0396a7f6"></a>
 
-##### 代理地址 · 属性
+##### 代理地址（属性）
 
 ```csharp
 public string? ProxyHost { get; set; }
@@ -5481,7 +6362,7 @@ public string? ProxyHost { get; set; }
 
 <a id="api-399c8b9059b36aec"></a>
 
-##### 代理端口 · 属性
+##### 代理端口（属性）
 
 ```csharp
 public int? ProxyPort { get; set; }
@@ -5491,7 +6372,7 @@ HTTP 代理端口；不启用代理时可为 null。
 
 <a id="api-c45ebfc6500fefe2"></a>
 
-##### 启用代理 · 属性
+##### 启用代理（属性）
 
 ```csharp
 public bool UseProxy { get; set; }
@@ -5501,7 +6382,7 @@ public bool UseProxy { get; set; }
 
 <a id="api-f686e697e9e0aaa3"></a>
 
-##### 用户名 · 属性
+##### 用户名（属性）
 
 ```csharp
 public string Username { get; set; } = string.Empty;
@@ -5530,6 +6411,7 @@ public string Username { get; set; } = string.Empty;
 | 成员 | 说明 |
 | --- | --- |
 | [` public string IpAddress { get; set; } = string.Empty `](#api-d4bc1493450d5098) | 从已取得的地址中选出的端点 IPv4 地址。 |
+| [` public bool IsManagementOs { get; init; } `](#api-214677fc4fbc3b90) | 该端点是否为管理操作系统端口。 |
 | [` public string MacAddress { get; set; } = string.Empty `](#api-dce2f0a6b8e68881) | 交换机端点的 MAC 地址。 |
 | [` public string Name { get; set; } = string.Empty `](#api-391ceb9ea467d698) | 接入交换机的虚拟机名称或宿主管理操作系统名称。 |
 
@@ -5543,7 +6425,7 @@ public class SwitchEndpointInfo
 
 <a id="api-d4bc1493450d5098"></a>
 
-##### IP 地址 · 属性
+##### IP 地址（属性）
 
 ```csharp
 public string IpAddress { get; set; } = string.Empty;
@@ -5558,9 +6440,19 @@ public string IpAddress { get; set; } = string.Empty;
 | 详细含义 | 从已取得的地址中选出的端点 IPv4 地址。 |
 | 取值与默认 | IPv4 地址文本，例如 192.168.1.10；未取得时为空字符串。 |
 
+<a id="api-214677fc4fbc3b90"></a>
+
+##### 宿主管理系统端口（属性）
+
+```csharp
+public bool IsManagementOs { get; init; }
+```
+
+该端点是否为管理操作系统端口。
+
 <a id="api-dce2f0a6b8e68881"></a>
 
-##### MAC 地址 · 属性
+##### MAC 地址（属性）
 
 ```csharp
 public string MacAddress { get; set; } = string.Empty;
@@ -5576,7 +6468,7 @@ public string MacAddress { get; set; } = string.Empty;
 
 <a id="api-391ceb9ea467d698"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; set; } = string.Empty;
@@ -5594,7 +6486,7 @@ public string Name { get; set; } = string.Empty;
 
 ### `SwitchInfo` 类
 
-虚拟交换机的连接模式、上游网卡与宿主接入状态。
+虚拟交换机的连接模式、L2 类型、宿主 NAT 引擎、上游网卡与宿主接入状态。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -5612,9 +6504,12 @@ public string Name { get; set; } = string.Empty;
 | --- | --- |
 | [` public bool AllowManagementOS { get; init; } `](#api-f66af83af4474e53) | 宿主是否通过内部端口接入该交换机。 |
 | [` public string Id { get; init; } = string.Empty `](#api-4954dc10325e1ac2) | 虚拟交换机的唯一标识，用于查询和修改交换机。 |
+| [` public SwitchNatEngine NatEngine { get; init; } `](#api-4be007fa2265633e) | 附着在 Internal 交换机宿主端口上的三层 NAT 引擎。 |
 | [` public string? StateError { get; init; } `](#api-62ff4d69c0c5a24f) | 本次查询或识别交换机状态时的错误。 |
+| [` public string? SubnetPrefix { get; init; } `](#api-5372b0e52b62cf8d) | 宿主 NAT 或内部网关对应的 IPv4 子网前缀（例如 172.30.240.0/20 或 192.168.137.0/24）。 |
+| [` public HyperVSwitchKind SwitchKind { get; init; } `](#api-4acf6def29cf148b) | Hyper-V 原生二层交换机骨架类型（External / Internal / Private）。 |
 | [` public string SwitchName { get; init; } = string.Empty `](#api-c60ae6f392da42db) | 虚拟交换机的显示名称。 |
-| [` public SwitchMode SwitchType { get; init; } `](#api-1d4a2ead57e1b5b9) | 按物理上联和 ICS 共享关系识别的交换机模式。 |
+| [` public SwitchMode SwitchType { get; init; } `](#api-1d4a2ead57e1b5b9) | 按物理上联和宿主 NAT 关系识别的交换机模式。 |
 | [` public SwitchUpstreamAdapter? Upstream { get; init; } `](#api-bbc6b7edd6b75f00) | 交换机使用的宿主上游网卡。 |
 
 #### 详细说明
@@ -5627,7 +6522,7 @@ public class SwitchInfo
 
 <a id="api-f66af83af4474e53"></a>
 
-##### 宿主接入 · 属性
+##### 宿主接入（属性）
 
 ```csharp
 public bool AllowManagementOS { get; init; }
@@ -5644,7 +6539,7 @@ public bool AllowManagementOS { get; init; }
 
 <a id="api-4954dc10325e1ac2"></a>
 
-##### 标识 · 属性
+##### 标识（属性）
 
 ```csharp
 public string Id { get; init; } = string.Empty;
@@ -5659,9 +6554,26 @@ public string Id { get; init; } = string.Empty;
 | 详细含义 | 虚拟交换机的唯一标识，用于查询和修改交换机。 |
 | 取值与默认 | GUID 字符串。 |
 
+<a id="api-4be007fa2265633e"></a>
+
+##### 宿主三层 NAT 引擎（属性）
+
+```csharp
+public SwitchNatEngine NatEngine { get; init; }
+```
+
+附着在 Internal 交换机宿主端口上的三层 NAT 引擎。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 附着在内部交换机宿主端口上的三层 NAT 转发引擎类型。 |
+| 取值与默认 | None：未启用 NAT；HcnManaged：系统托管 HCN/HNS；WinNat：Windows 内核 WinNAT；IcsShared：传统 Internet 连接共享。 |
+
 <a id="api-62ff4d69c0c5a24f"></a>
 
-##### 状态读取错误 · 属性
+##### 状态读取错误（属性）
 
 ```csharp
 public string? StateError { get; init; }
@@ -5676,9 +6588,43 @@ public string? StateError { get; init; }
 | 详细含义 | 本次查询或识别交换机状态时的错误。 |
 | 取值与默认 | 错误说明；未记录错误时为 null。 |
 
+<a id="api-5372b0e52b62cf8d"></a>
+
+##### 子网前缀（属性）
+
+```csharp
+public string? SubnetPrefix { get; init; }
+```
+
+宿主 NAT 或内部网关对应的 IPv4 子网前缀（例如 172.30.240.0/20 或 192.168.137.0/24）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主 NAT 或内部网关对应的 IPv4 CIDR 子网前缀。 |
+| 取值与默认 | IPv4 CIDR 前缀文本，例如 172.30.240.0/20；无关联子网或未解析时为 null。 |
+
+<a id="api-4acf6def29cf148b"></a>
+
+##### 二层拓扑类型（属性）
+
+```csharp
+public HyperVSwitchKind SwitchKind { get; init; }
+```
+
+Hyper-V 原生二层交换机骨架类型（External / Internal / Private）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | Hyper-V 原生二层虚拟交换机的端口拓扑类型。 |
+| 取值与默认 | External：外部交换机；Internal：内部交换机；Private：专用交换机。 |
+
 <a id="api-c60ae6f392da42db"></a>
 
-##### 交换机名称 · 属性
+##### 交换机名称（属性）
 
 ```csharp
 public string SwitchName { get; init; } = string.Empty;
@@ -5694,23 +6640,23 @@ public string SwitchName { get; init; } = string.Empty;
 
 <a id="api-1d4a2ead57e1b5b9"></a>
 
-##### 交换机类型 · 属性
+##### 交换机类型（属性）
 
 ```csharp
 public SwitchMode SwitchType { get; init; }
 ```
 
-按物理上联和 ICS 共享关系识别的交换机模式。StateError 非空时表示本次识别未完整成功。
+按物理上联和宿主 NAT 关系识别的交换机模式。StateError 非空时表示本次识别未完整成功。
 
 **字段说明**
 
 | 项目 | 说明 |
 | --- | --- |
-| 详细含义 | 按物理上联和 ICS 共享关系识别的交换机模式。StateError 非空时表示本次识别未完整成功。 |
+| 详细含义 | 按物理上联和宿主 NAT 关系识别的交换机模式。StateError 非空时表示本次识别未完整成功。 |
 
 <a id="api-bbc6b7edd6b75f00"></a>
 
-##### 上游网卡 · 属性
+##### 上游网卡（属性）
 
 ```csharp
 public SwitchUpstreamAdapter? Upstream { get; init; }
@@ -5729,7 +6675,7 @@ public SwitchUpstreamAdapter? Upstream { get; init; }
 
 ### `SwitchMode` 枚举
 
-Hyper-V 交换机的桥接、ICS NAT 和隔离配置模式。
+Hyper-V 交换机的桥接、NAT 和隔离配置模式。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -5746,8 +6692,8 @@ Hyper-V 交换机的桥接、ICS NAT 和隔离配置模式。
 | 成员 | 说明 |
 | --- | --- |
 | [` Bridge = 0 `](#api-c617f86e50342086) | 外部桥接模式，通过宿主物理网卡连接上游。 |
-| [` Isolated = 2 `](#api-050d88a50556b856) | 未识别到外部端口或经典 ICS 共享。 |
-| [` NAT = 1 `](#api-7126e5e20379cd04) | 内部交换机配合 ICS 共享的模式。 |
+| [` Isolated = 2 `](#api-050d88a50556b856) | 未连接外部端口且未启用宿主 NAT 共享的内部或专用网络。 |
+| [` NAT = 1 `](#api-7126e5e20379cd04) | 内部交换机配合宿主 L3 NAT（HCN / WinNAT / ICS）共享的模式。 |
 
 #### 详细说明
 
@@ -5759,7 +6705,7 @@ public enum SwitchMode
 
 <a id="api-c617f86e50342086"></a>
 
-##### Bridge · 枚举值
+##### Bridge（枚举值）
 
 ```csharp
 Bridge = 0
@@ -5769,29 +6715,102 @@ Bridge = 0
 
 <a id="api-050d88a50556b856"></a>
 
-##### Isolated · 枚举值
+##### Isolated（枚举值）
 
 ```csharp
 Isolated = 2
 ```
 
-未识别到外部端口或经典 ICS 共享。
+未连接外部端口且未启用宿主 NAT 共享的内部或专用网络。
 
 <a id="api-7126e5e20379cd04"></a>
 
-##### NAT · 枚举值
+##### NAT（枚举值）
 
 ```csharp
 NAT = 1
 ```
 
-内部交换机配合 ICS 共享的模式。
+内部交换机配合宿主 L3 NAT（HCN / WinNAT / ICS）共享的模式。
+
+<a id="api-8983f1ecf07dda46"></a>
+
+### `SwitchNatEngine` 枚举
+
+附着在内部虚拟交换机宿主端口上的三层 NAT 转发引擎类型。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 网络 |
+| 源文件 | ` Management/Host/Network/SwitchInfo.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` HcnManaged = 1 `](#api-921036f8d2a00278) | 由 HCN/HNS 托管的系统 NAT / 动态 ICS（例如 Default Switch）。 |
+| [` IcsShared = 3 `](#api-189850f9229014d0) | 传统 Internet 连接共享（HNetCfg.HNetShare COM）。 |
+| [` None = 0 `](#api-b6a7960c0150e2f8) | 未启用三层 NAT 转发（纯内网或外部二层桥接）。 |
+| [` WinNat = 2 `](#api-1a1bd4546812169f) | Windows 内核 WinNAT 引擎（MSFT\_NetNat）。 |
+
+#### 详细说明
+
+```csharp
+public enum SwitchNatEngine
+```
+
+#### 枚举值说明
+
+<a id="api-921036f8d2a00278"></a>
+
+##### HcnManaged（枚举值）
+
+```csharp
+HcnManaged = 1
+```
+
+由 HCN/HNS 托管的系统 NAT / 动态 ICS（例如 Default Switch）。
+
+<a id="api-189850f9229014d0"></a>
+
+##### IcsShared（枚举值）
+
+```csharp
+IcsShared = 3
+```
+
+传统 Internet 连接共享（HNetCfg.HNetShare COM）。
+
+<a id="api-b6a7960c0150e2f8"></a>
+
+##### None（枚举值）
+
+```csharp
+None = 0
+```
+
+未启用三层 NAT 转发（纯内网或外部二层桥接）。
+
+<a id="api-1a1bd4546812169f"></a>
+
+##### WinNat（枚举值）
+
+```csharp
+WinNat = 2
+```
+
+Windows 内核 WinNAT 引擎（MSFT_NetNat）。
 
 <a id="api-2cff6962c24db25a"></a>
 
 ### `SwitchUpstreamAdapter` record 类
 
-可用的上游物理网卡；使用连接 GUID 和设备标识匹配，不依赖显示名称。
+可用的上游网络适配器；使用连接 GUID 和设备标识匹配，不依赖显示名称。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -5813,11 +6832,17 @@ NAT = 1
 
 | 成员 | 说明 |
 | --- | --- |
+| [` public bool CanBridge { get; } `](#api-4a73c418292a378e) | 是否具备 Hyper-V 外部虚拟交换机二层桥接端口。 |
 | [` public Guid ConnectionId { get; init; } `](#api-629d62da86181cd4) | 宿主网络连接 GUID，供连接及共享接口识别。 |
+| [` public string? ConnectionProfileName { get; init; } `](#api-2a0c3e578d01eb54) | 当前连接网络配置文件名称（例如 Wi-Fi SSID 或蜂窝运营商名称）。 |
 | [` public string Description { get; init; } `](#api-1d1862665f1f0b57) | 网卡设备描述。 |
 | [` public string DeviceId { get; init; } `](#api-56d4170ac9f0a1c0) | 宿主网络设备标识。 |
 | [` public string DisplayName { get; } `](#api-9ee78044447f5418) | 设备描述与连接名称组合的显示文本，不用于设备匹配。 |
-| [` public bool LinkUp { get; init; } `](#api-6127b9d4cee1b451) | 查询时物理链路是否已连接。 |
+| [` public bool HasInternetAccess { get; init; } `](#api-b8a8d15d10520a6f) | 系统当前检测到的 IPv4 或 IPv6 外网连通状态。 |
+| [` public bool IsMetered { get; } `](#api-f3fd7d12a52515e9) | 是否为按流量计费的蜂窝移动连接。 |
+| [` public ulong? LinkSpeed { get; init; } `](#api-4d8ab56189b5916f) | 网卡当前链路速率（bps，来自 MSFT\_NetAdapter.Speed；未知时为 null）。 |
+| [` public bool LinkUp { get; init; } `](#api-6127b9d4cee1b451) | 查询时物理或隧道链路是否已连接。 |
+| [` public AdapterMediaKind MediaKind { get; init; } = AdapterMediaKind.Wired `](#api-ecf25388bf7cd3db) | 适配器底层介质类型。 |
 | [` public string Name { get; init; } `](#api-b5e0b714991bfd8e) | 用户可修改的连接显示名称。 |
 
 **方法**
@@ -5839,7 +6864,7 @@ public sealed record SwitchUpstreamAdapter(Guid ConnectionId, string DeviceId, s
 | `DeviceId` | 宿主网络设备标识。 |
 | `Description` | 网卡设备描述。 |
 | `Name` | 用户可修改的连接显示名称。 |
-| `LinkUp` | 查询时物理链路是否已连接。 |
+| `LinkUp` | 查询时物理或隧道链路是否已连接。 |
 
 调用约定：桥接修改须使用当前查询返回的实例，其中还保存了桥接所需的端口身份；通过公开构造器重建或反序列化的实例不包含该信息。
 
@@ -5847,7 +6872,7 @@ public sealed record SwitchUpstreamAdapter(Guid ConnectionId, string DeviceId, s
 
 <a id="api-eabc9bf38dc02491"></a>
 
-##### 创建交换机上游网卡对象 · 主构造器
+##### 创建交换机上游网卡对象（主构造器）
 
 ```csharp
 public SwitchUpstreamAdapter(Guid ConnectionId, string DeviceId, string Description, string Name, bool LinkUp);
@@ -5859,13 +6884,30 @@ public SwitchUpstreamAdapter(Guid ConnectionId, string DeviceId, string Descript
 | `DeviceId` | 宿主网络设备标识。 |
 | `Description` | 网卡设备描述。 |
 | `Name` | 用户可修改的连接显示名称。 |
-| `LinkUp` | 查询时物理链路是否已连接。 |
+| `LinkUp` | 查询时物理或隧道链路是否已连接。 |
 
 #### 属性说明
 
+<a id="api-4a73c418292a378e"></a>
+
+##### 支持二层桥接（属性）
+
+```csharp
+public bool CanBridge { get; }
+```
+
+是否具备 Hyper-V 外部虚拟交换机二层桥接端口。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否已关联可用于 Hyper-V 外部虚拟交换机二层桥接的系统端口。 |
+| 取值与默认 | true：具备外部桥接端口；false：不支持二层桥接（例如纯三层隧道或未发现外部端口）。 |
+
 <a id="api-629d62da86181cd4"></a>
 
-##### 网络连接标识 · record 属性
+##### 网络连接标识（record 属性）
 
 ```csharp
 public Guid ConnectionId { get; init; }
@@ -5873,9 +6915,26 @@ public Guid ConnectionId { get; init; }
 
 宿主网络连接 GUID，供连接及共享接口识别。
 
+<a id="api-2a0c3e578d01eb54"></a>
+
+##### 网络配置文件名称（属性）
+
+```csharp
+public string? ConnectionProfileName { get; init; }
+```
+
+当前连接网络配置文件名称（例如 Wi-Fi SSID 或蜂窝运营商名称）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | Windows 网络连接配置文件名称，例如 Wi-Fi SSID 或蜂窝运营商名称。 |
+| 取值与默认 | 网络配置文件名称文本；无激活配置或未读取到时为 null。 |
+
 <a id="api-1d1862665f1f0b57"></a>
 
-##### 说明 · record 属性
+##### 说明（record 属性）
 
 ```csharp
 public string Description { get; init; }
@@ -5885,7 +6944,7 @@ public string Description { get; init; }
 
 <a id="api-56d4170ac9f0a1c0"></a>
 
-##### 设备标识 · record 属性
+##### 设备标识（record 属性）
 
 ```csharp
 public string DeviceId { get; init; }
@@ -5895,7 +6954,7 @@ public string DeviceId { get; init; }
 
 <a id="api-9ee78044447f5418"></a>
 
-##### 显示名称 · 属性
+##### 显示名称（属性）
 
 ```csharp
 public string DisplayName { get; }
@@ -5903,19 +6962,88 @@ public string DisplayName { get; }
 
 设备描述与连接名称组合的显示文本，不用于设备匹配。
 
+<a id="api-b8a8d15d10520a6f"></a>
+
+##### 外网连通状态（属性）
+
+```csharp
+public bool HasInternetAccess { get; init; }
+```
+
+系统当前检测到的 IPv4 或 IPv6 外网连通状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 系统网络连接感知服务检测到的 IPv4 或 IPv6 互联网连通状态。 |
+| 取值与默认 | true：已检测到互联网连通性；false：仅本地网络或未连通。 |
+
+<a id="api-f3fd7d12a52515e9"></a>
+
+##### 计费蜂窝连接（属性）
+
+```csharp
+public bool IsMetered { get; }
+```
+
+是否为按流量计费的蜂窝移动连接。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 指示该适配器是否归类为按流量计费的蜂窝移动连接。 |
+| 取值与默认 | true：蜂窝移动网卡；false：非蜂窝连接。 |
+
+<a id="api-4d8ab56189b5916f"></a>
+
+##### 链路速率（属性）
+
+```csharp
+public ulong? LinkSpeed { get; init; }
+```
+
+网卡当前链路速率（bps，来自 MSFT_NetAdapter.Speed；未知时为 null）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 适配器当前物理或逻辑链路标称速率，读取自系统网络适配器属性。 |
+| 单位与表示 | bps（比特每秒）。 |
+| 取值与默认 | 无符号 64 位整数；未能读取速率时为 null。 |
+
 <a id="api-6127b9d4cee1b451"></a>
 
-##### 链路状态 · record 属性
+##### 链路状态（record 属性）
 
 ```csharp
 public bool LinkUp { get; init; }
 ```
 
-查询时物理链路是否已连接。
+查询时物理或隧道链路是否已连接。
+
+<a id="api-ecf25388bf7cd3db"></a>
+
+##### 底层介质类型（属性）
+
+```csharp
+public AdapterMediaKind MediaKind { get; init; } = AdapterMediaKind.Wired;
+```
+
+适配器底层介质类型。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主上游网络适配器的底层物理或隧道介质类型。 |
+| 取值与默认 | Wired：有线以太网；WiFi：无线局域网；Cellular：蜂窝移动网络；Tunnel：三层虚拟隧道；Other：其他或不明确介质。 |
 
 <a id="api-b5e0b714991bfd8e"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -5927,7 +7055,7 @@ public string Name { get; init; }
 
 <a id="api-987869ee4db4e853"></a>
 
-##### 获取网卡名称 · 方法
+##### 获取网卡名称（方法）
 
 ```csharp
 public override string ToString();
@@ -5958,6 +7086,7 @@ public override string ToString();
 | 成员 | 说明 |
 | --- | --- |
 | [` Access = 1 `](#api-c38a42e03f62fc32) | 接入模式，端口使用单个接入 VLAN。 |
+| [` Off = 4 `](#api-5965056697c074c7) | 端口不标记 VLAN，在 WMI 中以接入模式和 VLAN ID 0 表示。 |
 | [` Private = 3 `](#api-4a55ed70e3d77810) | 专用 VLAN 模式。 |
 | [` Trunk = 2 `](#api-ed5749cc0f79e6fa) | 中继模式，使用本征 VLAN 和允许 VLAN 列表。 |
 | [` Unknown = 0 `](#api-3d6d8d2d5dc3b748) | 尚未指定或识别模式。 |
@@ -5972,7 +7101,7 @@ public enum VlanOperationMode
 
 <a id="api-c38a42e03f62fc32"></a>
 
-##### Access · 枚举值
+##### Access（枚举值）
 
 ```csharp
 Access = 1
@@ -5980,9 +7109,19 @@ Access = 1
 
 接入模式，端口使用单个接入 VLAN。
 
+<a id="api-5965056697c074c7"></a>
+
+##### 无标记模式（枚举值）
+
+```csharp
+Off = 4
+```
+
+端口不标记 VLAN，在 WMI 中以接入模式和 VLAN ID 0 表示。
+
 <a id="api-4a55ed70e3d77810"></a>
 
-##### Private · 枚举值
+##### Private（枚举值）
 
 ```csharp
 Private = 3
@@ -5992,7 +7131,7 @@ Private = 3
 
 <a id="api-ed5749cc0f79e6fa"></a>
 
-##### Trunk · 枚举值
+##### Trunk（枚举值）
 
 ```csharp
 Trunk = 2
@@ -6002,7 +7141,7 @@ Trunk = 2
 
 <a id="api-3d6d8d2d5dc3b748"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 0
@@ -6045,7 +7184,7 @@ public enum VmApicMode : byte
 
 <a id="api-c87518a9d0fa929b"></a>
 
-##### Apic · 枚举值
+##### Apic（枚举值）
 
 ```csharp
 Apic = 3
@@ -6055,7 +7194,7 @@ xAPIC 模式。WMI 名称为 Apic，虚拟机工作进程中对应 XApic。
 
 <a id="api-0e1fa5aa18c64e07"></a>
 
-##### Default · 枚举值
+##### Default（枚举值）
 
 ```csharp
 Default = 0
@@ -6065,7 +7204,7 @@ Default = 0
 
 <a id="api-daae61122965679a"></a>
 
-##### Legacy · 枚举值
+##### Legacy（枚举值）
 
 ```csharp
 Legacy = 1
@@ -6075,7 +7214,7 @@ Legacy = 1
 
 <a id="api-2866f2e813e02fe3"></a>
 
-##### X2Apic · 枚举值
+##### X2Apic（枚举值）
 
 ```csharp
 X2Apic = 2
@@ -6120,7 +7259,7 @@ public class VmCpuCoreMetric
 
 <a id="api-f12437d79dbd8e37"></a>
 
-##### 处理器编号 · 属性
+##### 处理器编号（属性）
 
 ```csharp
 public int CoreId { get; init; }
@@ -6130,7 +7269,7 @@ public int CoreId { get; init; }
 
 <a id="api-4eff842a37e31f59"></a>
 
-##### 宿主处理器标记 · 属性
+##### 宿主处理器标记（属性）
 
 ```csharp
 public bool IsHost { get; init; }
@@ -6140,7 +7279,7 @@ public bool IsHost { get; init; }
 
 <a id="api-d14f8ed722e82b54"></a>
 
-##### 采样状态 · 属性
+##### 采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.NotSampled, default);
@@ -6150,7 +7289,7 @@ public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.
 
 <a id="api-80b5706781a6f42c"></a>
 
-##### 使用率 · 属性
+##### 使用率（属性）
 
 ```csharp
 public float Usage { get; init; }
@@ -6160,7 +7299,7 @@ public float Usage { get; init; }
 
 <a id="api-3da8150f1cf56638"></a>
 
-##### 虚拟机标识 · 属性
+##### 虚拟机标识（属性）
 
 ```csharp
 public Guid? VmId { get; init; }
@@ -6170,7 +7309,7 @@ public Guid? VmId { get; init; }
 
 <a id="api-eeec6580baee405b"></a>
 
-##### 虚拟机名称 · 属性
+##### 虚拟机名称（属性）
 
 ```csharp
 public string VmName { get; init; } = string.Empty;
@@ -6228,7 +7367,7 @@ public class VmCreationParameters
 
 <a id="api-e5e82ba7fa1d867e"></a>
 
-##### 创建差分磁盘 · 属性
+##### 创建差分磁盘（属性）
 
 ```csharp
 public bool CreateDifferencingDisk { get; set; }
@@ -6238,7 +7377,7 @@ public bool CreateDifferencingDisk { get; set; }
 
 <a id="api-8ff89ad5c8032e53"></a>
 
-##### 差分磁盘目录 · 属性
+##### 差分磁盘目录（属性）
 
 ```csharp
 public string DifferencingDiskRoot { get; set; } = string.Empty;
@@ -6248,7 +7387,7 @@ public string DifferencingDiskRoot { get; set; } = string.Empty;
 
 <a id="api-94c1f8bcca0dea68"></a>
 
-##### 磁盘来源 · 属性
+##### 磁盘来源（属性）
 
 ```csharp
 public int DiskMode { get; set; } = 0;
@@ -6258,7 +7397,7 @@ public int DiskMode { get; set; } = 0;
 
 <a id="api-ccdf98a569c5caca"></a>
 
-##### 磁盘容量 · 属性
+##### 磁盘容量（属性）
 
 ```csharp
 public long DiskSizeGiB { get; set; } = 128;
@@ -6268,7 +7407,7 @@ public long DiskSizeGiB { get; set; } = 128;
 
 <a id="api-a0be124258ed28f2"></a>
 
-##### 启用动态内存 · 属性
+##### 启用动态内存（属性）
 
 ```csharp
 public bool EnableDynamicMemory { get; set; } = true;
@@ -6278,7 +7417,7 @@ public bool EnableDynamicMemory { get; set; } = true;
 
 <a id="api-1154a98755323cb8"></a>
 
-##### 启用安全启动 · 属性
+##### 启用安全启动（属性）
 
 ```csharp
 public bool EnableSecureBoot { get; set; } = true;
@@ -6288,7 +7427,7 @@ public bool EnableSecureBoot { get; set; } = true;
 
 <a id="api-bce116ef86199bb3"></a>
 
-##### 启用 TPM · 属性
+##### 启用 TPM（属性）
 
 ```csharp
 public bool EnableTpm { get; set; } = true;
@@ -6298,7 +7437,7 @@ public bool EnableTpm { get; set; } = true;
 
 <a id="api-5beb8806f7106e1a"></a>
 
-##### 虚拟机代数 · 属性
+##### 虚拟机代数（属性）
 
 ```csharp
 public int Generation { get; set; } = 2;
@@ -6308,7 +7447,7 @@ public int Generation { get; set; } = 2;
 
 <a id="api-451c3a2ff570d2e5"></a>
 
-##### 安装镜像路径 · 属性
+##### 安装镜像路径（属性）
 
 ```csharp
 public string IsoPath { get; set; } = string.Empty;
@@ -6318,7 +7457,7 @@ public string IsoPath { get; set; } = string.Empty;
 
 <a id="api-f6b25db0f3280368"></a>
 
-##### 隔离模式 · 属性
+##### 隔离模式（属性）
 
 ```csharp
 public string IsolationType { get; set; } = "Disabled";
@@ -6328,7 +7467,7 @@ public string IsolationType { get; set; } = "Disabled";
 
 <a id="api-4281b02bfc9a8ab8"></a>
 
-##### 启动内存 · 属性
+##### 启动内存（属性）
 
 ```csharp
 public long MemoryMiB { get; set; } = 4096;
@@ -6338,7 +7477,7 @@ public long MemoryMiB { get; set; } = 4096;
 
 <a id="api-47b9508292a9b919"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; set; } = "NewVM";
@@ -6348,7 +7487,7 @@ public string Name { get; set; } = "NewVM";
 
 <a id="api-24b1854fd7682b20"></a>
 
-##### OpenHCL 镜像路径 · 属性
+##### OpenHCL 镜像路径（属性）
 
 ```csharp
 public string OpenHclIgvmPath { get; set; } = string.Empty;
@@ -6358,7 +7497,7 @@ OpenHCL 模式使用的 IGVM 文件路径；其他模式可为空。
 
 <a id="api-98f6bdf04b22465a"></a>
 
-##### 路径 · 属性
+##### 路径（属性）
 
 ```csharp
 public string Path { get; set; } = string.Empty;
@@ -6368,7 +7507,7 @@ public string Path { get; set; } = string.Empty;
 
 <a id="api-acf2f392706c19b8"></a>
 
-##### 处理器数量 · 属性
+##### 处理器数量（属性）
 
 ```csharp
 public int ProcessorCount { get; set; } = 4;
@@ -6378,7 +7517,7 @@ public int ProcessorCount { get; set; } = 4;
 
 <a id="api-47f79f6d49e730d2"></a>
 
-##### 磁盘随虚拟机存放 · 属性
+##### 磁盘随虚拟机存放（属性）
 
 ```csharp
 public bool StoreNewDisksWithVm { get; set; }
@@ -6388,7 +7527,7 @@ public bool StoreNewDisksWithVm { get; set; }
 
 <a id="api-c2cf91f153d225d5"></a>
 
-##### 交换机标识 · 属性
+##### 交换机标识（属性）
 
 ```csharp
 public Guid? SwitchId { get; set; }
@@ -6398,7 +7537,7 @@ public Guid? SwitchId { get; set; }
 
 <a id="api-7751c8354294cf7b"></a>
 
-##### 版本 · 属性
+##### 版本（属性）
 
 ```csharp
 public string Version { get; set; } = "8.0";
@@ -6408,13 +7547,797 @@ public string Version { get; set; } = "8.0";
 
 <a id="api-40a1364a0769a4d5"></a>
 
-##### 虚拟磁盘路径 · 属性
+##### 虚拟磁盘路径（属性）
 
 ```csharp
 public string VhdPath { get; set; } = string.Empty;
 ```
 
 新建模式下为磁盘目录，可留空以使用虚拟机目录；已有磁盘模式下为磁盘文件路径。
+
+<a id="api-e8c98224169e2c6d"></a>
+
+### `VmDiskAccessKind` 枚举
+
+挂接的访问状态。Unavailable 表示证据不足或处于电源过渡状态。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` HostMounted = 4 `](#api-bd652b9e7c38a5a1) | 宿主已挂载此映像。 |
+| [` LockedExternal = 5 `](#api-ae8fd6412f24af60) | 文件被其他使用者锁定。 |
+| [` Missing = 1 `](#api-fe8779308ecf18f8) | 磁盘或所需路径缺失。 |
+| [` Normal = 0 `](#api-2f64ba2b91d422bf) | 当前挂接可访问。 |
+| [` ParentInUse = 6 `](#api-4772e126633afac4) | 磁盘作为父盘被引用。 |
+| [` Unavailable = 7 `](#api-87ef75e829ed1483) | 当前证据不足，无法确认状态。 |
+| [` VmRunning = 3 `](#api-bcf5babfe17333c2) | 虚拟机正在运行。 |
+| [` VmSavedOrPaused = 2 `](#api-ba5621632c3e97df) | 虚拟机处于保存或暂停状态。 |
+
+#### 详细说明
+
+```csharp
+public enum VmDiskAccessKind
+```
+
+#### 枚举值说明
+
+<a id="api-bd652b9e7c38a5a1"></a>
+
+##### HostMounted（枚举值）
+
+```csharp
+HostMounted = 4
+```
+
+宿主已挂载此映像。
+
+<a id="api-ae8fd6412f24af60"></a>
+
+##### LockedExternal（枚举值）
+
+```csharp
+LockedExternal = 5
+```
+
+文件被其他使用者锁定。
+
+<a id="api-fe8779308ecf18f8"></a>
+
+##### Missing（枚举值）
+
+```csharp
+Missing = 1
+```
+
+磁盘或所需路径缺失。
+
+<a id="api-2f64ba2b91d422bf"></a>
+
+##### Normal（枚举值）
+
+```csharp
+Normal = 0
+```
+
+当前挂接可访问。
+
+<a id="api-4772e126633afac4"></a>
+
+##### ParentInUse（枚举值）
+
+```csharp
+ParentInUse = 6
+```
+
+磁盘作为父盘被引用。
+
+<a id="api-87ef75e829ed1483"></a>
+
+##### Unavailable（枚举值）
+
+```csharp
+Unavailable = 7
+```
+
+当前证据不足，无法确认状态。
+
+<a id="api-bcf5babfe17333c2"></a>
+
+##### VmRunning（枚举值）
+
+```csharp
+VmRunning = 3
+```
+
+虚拟机正在运行。
+
+<a id="api-ba5621632c3e97df"></a>
+
+##### VmSavedOrPaused（枚举值）
+
+```csharp
+VmSavedOrPaused = 2
+```
+
+虚拟机处于保存或暂停状态。
+
+<a id="api-f55ff32bd4a261cf"></a>
+
+### `VmDiskChainInspection` record 类
+
+从叶盘到根盘的检查结果。失败时保留出错路径及之前已解析的节点。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmDiskChainInspection(VmDiskChainStatus Status, IReadOnlyList<VmDiskChainNode> Nodes, string Message) `](#api-c9e684d697097086) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool IsComplete { get; } `](#api-1c349c2b24b5db56) | 是否已确认整条父链。 |
+| [` public string Message { get; init; } `](#api-e78518aab057cb83) | 本次检查的结果说明或受限原因。 |
+| [` public IReadOnlyList<VmDiskChainNode> Nodes { get; init; } `](#api-761c32795dba95bb) | 从叶盘到根盘依次确认的节点。 |
+| [` public VmDiskChainStatus Status { get; init; } `](#api-04e13834d65343ab) | 父链检查的终止状态。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VmDiskChainInspection(VmDiskChainStatus Status, IReadOnlyList<VmDiskChainNode> Nodes, string Message)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Status` | 父链检查的终止状态。 |
+| `Nodes` | 从叶盘到根盘依次确认的节点。 |
+| `Message` | 本次检查的结果说明或受限原因。 |
+
+#### 构造函数说明
+
+<a id="api-c9e684d697097086"></a>
+
+##### 创建磁盘父链检查结果（主构造器）
+
+```csharp
+public VmDiskChainInspection(VmDiskChainStatus Status, IReadOnlyList<VmDiskChainNode> Nodes, string Message);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Status` | 父链检查的终止状态。 |
+| `Nodes` | 从叶盘到根盘依次确认的节点。 |
+| `Message` | 本次检查的结果说明或受限原因。 |
+
+#### 属性说明
+
+<a id="api-1c349c2b24b5db56"></a>
+
+##### 父链完整性（属性）
+
+```csharp
+public bool IsComplete { get; }
+```
+
+是否已确认整条父链。
+
+<a id="api-e78518aab057cb83"></a>
+
+##### 检查说明（record 属性）
+
+```csharp
+public string Message { get; init; }
+```
+
+本次检查的结果说明或受限原因。
+
+<a id="api-761c32795dba95bb"></a>
+
+##### 父链节点（record 属性）
+
+```csharp
+public IReadOnlyList<VmDiskChainNode> Nodes { get; init; }
+```
+
+从叶盘到根盘依次确认的节点。
+
+<a id="api-04e13834d65343ab"></a>
+
+##### 检查状态（record 属性）
+
+```csharp
+public VmDiskChainStatus Status { get; init; }
+```
+
+父链检查的终止状态。
+
+<a id="api-cd8e086301e74102"></a>
+
+### `VmDiskChainNode` record 类
+
+深度 0 为所选磁盘。LinkageId 是当前磁盘的链身份，ParentIdentifier 是子盘记录的预期父身份。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmDiskChainNode(int Depth, string Path, string? Format = null, string? VhdType = null, Guid? LinkageId = null, Guid? ParentIdentifier = null, bool IdMismatchIgnored = false) `](#api-4fca15583f3198d6) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public int Depth { get; init; } `](#api-533b25dd36e9160e) | 在父链中的深度，叶盘为 0。 |
+| [` public string? Format { get; init; } `](#api-048d490b0eb9fc0d) | 当前磁盘容器格式。 |
+| [` public bool IdMismatchIgnored { get; init; } `](#api-995e3b04c493391f) | 本次检查是否显式忽略该链接的身份差异。 |
+| [` public Guid? LinkageId { get; init; } `](#api-4be064fde35b89eb) | 当前磁盘用于核验父链的身份。 |
+| [` public Guid? ParentIdentifier { get; init; } `](#api-ea42886955c853ef) | 子盘记录的预期父盘标识。 |
+| [` public string Path { get; init; } `](#api-5894dc89685e0a8e) | 当前节点的磁盘路径。 |
+| [` public string? VhdType { get; init; } `](#api-0aa9c75484b7b1d0) | 当前磁盘的分配类型。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VmDiskChainNode(int Depth, string Path, string? Format = null, string? VhdType = null,
+    Guid? LinkageId = null, Guid? ParentIdentifier = null, bool IdMismatchIgnored = false)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Depth` | 在父链中的深度，叶盘为 0。 |
+| `Path` | 当前节点的磁盘路径。 |
+| `Format` | 当前磁盘容器格式。 |
+| `VhdType` | 当前磁盘的分配类型。 |
+| `LinkageId` | 当前磁盘用于核验父链的身份。 |
+| `ParentIdentifier` | 子盘记录的预期父盘标识。 |
+| `IdMismatchIgnored` | 本次检查是否显式忽略该链接的身份差异。 |
+
+#### 构造函数说明
+
+<a id="api-4fca15583f3198d6"></a>
+
+##### 创建磁盘父链节点（主构造器）
+
+```csharp
+public VmDiskChainNode(int Depth, string Path, string? Format = null, string? VhdType = null, Guid? LinkageId = null, Guid? ParentIdentifier = null, bool IdMismatchIgnored = false);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Depth` | 在父链中的深度，叶盘为 0。 |
+| `Path` | 当前节点的磁盘路径。 |
+| `Format` | 当前磁盘容器格式。 |
+| `VhdType` | 当前磁盘的分配类型。 |
+| `LinkageId` | 当前磁盘用于核验父链的身份。 |
+| `ParentIdentifier` | 子盘记录的预期父盘标识。 |
+| `IdMismatchIgnored` | 本次检查是否显式忽略该链接的身份差异。 |
+
+#### 属性说明
+
+<a id="api-533b25dd36e9160e"></a>
+
+##### 父链深度（record 属性）
+
+```csharp
+public int Depth { get; init; }
+```
+
+在父链中的深度，叶盘为 0。
+
+<a id="api-048d490b0eb9fc0d"></a>
+
+##### 磁盘容器格式（record 属性）
+
+```csharp
+public string? Format { get; init; }
+```
+
+当前磁盘容器格式。
+
+<a id="api-995e3b04c493391f"></a>
+
+##### 已忽略标识差异（record 属性）
+
+```csharp
+public bool IdMismatchIgnored { get; init; }
+```
+
+本次检查是否显式忽略该链接的身份差异。
+
+<a id="api-4be064fde35b89eb"></a>
+
+##### 当前链标识（record 属性）
+
+```csharp
+public Guid? LinkageId { get; init; }
+```
+
+当前磁盘用于核验父链的身份。
+
+<a id="api-ea42886955c853ef"></a>
+
+##### 预期父盘标识（record 属性）
+
+```csharp
+public Guid? ParentIdentifier { get; init; }
+```
+
+子盘记录的预期父盘标识。
+
+<a id="api-5894dc89685e0a8e"></a>
+
+##### 磁盘路径（record 属性）
+
+```csharp
+public string Path { get; init; }
+```
+
+当前节点的磁盘路径。
+
+<a id="api-0aa9c75484b7b1d0"></a>
+
+##### 磁盘分配类型（record 属性）
+
+```csharp
+public string? VhdType { get; init; }
+```
+
+当前磁盘的分配类型。
+
+<a id="api-f55d98fd291adb45"></a>
+
+### `VmDiskChainStatus` 枚举
+
+链检查的终止原因。仅 Complete 的节点可供选择合并目标。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Complete = 0 `](#api-e8dcce273b3d3a01) | 已从叶盘确认到根盘。 |
+| [` Cycle = 6 `](#api-be2b6cc4cf4bb7d8) | 父链包含循环。 |
+| [` FormatMismatch = 4 `](#api-1a4b44ddf2c3163b) | 磁盘链中存在不兼容的容器格式。 |
+| [` HostMounted = 3 `](#api-9fc5c3f27262eba7) | 宿主已挂载此映像。 |
+| [` IdMismatch = 5 `](#api-3d1f2efdc8578733) | 父盘标识与子盘记录不一致。 |
+| [` Locked = 2 `](#api-05de42d69488f55b) | 磁盘文件被占用，无法完成读取。 |
+| [` Missing = 1 `](#api-bcfe334d3d4b8c04) | 磁盘或所需路径缺失。 |
+| [` Unavailable = 7 `](#api-a6f6bde0f8067f32) | 当前证据不足，无法确认状态。 |
+
+#### 详细说明
+
+```csharp
+public enum VmDiskChainStatus
+```
+
+#### 枚举值说明
+
+<a id="api-e8dcce273b3d3a01"></a>
+
+##### Complete（枚举值）
+
+```csharp
+Complete = 0
+```
+
+已从叶盘确认到根盘。
+
+<a id="api-be2b6cc4cf4bb7d8"></a>
+
+##### Cycle（枚举值）
+
+```csharp
+Cycle = 6
+```
+
+父链包含循环。
+
+<a id="api-1a4b44ddf2c3163b"></a>
+
+##### FormatMismatch（枚举值）
+
+```csharp
+FormatMismatch = 4
+```
+
+磁盘链中存在不兼容的容器格式。
+
+<a id="api-9fc5c3f27262eba7"></a>
+
+##### HostMounted（枚举值）
+
+```csharp
+HostMounted = 3
+```
+
+宿主已挂载此映像。
+
+<a id="api-3d1f2efdc8578733"></a>
+
+##### IdMismatch（枚举值）
+
+```csharp
+IdMismatch = 5
+```
+
+父盘标识与子盘记录不一致。
+
+<a id="api-05de42d69488f55b"></a>
+
+##### Locked（枚举值）
+
+```csharp
+Locked = 2
+```
+
+磁盘文件被占用，无法完成读取。
+
+<a id="api-bcfe334d3d4b8c04"></a>
+
+##### Missing（枚举值）
+
+```csharp
+Missing = 1
+```
+
+磁盘或所需路径缺失。
+
+<a id="api-a6f6bde0f8067f32"></a>
+
+##### Unavailable（枚举值）
+
+```csharp
+Unavailable = 7
+```
+
+当前证据不足，无法确认状态。
+
+<a id="api-821c05cc5fe3e734"></a>
+
+### `VmDiskInspection` record 类
+
+存储详检结果和当前快照允许的操作。实际提交时重新检查。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmDiskInspection(VmDiskAccessKind Kind, string Message, VmState VmState) `](#api-e2afa486b8ab1c36) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool CanChangeType { get; } `](#api-502d70457a8e89b8) | 是否允许转换磁盘分配类型。 |
+| [` public bool CanCompact { get; } `](#api-696308afe88c30ea) | 是否允许压缩磁盘。 |
+| [` public bool CanDeleteFile { get; } `](#api-b198f70362f3b281) | 是否允许移除挂接并删除介质。 |
+| [` public bool CanEditMedia { get; } `](#api-0b99109c0691ea67) | 是否允许更换介质。 |
+| [` public bool CanEditParentPath { get; } `](#api-9a5ad6a4d6b43f50) | 是否允许更改父盘路径。 |
+| [` public bool CanEditSlot { get; } `](#api-cbb9f8172e1c95fe) | 是否允许迁移控制器槽位。 |
+| [` public bool CanExpand { get; } `](#api-eab1e6c406ba0b91) | 当前条件是否允许扩展容量。 |
+| [` public bool CanExport { get; } `](#api-db26a78e3db348b1) | 是否允许导出独立磁盘。 |
+| [` public bool CanMerge { get; } `](#api-97a4090e5ea7b491) | 是否允许合并差分磁盘。 |
+| [` public bool CanOpenFile { get; } `](#api-95d8dd8a7cd82d5e) | 当前条件是否允许打开介质文件。 |
+| [` public bool CanShrink { get; } `](#api-d32ebf1ddf342064) | 当前条件是否允许收缩容量。 |
+| [` public bool CanUpgradeVhdx { get; } `](#api-23928e2c3efb2265) | 是否允许转换为 VHDX。 |
+| [` public VmDiskAccessKind Kind { get; init; } `](#api-331bedaec831ea02) | 当前挂接的访问状态。 |
+| [` public string Message { get; init; } `](#api-b7b5159e365a74da) | 本次检查的结果说明或受限原因。 |
+| [` public VmState VmState { get; init; } `](#api-e2ab9bf063b7daec) | 核实时观察到的虚拟机电源状态。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VmDiskInspection(VmDiskAccessKind Kind, string Message, VmState VmState)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Kind` | 当前挂接的访问状态。 |
+| `Message` | 本次检查的结果说明或受限原因。 |
+| `VmState` | 核实时观察到的虚拟机电源状态。 |
+
+#### 构造函数说明
+
+<a id="api-e2afa486b8ab1c36"></a>
+
+##### 创建存储挂接检查结果（主构造器）
+
+```csharp
+public VmDiskInspection(VmDiskAccessKind Kind, string Message, VmState VmState);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Kind` | 当前挂接的访问状态。 |
+| `Message` | 本次检查的结果说明或受限原因。 |
+| `VmState` | 核实时观察到的虚拟机电源状态。 |
+
+#### 属性说明
+
+<a id="api-502d70457a8e89b8"></a>
+
+##### 允许转换分配类型（属性）
+
+```csharp
+public bool CanChangeType { get; }
+```
+
+是否允许转换磁盘分配类型。
+
+<a id="api-696308afe88c30ea"></a>
+
+##### 允许压缩（属性）
+
+```csharp
+public bool CanCompact { get; }
+```
+
+是否允许压缩磁盘。
+
+<a id="api-b198f70362f3b281"></a>
+
+##### 允许删除介质（属性）
+
+```csharp
+public bool CanDeleteFile { get; }
+```
+
+是否允许移除挂接并删除介质。
+
+<a id="api-0b99109c0691ea67"></a>
+
+##### 允许更换介质（属性）
+
+```csharp
+public bool CanEditMedia { get; }
+```
+
+是否允许更换介质。
+
+<a id="api-9a5ad6a4d6b43f50"></a>
+
+##### 允许连接父盘（属性）
+
+```csharp
+public bool CanEditParentPath { get; }
+```
+
+是否允许更改父盘路径。
+
+<a id="api-cbb9f8172e1c95fe"></a>
+
+##### 允许迁移槽位（属性）
+
+```csharp
+public bool CanEditSlot { get; }
+```
+
+是否允许迁移控制器槽位。
+
+<a id="api-eab1e6c406ba0b91"></a>
+
+##### 允许扩展容量（属性）
+
+```csharp
+public bool CanExpand { get; }
+```
+
+当前条件是否允许扩展容量。
+
+<a id="api-db26a78e3db348b1"></a>
+
+##### 允许导出（属性）
+
+```csharp
+public bool CanExport { get; }
+```
+
+是否允许导出独立磁盘。
+
+<a id="api-97a4090e5ea7b491"></a>
+
+##### 允许合并（属性）
+
+```csharp
+public bool CanMerge { get; }
+```
+
+是否允许合并差分磁盘。
+
+<a id="api-95d8dd8a7cd82d5e"></a>
+
+##### 允许打开文件（属性）
+
+```csharp
+public bool CanOpenFile { get; }
+```
+
+当前条件是否允许打开介质文件。
+
+<a id="api-d32ebf1ddf342064"></a>
+
+##### 允许收缩容量（属性）
+
+```csharp
+public bool CanShrink { get; }
+```
+
+当前条件是否允许收缩容量。
+
+<a id="api-23928e2c3efb2265"></a>
+
+##### 允许转换为 VHDX（属性）
+
+```csharp
+public bool CanUpgradeVhdx { get; }
+```
+
+是否允许转换为 VHDX。
+
+<a id="api-331bedaec831ea02"></a>
+
+##### 访问状态（record 属性）
+
+```csharp
+public VmDiskAccessKind Kind { get; init; }
+```
+
+当前挂接的访问状态。
+
+<a id="api-b7b5159e365a74da"></a>
+
+##### 检查说明（record 属性）
+
+```csharp
+public string Message { get; init; }
+```
+
+本次检查的结果说明或受限原因。
+
+<a id="api-e2ab9bf063b7daec"></a>
+
+##### 虚拟机电源状态（record 属性）
+
+```csharp
+public VmState VmState { get; init; }
+```
+
+核实时观察到的虚拟机电源状态。
+
+<a id="api-a61fd497a4f82a7f"></a>
+
+### `VmDiskMetadataState` 枚举
+
+单个文件介质的元数据读取状态。未取得的数值保持为空。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Available = 1 `](#api-d1309cb62696ce66) | 已确认可用。 |
+| [` Locked = 3 `](#api-4dabcb60c9471035) | 磁盘文件被占用，无法完成读取。 |
+| [` Missing = 2 `](#api-0199ec6a02c9e867) | 磁盘或所需路径缺失。 |
+| [` NotApplicable = 0 `](#api-a84539a3a93ae1b3) | 此介质不适用文件元数据查询。 |
+| [` Unavailable = 4 `](#api-bec4208a88a951b3) | 当前证据不足，无法确认状态。 |
+
+#### 详细说明
+
+```csharp
+public enum VmDiskMetadataState
+```
+
+#### 枚举值说明
+
+<a id="api-d1309cb62696ce66"></a>
+
+##### Available（枚举值）
+
+```csharp
+Available = 1
+```
+
+已确认可用。
+
+<a id="api-4dabcb60c9471035"></a>
+
+##### Locked（枚举值）
+
+```csharp
+Locked = 3
+```
+
+磁盘文件被占用，无法完成读取。
+
+<a id="api-0199ec6a02c9e867"></a>
+
+##### Missing（枚举值）
+
+```csharp
+Missing = 2
+```
+
+磁盘或所需路径缺失。
+
+<a id="api-a84539a3a93ae1b3"></a>
+
+##### NotApplicable（枚举值）
+
+```csharp
+NotApplicable = 0
+```
+
+此介质不适用文件元数据查询。
+
+<a id="api-bec4208a88a951b3"></a>
+
+##### Unavailable（枚举值）
+
+```csharp
+Unavailable = 4
+```
+
+当前证据不足，无法确认状态。
 
 <a id="api-89d6aac76f2bf99b"></a>
 
@@ -6440,18 +8363,24 @@ public string VhdPath { get; set; } = string.Empty;
 | [` public long CurrentSize { get; set; } `](#api-9b57f46a83e7dc72) | 文件介质的文件长度或物理盘的整盘容量，单位字节；有效性见 SizeSample。 |
 | [` public string DiskType { get; set; } `](#api-bf5a35356486ec44) | 磁盘来源类型标识，例如 Physical 或 Virtual。 |
 | [` public long ErrorCount { get; set; } `](#api-4ea69c917b6a2180) | 虚拟存储设备累计报告的 IO 错误次数。 |
+| [` public PerformanceSampleInfo ErrorCountSample { get; } = new(PerformanceSampleState.NotSampled, default) `](#api-206d36bc846c8d9d) | ErrorCount 本次采样的状态和时间，缺测时保留此前的数值。 |
 | [` public long MaxSize { get; set; } `](#api-08f3acb4ba675dac) | 磁盘最大或虚拟容量，单位为字节。 |
 | [` public string Name { get; set; } `](#api-1a3388f8c84b9b0f) | 磁盘显示名称。 |
 | [` public string Path { get; set; } `](#api-e7c8ceae75c3ecd2) | 磁盘文件或设备路径。 |
 | [` public PerformanceSampleInfo PerformanceSample { get; set; } `](#api-6f20a3e050ef3e48) | 本次读写速率读取的有效性与时间；无效时速率字段不更新。 |
 | [` public string PnpDeviceId { get; set; } = string.Empty `](#api-05f4aaf7da99296a) | 物理磁盘的 PnP 设备标识；虚拟磁盘可为空。 |
 | [` public long QueueLength { get; set; } `](#api-bb18f03f5f2fe00f) | 当前虚拟存储设备的平均 IO 队列长度。 |
+| [` public PerformanceSampleInfo QueueLengthSample { get; } = new(PerformanceSampleState.NotSampled, default) `](#api-fa64610ebcdba68a) | QueueLength 本次采样的状态和时间，缺测时保留此前的数值。 |
 | [` public long ReadBytesPerSecond { get; set; } `](#api-5a25304e4e87cfd2) | 当前读取速率，单位为字节每秒。 |
+| [` public PerformanceSampleInfo ReadBytesSample { get; } = new(PerformanceSampleState.NotSampled, default) `](#api-af04348af44bcf93) | ReadBytesPerSecond 本次采样的状态和时间，缺测时保留此前的数值。 |
 | [` public long ReadOperationsPerSecond { get; set; } `](#api-71abe1f5ff9b0221) | 当前每秒读取操作数（读 IOPS）。 |
+| [` public PerformanceSampleInfo ReadOperationsSample { get; } = new(PerformanceSampleState.NotSampled, default) `](#api-be5cb8dfdbc3a736) | ReadOperationsPerSecond 本次采样的状态和时间，缺测时保留此前的数值。 |
 | [` public PerformanceSampleInfo SizeSample { get; set; } `](#api-8bdde416b1722a93) | 当前文件大小的本次读取状态；无效时不得将 CurrentSize 的默认值解释为空磁盘。 |
 | [` public double UsagePercentage { get; } `](#api-0905dd0f46b003d4) | CurrentSize 相对 MaxSize 的百分比；文件介质可超过 100%，物理盘通常为 100%。 |
 | [` public long WriteBytesPerSecond { get; set; } `](#api-c3a36050a09c84cc) | 当前写入速率，单位为字节每秒。 |
+| [` public PerformanceSampleInfo WriteBytesSample { get; } = new(PerformanceSampleState.NotSampled, default) `](#api-4f10863ca048cc81) | WriteBytesPerSecond 本次采样的状态和时间，缺测时保留此前的数值。 |
 | [` public long WriteOperationsPerSecond { get; set; } `](#api-5dda7ebec0be6de3) | 当前每秒写入操作数（写 IOPS）。 |
+| [` public PerformanceSampleInfo WriteOperationsSample { get; } = new(PerformanceSampleState.NotSampled, default) `](#api-100f08e19265943a) | WriteOperationsPerSecond 本次采样的状态和时间，缺测时保留此前的数值。 |
 
 #### 详细说明
 
@@ -6463,7 +8392,7 @@ public partial class VmDiskStatus
 
 <a id="api-6ba36d3f4f2c7df6"></a>
 
-##### 容量读取状态 · 属性
+##### 容量读取状态（属性）
 
 ```csharp
 public PerformanceSampleInfo CapacitySample { get; set; }
@@ -6473,7 +8402,7 @@ public PerformanceSampleInfo CapacitySample { get; set; }
 
 <a id="api-9b57f46a83e7dc72"></a>
 
-##### 介质当前大小 · 属性
+##### 介质当前大小（属性）
 
 ```csharp
 public long CurrentSize { get; set; }
@@ -6483,7 +8412,7 @@ public long CurrentSize { get; set; }
 
 <a id="api-bf5a35356486ec44"></a>
 
-##### 磁盘来源类型 · 属性
+##### 磁盘来源类型（属性）
 
 ```csharp
 public string DiskType { get; set; }
@@ -6493,7 +8422,7 @@ public string DiskType { get; set; }
 
 <a id="api-4ea69c917b6a2180"></a>
 
-##### 错误计数 · 属性
+##### 错误计数（属性）
 
 ```csharp
 public long ErrorCount { get; set; }
@@ -6501,9 +8430,19 @@ public long ErrorCount { get; set; }
 
 虚拟存储设备累计报告的 IO 错误次数。
 
+<a id="api-206d36bc846c8d9d"></a>
+
+##### 错误计数采样状态（属性）
+
+```csharp
+public PerformanceSampleInfo ErrorCountSample { get; } = new(PerformanceSampleState.NotSampled, default);
+```
+
+ErrorCount 本次采样的状态和时间，缺测时保留此前的数值。
+
 <a id="api-08f3acb4ba675dac"></a>
 
-##### 最大容量 · 属性
+##### 最大容量（属性）
 
 ```csharp
 public long MaxSize { get; set; }
@@ -6513,7 +8452,7 @@ public long MaxSize { get; set; }
 
 <a id="api-1a3388f8c84b9b0f"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; set; }
@@ -6523,7 +8462,7 @@ public string Name { get; set; }
 
 <a id="api-e7c8ceae75c3ecd2"></a>
 
-##### 路径 · 属性
+##### 路径（属性）
 
 ```csharp
 public string Path { get; set; }
@@ -6533,7 +8472,7 @@ public string Path { get; set; }
 
 <a id="api-6f20a3e050ef3e48"></a>
 
-##### 性能采样状态 · 属性
+##### 性能采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo PerformanceSample { get; set; }
@@ -6543,7 +8482,7 @@ public PerformanceSampleInfo PerformanceSample { get; set; }
 
 <a id="api-05f4aaf7da99296a"></a>
 
-##### PnP 设备标识 · 属性
+##### PnP 设备标识（属性）
 
 ```csharp
 public string PnpDeviceId { get; set; } = string.Empty;
@@ -6553,7 +8492,7 @@ public string PnpDeviceId { get; set; } = string.Empty;
 
 <a id="api-bb18f03f5f2fe00f"></a>
 
-##### 队列深度 · 属性
+##### 队列深度（属性）
 
 ```csharp
 public long QueueLength { get; set; }
@@ -6561,9 +8500,19 @@ public long QueueLength { get; set; }
 
 当前虚拟存储设备的平均 IO 队列长度。
 
+<a id="api-fa64610ebcdba68a"></a>
+
+##### 队列长度采样状态（属性）
+
+```csharp
+public PerformanceSampleInfo QueueLengthSample { get; } = new(PerformanceSampleState.NotSampled, default);
+```
+
+QueueLength 本次采样的状态和时间，缺测时保留此前的数值。
+
 <a id="api-5a25304e4e87cfd2"></a>
 
-##### 读取速率 · 属性
+##### 读取速率（属性）
 
 ```csharp
 public long ReadBytesPerSecond { get; set; }
@@ -6571,9 +8520,19 @@ public long ReadBytesPerSecond { get; set; }
 
 当前读取速率，单位为字节每秒。
 
+<a id="api-af04348af44bcf93"></a>
+
+##### 读取吞吐采样状态（属性）
+
+```csharp
+public PerformanceSampleInfo ReadBytesSample { get; } = new(PerformanceSampleState.NotSampled, default);
+```
+
+ReadBytesPerSecond 本次采样的状态和时间，缺测时保留此前的数值。
+
 <a id="api-71abe1f5ff9b0221"></a>
 
-##### 读取 IOPS · 属性
+##### 读取 IOPS（属性）
 
 ```csharp
 public long ReadOperationsPerSecond { get; set; }
@@ -6581,9 +8540,19 @@ public long ReadOperationsPerSecond { get; set; }
 
 当前每秒读取操作数（读 IOPS）。
 
+<a id="api-be5cb8dfdbc3a736"></a>
+
+##### 读取 IOPS 采样状态（属性）
+
+```csharp
+public PerformanceSampleInfo ReadOperationsSample { get; } = new(PerformanceSampleState.NotSampled, default);
+```
+
+ReadOperationsPerSecond 本次采样的状态和时间，缺测时保留此前的数值。
+
 <a id="api-8bdde416b1722a93"></a>
 
-##### 大小读取状态 · 属性
+##### 大小读取状态（属性）
 
 ```csharp
 public PerformanceSampleInfo SizeSample { get; set; }
@@ -6593,7 +8562,7 @@ public PerformanceSampleInfo SizeSample { get; set; }
 
 <a id="api-0905dd0f46b003d4"></a>
 
-##### 文件大小与容量之比 · 属性
+##### 文件大小与容量之比（属性）
 
 ```csharp
 public double UsagePercentage { get; }
@@ -6603,7 +8572,7 @@ CurrentSize 相对 MaxSize 的百分比；文件介质可超过 100%，物理盘
 
 <a id="api-c3a36050a09c84cc"></a>
 
-##### 写入速率 · 属性
+##### 写入速率（属性）
 
 ```csharp
 public long WriteBytesPerSecond { get; set; }
@@ -6611,15 +8580,371 @@ public long WriteBytesPerSecond { get; set; }
 
 当前写入速率，单位为字节每秒。
 
+<a id="api-4f10863ca048cc81"></a>
+
+##### 写入吞吐采样状态（属性）
+
+```csharp
+public PerformanceSampleInfo WriteBytesSample { get; } = new(PerformanceSampleState.NotSampled, default);
+```
+
+WriteBytesPerSecond 本次采样的状态和时间，缺测时保留此前的数值。
+
 <a id="api-5dda7ebec0be6de3"></a>
 
-##### 写入 IOPS · 属性
+##### 写入 IOPS（属性）
 
 ```csharp
 public long WriteOperationsPerSecond { get; set; }
 ```
 
 当前每秒写入操作数（写 IOPS）。
+
+<a id="api-100f08e19265943a"></a>
+
+##### 写入 IOPS 采样状态（属性）
+
+```csharp
+public PerformanceSampleInfo WriteOperationsSample { get; } = new(PerformanceSampleState.NotSampled, default);
+```
+
+WriteOperationsPerSecond 本次采样的状态和时间，缺测时保留此前的数值。
+
+<a id="api-caea5fe211c2f859"></a>
+
+### `VmGenerationUpgradeOptions` 类
+
+一代虚拟机直接升级为二代时采用的存储和固件设置。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 实例 / 升级 |
+| 源文件 | ` Management/VirtualMachines/Instances/GenerationUpgrade/VmGenerationUpgradeOptions.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool ConvertVhdToVhdx { get; init; } = true `](#api-c9283b0a420e0d61) | 自动转换所有独立 VHD。 |
+| [` public bool EnableSecureBoot { get; init; } `](#api-b336ee370f6fd2cc) | 在二代虚拟机上启用安全启动。 |
+| [` public Guid? SecureBootTemplateId { get; init; } `](#api-490ff26915e22863) | 安全启动模板 GUID，须同时启用安全启动。 |
+
+#### 详细说明
+
+```csharp
+public sealed class VmGenerationUpgradeOptions
+```
+
+#### 属性说明
+
+<a id="api-c9283b0a420e0d61"></a>
+
+##### 自动转换 VHD（属性）
+
+```csharp
+public bool ConvertVhdToVhdx { get; init; } = true;
+```
+
+自动转换所有独立 VHD。默认开启，关闭时遇到 VHD 会在预检阶段拒绝升级。
+
+<a id="api-b336ee370f6fd2cc"></a>
+
+##### 启用安全启动（属性）
+
+```csharp
+public bool EnableSecureBoot { get; init; }
+```
+
+在二代虚拟机上启用安全启动。默认关闭。
+
+<a id="api-490ff26915e22863"></a>
+
+##### 安全启动模板 GUID（属性）
+
+```csharp
+public Guid? SecureBootTemplateId { get; init; }
+```
+
+安全启动模板 GUID，须同时启用安全启动。启用时省略模板将采用 Microsoft Windows 模板。
+
+<a id="api-59c22efd11960c6c"></a>
+
+### `VmGenerationUpgradeResult` record 类
+
+一次直接升级或事务对账的结果。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 实例 / 升级 |
+| 源文件 | ` Management/VirtualMachines/Instances/GenerationUpgrade/VmGenerationUpgradeResult.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmGenerationUpgradeResult(VmGenerationUpgradeStatus Status, Guid OldVmId, Guid? NewVmId, string? ConfigurationDirectory, string? SystemDiskPath, string? FailedStage, string? Error, IReadOnlyList<string> RetainedPaths) `](#api-a238f42e8e1ee3bc) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public string? ConfigurationDirectory { get; init; } `](#api-00d96a01ac139e68) | 清单中记录的正式配置根目录。 |
+| [` public string? ConfigurationPath { get; } `](#api-ea18155ddb8dc9a6) | 已核验的二代虚拟机正式 VMCX 文件路径，取得最终配置回执前为空。 |
+| [` public IReadOnlyList<string> DiskPaths { get; } = [] `](#api-f97a1aea0cae1486) | 正式二代虚拟机的虚拟硬盘路径，首选硬盘位于首项。 |
+| [` public string? Error { get; init; } `](#api-b4e01658d071850c) | 本次失败或需要继续清理的原因。 |
+| [` public string? FailedStage { get; init; } `](#api-c85d876a529eff29) | 首次失败或待核实的事务阶段。 |
+| [` public string? LogDirectory { get; } `](#api-f50e42a052344a18) | 可选来宾升级日志目录。 |
+| [` public Guid? NewVmId { get; init; } `](#api-2beb601e92aa84a0) | 已取得创建回执的二代虚拟机 GUID。 |
+| [` public Guid OldVmId { get; init; } `](#api-93ffbb9952fcbc49) | 调用时提供的一代虚拟机 GUID，也是重入事务的键。 |
+| [` public IReadOnlyList<string> RetainedPaths { get; init; } `](#api-ce3970d4509fa7e3) | 用于对账、查阅日志或恢复的路径。 |
+| [` public VmGenerationUpgradeStatus Status { get; init; } `](#api-f41552d8129c9b97) | 升级最终状态。 |
+| [` public string? SystemDiskPath { get; init; } `](#api-7b4bca515e6334e3) | 首选硬盘的正式路径。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VmGenerationUpgradeResult(VmGenerationUpgradeStatus Status, Guid OldVmId, Guid? NewVmId,
+    string? ConfigurationDirectory, string? SystemDiskPath, string? FailedStage, string? Error,
+    IReadOnlyList<string> RetainedPaths)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Status` | 升级最终状态。 |
+| `OldVmId` | 调用时提供的一代虚拟机 GUID，也是重入事务的键。 |
+| `NewVmId` | 已取得创建回执的二代虚拟机 GUID。尚未创建时为空。 |
+| `ConfigurationDirectory` | 清单中记录的正式配置根目录。预检前可能为空。 |
+| `SystemDiskPath` | 首选硬盘的正式路径。无硬盘时为空，未探测来宾系统。 |
+| `FailedStage` | 首次失败或待核实的事务阶段。成功时为空。 |
+| `Error` | 本次失败或需要继续清理的原因。 |
+| `RetainedPaths` | 用于对账、查阅日志或恢复的路径。 |
+
+#### 构造函数说明
+
+<a id="api-a238f42e8e1ee3bc"></a>
+
+##### 创建升级结果（主构造器）
+
+```csharp
+public VmGenerationUpgradeResult(VmGenerationUpgradeStatus Status, Guid OldVmId, Guid? NewVmId, string? ConfigurationDirectory, string? SystemDiskPath, string? FailedStage, string? Error, IReadOnlyList<string> RetainedPaths);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Status` | 升级最终状态。 |
+| `OldVmId` | 调用时提供的一代虚拟机 GUID，也是重入事务的键。 |
+| `NewVmId` | 已取得创建回执的二代虚拟机 GUID。尚未创建时为空。 |
+| `ConfigurationDirectory` | 清单中记录的正式配置根目录。预检前可能为空。 |
+| `SystemDiskPath` | 首选硬盘的正式路径。无硬盘时为空，未探测来宾系统。 |
+| `FailedStage` | 首次失败或待核实的事务阶段。成功时为空。 |
+| `Error` | 本次失败或需要继续清理的原因。 |
+| `RetainedPaths` | 用于对账、查阅日志或恢复的路径。 |
+
+#### 属性说明
+
+<a id="api-00d96a01ac139e68"></a>
+
+##### 正式配置目录（record 属性）
+
+```csharp
+public string? ConfigurationDirectory { get; init; }
+```
+
+清单中记录的正式配置根目录。预检前可能为空。
+
+<a id="api-ea18155ddb8dc9a6"></a>
+
+##### 正式配置文件（属性）
+
+```csharp
+public string? ConfigurationPath { get; }
+```
+
+已核验的二代虚拟机正式 VMCX 文件路径，取得最终配置回执前为空。
+
+<a id="api-f97a1aea0cae1486"></a>
+
+##### 正式虚拟硬盘路径（属性）
+
+```csharp
+public IReadOnlyList<string> DiskPaths { get; } = [];
+```
+
+正式二代虚拟机的虚拟硬盘路径，首选硬盘位于首项。无硬盘或尚未完成回读时为空。
+
+<a id="api-b4e01658d071850c"></a>
+
+##### 错误说明（record 属性）
+
+```csharp
+public string? Error { get; init; }
+```
+
+本次失败或需要继续清理的原因。
+
+<a id="api-c85d876a529eff29"></a>
+
+##### 失败阶段（record 属性）
+
+```csharp
+public string? FailedStage { get; init; }
+```
+
+首次失败或待核实的事务阶段。成功时为空。
+
+<a id="api-f50e42a052344a18"></a>
+
+##### 可选来宾升级日志目录（属性）
+
+```csharp
+public string? LogDirectory { get; }
+```
+
+可选来宾升级日志目录。当前虚拟机层面的升级返回空值。
+
+<a id="api-2beb601e92aa84a0"></a>
+
+##### 二代虚拟机 GUID（record 属性）
+
+```csharp
+public Guid? NewVmId { get; init; }
+```
+
+已取得创建回执的二代虚拟机 GUID。尚未创建时为空。
+
+<a id="api-93ffbb9952fcbc49"></a>
+
+##### 原虚拟机 GUID（record 属性）
+
+```csharp
+public Guid OldVmId { get; init; }
+```
+
+调用时提供的一代虚拟机 GUID，也是重入事务的键。
+
+<a id="api-ce3970d4509fa7e3"></a>
+
+##### 保留路径（record 属性）
+
+```csharp
+public IReadOnlyList<string> RetainedPaths { get; init; }
+```
+
+用于对账、查阅日志或恢复的路径。
+
+<a id="api-f41552d8129c9b97"></a>
+
+##### 升级状态（record 属性）
+
+```csharp
+public VmGenerationUpgradeStatus Status { get; init; }
+```
+
+升级最终状态。
+
+<a id="api-7b4bca515e6334e3"></a>
+
+##### 正式系统盘路径（record 属性）
+
+```csharp
+public string? SystemDiskPath { get; init; }
+```
+
+首选硬盘的正式路径。无硬盘时为空，未探测来宾系统。
+
+<a id="api-13470405c86b4bc9"></a>
+
+### `VmGenerationUpgradeStatus` 枚举
+
+代际升级完成后，宿主注册与磁盘事务的状态。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 实例 / 升级 |
+| 源文件 | ` Management/VirtualMachines/Instances/GenerationUpgrade/VmGenerationUpgradeResult.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` CommittedCleanupPending = 3 `](#api-7d1d4b4e92d196f1) | 二代虚拟机已提交，再次以原 GUID 调用可继续清理。 |
+| [` OutcomeUnknown = 4 `](#api-7328be8989f4e478) | 注册、磁盘或原生作业状态无法确认，已保留日志及恢复材料。 |
+| [` Rejected = 1 `](#api-d1cabaefa0573835) | 未进入原机替换阶段，原注册和原磁盘保留。 |
+| [` RolledBack = 2 `](#api-bc7cf467cac28d09) | 已确认原 GUID 的一代虚拟机及其原磁盘，替换机已撤销。 |
+| [` Succeeded = 0 `](#api-3a36873ab7a12c25) | 二代虚拟机已验证并提交，恢复包与已转换的原 VHD 均已清理。 |
+
+#### 详细说明
+
+```csharp
+public enum VmGenerationUpgradeStatus
+```
+
+#### 枚举值说明
+
+<a id="api-7d1d4b4e92d196f1"></a>
+
+##### 已提交待清理（枚举值）
+
+```csharp
+CommittedCleanupPending = 3
+```
+
+二代虚拟机已提交，再次以原 GUID 调用可继续清理。
+
+<a id="api-7328be8989f4e478"></a>
+
+##### 结果待核实（枚举值）
+
+```csharp
+OutcomeUnknown = 4
+```
+
+注册、磁盘或原生作业状态无法确认，已保留日志及恢复材料。
+
+<a id="api-d1cabaefa0573835"></a>
+
+##### 拒绝升级（枚举值）
+
+```csharp
+Rejected = 1
+```
+
+未进入原机替换阶段，原注册和原磁盘保留。
+
+<a id="api-bc7cf467cac28d09"></a>
+
+##### 已回滚（枚举值）
+
+```csharp
+RolledBack = 2
+```
+
+已确认原 GUID 的一代虚拟机及其原磁盘，替换机已撤销。
+
+<a id="api-3a36873ab7a12c25"></a>
+
+##### 升级成功（枚举值）
+
+```csharp
+Succeeded = 0
+```
+
+二代虚拟机已验证并提交，恢复包与已转换的原 VHD 均已清理。
 
 <a id="api-51ff6610dbb72a26"></a>
 
@@ -6641,7 +8966,10 @@ public long WriteOperationsPerSecond { get; set; }
 
 | 成员 | 说明 |
 | --- | --- |
+| [` public string AdapterId { get; } = string.Empty `](#api-2ed6666258600319) | 虚拟 GPU 分区适配器的标识，供移除操作定位。 |
 | [` public string DriverVersion { get; set; } `](#api-3b878cfd024f3d31) | 匹配到的宿主显卡驱动版本。 |
+| [` public string? GuestDriverVersion { get; set; } `](#api-b86a48cfb3abf864) | 最近一次已部署到来宾系统的驱动版本；未部署、已跳过、挂载安装光盘待装或无记录时为 null。 |
+| [` public bool HasDriverUpdate { get; } `](#api-cdb076ab2d60b059) | 来宾驱动是否需要更新或补装（宿主已知驱动版本且与已部署来宾版本不一致）。 |
 | [` public string HostDeviceInstanceId { get; } = string.Empty `](#api-2223ecbf264e9be2) | 匹配到的宿主显卡 PnP 实例 ID；无法匹配时为空。 |
 | [` public string Manu { get; set; } `](#api-8bfcd446d3c01f0a) | GPU 芯片商名称，用于厂商分类。 |
 | [` public ulong? MemoryBytes { get; set; } `](#api-fff875313738c476) | 匹配到的宿主 GPU 专用显存容量，单位为字节；null 表示未知，0 是有效容量。 |
@@ -6656,9 +8984,19 @@ public partial class VmGpuAssignment
 
 #### 属性说明
 
+<a id="api-2ed6666258600319"></a>
+
+##### 分区适配器身份（属性）
+
+```csharp
+public string AdapterId { get; } = string.Empty;
+```
+
+虚拟 GPU 分区适配器的标识，供移除操作定位。
+
 <a id="api-3b878cfd024f3d31"></a>
 
-##### 驱动版本 · 属性
+##### 驱动版本（属性）
 
 ```csharp
 public string DriverVersion { get; set; }
@@ -6666,9 +9004,29 @@ public string DriverVersion { get; set; }
 
 匹配到的宿主显卡驱动版本。
 
+<a id="api-b86a48cfb3abf864"></a>
+
+##### 来宾驱动版本（属性）
+
+```csharp
+public string? GuestDriverVersion { get; set; }
+```
+
+最近一次已部署到来宾系统的驱动版本；未部署、已跳过、挂载安装光盘待装或无记录时为 null。
+
+<a id="api-cdb076ab2d60b059"></a>
+
+##### 驱动待更新标记（属性）
+
+```csharp
+public bool HasDriverUpdate { get; }
+```
+
+来宾驱动是否需要更新或补装（宿主已知驱动版本且与已部署来宾版本不一致）。
+
 <a id="api-2223ecbf264e9be2"></a>
 
-##### 宿主设备实例标识 · 属性
+##### 宿主设备实例标识（属性）
 
 ```csharp
 public string HostDeviceInstanceId { get; } = string.Empty;
@@ -6678,7 +9036,7 @@ public string HostDeviceInstanceId { get; } = string.Empty;
 
 <a id="api-8bfcd446d3c01f0a"></a>
 
-##### 制造商 · 属性
+##### 制造商（属性）
 
 ```csharp
 public string Manu { get; set; }
@@ -6688,7 +9046,7 @@ GPU 芯片商名称，用于厂商分类。
 
 <a id="api-fff875313738c476"></a>
 
-##### 专用显存容量 · 属性
+##### 专用显存容量（属性）
 
 ```csharp
 public ulong? MemoryBytes { get; set; }
@@ -6698,7 +9056,7 @@ public ulong? MemoryBytes { get; set; }
 
 <a id="api-9b4932329b8bfff9"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; set; }
@@ -6708,7 +9066,7 @@ public string Name { get; set; }
 
 <a id="api-ea475ce24867a673"></a>
 
-##### 厂商 · 属性
+##### 厂商（属性）
 
 ```csharp
 public string Vendor { get; set; }
@@ -6765,7 +9123,7 @@ public sealed record VmGroup(Guid Id, string Name, VmGroupKind Kind)
 
 <a id="api-b98c8aaa4bdf885e"></a>
 
-##### 创建虚拟机分组对象 · 主构造器
+##### 创建虚拟机分组对象（主构造器）
 
 ```csharp
 public VmGroup(Guid Id, string Name, VmGroupKind Kind);
@@ -6781,7 +9139,7 @@ public VmGroup(Guid Id, string Name, VmGroupKind Kind);
 
 <a id="api-8b6b9ca0a0ae084a"></a>
 
-##### 子分组标识 · 属性
+##### 子分组标识（属性）
 
 ```csharp
 public HashSet<Guid> ChildIds { get; } = [];
@@ -6798,7 +9156,7 @@ public HashSet<Guid> ChildIds { get; } = [];
 
 <a id="api-a7349d348f3ba4e8"></a>
 
-##### 标识 · record 属性
+##### 标识（record 属性）
 
 ```csharp
 public Guid Id { get; init; }
@@ -6808,7 +9166,7 @@ public Guid Id { get; init; }
 
 <a id="api-4819035fa448ce06"></a>
 
-##### 空值状态 · 属性
+##### 空值状态（属性）
 
 ```csharp
 public bool IsEmpty { get; }
@@ -6825,7 +9183,7 @@ public bool IsEmpty { get; }
 
 <a id="api-26c25d04e4844b75"></a>
 
-##### 类别 · record 属性
+##### 类别（record 属性）
 
 ```csharp
 public VmGroupKind Kind { get; init; }
@@ -6835,7 +9193,7 @@ public VmGroupKind Kind { get; init; }
 
 <a id="api-dc227f7a8acbdc41"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -6845,7 +9203,7 @@ public string Name { get; init; }
 
 <a id="api-542edef03aaba4b3"></a>
 
-##### 虚拟机标识列表 · 属性
+##### 虚拟机标识列表（属性）
 
 ```csharp
 public HashSet<Guid> VmIds { get; } = [];
@@ -6893,7 +9251,7 @@ public enum VmGroupKind : ushort
 
 <a id="api-f4de7d676db07b69"></a>
 
-##### Groups · 枚举值
+##### Groups（枚举值）
 
 ```csharp
 Groups = 1
@@ -6903,7 +9261,7 @@ Groups = 1
 
 <a id="api-ff8305f29c38859c"></a>
 
-##### VirtualMachines · 枚举值
+##### VirtualMachines（枚举值）
 
 ```csharp
 VirtualMachines = 0
@@ -6957,7 +9315,7 @@ public sealed record VmGroupMove(Guid Id, bool IsGroup, Guid? SourceParentId)
 
 <a id="api-1845b1c7c38169da"></a>
 
-##### 创建分组移动请求对象 · 主构造器
+##### 创建分组移动请求对象（主构造器）
 
 ```csharp
 public VmGroupMove(Guid Id, bool IsGroup, Guid? SourceParentId);
@@ -6973,7 +9331,7 @@ public VmGroupMove(Guid Id, bool IsGroup, Guid? SourceParentId);
 
 <a id="api-1ffa759b77a4dddf"></a>
 
-##### 标识 · record 属性
+##### 标识（record 属性）
 
 ```csharp
 public Guid Id { get; init; }
@@ -6983,7 +9341,7 @@ public Guid Id { get; init; }
 
 <a id="api-6541a71bba398174"></a>
 
-##### 分组标记 · record 属性
+##### 分组标记（record 属性）
 
 ```csharp
 public bool IsGroup { get; init; }
@@ -6993,7 +9351,7 @@ true 表示分组，false 表示虚拟机。
 
 <a id="api-69628f009e548226"></a>
 
-##### 原父组标识 · record 属性
+##### 原父组标识（record 属性）
 
 ```csharp
 public Guid? SourceParentId { get; init; }
@@ -7050,7 +9408,7 @@ public sealed class VmGroupSnapshot(IReadOnlyList<VmGroup> groups)
 
 <a id="api-d448bb645b5a77fc"></a>
 
-##### 创建分组快照对象 · 主构造器
+##### 创建分组快照对象（主构造器）
 
 ```csharp
 public VmGroupSnapshot(IReadOnlyList<VmGroup> groups);
@@ -7066,7 +9424,7 @@ public VmGroupSnapshot(IReadOnlyList<VmGroup> groups);
 
 <a id="api-26d88b3a5b3c9ca7"></a>
 
-##### 分组列表 · 属性
+##### 分组列表（属性）
 
 ```csharp
 public IReadOnlyList<VmGroup> Groups { get; } = groups;
@@ -7080,7 +9438,7 @@ public IReadOnlyList<VmGroup> Groups { get; } = groups;
 
 <a id="api-c520f8ea80146951"></a>
 
-##### 检查子分组 · 方法
+##### 检查子分组（方法）
 
 ```csharp
 public bool CanContain(Guid parentId, Guid childId);
@@ -7099,7 +9457,7 @@ public bool CanContain(Guid parentId, Guid childId);
 
 <a id="api-3bdacb77ef96fa5a"></a>
 
-##### 收集分组中的虚拟机 · 方法
+##### 收集分组中的虚拟机（方法）
 
 ```csharp
 public HashSet<Guid> GetVmIds(Guid groupId);
@@ -7155,7 +9513,7 @@ public sealed class VmImportDiskPreview
 
 <a id="api-1cb9b8a57667f69c"></a>
 
-##### 文件实际大小 · 属性
+##### 文件实际大小（属性）
 
 ```csharp
 public long ActualSize { get; init; }
@@ -7165,7 +9523,7 @@ public long ActualSize { get; init; }
 
 <a id="api-b9052c36241bb04c"></a>
 
-##### 控制器 · 属性
+##### 控制器（属性）
 
 ```csharp
 public string Controller { get; init; } = string.Empty;
@@ -7175,7 +9533,7 @@ public string Controller { get; init; } = string.Empty;
 
 <a id="api-dad40075ae8d4573"></a>
 
-##### 文件存在状态 · 属性
+##### 文件存在状态（属性）
 
 ```csharp
 public bool Exists { get; init; }
@@ -7185,7 +9543,7 @@ public bool Exists { get; init; }
 
 <a id="api-a753ff7a9632959b"></a>
 
-##### 格式 · 属性
+##### 格式（属性）
 
 ```csharp
 public string Format { get; init; } = string.Empty;
@@ -7195,7 +9553,7 @@ public string Format { get; init; } = string.Empty;
 
 <a id="api-7673d388f78b1b84"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; init; } = string.Empty;
@@ -7205,7 +9563,7 @@ public string Name { get; init; } = string.Empty;
 
 <a id="api-da79a26be33179f7"></a>
 
-##### 父盘路径 · 属性
+##### 父盘路径（属性）
 
 ```csharp
 public string? ParentPath { get; init; }
@@ -7215,7 +9573,7 @@ public string? ParentPath { get; init; }
 
 <a id="api-783651d659da1598"></a>
 
-##### 源文件路径 · 属性
+##### 源文件路径（属性）
 
 ```csharp
 public string SourcePath { get; init; } = string.Empty;
@@ -7225,7 +9583,7 @@ public string SourcePath { get; init; } = string.Empty;
 
 <a id="api-1189fa7562d6c569"></a>
 
-##### 类型 · 属性
+##### 类型（属性）
 
 ```csharp
 public string Type { get; init; } = string.Empty;
@@ -7235,7 +9593,7 @@ public string Type { get; init; } = string.Empty;
 
 <a id="api-0d11b8d96517a744"></a>
 
-##### 虚拟容量 · 属性
+##### 虚拟容量（属性）
 
 ```csharp
 public ulong VirtualSize { get; init; }
@@ -7276,7 +9634,7 @@ public enum VmImportGuidMode
 
 <a id="api-9cb9ff7dc829de77"></a>
 
-##### GenerateNew · 枚举值
+##### GenerateNew（枚举值）
 
 ```csharp
 GenerateNew = 1
@@ -7286,7 +9644,7 @@ GenerateNew = 1
 
 <a id="api-7b021089782ff88d"></a>
 
-##### Preserve · 枚举值
+##### Preserve（枚举值）
 
 ```csharp
 Preserve = 0
@@ -7360,7 +9718,7 @@ public static class ImportOptionsExample
 
 <a id="api-f4ec72bd2222866b"></a>
 
-##### 创建导入选项对象 · 构造器
+##### 创建导入选项对象（构造器）
 
 ```csharp
 public VmImportOptions(VmImportGuidMode guidMode);
@@ -7376,7 +9734,7 @@ public VmImportOptions(VmImportGuidMode guidMode);
 
 <a id="api-9edf4bd6dd62c8ce"></a>
 
-##### 配置目标目录 · 属性
+##### 配置目标目录（属性）
 
 ```csharp
 public string? ConfigurationDirectory { get; init; }
@@ -7386,7 +9744,7 @@ public string? ConfigurationDirectory { get; init; }
 
 <a id="api-1d5d6c1dd4f16efe"></a>
 
-##### 磁盘目标目录 · 属性
+##### 磁盘目标目录（属性）
 
 ```csharp
 public string? DiskDirectory { get; init; }
@@ -7396,7 +9754,7 @@ public string? DiskDirectory { get; init; }
 
 <a id="api-0f71e26193f52b57"></a>
 
-##### 身份处理方式 · 属性
+##### 身份处理方式（属性）
 
 ```csharp
 public VmImportGuidMode GuidMode { get; }
@@ -7406,7 +9764,7 @@ GUID 处理方式；选择保留且发生冲突时失败。
 
 <a id="api-7c0bc31e860b189b"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string? Name { get; init; }
@@ -7416,7 +9774,7 @@ public string? Name { get; init; }
 
 <a id="api-a63603106f461248"></a>
 
-##### 交换机映射 · 属性
+##### 交换机映射（属性）
 
 ```csharp
 public IReadOnlyDictionary<Guid, Guid?> SwitchMappings { get; init; } =
@@ -7460,7 +9818,7 @@ public enum VmImportPlacementMode
 
 <a id="api-daaba4d9b7c8a326"></a>
 
-##### ExistingDirectory · 枚举值
+##### ExistingDirectory（枚举值）
 
 ```csharp
 ExistingDirectory = 1
@@ -7470,7 +9828,7 @@ ExistingDirectory = 1
 
 <a id="api-b2469fbe9f75382d"></a>
 
-##### HostDirectories · 枚举值
+##### HostDirectories（枚举值）
 
 ```csharp
 HostDirectories = 0
@@ -7520,7 +9878,7 @@ public sealed class VmImportPreview
 
 <a id="api-0b60069a33995733"></a>
 
-##### 兼容性问题 · 属性
+##### 兼容性问题（属性）
 
 ```csharp
 public IReadOnlyList<string> CompatibilityIssues { get; } = Array.Empty<string>();
@@ -7530,7 +9888,7 @@ public IReadOnlyList<string> CompatibilityIssues { get; } = Array.Empty<string>(
 
 <a id="api-fca5a5aac06e6c48"></a>
 
-##### 配置版本 · 属性
+##### 配置版本（属性）
 
 ```csharp
 public string ConfigurationVersion { get; init; } = string.Empty;
@@ -7540,7 +9898,7 @@ public string ConfigurationVersion { get; init; } = string.Empty;
 
 <a id="api-a0c48bd5db21f159"></a>
 
-##### 创建时间 · 属性
+##### 创建时间（属性）
 
 ```csharp
 public DateTime Created { get; init; }
@@ -7550,7 +9908,7 @@ public DateTime Created { get; init; }
 
 <a id="api-aa559a0adf54a465"></a>
 
-##### 磁盘列表 · 属性
+##### 磁盘列表（属性）
 
 ```csharp
 public IReadOnlyList<VmImportDiskPreview> Disks { get; } = Array.Empty<VmImportDiskPreview>();
@@ -7560,7 +9918,7 @@ public IReadOnlyList<VmImportDiskPreview> Disks { get; } = Array.Empty<VmImportD
 
 <a id="api-efefb66075ea1792"></a>
 
-##### 虚拟机代数 · 属性
+##### 虚拟机代数（属性）
 
 ```csharp
 public int Generation { get; init; }
@@ -7570,7 +9928,7 @@ public int Generation { get; init; }
 
 <a id="api-1e31872de6f8cfb1"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; init; } = string.Empty;
@@ -7580,7 +9938,7 @@ public string Name { get; init; } = string.Empty;
 
 <a id="api-99bc2642b46f2929"></a>
 
-##### 原虚拟机标识 · 属性
+##### 原虚拟机标识（属性）
 
 ```csharp
 public Guid OriginalGuid { get; init; }
@@ -7590,7 +9948,7 @@ public Guid OriginalGuid { get; init; }
 
 <a id="api-5768f53331db46c9"></a>
 
-##### 操作系统分类 · 属性
+##### 操作系统分类（属性）
 
 ```csharp
 public string OsType { get; init; } = "Windows";
@@ -7600,7 +9958,7 @@ public string OsType { get; init; } = "Windows";
 
 <a id="api-b5dbc527a386e335"></a>
 
-##### 处理器数量 · 属性
+##### 处理器数量（属性）
 
 ```csharp
 public int ProcessorCount { get; init; }
@@ -7610,7 +9968,7 @@ public int ProcessorCount { get; init; }
 
 <a id="api-5bb1ec86a58bd6a0"></a>
 
-##### 原交换机标识 · 属性
+##### 原交换机标识（属性）
 
 ```csharp
 public IReadOnlyList<Guid> SourceSwitchIds { get; } = Array.Empty<Guid>();
@@ -7620,7 +9978,7 @@ public IReadOnlyList<Guid> SourceSwitchIds { get; } = Array.Empty<Guid>();
 
 <a id="api-c2bce5ef8515b8e1"></a>
 
-##### 启动内存 · 属性
+##### 启动内存（属性）
 
 ```csharp
 public ulong StartupMemoryMiB { get; init; }
@@ -7661,7 +10019,7 @@ public enum VmImportSourceKind
 
 <a id="api-1ae8ce5e9ff21e3c"></a>
 
-##### Folder · 枚举值
+##### Folder（枚举值）
 
 ```csharp
 Folder = 0
@@ -7671,7 +10029,7 @@ Folder = 0
 
 <a id="api-d327bb226b74199e"></a>
 
-##### Zip · 枚举值
+##### Zip（枚举值）
 
 ```csharp
 Zip = 1
@@ -7748,7 +10106,7 @@ public class VmInstance
 
 <a id="api-c354f64ecc36c3c9"></a>
 
-##### 创建空虚拟机信息对象 · 构造器
+##### 创建空虚拟机信息对象（构造器）
 
 ```csharp
 public VmInstance();
@@ -7758,7 +10116,7 @@ public VmInstance();
 
 <a id="api-290574c9e8a82b45"></a>
 
-##### 创建带身份的虚拟机信息对象 · 构造器
+##### 创建带身份的虚拟机信息对象（构造器）
 
 ```csharp
 public VmInstance(Guid id, string name);
@@ -7775,7 +10133,7 @@ public VmInstance(Guid id, string name);
 
 <a id="api-f7bb00c795c6eeb3"></a>
 
-##### 已分配 GPU · 属性
+##### 已分配 GPU（属性）
 
 ```csharp
 public List<VmGpuAssignment> AssignedGpus { get; } = new();
@@ -7785,7 +10143,7 @@ public List<VmGpuAssignment> AssignedGpus { get; } = new();
 
 <a id="api-d394276ba471ab82"></a>
 
-##### 已分配内存 · 属性
+##### 已分配内存（属性）
 
 ```csharp
 public double AssignedMemoryGiB { get; set; }
@@ -7795,7 +10153,7 @@ public double AssignedMemoryGiB { get; set; }
 
 <a id="api-1727553a2fd34a47"></a>
 
-##### 已分配内存采样状态 · 属性
+##### 已分配内存采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? AssignedMemorySample { get; set; }
@@ -7805,7 +10163,7 @@ public PerformanceSampleInfo? AssignedMemorySample { get; set; }
 
 <a id="api-6ba39b1b26b50df9"></a>
 
-##### 启动顺序 · 属性
+##### 启动顺序（属性）
 
 ```csharp
 public List<BootOrderItem> BootOrderItems { get; } = new();
@@ -7815,7 +10173,7 @@ public List<BootOrderItem> BootOrderItems { get; } = new();
 
 <a id="api-49c8da356f3c31c7"></a>
 
-##### 处理器数量 · 属性
+##### 处理器数量（属性）
 
 ```csharp
 public int CpuCount { get; set; }
@@ -7825,7 +10183,7 @@ public int CpuCount { get; set; }
 
 <a id="api-381102ba45b6b7b9"></a>
 
-##### 内存需求 · 属性
+##### 内存需求（属性）
 
 ```csharp
 public double DemandMemoryGiB { get; set; }
@@ -7835,7 +10193,7 @@ public double DemandMemoryGiB { get; set; }
 
 <a id="api-f2cf44e13fdc1e66"></a>
 
-##### 内存需求采样状态 · 属性
+##### 内存需求采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? DemandMemorySample { get; set; }
@@ -7845,7 +10203,7 @@ public PerformanceSampleInfo? DemandMemorySample { get; set; }
 
 <a id="api-57c5c2bd90ee8e4d"></a>
 
-##### 磁盘列表 · 属性
+##### 磁盘列表（属性）
 
 ```csharp
 public List<VmDiskStatus> Disks { get; } = new();
@@ -7855,7 +10213,7 @@ public List<VmDiskStatus> Disks { get; } = new();
 
 <a id="api-b63a053ff4b529d8"></a>
 
-##### 虚拟机代数 · 属性
+##### 虚拟机代数（属性）
 
 ```csharp
 public int Generation { get; set; }
@@ -7865,7 +10223,7 @@ public int Generation { get; set; }
 
 <a id="api-23f9e184629f302e"></a>
 
-##### GPU 名称 · 属性
+##### GPU 名称（属性）
 
 ```csharp
 public string? GpuName { get; set; }
@@ -7875,7 +10233,7 @@ public string? GpuName { get; set; }
 
 <a id="api-ae0d9a5a576e3aa1"></a>
 
-##### GPU 分配标记 · 属性
+##### GPU 分配标记（属性）
 
 ```csharp
 public bool HasGpu { get; }
@@ -7885,7 +10243,7 @@ public bool HasGpu { get; }
 
 <a id="api-b71eac39bdc74dd4"></a>
 
-##### GPU 分配确认状态 · 属性
+##### GPU 分配确认状态（属性）
 
 ```csharp
 public bool? HasGpuAssignment { get; set; }
@@ -7895,7 +10253,7 @@ public bool? HasGpuAssignment { get; set; }
 
 <a id="api-60ebdd5a647f3973"></a>
 
-##### 标识 · 属性
+##### 标识（属性）
 
 ```csharp
 public Guid Id { get; init; }
@@ -7905,7 +10263,7 @@ public Guid Id { get; init; }
 
 <a id="api-3b0887682a9d8d62"></a>
 
-##### IP 地址 · 属性
+##### IP 地址（属性）
 
 ```csharp
 public string IpAddress { get; set; } = string.Empty;
@@ -7915,7 +10273,7 @@ public string IpAddress { get; set; } = string.Empty;
 
 <a id="api-03e74b12eabf46f3"></a>
 
-##### GPU 活动标记 · 属性
+##### GPU 活动标记（属性）
 
 ```csharp
 public bool IsGpuActive { get; set; }
@@ -7925,7 +10283,7 @@ public bool IsGpuActive { get; set; }
 
 <a id="api-10b0c8943b385721"></a>
 
-##### 完全关机状态 · 属性
+##### 完全关机状态（属性）
 
 ```csharp
 public bool IsPoweredOff { get; }
@@ -7935,7 +10293,7 @@ public bool IsPoweredOff { get; }
 
 <a id="api-d0efd84534f9e411"></a>
 
-##### 活动状态 · 属性
+##### 活动状态（属性）
 
 ```csharp
 public bool IsRunning { get; }
@@ -7945,7 +10303,7 @@ public bool IsRunning { get; }
 
 <a id="api-e2c123ca04fda25c"></a>
 
-##### MAC 地址 · 属性
+##### MAC 地址（属性）
 
 ```csharp
 public string MacAddress { get; set; } = "00:00:00:00:00:00";
@@ -7955,7 +10313,7 @@ public string MacAddress { get; set; } = "00:00:00:00:00:00";
 
 <a id="api-90465da0eb5e0764"></a>
 
-##### 启动内存 · 属性
+##### 启动内存（属性）
 
 ```csharp
 public double MemoryGiB { get; set; }
@@ -7965,7 +10323,7 @@ public double MemoryGiB { get; set; }
 
 <a id="api-85bc544bc195eb0a"></a>
 
-##### 内存设置 · 属性
+##### 内存设置（属性）
 
 ```csharp
 public VmMemorySettings? MemorySettings { get; set; }
@@ -7975,7 +10333,7 @@ public VmMemorySettings? MemorySettings { get; set; }
 
 <a id="api-b64f3f5109df52ad"></a>
 
-##### MMIO 设置 · 属性
+##### MMIO 设置（属性）
 
 ```csharp
 public VmMmioSettings? MmioSettings { get; set; }
@@ -7985,7 +10343,7 @@ MMIO 详细设置；尚未加载或查询不可用时为 null。
 
 <a id="api-383ee85245f5e11f"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; set; } = string.Empty;
@@ -7995,7 +10353,7 @@ public string Name { get; set; } = string.Empty;
 
 <a id="api-263238b0642f7eca"></a>
 
-##### 虚拟网卡列表 · 属性
+##### 虚拟网卡列表（属性）
 
 ```csharp
 public List<VmNetworkAdapter> NetworkAdapters { get; } = new();
@@ -8005,7 +10363,7 @@ public List<VmNetworkAdapter> NetworkAdapters { get; } = new();
 
 <a id="api-5967fc7516b523ea"></a>
 
-##### 操作系统分类 · 属性
+##### 操作系统分类（属性）
 
 ```csharp
 public string OsType { get; set; } = "Windows";
@@ -8015,7 +10373,7 @@ HostOnlyItems 中保存的操作系统分类；缺少或无法识别时为 Windo
 
 <a id="api-2f2d6c350073c37c"></a>
 
-##### 处理器设置 · 属性
+##### 处理器设置（属性）
 
 ```csharp
 public VmProcessorSettings? Processor { get; set; }
@@ -8025,7 +10383,7 @@ public VmProcessorSettings? Processor { get; set; }
 
 <a id="api-8eb9034cc2978fef"></a>
 
-##### 运行时长 · 属性
+##### 运行时长（属性）
 
 ```csharp
 public TimeSpan RawUptime { get; set; }
@@ -8035,7 +10393,7 @@ VM 已运行时长（来自 Msvm_SummaryInformation.UpTime）
 
 <a id="api-1e67a9d09b1b2a38"></a>
 
-##### 状态 · 属性
+##### 状态（属性）
 
 ```csharp
 public VmState State { get; }
@@ -8045,7 +10403,7 @@ public VmState State { get; }
 
 <a id="api-2136b1eef14d153c"></a>
 
-##### 存储连接列表 · 属性
+##### 存储连接列表（属性）
 
 ```csharp
 public List<VmStorageAttachment> StorageItems { get; } = new();
@@ -8055,7 +10413,7 @@ public List<VmStorageAttachment> StorageItems { get; } = new();
 
 <a id="api-3f80a0b157143130"></a>
 
-##### 版本 · 属性
+##### 版本（属性）
 
 ```csharp
 public string Version { get; set; } = "0.0";
@@ -8137,7 +10495,7 @@ public partial class VmMemorySettings
 
 <a id="api-579606f4b6f23f0b"></a>
 
-##### 创建内存设置对象 · 构造器
+##### 创建内存设置对象（构造器）
 
 ```csharp
 public VmMemorySettings();
@@ -8149,7 +10507,7 @@ public VmMemorySettings();
 
 <a id="api-6baa115cb5f9e956"></a>
 
-##### 后备页大小 · 属性
+##### 后备页大小（属性）
 
 ```csharp
 public byte? BackingPageSize { get; set; }
@@ -8159,7 +10517,7 @@ public byte? BackingPageSize { get; set; }
 
 <a id="api-f8495c17b80ce6ea"></a>
 
-##### 内存后备类型 · 属性
+##### 内存后备类型（属性）
 
 ```csharp
 public byte? BackingType { get; set; }
@@ -8176,11 +10534,11 @@ public byte? BackingType { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.BackingType`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.BackingType`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.BackingType；提交方式：明确选择字段。将 nameof(VmMemorySettings.BackingType) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.BackingType`。 |
+| 修改对应 | 读写，输入：newSettings.BackingType，提交方式：明确选择字段。将 nameof(VmMemorySettings.BackingType) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.BackingType`。 |
 
 <a id="api-510742f09596571e"></a>
 
-##### 内存缓冲比例 · 属性
+##### 内存缓冲比例（属性）
 
 ```csharp
 public int Buffer { get; set; }
@@ -8190,7 +10548,7 @@ public int Buffer { get; set; }
 
 <a id="api-ee38e75812fb62b8"></a>
 
-##### CXL 开关 · 属性
+##### CXL 开关（属性）
 
 ```csharp
 public bool? CxlEnabled { get; set; }
@@ -8206,11 +10564,11 @@ public bool? CxlEnabled { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.CxlEnabled`；该处为本字段的完整说明。 |
 | 适用条件 | 已知版本存在 VMMS 崩溃风险。版本范围及关闭限制见 `ExHyperV.Services.VmMemoryFields.CxlEnabled`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.CxlEnabled；提交方式：明确选择字段。将 nameof(VmMemorySettings.CxlEnabled) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.CxlEnabled`。 |
+| 修改对应 | 读写，输入：newSettings.CxlEnabled，提交方式：明确选择字段。将 nameof(VmMemorySettings.CxlEnabled) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.CxlEnabled`。 |
 
 <a id="api-e43fd6f77436cca0"></a>
 
-##### 动态内存操作对齐 · 属性
+##### 动态内存操作对齐（属性）
 
 ```csharp
 public uint? DynMemOperationAlignment { get; set; }
@@ -8227,11 +10585,11 @@ public uint? DynMemOperationAlignment { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.DynMemOperationAlignment`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.DynMemOperationAlignment`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.DynMemOperationAlignment；提交方式：明确选择字段。将 nameof(VmMemorySettings.DynMemOperationAlignment) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.DynMemOperationAlignment`。 |
+| 修改对应 | 读写，输入：newSettings.DynMemOperationAlignment，提交方式：明确选择字段。将 nameof(VmMemorySettings.DynMemOperationAlignment) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.DynMemOperationAlignment`。 |
 
 <a id="api-442a246088b76be7"></a>
 
-##### 动态内存开关 · 属性
+##### 动态内存开关（属性）
 
 ```csharp
 public bool DynamicMemoryEnabled { get; set; }
@@ -8241,7 +10599,7 @@ public bool DynamicMemoryEnabled { get; set; }
 
 <a id="api-ac02c84608badb64"></a>
 
-##### 冷内存提示 · 属性
+##### 冷内存提示（属性）
 
 ```csharp
 public bool? EnableColdHint { get; set; }
@@ -8257,11 +10615,11 @@ public bool? EnableColdHint { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnableColdHint`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.EnableColdHint`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.EnableColdHint；提交方式：明确选择字段。将 nameof(VmMemorySettings.EnableColdHint) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnableColdHint`。 |
+| 修改对应 | 读写，输入：newSettings.EnableColdHint，提交方式：明确选择字段。将 nameof(VmMemorySettings.EnableColdHint) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnableColdHint`。 |
 
 <a id="api-aa368f622d1a2d34"></a>
 
-##### EPF 开关 · 属性
+##### EPF 开关（属性）
 
 ```csharp
 public bool? EnableEpf { get; set; }
@@ -8277,11 +10635,11 @@ public bool? EnableEpf { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnableEpf`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.EnableEpf`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.EnableEpf；提交方式：明确选择字段。将 nameof(VmMemorySettings.EnableEpf) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnableEpf`。 |
+| 修改对应 | 读写，输入：newSettings.EnableEpf，提交方式：明确选择字段。将 nameof(VmMemorySettings.EnableEpf) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnableEpf`。 |
 
 <a id="api-18088a3375d5a0fc"></a>
 
-##### GPA 固定开关 · 属性
+##### GPA 固定开关（属性）
 
 ```csharp
 public bool? EnableGpaPinning { get; set; }
@@ -8297,11 +10655,11 @@ public bool? EnableGpaPinning { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnableGpaPinning`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.EnableGpaPinning`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.EnableGpaPinning；提交方式：明确选择字段。将 nameof(VmMemorySettings.EnableGpaPinning) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnableGpaPinning`。 |
+| 修改对应 | 读写，输入：newSettings.EnableGpaPinning，提交方式：明确选择字段。将 nameof(VmMemorySettings.EnableGpaPinning) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnableGpaPinning`。 |
 
 <a id="api-d4750de9d4893c87"></a>
 
-##### 热内存提示 · 属性
+##### 热内存提示（属性）
 
 ```csharp
 public bool? EnableHotHint { get; set; }
@@ -8317,11 +10675,11 @@ public bool? EnableHotHint { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnableHotHint`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.EnableHotHint`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.EnableHotHint；提交方式：明确选择字段。将 nameof(VmMemorySettings.EnableHotHint) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnableHotHint`。 |
+| 修改对应 | 读写，输入：newSettings.EnableHotHint，提交方式：明确选择字段。将 nameof(VmMemorySettings.EnableHotHint) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnableHotHint`。 |
 
 <a id="api-01c5aefe50932ed4"></a>
 
-##### 私有压缩存储开关 · 属性
+##### 私有压缩存储开关（属性）
 
 ```csharp
 public bool? EnablePrivateCompressionStore { get; set; }
@@ -8337,11 +10695,11 @@ public bool? EnablePrivateCompressionStore { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.EnablePrivateCompressionStore`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.EnablePrivateCompressionStore`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.EnablePrivateCompressionStore；提交方式：明确选择字段。将 nameof(VmMemorySettings.EnablePrivateCompressionStore) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnablePrivateCompressionStore`。 |
+| 修改对应 | 读写，输入：newSettings.EnablePrivateCompressionStore，提交方式：明确选择字段。将 nameof(VmMemorySettings.EnablePrivateCompressionStore) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.EnablePrivateCompressionStore`。 |
 
 <a id="api-5bad0bbc763db8ab"></a>
 
-##### 每 NUMA 节点内存块上限 · 属性
+##### 每 NUMA 节点内存块上限（属性）
 
 ```csharp
 public ulong? MaxMemoryBlocksPerNumaNode { get; set; }
@@ -8358,11 +10716,11 @@ public ulong? MaxMemoryBlocksPerNumaNode { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.MaxMemoryBlocksPerNumaNode`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.MaxMemoryBlocksPerNumaNode`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.MaxMemoryBlocksPerNumaNode；提交方式：明确选择字段。将 nameof(VmMemorySettings.MaxMemoryBlocksPerNumaNode) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.MaxMemoryBlocksPerNumaNode`。 |
+| 修改对应 | 读写，输入：newSettings.MaxMemoryBlocksPerNumaNode，提交方式：明确选择字段。将 nameof(VmMemorySettings.MaxMemoryBlocksPerNumaNode) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.MaxMemoryBlocksPerNumaNode`。 |
 
 <a id="api-c4e18b2e657d1418"></a>
 
-##### 最大内存 · 属性
+##### 最大内存（属性）
 
 ```csharp
 public long Maximum { get; set; }
@@ -8372,7 +10730,7 @@ public long Maximum { get; set; }
 
 <a id="api-296adc74f1e302b9"></a>
 
-##### 内存访问跟踪策略 · 属性
+##### 内存访问跟踪策略（属性）
 
 ```csharp
 public byte? MemoryAccessTrackingPolicy { get; set; }
@@ -8389,11 +10747,11 @@ public byte? MemoryAccessTrackingPolicy { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingPolicy`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingPolicy`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.MemoryAccessTrackingPolicy；提交方式：明确选择字段。将 nameof(VmMemorySettings.MemoryAccessTrackingPolicy) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingPolicy`。 |
+| 修改对应 | 读写，输入：newSettings.MemoryAccessTrackingPolicy，提交方式：明确选择字段。将 nameof(VmMemorySettings.MemoryAccessTrackingPolicy) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingPolicy`。 |
 
 <a id="api-86d3a01cfd0ef1f0"></a>
 
-##### 内存访问跟踪状态 · 属性
+##### 内存访问跟踪状态（属性）
 
 ```csharp
 public byte? MemoryAccessTrackingState { get; set; }
@@ -8410,11 +10768,11 @@ public byte? MemoryAccessTrackingState { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingState`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingState`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.MemoryAccessTrackingState；提交方式：明确选择字段。将 nameof(VmMemorySettings.MemoryAccessTrackingState) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingState`。 |
+| 修改对应 | 读写，输入：newSettings.MemoryAccessTrackingState，提交方式：明确选择字段。将 nameof(VmMemorySettings.MemoryAccessTrackingState) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.MemoryAccessTrackingState`。 |
 
 <a id="api-d43fe310858a4b72"></a>
 
-##### 内存加密策略 · 属性
+##### 内存加密策略（属性）
 
 ```csharp
 public byte? MemoryEncryptionPolicy { get; set; }
@@ -8431,11 +10789,11 @@ public byte? MemoryEncryptionPolicy { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.MemoryEncryptionPolicy`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.MemoryEncryptionPolicy`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.MemoryEncryptionPolicy；提交方式：明确选择字段。将 nameof(VmMemorySettings.MemoryEncryptionPolicy) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.MemoryEncryptionPolicy`。 |
+| 修改对应 | 读写，输入：newSettings.MemoryEncryptionPolicy，提交方式：明确选择字段。将 nameof(VmMemorySettings.MemoryEncryptionPolicy) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.MemoryEncryptionPolicy`。 |
 
 <a id="api-79e84c05bd14bdec"></a>
 
-##### 最小内存 · 属性
+##### 最小内存（属性）
 
 ```csharp
 public long Minimum { get; set; }
@@ -8445,7 +10803,7 @@ public long Minimum { get; set; }
 
 <a id="api-137ad4fb24c64154"></a>
 
-##### SGX 开关 · 属性
+##### SGX 开关（属性）
 
 ```csharp
 public bool? SgxEnabled { get; set; }
@@ -8461,11 +10819,11 @@ public bool? SgxEnabled { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.SgxEnabled`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.SgxEnabled`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.SgxEnabled；提交方式：明确选择字段。将 nameof(VmMemorySettings.SgxEnabled) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.SgxEnabled`。 |
+| 修改对应 | 读写，输入：newSettings.SgxEnabled，提交方式：明确选择字段。将 nameof(VmMemorySettings.SgxEnabled) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.SgxEnabled`。 |
 
 <a id="api-d5562561647805a6"></a>
 
-##### SGX 默认启动控制 · 属性
+##### SGX 默认启动控制（属性）
 
 ```csharp
 public string? SgxLaunchControlDefault { get; set; }
@@ -8482,11 +10840,11 @@ public string? SgxLaunchControlDefault { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlDefault`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlDefault`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.SgxLaunchControlDefault；提交方式：明确选择字段。将 nameof(VmMemorySettings.SgxLaunchControlDefault) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlDefault`。 |
+| 修改对应 | 读写，输入：newSettings.SgxLaunchControlDefault，提交方式：明确选择字段。将 nameof(VmMemorySettings.SgxLaunchControlDefault) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlDefault`。 |
 
 <a id="api-5e378c729c2b356a"></a>
 
-##### SGX 启动控制模式 · 属性
+##### SGX 启动控制模式（属性）
 
 ```csharp
 public uint? SgxLaunchControlMode { get; set; }
@@ -8503,11 +10861,11 @@ public uint? SgxLaunchControlMode { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlMode`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlMode`。 |
 | 缺测与错误 | 读取为 null 表示未取得；写入 null 保留原值。 |
-| 修改对应 | 读写；输入：newSettings.SgxLaunchControlMode；提交方式：明确选择字段。将 nameof(VmMemorySettings.SgxLaunchControlMode) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlMode`。 |
+| 修改对应 | 读写，输入：newSettings.SgxLaunchControlMode，提交方式：明确选择字段。将 nameof(VmMemorySettings.SgxLaunchControlMode) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.SgxLaunchControlMode`。 |
 
 <a id="api-487c14ee9e31a804"></a>
 
-##### SGX 内存大小 · 属性
+##### SGX 内存大小（属性）
 
 ```csharp
 public double? SgxSize { get; set; }
@@ -8524,11 +10882,11 @@ public double? SgxSize { get; set; }
 | 取值与默认 | 取值和联动规则见 `ExHyperV.Services.VmMemoryFields.SgxSize`；该处为本字段的完整说明。 |
 | 适用条件 | 实验性。使用条件见 `ExHyperV.Services.VmMemoryFields.SgxSize`。 |
 | 缺测与错误 | GetVmMemorySettingsAsync 未取得底层容量时保留 null，实际读到的 0 保留为 0；需要区分属性不存在、缺值与读取失败时，使用自由查询的对应字段状态。 |
-| 修改对应 | 读写；输入：newSettings.SgxSize；提交方式：明确选择字段。将 nameof(VmMemorySettings.SgxSize) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.SgxSize`。 |
+| 修改对应 | 读写，输入：newSettings.SgxSize，提交方式：明确选择字段。将 nameof(VmMemorySettings.SgxSize) 加入 changedProperties。具体规范化和必要联动见 `ExHyperV.Services.VmMemoryFields.SgxSize`。 |
 
 <a id="api-79f3ba7e128a5f73"></a>
 
-##### 启动内存 · 属性
+##### 启动内存（属性）
 
 ```csharp
 public long Startup { get; set; }
@@ -8548,7 +10906,7 @@ public long Startup { get; set; }
 
 <a id="api-38ac08c146f6798f"></a>
 
-##### 后备页大小配置支持 · 属性
+##### 后备页大小配置支持（属性）
 
 ```csharp
 public bool SupportsBackingPageSize { get; }
@@ -8558,7 +10916,7 @@ public bool SupportsBackingPageSize { get; }
 
 <a id="api-96864048d7a53d89"></a>
 
-##### 内存权重 · 属性
+##### 内存权重（属性）
 
 ```csharp
 public uint Weight { get; set; }
@@ -8570,7 +10928,7 @@ public uint Weight { get; set; }
 
 <a id="api-61f2f7f6f95603b2"></a>
 
-##### 复制内存配置 · 方法
+##### 复制内存配置（方法）
 
 ```csharp
 public VmMemorySettings Clone();
@@ -8582,7 +10940,7 @@ public VmMemorySettings Clone();
 
 <a id="api-94d0f03236a10a60"></a>
 
-##### 恢复内存配置模型 · 方法
+##### 恢复内存配置模型（方法）
 
 ```csharp
 public void Restore(VmMemorySettings other);
@@ -8627,7 +10985,7 @@ public enum VmMigrationCompatibilityMode : byte
 
 <a id="api-2a8970e8a043722b"></a>
 
-##### CommonClusterFeatureSet · 枚举值
+##### CommonClusterFeatureSet（枚举值）
 
 ```csharp
 CommonClusterFeatureSet = 1
@@ -8637,7 +10995,7 @@ CommonClusterFeatureSet = 1
 
 <a id="api-ec1b5a0c208622a3"></a>
 
-##### MinimumFeatureSet · 枚举值
+##### MinimumFeatureSet（枚举值）
 
 ```csharp
 MinimumFeatureSet = 0
@@ -8686,7 +11044,7 @@ public partial class VmMmioSettings
 
 <a id="api-4144e28f2dcd10c7"></a>
 
-##### 高位 MMIO 基址 · 属性
+##### 高位 MMIO 基址（属性）
 
 ```csharp
 public ulong? HighBaseMiB { get; set; }
@@ -8696,7 +11054,7 @@ public ulong? HighBaseMiB { get; set; }
 
 <a id="api-6fb47b5dbeff2bce"></a>
 
-##### 高位 MMIO 空间 · 属性
+##### 高位 MMIO 空间（属性）
 
 ```csharp
 public ulong? HighSizeMiB { get; set; }
@@ -8706,7 +11064,7 @@ public ulong? HighSizeMiB { get; set; }
 
 <a id="api-807a8a6936300167"></a>
 
-##### 低位 MMIO 空间 · 属性
+##### 低位 MMIO 空间（属性）
 
 ```csharp
 public ulong? LowSizeMiB { get; set; }
@@ -8718,7 +11076,7 @@ public ulong? LowSizeMiB { get; set; }
 
 <a id="api-8b7a42b6a79f2308"></a>
 
-##### 复制 MMIO 配置 · 方法
+##### 复制 MMIO 配置（方法）
 
 ```csharp
 public VmMmioSettings Clone();
@@ -8730,7 +11088,7 @@ public VmMmioSettings Clone();
 
 <a id="api-dd21b6803f5c007d"></a>
 
-##### 恢复 MMIO 配置模型 · 方法
+##### 恢复 MMIO 配置模型（方法）
 
 ```csharp
 public void Restore(VmMmioSettings other);
@@ -8781,7 +11139,7 @@ public sealed record VmModificationCondition
 
 <a id="api-82cb37b1009ac600"></a>
 
-##### 允许修改 · 属性
+##### 允许修改（属性）
 
 ```csharp
 public bool CanModify { get; }
@@ -8791,7 +11149,7 @@ public bool CanModify { get; }
 
 <a id="api-af7394e853469c13"></a>
 
-##### 失败类别 · 属性
+##### 失败类别（属性）
 
 ```csharp
 public ApiErrorKind ErrorKind { get; }
@@ -8801,7 +11159,7 @@ public ApiErrorKind ErrorKind { get; }
 
 <a id="api-016c25c56a01ebff"></a>
 
-##### 原因 · 属性
+##### 原因（属性）
 
 ```csharp
 public string Reason { get; }
@@ -8811,7 +11169,7 @@ public string Reason { get; }
 
 <a id="api-5301e39f0c5c3430"></a>
 
-##### 原因参数 · 属性
+##### 原因参数（属性）
 
 ```csharp
 public IReadOnlyList<string> ReasonArgs { get; }
@@ -8821,7 +11179,7 @@ public IReadOnlyList<string> ReasonArgs { get; }
 
 <a id="api-74f584e48f85c8d8"></a>
 
-##### 原因码 · 属性
+##### 原因码（属性）
 
 ```csharp
 public ConditionReasonCode ReasonCode { get; }
@@ -8831,7 +11189,7 @@ public ConditionReasonCode ReasonCode { get; }
 
 <a id="api-de4343c35f30cbf9"></a>
 
-##### 所需电源状态 · 属性
+##### 所需电源状态（属性）
 
 ```csharp
 public VmState? RequiredState { get; }
@@ -8865,9 +11223,11 @@ public VmState? RequiredState { get; }
 | [` public Guid DeviceId { get; } `](#api-2a225c09af726a7e) | 虚拟网卡的设备 GUID；尚未从服务取得有效身份时为 Guid.Empty。 |
 | [` public bool DhcpGuardEnabled { get; set; } `](#api-d47c4056e2b0eb55) | 是否启用 DHCP 防护。 |
 | [` public bool HasNetworkSpeedSample { get; set; } `](#api-a2be18e85de2fd47) | 当前速率是否为有效采样结果。 |
+| [` public bool HasReportedMac { get; } = true `](#api-2e6b381105331c16) | 宿主是否已为此网卡报告非空 MAC 地址。 |
 | [` public List<string> IpAddresses { get; set; } `](#api-751247edb8fb35c8) | 网卡 IP 地址的可变列表。 |
 | [` public bool IpsecOffloadEnabled { get; set; } `](#api-53f5f84f043a7127) | 是否启用 IPsec 任务卸载。 |
 | [` public bool IsConnected { get; set; } `](#api-1a825d032fde4cc3) | 网卡连接开关，表示模拟网线是否接通。 |
+| [` public bool IsLegacy { get; set; } `](#api-0852cd96c8f09bfc) | 是否为第 1 代虚拟机使用的旧版网卡（需在关机状态添加，且不支持硬件加速）；false 表示标准网卡。 |
 | [` public bool IsStaticMac { get; set; } `](#api-c9a5e50c2883f54d) | 是否使用静态 MAC 地址配置。 |
 | [` public string MacAddress { get; set; } `](#api-554e306f108ff64a) | 虚拟网卡 MAC 地址。 |
 | [` public bool MacSpoofingAllowed { get; set; } `](#api-a2034c3881e2ecb2) | 是否允许 MAC 地址欺骗。 |
@@ -8878,6 +11238,7 @@ public VmState? RequiredState { get; }
 | [` public PvlanMode PvlanMode { get; set; } `](#api-595d524b6ca54d7c) | 专用 VLAN 端口角色。 |
 | [` public int PvlanPrimaryId { get; set; } `](#api-4cf52e95d96672de) | 专用 VLAN 的主 VLAN ID。 |
 | [` public int PvlanSecondaryId { get; set; } `](#api-6c1cf0bdf2b8f5f5) | 专用 VLAN 的辅助 VLAN ID。 |
+| [` public List<int> PvlanSecondaryIds { get; set; } = [] `](#api-c779bbf3c4247106) | 混杂端口允许通信的辅助 VLAN ID。 |
 | [` public ulong ReceiveBytesPerSecond { get; set; } `](#api-1ccbf73b1018a867) | 当前接收速率，单位为字节每秒。 |
 | [` public bool RouterGuardEnabled { get; set; } `](#api-faa73a409533de93) | 是否启用路由器通告防护。 |
 | [` public ulong SendBytesPerSecond { get; set; } `](#api-d085f959775bcf67) | 当前发送速率，单位为字节每秒。 |
@@ -8889,6 +11250,12 @@ public VmState? RequiredState { get; }
 | [` public List<int> TrunkAllowedVlanIds { get; set; } `](#api-9dc6dc7d08059185) | 中继模式下允许通过的 VLAN ID 可变列表。 |
 | [` public VlanOperationMode VlanMode { get; set; } `](#api-41bd09d02b1eb300) | VLAN 工作模式。 |
 | [` public bool VmqEnabled { get; set; } `](#api-632702ca0ab09eb2) | 是否启用虚拟机队列 VMQ。 |
+
+**方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmNetworkAdapter Clone() `](#api-425afb04bf0e6ccd) | 复制当前网卡快照，并为各可变列表建立独立副本。 |
 
 #### 详细说明
 
@@ -8902,303 +11269,689 @@ public partial class VmNetworkAdapter
 
 <a id="api-a1feb37c24214b53"></a>
 
-##### 访问 VLAN 编号 · 属性
+##### 访问 VLAN 编号（属性）
 
 ```csharp
 public int AccessVlanId { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 接入模式下的 VLAN ID。
 
 <a id="api-7dc1ee13848f7b45"></a>
 
-##### 带宽上限 · 属性
+##### 带宽上限（属性）
 
 ```csharp
 public ulong BandwidthLimitBitsPerSecond { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 最大带宽限制，单位 bit/s。
 
 <a id="api-bdaef9f42bc3f1f2"></a>
 
-##### 带宽保留 · 属性
+##### 带宽保留（属性）
 
 ```csharp
 public ulong BandwidthReservationBitsPerSecond { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 最低保留带宽，单位 bit/s。
 
 <a id="api-2a225c09af726a7e"></a>
 
-##### 设备标识 · 属性
+##### 设备标识（属性）
 
 ```csharp
 public Guid DeviceId { get; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 虚拟网卡的设备 GUID；尚未从服务取得有效身份时为 Guid.Empty。
 
 <a id="api-d47c4056e2b0eb55"></a>
 
-##### DHCP 防护 · 属性
+##### DHCP 防护（属性）
 
 ```csharp
 public bool DhcpGuardEnabled { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 是否启用 DHCP 防护。
 
 <a id="api-a2be18e85de2fd47"></a>
 
-##### 网络速率采样状态 · 属性
+##### 网络速率采样状态（属性）
 
 ```csharp
 public bool HasNetworkSpeedSample { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 当前速率是否为有效采样结果。
+
+<a id="api-2e6b381105331c16"></a>
+
+##### 已报告 MAC 地址（属性）
+
+```csharp
+public bool HasReportedMac { get; } = true;
+```
+
+功能归属：管理层面 / 虚拟机 / 网络。
+
+宿主是否已为此网卡报告非空 MAC 地址。
 
 <a id="api-751247edb8fb35c8"></a>
 
-##### IP 地址 · 属性
+##### IP 地址（属性）
 
 ```csharp
 public List<string> IpAddresses { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 网卡 IP 地址的可变列表。
 
 <a id="api-53f5f84f043a7127"></a>
 
-##### IPsec 卸载 · 属性
+##### IPsec 卸载（属性）
 
 ```csharp
 public bool IpsecOffloadEnabled { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 是否启用 IPsec 任务卸载。
 
 <a id="api-1a825d032fde4cc3"></a>
 
-##### 连接开关 · 属性
+##### 连接开关（属性）
 
 ```csharp
 public bool IsConnected { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 网卡连接开关，表示模拟网线是否接通。
+
+<a id="api-0852cd96c8f09bfc"></a>
+
+##### 旧版网卡（属性）
+
+```csharp
+public bool IsLegacy { get; set; }
+```
+
+功能归属：管理层面 / 虚拟机 / 网络。
+
+是否为第 1 代虚拟机使用的旧版网卡（需在关机状态添加，且不支持硬件加速）；false 表示标准网卡。
 
 <a id="api-c9a5e50c2883f54d"></a>
 
-##### 静态 MAC 开关 · 属性
+##### 静态 MAC 开关（属性）
 
 ```csharp
 public bool IsStaticMac { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 是否使用静态 MAC 地址配置。
 
 <a id="api-554e306f108ff64a"></a>
 
-##### MAC 地址 · 属性
+##### MAC 地址（属性）
 
 ```csharp
 public string MacAddress { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 虚拟网卡 MAC 地址。
 
 <a id="api-a2034c3881e2ecb2"></a>
 
-##### MAC 欺骗 · 属性
+##### MAC 欺骗（属性）
 
 ```csharp
 public bool MacSpoofingAllowed { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 是否允许 MAC 地址欺骗。
 
 <a id="api-d8ad5d8a503cadaa"></a>
 
-##### 端口镜像模式 · 属性
+##### 端口镜像模式（属性）
 
 ```csharp
 public PortMonitorMode MonitorMode { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 端口镜像的源、目标或禁用角色。
 
 <a id="api-553f8b08c56a5ef9"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 虚拟网卡名称。
 
 <a id="api-caaaa2aaf66c80c6"></a>
 
-##### 本征 VLAN 编号 · 属性
+##### 本征 VLAN 编号（属性）
 
 ```csharp
 public int NativeVlanId { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 中继模式下的本征 VLAN ID。
 
 <a id="api-4131e1d7f5a701b0"></a>
 
-##### 性能采样状态 · 属性
+##### 性能采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo PerformanceSample { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 本次速率采样的状态与时间；缺测时保留上次有效速率。
 
 <a id="api-595d524b6ca54d7c"></a>
 
-##### 专用 VLAN 模式 · 属性
+##### 专用 VLAN 模式（属性）
 
 ```csharp
 public PvlanMode PvlanMode { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 专用 VLAN 端口角色。
 
 <a id="api-4cf52e95d96672de"></a>
 
-##### 专用 VLAN 主编号 · 属性
+##### 专用 VLAN 主编号（属性）
 
 ```csharp
 public int PvlanPrimaryId { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 专用 VLAN 的主 VLAN ID。
 
 <a id="api-6c1cf0bdf2b8f5f5"></a>
 
-##### 专用 VLAN 次编号 · 属性
+##### 专用 VLAN 次编号（属性）
 
 ```csharp
 public int PvlanSecondaryId { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 专用 VLAN 的辅助 VLAN ID。
+
+<a id="api-c779bbf3c4247106"></a>
+
+##### 辅助 VLAN 列表（属性）
+
+```csharp
+public List<int> PvlanSecondaryIds { get; set; } = [];
+```
+
+功能归属：管理层面 / 虚拟机 / 网络。
+
+混杂端口允许通信的辅助 VLAN ID。
 
 <a id="api-1ccbf73b1018a867"></a>
 
-##### 网卡接收速率 · 属性
+##### 网卡接收速率（属性）
 
 ```csharp
 public ulong ReceiveBytesPerSecond { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 当前接收速率，单位为字节每秒。
 
 <a id="api-faa73a409533de93"></a>
 
-##### 路由器防护 · 属性
+##### 路由器防护（属性）
 
 ```csharp
 public bool RouterGuardEnabled { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 是否启用路由器通告防护。
 
 <a id="api-d085f959775bcf67"></a>
 
-##### 网卡发送速率 · 属性
+##### 网卡发送速率（属性）
 
 ```csharp
 public ulong SendBytesPerSecond { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 当前发送速率，单位为字节每秒。
 
 <a id="api-1d546df2fba1691c"></a>
 
-##### SR-IOV 开关 · 属性
+##### SR-IOV 开关（属性）
 
 ```csharp
 public bool SriovEnabled { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 是否启用单根 I/O 虚拟化 SR-IOV。
 
 <a id="api-36a14d57652bbf94"></a>
 
-##### 广播风暴限制 · 属性
+##### 广播风暴限制（属性）
 
 ```csharp
 public uint StormLimit { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 端口广播、组播等风暴流量的速率上限，单位为包/秒；0 表示不限制。参见 `VmNetworkFields.StormLimit`。
 
 <a id="api-609e1b82df1cd7a2"></a>
 
-##### 交换机标识 · 属性
+##### 交换机标识（属性）
 
 ```csharp
 public Guid? SwitchId { get; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 查询得到的目标交换机 GUID；无连接目标或无法确认时为 null。修改连接时显式向 UpdateConnectionAsync 传入目标 GUID。
 
 <a id="api-801ac06b7251ea2b"></a>
 
-##### 交换机名称 · 属性
+##### 交换机名称（属性）
 
 ```csharp
 public string SwitchName { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 交换机的显示名称；修改此值不改变连接目标，连接操作仅使用显式传入的交换机 GUID。
 
 <a id="api-ad988c19d88ab467"></a>
 
-##### 网卡组合 · 属性
+##### 网卡组合（属性）
 
 ```csharp
 public bool TeamingAllowed { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 是否允许来宾对该网卡进行组队。
 
 <a id="api-9dc6dc7d08059185"></a>
 
-##### 允许的干线 VLAN 编号 · 属性
+##### 允许的干线 VLAN 编号（属性）
 
 ```csharp
 public List<int> TrunkAllowedVlanIds { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 中继模式下允许通过的 VLAN ID 可变列表。
 
 <a id="api-41bd09d02b1eb300"></a>
 
-##### VLAN 模式 · 属性
+##### VLAN 模式（属性）
 
 ```csharp
 public VlanOperationMode VlanMode { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 VLAN 工作模式。
 
 <a id="api-632702ca0ab09eb2"></a>
 
-##### 虚拟机队列 · 属性
+##### 虚拟机队列（属性）
 
 ```csharp
 public bool VmqEnabled { get; set; }
 ```
 
+功能归属：管理层面 / 虚拟机 / 网络。
+
 是否启用虚拟机队列 VMQ。
+
+#### 方法说明
+
+<a id="api-425afb04bf0e6ccd"></a>
+
+##### 复制网卡配置快照（方法）
+
+```csharp
+public VmNetworkAdapter Clone();
+```
+
+功能归属：管理层面 / 虚拟机 / 网络。
+
+复制当前网卡快照，并为各可变列表建立独立副本。
+
+返回：网卡配置的独立副本，各可变列表单独复制。
+
+<a id="api-9e4d38b40a5aba28"></a>
+
+### `VmPartitionLayoutMode` 枚举
+
+只读分区探测的结果。Empty 的未初始化原始盘仍可能没有可验证的安全下限。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Conservative = 4 `](#api-9397c235081df2fd) | 仅能根据已知边界给出保守限制。 |
+| [` Corrupt = 5 `](#api-b2542c94983008b5) | 分区表不完整或损坏。 |
+| [` Empty = 3 `](#api-308813acfe748725) | 未发现已分配的分区。 |
+| [` NoTailSpace = 2 `](#api-de2cea361fe30c70) | 磁盘尾部没有可供收缩的空间。 |
+| [` Regular = 1 `](#api-8008b2142e8a222c) | 已确认常规分区布局。 |
+| [` Unavailable = 0 `](#api-1a5fe8c524537f3e) | 当前证据不足，无法确认状态。 |
+
+#### 详细说明
+
+```csharp
+public enum VmPartitionLayoutMode
+```
+
+#### 枚举值说明
+
+<a id="api-9397c235081df2fd"></a>
+
+##### Conservative（枚举值）
+
+```csharp
+Conservative = 4
+```
+
+仅能根据已知边界给出保守限制。
+
+<a id="api-b2542c94983008b5"></a>
+
+##### Corrupt（枚举值）
+
+```csharp
+Corrupt = 5
+```
+
+分区表不完整或损坏。
+
+<a id="api-308813acfe748725"></a>
+
+##### Empty（枚举值）
+
+```csharp
+Empty = 3
+```
+
+未发现已分配的分区。
+
+<a id="api-de2cea361fe30c70"></a>
+
+##### NoTailSpace（枚举值）
+
+```csharp
+NoTailSpace = 2
+```
+
+磁盘尾部没有可供收缩的空间。
+
+<a id="api-8008b2142e8a222c"></a>
+
+##### Regular（枚举值）
+
+```csharp
+Regular = 1
+```
+
+已确认常规分区布局。
+
+<a id="api-1a5fe8c524537f3e"></a>
+
+##### Unavailable（枚举值）
+
+```csharp
+Unavailable = 0
+```
+
+当前证据不足，无法确认状态。
+
+<a id="api-7d0121a84c691b55"></a>
+
+### `VmPassthroughAvailability` 枚举
+
+稳定排序按可用、已分配和不可直通排列。OwnerVmId 可与当前虚拟机比较。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Assigned = 1 `](#api-a197619b35d701d7) | 设备已分配给虚拟机。 |
+| [` Available = 0 `](#api-b38b36f8ed8168cc) | 已确认可用。 |
+| [` Unavailable = 2 `](#api-411380cb62d28b6d) | 当前证据不足，无法确认状态。 |
+
+#### 详细说明
+
+```csharp
+public enum VmPassthroughAvailability
+```
+
+#### 枚举值说明
+
+<a id="api-a197619b35d701d7"></a>
+
+##### Assigned（枚举值）
+
+```csharp
+Assigned = 1
+```
+
+设备已分配给虚拟机。
+
+<a id="api-b38b36f8ed8168cc"></a>
+
+##### Available（枚举值）
+
+```csharp
+Available = 0
+```
+
+已确认可用。
+
+<a id="api-411380cb62d28b6d"></a>
+
+##### Unavailable（枚举值）
+
+```csharp
+Unavailable = 2
+```
+
+当前证据不足，无法确认状态。
+
+<a id="api-6efeb44af4edbef9"></a>
+
+### `VmPassthroughCandidate` record 类
+
+Disk 与 OpticalDrive 仅一个有值。已分配的设备附带归属虚拟机标识。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmPassthroughCandidate(HostDiskInfo? Disk, HostOpticalDriveInfo? OpticalDrive, VmPassthroughAvailability Availability, Guid? OwnerVmId, string Message) `](#api-aabbc8efad305747) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmPassthroughAvailability Availability { get; init; } `](#api-cf750098e74b8f29) | 设备可用性与分配状态。 |
+| [` public HostDiskInfo? Disk { get; init; } `](#api-535644b1a3d36d56) | 物理硬盘候选，光驱条目中为空。 |
+| [` public string Message { get; init; } `](#api-7f52de2eb74588b5) | 本次检查的结果说明或受限原因。 |
+| [` public HostOpticalDriveInfo? OpticalDrive { get; init; } `](#api-fe22c621001d7bc2) | 物理光驱候选，硬盘条目中为空。 |
+| [` public Guid? OwnerVmId { get; init; } `](#api-7b31ff0646db8c79) | 已确认占用此设备的虚拟机 GUID。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VmPassthroughCandidate(HostDiskInfo? Disk, HostOpticalDriveInfo? OpticalDrive,
+    VmPassthroughAvailability Availability, Guid? OwnerVmId, string Message)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Disk` | 物理硬盘候选，光驱条目中为空。 |
+| `OpticalDrive` | 物理光驱候选，硬盘条目中为空。 |
+| `Availability` | 设备可用性与分配状态。 |
+| `OwnerVmId` | 已确认占用此设备的虚拟机 GUID。 |
+| `Message` | 本次检查的结果说明或受限原因。 |
+
+#### 构造函数说明
+
+<a id="api-aabbc8efad305747"></a>
+
+##### 创建物理直通候选设备（主构造器）
+
+```csharp
+public VmPassthroughCandidate(HostDiskInfo? Disk, HostOpticalDriveInfo? OpticalDrive, VmPassthroughAvailability Availability, Guid? OwnerVmId, string Message);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Disk` | 物理硬盘候选，光驱条目中为空。 |
+| `OpticalDrive` | 物理光驱候选，硬盘条目中为空。 |
+| `Availability` | 设备可用性与分配状态。 |
+| `OwnerVmId` | 已确认占用此设备的虚拟机 GUID。 |
+| `Message` | 本次检查的结果说明或受限原因。 |
+
+#### 属性说明
+
+<a id="api-cf750098e74b8f29"></a>
+
+##### 直通可用性（record 属性）
+
+```csharp
+public VmPassthroughAvailability Availability { get; init; }
+```
+
+设备可用性与分配状态。
+
+<a id="api-535644b1a3d36d56"></a>
+
+##### 物理磁盘（record 属性）
+
+```csharp
+public HostDiskInfo? Disk { get; init; }
+```
+
+物理硬盘候选，光驱条目中为空。
+
+<a id="api-7f52de2eb74588b5"></a>
+
+##### 检查说明（record 属性）
+
+```csharp
+public string Message { get; init; }
+```
+
+本次检查的结果说明或受限原因。
+
+<a id="api-fe22c621001d7bc2"></a>
+
+##### 物理光驱（record 属性）
+
+```csharp
+public HostOpticalDriveInfo? OpticalDrive { get; init; }
+```
+
+物理光驱候选，硬盘条目中为空。
+
+<a id="api-7b31ff0646db8c79"></a>
+
+##### 所属虚拟机标识（record 属性）
+
+```csharp
+public Guid? OwnerVmId { get; init; }
+```
+
+已确认占用此设备的虚拟机 GUID。
 
 <a id="api-75dcd2fafb7a6260"></a>
 
@@ -9239,7 +11992,7 @@ public partial class VmPcieDeviceSetting
 
 <a id="api-3ed9a8e0839920b6"></a>
 
-##### 已应用的来宾模式 · 属性
+##### 已应用的来宾模式（属性）
 
 ```csharp
 public VmPcieGuestMode AppliedGuestMode { get; set; }
@@ -9249,7 +12002,7 @@ public VmPcieGuestMode AppliedGuestMode { get; set; }
 
 <a id="api-9685fb6ce7798b5d"></a>
 
-##### 设备类别 · 属性
+##### 设备类别（属性）
 
 ```csharp
 public string ClassType { get; init; } = string.Empty;
@@ -9259,7 +12012,7 @@ public string ClassType { get; init; } = string.Empty;
 
 <a id="api-b64207f86e1be5c8"></a>
 
-##### PCIe 设备身份 · 属性
+##### PCIe 设备身份（属性）
 
 ```csharp
 public string DeviceInstanceId { get; init; } = string.Empty;
@@ -9269,7 +12022,7 @@ public string DeviceInstanceId { get; init; } = string.Empty;
 
 <a id="api-18b4515c49bf4192"></a>
 
-##### PCIe 来宾模式 · 属性
+##### PCIe 来宾模式（属性）
 
 ```csharp
 public VmPcieGuestMode GuestMode { get; set; }
@@ -9279,7 +12032,7 @@ public VmPcieGuestMode GuestMode { get; set; }
 
 <a id="api-0b7a094015c92218"></a>
 
-##### 来宾模式配置支持 · 属性
+##### 来宾模式配置支持（属性）
 
 ```csharp
 public bool GuestModeAvailable { get; init; }
@@ -9289,7 +12042,7 @@ public bool GuestModeAvailable { get; init; }
 
 <a id="api-12234bf3a8624c7a"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; init; } = string.Empty;
@@ -9299,7 +12052,7 @@ public string Name { get; init; } = string.Empty;
 
 <a id="api-a6bf0b5ed3bad1d1"></a>
 
-##### 路径 · 属性
+##### 路径（属性）
 
 ```csharp
 public string Path { get; init; } = string.Empty;
@@ -9309,7 +12062,7 @@ public string Path { get; init; } = string.Empty;
 
 <a id="api-a897a59204e02a88"></a>
 
-##### 厂商 · 属性
+##### 厂商（属性）
 
 ```csharp
 public string Vendor { get; init; } = string.Empty;
@@ -9350,7 +12103,7 @@ public enum VmPcieGuestMode : byte
 
 <a id="api-85e8bd9c04df3319"></a>
 
-##### Emulated · 枚举值
+##### Emulated（枚举值）
 
 ```csharp
 Emulated = 1
@@ -9360,7 +12113,7 @@ Emulated = 1
 
 <a id="api-4ecd6d1c4afeb6d4"></a>
 
-##### Paravirtualized · 枚举值
+##### Paravirtualized（枚举值）
 
 ```csharp
 Paravirtualized = 0
@@ -9405,7 +12158,7 @@ public sealed class VmPcieSettings
 
 <a id="api-377d2bf1dd588ebe"></a>
 
-##### PCIe 启动支持 · 属性
+##### PCIe 启动支持（属性）
 
 ```csharp
 public bool BootPciExpress { get; init; }
@@ -9415,7 +12168,7 @@ public bool BootPciExpress { get; init; }
 
 <a id="api-ab87dfeefd5d90f6"></a>
 
-##### PCIe 启动配置支持 · 属性
+##### PCIe 启动配置支持（属性）
 
 ```csharp
 public bool BootPciExpressAvailable { get; init; }
@@ -9425,7 +12178,7 @@ public bool BootPciExpressAvailable { get; init; }
 
 <a id="api-d8c33143eddedaef"></a>
 
-##### 设备列表 · 属性
+##### 设备列表（属性）
 
 ```csharp
 public List<VmPcieDeviceSetting> Devices { get; init; } = [];
@@ -9435,7 +12188,7 @@ public List<VmPcieDeviceSetting> Devices { get; init; } = [];
 
 <a id="api-d5157522dbacd10f"></a>
 
-##### PCIe 模拟开关 · 属性
+##### PCIe 模拟开关（属性）
 
 ```csharp
 public bool EmulationEnabled { get; init; }
@@ -9445,7 +12198,7 @@ public bool EmulationEnabled { get; init; }
 
 <a id="api-2cdb3f68df1ae598"></a>
 
-##### PCIe 系统配置支持 · 属性
+##### PCIe 系统配置支持（属性）
 
 ```csharp
 public bool SystemSettingsAvailable { get; init; }
@@ -9455,7 +12208,7 @@ public bool SystemSettingsAvailable { get; init; }
 
 <a id="api-7833067f587a83e6"></a>
 
-##### PCIe 拓扑 · 属性
+##### PCIe 拓扑（属性）
 
 ```csharp
 public ushort Topology { get; init; }
@@ -9500,7 +12253,7 @@ public enum VmPowerAction
 
 <a id="api-72841ded1ef5f7fd"></a>
 
-##### Restart · 枚举值
+##### Restart（枚举值）
 
 ```csharp
 Restart = 3
@@ -9510,7 +12263,7 @@ Restart = 3
 
 <a id="api-066a35875206bbf2"></a>
 
-##### Save · 枚举值
+##### Save（枚举值）
 
 ```csharp
 Save = 4
@@ -9520,7 +12273,7 @@ Save = 4
 
 <a id="api-fea99d68b1a48a20"></a>
 
-##### Start · 枚举值
+##### Start（枚举值）
 
 ```csharp
 Start = 0
@@ -9530,7 +12283,7 @@ Start = 0
 
 <a id="api-5edc70694068deca"></a>
 
-##### Stop · 枚举值
+##### Stop（枚举值）
 
 ```csharp
 Stop = 1
@@ -9540,7 +12293,7 @@ Stop = 1
 
 <a id="api-a4d87305f41bc281"></a>
 
-##### Suspend · 枚举值
+##### Suspend（枚举值）
 
 ```csharp
 Suspend = 5
@@ -9550,7 +12303,7 @@ Suspend = 5
 
 <a id="api-46d8f8d9fc377430"></a>
 
-##### TurnOff · 枚举值
+##### TurnOff（枚举值）
 
 ```csharp
 TurnOff = 2
@@ -9625,7 +12378,7 @@ public enum VmProcessorCapability
 
 <a id="api-b3a974df2533d529"></a>
 
-##### ActivityCounters · 枚举值
+##### ActivityCounters（枚举值）
 
 ```csharp
 ActivityCounters = 12
@@ -9635,7 +12388,7 @@ ACNT/MCNT 活动计数器。
 
 <a id="api-9ae4e1b6f5ccb289"></a>
 
-##### ArchitecturalPerformanceMonitoring · 枚举值
+##### ArchitecturalPerformanceMonitoring（枚举值）
 
 ```csharp
 ArchitecturalPerformanceMonitoring = 11
@@ -9645,7 +12398,7 @@ ArchitecturalPerformanceMonitoring = 11
 
 <a id="api-771601fa71d56f17"></a>
 
-##### AutonomousActivityWindow · 枚举值
+##### AutonomousActivityWindow（枚举值）
 
 ```csharp
 AutonomousActivityWindow = 22
@@ -9655,7 +12408,7 @@ AutonomousActivityWindow = 22
 
 <a id="api-ace74c13e64e7720"></a>
 
-##### DesiredFrequency · 枚举值
+##### DesiredFrequency（枚举值）
 
 ```csharp
 DesiredFrequency = 20
@@ -9665,7 +12418,7 @@ DesiredFrequency = 20
 
 <a id="api-2363d217a30e8ccd"></a>
 
-##### EnergyPerformancePreference · 枚举值
+##### EnergyPerformancePreference（枚举值）
 
 ```csharp
 EnergyPerformancePreference = 21
@@ -9675,7 +12428,7 @@ EnergyPerformancePreference = 21
 
 <a id="api-1da869bb118b1198"></a>
 
-##### FrequencyMaximum · 枚举值
+##### FrequencyMaximum（枚举值）
 
 ```csharp
 FrequencyMaximum = 18
@@ -9685,7 +12438,7 @@ FrequencyMaximum = 18
 
 <a id="api-19f9d9a961f53eb2"></a>
 
-##### FrequencyMinimum · 枚举值
+##### FrequencyMinimum（枚举值）
 
 ```csharp
 FrequencyMinimum = 19
@@ -9695,7 +12448,7 @@ FrequencyMinimum = 19
 
 <a id="api-25f06c252e5f25a0"></a>
 
-##### HardwareIsolatedGuestLimit · 枚举值
+##### HardwareIsolatedGuestLimit（枚举值）
 
 ```csharp
 HardwareIsolatedGuestLimit = 29
@@ -9705,7 +12458,7 @@ HardwareIsolatedGuestLimit = 29
 
 <a id="api-be5ec343ac0eb30d"></a>
 
-##### HardwareIsolation · 枚举值
+##### HardwareIsolation（枚举值）
 
 ```csharp
 HardwareIsolation = 28
@@ -9715,7 +12468,7 @@ HardwareIsolation = 28
 
 <a id="api-c56635a7c50288a5"></a>
 
-##### HostResourceProtection · 枚举值
+##### HostResourceProtection（枚举值）
 
 ```csharp
 HostResourceProtection = 5
@@ -9725,7 +12478,7 @@ HostResourceProtection = 5
 
 <a id="api-38b1f164489bc1e2"></a>
 
-##### IgnoreHostFrequencyMaximum · 枚举值
+##### IgnoreHostFrequencyMaximum（枚举值）
 
 ```csharp
 IgnoreHostFrequencyMaximum = 23
@@ -9735,7 +12488,7 @@ IgnoreHostFrequencyMaximum = 23
 
 <a id="api-dabb21a6bdfe63d9"></a>
 
-##### InstructionTracing · 枚举值
+##### InstructionTracing（枚举值）
 
 ```csharp
 InstructionTracing = 27
@@ -9745,7 +12498,7 @@ InstructionTracing = 27
 
 <a id="api-e5e0fc2823f72acc"></a>
 
-##### InterruptControllerMode · 枚举值
+##### InterruptControllerMode（枚举值）
 
 ```csharp
 InterruptControllerMode = 14
@@ -9755,7 +12508,7 @@ InterruptControllerMode = 14
 
 <a id="api-26dc3f11ca4a0b98"></a>
 
-##### L3CacheAssociativity · 枚举值
+##### L3CacheAssociativity（枚举值）
 
 ```csharp
 L3CacheAssociativity = 15
@@ -9765,7 +12518,7 @@ L3CacheAssociativity = 15
 
 <a id="api-2e7e739a8c63371e"></a>
 
-##### L3ProcessorDistribution · 枚举值
+##### L3ProcessorDistribution（枚举值）
 
 ```csharp
 L3ProcessorDistribution = 16
@@ -9775,7 +12528,7 @@ L3ProcessorDistribution = 16
 
 <a id="api-f6ce977763f91185"></a>
 
-##### LargePageMitigation · 枚举值
+##### LargePageMitigation（枚举值）
 
 ```csharp
 LargePageMitigation = 17
@@ -9785,7 +12538,7 @@ LargePageMitigation = 17
 
 <a id="api-874efc1edf5dc26e"></a>
 
-##### LastBranchRecording · 枚举值
+##### LastBranchRecording（枚举值）
 
 ```csharp
 LastBranchRecording = 25
@@ -9795,7 +12548,7 @@ LastBranchRecording = 25
 
 <a id="api-0f3f0351e44a9dfe"></a>
 
-##### LegacyOperatingSystemCompatibility · 枚举值
+##### LegacyOperatingSystemCompatibility（枚举值）
 
 ```csharp
 LegacyOperatingSystemCompatibility = 8
@@ -9805,7 +12558,7 @@ LegacyOperatingSystemCompatibility = 8
 
 <a id="api-f02b25931ed16903"></a>
 
-##### LocalPeripheralInterruptMode · 枚举值
+##### LocalPeripheralInterruptMode（枚举值）
 
 ```csharp
 LocalPeripheralInterruptMode = 35
@@ -9815,7 +12568,7 @@ LocalPeripheralInterruptMode = 35
 
 <a id="api-ab7166dfe6724b52"></a>
 
-##### MigrationCompatibility · 枚举值
+##### MigrationCompatibility（枚举值）
 
 ```csharp
 MigrationCompatibility = 6
@@ -9825,7 +12578,7 @@ MigrationCompatibility = 6
 
 <a id="api-8c6251660521efc4"></a>
 
-##### MigrationFeatureSet · 枚举值
+##### MigrationFeatureSet（枚举值）
 
 ```csharp
 MigrationFeatureSet = 7
@@ -9835,7 +12588,7 @@ MigrationFeatureSet = 7
 
 <a id="api-16eb1f645ff5e088"></a>
 
-##### NestedVirtualization · 枚举值
+##### NestedVirtualization（枚举值）
 
 ```csharp
 NestedVirtualization = 4
@@ -9845,7 +12598,7 @@ NestedVirtualization = 4
 
 <a id="api-2b990c5c18900678"></a>
 
-##### NumaNodesPerSocket · 枚举值
+##### NumaNodesPerSocket（枚举值）
 
 ```csharp
 NumaNodesPerSocket = 33
@@ -9855,7 +12608,7 @@ NumaNodesPerSocket = 33
 
 <a id="api-2b531b11aea9d540"></a>
 
-##### PerformanceMonitoring · 枚举值
+##### PerformanceMonitoring（枚举值）
 
 ```csharp
 PerformanceMonitoring = 24
@@ -9865,7 +12618,7 @@ PerformanceMonitoring = 24
 
 <a id="api-4a0cba29f11933f9"></a>
 
-##### PhysicalAddressWidth · 枚举值
+##### PhysicalAddressWidth（枚举值）
 
 ```csharp
 PhysicalAddressWidth = 34
@@ -9875,7 +12628,7 @@ PhysicalAddressWidth = 34
 
 <a id="api-e90a609e8de39d15"></a>
 
-##### PreciseEventSampling · 枚举值
+##### PreciseEventSampling（枚举值）
 
 ```csharp
 PreciseEventSampling = 26
@@ -9885,7 +12638,7 @@ PreciseEventSampling = 26
 
 <a id="api-55fe8a3124cb7f87"></a>
 
-##### ProcessorBrand · 枚举值
+##### ProcessorBrand（枚举值）
 
 ```csharp
 ProcessorBrand = 13
@@ -9895,7 +12648,7 @@ ProcessorBrand = 13
 
 <a id="api-fe8f963edbc46939"></a>
 
-##### ProcessorClustersPerSocket · 枚举值
+##### ProcessorClustersPerSocket（枚举值）
 
 ```csharp
 ProcessorClustersPerSocket = 30
@@ -9905,7 +12658,7 @@ ProcessorClustersPerSocket = 30
 
 <a id="api-3e5688ca40186b7d"></a>
 
-##### ProcessorCount · 枚举值
+##### ProcessorCount（枚举值）
 
 ```csharp
 ProcessorCount = 0
@@ -9915,7 +12668,7 @@ ProcessorCount = 0
 
 <a id="api-e2fd0419d55ea758"></a>
 
-##### ProcessorsPerL3Domain · 枚举值
+##### ProcessorsPerL3Domain（枚举值）
 
 ```csharp
 ProcessorsPerL3Domain = 31
@@ -9925,7 +12678,7 @@ ProcessorsPerL3Domain = 31
 
 <a id="api-6de6862ba4eb064d"></a>
 
-##### ProcessorsPerNumaNode · 枚举值
+##### ProcessorsPerNumaNode（枚举值）
 
 ```csharp
 ProcessorsPerNumaNode = 32
@@ -9935,7 +12688,7 @@ ProcessorsPerNumaNode = 32
 
 <a id="api-b054bf14d6c6b999"></a>
 
-##### ResourceLimit · 枚举值
+##### ResourceLimit（枚举值）
 
 ```csharp
 ResourceLimit = 2
@@ -9945,7 +12698,7 @@ ResourceLimit = 2
 
 <a id="api-4005993d0861735a"></a>
 
-##### ResourceReservation · 枚举值
+##### ResourceReservation（枚举值）
 
 ```csharp
 ResourceReservation = 1
@@ -9955,7 +12708,7 @@ ResourceReservation = 1
 
 <a id="api-e7f6defd633a95df"></a>
 
-##### SchedulingWeight · 枚举值
+##### SchedulingWeight（枚举值）
 
 ```csharp
 SchedulingWeight = 3
@@ -9965,7 +12718,7 @@ SchedulingWeight = 3
 
 <a id="api-562810faa3639f91"></a>
 
-##### SimultaneousMultithreading · 枚举值
+##### SimultaneousMultithreading（枚举值）
 
 ```csharp
 SimultaneousMultithreading = 9
@@ -9975,7 +12728,7 @@ SimultaneousMultithreading = 9
 
 <a id="api-24a1abd1a0ccccc8"></a>
 
-##### SpeculationControlPolicy · 枚举值
+##### SpeculationControlPolicy（枚举值）
 
 ```csharp
 SpeculationControlPolicy = 10
@@ -10074,7 +12827,7 @@ public partial class VmProcessorSettings
 
 <a id="api-e09bb47e09898e50"></a>
 
-##### 活动计数器 · 属性
+##### 活动计数器（属性）
 
 ```csharp
 public bool? AllowAcountMcount { get; set; }
@@ -10084,7 +12837,7 @@ public bool? AllowAcountMcount { get; set; }
 
 <a id="api-06dff0eb27a8cc10"></a>
 
-##### 中断控制器模式 · 属性
+##### 中断控制器模式（属性）
 
 ```csharp
 public VmApicMode? ApicMode { get; set; }
@@ -10094,7 +12847,7 @@ public VmApicMode? ApicMode { get; set; }
 
 <a id="api-7df699543bf40a8a"></a>
 
-##### 启用处理器迁移兼容 · 属性
+##### 启用处理器迁移兼容（属性）
 
 ```csharp
 public bool? CompatibilityForMigrationEnabled { get; set; }
@@ -10104,7 +12857,7 @@ public bool? CompatibilityForMigrationEnabled { get; set; }
 
 <a id="api-6b6ea0bce8cde6da"></a>
 
-##### 迁移兼容模式 · 属性
+##### 迁移兼容模式（属性）
 
 ```csharp
 public VmMigrationCompatibilityMode? CompatibilityForMigrationMode { get; set; }
@@ -10114,7 +12867,7 @@ public VmMigrationCompatibilityMode? CompatibilityForMigrationMode { get; set; }
 
 <a id="api-a5e68ba211e52460"></a>
 
-##### 旧系统兼容 · 属性
+##### 旧系统兼容（属性）
 
 ```csharp
 public bool? CompatibilityForOlderOperatingSystemsEnabled { get; set; }
@@ -10124,7 +12877,7 @@ public bool? CompatibilityForOlderOperatingSystemsEnabled { get; set; }
 
 <a id="api-2ad9ef72ed6de310"></a>
 
-##### 处理器数量 · 属性
+##### 处理器数量（属性）
 
 ```csharp
 public int Count { get; set; }
@@ -10134,7 +12887,7 @@ public int Count { get; set; }
 
 <a id="api-f078b42b57d3b839"></a>
 
-##### 处理器品牌字符串 · 属性
+##### 处理器品牌字符串（属性）
 
 ```csharp
 public string? CpuBrandString { get; set; }
@@ -10144,7 +12897,7 @@ public string? CpuBrandString { get; set; }
 
 <a id="api-713d74581e8f9c78"></a>
 
-##### 隐藏推测执行缓解控制 · 属性
+##### 隐藏推测执行缓解控制（属性）
 
 ```csharp
 public bool? DisableSpeculationControls { get; set; }
@@ -10154,7 +12907,7 @@ public bool? DisableSpeculationControls { get; set; }
 
 <a id="api-cfc4afd3ee752e7c"></a>
 
-##### 宿主资源保护 · 属性
+##### 宿主资源保护（属性）
 
 ```csharp
 public bool? EnableHostResourceProtection { get; set; }
@@ -10164,7 +12917,7 @@ public bool? EnableHostResourceProtection { get; set; }
 
 <a id="api-86367239158af1bb"></a>
 
-##### 架构性能监测 · 属性
+##### 架构性能监测（属性）
 
 ```csharp
 public bool? EnablePerfmonArchPmu { get; set; }
@@ -10174,7 +12927,7 @@ public bool? EnablePerfmonArchPmu { get; set; }
 
 <a id="api-b53212a586247d9b"></a>
 
-##### 处理器指令跟踪 · 属性
+##### 处理器指令跟踪（属性）
 
 ```csharp
 public bool? EnablePerfmonIpt { get; set; }
@@ -10184,7 +12937,7 @@ public bool? EnablePerfmonIpt { get; set; }
 
 <a id="api-5ba3d69498b55ae4"></a>
 
-##### 最近分支记录 · 属性
+##### 最近分支记录（属性）
 
 ```csharp
 public bool? EnablePerfmonLbr { get; set; }
@@ -10194,7 +12947,7 @@ public bool? EnablePerfmonLbr { get; set; }
 
 <a id="api-f19e510eb0f83218"></a>
 
-##### 精确事件采样 · 属性
+##### 精确事件采样（属性）
 
 ```csharp
 public bool? EnablePerfmonPebs { get; set; }
@@ -10204,7 +12957,7 @@ public bool? EnablePerfmonPebs { get; set; }
 
 <a id="api-cbe6d5886db27916"></a>
 
-##### 性能监测单元 · 属性
+##### 性能监测单元（属性）
 
 ```csharp
 public bool? EnablePerfmonPmu { get; set; }
@@ -10214,7 +12967,7 @@ public bool? EnablePerfmonPmu { get; set; }
 
 <a id="api-80be917bee2bcf87"></a>
 
-##### 嵌套虚拟化 · 属性
+##### 嵌套虚拟化（属性）
 
 ```csharp
 public bool? ExposeVirtualizationExtensions { get; set; }
@@ -10224,7 +12977,7 @@ public bool? ExposeVirtualizationExtensions { get; set; }
 
 <a id="api-57f5f594c218d8f1"></a>
 
-##### 硬件隔离扩展 · 属性
+##### 硬件隔离扩展（属性）
 
 ```csharp
 public bool? HardwareIsolationExtensionsEnabled { get; set; }
@@ -10234,7 +12987,7 @@ public bool? HardwareIsolationExtensionsEnabled { get; set; }
 
 <a id="api-50d097255d8f8f31"></a>
 
-##### 三级缓存路数 · 属性
+##### 三级缓存路数（属性）
 
 ```csharp
 public uint? L3CacheWays { get; set; }
@@ -10244,7 +12997,7 @@ public uint? L3CacheWays { get; set; }
 
 <a id="api-f8b10ec44eb0e6bc"></a>
 
-##### 三级缓存处理器分布策略 · 属性
+##### 三级缓存处理器分布策略（属性）
 
 ```csharp
 public L3DistributionPolicy? L3DistributionPolicy { get; set; }
@@ -10254,7 +13007,7 @@ public L3DistributionPolicy? L3DistributionPolicy { get; set; }
 
 <a id="api-bd8988e757bf36e7"></a>
 
-##### 处理器限制比例 · 属性
+##### 处理器限制比例（属性）
 
 ```csharp
 public ulong Limit { get; set; }
@@ -10264,7 +13017,7 @@ public ulong Limit { get; set; }
 
 <a id="api-899ac1a52ff26036"></a>
 
-##### 本地外设中断模式 · 属性
+##### 本地外设中断模式（属性）
 
 ```csharp
 public LpiMode? LpiMode { get; set; }
@@ -10274,7 +13027,7 @@ public LpiMode? LpiMode { get; set; }
 
 <a id="api-fda2f43a0b9fc90e"></a>
 
-##### 每插槽处理器簇上限 · 属性
+##### 每插槽处理器簇上限（属性）
 
 ```csharp
 public uint? MaxClusterCountPerSocket { get; set; }
@@ -10284,7 +13037,7 @@ public uint? MaxClusterCountPerSocket { get; set; }
 
 <a id="api-069a7d0f3dd8abce"></a>
 
-##### 硬件隔离来宾数量上限 · 属性
+##### 硬件隔离来宾数量上限（属性）
 
 ```csharp
 public uint? MaxHwIsolatedGuests { get; set; }
@@ -10294,7 +13047,7 @@ public uint? MaxHwIsolatedGuests { get; set; }
 
 <a id="api-63406158130c178c"></a>
 
-##### 每插槽 NUMA 节点上限 · 属性
+##### 每插槽 NUMA 节点上限（属性）
 
 ```csharp
 public ulong? MaxNumaNodesPerSocket { get; set; }
@@ -10304,7 +13057,7 @@ public ulong? MaxNumaNodesPerSocket { get; set; }
 
 <a id="api-89caf851e7e8b313"></a>
 
-##### 每三级缓存域处理器上限 · 属性
+##### 每三级缓存域处理器上限（属性）
 
 ```csharp
 public uint? MaxProcessorCountPerL3 { get; set; }
@@ -10314,7 +13067,7 @@ public uint? MaxProcessorCountPerL3 { get; set; }
 
 <a id="api-1e6b72d3da610bc9"></a>
 
-##### 每 NUMA 节点处理器上限 · 属性
+##### 每 NUMA 节点处理器上限（属性）
 
 ```csharp
 public ulong? MaxProcessorsPerNumaNode { get; set; }
@@ -10324,7 +13077,7 @@ public ulong? MaxProcessorsPerNumaNode { get; set; }
 
 <a id="api-fe193c0b8ccbb9bd"></a>
 
-##### 大页拆分策略 · 属性
+##### 大页拆分策略（属性）
 
 ```csharp
 public PageShatterMode? PageShatterMode { get; set; }
@@ -10334,7 +13087,7 @@ public PageShatterMode? PageShatterMode { get; set; }
 
 <a id="api-b588b091ca89a2a5"></a>
 
-##### 自主活动窗口 · 属性
+##### 自主活动窗口（属性）
 
 ```csharp
 public uint? PerfCpuAutonomousActivityWindow { get; set; }
@@ -10344,7 +13097,7 @@ public uint? PerfCpuAutonomousActivityWindow { get; set; }
 
 <a id="api-e367485d17c3404c"></a>
 
-##### 能耗性能偏好 · 属性
+##### 能耗性能偏好（属性）
 
 ```csharp
 public uint? PerfCpuEnergyPerformancePreference { get; set; }
@@ -10354,7 +13107,7 @@ public uint? PerfCpuEnergyPerformancePreference { get; set; }
 
 <a id="api-58a607b2bc9bc394"></a>
 
-##### 处理器频率上限 · 属性
+##### 处理器频率上限（属性）
 
 ```csharp
 public uint? PerfCpuFreqCapMhz { get; set; }
@@ -10364,7 +13117,7 @@ public uint? PerfCpuFreqCapMhz { get; set; }
 
 <a id="api-f5e33988371a6362"></a>
 
-##### 处理器期望频率 · 属性
+##### 处理器期望频率（属性）
 
 ```csharp
 public uint? PerfCpuFreqDesiredMhz { get; set; }
@@ -10374,7 +13127,7 @@ public uint? PerfCpuFreqDesiredMhz { get; set; }
 
 <a id="api-87ef13670ae04326"></a>
 
-##### 处理器频率下限 · 属性
+##### 处理器频率下限（属性）
 
 ```csharp
 public uint? PerfCpuFreqMinMhz { get; set; }
@@ -10384,7 +13137,7 @@ public uint? PerfCpuFreqMinMhz { get; set; }
 
 <a id="api-fa443a55db63001b"></a>
 
-##### 忽略宿主最大频率 · 属性
+##### 忽略宿主最大频率（属性）
 
 ```csharp
 public bool? PerfCpuIgnoreHostMaxFrequency { get; set; }
@@ -10394,7 +13147,7 @@ public bool? PerfCpuIgnoreHostMaxFrequency { get; set; }
 
 <a id="api-6ee4358f8a53aaa4"></a>
 
-##### 物理地址宽度 · 属性
+##### 物理地址宽度（属性）
 
 ```csharp
 public uint? PhysicalAddressWidth { get; set; }
@@ -10404,7 +13157,7 @@ public uint? PhysicalAddressWidth { get; set; }
 
 <a id="api-2ce9d3e0067c7873"></a>
 
-##### 处理器相对权重 · 属性
+##### 处理器相对权重（属性）
 
 ```csharp
 public int RelativeWeight { get; set; }
@@ -10414,7 +13167,7 @@ public int RelativeWeight { get; set; }
 
 <a id="api-9774ba25ec4a2e4e"></a>
 
-##### 处理器保留比例 · 属性
+##### 处理器保留比例（属性）
 
 ```csharp
 public ulong Reservation { get; set; }
@@ -10424,7 +13177,7 @@ public ulong Reservation { get; set; }
 
 <a id="api-3a53eedde34c1330"></a>
 
-##### 同时多线程模式 · 属性
+##### 同时多线程模式（属性）
 
 ```csharp
 public SmtMode? SmtMode { get; set; }
@@ -10434,7 +13187,7 @@ public SmtMode? SmtMode { get; set; }
 
 <a id="api-e013d390f93853f5"></a>
 
-##### 支持的配置项 · 属性
+##### 支持的配置项（属性）
 
 ```csharp
 public IReadOnlySet<VmProcessorCapability> SupportedCapabilities { get; }
@@ -10446,7 +13199,7 @@ public IReadOnlySet<VmProcessorCapability> SupportedCapabilities { get; }
 
 <a id="api-9826eef380b6dccb"></a>
 
-##### 复制处理器配置 · 方法
+##### 复制处理器配置（方法）
 
 ```csharp
 public VmProcessorSettings Clone();
@@ -10458,7 +13211,7 @@ public VmProcessorSettings Clone();
 
 <a id="api-34be76ae19fd66ec"></a>
 
-##### 检查处理器字段支持 · 方法
+##### 检查处理器字段支持（方法）
 
 ```csharp
 public bool Supports(VmProcessorCapability capability);
@@ -10471,6 +13224,196 @@ public bool Supports(VmProcessorCapability capability);
 | `capability` | 要判断的业务设置项。 |
 
 返回：本次查询包含该设置项时为 true；未查询或未知能力值返回 false。
+
+<a id="api-6253982a4eaa2e64"></a>
+
+### `VmResizeSafety` record 类
+
+只在可靠读到完整边界时提供收缩下限。容量与边界均基于字节计算。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 存储 |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageMaintenanceModels.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmResizeSafety(VmDiskInspection Access, long? CurrentCapacityBytes, long MaximumGiB, long? MinimumInternalSizeBytes, long? LastPartitionEndBytes, long? SafeMinimumGiB, VmPartitionLayoutMode Layout, string Message) `](#api-32e0fb48a0f9410f) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmDiskInspection Access { get; init; } `](#api-83a63a71813999a4) | 容量检查时取得的挂接访问快照。 |
+| [` public bool CanExpand { get; } `](#api-0d34d75a1910c6e6) | 当前条件是否允许扩展容量。 |
+| [` public bool CanShrink { get; } `](#api-0e4f9f3ed2b4341e) | 当前条件是否允许收缩容量。 |
+| [` public long? CurrentCapacityBytes { get; init; } `](#api-458d590ab30c45f0) | 当前虚拟容量，单位字节，未知时为 null。 |
+| [` public double? CurrentCapacityGiB { get; } `](#api-dc9d298999d1552f) | 当前虚拟容量，单位 GiB，未知时为 null。 |
+| [` public long? LastPartitionEndBytes { get; init; } `](#api-0fe0897ddf8671af) | 已核实的末分区结束边界，单位字节。 |
+| [` public VmPartitionLayoutMode Layout { get; init; } `](#api-3be8dab164c4250c) | 分区布局探测结果。 |
+| [` public long MaximumGiB { get; init; } `](#api-8a432d0218fa7793) | 格式支持的最大虚拟容量，单位 GiB。 |
+| [` public string Message { get; init; } `](#api-a0dad90ed721af6a) | 本次检查的结果说明或受限原因。 |
+| [` public long? MinimumInternalSizeBytes { get; init; } `](#api-ecb2eade1258cd24) | 提供者报告的最小内部容量，单位字节。 |
+| [` public long? SafeMinimumGiB { get; init; } `](#api-386a6d3686e21c84) | 按已确认边界计算的安全收缩下限，单位 GiB。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VmResizeSafety(VmDiskInspection Access, long? CurrentCapacityBytes, long MaximumGiB,
+    long? MinimumInternalSizeBytes, long? LastPartitionEndBytes, long? SafeMinimumGiB,
+    VmPartitionLayoutMode Layout, string Message)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Access` | 容量检查时取得的挂接访问快照。 |
+| `CurrentCapacityBytes` | 当前虚拟容量，单位字节，未知时为 null。 |
+| `MaximumGiB` | 格式支持的最大虚拟容量，单位 GiB。 |
+| `MinimumInternalSizeBytes` | 提供者报告的最小内部容量，单位字节。 |
+| `LastPartitionEndBytes` | 已核实的末分区结束边界，单位字节。 |
+| `SafeMinimumGiB` | 按已确认边界计算的安全收缩下限，单位 GiB。 |
+| `Layout` | 分区布局探测结果。 |
+| `Message` | 本次检查的结果说明或受限原因。 |
+
+#### 构造函数说明
+
+<a id="api-32e0fb48a0f9410f"></a>
+
+##### 创建磁盘容量调整边界（主构造器）
+
+```csharp
+public VmResizeSafety(VmDiskInspection Access, long? CurrentCapacityBytes, long MaximumGiB, long? MinimumInternalSizeBytes, long? LastPartitionEndBytes, long? SafeMinimumGiB, VmPartitionLayoutMode Layout, string Message);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Access` | 容量检查时取得的挂接访问快照。 |
+| `CurrentCapacityBytes` | 当前虚拟容量，单位字节，未知时为 null。 |
+| `MaximumGiB` | 格式支持的最大虚拟容量，单位 GiB。 |
+| `MinimumInternalSizeBytes` | 提供者报告的最小内部容量，单位字节。 |
+| `LastPartitionEndBytes` | 已核实的末分区结束边界，单位字节。 |
+| `SafeMinimumGiB` | 按已确认边界计算的安全收缩下限，单位 GiB。 |
+| `Layout` | 分区布局探测结果。 |
+| `Message` | 本次检查的结果说明或受限原因。 |
+
+#### 属性说明
+
+<a id="api-83a63a71813999a4"></a>
+
+##### 挂接访问条件（record 属性）
+
+```csharp
+public VmDiskInspection Access { get; init; }
+```
+
+容量检查时取得的挂接访问快照。
+
+<a id="api-0d34d75a1910c6e6"></a>
+
+##### 允许扩展容量（属性）
+
+```csharp
+public bool CanExpand { get; }
+```
+
+当前条件是否允许扩展容量。
+
+<a id="api-0e4f9f3ed2b4341e"></a>
+
+##### 允许收缩容量（属性）
+
+```csharp
+public bool CanShrink { get; }
+```
+
+当前条件是否允许收缩容量。
+
+<a id="api-458d590ab30c45f0"></a>
+
+##### 当前容量（字节）（record 属性）
+
+```csharp
+public long? CurrentCapacityBytes { get; init; }
+```
+
+当前虚拟容量，单位字节，未知时为 null。
+
+<a id="api-dc9d298999d1552f"></a>
+
+##### 当前容量（GiB）（属性）
+
+```csharp
+public double? CurrentCapacityGiB { get; }
+```
+
+当前虚拟容量，单位 GiB，未知时为 null。
+
+<a id="api-0fe0897ddf8671af"></a>
+
+##### 末分区结束边界（record 属性）
+
+```csharp
+public long? LastPartitionEndBytes { get; init; }
+```
+
+已核实的末分区结束边界，单位字节。
+
+<a id="api-3be8dab164c4250c"></a>
+
+##### 分区布局状态（record 属性）
+
+```csharp
+public VmPartitionLayoutMode Layout { get; init; }
+```
+
+分区布局探测结果。
+
+<a id="api-8a432d0218fa7793"></a>
+
+##### 格式容量上限（record 属性）
+
+```csharp
+public long MaximumGiB { get; init; }
+```
+
+格式支持的最大虚拟容量，单位 GiB。
+
+<a id="api-a0dad90ed721af6a"></a>
+
+##### 检查说明（record 属性）
+
+```csharp
+public string Message { get; init; }
+```
+
+本次检查的结果说明或受限原因。
+
+<a id="api-ecb2eade1258cd24"></a>
+
+##### 最小内部容量（record 属性）
+
+```csharp
+public long? MinimumInternalSizeBytes { get; init; }
+```
+
+提供者报告的最小内部容量，单位字节。
+
+<a id="api-386a6d3686e21c84"></a>
+
+##### 安全收缩下限（record 属性）
+
+```csharp
+public long? SafeMinimumGiB { get; init; }
+```
+
+按已确认边界计算的安全收缩下限，单位 GiB。
 
 <a id="api-3580d41605c9185d"></a>
 
@@ -10523,7 +13466,7 @@ public sealed class VmScreenshotImage
 
 <a id="api-303b9cfcb76974ee"></a>
 
-##### 显示高度 · 属性
+##### 显示高度（属性）
 
 ```csharp
 public int Height { get; }
@@ -10540,7 +13483,7 @@ public int Height { get; }
 
 <a id="api-b9ae04ef49079b14"></a>
 
-##### 编码图像标记 · 属性
+##### 编码图像标记（属性）
 
 ```csharp
 public bool IsEncoded { get; }
@@ -10557,7 +13500,7 @@ public bool IsEncoded { get; }
 
 <a id="api-bf981ee5c71326cf"></a>
 
-##### 每行字节数 · 属性
+##### 每行字节数（属性）
 
 ```csharp
 public int Stride { get; }
@@ -10574,7 +13517,7 @@ public int Stride { get; }
 
 <a id="api-0b3eb7c06cf7b62d"></a>
 
-##### 显示宽度 · 属性
+##### 显示宽度（属性）
 
 ```csharp
 public int Width { get; }
@@ -10593,7 +13536,7 @@ public int Width { get; }
 
 <a id="api-34e11334a6e078f0"></a>
 
-##### 从编码数据创建图像 · 方法
+##### 从编码数据创建图像（方法）
 
 ```csharp
 public static VmScreenshotImage FromEncoded(byte[] data);
@@ -10611,7 +13554,7 @@ public static VmScreenshotImage FromEncoded(byte[] data);
 
 <a id="api-48da9354b4692098"></a>
 
-##### 从 RGB565 像素创建图像 · 方法
+##### 从 RGB565 像素创建图像（方法）
 
 ```csharp
 public static VmScreenshotImage FromRgb565(byte[] data, int width, int height);
@@ -10636,7 +13579,7 @@ public static VmScreenshotImage FromRgb565(byte[] data, int width, int height);
 
 <a id="api-62587e9c550f3337"></a>
 
-##### 复制图像数据 · 方法
+##### 复制图像数据（方法）
 
 ```csharp
 public byte[] CopyBytes();
@@ -10648,7 +13591,7 @@ public byte[] CopyBytes();
 
 <a id="api-94fead54aaa4b009"></a>
 
-##### 编码为 JPEG · 方法
+##### 编码为 JPEG（方法）
 
 ```csharp
 public byte[] EncodeJpeg();
@@ -10682,6 +13625,7 @@ public byte[] EncodeJpeg();
 | --- | --- |
 | [` public bool DebuggerMode { get; set; } `](#api-e0da8da110935bf8) | 是否启用 Windows 内核调试模式。 |
 | [` public bool DebuggerModeAvailable { get; init; } `](#api-3b2e4e16649317d4) | 宿主 WMI 类是否提供内核调试模式开关。 |
+| [` public bool IsConnected { get; } `](#api-f461d6b7cf141437) | 串口是否已配置命名管道连接。 |
 | [` public string Name { get; init; } = string.Empty `](#api-bd6af8986ce3a853) | 串口显示名称（如 COM 1、COM 2）。 |
 | [` public string PipePath { get; set; } = string.Empty `](#api-1d668de32a449b5f) | 宿主机命名管道路径；为空表示未连接。 |
 | [` public int PortNumber { get; init; } `](#api-e03ad5a6f07ad79c) | 串口编号（1 为 COM 1，2 为 COM 2）。 |
@@ -10696,7 +13640,7 @@ public sealed class VmSerialPort
 
 <a id="api-e0da8da110935bf8"></a>
 
-##### 内核调试模式 · 属性
+##### 内核调试模式（属性）
 
 ```csharp
 public bool DebuggerMode { get; set; }
@@ -10714,7 +13658,7 @@ public bool DebuggerMode { get; set; }
 
 <a id="api-3b2e4e16649317d4"></a>
 
-##### 内核调试模式支持 · 属性
+##### 内核调试模式支持（属性）
 
 ```csharp
 public bool DebuggerModeAvailable { get; init; }
@@ -10729,9 +13673,19 @@ public bool DebuggerModeAvailable { get; init; }
 | 详细含义 | 当前宿主的 Msvm_SerialPortSettingData 是否存在 DebuggerMode 属性。 |
 | 取值与默认 | `true`：支持修改内核调试模式；`false`：宿主不支持。 |
 
+<a id="api-f461d6b7cf141437"></a>
+
+##### 串口连接状态（属性）
+
+```csharp
+public bool IsConnected { get; }
+```
+
+串口是否已配置命名管道连接。
+
 <a id="api-bd6af8986ce3a853"></a>
 
-##### 串口名称 · 属性
+##### 串口名称（属性）
 
 ```csharp
 public string Name { get; init; } = string.Empty;
@@ -10747,7 +13701,7 @@ public string Name { get; init; } = string.Empty;
 
 <a id="api-1d668de32a449b5f"></a>
 
-##### 命名管道路径 · 属性
+##### 命名管道路径（属性）
 
 ```csharp
 public string PipePath { get; set; } = string.Empty;
@@ -10762,11 +13716,11 @@ public string PipePath { get; set; } = string.Empty;
 | 详细含义 | 虚拟串口映射到的宿主机命名管道路径；开启后由 Hyper-V 在宿主机创建命名管道，供 PuTTY、WinDbg 等工具连接，关闭开关即断开连接。 |
 | 取值与默认 | Windows 命名管道路径，例如 `\\.\pipe\my-vm-com1`；为空字符串表示未连接。 |
 | 缺测与错误 | 串口未连接任何命名管道时为空字符串。 |
-| 修改对应 | 读写；输入：pipePath；提交方式：单串口提交。支持短管道名自动补全为本地管道路径，传空字符串或 null 表示断开连接。`VmSerialPortService.SetPipePathAsync` |
+| 修改对应 | 读写，输入：pipePath，提交方式：单串口提交。支持短管道名自动补全为本地管道路径，传空字符串或 null 表示断开连接。`VmSerialPortService.SetPipePathAsync` |
 
 <a id="api-e03ad5a6f07ad79c"></a>
 
-##### 串口编号 · 属性
+##### 串口编号（属性）
 
 ```csharp
 public int PortNumber { get; init; }
@@ -10836,7 +13790,7 @@ public enum VmState
 
 <a id="api-5f46e0ae4911a33b"></a>
 
-##### Deferred · 枚举值
+##### Deferred（枚举值）
 
 ```csharp
 Deferred = 8
@@ -10846,7 +13800,7 @@ Deferred = 8
 
 <a id="api-8b3af396226136f4"></a>
 
-##### FastSaved · 枚举值
+##### FastSaved（枚举值）
 
 ```csharp
 FastSaved = 18
@@ -10856,7 +13810,7 @@ FastSaved = 18
 
 <a id="api-6b065d760f2e0fad"></a>
 
-##### FastSaving · 枚举值
+##### FastSaving（枚举值）
 
 ```csharp
 FastSaving = 19
@@ -10866,7 +13820,7 @@ FastSaving = 19
 
 <a id="api-1ef92fe1710af277"></a>
 
-##### ForceRestarting · 枚举值
+##### ForceRestarting（枚举值）
 
 ```csharp
 ForceRestarting = 21
@@ -10876,7 +13830,7 @@ ForceRestarting = 21
 
 <a id="api-939192b02c931266"></a>
 
-##### ForceShuttingDown · 枚举值
+##### ForceShuttingDown（枚举值）
 
 ```csharp
 ForceShuttingDown = 20
@@ -10886,7 +13840,7 @@ ForceShuttingDown = 20
 
 <a id="api-8a8631f4ac91a9c6"></a>
 
-##### Hibernated · 枚举值
+##### Hibernated（枚举值）
 
 ```csharp
 Hibernated = 22
@@ -10896,7 +13850,7 @@ Hibernated = 22
 
 <a id="api-54ecbcb9844735eb"></a>
 
-##### InTest · 枚举值
+##### InTest（枚举值）
 
 ```csharp
 InTest = 7
@@ -10906,7 +13860,7 @@ InTest = 7
 
 <a id="api-68677115f012a0b7"></a>
 
-##### MergingDisks · 枚举值
+##### MergingDisks（枚举值）
 
 ```csharp
 MergingDisks = 12
@@ -10916,7 +13870,7 @@ MergingDisks = 12
 
 <a id="api-67b6f28f9b4a14ad"></a>
 
-##### NotApplicable · 枚举值
+##### NotApplicable（枚举值）
 
 ```csharp
 NotApplicable = 5
@@ -10926,7 +13880,7 @@ NotApplicable = 5
 
 <a id="api-644dc2111a8076f2"></a>
 
-##### Other · 枚举值
+##### Other（枚举值）
 
 ```csharp
 Other = 1
@@ -10936,7 +13890,7 @@ Other = 1
 
 <a id="api-cd4724c649c2470b"></a>
 
-##### PoweredOff · 枚举值
+##### PoweredOff（枚举值）
 
 ```csharp
 PoweredOff = 3
@@ -10946,7 +13900,7 @@ PoweredOff = 3
 
 <a id="api-d50e1b6e5eec538f"></a>
 
-##### Processing · 枚举值
+##### Processing（枚举值）
 
 ```csharp
 Processing = 15
@@ -10956,7 +13910,7 @@ Processing = 15
 
 <a id="api-b660a74402cadc5d"></a>
 
-##### Resuming · 枚举值
+##### Resuming（枚举值）
 
 ```csharp
 Resuming = 17
@@ -10966,7 +13920,7 @@ Resuming = 17
 
 <a id="api-bf70f12a545787fd"></a>
 
-##### Running · 枚举值
+##### Running（枚举值）
 
 ```csharp
 Running = 2
@@ -10976,7 +13930,7 @@ Running = 2
 
 <a id="api-f4ba21bc9601aa71"></a>
 
-##### Saved · 枚举值
+##### Saved（枚举值）
 
 ```csharp
 Saved = 6
@@ -10986,7 +13940,7 @@ Saved = 6
 
 <a id="api-2134cf154e8d104f"></a>
 
-##### Saving · 枚举值
+##### Saving（枚举值）
 
 ```csharp
 Saving = 13
@@ -10996,7 +13950,7 @@ Saving = 13
 
 <a id="api-925486150fea820e"></a>
 
-##### ShuttingDown · 枚举值
+##### ShuttingDown（枚举值）
 
 ```csharp
 ShuttingDown = 4
@@ -11006,7 +13960,7 @@ ShuttingDown = 4
 
 <a id="api-ec477a8600b4533b"></a>
 
-##### Starting · 枚举值
+##### Starting（枚举值）
 
 ```csharp
 Starting = 10
@@ -11016,7 +13970,7 @@ Starting = 10
 
 <a id="api-3c9d41960f633386"></a>
 
-##### Stopping · 枚举值
+##### Stopping（枚举值）
 
 ```csharp
 Stopping = 14
@@ -11026,7 +13980,7 @@ Stopping = 14
 
 <a id="api-e2048656b710e81e"></a>
 
-##### Suspended · 枚举值
+##### Suspended（枚举值）
 
 ```csharp
 Suspended = 9
@@ -11036,7 +13990,7 @@ Suspended = 9
 
 <a id="api-757da3de21ccbe4f"></a>
 
-##### Suspending · 枚举值
+##### Suspending（枚举值）
 
 ```csharp
 Suspending = 16
@@ -11046,7 +14000,7 @@ Suspending = 16
 
 <a id="api-235e1476c17ca53f"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 0
@@ -11056,7 +14010,7 @@ Unknown = 0
 
 <a id="api-783318f7b53f6f8b"></a>
 
-##### WaitingToStart · 枚举值
+##### WaitingToStart（枚举值）
 
 ```csharp
 WaitingToStart = 11
@@ -11093,11 +14047,22 @@ VM 存储清单项：物理磁盘或虚拟磁盘均统一表达。 提供介质�
 | [` public double DiskSizeGiB { get; set; } `](#api-3715fa6fea736708) | 物理设备的宿主磁盘容量或文件介质的文件长度，单位 GiB（1024&#179; 字节）；0 也可能表示未读到。 |
 | [` public string DiskType { get; set; } `](#api-74f31f37020a544d) | 介质来源类别：Physical 为物理设备，Virtual 为文件介质，Empty 为未挂载介质。 |
 | [` public string DriveType { get; set; } `](#api-0b2a42ad91c617db) | 驱动器类别：HardDisk 为硬盘，DvdDrive 为光驱。 |
+| [` public long? FileSizeBytes { get; } `](#api-caee05005afe9970) | 宿主介质文件的长度，单位为字节。 |
 | [` public bool HasIsoMedia { get; } `](#api-ba9f8086356c7996) | 是否为已设置非空介质路径的虚拟光驱。 |
+| [` public bool? IsHostDiskOffline { get; } `](#api-681c728afa293670) | 宿主存储提供程序报告的物理盘脱机状态，无法确认时为空。 |
 | [` public bool IsPassthroughStale { get; set; } `](#api-6f4be459138d6cc7) | 物理盘直通引用是否失效，例如磁盘被联机后从可直通资源池消失。 |
+| [` public string? MediaFileToken { get; init; } `](#api-d19592a5a2e3135e) | 查询时的介质文件身份。 |
+| [` public string MetadataMessage { get; } = string.Empty `](#api-e01d61f079eb3360) | 元数据读取遇到问题时的说明。 |
+| [` public VmDiskMetadataState MetadataState { get; } `](#api-3edb945502bbb82d) | 当前介质元数据的读取结果。 |
+| [` public string? ParentPath { get; } `](#api-8ffb861bf6f7a7ab) | 差分盘记录的直接父路径，其可访问性和身份由链检查确认。 |
+| [` public string PassthroughStatus { get; } `](#api-9d857dab8e59b2ae) | 物理直通挂接状态说明。 |
 | [` public string PathOrDiskNumber { get; set; } `](#api-770913173f000731) | 虚拟介质文件路径，或 PhysicalDisk 加宿主磁盘编号的文本；空光驱可为空。 |
 | [` public string SelectionToken { get; init; } `](#api-472909aef47bc144) | 当前 VM、挂接和介质配置的不透明身份摘要；移除时原样回传，可随模型序列化，不得自行构造或修改。 |
 | [` public string SerialNumber { get; set; } `](#api-865e2d3c0577d619) | 物理磁盘序列号。 |
+| [` public string? VhdFormat { get; } `](#api-ceb1212e858ca991) | 虚拟磁盘容器格式，成功探测时为 .vhd 或 .vhdx。 |
+| [` public string? VhdType { get; } `](#api-c075f3a9fd19c4f2) | Fixed、Dynamic 或 Differencing。 |
+| [` public long? VirtualCapacityBytes { get; } `](#api-03bf6d00fd80cf4d) | 来宾看到的整盘容量，单位为字节。 |
+| [` public double? VirtualCapacityGiB { get; } `](#api-8c12a4648c3cf103) | 将虚拟容量按 1024&#179; 字节换算的 GiB 数值。 |
 
 #### 详细说明
 
@@ -11109,7 +14074,7 @@ public partial class VmStorageAttachment
 
 <a id="api-c2bc67d033829454"></a>
 
-##### 控制器槽位 · 属性
+##### 控制器槽位（属性）
 
 ```csharp
 public int ControllerLocation { get; set; }
@@ -11119,7 +14084,7 @@ public int ControllerLocation { get; set; }
 
 <a id="api-b4ba7a82a21ca97c"></a>
 
-##### 控制器编号 · 属性
+##### 控制器编号（属性）
 
 ```csharp
 public int ControllerNumber { get; set; }
@@ -11129,7 +14094,7 @@ public int ControllerNumber { get; set; }
 
 <a id="api-eb632a38f93b026c"></a>
 
-##### 控制器类型 · 属性
+##### 控制器类型（属性）
 
 ```csharp
 public string ControllerType { get; set; }
@@ -11139,7 +14104,7 @@ public string ControllerType { get; set; }
 
 <a id="api-d57671d37b442124"></a>
 
-##### 设备身份摘要 · 属性
+##### 设备身份摘要（属性）
 
 ```csharp
 public string DeviceToken { get; init; }
@@ -11151,7 +14116,7 @@ VM、控制器和驱动器的身份摘要；修改介质路径时原样回传，
 
 <a id="api-83ebea6f08e86fbd"></a>
 
-##### 宿主磁盘型号 · 属性
+##### 宿主磁盘型号（属性）
 
 ```csharp
 public string DiskModel { get; set; }
@@ -11161,7 +14126,7 @@ public string DiskModel { get; set; }
 
 <a id="api-199e7a4545566f31"></a>
 
-##### 宿主物理磁盘编号 · 属性
+##### 宿主物理磁盘编号（属性）
 
 ```csharp
 public int DiskNumber { get; set; }
@@ -11171,7 +14136,7 @@ public int DiskNumber { get; set; }
 
 <a id="api-3715fa6fea736708"></a>
 
-##### 磁盘容量 · 属性
+##### 磁盘容量（属性）
 
 ```csharp
 public double DiskSizeGiB { get; set; }
@@ -11181,7 +14146,7 @@ public double DiskSizeGiB { get; set; }
 
 <a id="api-74f31f37020a544d"></a>
 
-##### 磁盘来源类型 · 属性
+##### 磁盘来源类型（属性）
 
 ```csharp
 public string DiskType { get; set; }
@@ -11191,7 +14156,7 @@ public string DiskType { get; set; }
 
 <a id="api-0b2a42ad91c617db"></a>
 
-##### 驱动器类型 · 属性
+##### 驱动器类型（属性）
 
 ```csharp
 public string DriveType { get; set; }
@@ -11199,9 +14164,19 @@ public string DriveType { get; set; }
 
 驱动器类别：HardDisk 为硬盘，DvdDrive 为光驱。
 
+<a id="api-caee05005afe9970"></a>
+
+##### 文件长度（属性）
+
+```csharp
+public long? FileSizeBytes { get; }
+```
+
+宿主介质文件的长度，单位为字节。
+
 <a id="api-ba9f8086356c7996"></a>
 
-##### 光盘介质状态 · 属性
+##### 光盘介质状态（属性）
 
 ```csharp
 public bool HasIsoMedia { get; }
@@ -11209,9 +14184,19 @@ public bool HasIsoMedia { get; }
 
 是否为已设置非空介质路径的虚拟光驱。
 
+<a id="api-681c728afa293670"></a>
+
+##### 宿主磁盘脱机状态（属性）
+
+```csharp
+public bool? IsHostDiskOffline { get; }
+```
+
+宿主存储提供程序报告的物理盘脱机状态，无法确认时为空。
+
 <a id="api-6f4be459138d6cc7"></a>
 
-##### 物理磁盘挂接失效 · 属性
+##### 物理磁盘挂接失效（属性）
 
 ```csharp
 public bool IsPassthroughStale { get; set; }
@@ -11219,9 +14204,59 @@ public bool IsPassthroughStale { get; set; }
 
 物理盘直通引用是否失效，例如磁盘被联机后从可直通资源池消失。
 
+<a id="api-d19592a5a2e3135e"></a>
+
+##### 介质文件身份令牌（属性）
+
+```csharp
+public string? MediaFileToken { get; init; }
+```
+
+查询时的介质文件身份。与挂接一起回传可检测同路径替换，旧版快照可为空。
+
+<a id="api-e01d61f079eb3360"></a>
+
+##### 元数据诊断（属性）
+
+```csharp
+public string MetadataMessage { get; } = string.Empty;
+```
+
+元数据读取遇到问题时的说明。
+
+<a id="api-3edb945502bbb82d"></a>
+
+##### 元数据读取状态（属性）
+
+```csharp
+public VmDiskMetadataState MetadataState { get; }
+```
+
+当前介质元数据的读取结果。
+
+<a id="api-8ffb861bf6f7a7ab"></a>
+
+##### 父盘路径（属性）
+
+```csharp
+public string? ParentPath { get; }
+```
+
+差分盘记录的直接父路径，其可访问性和身份由链检查确认。
+
+<a id="api-9d857dab8e59b2ae"></a>
+
+##### 直通设备状态（属性）
+
+```csharp
+public string PassthroughStatus { get; }
+```
+
+物理直通挂接状态说明。
+
 <a id="api-770913173f000731"></a>
 
-##### 介质路径或磁盘编号 · 属性
+##### 介质路径或磁盘编号（属性）
 
 ```csharp
 public string PathOrDiskNumber { get; set; }
@@ -11231,7 +14266,7 @@ public string PathOrDiskNumber { get; set; }
 
 <a id="api-472909aef47bc144"></a>
 
-##### 挂接身份摘要 · 属性
+##### 挂接身份摘要（属性）
 
 ```csharp
 public string SelectionToken { get; init; }
@@ -11243,13 +14278,53 @@ public string SelectionToken { get; init; }
 
 <a id="api-865e2d3c0577d619"></a>
 
-##### 序列号 · 属性
+##### 序列号（属性）
 
 ```csharp
 public string SerialNumber { get; set; }
 ```
 
 物理磁盘序列号。
+
+<a id="api-ceb1212e858ca991"></a>
+
+##### 磁盘容器格式（属性）
+
+```csharp
+public string? VhdFormat { get; }
+```
+
+虚拟磁盘容器格式，成功探测时为 .vhd 或 .vhdx。
+
+<a id="api-c075f3a9fd19c4f2"></a>
+
+##### 磁盘分配类型（属性）
+
+```csharp
+public string? VhdType { get; }
+```
+
+Fixed、Dynamic 或 Differencing。未能读取时为空。
+
+<a id="api-03bf6d00fd80cf4d"></a>
+
+##### 虚拟容量（字节）（属性）
+
+```csharp
+public long? VirtualCapacityBytes { get; }
+```
+
+来宾看到的整盘容量，单位为字节。
+
+<a id="api-8c12a4648c3cf103"></a>
+
+##### 虚拟容量（GiB）（属性）
+
+```csharp
+public double? VirtualCapacityGiB { get; }
+```
+
+将虚拟容量按 1024&#179; 字节换算的 GiB 数值。
 
 <a id="api-ba368a7c161ab2aa"></a>
 
@@ -11307,7 +14382,7 @@ Start 可重复调用；启动失败或 Dispose 后，同一实例不能重新�
 
 <a id="api-adb15ea578d3fd20"></a>
 
-##### 设备实例标识 · 属性
+##### 设备实例标识（属性）
 
 ```csharp
 public static ArpSnoopService Instance { get; } = new();
@@ -11317,7 +14392,7 @@ public static ArpSnoopService Instance { get; } = new();
 
 <a id="api-c7c940e04990f14e"></a>
 
-##### 捕获状态 · 属性
+##### 捕获状态（属性）
 
 ```csharp
 public bool IsAvailable { get; }
@@ -11327,7 +14402,7 @@ public bool IsAvailable { get; }
 
 <a id="api-9ad48d2131e55733"></a>
 
-##### 捕获错误 · 属性
+##### 捕获错误（属性）
 
 ```csharp
 public ApiResponse? LastFailure { get; }
@@ -11341,7 +14416,7 @@ public ApiResponse? LastFailure { get; }
 
 <a id="api-13435e0342a25628"></a>
 
-##### 停止并释放 ARP 捕获 · 方法
+##### 停止并释放 ARP 捕获（方法）
 
 ```csharp
 public void Dispose();
@@ -11351,7 +14426,7 @@ public void Dispose();
 
 <a id="api-6bbdff3f2ad28f04"></a>
 
-##### 启动 ARP 捕获 · 方法
+##### 启动 ARP 捕获（方法）
 
 ```csharp
 public void Start();
@@ -11363,7 +14438,7 @@ public void Start();
 
 <a id="api-ae18054ac4a66479"></a>
 
-##### MAC 对应的 IPv4 地址 · 方法
+##### MAC 对应的 IPv4 地址（方法）
 
 ```csharp
 public bool TryGetIp(string? mac, out string ip);
@@ -11427,7 +14502,7 @@ public sealed record ConsoleBackendInfo(string BackendId, string Name,
 
 <a id="api-b32c829aa23387d4"></a>
 
-##### 创建连接后端信息对象 · 主构造器
+##### 创建连接后端信息对象（主构造器）
 
 ```csharp
 public ConsoleBackendInfo(string BackendId, string Name, ConsoleCapabilities Capabilities);
@@ -11443,7 +14518,7 @@ public ConsoleBackendInfo(string BackendId, string Name, ConsoleCapabilities Cap
 
 <a id="api-871059250bcef465"></a>
 
-##### 后端标识 · record 属性
+##### 后端标识（record 属性）
 
 ```csharp
 public string BackendId { get; init; }
@@ -11460,7 +14535,7 @@ public string BackendId { get; init; }
 
 <a id="api-e8cfb4ea6a1af103"></a>
 
-##### 交互能力 · record 属性
+##### 交互能力（record 属性）
 
 ```csharp
 public ConsoleCapabilities Capabilities { get; init; }
@@ -11476,7 +14551,7 @@ public ConsoleCapabilities Capabilities { get; init; }
 
 <a id="api-afac97bdb3e82f59"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -11529,7 +14604,7 @@ public enum ConsoleCapabilities
 
 <a id="api-292c72e6710fb71b"></a>
 
-##### Clipboard · 枚举值
+##### Clipboard（枚举值）
 
 ```csharp
 Clipboard = 4
@@ -11539,7 +14614,7 @@ Clipboard = 4
 
 <a id="api-afcde72f260256e7"></a>
 
-##### DisplayResize · 枚举值
+##### DisplayResize（枚举值）
 
 ```csharp
 DisplayResize = 8
@@ -11549,7 +14624,7 @@ DisplayResize = 8
 
 <a id="api-7e464082a6488718"></a>
 
-##### Input · 枚举值
+##### Input（枚举值）
 
 ```csharp
 Input = 2
@@ -11559,7 +14634,7 @@ Input = 2
 
 <a id="api-d780f671659a09a0"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -11569,7 +14644,7 @@ None = 0
 
 <a id="api-1b1b43f19d13ea4d"></a>
 
-##### Video · 枚举值
+##### Video（枚举值）
 
 ```csharp
 Video = 1
@@ -11629,7 +14704,7 @@ public sealed record ConsoleClipboardData(IReadOnlyList<ConsoleClipboardFormat> 
 
 <a id="api-4d93c6467d333027"></a>
 
-##### 创建剪贴板内容对象 · 主构造器
+##### 创建剪贴板内容对象（主构造器）
 
 ```csharp
 public ConsoleClipboardData(IReadOnlyList<ConsoleClipboardFormat> Formats);
@@ -11643,7 +14718,7 @@ public ConsoleClipboardData(IReadOnlyList<ConsoleClipboardFormat> Formats);
 
 <a id="api-e1fcb60beaee51c4"></a>
 
-##### 可用格式 · record 属性
+##### 可用格式（record 属性）
 
 ```csharp
 public IReadOnlyList<ConsoleClipboardFormat> Formats { get; init; }
@@ -11710,7 +14785,7 @@ SetClipboard 复制数据，校验格式编号、名称、长度和文本结束�
 
 <a id="api-f8356eec4d7c44d8"></a>
 
-##### 创建剪贴板格式对象 · 主构造器
+##### 创建剪贴板格式对象（主构造器）
 
 ```csharp
 public ConsoleClipboardFormat(uint Id, string? Name, ReadOnlyMemory<byte> Data);
@@ -11726,7 +14801,7 @@ public ConsoleClipboardFormat(uint Id, string? Name, ReadOnlyMemory<byte> Data);
 
 <a id="api-48b6ea504a18d284"></a>
 
-##### 数据 · record 属性
+##### 数据（record 属性）
 
 ```csharp
 public ReadOnlyMemory<byte> Data { get; init; }
@@ -11743,7 +14818,7 @@ public ReadOnlyMemory<byte> Data { get; init; }
 
 <a id="api-bdb8a6ee908a44c5"></a>
 
-##### 标识 · record 属性
+##### 标识（record 属性）
 
 ```csharp
 public uint Id { get; init; }
@@ -11760,7 +14835,7 @@ public uint Id { get; init; }
 
 <a id="api-30821a3c68534000"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string? Name { get; init; }
@@ -11817,7 +14892,7 @@ Width、Height、DesktopScale 是请求值，实际画面尺寸以收到的 `Con
 
 <a id="api-7763df3391afb936"></a>
 
-##### 连接超时 · 属性
+##### 连接超时（属性）
 
 ```csharp
 public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2);
@@ -11836,7 +14911,7 @@ public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2);
 
 <a id="api-83de64b0ed6709f2"></a>
 
-##### 桌面缩放 · 属性
+##### 桌面缩放（属性）
 
 ```csharp
 public uint DesktopScale { get; init; } = 100;
@@ -11853,7 +14928,7 @@ public uint DesktopScale { get; init; } = 100;
 
 <a id="api-9588f922040c059c"></a>
 
-##### 显示高度 · 属性
+##### 显示高度（属性）
 
 ```csharp
 public int Height { get; init; } = 768;
@@ -11870,7 +14945,7 @@ public int Height { get; init; } = 768;
 
 <a id="api-30f96f6a247d12d1"></a>
 
-##### 虚拟机标识 · 属性
+##### 虚拟机标识（属性）
 
 ```csharp
 public Guid VmId { get; init; }
@@ -11887,7 +14962,7 @@ public Guid VmId { get; init; }
 
 <a id="api-8dd0fb25967f65e6"></a>
 
-##### 显示宽度 · 属性
+##### 显示宽度（属性）
 
 ```csharp
 public int Width { get; init; } = 1024;
@@ -11939,7 +15014,7 @@ public enum ConsoleConnectionState
 
 <a id="api-0d4fe0b7f8d1efe0"></a>
 
-##### Connected · 枚举值
+##### Connected（枚举值）
 
 ```csharp
 Connected = 1
@@ -11949,7 +15024,7 @@ Connected = 1
 
 <a id="api-00a38bbabb7b7a57"></a>
 
-##### Connecting · 枚举值
+##### Connecting（枚举值）
 
 ```csharp
 Connecting = 2
@@ -11959,7 +15034,7 @@ Connecting = 2
 
 <a id="api-d980797589ccf428"></a>
 
-##### Disconnected · 枚举值
+##### Disconnected（枚举值）
 
 ```csharp
 Disconnected = 0
@@ -11969,7 +15044,7 @@ Disconnected = 0
 
 <a id="api-5356eea13a929ee1"></a>
 
-##### Disconnecting · 枚举值
+##### Disconnecting（枚举值）
 
 ```csharp
 Disconnecting = 3
@@ -12023,7 +15098,7 @@ public sealed record ConsoleDisconnectInfo(uint ErrorCode, string? Error)
 
 <a id="api-af7a6bc07d65bbd8"></a>
 
-##### 创建连接结束信息对象 · 主构造器
+##### 创建连接结束信息对象（主构造器）
 
 ```csharp
 public ConsoleDisconnectInfo(uint ErrorCode, string? Error);
@@ -12038,7 +15113,7 @@ public ConsoleDisconnectInfo(uint ErrorCode, string? Error);
 
 <a id="api-72416d12389513d4"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -12055,7 +15130,7 @@ public string? Error { get; init; }
 
 <a id="api-da32a13ed43b2bb4"></a>
 
-##### 错误码 · record 属性
+##### 错误码（record 属性）
 
 ```csharp
 public uint ErrorCode { get; init; }
@@ -12181,7 +15256,7 @@ public static class RetainedFrameExample
 
 <a id="api-c1824b67530e7d8f"></a>
 
-##### 创建画面帧对象 · 构造器
+##### 创建画面帧对象（构造器）
 
 ```csharp
 public ConsoleFrame(int width, int height, int stride, ReadOnlyMemory<byte> pixels, long sequence);
@@ -12206,7 +15281,7 @@ public ConsoleFrame(int width, int height, int stride, ReadOnlyMemory<byte> pixe
 
 <a id="api-ffd9b3afb8291670"></a>
 
-##### 基线帧序号 · 属性
+##### 基线帧序号（属性）
 
 ```csharp
 public long BaseSequence { get; }
@@ -12225,7 +15300,7 @@ Damage 所依据的前一帧序号。
 
 <a id="api-0dd98558052c2c13"></a>
 
-##### 缓冲区长度 · 属性
+##### 缓冲区长度（属性）
 
 ```csharp
 public int ByteLength { get; }
@@ -12242,7 +15317,7 @@ public int ByteLength { get; }
 
 <a id="api-c0ca95b63fdbbdea"></a>
 
-##### 变化区域 · 属性
+##### 变化区域（属性）
 
 ```csharp
 public ConsoleFrameRegion Damage { get; }
@@ -12261,7 +15336,7 @@ public ConsoleFrameRegion Damage { get; }
 
 <a id="api-f3cf8f02d41f9263"></a>
 
-##### 整帧刷新标记 · 属性
+##### 整帧刷新标记（属性）
 
 ```csharp
 public bool HasFullDamage { get; }
@@ -12278,7 +15353,7 @@ public bool HasFullDamage { get; }
 
 <a id="api-616a1e77beb8c421"></a>
 
-##### 显示高度 · 属性
+##### 显示高度（属性）
 
 ```csharp
 public int Height { get; }
@@ -12295,7 +15370,7 @@ public int Height { get; }
 
 <a id="api-0f916becd52bb8d3"></a>
 
-##### 像素数据 · 属性
+##### 像素数据（属性）
 
 ```csharp
 public ReadOnlySpan<byte> Pixels { get; }
@@ -12316,7 +15391,7 @@ public ReadOnlySpan<byte> Pixels { get; }
 
 <a id="api-7ed89a64cc88291b"></a>
 
-##### 帧序号 · 属性
+##### 帧序号（属性）
 
 ```csharp
 public long Sequence { get; }
@@ -12333,7 +15408,7 @@ public long Sequence { get; }
 
 <a id="api-15bad73304b82dfa"></a>
 
-##### 每行字节数 · 属性
+##### 每行字节数（属性）
 
 ```csharp
 public int Stride { get; }
@@ -12350,7 +15425,7 @@ public int Stride { get; }
 
 <a id="api-d082eed74a45c63e"></a>
 
-##### 显示宽度 · 属性
+##### 显示宽度（属性）
 
 ```csharp
 public int Width { get; }
@@ -12369,7 +15444,7 @@ public int Width { get; }
 
 <a id="api-e5049e309fda705d"></a>
 
-##### 复制帧像素 · 方法
+##### 复制帧像素（方法）
 
 ```csharp
 public byte[] CopyPixels();
@@ -12385,7 +15460,7 @@ public byte[] CopyPixels();
 
 <a id="api-9636f7084707a2fd"></a>
 
-##### 释放帧租约 · 方法
+##### 释放帧租约（方法）
 
 ```csharp
 public void Dispose();
@@ -12397,7 +15472,7 @@ public void Dispose();
 
 <a id="api-276168d816a67152"></a>
 
-##### 保留帧租约 · 方法
+##### 保留帧租约（方法）
 
 ```csharp
 public ConsoleFrame Retain();
@@ -12469,7 +15544,7 @@ public readonly record struct ConsoleFrameRegion(int X, int Y, int Width, int He
 
 <a id="api-e28cc59df781112f"></a>
 
-##### 创建画面区域对象 · 主构造器
+##### 创建画面区域对象（主构造器）
 
 ```csharp
 public ConsoleFrameRegion(int X, int Y, int Width, int Height);
@@ -12486,7 +15561,7 @@ public ConsoleFrameRegion(int X, int Y, int Width, int Height);
 
 <a id="api-1acbdb407b0a10e2"></a>
 
-##### 显示高度 · record 属性
+##### 显示高度（record 属性）
 
 ```csharp
 public int Height { get; init; }
@@ -12503,7 +15578,7 @@ public int Height { get; init; }
 
 <a id="api-de55acb7c12efa21"></a>
 
-##### 空值状态 · 属性
+##### 空值状态（属性）
 
 ```csharp
 public bool IsEmpty { get; }
@@ -12520,7 +15595,7 @@ public bool IsEmpty { get; }
 
 <a id="api-85e0631a66a0b36f"></a>
 
-##### 显示宽度 · record 属性
+##### 显示宽度（record 属性）
 
 ```csharp
 public int Width { get; init; }
@@ -12537,7 +15612,7 @@ public int Width { get; init; }
 
 <a id="api-88895926f6d0094f"></a>
 
-##### 横坐标 · record 属性
+##### 横坐标（record 属性）
 
 ```csharp
 public int X { get; init; }
@@ -12554,7 +15629,7 @@ public int X { get; init; }
 
 <a id="api-6ed9dcdf84d2fd37"></a>
 
-##### 纵坐标 · record 属性
+##### 纵坐标（record 属性）
 
 ```csharp
 public int Y { get; init; }
@@ -12573,7 +15648,7 @@ public int Y { get; init; }
 
 <a id="api-b33a0b28d3c433a8"></a>
 
-##### 合并图像区域 · 方法
+##### 合并图像区域（方法）
 
 ```csharp
 public ConsoleFrameRegion Union(ConsoleFrameRegion other);
@@ -12637,7 +15712,7 @@ public readonly record struct ConsoleKeyEvent(ushort ScanCode, bool Extended, bo
 
 <a id="api-9c8ed46b0b6c72e0"></a>
 
-##### 创建按键事件对象 · 主构造器
+##### 创建按键事件对象（主构造器）
 
 ```csharp
 public ConsoleKeyEvent(ushort ScanCode, bool Extended, bool Down);
@@ -12653,7 +15728,7 @@ public ConsoleKeyEvent(ushort ScanCode, bool Extended, bool Down);
 
 <a id="api-9dda0a7e66ef6c82"></a>
 
-##### 按下状态 · record 属性
+##### 按下状态（record 属性）
 
 ```csharp
 public bool Down { get; init; }
@@ -12670,7 +15745,7 @@ public bool Down { get; init; }
 
 <a id="api-7eb7c66facc0c4a1"></a>
 
-##### 扩展扫描码标记 · record 属性
+##### 扩展扫描码标记（record 属性）
 
 ```csharp
 public bool Extended { get; init; }
@@ -12687,7 +15762,7 @@ public bool Extended { get; init; }
 
 <a id="api-11ff40b969784eda"></a>
 
-##### 按键扫描码 · record 属性
+##### 按键扫描码（record 属性）
 
 ```csharp
 public ushort ScanCode { get; init; }
@@ -12740,7 +15815,7 @@ public enum ConsoleKeyboardToggleState : uint
 
 <a id="api-f79ff8268fee0221"></a>
 
-##### CapsLock · 枚举值
+##### CapsLock（枚举值）
 
 ```csharp
 CapsLock = 4
@@ -12750,7 +15825,7 @@ Caps Lock 开启。
 
 <a id="api-d0621aa00fc7e807"></a>
 
-##### KanaLock · 枚举值
+##### KanaLock（枚举值）
 
 ```csharp
 KanaLock = 8
@@ -12760,7 +15835,7 @@ Kana Lock 开启。
 
 <a id="api-889328ee9cddf476"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -12770,7 +15845,7 @@ None = 0
 
 <a id="api-ff76c2af1e8f94e2"></a>
 
-##### NumLock · 枚举值
+##### NumLock（枚举值）
 
 ```csharp
 NumLock = 2
@@ -12780,7 +15855,7 @@ Num Lock 开启。
 
 <a id="api-e690ea67ea02216a"></a>
 
-##### ScrollLock · 枚举值
+##### ScrollLock（枚举值）
 
 ```csharp
 ScrollLock = 1
@@ -12825,7 +15900,7 @@ public enum ConsolePointerButton
 
 <a id="api-98ac0f558892e8a3"></a>
 
-##### Left · 枚举值
+##### Left（枚举值）
 
 ```csharp
 Left = 1
@@ -12835,7 +15910,7 @@ Left = 1
 
 <a id="api-7dee1fcca80261e6"></a>
 
-##### Middle · 枚举值
+##### Middle（枚举值）
 
 ```csharp
 Middle = 4
@@ -12845,7 +15920,7 @@ Middle = 4
 
 <a id="api-65443b8d47d780ae"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -12855,7 +15930,7 @@ None = 0
 
 <a id="api-b1cd3a8e9cc3272e"></a>
 
-##### Right · 枚举值
+##### Right（枚举值）
 
 ```csharp
 Right = 2
@@ -12909,7 +15984,7 @@ RdpBasic 提供基本画面和键鼠；RdpEnhanced 还提供剪贴板和分辨�
 
 <a id="api-0b4175a57cc83770"></a>
 
-##### 创建连接 · 方法
+##### 创建连接（方法）
 
 ```csharp
 public static IConsoleConnection CreateConnection(ConsoleConnectionOptions options, string backendId = RdpBasicBackendId);
@@ -12931,7 +16006,7 @@ public static IConsoleConnection CreateConnection(ConsoleConnectionOptions optio
 
 <a id="api-5fde38d41600601e"></a>
 
-##### 列出连接后端 · 方法
+##### 列出连接后端（方法）
 
 ```csharp
 public static IReadOnlyList<ConsoleBackendInfo> GetBackends();
@@ -12947,7 +16022,7 @@ public static IReadOnlyList<ConsoleBackendInfo> GetBackends();
 
 <a id="api-67820999b25792f3"></a>
 
-##### RDP 基本会话标识 · 字段
+##### RDP 基本会话标识（字段）
 
 ```csharp
 public const string RdpBasicBackendId = "RdpBasic";
@@ -12964,7 +16039,7 @@ RDP 基本会话的后端标识，提供视频和键鼠输入。
 
 <a id="api-f88e5239b9fd534c"></a>
 
-##### RDP 增强会话标识 · 字段
+##### RDP 增强会话标识（字段）
 
 ```csharp
 public const string RdpEnhancedBackendId = "RdpEnhanced";
@@ -13029,7 +16104,7 @@ public readonly record struct ControllerDisk(int Number, string FriendlyName, bo
 
 <a id="api-fa056ddd346ca9cc"></a>
 
-##### 创建控制器关联磁盘对象 · 主构造器
+##### 创建控制器关联磁盘对象（主构造器）
 
 ```csharp
 public ControllerDisk(int Number, string FriendlyName, bool IsSystem, bool IsBoot, bool IsOffline);
@@ -13047,7 +16122,7 @@ public ControllerDisk(int Number, string FriendlyName, bool IsSystem, bool IsBoo
 
 <a id="api-f4bc8369699b3649"></a>
 
-##### 设备名称 · record 属性
+##### 设备名称（record 属性）
 
 ```csharp
 public string FriendlyName { get; init; }
@@ -13057,7 +16132,7 @@ public string FriendlyName { get; init; }
 
 <a id="api-c3d81943ccee9f57"></a>
 
-##### 启动磁盘标记 · record 属性
+##### 启动磁盘标记（record 属性）
 
 ```csharp
 public bool IsBoot { get; init; }
@@ -13067,7 +16142,7 @@ public bool IsBoot { get; init; }
 
 <a id="api-0bdc6ac27aff2f3c"></a>
 
-##### 脱机状态 · record 属性
+##### 脱机状态（record 属性）
 
 ```csharp
 public bool IsOffline { get; init; }
@@ -13077,7 +16152,7 @@ public bool IsOffline { get; init; }
 
 <a id="api-3fb60c52a213641b"></a>
 
-##### 系统磁盘标记 · record 属性
+##### 系统磁盘标记（record 属性）
 
 ```csharp
 public bool IsSystem { get; init; }
@@ -13087,7 +16162,7 @@ public bool IsSystem { get; init; }
 
 <a id="api-15d6a3359f3b009a"></a>
 
-##### 编号 · record 属性
+##### 编号（record 属性）
 
 ```csharp
 public int Number { get; init; }
@@ -13130,7 +16205,7 @@ public static class CpuAffinityService
 
 <a id="api-ec0d3670d83200f9"></a>
 
-##### 启动后恢复亲和性 · 方法
+##### 启动后恢复亲和性（方法）
 
 ```csharp
 public static async Task<StartupApplyStatus> ApplySavedAffinityAfterStartAsync(Guid vmId, CancellationToken cancellationToken = default);
@@ -13154,7 +16229,7 @@ public static async Task<StartupApplyStatus> ApplySavedAffinityAfterStartAsync(G
 
 <a id="api-e1b65193766f3eec"></a>
 
-##### 读取实际亲和性 · 方法
+##### 读取实际亲和性（方法）
 
 ```csharp
 public static async Task<List<int>> GetCpuAffinityAsync(Guid vmId);
@@ -13174,7 +16249,7 @@ public static async Task<List<int>> GetCpuAffinityAsync(Guid vmId);
 
 <a id="api-7c551349ec1337cf"></a>
 
-##### 读取处理器亲和性 · 方法
+##### 读取处理器亲和性（方法）
 
 ```csharp
 public static async Task<ApiResponse<AffinityState>> ReadStateAsync(Guid vmId);
@@ -13192,7 +16267,7 @@ public static async Task<ApiResponse<AffinityState>> ReadStateAsync(Guid vmId);
 
 <a id="api-b08a0a1e95f9305d"></a>
 
-##### 应用并保存亲和性 · 方法
+##### 应用并保存亲和性（方法）
 
 ```csharp
 public static async Task<SaveResult> SaveAsync(Guid vmId, List<int> coreIndices);
@@ -13264,7 +16339,7 @@ public sealed record AffinityState(VmState State, IReadOnlyList<int>? AppliedPro
 
 <a id="api-d8cd56052cce6dd3"></a>
 
-##### 创建亲和性状态对象 · 主构造器
+##### 创建亲和性状态对象（主构造器）
 
 ```csharp
 public AffinityState(VmState State, IReadOnlyList<int>? AppliedProcessors, IReadOnlyList<int>? SavedProcessors);
@@ -13280,7 +16355,7 @@ public AffinityState(VmState State, IReadOnlyList<int>? AppliedProcessors, IRead
 
 <a id="api-603338e2ec710d82"></a>
 
-##### 实际处理器选择 · record 属性
+##### 实际处理器选择（record 属性）
 
 ```csharp
 public IReadOnlyList<int>? AppliedProcessors { get; init; }
@@ -13290,7 +16365,7 @@ public IReadOnlyList<int>? AppliedProcessors { get; init; }
 
 <a id="api-805329284fb65fcd"></a>
 
-##### 需要重新选择的原因 · 属性
+##### 需要重新选择的原因（属性）
 
 ```csharp
 public string? SavedPreferenceIssue { get; init; }
@@ -13300,7 +16375,7 @@ public string? SavedPreferenceIssue { get; init; }
 
 <a id="api-d314493285506c0a"></a>
 
-##### 保存配置的适用状态 · 属性
+##### 保存配置的适用状态（属性）
 
 ```csharp
 public PreferenceStatus SavedPreferenceStatus { get; init; }
@@ -13310,7 +16385,7 @@ public PreferenceStatus SavedPreferenceStatus { get; init; }
 
 <a id="api-1d54dadb1209594f"></a>
 
-##### 保存的处理器选择 · record 属性
+##### 保存的处理器选择（record 属性）
 
 ```csharp
 public IReadOnlyList<int>? SavedProcessors { get; init; }
@@ -13320,7 +16395,7 @@ public IReadOnlyList<int>? SavedProcessors { get; init; }
 
 <a id="api-c91ca6434aab27d2"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public VmState State { get; init; }
@@ -13365,7 +16440,7 @@ public enum PreferenceStatus
 
 <a id="api-fd4fcd71ab9a5107"></a>
 
-##### EnvironmentChanged · 枚举值
+##### EnvironmentChanged（枚举值）
 
 ```csharp
 EnvironmentChanged = 3
@@ -13375,7 +16450,7 @@ EnvironmentChanged = 3
 
 <a id="api-adb2f95457442478"></a>
 
-##### EnvironmentUnverified · 枚举值
+##### EnvironmentUnverified（枚举值）
 
 ```csharp
 EnvironmentUnverified = 4
@@ -13385,7 +16460,7 @@ EnvironmentUnverified = 4
 
 <a id="api-41e9ad4343e71626"></a>
 
-##### InvalidConfiguration · 枚举值
+##### InvalidConfiguration（枚举值）
 
 ```csharp
 InvalidConfiguration = 5
@@ -13395,7 +16470,7 @@ InvalidConfiguration = 5
 
 <a id="api-07eb82c4e982d8db"></a>
 
-##### MatchesEnvironment · 枚举值
+##### MatchesEnvironment（枚举值）
 
 ```csharp
 MatchesEnvironment = 2
@@ -13405,7 +16480,7 @@ MatchesEnvironment = 2
 
 <a id="api-151b08dd98c7e6df"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -13415,7 +16490,7 @@ None = 0
 
 <a id="api-b8f42d9fa5c8fde6"></a>
 
-##### Unrestricted · 枚举值
+##### Unrestricted（枚举值）
 
 ```csharp
 Unrestricted = 1
@@ -13477,7 +16552,7 @@ public sealed record SaveResult(SaveStatus Status, bool MetadataSaved)
 
 <a id="api-7904623338803789"></a>
 
-##### 创建亲和性保存结果对象 · 主构造器
+##### 创建亲和性保存结果对象（主构造器）
 
 ```csharp
 public SaveResult(SaveStatus Status, bool MetadataSaved);
@@ -13492,7 +16567,7 @@ public SaveResult(SaveStatus Status, bool MetadataSaved);
 
 <a id="api-f6b7bfe7577288e7"></a>
 
-##### 清理错误 · 属性
+##### 清理错误（属性）
 
 ```csharp
 public string? CleanupError { get; init; }
@@ -13502,7 +16577,7 @@ public string? CleanupError { get; init; }
 
 <a id="api-b49cd89e8b5ba84f"></a>
 
-##### 清理错误类别 · 属性
+##### 清理错误类别（属性）
 
 ```csharp
 public ApiErrorKind CleanupErrorKind { get; init; }
@@ -13512,7 +16587,7 @@ public ApiErrorKind CleanupErrorKind { get; init; }
 
 <a id="api-11cce6b5234ec0d7"></a>
 
-##### 当前 CPU 组标识 · 属性
+##### 当前 CPU 组标识（属性）
 
 ```csharp
 public Guid? CurrentGroupId { get; init; }
@@ -13522,7 +16597,7 @@ Classic/Core 下本次最后确认的绑定；全零为未绑定，null 为未�
 
 <a id="api-0ad18dde6814b0d5"></a>
 
-##### 错误 · 属性
+##### 错误（属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -13532,7 +16607,7 @@ public string? Error { get; init; }
 
 <a id="api-e96576d5f8a96bc7"></a>
 
-##### 错误码 · 属性
+##### 错误码（属性）
 
 ```csharp
 public int ErrorCode { get; init; }
@@ -13542,7 +16617,7 @@ public int ErrorCode { get; init; }
 
 <a id="api-656f1d4f2751aa46"></a>
 
-##### 错误类别 · 属性
+##### 错误类别（属性）
 
 ```csharp
 public ApiErrorKind ErrorKind { get; init; }
@@ -13552,7 +16627,7 @@ public ApiErrorKind ErrorKind { get; init; }
 
 <a id="api-5558b372707a4697"></a>
 
-##### 错误来源 · 属性
+##### 错误来源（属性）
 
 ```csharp
 public ApiErrorSource ErrorSource { get; init; }
@@ -13562,7 +16637,7 @@ public ApiErrorSource ErrorSource { get; init; }
 
 <a id="api-212f91fca19d5bc2"></a>
 
-##### 配置保存状态 · record 属性
+##### 配置保存状态（record 属性）
 
 ```csharp
 public bool MetadataSaved { get; init; }
@@ -13572,7 +16647,7 @@ public bool MetadataSaved { get; init; }
 
 <a id="api-2c86effde94b1012"></a>
 
-##### 保留的 CPU 组标识 · 属性
+##### 保留的 CPU 组标识（属性）
 
 ```csharp
 public Guid? RetainedGroupId { get; init; }
@@ -13582,7 +16657,7 @@ public Guid? RetainedGroupId { get; init; }
 
 <a id="api-a136413053e94d50"></a>
 
-##### 需要重新选择的原因 · 属性
+##### 需要重新选择的原因（属性）
 
 ```csharp
 public string? SavedPreferenceIssue { get; init; }
@@ -13592,7 +16667,7 @@ public string? SavedPreferenceIssue { get; init; }
 
 <a id="api-7b29b28d2e9eb789"></a>
 
-##### 保存配置的适用状态 · 属性
+##### 保存配置的适用状态（属性）
 
 ```csharp
 public PreferenceStatus SavedPreferenceStatus { get; init; }
@@ -13602,7 +16677,7 @@ public PreferenceStatus SavedPreferenceStatus { get; init; }
 
 <a id="api-0466b19c5caf1512"></a>
 
-##### 执行状态 · record 属性
+##### 执行状态（record 属性）
 
 ```csharp
 public SaveStatus Status { get; init; }
@@ -13644,7 +16719,7 @@ public enum SaveStatus
 
 <a id="api-edb2ad6fdd7b5522"></a>
 
-##### Applied · 枚举值
+##### Applied（枚举值）
 
 ```csharp
 Applied = 0
@@ -13654,7 +16729,7 @@ Applied = 0
 
 <a id="api-d53bcabf42e587ee"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 2
@@ -13664,7 +16739,7 @@ Failed = 2
 
 <a id="api-13c6b6a652f43211"></a>
 
-##### Queued · 枚举值
+##### Queued（枚举值）
 
 ```csharp
 Queued = 1
@@ -13710,7 +16785,7 @@ public enum StartupApplyStatus
 
 <a id="api-9fa34aea06d9db2e"></a>
 
-##### Applied · 枚举值
+##### Applied（枚举值）
 
 ```csharp
 Applied = 1
@@ -13720,7 +16795,7 @@ Applied = 1
 
 <a id="api-e7c52e0d2a85da7d"></a>
 
-##### Exhausted · 枚举值
+##### Exhausted（枚举值）
 
 ```csharp
 Exhausted = 3
@@ -13730,7 +16805,7 @@ Exhausted = 3
 
 <a id="api-14e4db55aeb654d4"></a>
 
-##### InvalidConfiguration · 枚举值
+##### InvalidConfiguration（枚举值）
 
 ```csharp
 InvalidConfiguration = 4
@@ -13740,7 +16815,7 @@ InvalidConfiguration = 4
 
 <a id="api-ea1358e2ba400723"></a>
 
-##### NotRequired · 枚举值
+##### NotRequired（枚举值）
 
 ```csharp
 NotRequired = 0
@@ -13750,7 +16825,7 @@ NotRequired = 0
 
 <a id="api-e25f9119d3285b00"></a>
 
-##### ReselectionRequired · 枚举值
+##### ReselectionRequired（枚举值）
 
 ```csharp
 ReselectionRequired = 6
@@ -13760,7 +16835,7 @@ ReselectionRequired = 6
 
 <a id="api-eb0d337a0a018d5f"></a>
 
-##### Superseded · 枚举值
+##### Superseded（枚举值）
 
 ```csharp
 Superseded = 5
@@ -13770,7 +16845,7 @@ Superseded = 5
 
 <a id="api-249c9251fc886551"></a>
 
-##### VmStopped · 枚举值
+##### VmStopped（枚举值）
 
 ```csharp
 VmStopped = 2
@@ -13798,13 +16873,14 @@ VmStopped = 2
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public GpuDeploymentSession(Guid vmId, string vmName, HostGpuInfo gpu, VmGpuService gpuService, VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers) `](#api-f91ceb7e4df3e117) | 创建尚未开始执行的单次 GPU 部署会话。 |
+| [` public GpuDeploymentSession(Guid vmId, string vmName, HostGpuInfo gpu, VmGpuService gpuService, VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers) `](#api-f91ceb7e4df3e117) | 创建尚未开始执行的单张 GPU 部署会话。 |
+| [` public GpuDeploymentSession(Guid vmId, string vmName, IReadOnlyList<HostGpuInfo> gpus, VmGpuService gpuService, VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers) `](#api-ab047cf58dab725b) | 创建尚未开始执行的多卡或单卡批量 GPU 部署会话。 |
 
 **方法**
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public async Task<GpuDeploymentSnapshot> CancelAsync() `](#api-4ea1036d17491171) | 请求取消，等待当前操作退出后尝试清理本次新增的适配器。 |
+| [` public async Task<GpuDeploymentSnapshot> CancelAsync() `](#api-4ea1036d17491171) | 请求取消，等待当前操作退出后尝试清理本次新增的全部适配器。 |
 | [` public GpuDeploymentSnapshot GetStatus() `](#api-8074253c3683a7d4) | 读取最近发布的状态，不等待正在进行的底层操作。 |
 | [` public async Task<GpuDeploymentSnapshot> ReconcileAsync() `](#api-5b584dc638877ec1) | 只读核实本次部署和清理的原生任务、GPU 适配器及临时磁盘资源。 |
 | [` public void RequestCancellation() `](#api-0f3fa40d86861ea2) | 仅发送协作式取消请求，立即返回；正在执行的不可取消底层调用仍需自行结束。 |
@@ -13824,13 +16900,13 @@ public sealed class GpuDeploymentSession
 
 <a id="api-f91ceb7e4df3e117"></a>
 
-##### 创建GPU 部署流程对象 · 构造器
+##### 创建GPU 部署流程对象（构造器）
 
 ```csharp
 public GpuDeploymentSession(Guid vmId, string vmName, HostGpuInfo gpu, VmGpuService gpuService, VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers);
 ```
 
-创建尚未开始执行的单次 GPU 部署会话。
+创建尚未开始执行的单张 GPU 部署会话。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -13841,19 +16917,43 @@ public GpuDeploymentSession(Guid vmId, string vmName, HostGpuInfo gpu, VmGpuServ
 | `queryService` | 读取目标虚拟机信息的服务；由调用方持有和释放，须在部署及后续核实、清理期间保持可用。 |
 | `mode` | 本次部署范围，默认新增 GPU 并安装驱动；未定义的枚举值会被拒绝。 |
 
+- 异常 `ArgumentNullException`：gpu 为 null。
+- 异常 `ArgumentOutOfRangeException`：mode 不是定义的部署模式。
+
+<a id="api-ab047cf58dab725b"></a>
+
+##### 创建批量 GPU 部署流程对象（构造器）
+
+```csharp
+public GpuDeploymentSession(Guid vmId, string vmName, IReadOnlyList<HostGpuInfo> gpus, VmGpuService gpuService, VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers);
+```
+
+创建尚未开始执行的多卡或单卡批量 GPU 部署会话。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机 GUID；后续会按身份核对目标。 |
+| `vmName` | 目标虚拟机名称，应与 vmId 对应。 |
+| `gpus` | 目标宿主 GPU 列表，至少包含一张有效显卡。 |
+| `gpuService` | 执行 GPU 查询与配置的服务。 |
+| `queryService` | 读取目标虚拟机信息的服务；由调用方持有和释放，须在部署及后续核实、清理期间保持可用。 |
+| `mode` | 本次部署范围，默认新增 GPU 并安装驱动；未定义的枚举值会被拒绝。 |
+
+- 异常 `ArgumentNullException`：gpus 为 null。
+- 异常 `ArgumentException`：gpus 为空或包含 null 项。
 - 异常 `ArgumentOutOfRangeException`：mode 不是定义的部署模式。
 
 #### 方法说明
 
 <a id="api-4ea1036d17491171"></a>
 
-##### 取消部署并清理 · 方法
+##### 取消部署并清理（方法）
 
 ```csharp
 public async Task<GpuDeploymentSnapshot> CancelAsync();
 ```
 
-请求取消，等待当前操作退出后尝试清理本次新增的适配器。
+请求取消，等待当前操作退出后尝试清理本次新增的全部适配器。
 
 返回：取消或既有终态快照；清理未完成时返回 CleanupRequired。
 
@@ -13861,7 +16961,7 @@ public async Task<GpuDeploymentSnapshot> CancelAsync();
 
 <a id="api-8074253c3683a7d4"></a>
 
-##### 读取部署状态 · 方法
+##### 读取部署状态（方法）
 
 ```csharp
 public GpuDeploymentSnapshot GetStatus();
@@ -13873,7 +16973,7 @@ public GpuDeploymentSnapshot GetStatus();
 
 <a id="api-5b584dc638877ec1"></a>
 
-##### 核实部署与清理状态 · 方法
+##### 核实部署与清理状态（方法）
 
 ```csharp
 public async Task<GpuDeploymentSnapshot> ReconcileAsync();
@@ -13889,7 +16989,7 @@ public async Task<GpuDeploymentSnapshot> ReconcileAsync();
 
 <a id="api-0f3fa40d86861ea2"></a>
 
-##### 请求取消部署 · 方法
+##### 请求取消部署（方法）
 
 ```csharp
 public void RequestCancellation();
@@ -13899,7 +16999,7 @@ public void RequestCancellation();
 
 <a id="api-d5769efaf9f99126"></a>
 
-##### 重试部署清理 · 方法
+##### 重试部署清理（方法）
 
 ```csharp
 public async Task<GpuDeploymentSnapshot> RetryCleanupAsync();
@@ -13915,7 +17015,7 @@ public async Task<GpuDeploymentSnapshot> RetryCleanupAsync();
 
 <a id="api-cbaf6ad49c80c7f4"></a>
 
-##### GPU 驱动部署流程 · 方法
+##### GPU 驱动部署流程（方法）
 
 ```csharp
 public async Task<GpuDeploymentSnapshot> StartAsync(Action<GpuDeploymentSnapshot>? progress = null);
@@ -13933,7 +17033,7 @@ public async Task<GpuDeploymentSnapshot> StartAsync(Action<GpuDeploymentSnapshot
 
 <a id="api-b6e5e2765e6b0344"></a>
 
-##### 提交部署决定 · 方法
+##### 提交部署决定（方法）
 
 ```csharp
 public async Task<GpuDeploymentSnapshot> SubmitDecisionAsync(GpuDeploymentDecision decision);
@@ -13943,15 +17043,92 @@ public async Task<GpuDeploymentSnapshot> SubmitDecisionAsync(GpuDeploymentDecisi
 
 | 参数 | 说明 |
 | --- | --- |
-| `decision` | 与 PendingDecision 对应的确认、分区、Linux 输入或返回决定；不能为空。 |
+| `decision` | 与 PendingDecision 对应的确认、分区、回退动作、Linux 输入或返回决定；不能为空。 |
 
 返回：执行至下一次等待或结束后的快照。
 
-调用约定：选择分区后会重新核对磁盘状态。确认 PowerOff 会直接 TurnOff；确认 Windows 安装会修改离线分区，Linux 部署可能启动或重启来宾。
+调用约定：选择非加密分区后会直接执行 Windows 离线驱动写入或引导至 Linux 部署；确认 PowerOff 会直接 TurnOff；提交 MountIso 会生成并挂载驱动 ISO。
 
 - 异常 `ArgumentNullException`：decision 为 null。
 - 异常 `InvalidOperationException`：没有待确认事项，或请求 ID、输入种类与当前事项不匹配。
 - 异常 `ArgumentException`：分区不在当前列表、分区不受支持或已加密，或 Linux 脚本、地址、端口、凭据不符合要求。
+
+<a id="api-cf4bd5ffb7a2e5ec"></a>
+
+### `HostAdapterAddress` record 类
+
+本机网卡可读取的 IPv4 和物理地址。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 网络 |
+| 源文件 | ` Management/Host/System/HostDeviceTelemetryService.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public HostAdapterAddress(string IPv4, string Mac) `](#api-ed9223c19bae1ded) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public string IPv4 { get; init; } `](#api-5a4a77727829ec53) | 接口报告的首个非回环 IPv4 地址，缺失时为空字符串。 |
+| [` public string Mac { get; init; } `](#api-f87717bfe550819a) | 接口报告的物理地址文本。 |
+
+#### 详细说明
+
+```csharp
+public sealed record HostAdapterAddress(string IPv4, string Mac)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `IPv4` | 接口报告的首个非回环 IPv4 地址，缺失时为空字符串。 |
+| `Mac` | 接口报告的物理地址文本。 |
+
+#### 构造函数说明
+
+<a id="api-ed9223c19bae1ded"></a>
+
+##### 创建宿主接口地址（主构造器）
+
+```csharp
+public HostAdapterAddress(string IPv4, string Mac);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `IPv4` | 接口报告的首个非回环 IPv4 地址，缺失时为空字符串。 |
+| `Mac` | 接口报告的物理地址文本。 |
+
+#### 属性说明
+
+<a id="api-5a4a77727829ec53"></a>
+
+##### 本地 IPv4 地址（record 属性）
+
+```csharp
+public string IPv4 { get; init; }
+```
+
+接口报告的首个非回环 IPv4 地址，缺失时为空字符串。
+
+<a id="api-f87717bfe550819a"></a>
+
+##### 物理地址（record 属性）
+
+```csharp
+public string Mac { get; init; }
+```
+
+接口报告的物理地址文本。
 
 <a id="api-671735ce8d9b8726"></a>
 
@@ -14003,7 +17180,7 @@ public sealed record HostAffinityProcessor(int Index, uint? PackageId, uint? Cor
 
 <a id="api-5ad9e40bf9cb8bd2"></a>
 
-##### 创建宿主逻辑处理器对象 · 主构造器
+##### 创建宿主逻辑处理器对象（主构造器）
 
 ```csharp
 public HostAffinityProcessor(int Index, uint? PackageId, uint? CoreId, uint? NumaNode, CpuCoreType CoreType);
@@ -14021,7 +17198,7 @@ public HostAffinityProcessor(int Index, uint? PackageId, uint? CoreId, uint? Num
 
 <a id="api-7f19eabd3e42cdc9"></a>
 
-##### 处理器编号 · record 属性
+##### 处理器编号（record 属性）
 
 ```csharp
 public uint? CoreId { get; init; }
@@ -14031,7 +17208,7 @@ HCS 返回的物理核心标识；未提供时为 null。
 
 <a id="api-31f7b62392a2eea0"></a>
 
-##### 核心性能类别 · record 属性
+##### 核心性能类别（record 属性）
 
 ```csharp
 public CpuCoreType CoreType { get; init; }
@@ -14041,7 +17218,7 @@ public CpuCoreType CoreType { get; init; }
 
 <a id="api-02974389d90ac361"></a>
 
-##### 虚拟处理器编号 · record 属性
+##### 虚拟处理器编号（record 属性）
 
 ```csharp
 public int Index { get; init; }
@@ -14051,7 +17228,7 @@ public int Index { get; init; }
 
 <a id="api-8ca3741d2305ec4d"></a>
 
-##### NUMA 节点 · record 属性
+##### NUMA 节点（record 属性）
 
 ```csharp
 public uint? NumaNode { get; init; }
@@ -14061,7 +17238,7 @@ HCS 返回的 NUMA 节点；未提供时为 null。
 
 <a id="api-00af2ba1d9b9a2b4"></a>
 
-##### 处理器插槽标识 · record 属性
+##### 处理器插槽标识（record 属性）
 
 ```csharp
 public uint? PackageId { get; init; }
@@ -14101,7 +17278,7 @@ public static class HostConsoleService
 
 <a id="api-e603f03cc47f8616"></a>
 
-##### 允许增强会话 · 方法
+##### 允许增强会话（方法）
 
 ```csharp
 public static Task<ApiResponse> SetEnhancedSessionModeEnabledAsync(bool enabled);
@@ -14161,7 +17338,7 @@ public sealed class HostCpuGroupInfo
 
 <a id="api-6f83e15a54d26153"></a>
 
-##### 总配额 · 属性
+##### 总配额（属性）
 
 ```csharp
 public uint? CpuCap { get; }
@@ -14175,11 +17352,11 @@ CPU 组的总算力配额，由组内所有成员共同使用。
 | --- | --- |
 | 详细含义 | CPU 组的总算力配额，由组内所有成员共同使用。 |
 | 取值与默认 | 0 至 65536；65536 为满额，32768 为 50%。未取得时为 null。 |
-| 修改对应 | 读写；输入：cpuCap；提交方式：单字段修改并回读。`HostCpuGroupService.SetCpuCapAsync`。 |
+| 修改对应 | 读写，输入：cpuCap，提交方式：单字段修改并回读。`HostCpuGroupService.SetCpuCapAsync`。 |
 
 <a id="api-807408604f6ed511"></a>
 
-##### 身份 · 属性
+##### 身份（属性）
 
 ```csharp
 public Guid GroupId { get; }
@@ -14196,7 +17373,7 @@ CPU 组的唯一标识，用于查询和修改该组。
 
 <a id="api-8628048aeb43a221"></a>
 
-##### 空闲逻辑处理器保留数 · 属性
+##### 空闲逻辑处理器保留数（属性）
 
 ```csharp
 public uint? IdleProcessorReserve { get; }
@@ -14210,11 +17387,11 @@ public uint? IdleProcessorReserve { get; }
 | --- | --- |
 | 详细含义 | 组空闲时仍为本组保留、不出借给其他组的逻辑处理器数量。 |
 | 取值与默认 | 单位为个；0 至组内逻辑处理器数量，最多 255。SMT 和资源域容量还可能限制可用数量。未取得时为 null。 |
-| 修改对应 | 读写；输入：count；提交方式：单字段修改并回读。`HostCpuGroupService.SetIdleProcessorReserveAsync`。 |
+| 修改对应 | 读写，输入：count，提交方式：单字段修改并回读。`HostCpuGroupService.SetIdleProcessorReserveAsync`。 |
 
 <a id="api-84fac401947dbf57"></a>
 
-##### 逻辑处理器 · 属性
+##### 逻辑处理器（属性）
 
 ```csharp
 public IReadOnlyList<uint>? LogicalProcessors { get; }
@@ -14231,7 +17408,7 @@ public IReadOnlyList<uint>? LogicalProcessors { get; }
 
 <a id="api-f55ef5b3c4d9e75a"></a>
 
-##### 虚拟机成员 · 属性
+##### 虚拟机成员（属性）
 
 ```csharp
 public IReadOnlyList<HostCpuGroupMember> Members { get; }
@@ -14248,7 +17425,7 @@ public IReadOnlyList<HostCpuGroupMember> Members { get; }
 
 <a id="api-40ee0b271a505f0c"></a>
 
-##### 成员清单完整状态 · 属性
+##### 成员清单完整状态（属性）
 
 ```csharp
 public bool MembersComplete { get; }
@@ -14265,7 +17442,7 @@ public bool MembersComplete { get; }
 
 <a id="api-f05a5a292ed5dbb8"></a>
 
-##### 成员读取错误 · 属性
+##### 成员读取错误（属性）
 
 ```csharp
 public string? MembersError { get; }
@@ -14282,7 +17459,7 @@ public string? MembersError { get; }
 
 <a id="api-dfa7c8acca704b08"></a>
 
-##### 观测时间 · 属性
+##### 观测时间（属性）
 
 ```csharp
 public DateTimeOffset ObservedAtUtc { get; }
@@ -14299,7 +17476,7 @@ public DateTimeOffset ObservedAtUtc { get; }
 
 <a id="api-25ad75dbd43bcd5f"></a>
 
-##### 调度优先级 · 属性
+##### 调度优先级（属性）
 
 ```csharp
 public uint? Priority { get; }
@@ -14313,11 +17490,11 @@ CPU 组在竞争调度时的优先级，数值越大优先级越高。
 | --- | --- |
 | 详细含义 | CPU 组在竞争调度时的优先级，数值越大优先级越高。 |
 | 取值与默认 | 0 至 7；未取得时为 null。 |
-| 修改对应 | 读写；输入：priority；提交方式：单字段修改并回读。`HostCpuGroupService.SetPriorityAsync`。 |
+| 修改对应 | 读写，输入：priority，提交方式：单字段修改并回读。`HostCpuGroupService.SetPriorityAsync`。 |
 
 <a id="api-04b452c65c1a651b"></a>
 
-##### 相对调度权重 · 属性
+##### 相对调度权重（属性）
 
 ```csharp
 public uint? RelativeWeight { get; }
@@ -14331,11 +17508,11 @@ CPU 组竞争处理器时间时使用的相对权重。此名称对应尚未公�
 | --- | --- |
 | 详细含义 | CPU 组竞争处理器时间时使用的相对权重。此名称对应尚未公开命名的 HCS 属性 0x40000。 |
 | 取值与默认 | 1 至 65535；未取得时为 null。 |
-| 修改对应 | 读写；输入：weight；提交方式：单字段修改并回读。`HostCpuGroupService.SetRelativeWeightAsync`。 |
+| 修改对应 | 读写，输入：weight，提交方式：单字段修改并回读。`HostCpuGroupService.SetRelativeWeightAsync`。 |
 
 <a id="api-5f2b565866dd6d2f"></a>
 
-##### 修订号 · 属性
+##### 修订号（属性）
 
 ```csharp
 public string? Revision { get; }
@@ -14396,7 +17573,7 @@ public sealed record HostCpuGroupMember(Guid VmId, string? Name, VmState State)
 
 <a id="api-dbc364042b459bf2"></a>
 
-##### 创建处理器组中的虚拟机对象 · 主构造器
+##### 创建处理器组中的虚拟机对象（主构造器）
 
 ```csharp
 public HostCpuGroupMember(Guid VmId, string? Name, VmState State);
@@ -14412,7 +17589,7 @@ public HostCpuGroupMember(Guid VmId, string? Name, VmState State);
 
 <a id="api-1e5e484a49dbfa84"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string? Name { get; init; }
@@ -14422,7 +17599,7 @@ public string? Name { get; init; }
 
 <a id="api-3ea2cc1f76f079e1"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public VmState State { get; init; }
@@ -14432,7 +17609,7 @@ public VmState State { get; init; }
 
 <a id="api-db38839d7c548906"></a>
 
-##### 虚拟机标识 · record 属性
+##### 虚拟机标识（record 属性）
 
 ```csharp
 public Guid VmId { get; init; }
@@ -14483,7 +17660,7 @@ Core 调用之间按宿主排队。成员列表仅覆盖 WMI 可见虚拟机。�
 
 <a id="api-32c813c114a6b666"></a>
 
-##### 读取全部 CPU 组 · 方法
+##### 读取全部 CPU 组（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyList<HostCpuGroupInfo>>> GetAllAsync(CancellationToken cancellationToken = default);
@@ -14501,7 +17678,7 @@ public static async Task<ApiResponse<IReadOnlyList<HostCpuGroupInfo>>> GetAllAsy
 
 <a id="api-087122f4aea3c833"></a>
 
-##### 读取 CPU 组 · 方法
+##### 读取 CPU 组（方法）
 
 ```csharp
 public static async Task<ApiResponse<HostCpuGroupInfo>> GetAsync(Guid groupId, CancellationToken cancellationToken = default);
@@ -14522,7 +17699,7 @@ public static async Task<ApiResponse<HostCpuGroupInfo>> GetAsync(Guid groupId, C
 
 <a id="api-92b992cf83f14692"></a>
 
-##### 总配额 · 方法
+##### 总配额（方法）
 
 ```csharp
 public static Task<ApiResponse<HostCpuGroupInfo>> SetCpuCapAsync(Guid groupId, uint cpuCap, string expectedRevision, CancellationToken cancellationToken = default);
@@ -14543,7 +17720,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetCpuCapAsync(Guid groupId, u
 
 <a id="api-5d2ba3e9d3e27fe2"></a>
 
-##### 空闲逻辑处理器保留数 · 方法
+##### 空闲逻辑处理器保留数（方法）
 
 ```csharp
 public static Task<ApiResponse<HostCpuGroupInfo>> SetIdleProcessorReserveAsync(Guid groupId, uint count, string expectedRevision, CancellationToken cancellationToken = default);
@@ -14564,7 +17741,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetIdleProcessorReserveAsync(G
 
 <a id="api-26ca8631196e09c1"></a>
 
-##### 调度优先级 · 方法
+##### 调度优先级（方法）
 
 ```csharp
 public static Task<ApiResponse<HostCpuGroupInfo>> SetPriorityAsync(Guid groupId, uint priority, string expectedRevision, CancellationToken cancellationToken = default);
@@ -14585,7 +17762,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetPriorityAsync(Guid groupId,
 
 <a id="api-5979acdc912b88eb"></a>
 
-##### 相对调度权重 · 方法
+##### 相对调度权重（方法）
 
 ```csharp
 public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid groupId, uint weight, string expectedRevision, CancellationToken cancellationToken = default);
@@ -14605,6 +17782,318 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid gr
 返回：修改后经确认的组快照；系统未提供该属性时返回 Unsupported。
 
 调用约定：RelativeWeight 对应 HCS 属性 0x40000，其名称与语义尚未纳入微软公开接口约定。
+
+<a id="api-1a01cd68ca73d9db"></a>
+
+### `HostCpuThreadMonitorService` 类
+
+按物理逻辑处理器实时采样并归属宿主机与各运行中虚拟机的 CPU 时间占比；支持 Root 调度器 ETW 精确拆分及 Classic/Core 调度器计数器采样。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 处理器 |
+| 源文件 | ` Management/Host/Processor/HostCpuThreadMonitorService.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public HostCpuThreadMonitorService() `](#api-9e3c996ae5920d2b) | 创建宿主逻辑处理器线程监控实例，并启动后台虚拟机映射及 ETW／性能计数器采样器。 |
+
+**静态方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static async Task<HostCpuThreadReport> SampleAsync(TimeSpan duration, CancellationToken cancellationToken = default) `](#api-b39a051662b52075) | 在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属快照。 |
+
+**方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public void Dispose() `](#api-26dd804e37e7a1f6) | 同步永久停止监控实例，并等待 ETW 会话、后台任务及性能计数器全部释放。 |
+| [` public ValueTask DisposeAsync() `](#api-8f9f34b1fcefd8b1) | 异步永久停止监控实例，并等待 ETW 会话、后台任务及性能计数器全部释放；重复调用等待同一次释放。 |
+| [` public HostCpuThreadReport GetThreadUsage() `](#api-54816c5277edd7af) | 读取自上次调用以来的宿主物理逻辑处理器占用及宿主机／虚拟机拆分结果。 |
+
+#### 详细说明
+
+```csharp
+public sealed class HostCpuThreadMonitorService : IDisposable, IAsyncDisposable
+```
+
+调用约定：在 `HyperVSchedulerType.Root` 调度器下，优先建立独立系统级 ETW 会话采集内核 `CSwitch` 上下文切换与线程生命周期，将每颗逻辑处理器的时间切片精确归属到宿主机（Root/系统）或各台运行中虚拟机（`vmmem` 与 `vmwp`）。
+
+
+
+若当前进程缺少内核 ETW 权限（需管理员或 Performance Log Users 权限）或宿主运行在 Classic/Core 调度器下，则回退至 Hyper-V 性能计数器（Logical Processor、Root Virtual Processor 与 Virtual Processor）及 CPU 组亲和性约束；仅当某逻辑处理器仅有唯一允许运行的活跃虚拟机时才拆分该虚拟机占比，多机共享同一逻辑处理器时不臆测拆分，而将其计入未细分来宾占比。
+
+
+
+使用完毕请调用 `DisposeAsync` 或 `Dispose` 释放 ETW 会话与性能计数器。
+
+#### 构造函数说明
+
+<a id="api-9e3c996ae5920d2b"></a>
+
+##### 创建逻辑处理器线程监控对象（构造器）
+
+```csharp
+public HostCpuThreadMonitorService();
+```
+
+创建宿主逻辑处理器线程监控实例，并启动后台虚拟机映射及 ETW／性能计数器采样器。
+
+#### 静态方法说明
+
+<a id="api-b39a051662b52075"></a>
+
+##### 按指定窗口采样逻辑处理器占用拆分（方法）
+
+```csharp
+public static async Task<HostCpuThreadReport> SampleAsync(TimeSpan duration, CancellationToken cancellationToken = default);
+```
+
+在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属快照。
+
+| 参数 | 说明 |
+| --- | --- |
+| `duration` | 采样等待窗口时长，须大于零且不超过 1 分钟。 |
+| `cancellationToken` | 可取消采样初始化与窗口等待；取消后自动释放内部会话与计数器资源。 |
+
+返回：经过严格归一的宿主全量逻辑处理器占用与虚拟机归属报告；若基线尚未就绪则按实际状态返回。
+
+- 异常 `ArgumentOutOfRangeException`：`duration` 小于等于零或超过 1 分钟。
+- 异常 `OperationCanceledException`：操作已被 `cancellationToken` 取消。
+
+#### 方法说明
+
+<a id="api-26dd804e37e7a1f6"></a>
+
+##### 同步释放线程监控器（方法）
+
+```csharp
+public void Dispose();
+```
+
+同步永久停止监控实例，并等待 ETW 会话、后台任务及性能计数器全部释放。
+
+<a id="api-8f9f34b1fcefd8b1"></a>
+
+##### 异步释放线程监控器（方法）
+
+```csharp
+public ValueTask DisposeAsync();
+```
+
+异步永久停止监控实例，并等待 ETW 会话、后台任务及性能计数器全部释放；重复调用等待同一次释放。
+
+<a id="api-54816c5277edd7af"></a>
+
+##### 宿主逻辑处理器占用与归属拆分（方法）
+
+```csharp
+public HostCpuThreadReport GetThreadUsage();
+```
+
+读取自上次调用以来的宿主物理逻辑处理器占用及宿主机／虚拟机拆分结果。
+
+返回：包含调度器模式、数据来源、全体物理逻辑处理器使用率及归属明细的报告。
+
+调用约定：同一实例连续定时调用（例如每 1 秒）可无间断衔接各时间窗口。首次调用在无有效时间差时可能返回 `PerformanceSampleState.WarmingUp`；调用方应先检查 `HostCpuThreadReport.Sample` 的 `PerformanceSampleInfo.IsValid` 再更新显示。
+
+- 异常 `ObjectDisposedException`：当前监控实例已释放或正在停止。
+
+<a id="api-c9ea82f2f44879b3"></a>
+
+### `HostDeviceTelemetryService` 类
+
+持有一段可见采样期的性能计数器。顺序调用，结束该采样期时释放实例。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 基本信息，管理层面 / 宿主 / 网络 |
+| 源文件 | ` Management/Host/System/HostDeviceTelemetryService.cs ` |
+
+#### 成员概览
+
+**静态方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static bool? IsUsbipdInstalled() `](#api-6086d03ab833cc5d) | 探测本机 usbipd 安装，无法访问服务注册信息时返回未知。 |
+| [` public static IReadOnlyDictionary<Guid, HostAdapterAddress> ReadAdapterAddresses() `](#api-60412e45a22b662f) | 按接口 GUID 返回本地 IPv4 与 MAC 地址，缺失的接口不产生记录。 |
+
+**方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public void Dispose() `](#api-5e33a160e290588f) | 释放全部计数器及采样基线。 |
+| [` public (double? CpuGHz, IReadOnlyDictionary<int, HostDiskActivity> Disks, IReadOnlyDictionary<string, HostGpuActivity> Gpus) Read(IReadOnlyCollection<int> diskNumbers) `](#api-056fc5191d82e3b0) | 按真实实例读取频率、磁盘和 GPU。 |
+
+#### 详细说明
+
+```csharp
+public sealed class HostDeviceTelemetryService : IDisposable
+```
+
+#### 静态方法说明
+
+<a id="api-6086d03ab833cc5d"></a>
+
+##### 检测 usbipd 安装状态（方法）
+
+```csharp
+public static bool? IsUsbipdInstalled();
+```
+
+功能归属：管理层面 / 宿主 / 基本信息。
+
+探测本机 usbipd 安装，无法访问服务注册信息时返回未知。
+
+返回：安装证据存在时为 true，完成探测且未找到时为 false，访问失败时为 null。
+
+<a id="api-60412e45a22b662f"></a>
+
+##### 查询宿主接口地址（方法）
+
+```csharp
+public static IReadOnlyDictionary<Guid, HostAdapterAddress> ReadAdapterAddresses();
+```
+
+功能归属：管理层面 / 宿主 / 网络。
+
+按接口 GUID 返回本地 IPv4 与 MAC 地址，缺失的接口不产生记录。
+
+返回：以接口 GUID 为键的地址快照。
+
+#### 方法说明
+
+<a id="api-5e33a160e290588f"></a>
+
+##### 释放采样计数器（方法）
+
+```csharp
+public void Dispose();
+```
+
+功能归属：管理层面 / 宿主 / 基本信息。
+
+释放全部计数器及采样基线。
+
+<a id="api-056fc5191d82e3b0"></a>
+
+##### 采样宿主设备负载（方法）
+
+```csharp
+public (double? CpuGHz, IReadOnlyDictionary<int, HostDiskActivity> Disks, IReadOnlyDictionary<string, HostGpuActivity> Gpus) Read(IReadOnlyCollection<int> diskNumbers);
+```
+
+功能归属：管理层面 / 宿主 / 基本信息。
+
+按真实实例读取频率、磁盘和 GPU。预热、失败和无法归属的读数为空或缺项。
+
+| 参数 | 说明 |
+| --- | --- |
+| `diskNumbers` | 要返回活动读数的物理磁盘编号集合。 |
+
+返回：当前频率（GHz）、按物理盘号归属的磁盘读数和按设备实例归属的 GPU 读数。
+
+<a id="api-1dbae22381fe2cda"></a>
+
+### `HostDiskActivity` record 类
+
+一个采样间隔内的物理磁盘负载与吞吐量。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 存储 |
+| 源文件 | ` Management/Host/System/HostDeviceTelemetryService.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public HostDiskActivity(double ActivePercent, double ReadBytesPerSec, double WriteBytesPerSec) `](#api-00406c70bee3fbee) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public double ActivePercent { get; init; } `](#api-4589d8102d9fb938) | 物理磁盘活动时间百分比。 |
+| [` public double ReadBytesPerSec { get; init; } `](#api-0e31b4e878eea09e) | 最近采样窗口的每秒读取字节数。 |
+| [` public double WriteBytesPerSec { get; init; } `](#api-269afbf3fcdc7e4a) | 最近采样窗口的每秒写入字节数。 |
+
+#### 详细说明
+
+```csharp
+public sealed record HostDiskActivity(double ActivePercent, double ReadBytesPerSec, double WriteBytesPerSec)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ActivePercent` | 物理磁盘活动时间百分比。 |
+| `ReadBytesPerSec` | 最近采样窗口的每秒读取字节数。 |
+| `WriteBytesPerSec` | 最近采样窗口的每秒写入字节数。 |
+
+#### 构造函数说明
+
+<a id="api-00406c70bee3fbee"></a>
+
+##### 创建宿主物理磁盘活动（主构造器）
+
+```csharp
+public HostDiskActivity(double ActivePercent, double ReadBytesPerSec, double WriteBytesPerSec);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ActivePercent` | 物理磁盘活动时间百分比。 |
+| `ReadBytesPerSec` | 最近采样窗口的每秒读取字节数。 |
+| `WriteBytesPerSec` | 最近采样窗口的每秒写入字节数。 |
+
+#### 属性说明
+
+<a id="api-4589d8102d9fb938"></a>
+
+##### 磁盘活动占比（record 属性）
+
+```csharp
+public double ActivePercent { get; init; }
+```
+
+物理磁盘活动时间百分比。
+
+<a id="api-0e31b4e878eea09e"></a>
+
+##### 每秒读取字节数（record 属性）
+
+```csharp
+public double ReadBytesPerSec { get; init; }
+```
+
+最近采样窗口的每秒读取字节数。
+
+<a id="api-269afbf3fcdc7e4a"></a>
+
+##### 每秒写入字节数（record 属性）
+
+```csharp
+public double WriteBytesPerSec { get; init; }
+```
+
+最近采样窗口的每秒写入字节数。
 
 <a id="api-f899a0c126136eb7"></a>
 
@@ -14648,7 +18137,7 @@ public sealed class HostDiskMountLease : IAsyncDisposable
 
 <a id="api-c9b251a1062cce1c"></a>
 
-##### 清理结果 · 属性
+##### 清理结果（属性）
 
 ```csharp
 public ApiResponse? CleanupResult { get; }
@@ -14658,7 +18147,7 @@ public ApiResponse? CleanupResult { get; }
 
 <a id="api-8973d789bc47d16f"></a>
 
-##### 操作结果 · 属性
+##### 操作结果（属性）
 
 ```csharp
 public HostDiskMountResult Result { get; }
@@ -14670,7 +18159,7 @@ public HostDiskMountResult Result { get; }
 
 <a id="api-4c48912ab7eb1c65"></a>
 
-##### 释放挂载租约 · 方法
+##### 释放挂载租约（方法）
 
 ```csharp
 public async ValueTask DisposeAsync();
@@ -14684,7 +18173,7 @@ public async ValueTask DisposeAsync();
 
 <a id="api-550a527d41a1c368"></a>
 
-##### 清理挂载并归还使用权 · 方法
+##### 清理挂载并归还使用权（方法）
 
 ```csharp
 public Task<ApiResponse> ReleaseAsync();
@@ -14753,7 +18242,7 @@ public sealed record HostDiskMountResult(string ImagePath, bool? IsMounted, int?
 
 <a id="api-5ac98dbfd10dbc2d"></a>
 
-##### 创建磁盘挂载结果对象 · 主构造器
+##### 创建磁盘挂载结果对象（主构造器）
 
 ```csharp
 public HostDiskMountResult(string ImagePath, bool? IsMounted, int? DiskNumber, bool CreatedByCall, string Error, bool? IsReadOnly = null, string AccessError = "");
@@ -14773,7 +18262,7 @@ public HostDiskMountResult(string ImagePath, bool? IsMounted, int? DiskNumber, b
 
 <a id="api-5cad90cdbac309ba"></a>
 
-##### 访问模式读取错误 · record 属性
+##### 访问模式读取错误（record 属性）
 
 ```csharp
 public string AccessError { get; init; }
@@ -14783,7 +18272,7 @@ public string AccessError { get; init; }
 
 <a id="api-cd92e28cb9158a3e"></a>
 
-##### 本次新增挂载 · record 属性
+##### 本次新增挂载（record 属性）
 
 ```csharp
 public bool CreatedByCall { get; init; }
@@ -14793,7 +18282,7 @@ public bool CreatedByCall { get; init; }
 
 <a id="api-80c2e43b88f4eb89"></a>
 
-##### 宿主物理磁盘编号 · record 属性
+##### 宿主物理磁盘编号（record 属性）
 
 ```csharp
 public int? DiskNumber { get; init; }
@@ -14803,7 +18292,7 @@ public int? DiskNumber { get; init; }
 
 <a id="api-d1351a2f5399c02c"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string Error { get; init; }
@@ -14813,7 +18302,7 @@ public string Error { get; init; }
 
 <a id="api-8d0c23b7f84ee6eb"></a>
 
-##### 映像路径 · record 属性
+##### 映像路径（record 属性）
 
 ```csharp
 public string ImagePath { get; init; }
@@ -14823,7 +18312,7 @@ public string ImagePath { get; init; }
 
 <a id="api-3ce6c2cbb067258d"></a>
 
-##### 挂载状态 · record 属性
+##### 挂载状态（record 属性）
 
 ```csharp
 public bool? IsMounted { get; init; }
@@ -14833,7 +18322,7 @@ public bool? IsMounted { get; init; }
 
 <a id="api-05da7786b48066a8"></a>
 
-##### 只读状态 · record 属性
+##### 只读状态（record 属性）
 
 ```csharp
 public bool? IsReadOnly { get; init; }
@@ -14843,7 +18332,7 @@ public bool? IsReadOnly { get; init; }
 
 <a id="api-457200a6fe554249"></a>
 
-##### 需要核实状态 · 属性
+##### 需要核实状态（属性）
 
 ```csharp
 public bool RequiresInspection { get; }
@@ -14853,7 +18342,7 @@ public bool RequiresInspection { get; }
 
 <a id="api-c43e0ce425dcf08c"></a>
 
-##### 成功状态 · 属性
+##### 成功状态（属性）
 
 ```csharp
 public bool Success { get; }
@@ -14911,7 +18400,7 @@ public sealed record HostDiskReference(int Number, string UniqueId, string Seria
 
 <a id="api-4985a1511d5c8a5d"></a>
 
-##### 创建宿主磁盘身份对象 · 主构造器
+##### 创建宿主磁盘身份对象（主构造器）
 
 ```csharp
 public HostDiskReference(int Number, string UniqueId, string SerialNumber, long SizeBytes);
@@ -14928,7 +18417,7 @@ public HostDiskReference(int Number, string UniqueId, string SerialNumber, long 
 
 <a id="api-780d9edca739e2f6"></a>
 
-##### 编号 · record 属性
+##### 编号（record 属性）
 
 ```csharp
 public int Number { get; init; }
@@ -14938,7 +18427,7 @@ public int Number { get; init; }
 
 <a id="api-bfeb59019e16d5fa"></a>
 
-##### 序列号 · record 属性
+##### 序列号（record 属性）
 
 ```csharp
 public string SerialNumber { get; init; }
@@ -14948,7 +18437,7 @@ public string SerialNumber { get; init; }
 
 <a id="api-64aa5e468c40342e"></a>
 
-##### 容量 · record 属性
+##### 容量（record 属性）
 
 ```csharp
 public long SizeBytes { get; init; }
@@ -14958,7 +18447,7 @@ public long SizeBytes { get; init; }
 
 <a id="api-e0d8ac0b7593f00c"></a>
 
-##### 唯一标识 · record 属性
+##### 唯一标识（record 属性）
 
 ```csharp
 public string UniqueId { get; init; }
@@ -15011,7 +18500,7 @@ public static partial class HostDiskService
 
 <a id="api-d8111a87ffddf2a8"></a>
 
-##### 添加分区盘符 · 方法
+##### 添加分区盘符（方法）
 
 ```csharp
 public static async Task<ApiResponse<char>> AssignPartitionDriveLetterAsync(HostPartitionReference partition, char driveLetter);
@@ -15030,7 +18519,7 @@ public static async Task<ApiResponse<char>> AssignPartitionDriveLetterAsync(Host
 
 <a id="api-b59d381fa5a58060"></a>
 
-##### 卸载虚拟磁盘 · 方法
+##### 卸载虚拟磁盘（方法）
 
 ```csharp
 public static async Task<ApiResponse> DismountVhdxAsync(string imagePath);
@@ -15050,7 +18539,7 @@ public static async Task<ApiResponse> DismountVhdxAsync(string imagePath);
 
 <a id="api-10985885e3f822cc"></a>
 
-##### 磁盘身份 · 方法
+##### 磁盘身份（方法）
 
 ```csharp
 public static async Task<ApiResponse<HostDiskReference>> GetDiskReferenceAsync(int diskNumber);
@@ -15068,7 +18557,7 @@ public static async Task<ApiResponse<HostDiskReference>> GetDiskReferenceAsync(i
 
 <a id="api-5a5ea3d7d36f9c7c"></a>
 
-##### 磁盘 · 方法
+##### 磁盘（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync();
@@ -15082,7 +18571,7 @@ public static async Task<ApiResponse<List<HostDiskInfo>>> GetHostDisksAsync();
 
 <a id="api-b1850ace8b2b1346"></a>
 
-##### 光驱 · 方法
+##### 光驱（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<HostOpticalDriveInfo>>> GetHostOpticalDrivesAsync();
@@ -15096,7 +18585,7 @@ public static async Task<ApiResponse<List<HostOpticalDriveInfo>>> GetHostOptical
 
 <a id="api-76a9aa8a22314f9f"></a>
 
-##### 分区身份 · 方法
+##### 分区身份（方法）
 
 ```csharp
 public static async Task<ApiResponse<HostPartitionReference>> GetPartitionReferenceAsync(HostDiskReference disk, int partitionNumber);
@@ -15115,7 +18604,7 @@ public static async Task<ApiResponse<HostPartitionReference>> GetPartitionRefere
 
 <a id="api-492a94e1ef00d54d"></a>
 
-##### 挂载磁盘映像 · 方法
+##### 挂载磁盘映像（方法）
 
 ```csharp
 public static Task<HostDiskMountLease> MountDiskImageAsync(string imagePath, CancellationToken cancellationToken = default);
@@ -15136,7 +18625,7 @@ public static Task<HostDiskMountLease> MountDiskImageAsync(string imagePath, Can
 
 <a id="api-21c619753396b0cf"></a>
 
-##### 挂载虚拟磁盘 · 方法
+##### 挂载虚拟磁盘（方法）
 
 ```csharp
 public static Task<HostDiskMountLease> MountVhdxAsync(string imagePath, bool readOnly = false, CancellationToken cancellationToken = default);
@@ -15177,7 +18666,7 @@ public static class MountedDiskExample
 
 <a id="api-7a8872188e88f69d"></a>
 
-##### 移除分区盘符 · 方法
+##### 移除分区盘符（方法）
 
 ```csharp
 public static async Task<ApiResponse> RemovePartitionAccessPathAsync(HostPartitionReference partition, char driveLetter);
@@ -15196,7 +18685,7 @@ public static async Task<ApiResponse> RemovePartitionAccessPathAsync(HostPartiti
 
 <a id="api-c920f159d7c59109"></a>
 
-##### 默认虚拟磁盘目录 · 方法
+##### 默认虚拟磁盘目录（方法）
 
 ```csharp
 public static Task<ApiResponse> SetDefaultVirtualHardDiskPathAsync(string path);
@@ -15214,7 +18703,7 @@ public static Task<ApiResponse> SetDefaultVirtualHardDiskPathAsync(string path);
 
 <a id="api-6d08c05be488f81a"></a>
 
-##### 磁盘联机状态 · 方法
+##### 磁盘联机状态（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetDiskOfflineStatusAsync(HostDiskReference disk, bool isOffline);
@@ -15233,7 +18722,7 @@ public static async Task<ApiResponse> SetDiskOfflineStatusAsync(HostDiskReferenc
 
 <a id="api-f64d9536a93ddb5b"></a>
 
-##### 磁盘只读状态 · 方法
+##### 磁盘只读状态（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetDiskReadOnlyAsync(HostDiskReference disk, bool isReadOnly);
@@ -15249,6 +18738,109 @@ public static async Task<ApiResponse> SetDiskReadOnlyAsync(HostDiskReference dis
 | `isReadOnly` | true 设置只读，false 取消只读。 |
 
 返回：存储接口的操作响应；找不到目标磁盘时失败。
+
+<a id="api-578b881883fc969a"></a>
+
+### `HostGpuActivity` record 类
+
+与同一 PnP 设备精确关联的 GPU 引擎占用率，缺测引擎保留空值。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / GPU |
+| 源文件 | ` Management/Host/System/HostDeviceTelemetryService.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public HostGpuActivity(double? Pct3D, double? PctCopy, double? PctEnc, double? PctDec) `](#api-317b1435cf70b08e) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public double? Pct3D { get; init; } `](#api-9a0ba1be68fc1a58) | 最忙 3D 引擎的占用百分比，缺测时为 null。 |
+| [` public double? PctCopy { get; init; } `](#api-6b3c64d3e5efc20e) | 最忙复制引擎的占用百分比，缺测时为 null。 |
+| [` public double? PctDec { get; init; } `](#api-16fb0f392e87624a) | 最忙视频解码引擎的占用百分比，缺测时为 null。 |
+| [` public double? PctEnc { get; init; } `](#api-c6c4cf9b15613b87) | 最忙视频编码引擎的占用百分比，缺测时为 null。 |
+
+#### 详细说明
+
+```csharp
+public sealed record HostGpuActivity(double? Pct3D, double? PctCopy, double? PctEnc, double? PctDec)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Pct3D` | 最忙 3D 引擎的占用百分比，缺测时为 null。 |
+| `PctCopy` | 最忙复制引擎的占用百分比，缺测时为 null。 |
+| `PctEnc` | 最忙视频编码引擎的占用百分比，缺测时为 null。 |
+| `PctDec` | 最忙视频解码引擎的占用百分比，缺测时为 null。 |
+
+#### 构造函数说明
+
+<a id="api-317b1435cf70b08e"></a>
+
+##### 创建宿主 GPU 引擎活动（主构造器）
+
+```csharp
+public HostGpuActivity(double? Pct3D, double? PctCopy, double? PctEnc, double? PctDec);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Pct3D` | 最忙 3D 引擎的占用百分比，缺测时为 null。 |
+| `PctCopy` | 最忙复制引擎的占用百分比，缺测时为 null。 |
+| `PctEnc` | 最忙视频编码引擎的占用百分比，缺测时为 null。 |
+| `PctDec` | 最忙视频解码引擎的占用百分比，缺测时为 null。 |
+
+#### 属性说明
+
+<a id="api-9a0ba1be68fc1a58"></a>
+
+##### 三维引擎占用（record 属性）
+
+```csharp
+public double? Pct3D { get; init; }
+```
+
+最忙 3D 引擎的占用百分比，缺测时为 null。
+
+<a id="api-6b3c64d3e5efc20e"></a>
+
+##### 复制引擎占用（record 属性）
+
+```csharp
+public double? PctCopy { get; init; }
+```
+
+最忙复制引擎的占用百分比，缺测时为 null。
+
+<a id="api-16fb0f392e87624a"></a>
+
+##### 视频解码引擎占用（record 属性）
+
+```csharp
+public double? PctDec { get; init; }
+```
+
+最忙视频解码引擎的占用百分比，缺测时为 null。
+
+<a id="api-c6c4cf9b15613b87"></a>
+
+##### 视频编码引擎占用（record 属性）
+
+```csharp
+public double? PctEnc { get; init; }
+```
+
+最忙视频编码引擎的占用百分比，缺测时为 null。
 
 <a id="api-9579b5f504d1fb87"></a>
 
@@ -15285,7 +18877,7 @@ public static partial class HostGpuService
 
 <a id="api-f98b9400716fd8af"></a>
 
-##### 查询是否放宽 GPU 分配限制 · 方法
+##### 查询是否放宽 GPU 分配限制（方法）
 
 ```csharp
 public static ApiResponse<bool> GetAssignmentRestrictionsRelaxed();
@@ -15299,7 +18891,7 @@ public static ApiResponse<bool> GetAssignmentRestrictionsRelaxed();
 
 <a id="api-e3d65bd68b3e9065"></a>
 
-##### 设备清单 · 方法
+##### 设备清单（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyList<HostGpuInfo>>> GetHostGpusAsync();
@@ -15315,7 +18907,7 @@ public static async Task<ApiResponse<IReadOnlyList<HostGpuInfo>>> GetHostGpusAsy
 
 <a id="api-9d62ac5622edf619"></a>
 
-##### 检查 GPU 分区版本条件 · 方法
+##### 检查 GPU 分区版本条件（方法）
 
 ```csharp
 public static bool IsGpuPartitioningVersionSupported(int? buildNumber = null);
@@ -15333,7 +18925,7 @@ public static bool IsGpuPartitioningVersionSupported(int? buildNumber = null);
 
 <a id="api-b627bf14aaea7eda"></a>
 
-##### 设置 GPU 分配限制 · 方法
+##### 设置 GPU 分配限制（方法）
 
 ```csharp
 public static ApiResponse SetAssignmentRestrictionsRelaxed(bool relaxed);
@@ -15384,7 +18976,7 @@ public static class HostNetworkService
 
 <a id="api-c0cf8a1df8f18e8b"></a>
 
-##### 动态 MAC 地址池 · 方法
+##### 动态 MAC 地址池（方法）
 
 ```csharp
 public static Task<ApiResponse> SetDynamicMacAddressRangeAsync(string minimum, string maximum);
@@ -15401,7 +18993,7 @@ public static Task<ApiResponse> SetDynamicMacAddressRangeAsync(string minimum, s
 
 <a id="api-0556bbc16b8a997d"></a>
 
-##### 检查动态 MAC 地址池 · 方法
+##### 检查动态 MAC 地址池（方法）
 
 ```csharp
 public static (string? Minimum, string? Maximum, string? Error) ValidateDynamicMacAddressRange(string? minimum, string? maximum);
@@ -15417,6 +19009,91 @@ public static (string? Minimum, string? Maximum, string? Error) ValidateDynamicM
 返回：规范化上下界及错误；Error=null 表示校验通过。
 
 调用约定：检查范围为输入格式与上下界顺序；地址分配限制由 Hyper-V 在提交时校验。
+
+<a id="api-78a401eb24c09d06"></a>
+
+### `HostNetworkTelemetryService` 类
+
+按实例维护宿主网络计数器的采样基线。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 网络 |
+| 源文件 | ` Management/Host/Network/HostNetworkTelemetryService.cs ` |
+
+#### 成员概览
+
+**方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public void Dispose() `](#api-3fd02abf18eed5d0) | 等待正在读取的样本完成，释放本实例的计数器。 |
+| [` public NetworkThroughputReading GetAdapterThroughput(string interfaceDescription) `](#api-9c688502d354b08e) | 按接口描述读取唯一对应的适配器计数器。 |
+| [` public NetworkThroughputReading GetSwitchThroughput(string switchName) `](#api-a2e20db03779adb3) | 按交换机显示名读取唯一对应的背板计数器。 |
+| [` public void Reset() `](#api-f87e6aacc031ae84) | 等待正在读取的样本完成，释放本实例的计数器并重新建立采样基线。 |
+
+#### 详细说明
+
+```csharp
+public sealed class HostNetworkTelemetryService : IDisposable
+```
+
+#### 方法说明
+
+<a id="api-3fd02abf18eed5d0"></a>
+
+##### 释放采样计数器（方法）
+
+```csharp
+public void Dispose();
+```
+
+等待正在读取的样本完成，释放本实例的计数器。
+
+<a id="api-9c688502d354b08e"></a>
+
+##### 宿主网卡实时吞吐（方法）
+
+```csharp
+public NetworkThroughputReading GetAdapterThroughput(string interfaceDescription);
+```
+
+按接口描述读取唯一对应的适配器计数器。
+
+| 参数 | 说明 |
+| --- | --- |
+| `interfaceDescription` | 宿主网卡的接口描述。 |
+
+返回：采样状态、时间和有效时的每秒收发字节数。
+
+<a id="api-a2e20db03779adb3"></a>
+
+##### 虚拟交换机实时吞吐（方法）
+
+```csharp
+public NetworkThroughputReading GetSwitchThroughput(string switchName);
+```
+
+按交换机显示名读取唯一对应的背板计数器。
+
+| 参数 | 说明 |
+| --- | --- |
+| `switchName` | 交换机显示名，必须能唯一匹配计数器实例。 |
+
+返回：采样状态、时间和有效时的每秒收发字节数。
+
+<a id="api-f87e6aacc031ae84"></a>
+
+##### 重置网络吞吐计数器缓存（方法）
+
+```csharp
+public void Reset();
+```
+
+等待正在读取的样本完成，释放本实例的计数器并重新建立采样基线。
 
 <a id="api-d11d60064e518797"></a>
 
@@ -15452,7 +19129,7 @@ public static class HostNvmeService
 
 <a id="api-fbe1257344400750"></a>
 
-##### 读取原生 NVMe 状态 · 方法
+##### 读取原生 NVMe 状态（方法）
 
 ```csharp
 public static ApiResponse<bool> IsNativeNvmeEnabled();
@@ -15468,7 +19145,7 @@ public static ApiResponse<bool> IsNativeNvmeEnabled();
 
 <a id="api-2d5d02a14a51e2e8"></a>
 
-##### 检查原生 NVMe 版本条件 · 方法
+##### 检查原生 NVMe 版本条件（方法）
 
 ```csharp
 public static bool IsNativeNvmeSupported(int? buildNumber = null);
@@ -15488,7 +19165,7 @@ public static bool IsNativeNvmeSupported(int? buildNumber = null);
 
 <a id="api-a688764490341628"></a>
 
-##### 设置原生 NVMe 状态 · 方法
+##### 设置原生 NVMe 状态（方法）
 
 ```csharp
 public static ApiResponse SetNativeNvmeEnabled(bool enabled);
@@ -15541,7 +19218,7 @@ public static class HostOpenHclService
 
 <a id="api-50b66a2c7cae66d4"></a>
 
-##### 读取固件文件加载策略 · 方法
+##### 读取固件文件加载策略（方法）
 
 ```csharp
 public static bool IsFirmwareLoadFromFileEnabled();
@@ -15555,7 +19232,7 @@ public static bool IsFirmwareLoadFromFileEnabled();
 
 <a id="api-1426863ff67c6d36"></a>
 
-##### 设置固件文件加载策略 · 方法
+##### 设置固件文件加载策略（方法）
 
 ```csharp
 public static (bool Success, string Error) SetFirmwareLoadFromFileEnabled(bool enabled);
@@ -15623,7 +19300,7 @@ public sealed record HostPartitionReference(HostDiskReference Disk, int Partitio
 
 <a id="api-67c768acef5b7b55"></a>
 
-##### 创建宿主分区身份对象 · 主构造器
+##### 创建宿主分区身份对象（主构造器）
 
 ```csharp
 public HostPartitionReference(HostDiskReference Disk, int PartitionNumber, string ObjectId, Guid? PartitionGuid);
@@ -15640,7 +19317,7 @@ public HostPartitionReference(HostDiskReference Disk, int PartitionNumber, strin
 
 <a id="api-9ae1f8e0cf1b659e"></a>
 
-##### 所属磁盘 · record 属性
+##### 所属磁盘（record 属性）
 
 ```csharp
 public HostDiskReference Disk { get; init; }
@@ -15650,7 +19327,7 @@ public HostDiskReference Disk { get; init; }
 
 <a id="api-0fcb9bb70c5a0ffe"></a>
 
-##### 对象标识 · record 属性
+##### 对象标识（record 属性）
 
 ```csharp
 public string ObjectId { get; init; }
@@ -15660,7 +19337,7 @@ public string ObjectId { get; init; }
 
 <a id="api-9014b2928a6bf591"></a>
 
-##### 分区 GUID · record 属性
+##### 分区 GUID（record 属性）
 
 ```csharp
 public Guid? PartitionGuid { get; init; }
@@ -15670,7 +19347,7 @@ GPT 分区 GUID；MBR 等不提供 GUID 的分区为 null。
 
 <a id="api-c9d685e3e8b28aba"></a>
 
-##### 分区编号 · record 属性
+##### 分区编号（record 属性）
 
 ```csharp
 public int PartitionNumber { get; init; }
@@ -15714,7 +19391,7 @@ public static class HostPcieService
 
 <a id="api-eb34f8cd58d15275"></a>
 
-##### 设备分配与归还 · 方法
+##### 设备分配与归还（方法）
 
 ```csharp
 public static Task<ApiResponse> ExecutePCIeOperationAsync(PcieAssignmentTarget target, PcieAssignmentTarget current, string instanceId, string path, IProgress<string>? progress = null);
@@ -15742,7 +19419,7 @@ public static Task<ApiResponse> ExecutePCIeOperationAsync(PcieAssignmentTarget t
 
 <a id="api-88c7ff45292a6a7b"></a>
 
-##### 控制器关联磁盘 · 方法
+##### 控制器关联磁盘（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<ControllerDisk>>> GetControllerDisksAsync(string controllerInstanceId);
@@ -15760,7 +19437,7 @@ public static async Task<ApiResponse<List<ControllerDisk>>> GetControllerDisksAs
 
 <a id="api-0a177d811cc97019"></a>
 
-##### 设备与归属 · 方法
+##### 设备与归属（方法）
 
 ```csharp
 public static Task<ApiResponse<PcieHostInfo>> GetPCIeInfoAsync();
@@ -15816,7 +19493,7 @@ public sealed record HostPowerPlan(string Name, Guid Id)
 
 <a id="api-49ccd94d1b1c68ff"></a>
 
-##### 创建宿主电源计划对象 · 主构造器
+##### 创建宿主电源计划对象（主构造器）
 
 ```csharp
 public HostPowerPlan(string Name, Guid Id);
@@ -15831,7 +19508,7 @@ public HostPowerPlan(string Name, Guid Id);
 
 <a id="api-02183b7b9e62b945"></a>
 
-##### 标识 · record 属性
+##### 标识（record 属性）
 
 ```csharp
 public Guid Id { get; init; }
@@ -15841,7 +19518,7 @@ public Guid Id { get; init; }
 
 <a id="api-f804418859e9c669"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -15883,7 +19560,7 @@ public static class HostPowerPlanService
 
 <a id="api-0d0751d7762c8633"></a>
 
-##### 读取当前电源计划 · 方法
+##### 读取当前电源计划（方法）
 
 ```csharp
 public static Guid? GetActivePowerPlanId();
@@ -15897,7 +19574,7 @@ public static Guid? GetActivePowerPlanId();
 
 <a id="api-acc29645411c8b3d"></a>
 
-##### 电源计划清单 · 方法
+##### 电源计划清单（方法）
 
 ```csharp
 public static IReadOnlyList<HostPowerPlan> GetPowerPlans();
@@ -15911,7 +19588,7 @@ public static IReadOnlyList<HostPowerPlan> GetPowerPlans();
 
 <a id="api-8a6806d53be998d9"></a>
 
-##### 切换电源计划 · 方法
+##### 切换电源计划（方法）
 
 ```csharp
 public static void SetActivePowerPlan(Guid id);
@@ -15964,7 +19641,7 @@ public enum HostProcessorPlatform
 
 <a id="api-e28fb95483e5de32"></a>
 
-##### Amd · 枚举值
+##### Amd（枚举值）
 
 ```csharp
 Amd = 1
@@ -15974,7 +19651,7 @@ AMD 处理器平台。
 
 <a id="api-a6ff4649ec45a2b0"></a>
 
-##### Arm64 · 枚举值
+##### Arm64（枚举值）
 
 ```csharp
 Arm64 = 3
@@ -15984,7 +19661,7 @@ ARM64 处理器平台。
 
 <a id="api-52d01cba459edc04"></a>
 
-##### Intel · 枚举值
+##### Intel（枚举值）
 
 ```csharp
 Intel = 2
@@ -15994,7 +19671,7 @@ Intel 处理器平台。
 
 <a id="api-53c22e6ebadf9934"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 0
@@ -16035,7 +19712,7 @@ public static class HostProcessorPlatformService
 
 <a id="api-90dabe8c67dc82a3"></a>
 
-##### 架构 · 方法
+##### 架构（方法）
 
 ```csharp
 public static Architecture GetArchitecture();
@@ -16047,7 +19724,7 @@ public static Architecture GetArchitecture();
 
 <a id="api-d217e6dd6337030b"></a>
 
-##### 厂商 · 方法
+##### 厂商（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyList<string>>> GetManufacturersAsync(CancellationToken cancellationToken = default);
@@ -16097,7 +19774,7 @@ public static class HostProcessorService
 
 <a id="api-9698a6201d8a37b8"></a>
 
-##### 亲和性可选逻辑处理器 · 方法
+##### 亲和性可选逻辑处理器（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyList<HostAffinityProcessor>>> GetAffinityProcessorsAsync();
@@ -16155,7 +19832,7 @@ public sealed record HostProductTypePendingSwitch(string TargetType, bool IsConf
 
 <a id="api-84efe4d4e8e2943f"></a>
 
-##### 创建待重启的产品类型切换对象 · 主构造器
+##### 创建待重启的产品类型切换对象（主构造器）
 
 ```csharp
 public HostProductTypePendingSwitch(string TargetType, bool IsConfirmed, IReadOnlyList<string> RecoveryPaths);
@@ -16171,7 +19848,7 @@ public HostProductTypePendingSwitch(string TargetType, bool IsConfirmed, IReadOn
 
 <a id="api-d48347487fb9526b"></a>
 
-##### 确认状态 · record 属性
+##### 确认状态（record 属性）
 
 ```csharp
 public bool IsConfirmed { get; init; }
@@ -16181,7 +19858,7 @@ public bool IsConfirmed { get; init; }
 
 <a id="api-2dd228b86f34d6fd"></a>
 
-##### 恢复材料路径 · record 属性
+##### 恢复材料路径（record 属性）
 
 ```csharp
 public IReadOnlyList<string> RecoveryPaths { get; init; }
@@ -16191,7 +19868,7 @@ public IReadOnlyList<string> RecoveryPaths { get; init; }
 
 <a id="api-acd0fe85855afae5"></a>
 
-##### 目标产品类型 · record 属性
+##### 目标产品类型（record 属性）
 
 ```csharp
 public string TargetType { get; init; }
@@ -16236,7 +19913,7 @@ public static class HostProductTypeService
 
 <a id="api-b6b86ecb2adae1f9"></a>
 
-##### 切换系统产品类型 · 方法
+##### 切换系统产品类型（方法）
 
 ```csharp
 public static HostProductTypeSwitchResult ApplySwitch(bool toServer);
@@ -16256,7 +19933,7 @@ public static HostProductTypeSwitchResult ApplySwitch(bool toServer);
 
 <a id="api-6a0f2cd3f00229e6"></a>
 
-##### 检查产品类型切换条件 · 方法
+##### 检查产品类型切换条件（方法）
 
 ```csharp
 public static bool CanApplySwitch(HostProductTypePendingSwitch? pending);
@@ -16274,7 +19951,7 @@ public static bool CanApplySwitch(HostProductTypePendingSwitch? pending);
 
 <a id="api-46651c2ef821b281"></a>
 
-##### 待处理切换 · 方法
+##### 待处理切换（方法）
 
 ```csharp
 public static ApiResponse<HostProductTypePendingSwitch> GetPendingSwitch();
@@ -16288,7 +19965,7 @@ public static ApiResponse<HostProductTypePendingSwitch> GetPendingSwitch();
 
 <a id="api-dc41fee6c57a4513"></a>
 
-##### 是否为服务器类型 · 方法
+##### 是否为服务器类型（方法）
 
 ```csharp
 public static bool IsServerSystem();
@@ -16339,7 +20016,7 @@ public sealed class HostProductTypeSwitchResult
 
 <a id="api-fcc1530392390b11"></a>
 
-##### 未卸载的注册表配置单元 · 属性
+##### 未卸载的注册表配置单元（属性）
 
 ```csharp
 public string? MountedHiveKey { get; }
@@ -16356,7 +20033,7 @@ public string? MountedHiveKey { get; }
 
 <a id="api-2ecd2417589a3f45"></a>
 
-##### 恢复材料路径 · 属性
+##### 恢复材料路径（属性）
 
 ```csharp
 public IReadOnlyList<string> RecoveryPaths { get; }
@@ -16373,7 +20050,7 @@ public IReadOnlyList<string> RecoveryPaths { get; }
 
 <a id="api-2f3613c080792b7a"></a>
 
-##### 替换提交状态 · 属性
+##### 替换提交状态（属性）
 
 ```csharp
 public bool ReplacementSubmitted { get; }
@@ -16390,7 +20067,7 @@ public bool ReplacementSubmitted { get; }
 
 <a id="api-e52876918ffe7147"></a>
 
-##### 需要重启 · 属性
+##### 需要重启（属性）
 
 ```csharp
 public bool RequiresRestart { get; }
@@ -16407,7 +20084,7 @@ public bool RequiresRestart { get; }
 
 <a id="api-c940dca16f656ccc"></a>
 
-##### 操作响应 · 属性
+##### 操作响应（属性）
 
 ```csharp
 public ApiResponse Response { get; }
@@ -16423,7 +20100,7 @@ public ApiResponse Response { get; }
 
 <a id="api-5d45638fa89b519d"></a>
 
-##### 状态 · 属性
+##### 状态（属性）
 
 ```csharp
 public HostProductTypeSwitchState State { get; }
@@ -16439,7 +20116,7 @@ public HostProductTypeSwitchState State { get; }
 
 <a id="api-a3c0dadf47882c7e"></a>
 
-##### 成功状态 · 属性
+##### 成功状态（属性）
 
 ```csharp
 public bool Success { get; }
@@ -16456,7 +20133,7 @@ public bool Success { get; }
 
 <a id="api-747a596aac716aa2"></a>
 
-##### 目标产品类型 · 属性
+##### 目标产品类型（属性）
 
 ```csharp
 public string TargetType { get; }
@@ -16506,7 +20183,7 @@ public enum HostProductTypeSwitchState
 
 <a id="api-f62b7c02ac060179"></a>
 
-##### AlreadyPending · 枚举值
+##### AlreadyPending（枚举值）
 
 ```csharp
 AlreadyPending = 1
@@ -16516,7 +20193,7 @@ AlreadyPending = 1
 
 <a id="api-fc4079af747ddf03"></a>
 
-##### CleanupRequired · 枚举值
+##### CleanupRequired（枚举值）
 
 ```csharp
 CleanupRequired = 3
@@ -16526,7 +20203,7 @@ CleanupRequired = 3
 
 <a id="api-410b9ee6d012fc71"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 2
@@ -16536,7 +20213,7 @@ Failed = 2
 
 <a id="api-d7ad74074e53f37f"></a>
 
-##### SubmittedAwaitingRestart · 枚举值
+##### SubmittedAwaitingRestart（枚举值）
 
 ```csharp
 SubmittedAwaitingRestart = 0
@@ -16555,7 +20232,7 @@ SubmittedAwaitingRestart = 0
 | 类型 | 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 宿主 / 基本信息；管理层面 / 宿主 / 处理器 |
+| 功能归属 | 管理层面 / 宿主 / 基本信息，管理层面 / 宿主 / 处理器，管理层面 / 宿主 / 内存 |
 | 源文件 | ` Management/Host/System/HostSystemInfoService.cs ` |
 
 #### 成员概览
@@ -16566,6 +20243,7 @@ SubmittedAwaitingRestart = 0
 | --- | --- |
 | [` public static Task<string> GetProcessorDisplayNameAsync() `](#api-f8fc20b84f1b752a) | 一次读取并格式化宿主物理处理器型号，合并同型号数量并在异构多路时分行展示。 |
 | [` public static Task<SystemInfo> GetSystemInfoAsync() `](#api-c93daf231c3d1b8f) | 一次读取系统名称与构建号、系统位数、处理器型号说明和已安装物理内存容量。 |
+| [` public static (long AvailableMiB, long TotalMiB)? TryReadHostMemoryMiB() `](#api-037129faaee332c5) | 读取宿主可用和总物理内存（MiB），采样失败时返回 null。 |
 
 #### 详细说明
 
@@ -16577,7 +20255,7 @@ public static class HostSystemInfoService
 
 <a id="api-f8fc20b84f1b752a"></a>
 
-##### 处理器显示型号 · 方法
+##### 处理器显示型号（方法）
 
 ```csharp
 public static Task<string> GetProcessorDisplayNameAsync();
@@ -16591,7 +20269,7 @@ public static Task<string> GetProcessorDisplayNameAsync();
 
 <a id="api-c93daf231c3d1b8f"></a>
 
-##### 基本信息汇总 · 方法
+##### 基本信息汇总（方法）
 
 ```csharp
 public static Task<SystemInfo> GetSystemInfoAsync();
@@ -16605,6 +20283,20 @@ public static Task<SystemInfo> GetSystemInfoAsync();
 
 调用约定：首次调用执行实际查询，后续调用复用进程内缓存。各项不可用时返回 N/A 等回退文本，首次回退结果也会被缓存。
 
+<a id="api-037129faaee332c5"></a>
+
+##### 查询宿主物理内存（方法）
+
+```csharp
+public static (long AvailableMiB, long TotalMiB)? TryReadHostMemoryMiB();
+```
+
+功能归属：管理层面 / 宿主 / 内存。
+
+读取宿主可用和总物理内存（MiB），采样失败时返回 null。
+
+返回：可用及总物理内存（MiB），读取失败时为 null。
+
 <a id="api-0f0119c09ea17f4b"></a>
 
 ### `HostSystemInfoService.SystemInfo` record 类
@@ -16616,7 +20308,7 @@ public static Task<SystemInfo> GetSystemInfoAsync();
 | 类型 | record 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 宿主 / 基本信息；管理层面 / 宿主 / 处理器；管理层面 / 宿主 / 内存 |
+| 功能归属 | 管理层面 / 宿主 / 基本信息，管理层面 / 宿主 / 处理器，管理层面 / 宿主 / 内存 |
 | 源文件 | ` Management/Host/System/HostSystemInfoService.cs ` |
 
 #### 成员概览
@@ -16657,13 +20349,13 @@ public record SystemInfo(
 
 <a id="api-808754dfb1d7e952"></a>
 
-##### 创建宿主基本信息对象 · 主构造器
+##### 创建宿主基本信息对象（主构造器）
 
 ```csharp
 public SystemInfo(string Caption, string OSArchitecture, string CpuModel, string MemCap);
 ```
 
-功能归属：管理层面 / 宿主 / 基本信息；管理层面 / 宿主 / 处理器；管理层面 / 宿主 / 内存。
+功能归属：管理层面 / 宿主 / 基本信息，管理层面 / 宿主 / 处理器，管理层面 / 宿主 / 内存。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -16676,7 +20368,7 @@ public SystemInfo(string Caption, string OSArchitecture, string CpuModel, string
 
 <a id="api-73e472fbb2e84308"></a>
 
-##### 操作系统名称 · record 属性
+##### 操作系统名称（record 属性）
 
 ```csharp
 public string Caption { get; init; }
@@ -16688,7 +20380,7 @@ public string Caption { get; init; }
 
 <a id="api-a092b8e0d2442c5f"></a>
 
-##### 型号 · record 属性
+##### 型号（record 属性）
 
 ```csharp
 public string CpuModel { get; init; }
@@ -16700,7 +20392,7 @@ public string CpuModel { get; init; }
 
 <a id="api-119f8498a4982334"></a>
 
-##### 已安装容量 · record 属性
+##### 已安装容量（record 属性）
 
 ```csharp
 public string MemCap { get; init; }
@@ -16712,7 +20404,7 @@ public string MemCap { get; init; }
 
 <a id="api-56eebd10b2654851"></a>
 
-##### 系统位数 · record 属性
+##### 系统位数（record 属性）
 
 ```csharp
 public string OSArchitecture { get; init; }
@@ -16755,7 +20447,7 @@ public static class HostVolumeAutoMountService
 
 <a id="api-6e13cb9b828103f1"></a>
 
-##### 读取卷自动挂载状态 · 方法
+##### 读取卷自动挂载状态（方法）
 
 ```csharp
 public static ApiResponse<bool> GetState();
@@ -16769,7 +20461,7 @@ public static ApiResponse<bool> GetState();
 
 <a id="api-f2bf468124100c28"></a>
 
-##### 设置卷自动挂载 · 方法
+##### 设置卷自动挂载（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetEnabledAsync(bool enabled);
@@ -16838,7 +20530,7 @@ public sealed record HyperVCheckResult(HyperVCheckStage Stage, HyperVCheckState 
 
 <a id="api-936388a5aefbffb0"></a>
 
-##### 创建Hyper-V 检查结果对象 · 主构造器
+##### 创建Hyper-V 检查结果对象（主构造器）
 
 ```csharp
 public HyperVCheckResult(HyperVCheckStage Stage, HyperVCheckState State, HyperVDiagnosticKind DiagnosticKind, string Message, ApiFailure? Failure = null);
@@ -16856,7 +20548,7 @@ public HyperVCheckResult(HyperVCheckStage Stage, HyperVCheckState State, HyperVD
 
 <a id="api-4a7361d12f813ad0"></a>
 
-##### 诊断类别 · record 属性
+##### 诊断类别（record 属性）
 
 ```csharp
 public HyperVDiagnosticKind DiagnosticKind { get; init; }
@@ -16866,7 +20558,7 @@ public HyperVDiagnosticKind DiagnosticKind { get; init; }
 
 <a id="api-1334b348163eb5da"></a>
 
-##### 失败详情 · record 属性
+##### 失败详情（record 属性）
 
 ```csharp
 public ApiFailure? Failure { get; init; }
@@ -16876,7 +20568,7 @@ public ApiFailure? Failure { get; init; }
 
 <a id="api-2f585e2547fc334c"></a>
 
-##### 操作说明 · record 属性
+##### 操作说明（record 属性）
 
 ```csharp
 public string Message { get; init; }
@@ -16886,7 +20578,7 @@ public string Message { get; init; }
 
 <a id="api-7dfe815332359fc5"></a>
 
-##### 执行阶段 · record 属性
+##### 执行阶段（record 属性）
 
 ```csharp
 public HyperVCheckStage Stage { get; init; }
@@ -16896,7 +20588,7 @@ public HyperVCheckStage Stage { get; init; }
 
 <a id="api-fcd4f1cc9cf30149"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public HyperVCheckState State { get; init; }
@@ -16938,7 +20630,7 @@ public enum HyperVCheckStage
 
 <a id="api-3a892d81a1e40cde"></a>
 
-##### Hypervisor · 枚举值
+##### Hypervisor（枚举值）
 
 ```csharp
 Hypervisor = 0
@@ -16948,7 +20640,7 @@ Hypervisor = 0
 
 <a id="api-f876d09dcb00981e"></a>
 
-##### Vmms · 枚举值
+##### Vmms（枚举值）
 
 ```csharp
 Vmms = 1
@@ -16958,7 +20650,7 @@ VMMS Windows 服务及其诊断信息。
 
 <a id="api-0a94b10797388892"></a>
 
-##### Wmi · 枚举值
+##### Wmi（枚举值）
 
 ```csharp
 Wmi = 2
@@ -17001,7 +20693,7 @@ public enum HyperVCheckState
 
 <a id="api-4b73e342a0a6f400"></a>
 
-##### NotChecked · 枚举值
+##### NotChecked（枚举值）
 
 ```csharp
 NotChecked = 0
@@ -17011,7 +20703,7 @@ NotChecked = 0
 
 <a id="api-2c1c9889bca71a16"></a>
 
-##### NotReady · 枚举值
+##### NotReady（枚举值）
 
 ```csharp
 NotReady = 2
@@ -17021,7 +20713,7 @@ NotReady = 2
 
 <a id="api-87a59a7058014cf3"></a>
 
-##### Passed · 枚举值
+##### Passed（枚举值）
 
 ```csharp
 Passed = 1
@@ -17031,7 +20723,7 @@ Passed = 1
 
 <a id="api-b6e188cbcccf5771"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 3
@@ -17101,7 +20793,7 @@ public class HyperVCpuMonitorService : IDisposable, IAsyncDisposable
 
 <a id="api-c6db9b28d9775b80"></a>
 
-##### 创建宿主虚拟处理器监控对象 · 构造器
+##### 创建宿主虚拟处理器监控对象（构造器）
 
 ```csharp
 public HyperVCpuMonitorService();
@@ -17113,7 +20805,7 @@ public HyperVCpuMonitorService();
 
 <a id="api-dc2b76bf911dccac"></a>
 
-##### 虚拟机身份采样状态 · 属性
+##### 虚拟机身份采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo VirtualMachineIdentitySample { get; }
@@ -17127,7 +20819,7 @@ public PerformanceSampleInfo VirtualMachineIdentitySample { get; }
 
 <a id="api-6a5b872c7488e8f8"></a>
 
-##### 核心类型 · 方法
+##### 核心类型（方法）
 
 ```csharp
 public static CpuCoreType GetCoreType(int coreId);
@@ -17147,7 +20839,7 @@ public static CpuCoreType GetCoreType(int coreId);
 
 <a id="api-f3baefcdcb63dc1c"></a>
 
-##### 同步释放 CPU 采样器 · 方法
+##### 同步释放 CPU 采样器（方法）
 
 ```csharp
 public void Dispose();
@@ -17157,7 +20849,7 @@ public void Dispose();
 
 <a id="api-f3a4e6eb19995624"></a>
 
-##### 异步释放 CPU 采样器 · 方法
+##### 异步释放 CPU 采样器（方法）
 
 ```csharp
 public ValueTask DisposeAsync();
@@ -17167,7 +20859,7 @@ public ValueTask DisposeAsync();
 
 <a id="api-1281772452a54367"></a>
 
-##### 宿主与虚拟机处理器使用率 · 方法
+##### 宿主与虚拟机处理器使用率（方法）
 
 ```csharp
 public List<VmCpuCoreMetric> GetCpuUsage();
@@ -17225,7 +20917,7 @@ public enum HyperVDiagnosticKind
 
 <a id="api-e88cd3faae5062e6"></a>
 
-##### AccessDenied · 枚举值
+##### AccessDenied（枚举值）
 
 ```csharp
 AccessDenied = 4
@@ -17235,7 +20927,7 @@ AccessDenied = 4
 
 <a id="api-9767b5d8b9afbc24"></a>
 
-##### ConnectionFailure · 枚举值
+##### ConnectionFailure（枚举值）
 
 ```csharp
 ConnectionFailure = 8
@@ -17245,7 +20937,7 @@ RPC 或 COM 连接失败。
 
 <a id="api-d800526aa6b30c96"></a>
 
-##### ExecutableMissing · 枚举值
+##### ExecutableMissing（枚举值）
 
 ```csharp
 ExecutableMissing = 12
@@ -17255,7 +20947,7 @@ VMMS 没有运行，且已确认其程序文件路径不存在。
 
 <a id="api-b4c30e636f2a7047"></a>
 
-##### InvalidClass · 枚举值
+##### InvalidClass（枚举值）
 
 ```csharp
 InvalidClass = 6
@@ -17265,7 +20957,7 @@ WMI 类不存在或不可用。
 
 <a id="api-de60b95e5e63f90a"></a>
 
-##### InvalidData · 枚举值
+##### InvalidData（枚举值）
 
 ```csharp
 InvalidData = 9
@@ -17275,7 +20967,7 @@ InvalidData = 9
 
 <a id="api-865181b0e24295fc"></a>
 
-##### InvalidNamespace · 枚举值
+##### InvalidNamespace（枚举值）
 
 ```csharp
 InvalidNamespace = 5
@@ -17285,7 +20977,7 @@ WMI 命名空间不存在或不可用。
 
 <a id="api-6121405e4747dfc4"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -17295,7 +20987,7 @@ None = 0
 
 <a id="api-bdb0767903f87137"></a>
 
-##### NotFound · 枚举值
+##### NotFound（枚举值）
 
 ```csharp
 NotFound = 2
@@ -17305,7 +20997,7 @@ NotFound = 2
 
 <a id="api-b44008ba01d3e33b"></a>
 
-##### NotRunning · 枚举值
+##### NotRunning（枚举值）
 
 ```csharp
 NotRunning = 1
@@ -17315,7 +21007,7 @@ NotRunning = 1
 
 <a id="api-1b7f3ef75dba686f"></a>
 
-##### ProviderFailure · 枚举值
+##### ProviderFailure（枚举值）
 
 ```csharp
 ProviderFailure = 7
@@ -17325,7 +21017,7 @@ WMI Provider 报告执行失败。
 
 <a id="api-7848960083879fed"></a>
 
-##### QueryFailed · 枚举值
+##### QueryFailed（枚举值）
 
 ```csharp
 QueryFailed = 10
@@ -17335,7 +21027,7 @@ QueryFailed = 10
 
 <a id="api-ddc456a603ad3627"></a>
 
-##### ServiceDisabled · 枚举值
+##### ServiceDisabled（枚举值）
 
 ```csharp
 ServiceDisabled = 11
@@ -17345,7 +21037,7 @@ VMMS 没有运行，且服务启动类型为 Disabled。
 
 <a id="api-9058510f283dabc9"></a>
 
-##### Timeout · 枚举值
+##### Timeout（枚举值）
 
 ```csharp
 Timeout = 3
@@ -17394,7 +21086,7 @@ public sealed class HyperVEnvironmentStatus
 
 <a id="api-11035cbb2f7efdca"></a>
 
-##### 首个问题 · 属性
+##### 首个问题（属性）
 
 ```csharp
 public HyperVCheckResult? FirstIssue { get; }
@@ -17404,7 +21096,7 @@ public HyperVCheckResult? FirstIssue { get; }
 
 <a id="api-ba82d55a46e226f5"></a>
 
-##### 监控程序状态 · 属性
+##### 监控程序状态（属性）
 
 ```csharp
 public HyperVCheckResult Hypervisor { get; }
@@ -17414,7 +21106,7 @@ public HyperVCheckResult Hypervisor { get; }
 
 <a id="api-6a8fe1b5ea30a7ab"></a>
 
-##### 安装状态 · 属性
+##### 安装状态（属性）
 
 ```csharp
 public bool? IsInstalled { get; }
@@ -17431,7 +21123,7 @@ public bool? IsInstalled { get; }
 
 <a id="api-061fa6b7bc324734"></a>
 
-##### 就绪状态 · 属性
+##### 就绪状态（属性）
 
 ```csharp
 public bool IsReady { get; }
@@ -17448,7 +21140,7 @@ public bool IsReady { get; }
 
 <a id="api-cb44fa30cf482a5e"></a>
 
-##### 状态说明 · 属性
+##### 状态说明（属性）
 
 ```csharp
 public string StatusText { get; }
@@ -17458,7 +21150,7 @@ public string StatusText { get; }
 
 <a id="api-26c01bbec370913b"></a>
 
-##### VMMS 检查结果 · 属性
+##### VMMS 检查结果（属性）
 
 ```csharp
 public HyperVCheckResult Vmms { get; }
@@ -17468,7 +21160,7 @@ VMMS 服务检查结果。
 
 <a id="api-313b359863164567"></a>
 
-##### VMMS 服务信息 · 属性
+##### VMMS 服务信息（属性）
 
 ```csharp
 public VmmsServiceInfo? VmmsService { get; }
@@ -17478,7 +21170,7 @@ public VmmsServiceInfo? VmmsService { get; }
 
 <a id="api-67f261ae75b436c9"></a>
 
-##### WMI 管理接口状态 · 属性
+##### WMI 管理接口状态（属性）
 
 ```csharp
 public HyperVCheckResult Wmi { get; }
@@ -17525,7 +21217,7 @@ public static class HyperVHostService
 
 <a id="api-6e83f00a27983f48"></a>
 
-##### 运行环境诊断 · 方法
+##### 运行环境诊断（方法）
 
 ```csharp
 public static Task<HyperVEnvironmentStatus> GetHyperVDiagnosticsAsync();
@@ -17541,7 +21233,7 @@ public static Task<HyperVEnvironmentStatus> GetHyperVDiagnosticsAsync();
 
 <a id="api-eb7d67479cd7d470"></a>
 
-##### 状态摘要 · 方法
+##### 状态摘要（方法）
 
 ```csharp
 public static async Task<(bool IsReady, bool IsInstalled, string StatusText)> GetHyperVStatusAsync();
@@ -17557,7 +21249,7 @@ public static async Task<(bool IsReady, bool IsInstalled, string StatusText)> Ge
 
 <a id="api-850ddcb6b6c173ca"></a>
 
-##### VMMS 服务状态 · 方法
+##### VMMS 服务状态（方法）
 
 ```csharp
 public static int GetVmmsStatus();
@@ -17571,7 +21263,7 @@ public static int GetVmmsStatus();
 
 <a id="api-71d57df0e8be1547"></a>
 
-##### WMI 管理接口可用性 · 方法
+##### WMI 管理接口可用性（方法）
 
 ```csharp
 public static bool IsHyperVWmiNamespaceAvailable();
@@ -17585,7 +21277,7 @@ public static bool IsHyperVWmiNamespaceAvailable();
 
 <a id="api-12b38ef2a7a8f6a3"></a>
 
-##### 是否存在虚拟机监控程序 · 方法
+##### 是否存在虚拟机监控程序（方法）
 
 ```csharp
 public static bool IsHypervisorPresent();
@@ -17599,7 +21291,7 @@ public static bool IsHypervisorPresent();
 
 <a id="api-606e6a9775f1bea2"></a>
 
-##### IOMMU 可用性 · 方法
+##### IOMMU 可用性（方法）
 
 ```csharp
 public static bool IsIommuEnabled();
@@ -17615,7 +21307,7 @@ public static bool IsIommuEnabled();
 
 <a id="api-620a3d50b8f9a3f1"></a>
 
-##### 虚拟化扩展可用性 · 方法
+##### 虚拟化扩展可用性（方法）
 
 ```csharp
 public static bool IsVirtualizationEnabled();
@@ -17629,7 +21321,7 @@ public static bool IsVirtualizationEnabled();
 
 <a id="api-fc59d5a50ad2e8a7"></a>
 
-##### 启用 Hyper-V · 方法
+##### 启用 Hyper-V（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetHyperVEnabledAsync(bool enabled);
@@ -17662,7 +21354,7 @@ public static async Task<ApiResponse> SetHyperVEnabledAsync(bool enabled);
 | 类型 | record 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 宿主 / 存储；管理层面 / 宿主 / 网络；管理层面 / 宿主 / Hyper-V；管理层面 / 宿主 / 控制台 |
+| 功能归属 | 管理层面 / 宿主 / 存储，管理层面 / 宿主 / 网络，管理层面 / 宿主 / Hyper-V，管理层面 / 宿主 / 控制台 |
 | 源文件 | ` Management/Host/HyperV/HyperVHostSettingsService.cs ` |
 
 #### 成员概览
@@ -17706,13 +21398,13 @@ public sealed record HyperVHostSettings(
 
 <a id="api-7551c619f42b8fa1"></a>
 
-##### 创建Hyper-V 宿主设置对象 · 主构造器
+##### 创建Hyper-V 宿主设置对象（主构造器）
 
 ```csharp
 public HyperVHostSettings(bool EnhancedSessionModeEnabled, string DefaultVirtualMachinePath, string DefaultVirtualHardDiskPath, string MinimumMacAddress, string MaximumMacAddress);
 ```
 
-功能归属：管理层面 / 宿主 / 存储；管理层面 / 宿主 / 网络；管理层面 / 宿主 / Hyper-V；管理层面 / 宿主 / 控制台。
+功能归属：管理层面 / 宿主 / 存储，管理层面 / 宿主 / 网络，管理层面 / 宿主 / Hyper-V，管理层面 / 宿主 / 控制台。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -17726,7 +21418,7 @@ public HyperVHostSettings(bool EnhancedSessionModeEnabled, string DefaultVirtual
 
 <a id="api-2d5cdc4b60e14dc2"></a>
 
-##### 默认虚拟磁盘目录 · record 属性
+##### 默认虚拟磁盘目录（record 属性）
 
 ```csharp
 public string DefaultVirtualHardDiskPath { get; init; }
@@ -17738,7 +21430,7 @@ public string DefaultVirtualHardDiskPath { get; init; }
 
 <a id="api-e8d144acf92447f6"></a>
 
-##### 默认虚拟机配置目录 · record 属性
+##### 默认虚拟机配置目录（record 属性）
 
 ```csharp
 public string DefaultVirtualMachinePath { get; init; }
@@ -17750,7 +21442,7 @@ public string DefaultVirtualMachinePath { get; init; }
 
 <a id="api-d0cf76593d92c868"></a>
 
-##### 允许增强会话 · record 属性
+##### 允许增强会话（record 属性）
 
 ```csharp
 public bool EnhancedSessionModeEnabled { get; init; }
@@ -17762,7 +21454,7 @@ public bool EnhancedSessionModeEnabled { get; init; }
 
 <a id="api-3a451f5dfea52c5c"></a>
 
-##### 动态 MAC 地址池结束地址 · record 属性
+##### 动态 MAC 地址池结束地址（record 属性）
 
 ```csharp
 public string MaximumMacAddress { get; init; }
@@ -17774,7 +21466,7 @@ public string MaximumMacAddress { get; init; }
 
 <a id="api-83e60d0ccfb563fc"></a>
 
-##### 动态 MAC 地址池起始地址 · record 属性
+##### 动态 MAC 地址池起始地址（record 属性）
 
 ```csharp
 public string MinimumMacAddress { get; init; }
@@ -17817,7 +21509,7 @@ public static class HyperVHostSettingsService
 
 <a id="api-7dc3a7ae4ba02bcc"></a>
 
-##### Hyper-V 宿主配置 · 方法
+##### Hyper-V 宿主配置（方法）
 
 ```csharp
 public static async Task<HyperVHostSettings?> GetAsync();
@@ -17831,7 +21523,7 @@ public static async Task<HyperVHostSettings?> GetAsync();
 
 <a id="api-90ff6ff5c6d89e12"></a>
 
-##### 默认虚拟机配置目录 · 方法
+##### 默认虚拟机配置目录（方法）
 
 ```csharp
 public static Task<ApiResponse> SetDefaultVirtualMachinePathAsync(string path);
@@ -17880,7 +21572,7 @@ public static class HyperVNumaService
 
 <a id="api-b1e7de3eb3d4ce6d"></a>
 
-##### 读取跨 NUMA 节点分配状态 · 方法
+##### 读取跨 NUMA 节点分配状态（方法）
 
 ```csharp
 public static async Task<ApiResponse<bool>> GetNumaSpanningEnabledAsync();
@@ -17894,7 +21586,7 @@ public static async Task<ApiResponse<bool>> GetNumaSpanningEnabledAsync();
 
 <a id="api-e07705a213e3134c"></a>
 
-##### 设置跨 NUMA 节点分配 · 方法
+##### 设置跨 NUMA 节点分配（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetNumaSpanningEnabledAsync(bool enabled);
@@ -17946,7 +21638,7 @@ public static class HyperVSchedulerService
 
 <a id="api-bb62581e3974b990"></a>
 
-##### 读取启动调度器配置 · 方法
+##### 读取启动调度器配置（方法）
 
 ```csharp
 public static HyperVSchedulerType GetConfiguredSchedulerType();
@@ -17962,7 +21654,7 @@ public static HyperVSchedulerType GetConfiguredSchedulerType();
 
 <a id="api-e4d7f01e1b9f7594"></a>
 
-##### 当前调度器 · 方法
+##### 当前调度器（方法）
 
 ```csharp
 public static HyperVSchedulerType GetSchedulerType();
@@ -17978,7 +21670,7 @@ public static HyperVSchedulerType GetSchedulerType();
 
 <a id="api-86bcce3a5339cc53"></a>
 
-##### 设置启动调度器配置 · 方法
+##### 设置启动调度器配置（方法）
 
 ```csharp
 public static Task<ApiResponse> SetSchedulerTypeAsync(HyperVSchedulerType type);
@@ -18031,7 +21723,7 @@ public enum HyperVSchedulerType
 
 <a id="api-0dcc75cd2837d16f"></a>
 
-##### Classic · 枚举值
+##### Classic（枚举值）
 
 ```csharp
 Classic = 0
@@ -18041,7 +21733,7 @@ Classic 传统调度器，由监控程序调度来宾虚拟处理器。
 
 <a id="api-91e68ab8b78df316"></a>
 
-##### Core · 枚举值
+##### Core（枚举值）
 
 ```csharp
 Core = 1
@@ -18051,7 +21743,7 @@ Core 核心调度器，按物理核心的 SMT 拓扑协调同一虚拟机的虚�
 
 <a id="api-ce539d9420c4bbc9"></a>
 
-##### Root · 枚举值
+##### Root（枚举值）
 
 ```csharp
 Root = 2
@@ -18061,7 +21753,7 @@ Root 根分区调度器，由根分区的 Windows 调度器安排处理器工作
 
 <a id="api-1e67a7a078254d3a"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 3
@@ -18092,6 +21784,7 @@ Unknown = 3
 | [` public static Task CreateSwitchAsync(string name, SwitchMode mode, SwitchUpstreamAdapter? upstream) `](#api-8e882037c098524e) | 校验当前主机状态后创建交换机，并按模式建立上游或共享。 |
 | [` public static Task DeleteSwitchAsync(Guid switchId) `](#api-531ce12c38ad235d) | 按稳定 GUID 关闭相关 ICS 并删除交换机，默认交换机受保护。 |
 | [` public static Task DeleteSwitchAsync(string switchName) `](#api-e5862bc792ac1326) | 关闭相关 ICS 后删除指定交换机；默认交换机受规则保护。 |
+| [` public static Task<List<SwitchUpstreamAdapter>> GetAllUpstreamAdaptersAsync() `](#api-91207784aaf1e10f) | 获取全部可用于虚拟交换机上游的活跃连接适配器（包含物理以太网/Wi-Fi/蜂窝移动及 L3 虚拟隧道适配器）。 |
 | [` public static async Task<List<SwitchUpstreamAdapter>> GetBridgeableAdaptersAsync() `](#api-0bbb050d21026f1b) | 筛选已找到 Hyper-V 外部端口的宿主物理网卡。 |
 | [` public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsync(string switchName) `](#api-e555b97da5c034ee) | 读取接入指定交换机的宿主和虚拟机网卡。 |
 | [` public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> PhysicalAdapters)> GetNetworkInfoAsync() `](#api-42c59a83cabc1075) | 读取交换机、连接模式和可用物理上游网卡快照。 |
@@ -18110,7 +21803,7 @@ public static partial class HyperVSwitchService
 
 <a id="api-8e882037c098524e"></a>
 
-##### 创建虚拟交换机 · 方法
+##### 创建虚拟交换机（方法）
 
 ```csharp
 public static Task CreateSwitchAsync(string name, SwitchMode mode, SwitchUpstreamAdapter? upstream);
@@ -18130,7 +21823,7 @@ public static Task CreateSwitchAsync(string name, SwitchMode mode, SwitchUpstrea
 
 <a id="api-531ce12c38ad235d"></a>
 
-##### 删除虚拟交换机（按 ID） · 方法
+##### 删除虚拟交换机（按 ID）（方法）
 
 ```csharp
 public static Task DeleteSwitchAsync(Guid switchId);
@@ -18148,7 +21841,7 @@ public static Task DeleteSwitchAsync(Guid switchId);
 
 <a id="api-e5862bc792ac1326"></a>
 
-##### 删除虚拟交换机（按名称） · 方法
+##### 删除虚拟交换机（按名称）（方法）
 
 ```csharp
 public static Task DeleteSwitchAsync(string switchName);
@@ -18164,9 +21857,23 @@ public static Task DeleteSwitchAsync(string switchName);
 
 调用约定：名称在资源锁内解析一次；重名返回 AmbiguousTarget。删除可能影响已连接的虚拟机，已完成步骤可能保留。错误见 CoreOperationException.Result。
 
+<a id="api-91207784aaf1e10f"></a>
+
+##### 全部宿主上游适配器（方法）
+
+```csharp
+public static Task<List<SwitchUpstreamAdapter>> GetAllUpstreamAdaptersAsync();
+```
+
+功能归属：管理层面 / 宿主 / 网络。
+
+获取全部可用于虚拟交换机上游的活跃连接适配器（包含物理以太网/Wi-Fi/蜂窝移动及 L3 虚拟隧道适配器）。
+
+返回：按介质与能力标注的上游适配器列表。
+
 <a id="api-0bbb050d21026f1b"></a>
 
-##### 外部交换机候选网卡 · 方法
+##### 外部交换机候选网卡（方法）
 
 ```csharp
 public static async Task<List<SwitchUpstreamAdapter>> GetBridgeableAdaptersAsync();
@@ -18180,7 +21887,7 @@ public static async Task<List<SwitchUpstreamAdapter>> GetBridgeableAdaptersAsync
 
 <a id="api-e555b97da5c034ee"></a>
 
-##### 交换机连接的网卡 · 方法
+##### 交换机连接的网卡（方法）
 
 ```csharp
 public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsync(string switchName);
@@ -18200,7 +21907,7 @@ public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsyn
 
 <a id="api-42c59a83cabc1075"></a>
 
-##### 虚拟交换机与上游网卡 · 方法
+##### 虚拟交换机与上游网卡（方法）
 
 ```csharp
 public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> PhysicalAdapters)> GetNetworkInfoAsync();
@@ -18214,7 +21921,7 @@ public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> Physi
 
 <a id="api-a7b99da342b381d5"></a>
 
-##### 修改虚拟交换机配置（按 ID） · 方法
+##### 修改虚拟交换机配置（按 ID）（方法）
 
 ```csharp
 public static Task UpdateSwitchConfigurationAsync(Guid switchId, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS);
@@ -18235,7 +21942,7 @@ public static Task UpdateSwitchConfigurationAsync(Guid switchId, SwitchMode mode
 
 <a id="api-e456b7c7d3550d57"></a>
 
-##### 修改虚拟交换机配置（按名称） · 方法
+##### 修改虚拟交换机配置（按名称）（方法）
 
 ```csharp
 public static Task UpdateSwitchConfigurationAsync(string switchName, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS);
@@ -18344,7 +22051,7 @@ public static class ClipboardExample
 
 <a id="api-0df8d1c1e7561dfc"></a>
 
-##### 可用状态 · 属性
+##### 可用状态（属性）
 
 ```csharp
 bool IsAvailable { get; }
@@ -18365,7 +22072,7 @@ bool IsAvailable { get; }
 
 <a id="api-15c6e3cb9d02431e"></a>
 
-##### 剪贴板可用状态变化 · 事件
+##### 剪贴板可用状态变化（事件）
 
 ```csharp
 event Action<bool>? ClipboardAvailabilityChanged;
@@ -18375,7 +22082,7 @@ event Action<bool>? ClipboardAvailabilityChanged;
 
 <a id="api-f7b88fa31b137c0c"></a>
 
-##### 收到剪贴板内容 · 事件
+##### 收到剪贴板内容（事件）
 
 ```csharp
 event Action<ConsoleClipboardData>? ClipboardReceived;
@@ -18389,7 +22096,7 @@ event Action<ConsoleClipboardData>? ClipboardReceived;
 
 <a id="api-59566efd7e5c5a5c"></a>
 
-##### 发送剪贴板内容 · 方法
+##### 发送剪贴板内容（方法）
 
 ```csharp
 bool SetClipboard(ConsoleClipboardData clipboard);
@@ -18500,7 +22207,7 @@ public static class ConnectionExample
 
 <a id="api-f5c787e1964eb9c0"></a>
 
-##### 后端标识 · 属性
+##### 后端标识（属性）
 
 ```csharp
 string BackendId { get; }
@@ -18517,7 +22224,7 @@ string BackendId { get; }
 
 <a id="api-83526b9be88d1f35"></a>
 
-##### 剪贴板通道 · 属性
+##### 剪贴板通道（属性）
 
 ```csharp
 IConsoleClipboard? Clipboard { get; }
@@ -18534,7 +22241,7 @@ IConsoleClipboard? Clipboard { get; }
 
 <a id="api-6c119e309cccccce"></a>
 
-##### 输入 · 属性
+##### 输入（属性）
 
 ```csharp
 IConsoleInput? Input { get; }
@@ -18551,7 +22258,7 @@ IConsoleInput? Input { get; }
 
 <a id="api-7d05ee4a9643ebbf"></a>
 
-##### 状态 · 属性
+##### 状态（属性）
 
 ```csharp
 ConsoleConnectionState State { get; }
@@ -18569,7 +22276,7 @@ ConsoleConnectionState State { get; }
 
 <a id="api-2b97e161fb617c87"></a>
 
-##### 视频通道 · 属性
+##### 视频通道（属性）
 
 ```csharp
 IConsoleVideoSource? Video { get; }
@@ -18588,7 +22295,7 @@ IConsoleVideoSource? Video { get; }
 
 <a id="api-cd146ba118244997"></a>
 
-##### 连接建立通知 · 事件
+##### 连接建立通知（事件）
 
 ```csharp
 event Action? Connected;
@@ -18598,7 +22305,7 @@ event Action? Connected;
 
 <a id="api-f0481c70925621b5"></a>
 
-##### 连接结束通知 · 事件
+##### 连接结束通知（事件）
 
 ```csharp
 event Action<ConsoleDisconnectInfo>? Disconnected;
@@ -18610,7 +22317,7 @@ event Action<ConsoleDisconnectInfo>? Disconnected;
 
 <a id="api-941ce9a5aace08cd"></a>
 
-##### 登录完成通知 · 事件
+##### 登录完成通知（事件）
 
 ```csharp
 event Action? LoginCompleted;
@@ -18622,7 +22329,7 @@ event Action? LoginCompleted;
 
 <a id="api-81d62663c6d442aa"></a>
 
-##### 断开连接 · 方法
+##### 断开连接（方法）
 
 ```csharp
 Task DisconnectAsync();
@@ -18636,7 +22343,7 @@ Task DisconnectAsync();
 
 <a id="api-3ffa317c0bdfecc8"></a>
 
-##### 开始连接 · 方法
+##### 开始连接（方法）
 
 ```csharp
 void Start();
@@ -18659,7 +22366,7 @@ void Start();
 | 类型 | 接口 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 业务层面 / 控制 / 键盘；业务层面 / 控制 / 鼠标 |
+| 功能归属 | 业务层面 / 控制 / 键盘，业务层面 / 控制 / 鼠标 |
 | 源文件 | ` Business/Keyboard/IConsoleInput.Keyboard.cs ` |
 
 #### 成员概览
@@ -18692,7 +22399,7 @@ bool 返回值表示请求是否已进入发送队列。 未连接、参数无�
 
 <a id="api-c8aa9f0307a29a7d"></a>
 
-##### 释放全部按键 · 方法
+##### 释放全部按键（方法）
 
 ```csharp
 bool ReleaseAllInputs();
@@ -18708,7 +22415,7 @@ bool ReleaseAllInputs();
 
 <a id="api-373036b38bdb9c13"></a>
 
-##### 发送鼠标单击 · 方法
+##### 发送鼠标单击（方法）
 
 ```csharp
 bool SendClick(ushort x, ushort y, ConsolePointerButton button = ConsolePointerButton.Left);
@@ -18728,7 +22435,7 @@ bool SendClick(ushort x, ushort y, ConsolePointerButton button = ConsolePointerB
 
 <a id="api-c68d794c15be61cb"></a>
 
-##### 发送按键事件 · 方法
+##### 发送按键事件（方法）
 
 ```csharp
 bool SendKey(ushort scanCode, bool extended, bool down);
@@ -18767,7 +22474,7 @@ public static class KeyboardExample
 
 <a id="api-639a7aa82964b0c0"></a>
 
-##### 发送一组按键事件 · 方法
+##### 发送一组按键事件（方法）
 
 ```csharp
 bool SendKeys(IReadOnlyList<ConsoleKeyEvent> events);
@@ -18789,7 +22496,7 @@ bool SendKeys(IReadOnlyList<ConsoleKeyEvent> events);
 
 <a id="api-0a7414405be7d2d5"></a>
 
-##### 发送 Pause 键 · 方法
+##### 发送 Pause 键（方法）
 
 ```csharp
 bool SendPause();
@@ -18805,7 +22512,7 @@ bool SendPause();
 
 <a id="api-34b94c2751265ca5"></a>
 
-##### 发送鼠标事件 · 方法
+##### 发送鼠标事件（方法）
 
 ```csharp
 bool SendPointer(ushort x, ushort y, ConsolePointerButton button = ConsolePointerButton.None, bool down = false, short wheel = 0);
@@ -18858,7 +22565,7 @@ public static class PointerExample
 
 <a id="api-b63d7c0166496c27"></a>
 
-##### 同步键盘锁定状态 · 方法
+##### 同步键盘锁定状态（方法）
 
 ```csharp
 bool SynchronizeKeyboard(ConsoleKeyboardToggleState flags);
@@ -18957,7 +22664,7 @@ public static class VideoExample
 
 <a id="api-d113bc976ef6bc1b"></a>
 
-##### 分辨率调整能力 · 属性
+##### 分辨率调整能力（属性）
 
 ```csharp
 bool SupportsResize { get; }
@@ -18978,7 +22685,7 @@ bool SupportsResize { get; }
 
 <a id="api-87b9df2906679e18"></a>
 
-##### 收到画面 · 事件
+##### 收到画面（事件）
 
 ```csharp
 event Action<ConsoleFrame>? FrameReceived;
@@ -18990,7 +22697,7 @@ event Action<ConsoleFrame>? FrameReceived;
 
 <a id="api-f2f5ecb7b595c286"></a>
 
-##### 分辨率调整失败通知 · 事件
+##### 分辨率调整失败通知（事件）
 
 ```csharp
 event Action<uint>? ResizeRejected;
@@ -19004,7 +22711,7 @@ event Action<uint>? ResizeRejected;
 
 <a id="api-af19990c766a5aa8"></a>
 
-##### 获取当前画面 · 方法
+##### 获取当前画面（方法）
 
 ```csharp
 ConsoleFrame? CaptureFrame();
@@ -19026,7 +22733,7 @@ ConsoleFrame? CaptureFrame();
 
 <a id="api-d3b8251b0e40130c"></a>
 
-##### 调整画面分辨率 · 方法
+##### 调整画面分辨率（方法）
 
 ```csharp
 bool Resize(int width, int height, uint desktopScale = 100);
@@ -19080,7 +22787,7 @@ public static class IsoBuilderService
 
 <a id="api-458525b357c0a06f"></a>
 
-##### 制作 ISO 映像 · 方法
+##### 制作 ISO 映像（方法）
 
 ```csharp
 public static void BuildUdfIso(string sourceDirectory, string targetIsoPath, string volumeLabel);
@@ -19094,7 +22801,7 @@ public static void BuildUdfIso(string sourceDirectory, string targetIsoPath, str
 | `targetIsoPath` | 目标 ISO 文件路径。 |
 | `volumeLabel` | 光盘卷标。Core 保留字母、数字、下划线和连字符，其他字符替换为下划线，最多 32 个字符；空值使用 NewISO。 |
 
-调用约定：输出只构建文件，不挂载映像。已有目标文件会被覆盖并截断至新映像长度；调用方负责选择输出路径。数据流提前结束时抛出异常，失败时可能留下部分文件。源目录内容放在映像根目录下。
+调用约定：输出只构建文件，不挂载映像。已有目标文件会被覆盖并截断至新映像长度；调用方负责选择输出路径。数据流提前结束时抛出异常，写入失败保留已有目标文件。源目录内容放在映像根目录下。
 
 <a id="api-9e6f4f1e1c48db2a"></a>
 
@@ -19129,7 +22836,7 @@ public enum MmioCheckResultType
 
 <a id="api-c5851f3514586a28"></a>
 
-##### NeedsExpansion · 枚举值
+##### NeedsExpansion（枚举值）
 
 ```csharp
 NeedsExpansion = 1
@@ -19139,13 +22846,201 @@ NeedsExpansion = 1
 
 <a id="api-75becbee8d8495de"></a>
 
-##### Ok · 枚举值
+##### Ok（枚举值）
 
 ```csharp
 Ok = 0
 ```
 
 当前空间达到要求。
+
+<a id="api-0946f2df5298c59d"></a>
+
+### `NetworkThroughputReading` record 类
+
+吞吐观测及其时间。仅有效观测含有速率值。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 网络 |
+| 源文件 | ` Management/Host/Network/HostNetworkTelemetryService.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public NetworkThroughputReading(PerformanceSampleInfo Sample, NetworkThroughputSample? Throughput) `](#api-51eaf05f064ab8fd) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public PerformanceSampleInfo Sample { get; init; } `](#api-8718fb7a21a11807) | 采样状态和 UTC 观测时间。 |
+| [` public NetworkThroughputSample? Throughput { get; init; } `](#api-0cb0ce7946240da7) | 有效观测的收发速率，预热或缺测时为 null。 |
+
+#### 详细说明
+
+```csharp
+public sealed record NetworkThroughputReading(PerformanceSampleInfo Sample, NetworkThroughputSample? Throughput)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Sample` | 采样状态和 UTC 观测时间。 |
+| `Throughput` | 有效观测的收发速率，预热或缺测时为 null。 |
+
+#### 构造函数说明
+
+<a id="api-51eaf05f064ab8fd"></a>
+
+##### 创建网络吞吐观测（主构造器）
+
+```csharp
+public NetworkThroughputReading(PerformanceSampleInfo Sample, NetworkThroughputSample? Throughput);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Sample` | 采样状态和 UTC 观测时间。 |
+| `Throughput` | 有效观测的收发速率，预热或缺测时为 null。 |
+
+#### 属性说明
+
+<a id="api-8718fb7a21a11807"></a>
+
+##### 采样状态和时间（record 属性）
+
+```csharp
+public PerformanceSampleInfo Sample { get; init; }
+```
+
+采样状态和 UTC 观测时间。
+
+<a id="api-0cb0ce7946240da7"></a>
+
+##### 有效吞吐读数（record 属性）
+
+```csharp
+public NetworkThroughputSample? Throughput { get; init; }
+```
+
+有效观测的收发速率，预热或缺测时为 null。
+
+<a id="api-d1d3d0445b251a9c"></a>
+
+### `NetworkThroughputSample` record 类
+
+网络接口或虚拟交换机的实时吞吐采样。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 网络 |
+| 源文件 | ` Management/Host/Network/HostNetworkTelemetryService.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public NetworkThroughputSample(double BytesSentPerSec, double BytesReceivedPerSec, double TotalBytesPerSec) `](#api-01b85af8cd40bcb8) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public double BytesReceivedPerSec { get; init; } `](#api-c131f884505fcf57) | 每秒接收字节数（Bytes/sec）。 |
+| [` public double BytesSentPerSec { get; init; } `](#api-6eaf5e0a1dbcf543) | 每秒发送字节数（Bytes/sec）。 |
+| [` public double TotalBytesPerSec { get; init; } `](#api-1b2c20e131d09919) | 每秒总字节数（Bytes/sec）。 |
+
+#### 详细说明
+
+```csharp
+public sealed record NetworkThroughputSample(double BytesSentPerSec, double BytesReceivedPerSec, double TotalBytesPerSec)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `BytesSentPerSec` | 每秒发送字节数（Bytes/sec）。 |
+| `BytesReceivedPerSec` | 每秒接收字节数（Bytes/sec）。 |
+| `TotalBytesPerSec` | 每秒总字节数（Bytes/sec）。 |
+
+#### 构造函数说明
+
+<a id="api-01b85af8cd40bcb8"></a>
+
+##### 创建网络实时吞吐采样对象（主构造器）
+
+```csharp
+public NetworkThroughputSample(double BytesSentPerSec, double BytesReceivedPerSec, double TotalBytesPerSec);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `BytesSentPerSec` | 每秒发送字节数（Bytes/sec）。 |
+| `BytesReceivedPerSec` | 每秒接收字节数（Bytes/sec）。 |
+| `TotalBytesPerSec` | 每秒总字节数（Bytes/sec）。 |
+
+#### 属性说明
+
+<a id="api-c131f884505fcf57"></a>
+
+##### 每秒接收字节数（record 属性）
+
+```csharp
+public double BytesReceivedPerSec { get; init; }
+```
+
+每秒接收字节数（Bytes/sec）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 最近采样周期内的每秒接收字节速率。 |
+| 单位与表示 | Bytes/sec（字节每秒）。 |
+
+<a id="api-6eaf5e0a1dbcf543"></a>
+
+##### 每秒发送字节数（record 属性）
+
+```csharp
+public double BytesSentPerSec { get; init; }
+```
+
+每秒发送字节数（Bytes/sec）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 最近采样周期内的每秒发送字节速率。 |
+| 单位与表示 | Bytes/sec（字节每秒）。 |
+
+<a id="api-1b2c20e131d09919"></a>
+
+##### 每秒总字节数（record 属性）
+
+```csharp
+public double TotalBytesPerSec { get; init; }
+```
+
+每秒总字节数（Bytes/sec）。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 发送与接收字节速率之和。 |
+| 单位与表示 | Bytes/sec（字节每秒）。 |
 
 <a id="api-c531bbc4afdd18f2"></a>
 
@@ -19191,7 +23086,7 @@ public sealed record PcieAssignmentDecision(Guid RequestId, bool Approve)
 
 <a id="api-40eda60b9b12b83d"></a>
 
-##### 创建PCIe 分配确认对象 · 主构造器
+##### 创建PCIe 分配确认对象（主构造器）
 
 ```csharp
 public PcieAssignmentDecision(Guid RequestId, bool Approve);
@@ -19206,7 +23101,7 @@ public PcieAssignmentDecision(Guid RequestId, bool Approve);
 
 <a id="api-146282bf9a69e0c8"></a>
 
-##### 同意请求 · record 属性
+##### 同意请求（record 属性）
 
 ```csharp
 public bool Approve { get; init; }
@@ -19216,7 +23111,7 @@ public bool Approve { get; init; }
 
 <a id="api-af047e47f0858946"></a>
 
-##### 请求标识 · record 属性
+##### 请求标识（record 属性）
 
 ```csharp
 public Guid RequestId { get; init; }
@@ -19260,7 +23155,7 @@ public enum PcieAssignmentError
 
 <a id="api-b8f1eb7d45c554d0"></a>
 
-##### Execution · 枚举值
+##### Execution（枚举值）
 
 ```csharp
 Execution = 4
@@ -19270,7 +23165,7 @@ Execution = 4
 
 <a id="api-49662c9ad3f69aa8"></a>
 
-##### MmioCheck · 枚举值
+##### MmioCheck（枚举值）
 
 ```csharp
 MmioCheck = 1
@@ -19280,7 +23175,7 @@ MmioCheck = 1
 
 <a id="api-03978ea90db8a3fa"></a>
 
-##### MmioUpdate · 枚举值
+##### MmioUpdate（枚举值）
 
 ```csharp
 MmioUpdate = 2
@@ -19290,7 +23185,7 @@ MMIO 扩展未成功。
 
 <a id="api-6e9d134748eb994b"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -19300,7 +23195,7 @@ None = 0
 
 <a id="api-09f80251ece87af8"></a>
 
-##### SystemDisk · 枚举值
+##### SystemDisk（枚举值）
 
 ```csharp
 SystemDisk = 3
@@ -19342,7 +23237,7 @@ public enum PcieAssignmentKind
 
 <a id="api-4c6aa9bf769e26df"></a>
 
-##### Host · 枚举值
+##### Host（枚举值）
 
 ```csharp
 Host = 0
@@ -19352,7 +23247,7 @@ Host = 0
 
 <a id="api-997c8e50ba24daac"></a>
 
-##### Unassigned · 枚举值
+##### Unassigned（枚举值）
 
 ```csharp
 Unassigned = 1
@@ -19362,7 +23257,7 @@ Unassigned = 1
 
 <a id="api-03b823b9f400d41b"></a>
 
-##### VirtualMachine · 枚举值
+##### VirtualMachine（枚举值）
 
 ```csharp
 VirtualMachine = 2
@@ -19416,7 +23311,7 @@ public sealed class PcieAssignmentSession
 
 <a id="api-335da65658106f0d"></a>
 
-##### 创建PCIe 分配流程对象 · 构造器
+##### 创建PCIe 分配流程对象（构造器）
 
 ```csharp
 public PcieAssignmentSession(PcieDeviceInfo device, IEnumerable<PcieDeviceInfo> devices, PcieAssignmentTarget target);
@@ -19437,7 +23332,7 @@ public PcieAssignmentSession(PcieDeviceInfo device, IEnumerable<PcieDeviceInfo> 
 
 <a id="api-45c0a5ccdd74afe1"></a>
 
-##### 状态 · 属性
+##### 状态（属性）
 
 ```csharp
 public PcieAssignmentState State { get; } = new(PcieAssignmentStep.Ready);
@@ -19449,7 +23344,7 @@ public PcieAssignmentState State { get; } = new(PcieAssignmentStep.Ready);
 
 <a id="api-e77b48657194947b"></a>
 
-##### PCIe 设备分配与归还 · 方法
+##### PCIe 设备分配与归还（方法）
 
 ```csharp
 public async Task<PcieAssignmentState> AdvanceAsync(PcieAssignmentDecision? decision = null);
@@ -19560,7 +23455,7 @@ public sealed record PcieAssignmentState(
 
 <a id="api-36ac9b8b6943fefc"></a>
 
-##### 创建PCIe 分配状态对象 · 主构造器
+##### 创建PCIe 分配状态对象（主构造器）
 
 ```csharp
 public PcieAssignmentState(PcieAssignmentStep Step, string Title = "", string Message = "", PcieAssignmentError Error = PcieAssignmentError.None, bool RefreshRequired = false, Guid? RequestId = null);
@@ -19579,7 +23474,7 @@ public PcieAssignmentState(PcieAssignmentStep Step, string Title = "", string Me
 
 <a id="api-5cb2c7fcdff365bc"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public PcieAssignmentError Error { get; init; }
@@ -19589,7 +23484,7 @@ public PcieAssignmentError Error { get; init; }
 
 <a id="api-d056b5caf0db384e"></a>
 
-##### 失败详情 · 属性
+##### 失败详情（属性）
 
 ```csharp
 public ApiFailure? Failure { get; init; }
@@ -19599,7 +23494,7 @@ public ApiFailure? Failure { get; init; }
 
 <a id="api-8e56ceb906e1d0e8"></a>
 
-##### 流程结束状态 · 属性
+##### 流程结束状态（属性）
 
 ```csharp
 public bool IsFinished { get; }
@@ -19609,7 +23504,7 @@ public bool IsFinished { get; }
 
 <a id="api-3dfb56e1f551dcce"></a>
 
-##### 操作说明 · record 属性
+##### 操作说明（record 属性）
 
 ```csharp
 public string Message { get; init; }
@@ -19619,7 +23514,7 @@ public string Message { get; init; }
 
 <a id="api-b45094a857212b31"></a>
 
-##### 结果未确定 · 属性
+##### 结果未确定（属性）
 
 ```csharp
 public bool OutcomeUnknown { get; }
@@ -19629,7 +23524,7 @@ public bool OutcomeUnknown { get; }
 
 <a id="api-b70b11a444b88017"></a>
 
-##### 状态刷新要求 · record 属性
+##### 状态刷新要求（record 属性）
 
 ```csharp
 public bool RefreshRequired { get; init; }
@@ -19639,7 +23534,7 @@ public bool RefreshRequired { get; init; }
 
 <a id="api-e7353760b2fe1986"></a>
 
-##### 请求标识 · record 属性
+##### 请求标识（record 属性）
 
 ```csharp
 public Guid? RequestId { get; init; }
@@ -19649,7 +23544,7 @@ public Guid? RequestId { get; init; }
 
 <a id="api-5c29af7c5b50151e"></a>
 
-##### 等待决定 · 属性
+##### 等待决定（属性）
 
 ```csharp
 public bool RequiresDecision { get; }
@@ -19659,7 +23554,7 @@ public bool RequiresDecision { get; }
 
 <a id="api-5832db15cad30135"></a>
 
-##### 当前步骤 · record 属性
+##### 当前步骤（record 属性）
 
 ```csharp
 public PcieAssignmentStep Step { get; init; }
@@ -19669,7 +23564,7 @@ public PcieAssignmentStep Step { get; init; }
 
 <a id="api-9e1be126d0de1eac"></a>
 
-##### 步骤列表 · 属性
+##### 步骤列表（属性）
 
 ```csharp
 public IReadOnlyList<OperationStepResult> Steps { get; init; } = Array.Empty<OperationStepResult>();
@@ -19681,7 +23576,7 @@ public IReadOnlyList<OperationStepResult> Steps { get; init; } = Array.Empty<Ope
 
 <a id="api-eb5abfa1fdef18df"></a>
 
-##### 标题 · record 属性
+##### 标题（record 属性）
 
 ```csharp
 public string Title { get; init; }
@@ -19728,7 +23623,7 @@ public enum PcieAssignmentStep
 
 <a id="api-a19696e52bc45ae1"></a>
 
-##### Cancelled · 枚举值
+##### Cancelled（枚举值）
 
 ```csharp
 Cancelled = 5
@@ -19738,7 +23633,7 @@ Cancelled = 5
 
 <a id="api-07b6e90bf39b5db5"></a>
 
-##### Completed · 枚举值
+##### Completed（枚举值）
 
 ```csharp
 Completed = 4
@@ -19748,7 +23643,7 @@ Completed = 4
 
 <a id="api-e3ffdd4c3ff2ad1d"></a>
 
-##### ConfirmCompanions · 枚举值
+##### ConfirmCompanions（枚举值）
 
 ```csharp
 ConfirmCompanions = 3
@@ -19758,7 +23653,7 @@ ConfirmCompanions = 3
 
 <a id="api-882b471bf27e70d5"></a>
 
-##### ConfirmLastGpu · 枚举值
+##### ConfirmLastGpu（枚举值）
 
 ```csharp
 ConfirmLastGpu = 1
@@ -19768,7 +23663,7 @@ ConfirmLastGpu = 1
 
 <a id="api-bfcf096559b00e95"></a>
 
-##### ConfirmMmio · 枚举值
+##### ConfirmMmio（枚举值）
 
 ```csharp
 ConfirmMmio = 7
@@ -19778,7 +23673,7 @@ ConfirmMmio = 7
 
 <a id="api-33965c43de094e4a"></a>
 
-##### ConfirmOfflineDisks · 枚举值
+##### ConfirmOfflineDisks（枚举值）
 
 ```csharp
 ConfirmOfflineDisks = 2
@@ -19788,7 +23683,7 @@ ConfirmOfflineDisks = 2
 
 <a id="api-bf1d3e2d8854a697"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 6
@@ -19798,7 +23693,7 @@ Failed = 6
 
 <a id="api-2e368425096a7a22"></a>
 
-##### Ready · 枚举值
+##### Ready（枚举值）
 
 ```csharp
 Ready = 0
@@ -19857,7 +23752,7 @@ public sealed record PcieAssignmentTarget
 
 <a id="api-c38bfc4ed1fb8d54"></a>
 
-##### 目标地址 · 属性
+##### 目标地址（属性）
 
 ```csharp
 public static PcieAssignmentTarget Host { get; } = new(PcieAssignmentKind.Host);
@@ -19867,7 +23762,7 @@ public static PcieAssignmentTarget Host { get; } = new(PcieAssignmentKind.Host);
 
 <a id="api-0411059344195213"></a>
 
-##### 类别 · 属性
+##### 类别（属性）
 
 ```csharp
 public PcieAssignmentKind Kind { get; }
@@ -19877,7 +23772,7 @@ public PcieAssignmentKind Kind { get; }
 
 <a id="api-ea25c249ab09e966"></a>
 
-##### 未分配状态 · 属性
+##### 未分配状态（属性）
 
 ```csharp
 public static PcieAssignmentTarget Unassigned { get; } = new(PcieAssignmentKind.Unassigned);
@@ -19887,7 +23782,7 @@ public static PcieAssignmentTarget Unassigned { get; } = new(PcieAssignmentKind.
 
 <a id="api-37c609c006e9b4e0"></a>
 
-##### 虚拟机标识 · 属性
+##### 虚拟机标识（属性）
 
 ```csharp
 public Guid? VirtualMachineId { get; }
@@ -19897,7 +23792,7 @@ public Guid? VirtualMachineId { get; }
 
 <a id="api-7a133ddad76b19d6"></a>
 
-##### 虚拟机名称 · 属性
+##### 虚拟机名称（属性）
 
 ```csharp
 public string? VirtualMachineName { get; }
@@ -19909,7 +23804,7 @@ public string? VirtualMachineName { get; }
 
 <a id="api-13915b51bdd1f128"></a>
 
-##### 创建虚拟机分配目标 · 方法
+##### 创建虚拟机分配目标（方法）
 
 ```csharp
 public static PcieAssignmentTarget ForVirtualMachine(Guid virtualMachineId, string? displayName = null);
@@ -19930,7 +23825,7 @@ public static PcieAssignmentTarget ForVirtualMachine(Guid virtualMachineId, stri
 
 <a id="api-2fe1beb64a38b293"></a>
 
-##### 比较设备归属 · 方法
+##### 比较设备归属（方法）
 
 ```csharp
 public bool Equals(PcieAssignmentTarget? other);
@@ -19946,7 +23841,7 @@ public bool Equals(PcieAssignmentTarget? other);
 
 <a id="api-c6663a5aefc7c2c3"></a>
 
-##### 计算归属哈希值 · 方法
+##### 计算归属哈希值（方法）
 
 ```csharp
 public override int GetHashCode();
@@ -20003,7 +23898,7 @@ public sealed record PcieHostInfo(IReadOnlyList<PcieDeviceInfo> Devices,
 
 <a id="api-50931d5dcd03aae0"></a>
 
-##### 创建PCIe 分配环境对象 · 主构造器
+##### 创建PCIe 分配环境对象（主构造器）
 
 ```csharp
 public PcieHostInfo(IReadOnlyList<PcieDeviceInfo> Devices, IReadOnlyList<PcieAssignmentTarget> VirtualMachines);
@@ -20018,7 +23913,7 @@ public PcieHostInfo(IReadOnlyList<PcieDeviceInfo> Devices, IReadOnlyList<PcieAss
 
 <a id="api-15a835731b4ee664"></a>
 
-##### 设备列表 · record 属性
+##### 设备列表（record 属性）
 
 ```csharp
 public IReadOnlyList<PcieDeviceInfo> Devices { get; init; }
@@ -20028,7 +23923,7 @@ PCIe 设备快照及稳定归属身份。
 
 <a id="api-a34e22743b52b47e"></a>
 
-##### 虚拟机列表 · record 属性
+##### 虚拟机列表（record 属性）
 
 ```csharp
 public IReadOnlyList<PcieAssignmentTarget> VirtualMachines { get; init; }
@@ -20068,7 +23963,7 @@ public static class SharedBackgroundServices
 
 <a id="api-db8598581b9373e3"></a>
 
-##### 释放共享后台资源 · 方法
+##### 释放共享后台资源（方法）
 
 ```csharp
 public static Task ShutdownAsync();
@@ -20115,7 +24010,7 @@ public sealed class SwitchConfigurationConflictException(string message) : ExHyp
 
 <a id="api-6ac97287ef6bffb9"></a>
 
-##### 创建交换机配置冲突对象 · 主构造器
+##### 创建交换机配置冲突对象（主构造器）
 
 ```csharp
 public SwitchConfigurationConflictException(string message);
@@ -20163,7 +24058,7 @@ public static class SwitchConfigurationRules
 
 <a id="api-0919ed6c4a07d270"></a>
 
-##### 筛选可用上游网卡 · 方法
+##### 筛选可用上游网卡（方法）
 
 ```csharp
 public static List<SwitchUpstreamAdapter> GetAvailableCreationAdapters(SwitchMode mode, IEnumerable<SwitchInfo> existing, IEnumerable<SwitchUpstreamAdapter> physical, IEnumerable<SwitchUpstreamAdapter> bridgeable);
@@ -20184,7 +24079,7 @@ public static List<SwitchUpstreamAdapter> GetAvailableCreationAdapters(SwitchMod
 
 <a id="api-86b9a8b86ae6d6c4"></a>
 
-##### 检查交换机创建参数 · 方法
+##### 检查交换机创建参数（方法）
 
 ```csharp
 public static string? GetCreationError(string name, SwitchMode mode, SwitchUpstreamAdapter? upstream, IReadOnlyList<SwitchInfo> existing, IEnumerable<SwitchUpstreamAdapter> physical, IEnumerable<SwitchUpstreamAdapter> bridgeable);
@@ -20207,7 +24102,7 @@ public static string? GetCreationError(string name, SwitchMode mode, SwitchUpstr
 
 <a id="api-d610723ddaa1a298"></a>
 
-##### 检查交换机删除条件 · 方法
+##### 检查交换机删除条件（方法）
 
 ```csharp
 public static string? GetDeletionError(string targetId);
@@ -20225,7 +24120,7 @@ public static string? GetDeletionError(string targetId);
 
 <a id="api-e1a3bc56fd101212"></a>
 
-##### 检查交换机修改冲突 · 方法
+##### 检查交换机修改冲突（方法）
 
 ```csharp
 public static string? GetUpdateConflict(string targetId, SwitchMode mode, SwitchUpstreamAdapter? upstream, IEnumerable<SwitchInfo> existing);
@@ -20246,7 +24141,7 @@ public static string? GetUpdateConflict(string targetId, SwitchMode mode, Switch
 
 <a id="api-9078e206f38624b8"></a>
 
-##### 检查交换机配置完整性 · 方法
+##### 检查交换机配置完整性（方法）
 
 ```csharp
 public static bool IsConfigurationComplete(SwitchMode mode, SwitchUpstreamAdapter? upstream);
@@ -20265,7 +24160,7 @@ public static bool IsConfigurationComplete(SwitchMode mode, SwitchUpstreamAdapte
 
 <a id="api-5c324f1f89e0f556"></a>
 
-##### 识别默认交换机 · 方法
+##### 识别默认交换机（方法）
 
 ```csharp
 public static bool IsDefaultSwitch(string id);
@@ -20283,7 +24178,7 @@ public static bool IsDefaultSwitch(string id);
 
 <a id="api-e2fade47fbbeffb4"></a>
 
-##### 检查是否需要上游网卡 · 方法
+##### 检查是否需要上游网卡（方法）
 
 ```csharp
 public static bool RequiresUpstream(SwitchMode mode);
@@ -20334,7 +24229,7 @@ public static class VmAffinityFields
 
 <a id="api-1b589b84d0b4061c"></a>
 
-##### 实际处理器选择 · 字段
+##### 实际处理器选择（字段）
 
 ```csharp
 public static readonly VmQueryField<IReadOnlyList<int>> AppliedProcessors;
@@ -20348,7 +24243,7 @@ public static readonly VmQueryField<IReadOnlyList<int>> AppliedProcessors;
 
 <a id="api-e23d641142c50dab"></a>
 
-##### 需要重新选择的原因 · 字段
+##### 需要重新选择的原因（字段）
 
 ```csharp
 public static readonly VmQueryField<string> SavedPreferenceIssue;
@@ -20362,7 +24257,7 @@ public static readonly VmQueryField<string> SavedPreferenceIssue;
 
 <a id="api-395165dc75c45eca"></a>
 
-##### 保存配置的适用状态 · 字段
+##### 保存配置的适用状态（字段）
 
 ```csharp
 public static readonly VmQueryField<CpuAffinityService.PreferenceStatus> SavedPreferenceStatus;
@@ -20374,7 +24269,7 @@ public static readonly VmQueryField<CpuAffinityService.PreferenceStatus> SavedPr
 
 <a id="api-4ca7e94106e13c41"></a>
 
-##### 保存的处理器选择 · 字段
+##### 保存的处理器选择（字段）
 
 ```csharp
 public static readonly VmQueryField<IReadOnlyList<int>> SavedProcessors;
@@ -20430,7 +24325,7 @@ public readonly record struct VmBatteryState(bool Available, bool Enabled)
 
 <a id="api-9391c2ffb2364ec4"></a>
 
-##### 创建虚拟电池状态对象 · 主构造器
+##### 创建虚拟电池状态对象（主构造器）
 
 ```csharp
 public VmBatteryState(bool Available, bool Enabled);
@@ -20445,7 +24340,7 @@ public VmBatteryState(bool Available, bool Enabled);
 
 <a id="api-90a994c7cc17f149"></a>
 
-##### 支持状态 · record 属性
+##### 支持状态（record 属性）
 
 ```csharp
 public bool Available { get; init; }
@@ -20455,7 +24350,7 @@ public bool Available { get; init; }
 
 <a id="api-e6701e5dba639938"></a>
 
-##### 启用状态 · record 属性
+##### 启用状态（record 属性）
 
 ```csharp
 public bool Enabled { get; init; }
@@ -20498,7 +24393,7 @@ public static class VmBootFields
 
 <a id="api-85d58f5cb9340b4e"></a>
 
-##### 启动项描述 · 字段
+##### 启动项描述（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Description;
@@ -20508,7 +24403,7 @@ public static readonly VmQueryField<string> Description;
 
 <a id="api-d91a1af981948277"></a>
 
-##### 启动项类型 · 字段
+##### 启动项类型（字段）
 
 ```csharp
 public static readonly VmQueryField<BootDeviceKind> Kind;
@@ -20518,7 +24413,7 @@ public static readonly VmQueryField<BootDeviceKind> Kind;
 
 <a id="api-bfb5685ff3d47bc8"></a>
 
-##### 启动项名称 · 字段
+##### 启动项名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
@@ -20528,7 +24423,7 @@ public static readonly VmQueryField<string> Name;
 
 <a id="api-f85cf3823aa6fc91"></a>
 
-##### 启动顺序位置 · 字段
+##### 启动顺序位置（字段）
 
 ```csharp
 public static readonly VmQueryField<int> Order;
@@ -20570,7 +24465,7 @@ public static class VmBootGlobalFields
 
 <a id="api-6c26d466372362fc"></a>
 
-##### 启动数字锁定 · 字段
+##### 启动数字锁定（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> NumLock;
@@ -20618,7 +24513,7 @@ public static partial class VmBootService
 
 <a id="api-1ab114048d5aa660"></a>
 
-##### 读取引导 Num Lock · 方法
+##### 读取引导 Num Lock（方法）
 
 ```csharp
 public static async Task<ApiResponse<bool>> GetBootNumLockAsync(Guid vmId);
@@ -20636,7 +24531,7 @@ public static async Task<ApiResponse<bool>> GetBootNumLockAsync(Guid vmId);
 
 <a id="api-697f57bf779efdad"></a>
 
-##### 读取启动顺序 · 方法
+##### 读取启动顺序（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<BootOrderItem>>> GetBootOrderAsync(Guid vmId);
@@ -20654,7 +24549,7 @@ public static async Task<ApiResponse<List<BootOrderItem>>> GetBootOrderAsync(Gui
 
 <a id="api-21579feaf38bec17"></a>
 
-##### 评估启动顺序修改条件 · 方法
+##### 评估启动顺序修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetBootOrderModificationCondition(int generation, VmState state);
@@ -20673,7 +24568,7 @@ public static VmModificationCondition GetBootOrderModificationCondition(int gene
 
 <a id="api-1d3fa5dd7f8cbaff"></a>
 
-##### 评估数字小键盘修改条件 · 方法
+##### 评估数字小键盘修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetNumLockModificationCondition(VmState state);
@@ -20691,7 +24586,7 @@ public static VmModificationCondition GetNumLockModificationCondition(VmState st
 
 <a id="api-684b166a8ccb7168"></a>
 
-##### 设置引导 Num Lock · 方法
+##### 设置引导 Num Lock（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetBootNumLockAsync(Guid vmId, bool enable);
@@ -20710,7 +24605,7 @@ public static async Task<ApiResponse> SetBootNumLockAsync(Guid vmId, bool enable
 
 <a id="api-a779b5a43e874523"></a>
 
-##### 设置启动顺序 · 方法
+##### 设置启动顺序（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetBootOrderAsync(Guid vmId, List<BootOrderItem> items);
@@ -20729,7 +24624,7 @@ public static async Task<ApiResponse> SetBootOrderAsync(Guid vmId, List<BootOrde
 
 <a id="api-b77d3623b7ba7724"></a>
 
-##### 优先从光驱引导 · 方法
+##### 优先从光驱引导（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetIsoFirstAsync(Guid vmId);
@@ -20771,7 +24666,7 @@ public static async Task<ApiResponse> SetIsoFirstAsync(Guid vmId);
 | [` public static readonly VmQueryField<bool> IsCurrent `](#api-383c3e1be4986062) | 当前所在位置：节点是否为当前配置或其直接父检查点，用于标记当前分支位置。 |
 | [` public static readonly VmQueryField<bool> IsWormhole `](#api-2cb0fa6b370f702d) | 历史磁盘临时挂接状态：是否检测到该节点历史磁盘的临时挂接。 |
 | [` public static readonly VmQueryField<string> Name `](#api-f3a3bd8cf760b53f) | 检查点名称：检查点或当前配置节点的显示名称。 |
-| [` public static readonly VmQueryField<SpacetimeNodeType> NodeType `](#api-77f64dce3871ccf4) | 节点类型：节点的类型，用于区分当前配置和已保存的检查点。 |
+| [` public static readonly VmQueryField<CheckpointNodeType> NodeType `](#api-77f64dce3871ccf4) | 节点类型：节点的类型，用于区分当前配置和已保存的检查点。 |
 | [` public static readonly VmQueryField<string> ParentId `](#api-8477d9dd02b8af1d) | 父检查点身份：在本次节点集合中解析出的父配置标识；未解析到时为空字符串。 |
 
 #### 详细说明
@@ -20784,7 +24679,7 @@ public static class VmCheckpointFields
 
 <a id="api-92838a055c81cd8a"></a>
 
-##### 检查点创建时间 · 字段
+##### 检查点创建时间（字段）
 
 ```csharp
 public static readonly VmQueryField<DateTime> CreatedDate;
@@ -20798,7 +24693,7 @@ public static readonly VmQueryField<DateTime> CreatedDate;
 
 <a id="api-dcd2d24ef78bb47f"></a>
 
-##### 历史磁盘路径 · 字段
+##### 历史磁盘路径（字段）
 
 ```csharp
 public static readonly VmQueryField<IReadOnlyList<string>> DiskPaths;
@@ -20810,7 +24705,7 @@ public static readonly VmQueryField<IReadOnlyList<string>> DiskPaths;
 
 <a id="api-3e2477b6cfc585c4"></a>
 
-##### 检查点身份 · 字段
+##### 检查点身份（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Id;
@@ -20820,7 +24715,7 @@ public static readonly VmQueryField<string> Id;
 
 <a id="api-383c3e1be4986062"></a>
 
-##### 当前所在位置 · 字段
+##### 当前所在位置（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> IsCurrent;
@@ -20832,7 +24727,7 @@ public static readonly VmQueryField<bool> IsCurrent;
 
 <a id="api-2cb0fa6b370f702d"></a>
 
-##### 历史磁盘临时挂接状态 · 字段
+##### 历史磁盘临时挂接状态（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> IsWormhole;
@@ -20844,7 +24739,7 @@ public static readonly VmQueryField<bool> IsWormhole;
 
 <a id="api-f3a3bd8cf760b53f"></a>
 
-##### 检查点名称 · 字段
+##### 检查点名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
@@ -20854,17 +24749,17 @@ public static readonly VmQueryField<string> Name;
 
 <a id="api-77f64dce3871ccf4"></a>
 
-##### 节点类型 · 字段
+##### 节点类型（字段）
 
 ```csharp
-public static readonly VmQueryField<SpacetimeNodeType> NodeType;
+public static readonly VmQueryField<CheckpointNodeType> NodeType;
 ```
 
 节点的类型，用于区分当前配置和已保存的检查点。
 
 <a id="api-8477d9dd02b8af1d"></a>
 
-##### 父检查点身份 · 字段
+##### 父检查点身份（字段）
 
 ```csharp
 public static readonly VmQueryField<string> ParentId;
@@ -20904,7 +24799,7 @@ public static class VmCheckpointGlobalFields
 
 <a id="api-c3bacbefd3629100"></a>
 
-##### 检查点开关 · 字段
+##### 检查点开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> Enabled;
@@ -20913,6 +24808,340 @@ public static readonly VmQueryField<bool> Enabled;
 UserSnapshotType 不为 2 时返回 true；这是检查点策略的有损开关视图，不区分生产、标准及后备策略。
 
 **取值说明：** `true`：允许创建检查点；`false`：禁止创建检查点。
+
+<a id="api-a8fdfb6ce4d14741"></a>
+
+### `VmCheckpointService` 类
+
+管理检查点、应用、合并、删除及历史磁盘临时挂接，相关操作可能修改配置和磁盘文件。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
+| 源文件 | ` Management/VirtualMachines/Checkpoints/VmCheckpointService.cs ` |
+
+#### 成员概览
+
+**静态方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static Task<ApiResponse> AnnihilateAsync(Guid vmId, CheckpointNode node) `](#api-c49d6eb27e3f5804) | 删除目标检查点及其全部后代检查点。 |
+| [` public static bool CanCreateMoment(bool checkpointsEnabled, IEnumerable<CheckpointNode>? nodes) `](#api-fc7d171e8b64c06d) | 检查是否允许创建检查点，要求已启用检查点且没有打开的历史磁盘挂接。 |
+| [` public static bool CanMergeHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes) `](#api-73cc2db357857cab) | 判断历史检查点是否允许向左合并到父检查点，仅当父节点为历史检查点且目标节点是父节点的唯一直接子节点时允许合并，避免影响初始根节点、分叉节点或当前运行状态直接挂靠的父节点。 |
+| [` public static bool CanMutateHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes) `](#api-012aa50f7d4eac34) | 判断历史检查点是否能执行修改，要求节点有效且没有打开的历史磁盘挂接。 |
+| [` public static bool CanOperateHistoricalNode(CheckpointNode? node) `](#api-17c31588a4cf34bb) | 判断节点是否代表可操作的历史检查点。 |
+| [` public static Task<ApiResponse> CaptureMomentAsync(Guid vmId) `](#api-c22ca175064a8cc9) | 按虚拟机当前检查点策略创建检查点。 |
+| [` public static Task<ApiResponse> CloseWormholeAsync(Guid vmId, CheckpointNode node) `](#api-328dc7e4c3b68b61) | 移除历史磁盘挂接、删除临时盘并恢复历史磁盘名称。 |
+| [` public static Task<ApiResponse> ConvergeAsync(Guid vmId, CheckpointNode node) `](#api-0002917ce4a15843) | 将目标历史检查点向左合并到父检查点并保留父检查点名称与后续节点。 |
+| [` public static async Task<ApiResponse<List<CheckpointNode>>> GetCheckpointNodesAsync(Guid vmId) `](#api-d2b683981cdae2f4) | 按稳定身份读取检查点树、当前状态及历史磁盘挂接信息。 |
+| [` public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId) `](#api-8dd82bbc8517635d) | 按稳定身份读取虚拟机检查点是否启用。 |
+| [` public static bool HasOpenWormhole(IEnumerable<CheckpointNode>? nodes) `](#api-63676cfc3869ddc6) | 检查节点集合中是否存在已打开的历史磁盘挂接。 |
+| [` public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, CheckpointNode targetNode) `](#api-8917285fe9d10942) | 将指定历史节点的磁盘临时挂接到同一虚拟机。 |
+| [` public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, CheckpointNode node, string newName) `](#api-2e97cf51c5da604d) | 修改属于目标虚拟机的检查点名称。 |
+| [` public static Task<ApiResponse> SetCheckpointsEnabledAsync(Guid vmId, bool enabled) `](#api-96de34a0b0c8f7e0) | 按稳定身份设置虚拟机是否允许使用检查点。 |
+| [` public static Task<ApiResponse> TeleportAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null) `](#api-23b39a3531fd7a6a) | 关闭当前历史磁盘挂接，应用检查点，并完成流程要求的重新启动。 |
+
+#### 详细说明
+
+```csharp
+public static class VmCheckpointService
+```
+
+#### 静态方法说明
+
+<a id="api-c49d6eb27e3f5804"></a>
+
+##### 删除检查点（方法）
+
+```csharp
+public static Task<ApiResponse> AnnihilateAsync(Guid vmId, CheckpointNode node);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+删除目标检查点及其全部后代检查点。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `node` | 要删除的历史节点，执行前核对归属及历史磁盘挂接互锁。 |
+
+返回：删除结果。
+
+<a id="api-fc7d171e8b64c06d"></a>
+
+##### 检查检查点创建条件（方法）
+
+```csharp
+public static bool CanCreateMoment(bool checkpointsEnabled, IEnumerable<CheckpointNode>? nodes);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+检查是否允许创建检查点，要求已启用检查点且没有打开的历史磁盘挂接。
+
+| 参数 | 说明 |
+| --- | --- |
+| `checkpointsEnabled` | 当前是否允许使用检查点。 |
+| `nodes` | 检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。 |
+
+返回：当前输入满足条件时为 true。
+
+<a id="api-73cc2db357857cab"></a>
+
+##### 检查历史检查点合并条件（方法）
+
+```csharp
+public static bool CanMergeHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+判断历史检查点是否允许向左合并到父检查点，仅当父节点为历史检查点且目标节点是父节点的唯一直接子节点时允许合并，避免影响初始根节点、分叉节点或当前运行状态直接挂靠的父节点。
+
+| 参数 | 说明 |
+| --- | --- |
+| `node` | 目标历史检查点。 |
+| `nodes` | 检查点和当前状态节点的快照，null 集合按没有节点处理。 |
+
+返回：满足合并拓扑与无历史磁盘挂接条件时为 true。
+
+<a id="api-012aa50f7d4eac34"></a>
+
+##### 检查历史节点修改条件（方法）
+
+```csharp
+public static bool CanMutateHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+判断历史检查点是否能执行修改，要求节点有效且没有打开的历史磁盘挂接。
+
+| 参数 | 说明 |
+| --- | --- |
+| `node` | 目标历史检查点或已打开的历史磁盘挂接节点。 |
+| `nodes` | 检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。 |
+
+返回：当前输入满足条件时为 true。
+
+<a id="api-17c31588a4cf34bb"></a>
+
+##### 检查历史节点操作条件（方法）
+
+```csharp
+public static bool CanOperateHistoricalNode(CheckpointNode? node);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+判断节点是否代表可操作的历史检查点。
+
+| 参数 | 说明 |
+| --- | --- |
+| `node` | 目标历史检查点或已打开的历史磁盘挂接节点。 |
+
+返回：仅非空且 NodeType 为 Snapshot 时返回 true，Genesis 和 Current 均不满足。
+
+<a id="api-c22ca175064a8cc9"></a>
+
+##### 创建检查点（方法）
+
+```csharp
+public static Task<ApiResponse> CaptureMomentAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+按虚拟机当前检查点策略创建检查点。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+
+返回：检查点创建结果。
+
+<a id="api-328dc7e4c3b68b61"></a>
+
+##### 结束历史磁盘挂接（方法）
+
+```csharp
+public static Task<ApiResponse> CloseWormholeAsync(Guid vmId, CheckpointNode node);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+移除历史磁盘挂接、删除临时盘并恢复历史磁盘名称。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `node` | 要关闭挂接的历史节点，执行前重新核对当前实际挂接。 |
+
+返回：清理结果，失败时保留可供重试的节点状态。
+
+<a id="api-0002917ce4a15843"></a>
+
+##### 合并检查点（方法）
+
+```csharp
+public static Task<ApiResponse> ConvergeAsync(Guid vmId, CheckpointNode node);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+将目标历史检查点向左合并到父检查点并保留父检查点名称与后续节点。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `node` | 要合并到父节点的历史检查点，执行前核对归属、父子单线关系及历史磁盘挂接互锁。 |
+
+返回：合并结果。
+
+<a id="api-d2b683981cdae2f4"></a>
+
+##### 查询检查点树（方法）
+
+```csharp
+public static async Task<ApiResponse<List<CheckpointNode>>> GetCheckpointNodesAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+按稳定身份读取检查点树、当前状态及历史磁盘挂接信息。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+
+返回：完整节点列表，失败时返回原因。
+
+<a id="api-8dd82bbc8517635d"></a>
+
+##### 读取检查点开关（方法）
+
+```csharp
+public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+按稳定身份读取虚拟机检查点是否启用。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+
+返回：成功时返回实际设置，配置缺失或查询失败返回错误，不推断为启用。
+
+<a id="api-63676cfc3869ddc6"></a>
+
+##### 检查历史磁盘挂接（方法）
+
+```csharp
+public static bool HasOpenWormhole(IEnumerable<CheckpointNode>? nodes);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+检查节点集合中是否存在已打开的历史磁盘挂接。
+
+| 参数 | 说明 |
+| --- | --- |
+| `nodes` | 检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。 |
+
+返回：存在打开的历史磁盘挂接时为 true，null 集合为 false。
+
+<a id="api-8917285fe9d10942"></a>
+
+##### 临时挂接历史磁盘（方法）
+
+```csharp
+public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, CheckpointNode targetNode);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+将指定历史节点的磁盘临时挂接到同一虚拟机。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `targetNode` | 来自该虚拟机的历史节点，执行前重新核对身份和当前磁盘关系。 |
+
+返回：挂接结果，失败可能发生在部分文件和配置变更之后。
+
+调用约定：只处理节点 VhdPath 指定的一个磁盘，不挂接该检查点的全部磁盘。流程可能将 .avhdx 改名为 _renamed.vhdx，再创建同目录 _wormhole_tmp.vhdx 差分盘并挂到 SCSI。关闭时移除临时盘并恢复文件名。当前运行磁盘父链上的节点不能这样挂接。
+
+
+
+临时盘或改名目标已存在时返回冲突并保留文件，不凭固定文件名认定旧文件属于本次操作。创建结果尚未确认时保留现场，失败清理只删除本次已确认创建的临时盘。
+
+<a id="api-2e97cf51c5da604d"></a>
+
+##### 重命名检查点（方法）
+
+```csharp
+public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, CheckpointNode node, string newName);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+修改属于目标虚拟机的检查点名称。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `node` | 目标历史节点，执行前重新核对归属。 |
+| `newName` | 非空的新显示名称。 |
+
+返回：重命名结果。
+
+<a id="api-96de34a0b0c8f7e0"></a>
+
+##### 设置检查点开关（方法）
+
+```csharp
+public static Task<ApiResponse> SetCheckpointsEnabledAsync(Guid vmId, bool enabled);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+按稳定身份设置虚拟机是否允许使用检查点。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `enabled` | true 启用检查点，false 禁用。 |
+
+返回：设置结果，错误包含实际查询或提交原因。
+
+<a id="api-23b39a3531fd7a6a"></a>
+
+##### 恢复检查点（方法）
+
+```csharp
+public static Task<ApiResponse> TeleportAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null);
+```
+
+功能归属：管理层面 / 虚拟机 / 检查点。
+
+关闭当前历史磁盘挂接，应用检查点，并完成流程要求的重新启动。
+
+| 参数 | 说明 |
+| --- | --- |
+| `node` | 要应用的历史节点。 |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `nodes` | 可选的调用方节点快照，用于同步本次清理后的挂接状态。 |
+
+返回：整个应用及必要重启结果，Steps 记录 CloseWormhole（ResourceId 为节点 ID）、Save、Apply、Start 及失败的状态检查 StateBeforeApply/StateBeforeRestart。未执行的步骤不列出，后续失败不会撤销已经完成的步骤。
+
+调用约定：初始为运行或暂停的虚拟机，在应用后启动。
 
 <a id="api-4c35b7ba174517dd"></a>
 
@@ -20963,7 +25192,7 @@ public sealed record VmConfigurationState
 
 <a id="api-d30a365c6d366958"></a>
 
-##### 创建虚拟机配置状态对象 · 构造器
+##### 创建虚拟机配置状态对象（构造器）
 
 ```csharp
 public VmConfigurationState(string id, int generation, VmState state);
@@ -20981,7 +25210,7 @@ public VmConfigurationState(string id, int generation, VmState state);
 
 <a id="api-ad0eb63ab973faff"></a>
 
-##### 虚拟机代数 · 属性
+##### 虚拟机代数（属性）
 
 ```csharp
 public int Generation { get; }
@@ -20991,7 +25220,7 @@ public int Generation { get; }
 
 <a id="api-b005100defea7e54"></a>
 
-##### 标识 · 属性
+##### 标识（属性）
 
 ```csharp
 public string Id { get; }
@@ -21001,7 +25230,7 @@ public string Id { get; }
 
 <a id="api-55ae5e04f9771f42"></a>
 
-##### 完全关机状态 · 属性
+##### 完全关机状态（属性）
 
 ```csharp
 public bool IsPoweredOff { get; }
@@ -21011,7 +25240,7 @@ Hyper-V 状态码为 3，表示完全关机。
 
 <a id="api-2fff23693534699e"></a>
 
-##### 活动状态 · 属性
+##### 活动状态（属性）
 
 ```csharp
 public bool IsRunning { get; }
@@ -21021,7 +25250,7 @@ public bool IsRunning { get; }
 
 <a id="api-4d7b8ca99b9a3df0"></a>
 
-##### 状态 · 属性
+##### 状态（属性）
 
 ```csharp
 public VmState State { get; }
@@ -21033,7 +25262,7 @@ public VmState State { get; }
 
 <a id="api-081e3e50ba3093f4"></a>
 
-##### 读取配置校验状态（按 ID） · 方法
+##### 读取配置校验状态（按 ID）（方法）
 
 ```csharp
 public static Task<ApiResponse<VmConfigurationState>> ReadAsync(Guid vmId);
@@ -21049,7 +25278,7 @@ public static Task<ApiResponse<VmConfigurationState>> ReadAsync(Guid vmId);
 
 <a id="api-d6316dd6136c4190"></a>
 
-##### 读取配置校验状态（按名称） · 方法
+##### 读取配置校验状态（按名称）（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmConfigurationState>> ReadAsync(string vmName);
@@ -21097,7 +25326,7 @@ public static class VmConsoleFields
 
 <a id="api-c6db329667e7f67f"></a>
 
-##### 基本控制台开关 · 字段
+##### 基本控制台开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> BasicEnabled;
@@ -21109,7 +25338,7 @@ public static readonly VmQueryField<bool> BasicEnabled;
 
 <a id="api-378a903d86ea7534"></a>
 
-##### 增强会话可用状态 · 字段
+##### 增强会话可用状态（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnhancedAvailable;
@@ -21121,7 +25350,7 @@ Hyper-V 当前是否报告增强会话已可用。
 
 <a id="api-24f299eba845f37a"></a>
 
-##### 控制台断开时锁定 · 字段
+##### 控制台断开时锁定（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> LockOnDisconnect;
@@ -21179,7 +25408,7 @@ public sealed record VmConsoleState(Guid VmId, string Name, bool IsRunning, bool
 
 <a id="api-5eea6bf5d1d33ef5"></a>
 
-##### 创建虚拟机控制台状态对象 · 主构造器
+##### 创建虚拟机控制台状态对象（主构造器）
 
 ```csharp
 public VmConsoleState(Guid VmId, string Name, bool IsRunning, bool IsEnhancedAvailable);
@@ -21196,7 +25425,7 @@ public VmConsoleState(Guid VmId, string Name, bool IsRunning, bool IsEnhancedAva
 
 <a id="api-61aa5a4c4377081d"></a>
 
-##### 增强会话可用状态 · record 属性
+##### 增强会话可用状态（record 属性）
 
 ```csharp
 public bool IsEnhancedAvailable { get; init; }
@@ -21206,7 +25435,7 @@ Hyper-V 是否报告增强会话可用。
 
 <a id="api-ec1e35d572b932f5"></a>
 
-##### 活动状态 · record 属性
+##### 活动状态（record 属性）
 
 ```csharp
 public bool IsRunning { get; init; }
@@ -21216,7 +25445,7 @@ public bool IsRunning { get; init; }
 
 <a id="api-9867faa8041705d4"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -21226,7 +25455,7 @@ public string Name { get; init; }
 
 <a id="api-54d42d6b87061592"></a>
 
-##### 虚拟机标识 · record 属性
+##### 虚拟机标识（record 属性）
 
 ```csharp
 public Guid VmId { get; init; }
@@ -21271,7 +25500,7 @@ public static partial class VmConsoleSupportService
 
 <a id="api-e8b0b9c1bf99f255"></a>
 
-##### 读取控制台状态 · 方法
+##### 读取控制台状态（方法）
 
 ```csharp
 public static Task<ApiResponse<VmConsoleState>> GetConsoleStateAsync(Guid vmId);
@@ -21289,7 +25518,7 @@ public static Task<ApiResponse<VmConsoleState>> GetConsoleStateAsync(Guid vmId);
 
 <a id="api-8623f13ea517b354"></a>
 
-##### 评估修改条件 · 方法
+##### 评估修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetModificationCondition(int generation, VmState state);
@@ -21308,7 +25537,7 @@ public static VmModificationCondition GetModificationCondition(int generation, V
 
 <a id="api-0b848d91bf6c6582"></a>
 
-##### 检查基本控制台是否启用 · 方法
+##### 检查基本控制台是否启用（方法）
 
 ```csharp
 public static async Task<ApiResponse<bool>> IsConsoleSupportEnabledAsync(Guid vmId);
@@ -21326,7 +25555,7 @@ public static async Task<ApiResponse<bool>> IsConsoleSupportEnabledAsync(Guid vm
 
 <a id="api-f50d6eb23736c6d4"></a>
 
-##### 检查增强会话是否可用 · 方法
+##### 检查增强会话是否可用（方法）
 
 ```csharp
 public static async Task<ApiResponse<bool>> IsEnhancedSessionAvailableAsync(Guid vmId);
@@ -21344,7 +25573,7 @@ public static async Task<ApiResponse<bool>> IsEnhancedSessionAvailableAsync(Guid
 
 <a id="api-4d11e062bfef7aea"></a>
 
-##### 设置基本控制台支持 · 方法
+##### 设置基本控制台支持（方法）
 
 ```csharp
 public static Task<ApiResponse> SetConsoleSupportAsync(Guid vmId, bool enable);
@@ -21363,7 +25592,7 @@ public static Task<ApiResponse> SetConsoleSupportAsync(Guid vmId, bool enable);
 
 <a id="api-4841b4f47d6619d8"></a>
 
-##### 设置断开时锁定来宾 · 方法
+##### 设置断开时锁定来宾（方法）
 
 ```csharp
 public static Task<ApiResponse> SetLockOnDisconnectAsync(Guid vmId, bool enabled);
@@ -21430,7 +25659,7 @@ public static partial class VmCreateService
 
 <a id="api-d413e8a1de467376"></a>
 
-##### 第一代虚拟机支持 · 属性
+##### 第一代虚拟机支持（属性）
 
 ```csharp
 public static bool SupportsGeneration1 { get; }
@@ -21442,7 +25671,7 @@ public static bool SupportsGeneration1 { get; }
 
 <a id="api-12395abb8ac46080"></a>
 
-##### 创建虚拟机 · 方法
+##### 创建虚拟机（方法）
 
 ```csharp
 public static async Task<VmCreationResult> CreateVirtualMachineAsync(VmCreationParameters p);
@@ -21466,7 +25695,7 @@ public static async Task<VmCreationResult> CreateVirtualMachineAsync(VmCreationP
 
 <a id="api-40bec9581168d915"></a>
 
-##### 检查虚拟机创建参数 · 方法
+##### 检查虚拟机创建参数（方法）
 
 ```csharp
 public static string? GetCreationError(VmCreationParameters p);
@@ -21482,7 +25711,7 @@ public static string? GetCreationError(VmCreationParameters p);
 
 <a id="api-cdefab5cc16adfad"></a>
 
-##### 读取虚拟机创建选项 · 方法
+##### 读取虚拟机创建选项（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmCreationOptions>> GetCreationOptionsAsync();
@@ -21494,7 +25723,7 @@ public static async Task<ApiResponse<VmCreationOptions>> GetCreationOptionsAsync
 
 <a id="api-8a3eeeadb1c92070"></a>
 
-##### 读取宿主默认存储路径 · 方法
+##### 读取宿主默认存储路径（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmHostDefaultPaths>> GetHostDefaultPathsAsync();
@@ -21506,7 +25735,7 @@ public static async Task<ApiResponse<VmHostDefaultPaths>> GetHostDefaultPathsAsy
 
 <a id="api-d132df641dbbf97a"></a>
 
-##### 读取硬件隔离支持 · 方法
+##### 读取硬件隔离支持（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmIsolationSupport>> GetIsolationSupportAsync();
@@ -21518,7 +25747,7 @@ public static async Task<ApiResponse<VmIsolationSupport>> GetIsolationSupportAsy
 
 <a id="api-c8eb1f42437bb5e6"></a>
 
-##### 读取支持的配置版本 · 方法
+##### 读取支持的配置版本（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<string>>> GetSupportedVersionsAsync();
@@ -21532,7 +25761,7 @@ public static async Task<ApiResponse<List<string>>> GetSupportedVersionsAsync();
 
 <a id="api-9314ac1fab2614be"></a>
 
-##### 默认磁盘目录 · 字段
+##### 默认磁盘目录（字段）
 
 ```csharp
 public const string DefaultDiskDirectory = @"C:\ProgramData\Microsoft\Windows\Virtual Hard Disks";
@@ -21542,7 +25771,7 @@ Windows 的默认虚拟硬盘目录。
 
 <a id="api-14f206c2c5c65d86"></a>
 
-##### 默认配置目录 · 字段
+##### 默认配置目录（字段）
 
 ```csharp
 public const string DefaultVmDirectory = @"C:\ProgramData\Microsoft\Windows\Hyper-V";
@@ -21604,7 +25833,7 @@ public sealed record VmCreationOptions(string DefaultVmPath, string DefaultVhdPa
 
 <a id="api-7e98c933e5d039d7"></a>
 
-##### 创建虚拟机创建选项对象 · 主构造器
+##### 创建虚拟机创建选项对象（主构造器）
 
 ```csharp
 public VmCreationOptions(string DefaultVmPath, string DefaultVhdPath, IReadOnlyList<string> Versions, bool IsolationSupported, IReadOnlyList<string> IsolationTypes, IReadOnlyDictionary<Guid, string> Switches);
@@ -21623,7 +25852,7 @@ public VmCreationOptions(string DefaultVmPath, string DefaultVhdPath, IReadOnlyL
 
 <a id="api-ed6edf777c62f6c8"></a>
 
-##### 默认磁盘目录 · record 属性
+##### 默认磁盘目录（record 属性）
 
 ```csharp
 public string DefaultVhdPath { get; init; }
@@ -21633,7 +25862,7 @@ public string DefaultVhdPath { get; init; }
 
 <a id="api-54f3d0ba1a67d515"></a>
 
-##### 默认配置目录 · record 属性
+##### 默认配置目录（record 属性）
 
 ```csharp
 public string DefaultVmPath { get; init; }
@@ -21643,7 +25872,7 @@ public string DefaultVmPath { get; init; }
 
 <a id="api-224d1bfedff34fc7"></a>
 
-##### 硬件隔离支持 · record 属性
+##### 硬件隔离支持（record 属性）
 
 ```csharp
 public bool IsolationSupported { get; init; }
@@ -21653,7 +25882,7 @@ public bool IsolationSupported { get; init; }
 
 <a id="api-79999722025c8f29"></a>
 
-##### 可用隔离类型 · record 属性
+##### 可用隔离类型（record 属性）
 
 ```csharp
 public IReadOnlyList<string> IsolationTypes { get; init; }
@@ -21663,7 +25892,7 @@ public IReadOnlyList<string> IsolationTypes { get; init; }
 
 <a id="api-c879cabe1e3210e3"></a>
 
-##### 可用交换机 · record 属性
+##### 可用交换机（record 属性）
 
 ```csharp
 public IReadOnlyDictionary<Guid, string> Switches { get; init; }
@@ -21673,7 +25902,7 @@ public IReadOnlyDictionary<Guid, string> Switches { get; init; }
 
 <a id="api-9361ca93a9b44a39"></a>
 
-##### 支持的配置版本 · record 属性
+##### 支持的配置版本（record 属性）
 
 ```csharp
 public IReadOnlyList<string> Versions { get; init; }
@@ -21746,7 +25975,7 @@ public sealed record VmCreationResult(bool Success, Guid? VmId, string? ActualNa
 
 <a id="api-06f9ff74118ca9c6"></a>
 
-##### 创建虚拟机创建结果对象 · 主构造器
+##### 创建虚拟机创建结果对象（主构造器）
 
 ```csharp
 public VmCreationResult(bool Success, Guid? VmId, string? ActualName, VmRegistrationState RegistrationState, IReadOnlyList<string> RetainedPaths, string? Error = null, string? CleanupError = null);
@@ -21766,7 +25995,7 @@ public VmCreationResult(bool Success, Guid? VmId, string? ActualName, VmRegistra
 
 <a id="api-8849f664a2a33e71"></a>
 
-##### 实际名称 · record 属性
+##### 实际名称（record 属性）
 
 ```csharp
 public string? ActualName { get; init; }
@@ -21776,7 +26005,7 @@ public string? ActualName { get; init; }
 
 <a id="api-c2eb440ce29ff833"></a>
 
-##### 清理错误 · record 属性
+##### 清理错误（record 属性）
 
 ```csharp
 public string? CleanupError { get; init; }
@@ -21786,7 +26015,7 @@ public string? CleanupError { get; init; }
 
 <a id="api-d505490cc6c2ac14"></a>
 
-##### 清理错误类别 · 属性
+##### 清理错误类别（属性）
 
 ```csharp
 public ApiErrorKind CleanupErrorKind { get; init; } = CleanupError == null ? ApiErrorKind.None : ApiErrorKind.CleanupRequired;
@@ -21796,7 +26025,7 @@ public ApiErrorKind CleanupErrorKind { get; init; } = CleanupError == null ? Api
 
 <a id="api-8483f4026a691be5"></a>
 
-##### 配置目标目录 · 属性
+##### 配置目标目录（属性）
 
 ```csharp
 public string? ConfigurationDirectory { get; init; }
@@ -21806,7 +26035,7 @@ public string? ConfigurationDirectory { get; init; }
 
 <a id="api-4821ca1c23a27f92"></a>
 
-##### 可选配置问题 · 属性
+##### 可选配置问题（属性）
 
 ```csharp
 public IReadOnlyList<ApiResponse> ConfigurationIssues { get; init; } = [];
@@ -21816,7 +26045,7 @@ public IReadOnlyList<ApiResponse> ConfigurationIssues { get; init; } = [];
 
 <a id="api-055f65f6e768f0c8"></a>
 
-##### 磁盘路径 · 属性
+##### 磁盘路径（属性）
 
 ```csharp
 public string? DiskPath { get; init; }
@@ -21826,7 +26055,7 @@ public string? DiskPath { get; init; }
 
 <a id="api-eab97375c81c889c"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -21836,7 +26065,7 @@ public string? Error { get; init; }
 
 <a id="api-d92c84fe6d1b7c4a"></a>
 
-##### 错误类别 · 属性
+##### 错误类别（属性）
 
 ```csharp
 public ApiErrorKind ErrorKind { get; init; } = Success ? ApiErrorKind.None : ApiErrorKind.OperationFailed;
@@ -21846,7 +26075,7 @@ public ApiErrorKind ErrorKind { get; init; } = Success ? ApiErrorKind.None : Api
 
 <a id="api-c9c85afe660536c2"></a>
 
-##### 名称调整状态 · 属性
+##### 名称调整状态（属性）
 
 ```csharp
 public bool NameAdjusted { get; }
@@ -21856,7 +26085,7 @@ public bool NameAdjusted { get; }
 
 <a id="api-2505e36a9f3b39e5"></a>
 
-##### 调整说明 · 属性
+##### 调整说明（属性）
 
 ```csharp
 public string? Notice { get; }
@@ -21866,7 +26095,7 @@ public string? Notice { get; }
 
 <a id="api-92b9f980c0eebe46"></a>
 
-##### 结果未确定 · 属性
+##### 结果未确定（属性）
 
 ```csharp
 public bool OutcomeUnknown { get; init; }
@@ -21876,7 +26105,7 @@ public bool OutcomeUnknown { get; init; }
 
 <a id="api-660ae8f5042e679c"></a>
 
-##### 注册状态 · record 属性
+##### 注册状态（record 属性）
 
 ```csharp
 public VmRegistrationState RegistrationState { get; init; }
@@ -21886,7 +26115,7 @@ public VmRegistrationState RegistrationState { get; init; }
 
 <a id="api-18e8f322e03dbb4c"></a>
 
-##### 请求名称 · 属性
+##### 请求名称（属性）
 
 ```csharp
 public string? RequestedName { get; init; }
@@ -21896,7 +26125,7 @@ public string? RequestedName { get; init; }
 
 <a id="api-7fe10a766b0f0f96"></a>
 
-##### 保留的文件路径 · record 属性
+##### 保留的文件路径（record 属性）
 
 ```csharp
 public IReadOnlyList<string> RetainedPaths { get; init; }
@@ -21906,7 +26135,7 @@ public IReadOnlyList<string> RetainedPaths { get; init; }
 
 <a id="api-c414575605cce40e"></a>
 
-##### 成功状态 · record 属性
+##### 成功状态（record 属性）
 
 ```csharp
 public bool Success { get; init; }
@@ -21916,7 +26145,7 @@ public bool Success { get; init; }
 
 <a id="api-ba71498f0a5b7b14"></a>
 
-##### 虚拟机标识 · record 属性
+##### 虚拟机标识（record 属性）
 
 ```csharp
 public Guid? VmId { get; init; }
@@ -21960,7 +26189,7 @@ public static class VmDeleteService
 
 <a id="api-efc4cae2801b6dbc"></a>
 
-##### 注销虚拟机 · 方法
+##### 注销虚拟机（方法）
 
 ```csharp
 public static async Task<VmDeletionResult> DeleteVmAsync(string vmName, Guid vmId);
@@ -21983,7 +26212,7 @@ public static async Task<VmDeletionResult> DeleteVmAsync(string vmName, Guid vmI
 
 <a id="api-313eb39e56fc2f69"></a>
 
-##### 预览彻底删除范围 · 方法
+##### 预览彻底删除范围（方法）
 
 ```csharp
 public static async Task<ApiResponse<PurgePreview>> PreviewPurgeAsync(Guid vmId);
@@ -21999,7 +26228,7 @@ public static async Task<ApiResponse<PurgePreview>> PreviewPurgeAsync(Guid vmId)
 
 <a id="api-53daa375428d2e8e"></a>
 
-##### 删除虚拟机及专属文件 · 方法
+##### 删除虚拟机及专属文件（方法）
 
 ```csharp
 public static async Task<VmDeletionResult> PurgeVmAsync(string vmName, Guid vmId);
@@ -22076,7 +26305,7 @@ public sealed record PurgePreview(
 
 <a id="api-790556e8e47ac8b8"></a>
 
-##### 创建彻底删除预览对象 · 主构造器
+##### 创建彻底删除预览对象（主构造器）
 
 ```csharp
 public PurgePreview(string? ConfigDirectory, bool DeletesConfigDirectory, List<string> ConfigFiles, List<string> DiskFiles);
@@ -22093,7 +26322,7 @@ public PurgePreview(string? ConfigDirectory, bool DeletesConfigDirectory, List<s
 
 <a id="api-42d4d541763459cd"></a>
 
-##### 配置目录 · record 属性
+##### 配置目录（record 属性）
 
 ```csharp
 public string? ConfigDirectory { get; init; }
@@ -22103,7 +26332,7 @@ public string? ConfigDirectory { get; init; }
 
 <a id="api-31f051017e0488d7"></a>
 
-##### 配置文件清单 · record 属性
+##### 配置文件清单（record 属性）
 
 ```csharp
 public List<string> ConfigFiles { get; init; }
@@ -22113,7 +26342,7 @@ public List<string> ConfigFiles { get; init; }
 
 <a id="api-a8dcab651d368a9f"></a>
 
-##### 删除整个配置目录 · record 属性
+##### 删除整个配置目录（record 属性）
 
 ```csharp
 public bool DeletesConfigDirectory { get; init; }
@@ -22123,7 +26352,7 @@ public bool DeletesConfigDirectory { get; init; }
 
 <a id="api-387b0a52e3ef02c4"></a>
 
-##### 磁盘依赖核对问题 · 属性
+##### 磁盘依赖核对问题（属性）
 
 ```csharp
 public IReadOnlyList<string> DiskDependencyIssues { get; init; } = Array.Empty<string>();
@@ -22133,7 +26362,7 @@ public IReadOnlyList<string> DiskDependencyIssues { get; init; } = Array.Empty<s
 
 <a id="api-8f57ca3e0766497f"></a>
 
-##### 待删除磁盘文件 · record 属性
+##### 待删除磁盘文件（record 属性）
 
 ```csharp
 public List<string> DiskFiles { get; init; }
@@ -22143,7 +26372,7 @@ public List<string> DiskFiles { get; init; }
 
 <a id="api-da18c45e4f41c5dc"></a>
 
-##### 保留的磁盘文件 · 属性
+##### 保留的磁盘文件（属性）
 
 ```csharp
 public IReadOnlyList<string> RetainedDiskFiles { get; init; } = Array.Empty<string>();
@@ -22207,7 +26436,7 @@ public sealed record VmDeletionResult(bool Success, VmRegistrationState Registra
 
 <a id="api-5d05da2ff0d12ea6"></a>
 
-##### 创建虚拟机删除结果对象 · 主构造器
+##### 创建虚拟机删除结果对象（主构造器）
 
 ```csharp
 public VmDeletionResult(bool Success, VmRegistrationState RegistrationState, string? RecoveryPath, IReadOnlyList<string> RetainedPaths, string? Error = null, string? CleanupError = null);
@@ -22226,7 +26455,7 @@ public VmDeletionResult(bool Success, VmRegistrationState RegistrationState, str
 
 <a id="api-6912275fe65b6d48"></a>
 
-##### 清理错误 · record 属性
+##### 清理错误（record 属性）
 
 ```csharp
 public string? CleanupError { get; init; }
@@ -22236,7 +26465,7 @@ public string? CleanupError { get; init; }
 
 <a id="api-4f7391492f266bfd"></a>
 
-##### 清理失败详情 · 属性
+##### 清理失败详情（属性）
 
 ```csharp
 public ApiFailure? CleanupFailure { get; init; }
@@ -22246,7 +26475,7 @@ public ApiFailure? CleanupFailure { get; init; }
 
 <a id="api-2f74c37f385719b2"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -22256,7 +26485,7 @@ public string? Error { get; init; }
 
 <a id="api-c3ceff55c5cb329d"></a>
 
-##### 失败详情 · 属性
+##### 失败详情（属性）
 
 ```csharp
 public ApiFailure? Failure { get; init; }
@@ -22266,7 +26495,7 @@ public ApiFailure? Failure { get; init; }
 
 <a id="api-f3d147f0308413ce"></a>
 
-##### 恢复路径 · record 属性
+##### 恢复路径（record 属性）
 
 ```csharp
 public string? RecoveryPath { get; init; }
@@ -22276,7 +26505,7 @@ public string? RecoveryPath { get; init; }
 
 <a id="api-4908ea74a1a46156"></a>
 
-##### 注册状态 · record 属性
+##### 注册状态（record 属性）
 
 ```csharp
 public VmRegistrationState RegistrationState { get; init; }
@@ -22286,7 +26515,7 @@ public VmRegistrationState RegistrationState { get; init; }
 
 <a id="api-8b267ac7414b8530"></a>
 
-##### 保留的文件路径 · record 属性
+##### 保留的文件路径（record 属性）
 
 ```csharp
 public IReadOnlyList<string> RetainedPaths { get; init; }
@@ -22296,7 +26525,7 @@ public IReadOnlyList<string> RetainedPaths { get; init; }
 
 <a id="api-de4731404d902994"></a>
 
-##### 成功状态 · record 属性
+##### 成功状态（record 属性）
 
 ```csharp
 public bool Success { get; init; }
@@ -22338,7 +26567,7 @@ public static class VmDisplayFields
 
 <a id="api-6c3eff7af18098c3"></a>
 
-##### 显示高度 · 字段
+##### 显示高度（字段）
 
 ```csharp
 public static readonly VmQueryField<int> Height;
@@ -22350,7 +26579,7 @@ public static readonly VmQueryField<int> Height;
 
 <a id="api-84ecc62c3b275b65"></a>
 
-##### 分辨率策略 · 字段
+##### 分辨率策略（字段）
 
 ```csharp
 public static readonly VmQueryField<int> ResolutionType;
@@ -22364,7 +26593,7 @@ public static readonly VmQueryField<int> ResolutionType;
 
 <a id="api-f93738ea149efc05"></a>
 
-##### 显示宽度 · 字段
+##### 显示宽度（字段）
 
 ```csharp
 public static readonly VmQueryField<int> Width;
@@ -22420,7 +26649,7 @@ public sealed record VmDisplayResolution(int ResolutionType, int Width, int Heig
 
 <a id="api-ecd64abc3771b052"></a>
 
-##### 创建虚拟显示配置对象 · 主构造器
+##### 创建虚拟显示配置对象（主构造器）
 
 ```csharp
 public VmDisplayResolution(int ResolutionType, int Width, int Height);
@@ -22436,7 +26665,7 @@ public VmDisplayResolution(int ResolutionType, int Width, int Height);
 
 <a id="api-e6d852f399f9403a"></a>
 
-##### 显示高度 · record 属性
+##### 显示高度（record 属性）
 
 ```csharp
 public int Height { get; init; }
@@ -22446,7 +26675,7 @@ public int Height { get; init; }
 
 <a id="api-94fd4d0a9f4a4439"></a>
 
-##### 分辨率策略 · record 属性
+##### 分辨率策略（record 属性）
 
 ```csharp
 public int ResolutionType { get; init; }
@@ -22456,7 +26685,7 @@ public int ResolutionType { get; init; }
 
 <a id="api-2d6bbe80b56fd670"></a>
 
-##### 显示宽度 · record 属性
+##### 显示宽度（record 属性）
 
 ```csharp
 public int Width { get; init; }
@@ -22499,7 +26728,7 @@ public static class VmDisplaySettingsService
 
 <a id="api-559afe2ce11ec9a8"></a>
 
-##### 评估修改条件 · 方法
+##### 评估修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetModificationCondition(VmState state);
@@ -22517,7 +26746,7 @@ public static VmModificationCondition GetModificationCondition(VmState state);
 
 <a id="api-aa378b3abc854dae"></a>
 
-##### 读取分辨率设置 · 方法
+##### 读取分辨率设置（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmDisplayResolution>> GetResolutionAsync(Guid vmId);
@@ -22535,7 +26764,7 @@ public static async Task<ApiResponse<VmDisplayResolution>> GetResolutionAsync(Gu
 
 <a id="api-1709fcff18c53f85"></a>
 
-##### 检查分辨率参数 · 方法
+##### 检查分辨率参数（方法）
 
 ```csharp
 public static string? GetResolutionError(int resolutionType, int width, int height);
@@ -22555,7 +26784,7 @@ public static string? GetResolutionError(int resolutionType, int width, int heig
 
 <a id="api-96463d85dd12d1fa"></a>
 
-##### 设置分辨率 · 方法
+##### 设置分辨率（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetResolutionAsync(Guid vmId, int resolutionType, int width, int height);
@@ -22606,7 +26835,7 @@ public static class VmEditService
 
 <a id="api-feb5a07dbfc23262"></a>
 
-##### 重命名 · 方法
+##### 重命名（方法）
 
 ```csharp
 public static async Task<ApiResponse> RenameVmAsync(Guid vmId, string newName);
@@ -22655,7 +26884,7 @@ public enum VmExportCheckpointMode
 
 <a id="api-c4c3ff9c322159a5"></a>
 
-##### All · 枚举值
+##### All（枚举值）
 
 ```csharp
 All = 1
@@ -22665,7 +26894,7 @@ All = 1
 
 <a id="api-b2c932b7d6d21a8c"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -22675,7 +26904,7 @@ None = 0
 
 <a id="api-7b3629b66b77d4e0"></a>
 
-##### Single · 枚举值
+##### Single（枚举值）
 
 ```csharp
 Single = 2
@@ -22718,7 +26947,7 @@ public enum VmExportCompressionLevel
 
 <a id="api-11cea256d333c2f7"></a>
 
-##### Fastest · 枚举值
+##### Fastest（枚举值）
 
 ```csharp
 Fastest = 1
@@ -22728,7 +26957,7 @@ Fastest = 1
 
 <a id="api-bedf6d18b0add592"></a>
 
-##### Optimal · 枚举值
+##### Optimal（枚举值）
 
 ```csharp
 Optimal = 2
@@ -22738,7 +26967,7 @@ Optimal = 2
 
 <a id="api-8046c2c9973d8b86"></a>
 
-##### SmallestSize · 枚举值
+##### SmallestSize（枚举值）
 
 ```csharp
 SmallestSize = 3
@@ -22748,7 +26977,7 @@ SmallestSize = 3
 
 <a id="api-fb1bed7086029b1c"></a>
 
-##### Store · 枚举值
+##### Store（枚举值）
 
 ```csharp
 Store = 0
@@ -22789,7 +27018,7 @@ public enum VmExportEncryption
 
 <a id="api-6feba3b9c02260fb"></a>
 
-##### Aes256 · 枚举值
+##### Aes256（枚举值）
 
 ```csharp
 Aes256 = 1
@@ -22799,7 +27028,7 @@ WinZip AES-256；加密文件内容，文件名、大小等目录信息仍可见
 
 <a id="api-e34b8e884b642238"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -22841,7 +27070,7 @@ public sealed class VmExportPackageException : IOException
 
 <a id="api-7e857473f2ad96be"></a>
 
-##### 清理错误 · 属性
+##### 清理错误（属性）
 
 ```csharp
 public string? CleanupError { get; }
@@ -22851,7 +27080,7 @@ public string? CleanupError { get; }
 
 <a id="api-395f755f05bccd8b"></a>
 
-##### 失败详情 · 属性
+##### 失败详情（属性）
 
 ```csharp
 public ApiFailure Failure { get; }
@@ -22861,7 +27090,7 @@ public ApiFailure Failure { get; }
 
 <a id="api-84a74231443841d4"></a>
 
-##### 保留的文件路径 · 属性
+##### 保留的文件路径（属性）
 
 ```csharp
 public IReadOnlyList<string> RetainedPaths { get; }
@@ -22902,7 +27131,7 @@ public enum VmExportPackageMode
 
 <a id="api-baf03c752e903c2a"></a>
 
-##### Compress · 枚举值
+##### Compress（枚举值）
 
 ```csharp
 Compress = 1
@@ -22912,7 +27141,7 @@ Compress = 1
 
 <a id="api-90980a1a2599043e"></a>
 
-##### Store · 枚举值
+##### Store（枚举值）
 
 ```csharp
 Store = 0
@@ -22957,7 +27186,7 @@ public sealed class VmExportPackageOptions
 
 <a id="api-255cfff6d563944f"></a>
 
-##### 压缩级别 · 属性
+##### 压缩级别（属性）
 
 ```csharp
 public VmExportCompressionLevel CompressionLevel { get; init; } = VmExportCompressionLevel.Optimal;
@@ -22967,7 +27196,7 @@ public VmExportCompressionLevel CompressionLevel { get; init; } = VmExportCompre
 
 <a id="api-40028d5a1b95fe09"></a>
 
-##### 加密方式 · 属性
+##### 加密方式（属性）
 
 ```csharp
 public VmExportEncryption Encryption { get; init; }
@@ -22977,7 +27206,7 @@ public VmExportEncryption Encryption { get; init; }
 
 <a id="api-584b24d3967194c6"></a>
 
-##### 密码 · 属性
+##### 密码（属性）
 
 ```csharp
 public string? Password { get; init; }
@@ -22989,7 +27218,7 @@ public string? Password { get; init; }
 
 <a id="api-07f1ca2718042f28"></a>
 
-##### 源文件处理方式 · 属性
+##### 源文件处理方式（属性）
 
 ```csharp
 public VmExportSourceHandling SourceHandling { get; init; } = VmExportSourceHandling.Keep;
@@ -23043,7 +27272,7 @@ public readonly record struct VmExportPackageProgress(
 
 <a id="api-23e2265295c563a0"></a>
 
-##### 创建导出打包进度对象 · 主构造器
+##### 创建导出打包进度对象（主构造器）
 
 ```csharp
 public VmExportPackageProgress(VmExportPackageStage Stage, int Percentage);
@@ -23058,7 +27287,7 @@ public VmExportPackageProgress(VmExportPackageStage Stage, int Percentage);
 
 <a id="api-b814a153a225224e"></a>
 
-##### 完成百分比 · record 属性
+##### 完成百分比（record 属性）
 
 ```csharp
 public int Percentage { get; init; }
@@ -23068,7 +27297,7 @@ CreatingArchive 或 ValidatingArchive 当前阶段的完成百分比。
 
 <a id="api-4158302bad38c1ee"></a>
 
-##### 执行阶段 · record 属性
+##### 执行阶段（record 属性）
 
 ```csharp
 public VmExportPackageStage Stage { get; init; }
@@ -23127,7 +27356,7 @@ public sealed record VmExportPackageResult(
 
 <a id="api-ec25f1940e61acf1"></a>
 
-##### 创建导出打包结果对象 · 主构造器
+##### 创建导出打包结果对象（主构造器）
 
 ```csharp
 public VmExportPackageResult(string ArchivePath, bool SourceDirectoryRemoved, string? CleanupError);
@@ -23143,7 +27372,7 @@ public VmExportPackageResult(string ArchivePath, bool SourceDirectoryRemoved, st
 
 <a id="api-45b5d5cf64ca4b73"></a>
 
-##### 归档路径 · record 属性
+##### 归档路径（record 属性）
 
 ```csharp
 public string ArchivePath { get; init; }
@@ -23153,7 +27382,7 @@ public string ArchivePath { get; init; }
 
 <a id="api-96199e1af64ded5d"></a>
 
-##### 清理错误 · record 属性
+##### 清理错误（record 属性）
 
 ```csharp
 public string? CleanupError { get; init; }
@@ -23163,7 +27392,7 @@ public string? CleanupError { get; init; }
 
 <a id="api-d5dc3e8321534d0e"></a>
 
-##### 清理失败详情 · 属性
+##### 清理失败详情（属性）
 
 ```csharp
 public ApiFailure? CleanupFailure { get; init; }
@@ -23173,7 +27402,7 @@ public ApiFailure? CleanupFailure { get; init; }
 
 <a id="api-8a50a12942461619"></a>
 
-##### 源目录删除状态 · record 属性
+##### 源目录删除状态（record 属性）
 
 ```csharp
 public bool SourceDirectoryRemoved { get; init; }
@@ -23183,7 +27412,7 @@ public bool SourceDirectoryRemoved { get; init; }
 
 <a id="api-c29cd8df0ca1c339"></a>
 
-##### 源文件处理方式 · 属性
+##### 源文件处理方式（属性）
 
 ```csharp
 public VmExportSourceHandling SourceHandling { get; init; } = VmExportSourceHandling.DeleteAfterValidation;
@@ -23224,7 +27453,7 @@ public enum VmExportPackageStage
 
 <a id="api-6fa17d8c25e2e092"></a>
 
-##### CreatingArchive · 枚举值
+##### CreatingArchive（枚举值）
 
 ```csharp
 CreatingArchive = 0
@@ -23234,7 +27463,7 @@ CreatingArchive = 0
 
 <a id="api-0712a13406364cc2"></a>
 
-##### ValidatingArchive · 枚举值
+##### ValidatingArchive（枚举值）
 
 ```csharp
 ValidatingArchive = 1
@@ -23275,7 +27504,7 @@ public static class VmExportPackagingService
 
 <a id="api-e45b809876908cf5"></a>
 
-##### 打包导出文件（指定模式） · 方法
+##### 打包导出文件（指定模式）（方法）
 
 ```csharp
 public static Task<ApiResponse<VmExportPackageResult>> CreatePackageAsync(string sourceDirectory, string destinationArchivePath, VmExportPackageMode mode, IProgress<VmExportPackageProgress>? progress = null, CancellationToken cancellationToken = default);
@@ -23297,7 +27526,7 @@ public static Task<ApiResponse<VmExportPackageResult>> CreatePackageAsync(string
 
 <a id="api-50c46fdc957179dd"></a>
 
-##### 打包导出文件（自定义选项） · 方法
+##### 打包导出文件（自定义选项）（方法）
 
 ```csharp
 public static Task<ApiResponse<VmExportPackageResult>> CreatePackageAsync(string sourceDirectory, string destinationArchivePath, VmExportPackageOptions options, IProgress<VmExportPackageProgress>? progress = null, CancellationToken cancellationToken = default);
@@ -23377,7 +27606,7 @@ public sealed record VmExportResult(bool Success, Guid VmId, string? OutputPath,
 
 <a id="api-5f4cc7ebcd00cc53"></a>
 
-##### 创建虚拟机导出结果对象 · 主构造器
+##### 创建虚拟机导出结果对象（主构造器）
 
 ```csharp
 public VmExportResult(bool Success, Guid VmId, string? OutputPath, bool OperationStateUnknown, IReadOnlyList<string> RetainedPaths, string? Error = null, int Code = 0, ApiErrorSource ErrorSource = ApiErrorSource.None, ApiErrorKind ErrorKind = ApiErrorKind.None);
@@ -23399,7 +27628,7 @@ public VmExportResult(bool Success, Guid VmId, string? OutputPath, bool Operatio
 
 <a id="api-61ad046ed120ca66"></a>
 
-##### 错误码 · record 属性
+##### 错误码（record 属性）
 
 ```csharp
 public int Code { get; init; }
@@ -23409,7 +27638,7 @@ public int Code { get; init; }
 
 <a id="api-8f6d7bea64e07225"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -23419,7 +27648,7 @@ public string? Error { get; init; }
 
 <a id="api-36ed84b7fd15f122"></a>
 
-##### 错误类别 · record 属性
+##### 错误类别（record 属性）
 
 ```csharp
 public ApiErrorKind ErrorKind { get; init; }
@@ -23429,7 +27658,7 @@ public ApiErrorKind ErrorKind { get; init; }
 
 <a id="api-c2663c52e89d28a0"></a>
 
-##### 错误来源 · record 属性
+##### 错误来源（record 属性）
 
 ```csharp
 public ApiErrorSource ErrorSource { get; init; }
@@ -23439,7 +27668,7 @@ public ApiErrorSource ErrorSource { get; init; }
 
 <a id="api-f867c5ab9bb2de94"></a>
 
-##### 底层任务状态未确定 · record 属性
+##### 底层任务状态未确定（record 属性）
 
 ```csharp
 public bool OperationStateUnknown { get; init; }
@@ -23449,7 +27678,7 @@ public bool OperationStateUnknown { get; init; }
 
 <a id="api-afa2590f6bd5cd25"></a>
 
-##### 输出路径 · record 属性
+##### 输出路径（record 属性）
 
 ```csharp
 public string? OutputPath { get; init; }
@@ -23459,7 +27688,7 @@ public string? OutputPath { get; init; }
 
 <a id="api-46619c90331f5e04"></a>
 
-##### 保留的文件路径 · record 属性
+##### 保留的文件路径（record 属性）
 
 ```csharp
 public IReadOnlyList<string> RetainedPaths { get; init; }
@@ -23469,7 +27698,7 @@ public IReadOnlyList<string> RetainedPaths { get; init; }
 
 <a id="api-7092cc30499c4ab1"></a>
 
-##### 成功状态 · record 属性
+##### 成功状态（record 属性）
 
 ```csharp
 public bool Success { get; init; }
@@ -23479,7 +27708,7 @@ public bool Success { get; init; }
 
 <a id="api-be4330161282285a"></a>
 
-##### 虚拟机标识 · record 属性
+##### 虚拟机标识（record 属性）
 
 ```csharp
 public Guid VmId { get; init; }
@@ -23521,7 +27750,7 @@ public static partial class VmExportService
 
 <a id="api-a2a418f3df55cafb"></a>
 
-##### 导出虚拟机 · 方法
+##### 导出虚拟机（方法）
 
 ```csharp
 public static Task<VmExportResult> ExportAsync(Guid vmId, string destinationRoot, bool includeVirtualHardDisks, IReadOnlyCollection<VirtualHardDiskInfo> excludedVirtualHardDisks, VmExportCheckpointMode checkpointMode, CheckpointInfo? selectedCheckpoint, bool includeRuntimeState, IProgress<int>? progress = null);
@@ -23560,7 +27789,7 @@ public static Task<VmExportResult> ExportAsync(Guid vmId, string destinationRoot
 
 <a id="api-b2c764360bd4d4db"></a>
 
-##### 读取可导出的检查点 · 方法
+##### 读取可导出的检查点（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<CheckpointInfo>>> GetCheckpointsAsync(Guid vmId);
@@ -23576,7 +27805,7 @@ public static async Task<ApiResponse<List<CheckpointInfo>>> GetCheckpointsAsync(
 
 <a id="api-6aacddf312b4fbd4"></a>
 
-##### 读取虚拟硬盘清单 · 方法
+##### 读取虚拟硬盘清单（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<VirtualHardDiskInfo>>> GetVirtualHardDisksAsync(Guid vmId);
@@ -23625,7 +27854,7 @@ public sealed class CheckpointInfo
 
 <a id="api-ceb370bc581362e9"></a>
 
-##### 创建时间 · 属性
+##### 创建时间（属性）
 
 ```csharp
 public DateTime CreatedDate { get; }
@@ -23635,7 +27864,7 @@ public DateTime CreatedDate { get; }
 
 <a id="api-2c1de765878bb1b5"></a>
 
-##### 标识 · 属性
+##### 标识（属性）
 
 ```csharp
 public string Id { get; }
@@ -23645,7 +27874,7 @@ public string Id { get; }
 
 <a id="api-d6182b0f64c3c0de"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; }
@@ -23655,7 +27884,7 @@ public string Name { get; }
 
 <a id="api-8d3d4cebe260aac4"></a>
 
-##### 父节点标识 · 属性
+##### 父节点标识（属性）
 
 ```csharp
 public string? ParentId { get; }
@@ -23695,7 +27924,7 @@ public sealed class VirtualHardDiskInfo
 
 <a id="api-31b4e5e0d3699678"></a>
 
-##### 路径 · 属性
+##### 路径（属性）
 
 ```csharp
 public string Path { get; }
@@ -23736,7 +27965,7 @@ public enum VmExportSourceHandling
 
 <a id="api-8bf00b186fb4f557"></a>
 
-##### DeleteAfterValidation · 枚举值
+##### DeleteAfterValidation（枚举值）
 
 ```csharp
 DeleteAfterValidation = 1
@@ -23746,13 +27975,86 @@ DeleteAfterValidation = 1
 
 <a id="api-f9f94ce741975f79"></a>
 
-##### Keep · 枚举值
+##### Keep（枚举值）
 
 ```csharp
 Keep = 0
 ```
 
 保留源目录和文件。
+
+<a id="api-caecf293ecf60a94"></a>
+
+### `VmGenerationUpgradeService` 类
+
+在宿主上迁移一代虚拟机的配置、存储挂接和设备，完成后二代虚拟机保持关机。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 实例 / 升级 |
+| 源文件 | ` Management/VirtualMachines/Instances/GenerationUpgrade/VmGenerationUpgradeService.cs ` |
+
+#### 成员概览
+
+**静态方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static async Task<VmGenerationUpgradeResult> UpgradeToGeneration2Async(Guid vmId, VmGenerationUpgradeOptions? options, CancellationToken cancellationToken = default) `](#api-62c4adf495365c46) | 按指定的磁盘格式和安全启动选项升级虚拟机，核验配置后提交。 |
+| [` public static Task<VmGenerationUpgradeResult> UpgradeToGeneration2Async(Guid vmId, CancellationToken cancellationToken = default) `](#api-26c65804ad30f5f3) | 使用自动转换 VHD 和关闭安全启动的默认设置升级虚拟机。 |
+
+#### 详细说明
+
+```csharp
+public static class VmGenerationUpgradeService
+```
+
+#### 静态方法说明
+
+<a id="api-62c4adf495365c46"></a>
+
+##### 按选项升级为二代（方法）
+
+```csharp
+public static async Task<VmGenerationUpgradeResult> UpgradeToGeneration2Async(Guid vmId, VmGenerationUpgradeOptions? options, CancellationToken cancellationToken = default);
+```
+
+按指定的磁盘格式和安全启动选项升级虚拟机，核验配置后提交。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 一代虚拟机 GUID，重入仍使用原 GUID。 |
+| `options` | 存储与固件设置。传入 null 使用默认值，重入时沿用日志中的设置。 |
+| `cancellationToken` | 在提交前取消并回滚。已提交的事务继续清理。 |
+
+返回：注册身份、正式路径、事务状态和保留的恢复材料。
+
+<a id="api-26c65804ad30f5f3"></a>
+
+##### 直接升级为二代（方法）
+
+```csharp
+public static Task<VmGenerationUpgradeResult> UpgradeToGeneration2Async(Guid vmId, CancellationToken cancellationToken = default);
+```
+
+使用自动转换 VHD 和关闭安全启动的默认设置升级虚拟机。
+
+调用顺序：
+
+1. 传入原虚拟机 GUID，Core 迁移虚拟机配置和所有磁盘挂接。
+2. 读取状态与新 GUID。遇到清理待办或操作中断时，使用原 GUID 重新调用以对账。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 原虚拟机的稳定 GUID。中断后仍使用此 GUID 重入。 |
+| `cancellationToken` | 在提交前取消并回滚。已提交的事务继续清理。 |
+
+返回：注册身份、正式路径、事务结果以及需要保留的恢复路径。
+
+调用约定：需要本机管理员权限与 x64 Hyper-V。运行中的原机会先正常关机。成功后新机处于关机状态。
 
 <a id="api-cfc336ca4a0f6001"></a>
 
@@ -23791,7 +28093,7 @@ public static class VmGpuFields
 
 <a id="api-35aeeb6d43ed3896"></a>
 
-##### 宿主驱动版本 · 字段
+##### 宿主驱动版本（字段）
 
 ```csharp
 public static readonly VmQueryField<string> DriverVersion;
@@ -23801,7 +28103,7 @@ public static readonly VmQueryField<string> DriverVersion;
 
 <a id="api-94f32b210b07d29a"></a>
 
-##### 宿主 GPU 身份 · 字段
+##### 宿主 GPU 身份（字段）
 
 ```csharp
 public static readonly VmQueryField<string> HostDeviceInstanceId;
@@ -23811,7 +28113,7 @@ public static readonly VmQueryField<string> HostDeviceInstanceId;
 
 <a id="api-3c665de5fd0cb2da"></a>
 
-##### GPU 芯片商 · 字段
+##### GPU 芯片商（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Manu;
@@ -23821,7 +28123,7 @@ public static readonly VmQueryField<string> Manu;
 
 <a id="api-b5f1b36203de8525"></a>
 
-##### 宿主专用显存容量 · 字段
+##### 宿主专用显存容量（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> MemoryBytes;
@@ -23833,7 +28135,7 @@ public static readonly VmQueryField<ulong> MemoryBytes;
 
 <a id="api-00de41d78f54b325"></a>
 
-##### GPU 名称 · 字段
+##### GPU 名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
@@ -23843,7 +28145,7 @@ public static readonly VmQueryField<string> Name;
 
 <a id="api-8220467136b4cd66"></a>
 
-##### GPU 板卡商 · 字段
+##### GPU 板卡商（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Vendor;
@@ -23887,7 +28189,7 @@ public static class VmGpuPerformanceFields
 
 <a id="api-9c4117780634e25c"></a>
 
-##### GPU 三维引擎使用率 · 字段
+##### GPU 三维引擎使用率（字段）
 
 ```csharp
 public static readonly VmQueryField<double> Gpu3d;
@@ -23901,7 +28203,7 @@ public static readonly VmQueryField<double> Gpu3d;
 
 <a id="api-96f2c2efce683a3c"></a>
 
-##### GPU 复制引擎使用率 · 字段
+##### GPU 复制引擎使用率（字段）
 
 ```csharp
 public static readonly VmQueryField<double> GpuCopy;
@@ -23915,7 +28217,7 @@ public static readonly VmQueryField<double> GpuCopy;
 
 <a id="api-5ec2720e23b59885"></a>
 
-##### GPU 解码引擎使用率 · 字段
+##### GPU 解码引擎使用率（字段）
 
 ```csharp
 public static readonly VmQueryField<double> GpuDecode;
@@ -23929,7 +28231,7 @@ public static readonly VmQueryField<double> GpuDecode;
 
 <a id="api-d084df9e88b6802d"></a>
 
-##### GPU 编码引擎使用率 · 字段
+##### GPU 编码引擎使用率（字段）
 
 ```csharp
 public static readonly VmQueryField<double> GpuEncode;
@@ -23943,7 +28245,7 @@ public static readonly VmQueryField<double> GpuEncode;
 
 <a id="api-a7eaefe104d7e211"></a>
 
-##### GPU 引擎实例可见 · 字段
+##### GPU 引擎实例可见（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> HasGpuEngineInstance;
@@ -24020,7 +28322,7 @@ public static class GpuRepairChoiceExample
 
 <a id="api-bdd690a0e0d67d32"></a>
 
-##### 查找失效的 GPU 分区绑定 · 方法
+##### 查找失效的 GPU 分区绑定（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyList<StaleGpuPartition>>> FindStaleGpuPartitionsAsync(Guid vmId);
@@ -24040,7 +28342,7 @@ public static async Task<ApiResponse<IReadOnlyList<StaleGpuPartition>>> FindStal
 
 <a id="api-51f294b67b59bbe8"></a>
 
-##### 修复 GPU 配置 · 方法
+##### 修复 GPU 配置（方法）
 
 ```csharp
 public static async Task<ApiResponse<RepairResult>> RepairAsync(Guid vmId, IEnumerable<StaleGpuPartition> targets);
@@ -24092,7 +28394,7 @@ public sealed record RebindCandidate
 
 <a id="api-13bfdd5712f3484e"></a>
 
-##### PCIe 设备身份 · 属性
+##### PCIe 设备身份（属性）
 
 ```csharp
 public string DeviceInstanceId { get; }
@@ -24102,7 +28404,7 @@ PnP 设备实例标识，包含区分同型号显卡的位置段；可与 HostGp
 
 <a id="api-c9eb5e63edc0f794"></a>
 
-##### 标识 · 属性
+##### 标识（属性）
 
 ```csharp
 public string Id { get; }
@@ -24154,7 +28456,7 @@ public sealed record RepairResult(int Rebound, int Removed)
 
 <a id="api-e563c04a4142fbf9"></a>
 
-##### 创建GPU 修复结果对象 · 主构造器
+##### 创建GPU 修复结果对象（主构造器）
 
 ```csharp
 public RepairResult(int Rebound, int Removed);
@@ -24169,7 +28471,7 @@ public RepairResult(int Rebound, int Removed);
 
 <a id="api-005c29f14b4d892e"></a>
 
-##### 已重新绑定数量 · record 属性
+##### 已重新绑定数量（record 属性）
 
 ```csharp
 public int Rebound { get; init; }
@@ -24179,7 +28481,7 @@ public int Rebound { get; init; }
 
 <a id="api-3a95f9724d1a734b"></a>
 
-##### 已移除数量 · record 属性
+##### 已移除数量（record 属性）
 
 ```csharp
 public int Removed { get; init; }
@@ -24231,7 +28533,7 @@ public sealed record StaleGpuPartition
 
 <a id="api-39fa7adf9278232b"></a>
 
-##### 存在重绑候选 · 属性
+##### 存在重绑候选（属性）
 
 ```csharp
 public bool CanRebind { get; }
@@ -24241,7 +28543,7 @@ public bool CanRebind { get; }
 
 <a id="api-e9563146867984a5"></a>
 
-##### 候选设备 · 属性
+##### 候选设备（属性）
 
 ```csharp
 public IReadOnlyList<RebindCandidate> Candidates { get; }
@@ -24251,7 +28553,7 @@ public IReadOnlyList<RebindCandidate> Candidates { get; }
 
 <a id="api-68fa39fc24fc8356"></a>
 
-##### 设备实例标识 · 属性
+##### 设备实例标识（属性）
 
 ```csharp
 public string Instance { get; }
@@ -24261,7 +28563,7 @@ public string Instance { get; }
 
 <a id="api-e500861aa25ff6e2"></a>
 
-##### 设备定义不完整 · 属性
+##### 设备定义不完整（属性）
 
 ```csharp
 public bool IsStructurallyIncomplete { get; }
@@ -24271,7 +28573,7 @@ public bool IsStructurallyIncomplete { get; }
 
 <a id="api-8c5f3b044a6e02f9"></a>
 
-##### 需要选择目标 · 属性
+##### 需要选择目标（属性）
 
 ```csharp
 public bool RequiresSelection { get; }
@@ -24281,7 +28583,7 @@ public bool RequiresSelection { get; }
 
 <a id="api-811a716ead8becd4"></a>
 
-##### 已选候选设备 · 属性
+##### 已选候选设备（属性）
 
 ```csharp
 public RebindCandidate? SelectedCandidate { get; }
@@ -24291,7 +28593,7 @@ public RebindCandidate? SelectedCandidate { get; }
 
 <a id="api-5142b6c69ab8dea1"></a>
 
-##### 虚拟设备编号 · 属性
+##### 虚拟设备编号（属性）
 
 ```csharp
 public int VdevNumber { get; }
@@ -24303,7 +28605,7 @@ VMCX 中的虚拟设备编号。
 
 <a id="api-dfade3408006cb2f"></a>
 
-##### 选择替代 GPU · 方法
+##### 选择替代 GPU（方法）
 
 ```csharp
 public StaleGpuPartition SelectCandidate(string candidateId);
@@ -24330,7 +28632,7 @@ public StaleGpuPartition SelectCandidate(string candidateId);
 | 类型 | 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析 |
+| 功能归属 | 管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析 |
 | 源文件 | ` Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs ` |
 
 #### 成员概览
@@ -24353,7 +28655,7 @@ public StaleGpuPartition SelectCandidate(string candidateId);
 | [` public Task<string> ProvisionLinuxGpuAsync(string vmName, string gpuInstancePath, string gpuManufacturer, LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> progressCallback, CancellationToken ct) `](#api-d053e61d72713b5a) | 通过 SSH 上传 GPU 文件并执行所选 Linux 部署脚本，必要时启动或重启来宾。 |
 | [` public Task<ApiResponse> RemoveGpuPartitionAsync(Guid vmId, VmGpuAssignment assignment) `](#api-497cbbfa6e9b9a6b) | 移除所查询的 GPU 分配，执行前重新核对其属于目标虚拟机。 |
 | [` public async Task<VmPartitionScanResult> ScanVmPartitionsAsync(Guid vmId, CancellationToken cancellationToken = default) `](#api-afdd19aa765db4a2) | 在目标虚拟机关闭时扫描磁盘分区，并恢复扫描前的宿主磁盘状态。 |
-| [` public async Task<ApiResponse> SyncWindowsDriversAsync(Guid vmId, string gpuInstancePath, string gpuManu, DiskPartitionInfo selectedPartition, Action<string> progressCallback = null) `](#api-bf4324136f4573c6) | 向指定离线 Windows 系统分区同步宿主 GPU 驱动包及相关文件。 |
+| [` public Task<ApiResponse> SyncWindowsDriversAsync(Guid vmId, string gpuInstancePath, string gpuManu, DiskPartitionInfo selectedPartition, Action<string> progressCallback = null) `](#api-bf4324136f4573c6) | 向指定离线 Windows 系统分区同步宿主 GPU 驱动包及相关文件。 |
 
 #### 详细说明
 
@@ -24365,7 +28667,7 @@ public class VmGpuService
 
 <a id="api-a41e3bd35586bfde"></a>
 
-##### 创建GPU 分配与部署对象 · 构造器
+##### 创建GPU 分配与部署对象（构造器）
 
 ```csharp
 public VmGpuService(VmQueryService queryService);
@@ -24383,7 +28685,7 @@ public VmGpuService(VmQueryService queryService);
 
 <a id="api-5b2aa9a823caac5e"></a>
 
-##### 分配 GPU 分区 · 方法
+##### 分配 GPU 分区（方法）
 
 ```csharp
 public async Task<ApiResponse> AssignGpuPartitionAsync(Guid vmId, HostGpuInfo gpu);
@@ -24404,7 +28706,7 @@ public async Task<ApiResponse> AssignGpuPartitionAsync(Guid vmId, HostGpuInfo gp
 
 <a id="api-12d4bfcddbae5680"></a>
 
-##### 检查 GPU 部署条件 · 方法
+##### 检查 GPU 部署条件（方法）
 
 ```csharp
 public async Task<ApiResponse<bool>> CheckVmForGpuAsync(Guid vmId);
@@ -24422,7 +28724,7 @@ public async Task<ApiResponse<bool>> CheckVmForGpuAsync(Guid vmId);
 
 <a id="api-369e7cd15ebcac51"></a>
 
-##### 列出 Linux GPU 部署脚本 · 方法
+##### 列出 Linux GPU 部署脚本（方法）
 
 ```csharp
 public async Task<List<LinuxGpuDeploymentScript>> GetAvailableScriptsAsync();
@@ -24438,7 +28740,7 @@ public async Task<List<LinuxGpuDeploymentScript>> GetAvailableScriptsAsync();
 
 <a id="api-49e6c19e632fcd5c"></a>
 
-##### 读取 GPU 分配 · 方法
+##### 读取 GPU 分配（方法）
 
 ```csharp
 public async Task<ApiResponse<IReadOnlyList<VmGpuAssignment>>> GetVmGpuAssignmentsAsync(Guid vmId);
@@ -24458,7 +28760,7 @@ public async Task<ApiResponse<IReadOnlyList<VmGpuAssignment>>> GetVmGpuAssignmen
 
 <a id="api-dd4d875bda997af8"></a>
 
-##### 配置 GPU 所需环境 · 方法
+##### 配置 GPU 所需环境（方法）
 
 ```csharp
 public async Task<ApiResponse> OptimizeVmForGpuAsync(Guid vmId);
@@ -24478,7 +28780,7 @@ public async Task<ApiResponse> OptimizeVmForGpuAsync(Guid vmId);
 
 <a id="api-d053e61d72713b5a"></a>
 
-##### 部署 Linux GPU 驱动 · 方法
+##### 部署 Linux GPU 驱动（方法）
 
 ```csharp
 public Task<string> ProvisionLinuxGpuAsync(string vmName, string gpuInstancePath, string gpuManufacturer, LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> progressCallback, CancellationToken ct);
@@ -24504,7 +28806,7 @@ public Task<string> ProvisionLinuxGpuAsync(string vmName, string gpuInstancePath
 
 <a id="api-497cbbfa6e9b9a6b"></a>
 
-##### 移除 GPU 分区 · 方法
+##### 移除 GPU 分区（方法）
 
 ```csharp
 public Task<ApiResponse> RemoveGpuPartitionAsync(Guid vmId, VmGpuAssignment assignment);
@@ -24523,13 +28825,13 @@ public Task<ApiResponse> RemoveGpuPartitionAsync(Guid vmId, VmGpuAssignment assi
 
 <a id="api-afdd19aa765db4a2"></a>
 
-##### 扫描虚拟机磁盘分区 · 方法
+##### 扫描虚拟机磁盘分区（方法）
 
 ```csharp
 public async Task<VmPartitionScanResult> ScanVmPartitionsAsync(Guid vmId, CancellationToken cancellationToken = default);
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 在目标虚拟机关闭时扫描磁盘分区，并恢复扫描前的宿主磁盘状态。
 
@@ -24544,10 +28846,10 @@ public async Task<VmPartitionScanResult> ScanVmPartitionsAsync(Guid vmId, Cancel
 
 <a id="api-bf4324136f4573c6"></a>
 
-##### 部署 Windows GPU 驱动 · 方法
+##### 部署 Windows GPU 驱动（方法）
 
 ```csharp
-public async Task<ApiResponse> SyncWindowsDriversAsync(Guid vmId, string gpuInstancePath, string gpuManu, DiskPartitionInfo selectedPartition, Action<string> progressCallback = null);
+public Task<ApiResponse> SyncWindowsDriversAsync(Guid vmId, string gpuInstancePath, string gpuManu, DiskPartitionInfo selectedPartition, Action<string> progressCallback = null);
 ```
 
 功能归属：管理层面 / 虚拟机 / GPU。
@@ -24599,7 +28901,7 @@ public static class VmGroupFields
 
 <a id="api-ac067cd5ec029afa"></a>
 
-##### 分组身份 · 字段
+##### 分组身份（字段）
 
 ```csharp
 public static readonly VmQueryField<Guid> Id;
@@ -24611,7 +28913,7 @@ public static readonly VmQueryField<Guid> Id;
 
 <a id="api-a3cdbe318d0b22ba"></a>
 
-##### 分组名称 · 字段
+##### 分组名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
@@ -24664,7 +28966,7 @@ public sealed record VmGroupMoveResult(Guid? RequestedTargetId, Guid? TargetId)
 
 <a id="api-881aa9ea51013768"></a>
 
-##### 创建分组移动结果对象 · 主构造器
+##### 创建分组移动结果对象（主构造器）
 
 ```csharp
 public VmGroupMoveResult(Guid? RequestedTargetId, Guid? TargetId);
@@ -24679,7 +28981,7 @@ public VmGroupMoveResult(Guid? RequestedTargetId, Guid? TargetId);
 
 <a id="api-314de8a5e29225d8"></a>
 
-##### 请求的目标组 · record 属性
+##### 请求的目标组（record 属性）
 
 ```csharp
 public Guid? RequestedTargetId { get; init; }
@@ -24689,7 +28991,7 @@ public Guid? RequestedTargetId { get; init; }
 
 <a id="api-d458e42ed8c3bae9"></a>
 
-##### 实际目标组 · record 属性
+##### 实际目标组（record 属性）
 
 ```csharp
 public Guid? TargetId { get; init; }
@@ -24699,7 +29001,7 @@ public Guid? TargetId { get; init; }
 
 <a id="api-f4e319be55d78543"></a>
 
-##### 目标组重建状态 · 属性
+##### 目标组重建状态（属性）
 
 ```csharp
 public bool TargetRecreated { get; }
@@ -24746,7 +29048,7 @@ public static class VmGroupMoveRules
 
 <a id="api-484b229460918b45"></a>
 
-##### 检查分组移动条件 · 方法
+##### 检查分组移动条件（方法）
 
 ```csharp
 public static bool CanMove(VmGroupSnapshot snapshot, IReadOnlyList<VmGroupMove> items, Guid? targetId);
@@ -24798,7 +29100,7 @@ public static class VmGroupService
 
 <a id="api-62c865a8bbe08991"></a>
 
-##### 创建分组 · 方法
+##### 创建分组（方法）
 
 ```csharp
 public static async Task<Guid> CreateAsync(string name, VmGroupKind kind, Guid? parentId);
@@ -24822,7 +29124,7 @@ public static async Task<Guid> CreateAsync(string name, VmGroupKind kind, Guid? 
 
 <a id="api-aeb342d87c9d6bac"></a>
 
-##### 删除分组 · 方法
+##### 删除分组（方法）
 
 ```csharp
 public static async Task DeleteAsync(Guid id);
@@ -24840,7 +29142,7 @@ public static async Task DeleteAsync(Guid id);
 
 <a id="api-7bab9d8de671d5ae"></a>
 
-##### 移动成员或分组 · 方法
+##### 移动成员或分组（方法）
 
 ```csharp
 public static async Task<VmGroupMoveResult> MoveAsync(IReadOnlyList<VmGroupMove> moves, Guid? targetId);
@@ -24863,7 +29165,7 @@ public static async Task<VmGroupMoveResult> MoveAsync(IReadOnlyList<VmGroupMove>
 
 <a id="api-736e5ab8fa340994"></a>
 
-##### 分组及成员关系 · 方法
+##### 分组及成员关系（方法）
 
 ```csharp
 public static Task<VmGroupSnapshot> ReadAsync();
@@ -24877,7 +29179,7 @@ public static Task<VmGroupSnapshot> ReadAsync();
 
 <a id="api-5b9db5323811a972"></a>
 
-##### 分组名称 · 方法
+##### 分组名称（方法）
 
 ```csharp
 public static async Task RenameAsync(Guid id, string name);
@@ -24938,7 +29240,7 @@ public sealed record VmHostDefaultPaths(string DefaultVmPath, string DefaultVhdP
 
 <a id="api-ad7b9612028d3ede"></a>
 
-##### 创建宿主默认存储位置对象 · 主构造器
+##### 创建宿主默认存储位置对象（主构造器）
 
 ```csharp
 public VmHostDefaultPaths(string DefaultVmPath, string DefaultVhdPath);
@@ -24953,7 +29255,7 @@ public VmHostDefaultPaths(string DefaultVmPath, string DefaultVhdPath);
 
 <a id="api-c5cdadbe97152f05"></a>
 
-##### 默认磁盘目录 · record 属性
+##### 默认磁盘目录（record 属性）
 
 ```csharp
 public string DefaultVhdPath { get; init; }
@@ -24963,7 +29265,7 @@ public string DefaultVhdPath { get; init; }
 
 <a id="api-3a8df0d2a923b9a7"></a>
 
-##### 默认配置目录 · record 属性
+##### 默认配置目录（record 属性）
 
 ```csharp
 public string DefaultVmPath { get; init; }
@@ -25011,7 +29313,7 @@ public static class VmIdentityFields
 
 <a id="api-ab090d13b00570ee"></a>
 
-##### 配置文件路径 · 字段
+##### 配置文件路径（字段）
 
 ```csharp
 public static readonly VmQueryField<string> ConfigurationFilePath;
@@ -25023,7 +29325,7 @@ public static readonly VmQueryField<string> ConfigurationFilePath;
 
 <a id="api-40b91ae5e61eeb3b"></a>
 
-##### 配置版本 · 字段
+##### 配置版本（字段）
 
 ```csharp
 public static readonly VmQueryField<string> ConfigurationVersion;
@@ -25079,7 +29381,7 @@ SOFTWARE.
 
 <a id="api-14b3dc00ee8efdc6"></a>
 
-##### 虚拟机代数 · 字段
+##### 虚拟机代数（字段）
 
 ```csharp
 public static readonly VmQueryField<int> Generation;
@@ -25092,7 +29394,7 @@ public static readonly VmQueryField<int> Generation;
 
 <a id="api-57b369c4c0b4f55d"></a>
 
-##### 来宾状态文件路径 · 字段
+##### 来宾状态文件路径（字段）
 
 ```csharp
 public static readonly VmQueryField<string> GuestStateFilePath;
@@ -25104,7 +29406,7 @@ public static readonly VmQueryField<string> GuestStateFilePath;
 
 <a id="api-4abbd85c015d5839"></a>
 
-##### 身份 · 字段
+##### 身份（字段）
 
 ```csharp
 public static readonly VmQueryField<Guid> Id;
@@ -25120,7 +29422,7 @@ public static readonly VmQueryField<Guid> Id;
 
 <a id="api-f3c1fa34812a0e0f"></a>
 
-##### 名称 · 字段
+##### 名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
@@ -25132,7 +29434,7 @@ Hyper-V 管理工具中的显示名称，可以修改，也允许重名。
 
 <a id="api-c8bc16925ba1cd31"></a>
 
-##### 运行状态文件路径 · 字段
+##### 运行状态文件路径（字段）
 
 ```csharp
 public static readonly VmQueryField<string> RuntimeStateFilePath;
@@ -25144,7 +29446,7 @@ public static readonly VmQueryField<string> RuntimeStateFilePath;
 
 <a id="api-70634d256d750078"></a>
 
-##### 运行状态 · 字段
+##### 运行状态（字段）
 
 ```csharp
 public static readonly VmQueryField<VmState> State;
@@ -25154,7 +29456,7 @@ VMMS 维护的电源与执行状态，包括运行、关机、暂停、已保存
 
 <a id="api-e25f64da683d5a94"></a>
 
-##### 运行时长 · 字段
+##### 运行时长（字段）
 
 ```csharp
 public static readonly VmQueryField<TimeSpan> Uptime;
@@ -25199,7 +29501,7 @@ public enum VmImportArchiveError
 
 <a id="api-1872911af7a0887d"></a>
 
-##### DecryptionFailed · 枚举值
+##### DecryptionFailed（枚举值）
 
 ```csharp
 DecryptionFailed = 1
@@ -25209,7 +29511,7 @@ DecryptionFailed = 1
 
 <a id="api-1eb289f3037edc8a"></a>
 
-##### LimitExceeded · 枚举值
+##### LimitExceeded（枚举值）
 
 ```csharp
 LimitExceeded = 3
@@ -25219,7 +29521,7 @@ LimitExceeded = 3
 
 <a id="api-3ed2a8fd7f437673"></a>
 
-##### PasswordRequired · 枚举值
+##### PasswordRequired（枚举值）
 
 ```csharp
 PasswordRequired = 0
@@ -25229,7 +29531,7 @@ PasswordRequired = 0
 
 <a id="api-7115943b161d48f8"></a>
 
-##### UnsupportedEncryption · 枚举值
+##### UnsupportedEncryption（枚举值）
 
 ```csharp
 UnsupportedEncryption = 2
@@ -25273,7 +29575,7 @@ public sealed class VmImportArchiveException : IOException
 
 <a id="api-cb28b3bc75d3029c"></a>
 
-##### 实际数值 · 属性
+##### 实际数值（属性）
 
 ```csharp
 public long? Actual { get; }
@@ -25283,7 +29585,7 @@ public long? Actual { get; }
 
 <a id="api-d68a8633df5c92ea"></a>
 
-##### 归档条目名称 · 属性
+##### 归档条目名称（属性）
 
 ```csharp
 public string? EntryName { get; }
@@ -25293,7 +29595,7 @@ public string? EntryName { get; }
 
 <a id="api-790f6c4617350e2c"></a>
 
-##### 处理器限制比例 · 属性
+##### 处理器限制比例（属性）
 
 ```csharp
 public long? Limit { get; }
@@ -25303,7 +29605,7 @@ public long? Limit { get; }
 
 <a id="api-43ccf7ac629dd948"></a>
 
-##### 额度名称 · 属性
+##### 额度名称（属性）
 
 ```csharp
 public string? LimitName { get; }
@@ -25313,7 +29615,7 @@ public string? LimitName { get; }
 
 <a id="api-a35e22617edefd14"></a>
 
-##### 失败原因 · 属性
+##### 失败原因（属性）
 
 ```csharp
 public VmImportArchiveError Reason { get; }
@@ -25372,7 +29674,7 @@ public sealed record VmImportArchiveFailure(VmImportArchiveError Reason, string?
 
 <a id="api-49956ada862541f4"></a>
 
-##### 创建归档失败信息对象 · 主构造器
+##### 创建归档失败信息对象（主构造器）
 
 ```csharp
 public VmImportArchiveFailure(VmImportArchiveError Reason, string? EntryName, string? LimitName, long? Limit, long? Actual);
@@ -25390,7 +29692,7 @@ public VmImportArchiveFailure(VmImportArchiveError Reason, string? EntryName, st
 
 <a id="api-737bd8f57bbe5136"></a>
 
-##### 实际数值 · record 属性
+##### 实际数值（record 属性）
 
 ```csharp
 public long? Actual { get; init; }
@@ -25400,7 +29702,7 @@ public long? Actual { get; init; }
 
 <a id="api-ba34523ef8cb291e"></a>
 
-##### 归档条目名称 · record 属性
+##### 归档条目名称（record 属性）
 
 ```csharp
 public string? EntryName { get; init; }
@@ -25410,7 +29712,7 @@ public string? EntryName { get; init; }
 
 <a id="api-36262a1ba969b0be"></a>
 
-##### 处理器限制比例 · record 属性
+##### 处理器限制比例（record 属性）
 
 ```csharp
 public long? Limit { get; init; }
@@ -25420,7 +29722,7 @@ public long? Limit { get; init; }
 
 <a id="api-d23be6813e9f1c69"></a>
 
-##### 额度名称 · record 属性
+##### 额度名称（record 属性）
 
 ```csharp
 public string? LimitName { get; init; }
@@ -25430,7 +29732,7 @@ public string? LimitName { get; init; }
 
 <a id="api-95b665a15ef80af3"></a>
 
-##### 失败原因 · record 属性
+##### 失败原因（record 属性）
 
 ```csharp
 public VmImportArchiveError Reason { get; init; }
@@ -25476,7 +29778,7 @@ public sealed class VmImportArchiveOptions
 
 <a id="api-f5e8bfe014286c4b"></a>
 
-##### 条目数量上限 · 属性
+##### 条目数量上限（属性）
 
 ```csharp
 public int? MaxEntries { get; init; }
@@ -25486,7 +29788,7 @@ public int? MaxEntries { get; init; }
 
 <a id="api-afa65aec41a14fe2"></a>
 
-##### 单条目大小上限 · 属性
+##### 单条目大小上限（属性）
 
 ```csharp
 public long? MaxEntryBytes { get; init; }
@@ -25496,7 +29798,7 @@ public long? MaxEntryBytes { get; init; }
 
 <a id="api-91cc504a4c1f946a"></a>
 
-##### 累计解压大小上限 · 属性
+##### 累计解压大小上限（属性）
 
 ```csharp
 public long? MaxTotalBytes { get; init; }
@@ -25508,7 +29810,7 @@ public long? MaxTotalBytes { get; init; }
 
 <a id="api-8b5bcd2bcc772a54"></a>
 
-##### 密码 · 属性
+##### 密码（属性）
 
 ```csharp
 public string? Password { get; init; }
@@ -25520,7 +29822,7 @@ public string? Password { get; init; }
 
 <a id="api-f6ac4d614b638273"></a>
 
-##### 临时目录 · 属性
+##### 临时目录（属性）
 
 ```csharp
 public string? TemporaryDirectory { get; init; }
@@ -25576,7 +29878,7 @@ public sealed class VmImportBatchSession : IAsyncDisposable
 
 <a id="api-5e3cfcd3dc68cdaa"></a>
 
-##### 清理错误 · 属性
+##### 清理错误（属性）
 
 ```csharp
 public string? CleanupError { get; }
@@ -25586,7 +29888,7 @@ public string? CleanupError { get; }
 
 <a id="api-ce6f22713c138368"></a>
 
-##### 清理状态 · 属性
+##### 清理状态（属性）
 
 ```csharp
 public VmImportCleanupState CleanupState { get; } = VmImportCleanupState.Pending;
@@ -25596,7 +29898,7 @@ public VmImportCleanupState CleanupState { get; } = VmImportCleanupState.Pending
 
 <a id="api-bf236047a662efdb"></a>
 
-##### 文件放置方式 · 属性
+##### 文件放置方式（属性）
 
 ```csharp
 public required VmImportPlacementMode PlacementMode { get; init; }
@@ -25606,7 +29908,7 @@ public required VmImportPlacementMode PlacementMode { get; init; }
 
 <a id="api-fabfbba78a6dc66a"></a>
 
-##### 保留的文件路径 · 属性
+##### 保留的文件路径（属性）
 
 ```csharp
 public IReadOnlyList<string> RetainedPaths { get; } = [];
@@ -25616,7 +29918,7 @@ public IReadOnlyList<string> RetainedPaths { get; } = [];
 
 <a id="api-ef55fb2db085e75f"></a>
 
-##### 来源类型 · 属性
+##### 来源类型（属性）
 
 ```csharp
 public required VmImportSourceKind SourceKind { get; init; }
@@ -25626,7 +29928,7 @@ public required VmImportSourceKind SourceKind { get; init; }
 
 <a id="api-d2a59090e9b2bc6d"></a>
 
-##### 源文件路径 · 属性
+##### 源文件路径（属性）
 
 ```csharp
 public required string SourcePath { get; init; }
@@ -25636,7 +29938,7 @@ public required string SourcePath { get; init; }
 
 <a id="api-b03d2dcc20de820e"></a>
 
-##### 虚拟机列表 · 属性
+##### 虚拟机列表（属性）
 
 ```csharp
 public IReadOnlyList<VmImportSession> VirtualMachines { get; } = [];
@@ -25648,7 +29950,7 @@ public IReadOnlyList<VmImportSession> VirtualMachines { get; } = [];
 
 <a id="api-4e23478df5e33027"></a>
 
-##### 取消并释放批量导入 · 方法
+##### 取消并释放批量导入（方法）
 
 ```csharp
 public ValueTask DisposeAsync();
@@ -25693,7 +29995,7 @@ public enum VmImportCleanupState
 
 <a id="api-2598f84334660482"></a>
 
-##### Completed · 枚举值
+##### Completed（枚举值）
 
 ```csharp
 Completed = 1
@@ -25703,7 +30005,7 @@ Completed = 1
 
 <a id="api-ea7f12d41edd905a"></a>
 
-##### Deferred · 枚举值
+##### Deferred（枚举值）
 
 ```csharp
 Deferred = 2
@@ -25713,7 +30015,7 @@ Deferred = 2
 
 <a id="api-8fbc330d17b99cf9"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 3
@@ -25723,7 +30025,7 @@ Failed = 3
 
 <a id="api-d503e12da6e014e6"></a>
 
-##### Pending · 枚举值
+##### Pending（枚举值）
 
 ```csharp
 Pending = 0
@@ -25767,7 +30069,7 @@ public sealed class VmImportPreparationResult
 
 <a id="api-eb1a0e8ec32930b2"></a>
 
-##### 导入批次 · 属性
+##### 导入批次（属性）
 
 ```csharp
 public VmImportBatchSession? Batch { get; }
@@ -25777,7 +30079,7 @@ public VmImportBatchSession? Batch { get; }
 
 <a id="api-259ea82a9e01c7d1"></a>
 
-##### 操作结果 · 属性
+##### 操作结果（属性）
 
 ```csharp
 public ApiResponse Result { get; }
@@ -25787,7 +30089,7 @@ public ApiResponse Result { get; }
 
 <a id="api-9646628e92c48479"></a>
 
-##### 成功状态 · 属性
+##### 成功状态（属性）
 
 ```csharp
 public bool Success { get; }
@@ -25856,7 +30158,7 @@ public sealed record VmImportResult(bool Success, Guid? VmId, bool IsRealized,
 
 <a id="api-6220bef7c3c365e2"></a>
 
-##### 创建虚拟机导入结果对象 · 主构造器
+##### 创建虚拟机导入结果对象（主构造器）
 
 ```csharp
 public VmImportResult(bool Success, Guid? VmId, bool IsRealized, bool OperationStateUnknown, VmImportCleanupState CleanupState, IReadOnlyList<string> RetainedPaths, string? Error = null, string? CleanupError = null);
@@ -25877,7 +30179,7 @@ public VmImportResult(bool Success, Guid? VmId, bool IsRealized, bool OperationS
 
 <a id="api-c3792b332c658447"></a>
 
-##### 归档处理错误 · 属性
+##### 归档处理错误（属性）
 
 ```csharp
 public VmImportArchiveFailure? ArchiveFailure { get; init; }
@@ -25887,7 +30189,7 @@ ZIP 密码、格式或额度方面的具体失败；其他原因或成功时为 
 
 <a id="api-a6100e6449bd4a19"></a>
 
-##### 清理错误 · record 属性
+##### 清理错误（record 属性）
 
 ```csharp
 public string? CleanupError { get; init; }
@@ -25897,7 +30199,7 @@ public string? CleanupError { get; init; }
 
 <a id="api-f406a43177bf1f14"></a>
 
-##### 清理失败详情 · 属性
+##### 清理失败详情（属性）
 
 ```csharp
 public ApiFailure? CleanupFailure { get; init; }
@@ -25907,7 +30209,7 @@ public ApiFailure? CleanupFailure { get; init; }
 
 <a id="api-7175bf61bd036b29"></a>
 
-##### 清理状态 · record 属性
+##### 清理状态（record 属性）
 
 ```csharp
 public VmImportCleanupState CleanupState { get; init; }
@@ -25917,7 +30219,7 @@ public VmImportCleanupState CleanupState { get; init; }
 
 <a id="api-9c8f8e618f508cc7"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -25927,7 +30229,7 @@ public string? Error { get; init; }
 
 <a id="api-42e7494aaf550bfe"></a>
 
-##### 失败详情 · 属性
+##### 失败详情（属性）
 
 ```csharp
 public ApiFailure? Failure { get; init; }
@@ -25937,7 +30239,7 @@ public ApiFailure? Failure { get; init; }
 
 <a id="api-dc69523f7b2ee258"></a>
 
-##### 注册完成状态 · record 属性
+##### 注册完成状态（record 属性）
 
 ```csharp
 public bool IsRealized { get; init; }
@@ -25947,7 +30249,7 @@ public bool IsRealized { get; init; }
 
 <a id="api-a12f4a065c33e7b5"></a>
 
-##### 底层任务状态未确定 · record 属性
+##### 底层任务状态未确定（record 属性）
 
 ```csharp
 public bool OperationStateUnknown { get; init; }
@@ -25957,7 +30259,7 @@ public bool OperationStateUnknown { get; init; }
 
 <a id="api-eec89a0f8573d94a"></a>
 
-##### 保留的文件路径 · record 属性
+##### 保留的文件路径（record 属性）
 
 ```csharp
 public IReadOnlyList<string> RetainedPaths { get; init; }
@@ -25967,7 +30269,7 @@ public IReadOnlyList<string> RetainedPaths { get; init; }
 
 <a id="api-b9765e28e4bc7e0e"></a>
 
-##### 成功状态 · record 属性
+##### 成功状态（record 属性）
 
 ```csharp
 public bool Success { get; init; }
@@ -25977,7 +30279,7 @@ public bool Success { get; init; }
 
 <a id="api-982d04ad1bad81ca"></a>
 
-##### 虚拟机标识 · record 属性
+##### 虚拟机标识（record 属性）
 
 ```csharp
 public Guid? VmId { get; init; }
@@ -26021,7 +30323,7 @@ public static partial class VmImportService
 
 <a id="api-92447067f1ddeb27"></a>
 
-##### 检查导入预览 · 方法
+##### 检查导入预览（方法）
 
 ```csharp
 public static string? GetPreviewError(IEnumerable<VmImportPreview> previews);
@@ -26037,7 +30339,7 @@ public static string? GetPreviewError(IEnumerable<VmImportPreview> previews);
 
 <a id="api-6001c0801ee3398b"></a>
 
-##### 导入虚拟机 · 方法
+##### 导入虚拟机（方法）
 
 ```csharp
 public static async Task<VmImportResult> ImportAsync(VmImportSession session, VmImportOptions options, IProgress<int>? progress = null, CancellationToken cancellationToken = default);
@@ -26068,7 +30370,7 @@ public static async Task<VmImportResult> ImportAsync(VmImportSession session, Vm
 
 <a id="api-76472f488afb9b44"></a>
 
-##### 准备批量导入 · 方法
+##### 准备批量导入（方法）
 
 ```csharp
 public static async Task<ApiResponse> PrepareBatchImportAsync(VmImportBatchSession batch, CancellationToken cancellationToken = default);
@@ -26088,7 +30390,7 @@ public static async Task<ApiResponse> PrepareBatchImportAsync(VmImportBatchSessi
 
 <a id="api-caaaab2a91e74a5f"></a>
 
-##### 准备导入预览（默认解压选项） · 方法
+##### 准备导入预览（默认解压选项）（方法）
 
 ```csharp
 public static Task<VmImportPreparationResult> PreparePreviewsAsync(string sourcePath, VmImportPlacementMode placementMode, IProgress<(int Current, int Total)>? progress = null, CancellationToken cancellationToken = default);
@@ -26107,7 +30409,7 @@ public static Task<VmImportPreparationResult> PreparePreviewsAsync(string source
 
 <a id="api-c61821570c4fcf69"></a>
 
-##### 准备导入预览（指定解压选项） · 方法
+##### 准备导入预览（指定解压选项）（方法）
 
 ```csharp
 public static async Task<VmImportPreparationResult> PreparePreviewsAsync(string sourcePath, VmImportArchiveOptions archiveOptions, VmImportPlacementMode placementMode, IProgress<(int Current, int Total)>? progress = null, CancellationToken cancellationToken = default);
@@ -26174,7 +30476,7 @@ public sealed class VmImportSession : IAsyncDisposable
 
 <a id="api-efc0e7b9d3d7d048"></a>
 
-##### 清理错误 · 属性
+##### 清理错误（属性）
 
 ```csharp
 public string? CleanupError { get; }
@@ -26184,7 +30486,7 @@ public string? CleanupError { get; }
 
 <a id="api-5d40effa33118010"></a>
 
-##### 清理状态 · 属性
+##### 清理状态（属性）
 
 ```csharp
 public VmImportCleanupState CleanupState { get; } = VmImportCleanupState.Pending;
@@ -26194,7 +30496,7 @@ public VmImportCleanupState CleanupState { get; } = VmImportCleanupState.Pending
 
 <a id="api-3663873b93f76376"></a>
 
-##### 注册完成状态 · 属性
+##### 注册完成状态（属性）
 
 ```csharp
 public bool IsRealized { get; }
@@ -26204,7 +30506,7 @@ public bool IsRealized { get; }
 
 <a id="api-d4dd1244ff6efe6d"></a>
 
-##### 底层任务状态未确定 · 属性
+##### 底层任务状态未确定（属性）
 
 ```csharp
 public bool OperationStateUnknown { get; }
@@ -26214,7 +30516,7 @@ public bool OperationStateUnknown { get; }
 
 <a id="api-892556e627978247"></a>
 
-##### 文件放置方式 · 属性
+##### 文件放置方式（属性）
 
 ```csharp
 public required VmImportPlacementMode PlacementMode { get; init; }
@@ -26224,7 +30526,7 @@ public required VmImportPlacementMode PlacementMode { get; init; }
 
 <a id="api-15c7ac5b6ab6e7f1"></a>
 
-##### 导入预览 · 属性
+##### 导入预览（属性）
 
 ```csharp
 public VmImportPreview Preview { get; } = new();
@@ -26234,7 +30536,7 @@ public VmImportPreview Preview { get; } = new();
 
 <a id="api-3821622dda630611"></a>
 
-##### 已清理分组引用数 · 属性
+##### 已清理分组引用数（属性）
 
 ```csharp
 public int RemovedMissingGroupCount { get; }
@@ -26244,7 +30546,7 @@ public int RemovedMissingGroupCount { get; }
 
 <a id="api-1dc6f060b584b295"></a>
 
-##### 保留的文件路径 · 属性
+##### 保留的文件路径（属性）
 
 ```csharp
 public IReadOnlyList<string> RetainedPaths { get; } = [];
@@ -26254,7 +30556,7 @@ public IReadOnlyList<string> RetainedPaths { get; } = [];
 
 <a id="api-c6b7b065c9293e11"></a>
 
-##### 来源类型 · 属性
+##### 来源类型（属性）
 
 ```csharp
 public required VmImportSourceKind SourceKind { get; init; }
@@ -26264,7 +30566,7 @@ public required VmImportSourceKind SourceKind { get; init; }
 
 <a id="api-799420789cccb33d"></a>
 
-##### 源文件路径 · 属性
+##### 源文件路径（属性）
 
 ```csharp
 public required string SourcePath { get; init; }
@@ -26276,7 +30578,7 @@ public required string SourcePath { get; init; }
 
 <a id="api-21d43ea8007027dd"></a>
 
-##### 取消并释放导入 · 方法
+##### 取消并释放导入（方法）
 
 ```csharp
 public ValueTask DisposeAsync();
@@ -26320,7 +30622,7 @@ public static class VmInputService
 
 <a id="api-4f4575475f490453"></a>
 
-##### 发送 Ctrl+Alt+Del · 方法
+##### 发送 Ctrl+Alt+Del（方法）
 
 ```csharp
 public static async Task<ApiResponse> SendCtrlAltDelAsync(Guid vmId);
@@ -26381,7 +30683,7 @@ public sealed record VmInventorySnapshot(IReadOnlyList<VmInstance> VirtualMachin
 
 <a id="api-811875dfaa43cf2e"></a>
 
-##### 创建虚拟机清单对象 · 主构造器
+##### 创建虚拟机清单对象（主构造器）
 
 ```csharp
 public VmInventorySnapshot(IReadOnlyList<VmInstance> VirtualMachines, IReadOnlyList<VmQueryIssue> Issues);
@@ -26396,7 +30698,7 @@ public VmInventorySnapshot(IReadOnlyList<VmInstance> VirtualMachines, IReadOnlyL
 
 <a id="api-dc7a5f76afd0f92c"></a>
 
-##### 读取完整状态 · 属性
+##### 读取完整状态（属性）
 
 ```csharp
 public bool IsComplete { get; }
@@ -26406,7 +30708,7 @@ public bool IsComplete { get; }
 
 <a id="api-1efe7dd893642dbb"></a>
 
-##### 读取问题 · record 属性
+##### 读取问题（record 属性）
 
 ```csharp
 public IReadOnlyList<VmQueryIssue> Issues { get; init; }
@@ -26416,7 +30718,7 @@ public IReadOnlyList<VmQueryIssue> Issues { get; init; }
 
 <a id="api-9e7bd6b62fa03799"></a>
 
-##### 虚拟机列表 · record 属性
+##### 虚拟机列表（record 属性）
 
 ```csharp
 public IReadOnlyList<VmInstance> VirtualMachines { get; init; }
@@ -26458,7 +30760,7 @@ public enum VmIpAddressAssociation
 
 <a id="api-0bb1136c866dbf10"></a>
 
-##### GuestAdapter · 枚举值
+##### GuestAdapter（枚举值）
 
 ```csharp
 GuestAdapter = 1
@@ -26468,7 +30770,7 @@ GuestAdapter = 1
 
 <a id="api-dcfefdf9ed48e359"></a>
 
-##### MacAddress · 枚举值
+##### MacAddress（枚举值）
 
 ```csharp
 MacAddress = 0
@@ -26478,7 +30780,7 @@ MacAddress = 0
 
 <a id="api-ceced24526c68117"></a>
 
-##### VirtualMachine · 枚举值
+##### VirtualMachine（枚举值）
 
 ```csharp
 VirtualMachine = 2
@@ -26541,7 +30843,7 @@ public sealed record VmIpAddressObservation(string Address, string? AdapterId, s
 
 <a id="api-456124e0baad1a8d"></a>
 
-##### 创建IP 地址观测对象 · 主构造器
+##### 创建IP 地址观测对象（主构造器）
 
 ```csharp
 public VmIpAddressObservation(string Address, string? AdapterId, string? MacAddress, VmIpAddressSource Source, VmIpAddressAssociation Association, DateTimeOffset? ObservedAtUtc, DateTimeOffset ReadAtUtc);
@@ -26561,7 +30863,7 @@ public VmIpAddressObservation(string Address, string? AdapterId, string? MacAddr
 
 <a id="api-b71263a69476003c"></a>
 
-##### 网卡标识 · record 属性
+##### 网卡标识（record 属性）
 
 ```csharp
 public string? AdapterId { get; init; }
@@ -26571,7 +30873,7 @@ public string? AdapterId { get; init; }
 
 <a id="api-2062678e5e62292a"></a>
 
-##### IP 地址 · record 属性
+##### IP 地址（record 属性）
 
 ```csharp
 public string Address { get; init; }
@@ -26581,7 +30883,7 @@ public string Address { get; init; }
 
 <a id="api-3a08e3f596889b60"></a>
 
-##### 地址关联依据 · record 属性
+##### 地址关联依据（record 属性）
 
 ```csharp
 public VmIpAddressAssociation Association { get; init; }
@@ -26591,7 +30893,7 @@ public VmIpAddressAssociation Association { get; init; }
 
 <a id="api-dcceeddf373ce93d"></a>
 
-##### MAC 地址 · record 属性
+##### MAC 地址（record 属性）
 
 ```csharp
 public string? MacAddress { get; init; }
@@ -26601,7 +30903,7 @@ public string? MacAddress { get; init; }
 
 <a id="api-3591d37f24e565a3"></a>
 
-##### 观测时间 · record 属性
+##### 观测时间（record 属性）
 
 ```csharp
 public DateTimeOffset? ObservedAtUtc { get; init; }
@@ -26611,7 +30913,7 @@ public DateTimeOffset? ObservedAtUtc { get; init; }
 
 <a id="api-96eb73c7466fa307"></a>
 
-##### 读取时间 · record 属性
+##### 读取时间（record 属性）
 
 ```csharp
 public DateTimeOffset ReadAtUtc { get; init; }
@@ -26621,7 +30923,7 @@ public DateTimeOffset ReadAtUtc { get; init; }
 
 <a id="api-8731043b8daeb543"></a>
 
-##### 来源 · record 属性
+##### 来源（record 属性）
 
 ```csharp
 public VmIpAddressSource Source { get; init; }
@@ -26673,7 +30975,7 @@ public sealed record VmIpAddressResolution(List<string> Addresses, bool Requires
 
 <a id="api-fdeebb13cb3fa32e"></a>
 
-##### 创建IP 地址选择结果对象 · 主构造器
+##### 创建IP 地址选择结果对象（主构造器）
 
 ```csharp
 public VmIpAddressResolution(List<string> Addresses, bool RequiresLookup);
@@ -26688,7 +30990,7 @@ public VmIpAddressResolution(List<string> Addresses, bool RequiresLookup);
 
 <a id="api-5c45bb448818ebb3"></a>
 
-##### 地址列表 · record 属性
+##### 地址列表（record 属性）
 
 ```csharp
 public List<string> Addresses { get; init; }
@@ -26698,7 +31000,7 @@ public List<string> Addresses { get; init; }
 
 <a id="api-458401e06e9eb502"></a>
 
-##### 需要独立查询 · record 属性
+##### 需要独立查询（record 属性）
 
 ```csharp
 public bool RequiresLookup { get; init; }
@@ -26740,7 +31042,7 @@ public enum VmIpAddressSource
 
 <a id="api-7546804431170b25"></a>
 
-##### ArpCapture · 枚举值
+##### ArpCapture（枚举值）
 
 ```csharp
 ArpCapture = 0
@@ -26750,7 +31052,7 @@ ArpCapture = 0
 
 <a id="api-b38312eaff645e39"></a>
 
-##### GuestIntegration · 枚举值
+##### GuestIntegration（枚举值）
 
 ```csharp
 GuestIntegration = 1
@@ -26760,7 +31062,7 @@ GuestIntegration = 1
 
 <a id="api-05e96b1f9dca742a"></a>
 
-##### NeighborCache · 枚举值
+##### NeighborCache（枚举值）
 
 ```csharp
 NeighborCache = 2
@@ -26804,7 +31106,7 @@ public static class VmIpService
 
 <a id="api-a0f25a29a0fa99d7"></a>
 
-##### 选取首选 IP 地址 · 方法
+##### 选取首选 IP 地址（方法）
 
 ```csharp
 public static string GetPrimaryAddress(IEnumerable<VmNetworkAdapter> adapters, string fallback = "");
@@ -26821,7 +31123,7 @@ public static string GetPrimaryAddress(IEnumerable<VmNetworkAdapter> adapters, s
 
 <a id="api-04d686e8f171e829"></a>
 
-##### 查询 IP 地址 · 方法
+##### 查询 IP 地址（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyList<VmIpAddressObservation>>> LookupAsync(Guid vmId, string macAddressWithColons);
@@ -26840,7 +31142,7 @@ public static async Task<ApiResponse<IReadOnlyList<VmIpAddressObservation>>> Loo
 
 <a id="api-b174efa7170368ed"></a>
 
-##### 合并网卡 IP 地址 · 方法
+##### 合并网卡 IP 地址（方法）
 
 ```csharp
 public static VmIpAddressResolution ResolveAdapterAddresses(string? macAddress, IEnumerable<string>? reportedAddresses, string? lookupResult = null);
@@ -26900,7 +31202,7 @@ public sealed record VmIsolationSupport(bool Supported, IReadOnlyList<string> Ty
 
 <a id="api-3ba00ef4f6ae8e0f"></a>
 
-##### 创建硬件隔离能力对象 · 主构造器
+##### 创建硬件隔离能力对象（主构造器）
 
 ```csharp
 public VmIsolationSupport(bool Supported, IReadOnlyList<string> Types);
@@ -26915,7 +31217,7 @@ public VmIsolationSupport(bool Supported, IReadOnlyList<string> Types);
 
 <a id="api-d1296f57924662c0"></a>
 
-##### 支持状态 · record 属性
+##### 支持状态（record 属性）
 
 ```csharp
 public bool Supported { get; init; }
@@ -26925,7 +31227,7 @@ public bool Supported { get; init; }
 
 <a id="api-3cdb27194ea537c3"></a>
 
-##### 可用类型 · record 属性
+##### 可用类型（record 属性）
 
 ```csharp
 public IReadOnlyList<string> Types { get; init; }
@@ -26996,7 +31298,7 @@ public static class VmMemoryFields
 
 <a id="api-6753301b848a0480"></a>
 
-##### 运行时已分配内存 · 字段
+##### 运行时已分配内存（字段）
 
 ```csharp
 public static readonly VmQueryField<long> AssignedMiB;
@@ -27008,7 +31310,7 @@ Hyper-V 当前分配给运行中虚拟机的内存大小。
 
 <a id="api-87cc208eec50cfd9"></a>
 
-##### 可用内存缓冲比例 · 字段
+##### 可用内存缓冲比例（字段）
 
 ```csharp
 public static readonly VmQueryField<int> AvailableBufferPercent;
@@ -27022,7 +31324,7 @@ public static readonly VmQueryField<int> AvailableBufferPercent;
 
 <a id="api-5ba20292feb21228"></a>
 
-##### 来宾可用内存比例 · 字段
+##### 来宾可用内存比例（字段）
 
 ```csharp
 public static readonly VmQueryField<int> AvailablePercent;
@@ -27038,7 +31340,7 @@ public static readonly VmQueryField<int> AvailablePercent;
 
 <a id="api-cdcc4d00ce904585"></a>
 
-##### 后备页大小 · 字段
+##### 后备页大小（字段）
 
 ```csharp
 public static readonly VmQueryField<byte> BackingPageSize;
@@ -27052,7 +31354,7 @@ public static readonly VmQueryField<byte> BackingPageSize;
 
 <a id="api-085553727c32ce93"></a>
 
-##### 内存后备类型 · 字段
+##### 内存后备类型（字段）
 
 ```csharp
 public static readonly VmQueryField<byte> BackingType;
@@ -27068,7 +31370,7 @@ public static readonly VmQueryField<byte> BackingType;
 
 <a id="api-9dc238f2ec64a90a"></a>
 
-##### 内存缓冲比例 · 字段
+##### 内存缓冲比例（字段）
 
 ```csharp
 public static readonly VmQueryField<int> Buffer;
@@ -27084,7 +31386,7 @@ public static readonly VmQueryField<int> Buffer;
 
 <a id="api-5719a1b27f82c102"></a>
 
-##### CXL 开关 · 字段
+##### CXL 开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> CxlEnabled;
@@ -27098,7 +31400,7 @@ public static readonly VmQueryField<bool> CxlEnabled;
 
 <a id="api-7d977086209900da"></a>
 
-##### 内存需求 · 字段
+##### 内存需求（字段）
 
 ```csharp
 public static readonly VmQueryField<long> DemandMiB;
@@ -27110,7 +31412,7 @@ public static readonly VmQueryField<long> DemandMiB;
 
 <a id="api-5c20e553289c6fc9"></a>
 
-##### 动态内存操作对齐 · 字段
+##### 动态内存操作对齐（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> DynMemOperationAlignment;
@@ -27126,7 +31428,7 @@ public static readonly VmQueryField<uint> DynMemOperationAlignment;
 
 <a id="api-9477a620d59ce7d0"></a>
 
-##### 动态内存开关 · 字段
+##### 动态内存开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> DynamicMemoryEnabled;
@@ -27138,7 +31440,7 @@ public static readonly VmQueryField<bool> DynamicMemoryEnabled;
 
 <a id="api-020c8373f6ba8090"></a>
 
-##### 冷内存提示 · 字段
+##### 冷内存提示（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnableColdHint;
@@ -27152,7 +31454,7 @@ public static readonly VmQueryField<bool> EnableColdHint;
 
 <a id="api-ab29e7b3591d4600"></a>
 
-##### EPF 开关 · 字段
+##### EPF 开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnableEpf;
@@ -27166,7 +31468,7 @@ public static readonly VmQueryField<bool> EnableEpf;
 
 <a id="api-f3c84d11dfd17563"></a>
 
-##### GPA 固定开关 · 字段
+##### GPA 固定开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnableGpaPinning;
@@ -27180,7 +31482,7 @@ public static readonly VmQueryField<bool> EnableGpaPinning;
 
 <a id="api-fd421450537c3134"></a>
 
-##### 热内存提示 · 字段
+##### 热内存提示（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnableHotHint;
@@ -27194,7 +31496,7 @@ public static readonly VmQueryField<bool> EnableHotHint;
 
 <a id="api-42e6cd53fe85fea6"></a>
 
-##### 私有压缩存储开关 · 字段
+##### 私有压缩存储开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnablePrivateCompressionStore;
@@ -27208,7 +31510,7 @@ public static readonly VmQueryField<bool> EnablePrivateCompressionStore;
 
 <a id="api-1e0d022fb612992e"></a>
 
-##### 来宾可用内存 · 字段
+##### 来宾可用内存（字段）
 
 ```csharp
 public static readonly VmQueryField<long> GuestAvailableMiB;
@@ -27220,7 +31522,7 @@ public static readonly VmQueryField<long> GuestAvailableMiB;
 
 <a id="api-46fee049c4b0d8e8"></a>
 
-##### 来宾可见内存 · 字段
+##### 来宾可见内存（字段）
 
 ```csharp
 public static readonly VmQueryField<long> GuestVisibleMiB;
@@ -27232,7 +31534,7 @@ public static readonly VmQueryField<long> GuestVisibleMiB;
 
 <a id="api-c1194858b03dc692"></a>
 
-##### 每 NUMA 节点内存块上限 · 字段
+##### 每 NUMA 节点内存块上限（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> MaxMemoryBlocksPerNumaNode;
@@ -27248,7 +31550,7 @@ public static readonly VmQueryField<ulong> MaxMemoryBlocksPerNumaNode;
 
 <a id="api-22d2202d4756e5f0"></a>
 
-##### 最大内存 · 字段
+##### 最大内存（字段）
 
 ```csharp
 public static readonly VmQueryField<long> Maximum;
@@ -27262,7 +31564,7 @@ public static readonly VmQueryField<long> Maximum;
 
 <a id="api-0a424f7b01f07277"></a>
 
-##### 内存访问跟踪策略 · 字段
+##### 内存访问跟踪策略（字段）
 
 ```csharp
 public static readonly VmQueryField<byte> MemoryAccessTrackingPolicy;
@@ -27278,7 +31580,7 @@ public static readonly VmQueryField<byte> MemoryAccessTrackingPolicy;
 
 <a id="api-2a71380a6e9b099c"></a>
 
-##### 内存访问跟踪状态 · 字段
+##### 内存访问跟踪状态（字段）
 
 ```csharp
 public static readonly VmQueryField<byte> MemoryAccessTrackingState;
@@ -27292,7 +31594,7 @@ public static readonly VmQueryField<byte> MemoryAccessTrackingState;
 
 <a id="api-46c0b0951d716b76"></a>
 
-##### 内存加密策略 · 字段
+##### 内存加密策略（字段）
 
 ```csharp
 public static readonly VmQueryField<byte> MemoryEncryptionPolicy;
@@ -27306,7 +31608,7 @@ public static readonly VmQueryField<byte> MemoryEncryptionPolicy;
 
 <a id="api-60fe4a712286afcb"></a>
 
-##### 最小内存 · 字段
+##### 最小内存（字段）
 
 ```csharp
 public static readonly VmQueryField<long> Minimum;
@@ -27320,7 +31622,7 @@ public static readonly VmQueryField<long> Minimum;
 
 <a id="api-26dae397f03ba655"></a>
 
-##### 当前内存压力 · 字段
+##### 当前内存压力（字段）
 
 ```csharp
 public static readonly VmQueryField<int> PressurePercent;
@@ -27334,7 +31636,7 @@ public static readonly VmQueryField<int> PressurePercent;
 
 <a id="api-dacbe0e17edb530b"></a>
 
-##### SGX 开关 · 字段
+##### SGX 开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> SgxEnabled;
@@ -27348,7 +31650,7 @@ public static readonly VmQueryField<bool> SgxEnabled;
 
 <a id="api-724785468fc860e0"></a>
 
-##### SGX 默认启动控制 · 字段
+##### SGX 默认启动控制（字段）
 
 ```csharp
 public static readonly VmQueryField<string> SgxLaunchControlDefault;
@@ -27362,7 +31664,7 @@ SGX 默认启动控制配置的原始文本。
 
 <a id="api-82f58951c1e978ad"></a>
 
-##### SGX 启动控制模式 · 字段
+##### SGX 启动控制模式（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> SgxLaunchControlMode;
@@ -27376,7 +31678,7 @@ SGX 启动控制的访问模式配置，与虚拟机的普通引导顺序无关�
 
 <a id="api-deb7de2a490c2aa1"></a>
 
-##### SGX 内存大小 · 字段
+##### SGX 内存大小（字段）
 
 ```csharp
 public static readonly VmQueryField<double> SgxSize;
@@ -27392,7 +31694,7 @@ public static readonly VmQueryField<double> SgxSize;
 
 <a id="api-42457fbd117ae450"></a>
 
-##### 智能分页占用 · 字段
+##### 智能分页占用（字段）
 
 ```csharp
 public static readonly VmQueryField<long> SmartPagingMiB;
@@ -27404,7 +31706,7 @@ Hyper-V 智能分页工作集当前占用量（MiB）。正常运行应为 0，�
 
 <a id="api-d2547f93da8b2561"></a>
 
-##### 启动内存 · 字段
+##### 启动内存（字段）
 
 ```csharp
 public static readonly VmQueryField<long> Startup;
@@ -27416,7 +31718,7 @@ public static readonly VmQueryField<long> Startup;
 
 <a id="api-85fb99a6a32dd0c6"></a>
 
-##### 交换文件使用状态 · 字段
+##### 交换文件使用状态（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> SwapFilesInUse;
@@ -27428,7 +31730,7 @@ public static readonly VmQueryField<bool> SwapFilesInUse;
 
 <a id="api-8eb7156ab5917a0f"></a>
 
-##### 内存权重 · 字段
+##### 内存权重（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> Weight;
@@ -27472,7 +31774,7 @@ public static class VmMemoryService
 
 <a id="api-cd386fd61a002db9"></a>
 
-##### 评估修改条件 · 方法
+##### 评估修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetModificationCondition(VmMemorySettings settings, string propertyName, VmState state);
@@ -27492,7 +31794,7 @@ public static VmModificationCondition GetModificationCondition(VmMemorySettings 
 
 <a id="api-2dcebf0d06274822"></a>
 
-##### 读取内存配置 · 方法
+##### 读取内存配置（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmSettingsSnapshot<VmMemorySettings>>> GetVmMemorySettingsAsync(Guid vmId);
@@ -27510,7 +31812,7 @@ public static async Task<ApiResponse<VmSettingsSnapshot<VmMemorySettings>>> GetV
 
 <a id="api-4e1cb21ca1774e64"></a>
 
-##### 设置内存配置 · 方法
+##### 设置内存配置（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetVmMemorySettingsAsync(Guid vmId, VmMemorySettings newSettings, IReadOnlyCollection<string> changedProperties);
@@ -27526,7 +31828,7 @@ public static async Task<ApiResponse> SetVmMemorySettingsAsync(Guid vmId, VmMemo
 | `newSettings` | 本次请求值；只读取 changedProperties 中的属性，容量单位为 MiB，Weight 为原始权重。 |
 | `changedProperties` | 本次修改的属性名集合，至少指定一项。 |
 
-返回：应用结果；Steps 按顺序记录已执行的 DisableVirtualNuma、Memory、EnableVirtualNuma 步骤，含各步骤的状态与原始错误。不需要或未开始的步骤不列出。
+返回：应用结果；Steps 按顺序记录已执行的 DisableVirtualNuma、Memory 步骤，含各步骤的状态与原始错误。不需要或未开始的步骤不列出。
 
 调用约定：未选字段沿用当前值。切换动态内存、后备页、后备类型及 SGX 时按相应规则联动。同一虚拟机的 CPU 与内存修改在 Core 进程之间排队，同一字段以本次请求覆盖。
 
@@ -27596,7 +31898,7 @@ public static class VmMetadataFields
 
 <a id="api-b29932b7273e88a1"></a>
 
-##### 元数据键 · 字段
+##### 元数据键（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Key;
@@ -27608,7 +31910,7 @@ public static readonly VmQueryField<string> Key;
 
 <a id="api-df80cf1bf4e6b9c0"></a>
 
-##### 元数据值 · 字段
+##### 元数据值（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Value;
@@ -27648,6 +31950,7 @@ public static readonly VmQueryField<string> Value;
 | 成员 | 说明 |
 | --- | --- |
 | [` public const string CpuAffinityKey = "ExHyperV.CpuAffinity" `](#api-31eda3684731eb6a) | 处理器亲和性的键名。 |
+| [` public const string GpuDriversKey = "ExHyperV.GpuDrivers" `](#api-b42f7452c19f4a62) | 已部署显卡驱动版本的键名；保存以规范化宿主显卡实例 ID 为键、已写入来宾的驱动版本为值的 JSON 字典。 |
 | [` public const string OsTypeKey = "ExHyperV.OSType" `](#api-840af435315cad08) | 操作系统分类的键名；值与 OsImages 使用的分类名称一致。 |
 
 #### 详细说明
@@ -27680,7 +31983,7 @@ public static class MetadataExample
 
 <a id="api-987cb5dc889f2286"></a>
 
-##### 读取全部自定义数据 · 方法
+##### 读取全部自定义数据（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyDictionary<string, string>>> ReadAsync(Guid vmId);
@@ -27698,7 +32001,7 @@ public static async Task<ApiResponse<IReadOnlyDictionary<string, string>>> ReadA
 
 <a id="api-25bccb731f217a85"></a>
 
-##### 删除自定义数据 · 方法
+##### 删除自定义数据（方法）
 
 ```csharp
 public static Task<ApiResponse> RemoveAsync(Guid vmId, string key);
@@ -27717,7 +32020,7 @@ public static Task<ApiResponse> RemoveAsync(Guid vmId, string key);
 
 <a id="api-36243ce225f467d9"></a>
 
-##### 写入自定义数据 · 方法
+##### 写入自定义数据（方法）
 
 ```csharp
 public static Task<ApiResponse> SetAsync(Guid vmId, string key, string value);
@@ -27739,7 +32042,7 @@ public static Task<ApiResponse> SetAsync(Guid vmId, string key, string value);
 
 <a id="api-7eabd73ae6dd2ead"></a>
 
-##### 设置操作系统分类 · 方法
+##### 设置操作系统分类（方法）
 
 ```csharp
 public static Task<ApiResponse> SetOperatingSystemTypeAsync(Guid vmId, string osType);
@@ -27760,7 +32063,7 @@ public static Task<ApiResponse> SetOperatingSystemTypeAsync(Guid vmId, string os
 
 <a id="api-31eda3684731eb6a"></a>
 
-##### 处理器亲和性键 · 字段
+##### 处理器亲和性键（字段）
 
 ```csharp
 public const string CpuAffinityKey = "ExHyperV.CpuAffinity";
@@ -27770,9 +32073,21 @@ public const string CpuAffinityKey = "ExHyperV.CpuAffinity";
 
 处理器亲和性的键名。新保存使用 Version=2 的 JSON，包含 Backend、LogicalProcessors、HostFingerprint 和 TopologyFingerprint；后两项为宿主 UUID 和编号拓扑的摘要。旧数组与版本 1 记录保留可读，但非空旧选择需要重新保存。空集合表示不限制。
 
+<a id="api-b42f7452c19f4a62"></a>
+
+##### GPU 驱动版本元数据键（字段）
+
+```csharp
+public const string GpuDriversKey = "ExHyperV.GpuDrivers";
+```
+
+功能归属：管理层面 / 虚拟机 / 自定义数据。
+
+已部署显卡驱动版本的键名；保存以规范化宿主显卡实例 ID 为键、已写入来宾的驱动版本为值的 JSON 字典。
+
 <a id="api-840af435315cad08"></a>
 
-##### 操作系统分类键 · 字段
+##### 操作系统分类键（字段）
 
 ```csharp
 public const string OsTypeKey = "ExHyperV.OSType";
@@ -27816,7 +32131,7 @@ public static class VmMmioFields
 
 <a id="api-ced5d854b4ebfd58"></a>
 
-##### 高位 MMIO 基址 · 字段
+##### 高位 MMIO 基址（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> HighBaseMiB;
@@ -27828,7 +32143,7 @@ public static readonly VmQueryField<ulong> HighBaseMiB;
 
 <a id="api-9febb14fd2b978b6"></a>
 
-##### 高位 MMIO 空间 · 字段
+##### 高位 MMIO 空间（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> HighSizeMiB;
@@ -27840,7 +32155,7 @@ public static readonly VmQueryField<ulong> HighSizeMiB;
 
 <a id="api-864c62caf7888cdb"></a>
 
-##### 低位 MMIO 空间 · 字段
+##### 低位 MMIO 空间（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> LowSizeMiB;
@@ -27889,7 +32204,7 @@ public static partial class VmMmioService
 
 <a id="api-022f3c81cef9991f"></a>
 
-##### MMIO 空间检查 · 方法
+##### MMIO 空间检查（方法）
 
 ```csharp
 public static async Task<ApiResponse<MmioCheckResultType>> CheckMmioSpaceAsync(Guid vmId);
@@ -27907,7 +32222,7 @@ public static async Task<ApiResponse<MmioCheckResultType>> CheckMmioSpaceAsync(G
 
 <a id="api-70b0d58283e2e77e"></a>
 
-##### 自动配置 MMIO · 方法
+##### 自动配置 MMIO（方法）
 
 ```csharp
 public static async Task<ApiResponse> ConfigureMmioAsync(Guid vmId);
@@ -27927,7 +32242,7 @@ public static async Task<ApiResponse> ConfigureMmioAsync(Guid vmId);
 
 <a id="api-35766114f3e30787"></a>
 
-##### 评估修改条件 · 方法
+##### 评估修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetModificationCondition(VmState state);
@@ -27945,7 +32260,7 @@ public static VmModificationCondition GetModificationCondition(VmState state);
 
 <a id="api-2268d2c49ebc6f49"></a>
 
-##### 读取 MMIO 设置 · 方法
+##### 读取 MMIO 设置（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmMmioSettings>> GetSettingsAsync(Guid vmId);
@@ -27963,7 +32278,7 @@ public static async Task<ApiResponse<VmMmioSettings>> GetSettingsAsync(Guid vmId
 
 <a id="api-09d7e0f83abb5ead"></a>
 
-##### 设置 MMIO 配置 · 方法
+##### 设置 MMIO 配置（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetSettingAsync(Guid vmId, VmMmioSettings settings, string propertyName);
@@ -27983,7 +32298,7 @@ public static async Task<ApiResponse> SetSettingAsync(Guid vmId, VmMmioSettings 
 
 <a id="api-59938fcfe0277294"></a>
 
-##### 应用推荐 MMIO 配置 · 方法
+##### 应用推荐 MMIO 配置（方法）
 
 ```csharp
 public static async Task<ApiResponse> UpdateMmioSpaceAsync(Guid vmId);
@@ -28062,7 +32377,7 @@ public sealed record VmNetworkAdapterCreationResult(
 
 <a id="api-0ea0df5761b011cf"></a>
 
-##### 创建网卡创建结果对象 · 主构造器
+##### 创建网卡创建结果对象（主构造器）
 
 ```csharp
 public VmNetworkAdapterCreationResult(bool Success, Guid? DeviceId, VmNetworkAdapterCreationState AdapterState, VmNetworkAdapterInitializationState InitializationState, IReadOnlyList<Guid> RetainedDeviceIds, string? Error = null, string? CleanupError = null, ApiErrorKind ErrorKind = ApiErrorKind.None);
@@ -28083,7 +32398,7 @@ public VmNetworkAdapterCreationResult(bool Success, Guid? DeviceId, VmNetworkAda
 
 <a id="api-d881130728f1ed47"></a>
 
-##### 网卡资源状态 · record 属性
+##### 网卡资源状态（record 属性）
 
 ```csharp
 public VmNetworkAdapterCreationState AdapterState { get; init; }
@@ -28093,7 +32408,7 @@ public VmNetworkAdapterCreationState AdapterState { get; init; }
 
 <a id="api-d319500959416824"></a>
 
-##### 清理错误 · record 属性
+##### 清理错误（record 属性）
 
 ```csharp
 public string? CleanupError { get; init; }
@@ -28103,7 +32418,7 @@ public string? CleanupError { get; init; }
 
 <a id="api-5ad2e46b19e76323"></a>
 
-##### 设备标识 · record 属性
+##### 设备标识（record 属性）
 
 ```csharp
 public Guid? DeviceId { get; init; }
@@ -28113,7 +32428,7 @@ public Guid? DeviceId { get; init; }
 
 <a id="api-e5ca70cada3209b2"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -28123,7 +32438,7 @@ public string? Error { get; init; }
 
 <a id="api-25d7abfa1cc153f2"></a>
 
-##### 错误类别 · record 属性
+##### 错误类别（record 属性）
 
 ```csharp
 public ApiErrorKind ErrorKind { get; init; }
@@ -28133,7 +32448,7 @@ public ApiErrorKind ErrorKind { get; init; }
 
 <a id="api-98d1557c04c7afb8"></a>
 
-##### 初始化结果 · record 属性
+##### 初始化结果（record 属性）
 
 ```csharp
 public VmNetworkAdapterInitializationState InitializationState { get; init; }
@@ -28143,7 +32458,7 @@ public VmNetworkAdapterInitializationState InitializationState { get; init; }
 
 <a id="api-7236ca66fd25ab01"></a>
 
-##### 保留的设备标识 · record 属性
+##### 保留的设备标识（record 属性）
 
 ```csharp
 public IReadOnlyList<Guid> RetainedDeviceIds { get; init; }
@@ -28153,7 +32468,7 @@ public IReadOnlyList<Guid> RetainedDeviceIds { get; init; }
 
 <a id="api-db8745b8c2211666"></a>
 
-##### 成功状态 · record 属性
+##### 成功状态（record 属性）
 
 ```csharp
 public bool Success { get; init; }
@@ -28196,7 +32511,7 @@ public enum VmNetworkAdapterCreationState
 
 <a id="api-26f6bcc40061114b"></a>
 
-##### NotCreated · 枚举值
+##### NotCreated（枚举值）
 
 ```csharp
 NotCreated = 0
@@ -28206,7 +32521,7 @@ NotCreated = 0
 
 <a id="api-4041033ac3c76ae7"></a>
 
-##### Present · 枚举值
+##### Present（枚举值）
 
 ```csharp
 Present = 1
@@ -28216,7 +32531,7 @@ Present = 1
 
 <a id="api-8bf24e9fa37d934a"></a>
 
-##### Removed · 枚举值
+##### Removed（枚举值）
 
 ```csharp
 Removed = 2
@@ -28226,7 +32541,7 @@ Removed = 2
 
 <a id="api-0d80258e9323df2d"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 3
@@ -28269,7 +32584,7 @@ public enum VmNetworkAdapterInitializationState
 
 <a id="api-27701c8a5cf0a439"></a>
 
-##### Completed · 枚举值
+##### Completed（枚举值）
 
 ```csharp
 Completed = 1
@@ -28279,7 +32594,7 @@ Completed = 1
 
 <a id="api-0800671ef3c657c3"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 2
@@ -28289,7 +32604,7 @@ Failed = 2
 
 <a id="api-5294a7cecfd36c3f"></a>
 
-##### NotStarted · 枚举值
+##### NotStarted（枚举值）
 
 ```csharp
 NotStarted = 0
@@ -28299,7 +32614,7 @@ NotStarted = 0
 
 <a id="api-b5ba38fc03e97ff3"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 3
@@ -28336,6 +32651,7 @@ Unknown = 3
 | [` public static readonly VmQueryField<IReadOnlyList<string>> IpAddresses `](#api-c0d549a66582f030) | IP 地址：关联到虚拟网卡的 IP 地址列表，优先采用已有宿主 ARP 嗅探结果。 |
 | [` public static readonly VmQueryField<bool> IpsecOffloadEnabled `](#api-fd6d73654692d71c) | IPsec 卸载：是否配置启用 IPsec 硬件卸载。 |
 | [` public static readonly VmQueryField<bool> IsConnected `](#api-5f4785d7742b2318) | 连接开关：虚拟网卡连接资源是否处于启用状态。 |
+| [` public static readonly VmQueryField<bool> IsLegacy `](#api-0e1df917d1e4505e) | 旧版网卡标记：区分标准网卡与旧版网卡。 |
 | [` public static readonly VmQueryField<bool> IsStaticMac `](#api-3fbde5f0e1ac8801) | 静态 MAC 开关：虚拟网卡是否使用手动指定的静态 MAC 地址。 |
 | [` public static readonly VmQueryField<string> MacAddress `](#api-46429eccaf2cf253) | MAC 地址：虚拟网卡当前配置的 MAC 地址。 |
 | [` public static readonly VmQueryField<bool> MacSpoofingAllowed `](#api-01350d39eaa70d45) | MAC 欺骗：是否允许来宾使用与 Hyper-V 配置不同的源 MAC 地址发送数据。 |
@@ -28367,7 +32683,7 @@ public static class VmNetworkFields
 
 <a id="api-6028d5e953bda6f7"></a>
 
-##### 访问 VLAN 编号 · 字段
+##### 访问 VLAN 编号（字段）
 
 ```csharp
 public static readonly VmQueryField<int> AccessVlanId;
@@ -28381,7 +32697,7 @@ public static readonly VmQueryField<int> AccessVlanId;
 
 <a id="api-095bb0a502357a04"></a>
 
-##### 带宽上限 · 字段
+##### 带宽上限（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> BandwidthLimitBitsPerSecond;
@@ -28393,7 +32709,7 @@ public static readonly VmQueryField<ulong> BandwidthLimitBitsPerSecond;
 
 <a id="api-ab817df85355b2ce"></a>
 
-##### 带宽保留 · 字段
+##### 带宽保留（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> BandwidthReservationBitsPerSecond;
@@ -28405,7 +32721,7 @@ public static readonly VmQueryField<ulong> BandwidthReservationBitsPerSecond;
 
 <a id="api-6f1114eefd22e5da"></a>
 
-##### 网卡身份 · 字段
+##### 网卡身份（字段）
 
 ```csharp
 public static readonly VmQueryField<Guid> DeviceId;
@@ -28417,7 +32733,7 @@ public static readonly VmQueryField<Guid> DeviceId;
 
 <a id="api-02308e69979a2b8c"></a>
 
-##### DHCP 防护 · 字段
+##### DHCP 防护（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> DhcpGuardEnabled;
@@ -28429,7 +32745,7 @@ public static readonly VmQueryField<bool> DhcpGuardEnabled;
 
 <a id="api-980b92bca0dfd7ed"></a>
 
-##### IP 地址来源 · 字段
+##### IP 地址来源（字段）
 
 ```csharp
 public static readonly VmQueryField<string> IpAddressSource;
@@ -28441,7 +32757,7 @@ public static readonly VmQueryField<string> IpAddressSource;
 
 <a id="api-c0d549a66582f030"></a>
 
-##### IP 地址 · 字段
+##### IP 地址（字段）
 
 ```csharp
 public static readonly VmQueryField<IReadOnlyList<string>> IpAddresses;
@@ -28455,7 +32771,7 @@ public static readonly VmQueryField<IReadOnlyList<string>> IpAddresses;
 
 <a id="api-fd6d73654692d71c"></a>
 
-##### IPsec 卸载 · 字段
+##### IPsec 卸载（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> IpsecOffloadEnabled;
@@ -28467,7 +32783,7 @@ public static readonly VmQueryField<bool> IpsecOffloadEnabled;
 
 <a id="api-5f4785d7742b2318"></a>
 
-##### 连接开关 · 字段
+##### 连接开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> IsConnected;
@@ -28477,9 +32793,21 @@ public static readonly VmQueryField<bool> IsConnected;
 
 **取值说明：** `true`：连接资源已启用；`false`：未启用。
 
+<a id="api-0e1df917d1e4505e"></a>
+
+##### 旧版网卡（字段）
+
+```csharp
+public static readonly VmQueryField<bool> IsLegacy;
+```
+
+虚拟网卡是否为旧版网卡；绝大多数场景请使用标准网卡，仅在第 1 代虚机安装老旧系统或传统 BIOS PXE 引导时开启，只能在关机状态添加且不支持硬件加速。
+
+**取值说明：** `true`：旧版网卡；`false`：标准网卡。
+
 <a id="api-3fbde5f0e1ac8801"></a>
 
-##### 静态 MAC 开关 · 字段
+##### 静态 MAC 开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> IsStaticMac;
@@ -28491,7 +32819,7 @@ public static readonly VmQueryField<bool> IsStaticMac;
 
 <a id="api-46429eccaf2cf253"></a>
 
-##### MAC 地址 · 字段
+##### MAC 地址（字段）
 
 ```csharp
 public static readonly VmQueryField<string> MacAddress;
@@ -28501,7 +32829,7 @@ public static readonly VmQueryField<string> MacAddress;
 
 <a id="api-01350d39eaa70d45"></a>
 
-##### MAC 欺骗 · 字段
+##### MAC 欺骗（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> MacSpoofingAllowed;
@@ -28513,7 +32841,7 @@ public static readonly VmQueryField<bool> MacSpoofingAllowed;
 
 <a id="api-da43c78e52a5c947"></a>
 
-##### 端口镜像模式 · 字段
+##### 端口镜像模式（字段）
 
 ```csharp
 public static readonly VmQueryField<PortMonitorMode> MonitorMode;
@@ -28523,7 +32851,7 @@ public static readonly VmQueryField<PortMonitorMode> MonitorMode;
 
 <a id="api-40cd016d12f89ef6"></a>
 
-##### 网卡名称 · 字段
+##### 网卡名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
@@ -28533,7 +32861,7 @@ public static readonly VmQueryField<string> Name;
 
 <a id="api-d95ba2e3b9638888"></a>
 
-##### 本征 VLAN 编号 · 字段
+##### 本征 VLAN 编号（字段）
 
 ```csharp
 public static readonly VmQueryField<int> NativeVlanId;
@@ -28547,7 +32875,7 @@ public static readonly VmQueryField<int> NativeVlanId;
 
 <a id="api-bbba9fb126f381a9"></a>
 
-##### 专用 VLAN 模式 · 字段
+##### 专用 VLAN 模式（字段）
 
 ```csharp
 public static readonly VmQueryField<PvlanMode> PvlanMode;
@@ -28559,7 +32887,7 @@ public static readonly VmQueryField<PvlanMode> PvlanMode;
 
 <a id="api-b765e42aaeafc341"></a>
 
-##### 专用 VLAN 主编号 · 字段
+##### 专用 VLAN 主编号（字段）
 
 ```csharp
 public static readonly VmQueryField<int> PvlanPrimaryId;
@@ -28573,7 +32901,7 @@ public static readonly VmQueryField<int> PvlanPrimaryId;
 
 <a id="api-b6e8016c0ecc2005"></a>
 
-##### 专用 VLAN 次编号 · 字段
+##### 专用 VLAN 次编号（字段）
 
 ```csharp
 public static readonly VmQueryField<int> PvlanSecondaryId;
@@ -28587,7 +32915,7 @@ public static readonly VmQueryField<int> PvlanSecondaryId;
 
 <a id="api-d760198a0292c6e0"></a>
 
-##### 网卡接收速率 · 字段
+##### 网卡接收速率（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> ReceiveBytesPerSecond;
@@ -28599,7 +32927,7 @@ public static readonly VmQueryField<ulong> ReceiveBytesPerSecond;
 
 <a id="api-b8470bcae457c28e"></a>
 
-##### 路由器防护 · 字段
+##### 路由器防护（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> RouterGuardEnabled;
@@ -28611,7 +32939,7 @@ public static readonly VmQueryField<bool> RouterGuardEnabled;
 
 <a id="api-ee4797e5bcfa0bac"></a>
 
-##### 网卡发送速率 · 字段
+##### 网卡发送速率（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> SendBytesPerSecond;
@@ -28623,7 +32951,7 @@ public static readonly VmQueryField<ulong> SendBytesPerSecond;
 
 <a id="api-f2afcfc8f9cb39b0"></a>
 
-##### SR-IOV 开关 · 字段
+##### SR-IOV 开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> SriovEnabled;
@@ -28635,7 +32963,7 @@ public static readonly VmQueryField<bool> SriovEnabled;
 
 <a id="api-5e9beb26f1550e86"></a>
 
-##### 广播风暴限制 · 字段
+##### 广播风暴限制（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> StormLimit;
@@ -28647,7 +32975,7 @@ public static readonly VmQueryField<uint> StormLimit;
 
 <a id="api-9934f8fff203ab07"></a>
 
-##### 连接交换机身份 · 字段
+##### 连接交换机身份（字段）
 
 ```csharp
 public static readonly VmQueryField<Guid> SwitchId;
@@ -28661,7 +32989,7 @@ public static readonly VmQueryField<Guid> SwitchId;
 
 <a id="api-5f5302fbbb2b63bf"></a>
 
-##### 连接交换机名称 · 字段
+##### 连接交换机名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> SwitchName;
@@ -28671,7 +32999,7 @@ public static readonly VmQueryField<string> SwitchName;
 
 <a id="api-7c9af1646d48f7d7"></a>
 
-##### 网卡组合 · 字段
+##### 网卡组合（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> TeamingAllowed;
@@ -28683,7 +33011,7 @@ public static readonly VmQueryField<bool> TeamingAllowed;
 
 <a id="api-3f5ce919cc0f73c7"></a>
 
-##### 允许的干线 VLAN 编号 · 字段
+##### 允许的干线 VLAN 编号（字段）
 
 ```csharp
 public static readonly VmQueryField<IReadOnlyList<int>> TrunkAllowedVlanIds;
@@ -28697,7 +33025,7 @@ public static readonly VmQueryField<IReadOnlyList<int>> TrunkAllowedVlanIds;
 
 <a id="api-0a0195829597dac9"></a>
 
-##### VLAN 模式 · 字段
+##### VLAN 模式（字段）
 
 ```csharp
 public static readonly VmQueryField<VlanOperationMode> VlanMode;
@@ -28705,11 +33033,11 @@ public static readonly VmQueryField<VlanOperationMode> VlanMode;
 
 网卡端口使用的 VLAN 工作模式：接入、干线或专用 VLAN。
 
-**取值说明：** 底层编码 0 在当前接口中归为 Access。
+**取值说明：** 默认模式和接入 VLAN ID 为 0 的端口返回 Off。
 
 <a id="api-7d7e567a01b26796"></a>
 
-##### 虚拟机队列 · 字段
+##### 虚拟机队列（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> VmqEnabled;
@@ -28739,18 +33067,21 @@ public static readonly VmQueryField<bool> VmqEnabled;
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid vmId) `](#api-aacde1d20e35d063) | 为虚拟机添加合成网卡并初始化连接资源；确认失败时自动撤销本次创建。 |
+| [` public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid vmId) `](#api-aacde1d20e35d063) | 为虚拟机添加标准网卡并初始化连接资源；确认失败时自动撤销本次创建。 |
+| [` public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid vmId, Guid? switchId, bool isConnected = true, string? staticMacAddress = null, bool isLegacy = false) `](#api-6f7decb94fa16d96) | 为虚拟机添加标准网卡或旧版网卡，并按指定交换机及静态 MAC 初始化连接资源；确认失败时自动撤销本次创建。 |
 | [` public static Task<ApiResponse> ApplyBandwidthSettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties) `](#api-d69efcf2d3d49539) | 只修改本次选择的带宽字段；同字段按本次值覆盖。 |
 | [` public static Task<ApiResponse> ApplyOffloadSettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties) `](#api-fb9ec61bc500c03e) | 只修改本次选择的卸载字段；同字段按本次值覆盖。 |
 | [` public static async Task<ApiResponse> ApplySecurityAndOffloadSettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties) `](#api-4ee4f8ad1857a216) | 应用选中的安全与卸载字段。 |
 | [` public static async Task<VmNetworkSettingsApplyResult> ApplySecurityAndOffloadSettingsWithResultAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties) `](#api-4ba0c38a35fa9515) | 应用安全与卸载设置，并分别返回两个步骤的结果。 |
 | [` public static Task<ApiResponse> ApplySecuritySettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties) `](#api-b0d1378a011750c1) | 只修改本次选择的安全字段；同字段按本次值覆盖。 |
 | [` public static Task<ApiResponse> ApplyVlanSettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties) `](#api-f766818e11f23553) | 只修改本次选择的VLAN字段；同字段按本次值覆盖。 |
-| [` public static async Task<ApiResponse> FillDynamicIpsAsync(Guid vmId, IEnumerable<VmNetworkAdapter> adapters) `](#api-79bc16b3c4480748) | 依次解析网卡 IPv4 并更新传入网卡对象；宿主嗅探结果优先。 |
+| [` public static async Task<ApiResponse> FillDynamicIpsAsync(Guid vmId, IEnumerable<VmNetworkAdapter> adapters) `](#api-79bc16b3c4480748) | 按网卡补全来宾 IPv4 和 IPv6，宿主嗅探到的 IPv4 优先。 |
 | [` public static async Task<ApiResponse<IReadOnlyDictionary<Guid, string>>> GetAvailableSwitchesAsync() `](#api-a17cc7ba74299e78) | 读取当前宿主可用虚拟交换机的 GUID 和显示名称。 |
 | [` public static string? GetConnectionError(bool isConnected, int availableSwitchCount) `](#api-d40cf06a5ccf520f) | 在要求接通网卡时检查是否存在可选虚拟交换机。 |
 | [` public static VmModificationCondition GetMacModificationCondition(VmState state) `](#api-05d2feccb3e23166) | 评估 MAC 地址的修改条件。 |
 | [` public static Task<ApiResponse<List<VmNetworkAdapter>>> GetNetworkAdaptersAsync(Guid vmId) `](#api-15ad6562bcf53251) | 读取网卡、交换机连接及可用的 VLAN、带宽、安全和卸载设置。 |
+| [` public static async Task<IReadOnlyDictionary<Guid, uint>> GetSwitchIovCapacitiesAsync() `](#api-a8397e46dfbfcc03) | 返回宿主已报告的交换机 SR-IOV 容量，缺少的条目表示容量未知。 |
+| [` public static string? NormalizeStaticMac(string text) `](#api-3dd939eba46365a9) | 返回 12 位大写静态 MAC 地址，格式无效时返回 null。 |
 | [` public static Task<ApiResponse> RemoveNetworkAdapterAsync(Guid vmId, VmNetworkAdapter adapter) `](#api-e438fe21f7877f87) | 移除查询返回的虚拟机网卡及其连接资源，执行前核对网卡属于指定虚拟机。 |
 | [` public static async Task<ApiResponse> SetMacAddressAsync(Guid vmId, VmNetworkAdapter adapter, string newMac) `](#api-6d6df8652089f317) | 核对虚拟机状态后写入静态 MAC，空地址恢复由系统动态分配。 |
 | [` public static async Task<ApiResponse> UpdateConnectionAsync(Guid vmId, VmNetworkAdapter adapter, Guid? switchId) `](#api-62854d2d46bea402) | 按网卡连接开关及明确的交换机 GUID 更新连接，不按交换机名称重新匹配。 |
@@ -28765,7 +33096,7 @@ public static partial class VmNetworkService
 
 <a id="api-aacde1d20e35d063"></a>
 
-##### 添加网卡 · 方法
+##### 添加网卡（方法）
 
 ```csharp
 public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid vmId);
@@ -28773,7 +33104,7 @@ public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid v
 
 功能归属：管理层面 / 虚拟机 / 网络。
 
-为虚拟机添加合成网卡并初始化连接资源；确认失败时自动撤销本次创建。
+为虚拟机添加标准网卡并初始化连接资源；确认失败时自动撤销本次创建。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -28783,9 +33114,33 @@ public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid v
 
 调用约定：结果或资源归属待确认时保留现场。撤销前核对配置与附属资源；最终核对和提交之间仍可能发生外部修改。
 
+<a id="api-6f7decb94fa16d96"></a>
+
+##### 添加网卡并配置连接（方法）
+
+```csharp
+public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid vmId, Guid? switchId, bool isConnected = true, string? staticMacAddress = null, bool isLegacy = false);
+```
+
+功能归属：管理层面 / 虚拟机 / 网络。
+
+为虚拟机添加标准网卡或旧版网卡，并按指定交换机及静态 MAC 初始化连接资源；确认失败时自动撤销本次创建。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `switchId` | 要连接的虚拟交换机 GUID；`isConnected` 为 `true` 时必须提供有效交换机。 |
+| `isConnected` | 是否在创建连接资源时接通虚拟交换机；为 `false` 时保持未连接状态。 |
+| `staticMacAddress` | 可选的静态 MAC 地址字符串，仅在虚拟机未运行时可写入；为 `null` 或空白时由系统动态分配。 |
+| `isLegacy` | 为 `true` 时创建旧版网卡（仅用于第 1 代虚拟机跑老旧系统或传统 BIOS PXE 引导，需关机添加，且不支持硬件加速）；为 `false` 时创建标准网卡。 |
+
+返回：分别报告实际网卡状态、初始化结果、原始错误及撤销错误；失败后应刷新实际列表。
+
+调用约定：交换机存在性、网卡类型代数限制、MAC 地址格式及电源状态均在首次写入前完成校验。结果或资源归属待确认时保留现场。
+
 <a id="api-d69efcf2d3d49539"></a>
 
-##### 设置网卡带宽 · 方法
+##### 设置网卡带宽（方法）
 
 ```csharp
 public static Task<ApiResponse> ApplyBandwidthSettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties);
@@ -28805,7 +33160,7 @@ public static Task<ApiResponse> ApplyBandwidthSettingsAsync(Guid vmId, VmNetwork
 
 <a id="api-fb9ec61bc500c03e"></a>
 
-##### 设置网卡卸载功能 · 方法
+##### 设置网卡卸载功能（方法）
 
 ```csharp
 public static Task<ApiResponse> ApplyOffloadSettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties);
@@ -28825,7 +33180,7 @@ public static Task<ApiResponse> ApplyOffloadSettingsAsync(Guid vmId, VmNetworkAd
 
 <a id="api-4ee4f8ad1857a216"></a>
 
-##### 设置网卡安全与卸载功能 · 方法
+##### 设置网卡安全与卸载功能（方法）
 
 ```csharp
 public static async Task<ApiResponse> ApplySecurityAndOffloadSettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties);
@@ -28845,7 +33200,7 @@ public static async Task<ApiResponse> ApplySecurityAndOffloadSettingsAsync(Guid 
 
 <a id="api-4ba0c38a35fa9515"></a>
 
-##### 设置网卡安全与卸载并返回明细 · 方法
+##### 设置网卡安全与卸载并返回明细（方法）
 
 ```csharp
 public static async Task<VmNetworkSettingsApplyResult> ApplySecurityAndOffloadSettingsWithResultAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties);
@@ -28865,7 +33220,7 @@ public static async Task<VmNetworkSettingsApplyResult> ApplySecurityAndOffloadSe
 
 <a id="api-b0d1378a011750c1"></a>
 
-##### 设置网卡安全选项 · 方法
+##### 设置网卡安全选项（方法）
 
 ```csharp
 public static Task<ApiResponse> ApplySecuritySettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties);
@@ -28885,7 +33240,7 @@ public static Task<ApiResponse> ApplySecuritySettingsAsync(Guid vmId, VmNetworkA
 
 <a id="api-f766818e11f23553"></a>
 
-##### 设置 VLAN · 方法
+##### 设置 VLAN（方法）
 
 ```csharp
 public static Task<ApiResponse> ApplyVlanSettingsAsync(Guid vmId, VmNetworkAdapter adapter, IReadOnlyCollection<string> changedProperties);
@@ -28905,7 +33260,7 @@ public static Task<ApiResponse> ApplyVlanSettingsAsync(Guid vmId, VmNetworkAdapt
 
 <a id="api-79bc16b3c4480748"></a>
 
-##### 更新网卡 IP 地址 · 方法
+##### 更新网卡 IP 地址（方法）
 
 ```csharp
 public static async Task<ApiResponse> FillDynamicIpsAsync(Guid vmId, IEnumerable<VmNetworkAdapter> adapters);
@@ -28913,7 +33268,7 @@ public static async Task<ApiResponse> FillDynamicIpsAsync(Guid vmId, IEnumerable
 
 功能归属：管理层面 / 虚拟机 / 网络。
 
-依次解析网卡 IPv4 并更新传入网卡对象；宿主嗅探结果优先。
+按网卡补全来宾 IPv4 和 IPv6，宿主嗅探到的 IPv4 优先。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -28924,7 +33279,7 @@ public static async Task<ApiResponse> FillDynamicIpsAsync(Guid vmId, IEnumerable
 
 <a id="api-a17cc7ba74299e78"></a>
 
-##### 读取可用交换机 · 方法
+##### 读取可用交换机（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyDictionary<Guid, string>>> GetAvailableSwitchesAsync();
@@ -28938,7 +33293,7 @@ public static async Task<ApiResponse<IReadOnlyDictionary<Guid, string>>> GetAvai
 
 <a id="api-d40cf06a5ccf520f"></a>
 
-##### 检查网卡连接参数 · 方法
+##### 检查网卡连接参数（方法）
 
 ```csharp
 public static string? GetConnectionError(bool isConnected, int availableSwitchCount);
@@ -28957,7 +33312,7 @@ public static string? GetConnectionError(bool isConnected, int availableSwitchCo
 
 <a id="api-05d2feccb3e23166"></a>
 
-##### 评估 MAC 地址修改条件 · 方法
+##### 评估 MAC 地址修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetMacModificationCondition(VmState state);
@@ -28975,7 +33330,7 @@ public static VmModificationCondition GetMacModificationCondition(VmState state)
 
 <a id="api-15ad6562bcf53251"></a>
 
-##### 读取虚拟网卡 · 方法
+##### 读取虚拟网卡（方法）
 
 ```csharp
 public static Task<ApiResponse<List<VmNetworkAdapter>>> GetNetworkAdaptersAsync(Guid vmId);
@@ -28993,9 +33348,41 @@ public static Task<ApiResponse<List<VmNetworkAdapter>>> GetNetworkAdaptersAsync(
 
 调用约定：当前连接没有某类可选功能设置时保留模型默认值；读取这些设置发生错误时仍返回失败。
 
+<a id="api-a8397e46dfbfcc03"></a>
+
+##### 查询交换机 SR-IOV 容量（方法）
+
+```csharp
+public static async Task<IReadOnlyDictionary<Guid, uint>> GetSwitchIovCapacitiesAsync();
+```
+
+功能归属：管理层面 / 虚拟机 / 网络。
+
+返回宿主已报告的交换机 SR-IOV 容量，缺少的条目表示容量未知。
+
+返回：按交换机 GUID 索引的 VF 容量。未返回条目的容量未知。
+
+<a id="api-3dd939eba46365a9"></a>
+
+##### 校验并规范化静态 MAC（方法）
+
+```csharp
+public static string? NormalizeStaticMac(string text);
+```
+
+功能归属：管理层面 / 虚拟机 / 网络。
+
+返回 12 位大写静态 MAC 地址，格式无效时返回 null。
+
+| 参数 | 说明 |
+| --- | --- |
+| `text` | 候选静态 MAC 文本。 |
+
+返回：十二位大写十六进制地址，输入无效时为 null。
+
 <a id="api-e438fe21f7877f87"></a>
 
-##### 移除网卡 · 方法
+##### 移除网卡（方法）
 
 ```csharp
 public static Task<ApiResponse> RemoveNetworkAdapterAsync(Guid vmId, VmNetworkAdapter adapter);
@@ -29014,7 +33401,7 @@ public static Task<ApiResponse> RemoveNetworkAdapterAsync(Guid vmId, VmNetworkAd
 
 <a id="api-6d6df8652089f317"></a>
 
-##### 设置 MAC 地址 · 方法
+##### 设置 MAC 地址（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetMacAddressAsync(Guid vmId, VmNetworkAdapter adapter, string newMac);
@@ -29034,7 +33421,7 @@ public static async Task<ApiResponse> SetMacAddressAsync(Guid vmId, VmNetworkAda
 
 <a id="api-62854d2d46bea402"></a>
 
-##### 修改网卡连接 · 方法
+##### 修改网卡连接（方法）
 
 ```csharp
 public static async Task<ApiResponse> UpdateConnectionAsync(Guid vmId, VmNetworkAdapter adapter, Guid? switchId);
@@ -29103,7 +33490,7 @@ public sealed record VmNetworkSettingsApplyResult(bool Success, string Message, 
 
 <a id="api-88cb5900463bd0a5"></a>
 
-##### 创建网卡设置结果对象 · 主构造器
+##### 创建网卡设置结果对象（主构造器）
 
 ```csharp
 public VmNetworkSettingsApplyResult(bool Success, string Message, bool SecurityApplied, bool OffloadApplied);
@@ -29120,7 +33507,7 @@ public VmNetworkSettingsApplyResult(bool Success, string Message, bool SecurityA
 
 <a id="api-88651ad643879cea"></a>
 
-##### 失败详情 · 属性
+##### 失败详情（属性）
 
 ```csharp
 public ApiFailure? Failure { get; init; }
@@ -29130,7 +33517,7 @@ public ApiFailure? Failure { get; init; }
 
 <a id="api-1607b0aad4129a8b"></a>
 
-##### 操作说明 · record 属性
+##### 操作说明（record 属性）
 
 ```csharp
 public string Message { get; init; }
@@ -29140,7 +33527,7 @@ public string Message { get; init; }
 
 <a id="api-b4dd40718f2de417"></a>
 
-##### 卸载设置结果 · 属性
+##### 卸载设置结果（属性）
 
 ```csharp
 public OperationStepResult Offload { get; init; } = new("Offload", OffloadApplied ? OperationStepState.Succeeded : OperationStepState.NotStarted);
@@ -29150,7 +33537,7 @@ public OperationStepResult Offload { get; init; } = new("Offload", OffloadApplie
 
 <a id="api-7be1661f2e08dd1a"></a>
 
-##### 卸载设置应用状态 · record 属性
+##### 卸载设置应用状态（record 属性）
 
 ```csharp
 public bool OffloadApplied { get; init; }
@@ -29160,7 +33547,7 @@ public bool OffloadApplied { get; init; }
 
 <a id="api-8ef309082d0c47b1"></a>
 
-##### 安全设置结果 · 属性
+##### 安全设置结果（属性）
 
 ```csharp
 public OperationStepResult Security { get; init; } = new("Security", SecurityApplied ? OperationStepState.Succeeded : OperationStepState.NotStarted);
@@ -29170,7 +33557,7 @@ public OperationStepResult Security { get; init; } = new("Security", SecurityApp
 
 <a id="api-9db8d6840e584b05"></a>
 
-##### 安全设置应用状态 · record 属性
+##### 安全设置应用状态（record 属性）
 
 ```csharp
 public bool SecurityApplied { get; init; }
@@ -29180,7 +33567,7 @@ public bool SecurityApplied { get; init; }
 
 <a id="api-42c6ed865953b76c"></a>
 
-##### 成功状态 · record 属性
+##### 成功状态（record 属性）
 
 ```csharp
 public bool Success { get; init; }
@@ -29199,7 +33586,7 @@ GPU 分区扫描结果，区分扫描和恢复失败。
 | 类型 | record 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析 |
+| 功能归属 | 管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析 |
 | 源文件 | ` Management/VirtualMachines/Gpu/Deployment/VmPartitionScanResult.cs ` |
 
 #### 成员概览
@@ -29240,7 +33627,7 @@ public sealed record VmPartitionScanResult(IReadOnlyList<ExHyperV.Models.DiskPar
 
 <a id="api-39b47c8ed2c5eab4"></a>
 
-##### 创建GPU 部署分区扫描结果对象 · 主构造器
+##### 创建GPU 部署分区扫描结果对象（主构造器）
 
 ```csharp
 public VmPartitionScanResult(IReadOnlyList<ExHyperV.Models.DiskPartitionInfo> Partitions, IReadOnlyList<string> Errors, IReadOnlyList<string> CleanupErrors, bool IsCancelled = false);
@@ -29259,85 +33646,85 @@ public VmPartitionScanResult(IReadOnlyList<ExHyperV.Models.DiskPartitionInfo> Pa
 
 <a id="api-3c154a26a72ec86e"></a>
 
-##### 清理错误列表 · record 属性
+##### 清理错误列表（record 属性）
 
 ```csharp
 public IReadOnlyList<string> CleanupErrors { get; init; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 恢复原始磁盘状态或卸载临时映像失败的说明。
 
 <a id="api-650610344cb723bd"></a>
 
-##### 需要清理 · 属性
+##### 需要清理（属性）
 
 ```csharp
 public bool CleanupRequired { get; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 存在仍需处理的磁盘状态恢复。
 
 <a id="api-6dd3f3f251ffcfd4"></a>
 
-##### 错误列表 · record 属性
+##### 错误列表（record 属性）
 
 ```csharp
 public IReadOnlyList<string> Errors { get; init; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 扫描失败说明。
 
 <a id="api-811296367c5811f9"></a>
 
-##### 取消状态 · record 属性
+##### 取消状态（record 属性）
 
 ```csharp
 public bool IsCancelled { get; init; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 是否在扫描边界收到取消；已完成的分区和恢复结果仍保留。
 
 <a id="api-1c6ae3b74d40b197"></a>
 
-##### 结果未确定 · 属性
+##### 结果未确定（属性）
 
 ```csharp
 public bool OutcomeUnknown { get; init; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 底层提交或清理结果尚未确认；不得据此重试写入或卸载，须先核对实际状态。
 
 <a id="api-ab09d7046165a5a0"></a>
 
-##### 可选分区 · record 属性
+##### 可选分区（record 属性）
 
 ```csharp
 public IReadOnlyList<ExHyperV.Models.DiskPartitionInfo> Partitions { get; init; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 已读取分区；失败时可能不完整。
 
 <a id="api-b3c620e7b2155637"></a>
 
-##### 成功状态 · 属性
+##### 成功状态（属性）
 
 ```csharp
 public bool Success { get; }
 ```
 
-功能归属：管理层面 / 虚拟机 / GPU；管理层面 / 工具 / 磁盘分区解析。
+功能归属：管理层面 / 虚拟机 / GPU，管理层面 / 工具 / 磁盘分区解析。
 
 全部扫描和恢复均成功。
 
@@ -29375,7 +33762,7 @@ public enum VmPcieChangeKind
 
 <a id="api-efe262d3c1852b4f"></a>
 
-##### DeviceMode · 枚举值
+##### DeviceMode（枚举值）
 
 ```csharp
 DeviceMode = 2
@@ -29385,7 +33772,7 @@ DeviceMode = 2
 
 <a id="api-7bf8e3f9f04e43de"></a>
 
-##### EnableEmulation · 枚举值
+##### EnableEmulation（枚举值）
 
 ```csharp
 EnableEmulation = 0
@@ -29395,7 +33782,7 @@ EnableEmulation = 0
 
 <a id="api-c2aecf1ad9fade4a"></a>
 
-##### Topology · 枚举值
+##### Topology（枚举值）
 
 ```csharp
 Topology = 1
@@ -29449,7 +33836,7 @@ public sealed record VmPcieChangeResult(bool Cancelled, ApiResponse Response)
 
 <a id="api-e01088b7761eeee6"></a>
 
-##### 创建PCIe 修改结果对象 · 主构造器
+##### 创建PCIe 修改结果对象（主构造器）
 
 ```csharp
 public VmPcieChangeResult(bool Cancelled, ApiResponse Response);
@@ -29464,7 +33851,7 @@ public VmPcieChangeResult(bool Cancelled, ApiResponse Response);
 
 <a id="api-f1bc62fd89f47501"></a>
 
-##### 取消状态 · record 属性
+##### 取消状态（record 属性）
 
 ```csharp
 public bool Cancelled { get; init; }
@@ -29474,7 +33861,7 @@ public bool Cancelled { get; init; }
 
 <a id="api-797acc8916518e10"></a>
 
-##### 错误 · 属性
+##### 错误（属性）
 
 ```csharp
 public string Error { get; }
@@ -29484,7 +33871,7 @@ public string Error { get; }
 
 <a id="api-30193c6ca252c6e9"></a>
 
-##### 操作响应 · record 属性
+##### 操作响应（record 属性）
 
 ```csharp
 public ApiResponse Response { get; init; }
@@ -29494,7 +33881,7 @@ public ApiResponse Response { get; init; }
 
 <a id="api-4275dbebfd2cf179"></a>
 
-##### 成功状态 · 属性
+##### 成功状态（属性）
 
 ```csharp
 public bool Success { get; }
@@ -29549,7 +33936,7 @@ public sealed class VmPcieChangeSession
 
 <a id="api-6429d01279dc636a"></a>
 
-##### 创建PCIe 配置流程对象 · 构造器
+##### 创建PCIe 配置流程对象（构造器）
 
 ```csharp
 public VmPcieChangeSession(VmPcieChangeKind kind, Guid vmId, bool emulationEnabled, ushort topology, VmPcieDeviceSetting? device = null, VmPcieGuestMode deviceMode = VmPcieGuestMode.Paravirtualized);
@@ -29570,7 +33957,7 @@ public VmPcieChangeSession(VmPcieChangeKind kind, Guid vmId, bool emulationEnabl
 
 <a id="api-a19bd6a5d3c031d7"></a>
 
-##### PCIe 模拟开关 · 属性
+##### PCIe 模拟开关（属性）
 
 ```csharp
 public bool EmulationEnabled { get; }
@@ -29580,7 +33967,7 @@ public bool EmulationEnabled { get; }
 
 <a id="api-6676c971d5a8c507"></a>
 
-##### 需要确认 · 属性
+##### 需要确认（属性）
 
 ```csharp
 public bool RequiresConfirmation { get; }
@@ -29592,7 +33979,7 @@ public bool RequiresConfirmation { get; }
 
 <a id="api-933f93b6744283d6"></a>
 
-##### 执行 PCIe 修改流程 · 方法
+##### 执行 PCIe 修改流程（方法）
 
 ```csharp
 public Task<VmPcieChangeResult> ApplyAsync(bool permanentEmulationConfirmed = false);
@@ -29643,7 +34030,7 @@ public static class VmPcieDeviceFields
 
 <a id="api-d1980feeba970047"></a>
 
-##### PCIe 设备类别 · 字段
+##### PCIe 设备类别（字段）
 
 ```csharp
 public static readonly VmQueryField<string> ClassType;
@@ -29653,7 +34040,7 @@ public static readonly VmQueryField<string> ClassType;
 
 <a id="api-c1d241c2c8284ba3"></a>
 
-##### PCIe 设备身份 · 字段
+##### PCIe 设备身份（字段）
 
 ```csharp
 public static readonly VmQueryField<string> DeviceInstanceId;
@@ -29663,7 +34050,7 @@ public static readonly VmQueryField<string> DeviceInstanceId;
 
 <a id="api-109b9a81b03f00ae"></a>
 
-##### PCIe 来宾模式 · 字段
+##### PCIe 来宾模式（字段）
 
 ```csharp
 public static readonly VmQueryField<VmPcieGuestMode> GuestMode;
@@ -29673,7 +34060,7 @@ PCIe 设备向来宾呈现的访问模式。
 
 <a id="api-3df811e2c71f1db4"></a>
 
-##### PCIe 设备名称 · 字段
+##### PCIe 设备名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
@@ -29683,7 +34070,7 @@ public static readonly VmQueryField<string> Name;
 
 <a id="api-9394bc9838a6e022"></a>
 
-##### PCIe 设备位置 · 字段
+##### PCIe 设备位置（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Path;
@@ -29695,7 +34082,7 @@ public static readonly VmQueryField<string> Path;
 
 <a id="api-5823ef9abf80b5f5"></a>
 
-##### PCIe 设备厂商 · 字段
+##### PCIe 设备厂商（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Vendor;
@@ -29737,7 +34124,7 @@ public static class VmPcieFields
 
 <a id="api-ec7d7d2e4198a066"></a>
 
-##### PCIe 启动支持 · 字段
+##### PCIe 启动支持（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> BootPciExpress;
@@ -29751,7 +34138,7 @@ public static readonly VmQueryField<bool> BootPciExpress;
 
 <a id="api-32d8b006b9045266"></a>
 
-##### PCIe 模拟开关 · 字段
+##### PCIe 模拟开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EmulationEnabled;
@@ -29763,7 +34150,7 @@ public static readonly VmQueryField<bool> EmulationEnabled;
 
 <a id="api-f73c293c723344f0"></a>
 
-##### PCIe 拓扑 · 字段
+##### PCIe 拓扑（字段）
 
 ```csharp
 public static readonly VmQueryField<ushort> Topology;
@@ -29810,7 +34197,7 @@ public static class VmPcieService
 
 <a id="api-157fac1314066069"></a>
 
-##### 评估设备模式修改条件 · 方法
+##### 评估设备模式修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetDeviceModeModificationCondition(VmPcieDeviceSetting device, VmState state);
@@ -29829,7 +34216,7 @@ public static VmModificationCondition GetDeviceModeModificationCondition(VmPcieD
 
 <a id="api-6c27d8492c2ee371"></a>
 
-##### 评估 PCIe 配置修改条件 · 方法
+##### 评估 PCIe 配置修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetModificationCondition(VmPcieSettings settings, string propertyName, VmState state);
@@ -29849,7 +34236,7 @@ public static VmModificationCondition GetModificationCondition(VmPcieSettings se
 
 <a id="api-ffb021f22735ddd7"></a>
 
-##### 读取 PCIe 设置 · 方法
+##### 读取 PCIe 设置（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmPcieSettings>> GetSettingsAsync(Guid vmId);
@@ -29867,7 +34254,7 @@ public static async Task<ApiResponse<VmPcieSettings>> GetSettingsAsync(Guid vmId
 
 <a id="api-7cc61c2334f91566"></a>
 
-##### 设置引导 PCI Express · 方法
+##### 设置引导 PCI Express（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetBootPciExpressAsync(Guid vmId, bool enabled);
@@ -29896,7 +34283,7 @@ ARM64 vmfirmware.dll 10.0.26100.4202、10.0.28000.1 的已核对样本会将非�
 
 <a id="api-d95525daf82b485c"></a>
 
-##### 设置 PCIe 设备来宾模式 · 方法
+##### 设置 PCIe 设备来宾模式（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetDeviceModeAsync(Guid vmId, VmPcieDeviceSetting device, VmPcieGuestMode mode);
@@ -29916,7 +34303,7 @@ public static async Task<ApiResponse> SetDeviceModeAsync(Guid vmId, VmPcieDevice
 
 <a id="api-7cdab0a831f5fe92"></a>
 
-##### 设置 PCIe 模拟与拓扑 · 方法
+##### 设置 PCIe 模拟与拓扑（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetSystemSettingsAsync(Guid vmId, bool enableEmulation, ushort topology);
@@ -29968,7 +34355,7 @@ public static class VmPowerBatteryFields
 
 <a id="api-c0c8b60b7c7f2546"></a>
 
-##### 虚拟电池开关 · 字段
+##### 虚拟电池开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> BatteryEnabled;
@@ -29982,7 +34369,7 @@ public static readonly VmQueryField<bool> BatteryEnabled;
 
 <a id="api-4fa3e0232f69e89e"></a>
 
-##### 来宾休眠支持 · 字段
+##### 来宾休眠支持（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnableHibernation;
@@ -29996,7 +34383,7 @@ public static readonly VmQueryField<bool> EnableHibernation;
 
 <a id="api-ab3184fc24bff95e"></a>
 
-##### 来宾重启时关机 · 字段
+##### 来宾重启时关机（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> TurnOffOnGuestRestart;
@@ -30060,7 +34447,7 @@ public sealed class VmPowerOperationSession
 
 <a id="api-a0f4ba66eccfb262"></a>
 
-##### 创建电源操作流程对象 · 构造器
+##### 创建电源操作流程对象（构造器）
 
 ```csharp
 public VmPowerOperationSession(Guid vmId, VmPowerAction action, string? displayName = null);
@@ -30078,7 +34465,7 @@ public VmPowerOperationSession(Guid vmId, VmPowerAction action, string? displayN
 
 <a id="api-6002433919afa61e"></a>
 
-##### 电源动作 · 属性
+##### 电源动作（属性）
 
 ```csharp
 public VmPowerAction Action { get; }
@@ -30088,7 +34475,7 @@ public VmPowerAction Action { get; }
 
 <a id="api-eca41b0b5811d7a8"></a>
 
-##### 待确认事项 · 属性
+##### 待确认事项（属性）
 
 ```csharp
 public VmPowerRepairConfirmation? Confirmation { get; }
@@ -30098,7 +34485,7 @@ public VmPowerRepairConfirmation? Confirmation { get; }
 
 <a id="api-99b6a8e0ff82ce3a"></a>
 
-##### 错误 · 属性
+##### 错误（属性）
 
 ```csharp
 public string Error { get; } = string.Empty;
@@ -30108,7 +34495,7 @@ public string Error { get; } = string.Empty;
 
 <a id="api-a6a15a1abfb10b7b"></a>
 
-##### 失败详情 · 属性
+##### 失败详情（属性）
 
 ```csharp
 public ApiResponse? Failure { get; }
@@ -30118,7 +34505,7 @@ public ApiResponse? Failure { get; }
 
 <a id="api-ea4bb441fc6553ac"></a>
 
-##### 修复失败状态 · 属性
+##### 修复失败状态（属性）
 
 ```csharp
 public bool RepairFailed { get; }
@@ -30128,7 +34515,7 @@ public bool RepairFailed { get; }
 
 <a id="api-c6d84b38e01522fa"></a>
 
-##### 修复说明 · 属性
+##### 修复说明（属性）
 
 ```csharp
 public string RepairNotice { get; } = string.Empty;
@@ -30138,7 +34525,7 @@ public string RepairNotice { get; } = string.Empty;
 
 <a id="api-6619f928f15592b9"></a>
 
-##### 执行阶段 · 属性
+##### 执行阶段（属性）
 
 ```csharp
 public VmPowerOperationStage Stage { get; } = VmPowerOperationStage.Created;
@@ -30148,7 +34535,7 @@ public VmPowerOperationStage Stage { get; } = VmPowerOperationStage.Created;
 
 <a id="api-63c95cf749e24981"></a>
 
-##### 虚拟机标识 · 属性
+##### 虚拟机标识（属性）
 
 ```csharp
 public Guid VmId { get; }
@@ -30158,7 +34545,7 @@ public Guid VmId { get; }
 
 <a id="api-6e5eab655ba31ecd"></a>
 
-##### 虚拟机名称 · 属性
+##### 虚拟机名称（属性）
 
 ```csharp
 public string VmName { get; }
@@ -30170,7 +34557,7 @@ public string VmName { get; }
 
 <a id="api-2bc126c7885e1dba"></a>
 
-##### 电源控制与修复流程 · 方法
+##### 电源控制与修复流程（方法）
 
 ```csharp
 public Task AdvanceAsync();
@@ -30182,7 +34569,7 @@ public Task AdvanceAsync();
 
 <a id="api-2aad4399ef07db16"></a>
 
-##### 执行电源操作流程 · 方法
+##### 执行电源操作流程（方法）
 
 ```csharp
 public async Task RunAsync(Func<VmPowerRepairConfirmation, Task<bool>>? decide = null, Action<VmPowerOperationSession>? changed = null);
@@ -30199,7 +34586,7 @@ public async Task RunAsync(Func<VmPowerRepairConfirmation, Task<bool>>? decide =
 
 <a id="api-826d8ec71a6d622b"></a>
 
-##### 提交电源修复决定 · 方法
+##### 提交电源修复决定（方法）
 
 ```csharp
 public Task SubmitDecisionAsync(Guid requestId, bool approve, IReadOnlyDictionary<Guid, string>? gpuSelections = null);
@@ -30254,7 +34641,7 @@ public enum VmPowerOperationStage
 
 <a id="api-f135440d5618b897"></a>
 
-##### AwaitingConfirmation · 枚举值
+##### AwaitingConfirmation（枚举值）
 
 ```csharp
 AwaitingConfirmation = 1
@@ -30264,7 +34651,7 @@ AwaitingConfirmation = 1
 
 <a id="api-b40a0f2def98c331"></a>
 
-##### Cancelled · 枚举值
+##### Cancelled（枚举值）
 
 ```csharp
 Cancelled = 5
@@ -30274,7 +34661,7 @@ Cancelled = 5
 
 <a id="api-b608021c0fc9daba"></a>
 
-##### Completed · 枚举值
+##### Completed（枚举值）
 
 ```csharp
 Completed = 3
@@ -30284,7 +34671,7 @@ Completed = 3
 
 <a id="api-c0b3ee922ed66797"></a>
 
-##### Created · 枚举值
+##### Created（枚举值）
 
 ```csharp
 Created = 0
@@ -30294,7 +34681,7 @@ Created = 0
 
 <a id="api-a3d451e61153b1df"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 4
@@ -30304,7 +34691,7 @@ Failed = 4
 
 <a id="api-92c00ed8ca3c8b88"></a>
 
-##### ReadyToRetry · 枚举值
+##### ReadyToRetry（枚举值）
 
 ```csharp
 ReadyToRetry = 2
@@ -30363,7 +34750,7 @@ public sealed record VmPowerRepairConfirmation(VmPowerRepairKind Kind, string Ti
 
 <a id="api-0d2caa1ebc03a9d1"></a>
 
-##### 创建启动修复确认对象 · 主构造器
+##### 创建启动修复确认对象（主构造器）
 
 ```csharp
 public VmPowerRepairConfirmation(VmPowerRepairKind Kind, string Title, string Message, string ConfirmText);
@@ -30380,7 +34767,7 @@ public VmPowerRepairConfirmation(VmPowerRepairKind Kind, string Title, string Me
 
 <a id="api-1dc962f5bb6fdaaa"></a>
 
-##### 确认文案 · record 属性
+##### 确认文案（record 属性）
 
 ```csharp
 public string ConfirmText { get; init; }
@@ -30390,7 +34777,7 @@ public string ConfirmText { get; init; }
 
 <a id="api-6059ffc37d6e3c26"></a>
 
-##### GPU 修复目标 · 属性
+##### GPU 修复目标（属性）
 
 ```csharp
 public IReadOnlyList<VmGpuRepairService.StaleGpuPartition> GpuTargets { get; } = Array.Empty<VmGpuRepairService.StaleGpuPartition>();
@@ -30400,7 +34787,7 @@ public IReadOnlyList<VmGpuRepairService.StaleGpuPartition> GpuTargets { get; } =
 
 <a id="api-fc23de668845b8cc"></a>
 
-##### 类别 · record 属性
+##### 类别（record 属性）
 
 ```csharp
 public VmPowerRepairKind Kind { get; init; }
@@ -30410,7 +34797,7 @@ public VmPowerRepairKind Kind { get; init; }
 
 <a id="api-9cb21934f6599c43"></a>
 
-##### 操作说明 · record 属性
+##### 操作说明（record 属性）
 
 ```csharp
 public string Message { get; init; }
@@ -30420,7 +34807,7 @@ public string Message { get; init; }
 
 <a id="api-cdac83b871c1f14b"></a>
 
-##### 请求标识 · 属性
+##### 请求标识（属性）
 
 ```csharp
 public Guid RequestId { get; } = Guid.NewGuid();
@@ -30430,7 +34817,7 @@ public Guid RequestId { get; } = Guid.NewGuid();
 
 <a id="api-2f7fe5ba560f3185"></a>
 
-##### 需要选择 GPU · 属性
+##### 需要选择 GPU（属性）
 
 ```csharp
 public bool RequiresGpuSelection { get; }
@@ -30440,7 +34827,7 @@ public bool RequiresGpuSelection { get; }
 
 <a id="api-75fe50d4a2e35429"></a>
 
-##### 标题 · record 属性
+##### 标题（record 属性）
 
 ```csharp
 public string Title { get; init; }
@@ -30481,7 +34868,7 @@ public enum VmPowerRepairKind
 
 <a id="api-0958709f151502a3"></a>
 
-##### Gpu · 枚举值
+##### Gpu（枚举值）
 
 ```csharp
 Gpu = 0
@@ -30491,7 +34878,7 @@ Gpu = 0
 
 <a id="api-61fe65f7f51b6f37"></a>
 
-##### PassthroughDisk · 枚举值
+##### PassthroughDisk（枚举值）
 
 ```csharp
 PassthroughDisk = 1
@@ -30539,7 +34926,7 @@ public static partial class VmPowerService
 
 <a id="api-820886e49b7ca692"></a>
 
-##### 执行电源操作（按 ID） · 方法
+##### 执行电源操作（按 ID）（方法）
 
 ```csharp
 public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action);
@@ -30556,11 +34943,11 @@ public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerActi
 
 返回：参数校验或电源请求的结果；亲和性恢复在启动后由后台继续执行。
 
-调用约定：Stop 和 Restart 返回来宾请求结果。TurnOff 请求下电，失败或超时后核对进程归属及创建时间，再终止对应 vmwp 进程。
+调用约定：Stop 和 Restart 返回来宾请求结果。TurnOff 请求下电，请求结果未知时停止，只有已结束的请求才进入工作进程核验。
 
 <a id="api-fcc28063736ec953"></a>
 
-##### 按文本指令执行电源操作 · 方法
+##### 按文本指令执行电源操作（方法）
 
 ```csharp
 public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, string action);
@@ -30581,7 +34968,7 @@ public static Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, string acti
 
 <a id="api-2347873620c306f7"></a>
 
-##### 执行电源操作（按名称） · 方法
+##### 执行电源操作（按名称）（方法）
 
 ```csharp
 public static async Task<ApiResponse> ExecuteControlActionAsync(string vmName, VmPowerAction action);
@@ -30602,7 +34989,7 @@ public static async Task<ApiResponse> ExecuteControlActionAsync(string vmName, V
 
 <a id="api-e76167868dc4f2a0"></a>
 
-##### 按名称和文本指令执行电源操作 · 方法
+##### 按名称和文本指令执行电源操作（方法）
 
 ```csharp
 public static Task<ApiResponse> ExecuteControlActionAsync(string vmName, string action);
@@ -30623,7 +35010,7 @@ public static Task<ApiResponse> ExecuteControlActionAsync(string vmName, string 
 
 <a id="api-4c5dc7ef677ad796"></a>
 
-##### 读取虚拟电池状态 · 方法
+##### 读取虚拟电池状态（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmBatteryState>> GetBatteryStateAsync(Guid vmId);
@@ -30641,7 +35028,7 @@ public static async Task<ApiResponse<VmBatteryState>> GetBatteryStateAsync(Guid 
 
 <a id="api-a9d0bde78d13fc13"></a>
 
-##### 评估休眠设置修改条件 · 方法
+##### 评估休眠设置修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetHibernationModificationCondition(bool available, VmState state);
@@ -30660,7 +35047,7 @@ public static VmModificationCondition GetHibernationModificationCondition(bool a
 
 <a id="api-0edff40740b1a340"></a>
 
-##### 设置虚拟电池 · 方法
+##### 设置虚拟电池（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetBatteryEnabledAsync(Guid vmId, bool enabled);
@@ -30679,7 +35066,7 @@ public static async Task<ApiResponse> SetBatteryEnabledAsync(Guid vmId, bool ena
 
 <a id="api-d3369256ce9e922f"></a>
 
-##### 设置来宾休眠支持 · 方法
+##### 设置来宾休眠支持（方法）
 
 ```csharp
 public static Task<ApiResponse> SetHibernationEnabledAsync(Guid vmId, bool enabled);
@@ -30700,7 +35087,7 @@ public static Task<ApiResponse> SetHibernationEnabledAsync(Guid vmId, bool enabl
 
 <a id="api-92c9b6f2ceeffec4"></a>
 
-##### 设置来宾重启转关机 · 方法
+##### 设置来宾重启转关机（方法）
 
 ```csharp
 public static Task<ApiResponse> SetTurnOffOnGuestRestartAsync(Guid vmId, bool enabled);
@@ -30785,7 +35172,7 @@ public static class VmProcessorFields
 
 <a id="api-deead2d33723fa83"></a>
 
-##### 活动计数器 · 字段
+##### 活动计数器（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> AllowAcountMcount;
@@ -30797,7 +35184,7 @@ public static readonly VmQueryField<bool> AllowAcountMcount;
 
 <a id="api-9706ef8e59c814a3"></a>
 
-##### 中断控制器模式 · 字段
+##### 中断控制器模式（字段）
 
 ```csharp
 public static readonly VmQueryField<VmApicMode> ApicMode;
@@ -30807,7 +35194,7 @@ public static readonly VmQueryField<VmApicMode> ApicMode;
 
 <a id="api-6fbc759c309f5ee3"></a>
 
-##### 启用处理器迁移兼容 · 字段
+##### 启用处理器迁移兼容（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> CompatibilityForMigrationEnabled;
@@ -30819,7 +35206,7 @@ public static readonly VmQueryField<bool> CompatibilityForMigrationEnabled;
 
 <a id="api-547d4560e71ca43d"></a>
 
-##### 迁移兼容模式 · 字段
+##### 迁移兼容模式（字段）
 
 ```csharp
 public static readonly VmQueryField<VmMigrationCompatibilityMode> CompatibilityForMigrationMode;
@@ -30829,7 +35216,7 @@ public static readonly VmQueryField<VmMigrationCompatibilityMode> CompatibilityF
 
 <a id="api-8b0a92292331ebc6"></a>
 
-##### 旧系统兼容 · 字段
+##### 旧系统兼容（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> CompatibilityForOlderOperatingSystemsEnabled;
@@ -30841,7 +35228,7 @@ public static readonly VmQueryField<bool> CompatibilityForOlderOperatingSystemsE
 
 <a id="api-ceaf7a2d2850f9bb"></a>
 
-##### 处理器数量 · 字段
+##### 处理器数量（字段）
 
 ```csharp
 public static readonly VmQueryField<int> Count;
@@ -30853,7 +35240,7 @@ public static readonly VmQueryField<int> Count;
 
 <a id="api-bd5f865f174b18bc"></a>
 
-##### 处理器品牌字符串 · 字段
+##### 处理器品牌字符串（字段）
 
 ```csharp
 public static readonly VmQueryField<string> CpuBrandString;
@@ -30863,7 +35250,7 @@ public static readonly VmQueryField<string> CpuBrandString;
 
 <a id="api-f272a7e54caa7409"></a>
 
-##### 隐藏推测执行缓解控制 · 字段
+##### 隐藏推测执行缓解控制（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> DisableSpeculationControls;
@@ -30875,7 +35262,7 @@ public static readonly VmQueryField<bool> DisableSpeculationControls;
 
 <a id="api-90827e650cb9c32c"></a>
 
-##### 宿主资源保护 · 字段
+##### 宿主资源保护（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnableHostResourceProtection;
@@ -30887,7 +35274,7 @@ public static readonly VmQueryField<bool> EnableHostResourceProtection;
 
 <a id="api-7661e50b8f81a26a"></a>
 
-##### 架构性能监测 · 字段
+##### 架构性能监测（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnablePerfmonArchPmu;
@@ -30899,7 +35286,7 @@ public static readonly VmQueryField<bool> EnablePerfmonArchPmu;
 
 <a id="api-17818d016186987a"></a>
 
-##### 处理器指令跟踪 · 字段
+##### 处理器指令跟踪（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnablePerfmonIpt;
@@ -30911,7 +35298,7 @@ public static readonly VmQueryField<bool> EnablePerfmonIpt;
 
 <a id="api-ce347aba41283394"></a>
 
-##### 最近分支记录 · 字段
+##### 最近分支记录（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnablePerfmonLbr;
@@ -30923,7 +35310,7 @@ public static readonly VmQueryField<bool> EnablePerfmonLbr;
 
 <a id="api-227c36bad72b2c5b"></a>
 
-##### 精确事件采样 · 字段
+##### 精确事件采样（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnablePerfmonPebs;
@@ -30935,7 +35322,7 @@ public static readonly VmQueryField<bool> EnablePerfmonPebs;
 
 <a id="api-db7c4ef1ab5f1cd3"></a>
 
-##### 性能监测单元 · 字段
+##### 性能监测单元（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EnablePerfmonPmu;
@@ -30947,7 +35334,7 @@ public static readonly VmQueryField<bool> EnablePerfmonPmu;
 
 <a id="api-7eb4dbb6aee60d25"></a>
 
-##### 嵌套虚拟化 · 字段
+##### 嵌套虚拟化（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> ExposeVirtualizationExtensions;
@@ -30959,7 +35346,7 @@ public static readonly VmQueryField<bool> ExposeVirtualizationExtensions;
 
 <a id="api-612c54fbf24f38eb"></a>
 
-##### 硬件隔离扩展 · 字段
+##### 硬件隔离扩展（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> HardwareIsolationExtensionsEnabled;
@@ -30971,7 +35358,7 @@ public static readonly VmQueryField<bool> HardwareIsolationExtensionsEnabled;
 
 <a id="api-e5de188a99e9b3fa"></a>
 
-##### 三级缓存路数 · 字段
+##### 三级缓存路数（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> L3CacheWays;
@@ -30983,7 +35370,7 @@ public static readonly VmQueryField<uint> L3CacheWays;
 
 <a id="api-7f7d227fb79af1fd"></a>
 
-##### 三级缓存处理器分布策略 · 字段
+##### 三级缓存处理器分布策略（字段）
 
 ```csharp
 public static readonly VmQueryField<L3DistributionPolicy> L3DistributionPolicy;
@@ -30993,7 +35380,7 @@ public static readonly VmQueryField<L3DistributionPolicy> L3DistributionPolicy;
 
 <a id="api-7d047701256eae4b"></a>
 
-##### 处理器限制比例 · 字段
+##### 处理器限制比例（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> Limit;
@@ -31005,7 +35392,7 @@ public static readonly VmQueryField<ulong> Limit;
 
 <a id="api-233e7f8a17b04416"></a>
 
-##### 本地外设中断模式 · 字段
+##### 本地外设中断模式（字段）
 
 ```csharp
 public static readonly VmQueryField<LpiMode> LpiMode;
@@ -31015,7 +35402,7 @@ public static readonly VmQueryField<LpiMode> LpiMode;
 
 <a id="api-be02ac5b81451af2"></a>
 
-##### 每插槽处理器簇上限 · 字段
+##### 每插槽处理器簇上限（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> MaxClusterCountPerSocket;
@@ -31027,7 +35414,7 @@ public static readonly VmQueryField<uint> MaxClusterCountPerSocket;
 
 <a id="api-99dbf0f12abe80d0"></a>
 
-##### 硬件隔离来宾数量上限 · 字段
+##### 硬件隔离来宾数量上限（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> MaxHwIsolatedGuests;
@@ -31039,7 +35426,7 @@ public static readonly VmQueryField<uint> MaxHwIsolatedGuests;
 
 <a id="api-a6d84f5d95a89163"></a>
 
-##### 每插槽 NUMA 节点上限 · 字段
+##### 每插槽 NUMA 节点上限（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> MaxNumaNodesPerSocket;
@@ -31051,7 +35438,7 @@ public static readonly VmQueryField<ulong> MaxNumaNodesPerSocket;
 
 <a id="api-9c0edfec76125559"></a>
 
-##### 每三级缓存域处理器上限 · 字段
+##### 每三级缓存域处理器上限（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> MaxProcessorCountPerL3;
@@ -31063,7 +35450,7 @@ public static readonly VmQueryField<uint> MaxProcessorCountPerL3;
 
 <a id="api-6886f7e908319659"></a>
 
-##### 每 NUMA 节点处理器上限 · 字段
+##### 每 NUMA 节点处理器上限（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> MaxProcessorsPerNumaNode;
@@ -31075,7 +35462,7 @@ public static readonly VmQueryField<ulong> MaxProcessorsPerNumaNode;
 
 <a id="api-82c0f5f41a88be4d"></a>
 
-##### 大页拆分策略 · 字段
+##### 大页拆分策略（字段）
 
 ```csharp
 public static readonly VmQueryField<PageShatterMode> PageShatterMode;
@@ -31085,7 +35472,7 @@ public static readonly VmQueryField<PageShatterMode> PageShatterMode;
 
 <a id="api-87fed1966a792a38"></a>
 
-##### 自主活动窗口 · 字段
+##### 自主活动窗口（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> PerfCpuAutonomousActivityWindow;
@@ -31097,7 +35484,7 @@ public static readonly VmQueryField<uint> PerfCpuAutonomousActivityWindow;
 
 <a id="api-49e77b5fb5c3c8ca"></a>
 
-##### 能耗性能偏好 · 字段
+##### 能耗性能偏好（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> PerfCpuEnergyPerformancePreference;
@@ -31109,7 +35496,7 @@ public static readonly VmQueryField<uint> PerfCpuEnergyPerformancePreference;
 
 <a id="api-6413e1002ba615ed"></a>
 
-##### 处理器频率上限 · 字段
+##### 处理器频率上限（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> PerfCpuFreqCapMhz;
@@ -31121,7 +35508,7 @@ public static readonly VmQueryField<uint> PerfCpuFreqCapMhz;
 
 <a id="api-936da64e603b6013"></a>
 
-##### 处理器期望频率 · 字段
+##### 处理器期望频率（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> PerfCpuFreqDesiredMhz;
@@ -31133,7 +35520,7 @@ public static readonly VmQueryField<uint> PerfCpuFreqDesiredMhz;
 
 <a id="api-cc6cae1a2adaf234"></a>
 
-##### 处理器频率下限 · 字段
+##### 处理器频率下限（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> PerfCpuFreqMinMhz;
@@ -31145,7 +35532,7 @@ public static readonly VmQueryField<uint> PerfCpuFreqMinMhz;
 
 <a id="api-a3d1ef26892f4c97"></a>
 
-##### 忽略宿主最大频率 · 字段
+##### 忽略宿主最大频率（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> PerfCpuIgnoreHostMaxFrequency;
@@ -31157,7 +35544,7 @@ public static readonly VmQueryField<bool> PerfCpuIgnoreHostMaxFrequency;
 
 <a id="api-1a26fc728b5d630c"></a>
 
-##### 物理地址宽度 · 字段
+##### 物理地址宽度（字段）
 
 ```csharp
 public static readonly VmQueryField<uint> PhysicalAddressWidth;
@@ -31169,7 +35556,7 @@ public static readonly VmQueryField<uint> PhysicalAddressWidth;
 
 <a id="api-d2a54696124167d3"></a>
 
-##### 处理器相对权重 · 字段
+##### 处理器相对权重（字段）
 
 ```csharp
 public static readonly VmQueryField<int> RelativeWeight;
@@ -31181,7 +35568,7 @@ public static readonly VmQueryField<int> RelativeWeight;
 
 <a id="api-a4a7c3a0f2a21f4b"></a>
 
-##### 处理器保留比例 · 字段
+##### 处理器保留比例（字段）
 
 ```csharp
 public static readonly VmQueryField<ulong> Reservation;
@@ -31193,7 +35580,7 @@ public static readonly VmQueryField<ulong> Reservation;
 
 <a id="api-3739187f27c50490"></a>
 
-##### 同时多线程模式 · 字段
+##### 同时多线程模式（字段）
 
 ```csharp
 public static readonly VmQueryField<SmtMode> SmtMode;
@@ -31203,7 +35590,7 @@ public static readonly VmQueryField<SmtMode> SmtMode;
 
 <a id="api-7434f578ff5dbbe5"></a>
 
-##### 处理器使用率 · 字段
+##### 处理器使用率（字段）
 
 ```csharp
 public static readonly VmQueryField<double> UsagePercent;
@@ -31250,7 +35637,7 @@ public static class VmProcessorMetricFields
 
 <a id="api-89b914f0afe140db"></a>
 
-##### 虚拟处理器编号 · 字段
+##### 虚拟处理器编号（字段）
 
 ```csharp
 public static readonly VmQueryField<int> Index;
@@ -31262,7 +35649,7 @@ public static readonly VmQueryField<int> Index;
 
 <a id="api-448c0c57fd4269d3"></a>
 
-##### 单个虚拟处理器使用率 · 字段
+##### 单个虚拟处理器使用率（字段）
 
 ```csharp
 public static readonly VmQueryField<double> UsagePercent;
@@ -31304,6 +35691,7 @@ public static readonly VmQueryField<double> UsagePercent;
 | --- | --- |
 | [` public static HostCapabilities GetHostCapabilities(HostProcessorPlatform platform, bool isolationSupported, IEnumerable<string> isolationTypes) `](#api-bc33776a025430aa) | 根据给定的平台和隔离信息生成宿主处理器能力。 |
 | [` public static async Task<ApiResponse<HostCapabilities>> GetHostCapabilitiesAsync() `](#api-4bba2c7324aef3f9) | 查询宿主处理器架构和硬件隔离能力。 |
+| [` public static async Task<int?> GetHostMaxVirtualCpuCountAsync(Guid vmId) `](#api-9245e38da2de39b1) | 读取宿主报告的虚拟处理器上限并应用代数限制。 |
 | [` public static VmModificationCondition GetModificationCondition(VmProcessorSettings settings, string propertyName, VmState state, HostCapabilities host) `](#api-454fcb1f6077d615) | 评估一项处理器设置的修改条件。 |
 | [` public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId) `](#api-07efb27da397e312) | 读取虚拟机的处理器配置。 |
 | [` public static async Task<ApiResponse> SetVmProcessorAsync(Guid vmId, VmProcessorSettings newSettings, IReadOnlyCollection<string> changedProperties) `](#api-b0226efc49c61356) | 修改选中的处理器设置。 |
@@ -31338,7 +35726,7 @@ public static class SelectedProcessorChangeExample
 
 <a id="api-ac442567faaeecdc"></a>
 
-##### ARM64 宿主 · 属性
+##### ARM64 宿主（属性）
 
 ```csharp
 public static bool IsArm64Host { get; }
@@ -31352,7 +35740,7 @@ public static bool IsArm64Host { get; }
 
 <a id="api-bc33776a025430aa"></a>
 
-##### 计算处理器配置能力 · 方法
+##### 计算处理器配置能力（方法）
 
 ```csharp
 public static HostCapabilities GetHostCapabilities(HostProcessorPlatform platform, bool isolationSupported, IEnumerable<string> isolationTypes);
@@ -31372,7 +35760,7 @@ public static HostCapabilities GetHostCapabilities(HostProcessorPlatform platfor
 
 <a id="api-4bba2c7324aef3f9"></a>
 
-##### 读取处理器配置能力 · 方法
+##### 读取处理器配置能力（方法）
 
 ```csharp
 public static async Task<ApiResponse<HostCapabilities>> GetHostCapabilitiesAsync();
@@ -31384,9 +35772,27 @@ public static async Task<ApiResponse<HostCapabilities>> GetHostCapabilitiesAsync
 
 返回：宿主能力，或查询失败的原因。
 
+<a id="api-9245e38da2de39b1"></a>
+
+##### 查询虚拟处理器数量上限（方法）
+
+```csharp
+public static async Task<int?> GetHostMaxVirtualCpuCountAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 处理器。
+
+读取宿主报告的虚拟处理器上限并应用代数限制。无法确认时返回 null。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+
+返回：宿主报告并经虚拟机代数约束的上限，无法确认时为 null。
+
 <a id="api-454fcb1f6077d615"></a>
 
-##### 评估修改条件 · 方法
+##### 评估修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetModificationCondition(VmProcessorSettings settings, string propertyName, VmState state, HostCapabilities host);
@@ -31409,7 +35815,7 @@ public static VmModificationCondition GetModificationCondition(VmProcessorSettin
 
 <a id="api-07efb27da397e312"></a>
 
-##### 读取处理器配置 · 方法
+##### 读取处理器配置（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId);
@@ -31427,7 +35833,7 @@ public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> G
 
 <a id="api-b0226efc49c61356"></a>
 
-##### 设置处理器配置 · 方法
+##### 设置处理器配置（方法）
 
 ```csharp
 public static async Task<ApiResponse> SetVmProcessorAsync(Guid vmId, VmProcessorSettings newSettings, IReadOnlyCollection<string> changedProperties);
@@ -31518,7 +35924,7 @@ public sealed record HostCapabilities(bool IsIntel, bool IsArm64, bool HardwareI
 
 <a id="api-f1844dafeab1a403"></a>
 
-##### 创建处理器配置所需的宿主能力对象 · 主构造器
+##### 创建处理器配置所需的宿主能力对象（主构造器）
 
 ```csharp
 public HostCapabilities(bool IsIntel, bool IsArm64, bool HardwareIsolationSupported);
@@ -31534,7 +35940,7 @@ public HostCapabilities(bool IsIntel, bool IsArm64, bool HardwareIsolationSuppor
 
 <a id="api-f1a5b4216c0eb678"></a>
 
-##### 硬件隔离支持 · record 属性
+##### 硬件隔离支持（record 属性）
 
 ```csharp
 public bool HardwareIsolationSupported { get; init; }
@@ -31544,7 +35950,7 @@ public bool HardwareIsolationSupported { get; init; }
 
 <a id="api-8cd503566716536b"></a>
 
-##### ARM64 平台 · record 属性
+##### ARM64 平台（record 属性）
 
 ```csharp
 public bool IsArm64 { get; init; }
@@ -31554,7 +35960,7 @@ public bool IsArm64 { get; init; }
 
 <a id="api-c2c0876876686bd7"></a>
 
-##### Intel 平台 · record 属性
+##### Intel 平台（record 属性）
 
 ```csharp
 public bool IsIntel { get; init; }
@@ -31564,7 +35970,7 @@ public bool IsIntel { get; init; }
 
 <a id="api-a857a8bbe6bdd994"></a>
 
-##### x64 设置规则 · 属性
+##### x64 设置规则（属性）
 
 ```csharp
 public bool IsX64 { get; }
@@ -31614,7 +36020,7 @@ public enum VmQueryCollection
 
 <a id="api-9767f74828e4dbca"></a>
 
-##### BootEntries · 枚举值
+##### BootEntries（枚举值）
 
 ```csharp
 BootEntries = 6
@@ -31624,7 +36030,7 @@ BootEntries = 6
 
 <a id="api-e9346323c153e44a"></a>
 
-##### Checkpoints · 枚举值
+##### Checkpoints（枚举值）
 
 ```csharp
 Checkpoints = 10
@@ -31634,7 +36040,7 @@ Checkpoints = 10
 
 <a id="api-671eb7864e4c887c"></a>
 
-##### GpuAssignments · 枚举值
+##### GpuAssignments（枚举值）
 
 ```csharp
 GpuAssignments = 7
@@ -31644,7 +36050,7 @@ GpuAssignments = 7
 
 <a id="api-13aacaceb1d79e9f"></a>
 
-##### Groups · 枚举值
+##### Groups（枚举值）
 
 ```csharp
 Groups = 1
@@ -31654,7 +36060,7 @@ Groups = 1
 
 <a id="api-3e1d5d5e3f03d146"></a>
 
-##### Metadata · 枚举值
+##### Metadata（枚举值）
 
 ```csharp
 Metadata = 2
@@ -31664,7 +36070,7 @@ Metadata = 2
 
 <a id="api-ecded18b6473cc31"></a>
 
-##### NetworkAdapters · 枚举值
+##### NetworkAdapters（枚举值）
 
 ```csharp
 NetworkAdapters = 5
@@ -31674,7 +36080,7 @@ NetworkAdapters = 5
 
 <a id="api-05c5fe7e01b89a33"></a>
 
-##### PcieDevices · 枚举值
+##### PcieDevices（枚举值）
 
 ```csharp
 PcieDevices = 8
@@ -31684,7 +36090,7 @@ PcieDevices = 8
 
 <a id="api-806e36e0534fc73f"></a>
 
-##### Processors · 枚举值
+##### Processors（枚举值）
 
 ```csharp
 Processors = 3
@@ -31694,7 +36100,7 @@ Processors = 3
 
 <a id="api-f4230c25b5de6d5f"></a>
 
-##### SerialPorts · 枚举值
+##### SerialPorts（枚举值）
 
 ```csharp
 SerialPorts = 9
@@ -31704,7 +36110,7 @@ SerialPorts = 9
 
 <a id="api-4b84baa4b68b1b42"></a>
 
-##### Storage · 枚举值
+##### Storage（枚举值）
 
 ```csharp
 Storage = 4
@@ -31714,7 +36120,7 @@ Storage = 4
 
 <a id="api-2732fe81225c5447"></a>
 
-##### VirtualMachine · 枚举值
+##### VirtualMachine（枚举值）
 
 ```csharp
 VirtualMachine = 0
@@ -31771,7 +36177,7 @@ public sealed record VmQueryCollectionResult(VmQueryValueState State, IReadOnlyL
 
 <a id="api-3d6d169b066bcc7f"></a>
 
-##### 创建集合查询结果对象 · 主构造器
+##### 创建集合查询结果对象（主构造器）
 
 ```csharp
 public VmQueryCollectionResult(VmQueryValueState State, IReadOnlyList<VmQueryRow> Rows, string? Error, DateTimeOffset? ObservedAtUtc);
@@ -31788,7 +36194,7 @@ public VmQueryCollectionResult(VmQueryValueState State, IReadOnlyList<VmQueryRow
 
 <a id="api-d71904e8c601d8e2"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -31798,7 +36204,7 @@ public string? Error { get; init; }
 
 <a id="api-ab793dee46ac1bae"></a>
 
-##### 失败详情 · 属性
+##### 失败详情（属性）
 
 ```csharp
 public ApiFailure? Failure { get; init; }
@@ -31808,7 +36214,7 @@ public ApiFailure? Failure { get; init; }
 
 <a id="api-3e6b64536c30310e"></a>
 
-##### 观测时间 · record 属性
+##### 观测时间（record 属性）
 
 ```csharp
 public DateTimeOffset? ObservedAtUtc { get; init; }
@@ -31818,7 +36224,7 @@ public DateTimeOffset? ObservedAtUtc { get; init; }
 
 <a id="api-9b5a667e11c7026a"></a>
 
-##### 查询记录 · record 属性
+##### 查询记录（record 属性）
 
 ```csharp
 public IReadOnlyList<VmQueryRow> Rows { get; init; }
@@ -31828,7 +36234,7 @@ public IReadOnlyList<VmQueryRow> Rows { get; init; }
 
 <a id="api-dfb362ae57971b91"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public VmQueryValueState State { get; init; }
@@ -31872,7 +36278,7 @@ public abstract class VmQueryField
 
 <a id="api-afd5a754e36e7c01"></a>
 
-##### 所属领域 · 属性
+##### 所属领域（属性）
 
 ```csharp
 public string Category { get; }
@@ -31882,7 +36288,7 @@ public string Category { get; }
 
 <a id="api-f7e84ddcebd01c3a"></a>
 
-##### 记录集合 · 属性
+##### 记录集合（属性）
 
 ```csharp
 public VmQueryCollection Collection { get; }
@@ -31892,7 +36298,7 @@ public VmQueryCollection Collection { get; }
 
 <a id="api-960e697704551792"></a>
 
-##### 标识 · 属性
+##### 标识（属性）
 
 ```csharp
 public string Id { get; }
@@ -31902,7 +36308,7 @@ public string Id { get; }
 
 <a id="api-63d7d29d1f08d828"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; }
@@ -31912,7 +36318,7 @@ public string Name { get; }
 
 <a id="api-0529fc550fc19ce4"></a>
 
-##### 值类型 · 属性
+##### 值类型（属性）
 
 ```csharp
 public Type ValueType { get; }
@@ -31982,7 +36388,7 @@ public static class VmQueryFields
 
 <a id="api-f5f575943cef6d8e"></a>
 
-##### 全部查询字段 · 属性
+##### 全部查询字段（属性）
 
 ```csharp
 public static IReadOnlyList<VmQueryField> All { get; } = Array.AsReadOnly(new VmQueryField[][]
@@ -32020,7 +36426,7 @@ public static IReadOnlyList<VmQueryField> All { get; } = Array.AsReadOnly(new Vm
 
 <a id="api-94ae1ed25ca04185"></a>
 
-##### 查找查询字段 · 方法
+##### 查找查询字段（方法）
 
 ```csharp
 public static VmQueryField? Find(string id);
@@ -32084,7 +36490,7 @@ public sealed record VmQueryIssue(string Component, string Error, ApiErrorKind E
 
 <a id="api-991242f7067e942d"></a>
 
-##### 创建查询问题对象 · 主构造器
+##### 创建查询问题对象（主构造器）
 
 ```csharp
 public VmQueryIssue(string Component, string Error, ApiErrorKind ErrorKind, ApiErrorSource ErrorSource, int Code);
@@ -32102,7 +36508,7 @@ public VmQueryIssue(string Component, string Error, ApiErrorKind ErrorKind, ApiE
 
 <a id="api-c3a6cecc1702a89f"></a>
 
-##### 错误码 · record 属性
+##### 错误码（record 属性）
 
 ```csharp
 public int Code { get; init; }
@@ -32112,7 +36518,7 @@ public int Code { get; init; }
 
 <a id="api-ba78a4fafbf5f531"></a>
 
-##### 信息类别 · record 属性
+##### 信息类别（record 属性）
 
 ```csharp
 public string Component { get; init; }
@@ -32122,7 +36528,7 @@ public string Component { get; init; }
 
 <a id="api-79d2d2b5828d48ba"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string Error { get; init; }
@@ -32132,7 +36538,7 @@ public string Error { get; init; }
 
 <a id="api-0a01d0efbc10a1fa"></a>
 
-##### 错误类别 · record 属性
+##### 错误类别（record 属性）
 
 ```csharp
 public ApiErrorKind ErrorKind { get; init; }
@@ -32142,7 +36548,7 @@ public ApiErrorKind ErrorKind { get; init; }
 
 <a id="api-b7234f784567e463"></a>
 
-##### 错误来源 · record 属性
+##### 错误来源（record 属性）
 
 ```csharp
 public ApiErrorSource ErrorSource { get; init; }
@@ -32191,7 +36597,7 @@ public sealed class VmQueryRequest
 
 <a id="api-244a7d7793a8c782"></a>
 
-##### 创建字段查询请求对象 · 构造器
+##### 创建字段查询请求对象（构造器）
 
 ```csharp
 public VmQueryRequest(IEnumerable<VmQueryField> fields, IEnumerable<Guid>? vmIds = null);
@@ -32210,7 +36616,7 @@ public VmQueryRequest(IEnumerable<VmQueryField> fields, IEnumerable<Guid>? vmIds
 
 <a id="api-8cad5830d8559e90"></a>
 
-##### 选择的字段 · 属性
+##### 选择的字段（属性）
 
 ```csharp
 public IReadOnlyList<VmQueryField> Fields { get; }
@@ -32220,7 +36626,7 @@ public IReadOnlyList<VmQueryField> Fields { get; }
 
 <a id="api-6559be2262f85b38"></a>
 
-##### 虚拟机标识列表 · 属性
+##### 虚拟机标识列表（属性）
 
 ```csharp
 public IReadOnlyList<Guid>? VmIds { get; }
@@ -32279,7 +36685,7 @@ public sealed record VmQueryResult(IReadOnlyList<VmQueryRow> VirtualMachines, IR
 
 <a id="api-a8f0d2daf701c765"></a>
 
-##### 创建字段查询结果对象 · 主构造器
+##### 创建字段查询结果对象（主构造器）
 
 ```csharp
 public VmQueryResult(IReadOnlyList<VmQueryRow> VirtualMachines, IReadOnlyList<Guid> MissingVmIds, DateTimeOffset StartedAtUtc, DateTimeOffset CompletedAtUtc, IReadOnlyList<VmQueryTiming> Timings);
@@ -32297,7 +36703,7 @@ public VmQueryResult(IReadOnlyList<VmQueryRow> VirtualMachines, IReadOnlyList<Gu
 
 <a id="api-d1b6e324d4846e13"></a>
 
-##### 完成时间 · record 属性
+##### 完成时间（record 属性）
 
 ```csharp
 public DateTimeOffset CompletedAtUtc { get; init; }
@@ -32307,7 +36713,7 @@ public DateTimeOffset CompletedAtUtc { get; init; }
 
 <a id="api-234b222101dfb421"></a>
 
-##### 未找到的虚拟机 · record 属性
+##### 未找到的虚拟机（record 属性）
 
 ```csharp
 public IReadOnlyList<Guid> MissingVmIds { get; init; }
@@ -32317,7 +36723,7 @@ public IReadOnlyList<Guid> MissingVmIds { get; init; }
 
 <a id="api-ccec0db0d52bc72f"></a>
 
-##### 开始时间 · record 属性
+##### 开始时间（record 属性）
 
 ```csharp
 public DateTimeOffset StartedAtUtc { get; init; }
@@ -32327,7 +36733,7 @@ public DateTimeOffset StartedAtUtc { get; init; }
 
 <a id="api-c3ae0b0b5ccb6d7b"></a>
 
-##### 阶段耗时 · record 属性
+##### 阶段耗时（record 属性）
 
 ```csharp
 public IReadOnlyList<VmQueryTiming> Timings { get; init; }
@@ -32337,7 +36743,7 @@ public IReadOnlyList<VmQueryTiming> Timings { get; init; }
 
 <a id="api-997a1f01fefc8227"></a>
 
-##### 虚拟机列表 · record 属性
+##### 虚拟机列表（record 属性）
 
 ```csharp
 public IReadOnlyList<VmQueryRow> VirtualMachines { get; init; }
@@ -32386,7 +36792,7 @@ public sealed class VmQueryRow
 
 <a id="api-1a4629bb4609fa92"></a>
 
-##### 子对象集合 · 属性
+##### 子对象集合（属性）
 
 ```csharp
 public IReadOnlyDictionary<VmQueryCollection, VmQueryCollectionResult> Collections { get; }
@@ -32396,7 +36802,7 @@ public IReadOnlyDictionary<VmQueryCollection, VmQueryCollectionResult> Collectio
 
 <a id="api-bab2b04ca874552a"></a>
 
-##### 记录键 · 属性
+##### 记录键（属性）
 
 ```csharp
 public string Key { get; }
@@ -32408,7 +36814,7 @@ public string Key { get; }
 
 <a id="api-c02c51c6a0a3309e"></a>
 
-##### 字段结果 · 属性
+##### 字段结果（属性）
 
 ```csharp
 public IReadOnlyDictionary<string, VmQueryValue> Values { get; }
@@ -32420,7 +36826,7 @@ public IReadOnlyDictionary<string, VmQueryValue> Values { get; }
 
 <a id="api-5f23335810ecb483"></a>
 
-##### 读取子对象集合 · 方法
+##### 读取子对象集合（方法）
 
 ```csharp
 public VmQueryCollectionResult GetCollection(VmQueryCollection collection);
@@ -32436,7 +36842,7 @@ public VmQueryCollectionResult GetCollection(VmQueryCollection collection);
 
 <a id="api-348122994c577cdd"></a>
 
-##### 读取字段值 · 方法
+##### 读取字段值（方法）
 
 ```csharp
 public VmQueryValue<T> Get<T>(VmQueryField<T> field);
@@ -32488,7 +36894,7 @@ public VmQueryValue<T> Get<T>(VmQueryField<T> field);
 | [` public async Task<ApiResponse<VmState>> GetVmStateAsync(Guid vmId) `](#api-2e4d20a997fa9624) | 按稳定身份读取虚拟机当前运行状态。 |
 | [` public async Task<ApiResponse<bool>> IsVmPoweredOffAsync(Guid vmId) `](#api-fbddeaf25064539a) | 按稳定身份检查虚拟机是否处于完全关机状态。 |
 | [` public async Task<ApiResponse<VmQueryResult>> QueryAsync(VmQueryRequest request, CancellationToken cancellationToken = default) `](#api-b2c9fe1c495ff468) | 读取指定虚拟机的所选字段。 |
-| [` public async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms) `](#api-68108fd110ddce6f) | 采样磁盘性能计数器，将磁盘读写速率写入传入的虚拟机模型。 |
+| [` public Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms) `](#api-68108fd110ddce6f) | 采样磁盘性能计数器，将磁盘读写速率写入传入的虚拟机模型。 |
 | [` public async Task UpdateNetworkPerformanceAsync(IEnumerable<VmInstance> vms) `](#api-de71f96836494602) | 采样网络性能计数器，将收发速率写入传入的虚拟机模型。 |
 
 #### 详细说明
@@ -32503,7 +36909,7 @@ public partial class VmQueryService
 
 <a id="api-54083c20aa259dda"></a>
 
-##### 创建虚拟机查询对象 · 构造器
+##### 创建虚拟机查询对象（构造器）
 
 ```csharp
 public VmQueryService();
@@ -32515,7 +36921,7 @@ public VmQueryService();
 
 <a id="api-c8347aeeeba3f88b"></a>
 
-##### 同步释放查询资源 · 方法
+##### 同步释放查询资源（方法）
 
 ```csharp
 public void Dispose();
@@ -32525,7 +36931,7 @@ public void Dispose();
 
 <a id="api-4d0309be308b6bf4"></a>
 
-##### 异步释放查询资源 · 方法
+##### 异步释放查询资源（方法）
 
 ```csharp
 public ValueTask DisposeAsync();
@@ -32535,7 +36941,7 @@ public ValueTask DisposeAsync();
 
 <a id="api-319692fabf672c00"></a>
 
-##### 采样 GPU 性能 · 方法
+##### 采样 GPU 性能（方法）
 
 ```csharp
 public async Task<Dictionary<Guid, GpuUsageData>> GetGpuPerformanceAsync(IEnumerable<VmInstance> vms);
@@ -32553,7 +36959,7 @@ public async Task<Dictionary<Guid, GpuUsageData>> GetGpuPerformanceAsync(IEnumer
 
 <a id="api-2e465d73bfe57502"></a>
 
-##### 读取虚拟机列表 · 方法
+##### 读取虚拟机列表（方法）
 
 ```csharp
 public async Task<ApiResponse<VmInventorySnapshot>> GetVmListAsync();
@@ -32567,7 +36973,7 @@ public async Task<ApiResponse<VmInventorySnapshot>> GetVmListAsync();
 
 <a id="api-ea02c278c682e728"></a>
 
-##### 读取运行时内存 · 方法
+##### 读取运行时内存（方法）
 
 ```csharp
 public async Task<ApiResponse<Dictionary<Guid, VmDynamicMemoryData>>> GetVmRuntimeMemoryDataAsync();
@@ -32581,7 +36987,7 @@ public async Task<ApiResponse<Dictionary<Guid, VmDynamicMemoryData>>> GetVmRunti
 
 <a id="api-2e4d20a997fa9624"></a>
 
-##### 读取运行状态 · 方法
+##### 读取运行状态（方法）
 
 ```csharp
 public async Task<ApiResponse<VmState>> GetVmStateAsync(Guid vmId);
@@ -32597,7 +37003,7 @@ public async Task<ApiResponse<VmState>> GetVmStateAsync(Guid vmId);
 
 <a id="api-fbddeaf25064539a"></a>
 
-##### 检查是否完全关机 · 方法
+##### 检查是否完全关机（方法）
 
 ```csharp
 public async Task<ApiResponse<bool>> IsVmPoweredOffAsync(Guid vmId);
@@ -32613,7 +37019,7 @@ public async Task<ApiResponse<bool>> IsVmPoweredOffAsync(Guid vmId);
 
 <a id="api-b2c9fe1c495ff468"></a>
 
-##### 读取字段 · 方法
+##### 读取字段（方法）
 
 ```csharp
 public async Task<ApiResponse<VmQueryResult>> QueryAsync(VmQueryRequest request, CancellationToken cancellationToken = default);
@@ -32635,10 +37041,10 @@ public async Task<ApiResponse<VmQueryResult>> QueryAsync(VmQueryRequest request,
 
 <a id="api-68108fd110ddce6f"></a>
 
-##### 更新磁盘性能 · 方法
+##### 更新磁盘性能（方法）
 
 ```csharp
-public async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms);
+public Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms);
 ```
 
 采样磁盘性能计数器，将磁盘读写速率写入传入的虚拟机模型。
@@ -32651,7 +37057,7 @@ public async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms);
 
 <a id="api-de71f96836494602"></a>
 
-##### 更新网络性能 · 方法
+##### 更新网络性能（方法）
 
 ```csharp
 public async Task UpdateNetworkPerformanceAsync(IEnumerable<VmInstance> vms);
@@ -32712,7 +37118,7 @@ public struct GpuUsageData
 
 <a id="api-39d52b00a8ab05a4"></a>
 
-##### GPU 引擎检测状态 · 属性
+##### GPU 引擎检测状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? EnginePresenceSample { get; set; }
@@ -32722,7 +37128,7 @@ public PerformanceSampleInfo? EnginePresenceSample { get; set; }
 
 <a id="api-9dd0e5f4e0aad5c1"></a>
 
-##### 采样状态 · 属性
+##### 采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? Sample { get; set; }
@@ -32734,7 +37140,7 @@ public PerformanceSampleInfo? Sample { get; set; }
 
 <a id="api-23bafb99fd7fce1e"></a>
 
-##### GPU 三维引擎使用率 · 字段
+##### GPU 三维引擎使用率（字段）
 
 ```csharp
 public double Gpu3d;
@@ -32744,7 +37150,7 @@ public double Gpu3d;
 
 <a id="api-2a3de2a5b7541246"></a>
 
-##### GPU 复制引擎使用率 · 字段
+##### GPU 复制引擎使用率（字段）
 
 ```csharp
 public double GpuCopy;
@@ -32754,7 +37160,7 @@ public double GpuCopy;
 
 <a id="api-6754836ac03e983d"></a>
 
-##### GPU 解码引擎使用率 · 字段
+##### GPU 解码引擎使用率（字段）
 
 ```csharp
 public double GpuDecode;
@@ -32764,7 +37170,7 @@ public double GpuDecode;
 
 <a id="api-162e02563b773931"></a>
 
-##### GPU 编码引擎使用率 · 字段
+##### GPU 编码引擎使用率（字段）
 
 ```csharp
 public double GpuEncode;
@@ -32774,7 +37180,7 @@ public double GpuEncode;
 
 <a id="api-3692b9ff08c42f9d"></a>
 
-##### GPU 引擎实例可见 · 字段
+##### GPU 引擎实例可见（字段）
 
 ```csharp
 public bool HasGpuEngineInstance;
@@ -32834,7 +37240,7 @@ public struct VmDynamicMemoryData
 
 <a id="api-0df00ffb287af5ca"></a>
 
-##### 内存分配采样状态 · 属性
+##### 内存分配采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? AssignedSample { get; init; }
@@ -32844,7 +37250,7 @@ public PerformanceSampleInfo? AssignedSample { get; init; }
 
 <a id="api-af8b64a5911dd684"></a>
 
-##### 可用缓冲采样状态 · 属性
+##### 可用缓冲采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? AvailableBufferSample { get; init; }
@@ -32854,7 +37260,7 @@ public PerformanceSampleInfo? AvailableBufferSample { get; init; }
 
 <a id="api-e93c4005ce0adee5"></a>
 
-##### 可用内存采样状态 · 属性
+##### 可用内存采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? AvailableSample { get; init; }
@@ -32864,7 +37270,7 @@ public PerformanceSampleInfo? AvailableSample { get; init; }
 
 <a id="api-fba6d7f17d188250"></a>
 
-##### 内存需求采样状态 · 属性
+##### 内存需求采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? DemandSample { get; init; }
@@ -32874,7 +37280,7 @@ public PerformanceSampleInfo? DemandSample { get; init; }
 
 <a id="api-b39b01788f1aeb51"></a>
 
-##### 来宾可用内存采样状态 · 属性
+##### 来宾可用内存采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? GuestAvailableSample { get; init; }
@@ -32884,7 +37290,7 @@ public PerformanceSampleInfo? GuestAvailableSample { get; init; }
 
 <a id="api-4f4d2819929c88c0"></a>
 
-##### 来宾可见内存采样状态 · 属性
+##### 来宾可见内存采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? GuestVisibleSample { get; init; }
@@ -32894,7 +37300,7 @@ public PerformanceSampleInfo? GuestVisibleSample { get; init; }
 
 <a id="api-186217227c1543db"></a>
 
-##### 内存压力采样状态 · 属性
+##### 内存压力采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? PressureSample { get; init; }
@@ -32904,7 +37310,7 @@ public PerformanceSampleInfo? PressureSample { get; init; }
 
 <a id="api-a16d6776384926e6"></a>
 
-##### 智能分页采样状态 · 属性
+##### 智能分页采样状态（属性）
 
 ```csharp
 public PerformanceSampleInfo? SmartPagingSample { get; init; }
@@ -32916,7 +37322,7 @@ public PerformanceSampleInfo? SmartPagingSample { get; init; }
 
 <a id="api-8d28112b07bb3d9d"></a>
 
-##### 运行时已分配内存 · 字段
+##### 运行时已分配内存（字段）
 
 ```csharp
 public long AssignedMiB;
@@ -32926,7 +37332,7 @@ public long AssignedMiB;
 
 <a id="api-d9249968bd206679"></a>
 
-##### 可用内存缓冲比例 · 字段
+##### 可用内存缓冲比例（字段）
 
 ```csharp
 public int AvailableBufferPercent;
@@ -32936,7 +37342,7 @@ public int AvailableBufferPercent;
 
 <a id="api-205e8652409c0c56"></a>
 
-##### 来宾可用内存比例 · 字段
+##### 来宾可用内存比例（字段）
 
 ```csharp
 public int AvailablePercent;
@@ -32946,7 +37352,7 @@ public int AvailablePercent;
 
 <a id="api-40150f7376011091"></a>
 
-##### 内存需求 · 字段
+##### 内存需求（字段）
 
 ```csharp
 public long DemandMiB;
@@ -32956,7 +37362,7 @@ public long DemandMiB;
 
 <a id="api-d0e4458ee69bd968"></a>
 
-##### 来宾可用内存 · 字段
+##### 来宾可用内存（字段）
 
 ```csharp
 public long GuestAvailableMiB;
@@ -32966,7 +37372,7 @@ public long GuestAvailableMiB;
 
 <a id="api-c995afe77489d803"></a>
 
-##### 来宾可见内存 · 字段
+##### 来宾可见内存（字段）
 
 ```csharp
 public long GuestVisibleMiB;
@@ -32976,7 +37382,7 @@ public long GuestVisibleMiB;
 
 <a id="api-0b07ddc6269f7a66"></a>
 
-##### 当前内存压力 · 字段
+##### 当前内存压力（字段）
 
 ```csharp
 public int PressurePercent;
@@ -32986,7 +37392,7 @@ Hyper-V 动态内存平衡器报告的当前内存压力百分比；仅 Pressure
 
 <a id="api-808f4542fbcdba99"></a>
 
-##### 智能分页占用 · 字段
+##### 智能分页占用（字段）
 
 ```csharp
 public long SmartPagingMiB;
@@ -33038,7 +37444,7 @@ public sealed record VmQueryTiming(string Name, TimeSpan Elapsed)
 
 <a id="api-c7d6082b76bba86c"></a>
 
-##### 创建查询耗时对象 · 主构造器
+##### 创建查询耗时对象（主构造器）
 
 ```csharp
 public VmQueryTiming(string Name, TimeSpan Elapsed);
@@ -33053,7 +37459,7 @@ public VmQueryTiming(string Name, TimeSpan Elapsed);
 
 <a id="api-2621095181876b0b"></a>
 
-##### 耗时 · record 属性
+##### 耗时（record 属性）
 
 ```csharp
 public TimeSpan Elapsed { get; init; }
@@ -33063,7 +37469,7 @@ public TimeSpan Elapsed { get; init; }
 
 <a id="api-eb94250e87bbdf77"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -33108,7 +37514,7 @@ public abstract class VmQueryValue
 
 <a id="api-e5f80f1a74cd351f"></a>
 
-##### 错误 · 属性
+##### 错误（属性）
 
 ```csharp
 public string? Error { get; }
@@ -33118,7 +37524,7 @@ public string? Error { get; }
 
 <a id="api-e7337c7908788fa0"></a>
 
-##### 失败详情 · 属性
+##### 失败详情（属性）
 
 ```csharp
 public ApiFailure? Failure { get; }
@@ -33128,7 +37534,7 @@ public ApiFailure? Failure { get; }
 
 <a id="api-13fe155b0d393f2a"></a>
 
-##### 有效数据状态 · 属性
+##### 有效数据状态（属性）
 
 ```csharp
 public bool HasValue { get; }
@@ -33138,7 +37544,7 @@ public bool HasValue { get; }
 
 <a id="api-b5ae8f6ccde83147"></a>
 
-##### 观测时间 · 属性
+##### 观测时间（属性）
 
 ```csharp
 public DateTimeOffset ObservedAtUtc { get; }
@@ -33148,7 +37554,7 @@ public DateTimeOffset ObservedAtUtc { get; }
 
 <a id="api-60b6c369c60eb840"></a>
 
-##### 状态 · 属性
+##### 状态（属性）
 
 ```csharp
 public VmQueryValueState State { get; }
@@ -33158,7 +37564,7 @@ public VmQueryValueState State { get; }
 
 <a id="api-26b7546b84238eb5"></a>
 
-##### 动态类型值 · 属性
+##### 动态类型值（属性）
 
 ```csharp
 public abstract object? UntypedValue { get; }
@@ -33203,7 +37609,7 @@ public sealed class VmQueryValue<T> : VmQueryValue
 
 <a id="api-a8c1811d73152d0b"></a>
 
-##### 动态类型值 · 属性
+##### 动态类型值（属性）
 
 ```csharp
 public override object? UntypedValue { get; }
@@ -33213,7 +37619,7 @@ public override object? UntypedValue { get; }
 
 <a id="api-ff8d70c03f80b493"></a>
 
-##### 值 · 属性
+##### 值（属性）
 
 ```csharp
 public T? Value { get; }
@@ -33260,7 +37666,7 @@ public enum VmQueryValueState
 
 <a id="api-ce09938223099b39"></a>
 
-##### Ambiguous · 枚举值
+##### Ambiguous（枚举值）
 
 ```csharp
 Ambiguous = 7
@@ -33270,7 +37676,7 @@ Ambiguous = 7
 
 <a id="api-60c44be774f12dba"></a>
 
-##### Available · 枚举值
+##### Available（枚举值）
 
 ```csharp
 Available = 0
@@ -33280,7 +37686,7 @@ Available = 0
 
 <a id="api-be0b587e1353c612"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 5
@@ -33290,7 +37696,7 @@ Failed = 5
 
 <a id="api-823476c1d36700cd"></a>
 
-##### NotApplicable · 枚举值
+##### NotApplicable（枚举值）
 
 ```csharp
 NotApplicable = 3
@@ -33300,7 +37706,7 @@ NotApplicable = 3
 
 <a id="api-c443b6ea673827fa"></a>
 
-##### NotRequested · 枚举值
+##### NotRequested（枚举值）
 
 ```csharp
 NotRequested = 1
@@ -33310,7 +37716,7 @@ NotRequested = 1
 
 <a id="api-6ce9cf99b6c0bdc5"></a>
 
-##### Unavailable · 枚举值
+##### Unavailable（枚举值）
 
 ```csharp
 Unavailable = 4
@@ -33320,7 +37726,7 @@ Unavailable = 4
 
 <a id="api-2ac08f500549e8c6"></a>
 
-##### Unsupported · 枚举值
+##### Unsupported（枚举值）
 
 ```csharp
 Unsupported = 2
@@ -33330,7 +37736,7 @@ Unsupported = 2
 
 <a id="api-284df5366d5e817a"></a>
 
-##### WarmingUp · 枚举值
+##### WarmingUp（枚举值）
 
 ```csharp
 WarmingUp = 6
@@ -33372,7 +37778,7 @@ public enum VmRegistrationState
 
 <a id="api-eb185291eee5f5b6"></a>
 
-##### Registered · 枚举值
+##### Registered（枚举值）
 
 ```csharp
 Registered = 1
@@ -33382,7 +37788,7 @@ Registered = 1
 
 <a id="api-b9748cc05b700875"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 0
@@ -33392,7 +37798,7 @@ Unknown = 0
 
 <a id="api-2be5ee3a853c7a60"></a>
 
-##### Unregistered · 枚举值
+##### Unregistered（枚举值）
 
 ```csharp
 Unregistered = 2
@@ -33434,7 +37840,7 @@ public static class VmScreenshotSource
 
 <a id="api-f254cefc45d55cc1"></a>
 
-##### 获取基本控制台截图 · 方法
+##### 获取基本控制台截图（方法）
 
 ```csharp
 public static async Task<VmScreenshotImage?> CaptureAsync(Guid vmId, int desiredWidth, int desiredHeight);
@@ -33494,11 +37900,14 @@ public static class ScreenshotExample
 
 | 成员 | 说明 |
 | --- | --- |
+| [` public static readonly VmQueryField<bool> BindToHostTpm `](#api-b682637ca3569b20) | 宿主支持时返回虚拟 TPM 是否绑定到物理 TPM。 |
 | [` public static readonly VmQueryField<bool> EncryptEnabled `](#api-06df1f9055056625) | 保存状态及迁移流量加密：是否对虚拟机的保存状态和迁移流量启用加密。 |
+| [` public static readonly VmQueryField<byte> MigratablePolicy `](#api-abdf00b6775f0ef7) | 迁移策略的原始枚举值。 |
 | [` public static readonly VmQueryField<bool> SecureBootEnabled `](#api-28e557e48799bcb7) | 安全启动：是否启用安全启动，在启动过程中验证引导组件的签名。 |
 | [` public static readonly VmQueryField<string> SecureBootTemplateId `](#api-7f6bd57a186d1944) | 安全启动模板：安全启动所使用的信任模板标识。 |
 | [` public static readonly VmQueryField<bool> Shielded `](#api-2a3449d9451ad422) | 屏蔽保护请求：虚拟机配置是否请求屏蔽保护。 |
 | [` public static readonly VmQueryField<bool> TpmEnabled `](#api-8f8a2903c0a49b71) | 虚拟 TPM：是否为虚拟机启用虚拟 TPM。 |
+| [` public static readonly VmQueryField<bool> VirtualizationBasedSecurityOptOut `](#api-5098c00bfe28e321) | 是否禁止向来宾提供基于虚拟化的安全功能。 |
 
 #### 详细说明
 
@@ -33508,9 +37917,19 @@ public static class VmSecurityFields
 
 #### 字段与常量说明
 
+<a id="api-b682637ca3569b20"></a>
+
+##### 绑定宿主 TPM（字段）
+
+```csharp
+public static readonly VmQueryField<bool> BindToHostTpm;
+```
+
+绑定到宿主物理 TPM。启用绑定前须开启虚拟 TPM。
+
 <a id="api-06df1f9055056625"></a>
 
-##### 保存状态及迁移流量加密 · 字段
+##### 保存状态及迁移流量加密（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> EncryptEnabled;
@@ -33520,9 +37939,19 @@ public static readonly VmQueryField<bool> EncryptEnabled;
 
 **取值说明：** `true`：启用保存状态和迁移流量加密；`false`：关闭。
 
+<a id="api-abdf00b6775f0ef7"></a>
+
+##### 迁移策略原始值（字段）
+
+```csharp
+public static readonly VmQueryField<byte> MigratablePolicy;
+```
+
+迁移策略的原始值。0 为默认，1 为禁止迁移。未知枚举值只读。
+
 <a id="api-28e557e48799bcb7"></a>
 
-##### 安全启动 · 字段
+##### 安全启动（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> SecureBootEnabled;
@@ -33534,7 +37963,7 @@ public static readonly VmQueryField<bool> SecureBootEnabled;
 
 <a id="api-7f6bd57a186d1944"></a>
 
-##### 安全启动模板 · 字段
+##### 安全启动模板（字段）
 
 ```csharp
 public static readonly VmQueryField<string> SecureBootTemplateId;
@@ -33544,7 +37973,7 @@ public static readonly VmQueryField<string> SecureBootTemplateId;
 
 <a id="api-2a3449d9451ad422"></a>
 
-##### 屏蔽虚拟机 · 字段
+##### 屏蔽虚拟机（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> Shielded;
@@ -33556,7 +37985,7 @@ ShieldingRequested 配置标记；不证明来宾已通过证明或保护已生�
 
 <a id="api-8f8a2903c0a49b71"></a>
 
-##### 虚拟 TPM · 字段
+##### 虚拟 TPM（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> TpmEnabled;
@@ -33565,6 +37994,16 @@ public static readonly VmQueryField<bool> TpmEnabled;
 是否为虚拟机启用虚拟 TPM。
 
 **取值说明：** `true`：启用虚拟 TPM；`false`：关闭。
+
+<a id="api-5098c00bfe28e321"></a>
+
+##### 禁用来宾 VBS（字段）
+
+```csharp
+public static readonly VmQueryField<bool> VirtualizationBasedSecurityOptOut;
+```
+
+是否禁止向来宾提供基于虚拟化的安全功能。
 
 <a id="api-4b2f79ff06e9f37a"></a>
 
@@ -33578,7 +38017,7 @@ public static readonly VmQueryField<bool> TpmEnabled;
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
 | 功能归属 | 管理层面 / 虚拟机 / 安全 |
-| 源文件 | ` Management/VirtualMachines/Security/VmSecurityService.cs ` |
+| 源文件 | ` Management/VirtualMachines/Security/VmSecurityService.Vtpm.cs ` |
 
 #### 成员概览
 
@@ -33586,28 +38025,54 @@ public static readonly VmQueryField<bool> TpmEnabled;
 
 | 成员 | 说明 |
 | --- | --- |
+| [` public static Task<ApiResponse> ExportLocalGuardianAsync(Guid vmId, string path) `](#api-10d7ebb6d3c4a8c0) | 将当前宿主的公共元数据导出为 XML，或将其签名公钥证书导出为 CER、CRT。 |
 | [` public static VmModificationCondition GetModificationCondition(int generation, VmState state, VmSecurityInfo current, Setting setting) `](#api-62776533c41a9b91) | 评估一项安全设置的修改条件。 |
 | [` public static async Task<ApiResponse<IReadOnlyList<SecureBootTemplate>>> GetSecureBootTemplatesAsync() `](#api-438e700cde99ca50) | 读取宿主提供的安全启动模板，查询失败与成功空列表分别返回。 |
 | [` public static async Task<ApiResponse<VmSecurityInfo>> GetSecuritySettingsAsync(Guid vmId) `](#api-dbe9199815b280f4) | 读取安全启动模板、TPM、状态加密及屏蔽状态；任何必要子查询失败时返回失败。 |
-| [` public static async Task<ApiResponse> SetEncryptionAsync(Guid vmId, bool enabled) `](#api-7c7f5ddfdae4bb2a) | 修改保存状态和迁移流量加密，遵守 TPM 与屏蔽互锁规则。 |
-| [` public static async Task<ApiResponse> SetSecureBootAsync(Guid vmId, bool enabled) `](#api-ead4e6953adecf9e) | 校验当前状态后启用或关闭安全启动。 |
-| [` public static async Task<ApiResponse> SetSecureBootTemplateAsync(Guid vmId, Guid templateId) `](#api-61172b9c24452be0) | 设置安全启动信任模板。 |
-| [` public static async Task<ApiResponse> SetShieldingAsync(Guid vmId, bool enabled) `](#api-aca34d7baf5f06d6) | 启用屏蔽时先确保 TPM，再启用加密与屏蔽；关闭时只清除屏蔽标记。 |
-| [` public static async Task<ApiResponse> SetTpmAsync(Guid vmId, bool enabled) `](#api-b33af35bb12380eb) | 配置虚拟 TPM，启用前按需建立本地密钥保护器。 |
+| [` public static Task<ApiResponse<VmVtpmInfo>> GetVtpmStateAsync(Guid vmId) `](#api-06de16aa767eb71c) | 读取真实安全配置、宿主授权、来宾状态文件和各策略的可用性。 |
+| [` public static Task<ApiResponse> GrantHostAccessAsync(Guid vmId, string path, string? password = null, string? metadataPath = null) `](#api-fe619169736ebf5d) | 通过完整 Guardian XML 或已登记宿主的证书向现有密钥追加授权。 |
+| [` public static Task<ApiResponse> ReissueLocalKeyProtectorAsync(Guid vmId) `](#api-a843727ea3151c4c) | 用当前宿主重新签发解锁密钥。 |
+| [` public static Task<ApiResponse> RestorePreviousKeyProtectorAsync(Guid vmId) `](#api-afdb0461e34f928f) | 恢复本进程上一次成功修改前的封装密钥。 |
+| [` public static Task<ApiResponse> RevokeHostAccessAsync(Guid vmId, string signingThumbprint, string encryptionThumbprint) `](#api-7331a00f45dc33ce) | 撤销指定外部宿主的授权，保留所有者和其余宿主。 |
+| [` public static Task<ApiResponse> SetEncryptionAsync(Guid vmId, bool enabled) `](#api-7c7f5ddfdae4bb2a) | 开启状态加密时准备本机密钥，并在同次安全配置提交中开启虚拟 TPM。 |
+| [` public static Task<ApiResponse> SetSecureBootAsync(Guid vmId, bool enabled) `](#api-ead4e6953adecf9e) | 校验当前状态后启用或关闭安全启动。 |
+| [` public static Task<ApiResponse> SetSecureBootTemplateAsync(Guid vmId, Guid templateId) `](#api-61172b9c24452be0) | 设置安全启动信任模板。 |
+| [` public static Task<ApiResponse> SetShieldingAsync(Guid vmId, bool enabled) `](#api-aca34d7baf5f06d6) | 启用防护时先确保本机密钥、安全启动和控制台设置，再提交 TPM、加密与防护。 |
+| [` public static Task<ApiResponse> SetTpmAsync(Guid vmId, bool enabled) `](#api-b33af35bb12380eb) | 启用虚拟 TPM 时准备本机密钥。 |
+| [` public static Task<ApiResponse> SetVtpmPolicyAsync(Guid vmId, VtpmPolicy policy, bool enabled) `](#api-0d08e619ac362e88) | 写入宿主实际支持的安全属性。 |
 
 #### 详细说明
 
 ```csharp
-public static class VmSecurityService
+public static partial class VmSecurityService
 ```
 
 调用约定：修改前要求虚拟机完全关机；启用虚拟 TPM 时由 Core 准备所需的密钥保护配置。具体能力和互锁限制通过查询及校验接口读取。
 
 #### 静态方法说明
 
+<a id="api-10d7ebb6d3c4a8c0"></a>
+
+##### 导出本机 Guardian 公钥材料（方法）
+
+```csharp
+public static Task<ApiResponse> ExportLocalGuardianAsync(Guid vmId, string path);
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+将当前宿主的公共元数据导出为 XML，或将其签名公钥证书导出为 CER、CRT。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `path` | .xml 元数据或证书文件的路径。 |
+
+返回：公共证书或元数据文件的导出结果。
+
 <a id="api-62776533c41a9b91"></a>
 
-##### 评估修改条件 · 方法
+##### 评估修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetModificationCondition(int generation, VmState state, VmSecurityInfo current, Setting setting);
@@ -33628,7 +38093,7 @@ public static VmModificationCondition GetModificationCondition(int generation, V
 
 <a id="api-438e700cde99ca50"></a>
 
-##### 读取安全启动模板 · 方法
+##### 读取安全启动模板（方法）
 
 ```csharp
 public static async Task<ApiResponse<IReadOnlyList<SecureBootTemplate>>> GetSecureBootTemplatesAsync();
@@ -33642,7 +38107,7 @@ public static async Task<ApiResponse<IReadOnlyList<SecureBootTemplate>>> GetSecu
 
 <a id="api-dbe9199815b280f4"></a>
 
-##### 读取安全配置 · 方法
+##### 读取安全配置（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmSecurityInfo>> GetSecuritySettingsAsync(Guid vmId);
@@ -33658,31 +38123,126 @@ public static async Task<ApiResponse<VmSecurityInfo>> GetSecuritySettingsAsync(G
 
 返回：安全配置快照或查询失败。此模型把 null 或非 bool 的属性值折为 false；需要区分缺测与关闭时使用相应 VmSecurityFields 查询结果。
 
-<a id="api-7c7f5ddfdae4bb2a"></a>
+<a id="api-06de16aa767eb71c"></a>
 
-##### 设置状态与迁移加密 · 方法
+##### 查询虚拟 TPM 与授权状态（方法）
 
 ```csharp
-public static async Task<ApiResponse> SetEncryptionAsync(Guid vmId, bool enabled);
+public static Task<ApiResponse<VmVtpmInfo>> GetVtpmStateAsync(Guid vmId);
 ```
 
 功能归属：管理层面 / 虚拟机 / 安全。
 
-修改保存状态和迁移流量加密，遵守 TPM 与屏蔽互锁规则。
+读取真实安全配置、宿主授权、来宾状态文件和各策略的可用性。
 
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `enabled` | 是否启用加密。 |
 
-返回：当前状态校验及底层写入结果。
+返回：当前安全开关、授权宿主与状态文件信息。密钥读取诊断见 KeyReadError。
+
+<a id="api-fe619169736ebf5d"></a>
+
+##### 追加宿主授权（方法）
+
+```csharp
+public static Task<ApiResponse> GrantHostAccessAsync(Guid vmId, string path, string? password = null, string? metadataPath = null);
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+通过完整 Guardian XML 或已登记宿主的证书向现有密钥追加授权。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `path` | .xml 元数据或证书文件的路径。 |
+| `password` | 读取受密码保护的 PFX 时使用的密码。 |
+| `metadataPath` | 单张证书不能唯一匹配已登记宿主时，用于核对证书对的 Guardian XML 路径。 |
+
+返回：追加指定 Guardian 并核验新密钥保护器的结果。
+
+<a id="api-a843727ea3151c4c"></a>
+
+##### 重新签发本机密钥保护器（方法）
+
+```csharp
+public static Task<ApiResponse> ReissueLocalKeyProtectorAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+用当前宿主重新签发解锁密钥。关机的第 2 代虚拟机在受防护模式下也可修复。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+
+返回：重新签发、提交及密钥回读的结果。
+
+<a id="api-afdb0461e34f928f"></a>
+
+##### 恢复上一版密钥保护器（方法）
+
+```csharp
+public static Task<ApiResponse> RestorePreviousKeyProtectorAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+恢复本进程上一次成功修改前的封装密钥。外部更改或进程重启后没有可确认的恢复点。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+
+返回：原密钥的恢复结果。没有匹配的进程内恢复点时返回 InvalidState。
+
+<a id="api-7331a00f45dc33ce"></a>
+
+##### 撤销外部宿主授权（方法）
+
+```csharp
+public static Task<ApiResponse> RevokeHostAccessAsync(Guid vmId, string signingThumbprint, string encryptionThumbprint);
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+撤销指定外部宿主的授权，保留所有者和其余宿主。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `signingThumbprint` | 待撤销宿主的签名证书指纹。 |
+| `encryptionThumbprint` | 同一宿主的加密证书指纹。 |
+
+返回：撤销指定证书对授权并核验密钥保护器的结果。
+
+<a id="api-7c7f5ddfdae4bb2a"></a>
+
+##### 设置状态与迁移加密（方法）
+
+```csharp
+public static Task<ApiResponse> SetEncryptionAsync(Guid vmId, bool enabled);
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+开启状态加密时准备本机密钥，并在同次安全配置提交中开启虚拟 TPM。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `enabled` | 请求的开关值。 |
+
+返回：加密设置及已经执行的前置步骤的结果。
 
 <a id="api-ead4e6953adecf9e"></a>
 
-##### 设置安全启动 · 方法
+##### 设置安全启动（方法）
 
 ```csharp
-public static async Task<ApiResponse> SetSecureBootAsync(Guid vmId, bool enabled);
+public static Task<ApiResponse> SetSecureBootAsync(Guid vmId, bool enabled);
 ```
 
 功能归属：管理层面 / 虚拟机 / 安全。
@@ -33698,10 +38258,10 @@ public static async Task<ApiResponse> SetSecureBootAsync(Guid vmId, bool enabled
 
 <a id="api-61172b9c24452be0"></a>
 
-##### 设置安全启动模板 · 方法
+##### 设置安全启动模板（方法）
 
 ```csharp
-public static async Task<ApiResponse> SetSecureBootTemplateAsync(Guid vmId, Guid templateId);
+public static Task<ApiResponse> SetSecureBootTemplateAsync(Guid vmId, Guid templateId);
 ```
 
 功能归属：管理层面 / 虚拟机 / 安全。
@@ -33717,41 +38277,61 @@ public static async Task<ApiResponse> SetSecureBootTemplateAsync(Guid vmId, Guid
 
 <a id="api-aca34d7baf5f06d6"></a>
 
-##### 设置屏蔽状态 · 方法
+##### 设置屏蔽状态（方法）
 
 ```csharp
-public static async Task<ApiResponse> SetShieldingAsync(Guid vmId, bool enabled);
+public static Task<ApiResponse> SetShieldingAsync(Guid vmId, bool enabled);
 ```
 
 功能归属：管理层面 / 虚拟机 / 安全。
 
-启用屏蔽时先确保 TPM，再启用加密与屏蔽；关闭时只清除屏蔽标记。
+启用防护时先确保本机密钥、安全启动和控制台设置，再提交 TPM、加密与防护。
 
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `enabled` | 是否启用屏蔽。 |
+| `enabled` | 请求的开关值。 |
 
-返回：最终写入结果；Steps 记录按需执行的 Guardian、GenerateKeyProtector、SetKeyProtector、Tpm 和 Shielding。后续失败保留此前已完成的设置。
+返回：屏蔽设置及已经执行的前置步骤的结果。
 
 <a id="api-b33af35bb12380eb"></a>
 
-##### 设置虚拟 TPM · 方法
+##### 设置虚拟 TPM（方法）
 
 ```csharp
-public static async Task<ApiResponse> SetTpmAsync(Guid vmId, bool enabled);
+public static Task<ApiResponse> SetTpmAsync(Guid vmId, bool enabled);
 ```
 
 功能归属：管理层面 / 虚拟机 / 安全。
 
-配置虚拟 TPM，启用前按需建立本地密钥保护器。
+启用虚拟 TPM 时准备本机密钥。关闭时同时关闭状态加密。
 
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `enabled` | 是否启用虚拟 TPM。 |
+| `enabled` | 请求的开关值。 |
 
-返回：写入结果；Steps 记录按需执行的 Guardian、GenerateKeyProtector、SetKeyProtector 和 Tpm。失败保留已完成步骤；OutcomeUnknown 表示最终状态尚未确认。不需要或未开始的步骤不列出。
+返回：虚拟 TPM 设置及已经执行的前置步骤的结果。
+
+<a id="api-0d08e619ac362e88"></a>
+
+##### 修改虚拟 TPM 策略（方法）
+
+```csharp
+public static Task<ApiResponse> SetVtpmPolicyAsync(Guid vmId, VtpmPolicy policy, bool enabled);
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+写入宿主实际支持的安全属性。未知迁移枚举值保留原样。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `policy` | 要修改的 vTPM 策略项。 |
+| `enabled` | 请求的开关值。 |
+
+返回：策略写入结果，包含电源状态、屏蔽保护或提供者能力限制。
 
 <a id="api-fd164ffe192c3a62"></a>
 
@@ -33797,7 +38377,7 @@ public sealed record SecureBootTemplate(string Name, Guid Id)
 
 <a id="api-f623932bb5b12fc3"></a>
 
-##### 创建安全启动模板对象 · 主构造器
+##### 创建安全启动模板对象（主构造器）
 
 ```csharp
 public SecureBootTemplate(string Name, Guid Id);
@@ -33812,7 +38392,7 @@ public SecureBootTemplate(string Name, Guid Id);
 
 <a id="api-3de726ab4713c856"></a>
 
-##### 标识 · record 属性
+##### 标识（record 属性）
 
 ```csharp
 public Guid Id { get; init; }
@@ -33822,7 +38402,7 @@ public Guid Id { get; init; }
 
 <a id="api-daf97913e07038c1"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -33866,7 +38446,7 @@ public enum Setting
 
 <a id="api-1685e267e228fbd4"></a>
 
-##### Encryption · 枚举值
+##### Encryption（枚举值）
 
 ```csharp
 Encryption = 3
@@ -33876,7 +38456,7 @@ Encryption = 3
 
 <a id="api-2b14d00ebf0320fb"></a>
 
-##### SecureBoot · 枚举值
+##### SecureBoot（枚举值）
 
 ```csharp
 SecureBoot = 0
@@ -33886,7 +38466,7 @@ SecureBoot = 0
 
 <a id="api-3fbfd5aa04175a1a"></a>
 
-##### SecureBootTemplate · 枚举值
+##### SecureBootTemplate（枚举值）
 
 ```csharp
 SecureBootTemplate = 1
@@ -33896,7 +38476,7 @@ SecureBootTemplate = 1
 
 <a id="api-483ec4d41595ee6d"></a>
 
-##### Shielding · 枚举值
+##### Shielding（枚举值）
 
 ```csharp
 Shielding = 4
@@ -33906,7 +38486,7 @@ Shielding = 4
 
 <a id="api-b3e75b596a0f448c"></a>
 
-##### Tpm · 枚举值
+##### Tpm（枚举值）
 
 ```csharp
 Tpm = 2
@@ -33964,7 +38544,7 @@ public readonly record struct VmSecurityInfo(bool SecureBootEnabled, string Secu
 
 <a id="api-2b9c817de92f2767"></a>
 
-##### 创建安全配置对象 · 主构造器
+##### 创建安全配置对象（主构造器）
 
 ```csharp
 public VmSecurityInfo(bool SecureBootEnabled, string SecureBootTemplateId, bool TpmEnabled, bool EncryptEnabled, bool Shielded);
@@ -33982,7 +38562,7 @@ public VmSecurityInfo(bool SecureBootEnabled, string SecureBootTemplateId, bool 
 
 <a id="api-193c15e7791ed52c"></a>
 
-##### 保存状态及迁移流量加密 · record 属性
+##### 保存状态及迁移流量加密（record 属性）
 
 ```csharp
 public bool EncryptEnabled { get; init; }
@@ -33992,7 +38572,7 @@ public bool EncryptEnabled { get; init; }
 
 <a id="api-74cd339a6dc4dcaf"></a>
 
-##### 安全启动 · record 属性
+##### 安全启动（record 属性）
 
 ```csharp
 public bool SecureBootEnabled { get; init; }
@@ -34002,7 +38582,7 @@ public bool SecureBootEnabled { get; init; }
 
 <a id="api-3370dfebfef4e9e2"></a>
 
-##### 安全启动模板 · record 属性
+##### 安全启动模板（record 属性）
 
 ```csharp
 public string SecureBootTemplateId { get; init; }
@@ -34012,7 +38592,7 @@ public string SecureBootTemplateId { get; init; }
 
 <a id="api-87fe8e0917911350"></a>
 
-##### 屏蔽虚拟机 · record 属性
+##### 屏蔽虚拟机（record 属性）
 
 ```csharp
 public bool Shielded { get; init; }
@@ -34022,7 +38602,7 @@ ShieldingRequested 配置标记，表示请求屏蔽保护；不证明来宾已�
 
 <a id="api-a2a39ae8943176b4"></a>
 
-##### 虚拟 TPM · record 属性
+##### 虚拟 TPM（record 属性）
 
 ```csharp
 public bool TpmEnabled { get; init; }
@@ -34065,7 +38645,7 @@ public static class VmSerialPortFields
 
 <a id="api-47f0290e9adf5041"></a>
 
-##### 内核调试模式 · 字段
+##### 内核调试模式（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> DebuggerMode;
@@ -34079,7 +38659,7 @@ public static readonly VmQueryField<bool> DebuggerMode;
 
 <a id="api-869d6eecbd4df213"></a>
 
-##### 串口名称 · 字段
+##### 串口名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
@@ -34089,7 +38669,7 @@ public static readonly VmQueryField<string> Name;
 
 <a id="api-731a875ef2462904"></a>
 
-##### 命名管道路径 · 字段
+##### 命名管道路径（字段）
 
 ```csharp
 public static readonly VmQueryField<string> PipePath;
@@ -34103,7 +38683,7 @@ public static readonly VmQueryField<string> PipePath;
 
 <a id="api-75b55b87f52f76e2"></a>
 
-##### 串口编号 · 字段
+##### 串口编号（字段）
 
 ```csharp
 public static readonly VmQueryField<int> PortNumber;
@@ -34141,6 +38721,7 @@ public static readonly VmQueryField<int> PortNumber;
 | [` public static string NormalizePipePath(string? input) `](#api-a2dc045b249ad8b5) | 规范化命名管道路径；仅输入短名称时自动补全为 \\\\.\\pipe\\名称，留空返回空字符串。 |
 | [` public static Task<ApiResponse> SetDebuggerModeAsync(Guid vmId, int portNumber, bool enabled) `](#api-d304344da733cf8c) | 启用或关闭指定串口的 Windows 内核调试模式；不改变当前命名管道连接。 |
 | [` public static Task<ApiResponse> SetPipePathAsync(Guid vmId, int portNumber, string? pipePath) `](#api-1b03f509700065cb) | 开启、更新或断开指定串口的宿主机命名管道连接；不改变内核调试模式。 |
+| [` public static Task<ApiResponse> SetPortSettingsAsync(Guid vmId, int portNumber, string? pipePath, bool? debuggerMode) `](#api-e9b227aa351d6937) | 在同一次提交中应用串口路径与调试模式。 |
 
 #### 详细说明
 
@@ -34175,7 +38756,7 @@ public static class SerialPortExample
 
 <a id="api-d54fd2d134f4af32"></a>
 
-##### 评估修改条件 · 方法
+##### 评估修改条件（方法）
 
 ```csharp
 public static VmModificationCondition GetModificationCondition(VmState state);
@@ -34193,7 +38774,7 @@ public static VmModificationCondition GetModificationCondition(VmState state);
 
 <a id="api-7290832203844617"></a>
 
-##### 检查命名管道路径 · 方法
+##### 检查命名管道路径（方法）
 
 ```csharp
 public static string? GetPipePathError(string? pipePath);
@@ -34211,7 +38792,7 @@ public static string? GetPipePathError(string? pipePath);
 
 <a id="api-6b20e3ff115688a7"></a>
 
-##### 读取串口列表 · 方法
+##### 读取串口列表（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<VmSerialPort>>> GetSerialPortsAsync(Guid vmId);
@@ -34229,7 +38810,7 @@ public static async Task<ApiResponse<List<VmSerialPort>>> GetSerialPortsAsync(Gu
 
 <a id="api-a2dc045b249ad8b5"></a>
 
-##### 规范化命名管道路径 · 方法
+##### 规范化命名管道路径（方法）
 
 ```csharp
 public static string NormalizePipePath(string? input);
@@ -34247,7 +38828,7 @@ public static string NormalizePipePath(string? input);
 
 <a id="api-d304344da733cf8c"></a>
 
-##### 设置内核调试模式 · 方法
+##### 设置内核调试模式（方法）
 
 ```csharp
 public static Task<ApiResponse> SetDebuggerModeAsync(Guid vmId, int portNumber, bool enabled);
@@ -34267,7 +38848,7 @@ public static Task<ApiResponse> SetDebuggerModeAsync(Guid vmId, int portNumber, 
 
 <a id="api-1b03f509700065cb"></a>
 
-##### 设置命名管道连接 · 方法
+##### 设置命名管道连接（方法）
 
 ```csharp
 public static Task<ApiResponse> SetPipePathAsync(Guid vmId, int portNumber, string? pipePath);
@@ -34284,6 +38865,27 @@ public static Task<ApiResponse> SetPipePathAsync(Guid vmId, int portNumber, stri
 | `pipePath` | 短管道名或完整管道路径；传入空字符串或 null 表示断开命名管道连接。 |
 
 返回：结构化修改结果。
+
+<a id="api-e9b227aa351d6937"></a>
+
+##### 同时设置串口管道与调试模式（方法）
+
+```csharp
+public static Task<ApiResponse> SetPortSettingsAsync(Guid vmId, int portNumber, string? pipePath, bool? debuggerMode);
+```
+
+功能归属：管理层面 / 虚拟机 / 串口。
+
+在同一次提交中应用串口路径与调试模式。调试模式为空时保留原值。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `portNumber` | 串口号，取 1 或 2。 |
+| `pipePath` | 命名管道路径或短名称，空值或空白表示断开。 |
+| `debuggerMode` | 请求的内核调试开关，null 表示保留当前值。 |
+
+返回：按当前串口配置提交两个字段的结果。
 
 <a id="api-6cbffda7f312d0d5"></a>
 
@@ -34325,7 +38927,7 @@ public sealed class VmSettingsSnapshot<T> where T : class
 
 <a id="api-fc12d0eded3a6d60"></a>
 
-##### 采集时间 · 属性
+##### 采集时间（属性）
 
 ```csharp
 public DateTimeOffset ObservedAtUtc { get; }
@@ -34335,7 +38937,7 @@ public DateTimeOffset ObservedAtUtc { get; }
 
 <a id="api-7d608257a00ce975"></a>
 
-##### 字段读取状态 · 属性
+##### 字段读取状态（属性）
 
 ```csharp
 public IReadOnlyDictionary<string, VmQueryValueState> States { get; }
@@ -34345,331 +38947,13 @@ public IReadOnlyDictionary<string, VmQueryValueState> States { get; }
 
 <a id="api-64338a31d0674288"></a>
 
-##### 配置值 · 属性
+##### 配置值（属性）
 
 ```csharp
 public T Values { get; }
 ```
 
 本次配置值的独立副本。字段有效性由 States 给出；编辑后通过 changedProperties 选择提交的字段。
-
-<a id="api-2b7baa8a8ea0e2bc"></a>
-
-### `VmSpacetimeService` 类
-
-管理检查点、回退及历史磁盘临时挂接；相关操作可能修改配置和磁盘文件。
-
-| 项目 | 内容 |
-| --- | --- |
-| 类型 | 类 |
-| 命名空间 | ` ExHyperV.Services ` |
-| 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
-| 源文件 | ` Management/VirtualMachines/Checkpoints/VmSpacetimeService.cs ` |
-
-#### 成员概览
-
-**静态方法**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public static Task<ApiResponse> AnnihilateAsync(Guid vmId, SpacetimeNode node) `](#api-14255e699db3a71f) | 删除目标检查点及其全部后代检查点。 |
-| [` public static bool CanCreateMoment(bool checkpointsEnabled, IEnumerable<SpacetimeNode>? nodes) `](#api-b14757a9dfd6ac57) | 检查是否允许创建检查点，要求已启用检查点且没有打开的虫洞。 |
-| [` public static bool CanMutateHistoricalNode(SpacetimeNode? node, IEnumerable<SpacetimeNode>? nodes) `](#api-501503fc23323a0a) | 判断历史检查点是否能执行修改，要求节点有效且没有打开的虫洞。 |
-| [` public static bool CanOperateHistoricalNode(SpacetimeNode? node) `](#api-0c5a1fddbe95fa8c) | 判断节点是否代表可操作的历史检查点。 |
-| [` public static Task<ApiResponse> CaptureMomentAsync(Guid vmId, SpacetimeMode mode, VmScreenshotImage? externalThumb = null, Func<VmScreenshotImage, byte[]>? encodeThumbnail = null) `](#api-20cbc9fb4959abe9) | 创建检查点并按需缓存缩略图；离线目标采用标准检查点。 |
-| [` public static Task<ApiResponse> CloseWormholeAsync(Guid vmId, SpacetimeNode node) `](#api-b2269ed4e50933e1) | 移除历史磁盘挂接、删除临时盘并恢复历史磁盘名称。 |
-| [` public static Task<ApiResponse> ConvergeAsync(Guid vmId, SpacetimeNode node) `](#api-24ca250382fac3e4) | 删除并合并单个历史检查点，保留后继检查点关系。 |
-| [` public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId) `](#api-c085c1456fbb0dd4) | 按稳定身份读取虚拟机检查点是否启用。 |
-| [` public static async Task<ApiResponse<List<SpacetimeNode>>> GetSpacetimeNodesAsync(Guid vmId, Func<VmScreenshotImage, byte[]>? encodeThumbnail = null) `](#api-c53de2ebe0dc12ab) | 按稳定身份读取检查点树、当前状态及历史磁盘挂接信息。 |
-| [` public static bool HasOpenWormhole(IEnumerable<SpacetimeNode>? nodes) `](#api-fe99c3f3519670dc) | 检查节点集合中是否存在已打开的历史磁盘挂接。 |
-| [` public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, SpacetimeNode targetNode) `](#api-872492e48a171d3a) | 将指定历史节点的磁盘临时挂接到同一虚拟机。 |
-| [` public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, SpacetimeNode node, string newName) `](#api-e53cd949791f2cbd) | 修改属于目标虚拟机的检查点名称。 |
-| [` public static Task<ApiResponse> SetCheckpointsEnabledAsync(Guid vmId, bool enabled) `](#api-1496418acc73bbde) | 按稳定身份设置虚拟机是否允许使用检查点。 |
-| [` public static Task<ApiResponse> TeleportAsync(SpacetimeNode node, Guid vmId, IEnumerable<SpacetimeNode>? nodes = null) `](#api-f3267d42a777e344) | 关闭当前历史磁盘挂接，应用检查点，并完成流程要求的重新启动。 |
-
-#### 详细说明
-
-```csharp
-public static class VmSpacetimeService
-```
-
-#### 静态方法说明
-
-<a id="api-14255e699db3a71f"></a>
-
-##### 删除检查点 · 方法
-
-```csharp
-public static Task<ApiResponse> AnnihilateAsync(Guid vmId, SpacetimeNode node);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-删除目标检查点及其全部后代检查点。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `node` | 要删除的历史节点；执行前核对归属及历史磁盘挂接互锁。 |
-
-返回：删除结果。
-
-<a id="api-b14757a9dfd6ac57"></a>
-
-##### 检查检查点创建条件 · 方法
-
-```csharp
-public static bool CanCreateMoment(bool checkpointsEnabled, IEnumerable<SpacetimeNode>? nodes);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-检查是否允许创建检查点，要求已启用检查点且没有打开的虫洞。
-
-| 参数 | 说明 |
-| --- | --- |
-| `checkpointsEnabled` | 当前是否允许使用检查点。 |
-| `nodes` | 检查点和当前状态节点的快照；允许 null 的规则入口按没有节点处理。 |
-
-返回：当前输入满足条件时为 true。
-
-<a id="api-501503fc23323a0a"></a>
-
-##### 检查历史节点修改条件 · 方法
-
-```csharp
-public static bool CanMutateHistoricalNode(SpacetimeNode? node, IEnumerable<SpacetimeNode>? nodes);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-判断历史检查点是否能执行修改，要求节点有效且没有打开的虫洞。
-
-| 参数 | 说明 |
-| --- | --- |
-| `node` | 目标历史检查点或已打开的历史磁盘挂接节点。 |
-| `nodes` | 检查点和当前状态节点的快照；允许 null 的规则入口按没有节点处理。 |
-
-返回：当前输入满足条件时为 true。
-
-<a id="api-0c5a1fddbe95fa8c"></a>
-
-##### 检查历史节点操作条件 · 方法
-
-```csharp
-public static bool CanOperateHistoricalNode(SpacetimeNode? node);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-判断节点是否代表可操作的历史检查点。
-
-| 参数 | 说明 |
-| --- | --- |
-| `node` | 目标历史检查点或已打开的历史磁盘挂接节点。 |
-
-返回：仅非空且 NodeType 为 Snapshot 时返回 true；Genesis 和 Current 均不满足。
-
-<a id="api-20cbc9fb4959abe9"></a>
-
-##### 创建检查点 · 方法
-
-```csharp
-public static Task<ApiResponse> CaptureMomentAsync(Guid vmId, SpacetimeMode mode, VmScreenshotImage? externalThumb = null, Func<VmScreenshotImage, byte[]>? encodeThumbnail = null);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-创建检查点并按需缓存缩略图；离线目标采用标准检查点。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `mode` | Continuous 请求标准检查点；Still 仅在 Running 状态请求生产检查点，其他状态请求标准检查点。生产请求失败时保留失败结果。 |
-| `externalThumb` | 可选外部截图；未提供时尝试捕获当前截图。 |
-| `encodeThumbnail` | 可选缩略图编码器。 |
-
-返回：检查点创建结果；截图缓存缺失不否定已完成的检查点创建。临时切换检查点策略后恢复原值；OutcomeUnknown 时保留现场及原策略值，须核对原作业后再恢复。
-
-<a id="api-b2269ed4e50933e1"></a>
-
-##### 结束历史磁盘挂接 · 方法
-
-```csharp
-public static Task<ApiResponse> CloseWormholeAsync(Guid vmId, SpacetimeNode node);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-移除历史磁盘挂接、删除临时盘并恢复历史磁盘名称。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `node` | 要关闭挂接的历史节点；执行前重新核对当前实际挂接。 |
-
-返回：清理结果；失败时保留可供重试的节点状态。
-
-<a id="api-24ca250382fac3e4"></a>
-
-##### 合并检查点 · 方法
-
-```csharp
-public static Task<ApiResponse> ConvergeAsync(Guid vmId, SpacetimeNode node);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-删除并合并单个历史检查点，保留后继检查点关系。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `node` | 要合并的历史节点；执行前核对归属及历史磁盘挂接互锁。 |
-
-返回：合并结果。
-
-<a id="api-c085c1456fbb0dd4"></a>
-
-##### 读取检查点开关 · 方法
-
-```csharp
-public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-按稳定身份读取虚拟机检查点是否启用。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-
-返回：成功时返回实际设置；配置缺失或查询失败返回错误，不推断为启用。
-
-<a id="api-c53de2ebe0dc12ab"></a>
-
-##### 读取检查点树 · 方法
-
-```csharp
-public static async Task<ApiResponse<List<SpacetimeNode>>> GetSpacetimeNodesAsync(Guid vmId, Func<VmScreenshotImage, byte[]>? encodeThumbnail = null);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-按稳定身份读取检查点树、当前状态及历史磁盘挂接信息。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `encodeThumbnail` | 可选缩略图编码器；提供时可能更新缩略图缓存。 |
-
-返回：完整节点列表；失败时返回原因。
-
-<a id="api-fe99c3f3519670dc"></a>
-
-##### 检查历史磁盘挂接 · 方法
-
-```csharp
-public static bool HasOpenWormhole(IEnumerable<SpacetimeNode>? nodes);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-检查节点集合中是否存在已打开的历史磁盘挂接。
-
-| 参数 | 说明 |
-| --- | --- |
-| `nodes` | 检查点和当前状态节点的快照；允许 null 的规则入口按没有节点处理。 |
-
-返回：存在打开的虫洞时为 true；null 集合为 false。
-
-<a id="api-872492e48a171d3a"></a>
-
-##### 临时挂接历史磁盘 · 方法
-
-```csharp
-public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, SpacetimeNode targetNode);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-将指定历史节点的磁盘临时挂接到同一虚拟机。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `targetNode` | 来自该虚拟机的历史节点；执行前重新核对身份和当前磁盘关系。 |
-
-返回：挂接结果；失败可能发生在部分文件和配置变更之后。
-
-调用约定：只处理节点 VhdPath 指定的一个磁盘，不挂接该检查点的全部磁盘。流程可能将 .avhdx 改名为 _renamed.vhdx，再创建同目录 _wormhole_tmp.vhdx 差分盘并挂到 SCSI；关闭时移除临时盘并恢复文件名。当前运行磁盘父链上的节点不能这样挂接。
-
-
-
-临时盘或改名目标已存在时返回冲突并保留文件，不凭固定文件名认定旧文件属于本次操作。创建结果尚未确认时保留现场；失败清理只删除本次已确认创建的临时盘。
-
-<a id="api-e53cd949791f2cbd"></a>
-
-##### 重命名检查点 · 方法
-
-```csharp
-public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, SpacetimeNode node, string newName);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-修改属于目标虚拟机的检查点名称。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `node` | 目标历史节点；执行前重新核对归属。 |
-| `newName` | 非空的新显示名称。 |
-
-返回：重命名结果。
-
-<a id="api-1496418acc73bbde"></a>
-
-##### 设置检查点开关 · 方法
-
-```csharp
-public static Task<ApiResponse> SetCheckpointsEnabledAsync(Guid vmId, bool enabled);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-按稳定身份设置虚拟机是否允许使用检查点。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `enabled` | true 启用检查点，false 禁用。 |
-
-返回：设置结果；错误包含实际查询或提交原因。
-
-<a id="api-f3267d42a777e344"></a>
-
-##### 恢复检查点 · 方法
-
-```csharp
-public static Task<ApiResponse> TeleportAsync(SpacetimeNode node, Guid vmId, IEnumerable<SpacetimeNode>? nodes = null);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-关闭当前历史磁盘挂接，应用检查点，并完成流程要求的重新启动。
-
-| 参数 | 说明 |
-| --- | --- |
-| `node` | 要应用的历史节点。 |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `nodes` | 可选的调用方节点快照，用于同步本次清理后的挂接状态。 |
-
-返回：整个应用及必要重启结果；Steps 记录 CloseWormhole（ResourceId 为节点 ID）、Save、Apply、Start 及失败的状态检查 StateBeforeApply/StateBeforeRestart。未执行的步骤不列出。后续失败不会撤销已经完成的步骤。
-
-调用约定：初始为运行或暂停的虚拟机，在应用后启动。
 
 <a id="api-dbd3558483ca1d26"></a>
 
@@ -34718,7 +39002,7 @@ public sealed record VmStorageAddPreparation(VmStorageAddRequest? Request, strin
 
 <a id="api-3f2737c8fc914abf"></a>
 
-##### 创建存储添加准备结果对象 · 主构造器
+##### 创建存储添加准备结果对象（主构造器）
 
 ```csharp
 public VmStorageAddPreparation(VmStorageAddRequest? Request, string? Error = null, bool IsError = false);
@@ -34734,7 +39018,7 @@ public VmStorageAddPreparation(VmStorageAddRequest? Request, string? Error = nul
 
 <a id="api-a9af7275602f252d"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -34744,7 +39028,7 @@ public string? Error { get; init; }
 
 <a id="api-b8da95c3de82a28a"></a>
 
-##### 执行错误标记 · record 属性
+##### 执行错误标记（record 属性）
 
 ```csharp
 public bool IsError { get; init; }
@@ -34754,7 +39038,7 @@ public bool IsError { get; init; }
 
 <a id="api-a52a148ab82f32d8"></a>
 
-##### 存储请求 · record 属性
+##### 存储请求（record 属性）
 
 ```csharp
 public VmStorageAddRequest? Request { get; init; }
@@ -34764,7 +39048,7 @@ public VmStorageAddRequest? Request { get; init; }
 
 <a id="api-d2350f8dc2a2c283"></a>
 
-##### 成功状态 · 属性
+##### 成功状态（属性）
 
 ```csharp
 public bool Success { get; }
@@ -34821,7 +39105,7 @@ public sealed record VmStorageAddRequest
 
 <a id="api-36dbecf89029991d"></a>
 
-##### 磁盘块大小 · 属性
+##### 磁盘块大小（属性）
 
 ```csharp
 public uint? BlockSizeBytes { get; init; }
@@ -34831,7 +39115,7 @@ public uint? BlockSizeBytes { get; init; }
 
 <a id="api-0da4752c9dd03602"></a>
 
-##### 控制器编号 · 属性
+##### 控制器编号（属性）
 
 ```csharp
 public int ControllerNumber { get; init; }
@@ -34841,7 +39125,7 @@ public int ControllerNumber { get; init; }
 
 <a id="api-5c0014cffc268583"></a>
 
-##### 控制器类型 · 属性
+##### 控制器类型（属性）
 
 ```csharp
 public string ControllerType { get; init; } = "SCSI";
@@ -34851,7 +39135,7 @@ public string ControllerType { get; init; } = "SCSI";
 
 <a id="api-871c671f6cf72b23"></a>
 
-##### 驱动器类型 · 属性
+##### 驱动器类型（属性）
 
 ```csharp
 public string DriveType { get; init; } = "HardDisk";
@@ -34861,7 +39145,7 @@ public string DriveType { get; init; } = "HardDisk";
 
 <a id="api-97462253184ba3a6"></a>
 
-##### 新建介质 · 属性
+##### 新建介质（属性）
 
 ```csharp
 public bool IsNew { get; init; }
@@ -34871,7 +39155,7 @@ public bool IsNew { get; init; }
 
 <a id="api-bc2edba6e7954ff5"></a>
 
-##### 物理介质 · 属性
+##### 物理介质（属性）
 
 ```csharp
 public bool IsPhysical { get; init; }
@@ -34881,7 +39165,7 @@ public bool IsPhysical { get; init; }
 
 <a id="api-57cf2c8f85805930"></a>
 
-##### ISO 输出路径 · 属性
+##### ISO 输出路径（属性）
 
 ```csharp
 public string? IsoOutputPath { get; init; }
@@ -34891,7 +39175,7 @@ public string? IsoOutputPath { get; init; }
 
 <a id="api-112ecbd03c4e65e7"></a>
 
-##### ISO 源目录 · 属性
+##### ISO 源目录（属性）
 
 ```csharp
 public string? IsoSourcePath { get; init; }
@@ -34901,7 +39185,7 @@ public string? IsoSourcePath { get; init; }
 
 <a id="api-0c976de18eb04a85"></a>
 
-##### ISO 卷标 · 属性
+##### ISO 卷标（属性）
 
 ```csharp
 public string? IsoVolumeLabel { get; init; }
@@ -34911,7 +39195,7 @@ public string? IsoVolumeLabel { get; init; }
 
 <a id="api-fdf92506efb42f98"></a>
 
-##### 控制器槽位 · 属性
+##### 控制器槽位（属性）
 
 ```csharp
 public int Location { get; init; }
@@ -34921,7 +39205,7 @@ public int Location { get; init; }
 
 <a id="api-e09fce4f2b87d2f0"></a>
 
-##### 父盘路径 · 属性
+##### 父盘路径（属性）
 
 ```csharp
 public string? ParentPath { get; init; }
@@ -34931,7 +39215,7 @@ public string? ParentPath { get; init; }
 
 <a id="api-8f95b1b405fece14"></a>
 
-##### 介质路径或设备编号 · 属性
+##### 介质路径或设备编号（属性）
 
 ```csharp
 public string? PathOrNumber { get; init; }
@@ -34941,7 +39225,7 @@ public string? PathOrNumber { get; init; }
 
 <a id="api-9d66098f29435d6a"></a>
 
-##### 物理磁盘身份 · 属性
+##### 物理磁盘身份（属性）
 
 ```csharp
 public HostDiskInfo? PhysicalDisk { get; init; }
@@ -34951,7 +39235,7 @@ GetHostDisksAsync 取得的物理硬盘快照；必须包含编号、正数字�
 
 <a id="api-337d1b1b04ab0532"></a>
 
-##### 扇区格式 · 属性
+##### 扇区格式（属性）
 
 ```csharp
 public string SectorFormat { get; init; } = "Default";
@@ -34961,7 +39245,7 @@ public string SectorFormat { get; init; } = "Default";
 
 <a id="api-602751760bb56101"></a>
 
-##### 容量 · 属性
+##### 容量（属性）
 
 ```csharp
 public int? SizeGiB { get; init; }
@@ -34971,7 +39255,7 @@ public int? SizeGiB { get; init; }
 
 <a id="api-760986605d426a74"></a>
 
-##### 磁盘分配类型 · 属性
+##### 磁盘分配类型（属性）
 
 ```csharp
 public string VhdType { get; init; } = "Dynamic";
@@ -35031,7 +39315,7 @@ public static class VmStorageFields
 
 <a id="api-d0730c38c1a22ea6"></a>
 
-##### 挂接身份 · 字段
+##### 挂接身份（字段）
 
 ```csharp
 public static readonly VmQueryField<string> AttachmentId;
@@ -35041,7 +39325,7 @@ public static readonly VmQueryField<string> AttachmentId;
 
 <a id="api-4b1182beb09d2a44"></a>
 
-##### 磁盘虚拟容量 · 字段
+##### 磁盘虚拟容量（字段）
 
 ```csharp
 public static readonly VmQueryField<long> CapacityBytes;
@@ -35055,7 +39339,7 @@ public static readonly VmQueryField<long> CapacityBytes;
 
 <a id="api-ae813c2650489917"></a>
 
-##### 控制器槽位 · 字段
+##### 控制器槽位（字段）
 
 ```csharp
 public static readonly VmQueryField<int> ControllerLocation;
@@ -35067,7 +39351,7 @@ public static readonly VmQueryField<int> ControllerLocation;
 
 <a id="api-6dec1c0b93401211"></a>
 
-##### 控制器编号 · 字段
+##### 控制器编号（字段）
 
 ```csharp
 public static readonly VmQueryField<int> ControllerNumber;
@@ -35079,7 +39363,7 @@ public static readonly VmQueryField<int> ControllerNumber;
 
 <a id="api-a9cb687d9fa61d81"></a>
 
-##### 控制器类型 · 字段
+##### 控制器类型（字段）
 
 ```csharp
 public static readonly VmQueryField<string> ControllerType;
@@ -35091,7 +39375,7 @@ public static readonly VmQueryField<string> ControllerType;
 
 <a id="api-d9e0b68e39f5d623"></a>
 
-##### 宿主磁盘型号 · 字段
+##### 宿主磁盘型号（字段）
 
 ```csharp
 public static readonly VmQueryField<string> DiskModel;
@@ -35103,7 +39387,7 @@ public static readonly VmQueryField<string> DiskModel;
 
 <a id="api-ef04025f80055eb9"></a>
 
-##### 宿主物理磁盘编号 · 字段
+##### 宿主物理磁盘编号（字段）
 
 ```csharp
 public static readonly VmQueryField<int> DiskNumber;
@@ -35117,7 +39401,7 @@ public static readonly VmQueryField<int> DiskNumber;
 
 <a id="api-718dccc22f411245"></a>
 
-##### 挂接来源类型 · 字段
+##### 挂接来源类型（字段）
 
 ```csharp
 public static readonly VmQueryField<string> DiskType;
@@ -35129,7 +39413,7 @@ public static readonly VmQueryField<string> DiskType;
 
 <a id="api-bd6c9f99df57f35f"></a>
 
-##### 驱动器类型 · 字段
+##### 驱动器类型（字段）
 
 ```csharp
 public static readonly VmQueryField<string> DriveType;
@@ -35141,7 +39425,7 @@ public static readonly VmQueryField<string> DriveType;
 
 <a id="api-4c186ae3b5f54c19"></a>
 
-##### 磁盘错误计数 · 字段
+##### 磁盘错误计数（字段）
 
 ```csharp
 public static readonly VmQueryField<long> ErrorCount;
@@ -35153,7 +39437,7 @@ public static readonly VmQueryField<long> ErrorCount;
 
 <a id="api-4be25331f6b1240c"></a>
 
-##### 磁盘文件大小 · 字段
+##### 磁盘文件大小（字段）
 
 ```csharp
 public static readonly VmQueryField<long> FileSizeBytes;
@@ -35167,7 +39451,7 @@ public static readonly VmQueryField<long> FileSizeBytes;
 
 <a id="api-0b703edfa9822c90"></a>
 
-##### 物理磁盘挂接失效 · 字段
+##### 物理磁盘挂接失效（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> IsPassthroughStale;
@@ -35183,7 +39467,7 @@ public static readonly VmQueryField<bool> IsPassthroughStale;
 
 <a id="api-deb0ab5b07658929"></a>
 
-##### 挂接目标路径 · 字段
+##### 挂接目标路径（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Path;
@@ -35195,7 +39479,7 @@ public static readonly VmQueryField<string> Path;
 
 <a id="api-a620c20cce4cdaff"></a>
 
-##### 宿主磁盘设备身份 · 字段
+##### 宿主磁盘设备身份（字段）
 
 ```csharp
 public static readonly VmQueryField<string> PnpDeviceId;
@@ -35207,7 +39491,7 @@ public static readonly VmQueryField<string> PnpDeviceId;
 
 <a id="api-fcca8426c35e7e82"></a>
 
-##### 磁盘队列深度 · 字段
+##### 磁盘队列深度（字段）
 
 ```csharp
 public static readonly VmQueryField<long> QueueLength;
@@ -35219,7 +39503,7 @@ public static readonly VmQueryField<long> QueueLength;
 
 <a id="api-537997a327a2db1c"></a>
 
-##### 磁盘读取速率 · 字段
+##### 磁盘读取速率（字段）
 
 ```csharp
 public static readonly VmQueryField<long> ReadBytesPerSecond;
@@ -35231,7 +39515,7 @@ public static readonly VmQueryField<long> ReadBytesPerSecond;
 
 <a id="api-bd21f870574c94df"></a>
 
-##### 磁盘读取 IOPS · 字段
+##### 磁盘读取 IOPS（字段）
 
 ```csharp
 public static readonly VmQueryField<long> ReadOperationsPerSecond;
@@ -35243,7 +39527,7 @@ public static readonly VmQueryField<long> ReadOperationsPerSecond;
 
 <a id="api-f136f8ff301b9625"></a>
 
-##### 宿主磁盘序列号 · 字段
+##### 宿主磁盘序列号（字段）
 
 ```csharp
 public static readonly VmQueryField<string> SerialNumber;
@@ -35255,7 +39539,7 @@ public static readonly VmQueryField<string> SerialNumber;
 
 <a id="api-4b7c31cc73cad6ba"></a>
 
-##### 虚拟磁盘分配类型 · 字段
+##### 虚拟磁盘分配类型（字段）
 
 ```csharp
 public static readonly VmQueryField<string> VirtualDiskType;
@@ -35267,7 +39551,7 @@ public static readonly VmQueryField<string> VirtualDiskType;
 
 <a id="api-d5e61ae4a382ef8a"></a>
 
-##### 磁盘写入速率 · 字段
+##### 磁盘写入速率（字段）
 
 ```csharp
 public static readonly VmQueryField<long> WriteBytesPerSecond;
@@ -35279,7 +39563,7 @@ public static readonly VmQueryField<long> WriteBytesPerSecond;
 
 <a id="api-9508a3069fa10990"></a>
 
-##### 磁盘写入 IOPS · 字段
+##### 磁盘写入 IOPS（字段）
 
 ```csharp
 public static readonly VmQueryField<long> WriteOperationsPerSecond;
@@ -35321,7 +39605,7 @@ public static class VmStorageGlobalFields
 
 <a id="api-f34a88079ea3232d"></a>
 
-##### 完整 SCSI 命令集 · 字段
+##### 完整 SCSI 命令集（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> AllowFullScsiCommandSet;
@@ -35345,7 +39629,7 @@ public static readonly VmQueryField<bool> AllowFullScsiCommandSet;
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
 | 功能归属 | 管理层面 / 虚拟机 / 存储 |
-| 源文件 | ` Management/VirtualMachines/Storage/VmStorageService.Planning.cs ` |
+| 源文件 | ` Management/VirtualMachines/Storage/VmStorageService.Inspection.cs ` |
 
 #### 成员概览
 
@@ -35356,8 +39640,11 @@ public static readonly VmQueryField<bool> AllowFullScsiCommandSet;
 | [` public static Task<ApiResponse<VmStorageSlot>> AddDriveAsync(Guid vmId, VmStorageAddRequest request) `](#api-baa4e2878599d828) | 按完整请求创建或挂接虚拟磁盘、光驱或物理磁盘，并返回实际挂接位置。 |
 | [` public static bool CanEditStoragePath(VmStorageAttachment? item) `](#api-e8e3fc55c8135b30) | 判断该存储挂接是否支持更换文件路径。 |
 | [` public static async Task<ApiResponse> CompactDiskAsync(Guid vmId, VmStorageAttachment drive) `](#api-10e921871a468a3f) | 压缩指定虚拟机挂接的虚拟硬盘文件。 |
-| [` public static async Task<ApiResponse> CompactDiskAsync(string vhdPath) `](#api-ad2ff3fe6a3fba22) | 请求 Hyper-V 压缩虚拟磁盘文件的物理占用。 |
+| [` public static async Task<ApiResponse> CompactDiskAsync(string vhdPath) `](#api-ad2ff3fe6a3fba22) | 请求以两阶段深度压缩（只读挂载感知文件系统 + 脱机全零扫描）回收虚拟磁盘文件占用的物理空间。 |
+| [` public static Task<ApiResponse> ConvertVirtualDiskTypeAsync(Guid vmId, VmStorageAttachment drive, string targetVhdType) `](#api-ee7ff3bfa422602f) | 转换到同目录的新文件并切换原槽位。 |
+| [` public static Task<ApiResponse> DeleteAttachedMediaFileAsync(Guid vmId, VmStorageAttachment drive) `](#api-80b90a88faefac5a) | 先移除已核实的挂接，再按文件身份删除介质。 |
 | [` public static async Task<ApiResponse<VmStorageSlot>> DetachPhysicalDiskAsync(Guid vmId, HostDiskInfo disk) `](#api-3baa807ff7202cde) | 按物理磁盘查询快照核对身份，并从指定虚拟机移除其直通挂接。 |
+| [` public static Task<ApiResponse> ExportDifferencingDiskAsync(Guid vmId, VmStorageAttachment drive, string destinationPath, IProgress<(int StepIndex, int Percent, string Message)>? progress = null) `](#api-a168f4535ba8296b) | 将验证后的整条差分链导出为独立动态磁盘。 |
 | [` public static async Task<ApiResponse<List<VmStorageAttachment>>> FindStalePassthroughDisksAsync(Guid vmId) `](#api-bda4c2d7782ca304) | 查找主机物理磁盘身份或编号已变化的直通挂接，供启动修复流程处理。 |
 | [` public static string? GetAddSlotError(int generation, bool isRunning, VmStorageAddRequest request, IEnumerable<VmStorageAttachment> items) `](#api-e4e83234f4558d6c) | 校验新增设备请求的控制器类型、编号、槽位及运行状态限制。 |
 | [` public static IReadOnlyList<int> GetAvailableLocations(string type, int number, IEnumerable<VmStorageAttachment> items) `](#api-5be5567371bf61be) | 从已有挂接快照中排除占用位置，计算指定控制器的空闲槽位。 |
@@ -35368,15 +39655,24 @@ public static readonly VmQueryField<bool> AllowFullScsiCommandSet;
 | [` public static IReadOnlyList<string> GetControllerTypes(int generation, bool isRunning, string driveType) `](#api-02528d20642aad87) | 根据代数、运行状态和驱动类型列出允许添加的控制器类型。 |
 | [` public static VmModificationCondition GetMediaModificationCondition(VmStorageAttachment item, VmState state) `](#api-afa9960e4b13d955) | 评估更换存储介质路径的条件。 |
 | [` public static string? GetMediaPathError(string? newPath) `](#api-87444f817bed9ba9) | 校验介质路径是否存在；空路径按弹出介质处理。 |
+| [` public static Task<ApiResponse<IReadOnlyList<VmPassthroughCandidate>>> GetPassthroughCandidatesAsync(Guid vmId) `](#api-d3645145414b52c1) | 结合宿主清单与已实现的 VM 挂接，返回带归属和排序的物理硬盘及光驱。 |
 | [` public static VmModificationCondition GetRemovalCondition(VmStorageAttachment item, VmState state) `](#api-2d5de03995aa94c1) | 评估移除存储挂接的条件。 |
 | [` public static VmStorageSourceChoice GetSourceChoice(int generation, bool physical, string driveType, bool isNew) `](#api-3e54a0ff198bf9c4) | 按代数、物理磁盘标记和介质类型规范化新增设备来源选项。 |
 | [` public static Task<IReadOnlyDictionary<string, long>> GetVirtualDiskSizesAsync(IEnumerable<string> paths) `](#api-173f032235ecbf39) | 批量读取磁盘文件的当前文件长度。 |
-| [` public static async Task<ApiResponse<List<VmStorageAttachment>>> GetVmStorageItemsAsync(Guid vmId) `](#api-a36775377d1b6bb8) | 读取虚拟机控制器上的虚拟磁盘、物理直通磁盘及光驱挂接。 |
+| [` public static Task<ApiResponse<List<VmStorageAttachment>>> GetVmStorageItemsAsync(Guid vmId) `](#api-a36775377d1b6bb8) | 读取虚拟机控制器上的虚拟磁盘、物理直通磁盘及光驱挂接。 |
+| [` public static Task<ApiResponse<VmDiskChainInspection>> InspectDifferencingChainAsync(string diskPath, string? overrideParentPath = null, bool ignoreParentIdMismatch = false) `](#api-c8ab73543830561d) | 读取完整祖先链。 |
+| [` public static Task<ApiResponse<VmDiskInspection>> InspectDiskAsync(Guid vmId, VmStorageAttachment drive) `](#api-9d1939e9029eee9d) | 重新核对所选挂接、虚拟机状态、宿主挂载和本机登记的磁盘依赖。 |
+| [` public static Task<ApiResponse<VmResizeSafety>> InspectResizeSafetyAsync(Guid vmId, VmStorageAttachment drive) `](#api-e59c42d2869a4866) | 只读检查可调整容量的范围。 |
+| [` public static Task<ApiResponse> MergeDifferencingDiskAsync(Guid vmId, VmStorageAttachment drive, string targetAncestorPath, IProgress<(int StepIndex, int Percent, string Message)>? progress = null) `](#api-4261a156a9aeb60c) | 合并到已验证的祖先，随后更新原槽位并核实挂接。 |
+| [` public static Task<ApiResponse> ModifyDriveSlotAsync(Guid vmId, VmStorageAttachment drive, string targetControllerType, int targetControllerNumber, int targetControllerLocation) `](#api-e5ab1a98235e054f) | 在关机状态迁移同一驱动器，按需添加 SCSI 控制器，保留所选介质并核实新槽位。 |
 | [` public static Task<ApiResponse> ModifyDvdDrivePathAsync(Guid vmId, VmStorageAttachment drive, string newIsoPath) `](#api-f8e5cfee1814c647) | 替换查询时选中的虚拟光驱介质；空路径弹出介质，保留驱动器。 |
 | [` public static Task<ApiResponse> ModifyHardDrivePathAsync(Guid vmId, VmStorageAttachment drive, string newPath) `](#api-c58ebeff6db40a24) | 替换查询时选中的虚拟硬盘驱动器所引用的介质路径。 |
 | [` public static VmStorageAddPreparation PrepareAddRequest(VmStorageAddRequest request, int generation, bool isRunning, IEnumerable<VmStorageAttachment> items) `](#api-6df673aadf44ba9d) | 规范化并验证新增设备请求；ISO 制作路径需要时会创建输出目录。 |
+| [` public static Task<ApiResponse> ReconnectParentDiskAsync(Guid vmId, VmStorageAttachment drive, string newParentPath, bool ignoreIdMismatch) `](#api-65ccf6fecb4918b5) | 替换直接父盘，提交前验证整个候选链。 |
 | [` public static async Task<ApiResponse> RemoveDriveAsync(Guid vmId, VmStorageAttachment drive) `](#api-ac191a2f4bce7362) | 从指定虚拟机移除查询时选中的存储挂接和介质；不删除虚拟磁盘文件。 |
+| [` public static Task<ApiResponse> ResizeVirtualDiskAsync(Guid vmId, VmStorageAttachment drive, long newSizeGiB) `](#api-b66d6111c4e1e62c) | 按整数 GiB 调整容量。 |
 | [` public static Task<ApiResponse> SetFullScsiCommandSetEnabledAsync(Guid vmId, bool enabled) `](#api-23305d2d162e210d) | 设置整台虚拟机是否允许完整 SCSI 命令集；此开关不属于单个存储设备。 |
+| [` public static Task<ApiResponse> UpgradeVhdToVhdxAsync(Guid vmId, VmStorageAttachment drive, IProgress<int>? progress = null) `](#api-7b527ff9cdaf4698) | 生成同名 .vhdx，验证后更新当前槽位。 |
 
 #### 详细说明
 
@@ -35388,7 +39684,7 @@ public static partial class VmStorageService
 
 <a id="api-baa4e2878599d828"></a>
 
-##### 添加存储设备 · 方法
+##### 添加存储设备（方法）
 
 ```csharp
 public static Task<ApiResponse<VmStorageSlot>> AddDriveAsync(Guid vmId, VmStorageAddRequest request);
@@ -35409,7 +39705,7 @@ public static Task<ApiResponse<VmStorageSlot>> AddDriveAsync(Guid vmId, VmStorag
 
 <a id="api-e8e3fc55c8135b30"></a>
 
-##### 检查设备路径修改支持 · 方法
+##### 检查设备路径修改支持（方法）
 
 ```csharp
 public static bool CanEditStoragePath(VmStorageAttachment? item);
@@ -35427,7 +39723,7 @@ public static bool CanEditStoragePath(VmStorageAttachment? item);
 
 <a id="api-10e921871a468a3f"></a>
 
-##### 压缩虚拟磁盘（虚拟机挂接磁盘） · 方法
+##### 压缩虚拟磁盘（虚拟机挂接磁盘）（方法）
 
 ```csharp
 public static async Task<ApiResponse> CompactDiskAsync(Guid vmId, VmStorageAttachment drive);
@@ -35446,7 +39742,7 @@ public static async Task<ApiResponse> CompactDiskAsync(Guid vmId, VmStorageAttac
 
 <a id="api-ad2ff3fe6a3fba22"></a>
 
-##### 压缩虚拟磁盘（文件路径） · 方法
+##### 压缩虚拟磁盘（文件路径）（方法）
 
 ```csharp
 public static async Task<ApiResponse> CompactDiskAsync(string vhdPath);
@@ -35454,7 +39750,7 @@ public static async Task<ApiResponse> CompactDiskAsync(string vhdPath);
 
 功能归属：管理层面 / 虚拟机 / 存储。
 
-请求 Hyper-V 压缩虚拟磁盘文件的物理占用。
+请求以两阶段深度压缩（只读挂载感知文件系统 + 脱机全零扫描）回收虚拟磁盘文件占用的物理空间。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -35462,9 +39758,48 @@ public static async Task<ApiResponse> CompactDiskAsync(string vhdPath);
 
 返回：压缩结果；操作改变磁盘文件，能否执行取决于主机和磁盘当前占用状态。
 
+<a id="api-ee7ff3bfa422602f"></a>
+
+##### 转换虚拟磁盘分配类型（方法）
+
+```csharp
+public static Task<ApiResponse> ConvertVirtualDiskTypeAsync(Guid vmId, VmStorageAttachment drive, string targetVhdType);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+转换到同目录的新文件并切换原槽位。原文件保留，目标已存在时停止。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `targetVhdType` | 目标分配类型，取 Fixed 或 Dynamic。 |
+
+返回：转换并恢复挂接后的结果。
+
+<a id="api-80b90a88faefac5a"></a>
+
+##### 移除挂接并删除介质文件（方法）
+
+```csharp
+public static Task<ApiResponse> DeleteAttachedMediaFileAsync(Guid vmId, VmStorageAttachment drive);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+先移除已核实的挂接，再按文件身份删除介质。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+
+返回：解除挂接和删除已确认归属文件的结果。
+
 <a id="api-3baa807ff7202cde"></a>
 
-##### 移除物理磁盘挂接 · 方法
+##### 移除物理磁盘挂接（方法）
 
 ```csharp
 public static async Task<ApiResponse<VmStorageSlot>> DetachPhysicalDiskAsync(Guid vmId, HostDiskInfo disk);
@@ -35481,9 +39816,30 @@ public static async Task<ApiResponse<VmStorageSlot>> DetachPhysicalDiskAsync(Gui
 
 返回：成功时包含原控制器类型、编号和槽位，供重新挂接使用；失败不返回默认槽位。
 
+<a id="api-a168f4535ba8296b"></a>
+
+##### 导出独立虚拟磁盘（方法）
+
+```csharp
+public static Task<ApiResponse> ExportDifferencingDiskAsync(Guid vmId, VmStorageAttachment drive, string destinationPath, IProgress<(int StepIndex, int Percent, string Message)>? progress = null);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+将验证后的整条差分链导出为独立动态磁盘。保留原挂接和原链。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `destinationPath` | 导出的独立磁盘文件路径。 |
+| `progress` | 可选的进度观察器。 |
+
+返回：将链内容导出到独立磁盘的结果。
+
 <a id="api-bda4c2d7782ca304"></a>
 
-##### 查找失效的磁盘直通挂接 · 方法
+##### 查找失效的磁盘直通挂接（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<VmStorageAttachment>>> FindStalePassthroughDisksAsync(Guid vmId);
@@ -35503,7 +39859,7 @@ public static async Task<ApiResponse<List<VmStorageAttachment>>> FindStalePassth
 
 <a id="api-e4e83234f4558d6c"></a>
 
-##### 检查新增存储槽位 · 方法
+##### 检查新增存储槽位（方法）
 
 ```csharp
 public static string? GetAddSlotError(int generation, bool isRunning, VmStorageAddRequest request, IEnumerable<VmStorageAttachment> items);
@@ -35524,7 +39880,7 @@ public static string? GetAddSlotError(int generation, bool isRunning, VmStorageA
 
 <a id="api-5be5567371bf61be"></a>
 
-##### 查找空闲存储槽位 · 方法
+##### 查找空闲存储槽位（方法）
 
 ```csharp
 public static IReadOnlyList<int> GetAvailableLocations(string type, int number, IEnumerable<VmStorageAttachment> items);
@@ -35544,7 +39900,7 @@ public static IReadOnlyList<int> GetAvailableLocations(string type, int number, 
 
 <a id="api-88765d16d58e5609"></a>
 
-##### 选择存储槽位 · 方法
+##### 选择存储槽位（方法）
 
 ```csharp
 public static VmStorageSlotPlan GetBestSlot(int generation, bool isRunning, string driveType, IEnumerable<VmStorageAttachment> items);
@@ -35565,7 +39921,7 @@ public static VmStorageSlotPlan GetBestSlot(int generation, bool isRunning, stri
 
 <a id="api-0b6771b88b8b027b"></a>
 
-##### 评估磁盘压缩条件 · 方法
+##### 评估磁盘压缩条件（方法）
 
 ```csharp
 public static VmModificationCondition GetCompactionCondition(VmStorageAttachment item, VmState state);
@@ -35584,7 +39940,7 @@ public static VmModificationCondition GetCompactionCondition(VmStorageAttachment
 
 <a id="api-36bd6baf81450e53"></a>
 
-##### 检查控制器剩余槽位 · 方法
+##### 检查控制器剩余槽位（方法）
 
 ```csharp
 public static string? GetControllerFullError(string type, int number, IEnumerable<VmStorageAttachment> items);
@@ -35604,7 +39960,7 @@ public static string? GetControllerFullError(string type, int number, IEnumerabl
 
 <a id="api-5c99c297a915c534"></a>
 
-##### 读取控制器编号选项 · 方法
+##### 读取控制器编号选项（方法）
 
 ```csharp
 public static IReadOnlyList<int> GetControllerNumbers(string type);
@@ -35622,7 +39978,7 @@ public static IReadOnlyList<int> GetControllerNumbers(string type);
 
 <a id="api-02528d20642aad87"></a>
 
-##### 读取控制器类型选项 · 方法
+##### 读取控制器类型选项（方法）
 
 ```csharp
 public static IReadOnlyList<string> GetControllerTypes(int generation, bool isRunning, string driveType);
@@ -35642,7 +39998,7 @@ public static IReadOnlyList<string> GetControllerTypes(int generation, bool isRu
 
 <a id="api-afa9960e4b13d955"></a>
 
-##### 评估介质更换条件 · 方法
+##### 评估介质更换条件（方法）
 
 ```csharp
 public static VmModificationCondition GetMediaModificationCondition(VmStorageAttachment item, VmState state);
@@ -35657,11 +40013,11 @@ public static VmModificationCondition GetMediaModificationCondition(VmStorageAtt
 | `item` | 查询返回的存储挂接。 |
 | `state` | 查询得到的虚拟机电源状态。 |
 
-返回：是否允许更换及原因；IDE 硬盘需要关机，光驱和 SCSI 设备由实际提交结果判断。
+返回：硬盘需要彻底关机，虚拟光驱可在运行时更换 ISO。
 
 <a id="api-87444f817bed9ba9"></a>
 
-##### 检查介质路径 · 方法
+##### 检查介质路径（方法）
 
 ```csharp
 public static string? GetMediaPathError(string? newPath);
@@ -35677,9 +40033,27 @@ public static string? GetMediaPathError(string? newPath);
 
 返回：非空但不存在的路径返回说明，否则为 null。
 
+<a id="api-d3645145414b52c1"></a>
+
+##### 查询物理直通候选（方法）
+
+```csharp
+public static Task<ApiResponse<IReadOnlyList<VmPassthroughCandidate>>> GetPassthroughCandidatesAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+结合宿主清单与已实现的 VM 挂接，返回带归属和排序的物理硬盘及光驱。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+
+返回：物理磁盘和光驱的可用性及已确认的归属。
+
 <a id="api-2d5de03995aa94c1"></a>
 
-##### 评估存储移除条件 · 方法
+##### 评估存储移除条件（方法）
 
 ```csharp
 public static VmModificationCondition GetRemovalCondition(VmStorageAttachment item, VmState state);
@@ -35698,7 +40072,7 @@ public static VmModificationCondition GetRemovalCondition(VmStorageAttachment it
 
 <a id="api-3e54a0ff198bf9c4"></a>
 
-##### 规范化存储来源选项 · 方法
+##### 规范化存储来源选项（方法）
 
 ```csharp
 public static VmStorageSourceChoice GetSourceChoice(int generation, bool physical, string driveType, bool isNew);
@@ -35719,7 +40093,7 @@ public static VmStorageSourceChoice GetSourceChoice(int generation, bool physica
 
 <a id="api-173f032235ecbf39"></a>
 
-##### 读取磁盘文件大小 · 方法
+##### 读取磁盘文件大小（方法）
 
 ```csharp
 public static Task<IReadOnlyDictionary<string, long>> GetVirtualDiskSizesAsync(IEnumerable<string> paths);
@@ -35737,10 +40111,10 @@ public static Task<IReadOnlyDictionary<string, long>> GetVirtualDiskSizesAsync(I
 
 <a id="api-a36775377d1b6bb8"></a>
 
-##### 读取存储挂接 · 方法
+##### 读取存储挂接（方法）
 
 ```csharp
-public static async Task<ApiResponse<List<VmStorageAttachment>>> GetVmStorageItemsAsync(Guid vmId);
+public static Task<ApiResponse<List<VmStorageAttachment>>> GetVmStorageItemsAsync(Guid vmId);
 ```
 
 功能归属：管理层面 / 虚拟机 / 存储。
@@ -35755,9 +40129,110 @@ public static async Task<ApiResponse<List<VmStorageAttachment>>> GetVmStorageIte
 
 调用约定：存在物理磁盘挂接时，宿主磁盘映射或身份读取失败会返回查询错误，不把缺测当成直通盘失效。
 
+<a id="api-c8ab73543830561d"></a>
+
+##### 检查差分磁盘父链（方法）
+
+```csharp
+public static Task<ApiResponse<VmDiskChainInspection>> InspectDifferencingChainAsync(string diskPath, string? overrideParentPath = null, bool ignoreParentIdMismatch = false);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+读取完整祖先链。指定替代父盘只影响第一条边，忽略身份不匹配也只作用于第一条边。
+
+| 参数 | 说明 |
+| --- | --- |
+| `diskPath` | 要从叶盘开始检查的完整磁盘路径。 |
+| `overrideParentPath` | 可选的首级候选父盘路径，仅用于本次检查。 |
+| `ignoreParentIdMismatch` | 是否允许首级候选父盘的标识不匹配。 |
+
+返回：链状态、已解析节点及终止原因。
+
+<a id="api-9d1939e9029eee9d"></a>
+
+##### 检查挂接访问条件（方法）
+
+```csharp
+public static Task<ApiResponse<VmDiskInspection>> InspectDiskAsync(Guid vmId, VmStorageAttachment drive);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+重新核对所选挂接、虚拟机状态、宿主挂载和本机登记的磁盘依赖。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+
+返回：挂接访问状态、限制原因和当前可执行的维护操作。
+
+<a id="api-e59c42d2869a4866"></a>
+
+##### 查询虚拟磁盘容量边界（方法）
+
+```csharp
+public static Task<ApiResponse<VmResizeSafety>> InspectResizeSafetyAsync(Guid vmId, VmStorageAttachment drive);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+只读检查可调整容量的范围。无法读取完整分区表时仍返回扩展条件。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+
+返回：磁盘访问条件、当前容量和已核实的调整边界。
+
+<a id="api-4261a156a9aeb60c"></a>
+
+##### 合并到指定祖先磁盘（方法）
+
+```csharp
+public static Task<ApiResponse> MergeDifferencingDiskAsync(Guid vmId, VmStorageAttachment drive, string targetAncestorPath, IProgress<(int StepIndex, int Percent, string Message)>? progress = null);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+合并到已验证的祖先，随后更新原槽位并核实挂接。部分完成时返回恢复路径。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `targetAncestorPath` | 要将叶盘合并到的祖先磁盘完整路径。 |
+| `progress` | 可选的进度观察器。 |
+
+返回：合并到指定祖先并处理挂接的结果。
+
+<a id="api-e5ab1a98235e054f"></a>
+
+##### 迁移存储控制器槽位（方法）
+
+```csharp
+public static Task<ApiResponse> ModifyDriveSlotAsync(Guid vmId, VmStorageAttachment drive, string targetControllerType, int targetControllerNumber, int targetControllerLocation);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+在关机状态迁移同一驱动器，按需添加 SCSI 控制器，保留所选介质并核实新槽位。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `targetControllerType` | 目标控制器类型。 |
+| `targetControllerNumber` | 目标控制器编号。 |
+| `targetControllerLocation` | 目标控制器上的槽位。 |
+
+返回：槽位迁移及回读结果。
+
 <a id="api-f8e5cfee1814c647"></a>
 
-##### 更换光驱介质 · 方法
+##### 更换光驱介质（方法）
 
 ```csharp
 public static Task<ApiResponse> ModifyDvdDrivePathAsync(Guid vmId, VmStorageAttachment drive, string newIsoPath);
@@ -35777,7 +40252,7 @@ public static Task<ApiResponse> ModifyDvdDrivePathAsync(Guid vmId, VmStorageAtta
 
 <a id="api-c58ebeff6db40a24"></a>
 
-##### 更换虚拟硬盘路径 · 方法
+##### 更换虚拟硬盘路径（方法）
 
 ```csharp
 public static Task<ApiResponse> ModifyHardDrivePathAsync(Guid vmId, VmStorageAttachment drive, string newPath);
@@ -35799,7 +40274,7 @@ public static Task<ApiResponse> ModifyHardDrivePathAsync(Guid vmId, VmStorageAtt
 
 <a id="api-6df673aadf44ba9d"></a>
 
-##### 准备新增存储请求 · 方法
+##### 准备新增存储请求（方法）
 
 ```csharp
 public static VmStorageAddPreparation PrepareAddRequest(VmStorageAddRequest request, int generation, bool isRunning, IEnumerable<VmStorageAttachment> items);
@@ -35818,9 +40293,30 @@ public static VmStorageAddPreparation PrepareAddRequest(VmStorageAddRequest requ
 
 返回：可执行请求或错误、提示状态；准备过程中可能创建宿主目录。
 
+<a id="api-65ccf6fecb4918b5"></a>
+
+##### 重新连接父磁盘（方法）
+
+```csharp
+public static Task<ApiResponse> ReconnectParentDiskAsync(Guid vmId, VmStorageAttachment drive, string newParentPath, bool ignoreIdMismatch);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+替换直接父盘，提交前验证整个候选链。忽略 ID 只针对本次替换的直接父盘。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `newParentPath` | 候选父盘的完整路径。 |
+| `ignoreIdMismatch` | 是否明确允许候选父盘标识不匹配。 |
+
+返回：差分盘父路径重连结果。
+
 <a id="api-ac191a2f4bce7362"></a>
 
-##### 移除存储设备 · 方法
+##### 移除存储设备（方法）
 
 ```csharp
 public static async Task<ApiResponse> RemoveDriveAsync(Guid vmId, VmStorageAttachment drive);
@@ -35839,9 +40335,29 @@ public static async Task<ApiResponse> RemoveDriveAsync(Guid vmId, VmStorageAttac
 
 调用约定：移除前须提供查询得到的身份摘要。最终核对与提交之间，外部工具仍可能修改或重建对象。
 
+<a id="api-b66d6111c4e1e62c"></a>
+
+##### 调整虚拟磁盘容量（方法）
+
+```csharp
+public static Task<ApiResponse> ResizeVirtualDiskAsync(Guid vmId, VmStorageAttachment drive, long newSizeGiB);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+按整数 GiB 调整容量。收缩在锁内重新探测分区末尾和磁盘提供程序下限。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `newSizeGiB` | 目标虚拟容量，单位 GiB。 |
+
+返回：容量调整结果，含提交或复核失败原因。
+
 <a id="api-23305d2d162e210d"></a>
 
-##### 设置完整 SCSI 命令集 · 方法
+##### 设置完整 SCSI 命令集（方法）
 
 ```csharp
 public static Task<ApiResponse> SetFullScsiCommandSetEnabledAsync(Guid vmId, bool enabled);
@@ -35857,6 +40373,26 @@ public static Task<ApiResponse> SetFullScsiCommandSetEnabledAsync(Guid vmId, boo
 | `enabled` | true 启用，false 关闭。 |
 
 返回：配置提交结果；属性不受支持或执行条件不满足时返回失败。
+
+<a id="api-7b527ff9cdaf4698"></a>
+
+##### 将挂接 VHD 转换为 VHDX（方法）
+
+```csharp
+public static Task<ApiResponse> UpgradeVhdToVhdxAsync(Guid vmId, VmStorageAttachment drive, IProgress<int>? progress = null);
+```
+
+功能归属：管理层面 / 虚拟机 / 存储。
+
+生成同名 .vhdx，验证后更新当前槽位。成功后保留原 .vhd。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `progress` | 可选的进度观察器。 |
+
+返回：容器转换和挂接切换的结果。
 
 <a id="api-cc76a9e383bed2e6"></a>
 
@@ -35904,7 +40440,7 @@ public sealed record VmStorageSlot(string ControllerType, int ControllerNumber, 
 
 <a id="api-4d5af89550ffb9b7"></a>
 
-##### 创建存储槽位对象 · 主构造器
+##### 创建存储槽位对象（主构造器）
 
 ```csharp
 public VmStorageSlot(string ControllerType, int ControllerNumber, int Location);
@@ -35920,7 +40456,7 @@ public VmStorageSlot(string ControllerType, int ControllerNumber, int Location);
 
 <a id="api-8a2b7348dbfa1acd"></a>
 
-##### 控制器编号 · record 属性
+##### 控制器编号（record 属性）
 
 ```csharp
 public int ControllerNumber { get; init; }
@@ -35930,7 +40466,7 @@ public int ControllerNumber { get; init; }
 
 <a id="api-b65b0b179b01f44c"></a>
 
-##### 控制器类型 · record 属性
+##### 控制器类型（record 属性）
 
 ```csharp
 public string ControllerType { get; init; }
@@ -35940,7 +40476,7 @@ public string ControllerType { get; init; }
 
 <a id="api-4d624de2f6f1c00d"></a>
 
-##### 控制器槽位 · record 属性
+##### 控制器槽位（record 属性）
 
 ```csharp
 public int Location { get; init; }
@@ -35992,7 +40528,7 @@ public sealed record VmStorageSlotPlan(VmStorageSlot? Slot, string? Error = null
 
 <a id="api-1bdb7e70c3aa0e43"></a>
 
-##### 创建存储槽位规划对象 · 主构造器
+##### 创建存储槽位规划对象（主构造器）
 
 ```csharp
 public VmStorageSlotPlan(VmStorageSlot? Slot, string? Error = null);
@@ -36007,7 +40543,7 @@ public VmStorageSlotPlan(VmStorageSlot? Slot, string? Error = null);
 
 <a id="api-6a0b90ae7c24dc92"></a>
 
-##### 错误 · record 属性
+##### 错误（record 属性）
 
 ```csharp
 public string? Error { get; init; }
@@ -36017,7 +40553,7 @@ public string? Error { get; init; }
 
 <a id="api-3bd4b1b8105a7c44"></a>
 
-##### 存储槽位 · record 属性
+##### 存储槽位（record 属性）
 
 ```csharp
 public VmStorageSlot? Slot { get; init; }
@@ -36071,7 +40607,7 @@ public sealed record VmStorageSourceChoice(string DriveType, bool IsNew, bool Su
 
 <a id="api-1c3293bf556cfed0"></a>
 
-##### 创建存储来源选项对象 · 主构造器
+##### 创建存储来源选项对象（主构造器）
 
 ```csharp
 public VmStorageSourceChoice(string DriveType, bool IsNew, bool SupportsOptical);
@@ -36087,7 +40623,7 @@ public VmStorageSourceChoice(string DriveType, bool IsNew, bool SupportsOptical)
 
 <a id="api-998fa8a2f7cbe7e8"></a>
 
-##### 驱动器类型 · record 属性
+##### 驱动器类型（record 属性）
 
 ```csharp
 public string DriveType { get; init; }
@@ -36097,7 +40633,7 @@ public string DriveType { get; init; }
 
 <a id="api-71a9b3418343f250"></a>
 
-##### 新建介质 · record 属性
+##### 新建介质（record 属性）
 
 ```csharp
 public bool IsNew { get; init; }
@@ -36107,13 +40643,271 @@ public bool IsNew { get; init; }
 
 <a id="api-cf3441c4b0e9abbe"></a>
 
-##### 光驱支持 · record 属性
+##### 光驱支持（record 属性）
 
 ```csharp
 public bool SupportsOptical { get; init; }
 ```
 
 该来源和代数是否支持光驱选项。
+
+<a id="api-5fa1afb1ba4fbbef"></a>
+
+### `VmVtpmInfo` record 类
+
+当前配置与宿主身份快照。可空的策略或密钥状态表示宿主没有提供可识别的值。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 安全 |
+| 源文件 | ` Management/VirtualMachines/Security/VmSecurityService.Vtpm.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmVtpmInfo(bool TpmEnabled, bool EncryptEnabled, bool Shielded, bool? KeyProtectorConfigured, string? LocalGuardianName, string? LocalSigningThumbprint, IReadOnlyList<VtpmHost> AuthorizedHosts, bool HasPreviousKey, string? KeyReadError, string? GuestStateFile, string GuestStateDescription, bool? BindToHostTpm, bool? VirtualizationBasedSecurityOptOut, byte? MigratablePolicy) `](#api-49071bba268fefbe) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public IReadOnlyList<VtpmHost> AuthorizedHosts { get; init; } `](#api-6060c7e1165b5cb1) | 从密钥保护器解码得到的所有者及授权宿主。 |
+| [` public bool? BindToHostTpm { get; init; } `](#api-ae6e0db895161911) | 宿主报告的物理 TPM 绑定设置，缺失时为 null。 |
+| [` public bool EncryptEnabled { get; init; } `](#api-523024dd01f1787a) | 当前保存状态及迁移流量加密开关。 |
+| [` public string GuestStateDescription { get; init; } `](#api-3d46f95c68101c4f) | 来宾状态文件的路径或状态说明。 |
+| [` public string? GuestStateFile { get; init; } `](#api-0779f30d4f41e314) | 已核实的来宾状态文件路径，缺失时为空。 |
+| [` public bool HasLocalKey { get; } `](#api-ae3c127b71dec157) | 解锁密钥是否包含当前宿主可使用的身份。 |
+| [` public bool HasPreviousKey { get; init; } `](#api-e42ee478ee1e7370) | 本进程是否保存了与当前密钥匹配的恢复点。 |
+| [` public bool? KeyProtectorConfigured { get; init; } `](#api-da7e0ed32c56a23c) | 当前是否配置密钥保护器，读取失败时可为 null。 |
+| [` public string? KeyReadError { get; init; } `](#api-cfb24460ed5061e5) | 读取或解码密钥失败时的诊断。 |
+| [` public string? LocalGuardianName { get; init; } `](#api-9357143f83115373) | 本机 Guardian 名称，未识别时为空。 |
+| [` public string? LocalSigningThumbprint { get; init; } `](#api-3506b7c2a23f4bff) | 已识别本机 Guardian 的签名证书指纹。 |
+| [` public byte? MigratablePolicy { get; init; } `](#api-f15b2d03249e7e7e) | 宿主报告的原始迁移策略值，缺失时为 null。 |
+| [` public bool? MigrationDisabled { get; } `](#api-8c7f720f905a681b) | 仅解释宿主 MOF 定义的枚举值，保留未知值。 |
+| [` public bool Shielded { get; init; } `](#api-2c256ed3ef2610a3) | 当前请求的屏蔽保护标志。 |
+| [` public bool TpmEnabled { get; init; } `](#api-95de82ca70182d8e) | 当前虚拟 TPM 开关。 |
+| [` public bool? VirtualizationBasedSecurityOptOut { get; init; } `](#api-6cee27173ed370de) | 宿主报告的来宾 VBS 禁用标志，缺失时为 null。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VmVtpmInfo(bool TpmEnabled, bool EncryptEnabled, bool Shielded, bool? KeyProtectorConfigured,
+    string? LocalGuardianName, string? LocalSigningThumbprint, IReadOnlyList<VtpmHost> AuthorizedHosts,
+    bool HasPreviousKey, string? KeyReadError, string? GuestStateFile, string GuestStateDescription,
+    bool? BindToHostTpm, bool? VirtualizationBasedSecurityOptOut, byte? MigratablePolicy)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `TpmEnabled` | 当前虚拟 TPM 开关。 |
+| `EncryptEnabled` | 当前保存状态及迁移流量加密开关。 |
+| `Shielded` | 当前请求的屏蔽保护标志。 |
+| `KeyProtectorConfigured` | 当前是否配置密钥保护器，读取失败时可为 null。 |
+| `LocalGuardianName` | 本机 Guardian 名称，未识别时为空。 |
+| `LocalSigningThumbprint` | 已识别本机 Guardian 的签名证书指纹。 |
+| `AuthorizedHosts` | 从密钥保护器解码得到的所有者及授权宿主。 |
+| `HasPreviousKey` | 本进程是否保存了与当前密钥匹配的恢复点。 |
+| `KeyReadError` | 读取或解码密钥失败时的诊断。 |
+| `GuestStateFile` | 已核实的来宾状态文件路径，缺失时为空。 |
+| `GuestStateDescription` | 来宾状态文件的路径或状态说明。 |
+| `BindToHostTpm` | 宿主报告的物理 TPM 绑定设置，缺失时为 null。 |
+| `VirtualizationBasedSecurityOptOut` | 宿主报告的来宾 VBS 禁用标志，缺失时为 null。 |
+| `MigratablePolicy` | 宿主报告的原始迁移策略值，缺失时为 null。 |
+
+#### 构造函数说明
+
+<a id="api-49071bba268fefbe"></a>
+
+##### 创建虚拟 TPM 状态（主构造器）
+
+```csharp
+public VmVtpmInfo(bool TpmEnabled, bool EncryptEnabled, bool Shielded, bool? KeyProtectorConfigured, string? LocalGuardianName, string? LocalSigningThumbprint, IReadOnlyList<VtpmHost> AuthorizedHosts, bool HasPreviousKey, string? KeyReadError, string? GuestStateFile, string GuestStateDescription, bool? BindToHostTpm, bool? VirtualizationBasedSecurityOptOut, byte? MigratablePolicy);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `TpmEnabled` | 当前虚拟 TPM 开关。 |
+| `EncryptEnabled` | 当前保存状态及迁移流量加密开关。 |
+| `Shielded` | 当前请求的屏蔽保护标志。 |
+| `KeyProtectorConfigured` | 当前是否配置密钥保护器，读取失败时可为 null。 |
+| `LocalGuardianName` | 本机 Guardian 名称，未识别时为空。 |
+| `LocalSigningThumbprint` | 已识别本机 Guardian 的签名证书指纹。 |
+| `AuthorizedHosts` | 从密钥保护器解码得到的所有者及授权宿主。 |
+| `HasPreviousKey` | 本进程是否保存了与当前密钥匹配的恢复点。 |
+| `KeyReadError` | 读取或解码密钥失败时的诊断。 |
+| `GuestStateFile` | 已核实的来宾状态文件路径，缺失时为空。 |
+| `GuestStateDescription` | 来宾状态文件的路径或状态说明。 |
+| `BindToHostTpm` | 宿主报告的物理 TPM 绑定设置，缺失时为 null。 |
+| `VirtualizationBasedSecurityOptOut` | 宿主报告的来宾 VBS 禁用标志，缺失时为 null。 |
+| `MigratablePolicy` | 宿主报告的原始迁移策略值，缺失时为 null。 |
+
+#### 属性说明
+
+<a id="api-6060c7e1165b5cb1"></a>
+
+##### 授权宿主列表（record 属性）
+
+```csharp
+public IReadOnlyList<VtpmHost> AuthorizedHosts { get; init; }
+```
+
+从密钥保护器解码得到的所有者及授权宿主。
+
+<a id="api-ae6e0db895161911"></a>
+
+##### 绑定宿主 TPM（record 属性）
+
+```csharp
+public bool? BindToHostTpm { get; init; }
+```
+
+宿主报告的物理 TPM 绑定设置，缺失时为 null。
+
+<a id="api-523024dd01f1787a"></a>
+
+##### 状态加密开关（record 属性）
+
+```csharp
+public bool EncryptEnabled { get; init; }
+```
+
+当前保存状态及迁移流量加密开关。
+
+<a id="api-3d46f95c68101c4f"></a>
+
+##### 来宾状态文件说明（record 属性）
+
+```csharp
+public string GuestStateDescription { get; init; }
+```
+
+来宾状态文件的路径或状态说明。
+
+<a id="api-0779f30d4f41e314"></a>
+
+##### 来宾状态文件路径（record 属性）
+
+```csharp
+public string? GuestStateFile { get; init; }
+```
+
+已核实的来宾状态文件路径，缺失时为空。
+
+<a id="api-ae3c127b71dec157"></a>
+
+##### 本机拥有可用密钥（属性）
+
+```csharp
+public bool HasLocalKey { get; }
+```
+
+解锁密钥是否包含当前宿主可使用的身份。
+
+<a id="api-e42ee478ee1e7370"></a>
+
+##### 上一版密钥恢复点（record 属性）
+
+```csharp
+public bool HasPreviousKey { get; init; }
+```
+
+本进程是否保存了与当前密钥匹配的恢复点。
+
+<a id="api-da7e0ed32c56a23c"></a>
+
+##### 密钥保护器配置状态（record 属性）
+
+```csharp
+public bool? KeyProtectorConfigured { get; init; }
+```
+
+当前是否配置密钥保护器，读取失败时可为 null。
+
+<a id="api-cfb24460ed5061e5"></a>
+
+##### 密钥读取诊断（record 属性）
+
+```csharp
+public string? KeyReadError { get; init; }
+```
+
+读取或解码密钥失败时的诊断。
+
+<a id="api-9357143f83115373"></a>
+
+##### 本机 Guardian 名称（record 属性）
+
+```csharp
+public string? LocalGuardianName { get; init; }
+```
+
+本机 Guardian 名称，未识别时为空。
+
+<a id="api-3506b7c2a23f4bff"></a>
+
+##### 本机签名证书指纹（record 属性）
+
+```csharp
+public string? LocalSigningThumbprint { get; init; }
+```
+
+已识别本机 Guardian 的签名证书指纹。
+
+<a id="api-f15b2d03249e7e7e"></a>
+
+##### 迁移策略原始值（record 属性）
+
+```csharp
+public byte? MigratablePolicy { get; init; }
+```
+
+宿主报告的原始迁移策略值，缺失时为 null。
+
+<a id="api-8c7f720f905a681b"></a>
+
+##### 禁止迁移状态（属性）
+
+```csharp
+public bool? MigrationDisabled { get; }
+```
+
+仅解释宿主 MOF 定义的枚举值，保留未知值。
+
+<a id="api-2c256ed3ef2610a3"></a>
+
+##### 屏蔽保护标志（record 属性）
+
+```csharp
+public bool Shielded { get; init; }
+```
+
+当前请求的屏蔽保护标志。
+
+<a id="api-95de82ca70182d8e"></a>
+
+##### 虚拟 TPM 开关（record 属性）
+
+```csharp
+public bool TpmEnabled { get; init; }
+```
+
+当前虚拟 TPM 开关。
+
+<a id="api-6cee27173ed370de"></a>
+
+##### 禁用来宾 VBS（record 属性）
+
+```csharp
+public bool? VirtualizationBasedSecurityOptOut { get; init; }
+```
+
+宿主报告的来宾 VBS 禁用标志，缺失时为 null。
 
 <a id="api-406890c926a27d9e"></a>
 
@@ -36161,7 +40955,7 @@ public sealed record VmmsImageInfo(VmmsImageState State, string? ResolvedPath, A
 
 <a id="api-7824943cb68b5733"></a>
 
-##### 创建VMMS 程序文件信息对象 · 主构造器
+##### 创建VMMS 程序文件信息对象（主构造器）
 
 ```csharp
 public VmmsImageInfo(VmmsImageState State, string? ResolvedPath, ApiFailure? Failure = null);
@@ -36177,7 +40971,7 @@ public VmmsImageInfo(VmmsImageState State, string? ResolvedPath, ApiFailure? Fai
 
 <a id="api-0b2286b6783ae330"></a>
 
-##### 失败详情 · record 属性
+##### 失败详情（record 属性）
 
 ```csharp
 public ApiFailure? Failure { get; init; }
@@ -36187,7 +40981,7 @@ public ApiFailure? Failure { get; init; }
 
 <a id="api-abaf3c9b5b5544dd"></a>
 
-##### 程序完整路径 · record 属性
+##### 程序完整路径（record 属性）
 
 ```csharp
 public string? ResolvedPath { get; init; }
@@ -36197,7 +40991,7 @@ VMMS 程序文件在宿主上的完整路径；未能解析时为 null。
 
 <a id="api-e667643b7f77bccf"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public VmmsImageState State { get; init; }
@@ -36240,7 +41034,7 @@ public enum VmmsImageState
 
 <a id="api-1322bd4fd0b1f208"></a>
 
-##### Exists · 枚举值
+##### Exists（枚举值）
 
 ```csharp
 Exists = 1
@@ -36250,7 +41044,7 @@ Exists = 1
 
 <a id="api-e17b8d5a70c76759"></a>
 
-##### Missing · 枚举值
+##### Missing（枚举值）
 
 ```csharp
 Missing = 2
@@ -36260,7 +41054,7 @@ Missing = 2
 
 <a id="api-c789775c88cb86dd"></a>
 
-##### NotChecked · 枚举值
+##### NotChecked（枚举值）
 
 ```csharp
 NotChecked = 0
@@ -36270,7 +41064,7 @@ NotChecked = 0
 
 <a id="api-68331d864647ce76"></a>
 
-##### Unknown · 枚举值
+##### Unknown（枚举值）
 
 ```csharp
 Unknown = 3
@@ -36333,7 +41127,7 @@ public sealed record VmmsServiceInfo(string? State, string? StartMode, uint? Exi
 
 <a id="api-646a62ae88cd9085"></a>
 
-##### 创建VMMS 服务信息对象 · 主构造器
+##### 创建VMMS 服务信息对象（主构造器）
 
 ```csharp
 public VmmsServiceInfo(string? State, string? StartMode, uint? ExitCode, uint? ServiceSpecificExitCode, uint? ProcessId, string? PathName, VmmsImageInfo Image);
@@ -36353,7 +41147,7 @@ public VmmsServiceInfo(string? State, string? StartMode, uint? ExitCode, uint? S
 
 <a id="api-9183c4c4e75c0be4"></a>
 
-##### 服务退出码 · record 属性
+##### 服务退出码（record 属性）
 
 ```csharp
 public uint? ExitCode { get; init; }
@@ -36363,7 +41157,7 @@ Win32_Service.ExitCode 原始值；未上报时为 null。
 
 <a id="api-a3d1b0d95ed74a60"></a>
 
-##### 程序文件信息 · record 属性
+##### 程序文件信息（record 属性）
 
 ```csharp
 public VmmsImageInfo Image { get; init; }
@@ -36373,7 +41167,7 @@ public VmmsImageInfo Image { get; init; }
 
 <a id="api-e0eacebe04f64745"></a>
 
-##### 服务命令行 · record 属性
+##### 服务命令行（record 属性）
 
 ```csharp
 public string? PathName { get; init; }
@@ -36383,7 +41177,7 @@ VMMS 服务配置的程序命令行，包含程序路径及启动参数。
 
 <a id="api-327d8285176a95c2"></a>
 
-##### 服务进程编号 · record 属性
+##### 服务进程编号（record 属性）
 
 ```csharp
 public uint? ProcessId { get; init; }
@@ -36393,7 +41187,7 @@ VMMS 进程编号；未取得时为 null。
 
 <a id="api-36b6a5de1d3e3095"></a>
 
-##### 服务特定退出码 · record 属性
+##### 服务特定退出码（record 属性）
 
 ```csharp
 public uint? ServiceSpecificExitCode { get; init; }
@@ -36403,7 +41197,7 @@ public uint? ServiceSpecificExitCode { get; init; }
 
 <a id="api-9f1a87a0897acaf6"></a>
 
-##### 启动类型 · record 属性
+##### 启动类型（record 属性）
 
 ```csharp
 public string? StartMode { get; init; }
@@ -36413,13 +41207,197 @@ public string? StartMode { get; init; }
 
 <a id="api-efa1c3d700396342"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public string? State { get; init; }
 ```
 
 Windows 服务状态，例如 Running、Stopped；未取得时为 null。
+
+<a id="api-e8a4fadb15865d11"></a>
+
+### `VtpmHost` record 类
+
+由 HGS 解锁密钥的所有者和授权列表解析出的宿主身份。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 安全 |
+| 源文件 | ` Management/VirtualMachines/Security/VmSecurityService.Vtpm.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VtpmHost(string Name, string SigningThumbprint, string EncryptionThumbprint, bool IsLocal, bool IsOwner) `](#api-f92d0a38bfd1627a) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public string EncryptionThumbprint { get; init; } `](#api-7cde71483eebcac4) | 加密公钥证书指纹。 |
+| [` public bool IsLocal { get; init; } `](#api-77df7773db5730d7) | 本机是否拥有可用的签名与解密私钥。 |
+| [` public bool IsOwner { get; init; } `](#api-bf0ceb82351bf758) | 该身份是否为密钥保护器的所有者。 |
+| [` public string Name { get; init; } `](#api-504611bf9de7010c) | Guardian 的宿主显示名称。 |
+| [` public string SigningThumbprint { get; init; } `](#api-30f861a9fad9e4de) | 签名公钥证书指纹。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VtpmHost(string Name, string SigningThumbprint, string EncryptionThumbprint, bool IsLocal, bool IsOwner)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Name` | Guardian 的宿主显示名称。 |
+| `SigningThumbprint` | 签名公钥证书指纹。 |
+| `EncryptionThumbprint` | 加密公钥证书指纹。 |
+| `IsLocal` | 本机是否拥有可用的签名与解密私钥。 |
+| `IsOwner` | 该身份是否为密钥保护器的所有者。 |
+
+#### 构造函数说明
+
+<a id="api-f92d0a38bfd1627a"></a>
+
+##### 创建虚拟 TPM 授权宿主（主构造器）
+
+```csharp
+public VtpmHost(string Name, string SigningThumbprint, string EncryptionThumbprint, bool IsLocal, bool IsOwner);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Name` | Guardian 的宿主显示名称。 |
+| `SigningThumbprint` | 签名公钥证书指纹。 |
+| `EncryptionThumbprint` | 加密公钥证书指纹。 |
+| `IsLocal` | 本机是否拥有可用的签名与解密私钥。 |
+| `IsOwner` | 该身份是否为密钥保护器的所有者。 |
+
+#### 属性说明
+
+<a id="api-7cde71483eebcac4"></a>
+
+##### 加密证书指纹（record 属性）
+
+```csharp
+public string EncryptionThumbprint { get; init; }
+```
+
+加密公钥证书指纹。
+
+<a id="api-77df7773db5730d7"></a>
+
+##### 本机身份（record 属性）
+
+```csharp
+public bool IsLocal { get; init; }
+```
+
+本机是否拥有可用的签名与解密私钥。
+
+<a id="api-bf0ceb82351bf758"></a>
+
+##### 所有者身份（record 属性）
+
+```csharp
+public bool IsOwner { get; init; }
+```
+
+该身份是否为密钥保护器的所有者。
+
+<a id="api-504611bf9de7010c"></a>
+
+##### 宿主名称（record 属性）
+
+```csharp
+public string Name { get; init; }
+```
+
+Guardian 的宿主显示名称。
+
+<a id="api-30f861a9fad9e4de"></a>
+
+##### 签名证书指纹（record 属性）
+
+```csharp
+public string SigningThumbprint { get; init; }
+```
+
+签名公钥证书指纹。
+
+<a id="api-38444f6d701bd122"></a>
+
+### `VtpmPolicy` 枚举
+
+虚拟 TPM 的即时策略。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 安全 |
+| 源文件 | ` Management/VirtualMachines/Security/VmSecurityService.Vtpm.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` BindToHostTpm = 0 `](#api-3a5a2bdd4959d039) | 绑定宿主物理 TPM。 |
+| [` DisableMigration = 2 `](#api-233bf9f77fb6666c) | 禁止跨宿主迁移。 |
+| [` VirtualizationBasedSecurityOptOut = 1 `](#api-ca871f0cf7706235) | 禁止向来宾提供 VBS。 |
+
+#### 详细说明
+
+```csharp
+public enum VtpmPolicy
+```
+
+#### 枚举值说明
+
+<a id="api-3a5a2bdd4959d039"></a>
+
+##### 绑定宿主 TPM（枚举值）
+
+```csharp
+BindToHostTpm = 0
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+绑定宿主物理 TPM。
+
+<a id="api-233bf9f77fb6666c"></a>
+
+##### DisableMigration（枚举值）
+
+```csharp
+DisableMigration = 2
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+禁止跨宿主迁移。
+
+<a id="api-ca871f0cf7706235"></a>
+
+##### 禁用来宾 VBS（枚举值）
+
+```csharp
+VirtualizationBasedSecurityOptOut = 1
+```
+
+功能归属：管理层面 / 虚拟机 / 安全。
+
+禁止向来宾提供 VBS。
 
 <a id="api-972639a130eb0cc2"></a>
 
@@ -36465,7 +41443,7 @@ public enum ApiErrorKind
 
 <a id="api-d15596b7521e4dc5"></a>
 
-##### AccessDenied · 枚举值
+##### AccessDenied（枚举值）
 
 ```csharp
 AccessDenied = 7
@@ -36475,7 +41453,7 @@ AccessDenied = 7
 
 <a id="api-43f2af5c671191c3"></a>
 
-##### AmbiguousTarget · 枚举值
+##### AmbiguousTarget（枚举值）
 
 ```csharp
 AmbiguousTarget = 3
@@ -36485,7 +41463,7 @@ AmbiguousTarget = 3
 
 <a id="api-16ab72c26271c17f"></a>
 
-##### Cancelled · 枚举值
+##### Cancelled（枚举值）
 
 ```csharp
 Cancelled = 11
@@ -36495,7 +41473,7 @@ Cancelled = 11
 
 <a id="api-9e6b9889c75f950e"></a>
 
-##### CleanupRequired · 枚举值
+##### CleanupRequired（枚举值）
 
 ```csharp
 CleanupRequired = 9
@@ -36505,7 +41483,7 @@ CleanupRequired = 9
 
 <a id="api-ac9e9663edfb4ded"></a>
 
-##### Conflict · 枚举值
+##### Conflict（枚举值）
 
 ```csharp
 Conflict = 5
@@ -36515,7 +41493,7 @@ Conflict = 5
 
 <a id="api-e42dc6d9dda74822"></a>
 
-##### InvalidArgument · 枚举值
+##### InvalidArgument（枚举值）
 
 ```csharp
 InvalidArgument = 2
@@ -36525,7 +41503,7 @@ InvalidArgument = 2
 
 <a id="api-0fff1aa06e727c90"></a>
 
-##### InvalidState · 枚举值
+##### InvalidState（枚举值）
 
 ```csharp
 InvalidState = 6
@@ -36535,7 +41513,7 @@ InvalidState = 6
 
 <a id="api-20e4be046ac21141"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -36545,7 +41523,7 @@ None = 0
 
 <a id="api-d35fb89b7937c3d9"></a>
 
-##### NotFound · 枚举值
+##### NotFound（枚举值）
 
 ```csharp
 NotFound = 4
@@ -36555,7 +41533,7 @@ NotFound = 4
 
 <a id="api-d1957b6b975a71ae"></a>
 
-##### OperationFailed · 枚举值
+##### OperationFailed（枚举值）
 
 ```csharp
 OperationFailed = 10
@@ -36565,7 +41543,7 @@ OperationFailed = 10
 
 <a id="api-090555baed70183a"></a>
 
-##### OutcomeUnknown · 枚举值
+##### OutcomeUnknown（枚举值）
 
 ```csharp
 OutcomeUnknown = 12
@@ -36575,7 +41553,7 @@ OutcomeUnknown = 12
 
 <a id="api-d2ae60112dbe461f"></a>
 
-##### Unspecified · 枚举值
+##### Unspecified（枚举值）
 
 ```csharp
 Unspecified = 1
@@ -36585,7 +41563,7 @@ Unspecified = 1
 
 <a id="api-e854c90f87820512"></a>
 
-##### Unsupported · 枚举值
+##### Unsupported（枚举值）
 
 ```csharp
 Unsupported = 8
@@ -36629,7 +41607,7 @@ public enum ApiErrorSource
 
 <a id="api-0c753437c3cb89f1"></a>
 
-##### Com · 枚举值
+##### Com（枚举值）
 
 ```csharp
 Com = 4
@@ -36639,7 +41617,7 @@ COM/WinRT 调用失败。
 
 <a id="api-291b4a85c1d92094"></a>
 
-##### Hcs · 枚举值
+##### Hcs（枚举值）
 
 ```csharp
 Hcs = 3
@@ -36649,7 +41627,7 @@ Host Compute Service 接口失败。
 
 <a id="api-4b07c5f901d7b76a"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -36659,7 +41637,7 @@ None = 0
 
 <a id="api-dd74d22d9cb33bc1"></a>
 
-##### Win32 · 枚举值
+##### Win32（枚举值）
 
 ```csharp
 Win32 = 2
@@ -36669,7 +41647,7 @@ Windows 原生接口错误；具体方法可能使用 Win32、配置管理器或
 
 <a id="api-3122618ee2c61a4b"></a>
 
-##### Wmi · 枚举值
+##### Wmi（枚举值）
 
 ```csharp
 Wmi = 1
@@ -36725,7 +41703,7 @@ public sealed record ApiFailure(ApiErrorKind Kind, int Code, ApiErrorSource Sour
 
 <a id="api-1306a5ccc8b6b459"></a>
 
-##### 创建操作失败信息对象 · 主构造器
+##### 创建操作失败信息对象（主构造器）
 
 ```csharp
 public ApiFailure(ApiErrorKind Kind, int Code, ApiErrorSource Source, string Message);
@@ -36742,7 +41720,7 @@ public ApiFailure(ApiErrorKind Kind, int Code, ApiErrorSource Source, string Mes
 
 <a id="api-22dddabd6b7fe853"></a>
 
-##### 错误码 · record 属性
+##### 错误码（record 属性）
 
 ```csharp
 public int Code { get; init; }
@@ -36752,7 +41730,7 @@ public int Code { get; init; }
 
 <a id="api-8bd98aa8be804067"></a>
 
-##### 类别 · record 属性
+##### 类别（record 属性）
 
 ```csharp
 public ApiErrorKind Kind { get; init; }
@@ -36762,7 +41740,7 @@ public ApiErrorKind Kind { get; init; }
 
 <a id="api-421a4c5dfb2403bc"></a>
 
-##### 操作说明 · record 属性
+##### 操作说明（record 属性）
 
 ```csharp
 public string Message { get; init; }
@@ -36772,7 +41750,7 @@ public string Message { get; init; }
 
 <a id="api-ca9aad6ebc85d4fa"></a>
 
-##### 来源 · record 属性
+##### 来源（record 属性）
 
 ```csharp
 public ApiErrorSource Source { get; init; }
@@ -36838,7 +41816,7 @@ public sealed class ApiResponse
 
 <a id="api-38efe1de89d31e9e"></a>
 
-##### 错误码 · 属性
+##### 错误码（属性）
 
 ```csharp
 public int Code { get; }
@@ -36848,7 +41826,7 @@ public int Code { get; }
 
 <a id="api-5e91d6f0bd1f79c5"></a>
 
-##### 诊断参数 · 属性
+##### 诊断参数（属性）
 
 ```csharp
 public IReadOnlyList<string> DiagnosticArgs { get; } = Array.Empty<string>();
@@ -36858,7 +41836,7 @@ public IReadOnlyList<string> DiagnosticArgs { get; } = Array.Empty<string>();
 
 <a id="api-280d6dd962a6539c"></a>
 
-##### 诊断错误码 · 属性
+##### 诊断错误码（属性）
 
 ```csharp
 public CoreErrorCode DiagnosticCode { get; }
@@ -36868,7 +41846,7 @@ public CoreErrorCode DiagnosticCode { get; }
 
 <a id="api-94a85ddbff6b6faa"></a>
 
-##### 错误 · 属性
+##### 错误（属性）
 
 ```csharp
 public string Error { get; } = string.Empty;
@@ -36878,7 +41856,7 @@ public string Error { get; } = string.Empty;
 
 <a id="api-2248bf934335f9fb"></a>
 
-##### 错误类别 · 属性
+##### 错误类别（属性）
 
 ```csharp
 public ApiErrorKind ErrorKind { get; }
@@ -36888,7 +41866,7 @@ public ApiErrorKind ErrorKind { get; }
 
 <a id="api-8440bfb969ffd704"></a>
 
-##### 错误来源 · 属性
+##### 错误来源（属性）
 
 ```csharp
 public ApiErrorSource ErrorSource { get; }
@@ -36898,7 +41876,7 @@ public ApiErrorSource ErrorSource { get; }
 
 <a id="api-966a961f0a8cf7a6"></a>
 
-##### 原始异常 · 属性
+##### 原始异常（属性）
 
 ```csharp
 public Exception? Exception { get; }
@@ -36908,7 +41886,7 @@ public Exception? Exception { get; }
 
 <a id="api-0087ba1268ce915f"></a>
 
-##### 需要重启 · 属性
+##### 需要重启（属性）
 
 ```csharp
 public bool RequiresRestart { get; }
@@ -36920,7 +41898,7 @@ public bool RequiresRestart { get; }
 
 <a id="api-af1755b963651324"></a>
 
-##### 重启原因 · 属性
+##### 重启原因（属性）
 
 ```csharp
 public IReadOnlyList<RestartReason> RestartReasons { get; } = Array.Empty<RestartReason>();
@@ -36932,7 +41910,7 @@ public IReadOnlyList<RestartReason> RestartReasons { get; } = Array.Empty<Restar
 
 <a id="api-c0a7bebd2c4b1238"></a>
 
-##### 步骤列表 · 属性
+##### 步骤列表（属性）
 
 ```csharp
 public IReadOnlyList<OperationStepResult> Steps { get; } = Array.Empty<OperationStepResult>();
@@ -36944,7 +41922,7 @@ public IReadOnlyList<OperationStepResult> Steps { get; } = Array.Empty<Operation
 
 <a id="api-b3895a620b9929fd"></a>
 
-##### 成功状态 · 属性
+##### 成功状态（属性）
 
 ```csharp
 public bool Success { get; }
@@ -36956,7 +41934,7 @@ public bool Success { get; }
 
 <a id="api-0a0e41c001f1d02c"></a>
 
-##### 创建失败结果 · 方法
+##### 创建失败结果（方法）
 
 ```csharp
 public static ApiResponse Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified);
@@ -36976,7 +41954,7 @@ public static ApiResponse Fail(string error, int code = -1, ApiErrorSource sourc
 
 <a id="api-308387f87df9c37a"></a>
 
-##### 创建成功结果 · 方法
+##### 创建成功结果（方法）
 
 ```csharp
 public static ApiResponse Ok();
@@ -36988,7 +41966,7 @@ public static ApiResponse Ok();
 
 <a id="api-8b7b70e45ccc66eb"></a>
 
-##### 转换为成功标记 · 方法
+##### 转换为成功标记（方法）
 
 ```csharp
 public static implicit operator bool (ApiResponse? response);
@@ -37006,7 +41984,7 @@ public static implicit operator bool (ApiResponse? response);
 
 <a id="api-8481a5cc2fd10c46"></a>
 
-##### 生成结果摘要 · 方法
+##### 生成结果摘要（方法）
 
 ```csharp
 public override string ToString();
@@ -37079,7 +42057,7 @@ public sealed class ApiResponse<T>
 
 <a id="api-36b99e7ac53eca9c"></a>
 
-##### 错误码 · 属性
+##### 错误码（属性）
 
 ```csharp
 public int Code { get; }
@@ -37089,7 +42067,7 @@ public int Code { get; }
 
 <a id="api-09aba646ac904898"></a>
 
-##### 数据 · 属性
+##### 数据（属性）
 
 ```csharp
 public T? Data { get; }
@@ -37099,7 +42077,7 @@ public T? Data { get; }
 
 <a id="api-7936b85bd688d615"></a>
 
-##### 诊断参数 · 属性
+##### 诊断参数（属性）
 
 ```csharp
 public IReadOnlyList<string> DiagnosticArgs { get; } = Array.Empty<string>();
@@ -37109,7 +42087,7 @@ public IReadOnlyList<string> DiagnosticArgs { get; } = Array.Empty<string>();
 
 <a id="api-253d01cd57371b28"></a>
 
-##### 诊断错误码 · 属性
+##### 诊断错误码（属性）
 
 ```csharp
 public CoreErrorCode DiagnosticCode { get; }
@@ -37119,7 +42097,7 @@ public CoreErrorCode DiagnosticCode { get; }
 
 <a id="api-63a4a29a2aba472e"></a>
 
-##### 错误 · 属性
+##### 错误（属性）
 
 ```csharp
 public string Error { get; } = string.Empty;
@@ -37129,7 +42107,7 @@ public string Error { get; } = string.Empty;
 
 <a id="api-082ece6ab08fa1f1"></a>
 
-##### 错误类别 · 属性
+##### 错误类别（属性）
 
 ```csharp
 public ApiErrorKind ErrorKind { get; }
@@ -37139,7 +42117,7 @@ public ApiErrorKind ErrorKind { get; }
 
 <a id="api-9da73b15a78ab23e"></a>
 
-##### 错误来源 · 属性
+##### 错误来源（属性）
 
 ```csharp
 public ApiErrorSource ErrorSource { get; }
@@ -37149,7 +42127,7 @@ public ApiErrorSource ErrorSource { get; }
 
 <a id="api-bbf70dc4b44782a5"></a>
 
-##### 原始异常 · 属性
+##### 原始异常（属性）
 
 ```csharp
 public Exception? Exception { get; }
@@ -37159,7 +42137,7 @@ public Exception? Exception { get; }
 
 <a id="api-237f5f5d1eefe59d"></a>
 
-##### 结果包含数据 · 属性
+##### 结果包含数据（属性）
 
 ```csharp
 public bool HasData { get; }
@@ -37169,7 +42147,7 @@ public bool HasData { get; }
 
 <a id="api-01fa8ecc3156be15"></a>
 
-##### 空值状态 · 属性
+##### 空值状态（属性）
 
 ```csharp
 public bool IsEmpty { get; }
@@ -37179,7 +42157,7 @@ public bool IsEmpty { get; }
 
 <a id="api-72d76820028394ac"></a>
 
-##### 成功状态 · 属性
+##### 成功状态（属性）
 
 ```csharp
 public bool Success { get; }
@@ -37191,7 +42169,7 @@ public bool Success { get; }
 
 <a id="api-4da81e85512bf4cd"></a>
 
-##### 创建成功空结果 · 方法
+##### 创建成功空结果（方法）
 
 ```csharp
 public static ApiResponse<T> Empty();
@@ -37203,7 +42181,7 @@ public static ApiResponse<T> Empty();
 
 <a id="api-49f48ccb175ec724"></a>
 
-##### 创建失败结果 · 方法
+##### 创建失败结果（方法）
 
 ```csharp
 public static ApiResponse<T> Fail(string error, int code = -1, ApiErrorSource source = ApiErrorSource.None, Exception? exception = null, ApiErrorKind kind = ApiErrorKind.Unspecified);
@@ -37223,7 +42201,7 @@ public static ApiResponse<T> Fail(string error, int code = -1, ApiErrorSource so
 
 <a id="api-ca7826aa38f9355f"></a>
 
-##### 创建成功结果 · 方法
+##### 创建成功结果（方法）
 
 ```csharp
 public static ApiResponse<T> Ok(T? data);
@@ -37239,7 +42217,7 @@ public static ApiResponse<T> Ok(T? data);
 
 <a id="api-d476883b504758e1"></a>
 
-##### 转换为成功标记 · 方法
+##### 转换为成功标记（方法）
 
 ```csharp
 public static implicit operator bool (ApiResponse<T>? response);
@@ -37257,7 +42235,7 @@ public static implicit operator bool (ApiResponse<T>? response);
 
 <a id="api-27458ff1456674cc"></a>
 
-##### 生成结果摘要 · 方法
+##### 生成结果摘要（方法）
 
 ```csharp
 public override string ToString();
@@ -37311,7 +42289,7 @@ public enum ConditionReasonCode
 
 <a id="api-9d67e2b08a47ead6"></a>
 
-##### DynamicMemoryRunningStartupLocked · 枚举值
+##### DynamicMemoryRunningStartupLocked（枚举值）
 
 ```csharp
 DynamicMemoryRunningStartupLocked = 2
@@ -37321,7 +42299,7 @@ DynamicMemoryRunningStartupLocked = 2
 
 <a id="api-810ebcae6aed77cb"></a>
 
-##### HostSettingMissing · 枚举值
+##### HostSettingMissing（枚举值）
 
 ```csharp
 HostSettingMissing = 3
@@ -37331,7 +42309,7 @@ HostSettingMissing = 3
 
 <a id="api-ff0428d064feb7d4"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -37341,7 +42319,7 @@ None = 0
 
 <a id="api-efa66364ed32bb4a"></a>
 
-##### PoweredOffRequired · 枚举值
+##### PoweredOffRequired（枚举值）
 
 ```csharp
 PoweredOffRequired = 1
@@ -37351,7 +42329,7 @@ PoweredOffRequired = 1
 
 <a id="api-34faa9d87b213b38"></a>
 
-##### RequiresArm64 · 枚举值
+##### RequiresArm64（枚举值）
 
 ```csharp
 RequiresArm64 = 6
@@ -37361,7 +42339,7 @@ RequiresArm64 = 6
 
 <a id="api-8c0a4fc6e8603885"></a>
 
-##### RequiresHardwareIsolation · 枚举值
+##### RequiresHardwareIsolation（枚举值）
 
 ```csharp
 RequiresHardwareIsolation = 8
@@ -37371,7 +42349,7 @@ RequiresHardwareIsolation = 8
 
 <a id="api-475b1d078b1e0b55"></a>
 
-##### RequiresIntel · 枚举值
+##### RequiresIntel（枚举值）
 
 ```csharp
 RequiresIntel = 7
@@ -37381,7 +42359,7 @@ RequiresIntel = 7
 
 <a id="api-3b36b688017cb206"></a>
 
-##### RequiresPerfmonPmu · 枚举值
+##### RequiresPerfmonPmu（枚举值）
 
 ```csharp
 RequiresPerfmonPmu = 9
@@ -37391,7 +42369,7 @@ RequiresPerfmonPmu = 9
 
 <a id="api-0d38feac504e01be"></a>
 
-##### RequiresX64 · 枚举值
+##### RequiresX64（枚举值）
 
 ```csharp
 RequiresX64 = 5
@@ -37401,7 +42379,7 @@ RequiresX64 = 5
 
 <a id="api-2925b6dfae9f3d11"></a>
 
-##### UnknownSetting · 枚举值
+##### UnknownSetting（枚举值）
 
 ```csharp
 UnknownSetting = 10
@@ -37411,7 +42389,7 @@ UnknownSetting = 10
 
 <a id="api-71a4999fa730d607"></a>
 
-##### UnsupportedBackingTypeHybrid · 枚举值
+##### UnsupportedBackingTypeHybrid（枚举值）
 
 ```csharp
 UnsupportedBackingTypeHybrid = 11
@@ -37421,7 +42399,7 @@ UnsupportedBackingTypeHybrid = 11
 
 <a id="api-51604a3389792352"></a>
 
-##### UnsupportedTrackingPerNuma · 枚举值
+##### UnsupportedTrackingPerNuma（枚举值）
 
 ```csharp
 UnsupportedTrackingPerNuma = 12
@@ -37431,7 +42409,7 @@ UnsupportedTrackingPerNuma = 12
 
 <a id="api-47ec12824fa61f66"></a>
 
-##### UnsupportedVmVersion · 枚举值
+##### UnsupportedVmVersion（枚举值）
 
 ```csharp
 UnsupportedVmVersion = 4
@@ -37472,7 +42450,7 @@ public static class CoreErrorClassifier
 
 <a id="api-8865112386141a40"></a>
 
-##### 归类异常错误码 · 方法
+##### 归类异常错误码（方法）
 
 ```csharp
 public static CoreErrorCode ClassifyException(Exception exception);
@@ -37488,7 +42466,7 @@ public static CoreErrorCode ClassifyException(Exception exception);
 
 <a id="api-a90e56365487e314"></a>
 
-##### 判断服务不可用 · 方法
+##### 判断服务不可用（方法）
 
 ```csharp
 public static bool IsServiceUnavailable(int code, ApiErrorSource source, Exception? exception = null);
@@ -37529,6 +42507,7 @@ public static bool IsServiceUnavailable(int code, ApiErrorSource source, Excepti
 | [` DiskFull = 22 `](#api-f52b4f8e12fc7516) | 宿主机磁盘空间不足（如 0x80070070 / 0x80070027 / 32794）。 |
 | [` FileInUse = 20 `](#api-95a15866c0c14937) | 目标虚拟磁盘、镜像或文件正被占用（如 0x80070020）。 |
 | [` FileNotFound = 21 `](#api-70fd27c6b7f23183) | 找不到启动或操作所需的磁盘、镜像或配置文件（如 0x80070002 / 0x80070003）。 |
+| [` GuardianMetadataRequired = 30 `](#api-45151adfdd9bf005) | 授权此宿主需要补充 Guardian XML 以核对证书对。 |
 | [` InsufficientMemory = 19 `](#api-9a518a7473f8aebc) | 宿主机可用内存或系统资源不足（如 0x8007000E / 0x800705AA）。 |
 | [` InvalidParameter = 11 `](#api-9b8adec6a5f02609) | 提交的参数无效或不符合宿主约束。 |
 | [` InvalidState = 10 `](#api-c8b30ee8b5a46d13) | 虚拟机当前状态不允许执行此修改。 |
@@ -37565,7 +42544,7 @@ public enum CoreErrorCode
 
 <a id="api-180e6ef952e853f7"></a>
 
-##### AccessDenied · 枚举值
+##### AccessDenied（枚举值）
 
 ```csharp
 AccessDenied = 7
@@ -37575,7 +42554,7 @@ AccessDenied = 7
 
 <a id="api-381ea8233b135f62"></a>
 
-##### DifferencingParentNotFound · 枚举值
+##### DifferencingParentNotFound（枚举值）
 
 ```csharp
 DifferencingParentNotFound = 25
@@ -37585,7 +42564,7 @@ DifferencingParentNotFound = 25
 
 <a id="api-f52b4f8e12fc7516"></a>
 
-##### DiskFull · 枚举值
+##### DiskFull（枚举值）
 
 ```csharp
 DiskFull = 22
@@ -37595,7 +42574,7 @@ DiskFull = 22
 
 <a id="api-95a15866c0c14937"></a>
 
-##### FileInUse · 枚举值
+##### FileInUse（枚举值）
 
 ```csharp
 FileInUse = 20
@@ -37605,7 +42584,7 @@ FileInUse = 20
 
 <a id="api-70fd27c6b7f23183"></a>
 
-##### FileNotFound · 枚举值
+##### FileNotFound（枚举值）
 
 ```csharp
 FileNotFound = 21
@@ -37613,9 +42592,19 @@ FileNotFound = 21
 
 找不到启动或操作所需的磁盘、镜像或配置文件（如 0x80070002 / 0x80070003）。
 
+<a id="api-45151adfdd9bf005"></a>
+
+##### 需要 Guardian 配对元数据（枚举值）
+
+```csharp
+GuardianMetadataRequired = 30
+```
+
+授权此宿主需要补充 Guardian XML 以核对证书对。
+
 <a id="api-9a518a7473f8aebc"></a>
 
-##### InsufficientMemory · 枚举值
+##### InsufficientMemory（枚举值）
 
 ```csharp
 InsufficientMemory = 19
@@ -37625,7 +42614,7 @@ InsufficientMemory = 19
 
 <a id="api-9b8adec6a5f02609"></a>
 
-##### InvalidParameter · 枚举值
+##### InvalidParameter（枚举值）
 
 ```csharp
 InvalidParameter = 11
@@ -37635,7 +42624,7 @@ InvalidParameter = 11
 
 <a id="api-c8b30ee8b5a46d13"></a>
 
-##### InvalidState · 枚举值
+##### InvalidState（枚举值）
 
 ```csharp
 InvalidState = 10
@@ -37645,7 +42634,7 @@ InvalidState = 10
 
 <a id="api-79b157656a27db57"></a>
 
-##### MethodFailed · 枚举值
+##### MethodFailed（枚举值）
 
 ```csharp
 MethodFailed = 14
@@ -37655,7 +42644,7 @@ MethodFailed = 14
 
 <a id="api-5290218e62d4ce9a"></a>
 
-##### None · 枚举值
+##### None（枚举值）
 
 ```csharp
 None = 0
@@ -37665,7 +42654,7 @@ None = 0
 
 <a id="api-aee4a8cc8f1cf975"></a>
 
-##### NotFound · 枚举值
+##### NotFound（枚举值）
 
 ```csharp
 NotFound = 8
@@ -37675,7 +42664,7 @@ NotFound = 8
 
 <a id="api-e7352bf89faf3d40"></a>
 
-##### OperationCancelled · 枚举值
+##### OperationCancelled（枚举值）
 
 ```csharp
 OperationCancelled = 13
@@ -37685,7 +42674,7 @@ OperationCancelled = 13
 
 <a id="api-905249b8513e9a16"></a>
 
-##### OperationTimedOut · 枚举值
+##### OperationTimedOut（枚举值）
 
 ```csharp
 OperationTimedOut = 12
@@ -37695,7 +42684,7 @@ OperationTimedOut = 12
 
 <a id="api-9862da7333274c91"></a>
 
-##### PartialVnumaDisableFailed · 枚举值
+##### PartialVnumaDisableFailed（枚举值）
 
 ```csharp
 PartialVnumaDisableFailed = 15
@@ -37705,7 +42694,7 @@ PartialVnumaDisableFailed = 15
 
 <a id="api-54a1f4ef84759b55"></a>
 
-##### PartialVnumaRestoreFailed · 枚举值
+##### PartialVnumaRestoreFailed（枚举值）
 
 ```csharp
 PartialVnumaRestoreFailed = 16
@@ -37715,7 +42704,7 @@ PartialVnumaRestoreFailed = 16
 
 <a id="api-5d3faca25920e81d"></a>
 
-##### ReadBackMismatch · 枚举值
+##### ReadBackMismatch（枚举值）
 
 ```csharp
 ReadBackMismatch = 18
@@ -37725,7 +42714,7 @@ ReadBackMismatch = 18
 
 <a id="api-a913d389d8558b09"></a>
 
-##### ReadBackUnavailable · 枚举值
+##### ReadBackUnavailable（枚举值）
 
 ```csharp
 ReadBackUnavailable = 17
@@ -37735,7 +42724,7 @@ ReadBackUnavailable = 17
 
 <a id="api-69ce106b6e138c4f"></a>
 
-##### RuntimeMemoryResizeFailed · 枚举值
+##### RuntimeMemoryResizeFailed（枚举值）
 
 ```csharp
 RuntimeMemoryResizeFailed = 28
@@ -37745,7 +42734,7 @@ RuntimeMemoryResizeFailed = 28
 
 <a id="api-9020a57663938251"></a>
 
-##### StartFailedGen1OnArm64 · 枚举值
+##### StartFailedGen1OnArm64（枚举值）
 
 ```csharp
 StartFailedGen1OnArm64 = 29
@@ -37755,7 +42744,7 @@ ARM64 宿主机未附带第 1 代虚拟机固件，不支持启动第 1 代虚�
 
 <a id="api-5b7bf2367231e124"></a>
 
-##### StartFailedProcessorTopology · 枚举值
+##### StartFailedProcessorTopology（枚举值）
 
 ```csharp
 StartFailedProcessorTopology = 27
@@ -37765,7 +42754,7 @@ StartFailedProcessorTopology = 27
 
 <a id="api-f59e4c55503619d4"></a>
 
-##### StartFailedUnsupported · 枚举值
+##### StartFailedUnsupported（枚举值）
 
 ```csharp
 StartFailedUnsupported = 24
@@ -37775,7 +42764,7 @@ StartFailedUnsupported = 24
 
 <a id="api-37f3df65ae780f3c"></a>
 
-##### StartUnsupportedWithSuspects · 枚举值
+##### StartUnsupportedWithSuspects（枚举值）
 
 ```csharp
 StartUnsupportedWithSuspects = 23
@@ -37785,7 +42774,7 @@ StartUnsupportedWithSuspects = 23
 
 <a id="api-b5f56afbbefd7bf6"></a>
 
-##### Unsupported · 枚举值
+##### Unsupported（枚举值）
 
 ```csharp
 Unsupported = 9
@@ -37795,7 +42784,7 @@ Unsupported = 9
 
 <a id="api-c5250db6db4a4262"></a>
 
-##### VirtualSwitchNotFound · 枚举值
+##### VirtualSwitchNotFound（枚举值）
 
 ```csharp
 VirtualSwitchNotFound = 26
@@ -37805,7 +42794,7 @@ VirtualSwitchNotFound = 26
 
 <a id="api-3af324fe217853da"></a>
 
-##### VmmsCrashedCxlRecovered · 枚举值
+##### VmmsCrashedCxlRecovered（枚举值）
 
 ```csharp
 VmmsCrashedCxlRecovered = 1
@@ -37815,7 +42804,7 @@ VmmsCrashedCxlRecovered = 1
 
 <a id="api-165055049e0afbd4"></a>
 
-##### VmmsCrashedRecovered · 枚举值
+##### VmmsCrashedRecovered（枚举值）
 
 ```csharp
 VmmsCrashedRecovered = 2
@@ -37825,7 +42814,7 @@ VmmsCrashedRecovered = 2
 
 <a id="api-b536adb817689b3a"></a>
 
-##### VmmsCrashedVnumaUnrestored · 枚举值
+##### VmmsCrashedVnumaUnrestored（枚举值）
 
 ```csharp
 VmmsCrashedVnumaUnrestored = 3
@@ -37835,7 +42824,7 @@ VmmsCrashedVnumaUnrestored = 3
 
 <a id="api-95070036f53dd157"></a>
 
-##### VmmsRecoveredOutcomeUnknown · 枚举值
+##### VmmsRecoveredOutcomeUnknown（枚举值）
 
 ```csharp
 VmmsRecoveredOutcomeUnknown = 5
@@ -37845,7 +42834,7 @@ Hyper-V 服务已重启，但配置最终状态尚不确定。
 
 <a id="api-f44e2562b596841f"></a>
 
-##### VmmsRecoveryFailed · 枚举值
+##### VmmsRecoveryFailed（枚举值）
 
 ```csharp
 VmmsRecoveryFailed = 4
@@ -37855,7 +42844,7 @@ Hyper-V 服务停止且自动拉起失败。
 
 <a id="api-cb49659f66cae545"></a>
 
-##### VmmsUnavailableOrShuttingDown · 枚举值
+##### VmmsUnavailableOrShuttingDown（枚举值）
 
 ```csharp
 VmmsUnavailableOrShuttingDown = 6
@@ -37897,84 +42886,13 @@ public class CoreOperationException : InvalidOperationException
 
 <a id="api-c479a19f939348b7"></a>
 
-##### 操作结果 · 属性
+##### 操作结果（属性）
 
 ```csharp
 public ApiResponse Result { get; }
 ```
 
 保留错误类别、来源、错误码与原始异常的失败响应。
-
-<a id="api-0ae38ea99e73ecdc"></a>
-
-### `HyperVServiceCoordination` 类
-
-跨设置写入与后台轮询共享的 Hyper-V 服务活动/恢复状态，用于抑制恢复窗口内的重复报错。
-
-| 项目 | 内容 |
-| --- | --- |
-| 类型 | 类 |
-| 命名空间 | ` ExHyperV.Tools ` |
-| 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 共用类型 |
-| 源文件 | ` Infrastructure/Interop/VmmsServiceRecovery.cs ` |
-
-#### 成员概览
-
-**属性**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public static bool HasActiveSettingsWrite { get; } `](#api-b9c08a706c5948a8) | 是否有设置页面正在执行配置写入。 |
-| [` public static bool IsRecovering { get; } `](#api-bd264984c90bc1fe) | 是否正在执行 vmms 服务的自动拉起恢复流程。 |
-
-**静态方法**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public static IDisposable BeginActiveSettingsWrite() `](#api-37af5373183a7a7b) | 标记一次主动配置写入窗口，用于抑制同一时间后台轮询产生的重复断连提示。 |
-
-#### 详细说明
-
-```csharp
-public static class HyperVServiceCoordination
-```
-
-#### 属性说明
-
-<a id="api-b9c08a706c5948a8"></a>
-
-##### 是否有主动配置写入 · 属性
-
-```csharp
-public static bool HasActiveSettingsWrite { get; }
-```
-
-是否有设置页面正在执行配置写入。
-
-<a id="api-bd264984c90bc1fe"></a>
-
-##### 是否正在恢复服务 · 属性
-
-```csharp
-public static bool IsRecovering { get; }
-```
-
-是否正在执行 vmms 服务的自动拉起恢复流程。
-
-#### 静态方法说明
-
-<a id="api-37af5373183a7a7b"></a>
-
-##### 标记主动配置写入窗口 · 方法
-
-```csharp
-public static IDisposable BeginActiveSettingsWrite();
-```
-
-标记一次主动配置写入窗口，用于抑制同一时间后台轮询产生的重复断连提示。
-
-返回：用于结束当前主动配置写入窗口的释放作用域对象。
 
 <a id="api-824369b51a27da0a"></a>
 
@@ -38025,7 +42943,7 @@ public sealed record OperationStepResult(string Name, OperationStepState State, 
 
 <a id="api-0d4271411581772e"></a>
 
-##### 创建操作步骤结果对象 · 主构造器
+##### 创建操作步骤结果对象（主构造器）
 
 ```csharp
 public OperationStepResult(string Name, OperationStepState State, ApiFailure? Failure = null);
@@ -38041,7 +42959,7 @@ public OperationStepResult(string Name, OperationStepState State, ApiFailure? Fa
 
 <a id="api-0f3ef4bdc4d10e86"></a>
 
-##### 失败详情 · record 属性
+##### 失败详情（record 属性）
 
 ```csharp
 public ApiFailure? Failure { get; init; }
@@ -38051,7 +42969,7 @@ public ApiFailure? Failure { get; init; }
 
 <a id="api-607bd34bd2237c7a"></a>
 
-##### 名称 · record 属性
+##### 名称（record 属性）
 
 ```csharp
 public string Name { get; init; }
@@ -38061,7 +42979,7 @@ public string Name { get; init; }
 
 <a id="api-cafb8cfd44349217"></a>
 
-##### 需要重启 · 属性
+##### 需要重启（属性）
 
 ```csharp
 public bool RequiresRestart { get; }
@@ -38071,7 +42989,7 @@ public bool RequiresRestart { get; }
 
 <a id="api-5c82818beaa34e7d"></a>
 
-##### 资源标识 · 属性
+##### 资源标识（属性）
 
 ```csharp
 public string? ResourceId { get; init; }
@@ -38081,7 +42999,7 @@ public string? ResourceId { get; init; }
 
 <a id="api-7ad6e177a3261994"></a>
 
-##### 重启原因 · 属性
+##### 重启原因（属性）
 
 ```csharp
 public IReadOnlyList<RestartReason> RestartReasons { get; } = Array.Empty<RestartReason>();
@@ -38091,7 +43009,7 @@ public IReadOnlyList<RestartReason> RestartReasons { get; } = Array.Empty<Restar
 
 <a id="api-2475a7bd8ed9ae1f"></a>
 
-##### 状态 · record 属性
+##### 状态（record 属性）
 
 ```csharp
 public OperationStepState State { get; init; }
@@ -38134,7 +43052,7 @@ public enum OperationStepState
 
 <a id="api-34eb060abeb68cf1"></a>
 
-##### Failed · 枚举值
+##### Failed（枚举值）
 
 ```csharp
 Failed = 2
@@ -38144,7 +43062,7 @@ Failed = 2
 
 <a id="api-c48bc52113615706"></a>
 
-##### NotStarted · 枚举值
+##### NotStarted（枚举值）
 
 ```csharp
 NotStarted = 0
@@ -38154,7 +43072,7 @@ NotStarted = 0
 
 <a id="api-094d76c0af1348e7"></a>
 
-##### OutcomeUnknown · 枚举值
+##### OutcomeUnknown（枚举值）
 
 ```csharp
 OutcomeUnknown = 3
@@ -38164,7 +43082,7 @@ OutcomeUnknown = 3
 
 <a id="api-1484803469125625"></a>
 
-##### Succeeded · 枚举值
+##### Succeeded（枚举值）
 
 ```csharp
 Succeeded = 1
@@ -38204,7 +43122,7 @@ public static class OsImages
 
 <a id="api-6af71dddb7b4af51"></a>
 
-##### 内置操作系统类型 · 字段
+##### 内置操作系统类型（字段）
 
 ```csharp
 public static readonly IReadOnlyList<string> SupportedTypes;
@@ -38246,7 +43164,7 @@ public enum RestartReason
 
 <a id="api-bb39e18ba381e05e"></a>
 
-##### BootConfiguration · 枚举值
+##### BootConfiguration（枚举值）
 
 ```csharp
 BootConfiguration = 2
@@ -38256,7 +43174,7 @@ BootConfiguration = 2
 
 <a id="api-2c4fe500de5b72b4"></a>
 
-##### PackageRegistration · 枚举值
+##### PackageRegistration（枚举值）
 
 ```csharp
 PackageRegistration = 0
@@ -38266,7 +43184,7 @@ PackageRegistration = 0
 
 <a id="api-44b900e8438e018d"></a>
 
-##### WindowsFeatureChange · 枚举值
+##### WindowsFeatureChange（枚举值）
 
 ```csharp
 WindowsFeatureChange = 1
@@ -38309,7 +43227,7 @@ public sealed class VmcxDevice
 
 <a id="api-e0cc29be17ee9c66"></a>
 
-##### 设备类型 · 属性
+##### 设备类型（属性）
 
 ```csharp
 public string DeviceType { get; }
@@ -38319,7 +43237,7 @@ public string DeviceType { get; }
 
 <a id="api-82ded115c114367d"></a>
 
-##### 设备实例标识 · 属性
+##### 设备实例标识（属性）
 
 ```csharp
 public string Instance { get; }
@@ -38329,7 +43247,7 @@ public string Instance { get; }
 
 <a id="api-8529cfc4d89ac09b"></a>
 
-##### 名称 · 属性
+##### 名称（属性）
 
 ```csharp
 public string Name { get; }
@@ -38339,7 +43257,7 @@ manifest 中的设备名称。
 
 <a id="api-656d5621ed64b888"></a>
 
-##### 编号 · 属性
+##### 编号（属性）
 
 ```csharp
 public int Number { get; }
@@ -38382,7 +43300,7 @@ public enum VmcxDeviceKind
 
 <a id="api-df99b7c473dc8d85"></a>
 
-##### GpuPartition · 枚举值
+##### GpuPartition（枚举值）
 
 ```csharp
 GpuPartition = 2
@@ -38392,7 +43310,7 @@ GPU 分区，可使用通用池或指定 HostResource。
 
 <a id="api-b52ee65ebcdc40eb"></a>
 
-##### NetworkAdapter · 枚举值
+##### NetworkAdapter（枚举值）
 
 ```csharp
 NetworkAdapter = 0
@@ -38402,7 +43320,7 @@ NetworkAdapter = 0
 
 <a id="api-26de041c7ff9338e"></a>
 
-##### PcieDevice · 枚举值
+##### PcieDevice（枚举值）
 
 ```csharp
 PcieDevice = 3
@@ -38412,7 +43330,7 @@ PcieDevice = 3
 
 <a id="api-b863684e5a181b14"></a>
 
-##### ScsiController · 枚举值
+##### ScsiController（枚举值）
 
 ```csharp
 ScsiController = 1
@@ -38491,7 +43409,7 @@ public static class VmcxFileExample
 
 <a id="api-ccb3afc17d0920ff"></a>
 
-##### 数据条目 · 属性
+##### 数据条目（属性）
 
 ```csharp
 public IReadOnlyList<VmcxEntry> Entries { get; }
@@ -38501,7 +43419,7 @@ public IReadOnlyList<VmcxEntry> Entries { get; }
 
 <a id="api-5267fcff84034e29"></a>
 
-##### 文件完整路径 · 属性
+##### 文件完整路径（属性）
 
 ```csharp
 public string FilePath { get; }
@@ -38518,7 +43436,7 @@ public string FilePath { get; }
 
 <a id="api-13d25c257292c603"></a>
 
-##### 根节点 · 属性
+##### 根节点（属性）
 
 ```csharp
 public VmcxEntry Root { get; }
@@ -38528,7 +43446,7 @@ public VmcxEntry Root { get; }
 
 <a id="api-ab3ec99b3d1b44f0"></a>
 
-##### 源文件长度 · 属性
+##### 源文件长度（属性）
 
 ```csharp
 public long SourceLength { get; }
@@ -38545,7 +43463,7 @@ public long SourceLength { get; }
 
 <a id="api-f356a6e29b4b6ee9"></a>
 
-##### 源文件摘要 · 属性
+##### 源文件摘要（属性）
 
 ```csharp
 public string SourceSha256 { get; }
@@ -38564,7 +43482,7 @@ public string SourceSha256 { get; }
 
 <a id="api-8da6e8eca2da9bd3"></a>
 
-##### 读取 VMCX 配置 · 方法
+##### 读取 VMCX 配置（方法）
 
 ```csharp
 public static VmcxDocument Read(string path);
@@ -38586,7 +43504,7 @@ public static VmcxDocument Read(string path);
 
 <a id="api-9f5cf056c585b5cf"></a>
 
-##### 开始编辑配置 · 方法
+##### 开始编辑配置（方法）
 
 ```csharp
 public VmcxEditSession BeginEdit();
@@ -38598,7 +43516,7 @@ public VmcxEditSession BeginEdit();
 
 <a id="api-d0f27296f996e297"></a>
 
-##### 查找配置节点 · 方法
+##### 查找配置节点（方法）
 
 ```csharp
 public IReadOnlyList<VmcxEntry> Find(string path);
@@ -38614,7 +43532,7 @@ public IReadOnlyList<VmcxEntry> Find(string path);
 
 <a id="api-fec17503fd2a034a"></a>
 
-##### 读取子节点 · 方法
+##### 读取子节点（方法）
 
 ```csharp
 public IReadOnlyList<VmcxEntry> GetChildren(VmcxEntry parent);
@@ -38630,7 +43548,7 @@ public IReadOnlyList<VmcxEntry> GetChildren(VmcxEntry parent);
 
 <a id="api-3852fafc6545d18f"></a>
 
-##### 读取配置设备 · 方法
+##### 读取配置设备（方法）
 
 ```csharp
 public IReadOnlyList<VmcxDevice> GetDevices();
@@ -38642,7 +43560,7 @@ public IReadOnlyList<VmcxDevice> GetDevices();
 
 <a id="api-1648858c98d627a5"></a>
 
-##### 校验配置 · 方法
+##### 校验配置（方法）
 
 ```csharp
 public IReadOnlyList<string> Validate();
@@ -38688,7 +43606,7 @@ public sealed class VmcxEditException : Exception
 
 <a id="api-6e95c55a2b10345a"></a>
 
-##### 备份路径 · 属性
+##### 备份路径（属性）
 
 ```csharp
 public string? BackupPath { get; }
@@ -38698,7 +43616,7 @@ public string? BackupPath { get; }
 
 <a id="api-a0b6819c5b2818a3"></a>
 
-##### 原文件完整状态 · 属性
+##### 原文件完整状态（属性）
 
 ```csharp
 public bool OriginalIntact { get; }
@@ -38708,7 +43626,7 @@ public bool OriginalIntact { get; }
 
 <a id="api-f4145f90364d37bf"></a>
 
-##### 恢复材料路径 · 属性
+##### 恢复材料路径（属性）
 
 ```csharp
 public IReadOnlyList<string> RecoveryPaths { get; }
@@ -38718,7 +43636,7 @@ public IReadOnlyList<string> RecoveryPaths { get; }
 
 <a id="api-2f8d66cb48a59e31"></a>
 
-##### 恢复状态核对错误 · 属性
+##### 恢复状态核对错误（属性）
 
 ```csharp
 public string? RestoreError { get; }
@@ -38728,7 +43646,7 @@ public string? RestoreError { get; }
 
 <a id="api-6d7f22065d4b50ef"></a>
 
-##### 目标文件修改状态 · 属性
+##### 目标文件修改状态（属性）
 
 ```csharp
 public bool TargetWasModified { get; }
@@ -38772,7 +43690,7 @@ public sealed class VmcxEditResult
 
 <a id="api-d59292b5d9139c44"></a>
 
-##### 备份路径 · 属性
+##### 备份路径（属性）
 
 ```csharp
 public string? BackupPath { get; }
@@ -38782,7 +43700,7 @@ public string? BackupPath { get; }
 
 <a id="api-16f2e1670c44de3b"></a>
 
-##### 文件写入状态 · 属性
+##### 文件写入状态（属性）
 
 ```csharp
 public bool Changed { get; }
@@ -38792,7 +43710,7 @@ public bool Changed { get; }
 
 <a id="api-fad486b58d947d0d"></a>
 
-##### 文件完整路径 · 属性
+##### 文件完整路径（属性）
 
 ```csharp
 public string FilePath { get; }
@@ -38802,7 +43720,7 @@ public string FilePath { get; }
 
 <a id="api-6c646a74b253ec38"></a>
 
-##### 写入前摘要 · 属性
+##### 写入前摘要（属性）
 
 ```csharp
 public string OriginalSha256 { get; }
@@ -38812,7 +43730,7 @@ public string OriginalSha256 { get; }
 
 <a id="api-6c0659b5a3112856"></a>
 
-##### 写入后摘要 · 属性
+##### 写入后摘要（属性）
 
 ```csharp
 public string ResultSha256 { get; }
@@ -38872,7 +43790,7 @@ public sealed class VmcxEditSession
 
 <a id="api-5bed3913db66b5bd"></a>
 
-##### 数据条目 · 属性
+##### 数据条目（属性）
 
 ```csharp
 public IReadOnlyList<VmcxEntry> Entries { get; }
@@ -38884,7 +43802,7 @@ public IReadOnlyList<VmcxEntry> Entries { get; }
 
 <a id="api-ba60f70a1ff2c8bc"></a>
 
-##### 新增容器 · 方法
+##### 新增容器（方法）
 
 ```csharp
 public VmcxEntry AddContainer(VmcxEntry parent, string key);
@@ -38901,7 +43819,7 @@ public VmcxEntry AddContainer(VmcxEntry parent, string key);
 
 <a id="api-f403dd0fb67518c2"></a>
 
-##### 新增设备 · 方法
+##### 新增设备（方法）
 
 ```csharp
 public Guid AddDevice(VmcxDeviceKind kind, string? hostResource = null);
@@ -38920,7 +43838,7 @@ public Guid AddDevice(VmcxDeviceKind kind, string? hostResource = null);
 
 <a id="api-8ba8b3b050e4d3ac"></a>
 
-##### 新增 SCSI 驱动器 · 方法
+##### 新增 SCSI 驱动器（方法）
 
 ```csharp
 public VmcxEntry AddScsiDrive(Guid scsiInstance, string mediaPath, bool optical = false, int controller = 0);
@@ -38941,7 +43859,7 @@ public VmcxEntry AddScsiDrive(Guid scsiInstance, string mediaPath, bool optical 
 
 <a id="api-fae00fe745217e19"></a>
 
-##### 新增配置值 · 方法
+##### 新增配置值（方法）
 
 ```csharp
 public VmcxEntry AddValue(VmcxEntry parent, string key, VmcxValue value, bool isSelector = false);
@@ -38960,7 +43878,7 @@ public VmcxEntry AddValue(VmcxEntry parent, string key, VmcxValue value, bool is
 
 <a id="api-31e722814f116d84"></a>
 
-##### 提交配置修改 · 方法
+##### 提交配置修改（方法）
 
 ```csharp
 public VmcxEditResult Commit();
@@ -38979,7 +43897,7 @@ public VmcxEditResult Commit();
 
 <a id="api-93cba0b6f2634990"></a>
 
-##### 查找编辑中的节点 · 方法
+##### 查找编辑中的节点（方法）
 
 ```csharp
 public IReadOnlyList<VmcxEntry> Find(string path);
@@ -38995,7 +43913,7 @@ public IReadOnlyList<VmcxEntry> Find(string path);
 
 <a id="api-e9233f91a82cadd0"></a>
 
-##### 读取编辑中的子节点 · 方法
+##### 读取编辑中的子节点（方法）
 
 ```csharp
 public IReadOnlyList<VmcxEntry> GetChildren(VmcxEntry parent);
@@ -39011,7 +43929,7 @@ public IReadOnlyList<VmcxEntry> GetChildren(VmcxEntry parent);
 
 <a id="api-6741b25328481b20"></a>
 
-##### 读取编辑中的设备 · 方法
+##### 读取编辑中的设备（方法）
 
 ```csharp
 public IReadOnlyList<VmcxDevice> GetDevices();
@@ -39023,7 +43941,7 @@ public IReadOnlyList<VmcxDevice> GetDevices();
 
 <a id="api-834ebc7ceb1a2afb"></a>
 
-##### 移除配置设备 · 方法
+##### 移除配置设备（方法）
 
 ```csharp
 public void RemoveDevice(Guid instance);
@@ -39039,7 +43957,7 @@ public void RemoveDevice(Guid instance);
 
 <a id="api-e67b1ddf6c260c02"></a>
 
-##### 删除节点子树 · 方法
+##### 删除节点子树（方法）
 
 ```csharp
 public void RemoveSubtree(VmcxEntry entry);
@@ -39053,7 +43971,7 @@ public void RemoveSubtree(VmcxEntry entry);
 
 <a id="api-65e6afb800041b20"></a>
 
-##### 重命名节点 · 方法
+##### 重命名节点（方法）
 
 ```csharp
 public void Rename(VmcxEntry entry, string key);
@@ -39068,7 +43986,7 @@ public void Rename(VmcxEntry entry, string key);
 
 <a id="api-684beb43ff3c3b64"></a>
 
-##### 修改配置值 · 方法
+##### 修改配置值（方法）
 
 ```csharp
 public void SetValue(VmcxEntry entry, VmcxValue value);
@@ -39085,7 +44003,7 @@ public void SetValue(VmcxEntry entry, VmcxValue value);
 
 <a id="api-02ee5848c56e15f6"></a>
 
-##### 校验当前修改 · 方法
+##### 校验当前修改（方法）
 
 ```csharp
 public IReadOnlyList<string> Validate();
@@ -39135,7 +44053,7 @@ public sealed class VmcxEntry
 
 <a id="api-1d11ee3e6e8c164d"></a>
 
-##### 标识 · 属性
+##### 标识（属性）
 
 ```csharp
 public int Id { get; }
@@ -39152,7 +44070,7 @@ public int Id { get; }
 
 <a id="api-a2b82066b617aa85"></a>
 
-##### 容器节点 · 属性
+##### 容器节点（属性）
 
 ```csharp
 public bool IsContainer { get; }
@@ -39162,7 +44080,7 @@ public bool IsContainer { get; }
 
 <a id="api-b595979699865424"></a>
 
-##### 父节点身份选择值 · 属性
+##### 父节点身份选择值（属性）
 
 ```csharp
 public bool IsSelector { get; }
@@ -39172,7 +44090,7 @@ public bool IsSelector { get; }
 
 <a id="api-e123aba642340ff7"></a>
 
-##### 记录键 · 属性
+##### 记录键（属性）
 
 ```csharp
 public string Key { get; }
@@ -39182,7 +44100,7 @@ public string Key { get; }
 
 <a id="api-2ecd9ca8ee77ff94"></a>
 
-##### 父节点标识 · 属性
+##### 父节点标识（属性）
 
 ```csharp
 public int? ParentId { get; }
@@ -39199,7 +44117,7 @@ public int? ParentId { get; }
 
 <a id="api-cb105f8580cb5735"></a>
 
-##### 路径 · 属性
+##### 路径（属性）
 
 ```csharp
 public string Path { get; }
@@ -39216,7 +44134,7 @@ public string Path { get; }
 
 <a id="api-e2239934656a5019"></a>
 
-##### 值 · 属性
+##### 值（属性）
 
 ```csharp
 public VmcxValue? Value { get; }
@@ -39269,7 +44187,7 @@ public sealed class VmcxException : Exception
 
 <a id="api-8fc14d4f5fac567e"></a>
 
-##### 创建VMCX 原生操作失败对象 · 构造器
+##### 创建VMCX 原生操作失败对象（构造器）
 
 ```csharp
 public VmcxException(string msg, int hr);
@@ -39286,7 +44204,7 @@ public VmcxException(string msg, int hr);
 
 <a id="api-1c8568a89cb2055b"></a>
 
-##### 原生错误码 · 字段
+##### 原生错误码（字段）
 
 ```csharp
 public int HResultCode;
@@ -39349,7 +44267,7 @@ public sealed class VmcxValue
 
 <a id="api-6e6fbf148b6f3739"></a>
 
-##### 文本表示 · 属性
+##### 文本表示（属性）
 
 ```csharp
 public string Text { get; }
@@ -39366,7 +44284,7 @@ public string Text { get; }
 
 <a id="api-dfdc3182e9b498bc"></a>
 
-##### 类型 · 属性
+##### 类型（属性）
 
 ```csharp
 public VmcxValueType Type { get; }
@@ -39378,7 +44296,7 @@ public VmcxValueType Type { get; }
 
 <a id="api-cb12b98653bbaeb9"></a>
 
-##### 创建布尔值 · 方法
+##### 创建布尔值（方法）
 
 ```csharp
 public static VmcxValue Boolean(bool value);
@@ -39394,7 +44312,7 @@ public static VmcxValue Boolean(bool value);
 
 <a id="api-99c708ad5bde37c7"></a>
 
-##### 创建双精度值 · 方法
+##### 创建双精度值（方法）
 
 ```csharp
 public static VmcxValue Double(double value);
@@ -39412,7 +44330,7 @@ public static VmcxValue Double(double value);
 
 <a id="api-2975120629cfdd93"></a>
 
-##### 创建有符号整数 · 方法
+##### 创建有符号整数（方法）
 
 ```csharp
 public static VmcxValue Integer(long value);
@@ -39428,7 +44346,7 @@ public static VmcxValue Integer(long value);
 
 <a id="api-df5ef0596a3ac845"></a>
 
-##### 创建二进制值 · 方法
+##### 创建二进制值（方法）
 
 ```csharp
 public static VmcxValue Raw(ReadOnlySpan<byte> value);
@@ -39444,7 +44362,7 @@ public static VmcxValue Raw(ReadOnlySpan<byte> value);
 
 <a id="api-65624121721725fe"></a>
 
-##### 创建字符串 · 方法
+##### 创建字符串（方法）
 
 ```csharp
 public static VmcxValue String(string value);
@@ -39462,7 +44380,7 @@ public static VmcxValue String(string value);
 
 <a id="api-2d100af9b82f68d9"></a>
 
-##### 创建无符号整数 · 方法
+##### 创建无符号整数（方法）
 
 ```csharp
 public static VmcxValue UnsignedInteger(ulong value);
@@ -39480,7 +44398,7 @@ public static VmcxValue UnsignedInteger(ulong value);
 
 <a id="api-67a3fe29eb321613"></a>
 
-##### 读取布尔值 · 方法
+##### 读取布尔值（方法）
 
 ```csharp
 public bool GetBoolean();
@@ -39492,7 +44410,7 @@ public bool GetBoolean();
 
 <a id="api-7b779e17f332a44b"></a>
 
-##### 读取双精度值 · 方法
+##### 读取双精度值（方法）
 
 ```csharp
 public double GetDouble();
@@ -39504,7 +44422,7 @@ public double GetDouble();
 
 <a id="api-817e9c3670e9a2f0"></a>
 
-##### 读取有符号整数 · 方法
+##### 读取有符号整数（方法）
 
 ```csharp
 public long GetInteger();
@@ -39516,7 +44434,7 @@ public long GetInteger();
 
 <a id="api-c84528efac7cb838"></a>
 
-##### 读取二进制值 · 方法
+##### 读取二进制值（方法）
 
 ```csharp
 public byte[] GetRaw();
@@ -39528,7 +44446,7 @@ public byte[] GetRaw();
 
 <a id="api-46c417f2e2601ae4"></a>
 
-##### 读取字符串 · 方法
+##### 读取字符串（方法）
 
 ```csharp
 public string GetString();
@@ -39540,7 +44458,7 @@ public string GetString();
 
 <a id="api-c1787e65fd08f48f"></a>
 
-##### 读取无符号整数 · 方法
+##### 读取无符号整数（方法）
 
 ```csharp
 public ulong GetUnsignedInteger();
@@ -39587,7 +44505,7 @@ public enum VmcxValueType
 
 <a id="api-c4e6b478477d90ff"></a>
 
-##### Boolean · 枚举值
+##### Boolean（枚举值）
 
 ```csharp
 Boolean = 8
@@ -39597,7 +44515,7 @@ Boolean = 8
 
 <a id="api-82ee7725b49b24e9"></a>
 
-##### Double · 枚举值
+##### Double（枚举值）
 
 ```csharp
 Double = 5
@@ -39607,7 +44525,7 @@ Double = 5
 
 <a id="api-b4e03f1837926fab"></a>
 
-##### Integer · 枚举值
+##### Integer（枚举值）
 
 ```csharp
 Integer = 3
@@ -39617,7 +44535,7 @@ Integer = 3
 
 <a id="api-1f4fb3605c3a579d"></a>
 
-##### Raw · 枚举值
+##### Raw（枚举值）
 
 ```csharp
 Raw = 7
@@ -39627,7 +44545,7 @@ Raw = 7
 
 <a id="api-d2979928dc3afe09"></a>
 
-##### String · 枚举值
+##### String（枚举值）
 
 ```csharp
 String = 6
@@ -39637,7 +44555,7 @@ UTF-16 字符串。
 
 <a id="api-2063562f87e9d555"></a>
 
-##### UnsignedInteger · 枚举值
+##### UnsignedInteger（枚举值）
 
 ```csharp
 UnsignedInteger = 4

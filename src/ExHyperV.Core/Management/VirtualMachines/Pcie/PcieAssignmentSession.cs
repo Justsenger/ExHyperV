@@ -209,7 +209,8 @@ public sealed class PcieAssignmentSession
                                     string.Format(Properties.Resources.PCIePage_Msg_LastGpuWarning, _device.FriendlyName));
                             break;
                         case 2:
-                            if (LeavingHost && IsStorage(_device))
+                            // A vendor-specific PCI function can also be the PnP parent of a disk.
+                            if (LeavingHost)
                             {
                                 var disks = await _backend.GetDisks(_device.InstanceId);
                                 Record("ReadControllerDisks", _device.InstanceId, QueryResult(disks));
@@ -265,7 +266,7 @@ public sealed class PcieAssignmentSession
     {
         _refreshRequired = true;
         var errors = new List<string>();
-        var result = LeavingHost && IsStorage(_device)
+        var result = LeavingHost
             ? await ExecuteStorageAsync()
             : await ExecuteDeviceAsync(_device);
         Record("AssignDevice", _device.InstanceId, result);
@@ -353,7 +354,8 @@ public sealed class PcieAssignmentSession
     }
     private bool LeavingHost => _target != HostPcieService.HostKey && _device.Status == HostPcieService.HostKey;
     private static bool IsDisplay(PcieDeviceInfo d) => string.Equals(d.ClassType, "Display", StringComparison.OrdinalIgnoreCase);
-    private static bool IsStorage(PcieDeviceInfo d) => string.Equals(d.ClassType, "SCSIAdapter", StringComparison.OrdinalIgnoreCase) ||
+    private static bool IsStorage(PcieDeviceInfo d) => string.Equals(d.ClassType, "DiskDrive", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(d.ClassType, "SCSIAdapter", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(d.ClassType, "HDC", StringComparison.OrdinalIgnoreCase);
     private static string DiskList(IEnumerable<ControllerDisk> disks) => string.Join("\n", disks.Select(d => $"• #{d.Number} {d.FriendlyName}"));
     private PcieAssignmentState Ask(PcieAssignmentStep step, string title, string message) =>

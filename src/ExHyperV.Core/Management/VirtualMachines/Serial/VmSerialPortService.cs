@@ -144,6 +144,23 @@ public static class VmSerialPortService
         return ModifyPortAsync(vmId, portNumber, normalizedPipe: null, updatePipe: false, debuggerMode: enabled);
     }
 
+    /// <summary>在同一次提交中应用串口路径与调试模式。调试模式为空时保留原值。</summary>
+    /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
+    /// <param name="portNumber">串口号，取 1 或 2。</param>
+    /// <param name="pipePath">命名管道路径或短名称，空值或空白表示断开。</param>
+    /// <param name="debuggerMode">请求的内核调试开关，null 表示保留当前值。</param>
+    /// <returns>按当前串口配置提交两个字段的结果。</returns>
+    public static Task<ApiResponse> SetPortSettingsAsync(Guid vmId, int portNumber, string? pipePath, bool? debuggerMode)
+    {
+        if (vmId == Guid.Empty || portNumber is not (1 or 2))
+            return Task.FromResult(ApiResponse.Fail("请指定虚拟机和有效串口。", kind: ApiErrorKind.InvalidArgument));
+        if (GetPipePathError(pipePath) is { } error)
+            return Task.FromResult(ApiResponse.Fail(error, kind: ApiErrorKind.InvalidArgument));
+        if (debuggerMode == true && string.IsNullOrWhiteSpace(pipePath))
+            return Task.FromResult(ApiResponse.Fail("开启内核调试模式需要先指定命名管道。", kind: ApiErrorKind.InvalidArgument));
+        return ModifyPortAsync(vmId, portNumber, NormalizePipePath(pipePath), true, debuggerMode);
+    }
+
     private static Task<ApiResponse> ModifyPortAsync(
         Guid vmId, int portNumber, string? normalizedPipe, bool updatePipe, bool? debuggerMode) =>
         VmSettingsWriteLock.RunAsync(vmId, async () =>
@@ -176,9 +193,7 @@ public static class VmSerialPortService
                 {
                     if (updatePipe)
                     {
-                        obj["Connection"] = string.IsNullOrEmpty(normalizedPipe)
-                            ? Array.Empty<string>()
-                            : new[] { normalizedPipe };
+                        obj["Connection"] = BuildConnectionValues(normalizedPipe);
                     }
                     if (debuggerMode.HasValue)
                         obj["DebuggerMode"] = debuggerMode.Value;
@@ -204,6 +219,10 @@ public static class VmSerialPortService
             WmiInstanceId = instanceId,
         };
     }
+
+    /// <summary>Hyper-V Msvm_SerialPortSettingData.Connection 需要单元素数组；断开时写入 [""] 而非空数组。</summary>
+    internal static string[] BuildConnectionValues(string? normalizedPipe)
+        => [string.IsNullOrEmpty(normalizedPipe) ? string.Empty : normalizedPipe];
 
     internal static int ParsePortNumber(string instanceId, string elementName)
     {

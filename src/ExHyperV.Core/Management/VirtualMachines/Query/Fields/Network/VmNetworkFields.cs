@@ -9,7 +9,7 @@ public static class VmNetworkFields
     /// <summary>网卡身份：虚拟网卡的标识，与虚拟机标识共同定位该网卡。</summary>
     /// <fielddoc>
     /// <meaning>虚拟网卡的标识，与虚拟机标识共同定位该网卡。</meaning>
-    /// <source>合成或仿真网卡的 EthernetPortSettingData，读取或派生 InstanceID。</source>
+    /// <source>标准或旧版网卡的 EthernetPortSettingData，读取或派生 InstanceID。</source>
     /// <references><see cref="VmNetworkService"/>。</references>
     /// <modification kind="readonly">创建虚拟网卡时确定。</modification>
     /// <values kind="options">GUID，常用文本格式为 36 个字符，按 <c>8-4-4-4-12</c> 分组。</values>
@@ -19,16 +19,26 @@ public static class VmNetworkFields
     /// <summary>网卡名称：虚拟网卡的显示名称。</summary>
     /// <fielddoc>
     /// <meaning>虚拟网卡的显示名称。</meaning>
-    /// <source>合成或仿真网卡的 EthernetPortSettingData，读取或派生 ElementName。</source>
+    /// <source>标准或旧版网卡的 EthernetPortSettingData，读取或派生 ElementName。</source>
     /// <references><see cref="VmNetworkService"/>。</references>
     /// <modification kind="unavailable" />
     /// </fielddoc>
     public static readonly VmQueryField<string> Name = new("Network.Name", "网卡名称", "网络", VmQueryCollection.NetworkAdapters, "Ports", "ElementName");
 
+    /// <summary>旧版网卡标记：区分标准网卡与旧版网卡。</summary>
+    /// <fielddoc>
+    /// <meaning>虚拟网卡是否为旧版网卡；绝大多数场景请使用标准网卡，仅在第 1 代虚机安装老旧系统或传统 BIOS PXE 引导时开启，只能在关机状态添加且不支持硬件加速。</meaning>
+    /// <source>标准或旧版网卡的 EthernetPortSettingData，由 InstanceID 段数派生 IsLegacy。</source>
+    /// <references><see cref="VmNetworkService"/>。</references>
+    /// <modification kind="readonly">创建虚拟网卡时确定。</modification>
+    /// <values kind="options"><c>true</c>：旧版网卡；<c>false</c>：标准网卡。</values>
+    /// </fielddoc>
+    public static readonly VmQueryField<bool> IsLegacy = new("Network.IsLegacy", "旧版网卡", "网络", VmQueryCollection.NetworkAdapters, "Ports", "InstanceID", o => (o?.ToString() ?? "").Split('\\').Length >= 3);
+
     /// <summary>MAC 地址：虚拟网卡当前配置的 MAC 地址。</summary>
     /// <fielddoc>
     /// <meaning>虚拟网卡当前配置的 MAC 地址。</meaning>
-    /// <source>合成或仿真网卡的 EthernetPortSettingData，读取或派生 Address。</source>
+    /// <source>标准或旧版网卡的 EthernetPortSettingData，读取或派生 Address。</source>
     /// <references><see cref="VmNetworkService"/>。</references>
     /// <modification kind="supported" input="adapter、newMac" submission="地址与模式联动">虚拟机未运行时可修改；非空地址启用静态 MAC，空地址恢复动态分配。<see cref="M:ExHyperV.Services.VmNetworkService.SetMacAddressAsync(System.Guid,ExHyperV.Models.VmNetworkAdapter,System.String)"/></modification>
     /// </fielddoc>
@@ -37,7 +47,7 @@ public static class VmNetworkFields
     /// <summary>静态 MAC 开关：虚拟网卡是否使用手动指定的静态 MAC 地址。</summary>
     /// <fielddoc>
     /// <meaning>虚拟网卡是否使用手动指定的静态 MAC 地址。</meaning>
-    /// <source>合成或仿真网卡的 EthernetPortSettingData，读取或派生 StaticMacAddress。</source>
+    /// <source>标准或旧版网卡的 EthernetPortSettingData，读取或派生 StaticMacAddress。</source>
     /// <references><see cref="VmNetworkService"/>。</references>
     /// <modification kind="supported" input="adapter、newMac" submission="地址与模式联动">MAC 地址配置决定分配模式：指定地址时为静态模式，空地址恢复动态分配。<see cref="M:ExHyperV.Services.VmNetworkService.SetMacAddressAsync(System.Guid,ExHyperV.Models.VmNetworkAdapter,System.String)"/></modification>
     /// <values kind="options"><c>true</c>：静态 MAC；<c>false</c>：动态 MAC。</values>
@@ -166,12 +176,12 @@ public static class VmNetworkFields
     /// <summary>VLAN 模式：网卡端口使用的 VLAN 工作模式：接入、干线或专用 VLAN。</summary>
     /// <fielddoc>
     /// <meaning>网卡端口使用的 VLAN 工作模式：接入、干线或专用 VLAN。</meaning>
-    /// <values>底层编码 0 在当前接口中归为 Access。</values>
+    /// <values>默认模式和接入 VLAN ID 为 0 的端口返回 Off。</values>
     /// <source>Msvm_EthernetSwitchPortVlanSettingData，读取或派生 OperationMode。</source>
     /// <references><see cref="VmNetworkService"/>。</references>
     /// <modification kind="supported" input="adapter.VlanMode" submission="明确选择字段">切换 VLAN 模式时，旧模式中不兼容的配置会被清除。<see cref="M:ExHyperV.Services.VmNetworkService.ApplyVlanSettingsAsync(System.Guid,ExHyperV.Models.VmNetworkAdapter,System.Collections.Generic.IReadOnlyCollection{System.String})"/></modification>
     /// </fielddoc>
-    public static readonly VmQueryField<VlanOperationMode> VlanMode = new("Network.VlanMode", "VLAN 模式", "网络", VmQueryCollection.NetworkAdapters, "NetVlan", "OperationMode", o => Convert.ToUInt32(o) == 0 ? VlanOperationMode.Access : (VlanOperationMode)Convert.ToUInt32(o));
+    public static readonly VmQueryField<VlanOperationMode> VlanMode = new("Network.VlanMode", "VLAN 模式", "网络", VmQueryCollection.NetworkAdapters, "NetVlan", "OperationMode");
 
     /// <summary>访问 VLAN 编号：接入模式下，网卡端口所属的 VLAN 编号。</summary>
     /// <fielddoc>
@@ -299,5 +309,5 @@ public static class VmNetworkFields
     /// </fielddoc>
     public static readonly VmQueryField<ulong> ReceiveBytesPerSecond = new("Network.ReceiveBytesPerSecond", "网卡接收速率", "网络", VmQueryCollection.NetworkAdapters, "NetworkPerformance", "ReceiveBytesPerSecond");
 
-    internal static readonly VmQueryField[] Items = [DeviceId, Name, MacAddress, IsStaticMac, IsConnected, SwitchId, SwitchName, MacSpoofingAllowed, DhcpGuardEnabled, RouterGuardEnabled, TeamingAllowed, StormLimit, MonitorMode, VmqEnabled, IpsecOffloadEnabled, SriovEnabled, VlanMode, AccessVlanId, NativeVlanId, TrunkAllowedVlanIds, PvlanPrimaryId, PvlanSecondaryId, PvlanMode, BandwidthReservationBitsPerSecond, BandwidthLimitBitsPerSecond, IpAddresses, IpAddressSource, SendBytesPerSecond, ReceiveBytesPerSecond];
+    internal static readonly VmQueryField[] Items = [DeviceId, Name, IsLegacy, MacAddress, IsStaticMac, IsConnected, SwitchId, SwitchName, MacSpoofingAllowed, DhcpGuardEnabled, RouterGuardEnabled, TeamingAllowed, StormLimit, MonitorMode, VmqEnabled, IpsecOffloadEnabled, SriovEnabled, VlanMode, AccessVlanId, NativeVlanId, TrunkAllowedVlanIds, PvlanPrimaryId, PvlanSecondaryId, PvlanMode, BandwidthReservationBitsPerSecond, BandwidthLimitBitsPerSecond, IpAddresses, IpAddressSource, SendBytesPerSecond, ReceiveBytesPerSecond];
 }

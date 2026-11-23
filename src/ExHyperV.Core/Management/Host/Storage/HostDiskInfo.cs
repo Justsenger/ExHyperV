@@ -51,6 +51,9 @@ namespace ExHyperV.Models
         /// </fielddoc>
         public string Status { get; init; } = string.Empty;
 
+        /// <summary>磁盘实际脱机状态，未报告时为空。</summary>
+        public bool? IsOffline { get; init; }
+
         /// <summary>该磁盘是否可以进入直通前的进一步检查。</summary>
         /// <fielddoc>
         /// <meaning>该磁盘是否可以进入直通前的进一步检查。</meaning>

@@ -12,6 +12,11 @@ internal sealed record AppearanceSettings
     public bool AccentEnabled { get; init; } = true;
     public string AccentColor { get; init; } = "#4CC2FF";
     public string Language { get; init; } = "system";
+    public bool AutoOpenConsole { get; init; } = false;
+    public string DefaultPowerAction { get; init; } = "Shutdown";
+
+    internal static string NormalizePowerAction(string? value)
+        => string.Equals(value, "Save", StringComparison.OrdinalIgnoreCase) ? "Save" : "Shutdown";
 
     private static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -22,9 +27,13 @@ internal sealed record AppearanceSettings
         try
         {
             if (!File.Exists(FilePath)) return new();
-            var value = JsonSerializer.Deserialize<AppearanceSettings>(File.ReadAllText(FilePath));
+            var value = JsonSerializer.Deserialize(File.ReadAllText(FilePath), DesktopJson.Default.AppearanceSettings);
             if (value == null || !Enum.IsDefined(value.Theme) || !TryParseColor(value.AccentColor, out _)) return new();
-            return value with { Language = L10n.NormalizePreference(value.Language) };
+            return value with
+            {
+                Language = L10n.NormalizePreference(value.Language),
+                DefaultPowerAction = NormalizePowerAction(value.DefaultPowerAction)
+            };
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or JsonException)
         {
@@ -39,7 +48,7 @@ internal sealed record AppearanceSettings
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(FilePath)!);
-            File.WriteAllText(temporary, JsonSerializer.Serialize(this));
+            File.WriteAllText(temporary, JsonSerializer.Serialize(this, DesktopJson.Default.AppearanceSettings));
             File.Move(temporary, FilePath, overwrite: true);
             return null;
         }

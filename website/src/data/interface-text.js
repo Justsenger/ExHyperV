@@ -22,7 +22,7 @@ const text = {
     buildNumberLabel: '組建版本號', graphicsVersionLabel: '圖形驅動版本',
   },
   en: {
-    rotateModel: 'ExHyperV 3D icon. Drag or use arrow keys to rotate; double-click to reset.',
+    rotateModel: 'ExHyperV 3D icon. Drag or use arrow keys to rotate, or double-click to reset.',
     productDescription: 'A premier modern desktop experience for Hyper-V on Windows.', download: 'Download', viewSource: 'View source', releases: 'Releases and updates',
     home: 'Home', wiki: 'System Gallery', docs: 'Docs', uiDesign: 'Live Demo', changelog: 'Changelog', navigation: 'Main navigation', categories: 'System categories',
     search: 'Search...', searchVersions: 'Search versions', expandCategories: 'Open categories', closeCategories: 'Close categories',

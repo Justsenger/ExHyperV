@@ -750,7 +750,7 @@ packages:
     resolution: {integrity: sha512-M5t5LlJpS1UHMjvwRQVdFHvPISGeLAxNcrWuJkeGh0KxsqCHZ1O3NXZU/8x7cD0BDcGW8kapxMKTvwlqrNkHkA==}
 
   hw-profiler@file:vendor/hw-profiler-0.1.0.tgz:
-    resolution: {integrity: sha512-I57RJK51gBQEfDY6gurD1PhaTpkeKSiDKPGwe8EBjEKBVXci+NKXtGR3B6VWuNl79zSY67hA2UvRCI7c6/NGZw==, tarball: file:vendor/hw-profiler-0.1.0.tgz}
+    resolution: {integrity: sha512-d4vVOA8alR8bBcDDdgZxvPRjoTxqep95nJ72iJrP2cfkYDN8JpW4zAqUiiWuaMOvgp5zkPefZR0sp35fmr3thw==, tarball: file:vendor/hw-profiler-0.1.0.tgz}
     version: 0.1.0
 
   iron-webcrypto@1.2.1:

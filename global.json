@@ -1,0 +1,11 @@
+{
+  "sdk": {
+    "version": "11.0.100",
+    "rollForward": "latestFeature",
+    "paths": [ ".dotnet", "$host$" ],
+    "allowPrerelease": false
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
+  }
+}

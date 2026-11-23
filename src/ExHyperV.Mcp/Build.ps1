@@ -8,6 +8,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+& (Join-Path $repo 'tools/Use-RepositoryDotNet.ps1')
 if (!$Runtime) {
     $architecture = $env:PROCESSOR_ARCHITEW6432
     if (!$architecture) { $architecture = $env:PROCESSOR_ARCHITECTURE }
@@ -20,7 +21,7 @@ if (!$Runtime) {
 if (!$OutputDirectory) { $OutputDirectory = Join-Path $repo ".artifacts/mcp/$Runtime" }
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
-if (!(Test-Path -LiteralPath $vswhere)) { throw '请安装 VS 2026 或对应 Build Tools，以构建 Core 的 COM 引用。' }
+if (!(Test-Path -LiteralPath $vswhere)) { throw '此构建脚本使用 Visual Studio 2026 或对应 Build Tools 的 MSBuild。' }
 $msbuild = @(& $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -find 'MSBuild\Current\Bin\MSBuild.exe') | Select-Object -First 1
 if (!$msbuild) { throw '请安装 VS 2026 MSBuild。' }
 $selfContained = (!$FrameworkDependent).ToString().ToLowerInvariant()

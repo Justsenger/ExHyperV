@@ -174,7 +174,12 @@ public sealed partial class VmDashboardView
     private void UpdatePowerAppearance()
     {
         bool running = state is VmState.Running or VmState.Starting or VmState.Resuming;
-        PowerText.Text = running ? L10n.Get("Dash_Power_ShutDown")
+        bool defaultSave = string.Equals(
+            ((App)Application.Current).Appearance?.Settings.DefaultPowerAction,
+            "Save",
+            StringComparison.OrdinalIgnoreCase);
+        PowerText.Text = running
+            ? L10n.Get(defaultSave ? "Dash_Power_SaveState" : "Dash_Power_ShutDown")
             : state == VmState.Suspended ? L10n.Get("Dash_Power_Resume")
             : L10n.Get("Dash_Power_Start");
         PowerButton.Padding = running ? new Thickness(20, 0, 20, 0) : new Thickness(24, 6, 24, 6);

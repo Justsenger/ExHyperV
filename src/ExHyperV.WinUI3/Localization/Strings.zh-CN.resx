@@ -139,7 +139,7 @@
     <value>恢复默认蓝色</value>
   </data>
   <data name="Settings_ColorHint" xml:space="preserve">
-    <value>展开的监控卡片使用主题色；关闭后使用灰色。</value>
+    <value>展开的监控卡片使用主题色，关闭后使用灰色。</value>
   </data>
   <data name="Settings_ExpandedState" xml:space="preserve">
     <value>展开状态</value>
@@ -294,6 +294,15 @@
   <data name="Err_InsufficientMemoryWithSize" xml:space="preserve">
     <value>无法启动虚拟机：宿主机可用内存不足（当前配置需要 {0} MiB），请调小启动内存或释放宿主内存。</value>
   </data>
+  <data name="Err_InsufficientMemoryDeficit" xml:space="preserve">
+    <value>无法启动：还缺少 {0} MiB 内存。</value>
+  </data>
+  <data name="Err_InsufficientMemoryExceedsTotal" xml:space="preserve">
+    <value>无法启动：还缺少 {0} MiB 内存（已超物理内存）。</value>
+  </data>
+  <data name="Err_InsufficientMemoryOverhead" xml:space="preserve">
+    <value>无法启动：可用内存不足以支付虚拟化开销。</value>
+  </data>
   <data name="Err_FileInUse" xml:space="preserve">
     <value>虚拟机使用的磁盘或镜像文件正被其他程序占用，请关闭占用后重试。</value>
   </data>
@@ -375,7 +384,7 @@
   </data>
   <data name="SettingsView_LeavePending" xml:space="preserve">
     <value>{0}
-页面已保留；查看后可以再次返回。</value>
+页面已保留，查看后可以再次返回。</value>
   </data>
   <data name="SettingsView_ReadbackSuffix" xml:space="preserve">
     <value>{0}
@@ -403,7 +412,7 @@
     <value>未取得运行时长</value>
   </data>
   <data name="VmList_MissingFields" xml:space="preserve">
-    <value>{0} 台虚拟机有字段暂时无法读取；已有有效值已保留。</value>
+    <value>{0} 台虚拟机有字段暂时无法读取，已有有效值已保留。</value>
   </data>
   <data name="VmState_Running" xml:space="preserve">
     <value>正在运行</value>
@@ -573,6 +582,9 @@
   <data name="Dash_Sub_Network" xml:space="preserve">
     <value>网卡</value>
   </data>
+  <data name="Dash_Sub_Vtpm" xml:space="preserve">
+    <value>vTPM</value>
+  </data>
   <data name="Dash_Sub_Serial" xml:space="preserve">
     <value>串口</value>
   </data>
@@ -580,7 +592,7 @@
     <value>PCIe</value>
   </data>
   <data name="Dash_Sub_Boot" xml:space="preserve">
-    <value>引导</value>
+    <value>引导顺序</value>
   </data>
   <data name="Dash_Sub_Security" xml:space="preserve">
     <value>安全</value>
@@ -590,6 +602,177 @@
   </data>
   <data name="Dash_Sub_Power" xml:space="preserve">
     <value>电源</value>
+  </data>
+  <data name="Dash_Sub_HardwareCompatibility" xml:space="preserve">
+    <value>硬件兼容</value>
+  </data>
+  <data name="Dash_Sub_Other" xml:space="preserve">
+    <value>其他</value>
+  </data>
+  <data name="Pcie_Emulation" xml:space="preserve">
+    <value>PCIe 仿真</value>
+  </data>
+  <data name="Pcie_EmulationHelp" xml:space="preserve">
+    <value>向来宾系统呈现标准 PCIe 设备。启用后无法关闭。</value>
+  </data>
+  <data name="Pcie_PermanentConfirmation" xml:space="preserve">
+    <value>此操作将永久启用虚拟机的 PCIe 仿真。是否继续？</value>
+  </data>
+  <data name="Pcie_Topology" xml:space="preserve">
+    <value>PCIe 拓扑</value>
+  </data>
+  <data name="Pcie_TopologyHelp" xml:space="preserve">
+    <value>选择来宾系统看到的 PCIe 拓扑结构。仿照主机需要启用 PCIe 仿真。</value>
+  </data>
+  <data name="Pcie_HostTopology" xml:space="preserve">
+    <value>仿照主机</value>
+  </data>
+  <data name="Pcie_UnknownValue" xml:space="preserve">
+    <value>当前值 {0}</value>
+  </data>
+  <data name="Pcie_Boot" xml:space="preserve">
+    <value>PCIe 设备引导</value>
+  </data>
+  <data name="Pcie_BootHelp" xml:space="preserve">
+    <value>在 UEFI 启动阶段加载 vPCI 驱动，允许从直通的 NVMe 等受支持的 PCIe 设备启动。</value>
+  </data>
+  <data name="Pcie_Gen2Only" xml:space="preserve">
+    <value>仅第 2 代虚拟机支持通过 UEFI 加载 vPCI 驱动引导。</value>
+  </data>
+  <data name="Pcie_FullScsi" xml:space="preserve">
+    <value>启用完整 SCSI 命令集</value>
+  </data>
+  <data name="Pcie_FullScsiHelp" xml:space="preserve">
+    <value>仅对物理直通硬盘生效。关闭命令过滤后可供虚拟机读取硬盘 SMART 信息或使用专业存储管理工具。使用普通 VHDX 虚拟磁盘时无效，平时建议关闭。</value>
+  </data>
+  <data name="Pcie_GuestMode" xml:space="preserve">
+    <value>来宾呈现模式</value>
+  </data>
+  <data name="Pcie_Paravirtualized" xml:space="preserve">
+    <value>半虚拟化</value>
+  </data>
+  <data name="Pcie_Emulated" xml:space="preserve">
+    <value>仿真</value>
+  </data>
+  <data name="Pcie_Disconnect" xml:space="preserve">
+    <value>断开直通并归还宿主机</value>
+  </data>
+  <data name="Pcie_DisconnectOff" xml:space="preserve">
+    <value>关闭虚拟机后可断开直通</value>
+  </data>
+  <data name="Pcie_IdentityChanged" xml:space="preserve">
+    <value>无法核对设备身份、路径或当前归属，请重新读取设备列表。</value>
+  </data>
+  <data name="Pcie_AddDevice" xml:space="preserve">
+    <value>添加 PCIe 设备</value>
+  </data>
+  <data name="Pcie_AddOff" xml:space="preserve">
+    <value>请先关闭虚拟机后再分配 PCIe 设备</value>
+  </data>
+  <data name="Pcie_Back" xml:space="preserve">
+    <value>返回</value>
+  </data>
+  <data name="Pcie_Returned" xml:space="preserve">
+    <value>已断开 {0} 并归还给宿主机</value>
+  </data>
+  <data name="Pcie_Class" xml:space="preserve">
+    <value>类别</value>
+  </data>
+  <data name="Pcie_Vendor" xml:space="preserve">
+    <value>制造商</value>
+  </data>
+  <data name="Pcie_InstanceId" xml:space="preserve">
+    <value>实例 ID</value>
+  </data>
+  <data name="Pcie_Path" xml:space="preserve">
+    <value>PCIe 路径</value>
+  </data>
+  <data name="Pcie_Collapse" xml:space="preserve">
+    <value>收起详情</value>
+  </data>
+  <data name="Pcie_Expand" xml:space="preserve">
+    <value>展开详情</value>
+  </data>
+  <data name="Pcie_InUse" xml:space="preserve">
+    <value>使用中</value>
+  </data>
+  <data name="Pcie_Unavailable" xml:space="preserve">
+    <value>不可直通</value>
+  </data>
+  <data name="Pcie_OwnerUnknown" xml:space="preserve">
+    <value>无法确认所属虚拟机的电源状态。</value>
+  </data>
+  <data name="Pcie_OtherVm" xml:space="preserve">
+    <value>其他虚拟机使用中</value>
+  </data>
+  <data name="Pcie_OtherRunning" xml:space="preserve">
+    <value>其他虚拟机使用中（运行中）</value>
+  </data>
+  <data name="Pcie_TransferFrom" xml:space="preserve">
+    <value>由 {0} 使用，选中后可转移到当前虚拟机。</value>
+  </data>
+  <data name="Pcie_OwnerMustStop" xml:space="preserve">
+    <value>由 {0} 使用，请先关闭该虚拟机。</value>
+  </data>
+  <data name="Pcie_SourceChanged" xml:space="preserve">
+    <value>所属虚拟机当前未关机，无法转移此设备。</value>
+  </data>
+  <data name="Pcie_Host" xml:space="preserve">
+    <value>宿主使用中</value>
+  </data>
+  <data name="Pcie_Unassigned" xml:space="preserve">
+    <value>待分配</value>
+  </data>
+  <data name="Pcie_SystemDisk" xml:space="preserve">
+    <value>关联宿主机系统盘或启动盘，不能从宿主卸下。</value>
+  </data>
+  <data name="Pcie_DiskQueryFailed" xml:space="preserve">
+    <value>无法确认关联磁盘状态。{0}</value>
+  </data>
+  <data name="Pcie_Add" xml:space="preserve">
+    <value>添加</value>
+  </data>
+  <data name="Pcie_EmptyPool" xml:space="preserve">
+    <value>没有可列出的 PCIe 设备。</value>
+  </data>
+  <data name="Pcie_PowerContinue" xml:space="preserve">
+    <value>关机并继续</value>
+  </data>
+  <data name="Pcie_PowerOff" xml:space="preserve">
+    <value>关闭虚拟机</value>
+  </data>
+  <data name="Pcie_Adjust" xml:space="preserve">
+    <value>参数调整</value>
+  </data>
+  <data name="Pcie_AddDevices" xml:space="preserve">
+    <value>添加设备</value>
+  </data>
+  <data name="Pcie_RelatedPrompt" xml:space="preserve">
+    <value>检测到关联设备，是否一并分配给 {0}？</value>
+  </data>
+  <data name="Pcie_SameDevice" xml:space="preserve">
+    <value>与 {0} 同一设备</value>
+  </data>
+  <data name="Pcie_Related" xml:space="preserve">
+    <value>关联设备</value>
+  </data>
+  <data name="Pcie_Skip" xml:space="preserve">
+    <value>跳过</value>
+  </data>
+  <data name="Pcie_DeviceError" xml:space="preserve">
+    <value>{0}：{1}</value>
+  </data>
+  <data name="Pcie_Failed" xml:space="preserve">
+    <value>直通失败</value>
+  </data>
+  <data name="Pcie_Partial" xml:space="preserve">
+    <value>部分失败（已分配 {0} 个）</value>
+  </data>
+  <data name="Pcie_SkippedCount" xml:space="preserve">
+    <value>已分配 {0} 个，已跳过 {1} 个</value>
+  </data>
+  <data name="Pcie_BackList" xml:space="preserve">
+    <value>返回 PCIe 列表</value>
   </data>
   <data name="Dash_OpenGearTooltip" xml:space="preserve">
     <value>打开对应设置</value>
@@ -773,7 +956,7 @@
     <value>物理磁盘</value>
   </data>
   <data name="Dev_Source" xml:space="preserve">
-    <value>来源</value>
+    <value>介质</value>
   </data>
   <data name="Dev_Path" xml:space="preserve">
     <value>路径</value>
@@ -965,7 +1148,7 @@
     <value>64 位空间大小</value>
   </data>
   <data name="Mem_HighMmio_Desc" xml:space="preserve">
-    <value>给 4 GB 以上高速 PCIe 设备用的地址空间；显卡直通（DDA）等大显存设备报错时主要调大此项。</value>
+    <value>给 4 GB 以上高速 PCIe 设备用的地址空间，显卡直通（DDA）等大显存设备报错时主要调大此项。</value>
   </data>
   <data name="Mem_HighBase_Title" xml:space="preserve">
     <value>64 位空间起始地址</value>
@@ -977,7 +1160,7 @@
     <value>后备页大小</value>
   </data>
   <data name="Mem_BackingPageSize_Desc" xml:space="preserve">
-    <value>决定系统按多大的“内存块”管理内存。日常用默认（4 KB）；大内存高负载选大页/巨页可减少寻址开销、略微提速。</value>
+    <value>决定系统按多大的“内存块”管理内存。日常用默认（4 KB），大内存高负载选大页/巨页可减少寻址开销、略微提速。</value>
   </data>
   <data name="Mem_PageSize_Default" xml:space="preserve">
     <value>默认 (4 KB)</value>
@@ -992,7 +1175,7 @@
     <value>动态内存操作对齐</value>
   </data>
   <data name="Mem_DynAlign_Desc" xml:space="preserve">
-    <value>动态内存热增减时的对齐粒度，用于减少内存碎片；一般保持默认即可。</value>
+    <value>动态内存热增减时的对齐粒度，用于减少内存碎片，一般保持默认即可。</value>
   </data>
   <data name="Mem_Align_Disabled" xml:space="preserve">
     <value>禁用</value>
@@ -1010,13 +1193,13 @@
     <value>每个 NUMA 节点的内存块上限</value>
   </data>
   <data name="Mem_NumaBlocks_Desc" xml:space="preserve">
-    <value>限制单个虚拟 NUMA 节点最多可划分的内存上限；仅多路服务器 NUMA 调优时需修改。</value>
+    <value>限制单个虚拟 NUMA 节点最多可划分的内存上限，仅多路服务器 NUMA 调优时需修改。</value>
   </data>
   <data name="Mem_BackingType_Title" xml:space="preserve">
     <value>内存后备方式</value>
   </data>
   <data name="Mem_BackingType_Desc" xml:space="preserve">
-    <value>物理后备直接占用宿主真实内存（延迟低、支持 1 GB 巨页）；虚拟后备由系统按需调度并支持压缩与冷热页。</value>
+    <value>物理后备直接占用宿主真实内存（延迟低、支持 1 GB 巨页），虚拟后备由系统按需调度并支持压缩与冷热页。</value>
   </data>
   <data name="Mem_Backing_Physical" xml:space="preserve">
     <value>物理后备</value>
@@ -1079,7 +1262,7 @@
     <value>为虚拟机启用 Intel SGX 安全飞地（仅 Intel 处理器支持）。</value>
   </data>
   <data name="Mem_Info_SgxUnsupportedEnabled" xml:space="preserve">
-    <value>当前宿主机不支持 SGX；建议在“机密计算”中将其关闭，关闭后将禁止再次开启。</value>
+    <value>当前宿主机不支持 SGX，建议在“机密计算”中将其关闭，关闭后将禁止再次开启。</value>
   </data>
   <data name="Mem_SgxMode_Title" xml:space="preserve">
     <value>SGX 启动控制</value>
@@ -1109,7 +1292,7 @@
     <value>自动（默认配置）</value>
   </data>
   <data name="Mem_SgxDefault_Desc" xml:space="preserve">
-    <value>自定义 SGX 默认启动控制参数；日常留空自动配置即可。</value>
+    <value>自定义 SGX 默认启动控制参数，日常留空自动配置即可。</value>
   </data>
   <data name="Mem_TrackingState_Title" xml:space="preserve">
     <value>访问跟踪</value>
@@ -1130,7 +1313,7 @@
     <value>跟踪粒度</value>
   </data>
   <data name="Mem_TrackingPolicy_Desc" xml:space="preserve">
-    <value>设置统计内存活跃度时的页面粒度；粒度越大，系统开销越低。</value>
+    <value>设置统计内存活跃度时的页面粒度，粒度越大，系统开销越低。</value>
   </data>
   <data name="Mem_Tracking_Large" xml:space="preserve">
     <value>大</value>
@@ -1286,7 +1469,7 @@
     <value>逻辑处理器 {0}</value>
   </data>
   <data name="Affinity_ReselectRequired" xml:space="preserve">
-    <value>已保存的绑核记录与当前设备不匹配；请重新选核，或清空后点应用解除绑定。</value>
+    <value>已保存的绑核记录与当前设备不匹配，请重新选核，或清空后点应用解除绑定。</value>
   </data>
   <data name="Affinity_SavedApplied" xml:space="preserve">
     <value>亲和性已应用。</value>
@@ -1345,7 +1528,7 @@
     <value>自定义 CPU 名称</value>
   </data>
   <data name="Cpu_Brand_Desc" xml:space="preserve">
-    <value>修改虚拟机里显示出来的处理器名称；留空则显示宿主机真实型号。</value>
+    <value>修改虚拟机里显示出来的处理器名称，留空则显示宿主机真实型号。</value>
   </data>
   <data name="Cpu_Smt_Title" xml:space="preserve">
     <value>超线程</value>
@@ -1377,7 +1560,7 @@
     <value>NUMA 节点</value>
   </data>
   <data name="Cpu_Numa_Desc" xml:space="preserve">
-    <value>把核心划成几块内存访问分区，供多路/大内存精细调优；日常无需拆分。</value>
+    <value>把核心划成几块内存访问分区，供多路/大内存精细调优，日常无需拆分。</value>
   </data>
   <data name="Cpu_Numa_Value" xml:space="preserve">
     <value>{0} 个</value>
@@ -1386,7 +1569,7 @@
     <value>每节点 L3 域</value>
   </data>
   <data name="Cpu_L3_Desc" xml:space="preserve">
-    <value>每个 NUMA 节点内拆出几组三级缓存（L3）；选“自动”表示全区共享同一块 L3。</value>
+    <value>每个 NUMA 节点内拆出几组三级缓存（L3），选“自动”表示全区共享同一块 L3。</value>
   </data>
   <data name="Cpu_L3_Value" xml:space="preserve">
     <value>{0} 组</value>
@@ -1395,7 +1578,7 @@
     <value>每插槽簇数</value>
   </data>
   <data name="Cpu_Cluster_Desc" xml:space="preserve">
-    <value>每个虚拟插槽内划分的处理器簇数量；一般选“自动”由系统决定。</value>
+    <value>每个虚拟插槽内划分的处理器簇数量，一般选“自动”由系统决定。</value>
   </data>
   <data name="Cpu_Cluster_Value" xml:space="preserve">
     <value>{0} 簇</value>
@@ -1648,5 +1831,706 @@
   </data>
   <data name="Cpu_Val_FreqDesiredLtMin" xml:space="preserve">
     <value>期望频率（{0} MHz）不能低于频率下限（{1} MHz）。</value>
+  </data>
+  <data name="Host_Tab_Status" xml:space="preserve">
+    <value>状态</value>
+  </data>
+  <data name="Host_Tab_Env" xml:space="preserve">
+    <value>环境</value>
+  </data>
+  <data name="Host_Tab_Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Host_Tab_Switches" xml:space="preserve">
+    <value>交换机</value>
+  </data>
+  <data name="Host_VmRunningSummary" xml:space="preserve">
+    <value>{0}/{1} 台运行</value>
+  </data>
+  <data name="Host_UptimeContinuous" xml:space="preserve">
+    <value>连续运行 {0}</value>
+  </data>
+  <data name="Host_HyperVReady" xml:space="preserve">
+    <value>Hyper-V 已就绪</value>
+  </data>
+  <data name="Host_HyperVNotReady" xml:space="preserve">
+    <value>Hyper-V 未就绪</value>
+  </data>
+  <data name="Host_HyperVCheckTooltip" xml:space="preserve">
+    <value>查看 Hyper-V 平台与环境自检</value>
+  </data>
+  <data name="Host_Badge_VirtGpuPv" xml:space="preserve">
+    <value>{0} / GPU-PV</value>
+  </data>
+  <data name="Host_Badge_VirtTooltip" xml:space="preserve">
+    <value>CPU 虚拟化与 GPU-PV 支持状态</value>
+  </data>
+  <data name="Host_Badge_IommuReady" xml:space="preserve">
+    <value>{0} 已开启</value>
+  </data>
+  <data name="Host_Badge_IommuOff" xml:space="preserve">
+    <value>{0} 未启用</value>
+  </data>
+  <data name="Host_Badge_IommuTooltip" xml:space="preserve">
+    <value>{0} 设备直通支持</value>
+  </data>
+  <data name="Host_Badge_SchedPowerTooltip" xml:space="preserve">
+    <value>Hyper-V 调度器与宿主电源方案</value>
+  </data>
+  <data name="Host_Sched_Classic" xml:space="preserve">
+    <value>经典</value>
+  </data>
+  <data name="Host_Sched_Core" xml:space="preserve">
+    <value>核心</value>
+  </data>
+  <data name="Host_Sched_Root" xml:space="preserve">
+    <value>根</value>
+  </data>
+  <data name="Host_Sched_Unknown" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="Host_Sched_ClassicFull" xml:space="preserve">
+    <value>经典调度器</value>
+  </data>
+  <data name="Host_Sched_CoreFull" xml:space="preserve">
+    <value>核心调度器</value>
+  </data>
+  <data name="Host_Sched_RootFull" xml:space="preserve">
+    <value>根调度器</value>
+  </data>
+  <data name="Host_Cpu_Thread" xml:space="preserve">
+    <value>线程 {0}</value>
+  </data>
+  <data name="Host_Cpu_HostOwner" xml:space="preserve">
+    <value>宿主</value>
+  </data>
+  <data name="Host_Cpu_UnattributedGuest" xml:space="preserve">
+    <value>虚拟机 (共享)</value>
+  </data>
+  <data name="Host_Cpu_Other" xml:space="preserve">
+    <value>其他</value>
+  </data>
+  <data name="Host_Cpu_PerfCore" xml:space="preserve">
+    <value>性能核</value>
+  </data>
+  <data name="Host_Cpu_EffCore" xml:space="preserve">
+    <value>能效核</value>
+  </data>
+  <data name="Host_Cpu_WarmingUp" xml:space="preserve">
+    <value>正在预热逻辑线程采样...</value>
+  </data>
+  <data name="Host_Cpu_AttributionExact" xml:space="preserve">
+    <value>根调度（精确每虚拟机）</value>
+  </data>
+  <data name="Host_Cpu_AttributionCounter" xml:space="preserve">
+    <value>{0}（共享计数器口径）</value>
+  </data>
+  <data name="Host_Cpu_LegendTip" xml:space="preserve">
+    <value>悬停预览，点击锁定高亮</value>
+  </data>
+  <data name="Host_Mem_PhysicalCap" xml:space="preserve">
+    <value>物理总容量</value>
+  </data>
+  <data name="Host_Mem_InUse" xml:space="preserve">
+    <value>使用中</value>
+  </data>
+  <data name="Host_Mem_Available" xml:space="preserve">
+    <value>可用内存</value>
+  </data>
+  <data name="Host_Mem_VmAllocated" xml:space="preserve">
+    <value>虚拟机已分配</value>
+  </data>
+  <data name="Host_Mem_VmAllocatedVal" xml:space="preserve">
+    <value>{0} ({1} 台运行中)</value>
+  </data>
+  <data name="Host_Mem_NumaSpanning" xml:space="preserve">
+    <value>NUMA 跨越</value>
+  </data>
+  <data name="Host_Mem_PowerPlan" xml:space="preserve">
+    <value>电源方案</value>
+  </data>
+  <data name="Host_Mem_UsageScale" xml:space="preserve">
+    <value>内存使用量</value>
+  </data>
+  <data name="Host_Mem_PhysicalSub" xml:space="preserve">
+    <value>{0} 物理内存</value>
+  </data>
+  <data name="Host_Mem_RingInUseTitle" xml:space="preserve">
+    <value>物理内存已用</value>
+  </data>
+  <data name="Host_Mem_HostSub" xml:space="preserve">
+    <value>宿主系统与进程占用</value>
+  </data>
+  <data name="Host_Mem_ModeDynamic" xml:space="preserve">
+    <value>动态内存</value>
+  </data>
+  <data name="Host_Mem_ModeFixed" xml:space="preserve">
+    <value>固定内存</value>
+  </data>
+  <data name="Host_Mem_FreeTitle" xml:space="preserve">
+    <value>空闲内存</value>
+  </data>
+  <data name="Host_Mem_IdleSubFmt" xml:space="preserve">
+    <value>空闲 {0} GB</value>
+  </data>
+  <data name="Host_Gpu_Partition" xml:space="preserve">
+    <value>GPU-PV 分区</value>
+  </data>
+  <data name="Host_Gpu_Supported" xml:space="preserve">
+    <value>支持</value>
+  </data>
+  <data name="Host_Gpu_Unsupported" xml:space="preserve">
+    <value>不支持</value>
+  </data>
+  <data name="Host_Gpu_Policy" xml:space="preserve">
+    <value>分区策略</value>
+  </data>
+  <data name="Host_Gpu_PolicyUnlocked" xml:space="preserve">
+    <value>已解锁</value>
+  </data>
+  <data name="Host_Gpu_PolicyDefault" xml:space="preserve">
+    <value>默认策略</value>
+  </data>
+  <data name="Host_Gpu_Scale" xml:space="preserve">
+    <value>GPU 引擎利用率</value>
+  </data>
+  <data name="Host_Gpu_UnavailableNote" xml:space="preserve">
+    <value>当前适配器未提供硬件 GPU 引擎性能计数器。</value>
+  </data>
+  <data name="Host_Disk_Offline" xml:space="preserve">
+    <value>已脱机</value>
+  </data>
+  <data name="Host_Disk_Title" xml:space="preserve">
+    <value>磁盘 {0}</value>
+  </data>
+  <data name="Host_Disk_Status" xml:space="preserve">
+    <value>磁盘状态</value>
+  </data>
+  <data name="Host_Disk_Capacity" xml:space="preserve">
+    <value>容量</value>
+  </data>
+  <data name="Host_Disk_Passthrough" xml:space="preserve">
+    <value>直通资格</value>
+  </data>
+  <data name="Host_Disk_PassthroughOk" xml:space="preserve">
+    <value>支持直通</value>
+  </data>
+  <data name="Host_Disk_PassthroughNo" xml:space="preserve">
+    <value>系统或已分配盘排除</value>
+  </data>
+  <data name="Host_Disk_AutoMount" xml:space="preserve">
+    <value>自动挂载盘符</value>
+  </data>
+  <data name="Host_Disk_NativeNvme" xml:space="preserve">
+    <value>原生 NVMe 栈</value>
+  </data>
+  <data name="Host_Disk_Serial" xml:space="preserve">
+    <value>序列号</value>
+  </data>
+  <data name="Host_Disk_Path" xml:space="preserve">
+    <value>设备标识 / UniqueId</value>
+  </data>
+  <data name="Host_Disk_Scale" xml:space="preserve">
+    <value>活动时间 / 传输速率</value>
+  </data>
+  <data name="Host_Disk_Read" xml:space="preserve">
+    <value>读取</value>
+  </data>
+  <data name="Host_Disk_Write" xml:space="preserve">
+    <value>写入</value>
+  </data>
+  <data name="Host_Nic_Media_Wired" xml:space="preserve">
+    <value>以太网</value>
+  </data>
+  <data name="Host_Nic_Media_WiFi" xml:space="preserve">
+    <value>Wi-Fi</value>
+  </data>
+  <data name="Host_Nic_Media_Cellular" xml:space="preserve">
+    <value>蜂窝网络</value>
+  </data>
+  <data name="Host_Nic_Media_Tunnel" xml:space="preserve">
+    <value>虚拟隧道</value>
+  </data>
+  <data name="Host_Nic_Media_Other" xml:space="preserve">
+    <value>网络适配器</value>
+  </data>
+  <data name="Host_Nic_LinkState" xml:space="preserve">
+    <value>链路状态</value>
+  </data>
+  <data name="Host_Nic_Connected" xml:space="preserve">
+    <value>已连接 ({0})</value>
+  </data>
+  <data name="Host_Nic_ConnectedSimple" xml:space="preserve">
+    <value>已连接</value>
+  </data>
+  <data name="Host_Nic_MediaBridge" xml:space="preserve">
+    <value>介质与桥接能力</value>
+  </data>
+  <data name="Host_Nic_CanBridge" xml:space="preserve">
+    <value>支持二层桥接</value>
+  </data>
+  <data name="Host_Nic_NatOnly" xml:space="preserve">
+    <value>仅支持 NAT</value>
+  </data>
+  <data name="Host_Nic_Binding" xml:space="preserve">
+    <value>当前用途 / 绑定交换机</value>
+  </data>
+  <data name="Host_Nic_Idle" xml:space="preserve">
+    <value>空闲（可桥接 / NAT）</value>
+  </data>
+  <data name="Host_Nic_Ipv4" xml:space="preserve">
+    <value>IPv4 地址</value>
+  </data>
+  <data name="Host_Nic_Mac" xml:space="preserve">
+    <value>MAC 地址</value>
+  </data>
+  <data name="Host_Nic_AdapterName" xml:space="preserve">
+    <value>适配器名称</value>
+  </data>
+  <data name="Host_Nic_Scale" xml:space="preserve">
+    <value>物理网卡吞吐量</value>
+  </data>
+  <data name="Host_Net_Send" xml:space="preserve">
+    <value>发送</value>
+  </data>
+  <data name="Host_Net_Recv" xml:space="preserve">
+    <value>接收</value>
+  </data>
+  <data name="Host_Net_CompactRate" xml:space="preserve">
+    <value>发 {0} 收 {1}</value>
+  </data>
+  <data name="Host_Sw_Scale" xml:space="preserve">
+    <value>交换机吞吐量</value>
+  </data>
+  <data name="Host_Sw_Mode" xml:space="preserve">
+    <value>连接模式</value>
+  </data>
+  <data name="Host_Sw_Mode_Bridge" xml:space="preserve">
+    <value>桥接</value>
+  </data>
+  <data name="Host_Sw_Mode_Nat" xml:space="preserve">
+    <value>NAT</value>
+  </data>
+  <data name="Host_Sw_Mode_Isolated" xml:space="preserve">
+    <value>仅内网</value>
+  </data>
+  <data name="Host_Sw_Mode_BridgeFull" xml:space="preserve">
+    <value>桥接 (Bridge)</value>
+  </data>
+  <data name="Host_Sw_Mode_IsolatedFull" xml:space="preserve">
+    <value>仅内网 (Isolated)</value>
+  </data>
+  <data name="Host_Sw_HostAttach" xml:space="preserve">
+    <value>宿主机接入</value>
+  </data>
+  <data name="Host_Sw_HostAttached" xml:space="preserve">
+    <value>已接入</value>
+  </data>
+  <data name="Host_Sw_HostDetached" xml:space="preserve">
+    <value>未接入</value>
+  </data>
+  <data name="Host_Sw_HostIpv4" xml:space="preserve">
+    <value>宿主端口 IPv4</value>
+  </data>
+  <data name="Host_Sw_Endpoints" xml:space="preserve">
+    <value>已接入虚拟机</value>
+  </data>
+  <data name="Host_Sw_None" xml:space="preserve">
+    <value>无</value>
+  </data>
+  <data name="Host_Sw_MacPool" xml:space="preserve">
+    <value>动态 MAC 池</value>
+  </data>
+  <data name="Host_CopiedNotice" xml:space="preserve">
+    <value>已复制到剪贴板：{0}</value>
+  </data>
+  <data name="Host_Env_Refresh" xml:space="preserve">
+    <value>刷新检测</value>
+  </data>
+  <data name="Host_Env_Group_Basic" xml:space="preserve">
+    <value>基本要求</value>
+  </data>
+  <data name="Host_Env_CpuVirt" xml:space="preserve">
+    <value>CPU 虚拟化</value>
+  </data>
+  <data name="Host_Env_HyperVService" xml:space="preserve">
+    <value>Hyper-V 服务</value>
+  </data>
+  <data name="Host_Env_HyperVNotRunning" xml:space="preserve">
+    <value>未启用或服务未运行</value>
+  </data>
+  <data name="Host_Env_Enable" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="Host_Env_Disable" xml:space="preserve">
+    <value>禁用</value>
+  </data>
+  <data name="Host_Env_ToggleConfirmTitle" xml:space="preserve">
+    <value>{0} Hyper-V？</value>
+  </data>
+  <data name="Host_Env_ToggleConfirmBody" xml:space="preserve">
+    <value>启用或停用 Windows Hyper-V 功能与引导配置需要管理员权限，并通常需要重启宿主机才能完成。</value>
+  </data>
+  <data name="Host_Env_ToggleSuccessRestart" xml:space="preserve">
+    <value>Hyper-V 配置已更新，请重启宿主机使配置生效。</value>
+  </data>
+  <data name="Host_Env_ToggleSuccess" xml:space="preserve">
+    <value>Hyper-V 配置已更新。</value>
+  </data>
+  <data name="Host_Env_Group_GpuPv" xml:space="preserve">
+    <value>GPU-PV 要求</value>
+  </data>
+  <data name="Host_Env_OsVersion" xml:space="preserve">
+    <value>系统版本：{0}</value>
+  </data>
+  <data name="Host_Env_PartitionableGpus" xml:space="preserve">
+    <value>检测到 {0} 张可分区 GPU</value>
+  </data>
+  <data name="Host_Env_Group_Pcie" xml:space="preserve">
+    <value>PCIe 直通要求</value>
+  </data>
+  <data name="Host_Env_SmmuStatus" xml:space="preserve">
+    <value>SMMU 状态</value>
+  </data>
+  <data name="Host_Env_IommuStatus" xml:space="preserve">
+    <value>IOMMU 状态</value>
+  </data>
+  <data name="Host_Env_ServerOs" xml:space="preserve">
+    <value>属于 Windows Server 系统</value>
+  </data>
+  <data name="Host_Env_PendingSwitch" xml:space="preserve">
+    <value>存在待重启切换：{0}</value>
+  </data>
+  <data name="Host_Env_Group_Usb" xml:space="preserve">
+    <value>USB 直通要求</value>
+  </data>
+  <data name="Host_Env_Usbipd" xml:space="preserve">
+    <value>已安装 usbipd-win</value>
+  </data>
+  <data name="Host_Env_UsbipdMissing" xml:space="preserve">
+    <value>未检测到 usbipd 服务或命令行程序</value>
+  </data>
+  <data name="Host_Set_Sub_Scheduler" xml:space="preserve">
+    <value>CPU 调度</value>
+  </data>
+  <data name="Host_Set_Sub_Power" xml:space="preserve">
+    <value>电源方案</value>
+  </data>
+  <data name="Host_Set_Sub_Paths" xml:space="preserve">
+    <value>默认目录</value>
+  </data>
+  <data name="Host_Set_Sub_Storage" xml:space="preserve">
+    <value>存储策略</value>
+  </data>
+  <data name="Host_Set_Sub_Mac" xml:space="preserve">
+    <value>网络策略</value>
+  </data>
+  <data name="Host_Set_Sub_Compat" xml:space="preserve">
+    <value>兼容策略</value>
+  </data>
+  <data name="Host_Set_Sub_Preferences" xml:space="preserve">
+    <value>会话偏好</value>
+  </data>
+  <data name="Host_Set_Sched_Title" xml:space="preserve">
+    <value>调度器</value>
+  </data>
+  <data name="Host_Set_Sched_Desc" xml:space="preserve">
+    <value>经典 / 核心 / 根三种 Hyper-V CPU 调度模式，更改后需重启宿主生效。</value>
+  </data>
+  <data name="Host_Set_Sched_PendingMismatch" xml:space="preserve">
+    <value>下次启动配置：{0}（当前正在运行：{1}）</value>
+  </data>
+  <data name="Host_Set_Sched_ChangedNotice" xml:space="preserve">
+    <value>调度器已切换为「{0}」，需重启宿主后生效。</value>
+  </data>
+  <data name="Host_Set_Sched_ClassicBody" xml:space="preserve">
+    <value>由 Hypervisor 调度，可自由分配所有线程，多个虚拟机可能会共用同一个线程。适合个人高性能场景，支持 CPU 组、CPU 配额、权重和预留。</value>
+  </data>
+  <data name="Host_Set_Sched_CoreBody" xml:space="preserve">
+    <value>由 Hypervisor 调度，同一个物理核心的所有线程只分给同一台虚拟机。适合多机隔离、服务器场景，支持 CPU 组、CPU 配额、权重和预留。</value>
+  </data>
+  <data name="Host_Set_Sched_RootBody" xml:space="preserve">
+    <value>由系统内核调度，能识别大小核并动态调节功耗与性能。不支持 CPU 组、CPU 配额、权重和预留，核心绑定通过宿主机进程亲和性实现。</value>
+  </data>
+  <data name="Host_Set_Numa_Title" xml:space="preserve">
+    <value>NUMA 跨越</value>
+  </data>
+  <data name="Host_Set_Numa_Desc" xml:space="preserve">
+    <value>仅对多 NUMA 节点处理器生效。开启后允许虚拟机跨节点分配内存，但会增加内存延迟。</value>
+  </data>
+  <data name="Host_Set_Power_Title" xml:space="preserve">
+    <value>电源方案</value>
+  </data>
+  <data name="Host_Set_Power_Desc" xml:space="preserve">
+    <value>枚举现有 Windows 电源计划并切换。</value>
+  </data>
+  <data name="Host_Set_PathVm_Title" xml:space="preserve">
+    <value>新建虚拟机默认位置</value>
+  </data>
+  <data name="Host_Set_PathVm_Desc" xml:space="preserve">
+    <value>新建虚拟机配置文件 (.vmcx) 的默认存放目录。</value>
+  </data>
+  <data name="Host_Set_PathVhd_Title" xml:space="preserve">
+    <value>新建虚拟硬盘默认位置</value>
+  </data>
+  <data name="Host_Set_PathVhd_Desc" xml:space="preserve">
+    <value>新建虚拟磁盘文件 (.vhdx) 的默认存放目录。</value>
+  </data>
+  <data name="Host_Set_Browse" xml:space="preserve">
+    <value>选择</value>
+  </data>
+  <data name="Host_Set_AutoMount_Title" xml:space="preserve">
+    <value>插入磁盘自动挂载盘符</value>
+  </data>
+  <data name="Host_Set_AutoMount_Desc" xml:space="preserve">
+    <value>控制 Windows 检测到新磁盘或新分区时是否自动分配盘符并挂载。关闭后，新接入的卷不会自动显示盘符，需要手动分配。</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Title" xml:space="preserve">
+    <value>主机原生 NVMe</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Desc" xml:space="preserve">
+    <value>绕过传统的 SCSI 转换层，用原生 NVMe 驱动访问固态硬盘以提升随机读写性能。仅支持 Build 26100 及以上系统，需重启宿主生效，部分设备可能不兼容。</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Restart" xml:space="preserve">
+    <value>主机原生 NVMe 已更新，需重启宿主后生效。</value>
+  </data>
+  <data name="Host_Set_NativeNvme_Unsupported" xml:space="preserve">
+    <value>仅支持 Windows Build 26100 及以上系统</value>
+  </data>
+  <data name="Host_Set_Mac_Title" xml:space="preserve">
+    <value>全局动态 MAC 地址池</value>
+  </data>
+  <data name="Host_Set_Mac_Desc" xml:space="preserve">
+    <value>设置虚拟机使用动态 MAC 地址时的分配范围。局域网内有多台 Hyper-V 宿主机时，建议错开号段避免地址冲突。</value>
+  </data>
+  <data name="Host_Set_Mac_Reset" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Host_Set_Mac_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Host_Set_GpuUnlock_Title" xml:space="preserve">
+    <value>解锁消费级硬件限制</value>
+  </data>
+  <data name="Host_Set_GpuUnlock_Desc" xml:space="preserve">
+    <value>关闭 RequireSecureDeviceAssignment 和 RequireSupportedDeviceAssignment 两项检查，使消费级硬件或未认证设备也能显卡分区或设备直通。</value>
+  </data>
+  <data name="Host_Set_OpenHcl_Title" xml:space="preserve">
+    <value>从文件加载 OpenHCL 固件</value>
+  </data>
+  <data name="Host_Set_OpenHcl_Desc" xml:space="preserve">
+    <value>允许 Hyper-V 从本地文件加载自定义的 OpenHCL 或 IGVM 固件，用于自定义虚拟机引导环境。</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Title" xml:space="preserve">
+    <value>切换系统为服务器版本</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Desc" xml:space="preserve">
+    <value>将系统内核的产品标识切换为 ServerNT，用于解锁原生 PCIe 直通等服务器专属能力，更改后需重启宿主生效。部分没有为服务器系统设计的驱动，可能会在系统引导时蓝屏无法启动，或无法正常工作，需谨慎开启。</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmTitle" xml:space="preserve">
+    <value>确认切换系统产品类型</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmToServer" xml:space="preserve">
+    <value>此操作将修改离线 SYSTEM 注册表配置单元，在重启后将系统标识切换为 ServerNT。部分未兼容服务器版本的驱动可能导致引导失败，恢复备份会保存在 LocalAppData 中。确定继续吗？</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_ConfirmToClient" xml:space="preserve">
+    <value>此操作将准备在下次重启后把系统产品标识恢复为 WinNT。恢复备份保存在 LocalAppData 中。确定继续吗？</value>
+  </data>
+  <data name="Host_Set_ServerSpoof_Restart" xml:space="preserve">
+    <value>系统产品标识切换为 {0} 已提交，需重启宿主后生效。</value>
+  </data>
+  <data name="Host_Set_EnhancedSession_Title" xml:space="preserve">
+    <value>增强会话模式</value>
+  </data>
+  <data name="Host_Set_EnhancedSession_Desc" xml:space="preserve">
+    <value>主机侧许可：允许虚拟机控制台通过增强会话连接。</value>
+  </data>
+  <data name="Host_Set_AutoConsole_Title" xml:space="preserve">
+    <value>启动后自动打开控制台</value>
+  </data>
+  <data name="Host_Set_AutoConsole_Desc" xml:space="preserve">
+    <value>单台虚拟机从关机状态启动成功后，自动打开连接窗口。</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Title" xml:space="preserve">
+    <value>默认电源按钮动作</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Desc" xml:space="preserve">
+    <value>点击运行中虚拟机主电源按钮时的默认动作。</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Shutdown" xml:space="preserve">
+    <value>关机</value>
+  </data>
+  <data name="Host_Set_DefaultPower_Save" xml:space="preserve">
+    <value>保存状态</value>
+  </data>
+  <data name="Host_Switches_New" xml:space="preserve">
+    <value>新建交换机</value>
+  </data>
+  <data name="Host_Switches_Refresh" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="Host_Switches_Empty" xml:space="preserve">
+    <value>当前宿主机未配置任何虚拟交换机。</value>
+  </data>
+  <data name="Host_Switches_EndpointsCount" xml:space="preserve">
+    <value>{0} 台虚拟机接入</value>
+  </data>
+  <data name="Host_Switches_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Host_Switches_Apply" xml:space="preserve">
+    <value>应用更改</value>
+  </data>
+  <data name="Host_Switches_DefaultProtected" xml:space="preserve">
+    <value>默认交换机由系统托管且受保护</value>
+  </data>
+  <data name="Host_Switches_ModeLabel" xml:space="preserve">
+    <value>连接模式</value>
+  </data>
+  <data name="Host_Switches_ModeDesc" xml:space="preserve">
+    <value>桥接：连接物理网卡。NAT：内部共享上网。仅内网：完全隔离内网。</value>
+  </data>
+  <data name="Host_Switches_UpstreamLabel" xml:space="preserve">
+    <value>上游物理网卡 / 共享接口</value>
+  </data>
+  <data name="Host_Switches_UpstreamDesc" xml:space="preserve">
+    <value>由 HyperVSwitchService 识别的物理上联适配器。</value>
+  </data>
+  <data name="Host_Switches_UpstreamNone" xml:space="preserve">
+    <value>无上游连接</value>
+  </data>
+  <data name="Host_Switches_MgmtOsLabel" xml:space="preserve">
+    <value>允许宿主 OS 共享</value>
+  </data>
+  <data name="Host_Switches_MgmtOsDesc" xml:space="preserve">
+    <value>开启后宿主操作系统会通过内部虚拟端口接入该交换机。</value>
+  </data>
+  <data name="Host_Switches_Allow" xml:space="preserve">
+    <value>允许</value>
+  </data>
+  <data name="Host_Switches_Deny" xml:space="preserve">
+    <value>禁止</value>
+  </data>
+  <data name="Host_Switches_EndpointsLabel" xml:space="preserve">
+    <value>已接入端点</value>
+  </data>
+  <data name="Host_Switches_EndpointsDesc" xml:space="preserve">
+    <value>当前接入此虚拟交换机的虚拟机网络适配器。</value>
+  </data>
+  <data name="Host_Switches_NoEndpoints" xml:space="preserve">
+    <value>无已连接虚拟机</value>
+  </data>
+  <data name="Host_Switches_DialogTitle" xml:space="preserve">
+    <value>新建虚拟交换机</value>
+  </data>
+  <data name="Host_Switches_NamePlaceholder" xml:space="preserve">
+    <value>交换机名称（例如 Lab Bridge）</value>
+  </data>
+  <data name="Host_Switches_CreateConfirm" xml:space="preserve">
+    <value>创建</value>
+  </data>
+  <data name="Host_Switches_DeleteTitle" xml:space="preserve">
+    <value>删除交换机「{0}」？</value>
+  </data>
+  <data name="Host_Switches_DeleteBody" xml:space="preserve">
+    <value>接入此交换机的虚拟机网卡将断开网络连接，并同步关闭关联的 ICS 共享。</value>
+  </data>
+  <data name="Host_Switches_Subnet" xml:space="preserve">
+    <value>子网：{0}</value>
+  </data>
+  <data name="Host_Cpu_Unattributed" xml:space="preserve"><value>未归属</value></data>
+  <data name="Gpu_ForceOffContinue" xml:space="preserve">
+    <value>强制断电并继续</value>
+  </data>
+  <data name="Cp_Delete" xml:space="preserve">
+    <value>删除检查点</value>
+  </data>
+  <data name="Cp_Restore" xml:space="preserve">
+    <value>应用检查点</value>
+  </data>
+  <data name="Cp_Merge" xml:space="preserve">
+    <value>合并检查点</value>
+  </data>
+  <data name="Cp_DeleteBranchBody" xml:space="preserve">
+    <value>将删除「{0}」以及后面的全部 {1} 个子检查点（{2}），无法恢复。如果只想移除当前节点并保留后续检查点，请使用「合并」。</value>
+  </data>
+  <data name="Cp_DeleteLeafBody" xml:space="preserve">
+    <value>确定永久删除「{0}」吗？删除后无法恢复。</value>
+  </data>
+  <data name="Cp_RestoreConfirmBody" xml:space="preserve">
+    <value>确定将虚拟机还原到「{0}」吗？当前未保存的更改会丢失，运行中或已暂停的虚拟机可能会重新启动。</value>
+  </data>
+  <data name="Cp_MergeConfirmBody" xml:space="preserve">
+    <value>确定将「{0}」合并到父检查点「{1}」吗？合并后将保留「{1}」的名称和后续检查点。</value>
+  </data>
+  <data name="Cp_BadgeCurrent" xml:space="preserve">
+    <value>当前</value>
+  </data>
+  <data name="Cp_MenuApply" xml:space="preserve">
+    <value>应用</value>
+  </data>
+  <data name="Cp_MenuMerge" xml:space="preserve">
+    <value>合并</value>
+  </data>
+  <data name="Cp_MenuDelete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Cp_MenuCreate" xml:space="preserve">
+    <value>新建检查点</value>
+  </data>
+  <data name="Cp_MenuRename" xml:space="preserve">
+    <value>重命名</value>
+  </data>
+  <data name="Cp_RenameLabel" xml:space="preserve">
+    <value>名称</value>
+  </data>
+  <data name="Cp_SaveAction" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Cp_FullscreenEnter" xml:space="preserve">
+    <value>全屏显示</value>
+  </data>
+  <data name="Cp_FullscreenExit" xml:space="preserve">
+    <value>退出全屏</value>
+  </data>
+  <data name="Cp_DisabledBanner" xml:space="preserve">
+    <value>此虚拟机已禁用检查点</value>
+  </data>
+  <data name="Cp_EnableAction" xml:space="preserve">
+    <value>启用</value>
+  </data>
+  <data name="Cp_Unresolved" xml:space="preserve">
+    <value>检查点写入已暂停，请先核实原 Hyper-V 作业和剩余挂接状态。</value>
+  </data>
+  <data name="Vtpm_ReissueTitle" xml:space="preserve">
+    <value>重新签发虚拟机解锁密钥？</value>
+  </data>
+  <data name="Vtpm_ReissueBody" xml:space="preserve">
+    <value>虚拟机 {0}
+替换密钥后，下次启动可能需要 BitLocker 恢复密钥。上一版密钥保护器仅可在本次应用会话内还原。</value>
+  </data>
+  <data name="Host_ProductUnconfirmed" xml:space="preserve">
+    <value>有待核实的产品类型替换记录。</value>
+  </data>
+  <data name="Host_ProductRecovery" xml:space="preserve">
+    <value>恢复材料</value>
+  </data>
+  <data name="Host_ProductSubmitted" xml:space="preserve">
+    <value>注册表替换已提交。</value>
+  </data>
+  <data name="Cp_Verified" xml:space="preserve">
+    <value>我已核实原作业及剩余资源</value>
+  </data>
+  <data name="Cp_Recheck" xml:space="preserve">
+    <value>重新读取检查点状态</value>
+  </data>
+  <data name="Cp_Changed" xml:space="preserve">
+    <value>检查点范围已变化，请核对最新范围后再次确认。</value>
+  </data>
+  <data name="Host_Cpu_Incomplete" xml:space="preserve">
+    <value>部分处理器缺测，已取得过读数的核心保留上次有效值。</value>
+  </data>
+  <data name="Cp_CleanupMount" xml:space="preserve">
+    <value>重试清理原挂接</value>
   </data>
 </root>

@@ -19,6 +19,11 @@ namespace ExHyperV.Models
         /// <remarks>不包含当前介质路径，同一驱动器的路径修改仍按本次请求覆盖。不得自行构造；无法识别后端复用完全相同设备身份的重建。移除整个设备仍使用含介质配置的 SelectionToken。</remarks>
         public string DeviceToken { get => _deviceToken; init => _deviceToken = value; }
 
+        private string? _mediaFileToken;
+        /// <summary>查询时的介质文件身份。与挂接一起回传可检测同路径替换，旧版快照可为空。</summary>
+        public string? MediaFileToken { get => _mediaFileToken; init => _mediaFileToken = value; }
+        internal void SetMediaFileToken(string token) => _mediaFileToken = token;
+
         internal VmStorageSelection? Selection { get; private set; }
         internal void AttachSelection(VmStorageSelection selection)
         {
@@ -60,6 +65,29 @@ namespace ExHyperV.Models
         /// <summary>物理设备的宿主磁盘容量或文件介质的文件长度，单位 GiB（1024³ 字节）；0 也可能表示未读到。</summary>
         public double DiskSizeGiB { get => _diskSizeGiB; set => _diskSizeGiB = value; }
         private double _diskSizeGiB;
+
+        /// <summary>虚拟磁盘容器格式，成功探测时为 .vhd 或 .vhdx。</summary>
+        public string? VhdFormat { get; internal set; }
+        /// <summary>Fixed、Dynamic 或 Differencing。未能读取时为空。</summary>
+        public string? VhdType { get; internal set; }
+        /// <summary>来宾看到的整盘容量，单位为字节。</summary>
+        public long? VirtualCapacityBytes { get; internal set; }
+        /// <summary>将虚拟容量按 1024³ 字节换算的 GiB 数值。</summary>
+        public double? VirtualCapacityGiB => VirtualCapacityBytes / 1073741824d;
+        /// <summary>宿主介质文件的长度，单位为字节。</summary>
+        public long? FileSizeBytes { get; internal set; }
+        /// <summary>差分盘记录的直接父路径，其可访问性和身份由链检查确认。</summary>
+        public string? ParentPath { get; internal set; }
+        /// <summary>当前介质元数据的读取结果。</summary>
+        public VmDiskMetadataState MetadataState { get; internal set; }
+        /// <summary>元数据读取遇到问题时的说明。</summary>
+        public string MetadataMessage { get; internal set; } = string.Empty;
+        /// <summary>宿主存储提供程序报告的物理盘脱机状态，无法确认时为空。</summary>
+        public bool? IsHostDiskOffline { get; internal set; }
+        /// <summary>物理直通挂接状态说明。</summary>
+        public string PassthroughStatus => DiskType != "Physical" ? string.Empty : IsPassthroughStale
+            ? "宿主直通资源已失效，请检查磁盘是否脱机且仍连接。" : IsHostDiskOffline == true
+                ? "宿主磁盘已脱机，已配置虚拟机直通。" : "已配置物理直通。";
 
         /// <summary>物理磁盘序列号。</summary>
         public string SerialNumber { get => _serialNumber; set => _serialNumber = value; }

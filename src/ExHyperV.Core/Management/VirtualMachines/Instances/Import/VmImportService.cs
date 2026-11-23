@@ -226,8 +226,27 @@ public static partial class VmImportService
         return await ImportSessionCoreAsync(session, options, progress, operation.Token);
     }
 
+    // The no-disk recovery package is private to the upgrade. Validate the complete disk set
+    // before DestroySystem and again when registering the original identity.
+    internal static async Task<VmImportSession> OpenUpgradeRecoveryAsync(string config, Guid id, IEnumerable<string> disks)
+    {
+        string root = Directory.GetParent(Path.GetDirectoryName(config)!)!.FullName;
+        var session = await PrepareSessionAsync(root, VmImportSourceKind.Folder, VmImportPlacementMode.ExistingDirectory,
+            new SourceLayout(root, config, root, null, null, null, null), null, CancellationToken.None);
+        var expected = disks.Order(StringComparer.OrdinalIgnoreCase);
+        var actual = session.Preview.Disks.Select(d => d.SourcePath).Order(StringComparer.OrdinalIgnoreCase);
+        if (GetPreviewError([session.Preview]) == null && session.Preview.OriginalGuid == id && session.Preview.Generation == 1 &&
+            expected.SequenceEqual(actual, StringComparer.OrdinalIgnoreCase)) return session;
+        await session.DisposeAsync();
+        throw new InvalidDataException("Recovery package identity or disk inventory does not match the source.");
+    }
+
+    internal static Task<VmImportResult> RegisterUpgradeRecoveryAsync(VmImportSession session, UpgradeSource original) =>
+        ImportSessionCoreAsync(session, new VmImportOptions(VmImportGuidMode.Preserve), null, CancellationToken.None, original);
+
     private static async Task<VmImportResult> ImportSessionCoreAsync(
-        VmImportSession session, VmImportOptions options, IProgress<int>? progress, CancellationToken cancellationToken)
+        VmImportSession session, VmImportOptions options, IProgress<int>? progress, CancellationToken cancellationToken,
+        UpgradeSource? recovery = null)
     {
         RefreshRetainedImportPaths(session);
         if (session.IsRealized)
@@ -297,8 +316,8 @@ public static partial class VmImportService
                 // 配置、检查点与分页文件继续留在来源目录中。
                 await MovePlannedDataRootsAsync(
                     session,
-                    session.SourceRoot,
-                    cancellationToken);
+                    recovery?.Root ?? session.SourceRoot,
+                    cancellationToken, recovery);
                 // 导出配置会保留源主机上的绝对 VHD 路径。即使那个旧路径当前仍存在，
                 // “使用现有目录”也必须把计划虚拟机显式改指向用户选择目录内的磁盘，
                 // 否则注册成功后会悄悄继续使用源盘，目录本身并不自包含。
@@ -770,7 +789,7 @@ public static partial class VmImportService
     private static async Task MovePlannedDataRootsAsync(
         VmImportSession session,
         string configRoot,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, UpgradeSource? recovery = null)
     {
         using var planned = new ManagementObject(session.PlannedSystemPath);
         planned.Get();
@@ -789,7 +808,8 @@ public static partial class VmImportService
                  })
         {
             if (settings.Properties[property] != null)
-                settings[property] = configRoot;
+                settings[property] = recovery != null && recovery.Hardware.GetProperty("System").TryGetProperty(property, out var path)
+                    ? path.GetString() : configRoot;
         }
 
         await InvokeObservedImportMethodAsync(session, "ModifySystemSettings",
@@ -998,8 +1018,10 @@ public static partial class VmImportService
         string? directPath = null;
         string? failure = null;
         ApiResponse? jobCompletion = null;
+        WmiOperationReceipt? receipt = null;
         await session.CleanupGuard.ObserveAsync(() =>
         {
+            receipt = WmiOperationCapture.Start(method, service.Path.Path, WmiScope.HyperV, WmiContext.Local);
             using var output = service.InvokeMethod(method, input, null)
                 ?? throw new InvalidOperationException($"{method} 没有返回提交结果。");
             object returned = output["ReturnValue"]
@@ -1009,6 +1031,7 @@ public static partial class VmImportService
             if (returnCode != 4096) return Task.FromResult<string?>(null);
             jobPath = output["Job"] as string
                 ?? throw new InvalidOperationException($"{method} 没有返回原生作业身份。");
+            if (receipt != null) receipt.Job = jobPath;
             return Task.FromResult<string?>(jobPath);
         }, () =>
         {
@@ -1041,6 +1064,8 @@ public static partial class VmImportService
             }
             return Task.CompletedTask;
         });
+        receipt?.Complete(jobCompletion ?? (returnCode == 0 ? ApiResponse.Ok() : ApiResponse.Fail(failure ?? method,
+            unchecked((int)returnCode), ApiErrorSource.Wmi, kind: ApiErrorKind.OperationFailed)));
         if (failure != null) throw new CoreOperationException(
             jobCompletion is { Success: false } ? jobCompletion : ApiResponse.Fail(failure,
                 unchecked((int)returnCode), ApiErrorSource.Wmi,
@@ -1058,8 +1083,10 @@ public static partial class VmImportService
         string? jobPath = null;
         uint result = 0;
         ApiResponse? jobCompletion = null;
+        WmiOperationReceipt? receipt = null;
         await guard.ObserveAsync(() =>
         {
+            receipt = WmiOperationCapture.Start("ValidatePlannedSystem", plannedPath, WmiScope.HyperV, WmiContext.Local);
             using var output = service.InvokeMethod("ValidatePlannedSystem", input, null)
                 ?? throw new InvalidOperationException("ValidatePlannedSystem 没有返回提交结果。");
             object returned = output["ReturnValue"]
@@ -1068,6 +1095,7 @@ public static partial class VmImportService
             if (result != 4096) return Task.FromResult<string?>(null);
             jobPath = output["Job"] as string
                 ?? throw new InvalidOperationException("ValidatePlannedSystem 没有返回原生作业身份。");
+            if (receipt != null) receipt.Job = jobPath;
             return Task.FromResult<string?>(jobPath);
         }, () =>
         {
@@ -1076,6 +1104,8 @@ public static partial class VmImportService
             jobCompletion = EvaluateImportJobCompletion(WmiJobWaiter.Read(job));
             return Task.FromResult(jobCompletion is not null);
         }, cancellationToken, timeout ?? TimeSpan.FromMinutes(30), TimeSpan.FromMilliseconds(150));
+        receipt?.Complete(jobCompletion ?? (result == 0 ? ApiResponse.Ok() : ApiResponse.Fail("ValidatePlannedSystem",
+            unchecked((int)result), ApiErrorSource.Wmi, kind: ApiErrorKind.OperationFailed)));
         if (result == 0) return Array.Empty<string>();
         if (result != 4096) throw new InvalidOperationException($"ValidatePlannedSystem: {result}");
         if (jobCompletion?.Success == true)
@@ -1776,7 +1806,7 @@ public static partial class VmImportService
         };
     }
 
-    private static bool IsMainConfigurationPath(string path)
+    internal static bool IsMainConfigurationPath(string path)
         => string.Equals(Path.GetFileName(Path.GetDirectoryName(path)), "Virtual Machines", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsMainConfigurationEntry(string entry)

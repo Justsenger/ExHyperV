@@ -27,7 +27,6 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
     private bool transientServiceBanner;
     private NoticeOrigin activeNoticeOrigin;
     private readonly DispatcherTimer successToastTimer = new() { Interval = TimeSpan.FromMilliseconds(2600) };
-    private string? activeSuccessToastText;
     private VmInfoCache? cache;
     private VmQueryRow? displayedConfiguration;
     public Task PendingWork { get; private set; } = Task.CompletedTask;
@@ -56,13 +55,16 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
     public VmDashboardView()
     {
         InitializeComponent();
+        Settings.VmSettingsView.AttachScrollbarClearance(OverviewRailScroll, bottomSpacing: 0);
+        Settings.VmSettingsView.AttachScrollbarClearance(OverviewDetailScroll, bottomSpacing: 0);
         ApplyLocalization();
         InitializeUptimeClock();
         InitializeNavigation();
         InitializeOverview();
         InitializeGpuCharts();
         successToastTimer.Tick += (_, _) => HideSuccessToast();
-        Body.SizeChanged += (_, _) => UpdateSuccessToastLayout();
+        DashboardNoticeBanner.RegisterPropertyChangedCallback(VisibilityProperty, (_, _) => SyncNoticeBannerClearance());
+        DashboardNoticeBanner.SizeChanged += (_, _) => SyncNoticeBannerClearance();
         Loaded += (_, _) =>
         {
             AttachAppearanceEvents();
@@ -92,6 +94,9 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         Stop();
         await Task.WhenAll(work.Append(PowerWork));
     }
+
+    internal event Action<bool>? ImmersiveRequested;
+    private bool settingsImmersive;
 
     public VmListItem? SelectedVm => current;
     private int selectionVersion;
@@ -162,6 +167,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         ShowVmArtwork(vm.IsRunning);
         transientServiceBanner = false;
         HideSuccessToast();
+        SetPageTabsTrailingAction(null);
         DashboardNoticeBanner.Hide();
         OverviewPane.Visibility = Visibility.Collapsed;
         LoadingBar.Visibility = Visibility.Visible;
@@ -182,10 +188,6 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             ShowConfiguration(cached);
             OverviewPane.Visibility = Visibility.Visible;
             LoadingBar.Visibility = Visibility.Collapsed;
-        }
-        else if (cache?.GetBasic(vm.Id) is { } basics)
-        {
-            ShowBasicConfiguration(basics);
         }
 
         var source = new CancellationTokenSource();
@@ -216,7 +218,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             if (cache != null) row = await cache.LoadDetailsAsync(id, token);
             else
             {
-                var response = await Task.Run(() => query.QueryAsync(new VmQueryRequest(ConfigurationFields, [id]), token), token);
+                var response = await Task.Run(() => query.QueryAsync(new VmQueryRequest(ConfigurationFields, (Guid[])[id]), token), token);
                 if (!response.HasData) throw new InvalidOperationException(
                     response.Success ? L10n.Get("Dash_ReadVmError") : CoreMessageResolver.ResolveError(response));
                 row = response.Data!.VirtualMachines.FirstOrDefault() ?? throw new InvalidOperationException(L10n.Get("Dash_VmNotInHost"));
@@ -230,7 +232,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             while (!token.IsCancellationRequested)
             {
                 long queryStarted = Stopwatch.GetTimestamp();
-                var metrics = await Task.Run(() => query.QueryAsync(new VmQueryRequest(MetricFields, [id]), token), token);
+                var metrics = await Task.Run(() => query.QueryAsync(new VmQueryRequest(MetricFields, (Guid[])[id]), token), token);
                 var queryElapsed = Stopwatch.GetElapsedTime(queryStarted);
                 token.ThrowIfCancellationRequested();
                 if (metrics.HasData && metrics.Data!.VirtualMachines.Count == 0)
@@ -261,13 +263,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
                 else if (!metrics.HasData)
                 {
                     bool serviceUnavailable = CoreErrorClassifier.IsServiceUnavailable(metrics.Code, metrics.ErrorSource, metrics.Exception);
-                    bool coordinatedOperation = HyperVServiceCoordination.IsRecovering || HyperVServiceCoordination.HasActiveSettingsWrite;
-                    if (serviceUnavailable && coordinatedOperation)
-                    {
-                        // 主动操作或服务自动恢复期间，静默等待下一拍轮询，避免后台黄条与页面提示打架。
-                        consecutiveServiceMisses = 0;
-                    }
-                    else if (serviceUnavailable && ++consecutiveServiceMisses < 2)
+                    if (serviceUnavailable && ++consecutiveServiceMisses < 2)
                     {
                         // 单次瞬断先静默重连一次。
                     }
@@ -315,25 +311,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         }
     }
 
-    public void SetCache(VmInfoCache value)
-    {
-        if (cache != null) cache.BasicReady -= OnBasicReady;
-        cache = value;
-        cache.BasicReady += OnBasicReady;
-    }
-
-    private void OnBasicReady(Guid id) => DispatcherQueue.TryEnqueue(() =>
-    {
-        if (IsLoaded && current?.Id == id && displayedConfiguration == null && cache?.GetBasic(id) is { } row)
-            ShowBasicConfiguration(row);
-    });
-
-    private void ShowBasicConfiguration(VmQueryRow row)
-    {
-        ShowIdentity(row);
-        UpdateOverviewConfiguration(row);
-        ShowOperatingSystem(row);
-    }
+    public void SetCache(VmInfoCache value) => cache = value;
 
     private void ShowIdentity(VmQueryRow row, bool live = false, TimeSpan queryElapsed = default)
     {
@@ -357,7 +335,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             ShowVmArtwork(state == VmState.Running);
             if (live) stateVerified = true;
             StateText.Text = VirtualMachinesPageViewModel.StateText(status.Value);
-            if (live && current != null) current.State = StateText.Text;
+            if (live && current != null) current.PowerState = status.Value;
             UpdatePowerAppearance();
             PowerButton.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
             bool actionable = state is VmState.Running or VmState.PoweredOff or VmState.Saved or VmState.Suspended;
@@ -370,6 +348,10 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             PowerButton.IsEnabled = false;
             PowerMenu.IsEnabled = false;
         }
+        if (live && SettingsHost.Content is Settings.VmPcieSettingsView pcie)
+            pcie.UpdatePowerState(stateVerified && state.HasValue ? state.Value : VmState.Unknown);
+        if (live && SettingsHost.Content is Settings.VmNetworkSettingsView network)
+            network.UpdatePowerState(stateVerified && state.HasValue ? state.Value : VmState.Unknown);
         UpdateUptimeClock(row, live, queryElapsed);
     }
 
@@ -446,7 +428,13 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         PowerButton.IsEnabled = false;
         try
         {
-            var action = requestedAction ?? (originalState == VmState.Running ? VmPowerAction.Stop : VmPowerAction.Start);
+            bool defaultSave = string.Equals(
+                ((App)Application.Current).Appearance?.Settings.DefaultPowerAction,
+                "Save",
+                StringComparison.OrdinalIgnoreCase);
+            var action = requestedAction ?? (originalState == VmState.Running
+                ? (defaultSave ? VmPowerAction.Save : VmPowerAction.Stop)
+                : VmPowerAction.Start);
             if (action != VmPowerAction.Start)
             {
                 string verb = action switch
@@ -493,6 +481,13 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
                 }
                 if (action is VmPowerAction.Start or VmPowerAction.Restart)
                     await RestoreAffinityAfterStartAsync(vm.Id);
+                if (action == VmPowerAction.Start
+                    && originalState == VmState.PoweredOff
+                    && (((App)Application.Current).Appearance?.Settings.AutoOpenConsole ?? false)
+                    && current?.Id == vm.Id)
+                {
+                    OnConnectClick(this, new RoutedEventArgs());
+                }
             }
             else if (session.Stage == VmPowerOperationStage.Failed && current?.Id == vm.Id)
             {
@@ -604,12 +599,20 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
     void IDashboardFeedbackHost.HideSuccessToast() => HideSuccessToast();
     void IDashboardFeedbackHost.ShowSettingsNotice(string? text, InfoBarSeverity severity, Button? actionButton)
     {
+        HideSuccessToast();
         transientServiceBanner = false;
         activeNoticeOrigin = NoticeOrigin.Settings;
         DashboardNoticeBanner.Show(text, severity, actionButton);
     }
 
     void IDashboardFeedbackHost.ClearSettingsNotice() => ClearSettingsNotice();
+    void IDashboardFeedbackHost.SetPageTabsTrailingAction(UIElement? content) => SetPageTabsTrailingAction(content);
+
+    private void SetPageTabsTrailingAction(UIElement? content)
+    {
+        PageTabsTrailingHost.Content = content;
+        PageTabsTrailingHost.Visibility = content != null ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     private void ClearSettingsNotice()
     {
@@ -619,41 +622,39 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
 
     private void ShowSuccessToast(string? text)
     {
-        activeSuccessToastText = string.IsNullOrWhiteSpace(text) ? L10n.Get("Common_Applied") : text;
+        if (DashboardNoticeBanner.IsOpen)
+        {
+            if (DashboardNoticeBanner.Severity == InfoBarSeverity.Error) return;
+            transientServiceBanner = false;
+            DashboardNoticeBanner.Hide();
+        }
         successToastTimer.Stop();
-        UpdateSuccessToastLayout();
+        OverlaySuccessToast.Show(text, elevated: true);
         successToastTimer.Start();
     }
 
     private void HideSuccessToast()
     {
         successToastTimer.Stop();
-        activeSuccessToastText = null;
-        TabSuccessToast.Hide();
         OverlaySuccessToast.Hide();
-    }
-
-    private void UpdateSuccessToastLayout()
-    {
-        if (activeSuccessToastText == null) return;
-        bool useTabSlot = Body.ActualWidth >= 700;
-        if (useTabSlot)
-        {
-            OverlaySuccessToast.Hide();
-            TabSuccessToast.Show(activeSuccessToastText, elevated: false);
-        }
-        else
-        {
-            TabSuccessToast.Hide();
-            OverlaySuccessToast.Show(activeSuccessToastText, elevated: true);
-        }
     }
 
     private void ShowError(string? message, InfoBarSeverity severity = InfoBarSeverity.Error)
     {
+        HideSuccessToast();
         activeNoticeOrigin = NoticeOrigin.Dashboard;
         if (severity != InfoBarSeverity.Warning) transientServiceBanner = false;
         DashboardNoticeBanner.Show(message, severity);
+    }
+
+    private void SyncNoticeBannerClearance()
+    {
+        double bottom = DashboardNoticeBanner.Visibility == Visibility.Visible && DashboardNoticeBanner.ActualHeight > 0
+            ? Math.Ceiling(DashboardNoticeBanner.ActualHeight) + 12
+            : 0;
+        var margin = new Thickness(0, 0, 0, bottom);
+        if (SettingsHost.Margin != margin) SettingsHost.Margin = margin;
+        if (OverviewPane.Margin != margin) OverviewPane.Margin = margin;
     }
 
     private void OnErrorClosed(object? sender, EventArgs args)

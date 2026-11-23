@@ -8,7 +8,7 @@ using System.ComponentModel;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines;
 
-public sealed class VirtualMachinesPageViewModel : ObservableObject
+public sealed partial class VirtualMachinesPageViewModel : ObservableObject
 {
     private IReadOnlyList<VmListItem> all = [];
     private VmListItem? selected;
@@ -38,8 +38,7 @@ public sealed class VirtualMachinesPageViewModel : ObservableObject
         }
     }
 
-    public void Cancel() { RefreshCommand.Cancel(); Cache.Cancel(); }
-    public void ResumePreload() => Cache.StartPreload(all.Select(vm => vm.Id).ToArray());
+    public void Cancel() => RefreshCommand.Cancel();
 
     private async Task RefreshAsync(CancellationToken cancellationToken)
     {
@@ -51,7 +50,7 @@ public sealed class VirtualMachinesPageViewModel : ObservableObject
             {
                 await using var query = new VmQueryService();
                 return await query.QueryAsync(new VmQueryRequest(
-                    [VmIdentityFields.Name, VmIdentityFields.State, VmIdentityFields.Uptime]), cancellationToken).ConfigureAwait(false);
+                    (VmQueryField[])[VmIdentityFields.Name, VmIdentityFields.State, VmIdentityFields.Uptime]), cancellationToken).ConfigureAwait(false);
             }, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (!response.HasData) throw new InvalidOperationException(
@@ -68,16 +67,16 @@ public sealed class VirtualMachinesPageViewModel : ObservableObject
                 var uptime = row.Get(VmIdentityFields.Uptime);
                 if (!name.HasValue || !state.HasValue || !uptime.HasValue) missingFields++;
                 // 同一虚拟机沿用原列表对象，刷新不应被视为切换虚拟机并结束设置流程。
-                var item = old ?? new VmListItem(id, id.ToString(), L10n.Get("VmList_StateUnavailable"), L10n.Get("VmList_UptimeUnavailable"));
+                var item = old ?? new VmListItem(id, id.ToString(), null, L10n.Get("VmList_UptimeUnavailable"));
                 if (name.HasValue) item.Name = name.Value!;
-                if (state.HasValue) item.State = StateText(state.Value);
+                if (state.HasValue) item.PowerState = state.Value;
                 if (uptime.HasValue) item.Uptime = uptime.Value.ToString(@"d\.hh\:mm\:ss");
                 updated.Add(item);
             }
             foreach (var vm in all) vm.PropertyChanged -= OnVmPropertyChanged;
             all = updated;
             foreach (var vm in all) vm.PropertyChanged += OnVmPropertyChanged;
-            Cache.StartPreload(all.Select(vm => vm.Id).ToArray());
+            Cache.Retain(all.Select(vm => vm.Id).ToHashSet());
             ApplyFilter();
             if (missingFields > 0) Error = L10n.Format("VmList_MissingFields", missingFields);
         }

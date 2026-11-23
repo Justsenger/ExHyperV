@@ -5,6 +5,10 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
+internal sealed record CpuGroupFingerprint(Guid GroupId, ulong? HypervisorGroupId, uint? Count, uint[]? Processors,
+    HcsCpuGroupProperty[]? Policies, CpuMemberFingerprint[]? Members);
+internal sealed record CpuMemberFingerprint(Guid VmId, string ConfigurationId, string ProcessorInstanceId);
+
 /// <summary>查询宿主 CPU 组，修改配额、优先级、空闲处理器保留数量和相对权重。</summary>
 /// <remarks>
 /// <para>修改适用于 Classic/Core 调度器。先读取组快照，将非空 Revision 原样提交；配置或成员已经变化时返回 Conflict。修改影响该组全部使用者，成功后返回新的快照与 Revision。</para>
@@ -191,16 +195,14 @@ public static class HostCpuGroupService
 
     private static string Fingerprint(HcsCpuGroupDetail group, HostCpuGroupBindings? bindings, Property? ignored = null)
     {
-        string json = JsonSerializer.Serialize(new
-        {
+        string json = JsonSerializer.Serialize(new CpuGroupFingerprint(
             group.GroupId, group.HypervisorGroupId,
-            Count = group.Affinity?.LogicalProcessorCount,
-            Processors = group.Affinity?.LogicalProcessors?.Order().ToArray(),
-            Policies = group.GroupProperties?.Where(item => item.PropertyCode != (uint?)ignored).OrderBy(item => item.PropertyCode)
-                .Select(item => new { item.PropertyCode, item.PropertyValue }).ToArray(),
-            Members = bindings?.Items.Where(item => item.Binding.GroupId == group.GroupId).OrderBy(item => item.Binding.VmId)
-                .Select(item => new { item.Binding.VmId, item.Binding.ConfigurationId, item.Binding.ProcessorInstanceId }).ToArray()
-        });
+            group.Affinity?.LogicalProcessorCount,
+            group.Affinity?.LogicalProcessors?.Order().ToArray(),
+            group.GroupProperties?.Where(item => item.PropertyCode != (uint?)ignored).OrderBy(item => item.PropertyCode).ToArray(),
+            bindings?.Items.Where(item => item.Binding.GroupId == group.GroupId).OrderBy(item => item.Binding.VmId)
+                .Select(item => new CpuMemberFingerprint(item.Binding.VmId, item.Binding.ConfigurationId, item.Binding.ProcessorInstanceId)).ToArray()),
+            CoreJson.Default.CpuGroupFingerprint);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
     }
     private static uint? ReadValue(HcsCpuGroupDetail group, Property property)

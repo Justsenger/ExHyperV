@@ -7,6 +7,8 @@ on:
       - 'src/ExHyperV.Core.Tests/**'
       - 'src/ExHyperV.sln'
       - 'src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1'
+      - 'global.json'
+      - 'tools/Use-RepositoryDotNet.ps1'
       - '.github/workflows/core-tests.yml'
       - '**/Directory.Build.*'
       - '**/Directory.Packages.props'
@@ -18,6 +20,8 @@ on:
       - 'src/ExHyperV.Core.Tests/**'
       - 'src/ExHyperV.sln'
       - 'src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1'
+      - 'global.json'
+      - 'tools/Use-RepositoryDotNet.ps1'
       - '.github/workflows/core-tests.yml'
       - '**/Directory.Build.*'
       - '**/Directory.Packages.props'
@@ -51,7 +55,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
       - name: Run regression and offline Windows integration tests
         shell: pwsh
         run: ./src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1 -Runtime ${{ matrix.runtime }} -Suite All -LockedRestore

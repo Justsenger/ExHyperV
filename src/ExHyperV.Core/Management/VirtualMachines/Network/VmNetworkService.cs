@@ -41,6 +41,15 @@ public static partial class VmNetworkService
         return (result.Success, string.Join(" ", new[] { result.Error, result.CleanupError }.Where(x => !string.IsNullOrWhiteSpace(x))));
     }
 
+    internal static async Task<(bool Success, string Message)> AddNetworkAdapterAsync(
+        string vmName, Guid? switchId, bool isConnected = true, string? staticMacAddress = null, bool isLegacy = false)
+    {
+        var identity = await VmIdentity.ResolveAsync(vmName);
+        if (!identity.HasData) return (false, identity.Error);
+        var result = await AddNetworkAdapterAsync(identity.Data, switchId, isConnected, staticMacAddress, isLegacy);
+        return (result.Success, string.Join(" ", new[] { result.Error, result.CleanupError }.Where(x => !string.IsNullOrWhiteSpace(x))));
+    }
+
 
     internal static async Task<(bool Success, string Message)> RemoveNetworkAdapterAsync(string vmName, VmNetworkAdapter adapter)
     {
@@ -145,8 +154,8 @@ public static partial class VmNetworkService
             var portsTask = QueryPortsAsync("Msvm_SyntheticEthernetPortSettingData", vmId);
             var emulatedPortsTask = QueryPortsAsync("Msvm_EmulatedEthernetPortSettingData", vmId);
             var allocationsTask = WmiApi.QueryAsync(
-                $"SELECT EnabledState, InstanceID, HostResource FROM Msvm_EthernetPortAllocationSettingData WHERE InstanceID LIKE 'Microsoft:{vmId:D}%'",
-                obj => new NetworkAllocationSnapshot(obj["InstanceID"]?.ToString() ?? string.Empty,
+                $"SELECT EnabledState, InstanceID, HostResource, Parent FROM Msvm_EthernetPortAllocationSettingData WHERE InstanceID LIKE 'Microsoft:{vmId:D}%'",
+                obj => new NetworkAllocationSnapshot(obj["InstanceID"]?.ToString() ?? string.Empty, obj["Parent"]?.ToString(),
                     obj["EnabledState"]?.ToString() == "2", obj["HostResource"] as string[] ?? []));
             await Task.WhenAll(portsTask, emulatedPortsTask, allocationsTask);
             var ports = await portsTask;
@@ -164,10 +173,13 @@ public static partial class VmNetworkService
                 var adapter = new VmNetworkAdapter
                 {
                     Id = port.Id, Name = port.Name, MacAddress = MacAddress.Format(port.Address),
-                    IsStaticMac = port.IsStaticMac
+                    HasReportedMac = !string.IsNullOrWhiteSpace(port.Address),
+                    IsStaticMac = port.IsStaticMac, IsLegacy = port.Id.Split('\\').Length >= 3,
+                    VlanMode = VlanOperationMode.Off
                 };
                 var allocation = allocations.Data?.FirstOrDefault(a =>
-                    a.Id.StartsWith(port.Id + "\\", StringComparison.OrdinalIgnoreCase));
+                    !string.IsNullOrWhiteSpace(a.Parent) ? VmNetworkAdapterCreation.SamePath(a.Parent, port.Path)
+                        : a.Id.StartsWith(port.Id + "\\", StringComparison.OrdinalIgnoreCase));
                 if (allocation != null)
                 {
                     adapter.IsConnected = allocation.IsConnected;
@@ -201,12 +213,12 @@ public static partial class VmNetworkService
         }
     });
 
-    private sealed record NetworkPortSnapshot(string Id, string Name, string? Address, bool IsStaticMac);
-    private sealed record NetworkAllocationSnapshot(string Id, bool IsConnected, string[] HostResources);
+    private sealed record NetworkPortSnapshot(string Id, string Path, string Name, string? Address, bool IsStaticMac);
+    private sealed record NetworkAllocationSnapshot(string Id, string? Parent, bool IsConnected, string[] HostResources);
 
     private static Task<ApiResponse<List<NetworkPortSnapshot>>> QueryPortsAsync(string className, Guid vmId) =>
         WmiApi.QueryAsync($"SELECT * FROM {className} WHERE InstanceID LIKE 'Microsoft:{vmId:D}%'",
-            obj => new NetworkPortSnapshot(obj["InstanceID"]?.ToString() ?? string.Empty,
+            obj => new NetworkPortSnapshot(obj["InstanceID"]?.ToString() ?? string.Empty, obj.Path.Path,
                 obj["ElementName"]?.ToString() ?? Properties.Resources.Common_NoName,
                 obj["Address"]?.ToString(), obj.TryGet<bool>("StaticMacAddress") ?? false));
 
@@ -232,7 +244,21 @@ public static partial class VmNetworkService
         return ApiResponse<IReadOnlyDictionary<Guid, string>>.Ok(new System.Collections.ObjectModel.ReadOnlyDictionary<Guid, string>(result));
     }
 
-    /// <summary>依次解析网卡 IPv4 并更新传入网卡对象；宿主嗅探结果优先。</summary>
+    // An absent row or unreadable property means unknown. Only a reported zero rules out SR-IOV.
+    /// <summary>返回宿主已报告的交换机 SR-IOV 容量，缺少的条目表示容量未知。</summary>
+    /// <returns>按交换机 GUID 索引的 VF 容量。未返回条目的容量未知。</returns>
+    public static async Task<IReadOnlyDictionary<Guid, uint>> GetSwitchIovCapacitiesAsync()
+    {
+        var result = await WmiApi.QueryAsync("SELECT SystemName, IovVfCapacity FROM Msvm_EthernetSwitchHardwareOffloadData",
+            obj => (Id: obj["SystemName"]?.ToString(), Capacity: obj.TryGet<uint>("IovVfCapacity")));
+        var capacities = new Dictionary<Guid, uint>();
+        foreach (var row in result.Data ?? [])
+            if (row.Capacity is uint capacity && Guid.TryParse(row.Id, out var id))
+                capacities[id] = capacity;
+        return capacities;
+    }
+
+    /// <summary>按网卡补全来宾 IPv4 和 IPv6，宿主嗅探到的 IPv4 优先。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <param name="adapters">该虚拟机查询返回的网卡对象集合。</param>
     /// <returns>全部解析完成时成功；失败时返回原因，已更新的地址保留。</returns>
@@ -240,12 +266,26 @@ public static partial class VmNetworkService
     {
         ArgumentNullException.ThrowIfNull(adapters);
         if (vmId == Guid.Empty) return ApiResponse.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
+        ApiResponse? guestError = null;
         foreach (var adapter in adapters)
         {
             var ownership = await ValidateAdapterOwnershipAsync(vmId, adapter.Id);
             if (!ownership.Success) return ownership;
-            var resolution = VmIpService.ResolveAdapterAddresses(adapter.MacAddress, adapter.IpAddresses);
+            var reported = adapter.IpAddresses ?? [];
+            if (reported.Count == 0)
+            {
+                string path = $"{PortSettingClass(adapter.Id)}.InstanceID=\"{WmiApi.Escape(adapter.Id)}\"";
+                var guest = await WmiApi.QueryAsync(
+                    $"ASSOCIATORS OF {{{path}}} WHERE AssocClass=Msvm_SettingDataComponent ResultClass=Msvm_GuestNetworkAdapterConfiguration",
+                    obj => obj["IPAddresses"] as string[] ?? []);
+                if (!guest.Success) guestError ??= Failure(guest);
+                else reported = (guest.Data ?? []).SelectMany(addresses => addresses).ToList();
+            }
+            var resolution = VmIpService.ResolveAdapterAddresses(adapter.HasReportedMac ? adapter.MacAddress : null, reported);
             adapter.IpAddresses = resolution.Addresses;
+            foreach (string address in reported)
+                if (System.Net.IPAddress.TryParse(address, out var ip) && ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6
+                    && !adapter.IpAddresses.Contains(ip.ToString())) adapter.IpAddresses.Add(ip.ToString());
             if (!resolution.RequiresLookup) continue;
             var lookup = await VmIpService.LookupAsync(vmId, adapter.MacAddress);
             if (!lookup.Success) return Failure(lookup);
@@ -253,18 +293,30 @@ public static partial class VmNetworkService
                 adapter.IpAddresses = lookup.Data.Where(ip => ip.Association != VmIpAddressAssociation.VirtualMachine)
                     .Select(ip => ip.Address).Distinct().ToList();
         }
-        return ApiResponse.Ok();
+        return guestError ?? ApiResponse.Ok();
     }
 
     // ── 网卡生命周期 ──────────────────────────────────────────────
 
-    /// <summary>为虚拟机添加合成网卡并初始化连接资源；确认失败时自动撤销本次创建。</summary>
+    /// <summary>为虚拟机添加标准网卡并初始化连接资源；确认失败时自动撤销本次创建。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <returns>分别报告实际网卡状态、初始化结果、原始错误及撤销错误；失败后应刷新实际列表。</returns>
     /// <remarks>结果或资源归属待确认时保留现场。撤销前核对配置与附属资源；最终核对和提交之间仍可能发生外部修改。</remarks>
     /// <editentry label="添加网卡" category="网络"/>
     public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(Guid vmId) =>
         Task.Run(() => CreateNetworkAdapterAsync(vmId));
+
+    /// <summary>为虚拟机添加标准网卡或旧版网卡，并按指定交换机及静态 MAC 初始化连接资源；确认失败时自动撤销本次创建。</summary>
+    /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
+    /// <param name="switchId">要连接的虚拟交换机 GUID；<paramref name="isConnected"/> 为 <c>true</c> 时必须提供有效交换机。</param>
+    /// <param name="isConnected">是否在创建连接资源时接通虚拟交换机；为 <c>false</c> 时保持未连接状态。</param>
+    /// <param name="staticMacAddress">可选的静态 MAC 地址字符串，仅在虚拟机未运行时可写入；为 <c>null</c> 或空白时由系统动态分配。</param>
+    /// <param name="isLegacy">为 <c>true</c> 时创建旧版网卡（仅用于第 1 代虚拟机跑老旧系统或传统 BIOS PXE 引导，需关机添加，且不支持硬件加速）；为 <c>false</c> 时创建标准网卡。</param>
+    /// <returns>分别报告实际网卡状态、初始化结果、原始错误及撤销错误；失败后应刷新实际列表。</returns>
+    /// <remarks>交换机存在性、网卡类型代数限制、MAC 地址格式及电源状态均在首次写入前完成校验。结果或资源归属待确认时保留现场。</remarks>
+    public static Task<VmNetworkAdapterCreationResult> AddNetworkAdapterAsync(
+        Guid vmId, Guid? switchId, bool isConnected = true, string? staticMacAddress = null, bool isLegacy = false) =>
+        Task.Run(() => CreateNetworkAdapterAsync(vmId, switchId, isConnected, staticMacAddress, isLegacy, applyConnectionOptions: true));
 
     /// <summary>移除查询返回的虚拟机网卡及其连接资源，执行前核对网卡属于指定虚拟机。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
@@ -328,31 +380,65 @@ public static partial class VmNetworkService
 
         string escapedId = WmiApi.Escape(adapterId);
 
-        var xmlResponse = await WmiApi.QueryFirstAsync(
+        var portState = await WmiApi.QueryFirstAsync(
             $"SELECT * FROM {PortSettingClass(adapterId)} WHERE InstanceID = '{escapedId}'",
             port =>
             {
                 using var allocation = port.GetRelated("Msvm_EthernetPortAllocationSettingData")
                     .Cast<ManagementObject>().FirstOrDefault();
-                if (allocation == null) return null;
+                if (allocation == null) return (PortPath: port.Path.Path, AllocXml: (string?)null);
 
                 allocation["EnabledState"] = (ushort)(isConnected ? 2 : 3);
 
                 if (isConnected) allocation["HostResource"] = new[] { switchPath! };
 
-                return allocation.GetText(TextFormat.CimDtd20);
+                return (PortPath: port.Path.Path, AllocXml: (string?)allocation.GetText(TextFormat.CimDtd20));
             });
 
-        if (!xmlResponse.Success) return Failure(xmlResponse);
-        if (!xmlResponse.HasData || string.IsNullOrEmpty(xmlResponse.Data))
-            return ApiResponse.Fail(Properties.Resources.Error_Net_AllocNotFound);
+        if (!portState.Success) return Failure(portState);
+        if (!portState.HasData || string.IsNullOrEmpty(portState.Data.PortPath))
+            return ApiResponse.Fail(Properties.Resources.Error_Net_AllocNotFound, kind: ApiErrorKind.NotFound);
 
-        var result = await WmiApi.InvokeAsync(
+        if (!string.IsNullOrEmpty(portState.Data.AllocXml))
+        {
+            return await WmiApi.InvokeAsync(
+                ServiceWql,
+                "ModifyResourceSettings",
+                p => p["ResourceSettings"] = new string[] { portState.Data.AllocXml! });
+        }
+
+        if (!isConnected) return ApiResponse.Ok();
+
+        string? settingsPath = await Task.Run(() =>
+        {
+            using var vm = WmiApi.GetVmComputerSystem(vmId);
+            using var settings = vm is null ? null : WmiApi.GetVmSettings(vm);
+            return settings?.Path?.Path;
+        });
+        if (string.IsNullOrEmpty(settingsPath))
+            return ApiResponse.Fail("无法读取当前虚拟机配置。", kind: ApiErrorKind.OperationFailed);
+
+        var templateXml = await WmiApi.QueryFirstAsync(
+            $"SELECT * FROM {VmNetworkAdapterCreation.AllocationClass} WHERE InstanceID LIKE '%Default%'",
+            allocation =>
+            {
+                allocation["Parent"] = portState.Data.PortPath;
+                allocation["EnabledState"] = (ushort)2;
+                allocation["HostResource"] = new[] { switchPath! };
+                return allocation.GetText(TextFormat.CimDtd20);
+            });
+        if (!templateXml.Success) return Failure(templateXml);
+        if (!templateXml.HasData || string.IsNullOrEmpty(templateXml.Data))
+            return ApiResponse.Fail("未找到网卡连接资源模板。", kind: ApiErrorKind.NotFound);
+
+        return await WmiApi.InvokeAsync(
             ServiceWql,
-            "ModifyResourceSettings",
-            p => p["ResourceSettings"] = new string[] { xmlResponse.Data! });
-
-        return result;
+            "AddResourceSettings",
+            p =>
+            {
+                p["AffectedConfiguration"] = settingsPath;
+                p["ResourceSettings"] = new string[] { templateXml.Data! };
+            });
     }
 
     /// <summary>在要求接通网卡时检查是否存在可选虚拟交换机。</summary>
@@ -395,9 +481,9 @@ public static partial class VmNetworkService
         var ownership = await ValidateAdapterOwnershipAsync(vmId, adapter.Id);
         if (!ownership.Success)
             return ownership;
-        string? norm = MacAddress.Normalize(newMac);
+        string? norm = string.IsNullOrWhiteSpace(newMac) ? string.Empty : VmNetworkService.NormalizeStaticMac(newMac);
         if (norm == null)
-            return ApiResponse.Fail(Properties.Resources.Error_Net_MacInvalid);
+            return ApiResponse.Fail(Properties.Resources.Error_Net_MacInvalid, kind: ApiErrorKind.InvalidArgument);
 
         var state = await WmiApi.QueryFirstAsync(
             $"SELECT EnabledState FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}",
@@ -484,22 +570,34 @@ public static partial class VmNetworkService
         try { selection = SettingsSelection<VmNetworkAdapter>.Capture(adapter, changedProperties, SecurityFields.Concat(OffloadFields)); }
         catch (ArgumentException ex) { return new(false, ex.Message, false, false) { Failure = ApiFailure.From(ex) }; }
         string id = adapter.Id;
-        var ownership = await ValidateAdapterOwnershipAsync(vmId, id);
-        if (!ownership.Success) return new(false, ownership.Error, false, false) { Failure = ApiFailure.From(ownership) };
-        bool securityDone = false, offloadDone = false;
-        if (selection.Names.Any(SecurityFields.Contains))
+        try
         {
-            var security = await ApplyCapturedFeatureAsync(id, "Msvm_EthernetSwitchPortSecuritySettingData", selection);
-            if (!security.Success) return new(false, security.Error, false, false) { Failure = ApiFailure.From(security), Security = OperationStepResult.From("Security", security) };
-            securityDone = true;
+            return await HostResourceLock.RunAsync(VmSettingsWriteLock.Resource(vmId), ApplyUnderLockAsync);
         }
-        if (selection.Names.Any(OffloadFields.Contains))
+        catch (Exception error)
         {
-            var offload = await ApplyCapturedFeatureAsync(id, "Msvm_EthernetSwitchPortOffloadSettingData", selection);
-            if (!offload.Success) return new(false, offload.Error, securityDone, false) { Failure = ApiFailure.From(offload), Offload = OperationStepResult.From("Offload", offload) };
-            offloadDone = true;
+            return new(false, error.Message, false, false) { Failure = ApiFailure.From(error) };
         }
-        return new(true, string.Empty, securityDone, offloadDone);
+
+        async Task<VmNetworkSettingsApplyResult> ApplyUnderLockAsync()
+        {
+            var ownership = await ValidateAdapterOwnershipAsync(vmId, id);
+            if (!ownership.Success) return new(false, ownership.Error, false, false) { Failure = ApiFailure.From(ownership) };
+            bool securityDone = false, offloadDone = false;
+            if (selection.Names.Any(SecurityFields.Contains))
+            {
+                var security = await ApplyCapturedFeatureAsync(id, "Msvm_EthernetSwitchPortSecuritySettingData", selection);
+                if (!security.Success) return new(false, security.Error, false, false) { Failure = ApiFailure.From(security), Security = OperationStepResult.From("Security", security) };
+                securityDone = true;
+            }
+            if (selection.Names.Any(OffloadFields.Contains))
+            {
+                var offload = await ApplyCapturedFeatureAsync(id, "Msvm_EthernetSwitchPortOffloadSettingData", selection);
+                if (!offload.Success) return new(false, offload.Error, securityDone, false) { Failure = ApiFailure.From(offload), Offload = OperationStepResult.From("Offload", offload) };
+                offloadDone = true;
+            }
+            return new(true, string.Empty, securityDone, offloadDone);
+        }
     }
 
     internal static async Task<ApiResponse> ApplySecurityAndOffloadSettingsAsync(
@@ -553,8 +651,8 @@ public static partial class VmNetworkService
         return ApiResponse.Ok();
     }
 
-    // 网卡 setting 所在的 WMI 类:旧版网卡 InstanceID 3 段(Microsoft:VMGUID\DEVICEGUID\0)属 Emulated 类，
-    // 两段式 Microsoft:VMGUID\DEVICEGUID 标识对应合成网卡。
+    // 网卡 setting 所在的 WMI 类: 旧版网卡 InstanceID 3 段(Microsoft:VMGUID\DEVICEGUID\0)属 Emulated 类，
+    // 两段式 Microsoft:VMGUID\DEVICEGUID 标识对应标准网卡。
     private static string PortSettingClass(string instanceId) =>
         (instanceId ?? "").Split('\\').Length >= 3
             ? "Msvm_EmulatedEthernetPortSettingData"
@@ -571,14 +669,14 @@ public static partial class VmNetworkService
                 $"SELECT * FROM {PortSettingClass(portId)} WHERE InstanceID = '{escapedId}'",
                 port =>
                 {
-                    using var allocation = port.GetRelated("Msvm_EthernetPortAllocationSettingData")
-                        .Cast<ManagementObject>().FirstOrDefault();
+                    using var allocations = port.GetRelated("Msvm_EthernetPortAllocationSettingData");
+                    using var allocation = allocations.Cast<ManagementObject>().SingleOrDefault();
                     if (allocation == null) return null;
 
-                    var existing = allocation.GetRelated(
+                    using var related = allocation.GetRelated(
                         featureClass, "Msvm_EthernetPortSettingDataComponent",
-                        null, null, null, null, false, null)
-                        .Cast<ManagementObject>().FirstOrDefault();
+                        null, null, null, null, false, null);
+                    using var existing = related.Cast<ManagementObject>().SingleOrDefault();
 
                     if (existing != null)
                     {
@@ -587,7 +685,7 @@ public static partial class VmNetworkService
                     }
                     else
                     {
-                        var template = GetDefaultFeatureTemplate(featureClass);
+                        using var template = GetDefaultFeatureTemplate(featureClass);
                         if (template == null) return null;
                         template["InstanceID"] = Guid.NewGuid().ToString();
                         updateAction(template);
@@ -628,14 +726,16 @@ public static partial class VmNetworkService
         if (cls == "Msvm_EthernetSwitchPortVlanSettingData")
         {
             uint rawMode = feature.TryGet<uint>("OperationMode") ?? 0;
-            adapter.VlanMode = rawMode == 0 ? VlanOperationMode.Access : (VlanOperationMode)rawMode;
             adapter.AccessVlanId = (int)(feature.TryGet<uint>("AccessVlanId") ?? 0);
+            adapter.VlanMode = ReadVlanMode(rawMode, adapter.AccessVlanId);
             adapter.NativeVlanId = (int)(feature.TryGet<uint>("NativeVlanId") ?? 0);
             adapter.PvlanMode = (PvlanMode)(feature.TryGet<uint>("PvlanMode") ?? 0);
             adapter.PvlanPrimaryId = (int)(feature.TryGet<uint>("PrimaryVlanId") ?? 0);
             adapter.PvlanSecondaryId = (int)(feature.TryGet<uint>("SecondaryVlanId") ?? 0);
             if (feature.HasProperty("TrunkVlanIdArray") && feature["TrunkVlanIdArray"] is ushort[] trunks)
                 adapter.TrunkAllowedVlanIds = trunks.Select(x => (int)x).ToList();
+            if (feature.HasProperty("SecondaryVlanIdArray") && feature["SecondaryVlanIdArray"] is ushort[] secondary)
+                adapter.PvlanSecondaryIds = secondary.Select(x => (int)x).ToList();
         }
         else if (cls == "Msvm_EthernetSwitchPortBandwidthSettingData")
         {

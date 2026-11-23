@@ -230,15 +230,8 @@ public sealed class ApiTools(ApiCatalog catalog, ApiObjects objects, ApiCodec co
         if (value is VmScreenshotImage screenshot) { encoded = screenshot.EncodeJpeg(); mime = "image/jpeg"; }
         else if (value is ConsoleFrame frame)
         {
-            using var bitmap = new System.Drawing.Bitmap(frame.Width, frame.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            var bits = bitmap.LockBits(new(0, 0, frame.Width, frame.Height), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            try
-            {
-                byte[] pixels = frame.CopyPixels();
-                for (int y = 0; y < frame.Height; y++) System.Runtime.InteropServices.Marshal.Copy(pixels, y * frame.Stride, bits.Scan0 + y * bits.Stride, frame.Width * 4);
-            }
-            finally { bitmap.UnlockBits(bits); }
-            using var output = new MemoryStream(); bitmap.Save(output, System.Drawing.Imaging.ImageFormat.Png); encoded = output.ToArray(); mime = "image/png";
+            encoded = ExHyperV.Infrastructure.Interop.WindowsImageCodec.PngFromBgra32(frame.CopyPixels(), frame.Width, frame.Height, frame.Stride);
+            mime = "image/png";
         }
         else throw new ArgumentException("请提供 ConsoleFrame 或 VmScreenshotImage 编号。");
         return Task.FromResult(new CallToolResult { Content = [ImageContentBlock.FromBytes(encoded, mime)] });

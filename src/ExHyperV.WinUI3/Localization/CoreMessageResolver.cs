@@ -81,9 +81,7 @@ internal static class CoreMessageResolver
                     ? L10n.Format("Err_ReadBackMismatch", args[0], args[1], args[2])
                     : Innermost(rawError, exception);
             case CoreErrorCode.InsufficientMemory:
-                return args.Count > 0 && !string.IsNullOrWhiteSpace(args[0])
-                    ? L10n.Format("Err_InsufficientMemoryWithSize", args[0])
-                    : L10n.Get("Err_InsufficientMemory");
+                return ResolveInsufficientMemoryMessage(args);
             case CoreErrorCode.FileInUse:
                 return L10n.Get("Err_FileInUse");
             case CoreErrorCode.FileNotFound:
@@ -132,6 +130,36 @@ internal static class CoreMessageResolver
             default:
                 return Innermost(rawError, exception);
         }
+    }
+
+    private static string ResolveInsufficientMemoryMessage(IReadOnlyList<string> args)
+    {
+        if (args.Count >= 4
+            && long.TryParse(args[0], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long requiredMiB)
+            && long.TryParse(args[1], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long availableMiB)
+            && long.TryParse(args[2], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long totalMiB)
+            && long.TryParse(args[3], System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out long deficitMiB)
+            && totalMiB > 0)
+        {
+            if (requiredMiB > totalMiB)
+            {
+                return L10n.Format("Err_InsufficientMemoryExceedsTotal",
+                    Math.Max(1L, deficitMiB), availableMiB, totalMiB);
+            }
+
+            if (deficitMiB > 0)
+            {
+                return L10n.Format("Err_InsufficientMemoryDeficit",
+                    deficitMiB, availableMiB, totalMiB);
+            }
+
+            return L10n.Format("Err_InsufficientMemoryOverhead",
+                availableMiB, totalMiB);
+        }
+
+        return args.Count > 0 && !string.IsNullOrWhiteSpace(args[0])
+            ? L10n.Format("Err_InsufficientMemoryWithSize", args[0])
+            : L10n.Get("Err_InsufficientMemory");
     }
 
     private static string ResolveSuspectName(string token) => token switch

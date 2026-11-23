@@ -1,232 +1,351 @@
+using System.Collections.Concurrent;
 using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
 using ExHyperV.WinUI3.Localization;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Windows.Storage;
+using Windows.System;
+using static ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings.DeviceWorkbench;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 public sealed partial class VmStorageSettingsView : VmSettingsView
 {
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, string> unresolvedChanges = new();
-    private readonly StackPanel page = new() { Margin = new Thickness(0, 8, 0, 24), Spacing = 12 };
-    private readonly StackPanel devices = new() { Spacing = 12 };
-    private readonly ContentControl deviceHost = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-    private readonly ContentControl editor = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-    private readonly Button add = new() { Content = "添加存储", IsEnabled = false };
-    private readonly Button refresh = new() { Content = "刷新" };
-    private readonly InfoBar blockedWarning = new() { Severity = InfoBarSeverity.Warning, IsClosable = false };
+    private static readonly ConcurrentDictionary<Guid, string> unresolvedChanges = new();
+    private readonly StackPanel page = new() { Spacing = 10 };
+    private readonly ContentControl pivot = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+    private readonly ScrollViewer scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+    private readonly HashSet<string> expanded = [];
     private IReadOnlyList<VmStorageAttachment> attachments = [];
     private int generation;
     private bool running;
-    private VmState powerState = VmState.Unknown;
+    private VmState powerState;
     private bool snapshotKnown;
-    private bool mutationBlocked;
+    private AddDraft? adding;
+    private DetailDraft? editing;
+    private StorageTask? taskView;
+    private readonly DraftProbe draftProbe = new();
 
     public VmStorageSettingsView(Guid vmId) : base(vmId)
     {
-        if (unresolvedChanges.TryGetValue(vmId, out string? unresolved))
+        var layout = new Grid { RowSpacing = 8 };
+        layout.RowDefinitions.Add(new() { Height = GridLength.Auto });
+        layout.RowDefinitions.Add(new());
+        layout.Children.Add(pivot);
+        scroll.Content = page;
+        AttachScrollbarClearance(scroll, page, bottomSpacing: 24);
+        Grid.SetRow(scroll, 1);
+        layout.Children.Add(scroll);
+        SetBody(layout, handlesScrolling: true);
+        ActualThemeChanged += (_, _) =>
         {
-            mutationBlocked = true;
-            blockedWarning.Title = "此前的存储操作需要核对";
-            blockedWarning.Message = unresolved;
-            blockedWarning.IsOpen = true;
-        }
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
-        add.Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"];
-        actions.Children.Add(refresh);
-        actions.Children.Add(add);
-        page.Children.Add(blockedWarning);
-        page.Children.Add(actions);
-        deviceHost.Content = devices;
-        page.Children.Add(deviceHost);
-        page.Children.Add(editor);
-        SetBody(page);
-        refresh.Click += async (_, _) => await RunAsync(LoadAsync);
-        add.Click += async (_, _) => await RunAsync(OpenAddAsync);
+            if (!IsStopped && (snapshotKnown || taskView != null || adding != null || editing != null)) Render();
+        };
     }
+
+    private bool CanWrite => snapshotKnown && !IsStopped && !unresolvedChanges.ContainsKey(VmId);
 
     protected override async Task LoadAsync()
     {
-        snapshotKnown = false;
-        add.IsEnabled = false;
-        deviceHost.IsEnabled = false;
-        var contextTask = ReadContextAsync();
-        var storageTask = Task.Run(() => VmStorageService.GetVmStorageItemsAsync(VmId));
-        await Task.WhenAll(contextTask, storageTask);
-        var storage = await storageTask;
-        if (!storage.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(storage));
-        var context = await contextTask;
-        if (IsStopped) return;
-        generation = context.Generation;
-        running = context.IsRunning;
-        powerState = context.State;
-        attachments = storage.Data;
-        snapshotKnown = true;
-        RenderDevices();
-        deviceHost.IsEnabled = true;
-        add.IsEnabled = !mutationBlocked && editor.Content is null;
-    }
-
-    private void RenderDevices()
-    {
-        devices.Children.Clear();
-        if (attachments.Count == 0)
+        if (!snapshotKnown)
         {
-            devices.Children.Add(new TextBlock { Text = "此虚拟机尚未挂接存储设备。", Margin = new Thickness(24), TextWrapping = TextWrapping.Wrap });
+            SetHeaderTrailingAction(null);
+            page.Children.Clear();
+            if (unresolvedChanges.TryGetValue(VmId, out var warning)) page.Children.Add(Banner(warning, InfoBarSeverity.Error));
+            page.Children.Add(Text("正在读取存储设备…", 13));
+        }
+        try { await ReadSnapshotAsync(); }
+        catch (Exception ex) when (!IsStopped)
+        {
+            pivot.Content = null;
+            page.Children.Clear();
+            if (unresolvedChanges.TryGetValue(VmId, out var warning)) page.Children.Add(Banner(warning, InfoBarSeverity.Error));
+            page.Children.Add(Banner("读取存储设备失败。" + CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error));
+            SetHeaderTrailingAction(Command("重新检测", () => _ = RunAsync(LoadAsync)));
             return;
         }
+        ShowList();
+    }
+
+    private async Task ReadSnapshotAsync()
+    {
+        snapshotKnown = false;
+        var contextTask = ReadContextAsync();
+        var itemsTask = Task.Run(() => VmStorageService.GetVmStorageItemsAsync(VmId));
+        await Task.WhenAll(contextTask, itemsTask).WaitAsync(CancellationToken);
+        var context = await contextTask;
+        attachments = Data(await itemsTask);
+        (generation, powerState, running) = context;
+        snapshotKnown = true;
+    }
+
+    private static T Data<T>(ApiResponse<T> result) => result.HasData ? result.Data!
+        : throw new InvalidOperationException(Clean(CoreMessageResolver.ResolveError(result)));
+
+    private static ApiResponse Failure<T>(ApiResponse<T> result) =>
+        ApiResponse.Fail(CoreMessageResolver.ResolveError(result), result.Code, result.ErrorSource, result.Exception, result.ErrorKind);
+
+    public override async Task StopAsync()
+    {
+        try { await base.StopAsync(); }
+        finally
+        {
+            // The base can keep the page open to report a failure that arrived during navigation.
+            if (!IsStopped) Render();
+        }
+    }
+
+    private void ShowList()
+    {
+        draftProbe.Cancel();
+        editing?.Cancel();
+        adding = null;
+        editing = null;
+        taskView = null;
+        Render();
+        scroll.ChangeView(null, 0, null, true);
+    }
+
+    private void Render()
+    {
+        if (IsStopped) return;
+        SetHeaderTrailingAction(null);
+        pivot.Content = null;
+        page.Children.Clear();
+        if (unresolvedChanges.TryGetValue(VmId, out var warning))
+            page.Children.Add(Banner(warning, InfoBarSeverity.Error));
+        if (taskView != null) RenderTask(taskView);
+        else if (adding != null) RenderAdd(adding);
+        else if (editing != null) RenderDetails(editing);
+        else RenderList();
+    }
+
+    private void RenderList()
+    {
+        SetHeaderTrailingAction(Command("刷新", () => _ = RunAsync(LoadAsync)));
+        var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        var hoverBrush = ThemeBrush(this, "SubtleFillColorTertiaryBrush");
+
         foreach (var item in attachments)
         {
-            var header = new Grid { ColumnSpacing = 16 };
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            header.Children.Add(new FontIcon { Glyph = item.DriveType == "DvdDrive" ? "\uE958" : "\uEC59", FontSize = 26 });
-            var label = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-            label.Children.Add(new TextBlock { Text = DisplayName(item), FontSize = 15, TextWrapping = TextWrapping.Wrap });
-            label.Children.Add(new TextBlock
+            bool open = expanded.Contains(item.DeviceToken);
+            bool emptyOptical = IsDvd(item) && !Physical(item) && !item.HasIsoMedia;
+            var icon = new Border
             {
-                Text = string.IsNullOrWhiteSpace(item.PathOrDiskNumber) ? "空驱动器" : FormatSize(item.DiskSizeGiB),
-                Foreground = Brush("TextFillColorSecondaryBrush"), FontSize = 12
+                Width = 38, Height = 38, CornerRadius = new(7),
+                Opacity = emptyOptical ? 0.62 : 1,
+                Background = ThemeBrush(this, "SubtleFillColorSecondaryBrush"),
+                BorderBrush = ThemeBrush(this, "DividerStrokeColorDefaultBrush"),
+                BorderThickness = new(1),
+                Child = new FontIcon
+                {
+                    Glyph = IsDvd(item) ? "\uE958" : Physical(item) ? "\uEC59" : "\uEDA2",
+                    FontFamily = new FontFamily(SegoeFont),
+                    FontSize = 17,
+                    Foreground = ThemeBrush(this, "TextFillColorPrimaryBrush")
+                }
+            };
+            var title = new TextBlock
+            {
+                Text = DisplayName(item), FontSize = 15, FontWeight = FontWeights.Normal,
+                TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            ToolTipService.SetToolTip(title, DisplayName(item));
+            var heading = new Grid { ColumnSpacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
+            heading.ColumnDefinitions.Add(new());
+            heading.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+            var badge = Badge(this, TypeLabel(item));
+            badge.Height = 20;
+            badge.Padding = new(7, 0, 7, 0);
+            ((TextBlock)badge.Child).VerticalAlignment = VerticalAlignment.Center;
+            Grid.SetColumn(badge, 1);
+            heading.Children.Add(title);
+            heading.Children.Add(badge);
+            string sizes = item.VirtualCapacityGiB is double cap ? $"{Size(item.DiskSizeGiB)} / {Size(cap)}"
+                : item.DiskType == "Empty" ? "未挂载" : Size(item.DiskSizeGiB);
+            string status = item.IsPassthroughStale ? "直通引用失效" : item.MetadataState switch
+            {
+                VmDiskMetadataState.Missing => "文件缺失", VmDiskMetadataState.Locked => "介质被占用", _ => ""
+            };
+            var subtitle = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+            subtitle.Children.Add(new TextBlock
+            {
+                Text = sizes, FontSize = 12,
+                Foreground = ThemeBrush(this, "TextFillColorSecondaryBrush")
             });
-            Grid.SetColumn(label, 1);
-            header.Children.Add(label);
-
-            var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-            if (item.DiskType != "Physical" && !string.IsNullOrWhiteSpace(item.PathOrDiskNumber))
-                actions.Children.Add(ActionButton("\uF6B0", "在资源管理器中定位", () => RevealMediaAsync(item.PathOrDiskNumber), true));
-            if (item.DriveType == "HardDisk" && item.DiskType == "Virtual")
+            if (status.Length > 0)
             {
-                var compact = ActionButton("\uF202", "压缩虚拟磁盘", () => CompactAsync(item));
-                ApplyCondition(compact, VmStorageService.GetCompactionCondition(item, powerState));
-                actions.Children.Add(compact);
+                subtitle.Children.Add(new TextBlock
+                {
+                    Text = status, FontSize = 12,
+                    Foreground = ThemeBrush(this, "SystemFillColorCautionBrush")
+                });
             }
-            if (VmStorageService.CanEditStoragePath(item))
-            {
-                var edit = ActionButton("\uF3DE", item.DriveType == "DvdDrive" ? item.HasIsoMedia ? "更换 ISO" : "插入 ISO" : "更换虚拟磁盘", () => EditMediaAsync(item));
-                ApplyCondition(edit, VmStorageService.GetMediaModificationCondition(item, powerState));
-                actions.Children.Add(edit);
-            }
-            if (item.HasIsoMedia)
-                actions.Children.Add(ActionButton("\uE0BE", "弹出 ISO", () => ChangeAsync(
-                    () => VmStorageService.ModifyDvdDrivePathAsync(VmId, item, string.Empty), "已弹出介质，光驱保留。")));
-            var remove = ActionButton("\uF34D", item.DriveType == "DvdDrive" ? "移除光驱" : "移除挂接（保留磁盘文件）", () => ChangeAsync(
-                () => VmStorageService.RemoveDriveAsync(VmId, item), "已移除存储挂接。"));
-            ApplyCondition(remove, VmStorageService.GetRemovalCondition(item, powerState));
-            actions.Children.Add(remove);
-            Grid.SetColumn(actions, 2);
-            header.Children.Add(actions);
+            var identity = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { heading, subtitle } };
 
-            var details = new StackPanel { Spacing = 10, Margin = new Thickness(16, 8, 16, 16) };
-            details.Children.Add(Detail("类型", item.DiskType == "Physical" ? "宿主物理设备" : "虚拟介质文件"));
-            details.Children.Add(Detail("插槽", $"{item.ControllerType} 控制器 {item.ControllerNumber}，位置 {item.ControllerLocation}"));
-            details.Children.Add(Detail("路径", string.IsNullOrWhiteSpace(item.PathOrDiskNumber) ? "空" : item.PathOrDiskNumber));
-            if (item.IsPassthroughStale)
-                details.Children.Add(new InfoBar { IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning,
-                    Message = "物理磁盘的直通引用已失效。磁盘可能已在宿主联机，请核对当前设备后重新挂接。" });
-            devices.Children.Add(new Expander { Header = header, Content = details, HorizontalAlignment = HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Stretch });
+            var gear = IconButton(this, "\uF6AA", "设备设置与磁盘工具", () => _ = RunAsync(() => OpenDetailsAsync(item)), useFluentFont: true);
+            var media = item.HasIsoMedia
+                ? IconButton(this, "\uE0BE", "弹出 ISO", () => _ = RunAsync(() => RunSingleAsync("弹出 ISO",
+                    () => VmStorageService.ModifyDvdDrivePathAsync(VmId, item, ""))), useFluentFont: true)
+                : IconButton(this, "\uF60A", "移除存储设备", () => _ = RunAsync(() => RunSingleAsync("移除存储设备",
+                    () => VmStorageService.RemoveDriveAsync(VmId, item))), useFluentFont: true);
+            ((FontIcon)gear.Content).FontSize = ((FontIcon)media.Content).FontSize = 16;
+            gear.Tapped += (_, e) => e.Handled = true;
+            media.Tapped += (_, e) => e.Handled = true;
+            var condition = item.HasIsoMedia ? VmStorageService.GetMediaModificationCondition(item, powerState)
+                : VmStorageService.GetRemovalCondition(item, powerState);
+            media.IsEnabled = CanWrite && condition.CanModify;
+            if (!condition.CanModify) ToolTipService.SetToolTip(media, Clean(condition.Reason));
+
+            void Toggle()
+            {
+                if (!expanded.Remove(item.DeviceToken)) expanded.Add(item.DeviceToken);
+                Render();
+            }
+            var chevronIcon = new FontIcon
+            {
+                Glyph = open ? "\uE70E" : "\uE70D",
+                FontFamily = new FontFamily(SegoeFont),
+                FontSize = 12,
+                Foreground = ThemeBrush(this, "TextFillColorSecondaryBrush")
+            };
+            var toggle = new Button
+            {
+                Width = 26, Height = 26, MinWidth = 0, MinHeight = 0, Padding = new(0),
+                Style = (Style)Application.Current.Resources["VmSelectorButtonStyle"],
+                Content = chevronIcon
+            };
+            AutomationProperties.SetName(toggle, open ? "收起详情" : "展开详情");
+            toggle.Click += (_, _) => Toggle();
+
+            var headerGrid = Split(WithLeading(icon, identity), Actions(6, gear, media, toggle));
+            var headerHost = new Border
+            {
+                Padding = new(16, 12, 16, 12),
+                Background = transparent,
+                CornerRadius = open ? new CornerRadius(7, 7, 0, 0) : new CornerRadius(7),
+                Child = headerGrid
+            };
+            headerHost.PointerEntered += (_, _) => headerHost.Background = hoverBrush;
+            headerHost.PointerExited += (_, _) => headerHost.Background = transparent;
+            headerHost.PointerCanceled += (_, _) => headerHost.Background = transparent;
+            headerHost.Tapped += (_, e) =>
+            {
+                if (e.Handled) return;
+                for (var node = e.OriginalSource as DependencyObject; node != null && node != headerHost; node = VisualTreeHelper.GetParent(node))
+                    if (node is Button) return;
+                Toggle();
+            };
+            page.Children.Add(CardShell(this, headerHost, open ? DeviceFacts(item) : null));
         }
-    }
 
-    private static void ApplyCondition(Button button, VmModificationCondition condition)
-    {
-        button.IsEnabled &= condition.CanModify;
-        if (!condition.CanModify) ToolTipService.SetToolTip(button, condition.Reason);
-    }
-
-    private Button ActionButton(string glyph, string title, Func<Task> action, bool readOnly = false)
-    {
-        var button = new Button { Content = new FontIcon { Glyph = glyph, FontSize = 16,
-            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular") },
-            Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["RoundIconButtonStyle"], IsEnabled = readOnly || !mutationBlocked };
-        ToolTipService.SetToolTip(button, title);
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, title);
-        button.Click += async (_, _) => await RunAsync(action);
-        return button;
-    }
-
-    private async Task EditMediaAsync(VmStorageAttachment item)
-    {
-        if (!CanChange()) return;
-        var context = await ReadContextAsync();
-        var condition = VmStorageService.GetMediaModificationCondition(item, context.State);
-        if (!condition.CanModify) throw new InvalidOperationException(condition.Reason);
-        var path = await PickOpenAsync(item.DriveType == "DvdDrive" ? [".iso"] : [".vhd", ".vhdx", ".avhd", ".avhdx"]);
-        if (path is null || IsStopped) return;
-        await ChangeAsync(() => item.DriveType == "DvdDrive"
-            ? VmStorageService.ModifyDvdDrivePathAsync(VmId, item, path)
-            : VmStorageService.ModifyHardDrivePathAsync(VmId, item, path), "已更新介质路径。");
-    }
-
-    private async Task CompactAsync(VmStorageAttachment item)
-    {
-        if (!CanChange()) return;
-        await ChangeAsync(() => VmStorageService.CompactDiskAsync(VmId, item), "虚拟磁盘压缩完成。");
-    }
-
-    private bool CanChange() => snapshotKnown && !mutationBlocked && !IsStopped;
-
-    private async Task ChangeAsync(Func<Task<ApiResponse>> operation, string successMessage)
-    {
-        if (!CanChange()) return;
-        // 底层操作一旦提交必须等待结果，离开页面不会中断等待并伪装为已取消。
-        CancellationToken.ThrowIfCancellationRequested();
-        ApiResponse result;
-        try { result = await Task.Run(operation); }
-        catch (Exception error) { result = ApiResponse.Fail(CoreMessageResolver.ResolveException(error), exception: error, kind: ApiErrorKind.OutcomeUnknown); }
-        string errorMessage = result.Success ? string.Empty : CoreMessageResolver.ResolveError(result);
-        await CompleteChangeAsync(result.Success, result.ErrorKind, errorMessage, successMessage);
-    }
-
-    private async Task CompleteChangeAsync(bool success, ApiErrorKind kind, string error, string successMessage)
-    {
-        // 离页等待中的结果也要使概览缓存失效；失败或未知结果仍可能已经改变资源。
-        NotifyChanged();
-        if (kind is ApiErrorKind.OutcomeUnknown or ApiErrorKind.CleanupRequired)
+        bool empty = attachments.Count == 0;
+        var addBadge = new Border
         {
-            mutationBlocked = true;
-            var warning = error + "\n本次程序运行期间已停止对此虚拟机的存储修改。请先核对底层任务和实际资源；刷新列表不会自动重试或清理。";
-            unresolvedChanges[VmId] = warning;
-            if (IsStopped) { ShowError(warning); return; }
-            blockedWarning.Title = kind == ApiErrorKind.OutcomeUnknown ? "操作结果尚未确认" : "需要处理剩余资源";
-            blockedWarning.Message = warning;
-            blockedWarning.IsOpen = true;
+            Width = 38, Height = 38, CornerRadius = new(7),
+            Background = ThemeBrush(this, "SubtleFillColorSecondaryBrush"),
+            BorderBrush = ThemeBrush(this, "DividerStrokeColorDefaultBrush"),
+            BorderThickness = new(1),
+            Child = new FontIcon
+            {
+                Glyph = "\uE710",
+                FontFamily = new FontFamily(SegoeFont),
+                FontSize = 16,
+                Foreground = ThemeBrush(this, "TextFillColorPrimaryBrush")
+            }
+        };
+        var addLabel = new TextBlock
+        {
+            Text = "添加存储设备",
+            VerticalAlignment = VerticalAlignment.Center,
+            FontSize = 13.5,
+            FontWeight = FontWeights.Medium,
+            Foreground = ThemeBrush(this, "TextFillColorPrimaryBrush")
+        };
+        var addRow = new Grid { ColumnSpacing = 12 };
+        addRow.ColumnDefinitions.Add(new() { Width = GridLength.Auto });
+        addRow.ColumnDefinitions.Add(new());
+        addRow.Children.Add(addBadge);
+        Grid.SetColumn(addLabel, 1);
+        addRow.Children.Add(addLabel);
+
+        var add = new Button
+        {
+            Content = addRow,
+            Style = (Style)Application.Current.Resources["VmSelectorButtonStyle"],
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            VerticalContentAlignment = VerticalAlignment.Center,
+            Background = ThemeBrush(this, empty ? "CardBackgroundFillColorDefaultBrush" : "SubtleFillColorTertiaryBrush"),
+            BorderBrush = ThemeBrush(this, "CardStrokeColorDefaultBrush"),
+            BorderThickness = new(1),
+            CornerRadius = new(8),
+            Padding = new(16, empty ? 14 : 12, 16, empty ? 14 : 12),
+            MinHeight = empty ? 68 : 60,
+            IsEnabled = CanWrite
+        };
+        AutomationProperties.SetName(add, "添加存储设备");
+        add.Click += (_, _) =>
+        {
+            if (!CanWrite) return;
+            adding = new();
+            Render();
+            scroll.ChangeView(null, 0, null, true);
+        };
+        page.Children.Add(add);
+    }
+
+    private StackPanel DeviceFacts(VmStorageAttachment d, bool showStaleWarning = true)
+    {
+        var cells = new List<(FrameworkElement, bool)>();
+        void Add(string title, string? value, bool wide = false, bool reveal = false)
+        {
+            cells.Add((KvTile(this, title, string.IsNullOrEmpty(value) ? "未取得" : value,
+                wide ? value : null, onError: ShowError, onReveal: reveal && !string.IsNullOrEmpty(value)
+                    ? () => _ = RunAsync(() => RevealAsync(value)) : null), wide));
         }
-        if (IsStopped) { if (!success) ShowError(error); return; }
-        string? refreshError = null;
-        try { await LoadAsync(); }
-        catch (OperationCanceledException) when (IsStopped && success) { return; }
-        catch (Exception readError) { refreshError = CoreMessageResolver.ResolveException(readError); }
-        if (!success || refreshError is not null)
-            ShowError(string.Join(Environment.NewLine, new[] { success ? null : error, refreshError is null ? null : "回读存储状态失败：" + refreshError }
-                .Where(text => !string.IsNullOrWhiteSpace(text))));
-        else if (!IsStopped) ShowAppliedToast(successMessage);
+        Add("存储来源", Physical(d) ? "宿主物理设备" : d.DiskType == "Empty" ? "空光驱" : "虚拟介质文件");
+        Add("类型", TypeLabel(d));
+        Add("插槽", $"{d.ControllerType} 控制器 {d.ControllerNumber}（位置 {d.ControllerLocation}）");
+        if (Physical(d)) Add("序列号", d.SerialNumber);
+        else if (d.DiskType != "Empty")
+        {
+            Add("格式", IsDvd(d) ? "ISO" : d.VhdFormat?.TrimStart('.').ToUpperInvariant());
+            Add("文件大小", d.FileSizeBytes is long bytes ? $"{bytes / 1073741824d:N2} GiB" : Size(d.DiskSizeGiB));
+            if (!IsDvd(d)) Add("虚拟容量", Size(d.VirtualCapacityGiB));
+        }
+        if (d.VhdType == "Differencing") Add("父盘路径", d.ParentPath, true, true);
+        if (d.DiskType != "Empty") Add("介质路径", d.PathOrDiskNumber, true, !Physical(d));
+        var result = Stack();
+        if (showStaleWarning && d.IsPassthroughStale) result.Children.Add(Banner(d.PassthroughStatus, InfoBarSeverity.Warning,
+            Command("重新检测", () => _ = RunAsync(LoadAsync))));
+        result.Children.Add(KvGrid(cells.ToArray()));
+        return result;
     }
 
-    private static string DisplayName(VmStorageAttachment item)
-    {
-        if (item.DiskType == "Physical" && !string.IsNullOrWhiteSpace(item.DiskModel)) return item.DiskModel;
-        if (item.DiskType != "Physical" && !string.IsNullOrWhiteSpace(item.PathOrDiskNumber))
-            return Path.GetFileName(item.PathOrDiskNumber);
-        return item.DriveType == "DvdDrive" ? "光驱" : "虚拟硬盘";
-    }
+    private static bool IsDvd(VmStorageAttachment d) => d.DriveType == "DvdDrive";
+    private static bool Physical(VmStorageAttachment d) => d.DiskType == "Physical";
+    private static string DisplayName(VmStorageAttachment d) => Physical(d)
+        ? !string.IsNullOrWhiteSpace(d.DiskModel) ? d.DiskModel : IsDvd(d) ? "物理光驱" : $"宿主磁盘 {d.DiskNumber}"
+        : string.IsNullOrWhiteSpace(d.PathOrDiskNumber) ? "空光驱" : Path.GetFileName(d.PathOrDiskNumber);
+    private static string TypeLabel(VmStorageAttachment d) => IsDvd(d) ? Physical(d) ? "物理光驱" : "虚拟光驱"
+        : Physical(d) ? "物理直通" : d.VhdType switch { "Dynamic" => "动态扩展", "Fixed" => "固定大小", "Differencing" => "差异", _ => "虚拟硬盘" };
+    private static string Size(double? gib) => gib is > 0 ? gib < 1 ? $"{gib * 1024:N1} MiB" : $"{gib:N1} GiB" : "容量未知";
 
-    private static string FormatSize(double sizeGiB) => sizeGiB <= 0 ? "容量未知"
-        : sizeGiB < 1.0 / 1024 ? $"{sizeGiB * 1048576:N0} KB" : sizeGiB < 1 ? $"{sizeGiB * 1024:N1} MB" : $"{sizeGiB:N1} GB";
-
-    private static Grid Detail(string title, string value)
+    private static async Task RevealAsync(string path)
     {
-        var row = new Grid { ColumnSpacing = 16 };
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(64) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row.Children.Add(new TextBlock { Text = title, Foreground = Brush("TextFillColorSecondaryBrush") });
-        var text = new TextBlock { Text = value, TextWrapping = TextWrapping.Wrap, IsTextSelectionEnabled = true };
-        Grid.SetColumn(text, 1);
-        row.Children.Add(text);
-        return row;
+        var file = await StorageFile.GetFileFromPathAsync(path);
+        var folder = await file.GetParentAsync();
+        var options = new FolderLauncherOptions();
+        options.ItemsToSelect.Add(file);
+        if (folder == null || !await Launcher.LaunchFolderAsync(folder, options))
+            throw new IOException("无法打开介质所在的文件夹。");
     }
 }

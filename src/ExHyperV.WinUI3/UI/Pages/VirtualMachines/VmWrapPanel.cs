@@ -3,7 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines;
 // Natural-width badges wrap without stretching the shorter labels into equal cells.
-public sealed class VmWrapPanel : Panel
+public sealed partial class VmWrapPanel : Panel
 {
     public double Spacing { get; set; } = 8;
     protected override Size MeasureOverride(Size availableSize)

@@ -13,6 +13,8 @@ public sealed partial class VirtualMachinesPage : Page
     private bool restoringSelection;
     private int selectionVersion;
 
+    internal event Action<bool>? ImmersiveRequested;
+
     public VirtualMachinesPage()
     {
         InitializeComponent();
@@ -20,6 +22,7 @@ public sealed partial class VirtualMachinesPage : Page
         AutomationProperties.SetName(SearchBox, L10n.Get("VmList_SearchAria"));
         AutomationProperties.SetName(VmList, L10n.Get("VmList_ListAria"));
         Dashboard.SetCache(ViewModel.Cache);
+        Dashboard.ImmersiveRequested += SetImmersiveMode;
         Loaded += OnLoaded;
         Unloaded += (_, _) => { ViewModel.Cancel(); Dashboard.Stop(); };
         ViewModel.PropertyChanged += async (_, args) =>
@@ -37,7 +40,7 @@ public sealed partial class VirtualMachinesPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs args)
     {
-        if (loadedOnce) { ViewModel.ResumePreload(); await Dashboard.SelectAsync(ViewModel.Selected); return; }
+        if (loadedOnce) { await Dashboard.SelectAsync(ViewModel.Selected); return; }
         loadedOnce = true;
         await ViewModel.RefreshCommand.ExecuteAsync(null);
     }
@@ -53,7 +56,16 @@ public sealed partial class VirtualMachinesPage : Page
         // 设置页可能因待核实或待清理的操作拒绝离开，此前不能终止仍需使用的查询缓存。
         await Dashboard.StopAsync();
         ViewModel.Cancel();
-        await Task.WhenAll(ViewModel.RefreshCommand.ExecutionTask ?? Task.CompletedTask, ViewModel.Cache.StopAsync());
+        await (ViewModel.RefreshCommand.ExecutionTask ?? Task.CompletedTask);
     }
     public Task<bool> PrepareToLeaveAsync() => Dashboard.TryCloseSettingsAsync();
+
+    internal void SetImmersiveMode(bool immersive)
+    {
+        VmListPanel.Visibility = immersive ? Visibility.Collapsed : Visibility.Visible;
+        VmListColumn.Width = immersive ? new GridLength(0) : new GridLength(220);
+        PageRoot.ColumnSpacing = immersive ? 0 : 12;
+        PageRoot.Margin = immersive ? new Thickness(0) : new Thickness(12);
+        ImmersiveRequested?.Invoke(immersive);
+    }
 }

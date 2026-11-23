@@ -111,45 +111,9 @@ public sealed class MemorySettingsTests
     }
 
     [TestMethod]
-    public void VmmsServiceRecovery_StartsStoppedServiceClearsCacheAndProbesWmi()
+    public void UnknownMemoryWriteRetainsItsOriginalOutcomeAfterNumaChange()
     {
-        var states = new Queue<VmmsServiceState>([
-            VmmsServiceState.Stopped,
-            VmmsServiceState.StartPending,
-            VmmsServiceState.Running
-        ]);
-        bool startCalled = false;
-        bool cacheCleared = false;
-        int probeCount = 0;
-
-        var backend = new VmmsServiceRecovery.Backend
-        {
-            QueryState = () => states.Count > 1 ? states.Dequeue() : states.Peek(),
-            StartService = () => { startCalled = true; return 0; },
-            ClearWmiCache = () => { cacheCleared = true; },
-            ProbeHyperVWmi = () => ++probeCount >= 2,
-            SleepMs = _ => { }
-        };
-
-        var result = VmmsServiceRecovery.TryRecoverCore(backend, CancellationToken.None);
-        Assert.IsTrue(result.Attempted);
-        Assert.IsTrue(result.Recovered);
-        Assert.IsNull(result.Error);
-        Assert.IsTrue(startCalled);
-        Assert.IsTrue(cacheCleared);
-        Assert.AreEqual(2, probeCount);
-
-        bool startCalledWhenRunning = false;
-        var runningResult = VmmsServiceRecovery.TryRecoverCore(new VmmsServiceRecovery.Backend
-        {
-            QueryState = () => VmmsServiceState.Running,
-            StartService = () => { startCalledWhenRunning = true; return 0; },
-            ClearWmiCache = () => { },
-            ProbeHyperVWmi = () => true,
-            SleepMs = _ => { }
-        }, CancellationToken.None);
-        Assert.IsFalse(runningResult.Attempted);
-        Assert.IsTrue(runningResult.Recovered);
-        Assert.IsFalse(startCalledWhenRunning);
+        var unknown = ApiResponse.Fail("pending", 123, ApiErrorSource.Wmi, kind: ApiErrorKind.OutcomeUnknown);
+        Assert.AreSame(unknown, VmMemoryService.MemoryWriteFailure(unknown, numaDisabled: true));
     }
 }

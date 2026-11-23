@@ -1,6 +1,6 @@
 <Project Sdk="MSTest.Sdk/4.5.2">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net11.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TestingExtensionsProfile>None</TestingExtensionsProfile>
@@ -12,6 +12,7 @@
     <GenerateTestingPlatformApplicationHelper>true</GenerateTestingPlatformApplicationHelper>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="10.0.7" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <EmbeddedResource Include="ResourceInspection/Page.html" />
     <EmbeddedResource Include="ResourceInspection/Assets/Tabler/tabler.min.css" />
@@ -19,6 +20,7 @@
     <ProjectReference Include="../ExHyperV.Core/ExHyperV.Core.csproj" />
     <PackageReference Include="coverlet.MTP" Version="10.1.0" />
     <!-- Keep the existing diagnostic executable usable; share its verified scenarios. -->
+    <Compile Include="../ExHyperV.WinUI3/UI/Pages/VirtualMachines/Settings/VmNetworkPolicyDraft.cs" Link="Scenarios/VmNetworkPolicyDraft.cs" />
     <Compile Remove="Diagnostics/**;Tools/**" />
     <Compile Include="Diagnostics/*Checks.cs"
              Exclude="Diagnostics/NativeChecks.cs;Diagnostics/HostNetworkChecks.cs"

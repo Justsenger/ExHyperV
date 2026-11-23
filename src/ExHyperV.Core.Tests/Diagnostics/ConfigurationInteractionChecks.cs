@@ -14,7 +14,7 @@ internal static class ConfigurationInteractionChecks
             var stopped = VmSecurityService.GetCapabilities(2, VmState.PoweredOff, secureBoot, tpm, shielded);
             check(interlocks.SecureBoot == !shielded && interlocks.Tpm == !shielded &&
                 interlocks.SecureBootTemplate == (secureBoot && !shielded) &&
-                interlocks.Encryption == (tpm && !shielded) && interlocks.Shielding &&
+                interlocks.Encryption == !shielded && interlocks.Shielding &&
                 stopped == interlocks && !running.CanEdit && !running.Shielding && !running.SecureBoot,
                 $"Security interaction: VM-state parent gating preserves child interlocks across stop/start ({secureBoot}/{tpm}/{shielded})");
         }

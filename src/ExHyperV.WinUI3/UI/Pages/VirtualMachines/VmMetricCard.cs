@@ -7,7 +7,7 @@ using Windows.Foundation;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines;
 
-public sealed class VmMetricCard : Button
+public sealed partial class VmMetricCard : Button
 {
     private readonly FontIcon icon = new() { FontSize = 26, FontFamily = new FontFamily("Segoe Fluent Icons"), VerticalAlignment = VerticalAlignment.Center };
     private readonly VmMiddleText title = new() { FontSize = 14, VerticalAlignment = VerticalAlignment.Center };
@@ -73,7 +73,7 @@ public sealed class VmMetricCard : Button
 }
 
 /// <summary>Measure the actual font to keep as much of both ends of a device name as fits.</summary>
-public sealed class VmMiddleText : UserControl
+public sealed partial class VmMiddleText : UserControl
 {
     private string fullText = "";
     private readonly TextBlock measure = new();

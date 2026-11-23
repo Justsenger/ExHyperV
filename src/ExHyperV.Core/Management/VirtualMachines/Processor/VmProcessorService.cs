@@ -217,6 +217,21 @@ public static partial class VmProcessorService
         nameof(VmProcessorSettings.PerfCpuFreqDesiredMhz) or nameof(VmProcessorSettings.PerfCpuEnergyPerformancePreference) or
         nameof(VmProcessorSettings.PerfCpuAutonomousActivityWindow) or nameof(VmProcessorSettings.PerfCpuIgnoreHostMaxFrequency);
 
+    /// <summary>读取宿主报告的虚拟处理器上限并应用代数限制。无法确认时返回 null。</summary>
+    /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
+    /// <returns>宿主报告并经虚拟机代数约束的上限，无法确认时为 null。</returns>
+    public static async Task<int?> GetHostMaxVirtualCpuCountAsync(Guid vmId)
+    {
+        if (vmId == Guid.Empty) return null;
+        var vm = await VmConfigurationState.ReadAsync(vmId).ConfigureAwait(false);
+        if (!vm.HasData || vm.Data.Generation is not (1 or 2)) return null;
+        var limits = await WmiApi.QueryAsync(
+            "SELECT VirtualQuantity FROM Msvm_ProcessorSettingData WHERE InstanceID LIKE 'Microsoft:Definition%Maximum'",
+            obj => obj["VirtualQuantity"] == null ? 0 : Convert.ToInt32(obj["VirtualQuantity"])).ConfigureAwait(false);
+        if (!limits.HasData || limits.Data.Count != 1 || limits.Data[0] <= 0) return null;
+        return vm.Data.Generation == 1 ? Math.Min(64, limits.Data[0]) : limits.Data[0];
+    }
+
     /// <summary>读取虚拟机的处理器配置。</summary>
     /// <param name="vmId">目标虚拟机的标识。</param>
     /// <returns>处理器配置及支持的设置项。虚拟机或配置不存在时返回 NotFound；查询失败时附带原因。可空值的含义见 <see cref="VmProcessorSettings"/>。</returns>
@@ -239,7 +254,7 @@ public static partial class VmProcessorService
             if (procData == null) return null;
 
             return MapProcessorSnapshot(MapProcessor(procData),
-                procData.Properties.Cast<PropertyData>().ToDictionary(p => p.Name, p => (object?)p.Value));
+                procData.Properties.Cast<PropertyData>().ToDictionary(p => p.Name, p => (object?)p.Value, StringComparer.OrdinalIgnoreCase));
         });
 
         if (!results.Success)
@@ -292,7 +307,6 @@ public static partial class VmProcessorService
 
     private static async Task<ApiResponse> ApplyProcessorSettingsAsync(Guid vmId, SettingsSelection<VmProcessorSettings> selection)
     {
-        using var _ = HyperVServiceCoordination.BeginActiveSettingsWrite();
         try
         {
             var host = await GetHostCapabilitiesAsync();

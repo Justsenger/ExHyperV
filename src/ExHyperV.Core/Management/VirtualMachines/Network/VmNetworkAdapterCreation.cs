@@ -10,14 +10,36 @@ internal sealed record VmCreatedNetworkResource(
 internal static class VmNetworkAdapterCreation
 {
     internal const string PortClass = "Msvm_SyntheticEthernetPortSettingData";
+    internal const string EmulatedPortClass = "Msvm_EmulatedEthernetPortSettingData";
     internal const string AllocationClass = "Msvm_EthernetPortAllocationSettingData";
+
+    internal static bool IsPortClass(string className) =>
+        className is PortClass or EmulatedPortClass;
+
+    internal static bool TryParsePortDeviceId(string instanceId, string className, out Guid deviceId)
+    {
+        deviceId = Guid.Empty;
+        var parts = (instanceId ?? string.Empty).Split('\\');
+        if (className == PortClass && parts.Length == 2 && Guid.TryParse(parts[1], out var synId) && synId != Guid.Empty)
+        {
+            deviceId = synId;
+            return true;
+        }
+        if (className == EmulatedPortClass && parts.Length == 3 && parts[2] == "0" && Guid.TryParse(parts[1], out var emuId) && emuId != Guid.Empty)
+        {
+            deviceId = emuId;
+            return true;
+        }
+        return false;
+    }
 
     internal static async Task<VmNetworkAdapterCreationResult> ExecuteAsync(
         Guid vmId,
         Func<Task<WmiCreationResult>> createPort,
         Func<string, Task<WmiCreationResult>> initialize,
         Func<Task<ApiResponse<List<VmCreatedNetworkResource>>>> readCurrent,
-        Func<string, Task<ApiResponse>> remove)
+        Func<string, Task<ApiResponse>> remove,
+        string portClass = PortClass)
     {
         var owned = new List<VmCreatedNetworkResource>();
         var retained = new HashSet<Guid>();
@@ -60,10 +82,9 @@ internal static class VmNetworkAdapterCreation
                 return false;
             }
             owned.Add(item);
-            if (expectedClass == PortClass)
+            if (IsPortClass(expectedClass))
             {
-                var parts = item.InstanceId.Split('\\');
-                if (parts.Length != 2 || !Guid.TryParse(parts[1], out var id) || id == Guid.Empty)
+                if (!TryParsePortDeviceId(item.InstanceId, expectedClass, out var id))
                 { uncertain = true; return false; }
                 deviceId = id;
                 retained.Add(id);
@@ -95,7 +116,7 @@ internal static class VmNetworkAdapterCreation
                     var matches = before.Data.Where(item => SamePath(item.Path, resource.Path)).ToArray();
                     if (matches.Length == 0)
                     {
-                        if (resource.ClassName == PortClass && deviceId.HasValue) retained.Remove(deviceId.Value);
+                        if (IsPortClass(resource.ClassName) && deviceId.HasValue) retained.Remove(deviceId.Value);
                         continue;
                     }
                     if (matches.Length != 1 || !SameConfiguration(matches[0], resource))
@@ -120,7 +141,7 @@ internal static class VmNetworkAdapterCreation
                     }
                     if (after.Data.Any(item => SamePath(item.Path, resource.Path)))
                         return CleanupFailure("自动撤销后资源仍存在：" + (removed.Success ? "底层未完成移除。" : removed.Error));
-                    if (resource.ClassName == PortClass && deviceId.HasValue) retained.Remove(deviceId.Value);
+                    if (IsPortClass(resource.ClassName) && deviceId.HasValue) retained.Remove(deviceId.Value);
                     // 移除报告失败但重查已消失，仍保留清理错误，不假称完全成功。
                     if (!removed.Success) cleanupErrors.Add("自动撤销报告失败，但已确认目标资源不再存在：" + removed.Error);
                 }
@@ -138,7 +159,7 @@ internal static class VmNetworkAdapterCreation
             nativeCallPending = true;
             var port = await createPort();
             nativeCallPending = false;
-            if (!await RecordAsync(port, PortClass))
+            if (!await RecordAsync(port, portClass))
                 return await FailAsync(port.Response.Success ? ApiResponse.Fail("无法确认本次新网卡的身份。", kind: ApiErrorKind.OutcomeUnknown) : port.Response);
             if (!port.Response.Success) return await FailAsync(port.Response);
             // 创建收据只证明归属；第二步提交前还需确认该网卡仍是原配置且没有被其他操作使用。

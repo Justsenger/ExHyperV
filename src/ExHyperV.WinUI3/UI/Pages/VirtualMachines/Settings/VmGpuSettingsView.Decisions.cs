@@ -1,118 +1,395 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using ExHyperV.Models;
+using ExHyperV.WinUI3.Localization;
+using Microsoft.UI;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
+using Windows.UI;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 public sealed partial class VmGpuSettingsView
 {
-    private void RenderDecision(GpuDecisionRequest request)
+    private FrameworkElement? BuildInlineStepActions(GpuDeploymentStep step, GpuDecisionRequest request)
     {
-        decisions.Children.Clear();
-        decisions.Children.Add(Label(request.Title, 18));
-        if (request.IsDestructive)
-            decisions.Children.Add(new InfoBar { IsOpen = true, IsClosable = false, Severity = InfoBarSeverity.Warning, Message = request.Message });
-        else
-            decisions.Children.Add(Label(request.Message));
-
-        switch (request.Input)
+        if (request.Kind == GpuDecisionKind.PowerOff)
         {
-            case GpuDecisionInput.Confirmation:
-                RenderConfirmation(request);
-                break;
-            case GpuDecisionInput.Partition:
-                RenderPartitions(request);
-                break;
-            case GpuDecisionInput.LinuxCredentials:
-                RenderLinuxInput(request);
-                break;
-            default:
-                decisions.Children.Add(Label("此版本尚不能处理 Core 请求的输入类型，请取消部署。"));
-                break;
+            var actions = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var powerOffBtn = new Button
+            {
+                Content = L10n.Get("Gpu_ForceOffContinue")
+            };
+            powerOffBtn.Click += async (_, _) => await SubmitDecisionAsync(new GpuConfirmation(request.Id, true));
+            actions.Children.Add(powerOffBtn);
+            return actions;
         }
+
+        if (step.Type == GpuDeploymentStepKind.Driver && request.Kind == GpuDecisionKind.DriverFallback)
+        {
+            var actions = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            if (request.CanGoBack)
+            {
+                var reselectBtn = new Button { Content = "重选分区" };
+                reselectBtn.Click += async (_, _) => await SubmitDecisionAsync(new GpuBackToPartitions(request.Id));
+                actions.Children.Add(reselectBtn);
+            }
+            var skipBtn = new Button { Content = "跳过驱动" };
+            var mountIsoBtn = new Button
+            {
+                Content = "挂载驱动光盘",
+                Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"]
+            };
+            skipBtn.Click += async (_, _) => await SubmitDecisionAsync(
+                new GpuDriverFallbackSelection(request.Id, GpuDriverFallbackAction.SkipDriver));
+            mountIsoBtn.Click += async (_, _) => await SubmitDecisionAsync(
+                new GpuDriverFallbackSelection(request.Id, GpuDriverFallbackAction.MountIso));
+            actions.Children.Add(skipBtn);
+            actions.Children.Add(mountIsoBtn);
+            return actions;
+        }
+
+        if (step.Type == GpuDeploymentStepKind.Driver && request.Kind == GpuDecisionKind.StartLinux)
+        {
+            var actions = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            if (request.CanGoBack)
+            {
+                var reselectBtn = new Button { Content = "重选分区" };
+                reselectBtn.Click += async (_, _) => await SubmitDecisionAsync(new GpuBackToPartitions(request.Id));
+                actions.Children.Add(reselectBtn);
+            }
+            var startBtn = new Button
+            {
+                Content = "开机并继续",
+                Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"]
+            };
+            startBtn.Click += async (_, _) => await SubmitDecisionAsync(new GpuConfirmation(request.Id, true));
+            actions.Children.Add(startBtn);
+            return actions;
+        }
+
+        return null;
     }
 
-    private void RenderConfirmation(GpuDecisionRequest request)
+    private UIElement BuildDecisionPanel(GpuDecisionRequest request) => request.Kind switch
     {
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var accept = new Button { Content = "确认继续", Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"] };
-        var reject = new Button { Content = "取消部署" };
-        accept.Click += async (_, _) => await SubmitDecisionAsync(new GpuConfirmation(request.Id, true));
-        reject.Click += async (_, _) => await SubmitDecisionAsync(new GpuConfirmation(request.Id, false));
-        actions.Children.Add(accept);
-        actions.Children.Add(reject);
-        AddBackToPartitions(actions, request);
-        decisions.Children.Add(actions);
-    }
+        GpuDecisionKind.SelectPartition => BuildPartitionsDecisionPanel(request),
+        GpuDecisionKind.LinuxCredentials => BuildLinuxCredentialsPanel(request),
+        _ => new Border()
+    };
 
-    private void RenderPartitions(GpuDecisionRequest request)
+    private UIElement BuildPartitionsDecisionPanel(GpuDecisionRequest request)
     {
-        var partitions = new ListView { SelectionMode = ListViewSelectionMode.Single, MaxHeight = 380 };
-        foreach (var partition in request.Partitions)
+        var list = new StackPanel { Spacing = 8 };
+        GpuDeploymentPartition? selectedPartition = request.Partitions.FirstOrDefault(p =>
+            !p.IsBitLocker && p.OsType is OperatingSystemType.Windows or OperatingSystemType.Linux)
+            ?? request.Partitions.FirstOrDefault();
+
+        var actionRow = new StackPanel
         {
-            var description = new StackPanel { Spacing = 6, Margin = new Thickness(8) };
-            description.Children.Add(Label(partition.DisplayName));
-            description.Children.Add(Label(partition.TypeDescription, 12, secondary: true));
-            if (partition.IsBitLocker) description.Children.Add(Label("检测到 BitLocker 加密", 12, secondary: true));
-            var disk = Label(partition.DiskPath, 12, secondary: true);
-            disk.IsTextSelectionEnabled = true;
-            description.Children.Add(disk);
-            partitions.Items.Add(new ListViewItem { Tag = partition, Content = description, HorizontalContentAlignment = HorizontalAlignment.Stretch });
-        }
-        decisions.Children.Add(partitions);
-        if (request.Partitions.Count == 0) decisions.Children.Add(Label("本次扫描未提供可选分区。"));
-        var choose = new Button { Content = "选择此分区", IsEnabled = false, Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"] };
-        partitions.SelectionChanged += (_, _) => choose.IsEnabled = partitions.SelectedItem is ListViewItem { Tag: GpuDeploymentPartition };
-        choose.Click += async (_, _) =>
-        {
-            if (partitions.SelectedItem is ListViewItem { Tag: GpuDeploymentPartition selected })
-                await SubmitDecisionAsync(new GpuPartitionSelection(request.Id, selected.Id));
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            HorizontalAlignment = HorizontalAlignment.Right
         };
-        decisions.Children.Add(choose);
+        var skipBtn = new Button { Content = "跳过驱动" };
+        var primaryBtn = new Button
+        {
+            Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"]
+        };
+
+        void UpdateActionButtons()
+        {
+            bool useIso = selectedPartition == null
+                || selectedPartition.IsBitLocker
+                || selectedPartition.OsType is not (OperatingSystemType.Windows or OperatingSystemType.Linux);
+            primaryBtn.Content = useIso ? "挂载驱动光盘" : "继续";
+        }
+
+        skipBtn.Click += async (_, _) => await SubmitDecisionAsync(
+            new GpuDriverFallbackSelection(request.Id, GpuDriverFallbackAction.SkipDriver));
+        primaryBtn.Click += async (_, _) =>
+        {
+            if (selectedPartition == null
+                || selectedPartition.IsBitLocker
+                || selectedPartition.OsType is not (OperatingSystemType.Windows or OperatingSystemType.Linux))
+            {
+                await SubmitDecisionAsync(new GpuDriverFallbackSelection(request.Id, GpuDriverFallbackAction.MountIso));
+            }
+            else
+            {
+                await SubmitDecisionAsync(new GpuPartitionSelection(request.Id, selectedPartition.Id));
+            }
+        };
+
+        actionRow.Children.Add(skipBtn);
+        actionRow.Children.Add(primaryBtn);
+
+        var rowSyncActions = new List<(GpuDeploymentPartition Partition, Action<bool> SetSelected)>();
+        foreach (GpuDeploymentPartition partition in request.Partitions)
+        {
+            var radioOuter = new Ellipse
+            {
+                Width = 16,
+                Height = 16,
+                Stroke = Brush("TextFillColorTertiaryBrush"),
+                StrokeThickness = 1.5
+            };
+            var radioInner = new Ellipse
+            {
+                Width = 8,
+                Height = 8,
+                Fill = Brush("VmAccentBrush"),
+                Visibility = Visibility.Collapsed
+            };
+            var radioHost = new Grid
+            {
+                Width = 16,
+                Height = 16,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            radioHost.Children.Add(radioOuter);
+            radioHost.Children.Add(radioInner);
+
+            var partIcon = new FontIcon
+            {
+                Glyph = partition.IsBitLocker ? "\uE72E" : "\uEDA2",
+                FontFamily = new FontFamily(SegoeFluentFont),
+                FontSize = 18,
+                Foreground = Brush("TextFillColorPrimaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var titleLine = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            titleLine.Children.Add(new TextBlock
+            {
+                Text = partition.DisplayName,
+                FontSize = 13.5,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = Brush("TextFillColorPrimaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            if (partition.IsBitLocker)
+            {
+                var infoBtn = new Button
+                {
+                    Content = new FontIcon
+                    {
+                        Glyph = "\uE946",
+                        FontFamily = new FontFamily(SegoeFluentFont),
+                        FontSize = 13.5,
+                        Foreground = Brush("TextFillColorSecondaryBrush")
+                    },
+                    Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["VmSelectorButtonStyle"],
+                    Width = 24,
+                    Height = 24,
+                    MinWidth = 24,
+                    MinHeight = 24,
+                    CornerRadius = new CornerRadius(12),
+                    Padding = new Thickness(0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                const string bitLockerDesc = "无法向 BitLocker 分区安装驱动，需要先解锁，或挂载驱动光盘。";
+                ToolTipService.SetToolTip(infoBtn, bitLockerDesc);
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(infoBtn, bitLockerDesc);
+                titleLine.Children.Add(infoBtn);
+            }
+
+            string subDesc = string.IsNullOrWhiteSpace(partition.TypeDescription)
+                ? partition.DiskPath
+                : $"{partition.TypeDescription}，{partition.DiskPath}";
+            var infoStack = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
+            infoStack.Children.Add(titleLine);
+            infoStack.Children.Add(new TextBlock
+            {
+                Text = subDesc,
+                FontSize = 12,
+                Foreground = Brush("TextFillColorSecondaryBrush"),
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+
+            var sizeText = new TextBlock
+            {
+                Text = $"{partition.SizeGiB:F1} GB",
+                FontSize = 12.5,
+                Foreground = Brush("TextFillColorSecondaryBrush"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var rowGrid = new Grid { ColumnSpacing = 12 };
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            Grid.SetColumn(radioHost, 0);
+            rowGrid.Children.Add(radioHost);
+            Grid.SetColumn(partIcon, 1);
+            rowGrid.Children.Add(partIcon);
+            Grid.SetColumn(infoStack, 2);
+            rowGrid.Children.Add(infoStack);
+            Grid.SetColumn(sizeText, 3);
+            rowGrid.Children.Add(sizeText);
+
+            var accentBar = new Border
+            {
+                Width = 3,
+                CornerRadius = new CornerRadius(0, 2, 2, 0),
+                Background = Brush("VmAccentBrush"),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Margin = new Thickness(-16, 2, 0, 2),
+                Visibility = Visibility.Collapsed
+            };
+            var container = new Grid();
+            container.Children.Add(accentBar);
+            container.Children.Add(rowGrid);
+
+            var defaultBg = TryBrush("CardBackgroundFillColorDefaultBrush", Color.FromArgb(13, 255, 255, 255));
+            var hoverBg = TryBrush("SubtleFillColorTertiaryBrush", Color.FromArgb(14, 255, 255, 255));
+            var selectedBg = SubtleHighlightBrush(12, 10);
+            var defaultStroke = TryBrush("CardStrokeColorDefaultBrush", Color.FromArgb(20, 255, 255, 255));
+            var selectedStroke = Brush("VmAccentBrush");
+
+            var rowCard = new Border
+            {
+                Background = defaultBg,
+                BorderBrush = defaultStroke,
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(6),
+                Padding = new Thickness(16, 12, 16, 12),
+                Child = container
+            };
+
+            void SetSelected(bool active)
+            {
+                rowCard.Background = active ? selectedBg : defaultBg;
+                rowCard.BorderBrush = active ? selectedStroke : defaultStroke;
+                radioOuter.Stroke = active ? selectedStroke : Brush("TextFillColorTertiaryBrush");
+                radioInner.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+                accentBar.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+            }
+
+            rowSyncActions.Add((partition, SetSelected));
+            rowCard.PointerEntered += (_, _) =>
+            {
+                if (!ReferenceEquals(partition, selectedPartition)) rowCard.Background = hoverBg;
+            };
+            rowCard.PointerExited += (_, _) =>
+            {
+                rowCard.Background = ReferenceEquals(partition, selectedPartition) ? selectedBg : defaultBg;
+            };
+            rowCard.PointerCanceled += (_, _) =>
+            {
+                rowCard.Background = ReferenceEquals(partition, selectedPartition) ? selectedBg : defaultBg;
+            };
+            rowCard.PointerPressed += (_, _) =>
+            {
+                selectedPartition = partition;
+                foreach (var entry in rowSyncActions)
+                    entry.SetSelected(ReferenceEquals(entry.Partition, selectedPartition));
+                UpdateActionButtons();
+            };
+
+            list.Children.Add(rowCard);
+        }
+
+        foreach (var entry in rowSyncActions)
+            entry.SetSelected(ReferenceEquals(entry.Partition, selectedPartition));
+        UpdateActionButtons();
+
+        var decisionBody = new StackPanel { Spacing = 10 };
+        decisionBody.Children.Add(list);
+        decisionBody.Children.Add(actionRow);
+
+        return new Border
+        {
+            Background = SubtleHighlightBrush(6, 5),
+            BorderBrush = TryBrush("CardStrokeColorDefaultBrush", Color.FromArgb(20, 255, 255, 255)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(14, 12, 14, 12),
+            Margin = new Thickness(0, 2, 0, 4),
+            Child = decisionBody
+        };
     }
 
-    private void RenderLinuxInput(GpuDecisionRequest request)
+    private UIElement BuildLinuxCredentialsPanel(GpuDecisionRequest request)
     {
-        var form = new StackPanel { Spacing = 16 };
+        var shownScripts = scripts;
         var availableScripts = new ComboBox
         {
-            Header = "部署方案", ItemsSource = scripts, DisplayMemberPath = nameof(LinuxGpuDeploymentScript.Name),
-            SelectedItem = scripts.FirstOrDefault(), HorizontalAlignment = HorizontalAlignment.Stretch
+            Header = "部署方案",
+            ItemsSource = shownScripts.Select(script => script.Name).ToArray(),
+            HorizontalAlignment = HorizontalAlignment.Stretch
         };
         var scriptDescription = Label(string.Empty, 12, secondary: true);
-        void UpdateDescription()
+        LinuxGpuDeploymentScript? SelectedScript()
         {
-            scriptDescription.Text = availableScripts.SelectedItem is LinuxGpuDeploymentScript script
-                ? $"{script.Author}，{script.Version}\n{script.Description}"
-                : "未取得可用脚本。可重新加载在线清单，或返回选择其他分区。";
+            int index = availableScripts.SelectedIndex;
+            return index >= 0 && index < shownScripts.Count ? shownScripts[index] : null;
         }
-        UpdateDescription();
+        void UpdateDescription() => scriptDescription.Text = SelectedScript() is { } selected
+            ? $"{selected.Description}（作者：{selected.Author}，版本：{selected.Version}）"
+            : scripts.Count == 0 ? "正在加载或未取得脚本清单，如确认网络可用，请返回重选后重试。" : "请选择适用于目标 Linux 发行版的部署脚本。";
         availableScripts.SelectionChanged += (_, _) => UpdateDescription();
-        var reloadScripts = new Button { Content = "重新加载部署方案" };
-        reloadScripts.Click += async (_, _) => await RunGpuOperationAsync(async () =>
+        availableScripts.SelectedIndex = scripts.Count > 0 ? 0 : -1;
+        UpdateDescription();
+        if (scripts.Count == 0)
         {
-            await LoadScriptsAsync();
-            if (workflow?.GetStatus().PendingDecision?.Id != request.Id) return;
-            availableScripts.ItemsSource = scripts;
-            availableScripts.SelectedItem = scripts.FirstOrDefault();
-            UpdateDescription();
-        });
-        form.Children.Add(availableScripts);
-        form.Children.Add(scriptDescription);
-        form.Children.Add(reloadScripts);
+            async Task PopulateScriptsAsync()
+            {
+                try
+                {
+                    await EnsureScriptsLoadedAsync(showWarningOnEmpty: false);
+                    if (closing || IsStopped) return;
+                    DispatcherQueue.TryEnqueue(() =>
+                    {
+                        if (closing || IsStopped) return;
+                        shownScripts = scripts;
+                        availableScripts.ItemsSource = shownScripts.Select(script => script.Name).ToArray();
+                        availableScripts.SelectedIndex = scripts.Count > 0 ? 0 : -1;
+                        UpdateDescription();
+                    });
+                }
+                catch { }
+            }
+            _ = PopulateScriptsAsync();
+        }
 
-        var host = new TextBox { Header = "来宾 IP 地址", Text = request.SuggestedHost, MinWidth = 160 };
-        var port = new NumberBox { Header = "SSH 端口", Value = 22, Minimum = 1, Maximum = 65535, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, MinWidth = 110 };
-        var username = new TextBox { Header = "用户名", Text = "root", MinWidth = 160 };
-        var password = new PasswordBox { Header = "密码", MinWidth = 160 };
-        form.Children.Add(InputPair(host, port));
-        form.Children.Add(InputPair(username, password));
+        var host = new TextBox { Header = "主机 / IP", Text = request.SuggestedHost, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var port = new NumberBox { Header = "端口", Value = 22, Minimum = 1, Maximum = 65535, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var username = new TextBox { Header = "用户名", Text = "root", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var password = new PasswordBox { Header = "密码", HorizontalAlignment = HorizontalAlignment.Stretch };
         var graphics = new CheckBox { Content = "安装图形支持", IsChecked = true };
-        form.Children.Add(graphics);
+        var useProxy = new ToggleSwitch { Header = "来宾脚本下载使用 HTTP 代理", IsOn = false };
+        var proxyHost = new TextBox { Header = "代理主机", HorizontalAlignment = HorizontalAlignment.Stretch };
+        var proxyPort = new NumberBox { Header = "代理端口", Value = 7890, Minimum = 1, Maximum = 65535, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, HorizontalAlignment = HorizontalAlignment.Stretch };
 
-        var useProxy = new ToggleSwitch { Header = "下载时使用 HTTP 代理", OnContent = "", OffContent = "" };
-        var proxyHost = new TextBox { Header = "代理主机", MinWidth = 160 };
-        var proxyPort = new NumberBox { Header = "代理端口", Value = 7890, Minimum = 1, Maximum = 65535, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact, MinWidth = 110 };
         // 只读取客户端现有代理作为表单默认值；默认不开启，不修改代理设置。
         try
         {
@@ -123,65 +400,112 @@ public sealed partial class VmGpuSettingsView
                 proxyPort.Value = proxy.Port;
             }
         }
-        catch { /* 可选表单默认值失败不影响部署选择。 */ }
-        var proxyInputs = InputPair(proxyHost, proxyPort);
+        catch { }
+
         proxyHost.IsEnabled = proxyPort.IsEnabled = false;
         useProxy.Toggled += (_, _) => proxyHost.IsEnabled = proxyPort.IsEnabled = useProxy.IsOn;
-        form.Children.Add(useProxy);
-        form.Children.Add(Label("代理供来宾下载部署脚本使用，不用于 SSH 连接。", 12, secondary: true));
-        form.Children.Add(proxyInputs);
 
-        var actions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        var connect = new Button { Content = "连接并部署", Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"] };
-        connect.Click += async (_, _) =>
+        var credGrid = new Grid { ColumnSpacing = 12, RowSpacing = 10 };
+        credGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        credGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        credGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        credGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        Grid.SetColumn(host, 0);
+        Grid.SetRow(host, 0);
+        credGrid.Children.Add(host);
+        Grid.SetColumn(port, 1);
+        Grid.SetRow(port, 0);
+        credGrid.Children.Add(port);
+
+        Grid.SetColumn(username, 0);
+        Grid.SetRow(username, 1);
+        credGrid.Children.Add(username);
+        Grid.SetColumn(password, 1);
+        Grid.SetRow(password, 1);
+        credGrid.Children.Add(password);
+
+        var proxyGrid = new Grid { ColumnSpacing = 12 };
+        proxyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        proxyGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(proxyHost, 0);
+        Grid.SetColumn(proxyPort, 1);
+        proxyGrid.Children.Add(proxyHost);
+        proxyGrid.Children.Add(proxyPort);
+
+        var actions = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 8,
+            HorizontalAlignment = HorizontalAlignment.Right
+        };
+        if (request.CanGoBack)
+        {
+            var backBtn = new Button { Content = "重选分区" };
+            backBtn.Click += async (_, _) => await SubmitDecisionAsync(new GpuBackToPartitions(request.Id));
+            actions.Children.Add(backBtn);
+        }
+
+        var connectBtn = new Button
+        {
+            Content = "开始部署",
+            Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"]
+        };
+        connectBtn.Click += async (_, _) =>
         {
             var credentials = new SshCredentials
             {
-                Host = host.Text.Trim(), Port = PortValue(port.Value), Username = username.Text,
-                Password = password.Password, InstallGraphics = graphics.IsChecked == true,
-                UseProxy = useProxy.IsOn, ProxyHost = proxyHost.Text.Trim(),
+                Host = host.Text.Trim(),
+                Port = PortValue(port.Value),
+                Username = username.Text,
+                Password = password.Password,
+                InstallGraphics = graphics.IsChecked == true,
+                UseProxy = useProxy.IsOn,
+                ProxyHost = proxyHost.Text.Trim(),
                 ProxyPort = useProxy.IsOn ? PortValue(proxyPort.Value) : null
             };
-            await SubmitDecisionAsync(new GpuLinuxInput(request.Id,
-                availableScripts.SelectedItem as LinuxGpuDeploymentScript, credentials));
+            await SubmitDecisionAsync(new GpuLinuxInput(
+                request.Id,
+                SelectedScript(),
+                credentials));
             // 凭据只交给本次调用；不写入配置、日志或恢复材料。
             if (workflow?.GetStatus().PendingDecision?.Id != request.Id) password.Password = string.Empty;
         };
-        actions.Children.Add(connect);
-        AddBackToPartitions(actions, request);
+        actions.Children.Add(connectBtn);
+
+        var form = new StackPanel { Spacing = 10 };
+        form.Children.Add(credGrid);
+        form.Children.Add(availableScripts);
+        form.Children.Add(scriptDescription);
+        form.Children.Add(graphics);
+        form.Children.Add(useProxy);
+        form.Children.Add(Label("代理供来宾下载部署脚本使用，不用于 SSH 连接。", 12, secondary: true));
+        form.Children.Add(proxyGrid);
         form.Children.Add(actions);
-        decisions.Children.Add(form);
+
+        return new Border
+        {
+            Background = SubtleHighlightBrush(6, 5),
+            BorderBrush = TryBrush("CardStrokeColorDefaultBrush", Color.FromArgb(20, 255, 255, 255)),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(14, 12, 14, 12),
+            Margin = new Thickness(0, 2, 0, 4),
+            Child = form
+        };
     }
 
-    private void AddBackToPartitions(Panel actions, GpuDecisionRequest request)
+    private Task SubmitDecisionAsync(GpuDeploymentDecision decision)
     {
-        if (!request.CanGoBack || snapshot?.AllowedActions.Contains(GpuDeploymentAction.BackToPartitions) != true) return;
-        var back = new Button { Content = "返回分区选择" };
-        back.Click += async (_, _) => await SubmitDecisionAsync(new GpuBackToPartitions(request.Id));
-        actions.Children.Add(back);
+        if (workflow == null) return Task.CompletedTask;
+        var session = workflow;
+        return RunGpuOperationAsync(async () =>
+        {
+            var next = await Task.Run(() => session.SubmitDecisionAsync(decision));
+            await FinishStepAsync(session, next);
+        });
     }
 
-    private Task SubmitDecisionAsync(GpuDeploymentDecision decision) => RunGpuOperationAsync(async () =>
-    {
-        var session = workflow ?? throw new InvalidOperationException("GPU 部署已经结束。");
-        var current = session.GetStatus();
-        if (current.PendingDecision?.Id != decision.RequestId || !current.AllowedActions.Contains(GpuDeploymentAction.SubmitDecision))
-            throw new InvalidOperationException("此确认已过期，请使用当前页面的请求。");
-        var result = await Task.Run(() => session.SubmitDecisionAsync(decision));
-        await FinishStepAsync(session, result);
-    });
-
-    private static int PortValue(double value) => double.IsFinite(value) && value == Math.Truncate(value)
-        && value is >= 0 and <= 65535 ? (int)value : 0;
-
-    private static Grid InputPair(FrameworkElement left, FrameworkElement right)
-    {
-        var grid = new Grid { ColumnSpacing = 16 };
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(2, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.Children.Add(left);
-        Grid.SetColumn(right, 1);
-        grid.Children.Add(right);
-        return grid;
-    }
+    private static int PortValue(double value)
+        => double.IsNaN(value) || value < 1 || value > 65535 ? 0 : (int)Math.Round(value);
 }

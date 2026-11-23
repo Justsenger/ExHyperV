@@ -12,9 +12,10 @@ internal static class ApiFieldHelp
 
     private static IReadOnlyDictionary<string, string> Load()
     {
-        using var stream = typeof(ApiFieldHelp).Assembly.GetManifestResourceStream("ExHyperV.ApiFieldHelp.json")
+        using var resource = typeof(ApiFieldHelp).Assembly.GetManifestResourceStream("ExHyperV.ApiFieldHelp.json.br")
             ?? throw new InvalidOperationException("缺少字段说明资源。");
-        return JsonSerializer.Deserialize<Dictionary<string, string>>(stream)
+        using var stream = new System.IO.Compression.BrotliStream(resource, System.IO.Compression.CompressionMode.Decompress);
+        return JsonSerializer.Deserialize(stream, DesktopJson.Default.DictionaryStringString)
             ?? throw new InvalidOperationException("字段说明资源为空。");
     }
 }

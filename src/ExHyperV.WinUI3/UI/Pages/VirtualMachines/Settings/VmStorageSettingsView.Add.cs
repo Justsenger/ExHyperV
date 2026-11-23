@@ -1,388 +1,480 @@
-using System.Globalization;
 using System.IO;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
-using ExHyperV.WinUI3.Localization;
 using ExHyperV.WinUI3.UI.Shared;
+using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Windows.Storage;
-using Windows.System;
+using Microsoft.UI.Xaml.Media;
+using static ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings.DeviceWorkbench;
 
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 public sealed partial class VmStorageSettingsView
 {
-    private StorageForm? form;
-
-    private async Task OpenAddAsync()
+    private enum Source { Existing, New, Physical }
+    private sealed class AddDraft
     {
-        if (!CanChange()) return;
-        await LoadAsync();
-        if (!CanChange()) return;
-        form = new StorageForm(this);
-        await form.ReadHostSourcesAsync();
-        if (IsStopped) return;
-        editor.Content = form.Content;
-        deviceHost.Visibility = Visibility.Collapsed;
-        add.Visibility = refresh.Visibility = Visibility.Collapsed;
-    }
-
-    private async Task CloseAddAsync()
-    {
-        form = null;
-        editor.Content = null;
-        deviceHost.Visibility = Visibility.Visible;
-        add.Visibility = refresh.Visibility = Visibility.Visible;
-        await LoadAsync();
-    }
-
-    private static Task<string?> PickOpenAsync(params string[] extensions) => StoragePickers.OpenAsync(extensions);
-
-    private static async Task RevealMediaAsync(string path)
-    {
-        var file = await StorageFile.GetFileFromPathAsync(Path.GetFullPath(path));
-        var folder = await file.GetParentAsync();
-        if (folder is null) throw new InvalidOperationException("未找到介质所在文件夹。");
-        var options = new FolderLauncherOptions();
-        options.ItemsToSelect.Add(file);
-        if (!await Launcher.LaunchFolderAsync(folder, options))
-            throw new InvalidOperationException("无法打开介质所在的文件夹。");
-    }
-
-    private sealed class StorageForm
-    {
-        private readonly VmStorageSettingsView owner;
-        private bool updating;
-        private bool sourcesKnown;
-        private readonly ComboBox source = Choices(("虚拟介质文件", "Virtual"), ("宿主物理设备", "Physical"));
-        private readonly ComboBox drive = Choices(("硬盘", "HardDisk"), ("光驱", "DvdDrive"));
-        private readonly ToggleSwitch create = new() { OnContent = "", OffContent = "" };
-        private readonly ToggleSwitch automatic = new() { IsOn = true, OnContent = "", OffContent = "" };
-        private readonly ComboBox controller = new() { MinWidth = 92 };
-        private readonly ComboBox number = new() { MinWidth = 68 };
-        private readonly ComboBox location = new() { MinWidth = 68 };
-        private readonly TextBox path = new() { PlaceholderText = "选择虚拟磁盘文件" };
-        private readonly Button browse = new() { Content = "浏览" };
-        private readonly ComboBox vhdType = Choices(("动态扩展", "Dynamic"), ("固定大小", "Fixed"), ("差分磁盘", "Differencing"));
-        private readonly ComboBox size = new() { IsEditable = true, Text = "128", ItemsSource = new[] { "32", "64", "128", "256", "512", "1024" }, MinWidth = 120 };
-        private readonly ComboBox sector = Choices(("默认", "Default"), ("512n", "512n"), ("512e", "512e"), ("4Kn", "4kn"));
-        private readonly ComboBox block = Choices(("默认", "Default"), ("1 MB", "1048576"), ("2 MB", "2097152"), ("4 MB", "4194304"),
-            ("8 MB", "8388608"), ("16 MB", "16777216"), ("32 MB", "33554432"), ("64 MB", "67108864"), ("128 MB", "134217728"), ("256 MB", "268435456"));
-        private readonly TextBox parent = new() { PlaceholderText = "选择父磁盘" };
-        private readonly TextBox isoSource = new() { PlaceholderText = "选择打包为 ISO 的文件夹" };
-        private readonly TextBox volume = new() { Text = "NewISO" };
-        private readonly TextBox isoOutput = new() { PlaceholderText = "选择 ISO 保存路径" };
-        private readonly ComboBox physicalDisk = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
-        private readonly ComboBox physicalOptical = new() { HorizontalAlignment = HorizontalAlignment.Stretch };
-        private readonly InfoBar sourceWarning = new() { Severity = InfoBarSeverity.Warning, IsClosable = false };
-        private readonly InfoBar slotWarning = new() { Severity = InfoBarSeverity.Warning, IsClosable = false };
-        private readonly Button confirm = new() { Content = "添加" };
-        private readonly Grid newRow;
-        private readonly Border pathRow;
-        private readonly Border diskOptions;
-        private readonly Border parentRow;
-        private readonly Border isoOptions;
-        private readonly Border physicalOptions;
-        private readonly StackPanel slotEditors = new() { Orientation = Orientation.Horizontal, Spacing = 12 };
-        public StackPanel Content { get; } = new() { Spacing = 12 };
-        private string DriveType => Selected(drive);
-        private bool Physical => Selected(source) == "Physical";
-
-        public StorageForm(VmStorageSettingsView owner)
+        public bool Dvd, ShowAdvanced;
+        public Source Source;
+        public string DriveType => Dvd ? "DvdDrive" : "HardDisk";
+        public readonly SlotDraft Slot = new();
+        public string DiskPath = "", NewDisk = "", IsoPath = "", NewIso = "", Folder = "", Label = "NewISO";
+        public string Parent = "", Type = "Dynamic", Capacity = "128", Sector = "Default";
+        public int BlockMiB;
+        public IReadOnlyList<VmPassthroughCandidate>? Candidates;
+        public readonly List<VmPassthroughCandidate> Selected = [];
+        public string Path
         {
-            this.owner = owner;
-            Content.Children.Add(new TextBlock { Text = "添加存储", FontSize = 20, Margin = new Thickness(0, 0, 0, 4) });
-            slotEditors.Children.Add(Field("接口", controller));
-            slotEditors.Children.Add(Field("控制器编号", number));
-            slotEditors.Children.Add(Field("位置", location));
-            var slots = new StackPanel { Spacing = 12, Margin = new Thickness(24, 0, 24, 20) };
-            slots.Children.Add(slotEditors);
-            slots.Children.Add(slotWarning);
-            Content.Children.Add(Card(Row("自动选择插槽", "根据虚拟机代数、运行状态和已占用插槽分配。", automatic), slots));
-            newRow = Row("新建介质", null, create);
-            Content.Children.Add(Card(Row("来源", null, source), Row("设备类型", null, drive), newRow));
-
-            pathRow = FieldCard("介质路径", PathEditor(path, browse));
-            Content.Children.Add(pathRow);
-            diskOptions = Card(Row("容量（GB）", null, size), Row("磁盘类型", null, vhdType), Row("扇区格式", null, sector), Row("块大小", null, block));
-            Content.Children.Add(diskOptions);
-            var parentBrowse = new Button { Content = "浏览" };
-            parentRow = FieldCard("父磁盘", PathEditor(parent, parentBrowse));
-            Content.Children.Add(parentRow);
-            var folderBrowse = new Button { Content = "选择" };
-            var isoBrowse = new Button { Content = "保存为" };
-            var isoFields = new StackPanel { Spacing = 16, Margin = new Thickness(24, 20, 24, 20) };
-            isoFields.Children.Add(Field("来源文件夹", PathEditor(isoSource, folderBrowse)));
-            isoFields.Children.Add(Field("卷标", volume));
-            isoFields.Children.Add(Field("ISO 保存路径", PathEditor(isoOutput, isoBrowse)));
-            isoOptions = Card(isoFields);
-            Content.Children.Add(isoOptions);
-
-            var reloadPhysical = new Button { Content = "刷新物理设备", HorizontalAlignment = HorizontalAlignment.Right };
-            var physicalFields = new StackPanel { Margin = new Thickness(24, 20, 24, 20), Spacing = 12 };
-            physicalFields.Children.Add(physicalDisk);
-            physicalFields.Children.Add(physicalOptical);
-            physicalFields.Children.Add(sourceWarning);
-            physicalFields.Children.Add(reloadPhysical);
-            physicalOptions = Card(physicalFields);
-            Content.Children.Add(physicalOptions);
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
-            var cancel = new Button { Content = "取消" };
-            confirm.Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"];
-            buttons.Children.Add(cancel);
-            buttons.Children.Add(confirm);
-            Content.Children.Add(buttons);
-
-            source.SelectionChanged += (_, _) => SourceChanged();
-            drive.SelectionChanged += (_, _) => SourceChanged();
-            create.Toggled += (_, _) => SourceChanged();
-            vhdType.SelectionChanged += (_, _) => UpdateVisibility();
-            automatic.Toggled += (_, _) => RefreshSlots();
-            controller.SelectionChanged += (_, _) => RefreshSlots(false);
-            number.SelectionChanged += (_, _) => RefreshSlots(false);
-            location.SelectionChanged += (_, _) => UpdateSlotWarning();
-            physicalDisk.SelectionChanged += (_, _) => UpdateSlotWarning();
-            physicalOptical.SelectionChanged += (_, _) => UpdateSlotWarning();
-            browse.Click += async (_, _) => await owner.RunAsync(BrowseMediaAsync);
-            parentBrowse.Click += async (_, _) => await owner.RunAsync(async () =>
+            get => (Dvd, Source) switch
             {
-                var value = await PickOpenAsync(".vhd", ".vhdx", ".avhd", ".avhdx");
-                if (value is not null && !owner.IsStopped) parent.Text = value;
-            });
-            folderBrowse.Click += async (_, _) => await owner.RunAsync(async () =>
-            {
-                var value = await StoragePickers.FolderAsync();
-                if (value is null || owner.IsStopped) return;
-                isoSource.Text = value;
-                volume.Text = Path.GetFileName(value.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-            });
-            isoBrowse.Click += async (_, _) => await owner.RunAsync(async () =>
-            {
-                var value = await StoragePickers.SaveAsync("NewISO.iso", "ISO 映像", ".iso");
-                if (value is not null && !owner.IsStopped) isoOutput.Text = value;
-            });
-            reloadPhysical.Click += async (_, _) => await owner.RunAsync(ReadHostSourcesAsync);
-            cancel.Click += async (_, _) => await owner.RunAsync(owner.CloseAddAsync);
-            confirm.Click += async (_, _) => await owner.RunAsync(ConfirmAsync);
-            SourceChanged();
-        }
-
-        public async Task ReadHostSourcesAsync()
-        {
-            sourcesKnown = false;
-            static async Task<ApiResponse<List<T>>> ReadAsync<T>(Func<Task<ApiResponse<List<T>>>> query)
-            {
-                try { return await Task.Run(query); }
-                catch (Exception error) { return ApiResponse<List<T>>.Fail(error.Message, exception: error); }
-            }
-            var disksTask = ReadAsync(HostDiskService.GetHostDisksAsync);
-            var opticalTask = owner.generation == 1 ? ReadAsync(HostDiskService.GetHostOpticalDrivesAsync) : null;
-            var disks = await disksTask;
-            var opticals = opticalTask is null ? null : await opticalTask;
-            if (owner.IsStopped) return;
-            physicalDisk.Items.Clear();
-            physicalOptical.Items.Clear();
-            var errors = new List<string>();
-            if (disks.HasData)
-                foreach (var disk in disks.Data)
-                    physicalDisk.Items.Add(new ComboBoxItem { Tag = disk, IsEnabled = disk.CanPassthrough,
-                        Content = $"磁盘 {disk.Number}，{disk.FriendlyName}，{disk.SizeGiB:N1} GB，{disk.Status}" });
-            else if (!disks.Success) errors.Add("物理磁盘：" + CoreMessageResolver.ResolveError(disks));
-            if (opticals?.HasData == true)
-                foreach (var optical in opticals.Data)
-                    physicalOptical.Items.Add(new ComboBoxItem { Tag = optical, Content = $"{optical.Model} ({optical.Drive})" });
-            else if (opticals is { Success: false }) errors.Add("物理光驱：" + CoreMessageResolver.ResolveError(opticals));
-            sourcesKnown = true;
-            sourceWarning.Message = string.Join(Environment.NewLine, errors);
-            sourceWarning.IsOpen = errors.Count > 0;
-            UpdateVisibility();
-        }
-
-        private void SourceChanged()
-        {
-            if (updating) return;
-            updating = true;
-            try
-            {
-                var choice = VmStorageService.GetSourceChoice(owner.generation, Physical, DriveType, create.IsOn);
-                Select(drive, choice.DriveType);
-                create.IsOn = choice.IsNew;
-                ((ComboBoxItem)drive.Items[1]).IsEnabled = choice.SupportsOptical;
-                path.Text = string.Empty;
-                isoOutput.Text = string.Empty;
-            }
-            finally { updating = false; }
-            UpdateVisibility();
-            RefreshSlots();
-        }
-
-        private void UpdateVisibility()
-        {
-            if (updating) return;
-            bool newDisk = !Physical && create.IsOn && DriveType == "HardDisk";
-            bool newIso = !Physical && create.IsOn && DriveType == "DvdDrive";
-            bool differencing = newDisk && Selected(vhdType) == "Differencing";
-            newRow.Visibility = Physical ? Visibility.Collapsed : Visibility.Visible;
-            pathRow.Visibility = !Physical && !newIso ? Visibility.Visible : Visibility.Collapsed;
-            diskOptions.Visibility = newDisk ? Visibility.Visible : Visibility.Collapsed;
-            parentRow.Visibility = differencing ? Visibility.Visible : Visibility.Collapsed;
-            size.IsEnabled = sector.IsEnabled = block.IsEnabled = !differencing;
-            isoOptions.Visibility = newIso ? Visibility.Visible : Visibility.Collapsed;
-            physicalOptions.Visibility = Physical ? Visibility.Visible : Visibility.Collapsed;
-            physicalDisk.Visibility = DriveType == "HardDisk" ? Visibility.Visible : Visibility.Collapsed;
-            physicalOptical.Visibility = DriveType == "DvdDrive" ? Visibility.Visible : Visibility.Collapsed;
-            physicalDisk.PlaceholderText = physicalDisk.Items.Count == 0 ? "没有可用的物理磁盘" : "选择物理磁盘";
-            physicalOptical.PlaceholderText = physicalOptical.Items.Count == 0 ? "没有可用的物理光驱" : "选择物理光驱";
-            browse.Content = create.IsOn ? "保存到" : "浏览";
-            path.PlaceholderText = DriveType == "HardDisk" ? "虚拟磁盘文件路径" : "ISO 文件路径（留空时添加空光驱）";
-            UpdateSlotWarning();
-        }
-
-        private void RefreshSlots(bool chooseBest = true)
-        {
-            if (updating) return;
-            updating = true;
-            try
-            {
-                string? oldType = controller.SelectedItem as string;
-                int? oldNumber = number.SelectedItem as int?;
-                int? oldLocation = location.SelectedItem as int?;
-                var plan = automatic.IsOn && chooseBest
-                    ? VmStorageService.GetBestSlot(owner.generation, owner.running, DriveType, owner.attachments) : null;
-                var types = VmStorageService.GetControllerTypes(owner.generation, owner.running, DriveType);
-                controller.ItemsSource = types;
-                controller.SelectedItem = plan?.Slot?.ControllerType ?? (oldType is not null && types.Contains(oldType) ? oldType : types.FirstOrDefault());
-                var numbers = VmStorageService.GetControllerNumbers(controller.SelectedItem as string ?? string.Empty);
-                number.ItemsSource = numbers;
-                number.SelectedItem = plan?.Slot?.ControllerNumber ?? (oldNumber is int n && numbers.Contains(n) ? n : numbers.FirstOrDefault());
-                var locations = VmStorageService.GetAvailableLocations(controller.SelectedItem as string ?? string.Empty,
-                    number.SelectedItem is int selectedNumber ? selectedNumber : -1, owner.attachments);
-                location.ItemsSource = locations;
-                location.SelectedItem = plan?.Slot?.Location ?? (oldLocation is int l && locations.Contains(l) ? l : locations.Count > 0 ? locations[0] : null);
-                controller.IsEnabled = number.IsEnabled = location.IsEnabled = !automatic.IsOn;
-            }
-            finally { updating = false; }
-            UpdateSlotWarning();
-        }
-
-        private void UpdateSlotWarning()
-        {
-            if (updating) return;
-            string? error = null;
-            if (controller.SelectedItem is not string type || number.SelectedItem is not int controllerNumber || location.SelectedItem is not int slot)
-                error = "当前没有可用插槽。";
-            else error = VmStorageService.GetAddSlotError(owner.generation, owner.running,
-                new VmStorageAddRequest { ControllerType = type, ControllerNumber = controllerNumber, Location = slot, DriveType = DriveType }, owner.attachments);
-            slotWarning.Message = error ?? string.Empty;
-            slotWarning.IsOpen = error is not null;
-            bool sourceSelected = !Physical || sourcesKnown && (DriveType == "HardDisk"
-                ? (physicalDisk.SelectedItem as ComboBoxItem)?.Tag is HostDiskInfo { CanPassthrough: true }
-                : (physicalOptical.SelectedItem as ComboBoxItem)?.Tag is HostOpticalDriveInfo);
-            confirm.IsEnabled = error is null && sourceSelected && owner.CanChange();
-        }
-
-        private async Task BrowseMediaAsync()
-        {
-            string? value = create.IsOn && DriveType == "HardDisk"
-                ? await StoragePickers.SaveAsync("NewDisk.vhdx", "虚拟硬盘", ".vhdx", ".vhd")
-                : await PickOpenAsync(DriveType == "HardDisk" ? [".vhd", ".vhdx", ".avhd", ".avhdx"] : [".iso"]);
-            if (value is not null && !owner.IsStopped) path.Text = value;
-        }
-
-        private async Task ConfirmAsync()
-        {
-            if (!owner.CanChange()) return;
-            bool newDisk = !Physical && create.IsOn && DriveType == "HardDisk";
-            bool newIso = !Physical && create.IsOn && DriveType == "DvdDrive";
-            bool differencing = newDisk && Selected(vhdType) == "Differencing";
-            if (newDisk && !differencing && (!int.TryParse(size.Text, out int parsedSize) || parsedSize <= 0))
-                throw new InvalidOperationException("磁盘容量必须为正整数 GB。");
-            if (controller.SelectedItem is not string type || number.SelectedItem is not int controllerNumber || location.SelectedItem is not int slot)
-                throw new InvalidOperationException("请选择有效的控制器和插槽。");
-            var request = new VmStorageAddRequest
-            {
-                ControllerType = type, ControllerNumber = controllerNumber, Location = slot, DriveType = DriveType,
-                IsPhysical = Physical, IsNew = create.IsOn,
-                PathOrNumber = Physical
-                    ? DriveType == "DvdDrive" ? ((physicalOptical.SelectedItem as ComboBoxItem)?.Tag as HostOpticalDriveInfo)?.PnpDeviceId
-                        : ((physicalDisk.SelectedItem as ComboBoxItem)?.Tag as HostDiskInfo)?.Number.ToString(CultureInfo.InvariantCulture)
-                    : newIso ? isoOutput.Text : path.Text,
-                VhdType = newDisk ? Selected(vhdType) : "Dynamic",
-                ParentPath = differencing ? parent.Text : null,
-                SizeGiB = newDisk && !differencing ? int.Parse(size.Text, CultureInfo.InvariantCulture) : null,
-                SectorFormat = newDisk && !differencing ? Selected(sector) : "Default",
-                BlockSizeBytes = newDisk && !differencing && Selected(block) != "Default" ? uint.Parse(Selected(block), CultureInfo.InvariantCulture) : null,
-                IsoSourcePath = newIso ? isoSource.Text : null, IsoOutputPath = newIso ? isoOutput.Text : null,
-                IsoVolumeLabel = newIso ? volume.Text : null,
-                PhysicalDisk = Physical && DriveType == "HardDisk" ? (physicalDisk.SelectedItem as ComboBoxItem)?.Tag as HostDiskInfo : null
+                (true, Source.New) => NewIso, (true, _) => IsoPath, (false, Source.New) => NewDisk, _ => DiskPath
             };
-            // 确认前重读上下文，但不改写用户已经选中的插槽或物理设备身份。
-            await owner.LoadAsync();
-            if (!owner.CanChange()) return;
-            owner.CancellationToken.ThrowIfCancellationRequested();
-            var prepared = await Task.Run(() => VmStorageService.PrepareAddRequest(request, owner.generation, owner.running, owner.attachments));
-            if (!prepared.Success) throw new InvalidOperationException(prepared.Error);
-            owner.CancellationToken.ThrowIfCancellationRequested();
-            ApiResponse<VmStorageSlot> result;
-            try { result = await Task.Run(() => VmStorageService.AddDriveAsync(owner.VmId, prepared.Request!)); }
-            catch (Exception error) { result = ApiResponse<VmStorageSlot>.Fail(CoreMessageResolver.ResolveException(error), exception: error, kind: ApiErrorKind.OutcomeUnknown); }
-            string errorMessage = result.Success ? string.Empty : CoreMessageResolver.ResolveError(result);
-            if (owner.IsStopped)
+            set
             {
-                await owner.CompleteChangeAsync(result.Success, result.ErrorKind, errorMessage, string.Empty);
+                if (Dvd && Source == Source.New) NewIso = value;
+                else if (Dvd) IsoPath = value;
+                else if (Source == Source.New) NewDisk = value;
+                else DiskPath = value;
+            }
+        }
+    }
+
+    private void RenderAdd(AddDraft d)
+    {
+        draftProbe.Cancel();
+        bool physical = d.Source == Source.Physical;
+        bool create = d.Source == Source.New;
+        bool diff = create && !d.Dvd && d.Type == "Differencing";
+        bool gen2Optical = physical && d.Dvd && generation != 1;
+        bool gen1RunningOptical = generation == 1 && running && d.Dvd;
+        var confirm = Command("添加", () => _ = RunAsync(() => SubmitAddAsync(d)), accent: true, enabled: false);
+        SetHeaderTrailingAction(Actions(Command("返回", ShowList), confirm));
+        void SelectDrive(bool dvd)
+        {
+            if (dvd == d.Dvd) return;
+            d.Dvd = dvd;
+            d.Selected.Clear();
+            Render();
+        }
+        var tabs = Actions(4, AddTab("硬盘", "\uEDA2", !d.Dvd, () => SelectDrive(false)),
+            AddTab("光驱", "\uE958", d.Dvd, () => SelectDrive(true)));
+        pivot.Content = new Border { Child = tabs, BorderBrush = ThemeBrush(this, "DividerStrokeColorDefaultBrush"), BorderThickness = new(0, 0, 0, 1) };
+
+        var source = Pill(d.Source.ToString(), value =>
+        {
+            d.Source = Enum.Parse<Source>(value);
+            Render();
+        },
+            new("Existing", "连接文件"),
+            new("New", d.Dvd ? "新建 ISO" : "新建硬盘"),
+            new("Physical", d.Dvd ? "物理光驱" : "物理磁盘", !d.Dvd || generation == 1));
+        var rows = new List<UIElement> { SettingRow("添加方式", null, source) };
+        var feedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var parentFeedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var listFeedback = Stack();
+        var sizeFeedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var batchFeedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        bool sourceValid = false;
+
+        bool CapacityValid()
+        {
+            if (!create || d.Dvd || diff) return true;
+            int max = d.Path.EndsWith(".vhd", StringComparison.OrdinalIgnoreCase) ? 2040 : 65536;
+            bool valid = int.TryParse(d.Capacity, out var n) && n >= 1 && n <= max;
+            sizeFeedback.Content = valid ? null : max == 2040 && n > max
+                ? Banner("VHD 格式上限为 2040 GiB", InfoBarSeverity.Warning,
+                    InlineCommand("改存 .vhdx", () => { d.Path = Path.ChangeExtension(d.Path, ".vhdx"); Render(); }))
+                : Banner($"容量须为 1 至 {max} GiB 的整数", InfoBarSeverity.Warning);
+            return valid;
+        }
+        void Validate()
+        {
+            bool sizeValid = CapacityValid();
+            bool enoughSlots = !physical || d.Selected.Count <= 1 || PhysicalSlots(d).Count == d.Selected.Count;
+            batchFeedback.Content = physical && d.Selected.Count > 1 ? Banner(enoughSlots
+                ? $"已选 {d.Selected.Count} 项，将从所选插槽起依次挂接" : "可用插槽不足，请减少所选设备",
+                enoughSlots ? InfoBarSeverity.Informational : InfoBarSeverity.Warning) : null;
+            confirm.IsEnabled = CanWrite && powerState is (VmState.PoweredOff or VmState.Running)
+                && !gen2Optical && !gen1RunningOptical
+                && d.Slot.Error == null && sizeValid && sourceValid && enoughSlots && (!physical || d.Selected.Count > 0);
+        }
+
+        void SetFeedback(FileCheck check)
+        {
+            sourceValid = check.Valid;
+            feedback.Content = check.Message.Length > 0 ? Banner(check.Message, check.Severity) : null;
+            Validate();
+        }
+
+        void CheckSource()
+        {
+            sourceValid = false;
+            Validate();
+            if (gen2Optical)
+            {
+                feedback.Content = null;
+                parentFeedback.Content = null;
+                listFeedback.Children.Clear();
                 return;
             }
-            if (result.Success)
+            if (physical)
             {
-                owner.form = null;
-                owner.editor.Content = null;
-                owner.deviceHost.Visibility = Visibility.Visible;
-                owner.add.Visibility = owner.refresh.Visibility = Visibility.Visible;
+                listFeedback.Children.Clear();
+                listFeedback.Children.Add(Banner("正在检测宿主设备…"));
             }
-            await owner.CompleteChangeAsync(result.Success, result.ErrorKind, errorMessage,
-                result.HasData ? $"已连接至 {result.Data.ControllerType} 控制器 {result.Data.ControllerNumber}，位置 {result.Data.Location}。" : "已添加存储设备。");
-            if (owner.IsStopped) return;
-            if (!result.Success) RefreshSlots();
+            else
+            {
+                feedback.Content = d.Path.Length > 0 ? Banner("正在检查路径…") : null;
+                if (diff) parentFeedback.Content = Path.IsPathFullyQualified(d.Parent)
+                    ? Banner("正在核验父链…") : Banner("未选择父盘");
+            }
+            string path = d.Path, parent = d.Parent, folder = d.Folder;
+            bool dvd = d.Dvd;
+            _ = draftProbe.StartAsync(CancellationToken, async token =>
+            {
+                if (physical)
+                {
+                    d.Candidates ??= Data(await VmStorageService.GetPassthroughCandidatesAsync(VmId).WaitAsync(token));
+                    token.ThrowIfCancellationRequested();
+                    listFeedback.Children.Clear();
+                    var candidates = d.Candidates.Where(c => dvd ? c.OpticalDrive != null : c.Disk != null).ToList();
+                    if (candidates.Count == 0) listFeedback.Children.Add(Banner(dvd ? "未检测到宿主机物理光驱" : "未检测到宿主机物理磁盘"));
+                    foreach (var c in candidates)
+                    {
+                        var card = CandidateCard(c, d.Selected.Contains(c), () =>
+                        {
+                            if (!d.Selected.Remove(c)) d.Selected.Add(c);
+                            Render();
+                        });
+                        listFeedback.Children.Add(card);
+                    }
+                    sourceValid = true;
+                    Validate();
+                    return;
+                }
+                var result = await Task.Run(() => CheckMedia(path, dvd, create), token).WaitAsync(token);
+                if (create && dvd && !await Task.Run(() => Path.IsPathFullyQualified(folder) && Directory.Exists(folder), token).WaitAsync(token))
+                    result = FileCheck.Error("请选择可读取的 ISO 来源目录。");
+                VmDiskChainInspection? chain = null;
+                if (diff && Path.IsPathFullyQualified(parent))
+                    chain = Data(await VmStorageService.InspectDifferencingChainAsync(parent).WaitAsync(token));
+                token.ThrowIfCancellationRequested();
+                SetFeedback(result);
+                if (diff)
+                {
+                    if (chain == null) parentFeedback.Content = Banner("未选择父盘");
+                    else parentFeedback.Content = ChainSummary(chain);
+                    sourceValid &= chain?.IsComplete == true;
+                    if (chain?.Nodes.FirstOrDefault()?.Format is string format && Path.IsPathFullyQualified(path)
+                        && !SamePath(Path.GetExtension(path), format))
+                    {
+                        sourceValid = false;
+                        parentFeedback.Content = Banner($"保存后缀与父盘 {format.TrimStart('.').ToUpperInvariant()} 不一致", InfoBarSeverity.Warning,
+                            InlineCommand($"改为 {format}", () => { d.Path = Path.ChangeExtension(path, format); Render(); }));
+                    }
+                    Validate();
+                }
+            }, message => SetFeedback(FileCheck.Error(message)));
         }
 
-        private static ComboBox Choices(params (string Label, string Value)[] items)
+        if (physical)
         {
-            var combo = new ComboBox { MinWidth = 150 };
-            foreach (var (label, value) in items) combo.Items.Add(new ComboBoxItem { Content = label, Tag = value });
-            combo.SelectedIndex = 0;
-            return combo;
+            if (gen2Optical)
+            {
+                rows.Add(CardRow(Banner("第 2 代虚拟机不支持物理光驱直通（仅第 1 代 IDE 支持）", InfoBarSeverity.Warning,
+                    InlineCommand("改用连接文件", () => { d.Source = Source.Existing; Render(); }))));
+            }
+            else
+            {
+                var hdr = Split(new TextBlock { Text = d.Dvd ? "宿主光驱" : "宿主磁盘", FontSize = 14, VerticalAlignment = VerticalAlignment.Center },
+                    InlineCommand("重新检测", () => { d.Candidates = null; d.Selected.Clear(); CheckSource(); }));
+                rows.Add(CardRow(Stack(hdr, listFeedback, batchFeedback)));
+            }
         }
-
-        private static string Selected(ComboBox combo) => (combo.SelectedItem as ComboBoxItem)?.Tag as string ?? string.Empty;
-        private static void Select(ComboBox combo, string value) => combo.SelectedItem = combo.Items.Cast<ComboBoxItem>().FirstOrDefault(item => (string?)item.Tag == value);
-
-        private static StackPanel Field(string title, FrameworkElement input)
+        else if (create && d.Dvd)
         {
-            var field = new StackPanel { Spacing = 6 };
-            field.Children.Add(new TextBlock { Text = title, FontSize = 13 });
-            field.Children.Add(input);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(input, title);
-            return field;
+            rows.Add(FieldRowCard("来源目录", null, null,
+                PathInput(d.Folder, @"C:\Drivers\Package", StoragePickers.FolderAsync, v => { d.Folder = v; CheckSource(); }, out _)));
+            var labelBox = new TextBox { Text = d.Label, Width = 240, PlaceholderText = "NewISO" };
+            labelBox.TextChanged += (_, _) => d.Label = labelBox.Text.Trim();
+            rows.Add(SettingRow("卷标", null, labelBox));
+            rows.Add(FieldRowCard("输出路径", null, null,
+                PathInput(d.Path, @"D:\Hyper-V\ISO\output.iso", () => SaveMedia(true), v => { d.Path = v; CheckSource(); }, out _, "保存到"),
+                feedback));
+        }
+        else if (create)
+        {
+            rows.Add(FieldRowCard("虚拟磁盘文件路径", null, "按文件扩展名区分 .vhd / .vhdx",
+                PathInput(d.Path, @"D:\Hyper-V\Virtual Hard Disks\new_disk.vhdx", () => SaveMedia(false), v => { d.Path = v; CheckSource(); }, out _, "保存到"),
+                feedback));
+            rows.Add(SettingRow("磁盘类型",
+                "动态扩展：按写入块动态分配宿主机空间。\n固定大小：创建时按逻辑容量一次性预分配全部空间。\n差异磁盘：链接只读父盘，仅记录增量写入块。",
+                Pill(d.Type, v => { d.Type = v; Render(); },
+                    new("Dynamic", "动态扩展"), new("Fixed", "固定大小"), new("Differencing", "差异磁盘"))));
+            if (diff)
+            {
+                rows.Add(FieldRowCard("父盘路径", null, "容量与扇区格式自动继承父盘",
+                    PathInput(d.Parent, "选择只读父盘文件 (.vhd / .vhdx)", () => OpenMedia(false), v => { d.Parent = v; CheckSource(); }, out _),
+                    parentFeedback));
+            }
+            else
+            {
+                rows.Add(CapacitySection("虚拟容量", "暴露给来宾系统的逻辑容量（GiB），.vhd 上限 2040 GiB，.vhdx 上限 64 TiB。",
+                    d.Capacity, v => { d.Capacity = v; Validate(); }, sizeFeedback));
+                var advChevron = new FontIcon
+                {
+                    Glyph = d.ShowAdvanced ? "\uE70E" : "\uE70D",
+                    FontFamily = new FontFamily(SegoeFont), FontSize = 12,
+                    Foreground = ThemeBrush(this, "TextFillColorSecondaryBrush")
+                };
+                var advRow = CardRow(Split(new TextBlock { Text = "高级格式参数", FontSize = 14, VerticalAlignment = VerticalAlignment.Center }, advChevron));
+                var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+                var hover = ThemeBrush(this, "SubtleFillColorTertiaryBrush");
+                advRow.Background = transparent;
+                advRow.PointerEntered += (_, _) => advRow.Background = hover;
+                advRow.PointerExited += (_, _) => advRow.Background = transparent;
+                advRow.PointerCanceled += (_, _) => advRow.Background = transparent;
+                advRow.Tapped += (_, _) => { d.ShowAdvanced = !d.ShowAdvanced; Render(); };
+                rows.Add(advRow);
+                if (d.ShowAdvanced)
+                {
+                    var advGrid = new Grid { ColumnSpacing = 20 };
+                    advGrid.ColumnDefinitions.Add(new());
+                    advGrid.ColumnDefinitions.Add(new());
+                    var sectorCol = StopSelector(
+                        "物理扇区格式",
+                        "默认不指定参数。512n 为 512/512，512e 为 512/4096，4Kn 为 4096/4096。",
+                        ["默认", "512n", "512e", "4Kn"],
+                        Array.IndexOf(Sectors, d.Sector), i => d.Sector = Sectors[i]);
+                    var blockCol = StopSelector(
+                        "虚拟块大小",
+                        ".vhdx 块分配表单个有效载荷块大小。块越小粒度越细，块越大元数据开销越低。",
+                        Blocks.Select(n => n == 0 ? "默认" : $"{n} MiB").ToArray(),
+                        Array.IndexOf(Blocks, d.BlockMiB), i => d.BlockMiB = Blocks[i]);
+                    Grid.SetColumn(blockCol, 1);
+                    advGrid.Children.Add(sectorCol);
+                    advGrid.Children.Add(blockCol);
+                    rows.Add(CardRow(advGrid));
+                }
+            }
+        }
+        else
+        {
+            rows.Add(FieldRowCard(
+                d.Dvd ? "ISO 映像文件" : "虚拟磁盘文件路径",
+                null,
+                null,
+                PathInput(d.Path, d.Dvd ? @"D:\ISO\system.iso（可留空以添加空光驱）" : @"D:\Hyper-V\Virtual Hard Disks\disk.vhdx",
+                    () => OpenMedia(d.Dvd), v => { d.Path = v; CheckSource(); }, out _),
+                feedback));
         }
 
-        private static Border FieldCard(string title, FrameworkElement input)
-        {
-            var content = Field(title, input);
-            content.Margin = new Thickness(24, 20, 24, 20);
-            return Card(content);
-        }
+        page.Children.Add(GroupedCard([.. rows]));
+        if (gen1RunningOptical)
+            page.Children.Add(Banner("第 1 代虚拟机运行中不支持热添加光驱，请先关机", InfoBarSeverity.Warning));
+        if (powerState is not (VmState.PoweredOff or VmState.Running))
+            page.Children.Add(Banner("请在虚拟机已关机或正在运行时添加设备。", InfoBarSeverity.Warning));
+        if (!gen2Optical && !gen1RunningOptical)
+            page.Children.Add(SlotCard(d.Slot, d.DriveType, null, true, Validate));
+        CheckSource();
+    }
 
-        private static Grid PathEditor(TextBox text, Button button)
+    private Grid AddTab(string label, string glyph, bool active, Action select)
+    {
+        var button = Command(label, select);
+        button.Style = (Style)Application.Current.Resources["VmSelectorButtonStyle"];
+        button.Content = Actions(6, new FontIcon { Glyph = glyph, FontFamily = new(SegoeFont), FontSize = 14 }, Text(label, 13));
+        var grid = new Grid { Children = { button } };
+        if (active) grid.Children.Add(new Border { Height = 3, CornerRadius = new(2), Margin = new(9, 0, 9, 0),
+            Background = ThemeBrush(this, "VmAccentBrush"), VerticalAlignment = VerticalAlignment.Bottom, IsHitTestVisible = false });
+        return grid;
+    }
+
+    private static readonly string[] Sectors = ["Default", "512n", "512e", "4kn"];
+    private static readonly int[] Blocks = [0, 1, 2, 4, 8, 16, 32, 64, 128, 256];
+    private StackPanel StopSelector(string title, string description, string[] labels, int index, Action<int> change)
+    {
+        int safeIdx = Math.Clamp(index, 0, labels.Length - 1);
+        var label = SettingLabel(title, description);
+        var readout = new TextBlock
         {
-            var layout = new Grid { ColumnSpacing = 8 };
-            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            layout.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            layout.Children.Add(text);
-            Grid.SetColumn(button, 1);
-            layout.Children.Add(button);
-            return layout;
+            Text = labels[safeIdx], FontSize = 13,
+            Foreground = ThemeBrush(this, "TextFillColorSecondaryBrush"),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var slider = new SettingsEnergySlider(EnergySliderKind.Custom, compact: true) { CustomHintFormatter = i => labels[i] };
+        slider.SetRange(0, labels.Length - 1);
+        slider.Value = safeIdx;
+        slider.ValueChanged += i => { readout.Text = labels[i]; change(i); };
+        AutomationProperties.SetName(slider, title);
+        return new StackPanel { Spacing = 6, Children = { Split(label, readout), slider } };
+    }
+
+    private Button CandidateCard(VmPassthroughCandidate c, bool selected, Action select)
+    {
+        string title = c.Disk is { } disk ? disk.FriendlyName : c.OpticalDrive!.Model;
+        string sizeText = c.Disk is { } d2 ? Size(d2.SizeGiB) : c.OpticalDrive!.Drive;
+        string[] subParts = c.Disk is { } d3
+            ? [$"磁盘 {d3.Number}", Clean(c.Message)]
+            : [c.OpticalDrive!.Drive, Clean(c.Message)];
+        string status = c.Availability switch
+        {
+            VmPassthroughAvailability.Available => "可直通",
+            VmPassthroughAvailability.Assigned => c.OwnerVmId == VmId ? "已分配给当前虚拟机" : "已分配给其他虚拟机",
+            _ => "不可直通"
+        };
+
+        var checkbox = new Border
+        {
+            Width = 18, Height = 18, CornerRadius = new(4), BorderThickness = new(1.5),
+            BorderBrush = ThemeBrush(this, selected ? "VmAccentBrush" : "TextFillColorTertiaryBrush"),
+            Background = selected ? ThemeBrush(this, "VmAccentBrush") : new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = selected ? new FontIcon
+            {
+                Glyph = "\uE73E", FontFamily = new FontFamily(SegoeFont), FontSize = 11,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
+            } : null
+        };
+
+        var subRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        foreach (var part in subParts.Where(p => !string.IsNullOrWhiteSpace(p)))
+        {
+            subRow.Children.Add(new TextBlock
+            {
+                Text = part, FontSize = 12,
+                Foreground = ThemeBrush(this, "TextFillColorSecondaryBrush"),
+                TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1
+            });
         }
+        var info = new StackPanel
+        {
+            Spacing = 2,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                new TextBlock { Text = title, FontSize = 14, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1 },
+                subRow
+            }
+        };
+        var badge = Badge(this, status);
+        badge.Height = 20;
+        badge.Padding = new(7, 0, 7, 0);
+        ((TextBlock)badge.Child).VerticalAlignment = VerticalAlignment.Center;
+        var right = Actions(8, badge, new TextBlock
+        {
+            Text = sizeText, FontSize = 12,
+            Foreground = ThemeBrush(this, "TextFillColorSecondaryBrush"),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+        var b = new Button
+        {
+            IsEnabled = c.Availability == VmPassthroughAvailability.Available,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch,
+            CornerRadius = new(6),
+            BorderThickness = new(1),
+            Padding = new(12, 10, 12, 10),
+            Background = ThemeBrush(this, selected ? "CardBackgroundFillColorDefaultBrush" : "SubtleFillColorTertiaryBrush"),
+            BorderBrush = ThemeBrush(this, selected ? "VmAccentBrush" : "CardStrokeColorDefaultBrush"),
+            Content = Split(WithLeading(checkbox, info), right)
+        };
+        AutomationProperties.SetName(b, $"{title} {status}");
+        b.Click += (_, _) => select();
+        return b;
+    }
+
+    private List<VmStorageSlot> PhysicalSlots(AddDraft d)
+    {
+        var first = new VmStorageSlot(d.Slot.Type, d.Slot.Number, d.Slot.Location);
+        var available = from type in VmStorageService.GetControllerTypes(generation, running, d.DriveType)
+                        from number in VmStorageService.GetControllerNumbers(type)
+                        from location in VmStorageService.GetAvailableLocations(type, number, attachments)
+                        select new VmStorageSlot(type, number, location);
+        // A manual batch uses the selected slot, then the same controller's remaining slots.
+        return available.OrderByDescending(s => s == first)
+            .ThenByDescending(s => !d.Slot.Automatic && s.ControllerType == first.ControllerType && s.ControllerNumber == first.ControllerNumber)
+            .Take(d.Selected.Count).ToList();
+    }
+
+    private async Task SubmitAddAsync(AddDraft d)
+    {
+        if (!CanWrite || d != adding) return;
+        bool create = d.Source == Source.New;
+        if (d.Source == Source.Physical) { await SubmitPhysicalAsync(d); return; }
+        bool disk = create && !d.Dvd, independent = disk && d.Type != "Differencing";
+        var request = new VmStorageAddRequest
+        {
+            DriveType = d.DriveType, ControllerType = d.Slot.Type, ControllerNumber = d.Slot.Number, Location = d.Slot.Location,
+            IsNew = create, PathOrNumber = d.Path,
+            VhdType = disk ? d.Type : "Dynamic", ParentPath = disk && !independent ? d.Parent : null,
+            SizeGiB = independent ? int.Parse(d.Capacity) : null, SectorFormat = independent ? d.Sector : "Default",
+            BlockSizeBytes = independent && d.BlockMiB > 0 ? (uint)d.BlockMiB * 1048576 : null,
+            IsoSourcePath = create && d.Dvd ? d.Folder : null, IsoOutputPath = create && d.Dvd ? d.Path : null,
+            IsoVolumeLabel = create && d.Dvd ? d.Label : null
+        };
+        await ReadSnapshotAsync();
+        var prepared = await Task.Run(() => VmStorageService.PrepareAddRequest(request, generation, running, attachments));
+        if (!prepared.Success) { Render(); throw new InvalidOperationException(Clean(prepared.Error!)); }
+        CancellationToken.ThrowIfCancellationRequested();
+        string title = create && d.Dvd ? "打包并挂接 ISO" : "添加存储设备";
+        await RunSingleAsync(title, async () =>
+        {
+            var result = await VmStorageService.AddDriveAsync(VmId, prepared.Request!);
+            return result.Success ? ApiResponse.Ok() : Failure(result);
+        }, openList: !(create && d.Dvd));
+    }
+
+    private async Task SubmitPhysicalAsync(AddDraft d)
+    {
+        await ReadSnapshotAsync();
+        var candidates = Data(await VmStorageService.GetPassthroughCandidatesAsync(VmId).WaitAsync(CancellationToken));
+        if (d.Selected.Any(selected => !candidates.Any(current => current.Availability == VmPassthroughAvailability.Available &&
+            (selected.Disk is { } disk ? current.Disk is { } fresh && disk.Number == fresh.Number &&
+                disk.SizeBytes == fresh.SizeBytes && SamePath(disk.UniqueId, fresh.UniqueId) && SamePath(disk.SerialNumber, fresh.SerialNumber)
+                : SamePath(selected.OpticalDrive!.PnpDeviceId, current.OpticalDrive?.PnpDeviceId)))))
+        {
+            d.Candidates = candidates;
+            d.Selected.Clear();
+            Render();
+            throw new InvalidOperationException("设备身份或分配状态已变化，请重新选择直通设备。");
+        }
+        var slots = PhysicalSlots(d);
+        if (slots.Count == 0 || slots.Count != d.Selected.Count ||
+            slots[0] != new VmStorageSlot(d.Slot.Type, d.Slot.Number, d.Slot.Location))
+        {
+            Render();
+            throw new InvalidOperationException("可用插槽已变化，请核对位置后重新提交。");
+        }
+        var requests = new List<VmStorageAddRequest>();
+        for (int i = 0; i < slots.Count; i++)
+        {
+            var c = d.Selected[i];
+            var slot = slots[i];
+            var request = new VmStorageAddRequest
+            {
+                DriveType = d.DriveType, IsPhysical = true, PhysicalDisk = c.Disk, PathOrNumber = c.OpticalDrive?.PnpDeviceId,
+                ControllerType = slot.ControllerType, ControllerNumber = slot.ControllerNumber, Location = slot.Location
+            };
+            var prepared = VmStorageService.PrepareAddRequest(request, generation, running, attachments);
+            if (!prepared.Success) throw new InvalidOperationException(Clean(prepared.Error!));
+            requests.Add(prepared.Request!);
+        }
+        var labels = d.Selected.Select(c => c.Disk is { } disk ? $"挂接磁盘 {disk.Number}（{disk.FriendlyName}）"
+            : $"挂接光驱 {c.OpticalDrive!.Drive}").ToArray();
+        await RunStorageTaskAsync("添加物理直通设备", labels, async progress =>
+        {
+            for (int i = 0; i < requests.Count; i++)
+            {
+                progress.Report((i, -1, labels[i]));
+                var result = await VmStorageService.AddDriveAsync(VmId, requests[i]);
+                if (!result.Success) return Failure(result);
+                progress.Report((i, 100, labels[i] + "已完成"));
+            }
+            return ApiResponse.Ok();
+        }, openList: true);
     }
 }

@@ -55,7 +55,6 @@ namespace ExHyperV.Services
                     : ApiResponse.FromFailure(state);
             var condition = GetModificationCondition(state.Data!.State);
             if (!condition.CanModify) return condition.ToResponse();
-            using var _ = HyperVServiceCoordination.BeginActiveSettingsWrite();
             return await WmiApi.WithObjectAsync(
                 wql: RealizedSettingsWql(vmId),
                 modifier: obj =>

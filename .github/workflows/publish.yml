@@ -1,0 +1,62 @@
+name: Build desktop release packages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            runner: windows-2025-vs2026
+          - architecture: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+        with:
+          dotnet-version: '11.0.x'
+      - name: Run Core regression tests
+        shell: pwsh
+        run: ./src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1 -Runtime win-${{ matrix.architecture }} -Suite Regression -LockedRestore
+      - name: Build portable and Setup executables
+        shell: pwsh
+        run: |
+          choco install innosetup --version=6.7.3 --yes --no-progress --allow-downgrade
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
+          ./.github/setup/Build-Installer.ps1 -Architecture ${{ matrix.architecture }}
+      - name: Install the system Windows App Runtime for native launch tests
+        shell: powershell
+        run: |
+          $arch = '${{ matrix.architecture }}'
+          $packageRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget/packages' }
+          $framework = Join-Path $packageRoot "microsoft.windowsappsdk.runtime/2.6.5/tools/MSIX/win10-$arch/Microsoft.WindowsAppRuntime.2.msix"
+          if (!(Get-AppxPackage Microsoft.WindowsAppRuntime.2 | Where-Object { $_.Architecture -eq $arch -and [version]$_.Version -ge [version]'2.6.5.0' })) {
+            Add-AppxPackage -Path $framework -ErrorAction Stop
+          }
+      - name: Verify launch, shortcuts, upgrade and uninstall
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content src/ExHyperV.WinUI3/ExHyperV.WinUI3.csproj -Raw
+          $version = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
+          $base = ".artifacts/release/ExHyperV_V$version"
+          $env:DOTNET_ROOT = $env:DOTNET_ROOT_ARM64 = $env:DOTNET_ROOT_X64 = Join-Path $env:RUNNER_TEMP 'missing-dotnet'
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'dotnet' }) -join ';'
+          $hash = Get-Content '.artifacts/installer-work/win-${{ matrix.architecture }}/application.sha256'
+          ./.github/setup/Test-Installer.ps1 -ExpectedVersion $version -VerifyLaunch `
+            -ExpectedApplicationHash $hash `
+            -InstallerPath "${base}_Setup_${{ matrix.architecture }}.exe" -PortablePath "${base}_${{ matrix.architecture }}.exe"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: ExHyperV-${{ matrix.architecture }}
+          path: .artifacts/release/*.exe
+          include-hidden-files: true
+          if-no-files-found: error

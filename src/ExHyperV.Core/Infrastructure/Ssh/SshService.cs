@@ -13,10 +13,10 @@ namespace ExHyperV.Services
         public SshCommandErrorException(string message) : base(message) { }
     }
 
-    /// <summary>保存 SSH 命令采集的输出文本及退出状态。</summary>
+    /// <summary>保存 SSH 命令的标准输出及退出状态。</summary>
     internal class SshCommandResult
     {
-        /// <summary>按读取顺序合并的标准输出和标准错误文本；两条流分别采集。</summary>
+        /// <summary>远端命令的标准输出，标准错误通过诊断回调传递。</summary>
         public string Output { get; }
         /// <summary>远端命令退出码；零通常表示成功，未提供退出码时使用 -1。</summary>
         public int ExitStatus { get; }
@@ -73,19 +73,20 @@ namespace ExHyperV.Services
                 using var sshCommand = client.CreateCommand(commandToExecute);
                 sshCommand.CommandTimeout = commandTimeout ?? TimeSpan.FromMinutes(30);
 
-                var asyncResult = sshCommand.BeginExecute();
-                var stdoutTask = ReadStreamAsync(sshCommand.OutputStream, Encoding.UTF8, logCallback);
-                var stderrTask = ReadStreamAsync(sshCommand.ExtendedOutputStream, Encoding.UTF8, logCallback);
-                await Task.Run(() => sshCommand.EndExecute(asyncResult));
-                await Task.WhenAll(stdoutTask, stderrTask);
+                var stdout = new StringBuilder();
+                var stderr = new StringBuilder();
+                var completion = sshCommand.ExecuteAsync();
+                await Task.WhenAll(completion,
+                    ReadStreamAsync(sshCommand.OutputStream, Encoding.UTF8, logCallback, stdout),
+                    ReadStreamAsync(sshCommand.ExtendedOutputStream, Encoding.UTF8, logCallback, stderr));
 
                 client.Disconnect();
 
                 if (sshCommand.ExitStatus != 0)
                 {
-                    throw new SshCommandErrorException(string.Format(Properties.Resources.Error_SshCommandFailed, sshCommand.ExitStatus, sshCommand.Error));
+                    throw new SshCommandErrorException(string.Format(Properties.Resources.Error_SshCommandFailed, sshCommand.ExitStatus, stderr));
                 }
-                return sshCommand.Result;
+                return stdout.ToString();
             }
         }
 
@@ -99,13 +100,7 @@ namespace ExHyperV.Services
         public static async Task<SshCommandResult> ExecuteCommandAndCaptureOutputAsync(SshCredentials credentials, string command, Action<string> logCallback, TimeSpan? commandTimeout = null)
         {
             string commandToExecute = command;
-            var outputBuilder = new StringBuilder();
-
-            Action<string> combinedLogCallback = (log) =>
-            {
-                logCallback(log);
-                outputBuilder.Append(log);
-            };
+            var stdout = new StringBuilder();
 
             var connectionInfo = CreateConnectionInfo(credentials);
 
@@ -124,27 +119,34 @@ namespace ExHyperV.Services
                 using var sshCommand = client.CreateCommand(commandToExecute);
                 sshCommand.CommandTimeout = commandTimeout ?? TimeSpan.FromMinutes(30);
 
-                var asyncResult = sshCommand.BeginExecute();
-                var stdoutTask = ReadStreamAsync(sshCommand.OutputStream, Encoding.UTF8, combinedLogCallback);
-                var stderrTask = ReadStreamAsync(sshCommand.ExtendedOutputStream, Encoding.UTF8, combinedLogCallback);
-
-                await Task.Run(() => sshCommand.EndExecute(asyncResult));
-                await Task.WhenAll(stdoutTask, stderrTask);
-
-                client.Disconnect();
-                return new SshCommandResult(outputBuilder.ToString(), sshCommand.ExitStatus ?? -1);
+                try
+                {
+                    var completion = sshCommand.ExecuteAsync();
+                    await Task.WhenAll(completion,
+                        ReadStreamAsync(sshCommand.OutputStream, Encoding.UTF8, logCallback, stdout),
+                        ReadStreamAsync(sshCommand.ExtendedOutputStream, Encoding.UTF8, logCallback));
+                    return new SshCommandResult(stdout.ToString(), sshCommand.ExitStatus ?? -1);
+                }
+                catch (Exception error)
+                {
+                    throw new ExHyperV.Tools.OperationOutcomeUnknownException(ExHyperV.Tools.ApiResponse.Fail(
+                        "无法确认远端部署命令已结束。" + error.Message, exception: error, kind: ExHyperV.Tools.ApiErrorKind.OutcomeUnknown));
+                }
             }
         }
         
-        private static async Task ReadStreamAsync(Stream stream, Encoding encoding, Action<string> logCallback)
+        private static async Task ReadStreamAsync(Stream stream, Encoding encoding, Action<string> logCallback, StringBuilder? capture = null)
         {
-            var buffer = new byte[1024];
-            int bytesRead;
+            using var reader = new StreamReader(stream, encoding, false, 1024, leaveOpen: true);
+            var buffer = new char[1024];
             try
             {
-                while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                int count;
+                while ((count = await reader.ReadAsync(buffer)) > 0)
                 {
-                    logCallback(encoding.GetString(buffer, 0, bytesRead));
+                    var text = new string(buffer, 0, count);
+                    capture?.Append(text);
+                    logCallback(text);
                 }
             }
             catch (ObjectDisposedException)

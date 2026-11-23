@@ -6,9 +6,9 @@
     <Page.KeyboardAccelerators>
         <KeyboardAccelerator Key="F5" Invoked="Refresh_Invoked" />
     </Page.KeyboardAccelerators>
-    <Grid Margin="12" ColumnSpacing="12">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-        <Border Background="{ThemeResource VmListBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1" CornerRadius="8">
+    <Grid x:Name="PageRoot" Margin="12" ColumnSpacing="12">
+        <Grid.ColumnDefinitions><ColumnDefinition x:Name="VmListColumn" Width="220" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+        <Border x:Name="VmListPanel" Background="{ThemeResource VmListBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1" CornerRadius="8">
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <Grid Margin="8">

@@ -3,6 +3,9 @@ using System.Text.Json;
 
 namespace ExHyperV.Services;
 
+internal sealed record CpuGroupSnapshot(Guid GroupId, ulong? HypervisorGroupId, HcsCpuGroupAffinity? Affinity,
+    HcsCpuGroupProperty[]? GroupProperties);
+
 internal sealed record CpuGroupAffinityResult(
     ApiResponse Operation, ApiResponse? Recovery, Guid? CurrentGroupId, Guid? RetainedGroupId);
 
@@ -496,18 +499,15 @@ internal static class CpuGroupAffinityTransaction
     }
 
     private static GroupSnapshot Snapshot(HcsCpuGroupDetail group)
-        => new(group.GroupId, JsonSerializer.Serialize(new
-        {
+        => new(group.GroupId, JsonSerializer.Serialize(new CpuGroupSnapshot(
             group.GroupId,
             group.HypervisorGroupId,
-            Affinity = group.Affinity is null ? null : new
+            group.Affinity is null ? null : new HcsCpuGroupAffinity
             {
-                group.Affinity.LogicalProcessorCount,
+                LogicalProcessorCount = group.Affinity.LogicalProcessorCount,
                 LogicalProcessors = group.Affinity.LogicalProcessors?.Order().ToArray()
             },
-            GroupProperties = group.GroupProperties?.OrderBy(property => property.PropertyCode)
-                .Select(property => new { property.PropertyCode, property.PropertyValue }).ToArray()
-        }));
+            group.GroupProperties?.OrderBy(property => property.PropertyCode).ToArray()), CoreJson.Default.CpuGroupSnapshot));
 
     private static async Task<ApiResponse<T>> ReadAsync<T>(Func<Task<ApiResponse<T>>> read)
     {

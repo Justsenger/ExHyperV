@@ -24,9 +24,12 @@ internal static class WorkflowSessionApiCases
             using var query = new VmQueryService(); var service = new VmGpuService(query);
             foreach (var mode in Enum.GetValues<GpuDeploymentMode>())
             { var s = c.Call(() => new GpuDeploymentSession(Guid.NewGuid(), "fixture", new HostGpuInfo(), service, query, mode)); c.Equal(GpuDeploymentState.Created, s.GetStatus().State, "构造只产生初始状态"); }
+            var multiple = c.Call(() => new GpuDeploymentSession(Guid.NewGuid(), "fixture",
+                new[] { new HostGpuInfo { InstanceId = "first" }, new HostGpuInfo { InstanceId = "second" } }, service, query));
+            c.Equal(GpuDeploymentState.Created, multiple.GetStatus().State, "多卡构造保持初始状态");
             c.Throws<ArgumentOutOfRangeException>(() => c.Call(() => new GpuDeploymentSession(Guid.NewGuid(), "fixture", new HostGpuInfo(), service, query, (GpuDeploymentMode)999)), "无效模式拒绝"); return;
         }
-        var backend = new GpuWorkflowChecks.Backend(); var session = new GpuDeploymentSession(backend);
+        var backend = new GpuWorkflowChecks.Backend { MultiplePartitions = true }; var session = new GpuDeploymentSession(backend);
         if (p.Api.Contains("GetStatus"))
         {
             var initial = c.Call(session.GetStatus); c.Equal(GpuDeploymentState.Created, initial.State, "初始状态");
@@ -38,7 +41,7 @@ internal static class WorkflowSessionApiCases
         {
             foreach (var mode in Enum.GetValues<GpuDeploymentMode>())
             {
-                backend = new(); session = new(backend, mode); var state = await c.CallAsync(() => session.StartAsync());
+                backend = new() { MultiplePartitions = true }; session = new(backend, mode); var state = await c.CallAsync(() => session.StartAsync());
                 c.Equal(mode == GpuDeploymentMode.AddWithoutDrivers ? GpuDeploymentState.Completed : GpuDeploymentState.WaitingForDecision, state.State, "模式对应执行边界：" + mode);
                 if (p.Id.EndsWith("-2")) await RejectAsync(c, () => session.StartAsync(), "同一会话二次启动");
                 c.Equal(mode == GpuDeploymentMode.UpdateDrivers ? 0 : 1, backend.Calls.Count(v => v == "Assign"), "分配执行次数"); await session.CancelAsync();
@@ -48,12 +51,12 @@ internal static class WorkflowSessionApiCases
         if (p.Api.Contains("RequestCancellation"))
         {
             c.Call(session.RequestCancellation); var state = await session.StartAsync(); c.Equal(GpuDeploymentState.Cancelled, state.State, "启动前取消"); c.Equal(0, backend.Calls.Count, "底层尚无调用");
-            backend = new(); session = new(backend); await session.StartAsync(); c.Call(session.RequestCancellation); await session.CancelAsync(); c.Equal(GpuDeploymentState.Cancelled, session.GetStatus().State, "等待决定时取消"); return;
+            backend = new() { MultiplePartitions = true }; session = new(backend); await session.StartAsync(); c.Call(session.RequestCancellation); await session.CancelAsync(); c.Equal(GpuDeploymentState.Cancelled, session.GetStatus().State, "等待决定时取消"); return;
         }
         if (p.Api.Contains("CancelAsync"))
         {
             var before = await c.CallAsync(session.CancelAsync); c.Equal(GpuDeploymentState.Cancelled, before.State, "准备前取消");
-            backend = new(); session = new(backend); await session.StartAsync(); var cancelled = await c.CallAsync(session.CancelAsync); c.Equal(GpuDeploymentState.Cancelled, cancelled.State, "等待时取消"); c.Sequence(new[] { "new-adapter" }, backend.Removed, "精确清理本次适配器");
+            backend = new() { MultiplePartitions = true }; session = new(backend); await session.StartAsync(); var cancelled = await c.CallAsync(session.CancelAsync); c.Equal(GpuDeploymentState.Cancelled, cancelled.State, "等待时取消"); c.Sequence(new[] { "new-adapter" }, backend.Removed, "精确清理本次适配器");
             var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             backend = new() { AssignPause = async () => { entered.SetResult(); await release.Task; } }; session = new(backend);
             var running = session.StartAsync(); Task<GpuDeploymentSnapshot>? stopping = null;
@@ -85,9 +88,12 @@ internal static class WorkflowSessionApiCases
         backend.MultiplePartitions = true;
         var choice = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuConfirmation(request.PendingDecision!.Id, true)));
         c.Equal(GpuDecisionKind.SelectPartition, choice.PendingDecision!.Kind, "关机确认后分区选择");
-        var install = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuPartitionSelection(choice.PendingDecision.Id, choice.PendingDecision.Partitions[0].Id)));
-        c.Equal(GpuDecisionKind.InstallWindows, install.PendingDecision!.Kind, "安装确认");
-        var complete = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuConfirmation(install.PendingDecision.Id, true))); c.Equal(GpuDeploymentState.Completed, complete.State, "Windows 选择链完成");
+        var complete = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuPartitionSelection(choice.PendingDecision.Id, choice.PendingDecision.Partitions[0].Id)));
+        c.Equal(GpuDeploymentState.Completed, complete.State, "Windows 选择链直接完成驱动同步");
+        backend = new() { BitLocker = true }; session = new(backend); var bitlocker = await session.StartAsync();
+        c.Equal(GpuDecisionKind.SelectPartition, bitlocker.PendingDecision!.Kind, "BitLocker 分区提供回退选择");
+        var skipped = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(bitlocker.PendingDecision.Id, GpuDriverFallbackAction.SkipDriver)));
+        c.Equal(GpuDeploymentState.Completed, skipped.State, "跳过驱动可结束会话"); c.Require(skipped.IsDriverSkipped, "标记已跳过驱动");
         backend = new() { Os = OperatingSystemType.Linux }; session = new(backend); var linux = await session.StartAsync();
         if (linux.PendingDecision!.Kind == GpuDecisionKind.SelectPartition) linux = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuPartitionSelection(linux.PendingDecision.Id, linux.PendingDecision.Partitions[0].Id)));
         c.Equal(GpuDecisionKind.StartLinux, linux.PendingDecision!.Kind, "Linux 启动确认");

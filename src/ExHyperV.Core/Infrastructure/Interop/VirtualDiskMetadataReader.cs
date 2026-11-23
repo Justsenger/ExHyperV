@@ -13,20 +13,73 @@ internal sealed class VirtualDiskMetadataReader : IDisposable
     private InformationBuffer? _buffer;
     private bool _disposed;
 
+    internal (string Format, long Capacity, string Type) ReadGeometry(string path)
+    {
+        using var disk = Open(path);
+        uint type = ReadType(disk, out uint storageFormat);
+        string format = storageFormat == 2 ? ".vhd" : ".vhdx";
+        ReadInformation(disk, 1, 32);
+        return (format, checked((long)_buffer!.Read<ulong>(8)), type switch { 2 => "Fixed", 3 => "Dynamic", _ => "Differencing" });
+    }
+
+    internal long ReadMinimumSize(string path)
+    {
+        using var disk = Open(path);
+        ReadInformation(disk, 11 /* SMALLEST_SAFE_VIRTUAL_SIZE */, 16);
+        return checked((long)_buffer!.Read<ulong>(8));
+    }
+
+    internal bool IsLoaded(string path)
+    {
+        using var disk = Open(path);
+        ReadInformation(disk, 13 /* IS_LOADED */, 12);
+        return _buffer!.Read<int>(8) != 0;
+    }
+
+    internal Guid ReadLinkageId(string path, bool expectedParent)
+    {
+        using var disk = Open(path);
+        ReadInformation(disk, expectedParent ? 4u : 2u, 24);
+        return _buffer!.Read<Guid>(8);
+    }
+
+    // An unresolved locator can still describe a missing or moved parent. Only use
+    // an existing candidate when all existing locators identify the same file.
+    internal string ReadParentLocator(string path)
+    {
+        using var disk = Open(path);
+        uint used = ReadInformation(disk, 3, 14);
+        if (_buffer!.Read<uint>(8) != 0) return ReadResolvedParent(used);
+        if ((used - 12) % 2 != 0) throw new InvalidDataException("父盘定位记录长度无效。");
+        var chars = new char[(used - 12) / 2];
+        _buffer.ReadArray(12, chars, 0, chars.Length);
+        if (chars[^1] != '\0') throw new InvalidDataException("父盘定位记录不完整。");
+        var candidates = new string(chars).Split('\0', StringSplitOptions.RemoveEmptyEntries)
+            .Select(candidate => Path.GetFullPath(candidate, Path.GetDirectoryName(path)!))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var existing = candidates.Where(candidate =>
+        {
+            try { _ = File.GetAttributes(candidate); return true; }
+            catch (FileNotFoundException) { return false; }
+            catch (DirectoryNotFoundException) { return false; }
+        }).ToArray();
+        if (existing.Select(Services.HostDiskResource.Image).Distinct().Skip(1).Any())
+            throw new InvalidDataException("发现多个不同的父盘候选，请明确指定父盘。");
+        return existing.FirstOrDefault() ?? candidates.FirstOrDefault()
+            ?? throw new InvalidDataException("未找到父盘定位记录。");
+    }
+
     internal (long Max, string Type) ReadSettings(string imagePath)
     {
-        using var disk = Open(imagePath);
-        uint type = ReadType(disk);
-        ReadInformation(disk, 1 /* SIZE */, 32);
-        long capacity = checked((long)_buffer!.Read<ulong>(8));
-        return (capacity, type switch { 2 => "Fixed", 3 => "Dynamic", _ => "Differencing" });
+        var geometry = ReadGeometry(imagePath);
+        return (geometry.Capacity, geometry.Type);
     }
 
     /// <summary>仅独立盘返回 null；差分盘的父路径未解析成功时抛出错误。</summary>
     internal string? ReadParentPath(string imagePath)
     {
         using var disk = Open(imagePath);
-        if (ReadType(disk) != 4) return null;
+        if (ReadType(disk, out _) != 4) return null;
         uint used = ReadInformation(disk, 3 /* PARENT_LOCATION */, 14);
         return ReadResolvedParent(used);
     }
@@ -54,10 +107,10 @@ internal sealed class VirtualDiskMetadataReader : IDisposable
         return disk;
     }
 
-    private uint ReadType(SafeFileHandle disk)
+    private uint ReadType(SafeFileHandle disk, out uint format)
     {
         ReadInformation(disk, 6 /* VIRTUAL_STORAGE_TYPE */, 28);
-        uint format = _buffer!.Read<uint>(8);
+        format = _buffer!.Read<uint>(8);
         if (format is not (2 or 3) || _buffer.Read<Guid>(12) != MicrosoftVendor)
             throw new NotSupportedException("仅支持查询 Microsoft VHD/VHDX 磁盘元数据。");
         ReadInformation(disk, 7 /* PROVIDER_SUBTYPE */, 12);

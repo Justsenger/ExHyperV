@@ -17,14 +17,6 @@ internal static partial class ApiCaseRegistry
             c.Equal(true, c.Call(() => CoreErrorClassifier.IsServiceUnavailable(unchecked((int)0x800706BA), ApiErrorSource.Com)), "RPC 服务不可用 HRESULT 命中");
             c.Equal(false, c.Call(() => CoreErrorClassifier.IsServiceUnavailable(0, ApiErrorSource.None)), "正常码返回 false");
         }]);
-        add("HyperVServiceCoordination.BeginActiveSettingsWrite()", [c => {
-            using (var scope = c.Call(HyperVServiceCoordination.BeginActiveSettingsWrite))
-            {
-                c.Equal(true, HyperVServiceCoordination.HasActiveSettingsWrite, "进入作用域后标记为活动写入");
-                scope.Dispose();
-            }
-            c.Equal(false, HyperVServiceCoordination.HasActiveSettingsWrite, "释放及重复释放后恢复状态");
-        }]);
         add("ApiResponse.Fail()", [c => {
             var error=new IOException("受控样例"); var r=c.Call(()=>ApiResponse.Fail("样例错误",5,ApiErrorSource.Win32,error,ApiErrorKind.AccessDenied));
             c.Require(!r.Success && r.ErrorKind==ApiErrorKind.AccessDenied && r.ErrorSource==ApiErrorSource.Win32 && r.Code==5 && r.Error=="样例错误" && ReferenceEquals(r.Exception,error), "失败类别、来源、代码、文本及异常引用完整保留");

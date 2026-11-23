@@ -1,0 +1,21 @@
+<Project>
+  <PropertyGroup>
+    <_ResourceToolProject>$(MSBuildThisFileDirectory)WinUI.Publish.csproj</_ResourceToolProject>
+    <_ResourceCompressionInputs>$(MSBuildThisFileDirectory)Compression.cs;$(MSBuildThisFileFullPath)</_ResourceCompressionInputs>
+  </PropertyGroup>
+  <Target Name="CompressDesktopResources" Condition="'@(BrotliResource)' != ''"
+          Inputs="%(BrotliResource.FullPath);$(_ResourceToolProject);$(_ResourceCompressionInputs)"
+          Outputs="$(IntermediateOutputPath)packed/%(BrotliResource.LogicalName)">
+    <PropertyGroup>
+      <_ResourceWork>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)', 'packed'))</_ResourceWork>
+    </PropertyGroup>
+    <MakeDir Directories="$(_ResourceWork)" />
+    <Exec Command="&quot;$(MSBuildBinPath)\MSBuild.exe&quot; &quot;$(_ResourceToolProject)&quot; /restore /t:Build /nologo /v:q /nr:false /p:Configuration=Release /p:UseArtifactsOutput=true &quot;/p:ArtifactsPath=$(_ResourceWork)/tool&quot;" />
+    <Exec Command="&quot;$(NetCoreRoot)dotnet.exe&quot; &quot;$(_ResourceWork)/tool/bin/WinUI.Publish/release/WinUI.Publish.dll&quot; resource %(BrotliResource.Kind) &quot;%(BrotliResource.FullPath)&quot; &quot;$(_ResourceWork)/%(BrotliResource.LogicalName)&quot;" />
+  </Target>
+  <Target Name="CollectCompressedDesktopResources" BeforeTargets="AssignTargetPaths" DependsOnTargets="CompressDesktopResources" Condition="'@(BrotliResource)' != ''">
+    <ItemGroup>
+      <EmbeddedResource Include="@(BrotliResource->'$(IntermediateOutputPath)packed/%(LogicalName)')" />
+    </ItemGroup>
+  </Target>
+</Project>

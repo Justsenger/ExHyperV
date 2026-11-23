@@ -3,6 +3,8 @@ using System.Text.Json;
 
 namespace ExHyperV.Services;
 
+internal sealed record LegacyAffinityPreference(int Version, string Backend, IReadOnlyList<int> LogicalProcessors);
+
 internal sealed record AffinityEnvironment(string HostFingerprint, string Backend, string TopologyFingerprint);
 
 // 一个 HostOnlyItems 值保存选择及其编号所属环境，避免分别更新造成错配。
@@ -15,7 +17,7 @@ internal sealed record AffinityPreference(int Version, string Backend, int[] Log
     internal static AffinityPreference Create(IReadOnlyList<int> indices, string backend, AffinityEnvironment? environment)
         => new(2, backend, indices.Distinct().Order().ToArray(), environment?.HostFingerprint, environment?.TopologyFingerprint);
 
-    internal string Serialize() => JsonSerializer.Serialize(this);
+    internal string Serialize() => JsonSerializer.Serialize(this, CoreJson.Default.AffinityPreference);
 
     internal static bool TryRead(string json, out AffinityPreference? preference)
     {

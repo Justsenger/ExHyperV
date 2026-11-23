@@ -10,6 +10,9 @@ namespace ExHyperV.Models
         /// <meaning>接入交换机的虚拟机名称或宿主管理操作系统名称。</meaning>
         /// </fielddoc>
         public string Name { get; set; } = string.Empty;       // VM 名，或主机管理 OS 显示名
+        /// <summary>该端点是否为管理操作系统端口。</summary>
+        public bool IsManagementOs { get; init; }
+
         /// <summary>交换机端点的 MAC 地址。</summary>
         /// <fielddoc>
         /// <meaning>交换机端点的 MAC 地址。</meaning>

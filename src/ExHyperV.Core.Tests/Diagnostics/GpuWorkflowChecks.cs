@@ -1,6 +1,7 @@
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using R = ExHyperV.Properties.Resources;
 
 internal static class GpuWorkflowChecks
 {
@@ -20,9 +21,12 @@ internal static class GpuWorkflowChecks
         var noDriver = new Backend { Off = false };
         var noDriverSession = new GpuDeploymentSession(noDriver, GpuDeploymentMode.AddWithoutDrivers);
         var first = await noDriverSession.StartAsync();
-        check(first.State == GpuDeploymentState.Completed && !noDriver.Calls.Contains("TurnOff") && !noDriver.Calls.Contains("Optimize"),
-            "GPU without drivers leaves a running VM running");
-        check(first.Steps.Count == 5 && first.Steps.All(s => s.Status == GpuDeploymentStepStatus.Success), "Core owns the no-driver step list");
+        check(first.State == GpuDeploymentState.Completed && !noDriver.Calls.Contains("TurnOff") && !noDriver.Calls.Contains("Optimize")
+            && noDriver.MetadataRecordedCount == 0,
+            "GPU without drivers leaves a running VM running and does not write guest driver metadata");
+        check(first.Steps.Select(s => s.Type).SequenceEqual([GpuDeploymentStepKind.Optimization, GpuDeploymentStepKind.Assign])
+            && first.Steps.All(s => s.Status == GpuDeploymentStepStatus.Success),
+            "AddWithoutDrivers uses the 2-step flow (Optimization, Assign)");
         await noDriverSession.CancelAsync();
         check(noDriver.Removed.Count == 0 && first.PendingCleanupAdapterId == null, "Cancelling a completed deployment cannot remove its GPU");
         check(await Rejected(() => noDriverSession.StartAsync()), "A session cannot be started twice");
@@ -30,6 +34,12 @@ internal static class GpuWorkflowChecks
         var windows = new Backend { Off = false };
         var session = new GpuDeploymentSession(windows);
         var pending = await session.StartAsync();
+        check(pending.Steps.Select(s => s.Type).SequenceEqual([
+                GpuDeploymentStepKind.PowerCheck,
+                GpuDeploymentStepKind.Optimization,
+                GpuDeploymentStepKind.Assign,
+                GpuDeploymentStepKind.Driver]),
+            "AddWithDrivers exposes the 4-step workflow");
         check(pending.PendingDecision?.Kind == GpuDecisionKind.PowerOff && !windows.Calls.Contains("TurnOff") && !windows.Calls.Contains("Assign"),
             "Running VM requires a power-off decision before assignment");
         check(pending.AllowedActions.Contains(GpuDeploymentAction.SubmitDecision) && pending.State == GpuDeploymentState.WaitingForDecision,
@@ -38,27 +48,24 @@ internal static class GpuWorkflowChecks
         check(await Rejected(() => session.SubmitDecisionAsync(new GpuConfirmation(Guid.NewGuid(), true)))
             && session.GetStatus().PendingDecision?.Id == powerRequest.Id, "A stale decision leaves the pending operation intact");
         check(await Rejected(() => session.SubmitDecisionAsync(new GpuLinuxInput(powerRequest.Id, Script(), Credentials())))
-            && windows.Calls.Count == 1, "A caller cannot skip power confirmation by submitting SSH input");
-        pending = await Yes(session);
-        check(pending.PendingDecision?.Kind == GpuDecisionKind.InstallWindows && !windows.Calls.Contains("Windows"),
-            "Even a single Windows partition waits for explicit installation confirmation");
-        check(windows.Calls.IndexOf("TurnOff") < windows.Calls.IndexOf("Assign") && pending.PendingCleanupAdapterId == "new-adapter",
-            "Power, assignment and driver stages preserve their order and cleanup target");
+            && windows.Calls.Count == 0, "A caller cannot skip power confirmation by submitting SSH input");
+        var finished = await Yes(session);
+        check(finished.State == GpuDeploymentState.Completed && windows.Calls.Count(c => c == "Windows") == 1
+            && windows.MetadataRecordedCount == 1,
+            "Power-off confirmation proceeds directly through single Windows partition sync without a second confirmation");
+        check(windows.Calls.IndexOf("TurnOff") < windows.Calls.IndexOf("Assign")
+            && windows.Calls.IndexOf("Assign") < windows.Calls.IndexOf("Windows"),
+            "Power, assignment and driver stages preserve their order");
         check(await Rejected(() => session.SubmitDecisionAsync(new GpuConfirmation(powerRequest.Id, true))),
             "A consumed confirmation cannot be replayed");
-        var prior = pending;
-        var duplicate = new GpuConfirmation(pending.PendingDecision!.Id, true);
-        var finished = await session.SubmitDecisionAsync(duplicate);
-        check(finished.State == GpuDeploymentState.Completed && windows.Calls.Count(c => c == "Windows") == 1,
-            "A headless consumer completes Windows deployment through decisions");
-        check(await Rejected(() => session.SubmitDecisionAsync(duplicate)) && windows.Calls.Count(c => c == "Windows") == 1,
-            "Duplicate installation confirmation never executes twice");
-        check(prior.State == GpuDeploymentState.WaitingForDecision && prior.Steps.Last().Status == GpuDeploymentStepStatus.Running
-            && finished.Steps.Last().Status == GpuDeploymentStepStatus.Success, "Published snapshots remain unchanged after later transitions");
-        check(prior.Steps is System.Collections.Generic.IList<GpuDeploymentStep> readOnlySteps && readOnlySteps.IsReadOnly
-            && prior.PendingDecision!.Partitions is System.Collections.Generic.IList<GpuDeploymentPartition> readOnlyParts && readOnlyParts.IsReadOnly,
+        check(pending.State == GpuDeploymentState.WaitingForDecision
+            && finished.Steps.Last().Status == GpuDeploymentStepStatus.Success,
+            "Published snapshots remain unchanged after later transitions");
+        check(pending.Steps is System.Collections.Generic.IList<GpuDeploymentStep> readOnlySteps && readOnlySteps.IsReadOnly
+            && pending.PendingDecision!.Partitions is System.Collections.Generic.IList<GpuDeploymentPartition> readOnlyParts && readOnlyParts.IsReadOnly,
             "Step and partition collections are read-only");
-        check(finished.AddedAdapterId == "new-adapter" && finished.PendingCleanupAdapterId == null, "Success keeps history but releases cleanup intent");
+        check(finished.AddedAdapterId == "new-adapter" && finished.AddedAdapterIds.SequenceEqual(["new-adapter"])
+            && finished.PendingCleanupAdapterId == null, "Success keeps history but releases cleanup intent");
 
         var declined = new Backend { Off = false };
         var declinedSession = new GpuDeploymentSession(declined);
@@ -75,12 +82,11 @@ internal static class GpuWorkflowChecks
         var selectionId = selection.PendingDecision!.Id;
         check(await Rejected(() => manualSession.SubmitDecisionAsync(new GpuPartitionSelection(selectionId, "arbitrary.vhdx")))
             && manualSession.GetStatus().PendingDecision?.Id == selectionId, "A caller cannot inject a disk path instead of an issued partition ID");
-        var selected = await manualSession.SubmitDecisionAsync(new GpuPartitionSelection(selectionId, selection.PendingDecision.Partitions[0].Id));
-        check(selected.PendingDecision?.Kind == GpuDecisionKind.InstallWindows, "Selecting Windows still requires installation confirmation");
         manual.FailDrivers = true;
-        var failed = await Yes(manualSession);
-        check(failed.State == GpuDeploymentState.Failed && failed.Error == "failed" && manual.Removed.SequenceEqual(new[] { "new-adapter" }),
-            "Driver failure reports its cause and removes only this deployment's adapter");
+        var failed = await manualSession.SubmitDecisionAsync(new GpuPartitionSelection(selectionId, selection.PendingDecision.Partitions[0].Id));
+        check(failed.State == GpuDeploymentState.Failed && failed.Error == "failed" && manual.Removed.SequenceEqual(["new-adapter"])
+            && manual.MetadataRecordedCount == 0,
+            "Selecting Windows executes sync immediately; driver failure removes this deployment's adapter without recording metadata");
 
         foreach (var os in new[] { OperatingSystemType.Unknown, OperatingSystemType.EFI })
         {
@@ -95,27 +101,101 @@ internal static class GpuWorkflowChecks
         var encrypted = await encryptedSession.StartAsync();
         check(await Rejected(() => encryptedSession.SubmitDecisionAsync(new GpuPartitionSelection(encrypted.PendingDecision!.Id, encrypted.PendingDecision.Partitions[0].Id))),
             "Core rejects encrypted partitions before installation");
-        await encryptedSession.CancelAsync();
+        var skippedResult = await encryptedSession.SubmitDecisionAsync(
+            new GpuDriverFallbackSelection(encrypted.PendingDecision!.Id, GpuDriverFallbackAction.SkipDriver));
+        check(skippedResult.State == GpuDeploymentState.Completed && skippedResult.IsDriverSkipped && !skippedResult.IsDriverIsoMounted,
+            "BitLocker partition selection allows SkipDriver fallback cleanly");
 
-        var diskChanged = new Backend();
+        var isoBackend = new Backend { BitLocker = true };
+        var isoSession = new GpuDeploymentSession(isoBackend);
+        var isoProgress = new List<int?>();
+        var isoWaiting = await isoSession.StartAsync(s => { if (s.DriverIsoProgressPercent.HasValue) isoProgress.Add(s.DriverIsoProgressPercent); });
+        var isoCompleted = await isoSession.SubmitDecisionAsync(
+            new GpuDriverFallbackSelection(isoWaiting.PendingDecision!.Id, GpuDriverFallbackAction.MountIso));
+        check(isoCompleted.State == GpuDeploymentState.Completed && isoCompleted.IsDriverIsoMounted && !isoCompleted.IsDriverSkipped
+            && isoCompleted.DriverIsoProgressPercent == 100 && isoProgress.Contains(50)
+            && isoBackend.MetadataRecordedCount == 0 && isoBackend.Calls.Contains("MountIso"),
+            "BitLocker fallback MountIso reports ISO progress and completes without recording guest driver version metadata");
+
+        foreach (bool unknown in new[] { false, true })
+        {
+            var backend = new Backend { BitLocker = true, MountUnknown = unknown };
+            var flow = new GpuDeploymentSession(backend);
+            var waiting = await flow.StartAsync();
+            backend.MountReturned = flow.RequestCancellation;
+            var stopped = await flow.SubmitDecisionAsync(new GpuDriverFallbackSelection(waiting.PendingDecision!.Id, GpuDriverFallbackAction.MountIso));
+            check(stopped.OutcomeUnknown == unknown && stopped.IsDriverIsoMounted == !unknown
+                && (!unknown || stopped.State == GpuDeploymentState.CleanupRequired && backend.Removed.Count == 0),
+                "Cancellation preserves a concurrent mount receipt");
+        }
+
+        var mountTimeBitlocker = new Backend { BitLockerAtSync = true };
+        var mountTimeSession = new GpuDeploymentSession(mountTimeBitlocker);
+        var mountTimeWaiting = await mountTimeSession.StartAsync();
+        check(mountTimeWaiting.State == GpuDeploymentState.WaitingForDecision
+            && mountTimeWaiting.PendingDecision?.Kind == GpuDecisionKind.DriverFallback,
+            "BitLocker detected at Windows offline mount time falls back to DriverFallback");
+        await mountTimeSession.CancelAsync();
+
+        var invalidPartBackend = new Backend { MultiplePartitions = true, InvalidSystemPartAtSync = true };
+        var invalidPartSession = new GpuDeploymentSession(invalidPartBackend);
+        var invalidPartSelect = await invalidPartSession.StartAsync();
+        var invalidPartFallback = await invalidPartSession.SubmitDecisionAsync(
+            new GpuPartitionSelection(invalidPartSelect.PendingDecision!.Id, invalidPartSelect.PendingDecision.Partitions[0].Id));
+        check(invalidPartFallback.State == GpuDeploymentState.WaitingForDecision
+            && invalidPartFallback.PendingDecision?.Kind == GpuDecisionKind.DriverFallback
+            && invalidPartFallback.PendingDecision.CanGoBack
+            && invalidPartBackend.Removed.Count == 0,
+            "Non-OS data partition detected at mount time enters DriverFallback without rolling back the GPU");
+        var invalidBack = await invalidPartSession.SubmitDecisionAsync(new GpuBackToPartitions(invalidPartFallback.PendingDecision!.Id));
+        check(invalidBack.State == GpuDeploymentState.WaitingForDecision
+            && invalidBack.PendingDecision?.Kind == GpuDecisionKind.SelectPartition,
+            "DriverFallback with multiple partitions allows going back to partition selection");
+        invalidPartBackend.InvalidSystemPartAtSync = false;
+        var invalidRetryDone = await invalidPartSession.SubmitDecisionAsync(
+            new GpuPartitionSelection(invalidBack.PendingDecision!.Id, invalidBack.PendingDecision.Partitions[1].Id));
+        check(invalidRetryDone.State == GpuDeploymentState.Completed && invalidPartBackend.MetadataRecordedCount == 1,
+            "Retrying a valid partition after InvalidSystemPart completes driver sync cleanly");
+
+        var efiPlusWindows = new Backend { IncludeEfiPartition = true };
+        var efiSession = new GpuDeploymentSession(efiPlusWindows);
+        var efiDone = await efiSession.StartAsync();
+        check(efiDone.State == GpuDeploymentState.Completed && efiPlusWindows.Calls.Count(c => c == "Windows") == 1,
+            "Single usable non-BitLocker Windows partition alongside EFI auto-proceeds without prompting");
+
+        var multiGpu = new Backend { GpuCount = 2 };
+        var multiSession = new GpuDeploymentSession(multiGpu);
+        var multiDone = await multiSession.StartAsync();
+        check(multiDone.State == GpuDeploymentState.Completed && multiGpu.Calls.Count(c => c == "Assign") == 2
+            && multiDone.AddedAdapterIds.SequenceEqual(["new-adapter-1", "new-adapter-2"])
+            && multiDone.AddedAdapterId == "new-adapter-2",
+            "Multi-GPU deployment assigns every selected GPU sequentially");
+
+        var multiPartialFail = new Backend { GpuCount = 2, FailAssignAtIndex = 1 };
+        var multiFailDone = await new GpuDeploymentSession(multiPartialFail).StartAsync();
+        check(multiFailDone.State == GpuDeploymentState.Failed && multiPartialFail.Removed.SequenceEqual(["new-adapter-1"]),
+            "Partial multi-GPU assignment failure rolls back all previously created adapters");
+
+        var diskChanged = new Backend { MultiplePartitions = true };
         var changedDiskSession = new GpuDeploymentSession(diskChanged);
-        await changedDiskSession.StartAsync();
+        var diskWait = await changedDiskSession.StartAsync();
         diskChanged.DiskPath = "replacement.vhdx";
-        var changedDisk = await Yes(changedDiskSession);
+        var changedDisk = await changedDiskSession.SubmitDecisionAsync(
+            new GpuPartitionSelection(diskWait.PendingDecision!.Id, diskWait.PendingDecision.Partitions[0].Id));
         check(changedDisk.State == GpuDeploymentState.Failed && !diskChanged.Calls.Contains("Windows"),
             "Changed disk identity is rejected before driver writes");
 
-        var restarted = new Backend();
+        var restarted = new Backend { MultiplePartitions = true };
         var restartSession = new GpuDeploymentSession(restarted);
-        await restartSession.StartAsync();
+        var restartWait = await restartSession.StartAsync();
         restarted.Off = false;
-        var powerAgain = await Yes(restartSession);
+        var powerAgain = await restartSession.SubmitDecisionAsync(
+            new GpuPartitionSelection(restartWait.PendingDecision!.Id, restartWait.PendingDecision.Partitions[0].Id));
         check(powerAgain.PendingDecision?.Kind == GpuDecisionKind.PowerOff && !restarted.Calls.Contains("Windows"),
-            "VM restarted during confirmation requires renewed power-off consent");
-        var installAgain = await Yes(restartSession);
-        check(installAgain.PendingDecision?.Kind == GpuDecisionKind.InstallWindows && !restarted.Calls.Contains("Windows"),
-            "Power-off consent does not implicitly approve the subsequent disk write");
-        await restartSession.CancelAsync();
+            "VM restarted before driver injection requires renewed power-off consent");
+        var completedAfterRestart = await Yes(restartSession);
+        check(completedAfterRestart.State == GpuDeploymentState.Completed && restarted.Calls.Count(c => c == "Windows") == 1,
+            "Power-off consent after VM restart completes the deferred Windows driver write");
 
         var ambiguous = new Backend { UnidentifiedAssignment = true, ConcurrentAssignment = true };
         var ambiguousSession = new GpuDeploymentSession(ambiguous);
@@ -132,20 +212,21 @@ internal static class GpuWorkflowChecks
             && unrelatedResult.AddedAdapterId == null && unrelated.AdapterReads == 0,
             "An assignment rejected before creation never claims another caller's new adapter");
 
-        var overlapping = new Backend { ConcurrentAssignment = true, FailDrivers = true };
+        var overlapping = new Backend { ConcurrentAssignment = true, FailDrivers = true, MultiplePartitions = true };
         var overlappingSession = new GpuDeploymentSession(overlapping);
         var overlappingPending = await overlappingSession.StartAsync();
         check(overlappingPending.State == GpuDeploymentState.WaitingForDecision && overlapping.AdapterReads == 0,
             "An exact creation receipt remains usable when another caller adds an adapter concurrently");
-        var overlappingFailure = await Yes(overlappingSession);
+        var overlappingFailure = await overlappingSession.SubmitDecisionAsync(
+            new GpuPartitionSelection(overlappingPending.PendingDecision!.Id, overlappingPending.PendingDecision.Partitions[0].Id));
         check(overlappingFailure.State == GpuDeploymentState.Failed
-            && overlapping.Removed.SequenceEqual(new[] { "new-adapter" }),
+            && overlapping.Removed.SequenceEqual(["new-adapter"]),
             "Failure cleans only the receipt's adapter and preserves the concurrent adapter");
 
         var partialAssignment = new Backend { FailAssignmentAfterCreation = true, ConcurrentAssignment = true };
         var partialAssignmentResult = await new GpuDeploymentSession(partialAssignment).StartAsync();
         check(partialAssignmentResult.State == GpuDeploymentState.Failed
-            && partialAssignment.Removed.SequenceEqual(new[] { "new-adapter" }),
+            && partialAssignment.Removed.SequenceEqual(["new-adapter"]),
             "A failed assignment retains its exact created identity for cleanup");
 
         var thrownAssignment = new Backend { ThrowAssignment = true, ConcurrentAssignment = true };
@@ -170,14 +251,14 @@ internal static class GpuWorkflowChecks
         var rejected = await new GpuDeploymentSession(changed).StartAsync();
         check(rejected.State == GpuDeploymentState.Failed && changed.Calls.Count == 0, "Changed VM identity is rejected before any action");
 
-        var update = new Backend { FailDrivers = true };
+        var update = new Backend { FailDrivers = true, MultiplePartitions = true };
         var updateSession = new GpuDeploymentSession(update, GpuDeploymentMode.UpdateDrivers);
         var updating = await updateSession.StartAsync();
-        await Yes(updateSession);
-        check(updating.Steps.Select(s => s.Type).SequenceEqual(new[] { GpuDeploymentStepKind.PowerCheck, GpuDeploymentStepKind.Driver })
+        await updateSession.SubmitDecisionAsync(new GpuPartitionSelection(updating.PendingDecision!.Id, updating.PendingDecision.Partitions[0].Id));
+        check(updating.Steps.Select(s => s.Type).SequenceEqual([GpuDeploymentStepKind.PowerCheck, GpuDeploymentStepKind.Driver])
             && !update.Calls.Contains("Assign") && update.Removed.Count == 0, "Driver-only update neither adds nor rolls back an existing GPU");
 
-        var linux = new Backend { Os = OperatingSystemType.Linux };
+        var linux = new Backend { Os = OperatingSystemType.Linux, GpuCount = 2 };
         var linuxSession = new GpuDeploymentSession(linux);
         var linuxPending = await linuxSession.StartAsync();
         check(linuxPending.PendingDecision?.Kind == GpuDecisionKind.StartLinux && !linux.Calls.Contains("Start"),
@@ -203,7 +284,8 @@ internal static class GpuWorkflowChecks
         var credentials = Credentials();
         var linuxResult = await linuxSession.SubmitDecisionAsync(new GpuLinuxInput(ssh.PendingDecision!.Id, Script(), credentials));
         check(linuxResult.State == GpuDeploymentState.Completed && linux.Calls.Count(c => c == "Linux") == 1
-            && linuxResult.Steps.Last().Status == GpuDeploymentStepStatus.Success, "Core interprets Linux progress and completion without WPF");
+            && linuxResult.Steps.Last().Status == GpuDeploymentStepStatus.Success && linux.MetadataRecordedCount == 1 && linux.RecordedPrimaryOnly,
+            "Core interprets Linux progress, completion, and guest driver metadata without WPF");
         check(credentials.Host == "192.0.2.1" && !System.Text.Json.JsonSerializer.Serialize(linuxResult).Contains("private"),
             "Backend credential changes do not mutate the caller or leak passwords into state");
 
@@ -220,9 +302,9 @@ internal static class GpuWorkflowChecks
         var cancelled = await running;
         await cancelling;
         check(cancelled.State == GpuDeploymentState.Cancelled && !cancelBackend.Calls.Contains("Windows")
-            && cancelBackend.Removed.SequenceEqual(new[] { "new-adapter" }), "Cancellation skips later stages and cleans the exact adapter once");
+            && cancelBackend.Removed.SequenceEqual(["new-adapter"]), "Cancellation skips later stages and cleans the exact adapter once");
 
-        var cleanup = new Backend { FailRemoval = true, ConcurrentAssignment = true };
+        var cleanup = new Backend { FailRemoval = true, ConcurrentAssignment = true, MultiplePartitions = true };
         var cleanupSession = new GpuDeploymentSession(cleanup);
         await cleanupSession.StartAsync();
         var dirty = await cleanupSession.CancelAsync();
@@ -233,7 +315,7 @@ internal static class GpuWorkflowChecks
         check(clean.State == GpuDeploymentState.Cancelled && clean.PendingCleanupAdapterId == null && cleanup.Calls.Count(c => c == "Assign") == 1,
             "Retry performs cleanup only and never repeats assignment");
 
-        var manuallyCleaned = new Backend { FailRemoval = true };
+        var manuallyCleaned = new Backend { FailRemoval = true, MultiplePartitions = true };
         var manualCleanupSession = new GpuDeploymentSession(manuallyCleaned);
         await manualCleanupSession.StartAsync();
         await manualCleanupSession.CancelAsync();
@@ -250,13 +332,13 @@ internal static class GpuWorkflowChecks
         check(callbackResult.State == GpuDeploymentState.Completed && callbackBackend.Removed.Count == 0,
             "A presentation callback failure cannot derail native deployment");
 
-        var concurrent = new Backend();
+        var concurrent = new Backend { MultiplePartitions = true };
         var concurrentSession = new GpuDeploymentSession(concurrent);
         var concurrentPending = await concurrentSession.StartAsync();
         var enter = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var finish = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         concurrent.WindowsPause = async () => { enter.SetResult(); await finish.Task; };
-        var same = new GpuConfirmation(concurrentPending.PendingDecision!.Id, true);
+        var same = new GpuPartitionSelection(concurrentPending.PendingDecision!.Id, concurrentPending.PendingDecision.Partitions[0].Id);
         var one = concurrentSession.SubmitDecisionAsync(same);
         await enter.Task.WaitAsync(TimeSpan.FromSeconds(10));
         var two = Rejected(() => concurrentSession.SubmitDecisionAsync(same));
@@ -274,13 +356,80 @@ internal static class GpuWorkflowChecks
         });
         check(progressResult.State == GpuDeploymentState.Cancelled && !cancelledByProgress.Calls.Contains("Assign"),
             "Cancellation from a progress callback prevents the next native action");
+
+        // ISO filesystem selection checks (< 4 GiB hybrid ISO9660+UDF, >= 4 GiB UDF-only)
+        check(!IsoBuilderService.ShouldUseUdfOnly(1024, 1024),
+            "ISO builder keeps ISO9660+UDF compatibility below 4 GiB");
+        check(IsoBuilderService.ShouldUseUdfOnly(4L * 1024 * 1024 * 1024, 1024),
+            "ISO builder switches to pure UDF when total payload reaches 4 GiB");
+        check(IsoBuilderService.ShouldUseUdfOnly(1024, 4L * 1024 * 1024 * 1024),
+            "ISO builder switches to pure UDF when a single file reaches 4 GiB");
+
+        // Driver ISO space validation & staging payload generation checks
+        check(GpuDriverIsoService.ValidateFreeDiskSpace(@"C:\Temp\test.iso", 1000, _ => 64L * 1024 * 1024) == null,
+            "Driver ISO disk space pre-check passes when free space covers image + headroom");
+        check(GpuDriverIsoService.ValidateFreeDiskSpace(@"C:\Temp\test.iso", 1000, _ => 1100) != null,
+            "Driver ISO disk space pre-check rejects insufficient disk space");
+
+        string stagingDir = Path.Combine(Path.GetTempPath(), "ExHyperV-StageCheck-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var manifest = new GpuDriverIsoManifest(
+                [new GpuDriverIsoRuleEntry("nvapi64.dll", "nvapi64.dll", "System32", "PreserveExisting", null, false)],
+                [], [], []);
+            GpuDriverIsoService.CreateStagingPayload(stagingDir, manifest);
+            string cmdPath = Path.Combine(stagingDir, "安装显卡驱动.cmd");
+            string ps1Path = Path.Combine(stagingDir, "_payload", "install.ps1");
+            string jsonPath = Path.Combine(stagingDir, "_payload", "manifest.json");
+            check(File.Exists(cmdPath) && File.Exists(ps1Path) && File.Exists(jsonPath),
+                "Driver ISO staging creates visible UAC launcher CMD plus _payload manifest and PowerShell script");
+            string installer = Path.Combine(AppContext.BaseDirectory, "GpuGuestInstaller");
+            check(File.ReadAllBytes(ps1Path).SequenceEqual(File.ReadAllBytes(Path.Combine(installer, "install.ps1")))
+                && File.ReadAllBytes(cmdPath).SequenceEqual(File.ReadAllBytes(Path.Combine(installer, "install.cmd"))),
+                "Driver ISO stages both separately delivered guest installer assets without rewriting them");
+        }
+        finally
+        {
+            if (Directory.Exists(stagingDir)) Directory.Delete(stagingDir, recursive: true);
+        }
+
+        // Guest driver metadata parsing & assignment update flag checks
+        string gpuKey = VmMetadataService.NormalizeGpuDriverKey(@"\\?\pci#ven_10de&dev_2684#4&123#{86e0d1e0-8089-11d0-9ce4-08003e301f73}");
+        check(gpuKey == VmMetadataService.NormalizeGpuDriverKey(@"PCI\VEN_10DE&DEV_2684\4&123"),
+            "VmMetadataService GPU driver key normalization matches device instance ID normalization");
+        var metaMap = VmMetadataService.ParseGpuDriversMap(new Dictionary<string, string>
+        {
+            [VmMetadataService.GpuDriversKey] = $"{{\"{gpuKey}\":\"32.0.15.6094\"}}"
+        });
+        var hostGpu = new HostGpuInfo
+        {
+            InstanceId = @"PCI\VEN_10DE&DEV_2684\4&123",
+            Name = "GPU",
+            Manu = "NVIDIA",
+            DriverVersion = "32.0.15.7200"
+        };
+        var updatedAssignments = VmGpuService.BuildGpuAssignments([("a1", @"PCI\VEN_10DE&DEV_2684\4&123")], [hostGpu], metaMap);
+        check(updatedAssignments[0].GuestDriverVersion == "32.0.15.6094" && updatedAssignments[0].HasDriverUpdate,
+            "BuildGpuAssignments marks HasDriverUpdate when guest version differs from host driver version");
+        var matchingMap = VmMetadataService.ParseGpuDriversMap(new Dictionary<string, string>
+        {
+            [VmMetadataService.GpuDriversKey] = $"{{\"{gpuKey}\":\"32.0.15.7200\"}}"
+        });
+        var upToDateAssignments = VmGpuService.BuildGpuAssignments([("a1", @"PCI\VEN_10DE&DEV_2684\4&123")], [hostGpu], matchingMap);
+        check(upToDateAssignments[0].GuestDriverVersion == "32.0.15.7200" && !upToDateAssignments[0].HasDriverUpdate,
+            "BuildGpuAssignments clears HasDriverUpdate when guest and host driver versions match");
     }
 
     internal sealed class Backend : IGpuDeploymentBackend
     {
         public List<string> Calls { get; } = new();
         public List<string> Removed { get; } = new();
-        public bool FailDrivers, MultiplePartitions, UnidentifiedAssignment, TargetChanged, FailRemoval, BitLocker;
+        public int GpuCount { get; set; } = 1;
+        public int FailAssignAtIndex { get; set; } = -1;
+        public bool RecordedPrimaryOnly, MountUnknown;
+        public Action? MountReturned;
+        public int MetadataRecordedCount { get; private set; }
+        public bool FailDrivers, MultiplePartitions, IncludeEfiPartition, UnidentifiedAssignment, TargetChanged, FailRemoval, BitLocker, BitLockerAtSync, InvalidSystemPartAtSync;
         public bool ConcurrentAssignment, FailAssignmentBeforeCreation, FailAssignmentAfterCreation, ThrowAssignment;
         public bool OmitCreatedIdentity, OutcomeUnknown;
         public int AdapterReads;
@@ -288,9 +437,10 @@ internal static class GpuWorkflowChecks
         public OperatingSystemType Os = OperatingSystemType.Windows;
         public string DiskPath = "owned.vhdx";
         public Func<Task>? AssignPause, WindowsPause;
-        private bool assigned;
+        private readonly HashSet<string> assignedIds = new(StringComparer.OrdinalIgnoreCase);
         private bool unrelatedAssigned;
         internal bool ReconciliationComplete;
+
         public Task<GpuAssignmentAttempt> ReconcileAssignmentAsync() => Task.FromResult(ReconciliationComplete
             ? new GpuAssignmentAttempt(ApiResponse.Ok(), "new-adapter")
             : new GpuAssignmentAttempt(ApiResponse.Fail("controlled-pending", kind: ApiErrorKind.OutcomeUnknown), OwnershipUncertain: true));
@@ -304,41 +454,70 @@ internal static class GpuWorkflowChecks
         {
             AdapterReads++;
             var entries = new List<(string, string)> { ("existing", "gpu") };
-            if (assigned) entries.Add(("new-adapter", "gpu"));
+            foreach (string id in assignedIds) entries.Add((id, "gpu"));
             if (unrelatedAssigned) entries.Add(("unrelated-new-adapter", "gpu"));
             return Task.FromResult((true, entries));
         }
-        public async Task<GpuAssignmentAttempt> AssignAsync()
+        public Task<GpuAssignmentAttempt> AssignAsync() => AssignAtAsync(0);
+        public async Task<GpuAssignmentAttempt> AssignAtAsync(int index)
         {
             Calls.Add("Assign");
-            assigned = !FailAssignmentBeforeCreation;
+            string createdId = GpuCount == 1 ? "new-adapter" : $"new-adapter-{index + 1}";
+            bool failThis = FailAssignmentBeforeCreation || (FailAssignAtIndex >= 0 && index == FailAssignAtIndex);
+            if (!failThis) assignedIds.Add(createdId);
             unrelatedAssigned = ConcurrentAssignment;
             if (AssignPause != null) await AssignPause();
             if (ThrowAssignment) throw new InvalidOperationException("assignment receipt lost");
-            if (FailAssignmentBeforeCreation) return new(ApiResponse.Fail("assignment rejected"));
+            if (failThis) return new(ApiResponse.Fail("assignment rejected"));
             if (UnidentifiedAssignment) return new(ApiResponse.Fail("assignment identity unknown"), OwnershipUncertain: true);
-            if (OutcomeUnknown) return new(ApiResponse.Fail("job status unknown"), "new-adapter", true);
+            if (OutcomeUnknown) return new(ApiResponse.Fail("job status unknown"), createdId, true);
             return new(FailAssignmentAfterCreation ? ApiResponse.Fail("post-create verification failed") : ApiResponse.Ok(),
-                OmitCreatedIdentity ? null : "new-adapter");
+                OmitCreatedIdentity ? null : createdId);
         }
         public Task<bool> RemoveAsync(string id)
-        { Removed.Add(id); if (!FailRemoval) assigned = false; return Task.FromResult(!FailRemoval); }
+        {
+            Removed.Add(id);
+            if (!FailRemoval) assignedIds.Remove(id);
+            return Task.FromResult(!FailRemoval);
+        }
         public Task<List<DiskPartitionInfo>> GetPartitionsAsync()
         {
             if (!Off) throw new InvalidOperationException("Cannot mount a running guest disk");
             var parts = new List<DiskPartitionInfo> { new(1, 1024, Os, "OS") { DiskPath = DiskPath, IsBitLocker = BitLocker } };
+            if (IncludeEfiPartition) parts.Add(new(0, 100, OperatingSystemType.EFI, "EFI") { DiskPath = DiskPath });
             if (MultiplePartitions) parts.Add(new(2, 1024, OperatingSystemType.Windows, "OS") { DiskPath = DiskPath });
             return Task.FromResult(parts);
         }
         public async Task<(bool Success, string Message)> SyncWindowsAsync(DiskPartitionInfo partition, Action<string> log)
-        { Calls.Add("Windows"); if (WindowsPause != null) await WindowsPause(); return (!FailDrivers, FailDrivers ? "failed" : "OK"); }
+        {
+            Calls.Add("Windows");
+            if (WindowsPause != null) await WindowsPause();
+            if (BitLockerAtSync) return (false, R.Error_Gpu_BitLocker);
+            if (InvalidSystemPartAtSync) return (false, string.Format(R.Error_Gpu_InvalidSystemPart, @"Z:\"));
+            return (!FailDrivers, FailDrivers ? "failed" : "OK");
+        }
+        public Task<ApiResponse<string>> MountDriverIsoAsync(Action<int>? progressPercent = null, Action<string>? log = null, CancellationToken cancellationToken = default)
+        {
+            Calls.Add("MountIso");
+            progressPercent?.Invoke(50);
+            progressPercent?.Invoke(100);
+            MountReturned?.Invoke();
+            if (MountUnknown) return Task.FromResult(ApiResponse<string>.Fail("pending", kind: ApiErrorKind.OutcomeUnknown));
+            return Task.FromResult(ApiResponse<string>.Ok(@"C:\Temp\fixture.iso"));
+        }
+        public Task RecordGuestDriverVersionsAsync(bool primaryOnly = false)
+        {
+            RecordedPrimaryOnly = primaryOnly;
+            MetadataRecordedCount++;
+            return Task.CompletedTask;
+        }
         public Task<string> FindIpAsync() => Task.FromResult("192.0.2.1");
         public Task<string> ProvisionLinuxAsync(LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> log, CancellationToken token)
         {
             Calls.Add("Linux");
             credentials.Host = "192.0.2.2";
             log("[STEP: Installing]");
-            return Task.FromResult("completed successfully with signing");
+            return Task.FromResult("OK");
         }
     }
 }

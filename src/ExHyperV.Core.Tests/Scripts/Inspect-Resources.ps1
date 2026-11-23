@@ -15,6 +15,7 @@ $OutputEncoding = [Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $OutputEncoding
 $projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
+& (Join-Path $repo 'tools/Use-RepositoryDotNet.ps1')
 $pagePath = [IO.Path]::GetFullPath((Join-Path $projectDirectory 'ResourceInspection/Page.html'))
 $defaultConfiguration = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'ExHyperV.Core.Tests/resources.json'
 $expectedConfiguration = if ($Configuration) { [IO.Path]::GetFullPath($Configuration) } else { $defaultConfiguration }

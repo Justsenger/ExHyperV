@@ -208,7 +208,7 @@ namespace ExHyperV.Services
         internal static async Task<SaveResult> SaveAsync(List<int> coreIndices, bool isVmRunning,
             HyperVSchedulerType scheduler, Func<Task<bool>> apply, Func<string, Task<bool>> persistMetadata)
         {
-            string value = JsonSerializer.Serialize(coreIndices);
+            string value = JsonSerializer.Serialize(coreIndices, CoreJson.Default.ListInt32);
             bool applied = await apply();
             bool queued = scheduler == HyperVSchedulerType.Root && !isVmRunning;
             if (!applied && !queued) return Failed(ApiResponse.Fail("无法应用虚拟机 CPU 亲和性。", kind: ApiErrorKind.OperationFailed));
@@ -365,7 +365,8 @@ namespace ExHyperV.Services
 
         // 旧格式保留用于识别既有记录；公开保存入口统一写入带环境信息的版本 2。
         internal static string SerializeHcsPreference(IReadOnlyList<int> indices)
-            => JsonSerializer.Serialize(new { Version = 1, Backend = "HcsCpuGroup", LogicalProcessors = indices });
+            => JsonSerializer.Serialize(new LegacyAffinityPreference(1, AffinityPreference.HcsBackend, indices),
+                CoreJson.Default.LegacyAffinityPreference);
 
         internal static bool IsHcsPreference(string json)
             => AffinityPreference.TryRead(json, out var preference) && preference!.Backend == AffinityPreference.HcsBackend;
@@ -420,7 +421,7 @@ namespace ExHyperV.Services
             cores = new List<int>();
             try
             {
-                int[]? parsed = JsonSerializer.Deserialize<int[]>(json);
+                int[]? parsed = JsonSerializer.Deserialize(json, CoreJson.Default.Int32Array);
                 if (parsed == null || parsed.Any(core => core < 0)) return false;
                 cores.AddRange(parsed);
                 return true;

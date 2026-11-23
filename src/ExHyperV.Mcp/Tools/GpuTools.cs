@@ -29,24 +29,39 @@ public sealed class GpuTools(GpuSessions sessions, VmGpuService gpu, VmQueryServ
         ToolReply.From(await gpu.GetVmGpuAssignmentsAsync(ToolReply.VmId(vmId))));
 
     [McpServerTool(Name = "gpu_deployment_create", Title = "建立 GPU 部署流程", Destructive = false, OpenWorld = false)]
-    [Description("为指定虚拟机和显卡建立进程内流程编号，返回 Created 状态；实际部署由 gpu_deployment_start 开始。显卡身份来自 host_gpus。")]
+    [Description("为指定虚拟机和一张或多张显卡建立进程内流程编号，返回 Created 状态。实际部署由 gpu_deployment_start 开始。显卡身份来自 host_gpus。")]
     public Task<CallToolResult> Create(Guid vmId,
         [Description("host_gpus 返回的显卡 InstanceId。")] string gpuInstanceId,
         [Description("AddWithDrivers 分配并部署驱动；AddWithoutDrivers 仅分配；UpdateDrivers 更新现有驱动。")] GpuDeploymentMode mode,
+        [Description("可选的多卡宿主显卡 InstanceId 列表。提供时会与 gpuInstanceId 去重合并。")] string[]? gpuInstanceIds = null,
         CancellationToken cancellationToken = default) => ToolReply.Run(async () =>
     {
         ToolReply.VmId(vmId);
         cancellationToken.ThrowIfCancellationRequested();
         var devices = await HostGpuService.GetHostGpusAsync();
         if (!devices.HasData) return ToolReply.From(devices);
-        var selected = devices.Data.SingleOrDefault(device => string.Equals(device.InstanceId, gpuInstanceId, StringComparison.OrdinalIgnoreCase));
-        if (selected == null) return ToolReply.Error("请从 host_gpus 返回的清单中选择显卡身份。", ApiErrorKind.NotFound);
+
+        var requestedIds = new List<string>();
+        if (!string.IsNullOrWhiteSpace(gpuInstanceId)) requestedIds.Add(gpuInstanceId.Trim());
+        if (gpuInstanceIds != null)
+            foreach (string id in gpuInstanceIds)
+                if (!string.IsNullOrWhiteSpace(id)) requestedIds.Add(id.Trim());
+
+        var selectedList = new List<HostGpuInfo>();
+        foreach (string id in requestedIds.Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            var match = devices.Data.SingleOrDefault(device => string.Equals(device.InstanceId, id, StringComparison.OrdinalIgnoreCase));
+            if (match == null) return ToolReply.Error("请从 host_gpus 返回的清单中选择显卡身份。", ApiErrorKind.NotFound);
+            selectedList.Add(match);
+        }
+        if (selectedList.Count == 0) return ToolReply.Error("请从 host_gpus 返回的清单中选择显卡身份。", ApiErrorKind.NotFound);
+
         var target = await query.QueryAsync(new VmQueryRequest([VmIdentityFields.Name], [vmId]), cancellationToken);
         if (!target.HasData) return ToolReply.From(target);
         var name = target.Data.VirtualMachines.SingleOrDefault()?.Get(VmIdentityFields.Name);
         if (name?.HasValue != true) return ToolReply.Error("目标虚拟机名称读取失败，请重新查询。", ApiErrorKind.NotFound);
         cancellationToken.ThrowIfCancellationRequested();
-        return Snapshot(sessions.Add(new GpuDeploymentSession(vmId, name.Value!, selected, gpu, query, mode)));
+        return Snapshot(sessions.Add(new GpuDeploymentSession(vmId, name.Value!, selectedList, gpu, query, mode)));
     });
 
     [McpServerTool(Name = "gpu_deployment_status", Title = "查看 GPU 部署进度", ReadOnly = true, OpenWorld = false)]
@@ -59,14 +74,19 @@ public sealed class GpuTools(GpuSessions sessions, VmGpuService gpu, VmQueryServ
         Change(sessionId, session => session.StartAsync(), cancellationToken);
 
     [McpServerTool(Name = "gpu_deployment_confirm", Title = "提交 GPU 部署确认", Destructive = true, OpenWorld = false)]
-    [Description("将 PendingDecision 中的具体内容交给用户决定，再传回 Accepted。requestId 必须为当前 PendingDecision.Id。PowerOff 确认会直接断电，InstallWindows 确认会写入离线系统分区。")]
+    [Description("将 PendingDecision 中的具体内容交给用户决定，再传回 Accepted。requestId 必须为当前 PendingDecision.Id。PowerOff 确认会直接断电，StartLinux 确认会启动虚拟机。")]
     public Task<CallToolResult> Confirm(Guid sessionId, Guid requestId, bool accepted, CancellationToken cancellationToken = default) =>
         Change(sessionId, session => session.SubmitDecisionAsync(new GpuConfirmation(requestId, accepted)), cancellationToken);
 
     [McpServerTool(Name = "gpu_deployment_partition", Title = "选择 GPU 驱动目标分区", Destructive = true, OpenWorld = false)]
-    [Description("使用当前 PendingDecision.Partitions 中的 Id 选择分区，并由 Core 继续判定。")]
+    [Description("使用当前 PendingDecision.Partitions 中的 Id 选择分区，并由 Core 继续执行驱动安装或引导。")]
     public Task<CallToolResult> Partition(Guid sessionId, Guid requestId, string partitionId, CancellationToken cancellationToken = default) =>
         Change(sessionId, session => session.SubmitDecisionAsync(new GpuPartitionSelection(requestId, partitionId)), cancellationToken);
+
+    [McpServerTool(Name = "gpu_deployment_fallback", Title = "提交 GPU 驱动回退动作", Destructive = true, OpenWorld = false)]
+    [Description("在等待 SelectPartition 或 DriverFallback 时提交 SkipDriver（跳过驱动）或 MountIso（打包并挂载驱动 ISO）。")]
+    public Task<CallToolResult> Fallback(Guid sessionId, Guid requestId, GpuDriverFallbackAction action, CancellationToken cancellationToken = default) =>
+        Change(sessionId, session => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(requestId, action)), cancellationToken);
 
     [McpServerTool(Name = "gpu_deployment_back", Title = "返回 GPU 分区选择", Destructive = true, OpenWorld = false)]
     [Description("当前决定的 CanGoBack 为 true 时，请求 Core 返回分区选择。")]

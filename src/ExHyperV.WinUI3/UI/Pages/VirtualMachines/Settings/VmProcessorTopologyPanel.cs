@@ -11,7 +11,7 @@ using Windows.UI;
 namespace ExHyperV.WinUI3.UI.Pages.VirtualMachines.Settings;
 
 /// <summary>处理器拓扑底部实时可视化预览卡片（插槽 / NUMA / L3 / 核心线程）。</summary>
-internal sealed class VmProcessorTopologyPreview : UserControl
+internal sealed partial class VmProcessorTopologyPreview : UserControl
 {
     private readonly Border card = new()
     {
@@ -65,10 +65,17 @@ internal sealed class VmProcessorTopologyPreview : UserControl
     public static int[] GetAchievableCounts(int total)
     {
         int n = Math.Max(1, total);
-        var set = new SortedSet<int>();
-        for (int perGroup = 1; perGroup <= n; perGroup++)
-            set.Add((n + perGroup - 1) / perGroup);
-        return set.ToArray();
+        // ceil(n / group) = 1 + floor((n - 1) / group). Skip each run of equal quotients.
+        var counts = new List<int>();
+        for (long group = 1; group <= n;)
+        {
+            long quotient = (n - 1L) / group;
+            counts.Add((int)(quotient + 1));
+            if (quotient == 0) break;
+            group = (n - 1L) / quotient + 1;
+        }
+        counts.Reverse();
+        return counts.ToArray();
     }
 
     public void Update(
@@ -385,7 +392,7 @@ internal sealed class VmProcessorTopologyPreview : UserControl
         return sizes;
     }
 
-    private sealed class WrapPanel : Panel
+    private sealed partial class WrapPanel : Panel
     {
         public double HorizontalSpacing { get; set; } = 4;
         public double VerticalSpacing { get; set; } = 4;
