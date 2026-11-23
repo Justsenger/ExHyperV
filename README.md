@@ -7,21 +7,27 @@
 </p>
 
 <p align="center">
-  A graphical Hyper-V management tool that allows mere mortals to easily master advanced Hyper-V features.
+  A modern desktop experience for Hyper-V on Windows.
 </p>
 
 <p align="center">
-  <a href="https://github.com/Justsenger/ExHyperV/releases/latest"><img src="https://img.shields.io/github/v/release/Justsenger/ExHyperV.svg?style=flat-square" alt="Latest release" /></a>
-  <a href="https://github.com/Justsenger/ExHyperV/releases"><img src="https://aged-moon-0505.shalingye.workers.dev/" alt="Downloads" /></a>
-  <a href="https://t.me/ExHyperV"><img src="https://img.shields.io/badge/discussion-Telegram-blue.svg?style=flat-square" alt="Telegram" /></a>
-  <a href="https://qm.qq.com/q/DzHU1Xkjfy"><img src="https://img.shields.io/badge/discussion-QQ-eb192d.svg?style=flat-square&logo=tencent-qq" alt="QQ Group" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Justsenger/ExHyperV.svg?style=flat-square" alt="License" /></a>
+  <a href="https://github.com/Justsenger/ExHyperV/releases/latest"><img src="https://img.shields.io/github/v/release/Justsenger/ExHyperV.svg?style=flat-square&amp;labelColor=161b22&amp;color=1f4e8c" alt="Latest release" /></a>
+  <a href="https://github.com/Justsenger/ExHyperV/releases"><img src="https://img.shields.io/github/downloads/Justsenger/ExHyperV/total.svg?style=flat-square&amp;labelColor=161b22&amp;color=21262d" alt="Downloads" /></a>
+  <a href="https://t.me/ExHyperV"><img src="https://img.shields.io/badge/discussion-Telegram-21262d.svg?style=flat-square&amp;labelColor=161b22" alt="Telegram" /></a>
+  <a href="https://qm.qq.com/q/DzHU1Xkjfy"><img src="https://img.shields.io/badge/discussion-QQ-21262d.svg?style=flat-square&amp;labelColor=161b22&amp;logo=tencent-qq&amp;logoColor=c9d1d9" alt="QQ Group" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Justsenger/ExHyperV.svg?style=flat-square&amp;labelColor=161b22&amp;color=21262d" alt="License" /></a>
 </p>
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/22275?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-22275" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/22275" alt="Justsenger/ExHyperV | Trendshift" width="220" height="47" /></a>
+  <a href="https://exhyperv.com" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/pill-site-dark.svg" /><source media="(prefers-color-scheme: light)" srcset=".github/assets/pill-site-light.svg" /><img src=".github/assets/pill-site-light.svg" alt="ExHyperV.com" width="160" height="34" /></picture></a>
+  &nbsp;&nbsp;
+  <a href="https://ko-fi.com/saniye" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/pill-sponsor-dark.svg" /><source media="(prefers-color-scheme: light)" srcset=".github/assets/pill-sponsor-light.svg" /><img src=".github/assets/pill-sponsor-light.svg" alt="Ko-fi / Afdian" width="160" height="34" /></picture></a>
 </p>
 
 <p align="center">
-  <strong>English</strong> | <a href="README_zh.md">中文</a>
+  <a href="https://trendshift.io/repositories/22275?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-22275" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/22275" alt="Justsenger/ExHyperV | Trendshift" width="204" height="44" /></a>
+</p>
+
+<p align="center">
+  <strong>English</strong> &nbsp;|&nbsp; <a href="README_zh.md">简体中文</a> &nbsp;|&nbsp; <a href="README_zh-TW.md">繁體中文</a>
 </p>
