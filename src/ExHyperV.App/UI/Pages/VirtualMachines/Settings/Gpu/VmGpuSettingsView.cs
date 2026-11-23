@@ -45,12 +45,10 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     private bool closing;
     private bool working;
     private Task operation = Task.CompletedTask;
-    private Task? scriptsLoadTask;
     private IReadOnlyList<VmGpuAssignment> currentAssignments = [];
     private IReadOnlyList<HostGpuInfo> hostGpuCatalog = [];
     private readonly HashSet<string> selectedHostGpuIds = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> expandedCardKeys = new(StringComparer.OrdinalIgnoreCase);
-    private IReadOnlyList<LinuxGpuDeploymentScript> scripts = [];
 
     public VmGpuSettingsView(Guid vmId) : base(vmId)
     {
@@ -525,7 +523,6 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         UpdateBeginSelectionState();
         overview.Visibility = deployment.Visibility = Visibility.Collapsed;
         selection.Visibility = Visibility.Visible;
-        _ = EnsureScriptsLoadedAsync(showWarningOnEmpty: false);
     }
 
     private UIElement BuildHostGpuPickerRow(HostGpuInfo gpu, bool alreadyAdded, bool canSelect)
@@ -685,28 +682,6 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     }
 
     private void UpdateBeginSelectionState() => beginSelectBtn.IsEnabled = selectedHostGpuIds.Count > 0;
-
-    private async Task EnsureScriptsLoadedAsync(bool showWarningOnEmpty = false)
-    {
-        scriptsLoadTask ??= LoadScriptsCoreAsync();
-        await scriptsLoadTask;
-        // 在线脚本入口沿用现有 Core 合同；空清单不等于确认没有 Linux 方案。
-        if (showWarningOnEmpty && scripts.Count == 0 && !closing && !IsStopped)
-            Notice(L10n.Get("Gpu_NoLinuxScripts"), InfoBarSeverity.Warning);
-    }
-
-    private async Task LoadScriptsCoreAsync()
-    {
-        try
-        {
-            var fetched = await Task.Run(service.GetAvailableScriptsAsync);
-            if (!closing && !IsStopped) scripts = fetched;
-        }
-        catch
-        {
-            if (!closing && !IsStopped) scripts = [];
-        }
-    }
 
     private async Task UpdateDriversAsync(VmGpuAssignment assignment)
     {

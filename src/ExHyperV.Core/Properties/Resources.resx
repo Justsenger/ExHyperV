@@ -499,9 +499,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_CheckForUpdateFailed" xml:space="preserve">
     <value>Failed to check for updates. Please check your network connection.</value>
   </data>
-  <data name="Error_SshCommandFailed" xml:space="preserve">
-    <value>[X] Command execution failed.Exit code: {0}): {1}</value>
-  </data>
   <data name="Error_LocalDirectoryNotFound" xml:space="preserve">
     <value>[X] Local directory not found: {0}</value>
   </data>
@@ -517,15 +514,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Button_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="Label_ConnectToLinuxVm" xml:space="preserve">
-    <value>Connect to Linux Virtual Machine</value>
-  </data>
-  <data name="Label_HostIpAddress" xml:space="preserve">
-    <value>Host IP Address:</value>
-  </data>
-  <data name="Placeholder_IpAddressExample" xml:space="preserve">
-    <value>e.g., 192.168.1.100</value>
-  </data>
   <data name="Label_Port" xml:space="preserve">
     <value>Port:</value>
   </data>
@@ -538,20 +526,8 @@ The existing NAT switch is: '{0}'</value>
   <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
     <value>Install OpenGL/Vulkan graphics drivers (Need more time)</value>
   </data>
-  <data name="GroupBox_HttpProxyOptional" xml:space="preserve">
-    <value>HTTP Proxy (Optional)</value>
-  </data>
-  <data name="Info_UseProxyForGitHub" xml:space="preserve">
-    <value>If you cannot connect directly to GitHub.com, please use a stable and reliable proxy.</value>
-  </data>
-  <data name="Label_ProxyIpAddress" xml:space="preserve">
-    <value>Proxy IP Address:</value>
-  </data>
   <data name="Button_Connect" xml:space="preserve">
     <value>Connect</value>
-  </data>
-  <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
-    <value>Proxy IP and Port must be either both filled or both empty.</value>
   </data>
   <data name="ComputeResources" xml:space="preserve">
     <value>Compute Resources</value>
@@ -909,15 +885,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Error_Common_NoPartitionSelected" xml:space="preserve">
     <value>No partition selected</value>
-  </data>
-  <data name="Msg_Gpu_LinuxWaitingIp" xml:space="preserve">
-    <value>Waiting for VM network readiness and IP...</value>
-  </data>
-  <data name="Error_Gpu_SshTimeout" xml:space="preserve">
-    <value>SSH connection timed out. Check VM networking.</value>
-  </data>
-  <data name="Msg_Gpu_LinuxRemoteInit" xml:space="preserve">
-    <value>Remote environment initialized. Temp: {0}</value>
   </data>
   <data name="Status_Running" xml:space="preserve">
     <value>Running</value>
@@ -1404,45 +1371,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Error_Gpu_Rollback" xml:space="preserve">
     <value>[Rollback] Driver sync failed: {0}</value>
-  </data>
-  <data name="Msg_Gpu_LinuxVm" xml:space="preserve">
-    <value>Linux partition detected. Waiting for VM to start...</value>
-  </data>
-  <data name="Msg_Gpu_IpSniff" xml:space="preserve">
-    <value>Auto-starting VM to initialize network...</value>
-  </data>
-  <data name="Msg_Gpu_IpScanning" xml:space="preserve">
-    <value>Sniffing VM IP address...</value>
-  </data>
-  <data name="Msg_Gpu_IpOk" xml:space="preserve">
-    <value>Successfully got IP: {0}</value>
-  </data>
-  <data name="Error_Gpu_IpManual" xml:space="preserve">
-    <value>Failed to auto-get IP. Enter manually.</value>
-  </data>
-  <data name="Msg_Gpu_SshConfirm" xml:space="preserve">
-    <value>Confirm SSH credentials to start...</value>
-  </data>
-  <data name="Error_Gpu_EnvFail" xml:space="preserve">
-    <value>Env fetch failed</value>
-  </data>
-  <data name="Warn_Gpu_EnvExc" xml:space="preserve">
-    <value>[Warning] Env exception: {0}</value>
-  </data>
-  <data name="Msg_Gpu_DeployStart" xml:space="preserve">
-    <value>&gt;&gt;&gt; Starting Linux deployment</value>
-  </data>
-  <data name="Msg_Gpu_UsingProxy" xml:space="preserve">
-    <value>Using Proxy: {0}:{1}</value>
-  </data>
-  <data name="Msg_Gpu_LinuxDeployDone" xml:space="preserve">
-    <value>&gt;&gt;&gt; Linux deployment complete.</value>
-  </data>
-  <data name="Error_Gpu_LinuxRollback" xml:space="preserve">
-    <value>[Rollback] Linux deploy failed. Removing GPU...</value>
-  </data>
-  <data name="Error_Gpu_DeployFatal" xml:space="preserve">
-    <value>&gt;&gt;&gt; [Fatal Error] Linux deploy failed: {0}</value>
   </data>
   <data name="Msg_Gpu_SelectPart" xml:space="preserve">
     <value>Select target partition...</value>
@@ -2899,12 +2827,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Gpu_PowerOffTimeout" xml:space="preserve">
     <value>Timed out waiting for the virtual machine to power off.</value>
   </data>
-  <data name="Msg_Gpu_LinuxDetected" xml:space="preserve">
-    <value>Detecting Linux system, jumping to SSH setup...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxAutoPrep" xml:space="preserve">
-    <value>Detected single Linux partition. Automating environment preparation...</value>
-  </data>
   <data name="VmSecurity_Title" xml:space="preserve">
     <value>Security</value>
   </data>
@@ -2941,50 +2863,8 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
     <value>Mark the VM as shielded; forces TPM and encryption on</value>
   </data>
-  <data name="Log_Gpu_SelectedScript" xml:space="preserve">
-    <value>[Info] Selected script: {0}</value>
-  </data>
   <data name="Log_Gpu_Syncing" xml:space="preserve">
     <value>Syncing: {0} -&gt; {1}</value>
-  </data>
-  <data name="Log_Gpu_StartingVm" xml:space="preserve">
-    <value>[ExHyperV] Starting VM...</value>
-  </data>
-  <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
-    <value>Uploading driver and WSL libraries...</value>
-  </data>
-  <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
-    <value>Downloading remote script inside VM: {0}</value>
-  </data>
-  <data name="Log_Gpu_ExecutingAttempt" xml:space="preserve">
-    <value>[Attempt {0}] Executing script...</value>
-  </data>
-  <data name="Log_Gpu_RebootRequired" xml:space="preserve">
-    <value>VM reboot required. Restarting now...</value>
-  </data>
-  <data name="Log_Gpu_VmBackOnline" xml:space="preserve">
-    <value>VM is back online. Resuming deployment...</value>
-  </data>
-  <data name="Error_Gpu_NoMac" xml:space="preserve">
-    <value>Failed to get VM MAC address.</value>
-  </data>
-  <data name="Error_Gpu_NoIpv4" xml:space="preserve">
-    <value>No valid IPv4 address found.</value>
-  </data>
-  <data name="Msg_Gpu_Cancelled" xml:space="preserve">
-    <value>Cancelled</value>
-  </data>
-  <data name="Error_Gpu_RebootNoResponse" xml:space="preserve">
-    <value>VM failed to come back online after reboot.</value>
-  </data>
-  <data name="Error_Gpu_ScriptNoSuccess" xml:space="preserve">
-    <value>Script execution failed (no success signal).</value>
-  </data>
-  <data name="Error_Gpu_MaxReboots" xml:space="preserve">
-    <value>Maximum reboot attempts reached.</value>
-  </data>
-  <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
-    <value>Error: {0}</value>
   </data>
   <data name="VmCheckpointService_HintCloseWormholeFirst" xml:space="preserve">
     <value>A historical disk mount is open. Unmount it before creating, deleting, or merging checkpoints.</value>
@@ -3840,10 +3720,8 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Network_PortStateUnavailable" xml:space="preserve"><value>Port configuration is unavailable. Refresh to retry.</value></data>
   <data name="Gpu_ConfirmPowerOff" xml:space="preserve"><value>GPU driver deployment requires the virtual machine to be off. Turn it off now? Unsaved guest data may be lost.</value></data>
   <data name="Gpu_ConfirmWindowsInstall" xml:space="preserve"><value>Install GPU drivers to {0}? This will write files to the selected Windows partition.</value></data>
-  <data name="Gpu_ConfirmLinuxStart" xml:space="preserve"><value>Start this virtual machine to continue GPU driver installation over SSH?</value></data>
   <data name="Gpu_DecisionExpired" xml:space="preserve"><value>This action is not available for the current deployment state. Read the latest state and try again.</value></data>
-  <data name="Gpu_InvalidPartition" xml:space="preserve"><value>The selected partition is unavailable, changed, or is not a supported Windows/Linux system partition.</value></data>
-  <data name="Gpu_InvalidSshPort" xml:space="preserve"><value>The SSH port must be between 1 and 65535.</value></data>
+  <data name="Gpu_InvalidPartition" xml:space="preserve"><value>The selected partition is unavailable, changed, or is not a supported Windows system partition.</value></data>
   <data name="Gpu_CleanupRequired" xml:space="preserve"><value>The GPU assignment added by this deployment could not be removed. Retry cleanup before starting another deployment.</value></data>
   <data name="Task_Gpu_MountIso" xml:space="preserve"><value>Mount driver ISO</value></data>
   <data name="Msg_Gpu_MountingIso" xml:space="preserve"><value>Building and mounting driver ISO...</value></data>

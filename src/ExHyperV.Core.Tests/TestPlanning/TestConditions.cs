@@ -47,8 +47,6 @@ internal static class TestConditions
         ["audio"] = new("音频来源实现", "console-audio"),
         ["console"] = new("专属虚拟机基本控制台", "test-vm", "native-console"),
         ["enhanced"] = new("模板副本；执行时确认增强会话就绪", "template-copy", "native-console"),
-        ["ssh"] = new("虚拟机 SSH 凭据；执行时校验 Linux 身份", "vm-credentials", "template-copy"),
-        ["internet"] = new("在线资源可达", "online-resources"),
         ["scheduler"] = new("运行期调度器；执行时选择 CPU 组或进程后端", "platform", "identity", "hyperv"),
         ["counters"] = new("系统性能计数器；执行时预热并采样", "platform", "hyperv"),
         ["capture"] = new("独立 ARP 捕获接口与权限", "platform", "identity", "capture-api"),

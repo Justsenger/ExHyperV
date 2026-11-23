@@ -2,13 +2,10 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Management;
-using System.Net.Http;
-using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using ExHyperV.Models;
 using ExHyperV.Tools;
-using Renci.SshNet;
 
 namespace ExHyperV.Services
 {
@@ -34,7 +31,6 @@ namespace ExHyperV.Services
             public string Path { get; set; } = string.Empty;        // 虚拟文件的VHDX 路径
             public int PhysicalDiskNumber { get; set; } // 物理硬盘的 Disk Number (e.g. 0, 1, 2)
         }
-        private const string ScriptBaseUrl = "https://raw.githubusercontent.com/Justsenger/ExHyperV/2.0.0/src/ExHyperV.Core/Linux/script/";
 
 
         private void ApplyOptionalRegistryEnhancement(string hivePath, string mountKey,
@@ -236,31 +232,6 @@ namespace ExHyperV.Services
         #endregion
 
         #region 虚拟机状态与控制管理
-        // SSH重新连接
-        private async Task<bool> WaitForVmToBeResponsiveAsync(string host, int port, CancellationToken cancellationToken)
-        {
-            var stopwatch = Stopwatch.StartNew();
-            while (stopwatch.Elapsed < TimeSpan.FromMinutes(1)) // 1分钟总超时
-            {
-                if (cancellationToken.IsCancellationRequested) return false;
-                try
-                {
-                    using (var client = new TcpClient())
-                    {
-                        var connectTask = client.ConnectAsync(host, port);
-                        if (await Task.WhenAny(connectTask, Task.Delay(2000, cancellationToken)) == connectTask)
-                        {
-                            await connectTask;
-                            return true;
-                        }
-                    }
-                }
-                catch { }
-                await Task.Delay(5000, cancellationToken);
-            }
-            return false; // 超时
-        }
-
         /// <summary>检查来宾缓存控制及高位 MMIO 是否满足当前 GPU 配置要求。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>数据为 true 表示满足条件，false 表示需要配置；读取错误为失败响应。</returns>
@@ -1713,202 +1684,6 @@ namespace ExHyperV.Services
             }
         }
 
-        #endregion
-
-        #region Linux 驱动环境与脚本部署
-        private async Task UploadLocalFilesAsync(SshCredentials credentials, string remoteDirectory)
-        {
-            string systemWslLibPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "lxss", "lib");
-
-            if (Directory.Exists(systemWslLibPath))
-            {
-                var allFiles = Directory.GetFiles(systemWslLibPath);
-                foreach (var filePath in allFiles)
-                {
-                    string fileName = Path.GetFileName(filePath);
-                    await SshService.UploadFileAsync(credentials, filePath, $"{remoteDirectory}/{fileName}");
-                }
-            }
-        }
-
-        /// <summary>从在线索引读取可选 Linux GPU 部署脚本。</summary>
-        /// <returns>新的脚本列表；请求超时、解析或网络失败时返回空列表。</returns>
-        /// <remarks>索引请求超时为 5 秒；无脚本或查询失败均返回空列表。</remarks>
-        public async Task<List<LinuxGpuDeploymentScript>> GetAvailableScriptsAsync()
-        {
-            var allScripts = new List<LinuxGpuDeploymentScript>();
-
-            // 从应用维护的在线索引加载商店版本允许使用的部署脚本。
-            try
-            {
-                using var httpClient = new HttpClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(5);
-
-                string jsonUrl = $"{ScriptBaseUrl}index.json";
-                var jsonString = await httpClient.GetStringAsync(jsonUrl);
-
-                var remoteScripts = JsonSerializer.Deserialize(jsonString, ExternalJson.Default.ListLinuxGpuDeploymentScript);
-
-                if (remoteScripts != null)
-                {
-                    foreach (var item in remoteScripts)
-                    {
-                        item.Name = string.Format(Properties.Resources.VmGPUService_LogOnline, item.Name);
-                        item.SourceUrl = $"{ScriptBaseUrl}{item.FileName}";
-                        allScripts.Add(item);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Remote script index fetch failed: {ex.Message}");
-            }
-
-            return allScripts
-                .OrderBy(x => x.Name)
-                .ToList();
-        }
-
-        internal static bool HasLinuxStatus(string stdout, string status)
-        {
-            string marker = "[STATUS: " + status + "]";
-            return stdout.Split('\n').Any(line =>
-            {
-                string text = line.Trim();
-                if (text.Length > 11 && text[0] == '[' && text[9] == ']' && text[10] == ' '
-                    && TimeOnly.TryParseExact(text.AsSpan(1, 8), "HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture,
-                        System.Globalization.DateTimeStyles.None, out _))
-                    text = text[11..];
-                return text == marker;
-            });
-        }
-
-        // 支持重启循环的部署函数
-        /// <summary>通过 SSH 上传 GPU 文件并执行所选 Linux 部署脚本，必要时启动或重启来宾。</summary>
-        /// <param name="vmName">目标虚拟机名称。</param>
-        /// <param name="gpuInstancePath">宿主 GPU 设备路径，用于定位驱动包。</param>
-        /// <param name="gpuManufacturer">GPU 芯片商名称。</param>
-        /// <param name="script">下载并执行的部署脚本描述。</param>
-        /// <param name="credentials">SSH 凭据及脚本选项；本方法会改写 Host 为选出的 IPv4 地址。</param>
-        /// <param name="progressCallback">进展文本回调，应快速返回且不抛出异常；界面更新需调度到界面线程。</param>
-        /// <param name="ct">协作式取消令牌，在等待和部分步骤之间检查；SSH 命令和文件传输继续执行至完成。</param>
-        /// <returns>成功时返回 OK，否则通常返回错误说明；取消也可能转换为失败文本。</returns>
-        /// <remarks>脚本会修改来宾软件包、内核模块、服务和环境；失败时可能保留部分修改。SSH 命令可能长时间运行。</remarks>
-        /// <editentry label="部署 Linux GPU 驱动" category="GPU"/>
-        public Task<string> ProvisionLinuxGpuAsync(
-            string vmName,
-            string gpuInstancePath,
-            string gpuManufacturer,
-            LinuxGpuDeploymentScript script,
-            SshCredentials credentials,
-            Action<string> progressCallback,
-            CancellationToken ct)
-        {
-            return Task.Run(async () =>
-            {
-                void Log(string msg) => progressCallback?.Invoke(msg);
-
-                try
-                {
-                    var currentState = await _queryService.GetVmStateAsync(vmName);
-                    if (currentState != "2")
-                    {
-                        Log(Properties.Resources.Log_Gpu_StartingVm);
-                        var started = await VmPowerService.ExecuteControlActionAsync(vmName, "Start");
-                        OperationOutcomeUnknownException.ThrowIfUnknown(started);
-                        if (!started.Success) return started.Error;
-                        await Task.Delay(5000);
-                    }
-
-                    Log(Properties.Resources.Msg_Gpu_LinuxWaitingIp);
-                    var adapters = await VmNetworkService.GetNetworkAdaptersAsync(vmName);
-                    if (adapters == null || adapters.Count == 0) return Properties.Resources.Error_Gpu_NoMac;
-                    string macAddress = adapters[0].MacAddress;
-                    string vmIpAddress = await VmIpService.LookupAsync(vmName, macAddress);
-                    string targetIp = Ipv4.SelectBest(!string.IsNullOrWhiteSpace(credentials.Host) ? credentials.Host : vmIpAddress);
-
-                    if (string.IsNullOrEmpty(targetIp)) return Properties.Resources.Error_Gpu_NoIpv4;
-                    credentials.Host = targetIp;
-
-                    if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
-                        return Properties.Resources.Error_Gpu_SshTimeout;
-
-                    string remoteTempDir = "/tmp/exhyperv_deploy";
-                    using (var client = new SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
-                    {
-                        client.Connect();
-                        using var command = client.RunCommand($"mkdir -p {remoteTempDir}/drivers {remoteTempDir}/lib");
-                        client.Disconnect();
-                    }
-
-                    Log(Properties.Resources.Log_Gpu_UploadingDriverWsl);
-                    GpuDriverPackagePlan packagePlan = await Task.Run(() =>
-                        GpuDriverPackageResolver.Resolve(gpuInstancePath, gpuManufacturer));
-                    string sourceDriverPath = packagePlan.HostFileRepository;
-                    await SshService.UploadDirectoryAsync(credentials, sourceDriverPath, $"{remoteTempDir}/drivers");
-                    await UploadLocalFilesAsync(credentials, $"{remoteTempDir}/lib");
-
-                    string remoteScriptPath = $"{remoteTempDir}/{script.FileName}";
-
-                    string proxyEnv = string.Empty;
-                    if (credentials.UseProxy && !string.IsNullOrEmpty(credentials.ProxyHost))
-                    {
-                        string proxyUrl = $"http://{credentials.ProxyHost}:{credentials.ProxyPort}";
-                        proxyEnv = $"http_proxy='{proxyUrl}' https_proxy='{proxyUrl}' HTTP_PROXY='{proxyUrl}' HTTPS_PROXY='{proxyUrl}' ";
-                    }
-
-                    Log(string.Format(Properties.Resources.Log_Gpu_DownloadingScript, script.Name));
-                    string downloadCmd = $"{proxyEnv}sh -c \"wget -q -O {remoteScriptPath} {script.SourceUrl} || curl -fL {script.SourceUrl} -o {remoteScriptPath}\"";
-
-                    await SshService.ExecuteSingleCommandAsync(credentials, downloadCmd, Log);
-                    await SshService.ExecuteSingleCommandAsync(credentials, $"chmod +x {remoteScriptPath}", Log);
-                    bool isSuccess = false;
-                    int maxAttempts = 3;
-
-                    for (int attempt = 1; attempt <= maxAttempts; attempt++)
-                    {
-                        if (ct.IsCancellationRequested) return Properties.Resources.Msg_Gpu_Cancelled;
-
-                        string graphicsArg = credentials.InstallGraphics ? "true" : "false";
-                        // 代理地址单引号包裹 + 转义,防 ProxyHost 含 $()/反引号注入(与上面密码同款转义);正常主机名行为等价
-                        string proxyArg = credentials.UseProxy ? $"'http://{credentials.ProxyHost.Replace("'", "'\\''")}:{credentials.ProxyPort}'" : "\"\"";
-
-                        string execCmd = $"echo '{credentials.Password.Replace("'", "'\\''")}' | sudo -S -E -p '' bash {remoteScriptPath} deploy {graphicsArg} {proxyArg}";
-
-                        Log(string.Format(Properties.Resources.Log_Gpu_ExecutingAttempt, attempt));
-
-                        var executed = await SshService.ExecuteCommandAndCaptureOutputAsync(credentials, execCmd, Log, TimeSpan.FromMinutes(60));
-                        if (executed.ExitStatus < 0)
-                            throw new OperationOutcomeUnknownException(WmiJobWaiter.Unknown("没有收到来宾部署进程退出状态。"));
-                        isSuccess = executed.ExitStatus == 0 && HasLinuxStatus(executed.Output, "SUCCESS");
-                        if (isSuccess) break;
-                        bool rebootNeeded = HasLinuxStatus(executed.Output, "REBOOT_REQUIRED");
-
-                        if (rebootNeeded)
-                        {
-                            Log(Properties.Resources.Log_Gpu_RebootRequired);
-                            var restarted = await VmPowerService.ExecuteControlActionAsync(vmName, "Restart");
-                            OperationOutcomeUnknownException.ThrowIfUnknown(restarted);
-                            if (!restarted.Success) return restarted.Error;
-                            await Task.Delay(10000); // 等待开始关机
-                            if (!await WaitForVmToBeResponsiveAsync(credentials.Host, credentials.Port, ct))
-                                return Properties.Resources.Error_Gpu_RebootNoResponse;
-
-                            Log(Properties.Resources.Log_Gpu_VmBackOnline);
-                            continue; // 重新进入循环执行同一脚本
-                        }
-
-                        // 如果既没成功也没重启信号，通常是脚本内部报错 set -e 触发了
-                        if (!isSuccess) return Properties.Resources.Error_Gpu_ScriptNoSuccess;
-                    }
-
-                    return isSuccess ? "OK" : Properties.Resources.Error_Gpu_MaxReboots;
-
-                }
-                catch (OperationOutcomeUnknownException) { throw; }
-                catch (Exception ex) { return string.Format(Properties.Resources.Error_Gpu_LinuxGeneric, ex.Message); }
-            });
-        }
         #endregion
     }
 }

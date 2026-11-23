@@ -74,12 +74,12 @@ public sealed class GpuTools(GpuSessions sessions, VmGpuService gpu, VmQueryServ
         Change(sessionId, session => session.StartAsync(), cancellationToken);
 
     [McpServerTool(Name = "gpu_deployment_confirm", Title = "提交 GPU 部署确认", Destructive = true, OpenWorld = false)]
-    [Description("将 PendingDecision 中的具体内容交给用户决定，再传回 Accepted。requestId 必须为当前 PendingDecision.Id。PowerOff 确认会直接断电，StartLinux 确认会启动虚拟机。")]
+    [Description("将 PendingDecision 中的具体内容交给用户决定，再传回 Accepted。requestId 必须为当前 PendingDecision.Id。PowerOff 确认会直接断电。")]
     public Task<CallToolResult> Confirm(Guid sessionId, Guid requestId, bool accepted, CancellationToken cancellationToken = default) =>
         Change(sessionId, session => session.SubmitDecisionAsync(new GpuConfirmation(requestId, accepted)), cancellationToken);
 
     [McpServerTool(Name = "gpu_deployment_partition", Title = "选择 GPU 驱动目标分区", Destructive = true, OpenWorld = false)]
-    [Description("使用当前 PendingDecision.Partitions 中的 Id 选择分区，并由 Core 继续执行驱动安装或引导。")]
+    [Description("使用当前 PendingDecision.Partitions 中的 Id 选择分区，并由 Core 继续执行驱动安装。")]
     public Task<CallToolResult> Partition(Guid sessionId, Guid requestId, string partitionId, CancellationToken cancellationToken = default) =>
         Change(sessionId, session => session.SubmitDecisionAsync(new GpuPartitionSelection(requestId, partitionId)), cancellationToken);
 
@@ -92,26 +92,6 @@ public sealed class GpuTools(GpuSessions sessions, VmGpuService gpu, VmQueryServ
     [Description("当前决定的 CanGoBack 为 true 时，请求 Core 返回分区选择。")]
     public Task<CallToolResult> Back(Guid sessionId, Guid requestId, CancellationToken cancellationToken = default) =>
         Change(sessionId, session => session.SubmitDecisionAsync(new GpuBackToPartitions(requestId)), cancellationToken);
-
-    [McpServerTool(Name = "gpu_linux_scripts", Title = "列出 Linux GPU 部署脚本", ReadOnly = true, OpenWorld = true)]
-    [Description("从 Core 配置的脚本目录查询可用 Linux GPU 部署脚本。")]
-    public Task<CallToolResult> LinuxScripts() => ToolReply.Run(async () =>
-        ToolReply.Result(new { success = true, scripts = await gpu.GetAvailableScriptsAsync() }));
-
-    [McpServerTool(Name = "gpu_deployment_linux", Title = "提交 Linux GPU 部署参数", Destructive = true, OpenWorld = true)]
-    [Description("在等待 LinuxCredentials 时提交已选脚本和 SSH 参数。脚本名称来自 gpu_linux_scripts；密码从本机 MCP 进程环境变量 EXHYPERV_SSH_PASSWORD 读取。此调用会通过 SSH 修改指定虚拟机。")]
-    public Task<CallToolResult> Linux(Guid sessionId, Guid requestId, string scriptName, string host, string username,
-        int port = 22, bool installGraphics = true, CancellationToken cancellationToken = default) =>
-        Change(sessionId, async session =>
-        {
-            string password = Environment.GetEnvironmentVariable("EXHYPERV_SSH_PASSWORD") ?? "";
-            if (string.IsNullOrEmpty(password)) throw new ArgumentException("请在启动 MCP 前配置 EXHYPERV_SSH_PASSWORD。");
-            var scripts = await gpu.GetAvailableScriptsAsync();
-            var script = scripts.SingleOrDefault(item => item.Name == scriptName)
-                ?? throw new ArgumentException("请从 gpu_linux_scripts 选择脚本名称。");
-            return await session.SubmitDecisionAsync(new GpuLinuxInput(requestId, script,
-                new SshCredentials { Host = host, Port = port, Username = username, Password = password, InstallGraphics = installGraphics }));
-        }, cancellationToken);
 
     [McpServerTool(Name = "gpu_deployment_cancel", Title = "取消 GPU 部署", Destructive = true, OpenWorld = false)]
     [Description("请求取消并等待 Core 收尾。已完成的策略、配置和驱动修改依照 Core 规则保留；结果中仍可能需要核对清理状态。")]

@@ -10,14 +10,13 @@ internal static partial class ResourceProbes
     private static ResourceCheck[] ExecutionChecks =>
     [
         new("template-copy", "虚拟机", "完整副本条件", "模板可正常关机、磁盘链可读取、缓存容量够用", "依赖系统模板的测试"),
-        new("vm-credentials", "虚拟机", "虚拟机登录凭据", "当前账户保存的加密凭据可读取", "磁盘与网络负载、Linux SSH"),
+        new("vm-credentials", "虚拟机", "虚拟机登录凭据", "当前账户保存的加密凭据可读取", "磁盘与网络负载"),
         new("config-access", "执行条件", "共享配置", "配置文件可读取", "MMIO 缓存备份与恢复"),
         new("sharing-idle", "执行条件", "网络共享空闲", "宿主当前无 ICS 共享", "交换机创建、修改与删除"),
         new("network-upstream", "执行条件", "闲置网络上游", "断链、无有效 IP、无默认路由且未绑定交换机的物理网卡", "桥接与 NAT"),
         new("native-console", "执行条件", "控制台原生组件", "发布包包含本机架构 FreeRDP 桥接库", "真实控制台连接"),
         new("console-audio", "执行条件", "控制台音频能力", "Core 提供音频通道", "音频数据发送"),
         new("capture-api", "执行条件", "独立抓包接口", "系统提供 Core 使用的 Packet Monitor 公开接口", "ARP 实际报文捕获"),
-        new("online-resources", "执行条件", "在线脚本来源", "脚本索引可访问", "Linux 部署脚本"),
         new("nvme-hardware", "真实设备", "NVMe 磁盘", "存在 NVMe 总线磁盘", "原生 NVMe 开关与重启"),
         new("reboot-resume", "执行条件", "重启续跑", "管理员账户、计划任务服务与本机持久结果目录", "宿主重启测试")
     ];
@@ -68,18 +67,6 @@ internal static partial class ResourceProbes
                 return Missing("当前 Core 的两个 RDP 后端均未提供音频输入通道。");
             case "capture-api":
                 return PacketCaptureAvailability.Inspect();
-            case "online-resources":
-                using (var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) })
-                {
-                    try
-                    {
-                        using var response = await client.GetAsync(TestNetwork.ScriptIndexUrl, HttpCompletionOption.ResponseHeadersRead);
-                        return response.IsSuccessStatusCode ? Ready("GitHub 脚本索引可访问")
-                            : new(InspectionStatus.Unavailable, "GitHub 脚本索引返回 HTTP " + (int)response.StatusCode);
-                    }
-                    catch (Exception error) when (error is HttpRequestException or TaskCanceledException)
-                    { return new(InspectionStatus.Unavailable, "GitHub 脚本索引连接失败，请检查系统代理或网络。", [error.Message]); }
-                }
             case "nvme-hardware":
                 if (Environment.OSVersion.Version.Build < 26100) return Missing("原生 NVMe 开关要求 Build 26100 及以上。");
                 var nvme = await WindowsTestCommand.RunAsync("@(Get-Disk|Where-Object BusType -eq 'NVMe').Count|ConvertTo-Json", timeoutSeconds: 15, mayMutate: false);

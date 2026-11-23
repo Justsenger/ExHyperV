@@ -686,7 +686,7 @@ export const INITIAL_GPU_PARTITIONS = [
     sizeText: '96.0 GB',
     osType: 'Linux',
     locked: false,
-    desc: '识别到 /etc/os-release，可通过开机 SSH 自动部署 Mesa / CUDA 组件'
+    desc: '识别到 /etc/os-release（不支持自动注入驱动，可跳过或挂载驱动光盘）'
   },
   {
     id: 'part-bitlocker',
@@ -698,12 +698,6 @@ export const INITIAL_GPU_PARTITIONS = [
     locked: true,
     desc: '卷已启用 BitLocker 加密，无法离线读取系统目录'
   }
-];
-
-export const LINUX_GPU_SCRIPTS = [
-  { id: 'ubuntu-cuda-mesa', label: 'Ubuntu / Debian — CUDA + Mesa D3D12 自动部署' },
-  { id: 'arch-mesa', label: 'Arch Linux — Mesa Dozen Vulkan 驱动部署' },
-  { id: 'generic-wslg', label: '通用发行版 — 仅同步 /usr/lib/wsl/lib 库文件' }
 ];
 
 /* 1:1 VmBootSettingsView.cs */

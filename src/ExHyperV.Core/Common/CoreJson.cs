@@ -36,11 +36,10 @@ namespace ExHyperV;
 [JsonSerializable(typeof(UpgradeExtras))]
 internal sealed partial class CoreJson : JsonSerializerContext;
 
-// Incoming HCS responses and the remote GPU script index historically accept mixed case.
+// Incoming HCS responses historically accept mixed case.
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true, GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(List<HcsCpuGroupDetail>))]
 [JsonSerializable(typeof(List<HcsLogicalProcessor>))]
-[JsonSerializable(typeof(List<LinuxGpuDeploymentScript>))]
 internal sealed partial class ExternalJson : JsonSerializerContext;
 
 [JsonSourceGenerationOptions(WriteIndented = true, GenerationMode = JsonSourceGenerationMode.Serialization)]

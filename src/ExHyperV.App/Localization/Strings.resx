@@ -3159,10 +3159,6 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <value>已添加</value>
     <comment>TODO: en</comment>
   </data>
-  <data name="Gpu_NoLinuxScripts" xml:space="preserve">
-    <value>未取得 Linux 部署脚本清单，可能是网络或索引不可用。Windows 驱动部署不受影响。</value>
-    <comment>TODO: en</comment>
-  </data>
   <data name="Gpu_HostGpuMissing" xml:space="preserve">
     <value>找不到对应的宿主 GPU，无法确认可同步的驱动版本。</value>
     <comment>TODO: en</comment>
@@ -3228,68 +3224,8 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <value>挂载驱动光盘</value>
     <comment>TODO: en</comment>
   </data>
-  <data name="Gpu_StartAndContinue" xml:space="preserve">
-    <value>开机并继续</value>
-    <comment>TODO: en</comment>
-  </data>
   <data name="Gpu_BitLockerHelp" xml:space="preserve">
     <value>无法向 BitLocker 分区安装驱动，需要先解锁，或挂载驱动光盘。</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_DeploymentPlan" xml:space="preserve">
-    <value>部署方案</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_ScriptAttribution" xml:space="preserve">
-    <value>{0}（作者：{1}，版本：{2}）</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_ScriptListPending" xml:space="preserve">
-    <value>正在加载或未取得脚本清单，如确认网络可用，请返回重选后重试。</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_SelectLinuxScript" xml:space="preserve">
-    <value>请选择适用于目标 Linux 发行版的部署脚本。</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_HostAddress" xml:space="preserve">
-    <value>主机 / IP</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_Port" xml:space="preserve">
-    <value>端口</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_UserName" xml:space="preserve">
-    <value>用户名</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_Password" xml:space="preserve">
-    <value>密码</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_InstallGraphics" xml:space="preserve">
-    <value>安装图形支持</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_UseDownloadProxy" xml:space="preserve">
-    <value>来宾脚本下载使用 HTTP 代理</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_ProxyHost" xml:space="preserve">
-    <value>代理主机</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_ProxyPort" xml:space="preserve">
-    <value>代理端口</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_StartDeployment" xml:space="preserve">
-    <value>开始部署</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Gpu_ProxyHelp" xml:space="preserve">
-    <value>代理供来宾下载部署脚本使用，不用于 SSH 连接。</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_CancelDeployment" xml:space="preserve">

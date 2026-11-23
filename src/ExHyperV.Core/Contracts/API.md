@@ -458,7 +458,7 @@ public static async Task PackageExportAsync(string exportDirectory, string archi
 
 ## 部署流程
 
-给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区、安装 Windows 驱动或通过 SSH 部署 Linux 驱动。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
+给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区、写入 Windows 驱动或挂载驱动光盘。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
 
 ### 用一个循环跑完部署
 
@@ -641,7 +641,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 迁移项 | 老写法 / 旧行为 | 新版写法 / 注意事项 |
 | --- | --- | --- |
-| **定位虚拟机** | 传虚拟机名称字符串 | 绝大多数接口改为传 **GUID**。设备操作传查询返回的设备引用（Linux GPU 部署保留原名称入口） |
+| **定位虚拟机** | 传虚拟机名称字符串 | 绝大多数接口改为传 **GUID**。设备操作传查询返回的设备引用 |
 | **读取内存 / 处理器设置** | 直接读 `response.Data.Startup` | 返回值改为 `VmSettingsSnapshot<T>`：先看 `States["Startup"] == Available`，再读 `Values.Startup` |
 | **部分字段写入** | 传整个设置对象覆盖 | `VmProcessorService` / `VmMemoryService` / `VmNetworkService` 必须传 `changedProperties` 指定只改哪些字段 |
 | **单位换算** | 旧界面百分比/换算值 | 处理器 `Reservation`/`Limit` 用 `0.001%`（`100000` = 100%）。内存 `Weight` 用原始权重。网卡带宽用 `bit/s` |
@@ -654,7 +654,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: fa5f80fc0eda5acd993acb00cdf87291336e6ae303341cc8a283321762c0cda7 -->
+<!-- source-sha256: d4551db900ade84e385bff4bba6fe6a973fb2c6a46dd55def7d568a1ac990033 -->
 
 程序集：`ExHyperV.Core.dll`，版本：`2.0.0-Alpha`。
 
@@ -814,13 +814,10 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` GpuDeploymentStepStatus `](#api-499dc8bdf05041ca) | ` ExHyperV.Models ` | 单个 GPU 部署步骤的执行状态。 |
 | [` GpuDriverFallbackAction `](#api-ef78e8b1f703128b) | ` ExHyperV.Models ` | 无法直接写入离线驱动或用户选择不直接注入时的回退动作。 |
 | [` GpuDriverFallbackSelection `](#api-1b34235597c26248) | ` ExHyperV.Models ` | 当分区加密或无法直接写入时，提交跳过驱动或挂载驱动光盘的回退决定。 |
-| [` GpuLinuxInput `](#api-b7afa42a1fa76e7e) | ` ExHyperV.Models ` | 为 Linux 部署提供脚本和 SSH 凭据；会话在处理前复制二者，避免后续调用方修改影响待执行操作。 |
 | [` GpuPartitionSelection `](#api-bb8b2e9014baee53) | ` ExHyperV.Models ` | 通过 PartitionId 从当前候选列表中选择分区。 |
 | [` GpuRecoveryOperation `](#api-f73dbd0a3968b7df) | ` ExHyperV.Models ` | 部署发起的一个原生操作及核实结果；原生引用只用于诊断。 |
 | [` GpuRecoveryResource `](#api-04b306b383532708) | ` ExHyperV.Models ` | 本次部署需要恢复的一个临时资源，不包含驱动文件回滚。 |
-| [` LinuxGpuDeploymentScript `](#api-d8954296637f67f4) | ` ExHyperV.Models ` | Linux GPU 部署脚本的可变描述。 |
 | [` OperatingSystemType `](#api-f9be4f964cd193ac) | ` ExHyperV.Models ` | 扫描磁盘分区得到的系统或分区用途分类。 |
-| [` SshCredentials `](#api-86effeea9b57e0d7) | ` ExHyperV.Models ` | Linux GPU 部署用的 SSH 连接凭据。 |
 | [` VmGpuAssignment `](#api-51ff6610dbb72a26) | ` ExHyperV.Models ` | 虚拟机已分配 GPU 的可变查询模型。 |
 | [` GpuDeploymentSession `](#api-daf38b34353e49be) | ` ExHyperV.Services ` | 管理一次进程内 GPU 部署；Core 推进各步骤，并在需要确认时暂停，等待带版本标识的明确决定。 |
 | [` VmGpuFields `](#api-cfc336ca4a0f6001) | ` ExHyperV.Services ` | GPU 分区的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
@@ -2232,7 +2229,6 @@ true 继续确认的步骤；false 取消部署。
 | --- | --- |
 | [` Confirmation = 0 `](#api-7db0f9d1f503457d) | 使用 GpuConfirmation 接受或拒绝。 |
 | [` DriverFallback = 2 `](#api-6ae6562adc948908) | 使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。 |
-| [` LinuxCredentials = 3 `](#api-7075f4eb2774fa7c) | 使用 GpuLinuxInput 提交脚本和 SSH 凭据。 |
 | [` Partition = 1 `](#api-20f31cbd82caa987) | 使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。 |
 
 #### 详细说明
@@ -2262,16 +2258,6 @@ DriverFallback = 2
 ```
 
 使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。
-
-<a id="api-7075f4eb2774fa7c"></a>
-
-##### LinuxCredentials（枚举值）
-
-```csharp
-LinuxCredentials = 3
-```
-
-使用 GpuLinuxInput 提交脚本和 SSH 凭据。
 
 <a id="api-20f31cbd82caa987"></a>
 
@@ -2303,11 +2289,9 @@ GPU 部署暂停时需要用户处理的具体事项。
 
 | 成员 | 说明 |
 | --- | --- |
-| [` DriverFallback = 2 `](#api-c6c1cc6ce5ea5f32) | 无法直接向分区写入驱动（如启用 BitLocker），选择跳过驱动或挂载驱动光盘。 |
-| [` LinuxCredentials = 4 `](#api-2eefc990bc70e3ad) | 提交部署脚本和 SSH 凭据。 |
+| [` DriverFallback = 2 `](#api-c6c1cc6ce5ea5f32) | 无法直接向分区写入驱动（如启用 BitLocker 或非 Windows 分区），选择跳过驱动或挂载驱动光盘。 |
 | [` PowerOff = 0 `](#api-0484eb23f552e201) | 确认强制关闭虚拟机（TurnOff）。 |
 | [` SelectPartition = 1 `](#api-8f7d20f374dc3012) | 选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。 |
-| [` StartLinux = 3 `](#api-aaeb19df55854987) | 确认启动 Linux 来宾以继续在线部署。 |
 
 #### 详细说明
 
@@ -2325,17 +2309,7 @@ public enum GpuDecisionKind
 DriverFallback = 2
 ```
 
-无法直接向分区写入驱动（如启用 BitLocker），选择跳过驱动或挂载驱动光盘。
-
-<a id="api-2eefc990bc70e3ad"></a>
-
-##### LinuxCredentials（枚举值）
-
-```csharp
-LinuxCredentials = 4
-```
-
-提交部署脚本和 SSH 凭据。
+无法直接向分区写入驱动（如启用 BitLocker 或非 Windows 分区），选择跳过驱动或挂载驱动光盘。
 
 <a id="api-0484eb23f552e201"></a>
 
@@ -2357,16 +2331,6 @@ SelectPartition = 1
 
 选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。
 
-<a id="api-aaeb19df55854987"></a>
-
-##### StartLinux（枚举值）
-
-```csharp
-StartLinux = 3
-```
-
-确认启动 Linux 来宾以继续在线部署。
-
 <a id="api-640fbb80511f3d56"></a>
 
 ### `GpuDecisionRequest` record 类
@@ -2387,7 +2351,7 @@ StartLinux = 3
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message, IReadOnlyList<GpuDeploymentPartition> Partitions, string SuggestedHost = "", bool CanGoBack = false) `](#api-ee9c33991284f7c4) |  |
+| [` public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message, IReadOnlyList<GpuDeploymentPartition> Partitions, bool CanGoBack = false) `](#api-ee9c33991284f7c4) |  |
 
 **属性**
 
@@ -2400,14 +2364,13 @@ StartLinux = 3
 | [` public GpuDecisionKind Kind { get; init; } `](#api-7035d4b4ecb0f2d9) | 待确认事项的种类。 |
 | [` public string Message { get; init; } `](#api-bc2680691fa17847) | 本地化操作说明。 |
 | [` public IReadOnlyList<GpuDeploymentPartition> Partitions { get; init; } `](#api-aecfba65fe78949a) | 可供选择的分区快照；会话发布的是只读列表。 |
-| [` public string SuggestedHost { get; init; } `](#api-69fd2fda7c0b3588) | 建议的 Linux IPv4 地址；空字符串表示未取得。 |
 | [` public string Title { get; init; } `](#api-0e384572dcd1d5c8) | 本地化标题。 |
 
 #### 详细说明
 
 ```csharp
 public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message,
-    IReadOnlyList<GpuDeploymentPartition> Partitions, string SuggestedHost = "", bool CanGoBack = false)
+    IReadOnlyList<GpuDeploymentPartition> Partitions, bool CanGoBack = false)
 ```
 
 | 参数 | 说明 |
@@ -2417,7 +2380,6 @@ public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Ti
 | `Title` | 本地化标题。 |
 | `Message` | 本地化操作说明。 |
 | `Partitions` | 可供选择的分区快照；会话发布的是只读列表。 |
-| `SuggestedHost` | 建议的 Linux IPv4 地址；空字符串表示未取得。 |
 | `CanGoBack` | 是否允许从当前事项返回分区选择。 |
 
 #### 构造函数说明
@@ -2427,7 +2389,7 @@ public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Ti
 ##### 创建部署确认请求对象（主构造器）
 
 ```csharp
-public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message, IReadOnlyList<GpuDeploymentPartition> Partitions, string SuggestedHost = "", bool CanGoBack = false);
+public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message, IReadOnlyList<GpuDeploymentPartition> Partitions, bool CanGoBack = false);
 ```
 
 | 参数 | 说明 |
@@ -2437,7 +2399,6 @@ public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Me
 | `Title` | 本地化标题。 |
 | `Message` | 本地化操作说明。 |
 | `Partitions` | 可供选择的分区快照；会话发布的是只读列表。 |
-| `SuggestedHost` | 建议的 Linux IPv4 地址；空字符串表示未取得。 |
 | `CanGoBack` | 是否允许从当前事项返回分区选择。 |
 
 #### 属性说明
@@ -2511,16 +2472,6 @@ public IReadOnlyList<GpuDeploymentPartition> Partitions { get; init; }
 ```
 
 可供选择的分区快照；会话发布的是只读列表。
-
-<a id="api-69fd2fda7c0b3588"></a>
-
-##### 建议地址（record 属性）
-
-```csharp
-public string SuggestedHost { get; init; }
-```
-
-建议的 Linux IPv4 地址；空字符串表示未取得。
 
 <a id="api-0e384572dcd1d5c8"></a>
 
@@ -3862,85 +3813,6 @@ public GpuDriverFallbackAction Action { get; init; }
 ```
 
 要执行的替代动作。
-
-<a id="api-b7afa42a1fa76e7e"></a>
-
-### `GpuLinuxInput` record 类
-
-为 Linux 部署提供脚本和 SSH 凭据；会话在处理前复制二者，避免后续调用方修改影响待执行操作。
-
-| 项目 | 内容 |
-| --- | --- |
-| 类型 | record 类 |
-| 命名空间 | ` ExHyperV.Models ` |
-| 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / GPU |
-| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs ` |
-
-#### 成员概览
-
-**构造函数**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public GpuLinuxInput(Guid RequestId, LinuxGpuDeploymentScript? Script, SshCredentials? Credentials) `](#api-e8e6f797f4627924) |  |
-
-**属性**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public SshCredentials? Credentials { get; init; } `](#api-de53addd2b67d826) | SSH 凭据；类型允许 null，但提交 Linux 决定时不能为空，端口及代理需有效。 |
-| [` public LinuxGpuDeploymentScript? Script { get; init; } `](#api-13bf473ff669cd8a) | 选定的部署脚本；类型允许 null，但提交 Linux 决定时不能为空。 |
-
-#### 详细说明
-
-```csharp
-public sealed record GpuLinuxInput(Guid RequestId, LinuxGpuDeploymentScript? Script, SshCredentials? Credentials) : GpuDeploymentDecision(RequestId)
-```
-
-| 参数 | 说明 |
-| --- | --- |
-| `RequestId` | 当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。 |
-| `Script` | 选定的部署脚本；类型允许 null，但提交 Linux 决定时不能为空。 |
-| `Credentials` | SSH 凭据；类型允许 null，但提交 Linux 决定时不能为空，端口及代理需有效。 |
-
-#### 构造函数说明
-
-<a id="api-e8e6f797f4627924"></a>
-
-##### 创建Linux 部署输入对象（主构造器）
-
-```csharp
-public GpuLinuxInput(Guid RequestId, LinuxGpuDeploymentScript? Script, SshCredentials? Credentials);
-```
-
-| 参数 | 说明 |
-| --- | --- |
-| `RequestId` | 当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。 |
-| `Script` | 选定的部署脚本；类型允许 null，但提交 Linux 决定时不能为空。 |
-| `Credentials` | SSH 凭据；类型允许 null，但提交 Linux 决定时不能为空，端口及代理需有效。 |
-
-#### 属性说明
-
-<a id="api-de53addd2b67d826"></a>
-
-##### SSH 凭据（record 属性）
-
-```csharp
-public SshCredentials? Credentials { get; init; }
-```
-
-SSH 凭据；类型允许 null，但提交 Linux 决定时不能为空，端口及代理需有效。
-
-<a id="api-13bf473ff669cd8a"></a>
-
-##### 部署脚本（record 属性）
-
-```csharp
-public LinuxGpuDeploymentScript? Script { get; init; }
-```
-
-选定的部署脚本；类型允许 null，但提交 Linux 决定时不能为空。
 
 <a id="api-bb8b2e9014baee53"></a>
 
@@ -5380,121 +5252,6 @@ SmallToLarge = 0
 
 按小到大顺序填充分布域。
 
-<a id="api-d8954296637f67f4"></a>
-
-### `LinuxGpuDeploymentScript` 类
-
-Linux GPU 部署脚本的可变描述。部署服务按 SourceUrl 下载 FileName 并在来宾执行；名称和说明只用于展示。
-
-| 项目 | 内容 |
-| --- | --- |
-| 类型 | 类 |
-| 命名空间 | ` ExHyperV.Models ` |
-| 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / GPU |
-| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/LinuxGpuDeploymentScript.cs ` |
-
-#### 成员概览
-
-**属性**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public string Author { get; set; } = "Unknown" `](#api-82aaa35075a853ad) | 脚本作者的显示名称。 |
-| [` public string Description { get; set; } = string.Empty `](#api-cea4b182c216c82a) | 脚本适用系统和用途的显示说明。 |
-| [` public string FileName { get; set; } = string.Empty `](#api-a4963c2d55c173bf) | 下载后执行的脚本文件名；部署时必须非空。 |
-| [` public string Name { get; set; } = "Unknown" `](#api-ad02cb35c0fe721a) | 脚本显示名称，未指定时为 Unknown。 |
-| [` public string SourceUrl { get; set; } = string.Empty `](#api-2db21ea6cd4b1276) | 来宾下载部署脚本所用的 URL；部署时必须非空。 |
-| [` public string Version { get; set; } = "1.0.0" `](#api-3dab3d350c3c2cc0) | 脚本版本字符串。 |
-
-**方法**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public override string ToString() `](#api-64b688add0b0794e) | 取得脚本的显示名称。 |
-
-#### 详细说明
-
-```csharp
-public class LinuxGpuDeploymentScript
-```
-
-#### 属性说明
-
-<a id="api-82aaa35075a853ad"></a>
-
-##### 脚本作者（属性）
-
-```csharp
-public string Author { get; set; } = "Unknown";
-```
-
-脚本作者的显示名称。
-
-<a id="api-cea4b182c216c82a"></a>
-
-##### 说明（属性）
-
-```csharp
-public string Description { get; set; } = string.Empty;
-```
-
-脚本适用系统和用途的显示说明。
-
-<a id="api-a4963c2d55c173bf"></a>
-
-##### 文件名（属性）
-
-```csharp
-public string FileName { get; set; } = string.Empty;
-```
-
-下载后执行的脚本文件名；部署时必须非空。
-
-<a id="api-ad02cb35c0fe721a"></a>
-
-##### 名称（属性）
-
-```csharp
-public string Name { get; set; } = "Unknown";
-```
-
-脚本显示名称，未指定时为 Unknown。
-
-<a id="api-2db21ea6cd4b1276"></a>
-
-##### 下载地址（属性）
-
-```csharp
-public string SourceUrl { get; set; } = string.Empty;
-```
-
-来宾下载部署脚本所用的 URL；部署时必须非空。
-
-<a id="api-3dab3d350c3c2cc0"></a>
-
-##### 版本（属性）
-
-```csharp
-public string Version { get; set; } = "1.0.0";
-```
-
-脚本版本字符串。
-
-#### 方法说明
-
-<a id="api-64b688add0b0794e"></a>
-
-##### 获取脚本名称（方法）
-
-```csharp
-public override string ToString();
-```
-
-取得脚本的显示名称。
-
-返回：当前 Name。
-
 <a id="api-331bc806004b3c0a"></a>
 
 ### `LpiMode` 枚举
@@ -6272,123 +6029,6 @@ SingleThread = 1
 ```
 
 每个核心呈现一个线程。
-
-<a id="api-86effeea9b57e0d7"></a>
-
-### `SshCredentials` 类
-
-Linux GPU 部署用的 SSH 连接凭据。Host 在部署时会被改写为解析后的目标 IP，故可变。
-
-| 项目 | 内容 |
-| --- | --- |
-| 类型 | 类 |
-| 命名空间 | ` ExHyperV.Models ` |
-| 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / GPU |
-| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/SshCredentials.cs ` |
-
-#### 成员概览
-
-**属性**
-
-| 成员 | 说明 |
-| --- | --- |
-| [` public string Host { get; set; } = string.Empty `](#api-ad6f7b1fbd4a77df) | 来宾 IPv4 地址；直接调用部署服务时会被改写为选出的目标地址，会话入口会先复制凭据。 |
-| [` public bool InstallGraphics { get; set; } = true `](#api-f463d62aea11f1a2) | 是否请求脚本安装图形支持，默认 true。 |
-| [` public string Password { get; set; } = string.Empty `](#api-18a69273299857fe) | SSH 密码及部署所需的 sudo 密码；由调用方安全保管，不应写入日志或示例。 |
-| [` public int Port { get; set; } `](#api-ecd19ab0f5676244) | SSH 端口，范围 1 至 65535。 |
-| [` public string? ProxyHost { get; set; } `](#api-b66aa8be0396a7f6) | 来宾部署脚本下载所用 HTTP 代理主机；不启用代理时可为 null，并非 SSH 连接代理。 |
-| [` public int? ProxyPort { get; set; } `](#api-399c8b9059b36aec) | HTTP 代理端口；不启用代理时可为 null。 |
-| [` public bool UseProxy { get; set; } `](#api-c45ebfc6500fefe2) | 是否把代理配置传给来宾部署脚本；为 true 时需同时提供主机和有效端口。 |
-| [` public string Username { get; set; } = string.Empty `](#api-f686e697e9e0aaa3) | 来宾 SSH 用户名，Linux 部署要求非空。 |
-
-#### 详细说明
-
-```csharp
-public class SshCredentials
-```
-
-#### 属性说明
-
-<a id="api-ad6f7b1fbd4a77df"></a>
-
-##### 目标地址（属性）
-
-```csharp
-public string Host { get; set; } = string.Empty;
-```
-
-来宾 IPv4 地址；直接调用部署服务时会被改写为选出的目标地址，会话入口会先复制凭据。
-
-<a id="api-f463d62aea11f1a2"></a>
-
-##### 安装图形支持（属性）
-
-```csharp
-public bool InstallGraphics { get; set; } = true;
-```
-
-是否请求脚本安装图形支持，默认 true。
-
-<a id="api-18a69273299857fe"></a>
-
-##### 密码（属性）
-
-```csharp
-public string Password { get; set; } = string.Empty;
-```
-
-SSH 密码及部署所需的 sudo 密码；由调用方安全保管，不应写入日志或示例。
-
-<a id="api-ecd19ab0f5676244"></a>
-
-##### 端口（属性）
-
-```csharp
-public int Port { get; set; }
-```
-
-SSH 端口，范围 1 至 65535。
-
-<a id="api-b66aa8be0396a7f6"></a>
-
-##### 代理地址（属性）
-
-```csharp
-public string? ProxyHost { get; set; }
-```
-
-来宾部署脚本下载所用 HTTP 代理主机；不启用代理时可为 null，并非 SSH 连接代理。
-
-<a id="api-399c8b9059b36aec"></a>
-
-##### 代理端口（属性）
-
-```csharp
-public int? ProxyPort { get; set; }
-```
-
-HTTP 代理端口；不启用代理时可为 null。
-
-<a id="api-c45ebfc6500fefe2"></a>
-
-##### 启用代理（属性）
-
-```csharp
-public bool UseProxy { get; set; }
-```
-
-是否把代理配置传给来宾部署脚本；为 true 时需同时提供主机和有效端口。
-
-<a id="api-f686e697e9e0aaa3"></a>
-
-##### 用户名（属性）
-
-```csharp
-public string Username { get; set; } = string.Empty;
-```
-
-来宾 SSH 用户名，Linux 部署要求非空。
 
 <a id="api-4c71af5310c751ad"></a>
 
@@ -17043,15 +16683,15 @@ public async Task<GpuDeploymentSnapshot> SubmitDecisionAsync(GpuDeploymentDecisi
 
 | 参数 | 说明 |
 | --- | --- |
-| `decision` | 与 PendingDecision 对应的确认、分区、回退动作、Linux 输入或返回决定；不能为空。 |
+| `decision` | 与 PendingDecision 对应的确认、分区、回退动作或返回决定；不能为空。 |
 
 返回：执行至下一次等待或结束后的快照。
 
-调用约定：选择非加密分区后会直接执行 Windows 离线驱动写入或引导至 Linux 部署；确认 PowerOff 会直接 TurnOff；提交 MountIso 会生成并挂载驱动 ISO。
+调用约定：选择非加密 Windows 分区后会直接执行离线驱动写入；确认 PowerOff 会直接 TurnOff；提交 MountIso 会生成并挂载驱动 ISO。
 
 - 异常 `ArgumentNullException`：decision 为 null。
 - 异常 `InvalidOperationException`：没有待确认事项，或请求 ID、输入种类与当前事项不匹配。
-- 异常 `ArgumentException`：分区不在当前列表、分区不受支持或已加密，或 Linux 脚本、地址、端口、凭据不符合要求。
+- 异常 `ArgumentException`：分区不在当前列表、分区不受支持或已加密。
 
 <a id="api-cf4bd5ffb7a2e5ec"></a>
 
@@ -28649,10 +28289,8 @@ public StaleGpuPartition SelectCandidate(string candidateId);
 | --- | --- |
 | [` public async Task<ApiResponse> AssignGpuPartitionAsync(Guid vmId, HostGpuInfo gpu) `](#api-5b2aa9a823caac5e) | 为虚拟机分配所选宿主 GPU 的分区；执行前重新解析当前可分区资源。 |
 | [` public async Task<ApiResponse<bool>> CheckVmForGpuAsync(Guid vmId) `](#api-12d4bfcddbae5680) | 检查来宾缓存控制及高位 MMIO 是否满足当前 GPU 配置要求。 |
-| [` public async Task<List<LinuxGpuDeploymentScript>> GetAvailableScriptsAsync() `](#api-369e7cd15ebcac51) | 从在线索引读取可选 Linux GPU 部署脚本。 |
 | [` public async Task<ApiResponse<IReadOnlyList<VmGpuAssignment>>> GetVmGpuAssignmentsAsync(Guid vmId) `](#api-49e6c19e632fcd5c) | 按稳定身份读取虚拟机 GPU 分配；查询失败不伪装为空清单。 |
 | [` public async Task<ApiResponse> OptimizeVmForGpuAsync(Guid vmId) `](#api-dd4d875bda997af8) | 配置 GPU 所需的来宾缓存控制和 MMIO 空间。 |
-| [` public Task<string> ProvisionLinuxGpuAsync(string vmName, string gpuInstancePath, string gpuManufacturer, LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> progressCallback, CancellationToken ct) `](#api-d053e61d72713b5a) | 通过 SSH 上传 GPU 文件并执行所选 Linux 部署脚本，必要时启动或重启来宾。 |
 | [` public Task<ApiResponse> RemoveGpuPartitionAsync(Guid vmId, VmGpuAssignment assignment) `](#api-497cbbfa6e9b9a6b) | 移除所查询的 GPU 分配，执行前重新核对其属于目标虚拟机。 |
 | [` public async Task<VmPartitionScanResult> ScanVmPartitionsAsync(Guid vmId, CancellationToken cancellationToken = default) `](#api-afdd19aa765db4a2) | 在目标虚拟机关闭时扫描磁盘分区，并恢复扫描前的宿主磁盘状态。 |
 | [` public Task<ApiResponse> SyncWindowsDriversAsync(Guid vmId, string gpuInstancePath, string gpuManu, DiskPartitionInfo selectedPartition, Action<string> progressCallback = null) `](#api-bf4324136f4573c6) | 向指定离线 Windows 系统分区同步宿主 GPU 驱动包及相关文件。 |
@@ -28722,22 +28360,6 @@ public async Task<ApiResponse<bool>> CheckVmForGpuAsync(Guid vmId);
 
 返回：数据为 true 表示满足条件，false 表示需要配置；读取错误为失败响应。
 
-<a id="api-369e7cd15ebcac51"></a>
-
-##### 列出 Linux GPU 部署脚本（方法）
-
-```csharp
-public async Task<List<LinuxGpuDeploymentScript>> GetAvailableScriptsAsync();
-```
-
-功能归属：管理层面 / 虚拟机 / GPU。
-
-从在线索引读取可选 Linux GPU 部署脚本。
-
-返回：新的脚本列表；请求超时、解析或网络失败时返回空列表。
-
-调用约定：索引请求超时为 5 秒；无脚本或查询失败均返回空列表。
-
 <a id="api-49e6c19e632fcd5c"></a>
 
 ##### 读取 GPU 分配（方法）
@@ -28777,32 +28399,6 @@ public async Task<ApiResponse> OptimizeVmForGpuAsync(Guid vmId);
 返回：配置执行结果；已完成的探测和电源变化会保留。
 
 调用约定：可能复用宿主 MMIO 检测结果；没有结果时，检测可能启动并强制关闭目标虚拟机。调用完整部署流程可在 Core 的确认步骤后执行这些操作。
-
-<a id="api-d053e61d72713b5a"></a>
-
-##### 部署 Linux GPU 驱动（方法）
-
-```csharp
-public Task<string> ProvisionLinuxGpuAsync(string vmName, string gpuInstancePath, string gpuManufacturer, LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> progressCallback, CancellationToken ct);
-```
-
-功能归属：管理层面 / 虚拟机 / GPU。
-
-通过 SSH 上传 GPU 文件并执行所选 Linux 部署脚本，必要时启动或重启来宾。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmName` | 目标虚拟机名称。 |
-| `gpuInstancePath` | 宿主 GPU 设备路径，用于定位驱动包。 |
-| `gpuManufacturer` | GPU 芯片商名称。 |
-| `script` | 下载并执行的部署脚本描述。 |
-| `credentials` | SSH 凭据及脚本选项；本方法会改写 Host 为选出的 IPv4 地址。 |
-| `progressCallback` | 进展文本回调，应快速返回且不抛出异常；界面更新需调度到界面线程。 |
-| `ct` | 协作式取消令牌，在等待和部分步骤之间检查；SSH 命令和文件传输继续执行至完成。 |
-
-返回：成功时返回 OK，否则通常返回错误说明；取消也可能转换为失败文本。
-
-调用约定：脚本会修改来宾软件包、内核模块、服务和环境；失败时可能保留部分修改。SSH 命令可能长时间运行。
 
 <a id="api-497cbbfa6e9b9a6b"></a>
 

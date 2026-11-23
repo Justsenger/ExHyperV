@@ -60,7 +60,7 @@ public sealed class GpuDeploymentSession
     /// <exception cref="ArgumentOutOfRangeException">mode 不是定义的部署模式。</exception>
     public GpuDeploymentSession(Guid vmId, string vmName, IReadOnlyList<HostGpuInfo> gpus, VmGpuService gpuService,
         VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers)
-        : this(new NativeGpuDeploymentBackend(vmId, vmName, ValidateGpuList(gpus), gpuService), mode)
+        : this(new NativeGpuDeploymentBackend(vmId, ValidateGpuList(gpus), gpuService), mode)
     {
         ArgumentNullException.ThrowIfNull(queryService);
     }
@@ -107,16 +107,15 @@ public sealed class GpuDeploymentSession
     }
 
     /// <summary>校验当前请求 ID 及输入类型，然后推进部署。</summary>
-    /// <param name="decision">与 PendingDecision 对应的确认、分区、回退动作、Linux 输入或返回决定；不能为空。</param>
+    /// <param name="decision">与 PendingDecision 对应的确认、分区、回退动作或返回决定；不能为空。</param>
     /// <returns>执行至下一次等待或结束后的快照。</returns>
-    /// <remarks>选择非加密分区后会直接执行 Windows 离线驱动写入或引导至 Linux 部署；确认 PowerOff 会直接 TurnOff；提交 MountIso 会生成并挂载驱动 ISO。</remarks>
+    /// <remarks>选择非加密 Windows 分区后会直接执行离线驱动写入；确认 PowerOff 会直接 TurnOff；提交 MountIso 会生成并挂载驱动 ISO。</remarks>
     /// <exception cref="ArgumentNullException">decision 为 null。</exception>
     /// <exception cref="InvalidOperationException">没有待确认事项，或请求 ID、输入种类与当前事项不匹配。</exception>
-    /// <exception cref="ArgumentException">分区不在当前列表、分区不受支持或已加密，或 Linux 脚本、地址、端口、凭据不符合要求。</exception>
+    /// <exception cref="ArgumentException">分区不在当前列表、分区不受支持或已加密。</exception>
     public async Task<GpuDeploymentSnapshot> SubmitDecisionAsync(GpuDeploymentDecision decision)
     {
         ArgumentNullException.ThrowIfNull(decision);
-        decision = CopyDecision(decision);
         await gate.WaitAsync();
         try
         {
@@ -140,17 +139,6 @@ public sealed class GpuDeploymentSession
                             else if (afterPowerOff == AfterPowerOff.Scan) await ScanPartitionsAsync();
                             else { Succeed(R.Msg_Gpu_Off); index++; await AdvanceAsync(); }
                         }
-                        else if (kind == GpuDecisionKind.StartLinux)
-                        {
-                            if ((await ReadPowerAsync()).IsOff)
-                            {
-                                await VerifyPartitionAsync();
-                                cancellation.Token.ThrowIfCancellationRequested();
-                                await backend.PowerAsync("Start");
-                                await Task.Delay(3000, cancellation.Token);
-                            }
-                            await AskLinuxCredentialsAsync();
-                        }
                         break;
                     case GpuPartitionSelection choice:
                         selected = ClonePartition(partitions[choice.PartitionId]);
@@ -173,23 +161,6 @@ public sealed class GpuDeploymentSession
                     case GpuBackToPartitions:
                         selected = null;
                         Ask(GpuDecisionKind.SelectPartition, R.Label_SelectPart, R.Msg_Gpu_ManualSelect);
-                        break;
-                    case GpuLinuxInput input:
-                        await VerifyTargetAsync();
-                        if ((await ReadPowerAsync()).IsOff)
-                        {
-                            Ask(GpuDecisionKind.StartLinux, R.Task_Gpu_Driver, R.Gpu_ConfirmLinuxStart, canGoBack: true);
-                            return;
-                        }
-                        var result = await backend.ProvisionLinuxAsync(input.Script!, input.Credentials!, text =>
-                        {
-                            var match = System.Text.RegularExpressions.Regex.Match(text, @"\[STEP:\s*(.*?)\]");
-                            SetStep(GpuDeploymentStepStatus.Running, match.Success ? match.Groups[1].Value : null, text);
-                        }, cancellation.Token);
-                        if (result != "OK")
-                            throw new InvalidOperationException(result);
-                        await backend.RecordGuestDriverVersionsAsync(primaryOnly: true);
-                        CompleteDrivers(R.Msg_Gpu_LinuxDeployDone);
                         break;
                 }
             });
@@ -451,14 +422,8 @@ public sealed class GpuDeploymentSession
     private async Task PrepareSelectedPartitionAsync()
     {
         await VerifyTargetAsync();
-        if (selected!.OsType == OperatingSystemType.Windows)
-        {
-            if (!(await ReadPowerAsync()).IsOff) AskPowerOff(AfterPowerOff.Windows);
-            else await ExecuteWindowsDriverSyncAsync();
-        }
-        else if ((await ReadPowerAsync()).IsOff)
-            Ask(GpuDecisionKind.StartLinux, R.Task_Gpu_Driver, R.Gpu_ConfirmLinuxStart, canGoBack: true);
-        else await AskLinuxCredentialsAsync();
+        if (!(await ReadPowerAsync()).IsOff) AskPowerOff(AfterPowerOff.Windows);
+        else await ExecuteWindowsDriverSyncAsync();
     }
 
     private async Task ExecuteWindowsDriverSyncAsync()
@@ -510,15 +475,6 @@ public sealed class GpuDeploymentSession
         CompleteDrivers(R.Msg_Gpu_IsoMounted);
     }
 
-    private async Task AskLinuxCredentialsAsync()
-    {
-        DriverProgress(R.Msg_Gpu_IpScanning);
-        string ip = await backend.FindIpAsync();
-        cancellation.Token.ThrowIfCancellationRequested();
-        Ask(GpuDecisionKind.LinuxCredentials, R.Label_ConnectToLinuxVm, R.Msg_Gpu_SshConfirm,
-            Ipv4.SelectBest(ip), canGoBack: true);
-    }
-
     private async Task VerifyPartitionAsync()
     {
         cancellation.Token.ThrowIfCancellationRequested();
@@ -552,7 +508,6 @@ public sealed class GpuDeploymentSession
             GpuConfirmation => pending.Input == GpuDecisionInput.Confirmation,
             GpuPartitionSelection => pending.Input == GpuDecisionInput.Partition,
             GpuDriverFallbackSelection => pending.Input is GpuDecisionInput.Partition or GpuDecisionInput.DriverFallback,
-            GpuLinuxInput => pending.Input == GpuDecisionInput.LinuxCredentials,
             GpuBackToPartitions => pending.CanGoBack,
             _ => false
         };
@@ -567,21 +522,10 @@ public sealed class GpuDeploymentSession
         {
             throw new ArgumentException(R.Gpu_DecisionExpired);
         }
-        if (decision is GpuLinuxInput input)
-        {
-            var c = input.Credentials;
-            if (input.Script == null || string.IsNullOrWhiteSpace(input.Script.SourceUrl) || string.IsNullOrWhiteSpace(input.Script.FileName)
-                || c == null || string.IsNullOrWhiteSpace(c.Host) || string.IsNullOrWhiteSpace(c.Username))
-                throw new ArgumentException(R.VmPage_GpuCheckDeploy);
-            if (string.IsNullOrEmpty(Ipv4.SelectBest(c.Host))) throw new ArgumentException(R.Error_Gpu_NoIpv4);
-            if (c.Port is < 1 or > 65535) throw new ArgumentException(R.Gpu_InvalidSshPort);
-            if (c.UseProxy && (string.IsNullOrWhiteSpace(c.ProxyHost) || c.ProxyPort is null or < 1 or > 65535))
-                throw new ArgumentException(R.Validation_ProxyIpAndPortMismatch);
-        }
     }
 
     private static bool IsSupported(DiskPartitionInfo p) =>
-        !p.IsBitLocker && p.OsType is OperatingSystemType.Windows or OperatingSystemType.Linux;
+        !p.IsBitLocker && p.OsType == OperatingSystemType.Windows;
 
     private static bool IsPartitionFallbackReason(string? message)
     {
@@ -592,13 +536,13 @@ public sealed class GpuDeploymentSession
         return parts.Length > 0 && parts.All(part => message.Contains(part, StringComparison.OrdinalIgnoreCase));
     }
 
-    private void Ask(GpuDecisionKind kind, string title, string message, string host = "", bool canGoBack = false)
+    private void Ask(GpuDecisionKind kind, string title, string message, bool canGoBack = false)
     {
         cancellation.Token.ThrowIfCancellationRequested();
         var options = Array.AsReadOnly(partitions.Select(p => new GpuDeploymentPartition(p.Key, p.Value.PartitionNumber,
             p.Value.SizeInBytes, p.Value.OsType, p.Value.TypeDescription, p.Value.DiskPath, p.Value.DiskDisplayName,
             p.Value.IsPhysicalDisk, p.Value.IsBitLocker)).ToArray());
-        pending = new(Guid.NewGuid(), kind, title, message, options, host, canGoBack);
+        pending = new(Guid.NewGuid(), kind, title, message, options, canGoBack);
         state = GpuDeploymentState.WaitingForDecision;
         SetStep(GpuDeploymentStepStatus.Running, message);
     }
@@ -693,18 +637,6 @@ public sealed class GpuDeploymentSession
     private static DiskPartitionInfo ClonePartition(DiskPartitionInfo p) => new(p.PartitionNumber, p.SizeInBytes, p.OsType, p.TypeDescription)
         { DiskPath = p.DiskPath, DiskDisplayName = p.DiskDisplayName, IsPhysicalDisk = p.IsPhysicalDisk, IsBitLocker = p.IsBitLocker, ScannedVmId = p.ScannedVmId, ScannedDiskPath = p.ScannedDiskPath, ScannedPhysical = p.ScannedPhysical, ScannedDiskIdentity = p.ScannedDiskIdentity };
 
-    private static GpuDeploymentDecision CopyDecision(GpuDeploymentDecision decision)
-    {
-        if (decision is not GpuLinuxInput input) return decision;
-        var s = input.Script;
-        var c = input.Credentials;
-        return new GpuLinuxInput(input.RequestId,
-            s == null ? null : new LinuxGpuDeploymentScript { Name = s.Name, Description = s.Description, Author = s.Author,
-                Version = s.Version, SourceUrl = s.SourceUrl, FileName = s.FileName },
-            c == null ? null : new SshCredentials { Host = c.Host, Port = c.Port, Username = c.Username, Password = c.Password,
-                UseProxy = c.UseProxy, ProxyHost = c.ProxyHost, ProxyPort = c.ProxyPort, InstallGraphics = c.InstallGraphics });
-    }
-
     private static List<GpuDeploymentStep> BuildSteps(GpuDeploymentMode mode)
     {
         var result = new List<GpuDeploymentStep>();
@@ -746,23 +678,19 @@ internal interface IGpuDeploymentBackend
     Task<(bool Success, string Message)> SyncWindowsAsync(DiskPartitionInfo partition, Action<string> log);
     Task<ApiResponse<string>> MountDriverIsoAsync(Action<int>? progressPercent = null, Action<string>? log = null, CancellationToken cancellationToken = default)
         => Task.FromResult(ApiResponse<string>.Ok(string.Empty));
-    Task RecordGuestDriverVersionsAsync(bool primaryOnly = false) => Task.CompletedTask;
-    Task<string> FindIpAsync();
-    Task<string> ProvisionLinuxAsync(LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> log, CancellationToken token);
+    Task RecordGuestDriverVersionsAsync() => Task.CompletedTask;
 }
 
 internal sealed class GpuDeploymentCleanupException(string message) : Exception(message);
 
 internal sealed class NativeGpuDeploymentBackend(
     Guid vmId,
-    string vmName,
     IReadOnlyList<HostGpuInfo> selectedGpus,
     VmGpuService gpu) : IGpuDeploymentBackend
 {
     private readonly GpuRecoveryJournal recovery = new();
     private readonly List<WmiCreationTrace> assignmentTraces = new();
     private WmiCreationTrace? lastAssignmentTrace;
-    private (string InstanceId, string DriverVersion)? linuxDriverReceipt;
 
     public int GpuCount => selectedGpus.Count;
     public bool HasRecovery => recovery.HasRecords;
@@ -912,56 +840,14 @@ internal sealed class NativeGpuDeploymentBackend(
             return ApiResponse.Ok();
         });
 
-    public Task RecordGuestDriverVersionsAsync(bool primaryOnly = false) => recovery.RunAsync("GpuDriverVersions", async () =>
+    public Task RecordGuestDriverVersionsAsync() => recovery.RunAsync("GpuDriverVersions", async () =>
     {
-        IEnumerable<(string InstanceId, string DriverVersion)> updates = primaryOnly
-            ? linuxDriverReceipt is { } receipt ? [receipt] : []
-            : selectedGpus.Where(g => !string.IsNullOrWhiteSpace(g.InstanceId) && !string.IsNullOrWhiteSpace(g.DriverVersion))
-                .Select(g => (g.InstanceId, g.DriverVersion));
+        var updates = selectedGpus
+            .Where(g => !string.IsNullOrWhiteSpace(g.InstanceId) && !string.IsNullOrWhiteSpace(g.DriverVersion))
+            .Select(g => (g.InstanceId, g.DriverVersion));
         var result = await VmMetadataService.UpsertGpuDriverVersionsAsync(vmId, updates).ConfigureAwait(false);
         OperationOutcomeUnknownException.ThrowIfUnknown(result);
         if (!result.Success) throw new CoreOperationException(result);
         return true;
     });
-
-    public Task<string> ProvisionLinuxAsync(LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> log, CancellationToken token) => recovery.RunAsync("LinuxDrivers", async () =>
-    {
-        // Linux 部署入口按名称执行，提交前必须核对名称仍指向所选 GUID。
-        var target = await VmIdentity.ResolveAsync(vmName);
-        if (!target.HasData || target.Data != vmId)
-            throw new InvalidOperationException("Linux 部署目标名称已变化或不唯一，请重新选择目标。");
-        linuxDriverReceipt = null;
-        var before = await HostGpuService.GetHostGpusAsync();
-        if (!before.HasData) throw new CoreOperationException(ApiResponse.FromFailure(before));
-        string id = selectedGpus[0].InstanceId;
-        var primary = before.Data.SingleOrDefault(g => string.Equals(g.InstanceId, id, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException("无法确认所选宿主 GPU。");
-        var result = await gpu.ProvisionLinuxGpuAsync(vmName, ResolveGpuPath(primary), primary.Manu, script, credentials, log, token);
-        if (result == "OK" && !string.IsNullOrWhiteSpace(primary.DriverVersion))
-        {
-            var after = await HostGpuService.GetHostGpusAsync();
-            if (!after.HasData || after.Data.Count(g => string.Equals(g.InstanceId, id, StringComparison.OrdinalIgnoreCase)
-                    && g.DriverVersion == primary.DriverVersion) != 1)
-                throw new InvalidOperationException("来宾部署已完成，无法确认对应的宿主驱动版本。");
-            linuxDriverReceipt = (id, primary.DriverVersion);
-        }
-        return result;
-    });
-
-    public async Task<string> FindIpAsync()
-    {
-        var adapters = await VmNetworkService.GetNetworkAdaptersAsync(vmId);
-        if (!adapters.HasData) throw new InvalidOperationException(adapters.Error, adapters.Exception);
-        string mac = adapters.Data!.FirstOrDefault()?.MacAddress ?? string.Empty;
-        if (!string.IsNullOrEmpty(mac))
-            for (int i = 0; i < 3; i++)
-            {
-                var found = await VmIpService.LookupAsync(vmId, mac);
-                if (!found.Success) throw new InvalidOperationException(found.Error, found.Exception);
-                string ip = found.Data?.FirstOrDefault()?.Address ?? string.Empty;
-                if (!string.IsNullOrEmpty(ip)) return ip;
-                await Task.Delay(2000);
-            }
-        return string.Empty;
-    }
 }

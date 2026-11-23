@@ -94,13 +94,11 @@ internal static class WorkflowSessionApiCases
         c.Equal(GpuDecisionKind.SelectPartition, bitlocker.PendingDecision!.Kind, "BitLocker 分区提供回退选择");
         var skipped = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(bitlocker.PendingDecision.Id, GpuDriverFallbackAction.SkipDriver)));
         c.Equal(GpuDeploymentState.Completed, skipped.State, "跳过驱动可结束会话"); c.Require(skipped.IsDriverSkipped, "标记已跳过驱动");
-        backend = new() { Os = OperatingSystemType.Linux }; session = new(backend); var linux = await session.StartAsync();
-        if (linux.PendingDecision!.Kind == GpuDecisionKind.SelectPartition) linux = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuPartitionSelection(linux.PendingDecision.Id, linux.PendingDecision.Partitions[0].Id)));
-        c.Equal(GpuDecisionKind.StartLinux, linux.PendingDecision!.Kind, "Linux 启动确认");
-        linux = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuConfirmation(linux.PendingDecision.Id, true)));
-        c.Equal(GpuDecisionInput.LinuxCredentials, linux.PendingDecision!.Input, "启动后接收 SSH 输入");
-        var done = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuLinuxInput(linux.PendingDecision!.Id, new() { Name = "fixture", FileName = "fixture.sh", SourceUrl = "https://example.invalid/fixture.sh" }, new() { Host = "192.0.2.1", Port = 22, Username = "root", Password = "fixture-password" })));
-        c.Equal(GpuDeploymentState.Completed, done.State, "Linux 输入链完成"); c.Require(!System.Text.Json.JsonSerializer.Serialize(done).Contains("fixture-password"), "公开快照屏蔽凭据");
+        backend = new() { Os = OperatingSystemType.Linux }; session = new(backend); var nonWindows = await session.StartAsync();
+        c.Equal(GpuDecisionKind.SelectPartition, nonWindows.PendingDecision!.Kind, "非 Windows 分区提供回退选择");
+        c.Throws<ArgumentException>(() => session.SubmitDecisionAsync(new GpuPartitionSelection(nonWindows.PendingDecision.Id, nonWindows.PendingDecision.Partitions[0].Id)).GetAwaiter().GetResult(), "非 Windows 分区不能直接写入驱动");
+        var iso = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(nonWindows.PendingDecision.Id, GpuDriverFallbackAction.MountIso)));
+        c.Equal(GpuDeploymentState.Completed, iso.State, "非 Windows 分区可通过挂载驱动光盘结束会话"); c.Require(iso.IsDriverIsoMounted, "标记已挂载驱动光盘");
     }
 
     private static async Task PowerAsync(CatalogTest p, ApiCaseContext c)

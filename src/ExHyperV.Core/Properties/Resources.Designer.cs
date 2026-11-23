@@ -1766,29 +1766,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 &gt;&gt;&gt; [Fatal Error] Linux deploy failed: {0} 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_DeployFatal {
-            get {
-                return ResourceManager.GetString("Error_Gpu_DeployFatal", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Cannot dismount disk: Disk not found in VM config. 的本地化字符串。
         /// </summary>
         public static string Error_Gpu_DiskNotFound {
             get {
                 return ResourceManager.GetString("Error_Gpu_DiskNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Env fetch failed 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_EnvFail {
-            get {
-                return ResourceManager.GetString("Error_Gpu_EnvFail", resourceCulture);
             }
         }
         
@@ -1807,24 +1789,6 @@ namespace ExHyperV.Properties {
         public static string Error_Gpu_InvalidSystemPart {
             get {
                 return ResourceManager.GetString("Error_Gpu_InvalidSystemPart", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Failed to auto-get IP. Enter manually. 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_IpManual {
-            get {
-                return ResourceManager.GetString("Error_Gpu_IpManual", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 [Rollback] Linux deploy failed. Removing GPU... 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_LinuxRollback {
-            get {
-                return ResourceManager.GetString("Error_Gpu_LinuxRollback", resourceCulture);
             }
         }
         
@@ -1906,15 +1870,6 @@ namespace ExHyperV.Properties {
         public static string Error_Gpu_Rollback {
             get {
                 return ResourceManager.GetString("Error_Gpu_Rollback", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 SSH connection timed out. Check VM networking. 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_SshTimeout {
-            get {
-                return ResourceManager.GetString("Error_Gpu_SshTimeout", resourceCulture);
             }
         }
         
@@ -2106,15 +2061,6 @@ namespace ExHyperV.Properties {
         public static string Error_PhysicalAdapterInUse {
             get {
                 return ResourceManager.GetString("Error_PhysicalAdapterInUse", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 [X] Command execution failed.Exit code: {0}): {1} 的本地化字符串。
-        /// </summary>
-        public static string Error_SshCommandFailed {
-            get {
-                return ResourceManager.GetString("Error_SshCommandFailed", resourceCulture);
             }
         }
         
@@ -2716,15 +2662,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 HTTP Proxy (Optional) 的本地化字符串。
-        /// </summary>
-        public static string GroupBox_HttpProxyOptional {
-            get {
-                return ResourceManager.GetString("GroupBox_HttpProxyOptional", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Host 的本地化字符串。
         /// </summary>
         public static string Host {
@@ -2898,15 +2835,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 If you cannot connect directly to GitHub.com, please use a stable and reliable proxy. 的本地化字符串。
-        /// </summary>
-        public static string Info_UseProxyForGitHub {
-            get {
-                return ResourceManager.GetString("Info_UseProxyForGitHub", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 InstanceId 的本地化字符串。
         /// </summary>
         public static string Instanceid {
@@ -3002,15 +2930,6 @@ namespace ExHyperV.Properties {
         public static string Label_ConfigLog {
             get {
                 return ResourceManager.GetString("Label_ConfigLog", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Connect to Linux Virtual Machine 的本地化字符串。
-        /// </summary>
-        public static string Label_ConnectToLinuxVm {
-            get {
-                return ResourceManager.GetString("Label_ConnectToLinuxVm", resourceCulture);
             }
         }
         
@@ -3164,15 +3083,6 @@ namespace ExHyperV.Properties {
         public static string Label_GpuSettings {
             get {
                 return ResourceManager.GetString("Label_GpuSettings", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Host IP Address: 的本地化字符串。
-        /// </summary>
-        public static string Label_HostIpAddress {
-            get {
-                return ResourceManager.GetString("Label_HostIpAddress", resourceCulture);
             }
         }
         
@@ -3425,15 +3335,6 @@ namespace ExHyperV.Properties {
         public static string Label_Progress {
             get {
                 return ResourceManager.GetString("Label_Progress", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Proxy IP Address: 的本地化字符串。
-        /// </summary>
-        public static string Label_ProxyIpAddress {
-            get {
-                return ResourceManager.GetString("Label_ProxyIpAddress", resourceCulture);
             }
         }
         
@@ -4282,15 +4183,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 &gt;&gt;&gt; Starting Linux deployment 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_DeployStart {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_DeployStart", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Single Windows partition detected. Syncing drivers... 的本地化字符串。
         /// </summary>
         public static string Msg_Gpu_DetectWin {
@@ -4341,69 +4233,6 @@ namespace ExHyperV.Properties {
         public static string Msg_Gpu_InjectingReg {
             get {
                 return ResourceManager.GetString("Msg_Gpu_InjectingReg", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Successfully got IP: {0} 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_IpOk {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_IpOk", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Sniffing VM IP address... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_IpScanning {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_IpScanning", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Auto-starting VM to initialize network... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_IpSniff {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_IpSniff", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 &gt;&gt;&gt; Linux deployment complete. 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_LinuxDeployDone {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_LinuxDeployDone", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Remote environment initialized. Temp: {0} 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_LinuxRemoteInit {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_LinuxRemoteInit", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Linux partition detected. Waiting for VM to start... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_LinuxVm {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_LinuxVm", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Waiting for VM network readiness and IP... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_LinuxWaitingIp {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_LinuxWaitingIp", resourceCulture);
             }
         }
         
@@ -4543,15 +4372,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Confirm SSH credentials to start... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_SshConfirm {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_SshConfirm", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Syncing driver files... 的本地化字符串。
         /// </summary>
         public static string Msg_Gpu_SyncingFiles {
@@ -4584,15 +4404,6 @@ namespace ExHyperV.Properties {
         public static string Msg_Gpu_Unmounting {
             get {
                 return ResourceManager.GetString("Msg_Gpu_Unmounting", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Using Proxy: {0}:{1} 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_UsingProxy {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_UsingProxy", resourceCulture);
             }
         }
         
@@ -5026,15 +4837,6 @@ namespace ExHyperV.Properties {
         public static string Label_Path {
             get {
                 return ResourceManager.GetString("Label_Path", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 e.g., 192.168.1.100 的本地化字符串。
-        /// </summary>
-        public static string Placeholder_IpAddressExample {
-            get {
-                return ResourceManager.GetString("Placeholder_IpAddressExample", resourceCulture);
             }
         }
         
@@ -5964,15 +5766,6 @@ namespace ExHyperV.Properties {
         public static string Validation_InputInvalid {
             get {
                 return ResourceManager.GetString("Validation_InputInvalid", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Proxy IP and Port must be either both filled or both empty. 的本地化字符串。
-        /// </summary>
-        public static string Validation_ProxyIpAndPortMismatch {
-            get {
-                return ResourceManager.GetString("Validation_ProxyIpAndPortMismatch", resourceCulture);
             }
         }
         
@@ -7431,15 +7224,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 [Warning] Env exception: {0} 的本地化字符串。
-        /// </summary>
-        public static string Warn_Gpu_EnvExc {
-            get {
-                return ResourceManager.GetString("Warn_Gpu_EnvExc", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 GPU driver not ready 的本地化字符串。
         /// </summary>
         public static string Warn_GpuNoDriver {
@@ -7990,13 +7774,6 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Error_Gpu_PowerOffTimeout", resourceCulture); }
         }
 
-        public static string Msg_Gpu_LinuxDetected {
-            get { return ResourceManager.GetString("Msg_Gpu_LinuxDetected", resourceCulture); }
-        }
-
-        public static string Msg_Gpu_LinuxAutoPrep {
-            get { return ResourceManager.GetString("Msg_Gpu_LinuxAutoPrep", resourceCulture); }
-        }
         /// <summary>
         ///   查找类似 安全 的本地化字符串。
         /// </summary>
@@ -8094,123 +7871,11 @@ namespace ExHyperV.Properties {
             }
         }
         /// <summary>
-        ///   Looks up a localized string similar to [Info] Selected script: {0}.
-        /// </summary>
-        public static string Log_Gpu_SelectedScript {
-            get {
-                return ResourceManager.GetString("Log_Gpu_SelectedScript", resourceCulture);
-            }
-        }
-        /// <summary>
         ///   Looks up a localized string similar to Syncing: {0} -> {1}.
         /// </summary>
         public static string Log_Gpu_Syncing {
             get {
                 return ResourceManager.GetString("Log_Gpu_Syncing", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to [ExHyperV] Starting VM....
-        /// </summary>
-        public static string Log_Gpu_StartingVm {
-            get {
-                return ResourceManager.GetString("Log_Gpu_StartingVm", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Uploading driver and WSL libraries....
-        /// </summary>
-        public static string Log_Gpu_UploadingDriverWsl {
-            get {
-                return ResourceManager.GetString("Log_Gpu_UploadingDriverWsl", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Downloading remote script inside VM: {0}.
-        /// </summary>
-        public static string Log_Gpu_DownloadingScript {
-            get {
-                return ResourceManager.GetString("Log_Gpu_DownloadingScript", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to [Attempt {0}] Executing script....
-        /// </summary>
-        public static string Log_Gpu_ExecutingAttempt {
-            get {
-                return ResourceManager.GetString("Log_Gpu_ExecutingAttempt", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to VM reboot required. Restarting now....
-        /// </summary>
-        public static string Log_Gpu_RebootRequired {
-            get {
-                return ResourceManager.GetString("Log_Gpu_RebootRequired", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to VM is back online. Resuming deployment....
-        /// </summary>
-        public static string Log_Gpu_VmBackOnline {
-            get {
-                return ResourceManager.GetString("Log_Gpu_VmBackOnline", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to get VM MAC address..
-        /// </summary>
-        public static string Error_Gpu_NoMac {
-            get {
-                return ResourceManager.GetString("Error_Gpu_NoMac", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to No valid IPv4 address found..
-        /// </summary>
-        public static string Error_Gpu_NoIpv4 {
-            get {
-                return ResourceManager.GetString("Error_Gpu_NoIpv4", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Cancelled.
-        /// </summary>
-        public static string Msg_Gpu_Cancelled {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_Cancelled", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to VM failed to come back online after reboot..
-        /// </summary>
-        public static string Error_Gpu_RebootNoResponse {
-            get {
-                return ResourceManager.GetString("Error_Gpu_RebootNoResponse", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Script execution failed (no success signal)..
-        /// </summary>
-        public static string Error_Gpu_ScriptNoSuccess {
-            get {
-                return ResourceManager.GetString("Error_Gpu_ScriptNoSuccess", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Maximum reboot attempts reached..
-        /// </summary>
-        public static string Error_Gpu_MaxReboots {
-            get {
-                return ResourceManager.GetString("Error_Gpu_MaxReboots", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Error: {0}.
-        /// </summary>
-        public static string Error_Gpu_LinuxGeneric {
-            get {
-                return ResourceManager.GetString("Error_Gpu_LinuxGeneric", resourceCulture);
             }
         }
         public static string VmCheckpointService_HintCloseWormholeFirst {
@@ -9754,10 +9419,8 @@ namespace ExHyperV.Properties {
         public static string Tray_Exit => ResourceManager.GetString("Tray_Exit", resourceCulture);
         public static string Gpu_ConfirmPowerOff => ResourceManager.GetString("Gpu_ConfirmPowerOff", resourceCulture);
         public static string Gpu_ConfirmWindowsInstall => ResourceManager.GetString("Gpu_ConfirmWindowsInstall", resourceCulture);
-        public static string Gpu_ConfirmLinuxStart => ResourceManager.GetString("Gpu_ConfirmLinuxStart", resourceCulture);
         public static string Gpu_DecisionExpired => ResourceManager.GetString("Gpu_DecisionExpired", resourceCulture);
         public static string Gpu_InvalidPartition => ResourceManager.GetString("Gpu_InvalidPartition", resourceCulture);
-        public static string Gpu_InvalidSshPort => ResourceManager.GetString("Gpu_InvalidSshPort", resourceCulture);
         public static string Gpu_CleanupRequired => ResourceManager.GetString("Gpu_CleanupRequired", resourceCulture);
         public static string Task_Gpu_MountIso => ResourceManager.GetString("Task_Gpu_MountIso", resourceCulture);
         public static string Msg_Gpu_MountingIso => ResourceManager.GetString("Msg_Gpu_MountingIso", resourceCulture);

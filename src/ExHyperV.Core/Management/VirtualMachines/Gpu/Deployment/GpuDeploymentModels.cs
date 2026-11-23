@@ -35,12 +35,8 @@ public enum GpuDecisionKind
     PowerOff,
     /// <summary>选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。</summary>
     SelectPartition,
-    /// <summary>无法直接向分区写入驱动（如启用 BitLocker），选择跳过驱动或挂载驱动光盘。</summary>
-    DriverFallback,
-    /// <summary>确认启动 Linux 来宾以继续在线部署。</summary>
-    StartLinux,
-    /// <summary>提交部署脚本和 SSH 凭据。</summary>
-    LinuxCredentials
+    /// <summary>无法直接向分区写入驱动（如启用 BitLocker 或非 Windows 分区），选择跳过驱动或挂载驱动光盘。</summary>
+    DriverFallback
 }
 /// <summary>一个待确认事项所接受的输入结构。</summary>
 public enum GpuDecisionInput
@@ -50,9 +46,7 @@ public enum GpuDecisionInput
     /// <summary>使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。</summary>
     Partition,
     /// <summary>使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。</summary>
-    DriverFallback,
-    /// <summary>使用 GpuLinuxInput 提交脚本和 SSH 凭据。</summary>
-    LinuxCredentials
+    DriverFallback
 }
 /// <summary>无法直接写入离线驱动或用户选择不直接注入时的回退动作。</summary>
 public enum GpuDriverFallbackAction
@@ -139,17 +133,15 @@ public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulon
 /// <param name="Title">本地化标题。</param>
 /// <param name="Message">本地化操作说明。</param>
 /// <param name="Partitions">可供选择的分区快照；会话发布的是只读列表。</param>
-/// <param name="SuggestedHost">建议的 Linux IPv4 地址；空字符串表示未取得。</param>
 /// <param name="CanGoBack">是否允许从当前事项返回分区选择。</param>
 public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message,
-    IReadOnlyList<GpuDeploymentPartition> Partitions, string SuggestedHost = "", bool CanGoBack = false)
+    IReadOnlyList<GpuDeploymentPartition> Partitions, bool CanGoBack = false)
 {
     /// <summary>由 Kind 推导出的输入结构类别。</summary>
     public GpuDecisionInput Input => Kind switch
     {
         GpuDecisionKind.SelectPartition => GpuDecisionInput.Partition,
         GpuDecisionKind.DriverFallback => GpuDecisionInput.DriverFallback,
-        GpuDecisionKind.LinuxCredentials => GpuDecisionInput.LinuxCredentials,
         _ => GpuDecisionInput.Confirmation
     };
     /// <summary>是否为直接关闭虚拟机等具有破坏性的确认；其他步骤仍可能有配置副作用。</summary>
@@ -221,11 +213,6 @@ public sealed record GpuPartitionSelection(Guid RequestId, string PartitionId) :
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 /// <param name="Action">要执行的替代动作。</param>
 public sealed record GpuDriverFallbackSelection(Guid RequestId, GpuDriverFallbackAction Action) : GpuDeploymentDecision(RequestId);
-/// <summary>为 Linux 部署提供脚本和 SSH 凭据；会话在处理前复制二者，避免后续调用方修改影响待执行操作。</summary>
-/// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
-/// <param name="Script">选定的部署脚本；类型允许 null，但提交 Linux 决定时不能为空。</param>
-/// <param name="Credentials">SSH 凭据；类型允许 null，但提交 Linux 决定时不能为空，端口及代理需有效。</param>
-public sealed record GpuLinuxInput(Guid RequestId, LinuxGpuDeploymentScript? Script, SshCredentials? Credentials) : GpuDeploymentDecision(RequestId);
 /// <summary>请求从允许返回的待确认事项回到系统分区选择。</summary>
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 public sealed record GpuBackToPartitions(Guid RequestId) : GpuDeploymentDecision(RequestId);

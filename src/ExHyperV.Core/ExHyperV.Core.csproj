@@ -60,7 +60,6 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="SSH.NET" Version="2024.1.0" />
     <EmbeddedResource Include="Assets/pci.ids" LogicalName="ExHyperV.Assets.pci.ids" />
   </ItemGroup>
   <Target Name="ValidateConsoleNativePackages" BeforeTargets="PrepareForBuild;GenerateNuspec" Condition="'$(DesignTimeBuild)' != 'true'">

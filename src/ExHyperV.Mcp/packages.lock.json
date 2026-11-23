@@ -47,11 +47,6 @@
         "resolved": "1.4.2",
         "contentHash": "yjj+3zgz8zgXpiiC3ZdF/iyTBbz2fFvMxZFEBPUcwZjIvXOf37Ylm+K58hqMfIBt5JgU/Z2uoUS67JmTLe973A=="
       },
-      "SSH.NET": {
-        "type": "Transitive",
-        "resolved": "2024.1.0",
-        "contentHash": "pyOea9czgC+OwMoetuWtMuwRebOyskKkqTZtODgyEZ5K6JwV+Hh/GFiyYubl93YnEvmvNZeuyWyUDsb3LvBDYA=="
-      },
       "System.Configuration.ConfigurationManager": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -76,7 +71,6 @@
       "exhyperv.core": {
         "type": "Project",
         "dependencies": {
-          "SSH.NET": "[2024.1.0, )",
           "SharpZipLib": "[1.4.2, )",
           "System.Diagnostics.PerformanceCounter": "[8.0.0, )"
         }

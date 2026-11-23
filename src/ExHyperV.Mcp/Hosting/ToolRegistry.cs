@@ -83,7 +83,6 @@ public static class ToolRegistry
         else if (name == "host_hyperv_status") data = Shape(("success", "boolean"), ("isReady", "boolean"), ("statusText", "string"), ("diagnostics", "object"));
         else if (name == "host_system_info") data = Shape(("success", "boolean"));
         else if (name == "vm_query_fields") data = Shape(("success", "boolean"), ("total", "integer"), ("offset", "integer"), ("limit", "integer"), ("fields", "array"));
-        else if (name == "gpu_linux_scripts") data = Shape(("success", "boolean"), ("scripts", "array"));
         else if (name is "server_request_release" or "server_task_release" or "core_api_set" or "core_callback_reply" or "core_operation_release" or "core_object_release" or "core_event_unsubscribe" or "gpu_deployment_release")
             data = Shape(("success", "boolean"));
         else throw new InvalidOperationException($"工具 {name} 需要登记返回结构。");

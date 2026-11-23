@@ -195,7 +195,7 @@ var options = new VmGenerationUpgradeOptions { EnableSecureBoot = true };
 
 ## 部署流程
 
-给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区、安装 Windows 驱动或通过 SSH 部署 Linux 驱动。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
+给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区、写入 Windows 驱动或挂载驱动光盘。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
 
 ### 用一个循环跑完部署
 
@@ -294,7 +294,7 @@ var options = new VmGenerationUpgradeOptions { EnableSecureBoot = true };
 
 | 迁移项 | 老写法 / 旧行为 | 新版写法 / 注意事项 |
 | --- | --- | --- |
-| **定位虚拟机** | 传虚拟机名称字符串 | 绝大多数接口改为传 **GUID**。设备操作传查询返回的设备引用（Linux GPU 部署保留原名称入口） |
+| **定位虚拟机** | 传虚拟机名称字符串 | 绝大多数接口改为传 **GUID**。设备操作传查询返回的设备引用 |
 | **读取内存 / 处理器设置** | 直接读 `response.Data.Startup` | 返回值改为 `VmSettingsSnapshot<T>`：先看 `States["Startup"] == Available`，再读 `Values.Startup` |
 | **部分字段写入** | 传整个设置对象覆盖 | `VmProcessorService` / `VmMemoryService` / `VmNetworkService` 必须传 `changedProperties` 指定只改哪些字段 |
 | **单位换算** | 旧界面百分比/换算值 | 处理器 `Reservation`/`Limit` 用 `0.001%`（`100000` = 100%）。内存 `Weight` 用原始权重。网卡带宽用 `bit/s` |

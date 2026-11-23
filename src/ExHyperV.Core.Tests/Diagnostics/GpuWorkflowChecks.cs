@@ -15,8 +15,6 @@ internal static class GpuWorkflowChecks
             catch (InvalidOperationException) { return true; }
             catch (ArgumentException) { return true; }
         }
-        static SshCredentials Credentials() => new() { Host = "192.0.2.1", Port = 22, Username = "root", Password = "private" };
-        static LinuxGpuDeploymentScript Script() => new() { Name = "fixture", FileName = "fixture.sh", SourceUrl = "https://example.invalid/fixture.sh" };
 
         var noDriver = new Backend { Off = false };
         var noDriverSession = new GpuDeploymentSession(noDriver, GpuDeploymentMode.AddWithoutDrivers);
@@ -47,8 +45,8 @@ internal static class GpuWorkflowChecks
         var powerRequest = pending.PendingDecision!;
         check(await Rejected(() => session.SubmitDecisionAsync(new GpuConfirmation(Guid.NewGuid(), true)))
             && session.GetStatus().PendingDecision?.Id == powerRequest.Id, "A stale decision leaves the pending operation intact");
-        check(await Rejected(() => session.SubmitDecisionAsync(new GpuLinuxInput(powerRequest.Id, Script(), Credentials())))
-            && windows.Calls.Count == 0, "A caller cannot skip power confirmation by submitting SSH input");
+        check(await Rejected(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(powerRequest.Id, GpuDriverFallbackAction.SkipDriver)))
+            && windows.Calls.Count == 0, "A caller cannot skip power confirmation by submitting fallback input");
         var finished = await Yes(session);
         check(finished.State == GpuDeploymentState.Completed && windows.Calls.Count(c => c == "Windows") == 1
             && windows.MetadataRecordedCount == 1,
@@ -88,7 +86,7 @@ internal static class GpuWorkflowChecks
             && manual.MetadataRecordedCount == 0,
             "Selecting Windows executes sync immediately; driver failure removes this deployment's adapter without recording metadata");
 
-        foreach (var os in new[] { OperatingSystemType.Unknown, OperatingSystemType.EFI })
+        foreach (var os in new[] { OperatingSystemType.Unknown, OperatingSystemType.EFI, OperatingSystemType.Linux })
         {
             var unsupported = new GpuDeploymentSession(new Backend { Os = os });
             var choice = await unsupported.StartAsync();
@@ -261,33 +259,15 @@ internal static class GpuWorkflowChecks
         var linux = new Backend { Os = OperatingSystemType.Linux, GpuCount = 2 };
         var linuxSession = new GpuDeploymentSession(linux);
         var linuxPending = await linuxSession.StartAsync();
-        check(linuxPending.PendingDecision?.Kind == GpuDecisionKind.StartLinux && !linux.Calls.Contains("Start"),
-            "Linux boot requires explicit consent");
-        var ssh = await Yes(linuxSession);
-        check(ssh.PendingDecision?.Input == GpuDecisionInput.LinuxCredentials && ssh.PendingDecision.SuggestedHost == "192.0.2.1",
-            "Core prepares Linux and returns SSH input with an IP suggestion");
-        var sshId = ssh.PendingDecision!.Id;
-        var invalid = Credentials(); invalid.Port = 0;
-        check(await Rejected(() => linuxSession.SubmitDecisionAsync(new GpuLinuxInput(sshId, Script(), invalid)))
-            && linuxSession.GetStatus().PendingDecision?.Id == sshId, "Invalid SSH input stays at the same decision");
-        invalid = Credentials(); invalid.UseProxy = true; invalid.ProxyPort = 70000;
-        check(await Rejected(() => linuxSession.SubmitDecisionAsync(new GpuLinuxInput(sshId, Script(), invalid))),
-            "Proxy validation belongs to Core");
-        check(await Rejected(() => linuxSession.SubmitDecisionAsync(new GpuLinuxInput(sshId, null, Credentials()))),
-            "Missing Linux script cannot advance the state machine");
-        var back = await linuxSession.SubmitDecisionAsync(new GpuBackToPartitions(sshId));
-        check(back.PendingDecision?.Kind == GpuDecisionKind.SelectPartition && back.PendingDecision.Id != sshId && linux.Off == false,
-            "Returning to partition choice issues a fresh decision without mounting a running guest's disk");
-        check(await Rejected(() => linuxSession.SubmitDecisionAsync(new GpuLinuxInput(sshId, Script(), Credentials()))),
-            "An old SSH form cannot submit after returning to partitions");
-        ssh = await linuxSession.SubmitDecisionAsync(new GpuPartitionSelection(back.PendingDecision!.Id, back.PendingDecision.Partitions[0].Id));
-        var credentials = Credentials();
-        var linuxResult = await linuxSession.SubmitDecisionAsync(new GpuLinuxInput(ssh.PendingDecision!.Id, Script(), credentials));
-        check(linuxResult.State == GpuDeploymentState.Completed && linux.Calls.Count(c => c == "Linux") == 1
-            && linuxResult.Steps.Last().Status == GpuDeploymentStepStatus.Success && linux.MetadataRecordedCount == 1 && linux.RecordedPrimaryOnly,
-            "Core interprets Linux progress, completion, and guest driver metadata without WPF");
-        check(credentials.Host == "192.0.2.1" && !System.Text.Json.JsonSerializer.Serialize(linuxResult).Contains("private"),
-            "Backend credential changes do not mutate the caller or leak passwords into state");
+        check(linuxPending.PendingDecision?.Kind == GpuDecisionKind.SelectPartition
+            && await Rejected(() => linuxSession.SubmitDecisionAsync(new GpuPartitionSelection(linuxPending.PendingDecision!.Id, linuxPending.PendingDecision.Partitions[0].Id)))
+            && !linux.Calls.Contains("Windows"),
+            "Non-Windows partitions require explicit fallback and cannot proceed with direct driver sync");
+        var linuxIso = await linuxSession.SubmitDecisionAsync(
+            new GpuDriverFallbackSelection(linuxPending.PendingDecision!.Id, GpuDriverFallbackAction.MountIso));
+        check(linuxIso.State == GpuDeploymentState.Completed && linuxIso.IsDriverIsoMounted
+            && linux.Calls.Contains("MountIso") && !linux.Calls.Contains("Windows") && linux.MetadataRecordedCount == 0,
+            "Linux partition uses MountIso fallback cleanly without guest driver metadata writes");
 
         var assigned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -438,7 +418,7 @@ internal static class GpuWorkflowChecks
         public List<string> Removed { get; } = new();
         public int GpuCount { get; set; } = 1;
         public int FailAssignAtIndex { get; set; } = -1;
-        public bool RecordedPrimaryOnly, MountUnknown;
+        public bool MountUnknown;
         public Action? MountReturned;
         public int MetadataRecordedCount { get; private set; }
         public bool FailDrivers, MultiplePartitions, IncludeEfiPartition, UnidentifiedAssignment, TargetChanged, FailRemoval, BitLocker, BitLockerAtSync, InvalidSystemPartAtSync;
@@ -517,19 +497,10 @@ internal static class GpuWorkflowChecks
             if (MountUnknown) return Task.FromResult(ApiResponse<string>.Fail("pending", kind: ApiErrorKind.OutcomeUnknown));
             return Task.FromResult(ApiResponse<string>.Ok(@"C:\Temp\fixture.iso"));
         }
-        public Task RecordGuestDriverVersionsAsync(bool primaryOnly = false)
+        public Task RecordGuestDriverVersionsAsync()
         {
-            RecordedPrimaryOnly = primaryOnly;
             MetadataRecordedCount++;
             return Task.CompletedTask;
-        }
-        public Task<string> FindIpAsync() => Task.FromResult("192.0.2.1");
-        public Task<string> ProvisionLinuxAsync(LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> log, CancellationToken token)
-        {
-            Calls.Add("Linux");
-            credentials.Host = "192.0.2.2";
-            log("[STEP: Installing]");
-            return Task.FromResult("OK");
         }
     }
 }

@@ -106,7 +106,6 @@ public sealed partial class VmGpuSettingsView
 
         overview.Visibility = selection.Visibility = Visibility.Collapsed;
         deployment.Visibility = Visibility.Visible;
-        _ = EnsureScriptsLoadedAsync(showWarningOnEmpty: false);
         ApplySnapshot(session, session.GetStatus());
 
         // Core 可同步调用底层能力；整步在后台执行，通知只排队，不阻塞 Core。
@@ -358,7 +357,7 @@ public sealed partial class VmGpuSettingsView
 
             if (isActive && value.State == GpuDeploymentState.WaitingForDecision && value.PendingDecision != null
                 && step.Type == GpuDeploymentStepKind.Driver
-                && value.PendingDecision.Kind is GpuDecisionKind.SelectPartition or GpuDecisionKind.LinuxCredentials)
+                && value.PendingDecision.Kind == GpuDecisionKind.SelectPartition)
             {
                 UIElement decisionCard = BuildDecisionPanel(value.PendingDecision);
                 stepsPanel.Children.Add(decisionCard);
@@ -367,7 +366,7 @@ public sealed partial class VmGpuSettingsView
         }
 
         if (value.State == GpuDeploymentState.WaitingForDecision && value.PendingDecision != null && !placedDecisionCard
-            && value.PendingDecision.Kind is GpuDecisionKind.SelectPartition or GpuDecisionKind.LinuxCredentials)
+            && value.PendingDecision.Kind == GpuDecisionKind.SelectPartition)
         {
             fallbackDecisionPanel.Children.Add(BuildDecisionPanel(value.PendingDecision));
             fallbackDecisionHost.Visibility = Visibility.Visible;

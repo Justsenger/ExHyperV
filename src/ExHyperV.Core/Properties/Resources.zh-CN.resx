@@ -499,9 +499,6 @@
   <data name="Error_CheckForUpdateFailed" xml:space="preserve">
     <value>检查更新失败，请检查网络连接。</value>
   </data>
-  <data name="Error_SshCommandFailed" xml:space="preserve">
-    <value>[X] 命令执行失败。错误码: {0}): {1}</value>
-  </data>
   <data name="Error_LocalDirectoryNotFound" xml:space="preserve">
     <value>[X] 本地目录未找到: {0}</value>
   </data>
@@ -517,15 +514,6 @@
   <data name="Button_Cancel" xml:space="preserve">
     <value>取消</value>
   </data>
-  <data name="Label_ConnectToLinuxVm" xml:space="preserve">
-    <value>连接到 Linux 虚拟机</value>
-  </data>
-  <data name="Label_HostIpAddress" xml:space="preserve">
-    <value>主机 IP 地址:</value>
-  </data>
-  <data name="Placeholder_IpAddressExample" xml:space="preserve">
-    <value>例如: 192.168.1.100</value>
-  </data>
   <data name="Label_Port" xml:space="preserve">
     <value>端口:</value>
   </data>
@@ -538,20 +526,8 @@
   <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
     <value>安装 OpenGL/Vulkan 图形驱动（更耗时）</value>
   </data>
-  <data name="GroupBox_HttpProxyOptional" xml:space="preserve">
-    <value>HTTP 代理 (可选)</value>
-  </data>
-  <data name="Info_UseProxyForGitHub" xml:space="preserve">
-    <value>如果不能直连 GitHub.com，请使用稳定可靠的代理。</value>
-  </data>
-  <data name="Label_ProxyIpAddress" xml:space="preserve">
-    <value>代理 IP 地址:</value>
-  </data>
   <data name="Button_Connect" xml:space="preserve">
     <value>连接</value>
-  </data>
-  <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
-    <value>代理 IP 和端口必须同时填写或同时为空。</value>
   </data>
   <data name="ComputeResources" xml:space="preserve">
     <value>计算资源</value>
@@ -909,15 +885,6 @@
   </data>
   <data name="Error_Common_NoPartitionSelected" xml:space="preserve">
     <value>未选择分区</value>
-  </data>
-  <data name="Msg_Gpu_LinuxWaitingIp" xml:space="preserve">
-    <value>正在等待虚拟机网络就绪并获取 IP...</value>
-  </data>
-  <data name="Error_Gpu_SshTimeout" xml:space="preserve">
-    <value>SSH 连接超时，请检查虚拟机网络设置。</value>
-  </data>
-  <data name="Msg_Gpu_LinuxRemoteInit" xml:space="preserve">
-    <value>远程环境初始化完成，临时目录: {0}</value>
   </data>
   <data name="Status_Running" xml:space="preserve">
     <value>正在运行</value>
@@ -1404,45 +1371,6 @@
   </data>
   <data name="Error_Gpu_Rollback" xml:space="preserve">
     <value>[回滚] 驱动同步失败: {0}</value>
-  </data>
-  <data name="Msg_Gpu_LinuxVm" xml:space="preserve">
-    <value>检测到 Linux 分区，正在等待虚拟机启动...</value>
-  </data>
-  <data name="Msg_Gpu_IpSniff" xml:space="preserve">
-    <value>正在自动启动虚拟机以初始化网络...</value>
-  </data>
-  <data name="Msg_Gpu_IpScanning" xml:space="preserve">
-    <value>正在嗅探虚拟机 IP 地址...</value>
-  </data>
-  <data name="Msg_Gpu_IpOk" xml:space="preserve">
-    <value>成功获取 IP 地址: {0}</value>
-  </data>
-  <data name="Error_Gpu_IpManual" xml:space="preserve">
-    <value>未能自动获取到 IP，请手动输入。</value>
-  </data>
-  <data name="Msg_Gpu_SshConfirm" xml:space="preserve">
-    <value>请确认 SSH 凭据以开始部署...</value>
-  </data>
-  <data name="Error_Gpu_EnvFail" xml:space="preserve">
-    <value>环境获取失败</value>
-  </data>
-  <data name="Warn_Gpu_EnvExc" xml:space="preserve">
-    <value>[警告] 获取环境异常: {0}</value>
-  </data>
-  <data name="Msg_Gpu_DeployStart" xml:space="preserve">
-    <value>&gt;&gt;&gt; 开始 Linux 部署流程</value>
-  </data>
-  <data name="Msg_Gpu_UsingProxy" xml:space="preserve">
-    <value>使用代理: {0}:{1}</value>
-  </data>
-  <data name="Msg_Gpu_LinuxDeployDone" xml:space="preserve">
-    <value>&gt;&gt;&gt; Linux 部署任务全部完成。</value>
-  </data>
-  <data name="Error_Gpu_LinuxRollback" xml:space="preserve">
-    <value>[回滚] Linux 部署失败，正在移除 GPU 分区...</value>
-  </data>
-  <data name="Error_Gpu_DeployFatal" xml:space="preserve">
-    <value>&gt;&gt;&gt; [严重错误] Linux 部署失败: {0}</value>
   </data>
   <data name="Msg_Gpu_SelectPart" xml:space="preserve">
     <value>请选择目标分区进行适配...</value>
@@ -2899,12 +2827,6 @@
   <data name="Error_Gpu_PowerOffTimeout" xml:space="preserve">
     <value>等待虚拟机关机超时。</value>
   </data>
-  <data name="Msg_Gpu_LinuxDetected" xml:space="preserve">
-    <value>检测到 Linux 系统，正在跳转到 SSH 设置…</value>
-  </data>
-  <data name="Msg_Gpu_LinuxAutoPrep" xml:space="preserve">
-    <value>检测到单个 Linux 分区，正在自动准备环境…</value>
-  </data>
   <data name="VmSecurity_Title" xml:space="preserve">
     <value>安全</value>
   </data>
@@ -2941,50 +2863,8 @@
   <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
     <value>将虚拟机标记为受防护，会强制启用 TPM 与加密</value>
   </data>
-  <data name="Log_Gpu_SelectedScript" xml:space="preserve">
-    <value>[信息] 已选脚本：{0}</value>
-  </data>
   <data name="Log_Gpu_Syncing" xml:space="preserve">
     <value>正在同步：{0} -&gt; {1}</value>
-  </data>
-  <data name="Log_Gpu_StartingVm" xml:space="preserve">
-    <value>[ExHyperV] 正在启动虚拟机…</value>
-  </data>
-  <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
-    <value>正在上传驱动与 WSL 库…</value>
-  </data>
-  <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
-    <value>正在虚拟机内下载远程脚本：{0}</value>
-  </data>
-  <data name="Log_Gpu_ExecutingAttempt" xml:space="preserve">
-    <value>[第 {0} 次] 正在执行脚本…</value>
-  </data>
-  <data name="Log_Gpu_RebootRequired" xml:space="preserve">
-    <value>需要重启虚拟机，正在重启…</value>
-  </data>
-  <data name="Log_Gpu_VmBackOnline" xml:space="preserve">
-    <value>虚拟机已恢复在线，继续部署…</value>
-  </data>
-  <data name="Error_Gpu_NoMac" xml:space="preserve">
-    <value>未能获取虚拟机 MAC 地址。</value>
-  </data>
-  <data name="Error_Gpu_NoIpv4" xml:space="preserve">
-    <value>未找到有效的 IPv4 地址。</value>
-  </data>
-  <data name="Msg_Gpu_Cancelled" xml:space="preserve">
-    <value>已取消</value>
-  </data>
-  <data name="Error_Gpu_RebootNoResponse" xml:space="preserve">
-    <value>虚拟机重启后未能恢复在线。</value>
-  </data>
-  <data name="Error_Gpu_ScriptNoSuccess" xml:space="preserve">
-    <value>脚本执行失败（未收到成功信号）。</value>
-  </data>
-  <data name="Error_Gpu_MaxReboots" xml:space="preserve">
-    <value>已达最大重启次数。</value>
-  </data>
-  <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
-    <value>错误：{0}</value>
   </data>
   <data name="VmCheckpointService_HintCloseWormholeFirst" xml:space="preserve">
     <value>存在已挂载的历史磁盘，请先卸载后再创建、删除或合并检查点。</value>
@@ -3840,10 +3720,8 @@
   <data name="Network_PortStateUnavailable" xml:space="preserve"><value>无法读取端口配置，请刷新后重试。</value></data>
   <data name="Gpu_ConfirmPowerOff" xml:space="preserve"><value>部署 GPU 驱动需要关闭虚拟机。现在强制关机吗？来宾中未保存的数据可能丢失。</value></data>
   <data name="Gpu_ConfirmWindowsInstall" xml:space="preserve"><value>要向 {0} 安装 GPU 驱动吗？这会写入所选 Windows 分区。</value></data>
-  <data name="Gpu_ConfirmLinuxStart" xml:space="preserve"><value>要启动此虚拟机，以便通过 SSH 继续安装 GPU 驱动吗？</value></data>
   <data name="Gpu_DecisionExpired" xml:space="preserve"><value>此操作不适用于当前部署状态。请读取最新状态后重试。</value></data>
-  <data name="Gpu_InvalidPartition" xml:space="preserve"><value>所选分区不可用、已经变化，或不是支持的 Windows/Linux 系统分区。</value></data>
-  <data name="Gpu_InvalidSshPort" xml:space="preserve"><value>SSH 端口必须介于 1 和 65535 之间。</value></data>
+  <data name="Gpu_InvalidPartition" xml:space="preserve"><value>所选分区不可用、已经变化，或不是支持的 Windows 系统分区。</value></data>
   <data name="Gpu_CleanupRequired" xml:space="preserve"><value>无法移除本次部署新增的 GPU 分配。请重试清理后再开始新的部署。</value></data>
   <data name="Task_Gpu_MountIso" xml:space="preserve"><value>挂载驱动光盘</value></data>
   <data name="Msg_Gpu_MountingIso" xml:space="preserve"><value>正在生成并挂载驱动光盘...</value></data>

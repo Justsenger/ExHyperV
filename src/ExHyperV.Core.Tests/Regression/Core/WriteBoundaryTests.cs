@@ -140,13 +140,6 @@ public sealed class WriteBoundaryTests
         }
     }
     [TestMethod]
-    public void LinuxReceiptRequiresAnExactStatusLine()
-    {
-        Assert.IsTrue(VmGpuService.HasLinuxStatus("log\n[STATUS: SUCCESS]\nexit", "SUCCESS"));
-        Assert.IsTrue(VmGpuService.HasLinuxStatus("[10:02:59] [STATUS: SUCCESS]", "SUCCESS"));
-        Assert.IsFalse(VmGpuService.HasLinuxStatus("did not reach [STATUS: SUCCESS]", "SUCCESS"));
-    }
-    [TestMethod]
     public void GuardianIdentityBindsBothCertificatesFromTheSameMetadataElement()
     {
         using var key = System.Security.Cryptography.ECDsa.Create();

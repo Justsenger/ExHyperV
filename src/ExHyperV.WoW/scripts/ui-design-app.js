@@ -11,7 +11,6 @@ import {
   INITIAL_GPU_ASSIGNMENTS,
   HOST_GPUS,
   INITIAL_GPU_PARTITIONS,
-  LINUX_GPU_SCRIPTS,
   INITIAL_BOOT_ENTRIES,
   INITIAL_SERIAL_PORTS,
   INITIAL_VTPM_BY_VM,
@@ -181,13 +180,6 @@ export function initUiDesignWorkbench() {
     gpuDeployDecision: 'SelectPartition',
     gpuSelectedPartitionId: INITIAL_GPU_PARTITIONS[0].id,
     gpuLogExpanded: false,
-    gpuLinuxForm: {
-      host: '172.24.118.94',
-      port: '22',
-      username: 'ubuntu',
-      password: '••••••',
-      scriptId: LINUX_GPU_SCRIPTS[0].id
-    },
     gpuAssignmentsByVm: {
       'vm-test': structuredClone(INITIAL_GPU_ASSIGNMENTS),
       'vm-win11-arm64': structuredClone(INITIAL_GPU_ASSIGNMENTS),
@@ -5078,7 +5070,6 @@ export function initUiDesignWorkbench() {
         vm: getVm(),
         HOST_GPUS,
         INITIAL_GPU_PARTITIONS,
-        LINUX_GPU_SCRIPTS,
         INITIAL_GPU_ASSIGNMENTS,
         renderTitleFirstKvItemHtml,
         renderSettingLabelHtml,

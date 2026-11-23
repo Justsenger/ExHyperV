@@ -194,7 +194,6 @@ export function renderGpuWorkbench(host, ctx) {
     vm,
     HOST_GPUS,
     INITIAL_GPU_PARTITIONS,
-    LINUX_GPU_SCRIPTS,
     INITIAL_GPU_ASSIGNMENTS,
     renderTitleFirstKvItemHtml,
     renderSettingLabelHtml,
@@ -234,13 +233,12 @@ export function renderGpuWorkbench(host, ctx) {
     if (INITIAL_GPU_PARTITIONS.length === 0) {
       return 'FallbackOptions';
     }
-    if (INITIAL_GPU_PARTITIONS.length === 1 && !INITIAL_GPU_PARTITIONS[0].locked) {
+    if (INITIAL_GPU_PARTITIONS.length === 1) {
       const only = INITIAL_GPU_PARTITIONS[0];
-      state.gpuSelectedPartitionId = only.id;
-      if (only.osType === 'Linux') {
-        return vm.running ? 'LinuxCredentials' : 'StartLinux';
+      if (!only.locked && only.osType === 'Windows') {
+        state.gpuSelectedPartitionId = only.id;
+        return 'AutoWindows';
       }
-      return 'AutoWindows';
     }
     return 'SelectPartition';
   };
@@ -261,12 +259,6 @@ export function renderGpuWorkbench(host, ctx) {
     if (curLabel === driverStepLabel && !state.gpuDeployPartitionResolved) {
       const nextDec = resolveAfterScanDecision();
       if (nextDec === 'SelectPartition' || nextDec === 'FallbackOptions') {
-        state.gpuDeployDecision = nextDec;
-        rerender();
-        return;
-      }
-      if (nextDec === 'StartLinux' || nextDec === 'LinuxCredentials') {
-        state.gpuDeployPartitionResolved = true;
         state.gpuDeployDecision = nextDec;
         rerender();
         return;
@@ -505,15 +497,6 @@ export function renderGpuWorkbench(host, ctx) {
           <button class="winui-btn accent" id="gpuDecisionMountIsoBtn" type="button">挂载驱动光盘</button>
         </div>
       `;
-    } else if (decision === 'StartLinux') {
-      inlineActionsStep = driverStepLabel;
-      inlineActionsHtml = `
-        <div class="dev-action-row" style="margin-top:0;">
-          <button class="winui-btn" id="gpuDecisionCancelBtn" type="button">返回</button>
-          <button class="winui-btn" id="gpuDecisionBackPartBtn" type="button">重选分区</button>
-          <button class="winui-btn accent" id="gpuDecisionStartLinuxBtn" type="button">开机并继续</button>
-        </div>
-      `;
     } else if (decision === 'SelectPartition') {
       inlineDecisionTargetStep = driverStepLabel;
       const selectedPart = INITIAL_GPU_PARTITIONS.find((p) => p.id === state.gpuSelectedPartitionId) || INITIAL_GPU_PARTITIONS[0];
@@ -535,7 +518,8 @@ export function renderGpuWorkbench(host, ctx) {
         `;
       }).join('');
 
-      const partActionBtnsHtml = selectedPart?.locked
+      const isUnsupported = !selectedPart || selectedPart.locked || selectedPart.osType !== 'Windows';
+      const partActionBtnsHtml = isUnsupported
         ? `
           <button class="winui-btn" id="gpuBackListFromDeployBtn" type="button">返回</button>
           <button class="winui-btn accent" id="gpuDecisionMountIsoBtn" type="button">挂载驱动光盘</button>
@@ -550,42 +534,6 @@ export function renderGpuWorkbench(host, ctx) {
           <div class="dev-picker-list">${partRows}</div>
           <div class="dev-action-row" style="justify-content:flex-end;">
             ${partActionBtnsHtml}
-          </div>
-        </div>
-      `;
-    } else if (decision === 'LinuxCredentials') {
-      inlineDecisionTargetStep = driverStepLabel;
-      const f = state.gpuLinuxForm;
-      decisionBoxHtml = `
-        <div class="dev-inline-decision">
-          <div class="dev-ssh-grid">
-            <div class="dev-field-col">
-              <label class="dev-field-lbl">主机 / IP</label>
-              <input class="winui-textbox" id="gpuSshHostInput" type="text" value="${escapeDeviceHtml(f.host)}" />
-            </div>
-            <div class="dev-field-col">
-              <label class="dev-field-lbl">端口</label>
-              <input class="winui-textbox" id="gpuSshPortInput" type="text" value="${escapeDeviceHtml(f.port)}" />
-            </div>
-            <div class="dev-field-col">
-              <label class="dev-field-lbl">用户名</label>
-              <input class="winui-textbox" id="gpuSshUserInput" type="text" value="${escapeDeviceHtml(f.username)}" />
-            </div>
-            <div class="dev-field-col">
-              <label class="dev-field-lbl">密码</label>
-              <input class="winui-textbox" id="gpuSshPassInput" type="password" value="${escapeDeviceHtml(f.password)}" />
-            </div>
-            <div class="dev-field-col span-2">
-              <label class="dev-field-lbl">部署脚本</label>
-              <select class="winui-select" id="gpuSshScriptSelect">
-                ${LINUX_GPU_SCRIPTS.map((s) => `<option value="${s.id}" ${f.scriptId === s.id ? 'selected' : ''}>${escapeDeviceHtml(s.label)}</option>`).join('')}
-              </select>
-            </div>
-          </div>
-          <div class="dev-action-row" style="justify-content:flex-end;">
-            <button class="winui-btn" id="gpuBackListFromDeployBtn" type="button">返回</button>
-            <button class="winui-btn" id="gpuDecisionBackPartBtn" type="button">重选分区</button>
-            <button class="winui-btn accent" id="gpuDecisionLinuxDeployBtn" type="button">开始部署</button>
           </div>
         </div>
       `;
@@ -631,7 +579,7 @@ export function renderGpuWorkbench(host, ctx) {
       .join('');
 
     const hasInlineBackBtn = Boolean(
-      inlineActionsStep || decision === 'SelectPartition' || decision === 'LinuxCredentials'
+      inlineActionsStep || decision === 'SelectPartition'
     );
     const footerHtml = isDone
       ? `
@@ -681,17 +629,11 @@ export function renderGpuWorkbench(host, ctx) {
       });
     });
     host.querySelector('#gpuDecisionPartNextBtn')?.addEventListener('click', () => {
-      const part = INITIAL_GPU_PARTITIONS.find((p) => p.id === state.gpuSelectedPartitionId && !p.locked) || INITIAL_GPU_PARTITIONS[0];
       state.gpuDeployPartitionResolved = true;
-      if (part.osType === 'Linux') {
-        state.gpuDeployDecision = vm.running ? 'LinuxCredentials' : 'StartLinux';
-        rerender();
-      } else {
-        state.gpuDeployDecision = 'Running';
-        state.gpuDeploySimIdx = steps.indexOf(driverStepLabel);
-        rerender();
-        advanceDeploySimulation();
-      }
+      state.gpuDeployDecision = 'Running';
+      state.gpuDeploySimIdx = steps.indexOf(driverStepLabel);
+      rerender();
+      advanceDeploySimulation();
     });
     host.querySelector('#gpuDecisionSkipDriverBtn')?.addEventListener('click', () => {
       clearDeployTimer();
@@ -718,25 +660,6 @@ export function renderGpuWorkbench(host, ctx) {
       state.gpuDriverMismatch = false;
       state.gpuDeployDecision = 'Completed';
       showNotice('已完成 Windows 驱动注入');
-      rerender();
-    });
-    host.querySelector('#gpuDecisionStartLinuxBtn')?.addEventListener('click', () => {
-      vm.running = true;
-      ctx.renderVmList?.();
-      renderDashboardSummary();
-      state.gpuDeployDecision = 'LinuxCredentials';
-      rerender();
-    });
-    host.querySelector('#gpuSshHostInput')?.addEventListener('input', (e) => { state.gpuLinuxForm.host = e.target.value; });
-    host.querySelector('#gpuSshPortInput')?.addEventListener('input', (e) => { state.gpuLinuxForm.port = e.target.value; });
-    host.querySelector('#gpuSshUserInput')?.addEventListener('input', (e) => { state.gpuLinuxForm.username = e.target.value; });
-    host.querySelector('#gpuSshPassInput')?.addEventListener('input', (e) => { state.gpuLinuxForm.password = e.target.value; });
-    host.querySelector('#gpuSshScriptSelect')?.addEventListener('change', (e) => { state.gpuLinuxForm.scriptId = e.target.value; });
-    host.querySelector('#gpuDecisionLinuxDeployBtn')?.addEventListener('click', () => {
-      markVmGpuDriversDeployed(state.gpuAssignmentsByVm[vm.id], HOST_GPUS);
-      state.gpuDriverMismatch = false;
-      state.gpuDeployDecision = 'Completed';
-      showNotice('已通过 SSH 部署 Linux 驱动');
       rerender();
     });
 

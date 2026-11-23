@@ -4109,17 +4109,6 @@
     "operation": "读取显卡部署进度"
   },
   {
-    "id": "T-64b688add0b0794e-1",
-    "api": "LinuxGpuDeploymentScript.ToString()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "固定脚本名称与说明",
-    "expected": "文本使用声明的显示字段",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "取得脚本的显示名称"
-  },
-  {
     "id": "api.gpu-select",
     "api": "VmGpuRepairService.StaleGpuPartition.SelectCandidate()",
     "group": "管理层面 / 虚拟机 / 修改 / GPU",
@@ -4131,19 +4120,6 @@
     ],
     "recovery": [],
     "order": 0
-  },
-  {
-    "id": "T-369e7cd15ebcac51-1",
-    "api": "VmGpuService.GetAvailableScriptsAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "有效在线索引及受控网络失败",
-    "expected": "有效索引解析出预期脚本清单；失败按入口约定返回空清单并保留测试证据",
-    "requirements": [
-      "internet"
-    ],
-    "recovery": [],
-    "order": 3,
-    "operation": "从在线索引读取可选 Linux GPU 部署脚本"
   },
   {
     "id": "T-0f3fa40d86861ea2-1",
@@ -4303,53 +4279,6 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 40
-  },
-  {
-    "id": "T-d053e61d72713b5a-1",
-    "api": "VmGpuService.ProvisionLinuxGpuAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "具备 SSH 和依赖的 Linux 完整副本执行脚本",
-    "expected": "脚本退出结果明确，副本重启后 Core 取得真实 GPU 性能采样",
-    "requirements": [
-      "hyperv",
-      "vm",
-      "gpupv",
-      "driver",
-      "ssh",
-      "internet",
-      "template",
-      "counters",
-      "config"
-    ],
-    "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 44,
-    "operation": "部署 Linux 显卡驱动"
-  },
-  {
-    "id": "T-d053e61d72713b5a-2",
-    "api": "VmGpuService.ProvisionLinuxGpuAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "SSH 登录失败",
-    "expected": "在 Linux 完整副本上使用错误密码请求部署，返回失败结果；副本随后清理。",
-    "requirements": [
-      "hyperv",
-      "vm",
-      "gpupv",
-      "driver",
-      "ssh",
-      "internet",
-      "template",
-      "counters"
-    ],
-    "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 44,
-    "operation": "部署 Linux 显卡驱动"
   },
   {
     "id": "T-126f66d78af91bcd-1",

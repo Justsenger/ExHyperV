@@ -722,17 +722,6 @@
       ],
       "group": "devices"
     },
-    "ExHyperV.Models.GpuLinuxInput": {
-      "title": "Linux 部署输入",
-      "role": "contract",
-      "path": [
-        "管理层面",
-        "虚拟机",
-        "修改",
-        "GPU"
-      ],
-      "group": "devices"
-    },
     "ExHyperV.Models.HostCpuAttributionSource": {
       "title": "宿主处理器占用归属来源",
       "role": "contract",
@@ -865,17 +854,6 @@
       ],
       "group": "vm"
     },
-    "ExHyperV.Models.LinuxGpuDeploymentScript": {
-      "title": "Linux GPU 部署脚本",
-      "role": "contract",
-      "path": [
-        "管理层面",
-        "虚拟机",
-        "修改",
-        "GPU"
-      ],
-      "group": "devices"
-    },
     "ExHyperV.Models.LpiMode": {
       "title": "本地外设中断模式",
       "role": "contract",
@@ -991,17 +969,6 @@
         "检查点"
       ],
       "group": "vm"
-    },
-    "ExHyperV.Models.SshCredentials": {
-      "title": "SSH 连接凭据",
-      "role": "contract",
-      "path": [
-        "管理层面",
-        "虚拟机",
-        "修改",
-        "GPU"
-      ],
-      "group": "devices"
     },
     "ExHyperV.Models.SwitchEndpointInfo": {
       "title": "交换机端点",
@@ -4685,19 +4652,6 @@
       "group": "devices",
       "readOnly": false
     },
-    "F:ExHyperV.Models.GpuDecisionInput.LinuxCredentials": {
-      "title": "LinuxCredentials",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
     "F:ExHyperV.Models.GpuDecisionInput.Partition": {
       "title": "Partition",
       "paths": [
@@ -4724,19 +4678,6 @@
       "group": "devices",
       "readOnly": false
     },
-    "F:ExHyperV.Models.GpuDecisionKind.LinuxCredentials": {
-      "title": "LinuxCredentials",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
     "F:ExHyperV.Models.GpuDecisionKind.PowerOff": {
       "title": "PowerOff",
       "paths": [
@@ -4752,19 +4693,6 @@
     },
     "F:ExHyperV.Models.GpuDecisionKind.SelectPartition": {
       "title": "SelectPartition",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "F:ExHyperV.Models.GpuDecisionKind.StartLinux": {
-      "title": "StartLinux",
       "paths": [
         [
           "管理层面",
@@ -4869,19 +4797,6 @@
     },
     "P:ExHyperV.Models.GpuDecisionRequest.Partitions": {
       "title": "可选分区",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.GpuDecisionRequest.SuggestedHost": {
-      "title": "建议地址",
       "paths": [
         [
           "管理层面",
@@ -5946,45 +5861,6 @@
       "group": "devices",
       "readOnly": false
     },
-    "C:ExHyperV.Models.GpuLinuxInput": {
-      "title": "创建Linux 部署输入对象",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.GpuLinuxInput.Credentials": {
-      "title": "SSH 凭据",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.GpuLinuxInput.Script": {
-      "title": "部署脚本",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
     "C:ExHyperV.Models.GpuPartitionSelection": {
       "title": "创建部署分区选择对象",
       "paths": [
@@ -6804,97 +6680,6 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Models.LinuxGpuDeploymentScript.ToString": {
-      "title": "获取脚本名称",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.LinuxGpuDeploymentScript.Author": {
-      "title": "脚本作者",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.LinuxGpuDeploymentScript.Description": {
-      "title": "说明",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.LinuxGpuDeploymentScript.FileName": {
-      "title": "文件名",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.LinuxGpuDeploymentScript.Name": {
-      "title": "名称",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.LinuxGpuDeploymentScript.SourceUrl": {
-      "title": "下载地址",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.LinuxGpuDeploymentScript.Version": {
-      "title": "版本",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
     "F:ExHyperV.Models.LpiMode.Default": {
       "title": "Default",
       "paths": [
@@ -7607,110 +7392,6 @@
         ]
       ],
       "group": "vm",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.SshCredentials.Host": {
-      "title": "目标地址",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.SshCredentials.InstallGraphics": {
-      "title": "安装图形支持",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.SshCredentials.Password": {
-      "title": "密码",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.SshCredentials.Port": {
-      "title": "端口",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.SshCredentials.ProxyHost": {
-      "title": "代理地址",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.SshCredentials.ProxyPort": {
-      "title": "代理端口",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.SshCredentials.UseProxy": {
-      "title": "启用代理",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.SshCredentials.Username": {
-      "title": "用户名",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
       "readOnly": false
     },
     "P:ExHyperV.Models.SwitchEndpointInfo.IpAddress": {
@@ -20821,19 +20502,6 @@
       "group": "devices",
       "readOnly": true
     },
-    "M:ExHyperV.Services.VmGpuService.GetAvailableScriptsAsync": {
-      "title": "列出 Linux GPU 部署脚本",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": true
-    },
     "M:ExHyperV.Services.VmGpuService.GetVmGpuAssignmentsAsync(System.Guid)": {
       "title": "读取 GPU 分配",
       "paths": [
@@ -20849,19 +20517,6 @@
     },
     "M:ExHyperV.Services.VmGpuService.OptimizeVmForGpuAsync(System.Guid)": {
       "title": "配置 GPU 所需环境",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "M:ExHyperV.Services.VmGpuService.ProvisionLinuxGpuAsync(System.String,System.String,System.String,ExHyperV.Models.LinuxGpuDeploymentScript,ExHyperV.Models.SshCredentials,System.Action{System.String},System.Threading.CancellationToken)": {
-      "title": "部署 Linux GPU 驱动",
       "paths": [
         [
           "管理层面",
