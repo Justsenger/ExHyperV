@@ -71,8 +71,8 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         selectActions.Children.Add(backListBtn);
         selectActions.Children.Add(beginSelectBtn);
 
-        selectionContent.Children.Add(hostGpuList);
         selectionContent.Children.Add(driverToggleCard);
+        selectionContent.Children.Add(hostGpuList);
         selectionContent.Children.Add(selectActions);
         selection.Content = selectionContent;
 
@@ -534,9 +534,9 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         Grid.SetColumn(icon, 1);
         rowGrid.Children.Add(icon);
 
-        string subText = !gpu.IsPartitionable
-            ? L10n.Get("Gpu_PartitionUnsupported")
-            : L10n.Format("Gpu_DedicatedMemory", FormatMemoryMb(gpu.MemoryBytes));
+        string boardVendor = string.IsNullOrWhiteSpace(gpu.Vendor)
+            ? (string.IsNullOrWhiteSpace(gpu.Manu) ? "---" : gpu.Manu)
+            : gpu.Vendor;
 
         var infoStack = new StackPanel { Spacing = 2, VerticalAlignment = VerticalAlignment.Center };
         infoStack.Children.Add(new TextBlock
@@ -549,10 +549,11 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         });
         infoStack.Children.Add(new TextBlock
         {
-            Text = subText,
+            Text = boardVendor,
             FontSize = 12,
             Foreground = Brush("TextFillColorSecondaryBrush"),
-            TextTrimming = TextTrimming.CharacterEllipsis
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            MaxLines = 1
         });
         Grid.SetColumn(infoStack, 2);
         rowGrid.Children.Add(infoStack);
@@ -692,8 +693,9 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
             return;
         }
         var state = await Task.Run(() => VmConfigurationState.ReadAsync(VmId));
-        string restartRequired = state.HasData && !state.Data!.IsPoweredOff ? L10n.Get("Gpu_EffectiveAfterRestart") : string.Empty;
-        Notice(L10n.Get("Gpu_AssignmentRemoved") + restartRequired + (refreshError == null ? string.Empty : "\n" + refreshError),
+        string gpuName = string.IsNullOrWhiteSpace(assignment.Name) ? "Unknown Device" : assignment.Name;
+        string restartRequired = state.HasData && !state.Data!.IsPoweredOff ? "，" + L10n.Get("Gpu_EffectiveAfterRestart") : string.Empty;
+        Notice(L10n.Format("Gpu_AssignmentRemoved", gpuName) + restartRequired + (refreshError == null ? string.Empty : "\n" + refreshError),
             refreshError == null ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
     }
 
@@ -864,13 +866,6 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
             if (ReferenceEquals(current, ancestor)) return true;
         }
         return false;
-    }
-
-    private static string FormatMemoryMb(ulong? memoryBytes)
-    {
-        if (!memoryBytes.HasValue) return L10n.Get("Host_Sched_Unknown");
-        double mb = memoryBytes.Value / (1024.0 * 1024.0);
-        return $"{mb:N0} MB";
     }
 
     private static TextBlock Label(string text, double size = 14, bool secondary = false) => new()

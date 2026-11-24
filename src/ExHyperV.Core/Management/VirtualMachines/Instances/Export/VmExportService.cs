@@ -5,18 +5,18 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-/// <summary>本次导出包含哪些检查点。</summary>
+/// <summary>本次导出包含哪些快照。</summary>
 public enum VmExportCheckpointMode
 {
-    /// <summary>仅导出当前虚拟机，不包含检查点树。</summary>
+    /// <summary>仅导出当前虚拟机，不包含快照树。</summary>
     None,
-    /// <summary>导出全部检查点。</summary>
+    /// <summary>导出全部快照。</summary>
     All,
-    /// <summary>导出选定检查点；执行时强制包含其磁盘和运行状态。</summary>
+    /// <summary>导出选定快照，执行时强制包含其磁盘和运行状态。</summary>
     Single
 }
 
-/// <summary>导出一台虚拟机的配置、磁盘、检查点和运行状态。</summary>
+/// <summary>导出一台虚拟机的配置、磁盘、快照和运行状态。</summary>
 public static partial class VmExportService
 {
     /// <summary>可供导出排除选择的虚拟硬盘；将查询返回的对象传回导出方法。</summary>
@@ -35,7 +35,7 @@ public static partial class VmExportService
         public string Path { get; }
     }
 
-    /// <summary>检查点身份和父子关系；单检查点导出使用查询返回的此对象。</summary>
+    /// <summary>快照身份和父子关系，单快照导出使用查询返回的此对象。</summary>
     public sealed class CheckpointInfo
     {
         internal CheckpointInfo(Guid virtualMachineId, string instanceId, string? parentInstanceId,
@@ -54,13 +54,13 @@ public static partial class VmExportService
         internal string InstanceId { get; }
         internal string? ParentInstanceId { get; }
         internal string Path { get; }
-        /// <summary>检查点配置的 GUID 文本；主机未提供可识别的 GUID 时为空，仍可使用此对象导出。</summary>
+        /// <summary>快照配置的 GUID 文本，主机未提供可识别的 GUID 时为空，仍可使用此对象导出。</summary>
         public string Id { get; }
-        /// <summary>父检查点的配置 GUID 文本；根节点或无法识别父节点时为 null。</summary>
+        /// <summary>父快照的配置 GUID 文本，根节点或无法识别父节点时为 null。</summary>
         public string? ParentId { get; internal set; }
-        /// <summary>检查点的显示名称。</summary>
+        /// <summary>快照的显示名称。</summary>
         public string Name { get; }
-        /// <summary>检查点创建时间。</summary>
+        /// <summary>快照创建时间。</summary>
         public DateTime CreatedDate { get; }
     }
 
@@ -134,9 +134,9 @@ public static partial class VmExportService
         return ApiResponse<List<VirtualHardDiskInfo>>.Ok(disks);
     }
 
-    /// <summary>读取指定虚拟机的检查点和父子关系。</summary>
+    /// <summary>读取指定虚拟机的快照和父子关系。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <returns>包含检查点 GUID、父子关系、名称和创建时间的列表；单检查点导出原样传回所选对象，失败通过响应返回。</returns>
+    /// <returns>包含快照 GUID、父子关系、名称和创建时间的列表，单快照导出原样传回所选对象，失败通过响应返回。</returns>
     public static async Task<ApiResponse<List<CheckpointInfo>>> GetCheckpointsAsync(
         Guid vmId)
     {
@@ -184,24 +184,24 @@ public static partial class VmExportService
         return ApiResponse<List<CheckpointInfo>>.Ok(checkpoints);
     }
 
-    /// <summary>将一台虚拟机的配置及选定的磁盘、检查点和运行状态导出到目录。</summary>
+    /// <summary>将一台虚拟机的配置及选定的磁盘、快照和运行状态导出到目录。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <param name="destinationRoot">已存在的导出根目录，服务在其中建立 GUID 命名的输出目录。</param>
-    /// <param name="includeVirtualHardDisks">是否复制虚拟硬盘；单检查点模式会强制开启。</param>
-    /// <param name="excludedVirtualHardDisks">由 GetVirtualHardDisksAsync 返回的待排除磁盘对象，可为空集合；Core 重新核对其所属虚拟机和挂接状态，不能与检查点模式组合。</param>
-    /// <param name="checkpointMode">不含检查点、全部检查点或单个检查点的导出模式。</param>
-    /// <param name="selectedCheckpoint">单检查点模式下由 GetCheckpointsAsync 返回的对象；Core 重新检查其仍存在且属于 vmId，其他模式可为 null。</param>
-    /// <param name="includeRuntimeState">是否包含运行状态；单检查点模式会强制开启。</param>
+    /// <param name="includeVirtualHardDisks">是否复制虚拟硬盘，单快照模式会强制开启。</param>
+    /// <param name="excludedVirtualHardDisks">由 GetVirtualHardDisksAsync 返回的待排除磁盘对象，可为空集合，Core 重新核对其所属虚拟机和挂接状态，不能与快照模式组合。</param>
+    /// <param name="checkpointMode">不含快照、全部快照或单个快照的导出模式。</param>
+    /// <param name="selectedCheckpoint">单快照模式下由 GetCheckpointsAsync 返回的对象，Core 重新检查其仍存在且属于 vmId，其他模式可为 null。</param>
+    /// <param name="includeRuntimeState">是否包含运行状态，单快照模式会强制开启。</param>
     /// <param name="progress">可选进度接收器；null 时不通知。回调线程由具体 IProgress 实现决定。</param>
-    /// <returns>成功时 OutputPath 为实际导出目录；失败保留已产生路径及未知操作状态。单检查点模式强制包含磁盘与运行状态，不能与磁盘排除选择组合。</returns>
+    /// <returns>成功时 OutputPath 为实际导出目录，失败保留已产生路径及未知操作状态。单快照模式强制包含磁盘与运行状态，不能与磁盘排除选择组合。</returns>
     /// <remarks>
     /// <para>输出目录由 <c>ExportAsync</c> 完成。打包是调用方选择的后续步骤：成功后将结果的 <c>OutputPath</c> 交给 <see cref="VmExportPackagingService"/>，指定 ZIP 路径和 <see cref="VmExportPackageOptions"/>；可选择压缩级别、AES-256 密码以及保留源目录或校验后删除。</para>
     /// <para>选项重载默认均衡压缩、不加密、保留源目录。原 <c>VmExportPackageMode</c> 重载保持原行为：<c>Store</c> 不压缩，<c>Compress</c> 优先最小体积，两者都在校验成功后尝试清理专用导出暂存目录。归档结果分别报告 <c>SourceHandling</c>、<c>SourceDirectoryRemoved</c> 和清理错误。</para>
     /// <para>已提交的原生导出会继续执行。结果待确认时标记 OperationStateUnknown，保留输出目录，核实任务结束后再处理。</para>
     /// </remarks>
     /// <instanceentry label="导出虚拟机" category="导出" order="10">
-    /// <step>指定目标 GUID 和已存在的输出根目录，决定是否包含磁盘、检查点和运行状态。</step>
-    /// <step>需要排除磁盘或选择单个检查点时，先用 <c>GetVirtualHardDisksAsync</c> 或 <c>GetCheckpointsAsync</c> 取得对应对象。随后调用 <c>ExportAsync</c>。</step>
+    /// <step>指定目标 GUID 和已存在的输出根目录，决定是否包含磁盘、快照和运行状态。</step>
+    /// <step>需要排除磁盘或选择单个快照时，先用 <c>GetVirtualHardDisksAsync</c> 或 <c>GetCheckpointsAsync</c> 取得对应对象。随后调用 <c>ExportAsync</c>。</step>
     /// <step>从结果的 <c>OutputPath</c> 取得导出目录；如需 ZIP，再执行可选打包步骤，并分别处理导出和归档结果。</step>
     /// </instanceentry>
     public static Task<VmExportResult> ExportAsync(
@@ -250,7 +250,7 @@ public static partial class VmExportService
                         Properties.Resources.VmExport_DiskSelectionCheckpointsConflict);
 
                 if (!Enum.IsDefined(checkpointMode))
-                    return Fail("检查点导出模式无效。", kind: ApiErrorKind.InvalidArgument);
+                    return Fail("快照导出模式无效。", kind: ApiErrorKind.InvalidArgument);
                 using var service = WmiApi.GetVirtualSystemManagementService();
                 using var vm = WmiApi.GetVmComputerSystem(vmId);
                 if (vm == null)

@@ -88,7 +88,7 @@ internal sealed partial class VmQueryEngine
                 {
                     object? value = sample?[pair.Item2];
                     var cellState = state == VmQueryValueState.Available && value == null ? VmQueryValueState.Unavailable : state;
-                    string? reason = cellState == VmQueryValueState.Ambiguous ? "当前虚拟网卡与性能实例不能唯一关联；不使用检查点中的历史网卡作为运行时拥有者。" : perf.Error;
+                    string? reason = cellState == VmQueryValueState.Ambiguous ? "当前虚拟网卡与性能实例不能唯一关联；不使用快照中的历史网卡作为运行时拥有者。" : perf.Error;
                     row.Values[pair.Item1.Property] = pair.Item1.Make(cellState, value == null ? null : Convert.ToUInt64(value), perf.Time, reason);
                 }
                 rows.Add(row);

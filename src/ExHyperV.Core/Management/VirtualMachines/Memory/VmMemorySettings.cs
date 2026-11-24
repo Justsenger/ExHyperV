@@ -6,7 +6,7 @@ namespace ExHyperV.Models
     /// </summary>
     /// <remarks>
     /// <para>标注“实验性”的字段继续支持读写，不需要额外的启用参数。字段含义、取值及联动说明见 <see cref="ExHyperV.Services.VmMemoryFields"/> 的对应字段。</para>
-    /// <para>可空扩展属性读取为 null 表示未取得，写入 null 表示保留原值。非空请求对应的宿主属性缺失时，提交前返回 Unsupported。修改时只提交选中的字段；Clone/Restore 用于本地快照。</para>
+    /// <para>可空扩展属性读取为 null 表示未取得，写入 null 表示保留原值。非空请求对应的宿主属性缺失时，提交前返回 Unsupported。修改时只提交选中的字段，Clone/Restore 用于本地副本。</para>
     /// </remarks>
     public partial class VmMemorySettings
     {
@@ -19,7 +19,7 @@ namespace ExHyperV.Models
         /// <values>当前配置的内存容量，单位 MiB。</values>
         /// <source>VmMemoryService.GetVmMemorySettingsAsync 经 MapMemory 读取 Msvm_MemorySettingData.VirtualQuantity；现有列表查询也读取同一底层属性。</source>
         /// <applicability>该值配置启动容量；运行期间的实际分配量见 VmMemoryFields.AssignedMiB。</applicability>
-        /// <absence>读取快照的 States[Startup] 给出本次有效性。Available 时使用 Values.Startup。</absence>
+        /// <absence>读取结果的 States[Startup] 给出本次有效性。Available 时使用 Values.Startup。</absence>
         /// <references><see cref="ExHyperV.Services.VmMemoryService"/>；运行时分配量参见 <see cref="ExHyperV.Services.VmQueryService"/>。</references>
         /// </fielddoc>
         public long Startup { get => _startup; set => _startup = value; }
@@ -36,7 +36,7 @@ namespace ExHyperV.Models
         /// <summary>动态内存缓冲比例，单位为百分比。</summary>
         public int Buffer { get => _buffer; set => _buffer = value; }
         private int _buffer;
-        /// <summary>宿主内存不足时的分配优先权重，数值越大优先级越高。读取有效性见快照的 States[Weight]。</summary>
+        /// <summary>宿主内存不足时的分配优先权重，数值越大优先级越高。读取有效性见读取结果的 States[Weight]。</summary>
         public uint Weight { get => _weight; set => _weight = value; }
         private uint _weight;
         /// <summary>统一页面大小编码：0 标准页、1 大页、2 巨页；null 表示未取得值。</summary>
@@ -290,7 +290,7 @@ namespace ExHyperV.Models
         };
 
         /// <summary>将备份值恢复到当前编辑模型。</summary>
-        /// <param name="other">要恢复的设置快照；null 时不做操作。</param>
+        /// <param name="other">要恢复的设置副本，null 时不做操作。</param>
         public void Restore(VmMemorySettings other)
         {
             if (other == null) return;

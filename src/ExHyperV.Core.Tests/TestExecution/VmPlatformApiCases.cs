@@ -53,7 +53,7 @@ internal static class VmPlatformApiCases
             {
                 VmSettingsApiCases.Success(c, await c.CallAsync(() => test.Set(vm.Id, value)));
                 var after = Raw();
-                if (test.Property == "UserSnapshotType") c.Equal(value, Convert.ToUInt16(after[test.Property]) != 2, "检查点允许状态独立读回");
+                if (test.Property == "UserSnapshotType") c.Equal(value, Convert.ToUInt16(after[test.Property]) != 2, "快照允许状态独立读回");
                 else VmSettingsApiCases.EqualRaw(c, value, after[test.Property], test.Property + " 独立读回");
                 if (test.Property == "ShieldingRequested" && value)
                 {
@@ -147,8 +147,8 @@ internal static class VmPlatformApiCases
                 c.Equal(BatteryAvailable() && Devices(vm.Id, "Msvm_BatterySettingData").Count > 0, battery.Data!.Enabled, "电池挂接状态"); break;
             case "VmCheckpointService.GetCheckpointsEnabledAsync()":
                 var snapshots = await c.CallAsync(() => VmCheckpointService.GetCheckpointsEnabledAsync(vm.Id));
-                c.Require(snapshots.HasData, "检查点许可：" + snapshots.Error);
-                c.Equal(Convert.ToUInt16(SystemBaseline.Settings(vm.Id)["UserSnapshotType"]) != 2, snapshots.Data, "检查点策略"); break;
+                c.Require(snapshots.HasData, "快照许可：" + snapshots.Error);
+                c.Equal(Convert.ToUInt16(SystemBaseline.Settings(vm.Id)["UserSnapshotType"]) != 2, snapshots.Data, "快照策略"); break;
             case "VmBootService.GetBootNumLockAsync()":
                 var numLock = await c.CallAsync(() => VmBootService.GetBootNumLockAsync(vm.Id));
                 c.Require(numLock.HasData, "Num Lock：" + numLock.Error);

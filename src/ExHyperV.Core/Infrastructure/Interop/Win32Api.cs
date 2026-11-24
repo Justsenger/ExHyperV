@@ -112,7 +112,7 @@ internal static class Win32Api
     // ── PnP 设备枚举 ─────────────────────────────────────────────
 
     /// <summary>枚举 PnP 设备身份、状态和位置路径，包含可识别的历史节点。</summary>
-    /// <returns>设备快照列表；调用方需根据 IsPresent、设备类别等筛选。</returns>
+    /// <returns>设备信息列表，调用方需根据 IsPresent、设备类别等筛选。</returns>
     public static List<PciDeviceInfo> GetAllDevices()
     {
         var sw = Stopwatch.StartNew();
@@ -425,7 +425,7 @@ internal static class Win32Api
     public static bool CloseHandle(nint handle) => NativeMethods.CloseHandle(handle);
 }
 
-/// <summary>Windows PnP 枚举得到的设备快照；除 PCI 设备外也可能包含其他设备节点。</summary>
+/// <summary>Windows PnP 枚举得到的设备信息，除 PCI 设备外也可能包含其他设备节点。</summary>
 internal class PciDeviceInfo
 {
     /// <summary>完整 PnP 设备实例 ID，用于设备身份匹配。</summary>

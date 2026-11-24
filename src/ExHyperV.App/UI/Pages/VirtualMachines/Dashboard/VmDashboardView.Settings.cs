@@ -265,6 +265,13 @@ public sealed partial class VmDashboardView
                 break;
         }
         SettingsHost.Content = content;
+        UpdateSettingsAreaLayout();
+    }
+
+    private void UpdateSettingsAreaLayout()
+    {
+        bool edgeToEdge = settingsImmersive || string.Equals(activeTopKey, "checkpoints", StringComparison.Ordinal);
+        SettingsArea.Margin = edgeToEdge ? new Thickness(0) : new Thickness(16, 0, 16, 16);
     }
 
     private void SetSettingsImmersive(bool immersive)
@@ -275,7 +282,7 @@ public sealed partial class VmDashboardView
         PageTabsRow.Visibility = immersive ? Visibility.Collapsed : Visibility.Visible;
         OuterFrame.BorderThickness = new Thickness(immersive ? 0 : 1);
         OuterFrame.CornerRadius = new CornerRadius(immersive ? 0 : 8);
-        SettingsArea.Margin = immersive ? new Thickness(0) : new Thickness(16, 0, 16, 16);
+        UpdateSettingsAreaLayout();
         ImmersiveRequested?.Invoke(immersive);
     }
 
@@ -430,6 +437,7 @@ public sealed partial class VmDashboardView
                 SettingsArea.Visibility = Visibility.Collapsed;
                 OverviewArea.Visibility = Visibility.Visible;
                 activeTopKey = "overview";
+                UpdateSettingsAreaLayout();
             }
         }
         finally { SettingsHost.IsEnabled = true; }

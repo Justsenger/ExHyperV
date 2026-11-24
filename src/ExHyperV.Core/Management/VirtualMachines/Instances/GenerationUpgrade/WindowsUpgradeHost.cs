@@ -218,7 +218,7 @@ internal sealed partial class WindowsUpgradeHost(IUpgradeGuestStages? guest = nu
 
     internal static void ValidateCheckpoints(IEnumerable<CheckpointNode> nodes)
     {
-        if (nodes.Any(n => !n.IsLogicalNode || n.IsWormhole)) throw new InvalidDataException("Checkpoint present.");
+        if (nodes.Any(n => !n.IsLogicalNode || n.IsHistoricalDiskMounted)) throw new InvalidDataException("Checkpoint present.");
     }
 
     internal static void ValidateDiskInventory(UpgradeSource source, VmDeleteService.PurgePreview plan)

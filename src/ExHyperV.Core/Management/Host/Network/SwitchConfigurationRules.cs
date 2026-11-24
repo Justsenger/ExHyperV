@@ -3,7 +3,7 @@ using R = ExHyperV.Properties.Resources;
 
 namespace ExHyperV.Services;
 
-/// <summary>对交换机配置快照进行规则判断，不直接修改主机网络。</summary>
+/// <summary>对交换机配置视图进行规则判断，不直接修改主机网络。</summary>
 public static class SwitchConfigurationRules
 {
     /// <summary>根据固定交换机身份判断是否为 Hyper-V 默认交换机。</summary>
@@ -33,7 +33,7 @@ public static class SwitchConfigurationRules
     /// <summary>结合模式与已占用网卡筛选新建交换机可选的上游。</summary>
     /// <returns>供调用方选择的网卡列表。</returns>
     /// <param name="mode">目标连接模式：桥接、ICS NAT 或隔离。</param>
-    /// <param name="existing">当前交换机快照。</param>
+    /// <param name="existing">当前交换机配置。</param>
     /// <param name="physical">当前物理上游网卡列表。</param>
     /// <param name="bridgeable">当前可桥接网卡列表。</param>
     public static List<SwitchUpstreamAdapter> GetAvailableCreationAdapters(SwitchMode mode,
@@ -45,11 +45,11 @@ public static class SwitchConfigurationRules
     }
 
     /// <summary>检查名称、模式和上游是否满足新建交换机规则。</summary>
-    /// <returns>本地化错误；null 表示当前快照下规则通过。</returns>
+    /// <returns>本地化错误，null 表示当前配置下规则通过。</returns>
     /// <param name="name">新交换机显示名称。</param>
     /// <param name="mode">目标连接模式：桥接、ICS NAT 或隔离。</param>
     /// <param name="upstream">桥接/NAT 使用的当前上游网卡身份；隔离模式可为 null。</param>
-    /// <param name="existing">当前交换机快照。</param>
+    /// <param name="existing">当前交换机配置。</param>
     /// <param name="physical">当前物理上游网卡列表。</param>
     /// <param name="bridgeable">当前可桥接网卡列表。</param>
     public static string? GetCreationError(string name, SwitchMode mode, SwitchUpstreamAdapter? upstream,
@@ -74,7 +74,7 @@ public static class SwitchConfigurationRules
     /// <param name="targetId">待修改交换机 ID。</param>
     /// <param name="mode">目标连接模式：桥接、ICS NAT 或隔离。</param>
     /// <param name="upstream">桥接/NAT 使用的当前上游网卡身份；隔离模式可为 null。</param>
-    /// <param name="existing">当前交换机快照。</param>
+    /// <param name="existing">当前交换机配置。</param>
     public static string? GetUpdateConflict(string targetId, SwitchMode mode, SwitchUpstreamAdapter? upstream,
         IEnumerable<SwitchInfo> existing)
     {

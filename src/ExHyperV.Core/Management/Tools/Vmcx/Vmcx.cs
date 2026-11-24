@@ -20,7 +20,7 @@ namespace ExHyperV.Vmcx
     #region 文档与编辑入口
 
 #nullable restore
-    /// <summary>VMCX 配置文件的只读快照与编辑入口。</summary>
+    /// <summary>VMCX 配置文件的只读视图与编辑入口。</summary>
     /// <remarks>
     /// 通过本机 VmDataStore.dll 读取文件副本，使用 BeginEdit 创建编辑批次。
     /// 文件上限为 256 MiB；提交时需要独占访问源文件。
@@ -55,7 +55,7 @@ namespace ExHyperV.Vmcx
         /// <summary>源文件字节数。</summary>
         /// <fielddoc><meaning>读取时源文件的大小。</meaning><values kind="format">单位为字节；读取入口支持最大 256 MiB 的文件。</values></fielddoc>
         public long SourceLength { get; }
-        /// <summary>根节点以及所有活动节点的不可变快照。</summary>
+        /// <summary>根节点以及所有活动节点的不可变视图。</summary>
         public IReadOnlyList<VmcxEntry> Entries { get; }
         /// <summary>合成根节点，可用于访问顶层容器。</summary>
         public VmcxEntry Root => Entries[0];
@@ -70,7 +70,7 @@ namespace ExHyperV.Vmcx
 
         /// <summary>由本机 VmDataStore 读取已有 VMCX 的副本，并验证源文件读取前后哈希一致。</summary>
         /// <param name="path">已有 .vmcx 文件路径。</param>
-        /// <returns>独立的内存快照，不持有文件句柄。</returns>
+        /// <returns>独立的内存副本，不持有文件句柄。</returns>
         /// <exception cref="IOException">读取失败、文件损坏或读取期间发生修改。</exception>
         /// <exception cref="NotSupportedException">文件种类、节点类型或大小超出支持范围。</exception>
         /// <exception cref="VmcxException">VmDataStore 返回原生错误，例如文件锁定或无效存储。</exception>
@@ -109,7 +109,7 @@ namespace ExHyperV.Vmcx
         /// <returns>匹配节点的只读集合；未命中时为空。</returns>
         public IReadOnlyList<VmcxEntry> Find(string path) => Array.AsReadOnly(Entries.Where(e => string.Equals(e.Path, path, StringComparison.OrdinalIgnoreCase)).ToArray());
         /// <summary>读取指定节点的直接子节点，保留同名条目的边界。</summary>
-        /// <param name="parent">本快照的容器节点。</param>
+        /// <param name="parent">当前视图中的容器节点。</param>
         /// <returns>直接子节点的只读集合；无子节点时为空。</returns>
         public IReadOnlyList<VmcxEntry> GetChildren(VmcxEntry parent)
         {
@@ -117,7 +117,7 @@ namespace ExHyperV.Vmcx
             return Array.AsReadOnly(Entries.Where(e => e.ParentId == parent.Id).ToArray());
         }
         /// <summary>开始一批内存编辑；调用 Commit 前不写文件。</summary>
-        /// <returns>独立编辑批次；同一源快照的多个批次提交时仍执行并发检查。</returns>
+        /// <returns>独立编辑批次，基于同一源视图的多个批次提交时仍执行并发检查。</returns>
         public VmcxEditSession BeginEdit() => new(this);
         /// <summary>检查 manifest、设备结构和已知互斥规则。</summary>
         /// <returns>已发现的问题；未发现已知问题时为空。</returns>
@@ -137,7 +137,7 @@ namespace ExHyperV.Vmcx
     }
 
 #nullable restore
-    /// <summary>针对现有 VMCX 快照的单次编辑批次。修改先保存在内存，Commit 才写文件。</summary>
+    /// <summary>针对现有 VMCX 视图的单次编辑批次。修改先保存在内存，Commit 才写文件。</summary>
     /// <remarks>
     /// 实例不支持并发调用。丢弃实例即可取消未提交改动；无需释放文件句柄。
     /// Commit 无论成功或失败均结束此批次，后续操作应重新读取文件。
@@ -172,7 +172,7 @@ namespace ExHyperV.Vmcx
             });
             nextId = nodes.Keys.Max();
         }
-        /// <summary>当前批次的节点快照；可包含尚未保存的新节点。</summary>
+        /// <summary>当前批次的节点视图，可包含尚未保存的新节点。</summary>
         public IReadOnlyList<VmcxEntry> Entries { get { RequireActive(); return Snapshot(); } }
         /// <summary>按路径查找当前批次的全部匹配项。重复路径必须由调用方进一步区分。</summary>
         /// <param name="path">完整逻辑路径，匹配不区分大小写。</param>
@@ -180,7 +180,7 @@ namespace ExHyperV.Vmcx
         public IReadOnlyList<VmcxEntry> Find(string path) => Array.AsReadOnly(Entries.Where(e => string.Equals(e.Path, path, StringComparison.OrdinalIgnoreCase)).ToArray());
         /// <summary>读取当前批次中指定节点的直接子节点。</summary>
         /// <param name="parent">源文档或本批次的容器节点。</param>
-        /// <returns>当前批次的直接子节点快照。</returns>
+        /// <returns>当前批次的直接子节点视图。</returns>
         public IReadOnlyList<VmcxEntry> GetChildren(VmcxEntry parent)
         {
             Node node = RequireNode(parent);
@@ -447,7 +447,7 @@ namespace ExHyperV.Vmcx
     #region 数据类型与结果
 
 #nullable restore
-    /// <summary>现有 VMCX 中的一个节点快照。同名同路径节点仍各自具有独立身份。</summary>
+    /// <summary>现有 VMCX 中的一个只读节点副本。同名同路径节点仍各自具有独立身份。</summary>
     /// <remarks>Id 的有效范围为本次文档及编辑批次，保存后重新读取。</remarks>
     public sealed class VmcxEntry
     {
@@ -562,7 +562,7 @@ namespace ExHyperV.Vmcx
     }
 
 #nullable disable
-    /// <summary>VMCX 存储树中的容器或值节点快照。</summary>
+    /// <summary>VMCX 存储树中的容器或值节点视图。</summary>
     internal struct VmcxNode {
         /// <summary>存储树全路径，例如 /configuration/properties/version。</summary>
         public string Path;     // 全路径,如 /configuration/properties/version
@@ -658,7 +658,7 @@ namespace ExHyperV.Vmcx
 
 #nullable disable
     /// <summary>使用 Windows VmDataStore 打开并读写离线 VMCX 配置。</summary>
-    /// <remarks>文件须可独占访问。实例及写入锁在创建线程使用和释放。打开时 DLL 可执行存储恢复；只读快照和带备份的批量编辑使用 VmcxDocument。</remarks>
+    /// <remarks>文件须可独占访问。实例及写入锁在创建线程使用和释放。打开时 DLL 可执行存储恢复，只读视图和带备份的批量编辑使用 VmcxDocument。</remarks>
     internal sealed class VmcxStore : IDisposable {
     #nullable disable
         [DllImport("kernel32", CharSet=CharSet.Unicode)] static extern IntPtr LoadLibrary(string s);
@@ -810,7 +810,7 @@ namespace ExHyperV.Vmcx
         int WithKey(string keyPath, Func<IntPtr,int> call){ ThrowIfDisposed(); IntPtr h=MakeHStr(keyPath); try { return call(h); } finally { WindowsDeleteString(h); } }
 
         /// <summary>枚举整棵存储树并复制容器和值节点到托管列表。</summary>
-        /// <returns>独立节点快照；原生枚举错误抛 VmcxException，迭代器会在异常路径释放。</returns>
+        /// <returns>独立节点副本，原生枚举错误抛 VmcxException，迭代器会在异常路径释放。</returns>
         public List<VmcxNode> Enumerate() {
             using var apartment = new Apartment();
             var entries = ReadEntries(Guid.NewGuid());
@@ -1175,7 +1175,7 @@ namespace ExHyperV.Vmcx
 
         /// <summary>从枚举节点解析 GPU 分区设备及其物理卡路径与关键字段存在情况。</summary>
         /// <returns>按 manifest 编号排列的 GPU 分区设备列表。</returns>
-        /// <param name="nodes">VmcxStore.Enumerate 返回的节点快照或等价节点序列。</param>
+        /// <param name="nodes">VmcxStore.Enumerate 返回的节点列表或等价节点序列。</param>
         public static List<VmcxGpuPv> GpuPvDevices(IEnumerable<VmcxNode> nodes) {
             var instByNum = new SortedDictionary<int,string>();
             var typeByNum = new Dictionary<int,string>();

@@ -46,17 +46,9 @@ public sealed partial class VmGpuSettingsView
                 actions.Children.Add(reselectBtn);
             }
             var skipBtn = new Button { Content = L10n.Get("Gpu_SkipDriver") };
-            var mountIsoBtn = new Button
-            {
-                Content = L10n.Get("Gpu_MountDriverDisc"),
-                Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"]
-            };
             skipBtn.Click += async (_, _) => await SubmitDecisionAsync(
                 new GpuDriverFallbackSelection(request.Id, GpuDriverFallbackAction.SkipDriver));
-            mountIsoBtn.Click += async (_, _) => await SubmitDecisionAsync(
-                new GpuDriverFallbackSelection(request.Id, GpuDriverFallbackAction.MountIso));
             actions.Children.Add(skipBtn);
-            actions.Children.Add(mountIsoBtn);
             return actions;
         }
 
@@ -76,6 +68,14 @@ public sealed partial class VmGpuSettingsView
             !p.IsBitLocker && p.OsType == OperatingSystemType.Windows)
             ?? request.Partitions.FirstOrDefault();
 
+        var hintText = new TextBlock
+        {
+            FontSize = 12,
+            Foreground = Brush("TextFillColorSecondaryBrush"),
+            TextWrapping = TextWrapping.Wrap,
+            Visibility = Visibility.Collapsed
+        };
+
         var actionRow = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -85,28 +85,40 @@ public sealed partial class VmGpuSettingsView
         var skipBtn = new Button { Content = L10n.Get("Gpu_SkipDriver") };
         var primaryBtn = new Button
         {
+            Content = L10n.Get("Common_Continue"),
             Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"]
         };
 
         void UpdateActionButtons()
         {
-            bool useIso = selectedPartition == null
-                || selectedPartition.IsBitLocker
-                || selectedPartition.OsType != OperatingSystemType.Windows;
-            primaryBtn.Content = useIso ? L10n.Get("Gpu_MountDriverDisc") : L10n.Get("Common_Continue");
+            bool canInject = selectedPartition != null
+                && !selectedPartition.IsBitLocker
+                && selectedPartition.OsType == OperatingSystemType.Windows;
+            primaryBtn.IsEnabled = canInject;
+            if (canInject)
+            {
+                hintText.Text = string.Empty;
+                hintText.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                hintText.Text = selectedPartition switch
+                {
+                    { IsBitLocker: true } => L10n.Get("Gpu_SelectBitLockerNotice"),
+                    { OsType: OperatingSystemType.Linux } => L10n.Get("Gpu_SelectLinuxNotice"),
+                    _ => L10n.Get("Gpu_SelectUnsupportedNotice")
+                };
+                hintText.Visibility = Visibility.Visible;
+            }
         }
 
         skipBtn.Click += async (_, _) => await SubmitDecisionAsync(
             new GpuDriverFallbackSelection(request.Id, GpuDriverFallbackAction.SkipDriver));
         primaryBtn.Click += async (_, _) =>
         {
-            if (selectedPartition == null
-                || selectedPartition.IsBitLocker
-                || selectedPartition.OsType != OperatingSystemType.Windows)
-            {
-                await SubmitDecisionAsync(new GpuDriverFallbackSelection(request.Id, GpuDriverFallbackAction.MountIso));
-            }
-            else
+            if (selectedPartition != null
+                && !selectedPartition.IsBitLocker
+                && selectedPartition.OsType == OperatingSystemType.Windows)
             {
                 await SubmitDecisionAsync(new GpuPartitionSelection(request.Id, selectedPartition.Id));
             }
@@ -164,8 +176,9 @@ public sealed partial class VmGpuSettingsView
                 Foreground = Brush("TextFillColorPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center
             });
-            if (partition.IsBitLocker)
+            if (partition.IsBitLocker || partition.OsType == OperatingSystemType.Linux)
             {
+                string helpText = L10n.Get(partition.IsBitLocker ? "Gpu_BitLockerHelp" : "Gpu_LinuxHelp");
                 var infoBtn = new Button
                 {
                     Content = new FontIcon
@@ -184,9 +197,8 @@ public sealed partial class VmGpuSettingsView
                     Padding = new Thickness(0),
                     VerticalAlignment = VerticalAlignment.Center
                 };
-                string bitLockerDesc = L10n.Get("Gpu_BitLockerHelp");
-                ToolTipService.SetToolTip(infoBtn, bitLockerDesc);
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(infoBtn, bitLockerDesc);
+                ToolTipService.SetToolTip(infoBtn, helpText);
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(infoBtn, helpText);
                 titleLine.Children.Add(infoBtn);
             }
 
@@ -203,13 +215,37 @@ public sealed partial class VmGpuSettingsView
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
 
-            var sizeText = new TextBlock
+            var rightMeta = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            if (partition.IsBitLocker || partition.OsType == OperatingSystemType.Linux)
+            {
+                rightMeta.Children.Add(new Border
+                {
+                    Background = ThemeHelper.TryBrush("VmBadgeBrush", Color.FromArgb(14, 255, 255, 255)),
+                    BorderBrush = Brush("VmKvWellBorderBrush"),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(7, 2, 7, 2),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Child = new TextBlock
+                    {
+                        Text = L10n.Get(partition.IsBitLocker ? "Gpu_BitLockerBadge" : "Gpu_LinuxUnsupportedBadge"),
+                        FontSize = 11,
+                        Foreground = Brush("TextFillColorSecondaryBrush")
+                    }
+                });
+            }
+            rightMeta.Children.Add(new TextBlock
             {
                 Text = $"{partition.SizeGiB:F1} GB",
                 FontSize = 12.5,
                 Foreground = Brush("TextFillColorSecondaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center
-            };
+            });
 
             var rowGrid = new Grid { ColumnSpacing = 12 };
             rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -223,8 +259,8 @@ public sealed partial class VmGpuSettingsView
             rowGrid.Children.Add(partIcon);
             Grid.SetColumn(infoStack, 2);
             rowGrid.Children.Add(infoStack);
-            Grid.SetColumn(sizeText, 3);
-            rowGrid.Children.Add(sizeText);
+            Grid.SetColumn(rightMeta, 3);
+            rowGrid.Children.Add(rightMeta);
 
             var accentBar = new Border
             {
@@ -295,6 +331,7 @@ public sealed partial class VmGpuSettingsView
 
         var decisionBody = new StackPanel { Spacing = 10 };
         decisionBody.Children.Add(list);
+        decisionBody.Children.Add(hintText);
         decisionBody.Children.Add(actionRow);
 
         return new Border

@@ -12,7 +12,7 @@ namespace ExHyperV.Services
         private const string SecuritySettingWql = "SELECT * FROM Msvm_SecuritySettingData WHERE InstanceID LIKE 'Microsoft:{0}%'";
         private const string SecurityServiceWql = "SELECT * FROM Msvm_SecurityService";
 
-        /// <summary>成功读取的安全设置快照；读取失败由外层 ApiResponse 表示。</summary>
+        /// <summary>成功读取的安全设置视图，读取失败由外层 ApiResponse 表示。</summary>
         /// <param name="SecureBootEnabled">安全启动是否启用。</param>
         /// <param name="SecureBootTemplateId">当前安全启动模板 GUID 字符串。</param>
         /// <param name="TpmEnabled">虚拟 TPM 是否启用。</param>
@@ -43,9 +43,9 @@ namespace ExHyperV.Services
 
         /// <summary>判断虚拟机是否为第 2 代且已经完全关机。</summary>
         /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-        /// <param name="state">当前运行状态快照；只有 PoweredOff 满足关机要求。保存、挂起、休眠、过渡及未知状态均不满足。</param>
+        /// <param name="state">当前运行状态，只有 PoweredOff 满足关机要求。保存、挂起、休眠、过渡及未知状态均不满足。</param>
         /// <returns>第 2 代且 state 为 PoweredOff 时返回 true；各安全开关的互锁规则另由 GetCapabilities 检查。</returns>
-        /// <remarks>此方法只判断传入的快照，不查询宿主。实际修改入口会重新读取状态；返回 true 不锁定后续状态。</remarks>
+        /// <remarks>此方法只判断传入的状态，不查询宿主。实际修改入口会重新读取状态，返回 true 不锁定后续状态。</remarks>
         internal static bool CanEdit(int generation, VmState state) => generation == 2 && state == VmState.PoweredOff;
 
         /// <summary>仅按安全启动、TPM 和屏蔽状态计算各安全开关之间的互锁关系。</summary>
@@ -61,7 +61,7 @@ namespace ExHyperV.Services
 
         /// <summary>合并代数、运行状态和安全开关互锁规则。</summary>
         /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-        /// <param name="state">运行状态快照；PoweredOff 时允许修改。</param>
+        /// <param name="state">运行状态，PoweredOff 时允许修改。</param>
         /// <param name="secureBoot">当前安全启动状态。</param>
         /// <param name="tpm">当前虚拟 TPM 状态。</param>
         /// <param name="shielded">当前屏蔽状态。</param>
@@ -77,7 +77,7 @@ namespace ExHyperV.Services
 
         /// <summary>校验指定安全设置是否满足当前代数、运行状态和互锁规则。</summary>
         /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-        /// <param name="state">当前运行状态快照；保存、挂起、休眠、过渡及未知状态均返回需要完全关机。</param>
+        /// <param name="state">当前运行状态，保存、挂起、休眠、过渡及未知状态均返回需要完全关机。</param>
         /// <param name="current">当前成功读取的安全设置，含互锁所需开关。</param>
         /// <param name="setting">准备修改的安全设置项。</param>
         /// <returns>不允许修改的说明；允许继续时为 null。</returns>
@@ -122,7 +122,7 @@ namespace ExHyperV.Services
 
         /// <summary>读取安全启动模板、TPM、状态加密及屏蔽状态；任何必要子查询失败时返回失败。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <returns>安全配置快照或查询失败。此模型把 null 或非 bool 的属性值折为 false；需要区分缺测与关闭时使用相应 VmSecurityFields 查询结果。</returns>
+        /// <returns>安全配置视图或查询失败。此模型把 null 或非 bool 的属性值折为 false，需要区分缺测与关闭时使用相应 VmSecurityFields 查询结果。</returns>
         public static async Task<ApiResponse<VmSecurityInfo>> GetSecuritySettingsAsync(Guid vmId)
         {
             if (vmId == Guid.Empty) return ApiResponse<VmSecurityInfo>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);

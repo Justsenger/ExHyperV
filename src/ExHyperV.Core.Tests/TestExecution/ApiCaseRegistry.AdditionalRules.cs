@@ -36,12 +36,12 @@ internal static partial class ApiCaseRegistry
             foreach (int mode in new[] { -1, 0, 1, 5 })
                 c.Require(c.Call(() => VmDisplaySettingsService.GetResolutionError(mode, 1024, 768)) is not null, $"未知策略 {mode} 返回错误");
         }]);
-        add("VmCheckpointService.HasOpenWormhole()", [c =>
+        add("VmCheckpointService.HasMountedHistoricalDisk()", [c =>
         {
-            c.Equal(false, c.Call(() => VmCheckpointService.HasOpenWormhole(null)), "null 集合");
-            c.Equal(false, c.Call(() => VmCheckpointService.HasOpenWormhole([])), "空集合");
-            c.Equal(false, c.Call(() => VmCheckpointService.HasOpenWormhole([new()])), "普通节点");
-            c.Equal(true, c.Call(() => VmCheckpointService.HasOpenWormhole([new(), new() { IsWormhole = true }])), "存在历史挂接");
+            c.Equal(false, c.Call(() => VmCheckpointService.HasMountedHistoricalDisk(null)), "null 集合");
+            c.Equal(false, c.Call(() => VmCheckpointService.HasMountedHistoricalDisk([])), "空集合");
+            c.Equal(false, c.Call(() => VmCheckpointService.HasMountedHistoricalDisk([new()])), "普通节点");
+            c.Equal(true, c.Call(() => VmCheckpointService.HasMountedHistoricalDisk([new(), new() { IsHistoricalDiskMounted = true }])), "存在历史挂接");
         }]);
         add("VmCheckpointService.CanOperateHistoricalNode()", [c =>
         {
@@ -49,28 +49,28 @@ internal static partial class ApiCaseRegistry
             foreach (var type in Enum.GetValues<CheckpointNodeType>())
                 c.Equal(type == CheckpointNodeType.Snapshot, c.Call(() => VmCheckpointService.CanOperateHistoricalNode(new() { NodeType = type })), type.ToString());
         }]);
-        add("VmCheckpointService.CanCreateMoment()", [c =>
+        add("VmCheckpointService.CanCreateSnapshot()", [c =>
         {
             foreach (var row in new[] { (false, false, false), (false, true, false), (true, false, true), (true, true, false) })
-                c.Equal(row.Item3, c.Call(() => VmCheckpointService.CanCreateMoment(row.Item1, [new() { IsWormhole = row.Item2 }])), $"检查点开启={row.Item1}，历史挂接={row.Item2}");
+                c.Equal(row.Item3, c.Call(() => VmCheckpointService.CanCreateSnapshot(row.Item1, [new() { IsHistoricalDiskMounted = row.Item2 }])), $"快照开启={row.Item1}，历史挂接={row.Item2}");
         }]);
         add("VmCheckpointService.CanMutateHistoricalNode()", [c =>
         {
             foreach (var type in Enum.GetValues<CheckpointNodeType>()) foreach (bool open in new[] { false, true })
-                c.Equal(type == CheckpointNodeType.Snapshot && !open, c.Call(() => VmCheckpointService.CanMutateHistoricalNode(new() { NodeType = type }, [new() { IsWormhole = open }])), $"节点 {type}，历史挂接={open}");
+                c.Equal(type == CheckpointNodeType.Snapshot && !open, c.Call(() => VmCheckpointService.CanMutateHistoricalNode(new() { NodeType = type }, [new() { IsHistoricalDiskMounted = open }])), $"节点 {type}，历史挂接={open}");
             c.Equal(false, c.Call(() => VmCheckpointService.CanMutateHistoricalNode(null, [])), "空节点");
         }]);
         add("VmCheckpointService.CanMergeHistoricalNode()", [c =>
         {
-            var genesis = new CheckpointNode { Id = CheckpointNode.GenesisId, NodeType = CheckpointNodeType.Genesis };
-            var a1 = new CheckpointNode { Id = "a1", NodeType = CheckpointNodeType.Snapshot, ParentId = CheckpointNode.GenesisId };
+            var origin = new CheckpointNode { Id = CheckpointNode.OriginId, NodeType = CheckpointNodeType.Origin };
+            var a1 = new CheckpointNode { Id = "a1", NodeType = CheckpointNodeType.Snapshot, ParentId = CheckpointNode.OriginId };
             var a2 = new CheckpointNode { Id = "a2", NodeType = CheckpointNodeType.Snapshot, ParentId = "a1" };
             var b1 = new CheckpointNode { Id = "b1", NodeType = CheckpointNodeType.Snapshot, ParentId = "a1" };
             var cur = new CheckpointNode { Id = CheckpointNode.CurrentId, NodeType = CheckpointNodeType.Current, ParentId = "a2" };
-            c.Equal(false, c.Call(() => VmCheckpointService.CanMergeHistoricalNode(a1, [genesis, a1, a2, cur])), "禁止合并到初始根节点");
-            c.Equal(true, c.Call(() => VmCheckpointService.CanMergeHistoricalNode(a2, [genesis, a1, a2, cur])), "单线父节点允许合并");
-            c.Equal(false, c.Call(() => VmCheckpointService.CanMergeHistoricalNode(a2, [genesis, a1, a2, b1, cur])), "父节点分叉时禁止合并");
-            c.Equal(false, c.Call(() => VmCheckpointService.CanMergeHistoricalNode(a2, [genesis, a1, a2, new() { Id = "w", NodeType = CheckpointNodeType.Snapshot, IsWormhole = true }, cur])), "存在历史挂接时禁止合并");
+            c.Equal(false, c.Call(() => VmCheckpointService.CanMergeHistoricalNode(a1, [origin, a1, a2, cur])), "禁止合并到初始根节点");
+            c.Equal(true, c.Call(() => VmCheckpointService.CanMergeHistoricalNode(a2, [origin, a1, a2, cur])), "单线父节点允许合并");
+            c.Equal(false, c.Call(() => VmCheckpointService.CanMergeHistoricalNode(a2, [origin, a1, a2, b1, cur])), "父节点分叉时禁止合并");
+            c.Equal(false, c.Call(() => VmCheckpointService.CanMergeHistoricalNode(a2, [origin, a1, a2, new() { Id = "w", NodeType = CheckpointNodeType.Snapshot, IsHistoricalDiskMounted = true }, cur])), "存在历史挂接时禁止合并");
         }]);
         var vmId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         add("PcieAssignmentTarget.ForVirtualMachine()", [c =>

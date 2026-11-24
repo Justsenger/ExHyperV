@@ -97,8 +97,8 @@ internal static class WorkflowSessionApiCases
         backend = new() { Os = OperatingSystemType.Linux }; session = new(backend); var nonWindows = await session.StartAsync();
         c.Equal(GpuDecisionKind.SelectPartition, nonWindows.PendingDecision!.Kind, "非 Windows 分区提供回退选择");
         c.Throws<ArgumentException>(() => session.SubmitDecisionAsync(new GpuPartitionSelection(nonWindows.PendingDecision.Id, nonWindows.PendingDecision.Partitions[0].Id)).GetAwaiter().GetResult(), "非 Windows 分区不能直接写入驱动");
-        var iso = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(nonWindows.PendingDecision.Id, GpuDriverFallbackAction.MountIso)));
-        c.Equal(GpuDeploymentState.Completed, iso.State, "非 Windows 分区可通过挂载驱动光盘结束会话"); c.Require(iso.IsDriverIsoMounted, "标记已挂载驱动光盘");
+        var linuxSkipped = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(nonWindows.PendingDecision.Id, GpuDriverFallbackAction.SkipDriver)));
+        c.Equal(GpuDeploymentState.Completed, linuxSkipped.State, "Linux 分区可通过跳过驱动结束会话"); c.Require(linuxSkipped.IsDriverSkipped, "标记已跳过驱动");
     }
 
     private static async Task PowerAsync(CatalogTest p, ApiCaseContext c)

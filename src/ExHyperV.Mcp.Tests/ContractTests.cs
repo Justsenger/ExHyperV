@@ -52,7 +52,7 @@ public sealed class ContractTests
         foreach (var memberName in new[] { "GetVtpmStateAsync", "InspectDiskAsync", "InspectDifferencingChainAsync" })
             vmPolicy.Demand(catalog.Members.Values.Single(member => member.Name == memberName));
         foreach (var memberName in new[] { "ExportLocalGuardianAsync", "SetVtpmPolicyAsync", "InspectResizeSafetyAsync",
-            "ResizeVirtualDiskAsync", "DeleteAttachedMediaFileAsync", "MergeDifferencingDiskAsync", "CaptureMomentAsync" })
+            "ResizeVirtualDiskAsync", "DeleteAttachedMediaFileAsync", "MergeDifferencingDiskAsync", "CreateSnapshotAsync" })
         {
             var member = catalog.Members.Values.Single(item => item.Name == memberName);
             Assert.IsFalse(catalog.IsReadOnly(member), memberName);

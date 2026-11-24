@@ -42,10 +42,6 @@ internal sealed partial class CoreJson : JsonSerializerContext;
 [JsonSerializable(typeof(List<HcsLogicalProcessor>))]
 internal sealed partial class ExternalJson : JsonSerializerContext;
 
-[JsonSourceGenerationOptions(WriteIndented = true, GenerationMode = JsonSourceGenerationMode.Serialization)]
-[JsonSerializable(typeof(GpuDriverIsoManifest))]
-internal sealed partial class DriverManifestJson : JsonSerializerContext;
-
 // Published journal versions use string enum values while other Core formats use numbers.
 [JsonSourceGenerationOptions(UseStringEnumConverter = true, GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(UpgradeJournal))]

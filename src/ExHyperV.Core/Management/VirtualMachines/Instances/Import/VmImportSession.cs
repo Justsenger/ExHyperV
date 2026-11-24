@@ -21,7 +21,7 @@ public sealed class VmImportSession : IAsyncDisposable
     internal string SourceRoot { get; set; } = string.Empty;
     /// <summary>准备使用的主配置文件路径。</summary>
     internal string MainConfigurationPath { get; set; } = string.Empty;
-    /// <summary>来源中的检查点配置目录。</summary>
+    /// <summary>来源中的快照配置目录。</summary>
     internal string SnapshotFolder { get; set; } = string.Empty;
     /// <summary>Hyper-V 计划系统的 WMI 路径；尚未准备或已释放时为空。</summary>
     internal string PlannedSystemPath { get; set; } = string.Empty;

@@ -334,7 +334,7 @@ public sealed class GenerationUpgradeTests
     {
         WindowsUpgradeHost.ValidateCheckpoints([new() {NodeType=CheckpointNodeType.Current}]);
         Assert.ThrowsExactly<InvalidDataException>(() => WindowsUpgradeHost.ValidateCheckpoints([new() {NodeType=CheckpointNodeType.Snapshot}]));
-        Assert.ThrowsExactly<InvalidDataException>(() => WindowsUpgradeHost.ValidateCheckpoints([new() {NodeType=CheckpointNodeType.Current, IsWormhole=true}]));
+        Assert.ThrowsExactly<InvalidDataException>(() => WindowsUpgradeHost.ValidateCheckpoints([new() {NodeType=CheckpointNodeType.Current, IsHistoricalDiskMounted=true}]));
         var source = new UpgradeSource("test", root, "10.0", [new("IDE",0,0,false,"disk.vhdx",false)],
             JsonSerializer.SerializeToElement(new {}), [], new());
         var plan = new VmDeleteService.PurgePreview(root,false,[],["disk.vhdx"]);

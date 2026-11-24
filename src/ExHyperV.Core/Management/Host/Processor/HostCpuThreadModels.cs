@@ -34,7 +34,7 @@ public sealed class HostCpuThreadConsumerUsage
 
     /// <summary>占用主体的显示名称；宿主机固定为 Host，虚拟机为其 WMI ElementName。</summary>
     /// <fielddoc>
-    ///   <meaning>用于界面或报表展示的主体名称；虚拟机改名后随最新 WMI 快照更新，程序内部关联应使用 VmId。</meaning>
+    ///   <meaning>用于界面或报表展示的主体名称；虚拟机改名后随最新 WMI 查询结果更新，程序内部关联应使用 VmId。</meaning>
     ///   <modification kind="readonly">来自宿主标识或虚拟机配置显示名，监控接口不直接修改。</modification>
     /// </fielddoc>
     public string Name { get; init; } = string.Empty;
@@ -126,7 +126,7 @@ public sealed class HostCpuThreadSnapshot
     public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.NotSampled, default);
 }
 
-/// <summary>宿主全量物理逻辑处理器线程的占用归属快照，包含调度器模式与数据源说明。</summary>
+/// <summary>宿主全量物理逻辑处理器线程的占用归属采样帧，包含调度器模式与数据源说明。</summary>
 public sealed class HostCpuThreadReport
 {
     /// <summary>本次采样观测到的宿主当前 Hyper-V 调度器模式。</summary>
@@ -136,7 +136,7 @@ public sealed class HostCpuThreadReport
     /// </fielddoc>
     public HyperVSchedulerType SchedulerType { get; init; }
 
-    /// <summary>本次快照实际采用的逻辑处理器归属数据来源。</summary>
+    /// <summary>本次采样帧实际采用的逻辑处理器归属数据来源。</summary>
     /// <fielddoc>
     ///   <meaning>反映本次报告是由内核 ETW 上下文切换生成、性能计数器降级／经典模式生成还是尚未可用。</meaning>
     ///   <modification kind="readonly">运行时只读采集状态，不可写入。</modification>
@@ -145,12 +145,12 @@ public sealed class HostCpuThreadReport
 
     /// <summary>完成本次采样并归一化结果的 UTC 时间戳。</summary>
     /// <fielddoc>
-    ///   <meaning>该帧占用快照对应的世界协调时间观测点。</meaning>
+    ///   <meaning>该帧占用采样帧对应的世界协调时间观测点。</meaning>
     ///   <modification kind="readonly">运行时采样时间戳，不可写入。</modification>
     /// </fielddoc>
     public DateTimeOffset ObservedAtUtc { get; init; }
 
-    /// <summary>本次占用快照所统计的时间窗口长度。</summary>
+    /// <summary>本次占用采样帧所统计的时间窗口长度。</summary>
     /// <fielddoc>
     ///   <meaning>相邻两次采样或等待窗口的实际跨度；预热或无效帧可能为零。</meaning>
     ///   <unit>TimeSpan 时间跨度。</unit>

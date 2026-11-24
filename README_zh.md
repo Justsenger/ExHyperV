@@ -11,15 +11,15 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Justsenger/ExHyperV/releases/latest"><img src="https://img.shields.io/github/v/release/Justsenger/ExHyperV.svg?style=flat-square&amp;label=Release" alt="Latest release" /></a>
-  <a href="https://github.com/Justsenger/ExHyperV/releases"><img src="https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Faged-moon-0505.shalingye.workers.dev%2F&amp;query=string(%2F%2F*%5Blocal-name()%3D%22text%22%5D%5Blast()%5D)&amp;label=Downloads&amp;style=flat-square&amp;color=4c1" alt="Downloads" /></a>
-  <a href="https://t.me/ExHyperV"><img src="https://img.shields.io/badge/Discussion-Telegram-blue.svg?style=flat-square" alt="Telegram" /></a>
-  <a href="https://qm.qq.com/q/DzHU1Xkjfy"><img src="https://img.shields.io/badge/Discussion-QQ-eb192d.svg?style=flat-square&amp;logo=tencent-qq" alt="QQ Group" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Justsenger/ExHyperV.svg?style=flat-square&amp;label=License" alt="License" /></a>
+  <a href="https://github.com/Justsenger/ExHyperV/releases/latest"><img src="https://img.shields.io/github/v/release/Justsenger/ExHyperV.svg?style=flat&amp;label=Release&amp;labelColor=162032&amp;color=2563eb" alt="Latest release" /></a>
+  <a href="https://github.com/Justsenger/ExHyperV/releases"><img src="https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Faged-moon-0505.shalingye.workers.dev%2F&amp;query=string(%2F%2F*%5Blocal-name()%3D%22text%22%5D%5Blast()%5D)&amp;label=Downloads&amp;style=flat&amp;labelColor=162032&amp;color=15803d" alt="Downloads" /></a>
+  <a href="https://t.me/ExHyperV"><img src="https://img.shields.io/badge/-Telegram-0284c7.svg?style=flat&amp;logo=telegram&amp;logoColor=white&amp;labelColor=162032" alt="Telegram" /></a>
+  <a href="https://qm.qq.com/q/DzHU1Xkjfy"><img src="https://img.shields.io/badge/-QQ-be123c.svg?style=flat&amp;logo=qq&amp;logoColor=white&amp;labelColor=162032" alt="QQ Group" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Justsenger/ExHyperV.svg?style=flat&amp;label=License&amp;labelColor=162032&amp;color=b45309" alt="License" /></a>
 </p>
 
 <p align="center">
-  <a href="https://exhyperv.com" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/pill-site-dark.svg" /><source media="(prefers-color-scheme: light)" srcset=".github/assets/pill-site-light.svg" /><img src=".github/assets/pill-site-light.svg" alt="ExHyperV.com" width="21%" /></picture></a> <a href="https://trendshift.io/repositories/22275?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-22275" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/22275" alt="Justsenger/ExHyperV | Trendshift" width="21%" /></a> <a href="SPONSOR.md" target="_blank" rel="noopener noreferrer"><picture><source media="(prefers-color-scheme: dark)" srcset=".github/assets/pill-sponsor-dark.svg" /><source media="(prefers-color-scheme: light)" srcset=".github/assets/pill-sponsor-light.svg" /><img src=".github/assets/pill-sponsor-light.svg" alt="Ko-fi / Afdian" width="21%" /></picture></a>
+  <a href="https://trendshift.io/repositories/22275?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-22275" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/22275" alt="Justsenger/ExHyperV | Trendshift" width="250" height="55" /></a>
 </p>
 
 <p align="center">
@@ -35,12 +35,21 @@ ExHyperV 是基于 WinUI 3 打造的 Hyper-V 桌面管理平台，涵盖了个�
 由于个人精力和硬件环境有限，部分场景可能尚未覆盖。如果在使用中遇到问题或有希望优先支持的功能，欢迎通过 [Issues](https://github.com/Justsenger/ExHyperV/issues) 反馈，或加入群组获得进一步的帮助。
 
 ## 下载
-地址：[x64](https://github.com/Justsenger/ExHyperV/releases/latest) | [ARM64](https://github.com/Justsenger/ExHyperV/releases/latest)<br>
-系统要求：Windows 10 22H2 及以上 + 管理员权限
 
-许可证说明：
-ExHyperV.App、ExHyperV.App.Tests 使用 GPL 3.0。<br>
-ExHyperV.Core、ExHyperV.Mcp、ExHyperV.Core.Tests、ExHyperV.Mcp.Tests 使用 MIT。
+前往 [GitHub Releases](https://github.com/Justsenger/ExHyperV/releases/latest) 获取最新版安装包（提供 x64 与 ARM64 版本）。
+
+- **系统要求**：Windows 10 / Windows 11（x64 或 ARM64）
+- **运行权限**：需以管理员权限运行（如尚未开启 Hyper-V，应用内提供一键启用功能）
+
+## 许可证
+
+| 模块 | 协议 | 说明 |
+| --- | --- | --- |
+| `ExHyperV.App` | [GPL-3.0](LICENSE) | WinUI 3 桌面应用及对应测试 |
+| `ExHyperV.Core` | [MIT](src/ExHyperV.Core/LICENSE) | 核心管理库及对应测试 |
+| `ExHyperV.Mcp` | [MIT](src/ExHyperV.Mcp/LICENSE) | MCP 服务及对应测试 |
+
+向本仓库提交 Pull Request 即视为同意 [贡献者许可协议（CLA）](CLA.md)。
 
 ## 🎖️ 致谢名单
 

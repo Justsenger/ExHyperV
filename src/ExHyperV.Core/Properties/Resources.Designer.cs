@@ -5905,38 +5905,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Spacetime 的本地化字符串。
-        /// </summary>
-        public static string VmDashboard_DescSpacetime {
-            get {
-                return ResourceManager.GetString("VmDashboard_DescSpacetime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 {Binding IpAddressDisplay, FallbackValue=&apos;Fetching...&apos;} 的本地化字符串。
         /// </summary>
         public static string VmDashboard_TabBoot {
             get {
                 return ResourceManager.GetString("VmDashboard_TabBoot", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Boot Order and Device List 的本地化字符串。
-        /// </summary>
-        public static string VmDashboard_TabSpacetime {
-            get {
-                return ResourceManager.GetString("VmDashboard_TabSpacetime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Snapshot Management and Spacetime Travel 的本地化字符串。
-        /// </summary>
-        public static string VmDashboardView_SnapshotAndSpacetime {
-            get {
-                return ResourceManager.GetString("VmDashboardView_SnapshotAndSpacetime", resourceCulture);
             }
         }
         
@@ -6323,15 +6296,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 Connected to spacetime &quot;{0}&quot; 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgConnectedTo2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgConnectedTo2", resourceCulture);
-            }
-        }
-        
         
         
         /// <summary>
@@ -6438,24 +6402,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 This spacetime has been annihilated. 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgSpacetimeAnnihilated2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgSpacetimeAnnihilated2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Spacetime converged to the previous node 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgSpacetimeConverged2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgSpacetimeConverged2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Large Page Granularity 的本地化字符串。
         /// </summary>
         public static string VmPage_MemGranularityLarge {
@@ -6465,38 +6411,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Spacetime created successfully 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgSpacetimeCreated2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgSpacetimeCreated2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Read/Write 的本地化字符串。
         /// </summary>
         public static string VmPage_SgxLaunchReadWrite {
             get {
                 return ResourceManager.GetString("VmPage_SgxLaunchReadWrite", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Timeline restored to normal 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgTimelineRestored2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgTimelineRestored2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Traveled to spacetime: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgTraveledTo2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgTraveledTo2", resourceCulture);
             }
         }
         
@@ -6989,9 +6908,9 @@ namespace ExHyperV.Properties {
             }
         }
 
-        public static string VmCheckpointService_ErrCloseWormholeException {
+        public static string VmCheckpointService_ErrDismountHistoricalDiskException {
             get {
-                return ResourceManager.GetString("VmCheckpointService_ErrCloseWormholeException", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrDismountHistoricalDiskException", resourceCulture);
             }
         }
 
@@ -7025,15 +6944,15 @@ namespace ExHyperV.Properties {
             }
         }
 
-        public static string VmCheckpointService_ErrNoActiveWormhole {
+        public static string VmCheckpointService_ErrNoActiveHistoricalDisk {
             get {
-                return ResourceManager.GetString("VmCheckpointService_ErrNoActiveWormhole", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrNoActiveHistoricalDisk", resourceCulture);
             }
         }
 
-        public static string VmCheckpointService_ErrNodeHasWormhole {
+        public static string VmCheckpointService_ErrNodeHasHistoricalDisk {
             get {
-                return ResourceManager.GetString("VmCheckpointService_ErrNodeHasWormhole", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrNodeHasHistoricalDisk", resourceCulture);
             }
         }
 
@@ -7115,9 +7034,9 @@ namespace ExHyperV.Properties {
             }
         }
 
-        public static string VmCheckpointService_ErrWormholeAlreadyExists {
+        public static string VmCheckpointService_ErrHistoricalDiskAlreadyExists {
             get {
-                return ResourceManager.GetString("VmCheckpointService_ErrWormholeAlreadyExists", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrHistoricalDiskAlreadyExists", resourceCulture);
             }
         }
 
@@ -7127,21 +7046,21 @@ namespace ExHyperV.Properties {
             }
         }
 
-        public static string VmCheckpointService_LogWormholeDetectFailed {
+        public static string VmCheckpointService_LogHistoricalDiskDetectFailed {
             get {
-                return ResourceManager.GetString("VmCheckpointService_LogWormholeDetectFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_LogHistoricalDiskDetectFailed", resourceCulture);
             }
         }
 
-        public static string VmCheckpointService_LogWormholeDisk {
+        public static string VmCheckpointService_LogHistoricalDisk {
             get {
-                return ResourceManager.GetString("VmCheckpointService_LogWormholeDisk", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_LogHistoricalDisk", resourceCulture);
             }
         }
 
-        public static string VmCheckpointService_LogWormholeMarkedOk {
+        public static string VmCheckpointService_LogHistoricalDiskMarkedOk {
             get {
-                return ResourceManager.GetString("VmCheckpointService_LogWormholeMarkedOk", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_LogHistoricalDiskMarkedOk", resourceCulture);
             }
         }
 
@@ -7181,15 +7100,15 @@ namespace ExHyperV.Properties {
             }
         }
 
-        public static string VmCheckpointService_MsgWormholeClosed {
+        public static string VmCheckpointService_MsgHistoricalDiskDismounted {
             get {
-                return ResourceManager.GetString("VmCheckpointService_MsgWormholeClosed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgHistoricalDiskDismounted", resourceCulture);
             }
         }
 
-        public static string VmCheckpointService_MsgWormholeOpened {
+        public static string VmCheckpointService_MsgHistoricalDiskMounted {
             get {
-                return ResourceManager.GetString("VmCheckpointService_MsgWormholeOpened", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgHistoricalDiskMounted", resourceCulture);
             }
         }
 
@@ -7878,9 +7797,9 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Log_Gpu_Syncing", resourceCulture);
             }
         }
-        public static string VmCheckpointService_HintCloseWormholeFirst {
+        public static string VmCheckpointService_HintDismountHistoricalDiskFirst {
             get {
-                return ResourceManager.GetString("VmCheckpointService_HintCloseWormholeFirst", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_HintDismountHistoricalDiskFirst", resourceCulture);
             }
         }
         public static string Cpu_ApicMode {
@@ -9422,11 +9341,15 @@ namespace ExHyperV.Properties {
         public static string Gpu_DecisionExpired => ResourceManager.GetString("Gpu_DecisionExpired", resourceCulture);
         public static string Gpu_InvalidPartition => ResourceManager.GetString("Gpu_InvalidPartition", resourceCulture);
         public static string Gpu_CleanupRequired => ResourceManager.GetString("Gpu_CleanupRequired", resourceCulture);
-        public static string Task_Gpu_MountIso => ResourceManager.GetString("Task_Gpu_MountIso", resourceCulture);
-        public static string Msg_Gpu_MountingIso => ResourceManager.GetString("Msg_Gpu_MountingIso", resourceCulture);
-        public static string Msg_Gpu_IsoMounted => ResourceManager.GetString("Msg_Gpu_IsoMounted", resourceCulture);
         public static string Msg_Gpu_DriverSkipped => ResourceManager.GetString("Msg_Gpu_DriverSkipped", resourceCulture);
-        public static string Msg_Gpu_FallbackPrompt => ResourceManager.GetString("Msg_Gpu_FallbackPrompt", resourceCulture);
+        public static string Error_Gpu_LinuxUnsupported => ResourceManager.GetString("Error_Gpu_LinuxUnsupported", resourceCulture);
+        public static string Msg_Gpu_LinuxUnsupported => ResourceManager.GetString("Msg_Gpu_LinuxUnsupported", resourceCulture);
+        public static string Msg_Gpu_BitLockerRequired => ResourceManager.GetString("Msg_Gpu_BitLockerRequired", resourceCulture);
+        public static string Msg_Gpu_LinuxAndBitLockerUnsupported => ResourceManager.GetString("Msg_Gpu_LinuxAndBitLockerUnsupported", resourceCulture);
+        public static string Msg_Gpu_SelectPartWithLinuxAndBitLocker => ResourceManager.GetString("Msg_Gpu_SelectPartWithLinuxAndBitLocker", resourceCulture);
+        public static string Msg_Gpu_SelectPartWithLinux => ResourceManager.GetString("Msg_Gpu_SelectPartWithLinux", resourceCulture);
+        public static string Msg_Gpu_SelectPartWithBitLocker => ResourceManager.GetString("Msg_Gpu_SelectPartWithBitLocker", resourceCulture);
+        public static string Msg_Gpu_NoUsableWindowsPart => ResourceManager.GetString("Msg_Gpu_NoUsableWindowsPart", resourceCulture);
         public static string ConsoleWindow_FrameStatistics => ResourceManager.GetString("ConsoleWindow_FrameStatistics", resourceCulture);
         public static string ConsoleWindow_FrameStatisticsHint => ResourceManager.GetString("ConsoleWindow_FrameStatisticsHint", resourceCulture);
         public static string ConsoleWindow_FrameStatisticsFormat => ResourceManager.GetString("ConsoleWindow_FrameStatisticsFormat", resourceCulture);

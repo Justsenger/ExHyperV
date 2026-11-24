@@ -33,7 +33,7 @@ internal static class TestConditions
         ["media"] = new("自动生成专属测试磁盘", "workspace", "identity", "hyperv"),
         ["physical"] = new("选定物理测试盘", "disks"),
         ["optical"] = new("选定测试光驱", "optical"),
-        ["checkpoint"] = new("在专属普通虚拟机上创建检查点", "test-vm"),
+        ["checkpoint"] = new("在专属普通虚拟机上创建快照", "test-vm"),
         ["import"] = new("自动导出专属虚拟机作为导入样本", "test-vm"),
         ["gpupv"] = new("可分区 GPU", "gpu-partitions"),
         ["driver"] = new("宿主 GPU 驱动；执行时核验包内文件", "gpu"),

@@ -157,7 +157,7 @@ public static class VmDeleteService
     /// <param name="vmName">仅用于错误说明的显示名称；目标定位始终使用 vmId。</param>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
     /// <returns>注销状态、未清理路径和错误分别返回。执行时重新核对最新归属，不绑定此前预览；注销结果未知时不继续删除文件。磁盘依赖无法核对时仍注销并清理专属配置，保留无法排除依赖的磁盘，返回 Success=false 及 CleanupError。</returns>
-    /// <remarks>依赖保护覆盖当前宿主已登记虚拟机及检查点的磁盘父链，不扫描未登记的离线磁盘。父链只用于保护，不扩大删除范围。文件身份与引用在删除前复查，外部工具不遵循 Core 锁时仍不存在原子比较删除保证。</remarks>
+    /// <remarks>依赖保护覆盖当前宿主已登记虚拟机及快照的磁盘父链，不扫描未登记的离线磁盘。父链只用于保护，不扩大删除范围。文件身份与引用在删除前复查，外部工具不遵循 Core 锁时仍不存在原子比较删除保证。</remarks>
     /// <instanceentry label="删除虚拟机" category="删除" mode="彻底删除" order="20">
     /// <step>如需展示待删除范围，先调用 <c>PreviewPurgeAsync</c>；执行时会重新读取文件归属。</step>
     /// <step>确认使用彻底删除模式后调用 <c>PurgeVmAsync</c>，传入目标 GUID 和显示名称。处理多台虚拟机时，由调用方逐次提交并决定遇到失败是否继续。</step>
@@ -262,7 +262,7 @@ public static class VmDeleteService
                 var result = VmPurgeFileSafety.DeleteEmptyDirectory(directory);
                 RecordDirectoryResult(directory, result);
             }
-            // 根目录也只能删空目录，不能依据较早的目录快照递归清理。
+            // 根目录也只能删空目录，不能依据较早的目录列表递归清理。
             if (targets.DeletesConfigDirectory && targets.ConfigDirectory != null)
             {
                 var result = VmPurgeFileSafety.DeleteEmptyDirectory(targets.ConfigDirectory);
@@ -352,8 +352,8 @@ public static class VmDeleteService
             .Select(value => Guid.Parse(value).ToString("D"))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // 检查点的磁盘分配以检查点 ConfigurationID 开头，而不是根 VM GUID。
-        // 用上面从 VSSD 得到的完整 ID 集合，才能同时覆盖当前链和所有检查点。
+        // 快照的磁盘分配以快照 ConfigurationID 开头，而不是根 VM GUID。
+        // 用上面从 VSSD 得到的完整 ID 集合，才能同时覆盖当前链和所有快照。
         bool BelongsToVm((string Id, string Parent, string[] Host) allocation)
             => configurationIds.Any(id =>
                 allocation.Id.Contains(id, StringComparison.OrdinalIgnoreCase)
@@ -535,7 +535,7 @@ public static class VmDeleteService
         => Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
     // 配置和状态文件没有一条可直接枚举“本 VM 所有文件”的 WMI 关系。
-    // 但当前 VM 与各检查点的 ConfigurationID 都是平台分配的 GUID；只在 WMI 返回的
+    // 但当前 VM 与各快照的 ConfigurationID 都是平台分配的 GUID；只在 WMI 返回的
     // 数据根下匹配这些精确 ID，既能覆盖 vmcx/vmgs/vmrs，也不会认领共享根里的其它 VM。
     private static void CollectOwnedConfigArtifacts(
         IEnumerable<string> roots,

@@ -9,64 +9,64 @@ internal static class CheckpointWorkflowChecks
     public static async Task Run(Action<bool, string> check)
     {
         var stateOnly = VmCheckpointService.CreateInitialCheckpointNodes();
-        check(stateOnly.Select(node => node.Id).SequenceEqual([CheckpointNode.GenesisId, CheckpointNode.CurrentId]) &&
-            stateOnly[0].NodeType == CheckpointNodeType.Genesis && stateOnly[1].NodeType == CheckpointNodeType.Current &&
+        check(stateOnly.Select(node => node.Id).SequenceEqual([CheckpointNode.OriginId, CheckpointNode.CurrentId]) &&
+            stateOnly[0].NodeType == CheckpointNodeType.Origin && stateOnly[1].NodeType == CheckpointNodeType.Current &&
             stateOnly.All(node => node.IsCurrent) &&
-            stateOnly[1].ParentId == CheckpointNode.GenesisId && !VmCheckpointService.HasOpenWormhole(stateOnly),
-            "Checkpoint state-only initialization preserves logical nodes without requiring an image");
+            stateOnly[1].ParentId == CheckpointNode.OriginId && !VmCheckpointService.HasMountedHistoricalDisk(stateOnly),
+            "Snapshot state-only initialization preserves logical nodes without requiring an image");
 
         var target = new CheckpointNode { Id = "target", NodeType = CheckpointNodeType.Snapshot };
-        var origin = new CheckpointNode { NodeType = CheckpointNodeType.Genesis };
+        var origin = new CheckpointNode { NodeType = CheckpointNodeType.Origin };
         var current = new CheckpointNode { NodeType = CheckpointNodeType.Current };
-        var wormhole = new CheckpointNode { Id = "open", NodeType = CheckpointNodeType.Snapshot, IsWormhole = true };
+        var mounted = new CheckpointNode { Id = "open", NodeType = CheckpointNodeType.Snapshot, IsHistoricalDiskMounted = true };
         check(!VmCheckpointService.CanOperateHistoricalNode(null) &&
             !VmCheckpointService.CanOperateHistoricalNode(origin) &&
             !VmCheckpointService.CanOperateHistoricalNode(current) &&
             VmCheckpointService.CanOperateHistoricalNode(target),
-            "Checkpoint historical operations keep the original node-type boundary");
-        check(VmCheckpointService.CanCreateMoment(true, [target]) &&
-            !VmCheckpointService.CanCreateMoment(false, [target]) &&
-            !VmCheckpointService.CanCreateMoment(true, [target, wormhole]),
-            "Checkpoint create availability shares checkpoint-enabled and open-wormhole rules");
+            "Snapshot historical operations keep the original node-type boundary");
+        check(VmCheckpointService.CanCreateSnapshot(true, [target]) &&
+            !VmCheckpointService.CanCreateSnapshot(false, [target]) &&
+            !VmCheckpointService.CanCreateSnapshot(true, [target, mounted]),
+            "Snapshot create availability shares snapshot-enabled and open-historical-disk rules");
         check(VmCheckpointService.CanMutateHistoricalNode(target, [target]) &&
             !VmCheckpointService.CanMutateHistoricalNode(origin, [target]) &&
-            !VmCheckpointService.CanMutateHistoricalNode(target, [target, wormhole]),
-            "Deleting or merging any historical node is blocked by another open wormhole");
+            !VmCheckpointService.CanMutateHistoricalNode(target, [target, mounted]),
+            "Deleting or merging any historical node is blocked by another mounted historical disk");
 
         // Leftward merge rules (Git-style into parent without affecting siblings or active anchor)
-        var genesis = new CheckpointNode { Id = CheckpointNode.GenesisId, NodeType = CheckpointNodeType.Genesis };
-        var a1 = new CheckpointNode { Id = "a1", Name = "A1", NodeType = CheckpointNodeType.Snapshot, ParentId = CheckpointNode.GenesisId };
+        var originRoot = new CheckpointNode { Id = CheckpointNode.OriginId, NodeType = CheckpointNodeType.Origin };
+        var a1 = new CheckpointNode { Id = "a1", Name = "A1", NodeType = CheckpointNodeType.Snapshot, ParentId = CheckpointNode.OriginId };
         var a2 = new CheckpointNode { Id = "a2", Name = "A2", NodeType = CheckpointNodeType.Snapshot, ParentId = "a1" };
         var a3 = new CheckpointNode { Id = "a3", Name = "A3", NodeType = CheckpointNodeType.Snapshot, ParentId = "a2" };
         var curOnA3 = new CheckpointNode { Id = CheckpointNode.CurrentId, NodeType = CheckpointNodeType.Current, ParentId = "a3" };
-        var linearNodes = new List<CheckpointNode> { genesis, a1, a2, a3, curOnA3 };
+        var linearNodes = new List<CheckpointNode> { originRoot, a1, a2, a3, curOnA3 };
         check(!VmCheckpointService.CanMergeHistoricalNode(a1, linearNodes) &&
             VmCheckpointService.CanMergeHistoricalNode(a2, linearNodes) &&
             VmCheckpointService.CanMergeHistoricalNode(a3, linearNodes),
-            "Linear chain forbids merging into Genesis and allows merging child snapshots into parent");
+            "Linear chain forbids merging into Origin and allows merging child snapshots into parent");
 
-        var forkB1 = new CheckpointNode { Id = "b1", Name = "B1", NodeType = CheckpointNodeType.Snapshot, ParentId = CheckpointNode.GenesisId };
+        var forkB1 = new CheckpointNode { Id = "b1", Name = "B1", NodeType = CheckpointNodeType.Snapshot, ParentId = CheckpointNode.OriginId };
         var forkB2 = new CheckpointNode { Id = "b2", Name = "B2", NodeType = CheckpointNodeType.Snapshot, ParentId = "b1" };
         var curOnA1 = new CheckpointNode { Id = CheckpointNode.CurrentId, NodeType = CheckpointNodeType.Current, ParentId = "a1" };
-        var branchedNodes = new List<CheckpointNode> { genesis, a1, a2, forkB1, forkB2, curOnA1 };
+        var branchedNodes = new List<CheckpointNode> { originRoot, a1, a2, forkB1, forkB2, curOnA1 };
         check(!VmCheckpointService.CanMergeHistoricalNode(a2, branchedNodes) &&
             !VmCheckpointService.CanMergeHistoricalNode(forkB1, branchedNodes) &&
             VmCheckpointService.CanMergeHistoricalNode(forkB2, branchedNodes),
             "Branching forbids merging when parent carries Current or forked siblings, while independent branch child stays mergeable");
 
-        check(!VmCheckpointService.CanMergeHistoricalNode(a2, [.. linearNodes, wormhole]),
-            "Open wormhole blocks historical node merge");
+        check(!VmCheckpointService.CanMergeHistoricalNode(a2, [.. linearNodes, mounted]),
+            "Mounted historical disk blocks historical node merge");
 
         var mergeSteps = new List<string>();
-        var mergeOk = await VmCheckpointService.ConvergeWithParentAsync(
+        var mergeOk = await VmCheckpointService.MergeWithParentAsync(
             "A2", "A1",
             name => { mergeSteps.Add("rename:" + name); return Task.FromResult(ApiResponse.Ok()); },
             () => { mergeSteps.Add("destroy"); return Task.FromResult(ApiResponse.Ok()); });
         check(mergeOk.Success && mergeSteps.SequenceEqual(["rename:A1", "destroy"]),
-            "ConvergeWithParentAsync renames target to parent name before destroying parent");
+            "MergeWithParentAsync renames target to parent name before destroying parent");
 
         mergeSteps.Clear();
-        var mergeRollback = await VmCheckpointService.ConvergeWithParentAsync(
+        var mergeRollback = await VmCheckpointService.MergeWithParentAsync(
             "A2", "A1",
             name => { mergeSteps.Add("rename:" + name); return Task.FromResult(ApiResponse.Ok()); },
             () => { mergeSteps.Add("destroy"); return Task.FromResult(ApiResponse.Fail("wmi-failed", kind: ApiErrorKind.OperationFailed)); });
@@ -75,7 +75,7 @@ internal static class CheckpointWorkflowChecks
             "Settled parent destroy failure rolls back renamed target name");
 
         mergeSteps.Clear();
-        var mergeUnknown = await VmCheckpointService.ConvergeWithParentAsync(
+        var mergeUnknown = await VmCheckpointService.MergeWithParentAsync(
             "A2", "A1",
             name => { mergeSteps.Add("rename:" + name); return Task.FromResult(ApiResponse.Ok()); },
             () => { mergeSteps.Add("destroy"); return Task.FromResult(ApiResponse.Fail("unknown", kind: ApiErrorKind.OutcomeUnknown)); });
@@ -84,12 +84,12 @@ internal static class CheckpointWorkflowChecks
             "Uncertain parent destroy outcome preserves OutcomeUnknown without rolling back target name");
 
         mergeSteps.Clear();
-        var sameNameOk = await VmCheckpointService.ConvergeWithParentAsync(
+        var sameNameOk = await VmCheckpointService.MergeWithParentAsync(
             "Same", "Same",
             name => { mergeSteps.Add("rename:" + name); return Task.FromResult(ApiResponse.Ok()); },
             () => { mergeSteps.Add("destroy"); return Task.FromResult(ApiResponse.Ok()); });
         check(sameNameOk.Success && mergeSteps.SequenceEqual(["destroy"]),
-            "ConvergeWithParentAsync skips redundant rename when child and parent share the same name");
+            "MergeWithParentAsync skips redundant rename when child and parent share the same name");
 
         var originalCulture = R.Culture;
         try
@@ -105,60 +105,60 @@ internal static class CheckpointWorkflowChecks
                     return Task.FromResult((true, "mutation-result"));
                 }
                 var denied = await VmCheckpointService.RunCheckpointMutationAsync(
-                    () => { reads++; return Task.FromResult(new List<CheckpointNode> { target, wormhole }); }, Mutate);
-                Verify(!denied.Success && denied.Message == R.VmCheckpointService_HintCloseWormholeFirst &&
+                    () => { reads++; return Task.FromResult(new List<CheckpointNode> { target, mounted }); }, Mutate);
+                Verify(!denied.Success && denied.Message == R.VmCheckpointService_HintDismountHistoricalDiskFirst &&
                     reads == 1 && mutations == 0, "a detected node blocks mutation before its execution");
                 var allowed = await VmCheckpointService.RunCheckpointMutationAsync(
                     () => { reads++; return Task.FromResult(new List<CheckpointNode> { target }); }, Mutate);
                 Verify(allowed.Success && allowed.Message == "mutation-result" && reads == 2 && mutations == 1,
                     "a clear node list executes once and preserves the operation result");
 
-                var first = new CheckpointNode { Id = "first", IsWormhole = true };
-                var second = new CheckpointNode { Id = "second", IsWormhole = true };
-                var third = new CheckpointNode { Id = "third", IsWormhole = true };
+                var first = new CheckpointNode { Id = "first", IsHistoricalDiskMounted = true };
+                var second = new CheckpointNode { Id = "second", IsHistoricalDiskMounted = true };
+                var third = new CheckpointNode { Id = "third", IsHistoricalDiskMounted = true };
                 var steps = new List<string>();
-                var failure = await VmCheckpointService.CloseWormholesAndTeleportOperationAsync(
+                var failure = await VmCheckpointService.DismountHistoricalDisksAndApplyOperationAsync(
                     target, [target, first, second, third],
                     node =>
                     {
-                        steps.Add("close:" + node.Id);
-                        if (node == second) return Task.FromResult((false, "close-failure"));
-                        node.IsWormhole = false;
-                        return Task.FromResult((true, "closed"));
+                        steps.Add("dismount:" + node.Id);
+                        if (node == second) return Task.FromResult((false, "dismount-failure"));
+                        node.IsHistoricalDiskMounted = false;
+                        return Task.FromResult((true, "dismounted"));
                     },
-                    () => { steps.Add("teleport"); return Task.FromResult((true, "applied")); });
-                Verify(!failure.Success && failure.Message == "close-failure" &&
-                    steps.SequenceEqual(["close:first", "close:second"]) &&
-                    !first.IsWormhole && second.IsWormhole && third.IsWormhole,
-                    "failed close stops later closes and teleport while preserving prior close state");
+                    () => { steps.Add("apply"); return Task.FromResult((true, "applied")); });
+                Verify(!failure.Success && failure.Message == "dismount-failure" &&
+                    steps.SequenceEqual(["dismount:first", "dismount:second"]) &&
+                    !first.IsHistoricalDiskMounted && second.IsHistoricalDiskMounted && third.IsHistoricalDiskMounted,
+                    "failed dismount stops later dismounts and apply while preserving prior dismount state");
 
                 steps.Clear();
-                var success = await VmCheckpointService.CloseWormholesAndTeleportOperationAsync(
+                var success = await VmCheckpointService.DismountHistoricalDisksAndApplyOperationAsync(
                     target, [target, first, second, third],
                     node =>
                     {
-                        steps.Add("close:" + node.Id);
-                        node.IsWormhole = false;
-                        return Task.FromResult((true, "closed"));
+                        steps.Add("dismount:" + node.Id);
+                        node.IsHistoricalDiskMounted = false;
+                        return Task.FromResult((true, "dismounted"));
                     },
-                    () => { steps.Add("teleport"); return Task.FromResult((true, "applied")); });
+                    () => { steps.Add("apply"); return Task.FromResult((true, "applied")); });
                 Verify(success.Success && success.Message == "applied" &&
-                    steps.SequenceEqual(["close:second", "close:third", "teleport"]),
-                    "remaining wormholes close in node order before applying the snapshot");
+                    steps.SequenceEqual(["dismount:second", "dismount:third", "apply"]),
+                    "remaining mounted historical disks dismount in node order before applying the snapshot");
 
                 steps.Clear();
-                var applyFailure = await VmCheckpointService.CloseWormholesAndTeleportOperationAsync(
+                var applyFailure = await VmCheckpointService.DismountHistoricalDisksAndApplyOperationAsync(
                     target, [target, first],
-                    node => { steps.Add("unexpected-close"); return Task.FromResult((true, "closed")); },
-                    () => { steps.Add("teleport"); return Task.FromResult((false, "apply-failure")); });
-                Verify(!applyFailure.Success && applyFailure.Message == "apply-failure" && steps.SequenceEqual(["teleport"]),
-                    "without open nodes teleport runs directly and keeps its own failure");
+                    node => { steps.Add("unexpected-dismount"); return Task.FromResult((true, "dismounted")); },
+                    () => { steps.Add("apply"); return Task.FromResult((false, "apply-failure")); });
+                Verify(!applyFailure.Success && applyFailure.Message == "apply-failure" && steps.SequenceEqual(["apply"]),
+                    "without open nodes apply runs directly and keeps its own failure");
 
                 steps.Clear();
-                var invalid = await VmCheckpointService.CloseWormholesAndTeleportOperationAsync(
-                    origin, [wormhole],
-                    node => { steps.Add("unexpected-close"); return Task.FromResult((true, "closed")); },
-                    () => { steps.Add("unexpected-teleport"); return Task.FromResult((true, "applied")); });
+                var invalid = await VmCheckpointService.DismountHistoricalDisksAndApplyOperationAsync(
+                    origin, [mounted],
+                    node => { steps.Add("unexpected-dismount"); return Task.FromResult((true, "dismounted")); },
+                    () => { steps.Add("unexpected-apply"); return Task.FromResult((true, "applied")); });
                 Verify(!invalid.Success && invalid.Message == R.VmCheckpointService_ErrOnlyHistoricalNode && steps.Count == 0,
                     "logical nodes are rejected without closing resources or applying snapshots");
             }

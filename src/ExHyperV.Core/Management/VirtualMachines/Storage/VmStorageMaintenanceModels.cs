@@ -21,7 +21,7 @@ public enum VmDiskAccessKind
     Unavailable
 }
 
-/// <summary>存储详检结果和当前快照允许的操作。实际提交时重新检查。</summary>
+/// <summary>存储详检结果和当前状态允许的操作。实际提交时重新检查。</summary>
 /// <param name="Kind">当前挂接的访问状态。</param>
 /// <param name="Message">本次检查的结果说明或受限原因。</param>
 /// <param name="VmState">核实时观察到的虚拟机电源状态。</param>
@@ -128,7 +128,7 @@ public enum VmPartitionLayoutMode
 }
 
 /// <summary>只在可靠读到完整边界时提供收缩下限。容量与边界均基于字节计算。</summary>
-/// <param name="Access">容量检查时取得的挂接访问快照。</param>
+/// <param name="Access">容量检查时取得的挂接访问记录。</param>
 /// <param name="CurrentCapacityBytes">当前虚拟容量，单位字节，未知时为 null。</param>
 /// <param name="MaximumGiB">格式支持的最大虚拟容量，单位 GiB。</param>
 /// <param name="MinimumInternalSizeBytes">提供者报告的最小内部容量，单位字节。</param>

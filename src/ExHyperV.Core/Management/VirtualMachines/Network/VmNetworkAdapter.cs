@@ -206,7 +206,7 @@ namespace ExHyperV.Models
         /// <summary>混杂端口允许通信的辅助 VLAN ID。</summary>
         public List<int> PvlanSecondaryIds { get; set; } = [];
 
-        /// <summary>复制当前网卡快照，并为各可变列表建立独立副本。</summary>
+        /// <summary>复制当前网卡配置副本，并为各可变列表建立独立副本。</summary>
         /// <returns>网卡配置的独立副本，各可变列表单独复制。</returns>
         public VmNetworkAdapter Clone()
         {

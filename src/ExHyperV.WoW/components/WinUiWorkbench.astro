@@ -1,5 +1,6 @@
 ---
 import '../styles/ui-design.css';
+import VmConsoleView from './VmConsoleView.astro';
 import { HOST_CANDIDATE_PANEL } from '../data/exhyperv-design-candidates';
 const swatches = [
   ['蓝色', '#4CC2FF'],
@@ -279,56 +280,7 @@ const swatches = [
         </div>
 
         <!-- ==================== Page 3: SettingsPage.xaml ==================== -->
-        <div id="pageSettings" style="height:100%;overflow-y:auto;padding:32px;" hidden>
-          <div style="max-width:800px;display:flex;flex-direction:column;gap:24px;">
-            <div style="font-size:28px;font-weight:600;">应用设置</div>
-            <div style="background:var(--CardBackgroundFillColorDefaultBrush);border:1px solid var(--CardStrokeColorDefaultBrush);border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:20px;">
-              <div style="font-size:20px;font-weight:600;">外观</div>
-
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                <label style="font-size:14px;">应用主题</label>
-                <select class="winui-select" id="settingsThemePicker" style="width:220px;">
-                  <option value="default">跟随系统</option>
-                  <option value="light">浅色</option>
-                  <option value="dark" selected>深色</option>
-                </select>
-              </div>
-
-              <div style="display:flex;flex-direction:column;gap:8px;">
-                <span style="font-size:14px;">主题色</span>
-                <div class="winui-switch on" id="settingsAccentSwitch">
-                  <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
-                  <span id="settingsAccentSwitchLabel" style="font-size:14px;">开启</span>
-                </div>
-              </div>
-
-              <div style="display:flex;flex-direction:column;gap:12px;">
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  {swatches.map(([name, hex], i) => (
-                    <button
-                      data-swatch-hex={hex}
-                      title={name}
-                      style={`width:36px;height:36px;border-radius:18px;border:none;background:${hex};display:inline-flex;align-items:center;justify-content:center;padding:0;`}
-                    >
-                      <span class="fi swatch-check" style={`font-size:16px;color:#000;visibility:${i === 0 ? 'visible' : 'hidden'};`}>&#xE73E;</span>
-                    </button>
-                  ))}
-                </div>
-                <div style="display:flex;align-items:center;gap:12px;">
-                  <button class="winui-btn" id="settingsCustomColorBtn">自定义颜色</button>
-                  <button class="winui-btn" id="settingsResetColorBtn">恢复默认蓝色</button>
-                </div>
-              </div>
-
-              <div style="font-size:14px;color:var(--TextFillColorSecondaryBrush);">展开的监控卡片使用主题色，关闭后使用灰色。</div>
-
-              <div style="background:var(--VmHeaderCheckedBrush);color:var(--VmHeaderForegroundBrush);border-radius:4px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
-                <span>展开状态</span>
-                <span id="settingsColorValueText">#4CC2FF</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div id="pageSettings" class="app-settings-root" hidden></div>
       </div>
     </div>
 
@@ -346,8 +298,56 @@ const swatches = [
       </div>
     </div>
 
+    <!-- Settings Clear Logs Confirmation Dialog -->
+    <div class="winui-dialog-backdrop" id="settingsClearLogsModal" hidden>
+      <div class="cp-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="settingsClearLogsTitle">
+        <div class="cp-confirm-title" id="settingsClearLogsTitle">清空运行日志</div>
+        <div class="cp-confirm-body">
+          <p>确定要删除所有已保留的运行日志吗？</p>
+          <p class="cp-confirm-sub">启用运行日志期间，后续操作与异常事件仍会继续写入新文件。</p>
+        </div>
+        <div class="cp-confirm-actions">
+          <button type="button" class="cp-confirm-btn" id="settingsClearLogsCancelBtn">取消</button>
+          <button type="button" class="cp-confirm-btn is-danger" id="settingsClearLogsConfirmBtn">清空日志</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Storage Delete File Confirmation Dialog (ContentDialog) -->
+    <div class="winui-dialog-backdrop" id="stDeleteConfirmModal" hidden>
+      <div class="cp-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="stDeleteConfirmTitle">
+        <div class="cp-confirm-title" id="stDeleteConfirmTitle">确认彻底删除磁盘文件</div>
+        <div class="cp-confirm-body">
+          <p id="stDeleteConfirmDesc">确定要从宿主机永久删除该虚拟磁盘文件吗？此操作不可撤销。</p>
+          <p class="cp-confirm-sub" id="stDeleteConfirmPath" style="word-break:break-all;font-family:Consolas,monospace;"></p>
+        </div>
+        <div class="cp-confirm-actions">
+          <button type="button" class="cp-confirm-btn" id="stDeleteConfirmCancelBtn">取消</button>
+          <button type="button" class="cp-confirm-btn is-danger" id="stDeleteConfirmOkBtn">删除</button>
+        </div>
+      </div>
+    </div>
+
     <!-- SettingInfoButton Flyout (SettingInfoButton.cs lines 24-25) -->
     <div class="setting-info-flyout" id="settingInfoFlyout" hidden></div>
+
+    <!-- Settings ColorPicker Flyout (Window-level so scroll containers never clip it) -->
+    <div class="winui-color-flyout" id="settingsColorFlyout" hidden>
+      <div class="winui-cp-sv" id="settingsCpSv">
+        <div class="winui-cp-sv-white"></div>
+        <div class="winui-cp-sv-black"></div>
+        <div class="winui-cp-thumb" id="settingsCpThumb"></div>
+      </div>
+      <input type="range" class="winui-cp-hue" id="settingsCpHue" min="0" max="360" value="200" aria-label="色相" />
+      <div class="winui-cp-hex-row">
+        <div class="winui-cp-preview" id="settingsCpPreview"></div>
+        <input type="text" class="winui-textbox winui-cp-hex-input" id="settingsCpHexInput" maxlength="7" value="#4CC2FF" />
+      </div>
+      <div class="winui-cp-actions">
+        <button type="button" class="winui-btn" id="settingsCpCancelBtn">取消</button>
+        <button type="button" class="winui-btn accent" id="settingsCpApplyBtn">应用</button>
+      </div>
+    </div>
 
     <!-- 8-Way Window Resize Handles (Top, Bottom, Left, Right, and 4 Corners) -->
     <div class="win-resize-handle win-resize-t" id="winResizeT" title="上下拖动调整高度"></div>
@@ -359,6 +359,9 @@ const swatches = [
     <div class="win-resize-handle win-resize-bl" id="winResizeBL"></div>
     <div class="win-resize-handle win-resize-br" id="winResizeBR"></div>
   </div>
+
+  <!-- Fallback VM Console Modal (used only when opened standalone outside WinOnWeb desktop) -->
+  <VmConsoleView />
 
   <!-- Right-side Floating Design Candidates Panel -->
   <aside

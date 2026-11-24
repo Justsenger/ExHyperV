@@ -9,7 +9,7 @@ public enum VmGroupKind : ushort
     Groups = 1
 }
 
-/// <summary>Hyper-V 分组及其成员的本地快照。</summary>
+/// <summary>Hyper-V 分组及其成员的本地视图。</summary>
 /// <param name="Id">分组 GUID。</param>
 /// <param name="Name">分组名称。</param>
 /// <param name="Kind">分组允许包含的成员类别。</param>
@@ -29,13 +29,13 @@ public sealed record VmGroup(Guid Id, string Name, VmGroupKind Kind)
     /// <summary>直接属于该组的虚拟机标识集合。</summary>
     /// <fielddoc>
     /// <meaning>直接属于该组的虚拟机标识集合。</meaning>
-    /// <values kind="format">GUID 集合；修改集合仅改变本地快照。</values>
+    /// <values kind="format">GUID 集合，修改集合仅改变本地副本。</values>
     /// </fielddoc>
     public HashSet<Guid> VmIds { get; } = [];
     /// <summary>直接属于该组的子分组标识集合。</summary>
     /// <fielddoc>
     /// <meaning>直接属于该组的子分组标识集合。</meaning>
-    /// <values kind="format">GUID 集合；修改集合仅改变本地快照。</values>
+    /// <values kind="format">GUID 集合，修改集合仅改变本地副本。</values>
     /// </fielddoc>
     public HashSet<Guid> ChildIds { get; } = [];
 }

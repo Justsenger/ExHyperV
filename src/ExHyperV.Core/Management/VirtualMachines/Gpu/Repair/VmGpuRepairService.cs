@@ -10,7 +10,7 @@ namespace ExHyperV.Services
     ///
     /// 此类记录不会出现在 Get-VMGpuPartitionAdapter 或 Msvm_GpuPartitionSettingData 中，
     /// 因此需要通过统一 VmcxDocument / VmcxEditSession 编辑对应的 .vmcx 文件。
-    /// 检测读取文件快照，修复通过 VmDataStore 提交配置修改。
+    /// 检测读取文件状态，修复通过 VmDataStore 提交配置修改。
     ///
     /// 失配判定使用完整路径精确比对；GPU-PV 绑定的是某块卡的
     /// 完整 GPUPARAV 路径(含 PCIe 位置段),主机重启/重插后即使同一张卡仍在,位置段也可能变 → 路径失配 → 起不来。

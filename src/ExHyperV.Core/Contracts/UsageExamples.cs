@@ -201,7 +201,7 @@ public static class UsageExamples
 
     // example:export:start
     // title: 导出一台虚拟机
-    // description: 把虚拟机配置和虚拟磁盘导出到指定目录（跳过检查点和运行状态）。
+    // description: 把虚拟机配置和虚拟磁盘导出到指定目录（跳过快照和运行状态）。
     public static Task<VmExportResult> ExportVmAsync(Guid vmId, string destinationDirectory)
         => VmExportService.ExportAsync(vmId, destinationDirectory,
             includeVirtualHardDisks: true,

@@ -978,7 +978,7 @@ internal static partial class WmiApi
         return col.Cast<ManagementObject>().FirstOrDefault();
     }
 
-    /// <summary>从 VM 对象取得其当前已实现配置，而非检查点配置。</summary>
+    /// <summary>从 VM 对象取得其当前已实现配置，而非快照配置。</summary>
     /// <returns>调用方拥有且必须 Dispose 的配置对象；未找到时为 null。</returns>
     /// <param name="vmComputerSystem">调用方持有的 VM WMI 对象，查询期间必须有效；本方法不释放该输入对象。</param>
     public static ManagementObject? GetVmSettings(ManagementObject vmComputerSystem)

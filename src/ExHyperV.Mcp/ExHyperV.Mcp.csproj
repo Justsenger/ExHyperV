@@ -4,6 +4,7 @@
     <TargetFramework>net11.0-windows</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Version>2.0.0-Alpha</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>

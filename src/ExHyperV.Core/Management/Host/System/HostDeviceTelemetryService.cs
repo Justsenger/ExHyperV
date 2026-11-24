@@ -140,7 +140,7 @@ public sealed class HostDeviceTelemetryService : IDisposable
         or UnauthorizedAccessException or System.Security.SecurityException or NotSupportedException or IOException;
 
     /// <summary>按接口 GUID 返回本地 IPv4 与 MAC 地址，缺失的接口不产生记录。</summary>
-    /// <returns>以接口 GUID 为键的地址快照。</returns>
+    /// <returns>以接口 GUID 为键的地址映射。</returns>
     public static IReadOnlyDictionary<Guid, HostAdapterAddress> ReadAdapterAddresses()
     {
         var result = new Dictionary<Guid, HostAdapterAddress>();

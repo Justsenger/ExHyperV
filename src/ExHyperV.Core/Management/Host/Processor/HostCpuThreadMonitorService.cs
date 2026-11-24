@@ -133,7 +133,7 @@ public sealed class HostCpuThreadMonitorService : IDisposable, IAsyncDisposable
         Task.Delay,
         () => DateTimeOffset.UtcNow);
 
-    /// <summary>在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属快照。</summary>
+    /// <summary>在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属采样帧。</summary>
     /// <param name="duration">采样等待窗口时长，须大于零且不超过 1 分钟。</param>
     /// <param name="cancellationToken">可取消采样初始化与窗口等待；取消后自动释放内部会话与计数器资源。</param>
     /// <returns>经过严格归一的宿主全量逻辑处理器占用与虚拟机归属报告；若基线尚未就绪则按实际状态返回。</returns>
@@ -199,7 +199,7 @@ public sealed class HostCpuThreadMonitorService : IDisposable, IAsyncDisposable
                 _topology,
                 now,
                 TimeSpan.Zero,
-                new PerformanceSampleInfo(PerformanceSampleState.WarmingUp, now, "正在等待首批内核上下文切换或虚拟机身份快照。"),
+                new PerformanceSampleInfo(PerformanceSampleState.WarmingUp, now, "正在等待首批内核上下文切换或虚拟机身份映射。"),
                 attributionNote: null);
         }
 

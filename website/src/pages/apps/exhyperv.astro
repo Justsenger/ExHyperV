@@ -49,30 +49,22 @@ import '../../shells/win11/win11-tokens.css';
         }
       }
 
-      function publishVirtualHardware(hw: unknown) {
-        if (!hw || typeof hw !== 'object') return;
-        (window as unknown as Record<string, unknown>).__WIN11_HARDWARE__ = hw;
-        window.dispatchEvent(new CustomEvent('win11:hardware', { detail: hw }));
-      }
-
       const client = createWowClient({
         onInit: (info) => {
           applyTheme(info.theme);
           (window as unknown as Record<string, unknown>).__WOW_APP_READY__ = true;
           window.dispatchEvent(new CustomEvent('exhyperv:wow-init', { detail: info }));
-          void client.getHwSnapshot().then(publishVirtualHardware).catch(() => {});
         },
         onThemeChange: applyTheme,
         onEvent: (name, value) => {
-          if (name === 'hardware') {
-            publishVirtualHardware(value);
-          } else if (name === 'message' && value && typeof value === 'object') {
+          if (name === 'message' && value && typeof value === 'object') {
             window.dispatchEvent(new CustomEvent('exhyperv:wow-message', { detail: value }));
           }
         },
       });
 
       (window as unknown as Record<string, unknown>).__WOW_APP_CLIENT__ = {
+        isEmbedded: client.isEmbedded,
         emitAppEvent: (channel: string, payload?: unknown) => {
           if (!client.isEmbedded) return;
           void client.request('app.event', { channel, payload }).catch(() => {});

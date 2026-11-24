@@ -51,7 +51,7 @@ public enum VmQueryCollection
     PcieDevices,
     /// <summary>虚拟串口（COM 1 / COM 2）。</summary>
     SerialPorts,
-    /// <summary>检查点及当前状态节点。</summary>
+    /// <summary>快照及当前状态节点。</summary>
     Checkpoints
 }
 

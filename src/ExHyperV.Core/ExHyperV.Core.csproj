@@ -4,6 +4,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);external\**\runtimes\*\native\**;Contracts\**</DefaultItemExcludes>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Version>2.0.0-Alpha</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RootNamespace>ExHyperV</RootNamespace>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <!-- Keep one build configuration for all consumers; MCP also reads these API comments. -->
@@ -20,23 +21,8 @@
     <Compile Remove="Contracts\**" />
     <EmbeddedResource Remove="Contracts\**" />
     <None Remove="Contracts\**" />
-    <None Include="Management/VirtualMachines/Gpu/Deployment/GuestInstaller/install.cmd;Management/VirtualMachines/Gpu/Deployment/GuestInstaller/install.ps1" />
     <None Update="ThirdPartyNotices\SharpZipLib.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <Target Name="PackageGpuGuestInstaller" BeforeTargets="AssignTargetPaths"
-          Inputs="Management/VirtualMachines/Gpu/Deployment/GuestInstaller/install.cmd;Management/VirtualMachines/Gpu/Deployment/GuestInstaller/install.ps1"
-          Outputs="$(IntermediateOutputPath)GpuGuestInstaller.zip">
-    <MakeDir Directories="$(IntermediateOutputPath)" />
-    <ZipDirectory SourceDirectory="Management/VirtualMachines/Gpu/Deployment/GuestInstaller"
-                  DestinationFile="$(IntermediateOutputPath)GpuGuestInstaller.zip"
-                  Overwrite="true" />
-  </Target>
-  <Target Name="CollectGpuGuestInstaller" BeforeTargets="AssignTargetPaths" DependsOnTargets="PackageGpuGuestInstaller">
-    <ItemGroup>
-      <EmbeddedResource Include="$(IntermediateOutputPath)GpuGuestInstaller.zip"
-                        LogicalName="ExHyperV.GpuGuestInstaller.zip" />
-    </ItemGroup>
-  </Target>
   <ItemGroup>
     <EmbeddedResource Include="external/freerdp/runtimes/win-arm64/console-native.zip"
         Condition="'$(ExHyperVConsoleRuntime)' == ''" LogicalName="ExHyperV.ConsoleNative.win-arm64.zip" />

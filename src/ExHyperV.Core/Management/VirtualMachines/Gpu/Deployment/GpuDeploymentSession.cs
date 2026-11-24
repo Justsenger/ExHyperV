@@ -5,7 +5,7 @@ using R = ExHyperV.Properties.Resources;
 namespace ExHyperV.Services;
 
 /// <summary>管理一次进程内 GPU 部署；Core 推进各步骤，并在需要确认时暂停，等待带版本标识的明确决定。</summary>
-/// <remarks>每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前快照。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器；已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场；按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。</remarks>
+/// <remarks>每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前状态。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器，已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场，按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。</remarks>
 public sealed class GpuDeploymentSession
 {
     private readonly IGpuDeploymentBackend backend;
@@ -30,8 +30,7 @@ public sealed class GpuDeploymentSession
     private bool needConfig, unidentifiedAssignment;
     private string? error, cleanupError;
     private string? retainedDiskCleanupError;
-    private int? driverIsoProgressPercent;
-    private bool isDriverSkipped, isDriverIsoMounted;
+    private bool isDriverSkipped;
     private bool outcomeUnknown;
     private bool assignmentNeedsReconciliation;
 
@@ -84,14 +83,14 @@ public sealed class GpuDeploymentSession
 
     // Polling never waits for a native operation. Returned values cannot mutate this session.
     /// <summary>读取最近发布的状态，不等待正在进行的底层操作。</summary>
-    /// <returns>当前部署状态快照。</returns>
+    /// <returns>当前部署状态。</returns>
     public GpuDeploymentSnapshot GetStatus() => Volatile.Read(ref snapshot);
     /// <summary>仅发送协作式取消请求，立即返回；正在执行的不可取消底层调用仍需自行结束。</summary>
     public void RequestCancellation() => cancellation.Cancel();
 
     /// <summary>开始部署并执行到等待用户决定或结束；同一会话只能从 Created 状态启动。</summary>
-    /// <param name="progress">可选的快照通知，在执行流程所在的上下文同步触发。回调应快速返回；界面更新需调度到界面线程。阻塞等待会话写操作会导致死锁；回调异常会被隔离。</param>
-    /// <returns>停止推进时的最新快照，可能仍需用户决定。</returns>
+    /// <param name="progress">可选的状态通知，在执行流程所在的上下文同步触发。回调应快速返回，界面更新需调度到界面线程。阻塞等待会话写操作会导致死锁，回调异常会被隔离。</param>
+    /// <returns>停止推进时的最新状态，可能仍需用户决定。</returns>
     /// <exception cref="InvalidOperationException">会话已经离开 Created 状态。</exception>
     /// <editentry label="GPU 驱动部署流程" category="GPU"/>
     public async Task<GpuDeploymentSnapshot> StartAsync(Action<GpuDeploymentSnapshot>? progress = null)
@@ -108,11 +107,11 @@ public sealed class GpuDeploymentSession
 
     /// <summary>校验当前请求 ID 及输入类型，然后推进部署。</summary>
     /// <param name="decision">与 PendingDecision 对应的确认、分区、回退动作或返回决定；不能为空。</param>
-    /// <returns>执行至下一次等待或结束后的快照。</returns>
-    /// <remarks>选择非加密 Windows 分区后会直接执行离线驱动写入；确认 PowerOff 会直接 TurnOff；提交 MountIso 会生成并挂载驱动 ISO。</remarks>
+    /// <returns>执行至下一次等待或结束后的状态。</returns>
+    /// <remarks>选择非加密 Windows 分区后会直接执行离线驱动写入，确认 PowerOff 会直接 TurnOff，提交 SkipDriver 会跳过驱动安装。</remarks>
     /// <exception cref="ArgumentNullException">decision 为 null。</exception>
     /// <exception cref="InvalidOperationException">没有待确认事项，或请求 ID、输入种类与当前事项不匹配。</exception>
-    /// <exception cref="ArgumentException">分区不在当前列表、分区不受支持或已加密。</exception>
+    /// <exception cref="ArgumentException">分区不在当前列表、分区不受支持（如 Linux）或已开启 BitLocker。</exception>
     public async Task<GpuDeploymentSnapshot> SubmitDecisionAsync(GpuDeploymentDecision decision)
     {
         ArgumentNullException.ThrowIfNull(decision);
@@ -146,17 +145,11 @@ public sealed class GpuDeploymentSession
                         break;
                     case GpuDriverFallbackSelection fallback:
                         await VerifyTargetAsync();
-                        if (fallback.Action == GpuDriverFallbackAction.SkipDriver)
-                        {
-                            isDriverSkipped = true;
-                            selected = null;
-                            CompleteDrivers(R.Msg_Gpu_DriverSkipped);
-                        }
-                        else
-                        {
-                            selected = null;
-                            await MountDriverIsoAsync();
-                        }
+                        if (fallback.Action != GpuDriverFallbackAction.SkipDriver)
+                            throw new ArgumentException(R.Gpu_DecisionExpired);
+                        isDriverSkipped = true;
+                        selected = null;
+                        CompleteDrivers(R.Msg_Gpu_DriverSkipped);
                         break;
                     case GpuBackToPartitions:
                         selected = null;
@@ -169,7 +162,7 @@ public sealed class GpuDeploymentSession
     }
 
     /// <summary>请求取消，等待当前操作退出后尝试清理本次新增的全部适配器。</summary>
-    /// <returns>取消或既有终态快照；清理未完成时返回 CleanupRequired。</returns>
+    /// <returns>取消或既有终态，清理未完成时返回 CleanupRequired。</returns>
     /// <remarks>等待当前步骤结束后取消，已完成的修改保留。会话已终止或等待清理时返回当前状态。OutcomeUnknown 时先按 AllowedActions 调用 ReconcileAsync 核实，再决定是否调用 RetryCleanupAsync。</remarks>
     public async Task<GpuDeploymentSnapshot> CancelAsync()
     {
@@ -215,7 +208,7 @@ public sealed class GpuDeploymentSession
     }
 
     /// <summary>只读核实本次部署和清理的原生任务、GPU 适配器及临时磁盘资源。</summary>
-    /// <returns>更新后的快照。原任务结束且资源已恢复时进入原定的 Failed 或 Cancelled；仍需清理时停在 CleanupRequired，并更新 AllowedActions。</returns>
+    /// <returns>更新后的状态。原任务结束且资源已恢复时进入原定的 Failed 或 Cancelled，仍需清理时停在 CleanupRequired，并更新 AllowedActions。</returns>
     /// <remarks>核实已记录的适配器、电源、MMIO 和临时磁盘任务。仍在运行、读取失败或缺少最终回执时保留 OutcomeUnknown。Recovery 中的 Operations、Resources、ObservedValues 分别提供任务结果、恢复资源和本次观测值；后续清理由调用方按 AllowedActions 发起。</remarks>
     /// <exception cref="InvalidOperationException">当前 AllowedActions 不包含 Reconcile。</exception>
     public async Task<GpuDeploymentSnapshot> ReconcileAsync()
@@ -242,8 +235,6 @@ public sealed class GpuDeploymentSession
                 }
                 var observed = await backend.ReconcileRecoveryAsync();
                 outcomeUnknown = !observed.Success;
-                if (observed.Success && backend.GetRecovery()?.ObservedValues.TryGetValue("DriverIsoMounted", out string? mounted) == true)
-                    isDriverIsoMounted = mounted == "true";
                 if (!observed.Success) cleanupError = observed.Error;
                 else
                 {
@@ -411,13 +402,26 @@ public sealed class GpuDeploymentSession
 
         var usable = found.Where(IsSupported).ToList();
         bool hasBitLocker = found.Any(p => p.IsBitLocker);
-        if (usable.Count == 1 && !hasBitLocker)
+        bool hasLinux = found.Any(p => p.OsType == OperatingSystemType.Linux);
+        if (usable.Count == 1 && !hasBitLocker && !hasLinux)
         {
             selected = ClonePartition(usable[0]);
             await PrepareSelectedPartitionAsync();
         }
-        else Ask(GpuDecisionKind.SelectPartition, R.Label_SelectPart, R.Msg_Gpu_ManualSelect);
+        else Ask(GpuDecisionKind.SelectPartition, R.Label_SelectPart, BuildPartitionSelectMessage(usable.Count, hasLinux, hasBitLocker));
     }
+
+    private static string BuildPartitionSelectMessage(int usableCount, bool hasLinux, bool hasBitLocker) => (usableCount, hasLinux, hasBitLocker) switch
+    {
+        (0, true, true) => R.Msg_Gpu_LinuxAndBitLockerUnsupported,
+        (0, true, false) => R.Msg_Gpu_LinuxUnsupported,
+        (0, false, true) => R.Msg_Gpu_BitLockerRequired,
+        (> 0, true, true) => R.Msg_Gpu_SelectPartWithLinuxAndBitLocker,
+        (> 0, true, false) => R.Msg_Gpu_SelectPartWithLinux,
+        (> 0, false, true) => R.Msg_Gpu_SelectPartWithBitLocker,
+        (0, false, false) => R.Msg_Gpu_NoUsableWindowsPart,
+        _ => R.Msg_Gpu_ManualSelect
+    };
 
     private async Task PrepareSelectedPartitionAsync()
     {
@@ -448,31 +452,6 @@ public sealed class GpuDeploymentSession
         }
         await backend.RecordGuestDriverVersionsAsync();
         CompleteDrivers(R.Msg_Gpu_DriverOk);
-    }
-
-    private async Task MountDriverIsoAsync()
-    {
-        driverIsoProgressPercent = 0;
-        if (index < steps.Count)
-            steps[index] = steps[index] with { Name = R.Task_Gpu_MountIso, Status = GpuDeploymentStepStatus.Running, Description = R.Msg_Gpu_MountingIso };
-        Publish(R.Msg_Gpu_MountingIso);
-
-        var mounted = await backend.MountDriverIsoAsync(pct =>
-        {
-            int clamped = Math.Clamp(pct, 0, 100);
-            if (driverIsoProgressPercent == clamped) return;
-            driverIsoProgressPercent = clamped;
-            Publish();
-        }, DriverProgress, cancellation.Token);
-
-        OperationOutcomeUnknownException.ThrowIfUnknown(mounted);
-        if (!mounted.Success)
-            throw new InvalidOperationException(mounted.Error, mounted.Exception);
-
-        driverIsoProgressPercent = 100;
-        isDriverIsoMounted = true;
-        cancellation.Token.ThrowIfCancellationRequested();
-        CompleteDrivers(R.Msg_Gpu_IsoMounted);
     }
 
     private async Task VerifyPartitionAsync()
@@ -516,6 +495,7 @@ public sealed class GpuDeploymentSession
         {
             if (!partitions.TryGetValue(choice.PartitionId, out var partition)) throw new ArgumentException(R.Gpu_InvalidPartition);
             if (partition.IsBitLocker) throw new ArgumentException(R.Error_Gpu_BitLocker);
+            if (partition.OsType == OperatingSystemType.Linux) throw new ArgumentException(R.Error_Gpu_LinuxUnsupported);
             if (!IsSupported(partition)) throw new ArgumentException(R.Gpu_InvalidPartition);
         }
         if (decision is GpuDriverFallbackSelection fallback && !Enum.IsDefined(fallback.Action))
@@ -624,9 +604,7 @@ public sealed class GpuDeploymentSession
             AddedAdapterIds = Array.AsReadOnly(addedAdapterIds.ToArray()),
             PendingCleanupAdapterId = cleanupAdapterIds.FirstOrDefault(),
             PendingCleanupAdapterIds = Array.AsReadOnly(cleanupAdapterIds.ToArray()),
-            DriverIsoProgressPercent = driverIsoProgressPercent,
             IsDriverSkipped = isDriverSkipped,
-            IsDriverIsoMounted = isDriverIsoMounted,
             Recovery = backend.GetRecovery()
         };
         Volatile.Write(ref snapshot, next);
@@ -676,8 +654,6 @@ internal interface IGpuDeploymentBackend
     Task<bool> RemoveAsync(string adapterId);
     Task<List<DiskPartitionInfo>> GetPartitionsAsync();
     Task<(bool Success, string Message)> SyncWindowsAsync(DiskPartitionInfo partition, Action<string> log);
-    Task<ApiResponse<string>> MountDriverIsoAsync(Action<int>? progressPercent = null, Action<string>? log = null, CancellationToken cancellationToken = default)
-        => Task.FromResult(ApiResponse<string>.Ok(string.Empty));
     Task RecordGuestDriverVersionsAsync() => Task.CompletedTask;
 }
 
@@ -820,25 +796,6 @@ internal sealed class NativeGpuDeploymentBackend(
         if (result.ErrorKind is ApiErrorKind.CleanupRequired or ApiErrorKind.OutcomeUnknown) throw new GpuDeploymentCleanupException(result.Error);
         return (result.Success, result.Error);
     });
-
-    public Task<ApiResponse<string>> MountDriverIsoAsync(
-        Action<int>? progressPercent = null,
-        Action<string>? log = null,
-        CancellationToken cancellationToken = default)
-        => recovery.RunAsync("MountDriverIso", async () =>
-        {
-            var mounted = await GpuDriverIsoService.BuildAndMountDriverIsoAsync(vmId, selectedGpus, progressPercent, log, cancellationToken);
-            OperationOutcomeUnknownException.ThrowIfUnknown(mounted);
-            return mounted;
-        }, async () =>
-        {
-            var media = await VmStorageService.GetVmStorageItemsAsync(vmId);
-            if (!media.HasData) return ApiResponse.FromFailure(media);
-            string path = GpuDriverIsoService.GetDefaultIsoPath(vmId);
-            bool mounted = media.Data.Any(d => d.HasIsoMedia && string.Equals(d.PathOrDiskNumber, path, StringComparison.OrdinalIgnoreCase));
-            recovery.ObservedValues["DriverIsoMounted"] = mounted ? "true" : "false";
-            return ApiResponse.Ok();
-        });
 
     public Task RecordGuestDriverVersionsAsync() => recovery.RunAsync("GpuDriverVersions", async () =>
     {

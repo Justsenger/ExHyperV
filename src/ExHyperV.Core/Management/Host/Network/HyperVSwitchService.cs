@@ -160,7 +160,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  GetNetworkInfoAsync — WmiApi
         // ══════════════════════════════════════════════════════════════════
-        /// <summary>读取交换机、连接模式和可用物理上游网卡快照。</summary>
+        /// <summary>读取交换机、连接模式和可用物理上游网卡视图。</summary>
         /// <returns>交换机和物理网卡列表；网卡等读取失败可抛出异常，交换机主查询失败当前返回空交换机列表，不能与确实没有交换机区分。逐交换机识别问题见 StateError。</returns>
         public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> PhysicalAdapters)> GetNetworkInfoAsync()
             => ReadNetworkInfoAsync(GetPhysicalAdaptersAsync, ComApi.GetConnectionsAsync,
@@ -867,7 +867,7 @@ namespace ExHyperV.Services
         private static async Task UpdateSwitchCoreAsync(
             Guid switchId, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS)
         {
-            // 预检和快照不修改配置；只有实际切换开始后的失败才执行恢复。
+            // 预检和状态采集不修改配置；只有实际切换开始后的失败才执行恢复。
             var existing = await GetSwitchListAsync(requireSuccess: true);
             using var target = await GetSwitchObjectAsync(switchId);
             var conflict = SwitchConfigurationRules.GetUpdateConflict(target["Name"]?.ToString() ?? string.Empty,
@@ -928,7 +928,7 @@ namespace ExHyperV.Services
             public static async Task<HostIpv4Settings?> CaptureAsync(Guid id)
             {
                 if (id == Guid.Empty) return null;
-                // 在 WmiApi 管理的对象生命周期内完成快照，保留属性解析失败的诊断。
+                // 在 WmiApi 管理的对象生命周期内完成属性提取，保留属性解析失败的诊断。
                 var result = await WmiApi.WithFirstAsync(AdapterQuery(id),
                     config => Task.FromResult(ReadSettings(config, id)), WmiScope.CimV2);
                 if (!result.Success)
@@ -1252,7 +1252,7 @@ namespace ExHyperV.Services
 
         private static async Task<List<PortAllocation>> GetPortAllocationsAsync(ManagementObject switchObj)
         {
-            // 返回值只保留属性快照，避免 QueryRelatedAsync 释放对象后再读取。
+            // 返回值只保留属性副本，避免 QueryRelatedAsync 释放对象后再读取。
             var portPaths = await WmiApi.QueryRelatedAsync(
                 switchObj, "Msvm_EthernetSwitchPort", p => p.Path.Path, "Msvm_SystemDevice");
             if (!portPaths.Success || portPaths.Data == null)

@@ -33,7 +33,7 @@ public static class VmGroupService
     }
 
     /// <summary>读取当前虚拟机分组、成员及层级关系。</summary>
-    /// <returns>分组快照；底层查询失败以异常报告。</returns>
+    /// <returns>分组视图，底层查询失败以异常报告。</returns>
     /// <queryentry label="分组及成员关系" category="分组"/>
     public static Task<VmGroupSnapshot> ReadAsync() => Task.Run(() =>
     {

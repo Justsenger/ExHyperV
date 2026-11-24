@@ -26,7 +26,7 @@ public sealed partial class VmPcieSettingsView
         catch (Exception ex)
         {
             failures.Add(ex.Message);
-            FinishFlow();
+            await FinishFlowAsync();
         }
     });
 
@@ -210,12 +210,28 @@ public sealed partial class VmPcieSettingsView
             answer = null;
         }
         NotifyChanged();
-        FinishFlow();
+        await FinishFlowAsync();
     }
 
-    private void FinishFlow()
+    private async Task FinishFlowAsync()
     {
+        if (IsStopped) return;
         bool failed = failures.Count != 0;
+        if (!failed && skipped == 0)
+        {
+            try
+            {
+                await LoadAsync();
+                if (!IsStopped) ShowAppliedToast(L10n.Get("Common_Applied"));
+                return;
+            }
+            catch (OperationCanceledException) when (IsStopped) { return; }
+            catch (Exception ex)
+            {
+                failures.Add(CoreMessageResolver.ResolveException(ex));
+                failed = true;
+            }
+        }
         string? status = failed ? (assigned == 0 ? T("Failed") : F("Partial", assigned))
             : skipped > 0 ? F("SkippedCount", assigned, skipped) : null;
         RenderSteps(finished: true, failed: failed, right: status == null ? null : new TextBlock

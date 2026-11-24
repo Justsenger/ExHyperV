@@ -18,7 +18,7 @@ using Windows.System;
 
 namespace ExHyperV.App.UI.Pages.VirtualMachines.Settings;
 
-/// <summary>检查点拓扑画布、右键菜单操作与全屏切换。</summary>
+/// <summary>虚拟机快照拓扑画布、右键菜单操作与全屏切换。</summary>
 public sealed partial class VmCheckpointSettingsView : UserControl
 {
     private const double CardWidth = 176;
@@ -27,6 +27,8 @@ public sealed partial class VmCheckpointSettingsView : UserControl
     private const double PitchY = 136;
     private const double MinZoom = 0.45;
     private const double MaxZoom = 1.85;
+    private const string MergeMenuIconPathData =
+        "M 15.5 2 Q 15.7 2 15.85 2.15 Q 16 2.3 16 2.5 Q 16 3.38 15.74 4.22 Q 15.48 5.06 15.01 5.79 Q 14.54 6.51 13.88 7.08 Q 13.21 7.65 12.4 8 Q 13.21 8.35 13.88 8.92 Q 14.54 9.49 15.01 10.21 Q 15.48 10.94 15.74 11.78 Q 16 12.62 16 13.5 Q 16 13.7 15.85 13.85 Q 15.7 14 15.5 14 Q 15.3 14 15.15 13.85 Q 15 13.7 15 13.5 Q 15 12.15 14.33 10.99 Q 13.99 10.41 13.52 9.95 Q 13.05 9.48 12.5 9.16 Q 11.94 8.84 11.3 8.67 Q 10.67 8.5 10 8.5 H 1.7 L 4.85 11.65 Q 5 11.8 5 12 Q 5 12.2 4.85 12.35 Q 4.7 12.5 4.5 12.5 Q 4.3 12.5 4.15 12.35 L 0.15 8.35 Q 0 8.2 0 8 Q 0 7.8 0.15 7.65 L 4.15 3.65 Q 4.3 3.5 4.5 3.5 Q 4.7 3.5 4.85 3.65 Q 5 3.8 5 4 Q 5 4.2 4.85 4.35 L 1.7 7.5 H 10 Q 10.67 7.5 11.3 7.33 Q 11.94 7.16 12.5 6.84 Q 13.05 6.52 13.52 6.05 Q 13.99 5.59 14.33 5.01 Q 15 3.85 15 2.5 Q 15 2.3 15.15 2.15 Q 15.3 2 15.5 2 Z";
 
     private sealed record PendingWrite(string Detail, ApiErrorKind Kind, CheckpointNode? Mount);
     private static readonly Dictionary<Guid, PendingWrite> PendingWrites = new();
@@ -79,7 +81,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
     private IDashboardFeedbackHost? feedbackHost;
     private FloatingNoticeBanner? standaloneNotice;
     private readonly Dictionary<string, Point> positions = [];
-    private readonly Dictionary<string, (Border Card, Button Host, bool IsCurrent, bool IsWormhole)> cardVisuals = [];
+    private readonly Dictionary<string, (Border Card, Button Host, bool IsCurrent, bool IsHistoricalDiskMounted)> cardVisuals = [];
     private List<CheckpointNode> nodes = [];
     private CheckpointNode? selected;
     private Task operation = Task.CompletedTask;
@@ -242,13 +244,13 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         nodes = response.Data!;
         if (!nodes.Any(node => node.NodeType == CheckpointNodeType.Snapshot))
         {
-            var genesis = nodes.FirstOrDefault(node => node.NodeType == CheckpointNodeType.Genesis);
+            var origin = nodes.FirstOrDefault(node => node.NodeType == CheckpointNodeType.Origin);
             var current = nodes.FirstOrDefault(node => node.NodeType == CheckpointNodeType.Current);
-            if (genesis != null && current != null)
+            if (origin != null && current != null)
             {
-                current.CreatedDate = genesis.CreatedDate;
+                current.CreatedDate = origin.CreatedDate;
                 current.ParentId = null;
-                nodes.Remove(genesis);
+                nodes.Remove(origin);
             }
         }
 
@@ -297,7 +299,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
             pendingContent.Children.Clear();
             pendingContent.Children.Add(new TextBlock { Text = pending.Detail, TextWrapping = TextWrapping.Wrap, FontSize = 12.5 });
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-            if (pending is { Kind: ApiErrorKind.CleanupRequired, Mount: { IsWormhole: true } mount })
+            if (pending is { Kind: ApiErrorKind.CleanupRequired, Mount: { IsHistoricalDiskMounted: true } mount })
             {
                 var cleanup = new Button { Content = L10n.Get("Cp_CleanupMount") };
                 cleanup.Click += (_, _) => operation = RunAsync(() => RetryMountCleanupAsync(pending, mount));
@@ -318,7 +320,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
     private async Task RetryMountCleanupAsync(PendingWrite pending, CheckpointNode mount)
     {
         if (PendingWrites.GetValueOrDefault(vmId) != pending) return;
-        var result = await VmCheckpointService.CloseWormholeAsync(vmId, mount);
+        var result = await VmCheckpointService.DismountHistoricalDiskAsync(vmId, mount);
         if (!result.Success)
         {
             PendingWrites[vmId] = pending with
@@ -421,9 +423,9 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         string? nextSelectedId = action == "Cp_Merge" ? node.Id : null;
         await MutateAsync(() => action switch
         {
-            "Cp_Delete" => VmCheckpointService.AnnihilateAsync(vmId, node),
-            "Cp_Merge" => VmCheckpointService.ConvergeAsync(vmId, node),
-            _ => VmCheckpointService.TeleportAsync(node, vmId, nodes)
+            "Cp_Delete" => VmCheckpointService.DeleteSnapshotAsync(vmId, node),
+            "Cp_Merge" => VmCheckpointService.MergeSnapshotAsync(vmId, node),
+            _ => VmCheckpointService.ApplySnapshotAsync(node, vmId, nodes)
         }, nextSelectedId);
     }
 
@@ -517,8 +519,8 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         Draw(root, startX, topY, topY + spanY);
 
         if (positions.TryGetValue(CheckpointNode.CurrentId, out var currentPos))
-            foreach (var node in nodes.Where(n => n.IsWormhole))
-                if (positions.TryGetValue(node.Id, out var point)) AddBezierEdge(point, currentPos, isActive: false, isWormhole: true);
+            foreach (var node in nodes.Where(n => n.IsHistoricalDiskMounted))
+                if (positions.TryGetValue(node.Id, out var point)) AddBezierEdge(point, currentPos, isActive: false, isHistoricalDiskMounted: true);
 
         void Draw(CheckpointNode node, double x, double start, double end)
         {
@@ -532,7 +534,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
                 var sector = leaves[child.Id] * (end - start) / leaves[node.Id];
                 var childPoint = new Point(x + PitchX, offset + sector / 2);
                 bool activeEdge = activeChainIds.Contains(node.Id) && activeChainIds.Contains(child.Id);
-                AddBezierEdge(point, childPoint, isActive: activeEdge, isWormhole: false);
+                AddBezierEdge(point, childPoint, isActive: activeEdge, isHistoricalDiskMounted: false);
                 Draw(child, childPoint.X, offset, offset + sector);
                 offset += sector;
             }
@@ -619,8 +621,8 @@ public sealed partial class VmCheckpointSettingsView : UserControl
             Width = CardWidth,
             Height = CardHeight,
             CornerRadius = new CornerRadius(8),
-            BorderBrush = ResolveCardBorderBrush(isSelected, isCurrent, node.IsWormhole),
-            BorderThickness = new Thickness(isCurrent || node.IsWormhole ? 2 : isSelected ? 1.5 : 1),
+            BorderBrush = ResolveCardBorderBrush(isSelected, isCurrent, node.IsHistoricalDiskMounted),
+            BorderThickness = new Thickness(isCurrent || node.IsHistoricalDiskMounted ? 2 : isSelected ? 1.5 : 1),
             Child = cardGrid
         };
 
@@ -654,7 +656,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         Canvas.SetTop(button, point.Y - CardHeight / 2);
         Canvas.SetZIndex(button, isSelected ? 100 : isCurrent ? 80 : 50);
         canvas.Children.Add(button);
-        cardVisuals[node.Id] = (cardBorder, button, isCurrent, node.IsWormhole);
+        cardVisuals[node.Id] = (cardBorder, button, isCurrent, node.IsHistoricalDiskMounted);
     }
 
     private void SelectNodeInPlace(CheckpointNode node)
@@ -665,16 +667,16 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         foreach (var entry in cardVisuals)
         {
             bool isSel = string.Equals(entry.Key, selected.Id, StringComparison.OrdinalIgnoreCase);
-            var (card, host, isCur, isWorm) = entry.Value;
-            card.BorderBrush = ResolveCardBorderBrush(isSel, isCur, isWorm);
-            card.BorderThickness = new Thickness(isCur || isWorm ? 2 : isSel ? 1.5 : 1);
+            var (card, host, isCur, isMounted) = entry.Value;
+            card.BorderBrush = ResolveCardBorderBrush(isSel, isCur, isMounted);
+            card.BorderThickness = new Thickness(isCur || isMounted ? 2 : isSel ? 1.5 : 1);
             Canvas.SetZIndex(host, isSel ? 100 : isCur ? 80 : 50);
         }
     }
 
-    private static Brush ResolveCardBorderBrush(bool isSelected, bool isCurrent, bool isWormhole)
+    private static Brush ResolveCardBorderBrush(bool isSelected, bool isCurrent, bool isHistoricalDiskMounted)
     {
-        if (isWormhole) return new SolidColorBrush(Colors.Gold);
+        if (isHistoricalDiskMounted) return new SolidColorBrush(Colors.Gold);
         if (isCurrent) return Brush("VmAccentBrush");
         if (isSelected) return Brush("TextFillColorSecondaryBrush");
         return Brush("CardStrokeColorDefaultBrush");
@@ -696,10 +698,10 @@ public sealed partial class VmCheckpointSettingsView : UserControl
             {
                 Text = L10n.Get("Cp_MenuCreate"),
                 Icon = new FontIcon { FontFamily = AppFonts.SegoeFluent, Glyph = "\uE710" },
-                IsEnabled = !blockedByPending && VmCheckpointService.CanCreateMoment(checkpointsEnabled, nodes)
+                IsEnabled = !blockedByPending && VmCheckpointService.CanCreateSnapshot(checkpointsEnabled, nodes)
             };
             createItem.Click += (_, _) => operation = RunAsync(() =>
-                MutateAsync(() => VmCheckpointService.CaptureMomentAsync(vmId), settleMilliseconds: 1000));
+                MutateAsync(() => VmCheckpointService.CreateSnapshotAsync(vmId), settleMilliseconds: 1000));
             menu.Items.Add(createItem);
             return menu;
         }
@@ -710,7 +712,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         var applyItem = new MenuFlyoutItem
         {
             Text = L10n.Get("Cp_MenuApply"),
-            Icon = new FontIcon { FontFamily = AppFonts.SegoeFluent, Glyph = "\uE8AB" },
+            Icon = new FontIcon { FontFamily = AppFonts.SegoeFluent, Glyph = "\uE81C" },
             IsEnabled = !blockedByPending
         };
         applyItem.Click += (_, _) => { selected = node; operation = RunAsync(() => ConfirmHistoricalChangeAsync(node, "Cp_Restore")); };
@@ -730,7 +732,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         var mergeItem = new MenuFlyoutItem
         {
             Text = L10n.Get("Cp_MenuMerge"),
-            Icon = new FontIcon { FontFamily = AppFonts.SegoeFluent, Glyph = "\uE97A" },
+            Icon = CreateMergeMenuIcon(),
             IsEnabled = canMerge
         };
         mergeItem.Click += (_, _) => { selected = node; operation = RunAsync(() => ConfirmHistoricalChangeAsync(node, "Cp_Merge")); };
@@ -749,11 +751,15 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         return menu;
     }
 
-    private void AddBezierEdge(Point from, Point to, bool isActive, bool isWormhole)
+    private static IconElement CreateMergeMenuIcon()
+        => (PathIcon)Microsoft.UI.Xaml.Markup.XamlReader.Load(
+            $"<PathIcon xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Width=\"16\" Height=\"16\" Data=\"{MergeMenuIconPathData}\" />");
+
+    private void AddBezierEdge(Point from, Point to, bool isActive, bool isHistoricalDiskMounted)
     {
-        double startX = isWormhole ? from.X : from.X + CardWidth / 2;
+        double startX = isHistoricalDiskMounted ? from.X : from.X + CardWidth / 2;
         double startY = from.Y;
-        double endX = isWormhole ? to.X : to.X - CardWidth / 2;
+        double endX = isHistoricalDiskMounted ? to.X : to.X - CardWidth / 2;
         double endY = to.Y;
         double dx = Math.Max(40, Math.Abs(endX - startX));
 
@@ -771,15 +777,15 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         var path = new Microsoft.UI.Xaml.Shapes.Path
         {
             Data = geometry,
-            Stroke = isWormhole ? new SolidColorBrush(Colors.Gold) : isActive ? Brush("VmAccentBrush") : Brush("TextFillColorTertiaryBrush"),
-            StrokeThickness = isWormhole ? 3 : isActive ? 2 : 1.5,
-            Opacity = isWormhole ? 0.95 : isActive ? 1.0 : 0.7,
+            Stroke = isHistoricalDiskMounted ? new SolidColorBrush(Colors.Gold) : isActive ? Brush("VmAccentBrush") : Brush("TextFillColorTertiaryBrush"),
+            StrokeThickness = isHistoricalDiskMounted ? 3 : isActive ? 2 : 1.5,
+            Opacity = isHistoricalDiskMounted ? 0.95 : isActive ? 1.0 : 0.7,
             IsHitTestVisible = false
         };
-        if (!isActive || isWormhole)
+        if (!isActive || isHistoricalDiskMounted)
             path.StrokeDashArray = new DoubleCollection { 4, 3 };
 
-        Canvas.SetZIndex(path, isWormhole ? 10 : isActive ? 6 : 5);
+        Canvas.SetZIndex(path, isHistoricalDiskMounted ? 10 : isActive ? 6 : 5);
         canvas.Children.Add(path);
     }
 

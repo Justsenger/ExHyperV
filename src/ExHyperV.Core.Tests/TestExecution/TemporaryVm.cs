@@ -120,7 +120,7 @@ internal sealed class TemporaryVm : IAsyncDisposable
             var copy = await WindowsTestCommand.RunAsync("""
                 $source=Get-VM -Id ([guid]$a.id)
                 if($source.State -ne 'Off'){throw '模板状态已变化'}
-                if(@($source|Get-VMSnapshot).Count -ne $a.checkpoints){throw '模板检查点已变化'}
+                if(@($source|Get-VMSnapshot).Count -ne $a.checkpoints){throw '模板快照已变化'}
                 $sourcePaths=@($source|Get-VMHardDiskDrive|Where-Object Path|ForEach-Object Path)
                 if(Compare-Object $sourcePaths $a.paths){throw '模板磁盘已变化'}
                 if(@($source|Get-VMHardDiskDrive|Where-Object {!$_.Path}).Count -or @($source|Get-VMAssignableDevice).Count -or @($source|Get-VMGpuPartitionAdapter).Count){throw '模板已挂接物理盘、PCIe 或 GPU'}
@@ -143,7 +143,7 @@ internal sealed class TemporaryVm : IAsyncDisposable
                     Add-VMDvdDrive -VMName $vm.Name -ControllerNumber $dvd.ControllerNumber -ControllerLocation $dvd.ControllerLocation
                 }
                 if(@(Get-VM -Id $vm.Id|Get-VMDvdDrive|Where-Object Path).Count){throw '测试副本仍引用模板安装介质'}
-                if(@($vm|Get-VMSnapshot).Count){throw '测试副本仍含检查点'}
+                if(@($vm|Get-VMSnapshot).Count){throw '测试副本仍含快照'}
                 $root=[IO.Path]::GetFullPath($a.root).TrimEnd('\')+'\'
                 foreach($drive in @($vm|Get-VMHardDiskDrive)){
                     if(!$drive.Path -or !([IO.Path]::GetFullPath($drive.Path)).StartsWith($root,[StringComparison]::OrdinalIgnoreCase)){throw '副本磁盘离开专属目录'}

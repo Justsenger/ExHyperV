@@ -409,13 +409,13 @@ public static async Task PreviewEncryptedImportAsync(string archivePath, string 
 
 ### 导出与打包
 
-先用 `VmExportService.ExportAsync` 导出到指定目录（可按需勾选磁盘、检查点和运行状态）：
+先用 `VmExportService.ExportAsync` 导出到指定目录（可按需勾选磁盘、快照和运行状态）：
 
 <!-- api-example-export:start -->
 
 ### 导出一台虚拟机
 
-把虚拟机配置和虚拟磁盘导出到指定目录（跳过检查点和运行状态）。
+把虚拟机配置和虚拟磁盘导出到指定目录（跳过快照和运行状态）。
 
 ```csharp
 public static Task<VmExportResult> ExportVmAsync(Guid vmId, string destinationDirectory)
@@ -458,11 +458,11 @@ public static async Task PackageExportAsync(string exportDirectory, string archi
 
 ## 部署流程
 
-给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区、写入 Windows 驱动或挂载驱动光盘。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
+给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区并向非加密 Windows 系统分区写入驱动。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
 
 ### 用一个循环跑完部署
 
-调用一次 `StartAsync()`。当 `State == GpuDeploymentState.WaitingForDecision` 时，展示 `PendingDecision`，将当前请求 ID 与用户选择交给 `SubmitDecisionAsync(...)`。用户取消时调用 `CancelAsync()` 并等待返回的快照。
+调用一次 `StartAsync()`。当 `State == GpuDeploymentState.WaitingForDecision` 时，展示 `PendingDecision`，将当前请求 ID 与用户选择交给 `SubmitDecisionAsync(...)`。用户取消时调用 `CancelAsync()` 并等待返回的状态。
 
 <!-- api-example-workflow:start -->
 
@@ -502,11 +502,11 @@ public static async Task<GpuDeploymentSnapshot> DeployGpuAsync(
 
 ### 部署中途失败或被取消怎么办？
 
-读取最后快照的 `State`、`OutcomeUnknown` 和 `AllowedActions`。
+读取最终状态的 `State`、`OutcomeUnknown` 和 `AllowedActions`。
 
-- `Completed` 表示所选部署步骤已完成。挂载驱动 ISO 后，来宾内仍需执行安装。
+- `Completed` 表示所选部署步骤已完成（若用户选择跳过驱动，将仅保留已分配的 GPU 分区与优化配置）。
 - `CleanupRequired`：留下了临时挂接的磁盘或刚建出来的半成品适配器。
-- 快照标志 `OutcomeUnknown == true` 表示底层操作的终态仍待核实。`AllowedActions` 包含 `Reconcile` 时可调用 `ReconcileAsync()`。只有该标志已清除且允许 `RetryCleanup` 时才调用 `RetryCleanupAsync()`。
+- 状态字段 `OutcomeUnknown == true` 表示底层操作的终态仍待核实。`AllowedActions` 包含 `Reconcile` 时可调用 `ReconcileAsync()`。只有该标志已清除且允许 `RetryCleanup` 时才调用 `RetryCleanupAsync()`。
 
 <!-- api-example-gpu-recovery:start -->
 
@@ -533,7 +533,7 @@ public static async Task<GpuDeploymentSnapshot> RecoverGpuAsync(GpuDeploymentSes
 
 <!-- api-example-gpu-recovery:end -->
 
-用 `session.GetStatus()` 取得最新快照。快照的 `Steps` 记录步骤，`Recovery` 提供已有的原生操作、观测结果及待处理资源。核实和清理使用当次进程内的原会话。
+用 `session.GetStatus()` 取得最新部署状态。状态对象中的 `Steps` 记录步骤，`Recovery` 提供已有的原生操作、观测结果及待处理资源。核实和清理使用当次进程内的原会话。
 
 ## 连接与交互
 
@@ -654,7 +654,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: b683ce6b8b4e2907e0b788a89459a036e19b963ba3dacf7e72fe59b6d7d463f3 -->
+<!-- source-sha256: ca31e71a69c8ee5a3045ea28dc2104e52f6f3325cd7bef90838c44468bebb82b -->
 
 程序集：`ExHyperV.Core.dll`，版本：`2.0.0-Alpha`。
 
@@ -671,7 +671,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmInstance `](#api-bcb2ffa2f3865a82) | ` ExHyperV.Models ` | 虚拟机清单及详情的可变模型；包含配置、查询时的状态和可独立刷新的性能样本。 |
 | [` VmState `](#api-add6eece8fedcd7e) | ` ExHyperV.Models ` | 虚拟机当前的运行状态；不包含后端状态码。 |
 | [` VmConfigurationState `](#api-4c35b7ba174517dd) | ` ExHyperV.Services ` | 一次设置操作需要的当前 VM 状态；无后台任务或进程级会话。 |
-| [` VmInventorySnapshot `](#api-b63adbe1d39ffbae) | ` ExHyperV.Services ` | 一次虚拟机清单快照，包含虚拟机及未完整取得的可选信息。 |
+| [` VmInventorySnapshot `](#api-b63adbe1d39ffbae) | ` ExHyperV.Services ` | 一次虚拟机清单视图，包含虚拟机及未完整取得的可选信息。 |
 | [` VmQueryCollection `](#api-697b0c9b00903189) | ` ExHyperV.Services ` | 字段所属的记录集合；虚拟机级字段与设备级字段分开，避免将设备属性误当全局开关。 |
 | [` VmQueryCollectionResult `](#api-f21b0baf9fec63bd) | ` ExHyperV.Services ` | 一个子对象集合的查询结果；Available 且 Rows 为空才表示确认没有对象。 |
 | [` VmQueryField `](#api-1bf7b2c1a1dd7920) | ` ExHyperV.Services ` | 内置可查询字段的描述。 |
@@ -724,7 +724,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmApicMode `](#api-cbf87948c5441cc2) | ` ExHyperV.Models ` | 虚拟处理器的 APIC 中断控制器模式：自动、Legacy、x2APIC 或 xAPIC。 |
 | [` VmCpuCoreMetric `](#api-49f6c6fb73044013) | ` ExHyperV.Models ` | 一次 CPU 核心采样；先检查 Sample.IsValid，再使用 Usage。 |
 | [` VmMigrationCompatibilityMode `](#api-9565efeada622ee9) | ` ExHyperV.Models ` | 处理器迁移兼容模式（LimitProcessorFeaturesMode，u8）。 |
-| [` VmModificationCondition `](#api-93e367f9b5bd2a37) | ` ExHyperV.Models ` | 一项虚拟机设置在当前快照下的修改条件。 |
+| [` VmModificationCondition `](#api-93e367f9b5bd2a37) | ` ExHyperV.Models ` | 一项虚拟机设置在当前状态下的修改条件。 |
 | [` VmProcessorCapability `](#api-542e7663b47b4a87) | ` ExHyperV.Models ` | 宿主为虚拟机提供的处理器设置项。 |
 | [` VmProcessorSettings `](#api-1bd5c358d4233af8) | ` ExHyperV.Models ` | 虚拟机处理器设置的可变模型。 |
 | [` CpuAffinityService `](#api-94857f108f5411f3) | ` ExHyperV.Services ` | 读取、应用和保存虚拟机 CPU 亲和性，按宿主调度器选择 CPU 组或进程接口。 |
@@ -755,7 +755,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmDiskChainInspection `](#api-f55ff32bd4a261cf) | ` ExHyperV.Models ` | 从叶盘到根盘的检查结果。 |
 | [` VmDiskChainNode `](#api-cd8e086301e74102) | ` ExHyperV.Models ` | 深度 0 为所选磁盘。 |
 | [` VmDiskChainStatus `](#api-f55d98fd291adb45) | ` ExHyperV.Models ` | 链检查的终止原因。 |
-| [` VmDiskInspection `](#api-821c05cc5fe3e734) | ` ExHyperV.Models ` | 存储详检结果和当前快照允许的操作。 |
+| [` VmDiskInspection `](#api-821c05cc5fe3e734) | ` ExHyperV.Models ` | 存储详检结果和当前状态允许的操作。 |
 | [` VmDiskMetadataState `](#api-a61fd497a4f82a7f) | ` ExHyperV.Models ` | 单个文件介质的元数据读取状态。 |
 | [` VmDiskStatus `](#api-89d6aac76f2bf99b) | ` ExHyperV.Models ` | 虚拟机磁盘容量及性能采样。 |
 | [` VmPartitionLayoutMode `](#api-9e4d38b40a5aba28) | ` ExHyperV.Models ` | 只读分区探测的结果。 |
@@ -802,18 +802,18 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` GpuDecisionInput `](#api-e1c07ac7b4a8d65a) | ` ExHyperV.Models ` | 一个待确认事项所接受的输入结构。 |
 | [` GpuDecisionKind `](#api-16bfedc8ae936ed7) | ` ExHyperV.Models ` | GPU 部署暂停时需要用户处理的具体事项。 |
 | [` GpuDecisionRequest `](#api-640fbb80511f3d56) | ` ExHyperV.Models ` | 部署暂停时的待确认事项；提交决定时须携带本次请求的 Id。 |
-| [` GpuDeploymentAction `](#api-ab1e60fe73d6e64d) | ` ExHyperV.Models ` | 当前部署快照允许调用方发起的动作。 |
+| [` GpuDeploymentAction `](#api-ab1e60fe73d6e64d) | ` ExHyperV.Models ` | 当前部署状态允许调用方发起的动作。 |
 | [` GpuDeploymentDecision `](#api-c5617284cebe0629) | ` ExHyperV.Models ` | 提交给部署会话的决定基类，决定必须对应当前尚未消费的请求 ID。 |
 | [` GpuDeploymentMode `](#api-a5310e5188c13124) | ` ExHyperV.Models ` | 一次 GPU 部署要执行的工作范围。 |
-| [` GpuDeploymentPartition `](#api-3b253a4b4e7b8932) | ` ExHyperV.Models ` | 供用户选择的系统分区快照。 |
+| [` GpuDeploymentPartition `](#api-3b253a4b4e7b8932) | ` ExHyperV.Models ` | 供用户选择的系统分区视图。 |
 | [` GpuDeploymentRecovery `](#api-b1a5a2f6f23a3554) | ` ExHyperV.Models ` | 部署结果待确认时的任务和资源核对材料。 |
-| [` GpuDeploymentSnapshot `](#api-3abc49fee5f8e4b6) | ` ExHyperV.Models ` | 部署会话发布的状态快照。 |
+| [` GpuDeploymentSnapshot `](#api-3abc49fee5f8e4b6) | ` ExHyperV.Models ` | 部署会话发布的状态视图。 |
 | [` GpuDeploymentState `](#api-b4fe6c09c7a1b03c) | ` ExHyperV.Models ` | 一次 GPU 部署的状态；调用方应以状态和 AllowedActions 决定下一次调用。 |
-| [` GpuDeploymentStep `](#api-456c5ce4936ed611) | ` ExHyperV.Models ` | 部署步骤的显示状态快照。 |
+| [` GpuDeploymentStep `](#api-456c5ce4936ed611) | ` ExHyperV.Models ` | 部署步骤的显示状态视图。 |
 | [` GpuDeploymentStepKind `](#api-6beb4e13dec8c4b8) | ` ExHyperV.Models ` | GPU 部署流程中的步骤类别。 |
 | [` GpuDeploymentStepStatus `](#api-499dc8bdf05041ca) | ` ExHyperV.Models ` | 单个 GPU 部署步骤的执行状态。 |
 | [` GpuDriverFallbackAction `](#api-ef78e8b1f703128b) | ` ExHyperV.Models ` | 无法直接写入离线驱动或用户选择不直接注入时的回退动作。 |
-| [` GpuDriverFallbackSelection `](#api-1b34235597c26248) | ` ExHyperV.Models ` | 当分区加密或无法直接写入时，提交跳过驱动或挂载驱动光盘的回退决定。 |
+| [` GpuDriverFallbackSelection `](#api-1b34235597c26248) | ` ExHyperV.Models ` | 当分区已启用 BitLocker、不受支持或无法直接写入时，提交跳过驱动的回退决定。 |
 | [` GpuPartitionSelection `](#api-bb8b2e9014baee53) | ` ExHyperV.Models ` | 通过 PartitionId 从当前候选列表中选择分区。 |
 | [` GpuRecoveryOperation `](#api-f73dbd0a3968b7df) | ` ExHyperV.Models ` | 部署发起的一个原生操作及核实结果；原生引用只用于诊断。 |
 | [` GpuRecoveryResource `](#api-04b306b383532708) | ` ExHyperV.Models ` | 本次部署需要恢复的一个临时资源，不包含驱动文件回滚。 |
@@ -835,12 +835,12 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | --- | --- | --- |
 | [` VmPcieDeviceSetting `](#api-75dcd2fafb7a6260) | ` ExHyperV.Models ` | 单个已分配 PCIe 设备的身份和来宾模式设置；编辑 GuestMode 后由服务应用，AppliedGuestMode 保存已应用值。 |
 | [` VmPcieGuestMode `](#api-6870c8b5d182ab07) | ` ExHyperV.Models ` | 来宾访问 PCIe 设备的呈现模式。 |
-| [` VmPcieSettings `](#api-0ee78ad274e05163) | ` ExHyperV.Models ` | 虚拟机 PCIe 系统设置及已分配设备的查询快照。 |
+| [` VmPcieSettings `](#api-0ee78ad274e05163) | ` ExHyperV.Models ` | 虚拟机 PCIe 系统设置及已分配设备的查询结果。 |
 | [` PcieAssignmentDecision `](#api-c531bbc4afdd18f2) | ` ExHyperV.Services ` | 本次 PCIe 确认请求的决定。 |
 | [` PcieAssignmentError `](#api-d16e33c86a21492c) | ` ExHyperV.Services ` | PCIe 分配流程失败所在的阶段；具体细节见状态消息。 |
 | [` PcieAssignmentKind `](#api-a51fd65e89867236) | ` ExHyperV.Services ` | PCIe 设备当前归属或分配目标的种类。 |
 | [` PcieAssignmentSession `](#api-0bba6ca7be99b19a) | ` ExHyperV.Services ` | 保存一次 PCIe 分配的检查、确认和执行状态，供界面或其他调用方逐步驱动。 |
-| [` PcieAssignmentState `](#api-56f294436caf98bb) | ` ExHyperV.Services ` | PCIe 分配流程的不可变状态快照。 |
+| [` PcieAssignmentState `](#api-56f294436caf98bb) | ` ExHyperV.Services ` | PCIe 分配流程的不可变状态视图。 |
 | [` PcieAssignmentStep `](#api-aeb7200a2284716c) | ` ExHyperV.Services ` | PCIe 分配流程当前执行或确认步骤。 |
 | [` PcieAssignmentTarget `](#api-dbd5c750f9191760) | ` ExHyperV.Services ` | PCIe 设备的归属身份，不使用本地化文字或内部字符串标记表示宿主与未分配状态。 |
 | [` VmPcieChangeKind `](#api-a94b7e1622e15e00) | ` ExHyperV.Services ` | 本次 PCIe 修改的目标类型。 |
@@ -877,8 +877,8 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmSecurityService `](#api-4b2f79ff06e9f37a) | ` ExHyperV.Services ` | 读取和修改第 2 代虚拟机的安全启动、虚拟 TPM、保存状态及迁移流量加密设置。 |
 | [` VmSecurityService.SecureBootTemplate `](#api-fd164ffe192c3a62) | ` ExHyperV.Services ` | 宿主提供的安全启动信任模板。 |
 | [` VmSecurityService.Setting `](#api-5a0351ede3d222c3) | ` ExHyperV.Services ` | 需要进行互锁及状态校验的安全设置项。 |
-| [` VmSecurityService.VmSecurityInfo `](#api-86e6f74c910a8e21) | ` ExHyperV.Services ` | 成功读取的安全设置快照；读取失败由外层 ApiResponse 表示。 |
-| [` VmVtpmInfo `](#api-5fa1afb1ba4fbbef) | ` ExHyperV.Services ` | 当前配置与宿主身份快照。 |
+| [` VmSecurityService.VmSecurityInfo `](#api-86e6f74c910a8e21) | ` ExHyperV.Services ` | 成功读取的安全设置视图，读取失败由外层 ApiResponse 表示。 |
+| [` VmVtpmInfo `](#api-5fa1afb1ba4fbbef) | ` ExHyperV.Services ` | 当前配置与宿主身份视图。 |
 | [` VtpmHost `](#api-e8a4fadb15865d11) | ` ExHyperV.Services ` | 由 HGS 解锁密钥的所有者和授权列表解析出的宿主身份。 |
 | [` VtpmPolicy `](#api-38444f6d701bd122) | ` ExHyperV.Services ` | 虚拟 TPM 的即时策略。 |
 
@@ -920,15 +920,15 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmPowerRepairKind `](#api-dac39fcfb92d79df) | ` ExHyperV.Services ` | 启动或电源动作失败后提出的修复类型。 |
 | [` VmPowerService `](#api-311d6ac85314661b) | ` ExHyperV.Services ` | 执行单台虚拟机电源控制，管理电源行为和虚拟电池。 |
 
-**检查点**
+**快照**
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` CheckpointNode `](#api-5893c160d1cd3377) | ` ExHyperV.Models ` | 检查点树节点。 |
-| [` CheckpointNodeType `](#api-4bac34f523f81bc9) | ` ExHyperV.Models ` | 检查点树节点代表的对象种类。 |
-| [` VmCheckpointFields `](#api-e7b7d8ebff4f68e5) | ` ExHyperV.Services ` | 检查点的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
-| [` VmCheckpointGlobalFields `](#api-6d7251fc824bd58c) | ` ExHyperV.Services ` | 检查点的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
-| [` VmCheckpointService `](#api-a8fdfb6ce4d14741) | ` ExHyperV.Services ` | 管理检查点、应用、合并、删除及历史磁盘临时挂接，相关操作可能修改配置和磁盘文件。 |
+| [` CheckpointNode `](#api-5893c160d1cd3377) | ` ExHyperV.Models ` | 快照树节点。 |
+| [` CheckpointNodeType `](#api-4bac34f523f81bc9) | ` ExHyperV.Models ` | 快照树节点代表的对象种类。 |
+| [` VmCheckpointFields `](#api-e7b7d8ebff4f68e5) | ` ExHyperV.Services ` | 快照的独立可查询字段，可以任意选择其中一项，不要求整组读取或返回。 |
+| [` VmCheckpointGlobalFields `](#api-6d7251fc824bd58c) | ` ExHyperV.Services ` | 快照的独立可查询字段，可以任意选择其中一项，不要求整组读取或返回。 |
+| [` VmCheckpointService `](#api-a8fdfb6ce4d14741) | ` ExHyperV.Services ` | 管理快照、应用、合并、删除及历史磁盘临时挂接，相关操作可能修改配置和磁盘文件。 |
 
 **实例**
 
@@ -978,7 +978,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` VmExportCheckpointMode `](#api-96131a1b1362b9c4) | ` ExHyperV.Services ` | 本次导出包含哪些检查点。 |
+| [` VmExportCheckpointMode `](#api-96131a1b1362b9c4) | ` ExHyperV.Services ` | 本次导出包含哪些快照。 |
 | [` VmExportCompressionLevel `](#api-9ede9b4035f4d383) | ` ExHyperV.Services ` | 导出 ZIP 的压缩级别；压缩级别与是否加密互相独立。 |
 | [` VmExportEncryption `](#api-f20936e8ebe738c4) | ` ExHyperV.Services ` | 新建 ZIP 的内容加密方式。 |
 | [` VmExportPackageException `](#api-525cd2677b70ce87) | ` ExHyperV.Services ` | 打包失败的诊断附件，保存在失败 ApiResponse 的 Exception 属性中，不要求解析错误文本。 |
@@ -989,8 +989,8 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` VmExportPackageStage `](#api-3212c0d6001d42a9) | ` ExHyperV.Services ` | 导出包正在创建或校验的阶段。 |
 | [` VmExportPackagingService `](#api-6abc347896f94f96) | ` ExHyperV.Services ` | 将虚拟机导出目录打包为经校验的 ZIP，支持压缩、AES-256 和源目录保留选择。 |
 | [` VmExportResult `](#api-f27e83724f607882) | ` ExHyperV.Services ` | 单台虚拟机导出的完成状态和保留文件。 |
-| [` VmExportService `](#api-d0ef56e709d38d6f) | ` ExHyperV.Services ` | 导出一台虚拟机的配置、磁盘、检查点和运行状态。 |
-| [` VmExportService.CheckpointInfo `](#api-534d3f3efef99cf5) | ` ExHyperV.Services ` | 检查点身份和父子关系；单检查点导出使用查询返回的此对象。 |
+| [` VmExportService `](#api-d0ef56e709d38d6f) | ` ExHyperV.Services ` | 导出一台虚拟机的配置、磁盘、快照和运行状态。 |
+| [` VmExportService.CheckpointInfo `](#api-534d3f3efef99cf5) | ` ExHyperV.Services ` | 快照身份和父子关系，单快照导出使用查询返回的此对象。 |
 | [` VmExportService.VirtualHardDiskInfo `](#api-25182f12944e0c0c) | ` ExHyperV.Services ` | 可供导出排除选择的虚拟硬盘；将查询返回的对象传回导出方法。 |
 | [` VmExportSourceHandling `](#api-cca6bbe6993f1c17) | ` ExHyperV.Services ` | 归档通过完整性校验后的源目录处理方式。 |
 
@@ -1020,7 +1020,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` CpuCoreType `](#api-ed1be2be550b34d3) | ` ExHyperV.Models ` | 宿主处理器核心的性能类别。 |
 | [` HostCpuAttributionSource `](#api-20e7d171265ef542) | ` ExHyperV.Models ` | 宿主逻辑处理器占用拆分的采集来源；Root 模式下优先使用内核上下文切换事件，降级或 Classic/Core 模式使用性能计数器。 |
 | [` HostCpuThreadConsumerUsage `](#api-1eb7a0d4c6658e1b) | ` ExHyperV.Models ` | 单个宿主逻辑处理器上的单个占用主体（宿主机或某台虚拟机）使用率份额。 |
-| [` HostCpuThreadReport `](#api-b68a3c52cb41b509) | ` ExHyperV.Models ` | 宿主全量物理逻辑处理器线程的占用归属快照，包含调度器模式与数据源说明。 |
+| [` HostCpuThreadReport `](#api-b68a3c52cb41b509) | ` ExHyperV.Models ` | 宿主全量物理逻辑处理器线程的占用归属采样帧，包含调度器模式与数据源说明。 |
 | [` HostCpuThreadSnapshot `](#api-4d9647f7817a37e4) | ` ExHyperV.Models ` | 单个物理逻辑处理器在最近采样窗口内的总占用及按宿主／虚拟机划分的明细。 |
 | [` HostAffinityProcessor `](#api-671735ce8d9b8726) | ` ExHyperV.Services ` | 当前亲和性后端提供的一个宿主逻辑处理器选项。 |
 | [` HostCpuThreadMonitorService `](#api-1a01cd68ca73d9db) | ` ExHyperV.Services ` | 按物理逻辑处理器实时采样并归属宿主机与各运行中虚拟机的 CPU 时间占比；支持 Root 调度器 ETW 精确拆分及 Classic/Core 调度器计数器采样。 |
@@ -1035,7 +1035,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` HostCpuGroupInfo `](#api-e73baff26ca9c0f9) | ` ExHyperV.Services ` | 宿主 CPU 组的处理器、调度策略与成员快照。 |
+| [` HostCpuGroupInfo `](#api-e73baff26ca9c0f9) | ` ExHyperV.Services ` | 宿主 CPU 组的处理器、调度策略与成员视图。 |
 | [` HostCpuGroupMember `](#api-d87f4f08ed1246c8) | ` ExHyperV.Services ` | 绑定到 CPU 组的 Hyper-V 虚拟机。 |
 | [` HostCpuGroupService `](#api-0333bc67cb65a850) | ` ExHyperV.Services ` | 查询宿主 CPU 组，修改配额、优先级、空闲处理器保留数量和相对权重。 |
 
@@ -1061,7 +1061,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` HostNvmeService `](#api-d11d60064e518797) | ` ExHyperV.Services ` | 管理主机原生 NVMe 功能的注册表覆盖开关；配置需要管理员权限并在重启后由系统采用。 |
 | [` HostPartitionReference `](#api-7c77af8af6b14c8a) | ` ExHyperV.Services ` | 查询时选中的宿主分区身份，包含所属磁盘；添加或移除盘符时原样回传。 |
 | [` HostVolumeAutoMountService `](#api-4d32cc978f36178b) | ` ExHyperV.Services ` | 管理 Windows Mount Manager 的宿主全局卷自动挂载策略。 |
-| [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置快照。 |
+| [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置视图。 |
 
 **网络**
 
@@ -1078,12 +1078,12 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` HostDeviceTelemetryService `](#api-c9ea82f2f44879b3) | ` ExHyperV.Services ` | 持有一段可见采样期的性能计数器。 |
 | [` HostNetworkService `](#api-90a99e60c4861486) | ` ExHyperV.Services ` | 校验并修改宿主动态 MAC 地址池。 |
 | [` HostNetworkTelemetryService `](#api-78a401eb24c09d06) | ` ExHyperV.Services ` | 按实例维护宿主网络计数器的采样基线。 |
-| [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置快照。 |
+| [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置视图。 |
 | [` HyperVSwitchService `](#api-0f66c11c037b51ce) | ` ExHyperV.Services ` | 读取和配置本机 Hyper-V 虚拟交换机及 ICS 上游共享关系。 |
 | [` NetworkThroughputReading `](#api-0946f2df5298c59d) | ` ExHyperV.Services ` | 吞吐观测及其时间。 |
 | [` NetworkThroughputSample `](#api-d1d3d0445b251a9c) | ` ExHyperV.Services ` | 网络接口或虚拟交换机的实时吞吐采样。 |
 | [` SwitchConfigurationConflictException `](#api-c8f4e6a6deee535d) | ` ExHyperV.Services ` | 表示交换机变更违反当前配置保护或冲突规则。 |
-| [` SwitchConfigurationRules `](#api-942b8beb34283a23) | ` ExHyperV.Services ` | 对交换机配置快照进行规则判断，不直接修改主机网络。 |
+| [` SwitchConfigurationRules `](#api-942b8beb34283a23) | ` ExHyperV.Services ` | 对交换机配置视图进行规则判断，不直接修改主机网络。 |
 
 **GPU**
 
@@ -1100,7 +1100,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` PcieDeviceInfo `](#api-f5ca6ddfa1385521) | ` ExHyperV.Models ` | 具有 DDA 位置路径的 PCIe 设备及其当前归属。 |
 | [` ControllerDisk `](#api-300a4de29fad713b) | ` ExHyperV.Services ` | PCIe 存储控制器名下的物理磁盘，用于直通前确认能否脱机。 |
 | [` HostPcieService `](#api-35590b81f811c4b0) | ` ExHyperV.Services ` | 读取宿主 PCIe/DDA 分配状态并执行设备转移。 |
-| [` PcieHostInfo `](#api-8c62d8d2a672175b) | ` ExHyperV.Services ` | 宿主 PCIe 设备归属和可分配虚拟机的同次查询快照。 |
+| [` PcieHostInfo `](#api-8c62d8d2a672175b) | ` ExHyperV.Services ` | 宿主 PCIe 设备归属和可分配虚拟机的同次查询结果。 |
 
 **调度器**
 
@@ -1126,8 +1126,8 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` HyperVDiagnosticKind `](#api-2f2bab5dd6082806) | ` ExHyperV.Services ` | 运行诊断的机器可读分类；原始错误另见检查结果的 Failure。 |
 | [` HyperVEnvironmentStatus `](#api-ea63144f831629dc) | ` ExHyperV.Services ` | Hyper-V 运行环境的结构化检查结果；按阶段顺序遇到首个问题后停止后续检查。 |
 | [` HyperVHostService `](#api-d765f6dc004e22df) | ` ExHyperV.Services ` | 检测本机 Hyper-V 环境，并提交 Windows 功能及引导配置变更。 |
-| [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置快照。 |
-| [` HyperVHostSettingsService `](#api-7d8a2f197b518ae9) | ` ExHyperV.Services ` | 读取宿主 Hyper-V 配置快照，修改新建虚拟机的默认配置目录。 |
+| [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置视图。 |
+| [` HyperVHostSettingsService `](#api-7d8a2f197b518ae9) | ` ExHyperV.Services ` | 读取宿主 Hyper-V 配置视图，修改新建虚拟机的默认配置目录。 |
 | [` VmHostDefaultPaths `](#api-4b902ac18bf9c3fd) | ` ExHyperV.Services ` | 宿主创建虚拟机和虚拟硬盘时使用的默认目录。 |
 | [` VmmsImageInfo `](#api-406890c926a27d9e) | ` ExHyperV.Services ` | VMMS 程序文件的路径与存在状态。 |
 | [` VmmsImageState `](#api-897673c08040ffe4) | ` ExHyperV.Services ` | VMMS 程序路径的诊断状态。 |
@@ -1138,19 +1138,19 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
 | [` HostConsoleService `](#api-692d77f6af1a6a5b) | ` ExHyperV.Services ` | 配置宿主的虚拟机控制台连接策略。 |
-| [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置快照。 |
+| [` HyperVHostSettings `](#api-4ad42a943b9e96dd) | ` ExHyperV.Services ` | 宿主 Hyper-V 管理服务的配置视图。 |
 
 **分组**
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
-| [` VmGroup `](#api-4eb8163b9d96a53e) | ` ExHyperV.Models ` | Hyper-V 分组及其成员的本地快照。 |
+| [` VmGroup `](#api-4eb8163b9d96a53e) | ` ExHyperV.Models ` | Hyper-V 分组及其成员的本地视图。 |
 | [` VmGroupKind `](#api-7009c707c715a19c) | ` ExHyperV.Models ` | Hyper-V 原生分组允许包含的成员类别。 |
 | [` VmGroupMove `](#api-de5bea964cb743a6) | ` ExHyperV.Models ` | 一次分组成员移动所需的源成员及原父组信息。 |
 | [` VmGroupSnapshot `](#api-5ae62ce278562650) | ` ExHyperV.Models ` | 原生分组的成员关系构成图结构；同一虚拟机或分组可以属于多个父分组。 |
 | [` VmGroupFields `](#api-e8293dd4c364f26d) | ` ExHyperV.Services ` | 虚拟机直接所属分组的查询成员。 |
 | [` VmGroupMoveResult `](#api-cc37958683c518ee) | ` ExHyperV.Services ` | 分组移动后的目标标识，以及目标组是否发生重建。 |
-| [` VmGroupMoveRules `](#api-cafcb4c2db564ebe) | ` ExHyperV.Services ` | 仅根据分组快照判断移动是否合法，不访问或修改宿主。 |
+| [` VmGroupMoveRules `](#api-cafcb4c2db564ebe) | ` ExHyperV.Services ` | 仅根据分组视图判断移动是否合法，不访问或修改宿主。 |
 | [` VmGroupService `](#api-99e3f6668ba1efe6) | ` ExHyperV.Services ` | 通过 Hyper-V 分组接口读取及修改分组；本进程内串行执行写入。 |
 
 **ARP 嗅探**
@@ -1182,11 +1182,11 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | --- | --- | --- |
 | [` VmcxDevice `](#api-a52eae53275a8dfa) | ` ExHyperV.Vmcx ` | 由 manifest 读取的设备描述。 |
 | [` VmcxDeviceKind `](#api-70be9275005910c6) | ` ExHyperV.Vmcx ` | 可向现有配置添加的设备定义种类。 |
-| [` VmcxDocument `](#api-bf0a3c9cc5591d9f) | ` ExHyperV.Vmcx ` | VMCX 配置文件的只读快照与编辑入口。 |
+| [` VmcxDocument `](#api-bf0a3c9cc5591d9f) | ` ExHyperV.Vmcx ` | VMCX 配置文件的只读视图与编辑入口。 |
 | [` VmcxEditException `](#api-c115085593ccde9c) | ` ExHyperV.Vmcx ` | 文件提交失败，包含可用于人工恢复的路径和状态。 |
 | [` VmcxEditResult `](#api-955a4f3832150289) | ` ExHyperV.Vmcx ` | 一次 VMCX 文件提交的结果；备份由调用方保留或自行归档。 |
-| [` VmcxEditSession `](#api-0dd8fc721201a6a9) | ` ExHyperV.Vmcx ` | 针对现有 VMCX 快照的单次编辑批次。 |
-| [` VmcxEntry `](#api-d80d4fe6c5be0ca7) | ` ExHyperV.Vmcx ` | 现有 VMCX 中的一个节点快照。 |
+| [` VmcxEditSession `](#api-0dd8fc721201a6a9) | ` ExHyperV.Vmcx ` | 针对现有 VMCX 视图的单次编辑批次。 |
+| [` VmcxEntry `](#api-d80d4fe6c5be0ca7) | ` ExHyperV.Vmcx ` | 现有 VMCX 中的一个只读节点副本。 |
 | [` VmcxException `](#api-3156373219b7a844) | ` ExHyperV.Vmcx ` | 表示 VMCX 原生存储操作失败，保留其返回码供诊断。 |
 | [` VmcxValue `](#api-727cf80a4878b3e2) | ` ExHyperV.Vmcx ` | 不可变的 VMCX 类型值。 |
 | [` VmcxValueType `](#api-1dcabda321eccb67) | ` ExHyperV.Vmcx ` | VMCX 值节点支持的存储类型。 |
@@ -1327,7 +1327,7 @@ Core 负责传输；宿主剪贴板的读取和写入由调用方完成。 一�
 | [` ApiResponse `](#api-422efc6c1478ebfe) | ` ExHyperV.Tools ` | 表示不携带数据的操作结果，提供成功标志及失败信息。 |
 | [` ApiResponse<T> `](#api-dd3269fca7449cd0) | ` ExHyperV.Tools ` | 表示带数据操作的结果，区分失败、成功空结果和成功数据。 |
 | [` ConditionReasonCode `](#api-c6b312ed6e71ad87) | ` ExHyperV.Tools ` | 语言无关的设置修改前置条件原因码。 |
-| [` CoreDiagnosticEvent `](#api-aa68340cabbf71cd) | ` ExHyperV.Tools ` | 一条本地诊断事件的只读快照。 |
+| [` CoreDiagnosticEvent `](#api-aa68340cabbf71cd) | ` ExHyperV.Tools ` | 一条本地诊断事件的只读记录。 |
 | [` CoreDiagnostics `](#api-4e231d2702bfc1dd) | ` ExHyperV.Tools ` | 向进程内宿主报告 Core 诊断事件。 |
 | [` CoreErrorClassifier `](#api-472bbf4a51177686) | ` ExHyperV.Tools ` | 根据跨语言的原生错误码与失败类别归类标准错误。 |
 | [` CoreErrorCode `](#api-c159b3ca11e89ee0) | ` ExHyperV.Tools ` | 语言无关的核心错误归一化标识。 |
@@ -1592,14 +1592,14 @@ public string Name { get; set; }
 
 ### `CheckpointNode` 类
 
-检查点树节点。
+快照树节点。
 
 | 项目 | 内容 |
 | --- | --- |
 | 类型 | 类 |
 | 命名空间 | ` ExHyperV.Models ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
+| 功能归属 | 管理层面 / 虚拟机 / 快照 |
 | 源文件 | ` Management/VirtualMachines/Checkpoints/CheckpointNode.cs ` |
 
 #### 成员概览
@@ -1608,13 +1608,13 @@ public string Name { get; set; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public DateTime CreatedDate { get; set; } `](#api-504c8914a80f36d5) | 检查点的本地创建时间；Genesis 为推算的起点时间，Current 为本次读取时间。 |
-| [` public string Id { get; set; } = string.Empty `](#api-773bf50f1ba76820) | 检查点 GUID 文本或 GenesisId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。 |
+| [` public DateTime CreatedDate { get; set; } `](#api-504c8914a80f36d5) | 快照的本地创建时间，Origin 为推算的起点时间，Current 为本次读取时间。 |
+| [` public string Id { get; set; } = string.Empty `](#api-773bf50f1ba76820) | 快照 GUID 文本或 OriginId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。 |
 | [` public bool IsCurrent { get; set; } `](#api-9728b96aef4000ee) | 是否标记为当前位置；Current 节点和它的直接父节点都会为 true，因此并非唯一选中标记。 |
-| [` public bool IsLogicalNode { get; } `](#api-8f5e9d7d2d3a0432) | 是否为起点或当前状态逻辑节点；这两类节点不能作为真实检查点修改。 |
-| [` public bool IsWormhole { get; } `](#api-eb471defbea2a107) | 查询或操作后确认的历史磁盘挂接状态；由 Core 更新。 |
+| [` public bool IsHistoricalDiskMounted { get; } `](#api-ffa07f0c91f078ce) | 查询或操作后确认的历史磁盘挂接状态；由 Core 更新。 |
+| [` public bool IsLogicalNode { get; } `](#api-8f5e9d7d2d3a0432) | 是否为起点或当前状态逻辑节点，这两类节点不能作为真实快照修改。 |
 | [` public string Name { get; set; } `](#api-84be501ae10946d9) | 节点当前显示名称。 |
-| [` public CheckpointNodeType NodeType { get; set; } `](#api-8f655faf9ede8528) | 真实检查点、起点或当前状态节点的分类。 |
+| [` public CheckpointNodeType NodeType { get; set; } `](#api-8f655faf9ede8528) | 真实快照、起点或当前状态节点的分类。 |
 | [` public string? ParentId { get; set; } `](#api-fad3b9cb442b8254) | 父节点标识；null 表示没有父节点。 |
 | [` public string VhdPath { get; set; } = string.Empty `](#api-080da4c9ada5e52f) | 查询选出的一个磁盘文件路径，可能为 .avhdx，用于历史磁盘挂接。 |
 
@@ -1623,7 +1623,7 @@ public string Name { get; set; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public const string CurrentId = "CURRENT_RUNNING" `](#api-26813c908caf0d4e) | 当前运行位置的固定逻辑标识 CURRENT\_RUNNING。 |
-| [` public const string GenesisId = "GENESIS_ROOT" `](#api-275f2188a8fe2210) | 检查点起点的固定逻辑标识 GENESIS\_ROOT。 |
+| [` public const string OriginId = "ORIGIN_ROOT" `](#api-8cb20dceb2fe1b1e) | 快照起点的固定逻辑标识 ORIGIN\_ROOT。 |
 
 #### 详细说明
 
@@ -1641,7 +1641,7 @@ public partial class CheckpointNode
 public DateTime CreatedDate { get; set; }
 ```
 
-检查点的本地创建时间；Genesis 为推算的起点时间，Current 为本次读取时间。
+快照的本地创建时间，Origin 为推算的起点时间，Current 为本次读取时间。
 
 <a id="api-773bf50f1ba76820"></a>
 
@@ -1651,17 +1651,27 @@ public DateTime CreatedDate { get; set; }
 public string Id { get; set; } = string.Empty;
 ```
 
-检查点 GUID 文本或 GenesisId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。
+快照 GUID 文本或 OriginId、CurrentId 逻辑节点标识，不包含 WMI 实例路径。
 
 <a id="api-9728b96aef4000ee"></a>
 
-##### 当前检查点分支标记（属性）
+##### 当前快照分支标记（属性）
 
 ```csharp
 public bool IsCurrent { get; set; }
 ```
 
 是否标记为当前位置；Current 节点和它的直接父节点都会为 true，因此并非唯一选中标记。
+
+<a id="api-ffa07f0c91f078ce"></a>
+
+##### 历史磁盘挂接状态（属性）
+
+```csharp
+public bool IsHistoricalDiskMounted { get; }
+```
+
+查询或操作后确认的历史磁盘挂接状态；由 Core 更新。
 
 <a id="api-8f5e9d7d2d3a0432"></a>
 
@@ -1671,17 +1681,7 @@ public bool IsCurrent { get; set; }
 public bool IsLogicalNode { get; }
 ```
 
-是否为起点或当前状态逻辑节点；这两类节点不能作为真实检查点修改。
-
-<a id="api-eb471defbea2a107"></a>
-
-##### 历史磁盘挂接状态（属性）
-
-```csharp
-public bool IsWormhole { get; }
-```
-
-查询或操作后确认的历史磁盘挂接状态；由 Core 更新。
+是否为起点或当前状态逻辑节点，这两类节点不能作为真实快照修改。
 
 <a id="api-84be501ae10946d9"></a>
 
@@ -1701,7 +1701,7 @@ public string Name { get; set; }
 public CheckpointNodeType NodeType { get; set; }
 ```
 
-真实检查点、起点或当前状态节点的分类。
+真实快照、起点或当前状态节点的分类。
 
 <a id="api-fad3b9cb442b8254"></a>
 
@@ -1735,28 +1735,28 @@ public const string CurrentId = "CURRENT_RUNNING";
 
 当前运行位置的固定逻辑标识 CURRENT_RUNNING。
 
-<a id="api-275f2188a8fe2210"></a>
+<a id="api-8cb20dceb2fe1b1e"></a>
 
-##### 时间线起点标识（字段）
+##### 快照起点标识（字段）
 
 ```csharp
-public const string GenesisId = "GENESIS_ROOT";
+public const string OriginId = "ORIGIN_ROOT";
 ```
 
-检查点起点的固定逻辑标识 GENESIS_ROOT。
+快照起点的固定逻辑标识 ORIGIN_ROOT。
 
 <a id="api-4bac34f523f81bc9"></a>
 
 ### `CheckpointNodeType` 枚举
 
-检查点树节点代表的对象种类。
+快照树节点代表的对象种类。
 
 | 项目 | 内容 |
 | --- | --- |
 | 类型 | 枚举 |
 | 命名空间 | ` ExHyperV.Models ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
+| 功能归属 | 管理层面 / 虚拟机 / 快照 |
 | 源文件 | ` Management/VirtualMachines/Checkpoints/CheckpointNode.cs ` |
 
 #### 成员概览
@@ -1765,9 +1765,9 @@ public const string GenesisId = "GENESIS_ROOT";
 
 | 成员 | 说明 |
 | --- | --- |
-| [` Current = 2 `](#api-7786f330d9738f99) | 检查点树中标记当前运行位置的逻辑节点。 |
-| [` Genesis = 0 `](#api-d8b0d47f28e57aea) | 检查点树的初始起点。 |
-| [` Snapshot = 1 `](#api-42b167ce26c43da3) | 可操作的真实检查点。 |
+| [` Current = 2 `](#api-7786f330d9738f99) | 快照树中标记当前运行位置的逻辑节点。 |
+| [` Origin = 0 `](#api-7ae588907839a588) | 快照树的初始起点。 |
+| [` Snapshot = 1 `](#api-42b167ce26c43da3) | 可操作的真实快照。 |
 
 #### 详细说明
 
@@ -1785,17 +1785,17 @@ public enum CheckpointNodeType
 Current = 2
 ```
 
-检查点树中标记当前运行位置的逻辑节点。
+快照树中标记当前运行位置的逻辑节点。
 
-<a id="api-d8b0d47f28e57aea"></a>
+<a id="api-7ae588907839a588"></a>
 
-##### Genesis（枚举值）
+##### Origin（枚举值）
 
 ```csharp
-Genesis = 0
+Origin = 0
 ```
 
-检查点树的初始起点。
+快照树的初始起点。
 
 <a id="api-42b167ce26c43da3"></a>
 
@@ -1805,7 +1805,7 @@ Genesis = 0
 Snapshot = 1
 ```
 
-可操作的真实检查点。
+可操作的真实快照。
 
 <a id="api-ed1be2be550b34d3"></a>
 
@@ -2230,7 +2230,7 @@ true 继续确认的步骤；false 取消部署。
 | 成员 | 说明 |
 | --- | --- |
 | [` Confirmation = 0 `](#api-7db0f9d1f503457d) | 使用 GpuConfirmation 接受或拒绝。 |
-| [` DriverFallback = 2 `](#api-6ae6562adc948908) | 使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。 |
+| [` DriverFallback = 2 `](#api-6ae6562adc948908) | 使用 GpuDriverFallbackSelection 提交跳过驱动。 |
 | [` Partition = 1 `](#api-20f31cbd82caa987) | 使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。 |
 
 #### 详细说明
@@ -2259,7 +2259,7 @@ Confirmation = 0
 DriverFallback = 2
 ```
 
-使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。
+使用 GpuDriverFallbackSelection 提交跳过驱动。
 
 <a id="api-20f31cbd82caa987"></a>
 
@@ -2291,9 +2291,9 @@ GPU 部署暂停时需要用户处理的具体事项。
 
 | 成员 | 说明 |
 | --- | --- |
-| [` DriverFallback = 2 `](#api-c6c1cc6ce5ea5f32) | 无法直接向分区写入驱动（如启用 BitLocker 或非 Windows 分区），选择跳过驱动或挂载驱动光盘。 |
+| [` DriverFallback = 2 `](#api-c6c1cc6ce5ea5f32) | 无法直接向分区写入驱动（如启用 BitLocker、Linux 分区或非系统分区），选择跳过驱动。 |
 | [` PowerOff = 0 `](#api-0484eb23f552e201) | 确认强制关闭虚拟机（TurnOff）。 |
-| [` SelectPartition = 1 `](#api-8f7d20f374dc3012) | 选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。 |
+| [` SelectPartition = 1 `](#api-8f7d20f374dc3012) | 选择目标系统分区，或选择跳过驱动。 |
 
 #### 详细说明
 
@@ -2311,7 +2311,7 @@ public enum GpuDecisionKind
 DriverFallback = 2
 ```
 
-无法直接向分区写入驱动（如启用 BitLocker 或非 Windows 分区），选择跳过驱动或挂载驱动光盘。
+无法直接向分区写入驱动（如启用 BitLocker、Linux 分区或非系统分区），选择跳过驱动。
 
 <a id="api-0484eb23f552e201"></a>
 
@@ -2331,7 +2331,7 @@ PowerOff = 0
 SelectPartition = 1
 ```
 
-选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。
+选择目标系统分区，或选择跳过驱动。
 
 <a id="api-640fbb80511f3d56"></a>
 
@@ -2365,7 +2365,7 @@ SelectPartition = 1
 | [` public bool IsDestructive { get; } `](#api-12a4fe0905f6c470) | 是否为直接关闭虚拟机等具有破坏性的确认；其他步骤仍可能有配置副作用。 |
 | [` public GpuDecisionKind Kind { get; init; } `](#api-7035d4b4ecb0f2d9) | 待确认事项的种类。 |
 | [` public string Message { get; init; } `](#api-bc2680691fa17847) | 本地化操作说明。 |
-| [` public IReadOnlyList<GpuDeploymentPartition> Partitions { get; init; } `](#api-aecfba65fe78949a) | 可供选择的分区快照；会话发布的是只读列表。 |
+| [` public IReadOnlyList<GpuDeploymentPartition> Partitions { get; init; } `](#api-aecfba65fe78949a) | 可供选择的分区列表，会话发布的是只读列表。 |
 | [` public string Title { get; init; } `](#api-0e384572dcd1d5c8) | 本地化标题。 |
 
 #### 详细说明
@@ -2381,7 +2381,7 @@ public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Ti
 | `Kind` | 待确认事项的种类。 |
 | `Title` | 本地化标题。 |
 | `Message` | 本地化操作说明。 |
-| `Partitions` | 可供选择的分区快照；会话发布的是只读列表。 |
+| `Partitions` | 可供选择的分区列表，会话发布的是只读列表。 |
 | `CanGoBack` | 是否允许从当前事项返回分区选择。 |
 
 #### 构造函数说明
@@ -2400,7 +2400,7 @@ public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Me
 | `Kind` | 待确认事项的种类。 |
 | `Title` | 本地化标题。 |
 | `Message` | 本地化操作说明。 |
-| `Partitions` | 可供选择的分区快照；会话发布的是只读列表。 |
+| `Partitions` | 可供选择的分区列表，会话发布的是只读列表。 |
 | `CanGoBack` | 是否允许从当前事项返回分区选择。 |
 
 #### 属性说明
@@ -2473,7 +2473,7 @@ public string Message { get; init; }
 public IReadOnlyList<GpuDeploymentPartition> Partitions { get; init; }
 ```
 
-可供选择的分区快照；会话发布的是只读列表。
+可供选择的分区列表，会话发布的是只读列表。
 
 <a id="api-0e384572dcd1d5c8"></a>
 
@@ -2489,7 +2489,7 @@ public string Title { get; init; }
 
 ### `GpuDeploymentAction` 枚举
 
-当前部署快照允许调用方发起的动作。
+当前部署状态允许调用方发起的动作。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -2710,7 +2710,7 @@ UpdateDrivers = 2
 
 ### `GpuDeploymentPartition` record 类
 
-供用户选择的系统分区快照。会话以 Id 重新匹配内部记录，不接受调用方改写的磁盘路径。
+供用户选择的系统分区视图。会话以 Id 重新匹配内部记录，不接受调用方改写的磁盘路径。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -2736,7 +2736,7 @@ UpdateDrivers = 2
 | [` public string DiskPath { get; init; } `](#api-232efb38873f2fd8) | 虚拟磁盘文件路径或物理磁盘编号字符串。 |
 | [` public string DisplayName { get; } `](#api-5de66bd086578dae) | 磁盘名称、分区编号和容量组合的本地化文本。 |
 | [` public string Id { get; init; } `](#api-b3dc29a94aed7e69) | 本次分区列表中的选择标识，只应用于当前部署。 |
-| [` public bool IsBitLocker { get; init; } `](#api-02d0aa26e4b2ac0a) | 是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。 |
+| [` public bool IsBitLocker { get; init; } `](#api-02d0aa26e4b2ac0a) | 是否检测到 BitLocker 签名，加密分区需先解除 BitLocker 后再写入，或选择跳过驱动。 |
 | [` public bool IsPhysicalDisk { get; init; } `](#api-411828e7d6d8be13) | 是否来自物理直通磁盘。 |
 | [` public OperatingSystemType OsType { get; init; } `](#api-42e9a21e5fca564b) | 识别的系统类型。 |
 | [` public int PartitionNumber { get; init; } `](#api-f47310d5aa2a80f1) | 分区编号。 |
@@ -2762,7 +2762,7 @@ public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulon
 | `DiskPath` | 虚拟磁盘文件路径或物理磁盘编号字符串。 |
 | `DiskDisplayName` | 所属磁盘的显示名称。 |
 | `IsPhysicalDisk` | 是否来自物理直通磁盘。 |
-| `IsBitLocker` | 是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。 |
+| `IsBitLocker` | 是否检测到 BitLocker 签名，加密分区需先解除 BitLocker 后再写入，或选择跳过驱动。 |
 
 #### 构造函数说明
 
@@ -2784,7 +2784,7 @@ public GpuDeploymentPartition(string Id, int PartitionNumber, ulong SizeInBytes,
 | `DiskPath` | 虚拟磁盘文件路径或物理磁盘编号字符串。 |
 | `DiskDisplayName` | 所属磁盘的显示名称。 |
 | `IsPhysicalDisk` | 是否来自物理直通磁盘。 |
-| `IsBitLocker` | 是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。 |
+| `IsBitLocker` | 是否检测到 BitLocker 签名，加密分区需先解除 BitLocker 后再写入，或选择跳过驱动。 |
 
 #### 属性说明
 
@@ -2836,7 +2836,7 @@ public string Id { get; init; }
 public bool IsBitLocker { get; init; }
 ```
 
-是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。
+是否检测到 BitLocker 签名，加密分区需先解除 BitLocker 后再写入，或选择跳过驱动。
 
 <a id="api-411828e7d6d8be13"></a>
 
@@ -3052,7 +3052,7 @@ public Guid VmId { get; init; }
 
 ### `GpuDeploymentSnapshot` record 类
 
-部署会话发布的状态快照。步骤、动作和分区集合为只读；手动构造时应传入不可变集合。
+部署会话发布的状态视图。步骤、动作和分区集合为只读，手动构造时应传入不可变集合。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -3078,11 +3078,9 @@ public Guid VmId { get; init; }
 | [` public IReadOnlyList<string> AddedAdapterIds { get; init; } = Array.Empty<string>() `](#api-7da2cde5acf338d3) | 本次部署批量新增且已确认属于目标 VM 的全部 GPU 适配器标识。 |
 | [` public IReadOnlyList<GpuDeploymentAction> AllowedActions { get; init; } `](#api-a30b434db3c93a67) | 当前状态允许的调用动作。 |
 | [` public string? CleanupError { get; init; } `](#api-58374e828624fe3d) | 清理失败说明；没有清理错误时为 null。 |
-| [` public int? DriverIsoProgressPercent { get; init; } `](#api-80a64b31eb8830a0) | 打包与挂载驱动 ISO 的百分比进度（0-100）；未处于光盘部署阶段时为 null。 |
 | [` public string? Error { get; init; } `](#api-2a031d092e685776) | 部署错误说明；无错误时为 null。 |
 | [` public bool HasAddedAdapter { get; init; } `](#api-3b95afd42de013fb) | 本次部署是否新增并识别到至少一个适配器。 |
 | [` public bool HasPendingCleanup { get; init; } `](#api-5db4fba4b5816944) | 是否有已识别且尚待清理的适配器；false 时仍应检查 State 和 CleanupError。 |
-| [` public bool IsDriverIsoMounted { get; init; } `](#api-2c058cb580fbffe7) | 本次部署是否通过挂载驱动 ISO 完成驱动准备。 |
 | [` public bool IsDriverSkipped { get; init; } `](#api-30699f5036b255e7) | 本次部署是否因用户选择而跳过了驱动安装。 |
 | [` public string? LastLog { get; init; } `](#api-d51e4de7fc4a52ae) | 最近一条步骤日志；尚无日志时为 null。 |
 | [` public bool OutcomeUnknown { get; init; } `](#api-293632a781a3d836) | 底层操作结果尚未确认；此状态不允许重试清理。 |
@@ -3090,10 +3088,10 @@ public Guid VmId { get; init; }
 | [` public IReadOnlyList<string> PendingCleanupAdapterIds { get; init; } = Array.Empty<string>() `](#api-0c151f0ef3385700) | 已确认归属且待清理的全部适配器标识。 |
 | [` public GpuDecisionRequest? PendingDecision { get; init; } `](#api-0dce5ae59f56b76d) | 当前待确认事项；不在等待决定时为 null。 |
 | [` public GpuDeploymentRecovery? Recovery { get; init; } `](#api-e0251fb0578ad929) | 本次部署与恢复的任务、资源、原状态及核实结果；无记录时为 null，可保存用于排查。 |
-| [` public long Revision { get; init; } `](#api-da1d46719893e43e) | 同一会话中递增的快照修订号。 |
+| [` public long Revision { get; init; } `](#api-da1d46719893e43e) | 同一会话中递增的状态修订号。 |
 | [` public Guid SessionId { get; init; } `](#api-bea533855f89f637) | 部署会话的稳定标识。 |
 | [` public GpuDeploymentState State { get; init; } `](#api-1987d6fea8c8ad21) | 部署当前状态。 |
-| [` public IReadOnlyList<GpuDeploymentStep> Steps { get; init; } `](#api-091d68578048fd7c) | 当前各步骤的状态快照。 |
+| [` public IReadOnlyList<GpuDeploymentStep> Steps { get; init; } `](#api-091d68578048fd7c) | 当前各步骤的状态列表。 |
 
 #### 详细说明
 
@@ -3107,9 +3105,9 @@ public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDep
 | 参数 | 说明 |
 | --- | --- |
 | `SessionId` | 部署会话的稳定标识。 |
-| `Revision` | 同一会话中递增的快照修订号。 |
+| `Revision` | 同一会话中递增的状态修订号。 |
 | `State` | 部署当前状态。 |
-| `Steps` | 当前各步骤的状态快照。 |
+| `Steps` | 当前各步骤的状态列表。 |
 | `PendingDecision` | 当前待确认事项；不在等待决定时为 null。 |
 | `AllowedActions` | 当前状态允许的调用动作。 |
 | `HasAddedAdapter` | 本次部署是否新增并识别到至少一个适配器。 |
@@ -3131,9 +3129,9 @@ public GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDeploymentState S
 | 参数 | 说明 |
 | --- | --- |
 | `SessionId` | 部署会话的稳定标识。 |
-| `Revision` | 同一会话中递增的快照修订号。 |
+| `Revision` | 同一会话中递增的状态修订号。 |
 | `State` | 部署当前状态。 |
-| `Steps` | 当前各步骤的状态快照。 |
+| `Steps` | 当前各步骤的状态列表。 |
 | `PendingDecision` | 当前待确认事项；不在等待决定时为 null。 |
 | `AllowedActions` | 当前状态允许的调用动作。 |
 | `HasAddedAdapter` | 本次部署是否新增并识别到至少一个适配器。 |
@@ -3184,16 +3182,6 @@ public string? CleanupError { get; init; }
 
 清理失败说明；没有清理错误时为 null。
 
-<a id="api-80a64b31eb8830a0"></a>
-
-##### 驱动光盘打包进度（属性）
-
-```csharp
-public int? DriverIsoProgressPercent { get; init; }
-```
-
-打包与挂载驱动 ISO 的百分比进度（0-100）；未处于光盘部署阶段时为 null。
-
 <a id="api-2a031d092e685776"></a>
 
 ##### 错误（record 属性）
@@ -3223,16 +3211,6 @@ public bool HasPendingCleanup { get; init; }
 ```
 
 是否有已识别且尚待清理的适配器；false 时仍应检查 State 和 CleanupError。
-
-<a id="api-2c058cb580fbffe7"></a>
-
-##### 驱动光盘已挂载（属性）
-
-```csharp
-public bool IsDriverIsoMounted { get; init; }
-```
-
-本次部署是否通过挂载驱动 ISO 完成驱动准备。
 
 <a id="api-30699f5036b255e7"></a>
 
@@ -3312,7 +3290,7 @@ public GpuDeploymentRecovery? Recovery { get; init; }
 public long Revision { get; init; }
 ```
 
-同一会话中递增的快照修订号。
+同一会话中递增的状态修订号。
 
 <a id="api-bea533855f89f637"></a>
 
@@ -3342,7 +3320,7 @@ public GpuDeploymentState State { get; init; }
 public IReadOnlyList<GpuDeploymentStep> Steps { get; init; }
 ```
 
-当前各步骤的状态快照。
+当前各步骤的状态列表。
 
 <a id="api-b4fe6c09c7a1b03c"></a>
 
@@ -3368,7 +3346,7 @@ public IReadOnlyList<GpuDeploymentStep> Steps { get; init; }
 | [` CleanupRequired = 6 `](#api-33ef8617e3dc9e3e) | 取消或失败后的任务结果、临时磁盘恢复或新增适配器清理尚未解决；按允许动作核实或重试。 |
 | [` Completed = 3 `](#api-00390e0f4d5c56f3) | 部署已完成。 |
 | [` Created = 0 `](#api-37b2be1efe42f1b1) | 已创建，尚未执行部署，可调用 StartAsync。 |
-| [` Failed = 4 `](#api-83e07a9a9bcb8ead) | 部署失败，相关错误保存在快照中。 |
+| [` Failed = 4 `](#api-83e07a9a9bcb8ead) | 部署失败，相关错误保存在状态详情中。 |
 | [` Running = 1 `](#api-67643aa629a1362c) | 正在执行当前步骤。 |
 | [` WaitingForDecision = 2 `](#api-cfafa4edc1d9cc29) | 已暂停并等待匹配 PendingDecision.Id 的用户决定。 |
 
@@ -3428,7 +3406,7 @@ Created = 0
 Failed = 4
 ```
 
-部署失败，相关错误保存在快照中。
+部署失败，相关错误保存在状态详情中。
 
 <a id="api-67643aa629a1362c"></a>
 
@@ -3454,7 +3432,7 @@ WaitingForDecision = 2
 
 ### `GpuDeploymentStep` record 类
 
-部署步骤的显示状态快照。名称和说明用于展示，程序分支应使用 Type 和 Status。
+部署步骤的显示状态视图。名称和说明用于展示，程序分支应使用 Type 和 Status。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -3574,7 +3552,7 @@ GPU 部署流程中的步骤类别。
 | 成员 | 说明 |
 | --- | --- |
 | [` Assign = 2 `](#api-141329c91b53c21f) | 新增虚拟 GPU 分区适配器。 |
-| [` Driver = 3 `](#api-1dcdb18560bd523b) | 安装、跳过或挂载光盘部署来宾 GPU 驱动。 |
+| [` Driver = 3 `](#api-1dcdb18560bd523b) | 安装或跳过部署来宾 GPU 驱动。 |
 | [` Optimization = 1 `](#api-66a3170a736ca7ef) | 放宽宿主限制并调整 GPU 所需的缓存和 MMIO 设置。 |
 | [` PowerCheck = 0 `](#api-d17eb32c160bde76) | 检查并按用户决定处理虚拟机电源状态。 |
 
@@ -3604,7 +3582,7 @@ Assign = 2
 Driver = 3
 ```
 
-安装、跳过或挂载光盘部署来宾 GPU 驱动。
+安装或跳过部署来宾 GPU 驱动。
 
 <a id="api-66a3170a736ca7ef"></a>
 
@@ -3719,7 +3697,6 @@ Success = 2
 
 | 成员 | 说明 |
 | --- | --- |
-| [` MountIso = 1 `](#api-6fb15efc92357d9a) | 打包宿主显卡驱动为 ISO 并挂载到虚拟机光驱，由用户进入系统后自行安装。 |
 | [` SkipDriver = 0 `](#api-a41264c4936172fd) | 跳过驱动安装，仅保留已分配的显卡分区与优化配置。 |
 
 #### 详细说明
@@ -3729,16 +3706,6 @@ public enum GpuDriverFallbackAction
 ```
 
 #### 枚举值说明
-
-<a id="api-6fb15efc92357d9a"></a>
-
-##### MountIso（枚举值）
-
-```csharp
-MountIso = 1
-```
-
-打包宿主显卡驱动为 ISO 并挂载到虚拟机光驱，由用户进入系统后自行安装。
 
 <a id="api-a41264c4936172fd"></a>
 
@@ -3754,7 +3721,7 @@ SkipDriver = 0
 
 ### `GpuDriverFallbackSelection` record 类
 
-当分区加密或无法直接写入时，提交跳过驱动或挂载驱动光盘的回退决定。
+当分区已启用 BitLocker、不受支持或无法直接写入时，提交跳过驱动的回退决定。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -4282,7 +4249,7 @@ public string Name { get; init; } = string.Empty;
 
 | 项目 | 说明 |
 | --- | --- |
-| 详细含义 | 用于界面或报表展示的主体名称；虚拟机改名后随最新 WMI 快照更新，程序内部关联应使用 VmId。 |
+| 详细含义 | 用于界面或报表展示的主体名称；虚拟机改名后随最新 WMI 查询结果更新，程序内部关联应使用 VmId。 |
 | 修改对应 | 只读。来自宿主标识或虚拟机配置显示名，监控接口不直接修改。 |
 
 <a id="api-be6008aca7d9ccdd"></a>
@@ -4326,7 +4293,7 @@ public Guid? VmId { get; init; }
 
 ### `HostCpuThreadReport` 类
 
-宿主全量物理逻辑处理器线程的占用归属快照，包含调度器模式与数据源说明。
+宿主全量物理逻辑处理器线程的占用归属采样帧，包含调度器模式与数据源说明。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -4343,12 +4310,12 @@ public Guid? VmId { get; init; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public string? AttributionNote { get; init; } `](#api-419885b70e5b316b) | 归属来源降级或受限时的附加说明；精确归属且无提示时为 null。 |
-| [` public HostCpuAttributionSource AttributionSource { get; init; } `](#api-5855bc0dbee2ce9c) | 本次快照实际采用的逻辑处理器归属数据来源。 |
+| [` public HostCpuAttributionSource AttributionSource { get; init; } `](#api-5855bc0dbee2ce9c) | 本次采样帧实际采用的逻辑处理器归属数据来源。 |
 | [` public DateTimeOffset ObservedAtUtc { get; init; } `](#api-948d19e22c0f1a4c) | 完成本次采样并归一化结果的 UTC 时间戳。 |
 | [` public PerformanceSampleInfo Sample { get; init; } = new(PerformanceSampleState.NotSampled, default) `](#api-ae3920f5fb66fd29) | 本次整体报告的采样健康状态。 |
 | [` public HyperVSchedulerType SchedulerType { get; init; } `](#api-99ed9ca1225590d7) | 本次采样观测到的宿主当前 Hyper-V 调度器模式。 |
 | [` public IReadOnlyList<HostCpuThreadSnapshot> Threads { get; init; } = [] `](#api-ee106b0afe98bd33) | 宿主全部活动逻辑处理器的占用与归属明细，按物理逻辑编号升序排列。 |
-| [` public TimeSpan WindowDuration { get; init; } `](#api-f097ac5e98a55c42) | 本次占用快照所统计的时间窗口长度。 |
+| [` public TimeSpan WindowDuration { get; init; } `](#api-f097ac5e98a55c42) | 本次占用采样帧所统计的时间窗口长度。 |
 
 #### 详细说明
 
@@ -4384,7 +4351,7 @@ public string? AttributionNote { get; init; }
 public HostCpuAttributionSource AttributionSource { get; init; }
 ```
 
-本次快照实际采用的逻辑处理器归属数据来源。
+本次采样帧实际采用的逻辑处理器归属数据来源。
 
 **字段说明**
 
@@ -4407,7 +4374,7 @@ public DateTimeOffset ObservedAtUtc { get; init; }
 
 | 项目 | 说明 |
 | --- | --- |
-| 详细含义 | 该帧占用快照对应的世界协调时间观测点。 |
+| 详细含义 | 该帧占用采样帧对应的世界协调时间观测点。 |
 | 修改对应 | 只读。运行时采样时间戳，不可写入。 |
 
 <a id="api-ae3920f5fb66fd29"></a>
@@ -4469,7 +4436,7 @@ public IReadOnlyList<HostCpuThreadSnapshot> Threads { get; init; } = [];
 public TimeSpan WindowDuration { get; init; }
 ```
 
-本次占用快照所统计的时间窗口长度。
+本次占用采样帧所统计的时间窗口长度。
 
 **字段说明**
 
@@ -7679,7 +7646,7 @@ Unavailable = 7
 
 ### `VmDiskInspection` record 类
 
-存储详检结果和当前快照允许的操作。实际提交时重新检查。
+存储详检结果和当前状态允许的操作。实际提交时重新检查。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -8720,7 +8687,7 @@ public string Vendor { get; set; }
 
 ### `VmGroup` record 类
 
-Hyper-V 分组及其成员的本地快照。
+Hyper-V 分组及其成员的本地视图。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -8794,7 +8761,7 @@ public HashSet<Guid> ChildIds { get; } = [];
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 直接属于该组的子分组标识集合。 |
-| 取值与默认 | GUID 集合；修改集合仅改变本地快照。 |
+| 取值与默认 | GUID 集合，修改集合仅改变本地副本。 |
 
 <a id="api-a7349d348f3ba4e8"></a>
 
@@ -8858,7 +8825,7 @@ public HashSet<Guid> VmIds { get; } = [];
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 直接属于该组的虚拟机标识集合。 |
-| 取值与默认 | GUID 集合；修改集合仅改变本地快照。 |
+| 取值与默认 | GUID 集合，修改集合仅改变本地副本。 |
 
 <a id="api-7009c707c715a19c"></a>
 
@@ -9050,7 +9017,7 @@ public sealed class VmGroupSnapshot(IReadOnlyList<VmGroup> groups)
 
 <a id="api-d448bb645b5a77fc"></a>
 
-##### 创建分组快照对象（主构造器）
+##### 创建分组状态视图对象（主构造器）
 
 ```csharp
 public VmGroupSnapshot(IReadOnlyList<VmGroup> groups);
@@ -10131,7 +10098,7 @@ public partial class VmMemorySettings
 
 
 
-可空扩展属性读取为 null 表示未取得，写入 null 表示保留原值。非空请求对应的宿主属性缺失时，提交前返回 Unsupported。修改时只提交选中的字段；Clone/Restore 用于本地快照。
+可空扩展属性读取为 null 表示未取得，写入 null 表示保留原值。非空请求对应的宿主属性缺失时，提交前返回 Unsupported。修改时只提交选中的字段，Clone/Restore 用于本地副本。
 
 #### 构造函数说明
 
@@ -10544,7 +10511,7 @@ public long Startup { get; set; }
 | 单位与表示 | MiB，1 MiB = 1,048,576 字节。 |
 | 取值与默认 | 当前配置的内存容量，单位 MiB。 |
 | 适用条件 | 该值配置启动容量；运行期间的实际分配量见 VmMemoryFields.AssignedMiB。 |
-| 缺测与错误 | 读取快照的 States[Startup] 给出本次有效性。Available 时使用 Values.Startup。 |
+| 缺测与错误 | 读取结果的 States[Startup] 给出本次有效性。Available 时使用 Values.Startup。 |
 
 <a id="api-38ac08c146f6798f"></a>
 
@@ -10564,7 +10531,7 @@ public bool SupportsBackingPageSize { get; }
 public uint Weight { get; set; }
 ```
 
-宿主内存不足时的分配优先权重，数值越大优先级越高。读取有效性见快照的 States[Weight]。
+宿主内存不足时的分配优先权重，数值越大优先级越高。读取有效性见读取结果的 States[Weight]。
 
 #### 方法说明
 
@@ -10592,7 +10559,7 @@ public void Restore(VmMemorySettings other);
 
 | 参数 | 说明 |
 | --- | --- |
-| `other` | 要恢复的设置快照；null 时不做操作。 |
+| `other` | 要恢复的设置副本，null 时不做操作。 |
 
 <a id="api-9565efeada622ee9"></a>
 
@@ -10740,13 +10707,13 @@ public void Restore(VmMmioSettings other);
 
 | 参数 | 说明 |
 | --- | --- |
-| `other` | 要恢复的设置快照；null 时不做操作。 |
+| `other` | 要恢复的设置副本，null 时不做操作。 |
 
 <a id="api-93e367f9b5bd2a37"></a>
 
 ### `VmModificationCondition` record 类
 
-一项虚拟机设置在当前快照下的修改条件。
+一项虚拟机设置在当前状态下的修改条件。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -10897,7 +10864,7 @@ public VmState? RequiredState { get; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public VmNetworkAdapter Clone() `](#api-425afb04bf0e6ccd) | 复制当前网卡快照，并为各可变列表建立独立副本。 |
+| [` public VmNetworkAdapter Clone() `](#api-425afb04bf0e6ccd) | 复制当前网卡配置副本，并为各可变列表建立独立副本。 |
 
 #### 详细说明
 
@@ -11309,7 +11276,7 @@ public bool VmqEnabled { get; set; }
 
 <a id="api-425afb04bf0e6ccd"></a>
 
-##### 复制网卡配置快照（方法）
+##### 复制网卡配置副本（方法）
 
 ```csharp
 public VmNetworkAdapter Clone();
@@ -11317,7 +11284,7 @@ public VmNetworkAdapter Clone();
 
 功能归属：管理层面 / 虚拟机 / 网络。
 
-复制当前网卡快照，并为各可变列表建立独立副本。
+复制当前网卡配置副本，并为各可变列表建立独立副本。
 
 返回：网卡配置的独立副本，各可变列表单独复制。
 
@@ -11767,7 +11734,7 @@ Paravirtualized = 0
 
 ### `VmPcieSettings` 类
 
-虚拟机 PCIe 系统设置及已分配设备的查询快照。
+虚拟机 PCIe 系统设置及已分配设备的查询结果。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -12893,7 +12860,7 @@ public bool Supports(VmProcessorCapability capability);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public VmDiskInspection Access { get; init; } `](#api-83a63a71813999a4) | 容量检查时取得的挂接访问快照。 |
+| [` public VmDiskInspection Access { get; init; } `](#api-83a63a71813999a4) | 容量检查时取得的挂接访问记录。 |
 | [` public bool CanExpand { get; } `](#api-0d34d75a1910c6e6) | 当前条件是否允许扩展容量。 |
 | [` public bool CanShrink { get; } `](#api-0e4f9f3ed2b4341e) | 当前条件是否允许收缩容量。 |
 | [` public long? CurrentCapacityBytes { get; init; } `](#api-458d590ab30c45f0) | 当前虚拟容量，单位字节，未知时为 null。 |
@@ -12915,7 +12882,7 @@ public sealed record VmResizeSafety(VmDiskInspection Access, long? CurrentCapaci
 
 | 参数 | 说明 |
 | --- | --- |
-| `Access` | 容量检查时取得的挂接访问快照。 |
+| `Access` | 容量检查时取得的挂接访问记录。 |
 | `CurrentCapacityBytes` | 当前虚拟容量，单位字节，未知时为 null。 |
 | `MaximumGiB` | 格式支持的最大虚拟容量，单位 GiB。 |
 | `MinimumInternalSizeBytes` | 提供者报告的最小内部容量，单位字节。 |
@@ -12936,7 +12903,7 @@ public VmResizeSafety(VmDiskInspection Access, long? CurrentCapacityBytes, long 
 
 | 参数 | 说明 |
 | --- | --- |
-| `Access` | 容量检查时取得的挂接访问快照。 |
+| `Access` | 容量检查时取得的挂接访问记录。 |
 | `CurrentCapacityBytes` | 当前虚拟容量，单位字节，未知时为 null。 |
 | `MaximumGiB` | 格式支持的最大虚拟容量，单位 GiB。 |
 | `MinimumInternalSizeBytes` | 提供者报告的最小内部容量，单位字节。 |
@@ -12955,7 +12922,7 @@ public VmResizeSafety(VmDiskInspection Access, long? CurrentCapacityBytes, long 
 public VmDiskInspection Access { get; init; }
 ```
 
-容量检查时取得的挂接访问快照。
+容量检查时取得的挂接访问记录。
 
 <a id="api-0d34d75a1910c6e6"></a>
 
@@ -13854,7 +13821,7 @@ public bool IsPassthroughStale { get; set; }
 public string? MediaFileToken { get; init; }
 ```
 
-查询时的介质文件身份。与挂接一起回传可检测同路径替换，旧版快照可为空。
+查询时的介质文件身份。与挂接一起回传可检测同路径替换，旧版记录可为空。
 
 <a id="api-e01d61f079eb3360"></a>
 
@@ -16536,7 +16503,7 @@ VmStopped = 2
 public sealed class GpuDeploymentSession
 ```
 
-调用约定：每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前快照。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器；已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场；按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。
+调用约定：每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前状态。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器，已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场，按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。
 
 #### 构造函数说明
 
@@ -16597,7 +16564,7 @@ public async Task<GpuDeploymentSnapshot> CancelAsync();
 
 请求取消，等待当前操作退出后尝试清理本次新增的全部适配器。
 
-返回：取消或既有终态快照；清理未完成时返回 CleanupRequired。
+返回：取消或既有终态，清理未完成时返回 CleanupRequired。
 
 调用约定：等待当前步骤结束后取消，已完成的修改保留。会话已终止或等待清理时返回当前状态。OutcomeUnknown 时先按 AllowedActions 调用 ReconcileAsync 核实，再决定是否调用 RetryCleanupAsync。
 
@@ -16611,7 +16578,7 @@ public GpuDeploymentSnapshot GetStatus();
 
 读取最近发布的状态，不等待正在进行的底层操作。
 
-返回：当前部署状态快照。
+返回：当前部署状态。
 
 <a id="api-5b584dc638877ec1"></a>
 
@@ -16623,7 +16590,7 @@ public async Task<GpuDeploymentSnapshot> ReconcileAsync();
 
 只读核实本次部署和清理的原生任务、GPU 适配器及临时磁盘资源。
 
-返回：更新后的快照。原任务结束且资源已恢复时进入原定的 Failed 或 Cancelled；仍需清理时停在 CleanupRequired，并更新 AllowedActions。
+返回：更新后的状态。原任务结束且资源已恢复时进入原定的 Failed 或 Cancelled，仍需清理时停在 CleanupRequired，并更新 AllowedActions。
 
 调用约定：核实已记录的适配器、电源、MMIO 和临时磁盘任务。仍在运行、读取失败或缺少最终回执时保留 OutcomeUnknown。Recovery 中的 Operations、Resources、ObservedValues 分别提供任务结果、恢复资源和本次观测值；后续清理由调用方按 AllowedActions 发起。
 
@@ -16667,9 +16634,9 @@ public async Task<GpuDeploymentSnapshot> StartAsync(Action<GpuDeploymentSnapshot
 
 | 参数 | 说明 |
 | --- | --- |
-| `progress` | 可选的快照通知，在执行流程所在的上下文同步触发。回调应快速返回；界面更新需调度到界面线程。阻塞等待会话写操作会导致死锁；回调异常会被隔离。 |
+| `progress` | 可选的状态通知，在执行流程所在的上下文同步触发。回调应快速返回，界面更新需调度到界面线程。阻塞等待会话写操作会导致死锁，回调异常会被隔离。 |
 
-返回：停止推进时的最新快照，可能仍需用户决定。
+返回：停止推进时的最新状态，可能仍需用户决定。
 
 - 异常 `InvalidOperationException`：会话已经离开 Created 状态。
 
@@ -16687,13 +16654,13 @@ public async Task<GpuDeploymentSnapshot> SubmitDecisionAsync(GpuDeploymentDecisi
 | --- | --- |
 | `decision` | 与 PendingDecision 对应的确认、分区、回退动作或返回决定；不能为空。 |
 
-返回：执行至下一次等待或结束后的快照。
+返回：执行至下一次等待或结束后的状态。
 
-调用约定：选择非加密 Windows 分区后会直接执行离线驱动写入；确认 PowerOff 会直接 TurnOff；提交 MountIso 会生成并挂载驱动 ISO。
+调用约定：选择非加密 Windows 分区后会直接执行离线驱动写入，确认 PowerOff 会直接 TurnOff，提交 SkipDriver 会跳过驱动安装。
 
 - 异常 `ArgumentNullException`：decision 为 null。
 - 异常 `InvalidOperationException`：没有待确认事项，或请求 ID、输入种类与当前事项不匹配。
-- 异常 `ArgumentException`：分区不在当前列表、分区不受支持或已加密。
+- 异常 `ArgumentException`：分区不在当前列表、分区不受支持（如 Linux）或已开启 BitLocker。
 
 <a id="api-cf4bd5ffb7a2e5ec"></a>
 
@@ -16940,7 +16907,7 @@ public static Task<ApiResponse> SetEnhancedSessionModeEnabledAsync(bool enabled)
 
 ### `HostCpuGroupInfo` 类
 
-宿主 CPU 组的处理器、调度策略与成员快照。
+宿主 CPU 组的处理器、调度策略与成员视图。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -16974,7 +16941,7 @@ public static Task<ApiResponse> SetEnhancedSessionModeEnabledAsync(bool enabled)
 public sealed class HostCpuGroupInfo
 ```
 
-调用约定：组策略适用于 Classic/Core 调度器，修改会影响该组全部使用者。成员列表覆盖 WMI 可见的 Hyper-V 虚拟机；其他 HCS 使用者不在此列表中。修改时将最新快照的 Revision 原样传回 `HostCpuGroupService`。
+调用约定：组策略适用于 Classic/Core 调度器，修改会影响该组全部使用者。成员列表覆盖 WMI 可见的 Hyper-V 虚拟机，其他 HCS 使用者不在此列表中。修改时将最新视图的 Revision 原样传回 `HostCpuGroupService`。
 
 #### 属性说明
 
@@ -17292,7 +17259,7 @@ public Guid VmId { get; init; }
 public static class HostCpuGroupService
 ```
 
-调用约定：修改适用于 Classic/Core 调度器。先读取组快照，将非空 Revision 原样提交；配置或成员已经变化时返回 Conflict。修改影响该组全部使用者，成功后返回新的快照与 Revision。
+调用约定：修改适用于 Classic/Core 调度器。先读取组视图，将非空 Revision 原样提交，配置或成员已经变化时返回 Conflict。修改影响该组全部使用者，成功后返回新的状态与 Revision。
 
 
 
@@ -17316,7 +17283,7 @@ public static async Task<ApiResponse<IReadOnlyList<HostCpuGroupInfo>>> GetAllAsy
 | --- | --- |
 | `cancellationToken` | 可取消排队及读取步骤；已进行的同步原生查询不会被强行中断。 |
 
-返回：组的只读快照；逐组检查 MembersComplete 和 Revision 后才可提交修改。
+返回：组的只读视图，逐组检查 MembersComplete 和 Revision 后才可提交修改。
 
 <a id="api-087122f4aea3c833"></a>
 
@@ -17335,9 +17302,9 @@ public static async Task<ApiResponse<HostCpuGroupInfo>> GetAsync(Guid groupId, C
 | `groupId` | 宿主 CPU 组 GUID，不能为全零。 |
 | `cancellationToken` | 可取消排队及读取步骤，不强行中断同步原生查询。 |
 
-返回：指定组快照；组不存在时返回 NotFound，不创建新组。
+返回：指定组视图，组不存在时返回 NotFound，不创建新组。
 
-调用约定：组 GUID 可取自亲和性保存结果的 CurrentGroupId，或用 `HostCpuGroupService.GetAllAsync` 按 Members 中的 VmId 查找。读取后将非空 Revision 原样传给本组策略修改方法；每次成功修改返回的新快照包含新的 Revision。
+调用约定：组 GUID 可取自亲和性保存结果的 CurrentGroupId，或用 `HostCpuGroupService.GetAllAsync` 按 Members 中的 VmId 查找。读取后将非空 Revision 原样传给本组策略修改方法，每次成功修改返回的新视图包含新的 Revision。
 
 <a id="api-92b992cf83f14692"></a>
 
@@ -17358,7 +17325,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetCpuCapAsync(Guid groupId, u
 | `expectedRevision` | GetAsync 或 GetAllAsync 返回的非空 Revision；过期时在任何写入前返回 Conflict。 |
 | `cancellationToken` | 在原生提交前响应取消；提交后等待操作结束并回读。 |
 
-返回：修改后的快照；OutcomeUnknown 表示结果待确认，重试前重新读取。
+返回：修改后的组状态，OutcomeUnknown 表示结果待确认，重试前重新读取。
 
 <a id="api-5d2ba3e9d3e27fe2"></a>
 
@@ -17379,7 +17346,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetIdleProcessorReserveAsync(G
 | `expectedRevision` | 最近读取的非空 Revision；过期时不执行修改。 |
 | `cancellationToken` | 仅在原生提交前取消；提交后完成返回和回读。 |
 
-返回：修改后经确认的组快照；保留系统原始失败，不猜测或自动调整数量。
+返回：修改后经确认的组状态，保留系统原始失败，不猜测或自动调整数量。
 
 <a id="api-26ca8631196e09c1"></a>
 
@@ -17400,7 +17367,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetPriorityAsync(Guid groupId,
 | `expectedRevision` | 最近读取的非空 Revision；过期时不执行修改。 |
 | `cancellationToken` | 仅在原生提交前取消；提交后完成返回和回读。 |
 
-返回：修改后经确认的组快照；失败后先重新读取实际状态。
+返回：修改后经确认的组状态，失败后先重新读取实际状态。
 
 <a id="api-5979acdc912b88eb"></a>
 
@@ -17421,7 +17388,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid gr
 | `expectedRevision` | 最近读取的非空 Revision；过期时不执行修改。 |
 | `cancellationToken` | 仅在原生提交前取消；提交后完成返回和回读。 |
 
-返回：修改后经确认的组快照；系统未提供该属性时返回 Unsupported。
+返回：修改后经确认的组状态，系统未提供该属性时返回 Unsupported。
 
 调用约定：RelativeWeight 对应 HCS 属性 0x40000，其名称与语义尚未纳入微软公开接口约定。
 
@@ -17451,7 +17418,7 @@ public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid gr
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static async Task<HostCpuThreadReport> SampleAsync(TimeSpan duration, CancellationToken cancellationToken = default) `](#api-b39a051662b52075) | 在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属快照。 |
+| [` public static async Task<HostCpuThreadReport> SampleAsync(TimeSpan duration, CancellationToken cancellationToken = default) `](#api-b39a051662b52075) | 在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属采样帧。 |
 
 **方法**
 
@@ -17499,7 +17466,7 @@ public HostCpuThreadMonitorService();
 public static async Task<HostCpuThreadReport> SampleAsync(TimeSpan duration, CancellationToken cancellationToken = default);
 ```
 
-在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属快照。
+在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属采样帧。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -17598,7 +17565,7 @@ public static IReadOnlyDictionary<Guid, HostAdapterAddress> ReadAdapterAddresses
 
 按接口 GUID 返回本地 IPv4 与 MAC 地址，缺失的接口不产生记录。
 
-返回：以接口 GUID 为键的地址快照。
+返回：以接口 GUID 为键的地址映射。
 
 #### 方法说明
 
@@ -17743,7 +17710,7 @@ public double WriteBytesPerSec { get; init; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public ApiResponse? CleanupResult { get; } `](#api-c9b251a1062cce1c) | 清理和资源锁释放完成后的结果；尚未完成时为 null。 |
-| [` public HostDiskMountResult Result { get; } `](#api-8973d789bc47d16f) | 取得使用权后的挂载快照，包含实际访问模式和是否由本次建立。 |
+| [` public HostDiskMountResult Result { get; } `](#api-8973d789bc47d16f) | 取得使用权后的挂载记录，包含实际访问模式和是否由本次建立。 |
 
 **方法**
 
@@ -17780,7 +17747,7 @@ public ApiResponse? CleanupResult { get; }
 public HostDiskMountResult Result { get; }
 ```
 
-取得使用权后的挂载快照，包含实际访问模式和是否由本次建立。失败结果也需释放使用期。
+取得使用权后的挂载记录，包含实际访问模式和是否由本次建立。失败结果也需释放使用期。
 
 #### 方法说明
 
@@ -19074,7 +19041,7 @@ public static Task<ApiResponse<PcieHostInfo>> GetPCIeInfoAsync();
 
 读取宿主 PCIe 设备、当前归属与可选虚拟机目标。
 
-返回：设备与稳定 GUID 目标快照；显式 WMI 查询失败返回错误，原生 PnP 枚举的部分失败仍可能表现为设备缺项或空清单。
+返回：设备与稳定 GUID 目标列表，显式 WMI 查询失败返回错误，原生 PnP 枚举的部分失败仍可能表现为设备缺项或空清单。
 
 <a id="api-a57b694781de3497"></a>
 
@@ -20974,7 +20941,7 @@ public static async Task<ApiResponse> SetHyperVEnabledAsync(bool enabled);
 
 ### `HyperVHostSettings` record 类
 
-宿主 Hyper-V 管理服务的配置快照。
+宿主 Hyper-V 管理服务的配置视图。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -21107,7 +21074,7 @@ public string MinimumMacAddress { get; init; }
 
 ### `HyperVHostSettingsService` 类
 
-读取宿主 Hyper-V 配置快照，修改新建虚拟机的默认配置目录。
+读取宿主 Hyper-V 配置视图，修改新建虚拟机的默认配置目录。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -21146,7 +21113,7 @@ public static async Task<HyperVHostSettings?> GetAsync();
 
 读取宿主 Hyper-V 默认目录、增强会话及动态 MAC 地址池。
 
-返回：配置快照；未查到配置或查询失败时为 null。
+返回：配置视图，未查到配置或查询失败时为 null。
 
 <a id="api-90ff6ff5c6d89e12"></a>
 
@@ -21414,7 +21381,7 @@ Unknown = 3
 | [` public static Task<List<SwitchUpstreamAdapter>> GetAllUpstreamAdaptersAsync() `](#api-91207784aaf1e10f) | 获取全部可用于虚拟交换机上游的活跃连接适配器（包含物理以太网/Wi-Fi/蜂窝移动及 L3 虚拟隧道适配器）。 |
 | [` public static async Task<List<SwitchUpstreamAdapter>> GetBridgeableAdaptersAsync() `](#api-0bbb050d21026f1b) | 筛选已找到 Hyper-V 外部端口的宿主物理网卡。 |
 | [` public static async Task<List<SwitchEndpointInfo>> GetFullSwitchNetworkStateAsync(string switchName) `](#api-e555b97da5c034ee) | 读取接入指定交换机的宿主和虚拟机网卡。 |
-| [` public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> PhysicalAdapters)> GetNetworkInfoAsync() `](#api-42c59a83cabc1075) | 读取交换机、连接模式和可用物理上游网卡快照。 |
+| [` public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> PhysicalAdapters)> GetNetworkInfoAsync() `](#api-42c59a83cabc1075) | 读取交换机、连接模式和可用物理上游网卡视图。 |
 | [` public static Task UpdateSwitchConfigurationAsync(Guid switchId, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS) `](#api-a7b99da342b381d5) | 按稳定 GUID 修改交换机端口和 ICS 共享；在宿主网络锁内重新校验配置。 |
 | [` public static Task UpdateSwitchConfigurationAsync(string switchName, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS) `](#api-e456b7c7d3550d57) | 按唯一名称解析交换机身份，再切换连接模式。 |
 
@@ -21542,7 +21509,7 @@ public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> Physi
 
 功能归属：管理层面 / 宿主 / 网络。
 
-读取交换机、连接模式和可用物理上游网卡快照。
+读取交换机、连接模式和可用物理上游网卡视图。
 
 返回：交换机和物理网卡列表；网卡等读取失败可抛出异常，交换机主查询失败当前返回空交换机列表，不能与确实没有交换机区分。逐交换机识别问题见 StateError。
 
@@ -22918,7 +22885,7 @@ VirtualMachine = 2
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public PcieAssignmentState State { get; } = new(PcieAssignmentStep.Ready) `](#api-45c0a5ccdd74afe1) | 最近一次推进产生的状态快照。 |
+| [` public PcieAssignmentState State { get; } = new(PcieAssignmentStep.Ready) `](#api-45c0a5ccdd74afe1) | 最近一次推进产生的状态视图。 |
 
 **方法**
 
@@ -22949,7 +22916,7 @@ public PcieAssignmentSession(PcieDeviceInfo device, IEnumerable<PcieDeviceInfo> 
 | 参数 | 说明 |
 | --- | --- |
 | `device` | 选中的设备及当前归属。 |
-| `devices` | 用于识别伴随设备、最后一块 GPU 等条件的当前设备快照。 |
+| `devices` | 用于识别伴随设备、最后一块 GPU 等条件的当前设备列表。 |
 | `target` | 目标宿主或虚拟机；未分配状态不能作为目标。 |
 
 - 异常 `ArgumentNullException`：目标为 null。
@@ -22965,7 +22932,7 @@ public PcieAssignmentSession(PcieDeviceInfo device, IEnumerable<PcieDeviceInfo> 
 public PcieAssignmentState State { get; } = new(PcieAssignmentStep.Ready);
 ```
 
-最近一次推进产生的状态快照。
+最近一次推进产生的状态视图。
 
 #### 方法说明
 
@@ -23027,7 +22994,7 @@ public static class PcieAssignmentExample
 
 ### `PcieAssignmentState` record 类
 
-PCIe 分配流程的不可变状态快照。
+PCIe 分配流程的不可变状态视图。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -23058,7 +23025,7 @@ PCIe 分配流程的不可变状态快照。
 | [` public Guid? RequestId { get; init; } `](#api-e7353760b2fe1986) | 当前确认请求的唯一身份；非待确认状态为 null。 |
 | [` public bool RequiresDecision { get; } `](#api-5c29af7c5b50151e) | 当前是否正在等待调用方提交用户决定。 |
 | [` public PcieAssignmentStep Step { get; init; } `](#api-5832db15cad30135) | 当前步骤。 |
-| [` public IReadOnlyList<OperationStepResult> Steps { get; init; } = Array.Empty<OperationStepResult>() `](#api-9e1be126d0de1eac) | 本次流程已执行步骤的只读快照；ResourceId 区分主设备、伴随设备和磁盘，Failure 保留底层类别、来源及错误码。 |
+| [` public IReadOnlyList<OperationStepResult> Steps { get; init; } = Array.Empty<OperationStepResult>() `](#api-9e1be126d0de1eac) | 本次流程已执行步骤的只读记录，ResourceId 区分主设备、伴随设备和磁盘，Failure 保留底层类别、来源及错误码。 |
 | [` public string Title { get; init; } `](#api-eb5abfa1fdef18df) | 适合展示的本地化标题。 |
 
 #### 详细说明
@@ -23197,7 +23164,7 @@ public PcieAssignmentStep Step { get; init; }
 public IReadOnlyList<OperationStepResult> Steps { get; init; } = Array.Empty<OperationStepResult>();
 ```
 
-本次流程已执行步骤的只读快照；ResourceId 区分主设备、伴随设备和磁盘，Failure 保留底层类别、来源及错误码。
+本次流程已执行步骤的只读记录，ResourceId 区分主设备、伴随设备和磁盘，Failure 保留底层类别、来源及错误码。
 
 调用约定：记录已执行的 CheckMmio、ExpandMmio、ReadControllerDisks、AssignDevice、ReadReturnedDisks、RestoreDiskOnline 步骤，以及未处理异常 UnhandledFailure。
 
@@ -23352,7 +23319,7 @@ PCIe 设备的归属身份，不使用本地化文字或内部字符串标记表
 | [` public PcieAssignmentKind Kind { get; } `](#api-0411059344195213) | 宿主、未分配或虚拟机。 |
 | [` public static PcieAssignmentTarget Unassigned { get; } = new(PcieAssignmentKind.Unassigned) `](#api-ea25c249ab09e966) | 表示设备已从宿主卸除且尚未分配；不能作为分配操作的目标。 |
 | [` public Guid? VirtualMachineId { get; } `](#api-37c609c006e9b4e0) | 虚拟机稳定 GUID；只有 Kind 为 VirtualMachine 时有值，操作不按显示名称重新定位。 |
-| [` public string? VirtualMachineName { get; } `](#api-7a133ddad76b19d6) | 虚拟机显示名称快照，仅用于呈现；重命名不改变目标身份。 |
+| [` public string? VirtualMachineName { get; } `](#api-7a133ddad76b19d6) | 虚拟机显示名称副本，仅用于呈现，重命名不改变目标身份。 |
 
 **静态方法**
 
@@ -23425,7 +23392,7 @@ public Guid? VirtualMachineId { get; }
 public string? VirtualMachineName { get; }
 ```
 
-虚拟机显示名称快照，仅用于呈现；重命名不改变目标身份。
+虚拟机显示名称副本，仅用于呈现，重命名不改变目标身份。
 
 #### 静态方法说明
 
@@ -23442,7 +23409,7 @@ public static PcieAssignmentTarget ForVirtualMachine(Guid virtualMachineId, stri
 | 参数 | 说明 |
 | --- | --- |
 | `virtualMachineId` | 目标虚拟机的非空 GUID。 |
-| `displayName` | 可选显示名称快照；未提供时以 GUID 展示。 |
+| `displayName` | 可选显示名称副本，未提供时以 GUID 展示。 |
 
 返回：表示该虚拟机的不可变目标。
 
@@ -23482,7 +23449,7 @@ public override int GetHashCode();
 
 ### `PcieHostInfo` record 类
 
-宿主 PCIe 设备归属和可分配虚拟机的同次查询快照。
+宿主 PCIe 设备归属和可分配虚拟机的同次查询结果。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -23504,7 +23471,7 @@ public override int GetHashCode();
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public IReadOnlyList<PcieDeviceInfo> Devices { get; init; } `](#api-15a835731b4ee664) | PCIe 设备快照及稳定归属身份。 |
+| [` public IReadOnlyList<PcieDeviceInfo> Devices { get; init; } `](#api-15a835731b4ee664) | PCIe 设备列表及稳定归属身份。 |
 | [` public IReadOnlyList<PcieAssignmentTarget> VirtualMachines { get; init; } `](#api-a34e22743b52b47e) | 带 GUID 与显示名称的虚拟机目标；同名虚拟机作为不同目标保留。 |
 
 #### 详细说明
@@ -23516,7 +23483,7 @@ public sealed record PcieHostInfo(IReadOnlyList<PcieDeviceInfo> Devices,
 
 | 参数 | 说明 |
 | --- | --- |
-| `Devices` | PCIe 设备快照及稳定归属身份。 |
+| `Devices` | PCIe 设备列表及稳定归属身份。 |
 | `VirtualMachines` | 带 GUID 与显示名称的虚拟机目标；同名虚拟机作为不同目标保留。 |
 
 调用约定：设备与归属分步采集；执行转移时会重新核对设备身份和实际归属。
@@ -23533,7 +23500,7 @@ public PcieHostInfo(IReadOnlyList<PcieDeviceInfo> Devices, IReadOnlyList<PcieAss
 
 | 参数 | 说明 |
 | --- | --- |
-| `Devices` | PCIe 设备快照及稳定归属身份。 |
+| `Devices` | PCIe 设备列表及稳定归属身份。 |
 | `VirtualMachines` | 带 GUID 与显示名称的虚拟机目标；同名虚拟机作为不同目标保留。 |
 
 #### 属性说明
@@ -23546,7 +23513,7 @@ public PcieHostInfo(IReadOnlyList<PcieDeviceInfo> Devices, IReadOnlyList<PcieAss
 public IReadOnlyList<PcieDeviceInfo> Devices { get; init; }
 ```
 
-PCIe 设备快照及稳定归属身份。
+PCIe 设备列表及稳定归属身份。
 
 <a id="api-a34e22743b52b47e"></a>
 
@@ -23651,7 +23618,7 @@ public SwitchConfigurationConflictException(string message);
 
 ### `SwitchConfigurationRules` 类
 
-对交换机配置快照进行规则判断，不直接修改主机网络。
+对交换机配置视图进行规则判断，不直接修改主机网络。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -23698,7 +23665,7 @@ public static List<SwitchUpstreamAdapter> GetAvailableCreationAdapters(SwitchMod
 | 参数 | 说明 |
 | --- | --- |
 | `mode` | 目标连接模式：桥接、ICS NAT 或隔离。 |
-| `existing` | 当前交换机快照。 |
+| `existing` | 当前交换机配置。 |
 | `physical` | 当前物理上游网卡列表。 |
 | `bridgeable` | 当前可桥接网卡列表。 |
 
@@ -23721,11 +23688,11 @@ public static string? GetCreationError(string name, SwitchMode mode, SwitchUpstr
 | `name` | 新交换机显示名称。 |
 | `mode` | 目标连接模式：桥接、ICS NAT 或隔离。 |
 | `upstream` | 桥接/NAT 使用的当前上游网卡身份；隔离模式可为 null。 |
-| `existing` | 当前交换机快照。 |
+| `existing` | 当前交换机配置。 |
 | `physical` | 当前物理上游网卡列表。 |
 | `bridgeable` | 当前可桥接网卡列表。 |
 
-返回：本地化错误；null 表示当前快照下规则通过。
+返回：本地化错误，null 表示当前配置下规则通过。
 
 <a id="api-d610723ddaa1a298"></a>
 
@@ -23762,7 +23729,7 @@ public static string? GetUpdateConflict(string targetId, SwitchMode mode, Switch
 | `targetId` | 待修改交换机 ID。 |
 | `mode` | 目标连接模式：桥接、ICS NAT 或隔离。 |
 | `upstream` | 桥接/NAT 使用的当前上游网卡身份；隔离模式可为 null。 |
-| `existing` | 当前交换机快照。 |
+| `existing` | 当前交换机配置。 |
 
 返回：本地化冲突说明；null 表示未发现冲突。
 
@@ -24271,14 +24238,14 @@ public static async Task<ApiResponse> SetIsoFirstAsync(Guid vmId);
 
 ### `VmCheckpointFields` 类
 
-检查点的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。
+快照的独立可查询字段，可以任意选择其中一项，不要求整组读取或返回。
 
 | 项目 | 内容 |
 | --- | --- |
 | 类型 | 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
+| 功能归属 | 管理层面 / 虚拟机 / 快照 |
 | 源文件 | ` Management/VirtualMachines/Query/Fields/Checkpoints/VmCheckpointFields.cs ` |
 
 #### 成员概览
@@ -24287,14 +24254,14 @@ public static async Task<ApiResponse> SetIsoFirstAsync(Guid vmId);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static readonly VmQueryField<DateTime> CreatedDate `](#api-92838a055c81cd8a) | 检查点创建时间：检查点或当前配置节点的创建时间。 |
+| [` public static readonly VmQueryField<DateTime> CreatedDate `](#api-92838a055c81cd8a) | 快照创建时间：快照或当前配置节点的创建时间。 |
 | [` public static readonly VmQueryField<IReadOnlyList<string>> DiskPaths `](#api-dcd2d24ef78bb47f) | 历史磁盘路径：当前节点关联的存储介质路径列表。 |
-| [` public static readonly VmQueryField<string> Id `](#api-3e2477b6cfc585c4) | 检查点身份：检查点或当前配置节点的标识。 |
-| [` public static readonly VmQueryField<bool> IsCurrent `](#api-383c3e1be4986062) | 当前所在位置：节点是否为当前配置或其直接父检查点，用于标记当前分支位置。 |
-| [` public static readonly VmQueryField<bool> IsWormhole `](#api-2cb0fa6b370f702d) | 历史磁盘临时挂接状态：是否检测到该节点历史磁盘的临时挂接。 |
-| [` public static readonly VmQueryField<string> Name `](#api-f3a3bd8cf760b53f) | 检查点名称：检查点或当前配置节点的显示名称。 |
-| [` public static readonly VmQueryField<CheckpointNodeType> NodeType `](#api-77f64dce3871ccf4) | 节点类型：节点的类型，用于区分当前配置和已保存的检查点。 |
-| [` public static readonly VmQueryField<string> ParentId `](#api-8477d9dd02b8af1d) | 父检查点身份：在本次节点集合中解析出的父配置标识；未解析到时为空字符串。 |
+| [` public static readonly VmQueryField<string> Id `](#api-3e2477b6cfc585c4) | 快照身份：快照或当前配置节点的标识。 |
+| [` public static readonly VmQueryField<bool> IsCurrent `](#api-383c3e1be4986062) | 当前所在位置：节点是否为当前配置或其直接父快照，用于标记当前分支位置。 |
+| [` public static readonly VmQueryField<bool> IsHistoricalDiskMounted `](#api-0a2074aa7b4be227) | 历史磁盘临时挂接状态：是否检测到该节点历史磁盘的临时挂接。 |
+| [` public static readonly VmQueryField<string> Name `](#api-f3a3bd8cf760b53f) | 快照名称：快照或当前配置节点的显示名称。 |
+| [` public static readonly VmQueryField<CheckpointNodeType> NodeType `](#api-77f64dce3871ccf4) | 节点类型：节点的类型，用于区分当前配置和已保存的快照。 |
+| [` public static readonly VmQueryField<string> ParentId `](#api-8477d9dd02b8af1d) | 父快照身份：在本次节点集合中解析出的父配置标识，未解析到时为空字符串。 |
 
 #### 详细说明
 
@@ -24306,13 +24273,13 @@ public static class VmCheckpointFields
 
 <a id="api-92838a055c81cd8a"></a>
 
-##### 检查点创建时间（字段）
+##### 快照创建时间（字段）
 
 ```csharp
 public static readonly VmQueryField<DateTime> CreatedDate;
 ```
 
-检查点或当前配置节点的创建时间。
+快照或当前配置节点的创建时间。
 
 **单位与格式：** 日期与时间
 
@@ -24332,13 +24299,13 @@ public static readonly VmQueryField<IReadOnlyList<string>> DiskPaths;
 
 <a id="api-3e2477b6cfc585c4"></a>
 
-##### 检查点身份（字段）
+##### 快照身份（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Id;
 ```
 
-检查点或当前配置的唯一标识，用于区分同一虚拟机的不同配置节点。
+快照或当前配置的唯一标识，用于区分同一虚拟机的不同配置节点。
 
 <a id="api-383c3e1be4986062"></a>
 
@@ -24348,16 +24315,16 @@ public static readonly VmQueryField<string> Id;
 public static readonly VmQueryField<bool> IsCurrent;
 ```
 
-节点是否为当前配置或其直接父检查点，用于标记当前分支位置。
+节点是否为当前配置或其直接父快照，用于标记当前分支位置。
 
-**取值说明：** 当前配置节点和其直接父检查点均可为 true。
+**取值说明：** 当前配置节点和其直接父快照均可为 true。
 
-<a id="api-2cb0fa6b370f702d"></a>
+<a id="api-0a2074aa7b4be227"></a>
 
 ##### 历史磁盘临时挂接状态（字段）
 
 ```csharp
-public static readonly VmQueryField<bool> IsWormhole;
+public static readonly VmQueryField<bool> IsHistoricalDiskMounted;
 ```
 
 是否检测到该节点历史磁盘的临时挂接。
@@ -24366,13 +24333,13 @@ public static readonly VmQueryField<bool> IsWormhole;
 
 <a id="api-f3a3bd8cf760b53f"></a>
 
-##### 检查点名称（字段）
+##### 快照名称（字段）
 
 ```csharp
 public static readonly VmQueryField<string> Name;
 ```
 
-检查点或当前配置节点的显示名称。
+快照或当前配置节点的显示名称。
 
 <a id="api-77f64dce3871ccf4"></a>
 
@@ -24382,30 +24349,30 @@ public static readonly VmQueryField<string> Name;
 public static readonly VmQueryField<CheckpointNodeType> NodeType;
 ```
 
-节点的类型，用于区分当前配置和已保存的检查点。
+节点的类型，用于区分当前配置和已保存的快照。
 
 <a id="api-8477d9dd02b8af1d"></a>
 
-##### 父检查点身份（字段）
+##### 父快照身份（字段）
 
 ```csharp
 public static readonly VmQueryField<string> ParentId;
 ```
 
-在本次节点集合中解析出的父配置标识；空字符串也可能表示父配置未包含在结果中。
+在本次节点集合中解析出的父配置标识，空字符串也可能表示父配置未包含在结果中。
 
 <a id="api-6d7251fc824bd58c"></a>
 
 ### `VmCheckpointGlobalFields` 类
 
-检查点的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。
+快照的独立可查询字段，可以任意选择其中一项，不要求整组读取或返回。
 
 | 项目 | 内容 |
 | --- | --- |
 | 类型 | 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
+| 功能归属 | 管理层面 / 虚拟机 / 快照 |
 | 源文件 | ` Management/VirtualMachines/Query/Fields/Checkpoints/VmCheckpointGlobalFields.cs ` |
 
 #### 成员概览
@@ -24414,7 +24381,7 @@ public static readonly VmQueryField<string> ParentId;
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static readonly VmQueryField<bool> Enabled `](#api-c3bacbefd3629100) | 检查点开关：是否允许为虚拟机创建检查点。 |
+| [` public static readonly VmQueryField<bool> Enabled `](#api-c3bacbefd3629100) | 快照开关：是否允许为虚拟机创建快照。 |
 
 #### 详细说明
 
@@ -24426,28 +24393,28 @@ public static class VmCheckpointGlobalFields
 
 <a id="api-c3bacbefd3629100"></a>
 
-##### 检查点开关（字段）
+##### 快照开关（字段）
 
 ```csharp
 public static readonly VmQueryField<bool> Enabled;
 ```
 
-UserSnapshotType 不为 2 时返回 true；这是检查点策略的有损开关视图，不区分生产、标准及后备策略。
+UserSnapshotType 不为 2 时返回 true，这是快照策略的简化开关视图，不区分具体快照类型。
 
-**取值说明：** `true`：允许创建检查点；`false`：禁止创建检查点。
+**取值说明：** `true`：允许创建快照，`false`：禁止创建快照。
 
 <a id="api-a8fdfb6ce4d14741"></a>
 
 ### `VmCheckpointService` 类
 
-管理检查点、应用、合并、删除及历史磁盘临时挂接，相关操作可能修改配置和磁盘文件。
+管理快照、应用、合并、删除及历史磁盘临时挂接，相关操作可能修改配置和磁盘文件。
 
 | 项目 | 内容 |
 | --- | --- |
 | 类型 | 类 |
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
-| 功能归属 | 管理层面 / 虚拟机 / 检查点 |
+| 功能归属 | 管理层面 / 虚拟机 / 快照 |
 | 源文件 | ` Management/VirtualMachines/Checkpoints/VmCheckpointService.cs ` |
 
 #### 成员概览
@@ -24456,21 +24423,21 @@ UserSnapshotType 不为 2 时返回 true；这是检查点策略的有损开关�
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static Task<ApiResponse> AnnihilateAsync(Guid vmId, CheckpointNode node) `](#api-c49d6eb27e3f5804) | 删除目标检查点及其全部后代检查点。 |
-| [` public static bool CanCreateMoment(bool checkpointsEnabled, IEnumerable<CheckpointNode>? nodes) `](#api-fc7d171e8b64c06d) | 检查是否允许创建检查点，要求已启用检查点且没有打开的历史磁盘挂接。 |
-| [` public static bool CanMergeHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes) `](#api-73cc2db357857cab) | 判断历史检查点是否允许向左合并到父检查点，仅当父节点为历史检查点且目标节点是父节点的唯一直接子节点时允许合并，避免影响初始根节点、分叉节点或当前运行状态直接挂靠的父节点。 |
-| [` public static bool CanMutateHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes) `](#api-012aa50f7d4eac34) | 判断历史检查点是否能执行修改，要求节点有效且没有打开的历史磁盘挂接。 |
-| [` public static bool CanOperateHistoricalNode(CheckpointNode? node) `](#api-17c31588a4cf34bb) | 判断节点是否代表可操作的历史检查点。 |
-| [` public static Task<ApiResponse> CaptureMomentAsync(Guid vmId) `](#api-c22ca175064a8cc9) | 按虚拟机当前检查点策略创建检查点。 |
-| [` public static Task<ApiResponse> CloseWormholeAsync(Guid vmId, CheckpointNode node) `](#api-328dc7e4c3b68b61) | 移除历史磁盘挂接、删除临时盘并恢复历史磁盘名称。 |
-| [` public static Task<ApiResponse> ConvergeAsync(Guid vmId, CheckpointNode node) `](#api-0002917ce4a15843) | 将目标历史检查点向左合并到父检查点并保留父检查点名称与后续节点。 |
-| [` public static async Task<ApiResponse<List<CheckpointNode>>> GetCheckpointNodesAsync(Guid vmId) `](#api-d2b683981cdae2f4) | 按稳定身份读取检查点树、当前状态及历史磁盘挂接信息。 |
-| [` public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId) `](#api-8dd82bbc8517635d) | 按稳定身份读取虚拟机检查点是否启用。 |
-| [` public static bool HasOpenWormhole(IEnumerable<CheckpointNode>? nodes) `](#api-63676cfc3869ddc6) | 检查节点集合中是否存在已打开的历史磁盘挂接。 |
-| [` public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, CheckpointNode targetNode) `](#api-8917285fe9d10942) | 将指定历史节点的磁盘临时挂接到同一虚拟机。 |
-| [` public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, CheckpointNode node, string newName) `](#api-2e97cf51c5da604d) | 修改属于目标虚拟机的检查点名称。 |
-| [` public static Task<ApiResponse> SetCheckpointsEnabledAsync(Guid vmId, bool enabled) `](#api-96de34a0b0c8f7e0) | 按稳定身份设置虚拟机是否允许使用检查点。 |
-| [` public static Task<ApiResponse> TeleportAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null) `](#api-23b39a3531fd7a6a) | 关闭当前历史磁盘挂接，应用检查点，并完成流程要求的重新启动。 |
+| [` public static Task<ApiResponse> ApplySnapshotAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null) `](#api-6ff6c439c0c39a85) | 卸载当前历史磁盘挂接，应用快照，并完成流程要求的重新启动。 |
+| [` public static bool CanCreateSnapshot(bool checkpointsEnabled, IEnumerable<CheckpointNode>? nodes) `](#api-ec4ef9edd0b1464c) | 检查是否允许创建快照，要求已启用快照且没有打开的历史磁盘挂接。 |
+| [` public static bool CanMergeHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes) `](#api-73cc2db357857cab) | 判断历史快照是否允许向左合并到父快照，仅当父节点为历史快照且目标节点是父节点的唯一直接子节点时允许合并，避免影响初始根节点、分叉节点或当前运行状态直接挂靠的父节点。 |
+| [` public static bool CanMutateHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes) `](#api-012aa50f7d4eac34) | 判断历史快照是否能执行修改，要求节点有效且没有打开的历史磁盘挂接。 |
+| [` public static bool CanOperateHistoricalNode(CheckpointNode? node) `](#api-17c31588a4cf34bb) | 判断节点是否代表可操作的历史快照。 |
+| [` public static Task<ApiResponse> CreateSnapshotAsync(Guid vmId) `](#api-53658fba76b59bde) | 按虚拟机当前快照策略创建快照。 |
+| [` public static Task<ApiResponse> DeleteSnapshotAsync(Guid vmId, CheckpointNode node) `](#api-5ab68f87b4bcc155) | 删除目标快照及其全部后代快照。 |
+| [` public static Task<ApiResponse> DismountHistoricalDiskAsync(Guid vmId, CheckpointNode node) `](#api-5d4dc80edb45bfde) | 移除历史磁盘挂接、删除临时盘并恢复历史磁盘名称。 |
+| [` public static async Task<ApiResponse<List<CheckpointNode>>> GetCheckpointNodesAsync(Guid vmId) `](#api-d2b683981cdae2f4) | 按稳定身份读取快照树、当前状态及历史磁盘挂接信息。 |
+| [` public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId) `](#api-8dd82bbc8517635d) | 按稳定身份读取虚拟机快照是否启用。 |
+| [` public static bool HasMountedHistoricalDisk(IEnumerable<CheckpointNode>? nodes) `](#api-f8d889ce1950f438) | 检查节点集合中是否存在已打开的历史磁盘挂接。 |
+| [` public static Task<ApiResponse> MergeSnapshotAsync(Guid vmId, CheckpointNode node) `](#api-83709f0cb37a6215) | 将目标历史快照向左合并到父快照并保留父快照名称与后续节点。 |
+| [` public static Task<ApiResponse> MountHistoricalDiskAsync(Guid vmId, CheckpointNode targetNode) `](#api-2c30d7dc40700cad) | 将指定历史节点的磁盘临时挂接到同一虚拟机。 |
+| [` public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, CheckpointNode node, string newName) `](#api-2e97cf51c5da604d) | 修改属于目标虚拟机的快照名称。 |
+| [` public static Task<ApiResponse> SetCheckpointsEnabledAsync(Guid vmId, bool enabled) `](#api-96de34a0b0c8f7e0) | 按稳定身份设置虚拟机是否允许使用快照。 |
 
 #### 详细说明
 
@@ -24480,60 +24447,63 @@ public static class VmCheckpointService
 
 #### 静态方法说明
 
-<a id="api-c49d6eb27e3f5804"></a>
+<a id="api-6ff6c439c0c39a85"></a>
 
-##### 删除检查点（方法）
+##### 应用快照（方法）
 
 ```csharp
-public static Task<ApiResponse> AnnihilateAsync(Guid vmId, CheckpointNode node);
+public static Task<ApiResponse> ApplySnapshotAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-删除目标检查点及其全部后代检查点。
+卸载当前历史磁盘挂接，应用快照，并完成流程要求的重新启动。
 
 | 参数 | 说明 |
 | --- | --- |
+| `node` | 要应用的历史节点。 |
 | `vmId` | 目标虚拟机的非空 GUID。 |
-| `node` | 要删除的历史节点，执行前核对归属及历史磁盘挂接互锁。 |
+| `nodes` | 可选的调用方节点列表，用于同步本次清理后的挂接状态。 |
 
-返回：删除结果。
+返回：整个应用及必要重启结果，Steps 记录 DismountHistoricalDisk（ResourceId 为节点 ID）、Save、Apply、Start 及失败的状态检查 StateBeforeApply/StateBeforeRestart。未执行的步骤不列出，后续失败不会撤销已经完成的步骤。
 
-<a id="api-fc7d171e8b64c06d"></a>
+调用约定：初始为运行或暂停的虚拟机，在应用后启动。
 
-##### 检查检查点创建条件（方法）
+<a id="api-ec4ef9edd0b1464c"></a>
+
+##### 检查快照创建条件（方法）
 
 ```csharp
-public static bool CanCreateMoment(bool checkpointsEnabled, IEnumerable<CheckpointNode>? nodes);
+public static bool CanCreateSnapshot(bool checkpointsEnabled, IEnumerable<CheckpointNode>? nodes);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-检查是否允许创建检查点，要求已启用检查点且没有打开的历史磁盘挂接。
+检查是否允许创建快照，要求已启用快照且没有打开的历史磁盘挂接。
 
 | 参数 | 说明 |
 | --- | --- |
-| `checkpointsEnabled` | 当前是否允许使用检查点。 |
-| `nodes` | 检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。 |
+| `checkpointsEnabled` | 当前是否允许使用快照。 |
+| `nodes` | 快照和当前状态节点列表，允许 null 的规则入口按没有节点处理。 |
 
 返回：当前输入满足条件时为 true。
 
 <a id="api-73cc2db357857cab"></a>
 
-##### 检查历史检查点合并条件（方法）
+##### 检查历史快照合并条件（方法）
 
 ```csharp
 public static bool CanMergeHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-判断历史检查点是否允许向左合并到父检查点，仅当父节点为历史检查点且目标节点是父节点的唯一直接子节点时允许合并，避免影响初始根节点、分叉节点或当前运行状态直接挂靠的父节点。
+判断历史快照是否允许向左合并到父快照，仅当父节点为历史快照且目标节点是父节点的唯一直接子节点时允许合并，避免影响初始根节点、分叉节点或当前运行状态直接挂靠的父节点。
 
 | 参数 | 说明 |
 | --- | --- |
-| `node` | 目标历史检查点。 |
-| `nodes` | 检查点和当前状态节点的快照，null 集合按没有节点处理。 |
+| `node` | 目标历史快照。 |
+| `nodes` | 快照和当前状态节点列表，null 集合按没有节点处理。 |
 
 返回：满足合并拓扑与无历史磁盘挂接条件时为 true。
 
@@ -24545,14 +24515,14 @@ public static bool CanMergeHistoricalNode(CheckpointNode? node, IEnumerable<Chec
 public static bool CanMutateHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-判断历史检查点是否能执行修改，要求节点有效且没有打开的历史磁盘挂接。
+判断历史快照是否能执行修改，要求节点有效且没有打开的历史磁盘挂接。
 
 | 参数 | 说明 |
 | --- | --- |
-| `node` | 目标历史检查点或已打开的历史磁盘挂接节点。 |
-| `nodes` | 检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。 |
+| `node` | 目标历史快照或已打开的历史磁盘挂接节点。 |
+| `nodes` | 快照和当前状态节点列表，允许 null 的规则入口按没有节点处理。 |
 
 返回：当前输入满足条件时为 true。
 
@@ -24564,43 +24534,62 @@ public static bool CanMutateHistoricalNode(CheckpointNode? node, IEnumerable<Che
 public static bool CanOperateHistoricalNode(CheckpointNode? node);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-判断节点是否代表可操作的历史检查点。
+判断节点是否代表可操作的历史快照。
 
 | 参数 | 说明 |
 | --- | --- |
-| `node` | 目标历史检查点或已打开的历史磁盘挂接节点。 |
+| `node` | 目标历史快照或已打开的历史磁盘挂接节点。 |
 
-返回：仅非空且 NodeType 为 Snapshot 时返回 true，Genesis 和 Current 均不满足。
+返回：仅非空且 NodeType 为 Snapshot 时返回 true，Origin 和 Current 均不满足。
 
-<a id="api-c22ca175064a8cc9"></a>
+<a id="api-53658fba76b59bde"></a>
 
-##### 创建检查点（方法）
+##### 创建快照（方法）
 
 ```csharp
-public static Task<ApiResponse> CaptureMomentAsync(Guid vmId);
+public static Task<ApiResponse> CreateSnapshotAsync(Guid vmId);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-按虚拟机当前检查点策略创建检查点。
+按虚拟机当前快照策略创建快照。
 
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的非空 GUID。 |
 
-返回：检查点创建结果。
+返回：快照创建结果。
 
-<a id="api-328dc7e4c3b68b61"></a>
+<a id="api-5ab68f87b4bcc155"></a>
+
+##### 删除快照（方法）
+
+```csharp
+public static Task<ApiResponse> DeleteSnapshotAsync(Guid vmId, CheckpointNode node);
+```
+
+功能归属：管理层面 / 虚拟机 / 快照。
+
+删除目标快照及其全部后代快照。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `node` | 要删除的历史节点，执行前核对归属及历史磁盘挂接互锁。 |
+
+返回：删除结果。
+
+<a id="api-5d4dc80edb45bfde"></a>
 
 ##### 结束历史磁盘挂接（方法）
 
 ```csharp
-public static Task<ApiResponse> CloseWormholeAsync(Guid vmId, CheckpointNode node);
+public static Task<ApiResponse> DismountHistoricalDiskAsync(Guid vmId, CheckpointNode node);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
 移除历史磁盘挂接、删除临时盘并恢复历史磁盘名称。
 
@@ -24611,36 +24600,17 @@ public static Task<ApiResponse> CloseWormholeAsync(Guid vmId, CheckpointNode nod
 
 返回：清理结果，失败时保留可供重试的节点状态。
 
-<a id="api-0002917ce4a15843"></a>
-
-##### 合并检查点（方法）
-
-```csharp
-public static Task<ApiResponse> ConvergeAsync(Guid vmId, CheckpointNode node);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-将目标历史检查点向左合并到父检查点并保留父检查点名称与后续节点。
-
-| 参数 | 说明 |
-| --- | --- |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `node` | 要合并到父节点的历史检查点，执行前核对归属、父子单线关系及历史磁盘挂接互锁。 |
-
-返回：合并结果。
-
 <a id="api-d2b683981cdae2f4"></a>
 
-##### 查询检查点树（方法）
+##### 查询快照树（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<CheckpointNode>>> GetCheckpointNodesAsync(Guid vmId);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-按稳定身份读取检查点树、当前状态及历史磁盘挂接信息。
+按稳定身份读取快照树、当前状态及历史磁盘挂接信息。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -24650,15 +24620,15 @@ public static async Task<ApiResponse<List<CheckpointNode>>> GetCheckpointNodesAs
 
 <a id="api-8dd82bbc8517635d"></a>
 
-##### 读取检查点开关（方法）
+##### 读取快照开关（方法）
 
 ```csharp
 public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-按稳定身份读取虚拟机检查点是否启用。
+按稳定身份读取虚拟机快照是否启用。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -24666,33 +24636,52 @@ public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId
 
 返回：成功时返回实际设置，配置缺失或查询失败返回错误，不推断为启用。
 
-<a id="api-63676cfc3869ddc6"></a>
+<a id="api-f8d889ce1950f438"></a>
 
 ##### 检查历史磁盘挂接（方法）
 
 ```csharp
-public static bool HasOpenWormhole(IEnumerable<CheckpointNode>? nodes);
+public static bool HasMountedHistoricalDisk(IEnumerable<CheckpointNode>? nodes);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
 检查节点集合中是否存在已打开的历史磁盘挂接。
 
 | 参数 | 说明 |
 | --- | --- |
-| `nodes` | 检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。 |
+| `nodes` | 快照和当前状态节点列表，允许 null 的规则入口按没有节点处理。 |
 
 返回：存在打开的历史磁盘挂接时为 true，null 集合为 false。
 
-<a id="api-8917285fe9d10942"></a>
+<a id="api-83709f0cb37a6215"></a>
+
+##### 合并快照（方法）
+
+```csharp
+public static Task<ApiResponse> MergeSnapshotAsync(Guid vmId, CheckpointNode node);
+```
+
+功能归属：管理层面 / 虚拟机 / 快照。
+
+将目标历史快照向左合并到父快照并保留父快照名称与后续节点。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的非空 GUID。 |
+| `node` | 要合并到父节点的历史快照，执行前核对归属、父子单线关系及历史磁盘挂接互锁。 |
+
+返回：合并结果。
+
+<a id="api-2c30d7dc40700cad"></a>
 
 ##### 临时挂接历史磁盘（方法）
 
 ```csharp
-public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, CheckpointNode targetNode);
+public static Task<ApiResponse> MountHistoricalDiskAsync(Guid vmId, CheckpointNode targetNode);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
 将指定历史节点的磁盘临时挂接到同一虚拟机。
 
@@ -24703,7 +24692,7 @@ public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, CheckpointNode targ
 
 返回：挂接结果，失败可能发生在部分文件和配置变更之后。
 
-调用约定：只处理节点 VhdPath 指定的一个磁盘，不挂接该检查点的全部磁盘。流程可能将 .avhdx 改名为 _renamed.vhdx，再创建同目录 _wormhole_tmp.vhdx 差分盘并挂到 SCSI。关闭时移除临时盘并恢复文件名。当前运行磁盘父链上的节点不能这样挂接。
+调用约定：只处理节点 VhdPath 指定的一个磁盘，不挂接该快照的全部磁盘。流程可能将 .avhdx 改名为 _renamed.vhdx，再创建同目录 _historical_disk_tmp.vhdx 差分盘并挂到 SCSI。卸载时移除临时盘并恢复文件名。当前运行磁盘父链上的节点不能这样挂接。
 
 
 
@@ -24711,15 +24700,15 @@ public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, CheckpointNode targ
 
 <a id="api-2e97cf51c5da604d"></a>
 
-##### 重命名检查点（方法）
+##### 重命名快照（方法）
 
 ```csharp
 public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, CheckpointNode node, string newName);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-修改属于目标虚拟机的检查点名称。
+修改属于目标虚拟机的快照名称。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -24731,44 +24720,22 @@ public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, CheckpointNode no
 
 <a id="api-96de34a0b0c8f7e0"></a>
 
-##### 设置检查点开关（方法）
+##### 设置快照开关（方法）
 
 ```csharp
 public static Task<ApiResponse> SetCheckpointsEnabledAsync(Guid vmId, bool enabled);
 ```
 
-功能归属：管理层面 / 虚拟机 / 检查点。
+功能归属：管理层面 / 虚拟机 / 快照。
 
-按稳定身份设置虚拟机是否允许使用检查点。
+按稳定身份设置虚拟机是否允许使用快照。
 
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的非空 GUID。 |
-| `enabled` | true 启用检查点，false 禁用。 |
+| `enabled` | true 启用快照，false 禁用。 |
 
 返回：设置结果，错误包含实际查询或提交原因。
-
-<a id="api-23b39a3531fd7a6a"></a>
-
-##### 恢复检查点（方法）
-
-```csharp
-public static Task<ApiResponse> TeleportAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null);
-```
-
-功能归属：管理层面 / 虚拟机 / 检查点。
-
-关闭当前历史磁盘挂接，应用检查点，并完成流程要求的重新启动。
-
-| 参数 | 说明 |
-| --- | --- |
-| `node` | 要应用的历史节点。 |
-| `vmId` | 目标虚拟机的非空 GUID。 |
-| `nodes` | 可选的调用方节点快照，用于同步本次清理后的挂接状态。 |
-
-返回：整个应用及必要重启结果，Steps 记录 CloseWormhole（ResourceId 为节点 ID）、Save、Apply、Start 及失败的状态检查 StateBeforeApply/StateBeforeRestart。未执行的步骤不列出，后续失败不会撤销已经完成的步骤。
-
-调用约定：初始为运行或暂停的虚拟机，在应用后启动。
 
 <a id="api-4c35b7ba174517dd"></a>
 
@@ -24790,7 +24757,7 @@ public static Task<ApiResponse> TeleportAsync(CheckpointNode node, Guid vmId, IE
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public VmConfigurationState(string id, int generation, VmState state) `](#api-d30a365c6d366958) | 创建配置校验使用的状态快照；不读取或修改虚拟机。 |
+| [` public VmConfigurationState(string id, int generation, VmState state) `](#api-d30a365c6d366958) | 创建配置校验使用的状态视图，不读取或修改虚拟机。 |
 
 **属性**
 
@@ -24825,7 +24792,7 @@ public sealed record VmConfigurationState
 public VmConfigurationState(string id, int generation, VmState state);
 ```
 
-创建配置校验使用的状态快照；不读取或修改虚拟机。
+创建配置校验使用的状态视图，不读取或修改虚拟机。
 
 | 参数 | 说明 |
 | --- | --- |
@@ -24917,7 +24884,7 @@ public static async Task<ApiResponse<VmConfigurationState>> ReadAsync(string vmN
 | --- | --- |
 | `vmName` | 目标虚拟机的显示名称。 |
 
-返回：配置状态快照；虚拟机不存在或读取失败时返回错误。
+返回：配置状态视图，虚拟机不存在或读取失败时返回错误。
 
 <a id="api-e90b77e987feedc5"></a>
 
@@ -25876,7 +25843,7 @@ public static async Task<VmDeletionResult> PurgeVmAsync(string vmName, Guid vmId
 
 返回：注销状态、未清理路径和错误分别返回。执行时重新核对最新归属，不绑定此前预览；注销结果未知时不继续删除文件。磁盘依赖无法核对时仍注销并清理专属配置，保留无法排除依赖的磁盘，返回 Success=false 及 CleanupError。
 
-调用约定：依赖保护覆盖当前宿主已登记虚拟机及检查点的磁盘父链，不扫描未登记的离线磁盘。父链只用于保护，不扩大删除范围。文件身份与引用在删除前复查，外部工具不遵循 Core 锁时仍不存在原子比较删除保证。
+调用约定：依赖保护覆盖当前宿主已登记虚拟机及快照的磁盘父链，不扫描未登记的离线磁盘。父链只用于保护，不扩大删除范围。文件身份与引用在删除前复查，外部工具不遵循 Core 锁时仍不存在原子比较删除保证。
 
 <a id="api-a806775d80fa93ae"></a>
 
@@ -26481,7 +26448,7 @@ public static async Task<ApiResponse> RenameVmAsync(Guid vmId, string newName);
 
 ### `VmExportCheckpointMode` 枚举
 
-本次导出包含哪些检查点。
+本次导出包含哪些快照。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -26497,9 +26464,9 @@ public static async Task<ApiResponse> RenameVmAsync(Guid vmId, string newName);
 
 | 成员 | 说明 |
 | --- | --- |
-| [` All = 1 `](#api-c4c3ff9c322159a5) | 导出全部检查点。 |
-| [` None = 0 `](#api-b2c932b7d6d21a8c) | 仅导出当前虚拟机，不包含检查点树。 |
-| [` Single = 2 `](#api-7b3629b66b77d4e0) | 导出选定检查点；执行时强制包含其磁盘和运行状态。 |
+| [` All = 1 `](#api-c4c3ff9c322159a5) | 导出全部快照。 |
+| [` None = 0 `](#api-b2c932b7d6d21a8c) | 仅导出当前虚拟机，不包含快照树。 |
+| [` Single = 2 `](#api-7b3629b66b77d4e0) | 导出选定快照，执行时强制包含其磁盘和运行状态。 |
 
 #### 详细说明
 
@@ -26517,7 +26484,7 @@ public enum VmExportCheckpointMode
 All = 1
 ```
 
-导出全部检查点。
+导出全部快照。
 
 <a id="api-b2c932b7d6d21a8c"></a>
 
@@ -26527,7 +26494,7 @@ All = 1
 None = 0
 ```
 
-仅导出当前虚拟机，不包含检查点树。
+仅导出当前虚拟机，不包含快照树。
 
 <a id="api-7b3629b66b77d4e0"></a>
 
@@ -26537,7 +26504,7 @@ None = 0
 Single = 2
 ```
 
-导出选定检查点；执行时强制包含其磁盘和运行状态。
+导出选定快照，执行时强制包含其磁盘和运行状态。
 
 <a id="api-9ede9b4035f4d383"></a>
 
@@ -27347,7 +27314,7 @@ public Guid VmId { get; init; }
 
 ### `VmExportService` 类
 
-导出一台虚拟机的配置、磁盘、检查点和运行状态。
+导出一台虚拟机的配置、磁盘、快照和运行状态。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -27363,8 +27330,8 @@ public Guid VmId { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static Task<VmExportResult> ExportAsync(Guid vmId, string destinationRoot, bool includeVirtualHardDisks, IReadOnlyCollection<VirtualHardDiskInfo> excludedVirtualHardDisks, VmExportCheckpointMode checkpointMode, CheckpointInfo? selectedCheckpoint, bool includeRuntimeState, IProgress<int>? progress = null) `](#api-a2a418f3df55cafb) | 将一台虚拟机的配置及选定的磁盘、检查点和运行状态导出到目录。 |
-| [` public static async Task<ApiResponse<List<CheckpointInfo>>> GetCheckpointsAsync(Guid vmId) `](#api-b2c764360bd4d4db) | 读取指定虚拟机的检查点和父子关系。 |
+| [` public static Task<VmExportResult> ExportAsync(Guid vmId, string destinationRoot, bool includeVirtualHardDisks, IReadOnlyCollection<VirtualHardDiskInfo> excludedVirtualHardDisks, VmExportCheckpointMode checkpointMode, CheckpointInfo? selectedCheckpoint, bool includeRuntimeState, IProgress<int>? progress = null) `](#api-a2a418f3df55cafb) | 将一台虚拟机的配置及选定的磁盘、快照和运行状态导出到目录。 |
+| [` public static async Task<ApiResponse<List<CheckpointInfo>>> GetCheckpointsAsync(Guid vmId) `](#api-b2c764360bd4d4db) | 读取指定虚拟机的快照和父子关系。 |
 | [` public static async Task<ApiResponse<List<VirtualHardDiskInfo>>> GetVirtualHardDisksAsync(Guid vmId) `](#api-6aacddf312b4fbd4) | 读取可用于导出排除选择的虚拟硬盘对象和文件路径。 |
 
 #### 详细说明
@@ -27383,26 +27350,26 @@ public static partial class VmExportService
 public static Task<VmExportResult> ExportAsync(Guid vmId, string destinationRoot, bool includeVirtualHardDisks, IReadOnlyCollection<VirtualHardDiskInfo> excludedVirtualHardDisks, VmExportCheckpointMode checkpointMode, CheckpointInfo? selectedCheckpoint, bool includeRuntimeState, IProgress<int>? progress = null);
 ```
 
-将一台虚拟机的配置及选定的磁盘、检查点和运行状态导出到目录。
+将一台虚拟机的配置及选定的磁盘、快照和运行状态导出到目录。
 
 调用顺序：
 
-1. 指定目标 GUID 和已存在的输出根目录，决定是否包含磁盘、检查点和运行状态。
-2. 需要排除磁盘或选择单个检查点时，先用 `GetVirtualHardDisksAsync` 或 `GetCheckpointsAsync` 取得对应对象。随后调用 `ExportAsync`。
+1. 指定目标 GUID 和已存在的输出根目录，决定是否包含磁盘、快照和运行状态。
+2. 需要排除磁盘或选择单个快照时，先用 `GetVirtualHardDisksAsync` 或 `GetCheckpointsAsync` 取得对应对象。随后调用 `ExportAsync`。
 3. 从结果的 `OutputPath` 取得导出目录；如需 ZIP，再执行可选打包步骤，并分别处理导出和归档结果。
 
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
 | `destinationRoot` | 已存在的导出根目录，服务在其中建立 GUID 命名的输出目录。 |
-| `includeVirtualHardDisks` | 是否复制虚拟硬盘；单检查点模式会强制开启。 |
-| `excludedVirtualHardDisks` | 由 GetVirtualHardDisksAsync 返回的待排除磁盘对象，可为空集合；Core 重新核对其所属虚拟机和挂接状态，不能与检查点模式组合。 |
-| `checkpointMode` | 不含检查点、全部检查点或单个检查点的导出模式。 |
-| `selectedCheckpoint` | 单检查点模式下由 GetCheckpointsAsync 返回的对象；Core 重新检查其仍存在且属于 vmId，其他模式可为 null。 |
-| `includeRuntimeState` | 是否包含运行状态；单检查点模式会强制开启。 |
+| `includeVirtualHardDisks` | 是否复制虚拟硬盘，单快照模式会强制开启。 |
+| `excludedVirtualHardDisks` | 由 GetVirtualHardDisksAsync 返回的待排除磁盘对象，可为空集合，Core 重新核对其所属虚拟机和挂接状态，不能与快照模式组合。 |
+| `checkpointMode` | 不含快照、全部快照或单个快照的导出模式。 |
+| `selectedCheckpoint` | 单快照模式下由 GetCheckpointsAsync 返回的对象，Core 重新检查其仍存在且属于 vmId，其他模式可为 null。 |
+| `includeRuntimeState` | 是否包含运行状态，单快照模式会强制开启。 |
 | `progress` | 可选进度接收器；null 时不通知。回调线程由具体 IProgress 实现决定。 |
 
-返回：成功时 OutputPath 为实际导出目录；失败保留已产生路径及未知操作状态。单检查点模式强制包含磁盘与运行状态，不能与磁盘排除选择组合。
+返回：成功时 OutputPath 为实际导出目录，失败保留已产生路径及未知操作状态。单快照模式强制包含磁盘与运行状态，不能与磁盘排除选择组合。
 
 调用约定：输出目录由 `ExportAsync` 完成。打包是调用方选择的后续步骤：成功后将结果的 `OutputPath` 交给 `VmExportPackagingService`，指定 ZIP 路径和 `VmExportPackageOptions`；可选择压缩级别、AES-256 密码以及保留源目录或校验后删除。
 
@@ -27416,19 +27383,19 @@ public static Task<VmExportResult> ExportAsync(Guid vmId, string destinationRoot
 
 <a id="api-b2c764360bd4d4db"></a>
 
-##### 读取可导出的检查点（方法）
+##### 读取可导出的快照（方法）
 
 ```csharp
 public static async Task<ApiResponse<List<CheckpointInfo>>> GetCheckpointsAsync(Guid vmId);
 ```
 
-读取指定虚拟机的检查点和父子关系。
+读取指定虚拟机的快照和父子关系。
 
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
 
-返回：包含检查点 GUID、父子关系、名称和创建时间的列表；单检查点导出原样传回所选对象，失败通过响应返回。
+返回：包含快照 GUID、父子关系、名称和创建时间的列表，单快照导出原样传回所选对象，失败通过响应返回。
 
 <a id="api-6aacddf312b4fbd4"></a>
 
@@ -27450,7 +27417,7 @@ public static async Task<ApiResponse<List<VirtualHardDiskInfo>>> GetVirtualHardD
 
 ### `VmExportService.CheckpointInfo` 类
 
-检查点身份和父子关系；单检查点导出使用查询返回的此对象。
+快照身份和父子关系，单快照导出使用查询返回的此对象。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -27466,10 +27433,10 @@ public static async Task<ApiResponse<List<VirtualHardDiskInfo>>> GetVirtualHardD
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public DateTime CreatedDate { get; } `](#api-ceb370bc581362e9) | 检查点创建时间。 |
-| [` public string Id { get; } `](#api-2c1de765878bb1b5) | 检查点配置的 GUID 文本；主机未提供可识别的 GUID 时为空，仍可使用此对象导出。 |
-| [` public string Name { get; } `](#api-d6182b0f64c3c0de) | 检查点的显示名称。 |
-| [` public string? ParentId { get; } `](#api-8d3d4cebe260aac4) | 父检查点的配置 GUID 文本；根节点或无法识别父节点时为 null。 |
+| [` public DateTime CreatedDate { get; } `](#api-ceb370bc581362e9) | 快照创建时间。 |
+| [` public string Id { get; } `](#api-2c1de765878bb1b5) | 快照配置的 GUID 文本，主机未提供可识别的 GUID 时为空，仍可使用此对象导出。 |
+| [` public string Name { get; } `](#api-d6182b0f64c3c0de) | 快照的显示名称。 |
+| [` public string? ParentId { get; } `](#api-8d3d4cebe260aac4) | 父快照的配置 GUID 文本，根节点或无法识别父节点时为 null。 |
 
 #### 详细说明
 
@@ -27487,7 +27454,7 @@ public sealed class CheckpointInfo
 public DateTime CreatedDate { get; }
 ```
 
-检查点创建时间。
+快照创建时间。
 
 <a id="api-2c1de765878bb1b5"></a>
 
@@ -27497,7 +27464,7 @@ public DateTime CreatedDate { get; }
 public string Id { get; }
 ```
 
-检查点配置的 GUID 文本；主机未提供可识别的 GUID 时为空，仍可使用此对象导出。
+快照配置的 GUID 文本，主机未提供可识别的 GUID 时为空，仍可使用此对象导出。
 
 <a id="api-d6182b0f64c3c0de"></a>
 
@@ -27507,7 +27474,7 @@ public string Id { get; }
 public string Name { get; }
 ```
 
-检查点的显示名称。
+快照的显示名称。
 
 <a id="api-8d3d4cebe260aac4"></a>
 
@@ -27517,7 +27484,7 @@ public string Name { get; }
 public string? ParentId { get; }
 ```
 
-父检查点的配置 GUID 文本；根节点或无法识别父节点时为 null。
+父快照的配置 GUID 文本，根节点或无法识别父节点时为 null。
 
 <a id="api-25182f12944e0c0c"></a>
 
@@ -27886,7 +27853,7 @@ public static readonly VmQueryField<bool> HasGpuEngineInstance;
 
 ### `VmGpuRepairService` 类
 
-失效 GPU-PV(GPU Partition 钉死的物理 GPU 路径在当前主机失配)的检测与修复。 此类记录不会出现在 Get-VMGpuPartitionAdapter 或 Msvm_GpuPartitionSettingData 中， 因此需要通过统一 VmcxDocument / VmcxEditSession 编辑对应的 .vmcx 文件。 检测读取文件快照，修复通过 VmDataStore 提交配置修改。 失配判定使用完整路径精确比对；GPU-PV 绑定的是某块卡的 完整 GPUPARAV 路径(含 PCIe 位置段),主机重启/重插后即使同一张卡仍在,位置段也可能变 → 路径失配 → 起不来。 失配后再比对硬件标识(VEN/DEV/SUBSYS/REV)区分: &#183; 只有一个同标识候选：更新为该候选路径；多个候选必须由调用方选择； &#183; 池里无同标识的卡：删除失效的 GPU-PV 设备。
+失效 GPU-PV(GPU Partition 钉死的物理 GPU 路径在当前主机失配)的检测与修复。 此类记录不会出现在 Get-VMGpuPartitionAdapter 或 Msvm_GpuPartitionSettingData 中， 因此需要通过统一 VmcxDocument / VmcxEditSession 编辑对应的 .vmcx 文件。 检测读取文件状态，修复通过 VmDataStore 提交配置修改。 失配判定使用完整路径精确比对；GPU-PV 绑定的是某块卡的 完整 GPUPARAV 路径(含 PCIe 位置段),主机重启/重插后即使同一张卡仍在,位置段也可能变 → 路径失配 → 起不来。 失配后再比对硬件标识(VEN/DEV/SUBSYS/REV)区分: &#183; 只有一个同标识候选：更新为该候选路径；多个候选必须由调用方选择； &#183; 池里无同标识的卡：删除失效的 GPU-PV 设备。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -28363,7 +28330,7 @@ public async Task<ApiResponse<IReadOnlyList<VmGpuAssignment>>> GetVmGpuAssignmen
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
 
-返回：分配快照或查询错误；缺少宿主显示信息时仍保留设备身份。
+返回：分配记录或查询错误，缺少宿主显示信息时仍保留设备身份。
 
 调用约定：旧宿主缺少 HostResource 时，会用第一张可分区 GPU 补充候选信息。精确关联使用 VmGpuFields 查询，并检查字段状态。
 
@@ -28603,7 +28570,7 @@ public bool TargetRecreated { get; }
 
 ### `VmGroupMoveRules` 类
 
-仅根据分组快照判断移动是否合法，不访问或修改宿主。
+仅根据分组视图判断移动是否合法，不访问或修改宿主。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -28619,7 +28586,7 @@ public bool TargetRecreated { get; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public static bool CanMove(VmGroupSnapshot snapshot, IReadOnlyList<VmGroupMove> items, Guid? targetId) `](#api-484b229460918b45) | 在分组快照上检查一批虚拟机或分组是否能移动到目标组。 |
+| [` public static bool CanMove(VmGroupSnapshot snapshot, IReadOnlyList<VmGroupMove> items, Guid? targetId) `](#api-484b229460918b45) | 在分组视图上检查一批虚拟机或分组是否能移动到目标组。 |
 
 #### 详细说明
 
@@ -28637,15 +28604,15 @@ public static class VmGroupMoveRules
 public static bool CanMove(VmGroupSnapshot snapshot, IReadOnlyList<VmGroupMove> items, Guid? targetId);
 ```
 
-在分组快照上检查一批虚拟机或分组是否能移动到目标组。
+在分组视图上检查一批虚拟机或分组是否能移动到目标组。
 
 | 参数 | 说明 |
 | --- | --- |
-| `snapshot` | 查询时的分组和成员快照。 |
+| `snapshot` | 查询时的分组和成员视图。 |
 | `items` | 准备移动的虚拟机或分组身份，不应混合两种类型。 |
 | `targetId` | 目标分组 GUID；null 表示移出当前分组。 |
 
-返回：当前快照满足类型、层级和循环限制时为 true；不锁定主机状态。
+返回：当前视图满足类型、层级和循环限制时为 true，不锁定主机状态。
 
 <a id="api-99e3f6668ba1efe6"></a>
 
@@ -28758,7 +28725,7 @@ public static Task<VmGroupSnapshot> ReadAsync();
 
 读取当前虚拟机分组、成员及层级关系。
 
-返回：分组快照；底层查询失败以异常报告。
+返回：分组视图，底层查询失败以异常报告。
 
 <a id="api-5b9db5323811a972"></a>
 
@@ -30225,7 +30192,7 @@ public static async Task<ApiResponse> SendCtrlAltDelAsync(Guid vmId);
 
 ### `VmInventorySnapshot` record 类
 
-一次虚拟机清单快照，包含虚拟机及未完整取得的可选信息。
+一次虚拟机清单视图，包含虚拟机及未完整取得的可选信息。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -30248,7 +30215,7 @@ public static async Task<ApiResponse> SendCtrlAltDelAsync(Guid vmId);
 | 成员 | 说明 |
 | --- | --- |
 | [` public bool IsComplete { get; } `](#api-dc7a5f76afd0f92c) | 本次列表所需的必需和可选读取均未报告问题。 |
-| [` public IReadOnlyList<VmQueryIssue> Issues { get; init; } `](#api-1efe7dd893642dbb) | 可选读取失败或不支持的明细；必需读取失败不会产生成功快照。 |
+| [` public IReadOnlyList<VmQueryIssue> Issues { get; init; } `](#api-1efe7dd893642dbb) | 可选读取失败或不支持的明细，必需读取失败不会产生成功结果。 |
 | [` public IReadOnlyList<VmInstance> VirtualMachines { get; init; } `](#api-9e7bd6b62fa03799) | 按活动状态和名称排序的虚拟机列表。 |
 
 #### 详细说明
@@ -30260,7 +30227,7 @@ public sealed record VmInventorySnapshot(IReadOnlyList<VmInstance> VirtualMachin
 | 参数 | 说明 |
 | --- | --- |
 | `VirtualMachines` | 按活动状态和名称排序的虚拟机列表。 |
-| `Issues` | 可选读取失败或不支持的明细；必需读取失败不会产生成功快照。 |
+| `Issues` | 可选读取失败或不支持的明细，必需读取失败不会产生成功结果。 |
 
 #### 构造函数说明
 
@@ -30275,7 +30242,7 @@ public VmInventorySnapshot(IReadOnlyList<VmInstance> VirtualMachines, IReadOnlyL
 | 参数 | 说明 |
 | --- | --- |
 | `VirtualMachines` | 按活动状态和名称排序的虚拟机列表。 |
-| `Issues` | 可选读取失败或不支持的明细；必需读取失败不会产生成功快照。 |
+| `Issues` | 可选读取失败或不支持的明细，必需读取失败不会产生成功结果。 |
 
 #### 属性说明
 
@@ -30297,7 +30264,7 @@ public bool IsComplete { get; }
 public IReadOnlyList<VmQueryIssue> Issues { get; init; }
 ```
 
-可选读取失败或不支持的明细；必需读取失败不会产生成功快照。
+可选读取失败或不支持的明细，必需读取失败不会产生成功结果。
 
 <a id="api-9e7bd6b62fa03799"></a>
 
@@ -32927,7 +32894,7 @@ public static Task<ApiResponse<List<VmNetworkAdapter>>> GetNetworkAdaptersAsync(
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
 
-返回：成功时包含网卡快照列表，可为空；虚拟机不存在或任一必要查询失败时返回失败，不用空集合代替错误。
+返回：成功时包含网卡列表，可为空，虚拟机不存在或任一必要查询失败时返回失败，不用空集合代替错误。
 
 调用约定：当前连接没有某类可选功能设置时保留模型默认值；读取这些设置发生错误时仍返回失败。
 
@@ -35395,7 +35362,7 @@ public static VmModificationCondition GetModificationCondition(VmProcessorSettin
 
 返回：是否允许修改及原因。开关按切换到相反值评估，其他设置检查状态和平台条件。
 
-调用约定：使用传入的快照，不查询宿主。实际修改会重新读取配置并检查完整请求。
+调用约定：使用传入的配置视图，不查询宿主。实际修改会重新读取配置并检查完整请求。
 
 <a id="api-07efb27da397e312"></a>
 
@@ -35602,7 +35569,7 @@ public bool IsX64 { get; }
 | 成员 | 说明 |
 | --- | --- |
 | [` BootEntries = 6 `](#api-9767f74828e4dbca) | 固件启动顺序中的条目。 |
-| [` Checkpoints = 10 `](#api-e9346323c153e44a) | 检查点及当前状态节点。 |
+| [` Checkpoints = 10 `](#api-e9346323c153e44a) | 快照及当前状态节点。 |
 | [` GpuAssignments = 7 `](#api-671eb7864e4c887c) | 已分配 GPU 分区适配器。 |
 | [` Groups = 1 `](#api-13aacaceb1d79e9f) | 直接所属分组。 |
 | [` Metadata = 2 `](#api-3e1d5d5e3f03d146) | 自定义数据的键值项。 |
@@ -35639,7 +35606,7 @@ BootEntries = 6
 Checkpoints = 10
 ```
 
-检查点及当前状态节点。
+快照及当前状态节点。
 
 <a id="api-671eb7864e4c887c"></a>
 
@@ -36413,7 +36380,7 @@ public string Key { get; }
 
 虚拟机记录为 GUID；子对象为本次来源的稳定身份或明确标注的序号。不可当作任意底层操作路径。
 
-调用约定：Key 用于同一虚拟机、同类集合内的记录关联。虚拟机及所属分组使用 GUID；元数据使用 VM GUID 与键名；引导项使用 VM GUID 与顺序号，重排后更新。设备和检查点使用后端记录标识，重建或迁移后可能变化。
+调用约定：Key 用于同一虚拟机、同类集合内的记录关联。虚拟机及所属分组使用 GUID，元数据使用 VM GUID 与键名，引导项使用 VM GUID 与顺序号，重排后更新。设备和快照使用后端记录标识，重建或迁移后可能变化。
 
 <a id="api-c02c51c6a0a3309e"></a>
 
@@ -36492,7 +36459,7 @@ public VmQueryValue<T> Get<T>(VmQueryField<T> field);
 | [` public void Dispose() `](#api-c8347aeeeba3f88b) | 同步等待异步释放完成，回收本实例的性能计数器。 |
 | [` public ValueTask DisposeAsync() `](#api-4d0309be308b6bf4) | 停止接受新的性能采样，等待进行中的计数器访问结束并释放计数器。 |
 | [` public async Task<Dictionary<Guid, GpuUsageData>> GetGpuPerformanceAsync(IEnumerable<VmInstance> vms) `](#api-319692fabf672c00) | 采样各虚拟机对应的 GPU 引擎占用，并检测是否出现该虚拟机的 GPU 活动实例。 |
-| [` public async Task<ApiResponse<VmInventorySnapshot>> GetVmListAsync() `](#api-2e465d73bfe57502) | 汇集虚拟机及设备配置生成完整列表快照；只需少量字段时使用 QueryAsync。 |
+| [` public async Task<ApiResponse<VmInventorySnapshot>> GetVmListAsync() `](#api-2e465d73bfe57502) | 汇集虚拟机及设备配置生成完整列表视图，只需少量字段时使用 QueryAsync。 |
 | [` public async Task<ApiResponse<Dictionary<Guid, VmDynamicMemoryData>>> GetVmRuntimeMemoryDataAsync() `](#api-ea02c278c682e728) | 按虚拟机 GUID 读取运行时已分配内存和来宾可用内存比例，分别报告两个字段的有效性。 |
 | [` public async Task<ApiResponse<VmState>> GetVmStateAsync(Guid vmId) `](#api-2e4d20a997fa9624) | 按稳定身份读取虚拟机当前运行状态。 |
 | [` public async Task<ApiResponse<bool>> IsVmPoweredOffAsync(Guid vmId) `](#api-fbddeaf25064539a) | 按稳定身份检查虚拟机是否处于完全关机状态。 |
@@ -36506,7 +36473,7 @@ public VmQueryValue<T> Get<T>(VmQueryField<T> field);
 public partial class VmQueryService
 ```
 
-调用约定：列表读取是一次快照，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp；仅有效样本用于更新数值。更新方法直接修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样；部分普通 WMI 查询不依赖计数器。
+调用约定：列表读取是一次性读取，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp，仅有效样本用于更新数值。更新方法直接修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样，部分普通 WMI 查询不依赖计数器。
 
 #### 构造函数说明
 
@@ -36568,7 +36535,7 @@ public async Task<Dictionary<Guid, GpuUsageData>> GetGpuPerformanceAsync(IEnumer
 public async Task<ApiResponse<VmInventorySnapshot>> GetVmListAsync();
 ```
 
-汇集虚拟机及设备配置生成完整列表快照；只需少量字段时使用 QueryAsync。
+汇集虚拟机及设备配置生成完整列表视图，只需少量字段时使用 QueryAsync。
 
 返回：成功时返回虚拟机列表及可选读取问题；必需摘要、配置、元数据、内存、存储或网卡基础读取失败时返回失败，不伪装为空列表。
 
@@ -37724,7 +37691,7 @@ public static async Task<ApiResponse<VmSecurityInfo>> GetSecuritySettingsAsync(G
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
 
-返回：安全配置快照或查询失败。此模型把 null 或非 bool 的属性值折为 false；需要区分缺测与关闭时使用相应 VmSecurityFields 查询结果。
+返回：安全配置视图或查询失败。此模型把 null 或非 bool 的属性值折为 false，需要区分缺测与关闭时使用相应 VmSecurityFields 查询结果。
 
 <a id="api-06de16aa767eb71c"></a>
 
@@ -38101,7 +38068,7 @@ Tpm = 2
 
 ### `VmSecurityService.VmSecurityInfo` record 结构
 
-成功读取的安全设置快照；读取失败由外层 ApiResponse 表示。
+成功读取的安全设置视图，读取失败由外层 ApiResponse 表示。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -38691,7 +38658,7 @@ Request 不为 null，表示准备完成。
 | [` public int Location { get; init; } `](#api-fdf92506efb42f98) | 控制器内从零开始的槽位；IDE 为 0 至 1，SCSI 为 0 至 63。 |
 | [` public string? ParentPath { get; init; } `](#api-e09fce4f2b87d2f0) | 新建差分磁盘的父磁盘路径；其他模式可为 null。 |
 | [` public string? PathOrNumber { get; init; } `](#api-8f95b1b405fece14) | 介质文件路径或物理设备编号字符串；现有虚拟光驱可为空表示无介质。 |
-| [` public HostDiskInfo? PhysicalDisk { get; init; } `](#api-9d66098f29435d6a) | GetHostDisksAsync 取得的物理硬盘快照；必须包含编号、正数字节容量及唯一标识或序列号。 |
+| [` public HostDiskInfo? PhysicalDisk { get; init; } `](#api-9d66098f29435d6a) | GetHostDisksAsync 取得的物理硬盘信息，必须包含编号、正数字节容量及唯一标识或序列号。 |
 | [` public string SectorFormat { get; init; } = "Default" `](#api-337d1b1b04ab0532) | 新虚拟磁盘扇区格式：Default、512n、512e 或 4kn；非新建虚拟磁盘仅允许 Default。 |
 | [` public int? SizeGiB { get; init; } `](#api-602751760bb56101) | 新建非差分虚拟磁盘的容量，单位为 GiB（1024&#179; 字节）；其余来源必须为 null。 |
 | [` public string VhdType { get; init; } = "Dynamic" `](#api-760986605d426a74) | 新虚拟磁盘类型，默认 Dynamic；差分磁盘使用 Differencing。 |
@@ -38834,7 +38801,7 @@ public string? PathOrNumber { get; init; }
 public HostDiskInfo? PhysicalDisk { get; init; }
 ```
 
-GetHostDisksAsync 取得的物理硬盘快照；必须包含编号、正数字节容量及唯一标识或序列号。执行时重新核对所有已提供的身份字段和容量，不信任 CanPassthrough 显示标记。
+GetHostDisksAsync 取得的物理硬盘信息，必须包含编号、正数字节容量及唯一标识或序列号。执行时重新核对所有已提供的身份字段和容量，不信任 CanPassthrough 显示标记。
 
 <a id="api-337d1b1b04ab0532"></a>
 
@@ -39246,12 +39213,12 @@ public static readonly VmQueryField<bool> AllowFullScsiCommandSet;
 | [` public static async Task<ApiResponse> CompactDiskAsync(string vhdPath) `](#api-ad2ff3fe6a3fba22) | 请求以两阶段深度压缩（只读挂载感知文件系统 + 脱机全零扫描）回收虚拟磁盘文件占用的物理空间。 |
 | [` public static Task<ApiResponse> ConvertVirtualDiskTypeAsync(Guid vmId, VmStorageAttachment drive, string targetVhdType) `](#api-ee7ff3bfa422602f) | 转换到同目录的新文件并切换原槽位。 |
 | [` public static Task<ApiResponse> DeleteAttachedMediaFileAsync(Guid vmId, VmStorageAttachment drive) `](#api-80b90a88faefac5a) | 先移除已核实的挂接，再按文件身份删除介质。 |
-| [` public static async Task<ApiResponse<VmStorageSlot>> DetachPhysicalDiskAsync(Guid vmId, HostDiskInfo disk) `](#api-3baa807ff7202cde) | 按物理磁盘查询快照核对身份，并从指定虚拟机移除其直通挂接。 |
+| [` public static async Task<ApiResponse<VmStorageSlot>> DetachPhysicalDiskAsync(Guid vmId, HostDiskInfo disk) `](#api-3baa807ff7202cde) | 按物理磁盘查询结果核对身份，并从指定虚拟机移除其直通挂接。 |
 | [` public static Task<ApiResponse> ExportDifferencingDiskAsync(Guid vmId, VmStorageAttachment drive, string destinationPath, IProgress<(int StepIndex, int Percent, string Message)>? progress = null) `](#api-a168f4535ba8296b) | 将验证后的整条差分链导出为独立动态磁盘。 |
 | [` public static async Task<ApiResponse<List<VmStorageAttachment>>> FindStalePassthroughDisksAsync(Guid vmId) `](#api-bda4c2d7782ca304) | 查找主机物理磁盘身份或编号已变化的直通挂接，供启动修复流程处理。 |
 | [` public static string? GetAddSlotError(int generation, bool isRunning, VmStorageAddRequest request, IEnumerable<VmStorageAttachment> items) `](#api-e4e83234f4558d6c) | 校验新增设备请求的控制器类型、编号、槽位及运行状态限制。 |
-| [` public static IReadOnlyList<int> GetAvailableLocations(string type, int number, IEnumerable<VmStorageAttachment> items) `](#api-5be5567371bf61be) | 从已有挂接快照中排除占用位置，计算指定控制器的空闲槽位。 |
-| [` public static VmStorageSlotPlan GetBestSlot(int generation, bool isRunning, string driveType, IEnumerable<VmStorageAttachment> items) `](#api-88765d16d58e5609) | 按当前规则和已有设备快照选择首个适合新增驱动的空闲槽位。 |
+| [` public static IReadOnlyList<int> GetAvailableLocations(string type, int number, IEnumerable<VmStorageAttachment> items) `](#api-5be5567371bf61be) | 从已有挂接记录中排除占用位置，计算指定控制器的空闲槽位。 |
+| [` public static VmStorageSlotPlan GetBestSlot(int generation, bool isRunning, string driveType, IEnumerable<VmStorageAttachment> items) `](#api-88765d16d58e5609) | 按当前规则和已有设备记录选择首个适合新增驱动的空闲槽位。 |
 | [` public static VmModificationCondition GetCompactionCondition(VmStorageAttachment item, VmState state) `](#api-0b6771b88b8b027b) | 评估压缩虚拟机所挂接磁盘的条件。 |
 | [` public static string? GetControllerFullError(string type, int number, IEnumerable<VmStorageAttachment> items) `](#api-36bd6baf81450e53) | 检查指定控制器是否仍有可用槽位。 |
 | [` public static IReadOnlyList<int> GetControllerNumbers(string type) `](#api-5c99c297a915c534) | 返回指定控制器类型可选择的从零开始的编号。 |
@@ -39376,7 +39343,7 @@ public static Task<ApiResponse> ConvertVirtualDiskTypeAsync(Guid vmId, VmStorage
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 | `targetVhdType` | 目标分配类型，取 Fixed 或 Dynamic。 |
 
 返回：转换并恢复挂接后的结果。
@@ -39396,7 +39363,7 @@ public static Task<ApiResponse> DeleteAttachedMediaFileAsync(Guid vmId, VmStorag
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 
 返回：解除挂接和删除已确认归属文件的结果。
 
@@ -39410,12 +39377,12 @@ public static async Task<ApiResponse<VmStorageSlot>> DetachPhysicalDiskAsync(Gui
 
 功能归属：管理层面 / 虚拟机 / 存储。
 
-按物理磁盘查询快照核对身份，并从指定虚拟机移除其直通挂接。
+按物理磁盘查询结果核对身份，并从指定虚拟机移除其直通挂接。
 
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `disk` | GetHostDisksAsync 取得的物理硬盘快照；必须提供身份和容量，执行前重新核对。 |
+| `disk` | GetHostDisksAsync 取得的物理硬盘信息，必须提供身份和容量，执行前重新核对。 |
 
 返回：成功时包含原控制器类型、编号和槽位，供重新挂接使用；失败不返回默认槽位。
 
@@ -39434,7 +39401,7 @@ public static Task<ApiResponse> ExportDifferencingDiskAsync(Guid vmId, VmStorage
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 | `destinationPath` | 导出的独立磁盘文件路径。 |
 | `progress` | 可选的进度观察器。 |
 
@@ -39477,9 +39444,9 @@ public static string? GetAddSlotError(int generation, bool isRunning, VmStorageA
 | `generation` | 虚拟机代数，使用 1 或 2。 |
 | `isRunning` | 虚拟机当前是否处于活动状态。 |
 | `request` | 待检查的新增存储设备请求。 |
-| `items` | 当前存储挂接快照，用于检测控制器和槽位占用。 |
+| `items` | 当前存储挂接记录，用于检测控制器和槽位占用。 |
 
-返回：首个错误说明；符合当前快照时为 null。执行时需重新核对槽位。
+返回：首个错误说明，符合当前规则时为 null。执行时需重新核对槽位。
 
 <a id="api-5be5567371bf61be"></a>
 
@@ -39491,15 +39458,15 @@ public static IReadOnlyList<int> GetAvailableLocations(string type, int number, 
 
 功能归属：管理层面 / 虚拟机 / 存储。
 
-从已有挂接快照中排除占用位置，计算指定控制器的空闲槽位。
+从已有挂接记录中排除占用位置，计算指定控制器的空闲槽位。
 
 | 参数 | 说明 |
 | --- | --- |
 | `type` | 控制器类型 IDE 或 SCSI。 |
 | `number` | 从零开始的控制器编号。 |
-| `items` | 当前存储挂接快照，用于检测控制器和槽位占用。 |
+| `items` | 当前存储挂接记录，用于检测控制器和槽位占用。 |
 
-返回：根据当前挂接快照得到的可用槽位编号，从零开始。
+返回：根据当前挂接记录得到的可用槽位编号，从零开始。
 
 <a id="api-88765d16d58e5609"></a>
 
@@ -39511,14 +39478,14 @@ public static VmStorageSlotPlan GetBestSlot(int generation, bool isRunning, stri
 
 功能归属：管理层面 / 虚拟机 / 存储。
 
-按当前规则和已有设备快照选择首个适合新增驱动的空闲槽位。
+按当前规则和已有设备记录选择首个适合新增驱动的空闲槽位。
 
 | 参数 | 说明 |
 | --- | --- |
 | `generation` | 虚拟机代数，使用 1 或 2。 |
 | `isRunning` | 虚拟机当前是否处于活动状态。 |
 | `driveType` | 驱动类型 HardDisk 或 DvdDrive。 |
-| `items` | 当前存储挂接快照，用于检测控制器和槽位占用。 |
+| `items` | 当前存储挂接记录，用于检测控制器和槽位占用。 |
 
 返回：可用槽位，或没有槽位时的错误说明。
 
@@ -39557,7 +39524,7 @@ public static string? GetControllerFullError(string type, int number, IEnumerabl
 | --- | --- |
 | `type` | 控制器类型 IDE 或 SCSI。 |
 | `number` | 从零开始的控制器编号。 |
-| `items` | 当前存储挂接快照，用于检测控制器和槽位占用。 |
+| `items` | 当前存储挂接记录，用于检测控制器和槽位占用。 |
 
 返回：已满时返回说明，否则为 null。
 
@@ -39767,7 +39734,7 @@ public static Task<ApiResponse<VmDiskInspection>> InspectDiskAsync(Guid vmId, Vm
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 
 返回：挂接访问状态、限制原因和当前可执行的维护操作。
 
@@ -39786,7 +39753,7 @@ public static Task<ApiResponse<VmResizeSafety>> InspectResizeSafetyAsync(Guid vm
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 
 返回：磁盘访问条件、当前容量和已核实的调整边界。
 
@@ -39805,7 +39772,7 @@ public static Task<ApiResponse> MergeDifferencingDiskAsync(Guid vmId, VmStorageA
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 | `targetAncestorPath` | 要将叶盘合并到的祖先磁盘完整路径。 |
 | `progress` | 可选的进度观察器。 |
 
@@ -39826,7 +39793,7 @@ public static Task<ApiResponse> ModifyDriveSlotAsync(Guid vmId, VmStorageAttachm
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 | `targetControllerType` | 目标控制器类型。 |
 | `targetControllerNumber` | 目标控制器编号。 |
 | `targetControllerLocation` | 目标控制器上的槽位。 |
@@ -39892,7 +39859,7 @@ public static VmStorageAddPreparation PrepareAddRequest(VmStorageAddRequest requ
 | `request` | 待检查的新增存储设备请求。 |
 | `generation` | 虚拟机代数，使用 1 或 2。 |
 | `isRunning` | 虚拟机当前是否处于活动状态。 |
-| `items` | 当前存储挂接快照，用于检测控制器和槽位占用。 |
+| `items` | 当前存储挂接记录，用于检测控制器和槽位占用。 |
 
 返回：可执行请求或错误、提示状态；准备过程中可能创建宿主目录。
 
@@ -39911,7 +39878,7 @@ public static Task<ApiResponse> ReconnectParentDiskAsync(Guid vmId, VmStorageAtt
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 | `newParentPath` | 候选父盘的完整路径。 |
 | `ignoreIdMismatch` | 是否明确允许候选父盘标识不匹配。 |
 
@@ -39953,7 +39920,7 @@ public static Task<ApiResponse> ResizeVirtualDiskAsync(Guid vmId, VmStorageAttac
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 | `newSizeGiB` | 目标虚拟容量，单位 GiB。 |
 
 返回：容量调整结果，含提交或复核失败原因。
@@ -39992,7 +39959,7 @@ public static Task<ApiResponse> UpgradeVhdToVhdxAsync(Guid vmId, VmStorageAttach
 | 参数 | 说明 |
 | --- | --- |
 | `vmId` | 目标虚拟机的稳定 GUID。 |
-| `drive` | 存储查询返回的挂接快照，使用原始选择令牌核验身份。 |
+| `drive` | 存储查询返回的挂接记录，使用原始选择令牌核验身份。 |
 | `progress` | 可选的进度观察器。 |
 
 返回：容器转换和挂接切换的结果。
@@ -40258,7 +40225,7 @@ public bool SupportsOptical { get; init; }
 
 ### `VmVtpmInfo` record 类
 
-当前配置与宿主身份快照。可空的策略或密钥状态表示宿主没有提供可识别的值。
+当前配置与宿主身份视图。可空的策略或密钥状态表示宿主没有提供可识别的值。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -42024,7 +41991,7 @@ UnsupportedVmVersion = 4
 
 ### `CoreDiagnosticEvent` 类
 
-一条本地诊断事件的只读快照。内容仅包含操作元数据和经过选择的诊断字段。
+一条本地诊断事件的只读记录。内容仅包含操作元数据和经过选择的诊断字段。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -43170,7 +43137,7 @@ ScsiController = 1
 
 ### `VmcxDocument` 类
 
-VMCX 配置文件的只读快照与编辑入口。
+VMCX 配置文件的只读视图与编辑入口。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -43186,7 +43153,7 @@ VMCX 配置文件的只读快照与编辑入口。
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public IReadOnlyList<VmcxEntry> Entries { get; } `](#api-ccb3afc17d0920ff) | 根节点以及所有活动节点的不可变快照。 |
+| [` public IReadOnlyList<VmcxEntry> Entries { get; } `](#api-ccb3afc17d0920ff) | 根节点以及所有活动节点的不可变视图。 |
 | [` public string FilePath { get; } `](#api-5267fcff84034e29) | 源文件绝对路径。 |
 | [` public VmcxEntry Root { get; } `](#api-13d25c257292c603) | 合成根节点，可用于访问顶层容器。 |
 | [` public long SourceLength { get; } `](#api-ab3ec99b3d1b44f0) | 源文件字节数。 |
@@ -43243,7 +43210,7 @@ public static class VmcxFileExample
 public IReadOnlyList<VmcxEntry> Entries { get; }
 ```
 
-根节点以及所有活动节点的不可变快照。
+根节点以及所有活动节点的不可变视图。
 
 <a id="api-5267fcff84034e29"></a>
 
@@ -43322,7 +43289,7 @@ public static VmcxDocument Read(string path);
 | --- | --- |
 | `path` | 已有 .vmcx 文件路径。 |
 
-返回：独立的内存快照，不持有文件句柄。
+返回：独立的内存副本，不持有文件句柄。
 
 - 异常 `IOException`：读取失败、文件损坏或读取期间发生修改。
 - 异常 `NotSupportedException`：文件种类、节点类型或大小超出支持范围。
@@ -43340,7 +43307,7 @@ public VmcxEditSession BeginEdit();
 
 开始一批内存编辑；调用 Commit 前不写文件。
 
-返回：独立编辑批次；同一源快照的多个批次提交时仍执行并发检查。
+返回：独立编辑批次，基于同一源视图的多个批次提交时仍执行并发检查。
 
 <a id="api-d0f27296f996e297"></a>
 
@@ -43370,7 +43337,7 @@ public IReadOnlyList<VmcxEntry> GetChildren(VmcxEntry parent);
 
 | 参数 | 说明 |
 | --- | --- |
-| `parent` | 本快照的容器节点。 |
+| `parent` | 当前视图中的容器节点。 |
 
 返回：直接子节点的只读集合；无子节点时为空。
 
@@ -43570,7 +43537,7 @@ public string ResultSha256 { get; }
 
 ### `VmcxEditSession` 类
 
-针对现有 VMCX 快照的单次编辑批次。修改先保存在内存，Commit 才写文件。
+针对现有 VMCX 视图的单次编辑批次。修改先保存在内存，Commit 才写文件。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -43586,7 +43553,7 @@ public string ResultSha256 { get; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public IReadOnlyList<VmcxEntry> Entries { get; } `](#api-5bed3913db66b5bd) | 当前批次的节点快照；可包含尚未保存的新节点。 |
+| [` public IReadOnlyList<VmcxEntry> Entries { get; } `](#api-5bed3913db66b5bd) | 当前批次的节点视图，可包含尚未保存的新节点。 |
 
 **方法**
 
@@ -43624,7 +43591,7 @@ public sealed class VmcxEditSession
 public IReadOnlyList<VmcxEntry> Entries { get; }
 ```
 
-当前批次的节点快照；可包含尚未保存的新节点。
+当前批次的节点视图，可包含尚未保存的新节点。
 
 #### 方法说明
 
@@ -43753,7 +43720,7 @@ public IReadOnlyList<VmcxEntry> GetChildren(VmcxEntry parent);
 | --- | --- |
 | `parent` | 源文档或本批次的容器节点。 |
 
-返回：当前批次的直接子节点快照。
+返回：当前批次的直接子节点视图。
 
 <a id="api-6741b25328481b20"></a>
 
@@ -43845,7 +43812,7 @@ public IReadOnlyList<string> Validate();
 
 ### `VmcxEntry` 类
 
-现有 VMCX 中的一个节点快照。同名同路径节点仍各自具有独立身份。
+现有 VMCX 中的一个只读节点副本。同名同路径节点仍各自具有独立身份。
 
 | 项目 | 内容 |
 | --- | --- |

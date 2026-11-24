@@ -152,7 +152,7 @@ public static partial class VmProcessorService
     /// <param name="state">查询得到的虚拟机电源状态。</param>
     /// <param name="host">查询得到的宿主处理器能力。</param>
     /// <returns>是否允许修改及原因。开关按切换到相反值评估，其他设置检查状态和平台条件。</returns>
-    /// <remarks>使用传入的快照，不查询宿主。实际修改会重新读取配置并检查完整请求。</remarks>
+    /// <remarks>使用传入的配置视图，不查询宿主。实际修改会重新读取配置并检查完整请求。</remarks>
     public static VmModificationCondition GetModificationCondition(VmProcessorSettings settings, string propertyName,
         VmState state, HostCapabilities host)
     {

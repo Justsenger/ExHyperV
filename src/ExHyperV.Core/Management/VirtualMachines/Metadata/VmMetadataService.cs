@@ -198,7 +198,7 @@ public static partial class VmMetadataService
             : ApiResponse.Fail("VMMS 提交后回读的元数据与请求不一致，请重新读取虚拟机配置。", kind: ApiErrorKind.Conflict);
     }
 
-    // 列表查询一次读取全部组件，由当前已实现配置的 InstanceID 选择对应组件，排除检查点配置。
+    // 列表查询一次读取全部组件，由当前已实现配置的 InstanceID 选择对应组件，排除快照配置。
     internal static Task<ApiResponse<List<(string Id, string[] Items)>>> ReadAllAsync()
         => WmiApi.QueryAsync(
             $"SELECT InstanceID, HostOnlyItems FROM {ComponentClass}",

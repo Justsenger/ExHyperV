@@ -23,7 +23,7 @@ internal static partial class ResourceProbes
         new("powershell", "编译环境", "PowerShell 启动环境", "Windows PowerShell 5.1 即可启动资源检查", "资源检查启动脚本"),
         new("iso-support", "编译环境", "ISO 生成与挂载组件", "IMAPI 组件与 Windows 映像挂载命令可用", "ISO 生成与内容核验"),
         new("memory", "容量与目录", "处理器与可用内存", "读取当前容量，执行时按测试需要分配", "临时虚拟机与并行测试"),
-        new("volumes", "容量与目录", "磁盘可用空间", "读取测试目录所在磁盘的剩余空间", "磁盘、导入导出、检查点"),
+        new("volumes", "容量与目录", "磁盘可用空间", "读取测试目录所在磁盘的剩余空间", "磁盘、导入导出、快照"),
         new("workspace", "容量与目录", "测试缓存目录", "自动创建并检查文件读写", "临时磁盘、导出包及日志"),
         new("resource-selection", "容量与目录", "资源选择记录", "保存后按固定身份复用", "后续自动化测试"),
         new("vms", "虚拟机", "现有虚拟机", "能读取虚拟机身份和当前状态", "选择测试资源"),

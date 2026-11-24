@@ -1,35 +1,32 @@
 // HostPage Prototype: Mirrors VirtualMachinesPage / VmDashboardView structure:
 // Top PageTabs ('状态' first, followed by Host settings tabs: '交换机' | '设备' | '计算' | '设置')
 // '状态' tab uses the Task Manager-style left rail + right detail card for Host telemetry & inventory.
-import { buildVirtualGpuEntries } from './virtual-gpu-mapper.js';
-export { buildVirtualGpuEntries };
-
 const HOST_SYS = {
-  os: 'Windows 11 专业工作站版 (26100)',
-  arch: 'X64',
-  hostName: 'WORKSTATION-HOST',
+  os: 'Windows 11 专业工作站版 (28000)',
+  arch: 'ARM64',
+  hostName: 'SURFACE-PRO-11',
   uptime: '3 天 14:49:43',
-  cpu: 'AMD Ryzen 9 9950X 16-Core Processor',
-  cpuShort: 'AMD Ryzen 9 9950X',
-  cores: 16,
-  threads: 32,
-  baseClock: '4.30 GHz',
-  curClock: '4.18 GHz',
+  cpu: 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz',
+  cpuShort: 'Snapdragon X Elite',
+  cores: 12,
+  threads: 12,
+  baseClock: '3.40 GHz',
+  curClock: '3.42 GHz',
   numaNodes: 1,
-  memoryGb: 64,
-  usedMemoryGb: 22.4,
+  memoryGb: 16,
+  usedMemoryGb: 9.4,
   cpuPct: 18,
   cpuHistory: [15, 20, 17, 24, 19, 21, 18],
-  coreHistories: Array.from({ length: 16 }, (_, i) => {
+  coreHistories: Array.from({ length: 12 }, (_, i) => {
     const base = 10 + ((i * 7) % 28);
     return [base - 4, base + 5, base - 2, base + 8, base + 2, base + 4, base];
   }),
-  memHistory: [32, 33, 34, 35, 34, 35, 35],
-  memPct: 35,
-  memNote: '物理内存 64 GB',
+  memHistory: [54, 56, 58, 57, 59, 58, 59],
+  memPct: 59,
+  memNote: '物理内存 16 GB',
   runningVmCount: 2,
   totalVmCount: 3,
-  vmAllocatedRamGb: 10.0,
+  vmAllocatedRamGb: 6.0,
   vmAllocatedVcpu: 12
 };
 
@@ -184,44 +181,28 @@ const INITIAL_SWITCHES = [
 const INITIAL_GPUS = [
   {
     id: 'gpu-0',
-    name: 'NVIDIA GeForce RTX 4090',
-    manu: 'NVIDIA',
-    vendor: 'ASUS (华硕)',
-    vram: '24564 MB',
-    driver: '32.0.15.6636',
-    instanceId: 'PCI\\VEN_10DE&DEV_2684&SUBSYS_889C1043&REV_A1\\4&2C8B14A&0&0008',
+    name: 'Qualcomm(R) Adreno(TM) X1-85 GPU',
+    manu: 'Qualcomm Incorporated',
+    vendor: 'Qualcomm Incorporated',
+    vram: '128 MB',
+    driver: '31.0.170.0',
+    instanceId: 'ACPI\\VEN_QCOM&DEV_0C36&SUBSYS_CRD08380&REV_0088\\0',
     partitionable: true,
-    assignedVms: ['test', 'ubuntu-dev'],
+    assignedVms: ['test', 'Windows11-ARM64'],
     pct: 14,
     pts3d: [10, 14, 19, 15, 18, 14],
     ptsCopy: [2, 4, 5, 3, 4, 4],
     ptsEnc: [0, 0, 0, 0, 0, 0],
     ptsDec: [4, 6, 9, 5, 7, 6]
-  },
-  {
-    id: 'gpu-1',
-    name: 'AMD Radeon(TM) Graphics',
-    manu: 'AMD',
-    vendor: 'AMD',
-    vram: '512 MB',
-    driver: '31.0.24002.92',
-    instanceId: 'PCI\\VEN_1002&DEV_164E&SUBSYS_88771043&REV_C1\\4&3E19B2&0&0041',
-    partitionable: false,
-    assignedVms: [],
-    pct: 1,
-    pts3d: [1, 2, 1, 2, 1, 1],
-    ptsCopy: [0, 1, 0, 0, 1, 0],
-    ptsEnc: [0, 0, 0, 0, 0, 0],
-    ptsDec: [0, 0, 1, 0, 0, 0]
   }
 ];
 
 const INITIAL_DISKS = [
   {
     number: 0,
-    name: 'WD_BLACK SN850X 2000GB',
-    sizeText: '1863.02 GB',
-    serial: 'WDS200T2X0E-00BCA0',
+    name: 'WDC CH SN530 SDBPTPZ-1T00-1024',
+    sizeText: '867.0 GB',
+    serial: '21481E801024',
     path: '\\\\.\\PhysicalDrive0',
     status: '系统盘（不可直通）',
     offline: false,
@@ -290,9 +271,9 @@ const INITIAL_PCIE = [
 const INITIAL_CPU_GROUPS = [
   {
     id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-    name: '性能组 (P-Core 0-15)',
-    processors: '0 - 15',
-    members: ['test', 'win11-arm64'],
+    name: '高性能核心组 (0-7)',
+    processors: '0 - 7',
+    members: ['test', 'Windows11-ARM64'],
     cpuCap: 100,
     priority: 5,
     idleReserve: 2,
@@ -301,9 +282,9 @@ const INITIAL_CPU_GROUPS = [
   },
   {
     id: '8c12a109-1b2c-4d3e-9a01-99100234ab12',
-    name: '后台能效组 (E-Core 16-31)',
-    processors: '16 - 31',
-    members: ['ubuntu-dev'],
+    name: '能效后台组 (8-11)',
+    processors: '8 - 11',
+    members: ['Win7-Gen1'],
     cpuCap: 75,
     priority: 2,
     idleReserve: 0,
@@ -967,9 +948,9 @@ function buildHostMemoryBreakdown() {
 function renderHostStatsBackFooter(kind) {
   return `
     <div class="host-rel-mode-footer">
-      <button type="button" class="host-led-chip host-rel-back-btn" data-host-toggle-stats="${esc(kind)}" title="返回详情界面" aria-label="返回详情">
+      <button type="button" class="host-led-chip host-rel-back-btn" data-host-toggle-stats="${esc(kind)}" title="返回" aria-label="返回">
         <span class="fi">&#xE72B;</span>
-        <span class="host-led-chip-name">返回详情</span>
+        <span class="host-led-chip-name">返回</span>
       </button>
     </div>
   `;
@@ -2227,19 +2208,25 @@ export function renderHostPage() {
   if (hostState.notice) {
     const sev = hostState.notice.severity || 'info';
     if (sev === 'success') {
-      toastHtml = `
-        <div class="winui-floating-toast" role="status">
-          <span class="winui-floating-toast-badge"><span class="fi">&#xE73E;</span></span>
-          <span>${esc(hostState.notice.text)}</span>
-        </div>
-      `;
-      if (typeof setTimeout === 'function') {
-        hostNoticeTimer = setTimeout(() => {
-          if (hostState.notice && hostState.notice.severity === 'success') {
-            hostState.notice = null;
-            renderHostPage();
-          }
-        }, 2600);
+      const expiresAt = hostState.notice._expiresAt ?? (hostState.notice._expiresAt = Date.now() + 2600);
+      const remainMs = expiresAt - Date.now();
+      if (remainMs <= 0) {
+        hostState.notice = null;
+      } else {
+        toastHtml = `
+          <div class="winui-floating-toast" role="status">
+            <span class="winui-floating-toast-badge"><span class="fi">&#xE73E;</span></span>
+            <span>${esc(hostState.notice.text)}</span>
+          </div>
+        `;
+        if (typeof setTimeout === 'function') {
+          hostNoticeTimer = setTimeout(() => {
+            if (hostState.notice && hostState.notice.severity === 'success') {
+              hostState.notice = null;
+              renderHostPage();
+            }
+          }, remainMs);
+        }
       }
     } else {
       const iconMap = { warning: '&#xE7BA;', info: '&#xE946;', error: '&#xE711;' };
@@ -2412,172 +2399,11 @@ function revertKeys(keys) {
   });
 }
 
-let hasAppliedHwOnce = false;
-let hasSyncedHostEntities = false;
-let hasProbedHostEntities = false;
-
-export function applyVirtualHardwareToHost(hw) {
-  if (!hw || typeof hw !== 'object') return;
-
-  if (hw.system?.osName?.value) {
-    const ver = hw.system.osVersion ? ` (${hw.system.osVersion})` : '';
-    HOST_SYS.os = `${hw.system.osName.value}${ver}`;
-  }
-  if (hw.system?.architecture?.value) {
-    HOST_SYS.arch = String(hw.system.architecture.value).toUpperCase();
-  }
-  if (hw.cpu) {
-    if (hw.cpu.displayName?.value) HOST_SYS.cpu = hw.cpu.displayName.value;
-    if (hw.cpu.shortName) HOST_SYS.cpuShort = hw.cpu.shortName;
-    if (typeof hw.cpu.physicalCores?.value === 'number') HOST_SYS.cores = hw.cpu.physicalCores.value;
-    if (typeof hw.cpu.logicalCores === 'number') HOST_SYS.threads = hw.cpu.logicalCores;
-    if (typeof hw.cpu.baseClockGhz?.value === 'number') HOST_SYS.baseClock = `${hw.cpu.baseClockGhz.value.toFixed(2)} GHz`;
-    if (typeof hw.cpu.currentClockGhz === 'number') HOST_SYS.curClock = `${hw.cpu.currentClockGhz.toFixed(2)} GHz`;
-    if (typeof hw.cpu.usagePct === 'number') HOST_SYS.cpuPct = hw.cpu.usagePct;
-    if (Array.isArray(hw.cpu.history) && hw.cpu.history.length > 1) HOST_SYS.cpuHistory = hw.cpu.history;
-    if (Array.isArray(hw.cpu.coreHistories) && hw.cpu.coreHistories.length > 0) {
-      HOST_SYS.coreHistories = hw.cpu.coreHistories;
-    }
-  }
-  if (hw.memory) {
-    if (typeof hw.memory.totalGb === 'number') HOST_SYS.memoryGb = hw.memory.totalGb;
-    if (typeof hw.memory.usedGb === 'number') HOST_SYS.usedMemoryGb = hw.memory.usedGb;
-    if (typeof hw.memory.usagePct === 'number') HOST_SYS.memPct = hw.memory.usagePct;
-    if (Array.isArray(hw.memory.history) && hw.memory.history.length > 1) HOST_SYS.memHistory = hw.memory.history;
-    HOST_SYS.memNote = hw.memory.capTip || `物理内存 ${HOST_SYS.memoryGb} GB`;
-  }
-
-  const mappedGpus = buildVirtualGpuEntries(hw);
-  if (mappedGpus.length > 0) {
-    hostState.gpus = mappedGpus.map((mg, idx) => ({
-      id: mg.hostId,
-      name: mg.name,
-      manu: mg.manu,
-      vendor: mg.vendor,
-      vram: mg.memoryText,
-      driver: mg.driverVersion,
-      instanceId: mg.instanceId,
-      partitionable: mg.partitionable,
-      assignedVms: mg.partitionable && idx === 0 ? ['test', 'Windows11-ARM64'] : [],
-      pct: mg.usagePct,
-      pts3d: mg.pts3d,
-      ptsCopy: mg.ptsCopy,
-      ptsEnc: mg.ptsEnc,
-      ptsDec: mg.ptsDec
-    }));
-    if (hostState.selectedRail.kind === 'gpu' && hostState.selectedRail.idx >= hostState.gpus.length) {
-      hostState.selectedRail.idx = 0;
-    }
-  }
-
-  if (hw.storage) {
-    // 宿主磁盘始终使用 ExHyperV 物理磁盘模拟数据（不使用浏览器 Origin Storage 配额），仅同步实时活动率波动
-    if (hostState.disks[0] && typeof hw.storage.activePct === 'number') {
-      const ratePts =
-        Array.isArray(hw.storage.rateHistory) && hw.storage.rateHistory.length > 1
-          ? hw.storage.rateHistory
-          : hostState.disks[0].readPts;
-      hostState.disks[0].pct = hw.storage.activePct;
-      hostState.disks[0].readPts = ratePts;
-      hostState.disks[0].writePts = ratePts.map((v) => Math.max(0, Math.round(v * 0.35)));
-    }
-    if (hostState.selectedRail.kind === 'disk' && hostState.selectedRail.idx >= hostState.disks.length) {
-      hostState.selectedRail.idx = 0;
-    }
-  }
-
-  if (hw.network) {
-    const rxPts = Array.isArray(hw.network.rxHistory) && hw.network.rxHistory.length > 1
-      ? hw.network.rxHistory
-      : [0, 0, 0, 0, 0, 0];
-    const txPts = rxPts.map((v) => Math.max(0, Math.round(v * 0.45)));
-    // 保留 4 类上游介质（有线 / Wi-Fi / 蜂窝 SIM / Tunnel）供原型展示，只同步主物理网卡实时波形
-    if (hostState.nics[0]) {
-      hostState.nics[0].sendRate = `${hw.network.sendKbps ?? 0} Kbps`;
-      hostState.nics[0].recvRate = `${hw.network.recvKbps ?? 0} Kbps`;
-      hostState.nics[0].sendPts = txPts;
-      hostState.nics[0].recvPts = rxPts;
-    }
-    if (hostState.selectedRail.kind === 'nic' && hostState.selectedRail.idx >= hostState.nics.length) {
-      hostState.selectedRail.idx = 0;
-    }
-    if (hostState.switches[0]) {
-      // 虚拟交换机是中游汇总（上游物理口 + 下游宿主 vEthernet + 下游 VM 东西向流量），不应与物理网卡波形完全一致
-      const swRxPts = rxPts.map((v, i) => Math.min(96, Math.max(4, Math.round(v * 1.35 + ((i * 7 + 9) % 16)))));
-      const swTxPts = txPts.map((v, i) => Math.min(96, Math.max(2, Math.round(v * 1.45 + ((i * 5 + 6) % 12)))));
-      const swSendKbps = Math.round((hw.network.sendKbps ?? 0) * 1.4 + 180);
-      const swRecvKbps = Math.round((hw.network.recvKbps ?? 0) * 1.3 + 420);
-      hostState.switches[0].sendRate = swSendKbps >= 1000 ? `${(swSendKbps / 1000).toFixed(1)} Mbps` : `${swSendKbps} Kbps`;
-      hostState.switches[0].recvRate = swRecvKbps >= 1000 ? `${(swRecvKbps / 1000).toFixed(1)} Mbps` : `${swRecvKbps} Kbps`;
-      hostState.switches[0].recvPts = swRxPts;
-      hostState.switches[0].sendPts = swTxPts;
-    }
-  }
-
-  const shouldInitEntities = !hasSyncedHostEntities || (Boolean(hw.probed) && !hasProbedHostEntities);
-  if (shouldInitEntities) {
-    hasSyncedHostEntities = true;
-    if (hw.probed) hasProbedHostEntities = true;
-    if (mappedGpus.length > 0) {
-      hostState.pcieDevices = mappedGpus.map((mg, idx) => ({
-        id: `pcie-gpu-${idx}`,
-        name: mg.name,
-        classType: 'Display',
-        vendor: mg.vendor,
-        instanceId: mg.instanceId,
-        path: '浏览器隐藏物理 PCIe 拓扑',
-        ownerKind: 'host',
-        ownerName: '宿主',
-        expanded: idx === 0
-      }));
-    }
-    const maxThreadIdx = Math.max(0, (HOST_SYS.threads || 8) - 1);
-    hostState.cpuGroups = [
-      {
-        id: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
-        name: `宿主逻辑核心组 (0-${maxThreadIdx})`,
-        processors: `0 - ${maxThreadIdx}`,
-        members: ['test', 'Windows11-ARM64'],
-        cpuCap: 100,
-        priority: 5,
-        idleReserve: 2,
-        weight: 1000,
-        expanded: true
-      }
-    ];
-  }
-
-  const page = document.getElementById('pageHost');
-  if (!page || page.hidden) return;
-  if (hostState.powerComboOpen) return;
-  const activeEl = document.activeElement;
-  if (
-    activeEl &&
-    page.contains(activeEl) &&
-    (['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName) || activeEl.closest?.('.winui-combo'))
-  ) {
-    return;
-  }
-  if (hostState.activeTab === 'state' || !hasAppliedHwOnce) {
-    hasAppliedHwOnce = true;
-    renderHostPage();
-  }
-}
-
 export function initHostPage(options = {}) {
   onHostRenderCallback = options.onRender || null;
   const page = document.getElementById('pageHost');
   if (!page || page.dataset.bound === 'true') return;
   page.dataset.bound = 'true';
-
-  if (typeof window !== 'undefined') {
-    if (window.__WIN11_HARDWARE__) {
-      applyVirtualHardwareToHost(window.__WIN11_HARDWARE__);
-    }
-    window.addEventListener('win11:hardware', (e) => {
-      applyVirtualHardwareToHost(e.detail);
-    });
-  }
 
   page.addEventListener('mouseover', (e) => {
     const target = e.target.closest?.('[data-host-led-vm]');
@@ -2746,6 +2572,7 @@ export function initHostPage(options = {}) {
       const sw = hostState.switches.find((x) => x.id === id);
       if (sw) {
         sw.allowManagementOs = !sw.allowManagementOs;
+        hostState.notice = { severity: 'success', text: '已应用' };
         renderHostPage();
       }
       return;
@@ -2803,6 +2630,7 @@ export function initHostPage(options = {}) {
       hostState.draft.powerPlanId = next;
       hostState.saved.powerPlanId = next;
       hostState.powerComboOpen = false;
+      hostState.notice = { severity: 'success', text: '已应用' };
       renderHostPage();
       return;
     }
@@ -2817,6 +2645,7 @@ export function initHostPage(options = {}) {
       const next = powerActionBtn.getAttribute('data-host-power-action') || 'Shutdown';
       hostState.draft.defaultPowerAction = next;
       hostState.saved.defaultPowerAction = next;
+      hostState.notice = { severity: 'success', text: '已应用' };
       renderHostPage();
       return;
     }
@@ -2829,6 +2658,7 @@ export function initHostPage(options = {}) {
       const next = presets[(presets.indexOf(hostState.draft[key]) + 1) % presets.length];
       hostState.draft[key] = next;
       hostState.saved[key] = next;
+      hostState.notice = { severity: 'success', text: '已应用' };
       renderHostPage();
       return;
     }
@@ -2845,6 +2675,8 @@ export function initHostPage(options = {}) {
             severity: 'warning',
             text: `${key === 'nativeNvme' ? '主机原生 NVMe' : 'Server 系统标识'}已更新，需重启宿主后生效。`
           };
+        } else {
+          hostState.notice = { severity: 'success', text: '已应用' };
         }
         renderHostPage();
       }
@@ -2903,16 +2735,19 @@ export function initHostPage(options = {}) {
     if (e.target.id === 'hostPowerPlanSelect') {
       hostState.draft.powerPlanId = e.target.value;
       hostState.saved.powerPlanId = e.target.value;
+      hostState.notice = { severity: 'success', text: '已应用' };
       renderHostPage();
     } else if (e.target.id === 'hostPowerActionSelect') {
       hostState.draft.defaultPowerAction = e.target.value;
       hostState.saved.defaultPowerAction = e.target.value;
+      hostState.notice = { severity: 'success', text: '已应用' };
       renderHostPage();
     } else if (e.target.matches('[data-host-sw-mode]')) {
       const id = e.target.getAttribute('data-host-sw-mode');
       const sw = hostState.switches.find((x) => x.id === id);
       if (sw) {
         sw.mode = e.target.value;
+        hostState.notice = { severity: 'success', text: '已应用' };
         renderHostPage();
       }
     }

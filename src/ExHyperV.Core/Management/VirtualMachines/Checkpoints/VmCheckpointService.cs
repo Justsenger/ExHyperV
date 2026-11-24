@@ -8,7 +8,7 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-/// <summary>管理检查点、应用、合并、删除及历史磁盘临时挂接，相关操作可能修改配置和磁盘文件。</summary>
+/// <summary>管理快照、应用、合并、删除及历史磁盘临时挂接，相关操作可能修改配置和磁盘文件。</summary>
 public static class VmCheckpointService
 {
     private const string SnapshotServiceWql = "SELECT * FROM Msvm_VirtualSystemSnapshotService";
@@ -38,79 +38,79 @@ public static class VmCheckpointService
         destination.Path = source.Path;
         destination.VirtualSystemType = source.VirtualSystemType;
         destination.VhdPath = source.VhdPath;
-        CopyWormholeCleanupState(destination, source);
+        CopyHistoricalDiskCleanupState(destination, source);
     }
 
-    private static void CopyWormholeCleanupState(CheckpointNode destination, CheckpointNode source)
+    private static void CopyHistoricalDiskCleanupState(CheckpointNode destination, CheckpointNode source)
     {
-        destination.IsWormhole = source.IsWormhole;
-        destination.WormholeTmpDiskPath = source.WormholeTmpDiskPath;
-        destination.WormholeRenamedPath = source.WormholeRenamedPath;
-        destination.WormholeDriveInstanceId = source.WormholeDriveInstanceId;
-        destination.WormholeCtrlType = source.WormholeCtrlType;
-        destination.WormholeCtrlNum = source.WormholeCtrlNum;
-        destination.WormholeCtrlLoc = source.WormholeCtrlLoc;
+        destination.IsHistoricalDiskMounted = source.IsHistoricalDiskMounted;
+        destination.HistoricalDiskTempPath = source.HistoricalDiskTempPath;
+        destination.HistoricalDiskRenamedPath = source.HistoricalDiskRenamedPath;
+        destination.HistoricalDiskDriveInstanceId = source.HistoricalDiskDriveInstanceId;
+        destination.HistoricalDiskCtrlType = source.HistoricalDiskCtrlType;
+        destination.HistoricalDiskCtrlNum = source.HistoricalDiskCtrlNum;
+        destination.HistoricalDiskCtrlLoc = source.HistoricalDiskCtrlLoc;
     }
 
-    internal static bool PrepareWormholeClose(CheckpointNode node, CheckpointNode currentNode)
+    internal static bool PrepareHistoricalDiskDismount(CheckpointNode node, CheckpointNode currentNode)
     {
-        if (currentNode.IsWormhole)
+        if (currentNode.IsHistoricalDiskMounted)
         {
             RefreshNodeOperationState(node, currentNode);
             return true;
         }
 
-        // 已卸载后，删除临时盘或恢复名称仍可能失败。只恢复同 VM、同检查点的 Core 内部清理记录。
+        // 已卸载后，删除临时盘或恢复名称仍可能失败。只恢复同 VM、同快照的 Core 内部清理记录。
         bool sameIdentity = !string.IsNullOrEmpty(node.VmId) && !string.IsNullOrEmpty(node.InstanceId) &&
             string.Equals(node.VmId, currentNode.VmId, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(node.InstanceId, currentNode.InstanceId, StringComparison.OrdinalIgnoreCase);
-        return sameIdentity && node.IsWormhole &&
-            !string.IsNullOrEmpty(node.WormholeTmpDiskPath) && !string.IsNullOrEmpty(node.WormholeRenamedPath);
+        return sameIdentity && node.IsHistoricalDiskMounted &&
+            !string.IsNullOrEmpty(node.HistoricalDiskTempPath) && !string.IsNullOrEmpty(node.HistoricalDiskRenamedPath);
     }
 
-    internal static void RestoreKnownWormholeCleanup(
+    internal static void RestoreKnownHistoricalDiskCleanup(
         IEnumerable<CheckpointNode> currentNodes, IEnumerable<CheckpointNode> knownNodes)
     {
         var known = knownNodes.ToList();
         foreach (var current in currentNodes.Where(candidate => candidate.NodeType == CheckpointNodeType.Snapshot))
         {
-            if (current.IsWormhole) continue;
+            if (current.IsHistoricalDiskMounted) continue;
             var pending = known.FirstOrDefault(candidate =>
                 string.Equals(candidate.Id, current.Id, StringComparison.OrdinalIgnoreCase) &&
-                PrepareWormholeClose(candidate, current));
-            if (pending != null) CopyWormholeCleanupState(current, pending);
+                PrepareHistoricalDiskDismount(candidate, current));
+            if (pending != null) CopyHistoricalDiskCleanupState(current, pending);
         }
     }
 
     /// <summary>检查节点集合中是否存在已打开的历史磁盘挂接。</summary>
-    /// <param name="nodes">检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。</param>
+    /// <param name="nodes">快照和当前状态节点列表，允许 null 的规则入口按没有节点处理。</param>
     /// <returns>存在打开的历史磁盘挂接时为 true，null 集合为 false。</returns>
-    public static bool HasOpenWormhole(IEnumerable<CheckpointNode>? nodes) =>
-        nodes?.Any(node => node.IsWormhole) == true;
+    public static bool HasMountedHistoricalDisk(IEnumerable<CheckpointNode>? nodes) =>
+        nodes?.Any(node => node.IsHistoricalDiskMounted) == true;
 
-    /// <summary>判断节点是否代表可操作的历史检查点。</summary>
-    /// <param name="node">目标历史检查点或已打开的历史磁盘挂接节点。</param>
-    /// <returns>仅非空且 NodeType 为 Snapshot 时返回 true，Genesis 和 Current 均不满足。</returns>
+    /// <summary>判断节点是否代表可操作的历史快照。</summary>
+    /// <param name="node">目标历史快照或已打开的历史磁盘挂接节点。</param>
+    /// <returns>仅非空且 NodeType 为 Snapshot 时返回 true，Origin 和 Current 均不满足。</returns>
     public static bool CanOperateHistoricalNode(CheckpointNode? node) =>
         node?.NodeType == CheckpointNodeType.Snapshot;
 
-    /// <summary>检查是否允许创建检查点，要求已启用检查点且没有打开的历史磁盘挂接。</summary>
-    /// <param name="checkpointsEnabled">当前是否允许使用检查点。</param>
-    /// <param name="nodes">检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。</param>
+    /// <summary>检查是否允许创建快照，要求已启用快照且没有打开的历史磁盘挂接。</summary>
+    /// <param name="checkpointsEnabled">当前是否允许使用快照。</param>
+    /// <param name="nodes">快照和当前状态节点列表，允许 null 的规则入口按没有节点处理。</param>
     /// <returns>当前输入满足条件时为 true。</returns>
-    public static bool CanCreateMoment(bool checkpointsEnabled, IEnumerable<CheckpointNode>? nodes) =>
-        checkpointsEnabled && !HasOpenWormhole(nodes);
+    public static bool CanCreateSnapshot(bool checkpointsEnabled, IEnumerable<CheckpointNode>? nodes) =>
+        checkpointsEnabled && !HasMountedHistoricalDisk(nodes);
 
-    /// <summary>判断历史检查点是否能执行修改，要求节点有效且没有打开的历史磁盘挂接。</summary>
-    /// <param name="node">目标历史检查点或已打开的历史磁盘挂接节点。</param>
-    /// <param name="nodes">检查点和当前状态节点的快照，允许 null 的规则入口按没有节点处理。</param>
+    /// <summary>判断历史快照是否能执行修改，要求节点有效且没有打开的历史磁盘挂接。</summary>
+    /// <param name="node">目标历史快照或已打开的历史磁盘挂接节点。</param>
+    /// <param name="nodes">快照和当前状态节点列表，允许 null 的规则入口按没有节点处理。</param>
     /// <returns>当前输入满足条件时为 true。</returns>
     public static bool CanMutateHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes) =>
-        CanOperateHistoricalNode(node) && !HasOpenWormhole(nodes);
+        CanOperateHistoricalNode(node) && !HasMountedHistoricalDisk(nodes);
 
-    /// <summary>判断历史检查点是否允许向左合并到父检查点，仅当父节点为历史检查点且目标节点是父节点的唯一直接子节点时允许合并，避免影响初始根节点、分叉节点或当前运行状态直接挂靠的父节点。</summary>
-    /// <param name="node">目标历史检查点。</param>
-    /// <param name="nodes">检查点和当前状态节点的快照，null 集合按没有节点处理。</param>
+    /// <summary>判断历史快照是否允许向左合并到父快照，仅当父节点为历史快照且目标节点是父节点的唯一直接子节点时允许合并，避免影响初始根节点、分叉节点或当前运行状态直接挂靠的父节点。</summary>
+    /// <param name="node">目标历史快照。</param>
+    /// <param name="nodes">快照和当前状态节点列表，null 集合按没有节点处理。</param>
     /// <returns>满足合并拓扑与无历史磁盘挂接条件时为 true。</returns>
     public static bool CanMergeHistoricalNode(CheckpointNode? node, IEnumerable<CheckpointNode>? nodes)
     {
@@ -132,12 +132,12 @@ public static class VmCheckpointService
         Func<Task<List<CheckpointNode>>> getNodes,
         Func<Task<(bool Success, string Message)>> mutate)
     {
-        if (HasOpenWormhole(await getNodes()))
-            return (false, Properties.Resources.VmCheckpointService_HintCloseWormholeFirst);
+        if (HasMountedHistoricalDisk(await getNodes()))
+            return (false, Properties.Resources.VmCheckpointService_HintDismountHistoricalDiskFirst);
         return await mutate();
     }
 
-    /// <summary>按稳定身份读取检查点树、当前状态及历史磁盘挂接信息。</summary>
+    /// <summary>按稳定身份读取快照树、当前状态及历史磁盘挂接信息。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <returns>完整节点列表，失败时返回原因。</returns>
     public static async Task<ApiResponse<List<CheckpointNode>>> GetCheckpointNodesAsync(Guid vmId)
@@ -153,22 +153,22 @@ public static class VmCheckpointService
     /// <param name="targetNode">来自该虚拟机的历史节点，执行前重新核对身份和当前磁盘关系。</param>
     /// <returns>挂接结果，失败可能发生在部分文件和配置变更之后。</returns>
     /// <remarks>
-    /// <para>只处理节点 VhdPath 指定的一个磁盘，不挂接该检查点的全部磁盘。流程可能将 .avhdx 改名为 _renamed.vhdx，再创建同目录 _wormhole_tmp.vhdx 差分盘并挂到 SCSI。关闭时移除临时盘并恢复文件名。当前运行磁盘父链上的节点不能这样挂接。</para>
+    /// <para>只处理节点 VhdPath 指定的一个磁盘，不挂接该快照的全部磁盘。流程可能将 .avhdx 改名为 _renamed.vhdx，再创建同目录 _historical_disk_tmp.vhdx 差分盘并挂到 SCSI。卸载时移除临时盘并恢复文件名。当前运行磁盘父链上的节点不能这样挂接。</para>
     /// <para>临时盘或改名目标已存在时返回冲突并保留文件，不凭固定文件名认定旧文件属于本次操作。创建结果尚未确认时保留现场，失败清理只删除本次已确认创建的临时盘。</para>
     /// </remarks>
-    /// <editentry label="临时挂接历史磁盘" category="检查点"/>
-    public static Task<ApiResponse> OpenWormholeAsync(Guid vmId, CheckpointNode targetNode) =>
-        RunCheckpointOperationAsync(vmId, () => OpenWormholeOperationAsync(vmId, targetNode));
+    /// <editentry label="临时挂接历史磁盘" category="快照"/>
+    public static Task<ApiResponse> MountHistoricalDiskAsync(Guid vmId, CheckpointNode targetNode) =>
+        RunCheckpointOperationAsync(vmId, () => MountHistoricalDiskOperationAsync(vmId, targetNode));
 
     /// <summary>移除历史磁盘挂接、删除临时盘并恢复历史磁盘名称。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <param name="node">要关闭挂接的历史节点，执行前重新核对当前实际挂接。</param>
     /// <returns>清理结果，失败时保留可供重试的节点状态。</returns>
-    /// <editentry label="结束历史磁盘挂接" category="检查点"/>
-    public static Task<ApiResponse> CloseWormholeAsync(Guid vmId, CheckpointNode node) =>
-        RunCheckpointOperationAsync(vmId, () => CloseWormholeOperationAsync(vmId, node));
+    /// <editentry label="结束历史磁盘挂接" category="快照"/>
+    public static Task<ApiResponse> DismountHistoricalDiskAsync(Guid vmId, CheckpointNode node) =>
+        RunCheckpointOperationAsync(vmId, () => DismountHistoricalDiskOperationAsync(vmId, node));
 
-    /// <summary>修改属于目标虚拟机的检查点名称。</summary>
+    /// <summary>修改属于目标虚拟机的快照名称。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <param name="node">目标历史节点，执行前重新核对归属。</param>
     /// <param name="newName">非空的新显示名称。</param>
@@ -176,15 +176,15 @@ public static class VmCheckpointService
     public static Task<ApiResponse> RenameSnapshotAsync(Guid vmId, CheckpointNode node, string newName) =>
         RunCheckpointOperationAsync(vmId, () => RenameSnapshotOperationAsync(vmId, node, newName));
 
-    /// <summary>关闭当前历史磁盘挂接，应用检查点，并完成流程要求的重新启动。</summary>
+    /// <summary>卸载当前历史磁盘挂接，应用快照，并完成流程要求的重新启动。</summary>
     /// <param name="node">要应用的历史节点。</param>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
-    /// <param name="nodes">可选的调用方节点快照，用于同步本次清理后的挂接状态。</param>
-    /// <returns>整个应用及必要重启结果，Steps 记录 CloseWormhole（ResourceId 为节点 ID）、Save、Apply、Start 及失败的状态检查 StateBeforeApply/StateBeforeRestart。未执行的步骤不列出，后续失败不会撤销已经完成的步骤。</returns>
+    /// <param name="nodes">可选的调用方节点列表，用于同步本次清理后的挂接状态。</param>
+    /// <returns>整个应用及必要重启结果，Steps 记录 DismountHistoricalDisk（ResourceId 为节点 ID）、Save、Apply、Start 及失败的状态检查 StateBeforeApply/StateBeforeRestart。未执行的步骤不列出，后续失败不会撤销已经完成的步骤。</returns>
     /// <remarks>初始为运行或暂停的虚拟机，在应用后启动。</remarks>
-    /// <editentry label="恢复检查点" category="检查点"/>
-    public static Task<ApiResponse> TeleportAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null) =>
-        RunCheckpointResponseAsync(vmId, () => TeleportOperationAsync(node, vmId, nodes ?? []));
+    /// <editentry label="应用快照" category="快照"/>
+    public static Task<ApiResponse> ApplySnapshotAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null) =>
+        RunCheckpointResponseAsync(vmId, () => ApplySnapshotOperationAsync(node, vmId, nodes ?? []));
 
     private static async Task<ApiResponse> RunCheckpointResponseAsync(Guid vmId, Func<Task<ApiResponse>> operation)
     {
@@ -195,29 +195,29 @@ public static class VmCheckpointService
         catch (Exception ex) { return ApiResponse.Fail(ex.Message, exception: ex, kind: ApiErrorKind.OperationFailed); }
     }
 
-    /// <summary>按虚拟机当前检查点策略创建检查点。</summary>
+    /// <summary>按虚拟机当前快照策略创建快照。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
-    /// <returns>检查点创建结果。</returns>
-    /// <editentry label="创建检查点" category="检查点"/>
-    public static Task<ApiResponse> CaptureMomentAsync(Guid vmId) =>
+    /// <returns>快照创建结果。</returns>
+    /// <editentry label="创建快照" category="快照"/>
+    public static Task<ApiResponse> CreateSnapshotAsync(Guid vmId) =>
         VmSettingsWriteLock.RunAsync(vmId, () =>
-            RunCheckpointOperationAsync(vmId, () => CaptureMomentOperationAsync(vmId)));
+            RunCheckpointOperationAsync(vmId, () => CreateSnapshotOperationAsync(vmId)));
 
-    /// <summary>删除目标检查点及其全部后代检查点。</summary>
+    /// <summary>删除目标快照及其全部后代快照。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <param name="node">要删除的历史节点，执行前核对归属及历史磁盘挂接互锁。</param>
     /// <returns>删除结果。</returns>
-    /// <editentry label="删除检查点" category="检查点"/>
-    public static Task<ApiResponse> AnnihilateAsync(Guid vmId, CheckpointNode node) =>
-        RunCheckpointOperationAsync(vmId, () => AnnihilateOperationAsync(vmId, node));
+    /// <editentry label="删除快照" category="快照"/>
+    public static Task<ApiResponse> DeleteSnapshotAsync(Guid vmId, CheckpointNode node) =>
+        RunCheckpointOperationAsync(vmId, () => DeleteSnapshotOperationAsync(vmId, node));
 
-    /// <summary>将目标历史检查点向左合并到父检查点并保留父检查点名称与后续节点。</summary>
+    /// <summary>将目标历史快照向左合并到父快照并保留父快照名称与后续节点。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
-    /// <param name="node">要合并到父节点的历史检查点，执行前核对归属、父子单线关系及历史磁盘挂接互锁。</param>
+    /// <param name="node">要合并到父节点的历史快照，执行前核对归属、父子单线关系及历史磁盘挂接互锁。</param>
     /// <returns>合并结果。</returns>
-    /// <editentry label="合并检查点" category="检查点"/>
-    public static Task<ApiResponse> ConvergeAsync(Guid vmId, CheckpointNode node) =>
-        RunCheckpointOperationAsync(vmId, () => ConvergeOperationAsync(vmId, node));
+    /// <editentry label="合并快照" category="快照"/>
+    public static Task<ApiResponse> MergeSnapshotAsync(Guid vmId, CheckpointNode node) =>
+        RunCheckpointOperationAsync(vmId, () => MergeSnapshotOperationAsync(vmId, node));
 
     internal static async Task<ApiResponse> RunCheckpointOperationAsync(Guid vmId, Func<Task<(bool Success, string Message)>> operation)
     {
@@ -297,7 +297,7 @@ public static class VmCheckpointService
                 !string.IsNullOrEmpty(n.Id)).ToList();
             var realizedNode = nodes.FirstOrDefault(n => n.VirtualSystemType == "Microsoft:Hyper-V:System:Realized");
 
-            DateTime genesisTime = snapshots.Any()
+            DateTime originTime = snapshots.Any()
                 ? snapshots.Min(s => s.CreatedDate).AddMinutes(-1)
                 : DateTime.Now;
 
@@ -324,16 +324,16 @@ public static class VmCheckpointService
                 string currentVhdPath = sasdList.FirstOrDefault(d => d.Id.Contains(realizedNode.InstanceId))?.Path ?? string.Empty;
                 if (!string.IsNullOrEmpty(currentVhdPath))
                 {
-                    string genesisPath = await Task.Run(() => TraceToGenesisPath(currentVhdPath));
-                    if (File.Exists(genesisPath))
+                    string originPath = await Task.Run(() => TraceToOriginPath(currentVhdPath));
+                    if (File.Exists(originPath))
                     {
-                        var fi = new FileInfo(genesisPath);
+                        var fi = new FileInfo(originPath);
                         var candidate = fi.CreationTime < fi.LastWriteTime ? fi.CreationTime : fi.LastWriteTime;
                         if (snapshots.Any())
                             candidate = candidate < snapshots.Min(s => s.CreatedDate)
                                 ? candidate
                                 : snapshots.Min(s => s.CreatedDate).AddMinutes(-1);
-                        genesisTime = candidate;
+                        originTime = candidate;
                     }
                 }
             }
@@ -341,12 +341,12 @@ public static class VmCheckpointService
             foreach (var node in snapshots)
                 node.NodeType = CheckpointNodeType.Snapshot;
 
-            var genesisNode = new CheckpointNode
+            var originNode = new CheckpointNode
             {
-                Id = CheckpointNode.GenesisId,
+                Id = CheckpointNode.OriginId,
                 Name = Properties.Resources.VmCheckpointService_NodeLabelOrigin,
-                NodeType = CheckpointNodeType.Genesis,
-                CreatedDate = genesisTime
+                NodeType = CheckpointNodeType.Origin,
+                CreatedDate = originTime
             };
             var currentNode = new CheckpointNode
             {
@@ -358,23 +358,23 @@ public static class VmCheckpointService
             };
 
             foreach (var s in snapshots)
-                if (string.IsNullOrEmpty(s.ParentId)) s.ParentId = CheckpointNode.GenesisId;
+                if (string.IsNullOrEmpty(s.ParentId)) s.ParentId = CheckpointNode.OriginId;
 
             if (realizedNode != null)
             {
                 currentNode.ParentId = string.IsNullOrEmpty(realizedNode.ParentId)
-                    ? CheckpointNode.GenesisId : realizedNode.ParentId;
+                    ? CheckpointNode.OriginId : realizedNode.ParentId;
                 var anchorNode = snapshots.FirstOrDefault(s => s.Id == realizedNode.ParentId);
                 if (anchorNode != null) anchorNode.IsCurrent = true;
-                else if (currentNode.ParentId == CheckpointNode.GenesisId) genesisNode.IsCurrent = true;
+                else if (currentNode.ParentId == CheckpointNode.OriginId) originNode.IsCurrent = true;
             }
 
-            var result = new List<CheckpointNode> { genesisNode };
+            var result = new List<CheckpointNode> { originNode };
             result.AddRange(snapshots);
             result.Add(currentNode);
 
             // 同步等检测完成再返回，历史磁盘挂接标记在节点绑定到 UI 之前落定，避免后台线程跨线程修改状态。
-            await DetectAndMarkWormholeAsync(vmId, result);
+            await DetectAndMarkHistoricalDiskAsync(vmId, result);
 
             return result;
         }
@@ -386,7 +386,7 @@ public static class VmCheckpointService
         }
     }
 
-    private static async Task DetectAndMarkWormholeAsync(Guid vmId, List<CheckpointNode> nodes)
+    private static async Task DetectAndMarkHistoricalDiskAsync(Guid vmId, List<CheckpointNode> nodes)
     {
         try
         {
@@ -396,13 +396,13 @@ public static class VmCheckpointService
             string vmGuid = RequireData(vmGuidResponse);
             var diskPaths = await GetVmScsiDiskPathsAsync(vmGuid);
 
-            string? wormholePath = diskPaths.FirstOrDefault(p =>
-                p.Contains("_wormhole_tmp", StringComparison.OrdinalIgnoreCase));
+            string? mountedDiskPath = diskPaths.FirstOrDefault(p =>
+                p.Contains("_historical_disk_tmp", StringComparison.OrdinalIgnoreCase));
 
-            CoreDiagnostics.Report("WormholeDiskProbed", TraceEventType.Verbose, details: $"found={wormholePath != null}");
-            if (wormholePath == null) return;
+            CoreDiagnostics.Report("HistoricalDiskProbed", TraceEventType.Verbose, details: $"found={mountedDiskPath != null}");
+            if (mountedDiskPath == null) return;
 
-            string renamedParentPath = await GetVhdParentPathAsync(wormholePath);
+            string renamedParentPath = await GetVhdParentPathAsync(mountedDiskPath);
             string originalAvhdxPath = renamedParentPath.Replace("_renamed.vhdx", ".avhdx", StringComparison.OrdinalIgnoreCase);
 
             var targetNode = nodes.FirstOrDefault(n =>
@@ -411,43 +411,43 @@ public static class VmCheckpointService
                 (string.Equals(n.VhdPath, originalAvhdxPath, StringComparison.OrdinalIgnoreCase) ||
                  string.Equals(n.VhdPath, renamedParentPath, StringComparison.OrdinalIgnoreCase)));
 
-            if (targetNode == null) throw new InvalidOperationException("已挂接历史磁盘，但无法匹配其检查点，不能继续修改检查点。");
+            if (targetNode == null) throw new InvalidOperationException("已挂接历史磁盘，但无法匹配其快照，不能继续修改快照。");
 
-            var slotInfo = await GetDiskSlotInfoAsync(vmGuid, wormholePath);
+            var slotInfo = await GetDiskSlotInfoAsync(vmGuid, mountedDiskPath);
             var slot = RequireData(slotInfo);
 
-            targetNode.IsWormhole = true;
-            targetNode.WormholeTmpDiskPath = wormholePath;
-            targetNode.WormholeRenamedPath = renamedParentPath;
-            targetNode.WormholeDriveInstanceId = slot.DriveInstanceId;
-            targetNode.WormholeCtrlType = slot.CtrlType;
-            targetNode.WormholeCtrlNum = slot.CtrlNum;
-            targetNode.WormholeCtrlLoc = slot.CtrlLoc;
+            targetNode.IsHistoricalDiskMounted = true;
+            targetNode.HistoricalDiskTempPath = mountedDiskPath;
+            targetNode.HistoricalDiskRenamedPath = renamedParentPath;
+            targetNode.HistoricalDiskDriveInstanceId = slot.DriveInstanceId;
+            targetNode.HistoricalDiskCtrlType = slot.CtrlType;
+            targetNode.HistoricalDiskCtrlNum = slot.CtrlNum;
+            targetNode.HistoricalDiskCtrlLoc = slot.CtrlLoc;
 
-            CoreDiagnostics.Report("WormholeMarked", TraceEventType.Verbose);
+            CoreDiagnostics.Report("HistoricalDiskMarked", TraceEventType.Verbose);
         }
         catch (CheckpointReadException) { throw; }
         catch (Exception ex)
         {
-            CoreDiagnostics.Report("WormholeDetectionFailed", error: ex);
+            CoreDiagnostics.Report("HistoricalDiskDetectionFailed", error: ex);
             throw;
         }
     }
 
-    private static async Task<(bool Success, string Message)> OpenWormholeOperationAsync(Guid vmId, CheckpointNode targetNode)
+    private static async Task<(bool Success, string Message)> MountHistoricalDiskOperationAsync(Guid vmId, CheckpointNode targetNode)
     {
         ArgumentNullException.ThrowIfNull(targetNode);
         var currentNode = ResolveHistoricalNode(await ReadCheckpointStateAsync(vmId), targetNode);
         if (currentNode == null)
             return (false, Properties.Resources.VmCheckpointService_ErrSnapshotPathInvalid);
-        if (PrepareWormholeClose(targetNode, currentNode))
-            return (false, Properties.Resources.VmCheckpointService_ErrNodeHasWormhole);
+        if (PrepareHistoricalDiskDismount(targetNode, currentNode))
+            return (false, Properties.Resources.VmCheckpointService_ErrNodeHasHistoricalDisk);
         RefreshNodeOperationState(targetNode, currentNode);
 
-        var existsResult = await CheckAnyWormholeExistsAsync(vmId);
-        CoreDiagnostics.Report("WormholeExists", TraceEventType.Verbose, details: $"exists={existsResult}");
+        var existsResult = await CheckAnyHistoricalDiskExistsAsync(vmId);
+        CoreDiagnostics.Report("HistoricalDiskExists", TraceEventType.Verbose, details: $"exists={existsResult}");
         if (existsResult)
-            return (false, Properties.Resources.VmCheckpointService_ErrWormholeAlreadyExists);
+            return (false, Properties.Resources.VmCheckpointService_ErrHistoricalDiskAlreadyExists);
 
         if (await IsNodeInCurrentChainAsync(vmId, targetNode.VhdPath))
             return (false, Properties.Resources.VmCheckpointService_ErrParentChainNode);
@@ -456,18 +456,18 @@ public static class VmCheckpointService
             return (false, Properties.Resources.VmCheckpointService_ErrOnlySnapshotNode);
         if (string.IsNullOrEmpty(targetNode.VhdPath))
             return (false, Properties.Resources.VmCheckpointService_ErrSnapshotPathInvalid);
-        if (targetNode.IsWormhole)
-            return (false, Properties.Resources.VmCheckpointService_ErrNodeHasWormhole);
+        if (targetNode.IsHistoricalDiskMounted)
+            return (false, Properties.Resources.VmCheckpointService_ErrNodeHasHistoricalDisk);
 
         string diskDir = Path.GetDirectoryName(targetNode.VhdPath) ?? "";
         string originalAvhdx = targetNode.VhdPath;
         string renamedVhdx = originalAvhdx.Replace(".avhdx", "_renamed.vhdx", StringComparison.OrdinalIgnoreCase);
-        string tmpDisk = Path.Combine(diskDir, "_wormhole_tmp.vhdx");
+        string tmpDisk = Path.Combine(diskDir, "_historical_disk_tmp.vhdx");
 
         if (string.IsNullOrEmpty(diskDir))
             return (false, Properties.Resources.VmCheckpointService_ErrCannotDetermineDiskDir);
 
-        RequireSuccess(CheckWormholeOutputPaths(tmpDisk, renamedVhdx));
+        RequireSuccess(CheckHistoricalDiskOutputPaths(tmpDisk, renamedVhdx));
 
         var (ctrlType, ctrlNum, ctrlLoc) = await FindFreeScsiSlotAsync(vmId);
         if (ctrlNum == -1) return (false, Properties.Resources.VmCheckpointService_ErrNoScsiSlot);
@@ -488,19 +488,19 @@ public static class VmCheckpointService
             var addResult = await AddVmHardDiskDriveAsync(vmId, ctrlType, ctrlNum, ctrlLoc, tmpDisk);
             if (!addResult.Success)
             {
-                RequireWormholeCleanupSafety(addResult, tmpDisk, renamedVhdx);
+                RequireHistoricalDiskCleanupSafety(addResult, tmpDisk, renamedVhdx);
                 File.Move(renamedVhdx, originalAvhdx);
                 return (false, addResult.Error);
             }
 
-            targetNode.IsWormhole = true;
-            targetNode.WormholeTmpDiskPath = tmpDisk;
-            targetNode.WormholeRenamedPath = renamedVhdx;
-            targetNode.WormholeCtrlType = ctrlType;
-            targetNode.WormholeCtrlNum = ctrlNum;
-            targetNode.WormholeCtrlLoc = ctrlLoc;
+            targetNode.IsHistoricalDiskMounted = true;
+            targetNode.HistoricalDiskTempPath = tmpDisk;
+            targetNode.HistoricalDiskRenamedPath = renamedVhdx;
+            targetNode.HistoricalDiskCtrlType = ctrlType;
+            targetNode.HistoricalDiskCtrlNum = ctrlNum;
+            targetNode.HistoricalDiskCtrlLoc = ctrlLoc;
 
-            return (true, Properties.Resources.VmCheckpointService_MsgWormholeOpened);
+            return (true, Properties.Resources.VmCheckpointService_MsgHistoricalDiskMounted);
         }
         catch (CheckpointReadException) { throw; }
         catch (Exception ex)
@@ -512,7 +512,7 @@ public static class VmCheckpointService
         }
     }
 
-    internal static ApiResponse CheckWormholeOutputPaths(string temporaryDisk, string renamedParent)
+    internal static ApiResponse CheckHistoricalDiskOutputPaths(string temporaryDisk, string renamedParent)
     {
         foreach (string path in new[] { temporaryDisk, renamedParent })
             if (Path.Exists(path))
@@ -521,52 +521,52 @@ public static class VmCheckpointService
         return ApiResponse.Ok();
     }
 
-    private static async Task<(bool Success, string Message)> CloseWormholeOperationAsync(Guid vmId, CheckpointNode node)
+    private static async Task<(bool Success, string Message)> DismountHistoricalDiskOperationAsync(Guid vmId, CheckpointNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
         var currentNode = ResolveHistoricalNode(await ReadCheckpointStateAsync(vmId), node);
         if (currentNode == null)
             return (false, Properties.Resources.VmCheckpointService_ErrSnapshotPathInvalid);
-        if (!PrepareWormholeClose(node, currentNode))
-            return (false, Properties.Resources.VmCheckpointService_ErrNoActiveWormhole);
+        if (!PrepareHistoricalDiskDismount(node, currentNode))
+            return (false, Properties.Resources.VmCheckpointService_ErrNoActiveHistoricalDisk);
 
         try
         {
             // 按临时磁盘路径核对本 VM 当前资源。查询失败与已卸载必须区分，不能把失败当作 0 号槽位。
-            var slotResponse = await GetDiskSlotInfoAsync(currentNode.VmId, node.WormholeTmpDiskPath,
-                node.WormholeDriveInstanceId);
+            var slotResponse = await GetDiskSlotInfoAsync(currentNode.VmId, node.HistoricalDiskTempPath,
+                node.HistoricalDiskDriveInstanceId);
             if (!slotResponse.Success)
                 return (false, slotResponse.Error);
             if (slotResponse.HasData)
             {
                 var slot = slotResponse.Data!;
-                node.WormholeDriveInstanceId = slot.DriveInstanceId;
-                node.WormholeCtrlType = slot.CtrlType;
-                node.WormholeCtrlNum = slot.CtrlNum;
-                node.WormholeCtrlLoc = slot.CtrlLoc;
-                var removeResult = await RemoveWormholeDiskAsync(slot);
+                node.HistoricalDiskDriveInstanceId = slot.DriveInstanceId;
+                node.HistoricalDiskCtrlType = slot.CtrlType;
+                node.HistoricalDiskCtrlNum = slot.CtrlNum;
+                node.HistoricalDiskCtrlLoc = slot.CtrlLoc;
+                var removeResult = await RemoveHistoricalDiskAsync(slot);
                 RequireSuccess(removeResult);
             }
 
-            if (File.Exists(node.WormholeTmpDiskPath))
-                File.Delete(node.WormholeTmpDiskPath);
+            if (File.Exists(node.HistoricalDiskTempPath))
+                File.Delete(node.HistoricalDiskTempPath);
 
-            string originalAvhdx = node.WormholeRenamedPath.Replace(
+            string originalAvhdx = node.HistoricalDiskRenamedPath.Replace(
                 "_renamed.vhdx", ".avhdx", StringComparison.OrdinalIgnoreCase);
-            if (File.Exists(node.WormholeRenamedPath) && !File.Exists(originalAvhdx))
-                File.Move(node.WormholeRenamedPath, originalAvhdx);
+            if (File.Exists(node.HistoricalDiskRenamedPath) && !File.Exists(originalAvhdx))
+                File.Move(node.HistoricalDiskRenamedPath, originalAvhdx);
 
-            node.IsWormhole = false;
-            node.WormholeTmpDiskPath = string.Empty;
-            node.WormholeRenamedPath = string.Empty;
-            node.WormholeDriveInstanceId = string.Empty;
+            node.IsHistoricalDiskMounted = false;
+            node.HistoricalDiskTempPath = string.Empty;
+            node.HistoricalDiskRenamedPath = string.Empty;
+            node.HistoricalDiskDriveInstanceId = string.Empty;
 
-            return (true, Properties.Resources.VmCheckpointService_MsgWormholeClosed);
+            return (true, Properties.Resources.VmCheckpointService_MsgHistoricalDiskDismounted);
         }
         catch (CheckpointReadException) { throw; }
         catch (Exception ex)
         {
-            return (false, string.Format(Properties.Resources.VmCheckpointService_ErrCloseWormholeException, ex.Message));
+            return (false, string.Format(Properties.Resources.VmCheckpointService_ErrDismountHistoricalDiskException, ex.Message));
         }
     }
 
@@ -609,7 +609,7 @@ public static class VmCheckpointService
         }
     }
 
-    private static async Task<ApiResponse> TeleportOperationAsync(
+    private static async Task<ApiResponse> ApplySnapshotOperationAsync(
         CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode> nodes)
     {
         ArgumentNullException.ThrowIfNull(node);
@@ -622,41 +622,41 @@ public static class VmCheckpointService
         if (currentNode == null)
             return ApiResponse.Fail(Properties.Resources.VmCheckpointService_ErrSnapshotPathInvalid, kind: ApiErrorKind.NotFound);
         var callerNodes = nodes.Append(node).ToList();
-        RestoreKnownWormholeCleanup(currentNodes, callerNodes);
+        RestoreKnownHistoricalDiskCleanup(currentNodes, callerNodes);
         RefreshNodeOperationState(node, currentNode);
 
         var steps = new List<OperationStepResult>();
-        foreach (var wormhole in currentNodes.Where(candidate => candidate.IsWormhole).ToList())
+        foreach (var mounted in currentNodes.Where(candidate => candidate.IsHistoricalDiskMounted).ToList())
         {
             var result = await RunCheckpointOperationAsync(vmId, async () =>
             {
-                var closed = await CloseWormholeOperationAsync(vmId, wormhole);
+                var dismounted = await DismountHistoricalDiskOperationAsync(vmId, mounted);
                 foreach (var callerNode in callerNodes.Where(candidate =>
-                    string.Equals(candidate.Id, wormhole.Id, StringComparison.OrdinalIgnoreCase)))
-                    RefreshNodeOperationState(callerNode, wormhole);
-                return closed;
+                    string.Equals(candidate.Id, mounted.Id, StringComparison.OrdinalIgnoreCase)))
+                    RefreshNodeOperationState(callerNode, mounted);
+                return dismounted;
             });
-            steps.Add(OperationStepResult.From("CloseWormhole", result) with { ResourceId = wormhole.Id });
+            steps.Add(OperationStepResult.From("DismountHistoricalDisk", result) with { ResourceId = mounted.Id });
             if (!result.Success) return result.WithSteps(steps);
         }
         var applied = await RunCheckpointResponseAsync(vmId, () => ApplySnapshotCoreAsync(currentNode, vmId));
         return applied.WithSteps(steps.Concat(applied.Steps));
     }
 
-    internal static async Task<(bool Success, string Message)> CloseWormholesAndTeleportOperationAsync(
+    internal static async Task<(bool Success, string Message)> DismountHistoricalDisksAndApplyOperationAsync(
         CheckpointNode node, IEnumerable<CheckpointNode> nodes,
-        Func<CheckpointNode, Task<(bool Success, string Message)>> close,
-        Func<Task<(bool Success, string Message)>> teleport)
+        Func<CheckpointNode, Task<(bool Success, string Message)>> dismount,
+        Func<Task<(bool Success, string Message)>> apply)
     {
         if (!CanOperateHistoricalNode(node))
             return (false, Properties.Resources.VmCheckpointService_ErrOnlyHistoricalNode);
 
-        foreach (var wormhole in nodes.Where(candidate => candidate.IsWormhole).ToList())
+        foreach (var mounted in nodes.Where(candidate => candidate.IsHistoricalDiskMounted).ToList())
         {
-            var result = await close(wormhole);
+            var result = await dismount(mounted);
             if (!result.Success) return result;
         }
-        return await teleport();
+        return await apply();
     }
 
     private static async Task<ApiResponse> ApplySnapshotCoreAsync(CheckpointNode node, Guid vmId)
@@ -667,7 +667,7 @@ public static class VmCheckpointService
             action => VmPowerService.ExecuteControlActionAsync(vmId, action),
             () => WmiApi.InvokeAsync(SnapshotServiceWql, "ApplySnapshot", p => p["Snapshot"] = node.Path),
             milliseconds => Task.Delay(milliseconds));
-        return await ApplySnapshotAsync(backend);
+        return await ExecuteApplySnapshotAsync(backend);
     }
 
     internal sealed record SnapshotApplyBackend(
@@ -676,7 +676,7 @@ public static class VmCheckpointService
         Func<Task<ApiResponse>> Apply,
         Func<int, Task> Delay);
 
-    internal static async Task<ApiResponse> ApplySnapshotAsync(SnapshotApplyBackend backend)
+    internal static async Task<ApiResponse> ExecuteApplySnapshotAsync(SnapshotApplyBackend backend)
     {
         var steps = new List<OperationStepResult>();
         string stage = "StateBeforeApply";
@@ -705,7 +705,7 @@ public static class VmCheckpointService
                     if (!current.HasData) return Finish(SnapshotStateFailure(current), stage);
                     if (current.Data is 3 or 6) { ready = true; break; }
                 }
-                if (!ready) return Finish(ApiResponse.Fail("虚拟机未进入可应用检查点的状态，未执行检查点应用。", kind: ApiErrorKind.InvalidState), stage);
+                if (!ready) return Finish(ApiResponse.Fail("虚拟机未进入可应用快照的状态，未执行快照应用。", kind: ApiErrorKind.InvalidState), stage);
             }
             stage = "Apply";
             var applied = await backend.Apply();
@@ -719,19 +719,19 @@ public static class VmCheckpointService
                 if (!current.HasData)
                 {
                     var failure = SnapshotStateFailure(current);
-                    return Finish(ApiResponse.Fail("检查点已应用，但无法读取重新启动所需的状态：" + failure.Error,
+                    return Finish(ApiResponse.Fail("快照已应用，但无法读取重新启动所需的状态：" + failure.Error,
                         failure.Code, failure.ErrorSource, failure.Exception, failure.ErrorKind), stage);
                 }
                 if (current.Data is 3 or 6)
                 {
                     stage = "Start";
                     var started = await backend.Power(VmPowerAction.Start);
-                    return Finish(started.Success ? started : ApiResponse.Fail("检查点已应用，但重新启动失败：" + started.Error,
+                    return Finish(started.Success ? started : ApiResponse.Fail("快照已应用，但重新启动失败：" + started.Error,
                         started.Code, started.ErrorSource, started.Exception, started.ErrorKind), stage);
                 }
                 await backend.Delay(1000);
             }
-            return Finish(ApiResponse.Fail("检查点已应用，但虚拟机未进入可重新启动的状态。", kind: ApiErrorKind.InvalidState), stage);
+            return Finish(ApiResponse.Fail("快照已应用，但虚拟机未进入可重新启动的状态。", kind: ApiErrorKind.InvalidState), stage);
         }
         catch (Exception ex)
         {
@@ -744,12 +744,12 @@ public static class VmCheckpointService
         result.Success ? Properties.Resources.VmCheckpointService_ErrVmNotFound : result.Error,
         result.Code, result.ErrorSource, result.Exception, result.Success ? ApiErrorKind.NotFound : result.ErrorKind);
 
-    private static Task<(bool Success, string Message)> CaptureMomentOperationAsync(Guid vmId) =>
+    private static Task<(bool Success, string Message)> CreateSnapshotOperationAsync(Guid vmId) =>
         RunCheckpointMutationAsync(
             () => ReadCheckpointStateAsync(vmId),
-            () => CaptureMomentCoreAsync(vmId));
+            () => CreateSnapshotCoreAsync(vmId));
 
-    private static async Task<(bool Success, string Message)> CaptureMomentCoreAsync(Guid vmId)
+    private static async Task<(bool Success, string Message)> CreateSnapshotCoreAsync(Guid vmId)
     {
         var vmResponse = await WmiApi.QueryFirstAsync(
             $"SELECT * FROM Msvm_ComputerSystem WHERE {VmIdentity.ComputerSystemPredicate(vmId)}",
@@ -774,7 +774,7 @@ public static class VmCheckpointService
             snapSettings["ElementName"] = snapshotName;
             string snapXml = snapSettings.GetText(TextFormat.WmiDtd20);
 
-            var createResult = await CaptureWithPolicyAsync(policy,
+            var createResult = await CreateWithPolicyAsync(policy,
                 async () =>
                 {
                     var receipt = await WmiApi.InvokeCreationAsync(SnapshotServiceWql, "CreateSnapshot",
@@ -801,20 +801,20 @@ public static class VmCheckpointService
     internal static ApiResponse ConfirmSnapshotReceipt(WmiCreationResult receipt)
     {
         if (receipt.OutcomeUnknown || receipt.Response.Success && receipt.CreatedPaths.Length != 1)
-            return WmiJobWaiter.Unknown("未取得唯一且已结束的检查点创建回执。 " + receipt.Response.Error,
+            return WmiJobWaiter.Unknown("未取得唯一且已结束的快照创建回执。 " + receipt.Response.Error,
                 receipt.Response.Code, receipt.Response.ErrorSource, receipt.Response.Exception);
         return receipt.Response;
     }
 
-    internal static async Task<ApiResponse> CaptureWithPolicyAsync(ushort policy, Func<Task<ApiResponse>> create)
+    internal static async Task<ApiResponse> CreateWithPolicyAsync(ushort policy, Func<Task<ApiResponse>> create)
     {
-        if (policy == 2) return ApiResponse.Fail("此虚拟机已禁用检查点。", kind: ApiErrorKind.InvalidState);
-        if (policy is not (3 or 4 or 5)) return ApiResponse.Fail("无法识别当前检查点策略。", kind: ApiErrorKind.Unsupported);
+        if (policy == 2) return ApiResponse.Fail("此虚拟机已禁用快照。", kind: ApiErrorKind.InvalidState);
+        if (policy is not (3 or 4 or 5)) return ApiResponse.Fail("无法识别当前快照策略。", kind: ApiErrorKind.Unsupported);
         try { return await create(); }
         catch (Exception error) { return WmiJobWaiter.FromException(error, submitted: true); }
     }
 
-    private static async Task<(bool Success, string Message)> AnnihilateOperationAsync(Guid vmId, CheckpointNode node)
+    private static async Task<(bool Success, string Message)> DeleteSnapshotOperationAsync(Guid vmId, CheckpointNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
         if (node.IsLogicalNode)
@@ -825,10 +825,10 @@ public static class VmCheckpointService
         if (currentNode == null)
             return (false, Properties.Resources.VmCheckpointService_ErrSnapshotPathInvalid);
         return await RunCheckpointMutationAsync(() => Task.FromResult(nodes),
-            () => AnnihilateCoreAsync(currentNode));
+            () => DeleteSnapshotCoreAsync(currentNode));
     }
 
-    private static async Task<(bool Success, string Message)> AnnihilateCoreAsync(CheckpointNode node)
+    private static async Task<(bool Success, string Message)> DeleteSnapshotCoreAsync(CheckpointNode node)
     {
         var result = await WmiApi.InvokeAsync(
             SnapshotServiceWql, "DestroySnapshotTree",
@@ -840,7 +840,7 @@ public static class VmCheckpointService
         return (false, string.Format(Properties.Resources.VmCheckpointService_ErrDeleteFailed, result.Error));
     }
 
-    private static async Task<(bool Success, string Message)> ConvergeOperationAsync(Guid vmId, CheckpointNode node)
+    private static async Task<(bool Success, string Message)> MergeSnapshotOperationAsync(Guid vmId, CheckpointNode node)
     {
         ArgumentNullException.ThrowIfNull(node);
         if (node.IsLogicalNode)
@@ -862,7 +862,7 @@ public static class VmCheckpointService
 
         return await RunCheckpointMutationAsync(() => Task.FromResult(nodes), async () =>
         {
-            var result = await ConvergeWithParentAsync(
+            var result = await MergeWithParentAsync(
                 currentNode.Name,
                 parentNode.Name,
                 name => RenameByPathAsync(currentNode.Path, name),
@@ -877,7 +877,7 @@ public static class VmCheckpointService
         });
     }
 
-    internal static async Task<ApiResponse> ConvergeWithParentAsync(
+    internal static async Task<ApiResponse> MergeWithParentAsync(
         string originalName,
         string parentName,
         Func<string, Task<ApiResponse>> renameTarget,
@@ -901,7 +901,7 @@ public static class VmCheckpointService
         return destroyResult;
     }
 
-    /// <summary>按稳定身份读取虚拟机检查点是否启用。</summary>
+    /// <summary>按稳定身份读取虚拟机快照是否启用。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
     /// <returns>成功时返回实际设置，配置缺失或查询失败返回错误，不推断为启用。</returns>
     public static async Task<ApiResponse<bool>> GetCheckpointsEnabledAsync(Guid vmId)
@@ -911,13 +911,13 @@ public static class VmCheckpointService
             $"SELECT UserSnapshotType FROM Msvm_VirtualSystemSettingData WHERE {VmIdentity.SettingsPredicate(vmId)}",
             obj => obj["UserSnapshotType"] == null ? (bool?)null : Convert.ToByte(obj["UserSnapshotType"]) != 2);
         return result.HasData ? ApiResponse<bool>.Ok(result.Data.Value)
-            : ApiResponse<bool>.Fail(result.Success ? "检查点设置不存在或未提供有效值。" : result.Error,
+            : ApiResponse<bool>.Fail(result.Success ? "快照设置不存在或未提供有效值。" : result.Error,
                 result.Code, result.ErrorSource, result.Exception, result.Success ? ApiErrorKind.NotFound : result.ErrorKind);
     }
 
-    /// <summary>按稳定身份设置虚拟机是否允许使用检查点。</summary>
+    /// <summary>按稳定身份设置虚拟机是否允许使用快照。</summary>
     /// <param name="vmId">目标虚拟机的非空 GUID。</param>
-    /// <param name="enabled">true 启用检查点，false 禁用。</param>
+    /// <param name="enabled">true 启用快照，false 禁用。</param>
     /// <returns>设置结果，错误包含实际查询或提交原因。</returns>
     public static Task<ApiResponse> SetCheckpointsEnabledAsync(Guid vmId, bool enabled)
     {
@@ -938,10 +938,10 @@ public static class VmCheckpointService
             .Where(p => !string.IsNullOrEmpty(p)).ToList();
     }
 
-    private sealed record WormholeDiskSlot(string CtrlType, int CtrlNum, int CtrlLoc,
+    private sealed record HistoricalDiskSlot(string CtrlType, int CtrlNum, int CtrlLoc,
         string? MediaPath, string DrivePath, string DriveInstanceId);
 
-    private static async Task<ApiResponse<WormholeDiskSlot>> GetDiskSlotInfoAsync(
+    private static async Task<ApiResponse<HistoricalDiskSlot>> GetDiskSlotInfoAsync(
         string vmGuid, string diskPath, string knownDriveInstanceId = "")
     {
         var sasdResponse = await WmiApi.QueryAsync(
@@ -956,7 +956,7 @@ public static class VmCheckpointService
             });
 
         if (!sasdResponse.Success)
-            return ApiResponse<WormholeDiskSlot>.Fail(sasdResponse.Error);
+            return ApiResponse<HistoricalDiskSlot>.Fail(sasdResponse.Error);
 
         var sasd = sasdResponse.Data?.FirstOrDefault(d =>
             d.ResourceType == 31 && d.HostResource.Equals(diskPath, StringComparison.OrdinalIgnoreCase));
@@ -964,11 +964,11 @@ public static class VmCheckpointService
         string driveInstanceId;
         if (sasd == null)
         {
-            if (string.IsNullOrEmpty(knownDriveInstanceId)) return ApiResponse<WormholeDiskSlot>.Empty();
+            if (string.IsNullOrEmpty(knownDriveInstanceId)) return ApiResponse<HistoricalDiskSlot>.Empty();
             if (sasdResponse.Data?.Any(item => string.Equals(
                 ExtractInstanceId(item.Parent)?.Replace("\\\\", "\\"), knownDriveInstanceId,
                 StringComparison.OrdinalIgnoreCase)) == true)
-                return ApiResponse<WormholeDiskSlot>.Fail("历史磁盘的驱动器已被其他介质占用，未执行移除。");
+                return ApiResponse<HistoricalDiskSlot>.Fail("历史磁盘的驱动器已被其他介质占用，未执行移除。");
             driveInstanceId = knownDriveInstanceId;
         }
         else
@@ -977,7 +977,7 @@ public static class VmCheckpointService
         }
 
         if (!driveInstanceId.StartsWith($"Microsoft:{vmGuid}\\", StringComparison.OrdinalIgnoreCase))
-            return ApiResponse<WormholeDiskSlot>.Fail("无法确认历史磁盘的驱动器属于当前虚拟机。");
+            return ApiResponse<HistoricalDiskSlot>.Fail("无法确认历史磁盘的驱动器属于当前虚拟机。");
 
         string escapedParentId = driveInstanceId.Replace("\\", "\\\\").Replace("'", "\\'");
 
@@ -992,29 +992,29 @@ public static class VmCheckpointService
                 Path = obj.Path.Path
             });
 
-        if (!rasdResponse.Success) return ApiResponse<WormholeDiskSlot>.Fail(rasdResponse.Error);
+        if (!rasdResponse.Success) return ApiResponse<HistoricalDiskSlot>.Fail(rasdResponse.Error);
         if (!rasdResponse.HasData)
-            return sasd == null ? ApiResponse<WormholeDiskSlot>.Empty()
-                : ApiResponse<WormholeDiskSlot>.Fail("无法确认历史磁盘挂接的驱动器。");
+            return sasd == null ? ApiResponse<HistoricalDiskSlot>.Empty()
+                : ApiResponse<HistoricalDiskSlot>.Fail("无法确认历史磁盘挂接的驱动器。");
         if (rasdResponse.Data.ResourceType != 17)
-            return ApiResponse<WormholeDiskSlot>.Fail("历史磁盘的挂接目标不是硬盘驱动器。");
+            return ApiResponse<HistoricalDiskSlot>.Fail("历史磁盘的挂接目标不是硬盘驱动器。");
         if (!string.IsNullOrWhiteSpace(rasdResponse.Data.HostResource))
-            return ApiResponse<WormholeDiskSlot>.Fail("历史磁盘的驱动器已直接引用其他介质，未执行移除。");
+            return ApiResponse<HistoricalDiskSlot>.Fail("历史磁盘的驱动器已直接引用其他介质，未执行移除。");
 
         var ctrlListResp = await WmiApi.QueryAsync(
             $"SELECT InstanceID FROM Msvm_ResourceAllocationSettingData WHERE ResourceType = 6 AND InstanceID LIKE 'Microsoft:{vmGuid}%'",
             obj => obj["InstanceID"]?.ToString() ?? "");
-        if (!ctrlListResp.Success) return ApiResponse<WormholeDiskSlot>.Fail(ctrlListResp.Error);
+        if (!ctrlListResp.Success) return ApiResponse<HistoricalDiskSlot>.Fail(ctrlListResp.Error);
 
-        var slot = ResolveWormholeSlot(rasdResponse.Data.Parent, rasdResponse.Data.Location,
+        var slot = ResolveHistoricalDiskSlot(rasdResponse.Data.Parent, rasdResponse.Data.Location,
             ctrlListResp.Data ?? []);
         if (slot == null)
-            return ApiResponse<WormholeDiskSlot>.Fail("无法确认历史磁盘的控制器及槽位，未执行移除。");
-        return ApiResponse<WormholeDiskSlot>.Ok(new("SCSI", slot.Value.Controller, slot.Value.Location,
+            return ApiResponse<HistoricalDiskSlot>.Fail("无法确认历史磁盘的控制器及槽位，未执行移除。");
+        return ApiResponse<HistoricalDiskSlot>.Ok(new("SCSI", slot.Value.Controller, slot.Value.Location,
             sasd?.Path, rasdResponse.Data.Path, driveInstanceId));
     }
 
-    internal static (int Controller, int Location)? ResolveWormholeSlot(
+    internal static (int Controller, int Location)? ResolveHistoricalDiskSlot(
         string parentPath, string? location, IReadOnlyList<string> controllerIds)
     {
         if (!int.TryParse(location, out var slot) || slot < 0) return null;
@@ -1026,7 +1026,7 @@ public static class VmCheckpointService
         return null;
     }
 
-    private static async Task<ApiResponse> RemoveWormholeDiskAsync(WormholeDiskSlot slot)
+    private static async Task<ApiResponse> RemoveHistoricalDiskAsync(HistoricalDiskSlot slot)
     {
         if (!string.IsNullOrEmpty(slot.MediaPath))
         {
@@ -1087,7 +1087,7 @@ public static class VmCheckpointService
         catch { throw; }
     }
 
-    private static async Task<bool> CheckAnyWormholeExistsAsync(Guid vmId)
+    private static async Task<bool> CheckAnyHistoricalDiskExistsAsync(Guid vmId)
     {
         try
         {
@@ -1097,7 +1097,7 @@ public static class VmCheckpointService
             RequireData(guidResponse);
 
             var paths = await GetVmScsiDiskPathsAsync(guidResponse.Data!);
-            return paths.Any(p => p.Contains("_wormhole_tmp", StringComparison.OrdinalIgnoreCase));
+            return paths.Any(p => p.Contains("_historical_disk_tmp", StringComparison.OrdinalIgnoreCase));
         }
         catch { throw; }
     }
@@ -1105,7 +1105,7 @@ public static class VmCheckpointService
     private static async Task<bool> IsNodeInCurrentChainAsync(Guid vmId, string targetVhdPath)
     {
         var paths = await GetVmScsiDiskPathsAsync(vmId.ToString("D"));
-        foreach (string attached in paths.Where(path => !path.Contains("_wormhole_tmp", StringComparison.OrdinalIgnoreCase)))
+        foreach (string attached in paths.Where(path => !path.Contains("_historical_disk_tmp", StringComparison.OrdinalIgnoreCase)))
         {
             string current = attached;
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1148,7 +1148,7 @@ public static class VmCheckpointService
                 p => p["VirtualDiskSettingData"] = xml,
                 WmiScope.HyperV);
 
-            RequireWormholeCleanupSafety(result, newPath, parentPath);
+            RequireHistoricalDiskCleanupSafety(result, newPath, parentPath);
             return result.Success
                 ? (true, string.Empty)
                 : (false, result.Error);
@@ -1160,7 +1160,7 @@ public static class VmCheckpointService
         }
     }
 
-    private static void RequireWormholeCleanupSafety(ApiResponse response, string diskPath, string parentPath)
+    private static void RequireHistoricalDiskCleanupSafety(ApiResponse response, string diskPath, string parentPath)
     {
         if (response.ErrorKind is not (ApiErrorKind.OutcomeUnknown or ApiErrorKind.CleanupRequired)) return;
         RequireSuccess(ApiResponse.Fail(response.Error + Environment.NewLine +
@@ -1175,7 +1175,7 @@ public static class VmCheckpointService
         return result.Data ?? string.Empty;
     }
 
-    private static string TraceToGenesisPath(string childPath)
+    private static string TraceToOriginPath(string childPath)
     {
         string currentPath = childPath;
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -1193,8 +1193,8 @@ public static class VmCheckpointService
     {
         return new List<CheckpointNode>
         {
-            new() { Id = CheckpointNode.GenesisId, Name = Properties.Resources.VmCheckpointService_NodeLabelOrigin, NodeType = CheckpointNodeType.Genesis, IsCurrent = true, CreatedDate = DateTime.Now.AddMinutes(-1) },
-            new() { Id = CheckpointNode.CurrentId, Name = Properties.Resources.VmCheckpointService_NodeLabelCurrent, NodeType = CheckpointNodeType.Current, ParentId = CheckpointNode.GenesisId, IsCurrent = true, CreatedDate = DateTime.Now }
+            new() { Id = CheckpointNode.OriginId, Name = Properties.Resources.VmCheckpointService_NodeLabelOrigin, NodeType = CheckpointNodeType.Origin, IsCurrent = true, CreatedDate = DateTime.Now.AddMinutes(-1) },
+            new() { Id = CheckpointNode.CurrentId, Name = Properties.Resources.VmCheckpointService_NodeLabelCurrent, NodeType = CheckpointNodeType.Current, ParentId = CheckpointNode.OriginId, IsCurrent = true, CreatedDate = DateTime.Now }
         };
     }
 

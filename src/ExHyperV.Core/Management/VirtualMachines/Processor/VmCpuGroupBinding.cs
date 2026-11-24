@@ -89,7 +89,7 @@ internal static class VmCpuGroupBindingStore
             foreach (ManagementObject configuration in configurationCollection)
                 configurations.Add(configuration);
 
-            // 只接受当前配置的两种类型；检查点及其它设置不参与候选。
+            // 只接受当前配置的两种类型；快照及其它设置不参与候选。
             var realized = configurations.Where(item =>
                 string.Equals(item["VirtualSystemType"]?.ToString(), Realized, StringComparison.Ordinal)).ToList();
             var candidates = realized.Count > 0 ? realized : configurations.Where(item =>

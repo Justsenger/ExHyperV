@@ -94,7 +94,7 @@
     <value>Not safely closed</value>
   </data>
   <data name="Main_CloseFailedButton" xml:space="preserve">
-    <value>Go back</value>
+    <value>Back</value>
   </data>
   <data name="Host_Title" xml:space="preserve">
     <value>Host</value>
@@ -571,7 +571,7 @@ Reload failed: {1}</value>
     <value>Devices</value>
   </data>
   <data name="Dash_Tab_Checkpoints" xml:space="preserve">
-    <value>Checkpoints</value>
+    <value>Snapshots</value>
   </data>
   <data name="Dash_Tab_Advanced" xml:space="preserve">
     <value>Advanced</value>
@@ -775,7 +775,7 @@ Reload failed: {1}</value>
     <value>Assigned {0}, skipped {1}</value>
   </data>
   <data name="Pcie_BackList" xml:space="preserve">
-    <value>Back to PCIe list</value>
+    <value>Back</value>
   </data>
   <data name="Dash_OpenGearTooltip" xml:space="preserve">
     <value>Open settings</value>
@@ -1696,7 +1696,7 @@ Even: spread evenly across groups.</value>
     <value>Precise event sampling (PEBS)</value>
   </data>
   <data name="Cpu_Pebs_Desc" xml:space="preserve">
-    <value>Captures exact instruction address and register snapshots during PMU sampling (requires PMU).</value>
+    <value>Captures exact instruction address and register context during PMU sampling (requires PMU).</value>
   </data>
   <data name="Cpu_Ipt_Title" xml:space="preserve">
     <value>Instruction trace (IPT)</value>
@@ -2439,16 +2439,16 @@ Fixed tries to hold the target MHz.</value>
     <value>Force power off and continue</value>
   </data>
   <data name="Cp_Delete" xml:space="preserve">
-    <value>Delete checkpoint</value>
+    <value>Delete snapshot</value>
   </data>
   <data name="Cp_Restore" xml:space="preserve">
-    <value>Apply checkpoint</value>
+    <value>Apply snapshot</value>
   </data>
   <data name="Cp_Merge" xml:space="preserve">
-    <value>Merge checkpoint</value>
+    <value>Merge snapshot</value>
   </data>
   <data name="Cp_DeleteBranchBody" xml:space="preserve">
-    <value>Delete "{0}" and all {1} subsequent child checkpoints ({2})? This cannot be undone. To keep subsequent checkpoints, use Merge instead.</value>
+    <value>Delete "{0}" and all {1} subsequent child snapshots ({2})? This cannot be undone. To keep subsequent snapshots, use Merge instead.</value>
   </data>
   <data name="Cp_DeleteLeafBody" xml:space="preserve">
     <value>Permanently delete "{0}"? This cannot be undone.</value>
@@ -2457,7 +2457,7 @@ Fixed tries to hold the target MHz.</value>
     <value>Restore this VM to "{0}"? Unsaved changes in the current state will be lost, and a running or suspended VM may restart.</value>
   </data>
   <data name="Cp_MergeConfirmBody" xml:space="preserve">
-    <value>Merge "{0}" into its parent checkpoint "{1}"? The parent name and all subsequent checkpoints will be kept.</value>
+    <value>Merge "{0}" into its parent snapshot "{1}"? The parent name and all subsequent snapshots will be kept.</value>
   </data>
   <data name="Cp_BadgeCurrent" xml:space="preserve">
     <value>Current</value>
@@ -2472,7 +2472,7 @@ Fixed tries to hold the target MHz.</value>
     <value>Delete</value>
   </data>
   <data name="Cp_MenuCreate" xml:space="preserve">
-    <value>New checkpoint</value>
+    <value>New snapshot</value>
   </data>
   <data name="Cp_MenuRename" xml:space="preserve">
     <value>Rename</value>
@@ -2490,13 +2490,13 @@ Fixed tries to hold the target MHz.</value>
     <value>Exit fullscreen</value>
   </data>
   <data name="Cp_DisabledBanner" xml:space="preserve">
-    <value>Checkpoints are disabled for this VM</value>
+    <value>Snapshots are disabled for this VM</value>
   </data>
   <data name="Cp_EnableAction" xml:space="preserve">
     <value>Enable</value>
   </data>
   <data name="Cp_Unresolved" xml:space="preserve">
-    <value>Checkpoint writes are paused. Verify the original Hyper-V job and any remaining mounts before making further changes.</value>
+    <value>Snapshot writes are paused. Verify the original Hyper-V job and any remaining mounts before making further changes.</value>
   </data>
   <data name="Vtpm_ReissueTitle" xml:space="preserve">
     <value>Replace the VM unlock key?</value>
@@ -2518,10 +2518,10 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <value>I verified the original job and remaining resources</value>
   </data>
   <data name="Cp_Recheck" xml:space="preserve">
-    <value>Refresh checkpoint state</value>
+    <value>Refresh snapshot state</value>
   </data>
   <data name="Cp_Changed" xml:space="preserve">
-    <value>The checkpoint tree changed. Review the updated scope before confirming.</value>
+    <value>The snapshot tree changed. Review the updated scope before confirming.</value>
   </data>
   <data name="Host_Cpu_Incomplete" xml:space="preserve">
     <value>Some CPU readings are unavailable. Last valid values are shown where available.</value>
@@ -2653,17 +2653,25 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <value>请输入有效分辨率，如 1280 x 720。</value>
     <comment>TODO: en</comment>
   </data>
+  <data name="Advanced_ResolutionPlaceholder" xml:space="preserve">
+    <value>默认 或 宽 x 高</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Advanced_SelectPresetResolution" xml:space="preserve">
+    <value>选择常用分辨率</value>
+    <comment>TODO: en</comment>
+  </data>
   <data name="SettingsView_PageRetained" xml:space="preserve">
     <value>
 页面已保留，查看后可以再次返回。</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Cp_CyclicTree" xml:space="preserve">
-    <value>检查点关系存在循环，无法绘制。</value>
+    <value>快照关系存在循环，无法绘制。</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Cp_ReadWriteFailed" xml:space="preserve">
-    <value>无法读取或修改检查点。</value>
+    <value>无法读取或修改快照。</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Common_ReadAgain" xml:space="preserve">
@@ -2675,7 +2683,7 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Security_EncryptionHelp" xml:space="preserve">
-    <value>加密保存状态、检查点内存文件以及跨宿主实时迁移数据，开启时会自动启用 vTPM 并签发宿主密钥</value>
+    <value>加密保存状态、快照内存文件以及跨宿主实时迁移数据，开启时会自动启用 vTPM 并签发宿主密钥</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Security_ShieldingHelp" xml:space="preserve">
@@ -3091,7 +3099,7 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_InstallDriversHelp" xml:space="preserve">
-    <value>添加显卡后继续识别系统分区并部署驱动</value>
+    <value>为 Windows 虚拟机离线注入驱动</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_Remove" xml:space="preserve">
@@ -3192,7 +3200,7 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_AssignmentRemoved" xml:space="preserve">
-    <value>GPU 分配已移除。</value>
+    <value>已移除显卡：{0}</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Common_OperationIncomplete" xml:space="preserve">
@@ -3211,12 +3219,32 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <value>跳过驱动</value>
     <comment>TODO: en</comment>
   </data>
-  <data name="Gpu_MountDriverDisc" xml:space="preserve">
-    <value>挂载驱动光盘</value>
+  <data name="Gpu_BitLockerBadge" xml:space="preserve">
+    <value>需先解除 BitLocker</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_LinuxUnsupportedBadge" xml:space="preserve">
+    <value>暂不支持</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_BitLockerHelp" xml:space="preserve">
-    <value>无法向 BitLocker 分区安装驱动，需要先解锁，或挂载驱动光盘。</value>
+    <value>已开启 BitLocker 保护，请先解除 BitLocker 后再注入驱动。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_LinuxHelp" xml:space="preserve">
+    <value>检测到 Linux 分区，当前暂不支持为其部署驱动。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_SelectBitLockerNotice" xml:space="preserve">
+    <value>解除 BitLocker 后才能继续安装驱动。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_SelectLinuxNotice" xml:space="preserve">
+    <value>暂不支持为 Linux 安装 GPU 驱动。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_SelectUnsupportedNotice" xml:space="preserve">
+    <value>所选分区不支持注入驱动，请选择未加密的 Windows 系统分区或跳过驱动。</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_CancelDeployment" xml:space="preserve">
@@ -3232,7 +3260,7 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_BackToList" xml:space="preserve">
-    <value>返回显卡列表</value>
+    <value>返回</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_Reselect" xml:space="preserve">
@@ -4428,6 +4456,10 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <value>安全下限为 {0} GiB。</value>
     <comment>TODO: en</comment>
   </data>
+  <data name="Storage_BelowPartitionEnd" xml:space="preserve">
+    <value>低于分区末尾（{0} GB），需先在系统内缩容</value>
+    <comment>TODO: en</comment>
+  </data>
   <data name="Storage_EnterCapacity" xml:space="preserve">
     <value>请输入 1 至 {0} GiB 的整数。</value>
     <comment>TODO: en</comment>
@@ -4437,7 +4469,7 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Storage_ExtendGuestPartition" xml:space="preserve">
-    <value>扩展后需在系统内扩容分区。</value>
+    <value>扩展后需在系统内扩容。</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Storage_UnsafeShrinkSuffix" xml:space="preserve">
@@ -4461,7 +4493,11 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Storage_ConfirmDeleteFile" xml:space="preserve">
-    <value>确认彻底删除{0}？</value>
+    <value>确认彻底删除{0}</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Storage_ConfirmDeleteFileBody" xml:space="preserve">
+    <value>确定要从宿主机永久删除该{0}吗？此操作不可撤销。</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Storage_ForceParentEnabled" xml:space="preserve">
@@ -4638,11 +4674,11 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Storage_BackToList" xml:space="preserve">
-    <value>返回存储列表</value>
+    <value>返回</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Storage_BackToEdit" xml:space="preserve">
-    <value>返回编辑</value>
+    <value>返回</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Card_ToggleDetails" xml:space="preserve">

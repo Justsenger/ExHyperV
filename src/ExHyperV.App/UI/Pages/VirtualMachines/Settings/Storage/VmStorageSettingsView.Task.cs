@@ -89,6 +89,15 @@ public sealed partial class VmStorageSettingsView
                 else ShowList();
                 return;
             }
+            if (!stayOnPage)
+            {
+                var device = snapshotKnown && state.ReturnDevice != null
+                    ? attachments.FirstOrDefault(d => d.DeviceToken == state.ReturnDevice) : null;
+                if (device != null) await OpenDetailsAsync(device);
+                else if (snapshotKnown) ShowList();
+                else await LoadAsync();
+                return;
+            }
         }
         if (stayOnPage)
         {

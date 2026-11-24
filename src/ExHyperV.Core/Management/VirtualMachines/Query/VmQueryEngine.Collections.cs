@@ -280,27 +280,27 @@ internal sealed partial class VmQueryEngine
             object path = Array.AsReadOnly(paths);
             // Reuse the read-only domain check only when attachment status is requested.
             object? attached = null;
-            if (request.Fields.Contains(VmCheckpointFields.IsWormhole))
+            if (request.Fields.Contains(VmCheckpointFields.IsHistoricalDiskMounted))
             {
                 var id = (Guid)node["@Owner"]!;
                 bool hasTemporaryAttachment = disks.Rows.Where(r => Owned(r, id)).SelectMany(r => r.Strings("HostResource"))
-                    .Any(p => p.Contains("_wormhole_tmp", StringComparison.OrdinalIgnoreCase));
+                    .Any(p => p.Contains("_historical_disk_tmp", StringComparison.OrdinalIgnoreCase));
                 if (!hasTemporaryAttachment) attached = false;
                 else
                 {
                     var state = await GetCheckpointStateAsync(id).ConfigureAwait(false);
                     attached = state.State == VmQueryValueState.Available
-                        ? state.Rows.FirstOrDefault(r => r.Key == node.Text("Id"))?["IsWormhole"] : Failure(VmCheckpointFields.IsWormhole, state);
+                        ? state.Rows.FirstOrDefault(r => r.Key == node.Text("Id"))?["IsHistoricalDiskMounted"] : Failure(VmCheckpointFields.IsHistoricalDiskMounted, state);
                 }
             }
-            rows.Add(new(node.Key, new() { ["DiskPaths"] = path, ["IsWormhole"] = attached }));
+            rows.Add(new(node.Key, new() { ["DiskPaths"] = path, ["IsHistoricalDiskMounted"] = attached }));
         }
         return Done(rows);
     }
     private readonly ConcurrentDictionary<Guid, Lazy<Task<ReadResult>>> _checkpointStates = new();
     private Task<ReadResult> GetCheckpointStateAsync(Guid id) => _checkpointStates.GetOrAdd(id, vm => new(async () =>
     {
-        try { return Done((await VmCheckpointService.ReadCheckpointStateAsync(vm).ConfigureAwait(false)).Select(n => Row(n.Id, vm, ("IsWormhole", n.IsWormhole)))); }
+        try { return Done((await VmCheckpointService.ReadCheckpointStateAsync(vm).ConfigureAwait(false)).Select(n => Row(n.Id, vm, ("IsHistoricalDiskMounted", n.IsHistoricalDiskMounted)))); }
         catch (Exception error) { return new([], VmQueryValueState.Failed, DateTimeOffset.UtcNow, error.Message); }
     })).Value;
 }

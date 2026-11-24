@@ -72,7 +72,7 @@ public static partial class VmStorageService
 
     /// <summary>只读检查可调整容量的范围。无法读取完整分区表时仍返回扩展条件。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <returns>磁盘访问条件、当前容量和已核实的调整边界。</returns>
     public static Task<ApiResponse<VmResizeSafety>> InspectResizeSafetyAsync(Guid vmId, VmStorageAttachment drive)
     {
@@ -159,7 +159,7 @@ public static partial class VmStorageService
 
     /// <summary>按整数 GiB 调整容量。收缩在锁内重新探测分区末尾和磁盘提供程序下限。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <param name="newSizeGiB">目标虚拟容量，单位 GiB。</param>
     /// <returns>容量调整结果，含提交或复核失败原因。</returns>
     public static Task<ApiResponse> ResizeVirtualDiskAsync(Guid vmId, VmStorageAttachment drive, long newSizeGiB)
@@ -221,7 +221,7 @@ public static partial class VmStorageService
 
     /// <summary>转换到同目录的新文件并切换原槽位。原文件保留，目标已存在时停止。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <param name="targetVhdType">目标分配类型，取 Fixed 或 Dynamic。</param>
     /// <returns>转换并恢复挂接后的结果。</returns>
     public static Task<ApiResponse> ConvertVirtualDiskTypeAsync(Guid vmId, VmStorageAttachment drive, string targetVhdType)
@@ -237,7 +237,7 @@ public static partial class VmStorageService
 
     /// <summary>生成同名 .vhdx，验证后更新当前槽位。成功后保留原 .vhd。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <param name="progress">可选的进度观察器。</param>
     /// <returns>容器转换和挂接切换的结果。</returns>
     public static Task<ApiResponse> UpgradeVhdToVhdxAsync(Guid vmId, VmStorageAttachment drive, IProgress<int>? progress = null)
@@ -310,7 +310,7 @@ public static partial class VmStorageService
 
     /// <summary>替换直接父盘，提交前验证整个候选链。忽略 ID 只针对本次替换的直接父盘。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <param name="newParentPath">候选父盘的完整路径。</param>
     /// <param name="ignoreIdMismatch">是否明确允许候选父盘标识不匹配。</param>
     /// <returns>差分盘父路径重连结果。</returns>
@@ -346,7 +346,7 @@ public static partial class VmStorageService
 
     /// <summary>将验证后的整条差分链导出为独立动态磁盘。保留原挂接和原链。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <param name="destinationPath">导出的独立磁盘文件路径。</param>
     /// <param name="progress">可选的进度观察器。</param>
     /// <returns>将链内容导出到独立磁盘的结果。</returns>
@@ -369,7 +369,7 @@ public static partial class VmStorageService
 
     /// <summary>合并到已验证的祖先，随后更新原槽位并核实挂接。部分完成时返回恢复路径。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <param name="targetAncestorPath">要将叶盘合并到的祖先磁盘完整路径。</param>
     /// <param name="progress">可选的进度观察器。</param>
     /// <returns>合并到指定祖先并处理挂接的结果。</returns>
@@ -486,7 +486,7 @@ public static partial class VmStorageService
 
     /// <summary>先移除已核实的挂接，再按文件身份删除介质。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <returns>解除挂接和删除已确认归属文件的结果。</returns>
     public static Task<ApiResponse> DeleteAttachedMediaFileAsync(Guid vmId, VmStorageAttachment drive)
         => WithMaintenance(vmId, drive, async t =>

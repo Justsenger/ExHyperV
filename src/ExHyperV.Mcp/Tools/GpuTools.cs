@@ -65,7 +65,7 @@ public sealed class GpuTools(GpuSessions sessions, VmGpuService gpu, VmQueryServ
     });
 
     [McpServerTool(Name = "gpu_deployment_status", Title = "查看 GPU 部署进度", ReadOnly = true, OpenWorld = false)]
-    [Description("读取流程快照。PendingDecision 给出当前确认内容，AllowedActions 给出允许的下一步。")]
+    [Description("读取流程状态。PendingDecision 给出当前确认内容，AllowedActions 给出允许的下一步。")]
     public Task<CallToolResult> Status(Guid sessionId) => ToolReply.Run(() => Task.FromResult(Snapshot(sessions.Get(sessionId).GetStatus())));
 
     [McpServerTool(Name = "gpu_deployment_start", Title = "开始 GPU 部署", Destructive = true, OpenWorld = false)]
@@ -84,7 +84,7 @@ public sealed class GpuTools(GpuSessions sessions, VmGpuService gpu, VmQueryServ
         Change(sessionId, session => session.SubmitDecisionAsync(new GpuPartitionSelection(requestId, partitionId)), cancellationToken);
 
     [McpServerTool(Name = "gpu_deployment_fallback", Title = "提交 GPU 驱动回退动作", Destructive = true, OpenWorld = false)]
-    [Description("在等待 SelectPartition 或 DriverFallback 时提交 SkipDriver（跳过驱动）或 MountIso（打包并挂载驱动 ISO）。")]
+    [Description("在等待 SelectPartition 或 DriverFallback 时提交 SkipDriver（跳过驱动）。")]
     public Task<CallToolResult> Fallback(Guid sessionId, Guid requestId, GpuDriverFallbackAction action, CancellationToken cancellationToken = default) =>
         Change(sessionId, session => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(requestId, action)), cancellationToken);
 

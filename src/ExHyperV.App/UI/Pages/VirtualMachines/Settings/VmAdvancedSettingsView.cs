@@ -4,8 +4,11 @@ using ExHyperV.App.UI.Shared.Controls;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml;
+using Windows.System;
 
 namespace ExHyperV.App.UI.Pages.VirtualMachines.Settings;
 
@@ -14,6 +17,12 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
     public enum Section { All, Console, Power, Other }
 
     private static string DefaultResolution => L10n.Get("Common_Default");
+
+    private static readonly string[] ResolutionPresets =
+    [
+        "3840 x 2160", "2560 x 1440", "1920 x 1200", "1920 x 1080",
+        "1600 x 900", "1366 x 768", "1280 x 1024", "1280 x 720", "1024 x 768", "800 x 600"
+    ];
 
     private sealed record CardMeta(string Title, string Description, Grid Label, SettingInfoButton Info);
 
@@ -25,16 +34,19 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
     private readonly ToggleSwitch bootVpci = Switch();
     private readonly ToggleSwitch fullScsi = Switch();
     private readonly ToggleSwitch battery = Switch();
-    private readonly ComboBox resolution = new()
+    private readonly TextBox resolution = new()
     {
-        IsEditable = true,
-        MinWidth = 170,
+        MinWidth = 152,
+        MaxWidth = 220,
+        IsEnabled = false
+    };
+    private readonly Button resolutionPresets = new()
+    {
+        Width = 32,
+        Height = 32,
+        Padding = new Thickness(0),
         IsEnabled = false,
-        ItemsSource = new[]
-        {
-            DefaultResolution, "3840 x 2160", "2560 x 1440", "1920 x 1200", "1920 x 1080",
-            "1600 x 900", "1366 x 768", "1280 x 1024", "1280 x 720", "1024 x 768", "800 x 600"
-        }
+        Content = new FontIcon { Glyph = "\uE70D", FontSize = 11 }
     };
     private readonly Button applyResolution = new() { Content = L10n.Get("Common_Apply"), IsEnabled = false };
     private readonly Dictionary<ToggleSwitch, bool> applied = [];
@@ -47,8 +59,33 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
     public VmAdvancedSettingsView(Guid vmId, Section section = Section.All) : base(vmId)
     {
         activeSection = section;
+
+        var presetMenu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+        void AddPresetItem(string value)
+        {
+            var item = new MenuFlyoutItem { Text = value };
+            item.Click += (_, _) =>
+            {
+                resolution.Text = value;
+                resolution.Focus(FocusState.Programmatic);
+                resolution.Select(resolution.Text.Length, 0);
+            };
+            presetMenu.Items.Add(item);
+        }
+        AddPresetItem(DefaultResolution);
+        foreach (string preset in ResolutionPresets)
+            AddPresetItem(preset);
+        resolutionPresets.Flyout = presetMenu;
+        string presetLabel = L10n.Get("Advanced_SelectPresetResolution");
+        ToolTipService.SetToolTip(resolutionPresets, presetLabel);
+        AutomationProperties.SetName(resolutionPresets, presetLabel);
+
+        var resolutionInputGroup = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+        resolutionInputGroup.Children.Add(resolution);
+        resolutionInputGroup.Children.Add(resolutionPresets);
+
         var resolutionEditor = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        resolutionEditor.Children.Add(resolution);
+        resolutionEditor.Children.Add(resolutionInputGroup);
         resolutionEditor.Children.Add(applyResolution);
         applyResolution.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
 
@@ -75,11 +112,13 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                 panel.Children.Add(MakeToggleCard(
                     L10n.Get("Advanced_AllowHibernation"),
                     L10n.Get("Advanced_HibernationHelp"),
-                    hibernation));
+                    hibernation,
+                    span2: true));
                 panel.Children.Add(MakeToggleCard(
                     L10n.Get("Advanced_ShutdownOnRestart"),
                     L10n.Get("Advanced_ShutdownOnRestartHelp"),
-                    turnOffOnRestart));
+                    turnOffOnRestart,
+                    span2: true));
                 panel.Children.Add(MakeToggleCard(
                     L10n.Get("Advanced_BatteryPassthrough"),
                     L10n.Get("Advanced_BatteryHelp"),
@@ -96,11 +135,8 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                 panel.Children.Add(MakeToggleCard(
                     L10n.Get("Advanced_LockOnDisconnect"),
                     L10n.Get("Advanced_LockOnDisconnectHelp"),
-                    lockOnDisconnect));
-                panel.Children.Add(MakeToggleCard(
-                    L10n.Get("Advanced_NumLock"),
-                    L10n.Get("Advanced_NumLockHelp"),
-                    numLock));
+                    lockOnDisconnect,
+                    span2: true));
                 panel.Children.Add(MakeResolutionCard());
                 break;
 
@@ -108,12 +144,11 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                 break;
 
             default:
-                panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_AllowHibernation"), L10n.Get("Advanced_HibernationHelp"), hibernation));
-                panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_ShutdownOnRestart"), L10n.Get("Advanced_ShutdownOnRestartHelp"), turnOffOnRestart));
+                panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_AllowHibernation"), L10n.Get("Advanced_HibernationHelp"), hibernation, span2: true));
+                panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_ShutdownOnRestart"), L10n.Get("Advanced_ShutdownOnRestartHelp"), turnOffOnRestart, span2: true));
                 panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_BatteryPassthrough"), L10n.Get("Advanced_BatteryHelp"), battery, span2: true));
                 panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_EnableConsole"), L10n.Get("Advanced_ConsoleHelp"), console, span2: true));
-                panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_LockOnDisconnect"), L10n.Get("Advanced_LockOnDisconnectHelp"), lockOnDisconnect));
-                panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_NumLock"), L10n.Get("Advanced_NumLockHelp"), numLock));
+                panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_LockOnDisconnect"), L10n.Get("Advanced_LockOnDisconnectHelp"), lockOnDisconnect, span2: true));
                 panel.Children.Add(MakeResolutionCard());
                 break;
         }
@@ -122,6 +157,7 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         {
             panel.Children.Add(MakeToggleCard(L10n.Get("Pcie_Boot"), L10n.Get("Pcie_BootHelp"), bootVpci, span2: true));
             panel.Children.Add(MakeToggleCard(L10n.Get("Pcie_FullScsi"), L10n.Get("Pcie_FullScsiHelp"), fullScsi, span2: true));
+            panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_NumLock"), L10n.Get("Advanced_NumLockHelp"), numLock, span2: true));
         }
 
         var content = new StackPanel { Margin = new Thickness(0, 4, 0, 24) };
@@ -136,6 +172,12 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         bootVpci.Toggled += async (_, _) => await ApplyAsync(() => VmPcieService.SetBootPciExpressAsync(VmId, bootVpci.IsOn));
         fullScsi.Toggled += async (_, _) => await ApplyAsync(() => VmStorageService.SetFullScsiCommandSetEnabledAsync(VmId, fullScsi.IsOn));
         battery.Toggled += async (_, _) => await ApplyAsync(() => VmPowerService.SetBatteryEnabledAsync(VmId, battery.IsOn));
+        resolution.KeyDown += async (_, e) =>
+        {
+            if (e.Key != VirtualKey.Enter) return;
+            e.Handled = true;
+            await RunAsync(ApplyResolutionAsync);
+        };
         applyResolution.Click += async (_, _) => await RunAsync(ApplyResolutionAsync);
     }
 
@@ -174,7 +216,6 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
             VmSecurityFields.Shielded,
             VmConsoleFields.BasicEnabled,
             VmConsoleFields.LockOnDisconnect,
-            VmBootGlobalFields.NumLock,
             VmDisplayFields.ResolutionType,
             VmDisplayFields.Width,
             VmDisplayFields.Height
@@ -182,7 +223,8 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         Section.Other =>
         [
             VmPcieFields.BootPciExpress,
-            VmStorageGlobalFields.AllowFullScsiCommandSet
+            VmStorageGlobalFields.AllowFullScsiCommandSet,
+            VmBootGlobalFields.NumLock
         ],
         _ =>
         [
@@ -240,8 +282,6 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                 }
 
                 SetSwitch(lockOnDisconnect, row.Get(VmConsoleFields.LockOnDisconnect), true, errors);
-                SetSwitch(numLock, row.Get(VmBootGlobalFields.NumLock),
-                    VmBootService.GetNumLockModificationCondition(context.State), errors);
 
                 var type = row.Get(VmDisplayFields.ResolutionType);
                 var width = row.Get(VmDisplayFields.Width);
@@ -259,7 +299,7 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                         4 => DefaultResolution,
                         _ => L10n.Format("Advanced_CurrentResolutionPolicy", type.Value, width.Value, height.Value)
                     };
-                    resolution.PlaceholderText = string.Empty;
+                    resolution.PlaceholderText = L10n.Get("Advanced_ResolutionPlaceholder");
                     resolution.Text = appliedResolutionText;
                 }
                 else
@@ -267,12 +307,14 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                     appliedResolution = null;
                     appliedResolutionText = string.Empty;
                     resolution.Text = string.Empty;
-                    resolution.PlaceholderText = consoleOff ? L10n.Get("Advanced_ConsoleDisabled") : DefaultResolution;
+                    resolution.PlaceholderText = consoleOff ? L10n.Get("Advanced_ConsoleDisabled") : L10n.Get("Advanced_ResolutionPlaceholder");
                 }
                 bool knownResolution = hasResolution && type.Value is 2 or 3 or 4;
                 var resCondition = VmDisplaySettingsService.GetModificationCondition(context.State);
                 var resMeta = cardMeta[resolution];
-                applyResolution.IsEnabled = knownResolution && resCondition.CanModify;
+                bool canEditResolution = knownResolution && resCondition.CanModify;
+                resolutionPresets.IsEnabled = canEditResolution;
+                applyResolution.IsEnabled = canEditResolution;
                 string? resUnavailableReason = !hasResolution
                     ? type.State == VmQueryValueState.Failed
                         ? type.Error
@@ -311,6 +353,8 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                         errors);
                 }
                 SetSwitch(fullScsi, row.Get(VmStorageGlobalFields.AllowFullScsiCommandSet), true, errors);
+                SetSwitch(numLock, row.Get(VmBootGlobalFields.NumLock),
+                    VmBootService.GetNumLockModificationCondition(context.State), errors);
             }
 
             if (errors.Count > 0) ShowError(string.Join(Environment.NewLine, errors));
@@ -337,7 +381,7 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         if (appliedResolution is not { } previous || previous.ResolutionType is not (2 or 3 or 4)) return;
         if (string.Equals(text, appliedResolutionText, StringComparison.Ordinal)) return;
         int type = 4, width = 0, height = 0;
-        if (!string.Equals(text, DefaultResolution, StringComparison.Ordinal))
+        if (!string.Equals(text, DefaultResolution, StringComparison.OrdinalIgnoreCase))
         {
             var parts = text.Split(['x', 'X', '×', '*', ',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (parts.Length != 2 || !int.TryParse(parts[0], out width) || !int.TryParse(parts[1], out height))
@@ -346,7 +390,11 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         }
         if (VmDisplaySettingsService.GetResolutionError(type, width, height) is { } error)
             throw new InvalidOperationException(error);
-        if (type == previous.ResolutionType && (type != 3 || width == previous.Width && height == previous.Height)) return;
+        if (type == previous.ResolutionType && (type != 3 || (width & ~1) == previous.Width && (height & ~1) == previous.Height))
+        {
+            resolution.Text = appliedResolutionText;
+            return;
+        }
         var result = await VmDisplaySettingsService.SetResolutionAsync(VmId, type, width, height);
         if (result.Success) NotifyChanged();
         await ReloadAfterWriteAsync(result);

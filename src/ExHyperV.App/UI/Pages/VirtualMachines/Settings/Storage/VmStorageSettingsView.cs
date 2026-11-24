@@ -32,6 +32,7 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
     private AddDraft? adding;
     private DetailDraft? editing;
     private StorageTask? taskView;
+    private ContentDialog? activeDialog;
     private readonly DraftProbe draftProbe = new();
 
     public VmStorageSettingsView(Guid vmId) : base(vmId)
@@ -94,12 +95,49 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
 
     public override async Task StopAsync()
     {
+        activeDialog?.Hide();
         try { await base.StopAsync(); }
         finally
         {
             // The base can keep the page open to report a failure that arrived during navigation.
             if (!IsStopped) Render();
         }
+    }
+
+    private async Task<bool> ConfirmAsync(string title, string description, string path, string confirmText)
+    {
+        if (IsStopped || XamlRoot == null || activeDialog != null) return false;
+        var content = new StackPanel { Spacing = 8 };
+        content.Children.Add(new TextBlock
+        {
+            Text = description,
+            TextWrapping = TextWrapping.Wrap
+        });
+        if (!string.IsNullOrWhiteSpace(path))
+        {
+            content.Children.Add(new TextBlock
+            {
+                Text = path,
+                FontSize = 12,
+                FontFamily = new FontFamily("Consolas, Cascadia Mono"),
+                Foreground = ThemeHelper.ThemeBrush(this, "TextFillColorSecondaryBrush"),
+                TextWrapping = TextWrapping.Wrap,
+                IsTextSelectionEnabled = true
+            });
+        }
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            RequestedTheme = ActualTheme,
+            Title = title,
+            Content = new ScrollViewer { MaxHeight = 320, Content = content },
+            PrimaryButtonText = confirmText,
+            CloseButtonText = L10n.Get("Common_Cancel"),
+            DefaultButton = ContentDialogButton.Close
+        };
+        activeDialog = dialog;
+        try { return await dialog.ShowAsync() == ContentDialogResult.Primary && !IsStopped; }
+        finally { if (ReferenceEquals(activeDialog, dialog)) activeDialog = null; }
     }
 
     private void ShowList()

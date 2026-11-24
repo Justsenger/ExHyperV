@@ -6,7 +6,7 @@ namespace ExHyperV.Services;
 internal sealed record VmCreatedNetworkResource(
     string Path, string InstanceId, string ClassName, string Configuration, string[] Children);
 
-// 原生对象只在适配器内部使用。工作流仅接受本次创建收据与当前配置快照。
+// 原生对象只在适配器内部使用。工作流仅接受本次创建收据与当前配置副本。
 internal static class VmNetworkAdapterCreation
 {
     internal const string PortClass = "Msvm_SyntheticEthernetPortSettingData";

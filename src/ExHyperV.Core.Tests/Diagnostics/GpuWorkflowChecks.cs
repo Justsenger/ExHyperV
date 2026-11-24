@@ -90,42 +90,49 @@ internal static class GpuWorkflowChecks
         {
             var unsupported = new GpuDeploymentSession(new Backend { Os = os });
             var choice = await unsupported.StartAsync();
-            check(choice.State == GpuDeploymentState.WaitingForDecision &&
-                await Rejected(() => unsupported.SubmitDecisionAsync(new GpuPartitionSelection(choice.PendingDecision!.Id, choice.PendingDecision.Partitions[0].Id))),
+            check(choice.State == GpuDeploymentState.WaitingForDecision
+                && (os != OperatingSystemType.Linux || choice.PendingDecision?.Message == R.Msg_Gpu_LinuxUnsupported)
+                && (os == OperatingSystemType.Linux || choice.PendingDecision?.Message == R.Msg_Gpu_NoUsableWindowsPart)
+                && await Rejected(() => unsupported.SubmitDecisionAsync(new GpuPartitionSelection(choice.PendingDecision!.Id, choice.PendingDecision.Partitions[0].Id))),
                 "Unsupported partition cannot be reported as successful: " + os);
+            if (os == OperatingSystemType.Linux)
+            {
+                string? linuxError = null;
+                try { await unsupported.SubmitDecisionAsync(new GpuPartitionSelection(choice.PendingDecision!.Id, choice.PendingDecision.Partitions[0].Id)); }
+                catch (ArgumentException ex) { linuxError = ex.Message; }
+                check(linuxError == R.Error_Gpu_LinuxUnsupported,
+                    "Selecting a Linux partition reports Linux is not supported yet");
+            }
             await unsupported.CancelAsync();
         }
         var encryptedSession = new GpuDeploymentSession(new Backend { BitLocker = true });
         var encrypted = await encryptedSession.StartAsync();
-        check(await Rejected(() => encryptedSession.SubmitDecisionAsync(new GpuPartitionSelection(encrypted.PendingDecision!.Id, encrypted.PendingDecision.Partitions[0].Id))),
-            "Core rejects encrypted partitions before installation");
+        string? bitlockerError = null;
+        try { await encryptedSession.SubmitDecisionAsync(new GpuPartitionSelection(encrypted.PendingDecision!.Id, encrypted.PendingDecision.Partitions[0].Id)); }
+        catch (ArgumentException ex) { bitlockerError = ex.Message; }
+        check(bitlockerError == R.Error_Gpu_BitLocker
+            && encrypted.PendingDecision?.Message == R.Msg_Gpu_BitLockerRequired,
+            "Core rejects encrypted partitions and prompts to remove BitLocker first");
         var skippedResult = await encryptedSession.SubmitDecisionAsync(
             new GpuDriverFallbackSelection(encrypted.PendingDecision!.Id, GpuDriverFallbackAction.SkipDriver));
-        check(skippedResult.State == GpuDeploymentState.Completed && skippedResult.IsDriverSkipped && !skippedResult.IsDriverIsoMounted,
+        check(skippedResult.State == GpuDeploymentState.Completed && skippedResult.IsDriverSkipped,
             "BitLocker partition selection allows SkipDriver fallback cleanly");
 
-        var isoBackend = new Backend { BitLocker = true };
-        var isoSession = new GpuDeploymentSession(isoBackend);
-        var isoProgress = new List<int?>();
-        var isoWaiting = await isoSession.StartAsync(s => { if (s.DriverIsoProgressPercent.HasValue) isoProgress.Add(s.DriverIsoProgressPercent); });
-        var isoCompleted = await isoSession.SubmitDecisionAsync(
-            new GpuDriverFallbackSelection(isoWaiting.PendingDecision!.Id, GpuDriverFallbackAction.MountIso));
-        check(isoCompleted.State == GpuDeploymentState.Completed && isoCompleted.IsDriverIsoMounted && !isoCompleted.IsDriverSkipped
-            && isoCompleted.DriverIsoProgressPercent == 100 && isoProgress.Contains(50)
-            && isoBackend.MetadataRecordedCount == 0 && isoBackend.Calls.Contains("MountIso"),
-            "BitLocker fallback MountIso reports ISO progress and completes without recording guest driver version metadata");
+        var mixedLinux = new Backend { Os = OperatingSystemType.Linux, MultiplePartitions = true };
+        var mixedLinuxSession = new GpuDeploymentSession(mixedLinux);
+        var mixedLinuxWaiting = await mixedLinuxSession.StartAsync();
+        check(mixedLinuxWaiting.PendingDecision?.Kind == GpuDecisionKind.SelectPartition
+            && mixedLinuxWaiting.PendingDecision.Message == R.Msg_Gpu_SelectPartWithLinux,
+            "Mixed Windows and Linux partitions prompt clearly that Linux is not supported yet");
+        await mixedLinuxSession.CancelAsync();
 
-        foreach (bool unknown in new[] { false, true })
-        {
-            var backend = new Backend { BitLocker = true, MountUnknown = unknown };
-            var flow = new GpuDeploymentSession(backend);
-            var waiting = await flow.StartAsync();
-            backend.MountReturned = flow.RequestCancellation;
-            var stopped = await flow.SubmitDecisionAsync(new GpuDriverFallbackSelection(waiting.PendingDecision!.Id, GpuDriverFallbackAction.MountIso));
-            check(stopped.OutcomeUnknown == unknown && stopped.IsDriverIsoMounted == !unknown
-                && (!unknown || stopped.State == GpuDeploymentState.CleanupRequired && backend.Removed.Count == 0),
-                "Cancellation preserves a concurrent mount receipt");
-        }
+        var mixedLinuxAndBitlocker = new Backend { Os = OperatingSystemType.Linux, BitLocker = true, ExtraWindowsPartition = false };
+        var mixedAllSession = new GpuDeploymentSession(mixedLinuxAndBitlocker);
+        var mixedAllWaiting = await mixedAllSession.StartAsync();
+        check(mixedAllWaiting.PendingDecision?.Kind == GpuDecisionKind.SelectPartition
+            && mixedAllWaiting.PendingDecision.Message == R.Msg_Gpu_LinuxAndBitLockerUnsupported,
+            "Linux and BitLocker partitions without usable Windows prompt both unsupported reasons");
+        await mixedAllSession.CancelAsync();
 
         var mountTimeBitlocker = new Backend { BitLockerAtSync = true };
         var mountTimeSession = new GpuDeploymentSession(mountTimeBitlocker);
@@ -260,14 +267,15 @@ internal static class GpuWorkflowChecks
         var linuxSession = new GpuDeploymentSession(linux);
         var linuxPending = await linuxSession.StartAsync();
         check(linuxPending.PendingDecision?.Kind == GpuDecisionKind.SelectPartition
+            && linuxPending.PendingDecision.Message == R.Msg_Gpu_LinuxUnsupported
             && await Rejected(() => linuxSession.SubmitDecisionAsync(new GpuPartitionSelection(linuxPending.PendingDecision!.Id, linuxPending.PendingDecision.Partitions[0].Id)))
             && !linux.Calls.Contains("Windows"),
-            "Non-Windows partitions require explicit fallback and cannot proceed with direct driver sync");
-        var linuxIso = await linuxSession.SubmitDecisionAsync(
-            new GpuDriverFallbackSelection(linuxPending.PendingDecision!.Id, GpuDriverFallbackAction.MountIso));
-        check(linuxIso.State == GpuDeploymentState.Completed && linuxIso.IsDriverIsoMounted
-            && linux.Calls.Contains("MountIso") && !linux.Calls.Contains("Windows") && linux.MetadataRecordedCount == 0,
-            "Linux partition uses MountIso fallback cleanly without guest driver metadata writes");
+            "Linux partitions prompt that Linux is unsupported and cannot proceed with direct driver sync");
+        var linuxSkipped = await linuxSession.SubmitDecisionAsync(
+            new GpuDriverFallbackSelection(linuxPending.PendingDecision!.Id, GpuDriverFallbackAction.SkipDriver));
+        check(linuxSkipped.State == GpuDeploymentState.Completed && linuxSkipped.IsDriverSkipped
+            && !linux.Calls.Contains("Windows") && linux.MetadataRecordedCount == 0,
+            "Linux partition uses SkipDriver fallback cleanly without guest driver metadata writes");
 
         var assigned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -345,46 +353,6 @@ internal static class GpuWorkflowChecks
         check(IsoBuilderService.ShouldUseUdfOnly(1024, 4L * 1024 * 1024 * 1024),
             "ISO builder switches to pure UDF when a single file reaches 4 GiB");
 
-        // Driver ISO space validation & staging payload generation checks
-        check(GpuDriverIsoService.ValidateFreeDiskSpace(@"C:\Temp\test.iso", 1000, _ => 64L * 1024 * 1024) == null,
-            "Driver ISO disk space pre-check passes when free space covers image + headroom");
-        check(GpuDriverIsoService.ValidateFreeDiskSpace(@"C:\Temp\test.iso", 1000, _ => 1100) != null,
-            "Driver ISO disk space pre-check rejects insufficient disk space");
-
-        string stagingDir = Path.Combine(Path.GetTempPath(), "ExHyperV-StageCheck-" + Guid.NewGuid().ToString("N"));
-        try
-        {
-            var manifest = new GpuDriverIsoManifest(
-                [new GpuDriverIsoRuleEntry("nvapi64.dll", "nvapi64.dll", "System32", "PreserveExisting", null, false)],
-                [], [], []);
-            GpuDriverIsoService.CreateStagingPayload(stagingDir, manifest);
-            string cmdPath = Path.Combine(stagingDir, "安装显卡驱动.cmd");
-            string ps1Path = Path.Combine(stagingDir, "_payload", "install.ps1");
-            string jsonPath = Path.Combine(stagingDir, "_payload", "manifest.json");
-            check(File.Exists(cmdPath) && File.Exists(ps1Path) && File.Exists(jsonPath),
-                "Driver ISO staging creates visible UAC launcher CMD plus _payload manifest and PowerShell script");
-            check(!Directory.Exists(Path.Combine(AppContext.BaseDirectory, "GpuGuestInstaller")),
-                "Guest installer scripts stay packaged inside Core instead of shipping loose .cmd/.ps1 files beside the app");
-            using var archiveStream = typeof(GpuDriverIsoService).Assembly.GetManifestResourceStream("ExHyperV.GpuGuestInstaller.zip")
-                ?? throw new InvalidOperationException("Missing embedded ExHyperV.GpuGuestInstaller.zip resource.");
-            using var archive = new System.IO.Compression.ZipArchive(archiveStream, System.IO.Compression.ZipArchiveMode.Read);
-            byte[] ReadZipEntry(string name)
-            {
-                var entry = archive.GetEntry(name) ?? throw new InvalidOperationException($"Missing entry {name} in guest installer archive.");
-                using var entryStream = entry.Open();
-                using var copy = new MemoryStream();
-                entryStream.CopyTo(copy);
-                return copy.ToArray();
-            }
-            check(File.ReadAllBytes(ps1Path).SequenceEqual(ReadZipEntry("install.ps1"))
-                && File.ReadAllBytes(cmdPath).SequenceEqual(ReadZipEntry("install.cmd")),
-                "Driver ISO stages both packaged guest installer assets without rewriting them");
-        }
-        finally
-        {
-            if (Directory.Exists(stagingDir)) Directory.Delete(stagingDir, recursive: true);
-        }
-
         // Guest driver metadata parsing & assignment update flag checks
         string gpuKey = VmMetadataService.NormalizeGpuDriverKey(@"\\?\pci#ven_10de&dev_2684#4&123#{86e0d1e0-8089-11d0-9ce4-08003e301f73}");
         check(gpuKey == VmMetadataService.NormalizeGpuDriverKey(@"PCI\VEN_10DE&DEV_2684\4&123"),
@@ -418,10 +386,9 @@ internal static class GpuWorkflowChecks
         public List<string> Removed { get; } = new();
         public int GpuCount { get; set; } = 1;
         public int FailAssignAtIndex { get; set; } = -1;
-        public bool MountUnknown;
-        public Action? MountReturned;
         public int MetadataRecordedCount { get; private set; }
         public bool FailDrivers, MultiplePartitions, IncludeEfiPartition, UnidentifiedAssignment, TargetChanged, FailRemoval, BitLocker, BitLockerAtSync, InvalidSystemPartAtSync;
+        public bool ExtraWindowsPartition { get; set; } = true;
         public bool ConcurrentAssignment, FailAssignmentBeforeCreation, FailAssignmentAfterCreation, ThrowAssignment;
         public bool OmitCreatedIdentity, OutcomeUnknown;
         public int AdapterReads;
@@ -478,6 +445,8 @@ internal static class GpuWorkflowChecks
             var parts = new List<DiskPartitionInfo> { new(1, 1024, Os, "OS") { DiskPath = DiskPath, IsBitLocker = BitLocker } };
             if (IncludeEfiPartition) parts.Add(new(0, 100, OperatingSystemType.EFI, "EFI") { DiskPath = DiskPath });
             if (MultiplePartitions) parts.Add(new(2, 1024, OperatingSystemType.Windows, "OS") { DiskPath = DiskPath });
+            else if (Os == OperatingSystemType.Linux && BitLocker && !ExtraWindowsPartition)
+                parts.Add(new(2, 1024, OperatingSystemType.Windows, "OS") { DiskPath = DiskPath, IsBitLocker = true });
             return Task.FromResult(parts);
         }
         public async Task<(bool Success, string Message)> SyncWindowsAsync(DiskPartitionInfo partition, Action<string> log)
@@ -487,15 +456,6 @@ internal static class GpuWorkflowChecks
             if (BitLockerAtSync) return (false, R.Error_Gpu_BitLocker);
             if (InvalidSystemPartAtSync) return (false, string.Format(R.Error_Gpu_InvalidSystemPart, @"Z:\"));
             return (!FailDrivers, FailDrivers ? "failed" : "OK");
-        }
-        public Task<ApiResponse<string>> MountDriverIsoAsync(Action<int>? progressPercent = null, Action<string>? log = null, CancellationToken cancellationToken = default)
-        {
-            Calls.Add("MountIso");
-            progressPercent?.Invoke(50);
-            progressPercent?.Invoke(100);
-            MountReturned?.Invoke();
-            if (MountUnknown) return Task.FromResult(ApiResponse<string>.Fail("pending", kind: ApiErrorKind.OutcomeUnknown));
-            return Task.FromResult(ApiResponse<string>.Ok(@"C:\Temp\fixture.iso"));
         }
         public Task RecordGuestDriverVersionsAsync()
         {

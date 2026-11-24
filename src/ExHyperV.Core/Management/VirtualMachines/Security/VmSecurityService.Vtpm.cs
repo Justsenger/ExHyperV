@@ -25,7 +25,7 @@ public enum VtpmPolicy
     DisableMigration
 }
 
-/// <summary>当前配置与宿主身份快照。可空的策略或密钥状态表示宿主没有提供可识别的值。</summary>
+/// <summary>当前配置与宿主身份视图。可空的策略或密钥状态表示宿主没有提供可识别的值。</summary>
 /// <param name="TpmEnabled">当前虚拟 TPM 开关。</param>
 /// <param name="EncryptEnabled">当前保存状态及迁移流量加密开关。</param>
 /// <param name="Shielded">当前请求的屏蔽保护标志。</param>

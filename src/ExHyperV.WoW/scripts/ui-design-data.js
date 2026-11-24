@@ -9,7 +9,7 @@ export const PAGE_TABS = [
   { key: 'processor', title: '处理器', titleEn: 'Processor', titleEnShort: 'CPU', glyph: '\uF58E', fluent: false, rotate: 90, file: 'Settings/VmProcessorSettingsView.cs + VmCpuAffinitySettingsView.cs' },
   { key: 'memory', title: '内存', titleEn: 'Memory', titleEnShort: 'RAM', glyph: '\uEEA0', fluent: false, rotate: 0, file: 'Settings/VmMemorySettingsView.cs' },
   { key: 'devices', title: '设备', titleEn: 'Devices', titleEnShort: 'Devices', glyph: '\uF0E2', fluent: false, rotate: 0, file: 'Settings/VmGpuSettingsView.cs + Storage + Network' },
-  { key: 'checkpoints', title: '检查点', titleEn: 'Checkpoints', titleEnShort: 'Snapshots', glyph: '\uE1DF', fluent: true, rotate: 0, file: 'Settings/VmCheckpointSettingsView.cs' },
+  { key: 'checkpoints', title: '快照', titleEn: 'Snapshots', titleEnShort: 'Snapshots', glyph: '\uE1DF', fluent: true, rotate: 0, file: 'Settings/VmCheckpointSettingsView.cs' },
   { key: 'advanced', title: '高级', titleEn: 'Advanced', titleEnShort: 'Adv', glyph: '\uEC7A', fluent: false, rotate: 0, file: 'Settings/VmBootSettingsView.cs + Security + Console + Power + StoragePolicy' }
 ];
 
@@ -266,7 +266,7 @@ export const PROCESSOR_SECTIONS = [
     titleEnShort: 'Compute',
     kind: 'fields',
     fields: [
-      { id: 'Count', title: '核心数 (vCPU)', kind: 'stepper', value: '12', min: 1, max: 32, desc: '虚拟机的逻辑处理器数量，只能在虚拟机关机后修改。' },
+      { id: 'Count', title: '核心数 (vCPU)', kind: 'stepper', value: '12', min: 1, max: 12, desc: '虚拟机的逻辑处理器数量，只能在虚拟机关机后修改。' },
       { id: 'Reservation', title: '预留 (%)', kind: 'stepper', value: '0', min: 0, max: 100, desc: '为虚拟机设定的最低处理器资源比例。' },
       { id: 'Limit', title: '限制 (%)', kind: 'stepper', value: '100', min: 0, max: 100, desc: '为虚拟机设定的最高处理器资源比例。' },
       { id: 'RelativeWeight', title: '权重', kind: 'stepper', value: '100', min: 1, max: 10000, desc: '多台虚拟机争抢处理器资源时的分配优先级。' }
@@ -277,7 +277,7 @@ export const PROCESSOR_SECTIONS = [
     titleEn: 'CPU Affinity',
     titleEnShort: 'Affinity',
     kind: 'affinity',
-    cpuModel: 'AMD Ryzen 9 9950X 16-Core Processor',
+    cpuModel: 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz',
     desc: '按住左键拖动可多选。全部取消选择表示解除绑定。'
   },
   {
@@ -290,7 +290,7 @@ export const PROCESSOR_SECTIONS = [
       { id: 'CompatibilityForMigrationEnabled', title: '迁移兼容性', kind: 'toggle', value: false, desc: '屏蔽 CPU 指令集，以便在不同版本的主机间迁移' },
       { id: 'CompatibilityForMigrationMode', title: '迁移功能集', kind: 'choice', value: 'MinimumFeatureSet', options: [['MinimumFeatureSet', '最小功能集'], ['CommonClusterFeatureSet', '群集共同功能集']], desc: '选择固定的最小特征集，或群集节点共同支持的特征集' },
       { id: 'CompatibilityForOlderOperatingSystemsEnabled', title: '旧操作系统兼容', kind: 'toggle', value: false, desc: '屏蔽 CPU 指令集，提高对老旧操作系统的兼容性' },
-      { id: 'CpuBrandString', title: '自定义 CPU 名称', kind: 'string', value: 'AMD Ryzen 9 9950X 16-Core Processor', desc: '修改向来宾公开的 CPU 名称' }
+      { id: 'CpuBrandString', title: '自定义 CPU 名称', kind: 'string', value: 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz', desc: '修改向来宾公开的 CPU 名称' }
     ]
   },
   {
@@ -314,8 +314,8 @@ export const PROCESSOR_SECTIONS = [
     titleEnShort: 'Interrupts',
     kind: 'fields',
     fields: [
-      { id: 'ApicMode', title: '中断控制器模式', kind: 'choice', value: 'Default', options: [['Default', '默认'], ['Legacy', '传统'], ['Apic', 'xAPIC'], ['X2Apic', 'x2APIC']], desc: '切换虚拟机的 APIC 中断控制器模式（仅 x64 支持）。' },
-      { id: 'LpiMode', title: '局部外设中断', kind: 'choice', value: 'Default', options: [['Default', '默认'], ['Disabled', '禁用'], ['Enabled', '启用']], desc: '设置虚拟机接收局部外设中断的方式（仅 ARM64 支持）。', disabled: true, disabledTip: '当前宿主架构不支持' },
+      { id: 'ApicMode', title: '中断控制器模式', kind: 'choice', value: 'Default', options: [['Default', '默认'], ['Legacy', '传统'], ['Apic', 'xAPIC'], ['X2Apic', 'x2APIC']], desc: '切换虚拟机的 APIC 中断控制器模式（仅 x64 支持）。', disabled: true, disabledTip: '当前宿主架构不支持' },
+      { id: 'LpiMode', title: '局部外设中断', kind: 'choice', value: 'Default', options: [['Default', '默认'], ['Disabled', '禁用'], ['Enabled', '启用']], desc: '设置虚拟机接收局部外设中断的方式（仅 ARM64 支持）。' },
       { id: 'EnableHostResourceProtection', title: '主机资源保护', kind: 'toggle', value: false, desc: '当虚拟机持续占用过多宿主时间时自动节流，保护宿主与其他虚拟机。' }
     ]
   },
@@ -328,7 +328,7 @@ export const PROCESSOR_SECTIONS = [
       { id: 'AllowAcountMcount', title: '真实频率计数器', kind: 'toggle', value: true, desc: '允许虚拟机读取实际与基准频率比值以正确显示主频（仅 x64 支持）。' },
       { id: 'EnablePerfmonPmu', title: '硬件性能计数器（PMU）', kind: 'toggle', value: false, desc: '允许虚拟机内的分析工具读取硬件指令数、缓存命中等指标（仅 Intel 支持）。' },
       { id: 'EnablePerfmonLbr', title: '分支跳转记录（LBR）', kind: 'toggle', value: false, desc: '透传最近分支跳转历史栈，用于低开销采样分析（仅 Intel 支持）。' },
-      { id: 'EnablePerfmonPebs', title: '精确事件采样（PEBS）', kind: 'toggle', value: false, desc: '计数器溢出时记录精确指令地址与寄存器快照（仅 Intel 支持，需先开启 PMU）。' },
+      { id: 'EnablePerfmonPebs', title: '精确事件采样（PEBS）', kind: 'toggle', value: false, desc: '计数器溢出时记录精确指令地址与寄存器现场（仅 Intel 支持，需先开启 PMU）。' },
       { id: 'EnablePerfmonIpt', title: '指令流跟踪（IPT）', kind: 'toggle', value: false, desc: '硬件级连续记录指令执行流，用于深度追踪与调试（仅 Intel 支持，需先开启 PMU）。' }
     ]
   },
@@ -643,8 +643,19 @@ export const HOST_GPUS = [
     partitionable: true
   },
   {
+    id: 'host-gpu-nvidia',
+    name: 'NVIDIA GeForce RTX 4090',
+    manu: 'NVIDIA',
+    vendor: 'Asustek Computer Inc.',
+    memoryText: '24564 MB',
+    driverVersion: '32.0.15.6636',
+    instanceId: 'PCI\\VEN_10DE&DEV_2684&SUBSYS_889C1043&REV_A1\\4&2C8B14A&0&0008',
+    partitionPath: '\\\\?\\PCI#VEN_10DE&DEV_2684&SUBSYS_889C1043&REV_A1#4&2c8b14a&0&0008#{064092b3-625e-43bf-9eb5-dc845897dd95}\\GPUPARAV',
+    partitionable: true
+  },
+  {
     id: 'host-gpu-2',
-    name: 'AMD Radeon(TM) Graphics (iGPU)',
+    name: 'AMD Radeon(TM) Graphics',
     manu: 'AMD',
     vendor: 'AMD',
     memoryText: '2048 MB',
@@ -662,8 +673,7 @@ export const HOST_GPUS = [
     driverVersion: '32.0.101.6256',
     instanceId: 'PCI\\VEN_8086&DEV_56A0&SUBSYS_10298086&REV_08\\4&3F91C0B&0&0010',
     partitionPath: '',
-    partitionable: false,
-    unpartitionableReason: '未发现可用的 GPU-PV 分区资源'
+    partitionable: false
   }
 ];
 
@@ -686,7 +696,7 @@ export const INITIAL_GPU_PARTITIONS = [
     sizeText: '96.0 GB',
     osType: 'Linux',
     locked: false,
-    desc: '识别到 /etc/os-release（不支持自动注入驱动，可跳过或挂载驱动光盘）'
+    desc: '检测到 Linux 分区，当前暂不支持为其部署驱动'
   },
   {
     id: 'part-bitlocker',
@@ -696,7 +706,7 @@ export const INITIAL_GPU_PARTITIONS = [
     sizeText: '240.0 GB',
     osType: 'BitLocker',
     locked: true,
-    desc: '卷已启用 BitLocker 加密，无法离线读取系统目录'
+    desc: '已开启 BitLocker 保护，请先解除 BitLocker'
   }
 ];
 
@@ -894,10 +904,10 @@ export const CHECKPOINT_NODES = [
     parentId: null,
     name: '初始干净系统 (Win11 24H2)',
     date: '2026-11-10 14:20:05',
-    type: 'Genesis',
+    type: 'Origin',
     mode: 'production',
-    wormhole: false,
-    wormholePort: 'SCSI 0:1',
+    historicalDisk: false,
+    historicalDiskPort: 'SCSI 0:1',
     diskName: 'Win11-Dev.vhdx',
     diskSizeGb: 42.4,
     thumbTheme: 'clean',
@@ -910,8 +920,8 @@ export const CHECKPOINT_NODES = [
     date: '2026-11-12 19:45:12',
     type: 'Snapshot',
     mode: 'production',
-    wormhole: false,
-    wormholePort: 'SCSI 0:1',
+    historicalDisk: false,
+    historicalDiskPort: 'SCSI 0:1',
     diskName: 'Win11-Dev_8A3F21.avhdx',
     diskSizeGb: 6.8,
     thumbTheme: 'desktop',
@@ -924,8 +934,8 @@ export const CHECKPOINT_NODES = [
     date: '2026-11-13 09:12:44',
     type: 'Snapshot',
     mode: 'standard',
-    wormhole: false,
-    wormholePort: 'SCSI 0:1',
+    historicalDisk: false,
+    historicalDiskPort: 'SCSI 0:1',
     diskName: 'Win11-Dev_B19C04.avhdx',
     diskSizeGb: 3.1,
     thumbTheme: 'terminal',
@@ -938,8 +948,8 @@ export const CHECKPOINT_NODES = [
     date: '2026-11-14 11:08:33',
     type: 'Snapshot',
     mode: 'standard',
-    wormhole: false,
-    wormholePort: 'SCSI 0:1',
+    historicalDisk: false,
+    historicalDiskPort: 'SCSI 0:1',
     diskName: 'Win11-Dev_C74D19.avhdx',
     diskSizeGb: 9.2,
     thumbTheme: 'gpu',
@@ -952,8 +962,8 @@ export const CHECKPOINT_NODES = [
     date: '2026-11-14 16:40:18',
     type: 'Snapshot',
     mode: 'standard',
-    wormhole: false,
-    wormholePort: 'SCSI 0:1',
+    historicalDisk: false,
+    historicalDiskPort: 'SCSI 0:1',
     diskName: 'Win11-Dev_E02A88.avhdx',
     diskSizeGb: 4.7,
     thumbTheme: 'alert',
@@ -966,11 +976,11 @@ export const CHECKPOINT_NODES = [
     date: '2026-11-22 12:00:00',
     type: 'Current',
     mode: 'standard',
-    wormhole: false,
-    wormholePort: 'SCSI 0:1',
+    historicalDisk: false,
+    historicalDiskPort: 'SCSI 0:1',
     diskName: 'Win11-Dev_F91E02.avhdx',
     diskSizeGb: 2.5,
     thumbTheme: 'live',
-    note: '虚拟机当前所在时间线位置'
+    note: '虚拟机当前所在快照位置'
   }
 ];

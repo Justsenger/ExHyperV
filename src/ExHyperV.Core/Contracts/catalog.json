@@ -100,7 +100,7 @@
       "管理层面",
       "虚拟机",
       "查询",
-      "检查点"
+      "快照"
     ],
     [
       "管理层面",
@@ -201,7 +201,7 @@
       "管理层面",
       "虚拟机",
       "修改",
-      "检查点"
+      "快照"
     ],
     [
       "管理层面",
@@ -949,24 +949,24 @@
       "group": "vm"
     },
     "ExHyperV.Models.CheckpointNode": {
-      "title": "检查点节点",
+      "title": "快照节点",
       "role": "contract",
       "path": [
         "管理层面",
         "虚拟机",
         "查询",
-        "检查点"
+        "快照"
       ],
       "group": "vm"
     },
     "ExHyperV.Models.CheckpointNodeType": {
-      "title": "检查点节点类型",
+      "title": "快照节点类型",
       "role": "contract",
       "path": [
         "管理层面",
         "虚拟机",
         "查询",
-        "检查点"
+        "快照"
       ],
       "group": "vm"
     },
@@ -1125,7 +1125,7 @@
       "group": "host"
     },
     "ExHyperV.Models.VmGroupSnapshot": {
-      "title": "分组快照",
+      "title": "分组状态视图",
       "role": "contract",
       "path": [
         "管理层面",
@@ -2298,24 +2298,24 @@
       "group": "vm"
     },
     "ExHyperV.Services.VmCheckpointFields": {
-      "title": "检查点字段",
+      "title": "快照字段",
       "role": "contract",
       "path": [
         "管理层面",
         "虚拟机",
         "查询",
-        "检查点"
+        "快照"
       ],
       "group": "vm"
     },
     "ExHyperV.Services.VmCheckpointGlobalFields": {
-      "title": "检查点字段",
+      "title": "快照字段",
       "role": "contract",
       "path": [
         "管理层面",
         "虚拟机",
         "查询",
-        "检查点"
+        "快照"
       ],
       "group": "vm"
     },
@@ -2517,7 +2517,7 @@
       "group": "vm"
     },
     "ExHyperV.Services.VmExportCheckpointMode": {
-      "title": "检查点导出方式",
+      "title": "快照导出方式",
       "role": "contract",
       "path": [
         "管理层面",
@@ -2649,7 +2649,7 @@
       "group": "vm"
     },
     "ExHyperV.Services.VmExportService.CheckpointInfo": {
-      "title": "可导出的检查点",
+      "title": "可导出的快照",
       "role": "contract",
       "path": [
         "管理层面",
@@ -3595,13 +3595,13 @@
       "group": "devices"
     },
     "ExHyperV.Services.VmCheckpointService": {
-      "title": "检查点管理",
+      "title": "快照管理",
       "role": "entry",
       "path": [
         "管理层面",
         "虚拟机",
         "修改",
-        "检查点"
+        "快照"
       ],
       "group": "vm"
     },
@@ -3946,7 +3946,7 @@
       "group": "utilities"
     },
     "ExHyperV.Services.VmSettingsSnapshot<T>": {
-      "title": "配置读取快照",
+      "title": "配置读取视图",
       "role": "contract",
       "path": [
         "管理层面",
@@ -5320,19 +5320,6 @@
       "group": "devices",
       "readOnly": false
     },
-    "P:ExHyperV.Models.GpuDeploymentSnapshot.DriverIsoProgressPercent": {
-      "title": "驱动光盘打包进度",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
     "P:ExHyperV.Models.GpuDeploymentSnapshot.Error": {
       "title": "错误",
       "paths": [
@@ -5361,19 +5348,6 @@
     },
     "P:ExHyperV.Models.GpuDeploymentSnapshot.HasPendingCleanup": {
       "title": "待清理资源",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "P:ExHyperV.Models.GpuDeploymentSnapshot.IsDriverIsoMounted": {
-      "title": "驱动光盘已挂载",
       "paths": [
         [
           "管理层面",
@@ -5777,19 +5751,6 @@
     },
     "F:ExHyperV.Models.GpuDeploymentStepStatus.Success": {
       "title": "Success",
-      "paths": [
-        [
-          "管理层面",
-          "虚拟机",
-          "修改",
-          "GPU"
-        ]
-      ],
-      "group": "devices",
-      "readOnly": false
-    },
-    "F:ExHyperV.Models.GpuDriverFallbackAction.MountIso": {
-      "title": "MountIso",
       "paths": [
         [
           "管理层面",
@@ -7237,20 +7198,20 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
-    "F:ExHyperV.Models.CheckpointNode.GenesisId": {
-      "title": "时间线起点标识",
+    "F:ExHyperV.Models.CheckpointNode.OriginId": {
+      "title": "快照起点标识",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7263,7 +7224,7 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7276,20 +7237,20 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
     "P:ExHyperV.Models.CheckpointNode.IsCurrent": {
-      "title": "当前检查点分支标记",
+      "title": "当前快照分支标记",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7302,20 +7263,20 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
-    "P:ExHyperV.Models.CheckpointNode.IsWormhole": {
+    "P:ExHyperV.Models.CheckpointNode.IsHistoricalDiskMounted": {
       "title": "历史磁盘挂接状态",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7328,7 +7289,7 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7341,7 +7302,7 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7354,7 +7315,7 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7367,7 +7328,7 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7380,20 +7341,20 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
-    "F:ExHyperV.Models.CheckpointNodeType.Genesis": {
-      "title": "Genesis",
+    "F:ExHyperV.Models.CheckpointNodeType.Origin": {
+      "title": "Origin",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -7406,7 +7367,7 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -8752,7 +8713,7 @@
       "readOnly": false
     },
     "C:ExHyperV.Models.VmGroupSnapshot": {
-      "title": "创建分组快照对象",
+      "title": "创建分组状态视图对象",
       "paths": [
         [
           "管理层面",
@@ -17956,13 +17917,13 @@
       "readOnly": false
     },
     "F:ExHyperV.Services.VmCheckpointFields.CreatedDate": {
-      "title": "检查点创建时间",
+      "title": "快照创建时间",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -17975,20 +17936,20 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
     "F:ExHyperV.Services.VmCheckpointFields.Id": {
-      "title": "检查点身份",
+      "title": "快照身份",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -18001,33 +17962,33 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
-    "F:ExHyperV.Services.VmCheckpointFields.IsWormhole": {
+    "F:ExHyperV.Services.VmCheckpointFields.IsHistoricalDiskMounted": {
       "title": "历史磁盘临时挂接状态",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
     "F:ExHyperV.Services.VmCheckpointFields.Name": {
-      "title": "检查点名称",
+      "title": "快照名称",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -18040,33 +18001,33 @@
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
     "F:ExHyperV.Services.VmCheckpointFields.ParentId": {
-      "title": "父检查点身份",
+      "title": "父快照身份",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
     "F:ExHyperV.Services.VmCheckpointGlobalFields.Enabled": {
-      "title": "检查点开关",
+      "title": "快照开关",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -20027,7 +19988,7 @@
       ]
     },
     "M:ExHyperV.Services.VmExportService.GetCheckpointsAsync(System.Guid)": {
-      "title": "读取可导出的检查点",
+      "title": "读取可导出的快照",
       "paths": [
         [
           "管理层面",
@@ -27086,40 +27047,40 @@
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmCheckpointService.AnnihilateAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
-      "title": "删除检查点",
+    "M:ExHyperV.Services.VmCheckpointService.DeleteSnapshotAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
+      "title": "删除快照",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmCheckpointService.CanCreateMoment(System.Boolean,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
-      "title": "检查检查点创建条件",
+    "M:ExHyperV.Services.VmCheckpointService.CanCreateSnapshot(System.Boolean,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
+      "title": "检查快照创建条件",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
     "M:ExHyperV.Services.VmCheckpointService.CanMergeHistoricalNode(ExHyperV.Models.CheckpointNode,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
-      "title": "检查历史检查点合并条件",
+      "title": "检查历史快照合并条件",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -27132,7 +27093,7 @@
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -27145,111 +27106,111 @@
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmCheckpointService.CloseWormholeAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
+    "M:ExHyperV.Services.VmCheckpointService.DismountHistoricalDiskAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
       "title": "结束历史磁盘挂接",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmCheckpointService.ConvergeAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
-      "title": "合并检查点",
+    "M:ExHyperV.Services.VmCheckpointService.MergeSnapshotAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
+      "title": "合并快照",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
     "M:ExHyperV.Services.VmCheckpointService.GetCheckpointsEnabledAsync(System.Guid)": {
-      "title": "读取检查点开关",
+      "title": "读取快照开关",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": true
     },
-    "M:ExHyperV.Services.VmCheckpointService.HasOpenWormhole(System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
+    "M:ExHyperV.Services.VmCheckpointService.HasMountedHistoricalDisk(System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
       "title": "检查历史磁盘挂接",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmCheckpointService.OpenWormholeAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
+    "M:ExHyperV.Services.VmCheckpointService.MountHistoricalDiskAsync(System.Guid,ExHyperV.Models.CheckpointNode)": {
       "title": "临时挂接历史磁盘",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
     "M:ExHyperV.Services.VmCheckpointService.RenameSnapshotAsync(System.Guid,ExHyperV.Models.CheckpointNode,System.String)": {
-      "title": "重命名检查点",
+      "title": "重命名快照",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
     "M:ExHyperV.Services.VmCheckpointService.SetCheckpointsEnabledAsync(System.Guid,System.Boolean)": {
-      "title": "设置检查点开关",
+      "title": "设置快照开关",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmCheckpointService.TeleportAsync(ExHyperV.Models.CheckpointNode,System.Guid,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
-      "title": "恢复检查点",
+    "M:ExHyperV.Services.VmCheckpointService.ApplySnapshotAsync(ExHyperV.Models.CheckpointNode,System.Guid,System.Collections.Generic.IEnumerable{ExHyperV.Models.CheckpointNode})": {
+      "title": "应用快照",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -31438,7 +31399,7 @@
       "readOnly": true
     },
     "M:ExHyperV.Models.VmNetworkAdapter.Clone": {
-      "title": "复制网卡配置快照",
+      "title": "复制网卡配置副本",
       "paths": [
         [
           "管理层面",
@@ -32412,27 +32373,27 @@
       "group": "devices",
       "readOnly": false
     },
-    "M:ExHyperV.Services.VmCheckpointService.CaptureMomentAsync(System.Guid)": {
-      "title": "创建检查点",
+    "M:ExHyperV.Services.VmCheckpointService.CreateSnapshotAsync(System.Guid)": {
+      "title": "创建快照",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "修改",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
       "readOnly": false
     },
     "M:ExHyperV.Services.VmCheckpointService.GetCheckpointNodesAsync(System.Guid)": {
-      "title": "查询检查点树",
+      "title": "查询快照树",
       "paths": [
         [
           "管理层面",
           "虚拟机",
           "查询",
-          "检查点"
+          "快照"
         ]
       ],
       "group": "vm",
@@ -33991,7 +33952,7 @@
       "member": "GetVmIds",
       "area": "查询",
       "category": "分组",
-      "label": "从快照收集虚拟机成员"
+      "label": "从视图收集虚拟机成员"
     },
     {
       "owner": "HostProductTypeService",

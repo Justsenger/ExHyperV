@@ -26,9 +26,6 @@ public sealed partial class VmGpuSettingsView
     private GpuDeploymentSnapshot? snapshot;
     private bool cancellationRequested;
     private string? renderedStepsSignature;
-    private TextBlock? activeIsoPctText;
-    private ColumnDefinition? activeIsoFillCol;
-    private ColumnDefinition? activeIsoTrackCol;
 
     private UIElement BuildDeploymentPanel()
     {
@@ -71,9 +68,6 @@ public sealed partial class VmGpuSettingsView
         snapshot = null;
         cancellationRequested = false;
         renderedStepsSignature = null;
-        activeIsoPctText = null;
-        activeIsoFillCol = null;
-        activeIsoTrackCol = null;
         fallbackDecisionPanel.Children.Clear();
         fallbackDecisionHost.Visibility = Visibility.Collapsed;
 
@@ -95,9 +89,26 @@ public sealed partial class VmGpuSettingsView
         ApplySnapshot(session, result);
         if (result.State == GpuDeploymentState.Completed)
         {
+            bool refreshOk = true;
             try { await RefreshAssignmentsAsync(); }
-            catch (Exception ex) { Notice(L10n.Format("Gpu_RefreshFailed", CoreMessageResolver.ResolveException(ex)), InfoBarSeverity.Warning); }
+            catch (Exception ex)
+            {
+                refreshOk = false;
+                Notice(L10n.Format("Gpu_RefreshFailed", CoreMessageResolver.ResolveException(ex)), InfoBarSeverity.Warning);
+            }
             NotifyChanged();
+            bool hasErrors = !string.IsNullOrWhiteSpace(result.Error) || !string.IsNullOrWhiteSpace(result.CleanupError);
+            if (refreshOk
+                && !result.HasPendingCleanup
+                && !result.OutcomeUnknown
+                && !result.IsDriverSkipped
+                && !hasErrors
+                && !closing && !IsStopped && ReferenceEquals(workflow, session))
+            {
+                overview.Visibility = Visibility.Visible;
+                deployment.Visibility = selection.Visibility = Visibility.Collapsed;
+                Notice(L10n.Get("Common_Applied"), InfoBarSeverity.Success);
+            }
         }
         else if (result.State is GpuDeploymentState.Cancelled or GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired)
         {
@@ -144,30 +155,13 @@ public sealed partial class VmGpuSettingsView
     private void RenderTaskSteps(GpuDeploymentSnapshot value)
     {
         string stepsSignature = string.Join("|", value.Steps.Select(s =>
-        {
-            bool isIso = s.Type == GpuDeploymentStepKind.Driver
-                && (value.IsDriverIsoMounted || value.DriverIsoProgressPercent.HasValue);
-            bool hasPct = isIso && s.Status == GpuDeploymentStepStatus.Running && value.DriverIsoProgressPercent.HasValue;
-            return $"{s.Type}:{s.Name}:{s.Status}:{isIso}:{value.IsDriverSkipped}:{hasPct}";
-        })) + $"#state={value.State}#dec={value.PendingDecision?.Id}:{value.PendingDecision?.Kind}";
+            $"{s.Type}:{s.Name}:{s.Status}:{value.IsDriverSkipped}"))
+            + $"#state={value.State}#dec={value.PendingDecision?.Id}:{value.PendingDecision?.Kind}:{value.PendingDecision?.Message}";
 
-        if (string.Equals(stepsSignature, renderedStepsSignature, StringComparison.Ordinal)
-            && value.DriverIsoProgressPercent.HasValue
-            && activeIsoPctText != null
-            && activeIsoFillCol != null
-            && activeIsoTrackCol != null)
-        {
-            int pct = Math.Clamp(value.DriverIsoProgressPercent.Value, 0, 100);
-            activeIsoPctText.Text = $"{pct}%";
-            activeIsoFillCol.Width = new GridLength(pct, GridUnitType.Star);
-            activeIsoTrackCol.Width = new GridLength(Math.Max(0, 100 - pct), GridUnitType.Star);
+        if (string.Equals(stepsSignature, renderedStepsSignature, StringComparison.Ordinal))
             return;
-        }
 
         renderedStepsSignature = stepsSignature;
-        activeIsoPctText = null;
-        activeIsoFillCol = null;
-        activeIsoTrackCol = null;
 
         stepsPanel.Children.Clear();
         fallbackDecisionPanel.Children.Clear();
@@ -180,19 +174,15 @@ public sealed partial class VmGpuSettingsView
 
         foreach (GpuDeploymentStep step in value.Steps)
         {
-            bool isIsoStep = step.Type == GpuDeploymentStepKind.Driver
-                && (value.IsDriverIsoMounted || value.DriverIsoProgressPercent.HasValue);
             bool isSkipped = step.Type == GpuDeploymentStepKind.Driver && value.IsDriverSkipped;
-            string displayLabel = isIsoStep ? L10n.Get("Gpu_MountDriverDisc") : step.Name;
+            string displayLabel = step.Name;
 
             bool isActive = step.Status == GpuDeploymentStepStatus.Running;
             bool isDone = !isSkipped && step.Status == GpuDeploymentStepStatus.Success;
             bool isFailed = step.Status == GpuDeploymentStepStatus.Failed;
             bool isPending = !isActive && !isDone && !isSkipped && !isFailed;
-            bool showIsoProgress = value.State == GpuDeploymentState.Running && isIsoStep && isActive && value.DriverIsoProgressPercent.HasValue;
 
             var cardGrid = new Grid();
-            cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
             var mainRow = new Grid
@@ -220,7 +210,7 @@ public sealed partial class VmGpuSettingsView
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
             if (isActive && value.State == GpuDeploymentState.WaitingForDecision
-                && value.PendingDecision?.Kind is GpuDecisionKind.PowerOff or GpuDecisionKind.DriverFallback
+                && value.PendingDecision?.Kind is GpuDecisionKind.PowerOff or GpuDecisionKind.DriverFallback or GpuDecisionKind.SelectPartition
                 && !string.IsNullOrWhiteSpace(value.PendingDecision.Message))
             {
                 titleStack.Children.Add(new TextBlock
@@ -245,20 +235,6 @@ public sealed partial class VmGpuSettingsView
                     VerticalAlignment = VerticalAlignment.Center
                 };
             }
-            else if (showIsoProgress)
-            {
-                int pct = Math.Clamp(value.DriverIsoProgressPercent!.Value, 0, 100);
-                var pctBlock = new TextBlock
-                {
-                    Text = $"{pct}%",
-                    FontSize = 12.5,
-                    Foreground = Brush("TextFillColorSecondaryBrush"),
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                Microsoft.UI.Xaml.Documents.Typography.SetNumeralAlignment(pctBlock, FontNumeralAlignment.Tabular);
-                activeIsoPctText = pctBlock;
-                rightContent = pctBlock;
-            }
             else if (isActive && value.State == GpuDeploymentState.WaitingForDecision && value.PendingDecision != null)
             {
                 rightContent = BuildInlineStepActions(step, value.PendingDecision);
@@ -272,33 +248,6 @@ public sealed partial class VmGpuSettingsView
 
             Grid.SetRow(mainRow, 0);
             cardGrid.Children.Add(mainRow);
-
-            if (showIsoProgress)
-            {
-                int pct = Math.Clamp(value.DriverIsoProgressPercent!.Value, 0, 100);
-                var fillCol = new ColumnDefinition { Width = new GridLength(pct, GridUnitType.Star) };
-                var trackCol = new ColumnDefinition { Width = new GridLength(Math.Max(0, 100 - pct), GridUnitType.Star) };
-                activeIsoFillCol = fillCol;
-                activeIsoTrackCol = trackCol;
-
-                var progressTrack = new Grid
-                {
-                    Height = 3,
-                    Background = new SolidColorBrush(Color.FromArgb(15, 255, 255, 255))
-                };
-                progressTrack.ColumnDefinitions.Add(fillCol);
-                progressTrack.ColumnDefinitions.Add(trackCol);
-                var fillBar = new Border
-                {
-                    Background = Brush("VmAccentBrush"),
-                    CornerRadius = new CornerRadius(0, 0, 0, 5)
-                };
-                Grid.SetColumn(fillBar, 0);
-                progressTrack.Children.Add(fillBar);
-
-                Grid.SetRow(progressTrack, 1);
-                cardGrid.Children.Add(progressTrack);
-            }
 
             var taskCard = new Border
             {

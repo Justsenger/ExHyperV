@@ -313,7 +313,7 @@ public static partial class VmImportService
                 // ImportSystemDefinition 创建计划虚拟机，后续由 RealizePlannedSystem 完成注册。
                 // 导出配置可能仍携带源主机的默认根，RealizePlannedSystem 会据此把配置
                 // 写进当前主机默认目录。显式指向本次选择的单 VM 根目录，才能保证
-                // 配置、检查点与分页文件继续留在来源目录中。
+                // 配置、快照与分页文件继续留在来源目录中。
                 await MovePlannedDataRootsAsync(
                     session,
                     recovery?.Root ?? session.SourceRoot,
@@ -446,7 +446,7 @@ public static partial class VmImportService
         if (candidates.Length == 0)
             throw new InvalidDataException("ZIP 中没有找到可导入的虚拟机配置文件。");
 
-        // 预览只读取 Virtual Machines 目录下的 .vmcx；Snapshots 中的配置属于检查点，
+        // 预览只读取 Virtual Machines 目录下的 .vmcx；Snapshots 中的配置属于快照，
         // 不应被当成另一台待导入虚拟机。VMRS/VMGS 是 Hyper-V 实体化时使用的状态文件，
         // 与卡片字段无关；尤其保存态 VMRS 可能很大，不应为预览提前解压。
         foreach (var entry in candidates)

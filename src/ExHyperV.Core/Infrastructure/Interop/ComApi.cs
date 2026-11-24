@@ -58,16 +58,16 @@ internal static class ComApi
         });
 
     /// <summary>枚举宿主可见网络连接及当前 ICS 角色。</summary>
-    /// <returns>连接快照响应；失败与空列表有明确区别。</returns>
+    /// <returns>连接列表响应，失败与空列表有明确区别。</returns>
     public static Task<ApiResponse<List<IcsConnection>>> GetConnectionsAsync() => Task.Run(() =>
     {
         try { return ApiResponse<List<IcsConnection>>.Ok(RunOnSta(IcsCore.GetConnections)); }
         catch (Exception ex) { return ApiResponse<List<IcsConnection>>.Fail(ex.Message, ex.HResult, ApiErrorSource.Com, ex); }
     });
 
-    /// <summary>按快照重新配置宿主全部 ICS 共享，并读取实际状态复核。</summary>
+    /// <summary>按传入列表重新配置宿主全部 ICS 共享，并读取实际状态复核。</summary>
     /// <remarks>缺少恢复目标或复核不符会抛出 IcsException；中途失败可能已改变部分共享。</remarks>
-    /// <param name="snapshot">先前读取的网络连接共享快照，按连接 GUID 匹配。</param>
+    /// <param name="snapshot">先前读取的网络连接共享记录，按连接 GUID 匹配。</param>
     public static Task RestoreConnectionsAsync(IReadOnlyList<IcsConnection> snapshot) => Task.Run(() => RunOnSta(() =>
     {
         using var apartment = new NativeComApartment(sta: true);
@@ -311,7 +311,7 @@ internal sealed class IcsTargetNotFoundException : IcsException
     public IcsTargetNotFoundException(string message) : base(message) { }
 }
 
-/// <summary>宿主网络连接及其 ICS 共享角色快照。</summary>
+/// <summary>宿主网络连接及其 ICS 共享角色记录。</summary>
 /// <param name="Id">稳定网络连接 GUID。</param>
 /// <param name="Name">连接显示名称，不作为匹配身份。</param>
 /// <param name="Enabled">是否已启用 ICS。</param>

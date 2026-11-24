@@ -101,7 +101,7 @@ test('getAppRegistry manifests conform to runtime and capability contracts', () 
   assert.equal(exhv?.runtime, 'iframe');
   assert.equal(exhv?.systemTrusted, true);
   assert.equal(hasAppCapability(exhv, 'app-messaging'), true);
-  assert.equal(hasAppCapability(exhv, 'hardware-probe'), true);
+  assert.equal(hasAppCapability(exhv, 'hardware-probe'), false);
   assert.equal(hasAppCapability(exhv, 'shell-control'), false);
 
   const fsManifest = getManifestById('fullscreen');
@@ -377,8 +377,11 @@ test('mountIframeApp and createWowClient complete MessageChannel handshake, queu
     assert.ok(clientHw.some((h) => h.cpu?.usagePct === tickedSnap.cpu.usagePct));
     assert.deepEqual(themes, ['dark', 'light']);
 
-    const snapReply = await client.getHwSnapshot();
-    assert.equal(snapReply.cpu.logicalCores, tickedSnap.cpu.logicalCores);
+    await assert.rejects(
+      () => client.getHwSnapshot(),
+      (err) => err?.code === contractsMod.ERROR.denied,
+      'getHwSnapshot must be blocked without hardware-probe',
+    );
 
     await assert.rejects(
       () => client.openApp('settings'),
@@ -779,125 +782,56 @@ test('virtualHardwareService shares identical live snapshots across taskManagerA
   }
 });
 
-test('ExHyperV host hardware sync maps real snapshot GPUs/disks without leftover 4090 or 24564 MB defaults', () => {
+test('ExHyperV WoW uses standalone local-machine mock hardware without connecting to WoW HAL', () => {
+  const prevWindow = globalThis.window;
   const prevDocument = globalThis.document;
   try {
     const fakePageHost = {
       hidden: false,
+      dataset: {},
       innerHTML: '',
       contains: () => false,
+      addEventListener: () => {},
       querySelectorAll: () => [],
       querySelector: () => null,
     };
+    const fakeWinListeners = new Map();
+    const fakeWindow = {
+      __WIN11_HARDWARE__: {
+        cpu: { displayName: { value: 'Browser Override CPU' }, logicalCores: 4 },
+        gpus: [{ id: 'gpu-0', name: 'Browser WebGL Adapter', webglVersion: 'WebGL 2.0' }],
+      },
+      addEventListener(type, fn) {
+        if (!fakeWinListeners.has(type)) fakeWinListeners.set(type, new Set());
+        fakeWinListeners.get(type).add(fn);
+      },
+      removeEventListener(type, fn) {
+        fakeWinListeners.get(type)?.delete(fn);
+      },
+    };
+    globalThis.window = fakeWindow;
     globalThis.document = {
       activeElement: null,
+      addEventListener: () => {},
       getElementById: (id) => (id === 'pageHost' ? fakePageHost : null),
     };
 
-    const sampleHw = {
-      timestamp: '2026-11-17T10:00:00',
-      probed: true,
-      system: {
-        osName: { value: 'Windows', provenance: 'real' },
-        osVersion: '19.0.0',
-        architecture: { value: 'arm64', provenance: 'real' },
-        formFactor: 'Desktop',
-      },
-      cpu: {
-        displayName: { value: 'Snapdragon X Elite', provenance: 'inferred' },
-        shortName: 'Snapdragon X',
-        vendor: 'Qualcomm',
-        architecture: 'arm64',
-        logicalCores: 12,
-        physicalCores: { value: 12, provenance: 'real' },
-        isVmFallback: false,
-        baseClockGhz: { value: 3.4, provenance: 'inferred' },
-        currentClockGhz: 3.42,
-        boostClockGhz: 3.8,
-        cache: {},
-        usagePct: 21,
-        history: [15, 20, 21],
-        coreHistories: Array.from({ length: 12 }, () => [10, 20, 21]),
-        procCount: 180,
-        threadCount: 1900,
-        handleCount: 64000,
-      },
-      memory: {
-        totalGb: 16,
-        usableGb: 16,
-        usedGb: 5.2,
-        availGb: 10.8,
-        usagePct: 33,
-        history: [30, 32, 33],
-        realDeviceGb: 16,
-        capped: true,
-        capText: '16.0 GB',
-        capTip: 'navigator.deviceMemory 在 16.0 GB 处封顶',
-        compressedMb: 120,
-        cachedText: '4.1 GB',
-        standbyPct: 25,
-        committedGb: 7.2,
-        commitLimitGb: 21.6,
-        pagedPoolMb: 400,
-        nonPagedPoolMb: 300,
-        specProvenance: 'simulated',
-      },
-      gpus: [
-        {
-          id: 'gpu-0',
-          index: 0,
-          name: 'Qualcomm Adreno X1-85 GPU',
-          vendor: 'Qualcomm',
-          isSoftwareRenderer: false,
-          webglVersion: 'WebGL 2.0',
-          usagePct: 14,
-          pts3d: [10, 12, 14],
-          ptsCopy: [1, 2, 2],
-          ptsEnc: [0, 0, 0],
-          ptsDec: [3, 4, 3],
-          zeroHistory: [0, 0, 0],
-          memUtilPct: 18,
-          memPts: [18, 18, 18],
-          provenance: 'real',
-        },
-      ],
-      npu: null,
-      storage: {
-        probe: { supported: true, isSecureContext: true, quotaBytes: 4e10, usageBytes: 1e6, quotaGiB: 37.25, quotaGB: 40, usageMB: 1.0, usageDetails: null, persisted: false, opfsSupported: true, opfsReady: true, fsAccessSupported: true },
-        activePct: 2,
-        activeHistory: [1, 2, 2],
-        rateHistory: [10, 14, 18],
-        readKb: 18,
-        writeKb: 6,
-      },
-      network: {
-        onLine: true,
-        isWifiReal: true,
-        adapterName: { value: 'WLAN', provenance: 'real' },
-        rxHistory: [4, 8, 12],
-        sendKbps: 5,
-        recvKbps: 12,
-      },
-      display: null,
-      battery: null,
-      peripheralsAndApis: null,
-    };
+    assert.equal(uiHostMod.applyVirtualHardwareToHost, undefined);
+    assert.equal(uiHostMod.buildVirtualGpuEntries, undefined);
 
-    const entries = uiHostMod.buildVirtualGpuEntries(sampleHw);
-    assert.equal(entries.length, 1);
-    assert.equal(entries[0].name, 'Qualcomm Adreno X1-85 GPU');
-    assert.equal(entries[0].partitionable, true);
-    assert.ok(!entries[0].memoryText.includes('24564'));
-
-    uiHostMod.applyVirtualHardwareToHost(sampleHw);
-    assert.ok(fakePageHost.innerHTML.includes('Snapdragon X Elite'));
-    assert.ok(fakePageHost.innerHTML.includes('Qualcomm Adreno X1-85 GPU'));
-    assert.ok(fakePageHost.innerHTML.includes('WD_BLACK SN850X 2000GB'));
-    assert.ok(!fakePageHost.innerHTML.includes('浏览器存储配额'));
+    uiHostMod.initHostPage();
+    assert.equal(fakeWinListeners.has('win11:hardware'), false);
+    assert.ok(fakePageHost.innerHTML.includes('ARM64'));
+    assert.ok(fakePageHost.innerHTML.includes('Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz'));
+    assert.ok(fakePageHost.innerHTML.includes('Qualcomm(R) Adreno(TM) X1-85 GPU'));
+    assert.ok(fakePageHost.innerHTML.includes('WDC CH SN530 SDBPTPZ-1T00-1024'));
+    assert.ok(!fakePageHost.innerHTML.includes('Browser Override CPU'));
+    assert.ok(!fakePageHost.innerHTML.includes('Browser WebGL Adapter'));
+    assert.ok(!fakePageHost.innerHTML.includes('浏览器受限'));
+    assert.ok(!fakePageHost.innerHTML.includes('WebGL'));
     assert.ok(!fakePageHost.innerHTML.includes('RTX 4090'));
-    assert.ok(!fakePageHost.innerHTML.includes('AMD Radeon'));
-    assert.ok(!fakePageHost.innerHTML.includes('24564 MB'));
   } finally {
+    globalThis.window = prevWindow;
     globalThis.document = prevDocument;
   }
 });

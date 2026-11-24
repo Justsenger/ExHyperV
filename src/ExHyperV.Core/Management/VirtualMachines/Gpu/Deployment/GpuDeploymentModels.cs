@@ -21,7 +21,7 @@ public enum GpuDeploymentState
     WaitingForDecision,
     /// <summary>部署已完成。</summary>
     Completed,
-    /// <summary>部署失败，相关错误保存在快照中。</summary>
+    /// <summary>部署失败，相关错误保存在状态详情中。</summary>
     Failed,
     /// <summary>部署取消流程已结束，已完成的配置修改予以保留。</summary>
     Cancelled,
@@ -33,9 +33,9 @@ public enum GpuDecisionKind
 {
     /// <summary>确认强制关闭虚拟机（TurnOff）。</summary>
     PowerOff,
-    /// <summary>选择目标系统分区，或选择跳过驱动 / 挂载驱动光盘。</summary>
+    /// <summary>选择目标系统分区，或选择跳过驱动。</summary>
     SelectPartition,
-    /// <summary>无法直接向分区写入驱动（如启用 BitLocker 或非 Windows 分区），选择跳过驱动或挂载驱动光盘。</summary>
+    /// <summary>无法直接向分区写入驱动（如启用 BitLocker、Linux 分区或非系统分区），选择跳过驱动。</summary>
     DriverFallback
 }
 /// <summary>一个待确认事项所接受的输入结构。</summary>
@@ -45,18 +45,16 @@ public enum GpuDecisionInput
     Confirmation,
     /// <summary>使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。</summary>
     Partition,
-    /// <summary>使用 GpuDriverFallbackSelection 提交跳过驱动或挂载驱动光盘。</summary>
+    /// <summary>使用 GpuDriverFallbackSelection 提交跳过驱动。</summary>
     DriverFallback
 }
 /// <summary>无法直接写入离线驱动或用户选择不直接注入时的回退动作。</summary>
 public enum GpuDriverFallbackAction
 {
     /// <summary>跳过驱动安装，仅保留已分配的显卡分区与优化配置。</summary>
-    SkipDriver,
-    /// <summary>打包宿主显卡驱动为 ISO 并挂载到虚拟机光驱，由用户进入系统后自行安装。</summary>
-    MountIso
+    SkipDriver
 }
-/// <summary>当前部署快照允许调用方发起的动作。</summary>
+/// <summary>当前部署状态允许调用方发起的动作。</summary>
 public enum GpuDeploymentAction
 {
     /// <summary>启动尚未开始的部署。</summary>
@@ -82,7 +80,7 @@ public enum GpuDeploymentStepKind
     Optimization,   // 参数调整
     /// <summary>新增虚拟 GPU 分区适配器。</summary>
     Assign,         // 添加显卡
-    /// <summary>安装、跳过或挂载光盘部署来宾 GPU 驱动。</summary>
+    /// <summary>安装或跳过部署来宾 GPU 驱动。</summary>
     Driver          // 安装驱动
 }
 
@@ -99,7 +97,7 @@ public enum GpuDeploymentStepStatus
     Failed
 }
 
-/// <summary>部署步骤的显示状态快照。名称和说明用于展示，程序分支应使用 Type 和 Status。</summary>
+/// <summary>部署步骤的显示状态视图。名称和说明用于展示，程序分支应使用 Type 和 Status。</summary>
 /// <param name="Type">步骤类别。</param>
 /// <param name="Name">步骤显示名称。</param>
 /// <param name="Description">步骤当前进展说明。</param>
@@ -107,7 +105,7 @@ public enum GpuDeploymentStepStatus
 public sealed record GpuDeploymentStep(GpuDeploymentStepKind Type, string Name, string Description, GpuDeploymentStepStatus Status);
 
 // Snapshot values are immutable; a caller cannot change the disk used by a pending operation.
-/// <summary>供用户选择的系统分区快照。会话以 Id 重新匹配内部记录，不接受调用方改写的磁盘路径。</summary>
+/// <summary>供用户选择的系统分区视图。会话以 Id 重新匹配内部记录，不接受调用方改写的磁盘路径。</summary>
 /// <param name="Id">本次分区列表中的选择标识，只应用于当前部署。</param>
 /// <param name="PartitionNumber">分区编号。</param>
 /// <param name="SizeInBytes">分区容量，单位为字节。</param>
@@ -116,7 +114,7 @@ public sealed record GpuDeploymentStep(GpuDeploymentStepKind Type, string Name, 
 /// <param name="DiskPath">虚拟磁盘文件路径或物理磁盘编号字符串。</param>
 /// <param name="DiskDisplayName">所属磁盘的显示名称。</param>
 /// <param name="IsPhysicalDisk">是否来自物理直通磁盘。</param>
-/// <param name="IsBitLocker">是否检测到 BitLocker 签名；加密分区不能直接用于离线写入，但可改用跳过驱动或挂载驱动光盘。</param>
+/// <param name="IsBitLocker">是否检测到 BitLocker 签名，加密分区需先解除 BitLocker 后再写入，或选择跳过驱动。</param>
 public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulong SizeInBytes,
     OperatingSystemType OsType, string TypeDescription, string DiskPath, string DiskDisplayName,
     bool IsPhysicalDisk, bool IsBitLocker)
@@ -132,7 +130,7 @@ public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulon
 /// <param name="Kind">待确认事项的种类。</param>
 /// <param name="Title">本地化标题。</param>
 /// <param name="Message">本地化操作说明。</param>
-/// <param name="Partitions">可供选择的分区快照；会话发布的是只读列表。</param>
+/// <param name="Partitions">可供选择的分区列表，会话发布的是只读列表。</param>
 /// <param name="CanGoBack">是否允许从当前事项返回分区选择。</param>
 public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message,
     IReadOnlyList<GpuDeploymentPartition> Partitions, bool CanGoBack = false)
@@ -148,11 +146,11 @@ public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Ti
     public bool IsDestructive => Kind == GpuDecisionKind.PowerOff;
 }
 
-/// <summary>部署会话发布的状态快照。步骤、动作和分区集合为只读；手动构造时应传入不可变集合。</summary>
+/// <summary>部署会话发布的状态视图。步骤、动作和分区集合为只读，手动构造时应传入不可变集合。</summary>
 /// <param name="SessionId">部署会话的稳定标识。</param>
-/// <param name="Revision">同一会话中递增的快照修订号。</param>
+/// <param name="Revision">同一会话中递增的状态修订号。</param>
 /// <param name="State">部署当前状态。</param>
-/// <param name="Steps">当前各步骤的状态快照。</param>
+/// <param name="Steps">当前各步骤的状态列表。</param>
 /// <param name="PendingDecision">当前待确认事项；不在等待决定时为 null。</param>
 /// <param name="AllowedActions">当前状态允许的调用动作。</param>
 /// <param name="HasAddedAdapter">本次部署是否新增并识别到至少一个适配器。</param>
@@ -175,12 +173,8 @@ public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDep
     public string? PendingCleanupAdapterId { get; init; }
     /// <summary>已确认归属且待清理的全部适配器标识。</summary>
     public IReadOnlyList<string> PendingCleanupAdapterIds { get; init; } = Array.Empty<string>();
-    /// <summary>打包与挂载驱动 ISO 的百分比进度（0-100）；未处于光盘部署阶段时为 null。</summary>
-    public int? DriverIsoProgressPercent { get; init; }
     /// <summary>本次部署是否因用户选择而跳过了驱动安装。</summary>
     public bool IsDriverSkipped { get; init; }
-    /// <summary>本次部署是否通过挂载驱动 ISO 完成驱动准备。</summary>
-    public bool IsDriverIsoMounted { get; init; }
     /// <summary>本次部署与恢复的任务、资源、原状态及核实结果；无记录时为 null，可保存用于排查。</summary>
     public GpuDeploymentRecovery? Recovery { get; init; }
 
@@ -209,7 +203,7 @@ public sealed record GpuConfirmation(Guid RequestId, bool Accepted) : GpuDeploym
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 /// <param name="PartitionId">当前 PendingDecision.Partitions 中的分区 Id。</param>
 public sealed record GpuPartitionSelection(Guid RequestId, string PartitionId) : GpuDeploymentDecision(RequestId);
-/// <summary>当分区加密或无法直接写入时，提交跳过驱动或挂载驱动光盘的回退决定。</summary>
+/// <summary>当分区已启用 BitLocker、不受支持或无法直接写入时，提交跳过驱动的回退决定。</summary>
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 /// <param name="Action">要执行的替代动作。</param>
 public sealed record GpuDriverFallbackSelection(Guid RequestId, GpuDriverFallbackAction Action) : GpuDeploymentDecision(RequestId);

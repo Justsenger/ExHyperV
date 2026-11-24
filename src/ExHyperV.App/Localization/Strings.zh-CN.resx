@@ -94,7 +94,7 @@
     <value>尚未安全结束</value>
   </data>
   <data name="Main_CloseFailedButton" xml:space="preserve">
-    <value>返回处理</value>
+    <value>返回</value>
   </data>
   <data name="Host_Title" xml:space="preserve">
     <value>宿主</value>
@@ -571,7 +571,7 @@
     <value>设备</value>
   </data>
   <data name="Dash_Tab_Checkpoints" xml:space="preserve">
-    <value>检查点</value>
+    <value>快照</value>
   </data>
   <data name="Dash_Tab_Advanced" xml:space="preserve">
     <value>高级</value>
@@ -775,7 +775,7 @@
     <value>已分配 {0} 个，已跳过 {1} 个</value>
   </data>
   <data name="Pcie_BackList" xml:space="preserve">
-    <value>返回 PCIe 列表</value>
+    <value>返回</value>
   </data>
   <data name="Dash_OpenGearTooltip" xml:space="preserve">
     <value>打开对应设置</value>
@@ -1697,7 +1697,7 @@
     <value>精确事件采样（PEBS）</value>
   </data>
   <data name="Cpu_Pebs_Desc" xml:space="preserve">
-    <value>PMU 采样时记录精确指令与寄存器快照，需先开启 PMU。</value>
+    <value>PMU 采样时记录精确指令与寄存器现场，需先开启 PMU。</value>
   </data>
   <data name="Cpu_Ipt_Title" xml:space="preserve">
     <value>指令流跟踪（IPT）</value>
@@ -2440,16 +2440,16 @@
     <value>强制断电并继续</value>
   </data>
   <data name="Cp_Delete" xml:space="preserve">
-    <value>删除检查点</value>
+    <value>删除快照</value>
   </data>
   <data name="Cp_Restore" xml:space="preserve">
-    <value>应用检查点</value>
+    <value>应用快照</value>
   </data>
   <data name="Cp_Merge" xml:space="preserve">
-    <value>合并检查点</value>
+    <value>合并快照</value>
   </data>
   <data name="Cp_DeleteBranchBody" xml:space="preserve">
-    <value>将删除「{0}」以及后面的全部 {1} 个子检查点（{2}），无法恢复。如果只想移除当前节点并保留后续检查点，请使用「合并」。</value>
+    <value>将删除「{0}」以及后面的全部 {1} 个子快照（{2}），无法恢复。如果只想移除当前节点并保留后续快照，请使用「合并」。</value>
   </data>
   <data name="Cp_DeleteLeafBody" xml:space="preserve">
     <value>确定永久删除「{0}」吗？删除后无法恢复。</value>
@@ -2458,7 +2458,7 @@
     <value>确定将虚拟机还原到「{0}」吗？当前未保存的更改会丢失，运行中或已暂停的虚拟机可能会重新启动。</value>
   </data>
   <data name="Cp_MergeConfirmBody" xml:space="preserve">
-    <value>确定将「{0}」合并到父检查点「{1}」吗？合并后将保留「{1}」的名称和后续检查点。</value>
+    <value>确定将「{0}」合并到父快照「{1}」吗？合并后将保留「{1}」的名称和后续快照。</value>
   </data>
   <data name="Cp_BadgeCurrent" xml:space="preserve">
     <value>当前</value>
@@ -2473,7 +2473,7 @@
     <value>删除</value>
   </data>
   <data name="Cp_MenuCreate" xml:space="preserve">
-    <value>新建检查点</value>
+    <value>新建快照</value>
   </data>
   <data name="Cp_MenuRename" xml:space="preserve">
     <value>重命名</value>
@@ -2491,13 +2491,13 @@
     <value>退出全屏</value>
   </data>
   <data name="Cp_DisabledBanner" xml:space="preserve">
-    <value>此虚拟机已禁用检查点</value>
+    <value>此虚拟机已禁用快照</value>
   </data>
   <data name="Cp_EnableAction" xml:space="preserve">
     <value>启用</value>
   </data>
   <data name="Cp_Unresolved" xml:space="preserve">
-    <value>检查点写入已暂停，请先核实原 Hyper-V 作业和剩余挂接状态。</value>
+    <value>快照写入已暂停，请先核实原 Hyper-V 作业和剩余挂接状态。</value>
   </data>
   <data name="Vtpm_ReissueTitle" xml:space="preserve">
     <value>重新签发虚拟机解锁密钥？</value>
@@ -2519,10 +2519,10 @@
     <value>我已核实原作业及剩余资源</value>
   </data>
   <data name="Cp_Recheck" xml:space="preserve">
-    <value>重新读取检查点状态</value>
+    <value>重新读取快照状态</value>
   </data>
   <data name="Cp_Changed" xml:space="preserve">
-    <value>检查点范围已变化，请核对最新范围后再次确认。</value>
+    <value>快照范围已变化，请核对最新范围后再次确认。</value>
   </data>
   <data name="Host_Cpu_Incomplete" xml:space="preserve">
     <value>部分处理器缺测，已取得过读数的核心保留上次有效值。</value>
@@ -2623,15 +2623,21 @@
   <data name="Advanced_InvalidResolution" xml:space="preserve">
     <value>请输入有效分辨率，如 1280 x 720。</value>
   </data>
+  <data name="Advanced_ResolutionPlaceholder" xml:space="preserve">
+    <value>默认 或 宽 x 高</value>
+  </data>
+  <data name="Advanced_SelectPresetResolution" xml:space="preserve">
+    <value>选择常用分辨率</value>
+  </data>
   <data name="SettingsView_PageRetained" xml:space="preserve">
     <value>
 页面已保留，查看后可以再次返回。</value>
   </data>
   <data name="Cp_CyclicTree" xml:space="preserve">
-    <value>检查点关系存在循环，无法绘制。</value>
+    <value>快照关系存在循环，无法绘制。</value>
   </data>
   <data name="Cp_ReadWriteFailed" xml:space="preserve">
-    <value>无法读取或修改检查点。</value>
+    <value>无法读取或修改快照。</value>
   </data>
   <data name="Common_ReadAgain" xml:space="preserve">
     <value>重新读取</value>
@@ -2640,7 +2646,7 @@
     <value>决定开机时允许启动哪些系统：Windows 选 Windows，Linux 或第三方签名系统选 UEFI / CA，PE、macOS 或未签名系统选关闭</value>
   </data>
   <data name="Security_EncryptionHelp" xml:space="preserve">
-    <value>加密保存状态、检查点内存文件以及跨宿主实时迁移数据，开启时会自动启用 vTPM 并签发宿主密钥</value>
+    <value>加密保存状态、快照内存文件以及跨宿主实时迁移数据，开启时会自动启用 vTPM 并签发宿主密钥</value>
   </data>
   <data name="Security_ShieldingHelp" xml:space="preserve">
     <value>企业级隔离模式，会强制锁定安全启动、vTPM 与状态加密，并禁用控制台画面与增强会话，仅能通过 RDP 或 SSH 远程连接，个人单机通常无需开启</value>
@@ -2952,7 +2958,7 @@
     <value>安装驱动</value>
   </data>
   <data name="Gpu_InstallDriversHelp" xml:space="preserve">
-    <value>添加显卡后继续识别系统分区并部署驱动</value>
+    <value>为 Windows 虚拟机离线注入驱动</value>
   </data>
   <data name="Gpu_Remove" xml:space="preserve">
     <value>移除显卡</value>
@@ -3028,7 +3034,7 @@
     <value>虚拟机重启后生效。</value>
   </data>
   <data name="Gpu_AssignmentRemoved" xml:space="preserve">
-    <value>GPU 分配已移除。</value>
+    <value>已移除显卡：{0}</value>
   </data>
   <data name="Common_OperationIncomplete" xml:space="preserve">
     <value>操作未完成</value>
@@ -3042,11 +3048,26 @@
   <data name="Gpu_SkipDriver" xml:space="preserve">
     <value>跳过驱动</value>
   </data>
-  <data name="Gpu_MountDriverDisc" xml:space="preserve">
-    <value>挂载驱动光盘</value>
+  <data name="Gpu_BitLockerBadge" xml:space="preserve">
+    <value>需先解除 BitLocker</value>
+  </data>
+  <data name="Gpu_LinuxUnsupportedBadge" xml:space="preserve">
+    <value>暂不支持</value>
   </data>
   <data name="Gpu_BitLockerHelp" xml:space="preserve">
-    <value>无法向 BitLocker 分区安装驱动，需要先解锁，或挂载驱动光盘。</value>
+    <value>已开启 BitLocker 保护，请先解除 BitLocker 后再注入驱动。</value>
+  </data>
+  <data name="Gpu_LinuxHelp" xml:space="preserve">
+    <value>检测到 Linux 分区，当前暂不支持为其部署驱动。</value>
+  </data>
+  <data name="Gpu_SelectBitLockerNotice" xml:space="preserve">
+    <value>解除 BitLocker 后才能继续安装驱动。</value>
+  </data>
+  <data name="Gpu_SelectLinuxNotice" xml:space="preserve">
+    <value>暂不支持为 Linux 安装 GPU 驱动。</value>
+  </data>
+  <data name="Gpu_SelectUnsupportedNotice" xml:space="preserve">
+    <value>所选分区不支持注入驱动，请选择未加密的 Windows 系统分区或跳过驱动。</value>
   </data>
   <data name="Gpu_CancelDeployment" xml:space="preserve">
     <value>取消部署</value>
@@ -3058,7 +3079,7 @@
     <value>重试清理</value>
   </data>
   <data name="Gpu_BackToList" xml:space="preserve">
-    <value>返回显卡列表</value>
+    <value>返回</value>
   </data>
   <data name="Gpu_Reselect" xml:space="preserve">
     <value>重新选择显卡</value>
@@ -3956,6 +3977,9 @@
   <data name="Storage_MinimumCapacity" xml:space="preserve">
     <value>安全下限为 {0} GiB。</value>
   </data>
+  <data name="Storage_BelowPartitionEnd" xml:space="preserve">
+    <value>低于分区末尾（{0} GB），需先在系统内缩容</value>
+  </data>
   <data name="Storage_EnterCapacity" xml:space="preserve">
     <value>请输入 1 至 {0} GiB 的整数。</value>
   </data>
@@ -3963,7 +3987,7 @@
     <value>无法核实当前容量。</value>
   </data>
   <data name="Storage_ExtendGuestPartition" xml:space="preserve">
-    <value>扩展后需在系统内扩容分区。</value>
+    <value>扩展后需在系统内扩容。</value>
   </data>
   <data name="Storage_UnsafeShrinkSuffix" xml:space="preserve">
     <value> 当前无法安全收缩。</value>
@@ -3981,7 +4005,10 @@
     <value>彻底删除</value>
   </data>
   <data name="Storage_ConfirmDeleteFile" xml:space="preserve">
-    <value>确认彻底删除{0}？</value>
+    <value>确认彻底删除{0}</value>
+  </data>
+  <data name="Storage_ConfirmDeleteFileBody" xml:space="preserve">
+    <value>确定要从宿主机永久删除该{0}吗？此操作不可撤销。</value>
   </data>
   <data name="Storage_ForceParentEnabled" xml:space="preserve">
     <value>已允许忽略 ID 强制连接</value>
@@ -4114,10 +4141,10 @@
     <value>回读存储状态失败。</value>
   </data>
   <data name="Storage_BackToList" xml:space="preserve">
-    <value>返回存储列表</value>
+    <value>返回</value>
   </data>
   <data name="Storage_BackToEdit" xml:space="preserve">
-    <value>返回编辑</value>
+    <value>返回</value>
   </data>
   <data name="Card_ToggleDetails" xml:space="preserve">
     <value>展开或收起</value>

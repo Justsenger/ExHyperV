@@ -43,7 +43,7 @@ public enum PcieAssignmentError
 /// <param name="Approve">是否同意该请求；伴随设备步骤中拒绝仅跳过伴随设备。</param>
 public sealed record PcieAssignmentDecision(Guid RequestId, bool Approve);
 
-/// <summary>PCIe 分配流程的不可变状态快照。</summary>
+/// <summary>PCIe 分配流程的不可变状态视图。</summary>
 /// <param name="Step">当前步骤。</param>
 /// <param name="Title">适合展示的本地化标题。</param>
 /// <param name="Message">本地化说明或失败详情。</param>
@@ -54,7 +54,7 @@ public sealed record PcieAssignmentState(
     PcieAssignmentStep Step, string Title = "", string Message = "",
     PcieAssignmentError Error = PcieAssignmentError.None, bool RefreshRequired = false, Guid? RequestId = null)
 {
-    /// <summary>本次流程已执行步骤的只读快照；ResourceId 区分主设备、伴随设备和磁盘，Failure 保留底层类别、来源及错误码。</summary>
+    /// <summary>本次流程已执行步骤的只读记录，ResourceId 区分主设备、伴随设备和磁盘，Failure 保留底层类别、来源及错误码。</summary>
     /// <remarks>记录已执行的 CheckMmio、ExpandMmio、ReadControllerDisks、AssignDevice、ReadReturnedDisks、RestoreDiskOnline 步骤，以及未处理异常 UnhandledFailure。</remarks>
     public IReadOnlyList<OperationStepResult> Steps { get; init; } = Array.Empty<OperationStepResult>();
     /// <summary>需要优先处理的失败；结果未知优先于清理失败，其余取首个失败。全部失败详情仍保留在 Steps 中。</summary>
@@ -86,12 +86,12 @@ public sealed class PcieAssignmentSession
     private bool _offlineApproved;
     private readonly List<OperationStepResult> _steps = [];
 
-    /// <summary>最近一次推进产生的状态快照。</summary>
+    /// <summary>最近一次推进产生的状态视图。</summary>
     public PcieAssignmentState State { get; private set; } = new(PcieAssignmentStep.Ready);
 
     /// <summary>为指定设备及目标创建分配流程，复制当前设备列表用于规划确认。</summary>
     /// <param name="device">选中的设备及当前归属。</param>
-    /// <param name="devices">用于识别伴随设备、最后一块 GPU 等条件的当前设备快照。</param>
+    /// <param name="devices">用于识别伴随设备、最后一块 GPU 等条件的当前设备列表。</param>
     /// <param name="target">目标宿主或虚拟机；未分配状态不能作为目标。</param>
     /// <exception cref="ArgumentNullException">目标为 null。</exception>
     /// <exception cref="ArgumentException">目标为 Unassigned。</exception>

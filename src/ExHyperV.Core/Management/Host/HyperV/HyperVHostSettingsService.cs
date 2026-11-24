@@ -3,7 +3,7 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Services;
 
-/// <summary>宿主 Hyper-V 管理服务的配置快照。</summary>
+/// <summary>宿主 Hyper-V 管理服务的配置视图。</summary>
 /// <param name="EnhancedSessionModeEnabled">宿主是否允许虚拟机增强会话。true 允许；false 不允许或系统未提供此项。</param>
 /// <param name="DefaultVirtualMachinePath">创建虚拟机时使用的默认配置目录，位于宿主文件系统；未取得时为空字符串。</param>
 /// <param name="DefaultVirtualHardDiskPath">创建虚拟硬盘时使用的宿主默认目录；未取得时为空字符串。</param>
@@ -16,14 +16,14 @@ public sealed record HyperVHostSettings(
     string MinimumMacAddress,
     string MaximumMacAddress);
 
-/// <summary>读取宿主 Hyper-V 配置快照，修改新建虚拟机的默认配置目录。</summary>
+/// <summary>读取宿主 Hyper-V 配置视图，修改新建虚拟机的默认配置目录。</summary>
 public static class HyperVHostSettingsService
 {
     private const string SettingWql = "SELECT * FROM Msvm_VirtualSystemManagementServiceSettingData";
     private const string ServiceWql = "SELECT * FROM Msvm_VirtualSystemManagementService";
 
     /// <summary>读取宿主 Hyper-V 默认目录、增强会话及动态 MAC 地址池。</summary>
-    /// <returns>配置快照；未查到配置或查询失败时为 null。</returns>
+    /// <returns>配置视图，未查到配置或查询失败时为 null。</returns>
     public static async Task<HyperVHostSettings?> GetAsync()
     {
         var response = await WmiApi.QueryFirstAsync(

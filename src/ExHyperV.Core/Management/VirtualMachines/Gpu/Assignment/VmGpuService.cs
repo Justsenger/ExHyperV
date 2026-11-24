@@ -73,7 +73,7 @@ namespace ExHyperV.Services
         #region 硬件信息与虚拟机查询
         /// <summary>按稳定身份读取虚拟机 GPU 分配；查询失败不伪装为空清单。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <returns>分配快照或查询错误；缺少宿主显示信息时仍保留设备身份。</returns>
+        /// <returns>分配记录或查询错误，缺少宿主显示信息时仍保留设备身份。</returns>
         /// <remarks>旧宿主缺少 HostResource 时，会用第一张可分区 GPU 补充候选信息。精确关联使用 VmGpuFields 查询，并检查字段状态。</remarks>
         public async Task<ApiResponse<IReadOnlyList<VmGpuAssignment>>> GetVmGpuAssignmentsAsync(Guid vmId)
         {

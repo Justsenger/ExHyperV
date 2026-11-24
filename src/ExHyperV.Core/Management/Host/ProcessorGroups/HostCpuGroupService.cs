@@ -11,7 +11,7 @@ internal sealed record CpuMemberFingerprint(Guid VmId, string ConfigurationId, s
 
 /// <summary>查询宿主 CPU 组，修改配额、优先级、空闲处理器保留数量和相对权重。</summary>
 /// <remarks>
-/// <para>修改适用于 Classic/Core 调度器。先读取组快照，将非空 Revision 原样提交；配置或成员已经变化时返回 Conflict。修改影响该组全部使用者，成功后返回新的快照与 Revision。</para>
+/// <para>修改适用于 Classic/Core 调度器。先读取组视图，将非空 Revision 原样提交，配置或成员已经变化时返回 Conflict。修改影响该组全部使用者，成功后返回新的状态与 Revision。</para>
 /// <para>Core 调用之间按宿主排队。成员列表仅覆盖 WMI 可见虚拟机。原生提交后等待结果与回读；无法确认结果时返回 OutcomeUnknown，重新查询后再决定后续操作。</para>
 /// </remarks>
 public static class HostCpuGroupService
@@ -22,7 +22,7 @@ public static class HostCpuGroupService
 
     /// <summary>读取全部宿主 CPU 组及其当前成员；没有 CPU 组时返回成功空列表。</summary>
     /// <param name="cancellationToken">可取消排队及读取步骤；已进行的同步原生查询不会被强行中断。</param>
-    /// <returns>组的只读快照；逐组检查 MembersComplete 和 Revision 后才可提交修改。</returns>
+    /// <returns>组的只读视图，逐组检查 MembersComplete 和 Revision 后才可提交修改。</returns>
     public static async Task<ApiResponse<IReadOnlyList<HostCpuGroupInfo>>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -39,8 +39,8 @@ public static class HostCpuGroupService
     /// <summary>读取指定宿主 CPU 组的策略、成员及修改所需的版本摘要。</summary>
     /// <param name="groupId">宿主 CPU 组 GUID，不能为全零。</param>
     /// <param name="cancellationToken">可取消排队及读取步骤，不强行中断同步原生查询。</param>
-    /// <returns>指定组快照；组不存在时返回 NotFound，不创建新组。</returns>
-    /// <remarks>组 GUID 可取自亲和性保存结果的 CurrentGroupId，或用 <see cref="HostCpuGroupService.GetAllAsync"/> 按 Members 中的 VmId 查找。读取后将非空 Revision 原样传给本组策略修改方法；每次成功修改返回的新快照包含新的 Revision。</remarks>
+    /// <returns>指定组视图，组不存在时返回 NotFound，不创建新组。</returns>
+    /// <remarks>组 GUID 可取自亲和性保存结果的 CurrentGroupId，或用 <see cref="HostCpuGroupService.GetAllAsync"/> 按 Members 中的 VmId 查找。读取后将非空 Revision 原样传给本组策略修改方法，每次成功修改返回的新视图包含新的 Revision。</remarks>
     public static async Task<ApiResponse<HostCpuGroupInfo>> GetAsync(Guid groupId, CancellationToken cancellationToken = default)
     {
         if (groupId == Guid.Empty) return Invalid("CPU 组 GUID 不能为空。");
@@ -58,7 +58,7 @@ public static class HostCpuGroupService
     /// <param name="cpuCap">组总配额，0 至 65536；65536 为满额，32768 为 50%。</param>
     /// <param name="expectedRevision">GetAsync 或 GetAllAsync 返回的非空 Revision；过期时在任何写入前返回 Conflict。</param>
     /// <param name="cancellationToken">在原生提交前响应取消；提交后等待操作结束并回读。</param>
-    /// <returns>修改后的快照；OutcomeUnknown 表示结果待确认，重试前重新读取。</returns>
+    /// <returns>修改后的组状态，OutcomeUnknown 表示结果待确认，重试前重新读取。</returns>
     public static Task<ApiResponse<HostCpuGroupInfo>> SetCpuCapAsync(Guid groupId, uint cpuCap, string expectedRevision, CancellationToken cancellationToken = default)
         => SetAsync(groupId, Property.CpuCap, cpuCap, expectedRevision, cancellationToken);
 
@@ -67,7 +67,7 @@ public static class HostCpuGroupService
     /// <param name="priority">调度优先级，0 至 7；数值越大，优先级越高。</param>
     /// <param name="expectedRevision">最近读取的非空 Revision；过期时不执行修改。</param>
     /// <param name="cancellationToken">仅在原生提交前取消；提交后完成返回和回读。</param>
-    /// <returns>修改后经确认的组快照；失败后先重新读取实际状态。</returns>
+    /// <returns>修改后经确认的组状态，失败后先重新读取实际状态。</returns>
     public static Task<ApiResponse<HostCpuGroupInfo>> SetPriorityAsync(Guid groupId, uint priority, string expectedRevision, CancellationToken cancellationToken = default)
         => SetAsync(groupId, Property.Priority, priority, expectedRevision, cancellationToken);
 
@@ -76,7 +76,7 @@ public static class HostCpuGroupService
     /// <param name="count">Core 支持 0 至 min(255,组逻辑处理器数)；具体 Core 调度器、SMT 和拓扑条件仍由 HCS 校验。</param>
     /// <param name="expectedRevision">最近读取的非空 Revision；过期时不执行修改。</param>
     /// <param name="cancellationToken">仅在原生提交前取消；提交后完成返回和回读。</param>
-    /// <returns>修改后经确认的组快照；保留系统原始失败，不猜测或自动调整数量。</returns>
+    /// <returns>修改后经确认的组状态，保留系统原始失败，不猜测或自动调整数量。</returns>
     public static Task<ApiResponse<HostCpuGroupInfo>> SetIdleProcessorReserveAsync(Guid groupId, uint count, string expectedRevision, CancellationToken cancellationToken = default)
         => SetAsync(groupId, Property.IdleReserve, count, expectedRevision, cancellationToken);
 
@@ -86,7 +86,7 @@ public static class HostCpuGroupService
     /// <param name="weight">相对权重原始值，1 至 65535。</param>
     /// <param name="expectedRevision">最近读取的非空 Revision；过期时不执行修改。</param>
     /// <param name="cancellationToken">仅在原生提交前取消；提交后完成返回和回读。</param>
-    /// <returns>修改后经确认的组快照；系统未提供该属性时返回 Unsupported。</returns>
+    /// <returns>修改后经确认的组状态，系统未提供该属性时返回 Unsupported。</returns>
     public static Task<ApiResponse<HostCpuGroupInfo>> SetRelativeWeightAsync(Guid groupId, uint weight, string expectedRevision, CancellationToken cancellationToken = default)
         => SetAsync(groupId, Property.RelativeWeight, weight, expectedRevision, cancellationToken);
 

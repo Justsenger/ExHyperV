@@ -77,7 +77,7 @@ public static partial class VmStorageService
 
     /// <summary>重新核对所选挂接、虚拟机状态、宿主挂载和本机登记的磁盘依赖。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <returns>挂接访问状态、限制原因和当前可执行的维护操作。</returns>
     public static Task<ApiResponse<VmDiskInspection>> InspectDiskAsync(Guid vmId, VmStorageAttachment drive)
     {
@@ -159,7 +159,7 @@ public static partial class VmStorageService
                         break;
                     }
                     if (ids.Contains(id))
-                        return depth == 0 ? (VmDiskAccessKind.LockedExternal, "另一个虚拟机挂接或检查点引用此文件，请先解除引用。")
+                        return depth == 0 ? (VmDiskAccessKind.LockedExternal, "另一个虚拟机挂接或快照引用此文件，请先解除引用。")
                             : (VmDiskAccessKind.ParentInUse, $"磁盘 {reference.Path} 的父链正在引用此文件。");
                     if (!reference.IsDisk || complete.Contains(id)) break;
                     if (depth >= 256 || !visited.Add(id)) throw new InvalidDataException("磁盘父链循环或超过检查上限。");

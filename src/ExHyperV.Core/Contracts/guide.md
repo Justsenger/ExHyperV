@@ -181,7 +181,7 @@ var options = new VmGenerationUpgradeOptions { EnableSecureBoot = true };
 
 ### 导出与打包
 
-先用 `VmExportService.ExportAsync` 导出到指定目录（可按需勾选磁盘、检查点和运行状态）：
+先用 `VmExportService.ExportAsync` 导出到指定目录（可按需勾选磁盘、快照和运行状态）：
 
 <!-- api-example-export:start -->
 
@@ -195,11 +195,11 @@ var options = new VmGenerationUpgradeOptions { EnableSecureBoot = true };
 
 ## 部署流程
 
-给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区、写入 Windows 驱动或挂载驱动光盘。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
+给虚拟机配 GPU-PV（显卡分区）并安装驱动涉及多个敏感步骤：检查宿主、调整 MMIO 空间、必要时关机、扫描来宾系统分区并向非加密 Windows 系统分区写入驱动。因为中途必须等用户拍板，Core 把它做成了**可暂停的会话流程**（`GpuDeploymentSession`）。
 
 ### 用一个循环跑完部署
 
-调用一次 `StartAsync()`。当 `State == GpuDeploymentState.WaitingForDecision` 时，展示 `PendingDecision`，将当前请求 ID 与用户选择交给 `SubmitDecisionAsync(...)`。用户取消时调用 `CancelAsync()` 并等待返回的快照。
+调用一次 `StartAsync()`。当 `State == GpuDeploymentState.WaitingForDecision` 时，展示 `PendingDecision`，将当前请求 ID 与用户选择交给 `SubmitDecisionAsync(...)`。用户取消时调用 `CancelAsync()` 并等待返回的状态。
 
 <!-- api-example-workflow:start -->
 
@@ -207,17 +207,17 @@ var options = new VmGenerationUpgradeOptions { EnableSecureBoot = true };
 
 ### 部署中途失败或被取消怎么办？
 
-读取最后快照的 `State`、`OutcomeUnknown` 和 `AllowedActions`。
+读取最终状态的 `State`、`OutcomeUnknown` 和 `AllowedActions`。
 
-- `Completed` 表示所选部署步骤已完成。挂载驱动 ISO 后，来宾内仍需执行安装。
+- `Completed` 表示所选部署步骤已完成（若用户选择跳过驱动，将仅保留已分配的 GPU 分区与优化配置）。
 - `CleanupRequired`：留下了临时挂接的磁盘或刚建出来的半成品适配器。
-- 快照标志 `OutcomeUnknown == true` 表示底层操作的终态仍待核实。`AllowedActions` 包含 `Reconcile` 时可调用 `ReconcileAsync()`。只有该标志已清除且允许 `RetryCleanup` 时才调用 `RetryCleanupAsync()`。
+- 状态字段 `OutcomeUnknown == true` 表示底层操作的终态仍待核实。`AllowedActions` 包含 `Reconcile` 时可调用 `ReconcileAsync()`。只有该标志已清除且允许 `RetryCleanup` 时才调用 `RetryCleanupAsync()`。
 
 <!-- api-example-gpu-recovery:start -->
 
 <!-- api-example-gpu-recovery:end -->
 
-用 `session.GetStatus()` 取得最新快照。快照的 `Steps` 记录步骤，`Recovery` 提供已有的原生操作、观测结果及待处理资源。核实和清理使用当次进程内的原会话。
+用 `session.GetStatus()` 取得最新部署状态。状态对象中的 `Steps` 记录步骤，`Recovery` 提供已有的原生操作、观测结果及待处理资源。核实和清理使用当次进程内的原会话。
 
 ## 连接与交互
 

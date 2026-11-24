@@ -1273,9 +1273,9 @@ namespace ExHyperV.Services
             });
         }
 
-        /// <summary>按物理磁盘查询快照核对身份，并从指定虚拟机移除其直通挂接。</summary>
+        /// <summary>按物理磁盘查询结果核对身份，并从指定虚拟机移除其直通挂接。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <param name="disk">GetHostDisksAsync 取得的物理硬盘快照；必须提供身份和容量，执行前重新核对。</param>
+        /// <param name="disk">GetHostDisksAsync 取得的物理硬盘信息，必须提供身份和容量，执行前重新核对。</param>
         /// <returns>成功时包含原控制器类型、编号和槽位，供重新挂接使用；失败不返回默认槽位。</returns>
         public static async Task<ApiResponse<VmStorageSlot>> DetachPhysicalDiskAsync(Guid vmId, HostDiskInfo disk)
         {

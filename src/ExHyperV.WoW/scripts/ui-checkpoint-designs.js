@@ -48,7 +48,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
 
   const createCheckpoint = () => {
     const newId = `node-${Date.now()}`;
-    const newName = (state.checkpointNewName || '').trim() || `检查点 (${nodes.length})`;
+    const newName = (state.checkpointNewName || '').trim() || `快照 (${nodes.length})`;
     const newSnap = {
       id: newId,
       parentId: currentNode.parentId,
@@ -148,7 +148,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
         </div>
         <div class="cp-ctx-sep"></div>
         <button type="button" class="cp-ctx-item" id="cp2CreateBtn">
-          <span class="fi">&#xE710;</span><span>新建检查点</span>
+          <span class="fi">&#xE710;</span><span>新建快照</span>
         </button>
       `;
     }
@@ -163,16 +163,18 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
     }
     const mergeAllowed = canMergeNode(node);
     const mergeTip = mergeAllowed ? '' : '父节点为初始起点或存在其他分支，不可向父节点合并';
+    const mergeLeftPath =
+      'M 15.5 2 Q 15.7 2 15.85 2.15 Q 16 2.3 16 2.5 Q 16 3.38 15.74 4.22 Q 15.48 5.06 15.01 5.79 Q 14.54 6.51 13.88 7.08 Q 13.21 7.65 12.4 8 Q 13.21 8.35 13.88 8.92 Q 14.54 9.49 15.01 10.21 Q 15.48 10.94 15.74 11.78 Q 16 12.62 16 13.5 Q 16 13.7 15.85 13.85 Q 15.7 14 15.5 14 Q 15.3 14 15.15 13.85 Q 15 13.7 15 13.5 Q 15 12.15 14.33 10.99 Q 13.99 10.41 13.52 9.95 Q 13.05 9.48 12.5 9.16 Q 11.94 8.84 11.3 8.67 Q 10.67 8.5 10 8.5 H 1.7 L 4.85 11.65 Q 5 11.8 5 12 Q 5 12.2 4.85 12.35 Q 4.7 12.5 4.5 12.5 Q 4.3 12.5 4.15 12.35 L 0.15 8.35 Q 0 8.2 0 8 Q 0 7.8 0.15 7.65 L 4.15 3.65 Q 4.3 3.5 4.5 3.5 Q 4.7 3.5 4.85 3.65 Q 5 3.8 5 4 Q 5 4.2 4.85 4.35 L 1.7 7.5 H 10 Q 10.67 7.5 11.3 7.33 Q 11.94 7.16 12.5 6.84 Q 13.05 6.52 13.52 6.05 Q 13.99 5.59 14.33 5.01 Q 15 3.85 15 2.5 Q 15 2.3 15.15 2.15 Q 15.3 2 15.5 2 Z';
     return `
       <button type="button" class="cp-ctx-item" data-cp2-act="restore" data-cp2-id="${node.id}">
-        <span class="fi">&#xE8AB;</span><span>应用</span>
+        <span class="fi">&#xE81C;</span><span>应用</span>
       </button>
       <button type="button" class="cp-ctx-item" data-cp2-rename="${node.id}">
         <span class="fi">&#xE70F;</span><span>重命名</span>
       </button>
       <div class="cp-ctx-sep"></div>
       <button type="button" class="cp-ctx-item" data-cp2-act="merge" data-cp2-id="${node.id}" ${mergeAllowed ? '' : 'disabled'} title="${mergeTip}">
-        <span class="fi">&#xE97A;</span><span>合并</span>
+        <span class="fi"><svg class="fi-svg" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="${mergeLeftPath}"/></svg></span><span>合并</span>
       </button>
       <button type="button" class="cp-ctx-item is-danger" data-cp2-delete-prompt="${node.id}">
         <span class="fi">&#xE74D;</span><span>删除</span>
@@ -195,7 +197,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
       const y2 = nPos.y + cardH / 2;
       const cx = (x1 + x2) / 2;
       const onChain = activeChainIds.has(n.id) && activeChainIds.has(n.parentId);
-      if (n.wormhole) {
+      if (n.historicalDisk) {
         return `<path d="M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}" fill="none" stroke="#f59e0b" stroke-width="2.4" />`;
       }
       if (onChain) {
@@ -213,7 +215,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
       const badge = isCur ? '<span class="cp-badge is-live">当前</span>' : '';
 
       return `
-        <div class="cp-topo-node ${isSel ? 'is-selected' : ''} ${n.wormhole ? 'is-wormhole' : ''}" data-st-node="${n.id}">
+        <div class="cp-topo-node ${isSel ? 'is-selected' : ''} ${n.historicalDisk ? 'is-historical-disk' : ''}" data-st-node="${n.id}">
           <div class="cp-node-thumb">
             ${renderNodeThumbContent(homeMode)}
             ${badge ? `<div class="cp-node-badges">${badge}</div>` : ''}
@@ -231,7 +233,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
     .join('');
 
   let flyoutHtml = '';
-  if (openNode && openNode.type !== 'Genesis' && pos.has(openNode.id)) {
+  if (openNode && openNode.type !== 'Origin' && pos.has(openNode.id)) {
     const pOpen = pos.get(openNode.id);
     const menuX = Number.isFinite(state.checkpointCtxX)
       ? Math.max(8, Math.min(state.checkpointCtxX, width - 170))
@@ -249,9 +251,9 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
     ? `
       <div class="cp-confirm-backdrop" id="cpConfirmBackdrop" data-cp-keep-open="1">
         <div class="cp-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="cpConfirmTitle">
-          <div class="cp-confirm-title" id="cpConfirmTitle">确认删除检查点分支</div>
+          <div class="cp-confirm-title" id="cpConfirmTitle">确认删除快照分支</div>
           <div class="cp-confirm-body">
-            <p>将删除「<strong>${confirmDeleteNode.name}</strong>」以及它后面的所有子检查点，此操作不可撤销。</p>
+            <p>将删除「<strong>${confirmDeleteNode.name}</strong>」以及它后面的所有子快照，此操作不可撤销。</p>
             <p class="cp-confirm-sub">若仅需移除当前节点并保留后续节点，请使用「合并」。</p>
           </div>
           <div class="cp-confirm-actions">
@@ -273,7 +275,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
   }
 
   host.innerHTML = `
-    <div class="cp2-root" style="padding:0 12px 12px 12px;">
+    <div class="cp2-root">
       <div class="cp6-stage" id="cpCanvasBg">
         <div class="cp6-pan-layer" id="cpPanLayer" style="width:${width}px;height:${height}px;transform:translate3d(${panX}px, ${panY}px, 0) scale(${zoom});">
           <svg class="cp-topo-svg" width="${width}" height="${height}">${pathsSvg}</svg>
@@ -281,7 +283,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
           ${flyoutHtml}
         </div>
         ${confirmDialogHtml}
-        <button type="button" class="cp6-reset-pill cp6-icon-btn ${isFullscreen ? 'is-active' : ''}" id="cpFullscreenBtn" data-cp-keep-open="1" title="${isFullscreen ? '退出全屏' : '全屏'}" aria-label="${isFullscreen ? '退出全屏' : '全屏'}"><span class="fi">${isFullscreen ? '&#xE73F;' : '&#xE740;'}</span></button>
+        <button type="button" class="cp6-reset-pill cp6-icon-btn" id="cpFullscreenBtn" data-cp-keep-open="1" title="${isFullscreen ? '退出全屏' : '全屏'}" aria-label="${isFullscreen ? '退出全屏' : '全屏'}"><span class="fi">${isFullscreen ? '&#xE73F;' : '&#xE740;'}</span></button>
       </div>
     </div>
   `;
@@ -399,7 +401,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
     el.addEventListener('contextmenu', (e) => {
       const clickedId = el.getAttribute('data-st-node');
       const clickedNode = byId.get(clickedId);
-      if (!clickedNode || clickedNode.type === 'Genesis') return;
+      if (!clickedNode || clickedNode.type === 'Origin') return;
       e.preventDefault();
       e.stopPropagation();
       if (bg && typeof bg.getBoundingClientRect === 'function') {

@@ -55,9 +55,7 @@ internal sealed record GpuIntelRuntimeSpec(
 
 internal sealed record GpuProgramFolderSpec(
     string SourcePath,
-    string RootTag,
-    string RelativePath,
-    string IsoSubDirectory);
+    string RelativePath);
 
 internal static class GpuDriverPromotionBuilder
 {
@@ -443,7 +441,6 @@ internal static class GpuDriverPromotionBuilder
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData)
         };
-        string[] tags = { "ProgramFiles", "ProgramFilesX86", "CommonApplicationData" };
 
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var specs = new List<GpuProgramFolderSpec>();
@@ -459,9 +456,8 @@ internal static class GpuDriverPromotionBuilder
                 _ => Array.Empty<string>()
             };
 
-            for (int r = 0; r < roots.Length; r++)
+            foreach (string root in roots)
             {
-                string root = roots[r];
                 if (string.IsNullOrWhiteSpace(root)) continue;
                 foreach (string name in names)
                 {
@@ -470,12 +466,7 @@ internal static class GpuDriverPromotionBuilder
                     string rootPrefix = Path.GetPathRoot(candidate)
                         ?? throw new IOException($"Unable to determine the root of vendor directory: {candidate}");
                     string relToRoot = Path.GetRelativePath(rootPrefix, candidate);
-                    string relToSpecialRoot = Path.GetRelativePath(root, candidate);
-                    specs.Add(new GpuProgramFolderSpec(
-                        candidate,
-                        tags[r],
-                        relToRoot,
-                        Path.Combine("_payload", "ProgramFolders", tags[r], relToSpecialRoot)));
+                    specs.Add(new GpuProgramFolderSpec(candidate, relToRoot));
                 }
             }
         }

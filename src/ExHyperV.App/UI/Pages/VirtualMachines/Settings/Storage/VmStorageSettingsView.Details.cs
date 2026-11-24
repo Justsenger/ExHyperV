@@ -1,5 +1,6 @@
 using System.Globalization;
 using ExHyperV.App.Localization;
+using ExHyperV.App.UI.Shared.Feedback;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using Microsoft.UI.Xaml;
@@ -18,7 +19,7 @@ public sealed partial class VmStorageSettingsView
         public VmResizeSafety? Safety;
         public VmDiskChainInspection? SavedChain, ParentChain;
         public string? InspectionError;
-        public bool PathsTab, IgnoreId, ConfirmDelete, MergeOpen, ExportOpen;
+        public bool PathsTab, IgnoreId, MergeOpen, ExportOpen;
         public int MergeDepth = 1;
         public string ExportPath = "";
         public string Media = item.PathOrDiskNumber, Parent = item.ParentPath ?? "", Type = item.VhdType ?? "";
@@ -79,7 +80,6 @@ public sealed partial class VmStorageSettingsView
         void Tab(bool paths)
         {
             d.PathsTab = paths;
-            d.ConfirmDelete = false;
             Render();
             scroll.ChangeView(null, 0, null, true);
         }
@@ -291,29 +291,41 @@ public sealed partial class VmStorageSettingsView
             return s.CanExpand ? new(true, L10n.Get("Storage_ExtendGuestPartition"), InfoBarSeverity.Informational) : FileCheck.Error(s.Message);
         if (!s.CanShrink || s.Layout is VmPartitionLayoutMode.NoTailSpace or VmPartitionLayoutMode.Corrupt or VmPartitionLayoutMode.Unavailable)
             return FileCheck.Error(layout + L10n.Get("Storage_UnsafeShrinkSuffix") + floor);
-        if (n < s.SafeMinimumGiB) return FileCheck.Error(floor);
-        return new(true, layout + floor + L10n.Format("Storage_ShrinkTargetSuffix", n), InfoBarSeverity.Warning);
+        if (s.SafeMinimumGiB is long minCap && n < minCap)
+        {
+            long partEndGiB = s.LastPartitionEndBytes is long end && end > 0 ? 1 + (end - 1) / 1073741824L : 0;
+            return FileCheck.Error(partEndGiB >= minCap
+                ? L10n.Format("Storage_BelowPartitionEnd", partEndGiB)
+                : floor);
+        }
+        return s.Layout == VmPartitionLayoutMode.Conservative
+            ? new(true, layout + floor + L10n.Format("Storage_ShrinkTargetSuffix", n), InfoBarSeverity.Warning)
+            : FileCheck.Ok();
     }
 
     private void AddDeleteRows(DetailDraft d, List<UIElement> rows, string? disabledReason)
     {
         string what = IsDvd(d.Item) ? L10n.Get("Storage_IsoFile") : L10n.Get("Storage_DiskFile");
         bool canDelete = CanWrite && d.Access.CanDeleteFile;
-        var toggle = DangerButton(L10n.Get("Host_Switches_Delete"), () => { d.ConfirmDelete = !d.ConfirmDelete; Render(); }, canDelete);
+        var deleteBtn = DangerButton(L10n.Get("Host_Switches_Delete"),
+            () => _ = UiEvent.RunAsync(() => ConfirmAndDeleteMediaAsync(d, what), message => ShowError(message)),
+            canDelete);
         if (!canDelete && !string.IsNullOrEmpty(disabledReason))
-            ToolTipService.SetToolTip(toggle, disabledReason);
+            ToolTipService.SetToolTip(deleteBtn, disabledReason);
         var label = new TextBlock { Text = L10n.Get("Storage_DeletePermanently") + what, FontSize = 14, VerticalAlignment = VerticalAlignment.Center };
         if (!canDelete) label.Opacity = 0.45;
-        rows.Add(CardRow(Split(label, toggle)));
-        if (d.ConfirmDelete && canDelete)
-        {
-            var strip = DangerStrip(this, L10n.Format("Storage_ConfirmDeleteFile", what), d.Item.PathOrDiskNumber,
-                Command(L10n.Get("Common_Cancel"), () => { d.ConfirmDelete = false; Render(); }),
-                DangerButton(L10n.Get("Host_Switches_Delete"), () => _ = RunAsync(() => RunSingleAsync(L10n.Get("Host_Switches_Delete") + what,
-                    () => VmStorageService.DeleteAttachedMediaFileAsync(VmId, d.Item), openList: true)), canDelete));
-            strip.BorderThickness = new(0);
-            rows.Add(strip);
-        }
+        rows.Add(CardRow(Split(label, deleteBtn)));
+    }
+
+    private async Task ConfirmAndDeleteMediaAsync(DetailDraft d, string what)
+    {
+        if (!CanWrite || editing != d) return;
+        string title = L10n.Format("Storage_ConfirmDeleteFile", what);
+        string body = L10n.Format("Storage_ConfirmDeleteFileBody", what);
+        if (!await ConfirmAsync(title, body, d.Item.PathOrDiskNumber, L10n.Get("Host_Switches_Delete"))) return;
+        if (!CanWrite || editing != d) return;
+        await RunAsync(() => RunSingleAsync(L10n.Get("Host_Switches_Delete") + what,
+            () => VmStorageService.DeleteAttachedMediaFileAsync(VmId, d.Item), openList: true));
     }
 
     private bool ValidDetails(DetailDraft d) => CanWrite && d.AccessKnown && d.Access is { } a &&

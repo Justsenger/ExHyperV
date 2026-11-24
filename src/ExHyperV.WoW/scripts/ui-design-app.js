@@ -18,7 +18,6 @@ import {
   HOST_PCIE_DEVICES,
   CHECKPOINT_NODES
 } from './ui-design-data.js';
-import { buildVirtualGpuEntries } from './virtual-gpu-mapper.js';
 
 export function initUiDesignWorkbench() {
   const winEl = document.getElementById('winuiWindow');
@@ -43,7 +42,33 @@ export function initUiDesignWorkbench() {
   let hostModPromise = null;
   let checkpointMod = null;
   let checkpointModPromise = null;
+  let consoleCtrl = null;
+  let consoleCtrlPromise = null;
   let settingsRenderToken = 0;
+
+  function loadConsoleCtrl() {
+    if (consoleCtrl) return Promise.resolve(consoleCtrl);
+    if (!consoleCtrlPromise) {
+      consoleCtrlPromise = import('./ui-design-console.js').then((mod) => {
+        consoleCtrl = mod.createConsoleController({
+          getVm,
+          getAllVms: () => VM_ITEMS,
+          getAdvSettings: () => state.advSettings,
+          getTheme: () => winEl.getAttribute('data-theme') || 'dark',
+          getAccentHex: () => state.accentHex,
+          onVmPowerChanged: () => {
+            syncStandaloneHostRailPanel();
+            notifyParentHostState();
+            renderVmList();
+            renderDashboardSummary();
+            renderActiveWorkspace();
+          }
+        });
+        return consoleCtrl;
+      });
+    }
+    return consoleCtrlPromise;
+  }
 
   function loadComputeMod() {
     if (computeMod) return Promise.resolve(computeMod);
@@ -73,9 +98,6 @@ export function initUiDesignWorkbench() {
       hostModPromise = import('./ui-design-host.js').then((mod) => {
         hostMod = mod;
         mod.initHostPage({ onRender: layoutDynamicGrids });
-        if (latestVirtualHw && latestVirtualHw !== window.__WIN11_HARDWARE__) {
-          mod.applyVirtualHardwareToHost(latestVirtualHw);
-        }
         return mod;
       });
     }
@@ -234,7 +256,7 @@ export function initUiDesignWorkbench() {
     checkpointExpandedBranches: {},
     checkpointShowThumbs: true,
     checkpointSearch: '',
-    checkpointFilter: 'all', // 'all' | 'active' | 'wormhole'
+    checkpointFilter: 'all', // 'all' | 'active' | 'historical-disk'
     checkpointZoom: 1,
     checkpointNewMode: 'standard', // 'standard' | 'production'
     checkpointNewName: '',
@@ -242,8 +264,29 @@ export function initUiDesignWorkbench() {
     checkpointRenaming: false,
     checkpointNodes: structuredClone(CHECKPOINT_NODES),
     checkpointEnabled: true,
+    appSettingsLayout: 'subnav', // 'subnav' | 'centered-expander'
+    appSettingsSub: 'appearance',
+    appSettingsExpanded: {
+      appearance: true,
+      autostart: false,
+      tray: false,
+      behavior: false,
+      diagnostics: false
+    },
     useThemeAccentForHeader: true,
     accentHex: '#4CC2FF',
+    themeMode: 'dark',
+    language: 'system',
+    autoStartMode: 'off', // 'off' | 'normal' | 'silent'
+    closeBehavior: 'exit', // 'exit' | 'tray'
+    autoOpenConsole: false,
+    defaultConsoleMode: 'RdpBasic',
+    defaultPowerAction: 'Shutdown',
+    loggingEnabled: true,
+    verboseDiagnostics: false,
+    autoCheckUpdate: true,
+    aboutExpanded: true,
+    updateStatusText: '当前已是最新版本',
     isaVariant: 'single-row-equal',
     isaMigDesign: 'three-way',
     isaMigTerms: 'friendly',
@@ -280,10 +323,8 @@ export function initUiDesignWorkbench() {
       weightPresetMode: false
     },
     computeByVm: {},
-    hostLogicalCores: 16
+    hostLogicalCores: 12
   };
-
-  let latestVirtualHw = null;
 
   const getVm = () => VM_ITEMS.find((v) => v.id === state.selectedVmId) || VM_ITEMS[0];
 
@@ -310,16 +351,28 @@ export function initUiDesignWorkbench() {
     winEl.style.setProperty('--VmGpuChartFillBrush', `rgba(${rgb}, 0.40)`);
     const colorText = document.getElementById('settingsColorValueText');
     if (colorText) {
-      colorText.textContent = state.useThemeAccentForHeader ? state.accentHex : '灰色';
+      colorText.textContent = state.useThemeAccentForHeader ? state.accentHex : '中性灰';
     }
     const accentSwitch = document.getElementById('settingsAccentSwitch');
     if (accentSwitch) {
       accentSwitch.classList.toggle('on', state.useThemeAccentForHeader);
+      accentSwitch.setAttribute('aria-checked', String(state.useThemeAccentForHeader));
     }
     const accentSwitchLabel = document.getElementById('settingsAccentSwitchLabel');
     if (accentSwitchLabel) {
       accentSwitchLabel.textContent = state.useThemeAccentForHeader ? '开启' : '关闭';
     }
+    const paletteRow = document.getElementById('settingsPaletteRow');
+    if (paletteRow) {
+      paletteRow.classList.toggle('is-disabled', !state.useThemeAccentForHeader);
+    }
+    document.querySelectorAll('[data-swatch-hex]').forEach((btn) => {
+      const hex = btn.getAttribute('data-swatch-hex') || '';
+      const active = hex.toUpperCase() === state.accentHex.toUpperCase();
+      const chk = btn.querySelector('.swatch-check');
+      if (chk) chk.style.visibility = active ? 'visible' : 'hidden';
+    });
+    consoleCtrl?.syncTheme();
   }
 
   let noticeTimer = null;
@@ -966,7 +1019,7 @@ export function initUiDesignWorkbench() {
   }
 
   const CPU_TOPOLOGY_PRESETS = {
-    single: 'AMD Ryzen 9 9950X 16-Core Processor',
+    single: 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz',
     mixed: 'AMD EPYC 9654 96-Core Processor × 1\nIntel(R) Xeon(R) Gold 6430 × 1'
   };
 
@@ -997,7 +1050,7 @@ export function initUiDesignWorkbench() {
 
   function getCpuSummaryMeta() {
     const affinitySec = PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity');
-    const hostCpuModel = affinitySec?.cpuModel || 'AMD Ryzen 9 9950X 16-Core Processor';
+    const hostCpuModel = affinitySec?.cpuModel || 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz';
     const nestedOn = Boolean(getProcessorField('ExposeVirtualizationExtensions')?.value);
     const smtVal = getProcessorField('SmtMode')?.value || 'Inherit';
     const htText = smtVal === 'MultiThread' ? '开启' : smtVal === 'SingleThread' ? '关闭' : '自动';
@@ -1128,16 +1181,6 @@ export function initUiDesignWorkbench() {
   }
 
   function resolveLiveGpuTelemetry(gpu, idx = 0) {
-    const hwGpu = latestVirtualHw?.gpus?.[idx] || latestVirtualHw?.gpus?.[0];
-    if (hwGpu && gpu && (!gpu.name || gpu.name === hwGpu.name || idx === 0)) {
-      return {
-        pct: typeof hwGpu.usagePct === 'number' ? hwGpu.usagePct : 18,
-        pts3d: Array.isArray(hwGpu.pts3d) && hwGpu.pts3d.length > 1 ? hwGpu.pts3d : [10, 14, 22, 16, 19, 18],
-        ptsCopy: Array.isArray(hwGpu.ptsCopy) && hwGpu.ptsCopy.length > 1 ? hwGpu.ptsCopy : [2, 3, 5, 4, 4, 4],
-        ptsEnc: Array.isArray(hwGpu.ptsEnc) && hwGpu.ptsEnc.length > 1 ? hwGpu.ptsEnc : [0, 0, 0, 0, 0, 0],
-        ptsDec: Array.isArray(hwGpu.ptsDec) && hwGpu.ptsDec.length > 1 ? hwGpu.ptsDec : [3, 5, 8, 6, 7, 6]
-      };
-    }
     return {
       pct: idx === 0 ? 18 : 6,
       pts3d: [10, 14, 22, 16, 19, 18],
@@ -2476,7 +2519,7 @@ export function initUiDesignWorkbench() {
     `;
   }
 
-  // 5. Render Settings Area (处理器 / 内存 / 设备[显卡·存储·网卡·PCIe] / 检查点 / 高级[引导·安全·控制台·电源])
+  // 5. Render Settings Area (处理器 / 内存 / 设备[显卡·存储·网卡·PCIe] / 快照 / 高级[引导·安全·控制台·电源])
   function renderSubnavItems(subnav, items, activeId, onSelect) {
     subnav.innerHTML = items
       .map((item, idx) => {
@@ -2503,20 +2546,23 @@ export function initUiDesignWorkbench() {
       sw.addEventListener('click', () => {
         if (sw.classList.contains('disabled')) return;
         sw.classList.toggle('on');
+        const isOn = sw.classList.contains('on');
+        if (sw.hasAttribute('aria-checked')) sw.setAttribute('aria-checked', String(isOn));
         const settingKey = sw.getAttribute('data-setting-key');
         if (settingKey && settingKey in state.advSettings) {
-          state.advSettings[settingKey] = sw.classList.contains('on');
+          state.advSettings[settingKey] = isOn;
+          showNotice('已应用');
         }
         const procFieldId = sw.getAttribute('data-proc-field-id');
         if (procFieldId) {
           const procField = getProcessorField(procFieldId);
-          if (procField) procField.value = sw.classList.contains('on');
+          if (procField) procField.value = isOn;
         }
         const lbl = sw.querySelector('.switch-state-label');
         if (lbl) {
           const onTxt = sw.getAttribute('data-on-text') || '启用';
           const offTxt = sw.getAttribute('data-off-text') || '关闭';
-          lbl.textContent = sw.classList.contains('on') ? onTxt : offTxt;
+          lbl.textContent = isOn ? onTxt : offTxt;
         }
       });
     });
@@ -2568,6 +2614,7 @@ export function initUiDesignWorkbench() {
     const key = state.activeTabKey;
     const hasSubnav = key === 'processor' || key === 'memory' || key === 'devices' || key === 'advanced';
     settingsArea.classList.toggle('no-subnav', !hasSubnav);
+    settingsArea.classList.toggle('is-checkpoints-mode', key === 'checkpoints');
     subnav.hidden = !hasSubnav;
 
     const viewRenderers = {
@@ -2656,7 +2703,7 @@ export function initUiDesignWorkbench() {
     // Section 2: 核心绑定 (VmCpuAffinitySettingsView.cs lines 16-295)
     if (sec.kind === 'affinity') {
       if (!state.savedAffinityMask) state.savedAffinityMask = new Set(state.affinityMask);
-      const totalCores = Math.max(1, state.hostLogicalCores || 16);
+      const totalCores = Math.max(1, state.hostLogicalCores || 12);
       const splitIdx = Math.ceil(totalCores / 2);
       const isAffinityDirty = () => {
         if (state.affinityMask.size !== state.savedAffinityMask.size) return true;
@@ -2814,7 +2861,7 @@ export function initUiDesignWorkbench() {
     if (sec === PROCESSOR_SECTIONS[2] && state.isaVariant !== 'original-5cards') {
       const vm = getVm();
       const hostCpuModel =
-        PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity')?.cpuModel || 'AMD Ryzen 9 9950X 16-Core Processor';
+        PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity')?.cpuModel || 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz';
       if (!state.isaByVm[vm.id]) {
         const initObj = {
           nested: true,
@@ -5210,6 +5257,7 @@ export function initUiDesignWorkbench() {
                 const [moved] = state.bootEntries.splice(startIdx, 1);
                 state.bootEntries.unshift(moved);
               });
+              showNotice('已应用');
             }
             return;
           }
@@ -5220,6 +5268,7 @@ export function initUiDesignWorkbench() {
               const [moved] = state.bootEntries.splice(startIdx, 1);
               state.bootEntries.splice(currentIdx, 0, moved);
             });
+            showNotice('已应用');
           } else {
             card.style.transition = 'transform 180ms cubic-bezier(0.2, 0.85, 0.25, 1)';
             card.style.transform = '';
@@ -5275,8 +5324,11 @@ export function initUiDesignWorkbench() {
       '1024 x 768',
       '800 x 600'
     ];
-    const resOptions = resPresets
-      .map((r) => `<option ${state.advSettings.resolution === r ? 'selected' : ''}>${r}</option>`)
+    const resItems = resPresets
+      .map(
+        (r) =>
+          `<button type="button" class="winui-combo-item ${state.advSettings.resolution === r ? 'is-selected' : ''}" data-console-res-preset="${escapeHtmlText(r)}" role="option" aria-selected="${state.advSettings.resolution === r}"><span>${escapeHtmlText(r)}</span></button>`
+      )
       .join('');
     host.innerHTML = `
       <div style="padding:4px 24px 24px 24px;">
@@ -5292,34 +5344,148 @@ export function initUiDesignWorkbench() {
               <div class="winui-switch ${consoleOn ? 'on' : ''}${consoleLockedByShield ? ' disabled is-locked' : ''}" data-setting-key="consoleSupport"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
             </div>
           </div>
-          <div class="isa-card uniform-1row">
+          <div class="isa-card uniform-1row span-2">
             <div class="isa-card-row">
               ${renderSettingLabelHtml('断开时锁屏', '关闭控制台连接窗口时，自动锁定虚拟机内的系统')}
               <div class="winui-switch ${state.advSettings.lockOnDisconnect ? 'on' : ''}" data-setting-key="lockOnDisconnect"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
             </div>
           </div>
-          <div class="isa-card uniform-1row">
-            <div class="isa-card-row">
-              ${renderSettingLabelHtml('开机数字小键盘', '开机时默认开启 NumLock，避免连接控制台时同步关闭宿主小键盘。第 1 代与第 2 代均支持（关机状态可修改）')}
-              <div class="winui-switch ${state.advSettings.numLock ? 'on' : ''}" data-setting-key="numLock"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-            </div>
-          </div>
           <div class="isa-card uniform-1row span-2">
             <div class="isa-card-row">
               ${renderSettingLabelHtml('默认分辨率', '控制台使用基本会话时的默认窗口分辨率，需在关机状态下修改')}
-              <div style="display:flex;gap:8px;flex-shrink:0;">
-                <select class="winui-select" id="consoleResSelect" style="width:180px;">${resOptions}</select>
-                <button class="winui-btn accent" id="consoleResApplyBtn">应用</button>
+              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                <div class="winui-combo" id="consoleResCombo">
+                  <div style="display:flex;align-items:center;gap:4px;">
+                    <input
+                      type="text"
+                      class="winui-textbox"
+                      id="consoleResInput"
+                      value="${escapeHtmlText(state.advSettings.resolution || '默认')}"
+                      placeholder="默认 或 宽 x 高"
+                      autocomplete="off"
+                      style="width:152px;"
+                    />
+                    <button
+                      type="button"
+                      class="winui-btn console-res-preset-btn"
+                      id="consoleResPresetBtn"
+                      title="选择常用分辨率"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                    >
+                      <span class="fi" style="font-size:11px;">&#xE70D;</span>
+                    </button>
+                  </div>
+                  <div class="winui-combo-flyout" id="consoleResFlyout" role="listbox" hidden>${resItems}</div>
+                </div>
+                <button class="winui-btn accent" id="consoleResApplyBtn" type="button">应用</button>
               </div>
             </div>
           </div>
         </div>
       </div>
     `;
-    host.querySelector('#consoleResApplyBtn')?.addEventListener('click', () => {
-      const sel = host.querySelector('#consoleResSelect');
-      if (sel) state.advSettings.resolution = sel.value;
+
+    const resCombo = host.querySelector('#consoleResCombo');
+    const resInput = host.querySelector('#consoleResInput');
+    const resPresetBtn = host.querySelector('#consoleResPresetBtn');
+    const resFlyout = host.querySelector('#consoleResFlyout');
+
+    const closeResFlyout = () => {
+      if (!resFlyout || !resCombo || !resPresetBtn) return;
+      resFlyout.hidden = true;
+      resCombo.classList.remove('is-open');
+      resPresetBtn.setAttribute('aria-expanded', 'false');
+    };
+
+    const syncResPresetSelection = (val) => {
+      resFlyout?.querySelectorAll('[data-console-res-preset]').forEach((item) => {
+        const selected = item.getAttribute('data-console-res-preset') === val;
+        item.classList.toggle('is-selected', selected);
+        item.setAttribute('aria-selected', String(selected));
+      });
+    };
+
+    const applyConsoleResolution = () => {
+      if (!resInput) return;
+      const raw = resInput.value.trim();
+      if (!raw) {
+        showNotice('请输入有效分辨率，如 1280 x 720。', 'error');
+        return;
+      }
+      if (raw === '默认') {
+        state.advSettings.resolution = '默认';
+        resInput.value = '默认';
+        syncResPresetSelection('默认');
+        closeResFlyout();
+        showNotice('已应用');
+        return;
+      }
+      const parts = raw.split(/[xX×*,\s]+/).filter(Boolean);
+      const width = parts.length === 2 && /^\d+$/.test(parts[0]) ? Number(parts[0]) : NaN;
+      const height = parts.length === 2 && /^\d+$/.test(parts[1]) ? Number(parts[1]) : NaN;
+      if (!Number.isInteger(width) || !Number.isInteger(height)) {
+        showNotice('请输入有效分辨率，如 1280 x 720。', 'error');
+        return;
+      }
+      if (width < 200 || width > 7680 || height < 200 || height > 4320) {
+        showNotice('分辨率超出有效范围（宽 200 至 7680，高 200 至 4320）。', 'error');
+        return;
+      }
+      const normalized = `${width & ~1} x ${height & ~1}`;
+      state.advSettings.resolution = normalized;
+      resInput.value = normalized;
+      syncResPresetSelection(normalized);
+      closeResFlyout();
+      showNotice('已应用');
+    };
+
+    resPresetBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!resFlyout || !resCombo || !resPresetBtn) return;
+      const nextOpen = resFlyout.hidden;
+      if (nextOpen) {
+        syncResPresetSelection(resInput?.value.trim() || '');
+        const btnRect = resPresetBtn.getBoundingClientRect();
+        const hostRect = host.getBoundingClientRect();
+        resFlyout.classList.toggle('is-up', hostRect.bottom - btnRect.bottom < 220);
+        resFlyout.hidden = false;
+        resCombo.classList.add('is-open');
+        resPresetBtn.setAttribute('aria-expanded', 'true');
+      } else {
+        closeResFlyout();
+      }
     });
+
+    resFlyout?.querySelectorAll('[data-console-res-preset]').forEach((item) => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const val = item.getAttribute('data-console-res-preset') || '默认';
+        if (resInput) {
+          resInput.value = val;
+          resInput.focus();
+        }
+        syncResPresetSelection(val);
+        closeResFlyout();
+      });
+    });
+
+    host.addEventListener('click', (e) => {
+      if (resFlyout && !resFlyout.hidden && !resCombo?.contains(e.target)) {
+        closeResFlyout();
+      }
+    });
+
+    resInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyConsoleResolution();
+      } else if (e.key === 'Escape') {
+        closeResFlyout();
+      }
+    });
+
+    host.querySelector('#consoleResApplyBtn')?.addEventListener('click', applyConsoleResolution);
   }
 
   // 电源 (VmPowerService)
@@ -5327,13 +5493,13 @@ export function initUiDesignWorkbench() {
     host.innerHTML = `
       <div style="padding:4px 24px 24px 24px;">
         <div class="isa-grid-2x2">
-          <div class="isa-card uniform-1row">
+          <div class="isa-card uniform-1row span-2">
             <div class="isa-card-row">
               ${renderSettingLabelHtml('允许休眠', '向虚拟机开放 ACPI 休眠（S4）能力，允许来宾系统启用休眠或 Windows 快速启动')}
               <div class="winui-switch ${state.advSettings.hibernation ? 'on' : ''}" data-setting-key="hibernation"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
             </div>
           </div>
-          <div class="isa-card uniform-1row">
+          <div class="isa-card uniform-1row span-2">
             <div class="isa-card-row">
               ${renderSettingLabelHtml('重启时关机', '当虚拟机内部请求重启时，改为直接关机而不是重新启动')}
               <div class="winui-switch ${state.advSettings.turnOffOnRestart ? 'on' : ''}" data-setting-key="turnOffOnRestart"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
@@ -5406,7 +5572,7 @@ export function initUiDesignWorkbench() {
         ? '虚拟机运行中，关闭后才可修改'
         : adv.shielding
           ? '已由受防护模式锁定开启'
-          : '加密保存状态、检查点内存文件以及跨宿主实时迁移数据，开启时会自动启用 vTPM 并签发宿主密钥';
+          : '加密保存状态、快照内存文件以及跨宿主实时迁移数据，开启时会自动启用 vTPM 并签发宿主密钥';
     const shieldDesc = isGen1
       ? '仅第 2 代虚拟机支持受防护模式'
       : isRunning
@@ -5450,6 +5616,7 @@ export function initUiDesignWorkbench() {
         }
         renderSecurityTab(host);
         bindSettingsHostControls(host);
+        showNotice('已应用');
       });
     });
 
@@ -5479,6 +5646,7 @@ export function initUiDesignWorkbench() {
         if (state.navTarget === 'vm' && state.activeTabKey === 'advanced' && state.advancedSubKey === 'security') {
           renderSecurityTab(host);
           bindSettingsHostControls(host);
+          showNotice('已应用');
         }
       });
     });
@@ -5515,6 +5683,12 @@ export function initUiDesignWorkbench() {
               <div class="winui-switch ${adv.fullScsi ? 'on' : ''}" data-compat-key="fullScsi" data-custom-switch="true"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
             </div>
           </div>
+          <div class="isa-card uniform-1row span-2">
+            <div class="isa-card-row">
+              ${renderSettingLabelHtml('开机数字小键盘', '开机时默认开启 NumLock，避免连接控制台时同步关闭宿主小键盘。第 1 代与第 2 代均支持（关机状态可修改）')}
+              <div class="winui-switch ${adv.numLock ? 'on' : ''}" data-setting-key="numLock"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -5530,6 +5704,7 @@ export function initUiDesignWorkbench() {
         }
         renderCompatTab(host);
         bindSettingsHostControls(host);
+        showNotice('已应用');
       });
     });
   }
@@ -5572,10 +5747,10 @@ export function initUiDesignWorkbench() {
       const scope = el.getAttribute('data-dcp-scope');
       el.hidden = Boolean(scope && scope !== 'checkpoints');
     });
-    if (titleEl) titleEl.textContent = '检查点视觉方案';
+    if (titleEl) titleEl.textContent = '快照视觉方案';
     dyn.innerHTML = `
       <div class="dcp-footer">
-        <button class="dcp-action-btn" type="button" id="dcpCpResetDemo">重置演示检查点</button>
+        <button class="dcp-action-btn" type="button" id="dcpCpResetDemo">重置演示快照</button>
       </div>
     `;
     const resetBtn = document.getElementById('dcpCpResetDemo');
@@ -5677,7 +5852,10 @@ export function initUiDesignWorkbench() {
       pageHost.style.display = target === 'host' ? 'grid' : 'none';
     }
     if (pageWeb) pageWeb.hidden = target !== 'web';
-    if (pageSettings) pageSettings.hidden = target !== 'settings';
+    if (pageSettings) {
+      pageSettings.hidden = target !== 'settings';
+      if (target === 'settings') renderAppSettingsPage();
+    }
     if (target === 'host') {
       if (hostMod) {
         hostMod.renderHostPage();
@@ -5736,6 +5914,31 @@ export function initUiDesignWorkbench() {
   });
 
   document.getElementById('vmPowerMainBtn')?.addEventListener('click', toggleVmPower);
+  document.getElementById('vmConnectBtn')?.addEventListener('click', () => {
+    const vm = getVm();
+    const wowClient = window.__WOW_APP_CLIENT__;
+    if (wowClient?.isEmbedded && typeof wowClient.emitAppEvent === 'function' && vm) {
+      wowClient.emitAppEvent('exhyperv:open-console', {
+        id: vm.id,
+        name: vm.name,
+        running: Boolean(vm.running),
+        osIcon: vm.osIcon || 'Windows.svg',
+        generation: vm.generation ?? vm.gen ?? 2,
+        consoleSupport: Boolean(state.advSettings.consoleSupport),
+        shielding: Boolean(state.advSettings.shielding),
+        accentHex: state.accentHex,
+        availableVms: VM_ITEMS.map((item) => ({
+          id: item.id,
+          name: item.name,
+          running: Boolean(item.running),
+          osIcon: item.osIcon || 'Windows.svg',
+          generation: item.generation ?? item.gen ?? 2
+        }))
+      });
+      return;
+    }
+    loadConsoleCtrl().then((ctrl) => ctrl.open());
+  });
   document.getElementById('vmPowerDropBtn')?.addEventListener('click', (e) => {
     e.stopPropagation();
     const flyout = document.getElementById('vmPowerFlyout');
@@ -5803,40 +6006,580 @@ export function initUiDesignWorkbench() {
     }
   });
 
-  // SettingsPage.xaml appearance bindings
-  document.getElementById('settingsThemePicker')?.addEventListener('change', (e) => {
-    const val = e.target.value;
-    winEl.setAttribute('data-theme', val === 'light' ? 'light' : 'dark');
-    applyAccentVariables();
-    if (state.activeTabKey === 'overview') renderOverview();
-  });
+  // SettingsPage.xaml top-tabs + single-column cards
+  const APP_SETTINGS_SUBNAV = [
+    { key: 'appearance', title: '外观', glyph: '&#xE790;' },
+    { key: 'startup', title: '系统', glyph: '&#xE770;' },
+    { key: 'behavior', title: '偏好', glyph: '&#xE9E9;' },
+    { key: 'diagnostics', title: '日志', glyph: '&#xE9D9;' },
+    { key: 'about', title: '关于', glyph: '&#xE946;' }
+  ];
 
-  document.getElementById('settingsAccentSwitch')?.addEventListener('click', (e) => {
-    const sw = e.currentTarget;
-    sw.classList.toggle('on');
-    state.useThemeAccentForHeader = sw.classList.contains('on');
-    applyAccentVariables();
-    if (state.activeTabKey === 'overview') renderOverview();
-  });
+  const APP_SETTINGS_SWATCHES = [
+    ['蓝色', '#4CC2FF'],
+    ['紫色', '#B69CFF'],
+    ['粉色', '#F39BC1'],
+    ['橙色', '#FFB36B'],
+    ['黄色', '#F2D66D'],
+    ['绿色', '#7BDCB5'],
+    ['青色', '#64D8E4']
+  ];
 
-  document.querySelectorAll('[data-swatch-hex]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      state.accentHex = btn.getAttribute('data-swatch-hex');
-      document.querySelectorAll('[data-swatch-hex] .swatch-check').forEach((chk) => {
-        chk.style.visibility = 'hidden';
+  function applyThemeFromMode(mode) {
+    state.themeMode = mode;
+    const prefersLight = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+    const resolved = mode === 'light' ? 'light' : mode === 'dark' ? 'dark' : prefersLight ? 'light' : 'dark';
+    winEl.setAttribute('data-theme', resolved);
+    applyAccentVariables();
+    if (state.navTarget === 'settings') renderAppSettingsPage();
+    if (state.activeTabKey === 'overview') renderOverview();
+  }
+
+  function buildAppSettingsControlsHtml() {
+    const langLabels = { system: '跟随系统', 'zh-CN': '简体中文', en: 'English' };
+    const langOptionsHtml = Object.entries(langLabels)
+      .map(([val, label]) => {
+        const sel = state.language === val;
+        return `<button type="button" class="winui-combo-item ${sel ? 'is-selected' : ''}" data-lang-val="${val}" role="option" aria-selected="${sel}"><span>${label}</span></button>`;
+      })
+      .join('');
+
+    const isPreset = APP_SETTINGS_SWATCHES.some(([, hex]) => hex.toUpperCase() === state.accentHex.toUpperCase());
+    const swatchesHtml =
+      APP_SETTINGS_SWATCHES.map(([name, hex]) => {
+        const active = hex.toUpperCase() === state.accentHex.toUpperCase();
+        return `
+        <button type="button" class="app-settings-swatch-btn ${active ? 'is-selected' : ''}" data-swatch-hex="${hex}" title="${name}" aria-label="${name}" style="background:${hex};">
+          <span class="fi swatch-check" style="font-size:14px;color:#000;visibility:${active ? 'visible' : 'hidden'};">&#xE73E;</span>
+        </button>
+      `;
+      }).join('') +
+      `<button type="button" class="app-settings-swatch-btn ${isPreset ? 'app-settings-swatch-custom' : 'is-selected'}" id="settingsCustomColorBtn" title="自定义颜色" aria-label="自定义颜色" ${isPreset ? '' : `style="background:${state.accentHex};"`}>
+        <span class="fi" style="font-size:14px;color:${isPreset ? '#fff' : '#000'};text-shadow:${isPreset ? '0 1px 2px rgba(0,0,0,0.45)' : 'none'};">&#xE790;</span>
+      </button>`;
+
+    const themeLabels = { default: '跟随系统', light: '浅色', dark: '深色' };
+    const themeOptionsHtml = Object.entries(themeLabels)
+      .map(([val, label]) => {
+        const sel = state.themeMode === val;
+        return `<button type="button" class="winui-combo-item ${sel ? 'is-selected' : ''}" data-theme-val="${val}" role="option" aria-selected="${sel}"><span>${label}</span></button>`;
+      })
+      .join('');
+
+    const themeCtrl = `
+      <div class="winui-combo" id="settingsThemeCombo">
+        <button type="button" class="winui-combo-trigger" id="settingsThemeTrigger" aria-haspopup="listbox" aria-expanded="false">
+          <span id="settingsThemeText">${themeLabels[state.themeMode] || '深色'}</span>
+          <span class="fi winui-combo-chevron">&#xE70D;</span>
+        </button>
+        <div class="winui-combo-flyout" id="settingsThemeFlyout" role="listbox" hidden>${themeOptionsHtml}</div>
+      </div>`;
+
+    const langCtrl = `
+      <div class="winui-combo" id="settingsLangCombo">
+        <button type="button" class="winui-combo-trigger" id="settingsLangTrigger" aria-haspopup="listbox" aria-expanded="false">
+          <span id="settingsLangText">${langLabels[state.language] || '跟随系统'}</span>
+          <span class="fi winui-combo-chevron">&#xE70D;</span>
+        </button>
+        <div class="winui-combo-flyout" id="settingsLangFlyout" role="listbox" hidden>${langOptionsHtml}</div>
+      </div>`;
+
+    const accentToggleCtrl = `
+      <div class="winui-switch ${state.useThemeAccentForHeader ? 'on' : ''}" id="settingsAccentSwitch" role="switch" aria-checked="${state.useThemeAccentForHeader}" tabindex="0">
+        <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
+      </div>`;
+
+    const paletteInner = `
+      <div class="app-settings-swatches">${swatchesHtml}</div>
+      <div class="app-settings-row-ctrl">
+        <button type="button" class="app-settings-accent-chip" id="settingsAccentChip" title="点击复制颜色代码">
+          <span class="app-settings-accent-dot" id="settingsAccentChipDot" style="background:${state.useThemeAccentForHeader ? state.accentHex : 'var(--TextFillColorTertiaryBrush)'};"></span>
+          <span id="settingsColorValueText">${state.useThemeAccentForHeader ? state.accentHex : '中性灰'}</span>
+        </button>
+      </div>`;
+
+    const switchHtml = (id, on, disabled = false) => `
+      <div class="winui-switch ${on ? 'on' : ''} ${disabled ? 'disabled' : ''}" id="${id}" role="switch" aria-checked="${on}" tabindex="${disabled ? -1 : 0}">
+        <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
+      </div>`;
+
+    const autoStartCtrl = `
+      <div class="isa-pill-track cols-3" id="settingsAutoStartSeg" style="width:264px;flex-shrink:0;" role="radiogroup" aria-label="开机自启动">
+        <button type="button" class="isa-pill-btn ${state.autoStartMode === 'off' ? 'active' : ''}" data-autostart-val="off">关闭</button>
+        <button type="button" class="isa-pill-btn ${state.autoStartMode === 'normal' ? 'active' : ''}" data-autostart-val="normal">正常启动</button>
+        <button type="button" class="isa-pill-btn ${state.autoStartMode === 'silent' ? 'active' : ''}" data-autostart-val="silent">静默启动</button>
+      </div>`;
+
+    const closeBehaviorCtrl = `
+      <div class="isa-pill-track" id="settingsCloseBehaviorSeg" style="width:220px;flex-shrink:0;" role="radiogroup" aria-label="关闭主窗口时">
+        <button type="button" class="isa-pill-btn ${state.closeBehavior === 'exit' ? 'active' : ''}" data-close-val="exit">退出应用</button>
+        <button type="button" class="isa-pill-btn ${state.closeBehavior === 'tray' ? 'active' : ''}" data-close-val="tray">最小化到托盘</button>
+      </div>`;
+
+    const defaultConsoleCtrl = `
+      <div class="isa-pill-track" id="settingsDefaultConsoleSeg" style="width:196px;flex-shrink:0;" role="radiogroup" aria-label="默认控制台会话">
+        <button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'RdpBasic' ? 'active' : ''}" data-console-val="RdpBasic">基本会话</button>
+        <button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'RdpEnhanced' ? 'active' : ''}" data-console-val="RdpEnhanced">增强会话</button>
+      </div>`;
+
+    const defaultPowerCtrl = `
+      <div class="isa-pill-track" id="settingsDefaultPowerSeg" style="width:196px;flex-shrink:0;" role="radiogroup" aria-label="运行中电源主按钮默认操作">
+        <button type="button" class="isa-pill-btn ${state.defaultPowerAction === 'Shutdown' ? 'active' : ''}" data-power-val="Shutdown">正常关机</button>
+        <button type="button" class="isa-pill-btn ${state.defaultPowerAction === 'Save' ? 'active' : ''}" data-power-val="Save">保存状态</button>
+      </div>`;
+
+    const diagBtnsCtrl = `
+      <div class="app-settings-row-ctrl">
+        <button type="button" class="winui-btn" id="settingsExportLogsBtn">导出</button>
+        <button type="button" class="winui-btn" id="settingsOpenLogsBtn">打开目录</button>
+        <button type="button" class="winui-btn" id="settingsClearLogsBtn">清空</button>
+      </div>`;
+
+    const aboutHtml = `
+      <div class="app-settings-about-showcase">
+        <img class="app-settings-about-logo" src="/ui-design/app-icon.webp" alt="ExHyperV" draggable="false" />
+        <div class="app-settings-about-title-row">
+          <span class="app-settings-about-name">ExHyperV</span>
+          <span class="app-settings-about-ver">2.0.0-Alpha</span>
+        </div>
+        <div class="app-settings-about-desc">为 Windows 上的 Hyper-V，带来现代化桌面体验。</div>
+        <div class="app-settings-about-actions">
+          <button type="button" class="winui-btn accent app-settings-about-btn" id="settingsCheckUpdateBtn">
+            <span class="fi" style="font-size:13px;">&#xE72C;</span>
+            <span>检查更新</span>
+          </button>
+          <a class="winui-btn app-settings-about-btn" href="https://exhyperv.com" target="_blank" rel="noopener noreferrer">
+            <span class="fi" style="font-size:13px;">&#xE8A7;</span>
+            <span>官网文档</span>
+          </a>
+          <a class="winui-btn app-settings-about-btn" href="https://github.com/Justsenger/ExHyperV/issues" target="_blank" rel="noopener noreferrer">
+            <span class="fi" style="font-size:13px;">&#xE71B;</span>
+            <span>问题反馈</span>
+          </a>
+          <a class="winui-btn app-settings-about-btn" href="https://github.com/Justsenger/ExHyperV" target="_blank" rel="noopener noreferrer">
+            <span class="fi" style="font-size:13px;">&#xE943;</span>
+            <span>GitHub</span>
+          </a>
+          <a class="winui-btn app-settings-about-btn" href="https://afdian.com/a/saniye" target="_blank" rel="noopener noreferrer">
+            <span class="fi" style="font-size:13px;color:#ff4a4a;">&#xEB52;</span>
+            <span>赞助支持</span>
+          </a>
+        </div>
+        <div class="app-settings-about-autoupdate">
+          <span>启动时自动检查更新</span>
+          ${switchHtml('settingsAutoUpdateSwitch', state.autoCheckUpdate)}
+        </div>
+      </div>`;
+
+    return { themeCtrl, langCtrl, accentToggleCtrl, paletteInner, switchHtml, autoStartCtrl, closeBehaviorCtrl, defaultConsoleCtrl, defaultPowerCtrl, diagBtnsCtrl, aboutHtml };
+  }
+
+  function renderAppSettingsPage() {
+    const root = document.getElementById('pageSettings');
+    if (!root) return;
+
+    const prevScroll = root.querySelector('.app-settings-body')?.scrollTop || 0;
+    const c = buildAppSettingsControlsHtml();
+
+    const rowCard = (title, desc, ctrl, extraClass = '', idAttr = '') => `
+      <div class="isa-card uniform-1row ${extraClass}" ${idAttr ? `id="${idAttr}"` : ''}>
+        <div class="isa-card-row">
+          ${renderSettingLabelHtml(title, desc)}
+          ${ctrl}
+        </div>
+      </div>`;
+
+    const tabsHtml = APP_SETTINGS_SUBNAV.map(
+      (s) => `
+        <button type="button" class="vm-tab-btn ${state.appSettingsSub === s.key ? 'selected' : ''}" data-app-sub="${s.key}">
+          <span class="fi" style="font-size:15px;">${s.glyph}</span>
+          <span>${s.title}</span>
+        </button>`
+    ).join('');
+
+    let bodyHtml = '';
+    if (state.appSettingsSub === 'appearance') {
+      bodyHtml = `
+        ${rowCard('显示语言', '更改界面显示语言，切换后立即生效', c.langCtrl)}
+        ${rowCard('应用主题', '选择界面的深色或浅色外观，或跟随系统设置', c.themeCtrl)}
+        <div class="isa-card">
+          <div class="isa-card-row">
+            ${renderSettingLabelHtml('主题色', '开启后展开的监控卡片与重点高亮使用主题色，关闭后使用中性灰')}
+            ${c.accentToggleCtrl}
+          </div>
+          <div class="isa-card-row app-settings-palette-inline ${state.useThemeAccentForHeader ? '' : 'is-disabled'}" id="settingsPaletteRow">
+            ${c.paletteInner}
+          </div>
+        </div>`;
+    } else if (state.appSettingsSub === 'startup') {
+      bodyHtml = `
+        ${rowCard('开机自启动', '登录 Windows 时自动启动 ExHyperV，可选正常显示窗口或静默最小化到托盘', c.autoStartCtrl)}
+        ${rowCard('关闭主窗口时', '选择点击窗口关闭按钮后是直接退出应用，还是最小化到系统托盘后台运行', c.closeBehaviorCtrl)}`;
+    } else if (state.appSettingsSub === 'behavior') {
+      bodyHtml = `
+        ${rowCard('启动虚拟机后自动打开控制台', '在列表或总览中启动虚拟机并成功后，自动打开控制台连接窗口', c.switchHtml('settingsAutoConsoleSwitch', state.autoOpenConsole))}
+        ${rowCard('默认控制台会话', '点击连接或自动打开控制台时默认使用的会话模式', c.defaultConsoleCtrl)}`;
+    } else if (state.appSettingsSub === 'diagnostics') {
+      bodyHtml = `
+        ${rowCard('运行日志', '记录应用与 Core 的操作元数据及异常，本地滚动保存最多 12 MiB', c.switchHtml('settingsLoggingSwitch', state.loggingEnabled))}
+        ${rowCard('详细日志', '额外记录常规监控采样数据，用于排查性能或采样异常', c.switchHtml('settingsVerboseSwitch', state.verboseDiagnostics, !state.loggingEnabled), state.loggingEnabled ? '' : 'is-disabled', 'settingsVerboseRow')}
+        ${rowCard('日志管理', '日志保存于 %LocalAppData%\\ExHyperV\\Logs，导出时会自动打包为脱敏诊断包 (.zip)', c.diagBtnsCtrl)}
+        <div class="isa-card uniform-1row">
+          <div class="isa-card-row">
+            <span class="setting-label-title">配置与数据目录</span>
+            <div class="app-settings-row-ctrl">
+              <span class="app-settings-about-kv-val">%LocalAppData%\\ExHyperV</span>
+              <button type="button" class="winui-btn" id="settingsOpenDataDirBtn">打开目录</button>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      bodyHtml = c.aboutHtml;
+    }
+
+    root.innerHTML = `
+      <div class="app-settings-header">
+        <div class="vm-pagetabs app-settings-tabs">${tabsHtml}</div>
+      </div>
+      <div class="app-settings-body">
+        <div class="app-settings-stack">${bodyHtml}</div>
+      </div>`;
+
+    root.querySelectorAll('[data-app-sub]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.appSettingsSub = btn.getAttribute('data-app-sub') || 'appearance';
+        renderAppSettingsPage();
       });
-      const check = btn.querySelector('.swatch-check');
-      if (check) check.style.visibility = 'visible';
+    });
+
+    const scroller = root.querySelector('.app-settings-body');
+    if (scroller) scroller.scrollTop = prevScroll;
+
+    bindAppSettingsEvents(root);
+  }
+
+  function bindAppSettingsEvents(root) {
+    const themeCombo = root.querySelector('#settingsThemeCombo');
+    const themeTrigger = root.querySelector('#settingsThemeTrigger');
+    const themeFlyout = root.querySelector('#settingsThemeFlyout');
+    const langCombo = root.querySelector('#settingsLangCombo');
+    const langTrigger = root.querySelector('#settingsLangTrigger');
+    const langFlyout = root.querySelector('#settingsLangFlyout');
+
+    themeTrigger?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!themeFlyout || !themeCombo) return;
+      if (langFlyout && langCombo && langTrigger) {
+        langFlyout.hidden = true;
+        langCombo.classList.remove('is-open');
+        langTrigger.setAttribute('aria-expanded', 'false');
+      }
+      const willOpen = themeFlyout.hidden;
+      themeFlyout.hidden = !willOpen;
+      themeCombo.classList.toggle('is-open', willOpen);
+      themeTrigger.setAttribute('aria-expanded', String(willOpen));
+    });
+    root.querySelectorAll('#settingsThemeFlyout [data-theme-val]').forEach((item) => {
+      item.addEventListener('click', () => {
+        const next = item.getAttribute('data-theme-val') || 'dark';
+        if (themeFlyout && themeCombo && themeTrigger) {
+          themeFlyout.hidden = true;
+          themeCombo.classList.remove('is-open');
+          themeTrigger.setAttribute('aria-expanded', 'false');
+        }
+        applyThemeFromMode(next);
+      });
+    });
+
+    langTrigger?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!langFlyout || !langCombo) return;
+      if (themeFlyout && themeCombo && themeTrigger) {
+        themeFlyout.hidden = true;
+        themeCombo.classList.remove('is-open');
+        themeTrigger.setAttribute('aria-expanded', 'false');
+      }
+      const willOpen = langFlyout.hidden;
+      langFlyout.hidden = !willOpen;
+      langCombo.classList.toggle('is-open', willOpen);
+      langTrigger.setAttribute('aria-expanded', String(willOpen));
+    });
+    root.querySelectorAll('#settingsLangFlyout [data-lang-val]').forEach((item) => {
+      item.addEventListener('click', () => {
+        const next = item.getAttribute('data-lang-val') || 'system';
+        if (langFlyout && langCombo && langTrigger) {
+          langFlyout.hidden = true;
+          langCombo.classList.remove('is-open');
+          langTrigger.setAttribute('aria-expanded', 'false');
+        }
+        if (state.language === next) return;
+        state.language = next;
+        renderAppSettingsPage();
+        showNotice('界面语言已切换', 'success');
+      });
+    });
+
+    root.querySelectorAll('#settingsAutoStartSeg [data-autostart-val]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.autoStartMode = btn.getAttribute('data-autostart-val') || 'off';
+        renderAppSettingsPage();
+      });
+    });
+
+    root.querySelectorAll('#settingsCloseBehaviorSeg [data-close-val]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.closeBehavior = btn.getAttribute('data-close-val') || 'exit';
+        renderAppSettingsPage();
+      });
+    });
+
+    root.querySelectorAll('#settingsDefaultConsoleSeg [data-console-val]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.defaultConsoleMode = btn.getAttribute('data-console-val') || 'RdpBasic';
+        renderAppSettingsPage();
+        showNotice('已更新默认控制台会话', 'success');
+      });
+    });
+
+    root.querySelector('#settingsAccentSwitch')?.addEventListener('click', () => {
+      state.useThemeAccentForHeader = !state.useThemeAccentForHeader;
       applyAccentVariables();
+      renderAppSettingsPage();
       if (state.activeTabKey === 'overview') renderOverview();
     });
+
+    root.querySelectorAll('[data-swatch-hex]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.accentHex = btn.getAttribute('data-swatch-hex') || '#4CC2FF';
+        applyAccentVariables();
+        renderAppSettingsPage();
+        if (state.activeTabKey === 'overview') renderOverview();
+      });
+    });
+
+    root.querySelector('#settingsAccentChip')?.addEventListener('click', async () => {
+      if (!state.useThemeAccentForHeader) return;
+      try {
+        await navigator.clipboard?.writeText(state.accentHex);
+      } catch {}
+      showNotice(`已复制颜色代码 ${state.accentHex}`, 'success');
+    });
+
+    root.querySelector('#settingsCustomColorBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const flyout = document.getElementById('settingsColorFlyout');
+      if (!flyout) return;
+      const willOpen = flyout.hidden;
+      if (willOpen) {
+        openColorPickerFlyout(e.currentTarget);
+      } else {
+        flyout.hidden = true;
+      }
+    });
+
+    const bindToggle = (id, getVal, setVal) => {
+      const el = root.querySelector(`#${id}`);
+      if (!el) return;
+      const toggle = () => {
+        if (el.classList.contains('disabled')) return;
+        setVal(!getVal());
+        renderAppSettingsPage();
+      };
+      el.addEventListener('click', toggle);
+      el.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    };
+
+    bindToggle('settingsAutoConsoleSwitch', () => state.autoOpenConsole, (v) => { state.autoOpenConsole = v; });
+    bindToggle('settingsAutoUpdateSwitch', () => state.autoCheckUpdate, (v) => { state.autoCheckUpdate = v; });
+    bindToggle('settingsLoggingSwitch', () => state.loggingEnabled, (v) => {
+      state.loggingEnabled = v;
+      if (!v) state.verboseDiagnostics = false;
+    });
+    bindToggle('settingsVerboseSwitch', () => state.verboseDiagnostics, (v) => { state.verboseDiagnostics = v; });
+
+    root.querySelector('#settingsExportLogsBtn')?.addEventListener('click', () => {
+      showNotice('已导出脱敏诊断包 (ExHyperV-Diagnostics.zip)', 'success');
+    });
+    root.querySelector('#settingsOpenLogsBtn')?.addEventListener('click', () => {
+      showNotice('已打开日志目录 %LocalAppData%\\ExHyperV\\Logs', 'success');
+    });
+    root.querySelector('#settingsOpenDataDirBtn')?.addEventListener('click', () => {
+      showNotice('已打开配置目录 %LocalAppData%\\ExHyperV', 'success');
+    });
+    root.querySelector('#settingsCheckUpdateBtn')?.addEventListener('click', () => {
+      showNotice('当前已是最新版本 2.0.0-Alpha', 'success');
+    });
+    root.querySelector('#settingsClearLogsBtn')?.addEventListener('click', () => {
+      const modal = document.getElementById('settingsClearLogsModal');
+      if (modal) modal.hidden = false;
+    });
+  }
+
+  const clearLogsModal = document.getElementById('settingsClearLogsModal');
+  const closeClearLogsModal = () => {
+    if (clearLogsModal) clearLogsModal.hidden = true;
+  };
+  document.getElementById('settingsClearLogsCancelBtn')?.addEventListener('click', closeClearLogsModal);
+  clearLogsModal?.addEventListener('click', (e) => {
+    if (e.target === clearLogsModal) closeClearLogsModal();
+  });
+  document.getElementById('settingsClearLogsConfirmBtn')?.addEventListener('click', () => {
+    closeClearLogsModal();
+    showNotice('运行日志已清空', 'success');
   });
 
-  document.getElementById('settingsResetColorBtn')?.addEventListener('click', () => {
-    state.accentHex = '#4CC2FF';
+  const cpFlyout = document.getElementById('settingsColorFlyout');
+  const cpSv = document.getElementById('settingsCpSv');
+  const cpThumb = document.getElementById('settingsCpThumb');
+  const cpHue = document.getElementById('settingsCpHue');
+  const cpPreview = document.getElementById('settingsCpPreview');
+  const cpHexInput = document.getElementById('settingsCpHexInput');
+  let cpH = 200;
+  let cpS = 0.7;
+  let cpV = 1.0;
+
+  const hexToHsv = (hex) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return [200, 0.7, 1];
+    const n = parseInt(m[1], 16);
+    const r = ((n >> 16) & 255) / 255;
+    const g = ((n >> 8) & 255) / 255;
+    const b = (n & 255) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+    let h = 0;
+    if (d !== 0) {
+      if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+      else if (max === g) h = ((b - r) / d + 2) * 60;
+      else h = ((r - g) / d + 4) * 60;
+    }
+    return [Math.round(h), max === 0 ? 0 : d / max, max];
+  };
+
+  const hsvToHex = (h, s, v) => {
+    const c = v * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = v - c;
+    let r = 0, g = 0, b = 0;
+    if (h < 60) [r, g, b] = [c, x, 0];
+    else if (h < 120) [r, g, b] = [x, c, 0];
+    else if (h < 180) [r, g, b] = [0, c, x];
+    else if (h < 240) [r, g, b] = [0, x, c];
+    else if (h < 300) [r, g, b] = [x, 0, c];
+    else [r, g, b] = [c, 0, x];
+    const toByte = (u) => Math.round((u + m) * 255).toString(16).padStart(2, '0').toUpperCase();
+    return `#${toByte(r)}${toByte(g)}${toByte(b)}`;
+  };
+
+  const syncColorPickerUi = (updateHexField = true) => {
+    const hex = hsvToHex(cpH, cpS, cpV);
+    if (cpSv) cpSv.style.backgroundColor = `hsl(${cpH}, 100%, 50%)`;
+    if (cpThumb) {
+      cpThumb.style.left = `${cpS * 100}%`;
+      cpThumb.style.top = `${(1 - cpV) * 100}%`;
+    }
+    if (cpHue) cpHue.value = String(cpH);
+    if (cpPreview) cpPreview.style.background = hex;
+    if (updateHexField && cpHexInput) cpHexInput.value = hex;
+  };
+
+  function openColorPickerFlyout(anchorEl) {
+    if (!cpFlyout || !anchorEl) return;
+    [cpH, cpS, cpV] = hexToHsv(state.accentHex);
+    syncColorPickerUi(true);
+    cpFlyout.hidden = false;
+    const winRect = winEl.getBoundingClientRect();
+    const btnRect = anchorEl.getBoundingClientRect();
+    const flyW = cpFlyout.offsetWidth || 264;
+    const flyH = cpFlyout.offsetHeight || 290;
+    const left = Math.max(12, Math.min(winRect.width - flyW - 12, btnRect.left - winRect.left - 8));
+    const spaceBelow = winRect.bottom - btnRect.bottom;
+    const top = spaceBelow >= flyH + 16
+      ? btnRect.bottom - winRect.top + 8
+      : Math.max(12, btnRect.top - winRect.top - flyH - 8);
+    cpFlyout.style.left = `${left}px`;
+    cpFlyout.style.top = `${top}px`;
+  }
+
+  if (cpSv) {
+    let draggingSv = false;
+    const pickSv = (e) => {
+      const rect = cpSv.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      cpS = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      cpV = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
+      syncColorPickerUi(true);
+    };
+    cpSv.addEventListener('pointerdown', (e) => {
+      draggingSv = true;
+      cpSv.setPointerCapture(e.pointerId);
+      pickSv(e);
+    });
+    cpSv.addEventListener('pointermove', (e) => {
+      if (draggingSv) pickSv(e);
+    });
+    cpSv.addEventListener('pointerup', (e) => {
+      if (!draggingSv) return;
+      draggingSv = false;
+      cpSv.releasePointerCapture(e.pointerId);
+    });
+  }
+
+  cpHue?.addEventListener('input', (e) => {
+    cpH = Number(e.target.value) || 0;
+    syncColorPickerUi(true);
+  });
+
+  cpHexInput?.addEventListener('input', (e) => {
+    const val = String(e.target.value || '').trim();
+    if (/^#[0-9a-f]{6}$/i.test(val)) {
+      [cpH, cpS, cpV] = hexToHsv(val);
+      syncColorPickerUi(false);
+    }
+  });
+
+  document.getElementById('settingsCpCancelBtn')?.addEventListener('click', () => {
+    if (cpFlyout) cpFlyout.hidden = true;
+  });
+
+  document.getElementById('settingsCpApplyBtn')?.addEventListener('click', () => {
+    const hex = hsvToHex(cpH, cpS, cpV);
+    if (cpFlyout) cpFlyout.hidden = true;
+    state.accentHex = hex;
     applyAccentVariables();
+    renderAppSettingsPage();
     if (state.activeTabKey === 'overview') renderOverview();
   });
+
+  winEl.addEventListener('click', (e) => {
+    const themeCombo = document.getElementById('settingsThemeCombo');
+    const themeTrigger = document.getElementById('settingsThemeTrigger');
+    const themeFlyout = document.getElementById('settingsThemeFlyout');
+    if (themeFlyout && !themeFlyout.hidden && !e.target.closest('#settingsThemeCombo')) {
+      themeFlyout.hidden = true;
+      themeCombo?.classList.remove('is-open');
+      themeTrigger?.setAttribute('aria-expanded', 'false');
+    }
+    const langCombo = document.getElementById('settingsLangCombo');
+    const langTrigger = document.getElementById('settingsLangTrigger');
+    const langFlyout = document.getElementById('settingsLangFlyout');
+    if (langFlyout && !langFlyout.hidden && !e.target.closest('#settingsLangCombo')) {
+      langFlyout.hidden = true;
+      langCombo?.classList.remove('is-open');
+      langTrigger?.setAttribute('aria-expanded', 'false');
+    }
+    if (cpFlyout && !cpFlyout.hidden && !e.target.closest('#settingsColorFlyout') && !e.target.closest('#settingsCustomColorBtn')) {
+      cpFlyout.hidden = true;
+    }
+  });
+
+  renderAppSettingsPage();
 
   // Global click handler for SettingInfoButton Flyout & PowerFlyout dismissal
   winEl.addEventListener('click', (e) => {
@@ -6445,6 +7188,16 @@ export function initUiDesignWorkbench() {
       applyHostCandidatePayload(msg.payload);
     } else if (msg.channel === 'exhyperv:gpu-candidate') {
       applyGpuCandidateData(msg.payload);
+    } else if (msg.channel === 'exhyperv:console-power' && msg.payload && typeof msg.payload === 'object') {
+      const targetVm = VM_ITEMS.find((v) => v.id === msg.payload.id) || getVm();
+      if (targetVm && typeof msg.payload.running === 'boolean') {
+        targetVm.running = msg.payload.running;
+        syncStandaloneHostRailPanel();
+        notifyParentHostState();
+        renderVmList();
+        renderDashboardSummary();
+        renderActiveWorkspace();
+      }
     }
   });
 
@@ -6480,190 +7233,6 @@ export function initUiDesignWorkbench() {
     }
   });
 
-  let vmInitialRendered = false;
-  let lastSyncedHwSig = '';
-  let lastSyncedDefaultGpuInstance = INITIAL_GPU_ASSIGNMENTS[0]?.instanceId || '';
-
-  function syncVirtualHardwareToVm(hw) {
-    if (!hw || typeof hw !== 'object') return;
-    latestVirtualHw = hw;
-
-    const cpuName = hw.cpu?.displayName?.value || '';
-    const logicalCores = Math.max(1, Number(hw.cpu?.logicalCores) || state.hostLogicalCores || 16);
-    const mappedGpus = buildVirtualGpuEntries(hw);
-    const gpuSig = mappedGpus.map((g) => `${g.name}@${g.driverVersion}@${g.instanceId}`).join(';');
-    const hwSig = `${cpuName}|${logicalCores}|${gpuSig}`;
-    const structuralChanged = hwSig !== lastSyncedHwSig;
-
-    if (cpuName) {
-      const prevSingle = CPU_TOPOLOGY_PRESETS.single;
-      CPU_TOPOLOGY_PRESETS.single = cpuName;
-      const affinitySec = PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity');
-      if (affinitySec && affinitySec.cpuModel === prevSingle) {
-        affinitySec.cpuModel = cpuName;
-      }
-      const brandField = getProcessorField('CpuBrandString');
-      if (brandField && brandField.value === prevSingle) {
-        brandField.value = cpuName;
-      }
-      const hostModelEl = document.getElementById('hostCpuModelText');
-      if (hostModelEl && hostModelEl.textContent?.trim() === prevSingle) {
-        hostModelEl.innerHTML = formatCpuTitleHtml(cpuName);
-      }
-    }
-
-    if (structuralChanged) {
-      const isFirstHwSync = !lastSyncedHwSig;
-      lastSyncedHwSig = hwSig;
-
-      state.hostLogicalCores = logicalCores;
-      const clampedMask = new Set([...state.affinityMask].filter((idx) => idx >= 0 && idx < logicalCores));
-      if (clampedMask.size === 0 && state.affinityMask.size > 0) {
-        for (let i = 0; i < Math.min(logicalCores, Math.ceil(logicalCores / 2)); i++) clampedMask.add(i);
-      }
-      state.affinityMask = clampedMask;
-      if (state.savedAffinityMask) {
-        state.savedAffinityMask = new Set([...state.savedAffinityMask].filter((idx) => idx >= 0 && idx < logicalCores));
-      }
-
-      const countField = getProcessorField('Count');
-      if (countField) {
-        countField.max = Math.max(1, logicalCores);
-        const curCount = Number(countField.value);
-        if (Number.isFinite(curCount) && curCount > logicalCores) {
-          countField.value = String(logicalCores);
-        }
-      }
-
-      if (mappedGpus.length > 0) {
-        const previewGpus = mappedGpus.length === 1
-          ? [
-              ...mappedGpus,
-              {
-                id: 'host-gpu-rtx4090-preview',
-                name: 'NVIDIA GeForce RTX 4090',
-                manu: 'NVIDIA',
-                vendor: 'NVIDIA Corporation',
-                memoryText: '24,564 MB',
-                driverVersion: '566.14',
-                instanceId: 'PCI\\VEN_10DE&DEV_2684&SUBSYS_409010DE&REV_A1\\4&21B4C120&0&0008',
-                partitionPath: '\\\\?\\PCI#VEN_10DE&DEV_2684&SUBSYS_409010DE&REV_A1#4&21b4c120&0&0008#{064092b3-625e-43bf-9eb5-dc845897dd95}\\GPUPARAV',
-                partitionable: true
-              }
-            ]
-          : mappedGpus;
-        HOST_GPUS.splice(0, HOST_GPUS.length, ...previewGpus);
-        const validSelected = HOST_GPUS.find((g) => g.id === state.selectedHostGpuId && g.partitionable);
-        state.selectedHostGpuId = (validSelected || HOST_GPUS.find((g) => g.partitionable) || HOST_GPUS[0]).id;
-
-        const primaryGpu = HOST_GPUS.find((g) => g.partitionable) || HOST_GPUS[0];
-        const nextAssign = {
-          id: 'gpu-1',
-          name: primaryGpu.name,
-          manu: primaryGpu.manu,
-          vendor: primaryGpu.vendor,
-          memoryText: primaryGpu.memoryText,
-          driverVersion: primaryGpu.driverVersion,
-          instanceId: primaryGpu.instanceId,
-          partitionPath: primaryGpu.partitionPath,
-          expanded: false
-        };
-        if (primaryGpu.partitionable) {
-          INITIAL_GPU_ASSIGNMENTS.splice(0, INITIAL_GPU_ASSIGNMENTS.length, nextAssign);
-        } else {
-          INITIAL_GPU_ASSIGNMENTS.splice(0, INITIAL_GPU_ASSIGNMENTS.length);
-        }
-
-        if (STRESS_GPUS[0]) {
-          STRESS_GPUS[0].name = `${primaryGpu.name} (DDA 直通)`;
-          STRESS_GPUS[0].vendor = primaryGpu.manu;
-          STRESS_GPUS[0].memoryText = primaryGpu.memoryText;
-          STRESS_GPUS[0].driverVersion = primaryGpu.driverVersion;
-          STRESS_GPUS[0].instanceId = primaryGpu.instanceId;
-        }
-
-        const pcieTemplate = {
-          id: 'pcie-1',
-          hostId: 'host-pcie-rtx4090',
-          name: primaryGpu.name,
-          classType: 'Display',
-          glyph: '\uF211',
-          guestMode: '0',
-          instanceId: primaryGpu.instanceId,
-          path: 'PCIROOT(0)#PCI(0101)#PCI(0000)',
-          vendor: primaryGpu.vendor,
-          expanded: true
-        };
-        const prevPcieInst = INITIAL_PCIE_DEVICES[0]?.instanceId;
-        INITIAL_PCIE_DEVICES.splice(0, INITIAL_PCIE_DEVICES.length, pcieTemplate);
-
-        VM_ITEMS.forEach((vmItem) => {
-          if (isFirstHwSync && vmItem.cores > logicalCores) {
-            vmItem.cores = logicalCores;
-            vmItem.configText = `${vmItem.cores} 核 / ${vmItem.memoryGb} GB / ${vmItem.disks.map((d) => d.capacityText).join(' + ')}`;
-          }
-          vmItem.gpuText = primaryGpu.name;
-          vmItem.gpus = [
-            {
-              key: 'gpu-0',
-              title: primaryGpu.name,
-              manu: primaryGpu.manu,
-              vendor: primaryGpu.vendor,
-              memoryText: primaryGpu.memoryText,
-              driverVersion: primaryGpu.driverVersion,
-              instanceId: primaryGpu.instanceId
-            }
-          ];
-
-          const curAssigns = state.gpuAssignmentsByVm[vmItem.id];
-          const isUntouchedDefault =
-            Array.isArray(curAssigns) &&
-            curAssigns.length === 1 &&
-            curAssigns[0]?.id === 'gpu-1' &&
-            curAssigns[0]?.instanceId === lastSyncedDefaultGpuInstance;
-          if (isUntouchedDefault) {
-            state.gpuAssignmentsByVm[vmItem.id] = structuredClone(INITIAL_GPU_ASSIGNMENTS);
-          }
-
-          const curPcie = state.pcieDevicesByVm[vmItem.id];
-          if (
-            Array.isArray(curPcie) &&
-            curPcie.length === 1 &&
-            curPcie[0]?.id === 'pcie-1' &&
-            (!prevPcieInst || curPcie[0]?.instanceId === prevPcieInst)
-          ) {
-            state.pcieDevicesByVm[vmItem.id] = structuredClone(INITIAL_PCIE_DEVICES);
-          }
-        });
-
-        lastSyncedDefaultGpuInstance = nextAssign.instanceId;
-      }
-
-      if (vmInitialRendered) {
-        const activeEl = document.activeElement;
-        const pageVm = document.getElementById('pageVirtualMachines');
-        const editingInput =
-          activeEl &&
-          pageVm?.contains(activeEl) &&
-          (['INPUT', 'SELECT', 'TEXTAREA'].includes(activeEl.tagName) || activeEl.closest?.('.winui-combo'));
-        if (!editingInput) {
-          renderVmList();
-          renderDashboardSummary();
-          renderActiveWorkspace();
-        }
-      }
-    } else if (vmInitialRendered && state.navTarget === 'vm' && state.activeTabKey === 'overview' && getVm().running) {
-      renderOverview();
-    }
-  }
-
-  if (window.__WIN11_HARDWARE__) {
-    syncVirtualHardwareToVm(window.__WIN11_HARDWARE__);
-  }
-  window.addEventListener('win11:hardware', (e) => {
-    syncVirtualHardwareToVm(e.detail);
-  });
-
   // Initial render
   applyAccentVariables();
   syncStandaloneHostRailPanel();
@@ -6671,5 +7240,4 @@ export function initUiDesignWorkbench() {
   renderDashboardSummary();
   renderPageTabs();
   renderActiveWorkspace();
-  vmInitialRendered = true;
 }

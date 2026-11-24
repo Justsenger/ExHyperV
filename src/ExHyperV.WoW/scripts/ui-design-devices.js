@@ -174,7 +174,7 @@ function getDeployStepsForMode(deployMode) {
 
 function getDeployActiveStepIdx(deployMode, decision, simIdx) {
   const steps = getDeployStepsForMode(deployMode);
-  if (decision === 'Completed' || decision === 'CompletedIso' || decision === 'CompletedSkipped') {
+  if (decision === 'Completed' || decision === 'CompletedSkipped') {
     return steps.length;
   }
   if (Number.isInteger(simIdx) && simIdx >= 0) return Math.min(simIdx, steps.length - 1);
@@ -266,49 +266,34 @@ export function renderGpuWorkbench(host, ctx) {
       state.gpuDeployPartitionResolved = true;
     }
 
-    if (state.gpuDeployPendingFinish === 'CompletedIso' && curIdx === steps.length - 1) {
-      const startPct = Number.isFinite(state.gpuDeployProgressPct) ? state.gpuDeployProgressPct : 0;
-      const tickIsoProgress = (pct) => {
-        state.gpuDeployTimer = setTimeout(() => {
-          if (state.gpuMode !== 'deploy') return;
-          if (pct >= 100) {
-            state.gpuDeployProgressPct = null;
-            state.gpuDriverMismatch = true;
-            state.gpuDeployDecision = 'CompletedIso';
-            state.gpuDeployPendingFinish = null;
-            rerender();
-            return;
-          }
-          const nextPct = Math.min(100, pct + 8);
-          state.gpuDeployProgressPct = nextPct;
-          const pctEl = host.querySelector('.dev-task-pct');
-          const fillEl = host.querySelector('.dev-task-progress-fill');
-          if (pctEl && fillEl) {
-            pctEl.textContent = `${nextPct}%`;
-            fillEl.style.width = `${nextPct}%`;
-          } else {
-            rerender();
-          }
-          tickIsoProgress(nextPct);
-        }, 120);
-      };
-      tickIsoProgress(startPct);
-      return;
-    }
-
     state.gpuDeployTimer = setTimeout(() => {
       if (state.gpuMode !== 'deploy') return;
       const nextIdx = curIdx + 1;
       if (nextIdx >= steps.length) {
-        if (mode === 'assign-only' || state.gpuDeployPendingFinish === 'CompletedIso') {
+        if (mode === 'assign-only') {
           state.gpuDriverMismatch = true;
         } else {
           markVmGpuDriversDeployed(state.gpuAssignmentsByVm[vm.id], HOST_GPUS);
           state.gpuDriverMismatch = false;
         }
-        state.gpuDeployDecision = state.gpuDeployPendingFinish || 'Completed';
+        const finalDecision = state.gpuDeployPendingFinish || 'Completed';
         state.gpuDeployPendingFinish = null;
-        state.gpuDeployProgressPct = null;
+        state.gpuDeployDecision = finalDecision;
+        if (finalDecision === 'Completed') {
+          clearDeployTimer();
+          state.gpuDeployProgressPct = null;
+          state.gpuMode = 'list';
+          renderDashboardSummary();
+          rerender();
+          showNotice?.(
+            mode === 'update-drivers'
+              ? '已更新 GPU 驱动'
+              : mode === 'assign-only'
+                ? '已完成 GPU 分配'
+                : '已完成 GPU 配置与驱动安装'
+          );
+          return;
+        }
         rerender();
         return;
       }
@@ -352,9 +337,7 @@ export function renderGpuWorkbench(host, ctx) {
         : alreadyAdded
           ? `<span class="dev-picker-tag">已添加</span>`
           : '';
-      const subText = disabled
-        ? g.unpartitionableReason || '不支持 GPU 分区'
-        : `专用显存 ${g.memoryText || '未知'}`;
+      const boardVendor = resolveVendor(g);
       const selectorHtml = allowMultiGpu
         ? `<span class="dev-checkbox">${sel ? '<span class="fi">&#xE73E;</span>' : ''}</span>`
         : `<span class="dev-radio"></span>`;
@@ -369,7 +352,7 @@ export function renderGpuWorkbench(host, ctx) {
           <div style="min-width:0;">
             <div style="font-size:14px;font-weight:400;color:var(--TextFillColorPrimaryBrush);">${escapeDeviceHtml(g.name)}</div>
             <div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-              ${escapeDeviceHtml(subText)}
+              ${escapeDeviceHtml(boardVendor)}
             </div>
           </div>
           ${rightNote}
@@ -384,16 +367,16 @@ export function renderGpuWorkbench(host, ctx) {
 
     host.innerHTML = `
       <div class="dev-stack">
-        <div class="dev-picker-list">${hostRowsHtml}</div>
-
         <div class="winui-card" style="margin-bottom:0;">
           <div class="winui-card-row">
-            ${renderSettingLabelHtml('安装驱动', '添加显卡后继续识别系统分区并部署驱动')}
+            ${renderSettingLabelHtml('安装驱动', '为 Windows 虚拟机离线注入驱动')}
             <div class="winui-switch ${state.installGpuDrivers ? 'on' : ''}" id="gpuInstallDrvSwitch" data-custom-switch="true" role="switch" aria-checked="${state.installGpuDrivers}">
               <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
             </div>
           </div>
         </div>
+
+        <div class="dev-picker-list">${hostRowsHtml}</div>
       </div>
     `;
 
@@ -474,7 +457,7 @@ export function renderGpuWorkbench(host, ctx) {
     const decision = state.gpuDeployDecision || 'Running';
     const steps = getDeployStepsForMode(deployMode);
     const activeIdx = getDeployActiveStepIdx(deployMode, decision, state.gpuDeploySimIdx);
-    const isDone = decision === 'Completed' || decision === 'CompletedIso' || decision === 'CompletedSkipped';
+    const isDone = decision === 'Completed' || decision === 'CompletedSkipped';
 
     let inlineActionsStep = '';
     let inlineActionsHtml = '';
@@ -494,7 +477,7 @@ export function renderGpuWorkbench(host, ctx) {
       inlineActionsHtml = `
         <div class="dev-action-row" style="margin-top:0;">
           <button class="winui-btn" id="gpuDecisionCancelBtn" type="button">返回</button>
-          <button class="winui-btn accent" id="gpuDecisionMountIsoBtn" type="button">挂载驱动光盘</button>
+          <button class="winui-btn" id="gpuDecisionSkipDriverBtn" type="button">跳过驱动</button>
         </div>
       `;
     } else if (decision === 'SelectPartition') {
@@ -502,9 +485,20 @@ export function renderGpuWorkbench(host, ctx) {
       const selectedPart = INITIAL_GPU_PARTITIONS.find((p) => p.id === state.gpuSelectedPartitionId) || INITIAL_GPU_PARTITIONS[0];
       const partRows = INITIAL_GPU_PARTITIONS.map((p) => {
         const sel = (selectedPart?.id || '') === p.id;
-        const infoBtnHtml = p.locked
-          ? `<button class="setting-info-btn" style="width:18px;height:18px;padding:0;" data-info-desc="无法向 BitLocker 分区安装驱动，需要先解锁，或挂载驱动光盘。" title="无法向 BitLocker 分区安装驱动，需要先解锁，或挂载驱动光盘。" type="button"><span class="fi" style="font-size:14px;">&#xE946;</span></button>`
+        const isLinux = p.osType === 'Linux';
+        const helpText = p.locked
+          ? '已开启 BitLocker 保护，请先解除 BitLocker 后再注入驱动。'
+          : isLinux
+            ? '检测到 Linux 分区，当前暂不支持为其部署驱动。'
+            : '';
+        const infoBtnHtml = helpText
+          ? `<button class="setting-info-btn" style="width:18px;height:18px;padding:0;" data-info-desc="${escapeDeviceHtml(helpText)}" title="${escapeDeviceHtml(helpText)}" type="button"><span class="fi" style="font-size:14px;">&#xE946;</span></button>`
           : '';
+        const statusTag = p.locked
+          ? '<span class="dev-picker-tag">需先解除 BitLocker</span>'
+          : isLinux
+            ? '<span class="dev-picker-tag">暂不支持</span>'
+            : '';
         return `
           <div class="dev-picker-row ${sel ? 'is-selected' : ''}" data-gpu-part="${p.id}">
             <span class="dev-radio"></span>
@@ -513,27 +507,34 @@ export function renderGpuWorkbench(host, ctx) {
               <div style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--TextFillColorPrimaryBrush);">${escapeDeviceHtml(p.title)}${infoBtnHtml}</div>
               <div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);margin-top:2px;">${escapeDeviceHtml(p.fs ? `${p.diskLabel}，${p.fs}` : p.diskLabel)}</div>
             </div>
-            <span class="dev-status-muted">${escapeDeviceHtml(p.sizeText)}</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              ${statusTag}
+              <span class="dev-status-muted">${escapeDeviceHtml(p.sizeText)}</span>
+            </div>
           </div>
         `;
       }).join('');
 
       const isUnsupported = !selectedPart || selectedPart.locked || selectedPart.osType !== 'Windows';
-      const partActionBtnsHtml = isUnsupported
-        ? `
-          <button class="winui-btn" id="gpuBackListFromDeployBtn" type="button">返回</button>
-          <button class="winui-btn accent" id="gpuDecisionMountIsoBtn" type="button">挂载驱动光盘</button>
-        `
-        : `
-          <button class="winui-btn" id="gpuBackListFromDeployBtn" type="button">返回</button>
-          <button class="winui-btn accent" id="gpuDecisionPartNextBtn" type="button">继续</button>
-        `;
+      const noticeText = !isUnsupported
+        ? ''
+        : selectedPart?.locked
+          ? '解除 BitLocker 后才能继续安装驱动。'
+          : selectedPart?.osType === 'Linux'
+            ? '暂不支持为 Linux 安装 GPU 驱动。'
+            : '所选分区不支持注入驱动，请选择未加密的 Windows 系统分区或跳过驱动。';
+      const noticeHtml = noticeText
+        ? `<div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);margin-top:2px;">${escapeDeviceHtml(noticeText)}</div>`
+        : '';
 
       decisionBoxHtml = `
         <div class="dev-inline-decision">
           <div class="dev-picker-list">${partRows}</div>
+          ${noticeHtml}
           <div class="dev-action-row" style="justify-content:flex-end;">
-            ${partActionBtnsHtml}
+            <button class="winui-btn" id="gpuBackListFromDeployBtn" type="button">返回</button>
+            <button class="winui-btn" id="gpuDecisionSkipDriverBtn" type="button">跳过驱动</button>
+            <button class="winui-btn accent" id="gpuDecisionPartNextBtn" type="button" ${isUnsupported ? 'disabled' : ''}>继续</button>
           </div>
         </div>
       `;
@@ -542,8 +543,7 @@ export function renderGpuWorkbench(host, ctx) {
     const taskListHtml = steps
       .map((label, idx) => {
         const isSkipped = label === driverStepLabel && decision === 'CompletedSkipped';
-        const isIsoRoute = label === driverStepLabel && (decision === 'CompletedIso' || state.gpuDeployPendingFinish === 'CompletedIso');
-        const displayLabel = isIsoRoute ? '挂载驱动光盘' : label;
+        const displayLabel = label;
         const done = !isSkipped && (isDone || idx < activeIdx);
         const active = !isDone && idx === activeIdx;
         const iconHtml = isSkipped
@@ -553,25 +553,17 @@ export function renderGpuWorkbench(host, ctx) {
             : active
               ? '<span class="dev-spinner" aria-hidden="true"></span>'
               : '<span class="fi" style="font-size:17px;color:var(--TextFillColorTertiaryBrush);">&#xEA3A;</span>';
-        const showIsoProgress = active && isIsoRoute && Number.isFinite(state.gpuDeployProgressPct);
-        const clampedPct = showIsoProgress ? Math.min(100, Math.max(0, Math.round(state.gpuDeployProgressPct))) : 0;
         const rowRightHtml = isSkipped
           ? '<span class="dev-status-muted">已跳过</span>'
-          : showIsoProgress
-            ? `<span class="dev-task-pct">${clampedPct}%</span>`
-            : active && label === inlineActionsStep
-              ? inlineActionsHtml
-              : '';
-        const progressHtml = showIsoProgress
-          ? `<div class="dev-task-progress"><div class="dev-task-progress-fill" style="width:${clampedPct}%;"></div></div>`
-          : '';
+          : active && label === inlineActionsStep
+            ? inlineActionsHtml
+            : '';
         const inlineHtml = label === inlineDecisionTargetStep ? decisionBoxHtml : '';
         return `
           <div class="dev-task-row ${active ? 'is-active' : done ? 'is-done' : 'is-pending'}">
             <div class="dev-task-icon">${iconHtml}</div>
             <div style="font-size:14.5px;font-weight:600;color:var(--TextFillColorPrimaryBrush);min-width:0;">${escapeDeviceHtml(displayLabel)}</div>
             ${rowRightHtml}
-            ${progressHtml}
           </div>
           ${inlineHtml}
         `;
@@ -584,7 +576,7 @@ export function renderGpuWorkbench(host, ctx) {
     const footerHtml = isDone
       ? `
         <div class="dev-action-row" style="justify-content:flex-end;">
-          <button class="winui-btn accent" id="gpuDecisionDoneBtn" type="button">返回显卡列表</button>
+          <button class="winui-btn accent" id="gpuDecisionDoneBtn" type="button">返回</button>
         </div>
       `
       : !hasInlineBackBtn
@@ -641,16 +633,6 @@ export function renderGpuWorkbench(host, ctx) {
       state.gpuDeployDecision = 'CompletedSkipped';
       rerender();
     });
-    host.querySelector('#gpuDecisionMountIsoBtn')?.addEventListener('click', () => {
-      state.gpuDriverMismatch = true;
-      state.gpuDeployPartitionResolved = true;
-      state.gpuDeployPendingFinish = 'CompletedIso';
-      state.gpuDeployProgressPct = 0;
-      state.gpuDeployDecision = 'Running';
-      state.gpuDeploySimIdx = steps.indexOf(driverStepLabel);
-      rerender();
-      advanceDeploySimulation();
-    });
     host.querySelector('#gpuDecisionBackPartBtn')?.addEventListener('click', () => {
       state.gpuDeployDecision = 'SelectPartition';
       rerender();
@@ -660,7 +642,7 @@ export function renderGpuWorkbench(host, ctx) {
       state.gpuDriverMismatch = false;
       state.gpuDeployDecision = 'Completed';
       showNotice('已完成 Windows 驱动注入');
-      rerender();
+      backToList();
     });
 
     requestAnimationFrame(() => onLayoutNeeded?.());
@@ -945,10 +927,12 @@ export function renderGpuWorkbench(host, ctx) {
   host.querySelectorAll('[data-gpu-remove]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const idx = Number(btn.getAttribute('data-gpu-remove'));
+      const removed = assigns[idx];
+      const removedName = removed?.name || removed?.title || 'Unknown Device';
       assigns.splice(idx, 1);
       renderDashboardSummary();
       rerender();
-      showNotice('已移除显卡分配');
+      showNotice(`已移除显卡：${removedName}`);
     });
   });
 
@@ -2493,7 +2477,6 @@ function ensureStorageSettingsDraft(state, vm, item) {
     controllerType: item.controllerType || 'SCSI',
     controllerNumber: Number(item.controllerNumber ?? 0),
     controllerLocation: Number(item.controllerLocation ?? 0),
-    deleteConfirm: false,
     activeTab: 'disk'
   };
   state.storageSettingsDraft = draft;
@@ -2780,7 +2763,7 @@ function inspectStorageResizeState({ item, targetGbText, running, vm = null, ite
     }
     return {
       severity: 'info',
-      text: `${running ? '联机扩展' : '扩展容量'} ${curGb} GB → ${parsed} GB（扩展后需在系统内扩容分区）`,
+      text: `${running ? '联机扩展' : '扩展容量'} ${curGb} GB → ${parsed} GB（扩展后需在系统内扩容）`,
       canApply: true,
       sliderDisabled: false,
       curGb,
@@ -2842,7 +2825,7 @@ function inspectStorageResizeState({ item, targetGbText, running, vm = null, ite
   if (parsed < layout.floorGb) {
     return {
       severity: 'error',
-      text: `低于末尾分区（至少 ${layout.floorGb} GB），需先在系统内缩容`,
+      text: `低于分区末尾（${layout.floorGb} GB），需先在系统内缩容`,
       canApply: false,
       sliderDisabled: false,
       curGb,
@@ -2860,19 +2843,9 @@ function inspectStorageResizeState({ item, targetGbText, running, vm = null, ite
       parsed
     };
   }
-  if (layout.mode === 'empty') {
-    return {
-      severity: 'info',
-      text: `收缩容量 ${curGb} GB → ${parsed} GB（无活动分区）`,
-      canApply: true,
-      sliderDisabled: false,
-      curGb,
-      parsed
-    };
-  }
   return {
-    severity: 'info',
-    text: `收缩容量 ${curGb} GB → ${parsed} GB（${layout.floorGb} GB 后未分配）`,
+    severity: null,
+    text: '',
     canApply: true,
     sliderDisabled: false,
     curGb,
@@ -3118,25 +3091,6 @@ function renderStorageSettingsSubpageHtml({
                   <div class="setting-row-title">彻底删除 ISO 文件</div>
                   <button class="winui-btn danger" id="stSetDeleteToggleBtn" type="button" ${deleteFileDisabled ? 'disabled' : ''}>删除</button>
                 </div>
-                ${
-                  draft.deleteConfirm && !deleteFileDisabled
-                    ? `
-                      <div class="dev-inline-danger-box">
-                        <div class="dev-inline-danger-info">
-                          <span class="fi fi-fluent dev-inline-danger-icon">&#xF34D;</span>
-                          <div class="dev-inline-danger-text">
-                            <div class="dev-inline-danger-title">确认彻底删除 ISO 文件？</div>
-                            <div class="dev-inline-danger-path" title="${escapeDeviceHtml(meta.pathText)}">${escapeDeviceHtml(meta.pathText || '未知路径')}</div>
-                          </div>
-                        </div>
-                        <div class="dev-inline-danger-actions">
-                          <button class="winui-btn" id="stSetDeleteCancelBtn" type="button">取消</button>
-                          <button class="winui-btn danger" id="stSetDeleteConfirmBtn" type="button">删除</button>
-                        </div>
-                      </div>
-                    `
-                    : ''
-                }
               `
               : ''
           }
@@ -3236,25 +3190,6 @@ function renderStorageSettingsSubpageHtml({
       <div class="setting-row-title">彻底删除磁盘文件</div>
       <button class="winui-btn danger" id="stSetDeleteToggleBtn" type="button" ${deleteFileDisabled ? 'disabled' : ''}>删除</button>
     </div>
-    ${
-      draft.deleteConfirm && !deleteFileDisabled
-        ? `
-          <div class="dev-inline-danger-box">
-            <div class="dev-inline-danger-info">
-              <span class="fi fi-fluent dev-inline-danger-icon">&#xF34D;</span>
-              <div class="dev-inline-danger-text">
-                <div class="dev-inline-danger-title">${isDifferencing ? '确认彻底删除该差异磁盘文件？' : '确认彻底删除宿主机虚拟磁盘文件？'}</div>
-                <div class="dev-inline-danger-path" title="${escapeDeviceHtml(meta.pathText)}">${escapeDeviceHtml(meta.pathText || '未知路径')}</div>
-              </div>
-            </div>
-            <div class="dev-inline-danger-actions">
-              <button class="winui-btn" id="stSetDeleteCancelBtn" type="button">取消</button>
-              <button class="winui-btn danger" id="stSetDeleteConfirmBtn" type="button">删除</button>
-            </div>
-          </div>
-        `
-        : ''
-    }
   `;
 
   const activeChainNodes =
@@ -3741,7 +3676,6 @@ function bindStorageSettingsEvents({
     draft.exportOpen = !draft.exportOpen;
     if (draft.exportOpen) {
       draft.mergeConfirm = false;
-      draft.deleteConfirm = false;
     }
     rerender();
   });
@@ -3803,7 +3737,6 @@ function bindStorageSettingsEvents({
     draft.mergeConfirm = !draft.mergeConfirm;
     if (draft.mergeConfirm) {
       draft.exportOpen = false;
-      draft.deleteConfirm = false;
     }
     rerender();
   });
@@ -3912,7 +3845,7 @@ function bindStorageSettingsEvents({
     runProgressFlow({
       steps: isAlreadyAttached
         ? ['检测宿主机已挂载卷', '原地执行文件系统感知压缩']
-        : ['校验虚拟磁盘状态', '回收未分配空闲块'],
+        : ['检查磁盘', '回收容量'],
       progressStepIndex: 1,
       returnMode: 'settings',
       onComplete: () => {
@@ -4008,31 +3941,68 @@ function bindStorageSettingsEvents({
 
   host.querySelector('#stSetDeleteToggleBtn')?.addEventListener('click', () => {
     if (!initAccess.canDeleteFile) return;
-    draft.deleteConfirm = !draft.deleteConfirm;
-    if (draft.deleteConfirm) {
-      draft.exportOpen = false;
-      draft.mergeConfirm = false;
+    const modal = document.getElementById('stDeleteConfirmModal');
+    const titleEl = document.getElementById('stDeleteConfirmTitle');
+    const descEl = document.getElementById('stDeleteConfirmDesc');
+    const pathEl = document.getElementById('stDeleteConfirmPath');
+    const cancelBtn = document.getElementById('stDeleteConfirmCancelBtn');
+    const okBtn = document.getElementById('stDeleteConfirmOkBtn');
+    const isDvdItem = item.driveType === 'DvdDrive';
+    const pathText = initSt.meta?.pathText || item.path || '';
+    const executeDelete = () => {
+      const removed = items.splice(targetIdx, 1)[0];
+      syncVmDisksFromStorageState(state, vm);
+      renderDashboardSummary?.();
+      goBackToList();
+      const removedPath = removed?.path || removed?.displayName || '';
+      showNotice?.(
+        removed?.driveType === 'DvdDrive'
+          ? `已彻底删除 ISO 文件：${removedPath}`
+          : `已彻底删除磁盘文件：${removedPath}`
+      );
+    };
+    if (!modal || !cancelBtn || !okBtn) {
+      executeDelete();
+      return;
     }
-    rerender();
-  });
-
-  host.querySelector('#stSetDeleteCancelBtn')?.addEventListener('click', () => {
-    draft.deleteConfirm = false;
-    rerender();
-  });
-
-  host.querySelector('#stSetDeleteConfirmBtn')?.addEventListener('click', () => {
-    if (!initAccess.canDeleteFile) return;
-    const removed = items.splice(targetIdx, 1)[0];
-    syncVmDisksFromStorageState(state, vm);
-    renderDashboardSummary?.();
-    goBackToList();
-    const removedPath = removed?.path || removed?.displayName || '';
-    showNotice?.(
-      removed?.driveType === 'DvdDrive'
-        ? `已彻底删除 ISO 文件：${removedPath}`
-        : `已彻底删除磁盘文件：${removedPath}`
-    );
+    if (titleEl) {
+      titleEl.textContent = isDvdItem
+        ? '确认彻底删除 ISO 文件'
+        : initSt.isDifferencing
+          ? '确认彻底删除差异磁盘文件'
+          : '确认彻底删除磁盘文件';
+    }
+    if (descEl) {
+      descEl.textContent = isDvdItem
+        ? '确定要从宿主机永久删除该 ISO 文件吗？此操作不可撤销。'
+        : initSt.isDifferencing
+          ? '确定要从宿主机永久删除该差异磁盘文件吗？此操作不可撤销。'
+          : '确定要从宿主机永久删除该虚拟磁盘文件吗？此操作不可撤销。';
+    }
+    if (pathEl) {
+      pathEl.textContent = pathText || '未知路径';
+      pathEl.hidden = !pathText;
+    }
+    const closeModal = () => {
+      modal.hidden = true;
+      cancelBtn.onclick = null;
+      okBtn.onclick = null;
+      modal.onclick = null;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+    const onKeyDown = (ev) => {
+      if (ev.key === 'Escape') closeModal();
+    };
+    cancelBtn.onclick = closeModal;
+    modal.onclick = (ev) => {
+      if (ev.target === modal) closeModal();
+    };
+    okBtn.onclick = () => {
+      closeModal();
+      executeDelete();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    modal.hidden = false;
   });
 }
 
@@ -4111,8 +4081,16 @@ export function renderStorageWorkbench(host, ctx) {
       }
 
       if (p.activeIdx >= p.steps.length) {
+        const hasProblem = Boolean(p.error || p.failed);
         p.done = true;
+        clearTimer();
         onComplete?.();
+        if (!hasProblem) {
+          const nextMode = p.returnMode === 'settings' && state.storageSettingsTargetId ? 'settings' : 'list';
+          state.storageMode = nextMode;
+          state.storageProgress = null;
+          renderDashboardSummary?.();
+        }
         rerender();
         return;
       }
@@ -4155,11 +4133,10 @@ export function renderStorageWorkbench(host, ctx) {
       })
       .join('');
 
-    const doneLabel = p.returnMode === 'settings' ? '返回编辑' : '返回存储列表';
     const footerHtml = p.done
       ? `
         <div class="dev-action-row" style="justify-content:flex-end;">
-          <button class="winui-btn accent" id="stProgressDoneBtn" type="button">${doneLabel}</button>
+          <button class="winui-btn accent" id="stProgressDoneBtn" type="button">返回</button>
         </div>
       `
       : '';
@@ -7850,6 +7827,7 @@ export function renderVtpmWorkbench(host, ctx) {
         if (!spec || !spec.enabled) return;
         adv[key] = !adv[key];
         rerender();
+        showNotice?.('已应用');
       });
     });
 
@@ -8192,6 +8170,15 @@ export function renderPcieWorkbench(host, ctx) {
       curP.partialFailed = failures.length > 0 && succeeded.length > 0;
       curP.activeIdx = curP.failed ? 2 : curP.steps.length;
       curP.done = true;
+      if (failures.length === 0) {
+        clearPcieTimer();
+        state.pcieProgress = null;
+        state.pcieSelectedHostIds = [];
+        state.pcieMode = 'list';
+        rerender();
+        showNotice?.(`已为 ${vm.name} 添加 ${succeeded.length} 个 PCIe 设备`);
+        return;
+      }
       rerender();
 
       if (failures.length > 0) {
@@ -8375,7 +8362,7 @@ export function renderPcieWorkbench(host, ctx) {
           p.done
             ? `
               <div class="dev-action-row" style="justify-content:flex-end;">
-                <button class="winui-btn accent" id="pcieFlowDoneBtn" type="button">返回 PCIe 列表</button>
+                <button class="winui-btn accent" id="pcieFlowDoneBtn" type="button">返回</button>
               </div>
             `
             : !hasInlineFooter

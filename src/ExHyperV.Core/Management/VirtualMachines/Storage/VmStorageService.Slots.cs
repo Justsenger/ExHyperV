@@ -24,7 +24,7 @@ public static partial class VmStorageService
 
     /// <summary>在关机状态迁移同一驱动器，按需添加 SCSI 控制器，保留所选介质并核实新槽位。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <param name="drive">存储查询返回的挂接快照，使用原始选择令牌核验身份。</param>
+    /// <param name="drive">存储查询返回的挂接记录，使用原始选择令牌核验身份。</param>
     /// <param name="targetControllerType">目标控制器类型。</param>
     /// <param name="targetControllerNumber">目标控制器编号。</param>
     /// <param name="targetControllerLocation">目标控制器上的槽位。</param>

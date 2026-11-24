@@ -8,7 +8,7 @@ internal sealed record VmPurgeDiskFile(string Path, string Identity);
 internal sealed record VmPurgeDiskPlan(IReadOnlyList<VmPurgeDiskFile> Deletable,
     IReadOnlyList<string> Shared, IReadOnlyList<string> Uncertain, IReadOnlyList<string> Issues);
 
-/// <summary>只把已登记的其他虚拟机及检查点的磁盘父链用于保护，不扩大删除候选。</summary>
+/// <summary>只把已登记的其他虚拟机及快照的磁盘父链用于保护，不扩大删除候选。</summary>
 internal static class VmPurgeDiskProtection
 {
     internal static async Task<VmPurgeDiskPlan> EvaluateAsync(IEnumerable<string> candidates,

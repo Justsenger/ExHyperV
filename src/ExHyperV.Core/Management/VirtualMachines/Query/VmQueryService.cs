@@ -16,9 +16,9 @@ namespace ExHyperV.Services
     /// <param name="Code">原生错误码；未提供时通常为 -1。</param>
     public sealed record VmQueryIssue(string Component, string Error, ApiErrorKind ErrorKind, ApiErrorSource ErrorSource, int Code);
 
-    /// <summary>一次虚拟机清单快照，包含虚拟机及未完整取得的可选信息。</summary>
+    /// <summary>一次虚拟机清单视图，包含虚拟机及未完整取得的可选信息。</summary>
     /// <param name="VirtualMachines">按活动状态和名称排序的虚拟机列表。</param>
-    /// <param name="Issues">可选读取失败或不支持的明细；必需读取失败不会产生成功快照。</param>
+    /// <param name="Issues">可选读取失败或不支持的明细，必需读取失败不会产生成功结果。</param>
     public sealed record VmInventorySnapshot(IReadOnlyList<VmInstance> VirtualMachines, IReadOnlyList<VmQueryIssue> Issues)
     {
         /// <summary>本次列表所需的必需和可选读取均未报告问题。</summary>
@@ -26,7 +26,7 @@ namespace ExHyperV.Services
     }
 
     /// <summary>读取虚拟机列表并持有按需创建的性能计数器；调用者负责释放实例。</summary>
-    /// <remarks>列表读取是一次快照，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp；仅有效样本用于更新数值。更新方法直接修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样；部分普通 WMI 查询不依赖计数器。</remarks>
+    /// <remarks>列表读取是一次性读取，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp，仅有效样本用于更新数值。更新方法直接修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样，部分普通 WMI 查询不依赖计数器。</remarks>
     public partial class VmQueryService : IDisposable, IAsyncDisposable
     {
         /// <summary>虚拟机当前内存占用与压力、需求及来宾视角指标。</summary>
@@ -209,7 +209,7 @@ namespace ExHyperV.Services
             }
         }
 
-        /// <summary>汇集虚拟机及设备配置生成完整列表快照；只需少量字段时使用 QueryAsync。</summary>
+        /// <summary>汇集虚拟机及设备配置生成完整列表视图，只需少量字段时使用 QueryAsync。</summary>
         /// <returns>成功时返回虚拟机列表及可选读取问题；必需摘要、配置、元数据、内存、存储或网卡基础读取失败时返回失败，不伪装为空列表。</returns>
         /// <remarks>可选 GPU 能力、来宾 IP 和友好名称读取失败时保留可用列表及既有显示回退，并在 Issues 中报告原生原因；使用 IsComplete 区分完整与部分结果。</remarks>
         public async Task<ApiResponse<VmInventorySnapshot>> GetVmListAsync()
@@ -386,7 +386,7 @@ namespace ExHyperV.Services
                 .Where(x => !string.IsNullOrEmpty(x.VmGuid))
                 .ToDictionary(x => x.VmGuid, x => x, StringComparer.OrdinalIgnoreCase);
 
-            // 用已实现配置的完整标识匹配 KVP 组件，不把检查点中的旧选择混入当前列表。
+            // 用已实现配置的完整标识匹配 KVP 组件，不把快照中的旧选择混入当前列表。
             var osTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var config in configMap.Values)
             {

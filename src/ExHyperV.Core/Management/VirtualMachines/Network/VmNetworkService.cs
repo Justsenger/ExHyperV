@@ -136,7 +136,7 @@ public static partial class VmNetworkService
 
     /// <summary>读取网卡、交换机连接及可用的 VLAN、带宽、安全和卸载设置。</summary>
     /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-    /// <returns>成功时包含网卡快照列表，可为空；虚拟机不存在或任一必要查询失败时返回失败，不用空集合代替错误。</returns>
+    /// <returns>成功时包含网卡列表，可为空，虚拟机不存在或任一必要查询失败时返回失败，不用空集合代替错误。</returns>
     /// <remarks>当前连接没有某类可选功能设置时保留模型默认值；读取这些设置发生错误时仍返回失败。</remarks>
     public static Task<ApiResponse<List<VmNetworkAdapter>>> GetNetworkAdaptersAsync(Guid vmId) => Task.Run(async () =>
     {

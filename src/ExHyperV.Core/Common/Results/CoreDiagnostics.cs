@@ -44,7 +44,7 @@ public static class CoreDiagnostics
     }
 }
 
-/// <summary>一条本地诊断事件的只读快照。内容仅包含操作元数据和经过选择的诊断字段。</summary>
+/// <summary>一条本地诊断事件的只读记录。内容仅包含操作元数据和经过选择的诊断字段。</summary>
 public sealed class CoreDiagnosticEvent
 {
     internal CoreDiagnosticEvent() { }

@@ -20,7 +20,7 @@ namespace ExHyperV.Models
         public string DeviceToken { get => _deviceToken; init => _deviceToken = value; }
 
         private string? _mediaFileToken;
-        /// <summary>查询时的介质文件身份。与挂接一起回传可检测同路径替换，旧版快照可为空。</summary>
+        /// <summary>查询时的介质文件身份。与挂接一起回传可检测同路径替换，旧版记录可为空。</summary>
         public string? MediaFileToken { get => _mediaFileToken; init => _mediaFileToken = value; }
         internal void SetMediaFileToken(string token) => _mediaFileToken = token;
 
