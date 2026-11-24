@@ -1,4 +1,6 @@
 
+using ExHyperV.App.Diagnostics;
+using ExHyperV.App.Localization;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml;
 using Windows.UI.ViewManagement;
@@ -15,17 +17,41 @@ internal sealed class AppAppearance
     private bool dark;
     private bool highContrast;
 
-    public AppearanceSettings Settings { get; private set; } = AppearanceSettings.Load();
+    public AppearanceSettings Settings { get; private set; }
     public event EventHandler? Changed;
 
-    public AppAppearance() => UpdatePalette(ElementTheme.Dark);
+    public AppAppearance(AppearanceSettings settings)
+    {
+        Settings = settings;
+        UpdatePalette(ElementTheme.Dark);
+    }
 
     public string? Set(AppearanceSettings settings)
     {
+        var previous = Settings;
+        bool registrationChanged = previous.AutoStart != settings.AutoStart;
+        try
+        {
+            if (registrationChanged) StartupRegistration.SetEnabled(settings.AutoStart != StartupMode.Off);
+            if (settings.Save() is { } error)
+            {
+                if (registrationChanged) StartupRegistration.SetEnabled(previous.AutoStart != StartupMode.Off);
+                return error;
+            }
+        }
+        catch (Exception exception)
+        {
+            AppDiagnostics.Failure("Settings", "StartupRegistrationFailed", exception);
+            return L10n.Format("Settings_StartupFailed", exception.Message);
+        }
         Settings = settings;
-        UpdatePalette(dark ? ElementTheme.Dark : ElementTheme.Light);
+        if (settings.LoggingEnabled != previous.LoggingEnabled || settings.VerboseDiagnostics != previous.VerboseDiagnostics)
+            AppDiagnostics.Configure(settings);
+        if (settings.Language != previous.Language) L10n.ApplyLanguage(settings.Language);
+        if (settings.Theme != previous.Theme || settings.AccentColor != previous.AccentColor || settings.AccentEnabled != previous.AccentEnabled)
+            UpdatePalette(dark ? ElementTheme.Dark : ElementTheme.Light);
         Changed?.Invoke(this, EventArgs.Empty);
-        return Settings.Save();
+        return null;
     }
 
     public void UpdatePalette(ElementTheme theme, bool? useHighContrast = null)

@@ -4,47 +4,56 @@ export function createConsoleController({
   getAdvSettings,
   getTheme,
   getAccentHex,
+  getOpenVmIds,
   isHostedInWinOnWeb = false,
   onVmPowerChanged,
-  onTabDragMove,
-  onTabDragDrop,
+  onActiveVmChanged,
+  onFocusExistingWindow,
+  onOpenNewWindow,
   onDragSpacerRect,
   onRequestClose
 }) {
   const win = document.getElementById('vmConsoleWindow');
-  if (!win) return { open: () => {}, openTab: () => {}, closeTab: () => {}, syncTheme: () => {}, syncVmState: () => {} };
+  if (!win) return { open: () => {}, openTab: () => {}, syncTheme: () => {}, syncVmState: () => {} };
 
   const titleBar = document.getElementById('consoleTitleBar');
-  const tabsStrip = document.getElementById('consoleTabsStrip');
   const dragSpacer = document.getElementById('consoleDragSpacer');
-  const newTabBtn = document.getElementById('consoleNewTabBtn');
-  const newTabFlyout = document.getElementById('consoleNewTabFlyout');
-  const newTabList = document.getElementById('consoleNewTabList');
-  const dragGhost = document.getElementById('consoleDragGhost');
-  const dragGhostIcon = document.getElementById('consoleDragGhostIcon');
-  const dragGhostName = document.getElementById('consoleDragGhostName');
+
+  const switcherBtn = document.getElementById('consoleSwitcherBtn');
+  const switcherOsIcon = document.getElementById('consoleSwitcherOsIcon');
+  const switcherName = document.getElementById('consoleSwitcherName');
+  const switcherFlyout = document.getElementById('consoleSwitcherFlyout');
+  const switcherList = document.getElementById('consoleSwitcherList');
 
   const minBtn = document.getElementById('consoleMinimizeBtn');
   const maxBtn = document.getElementById('consoleMaximizeBtn');
   const maxIcon = document.getElementById('consoleMaximizeIcon');
   const closeBtn = document.getElementById('consoleCloseBtn');
 
-  const powerBtn = document.getElementById('consolePowerBtn');
+  const powerStartBtn = document.getElementById('consolePowerStartBtn');
+  const powerSplit = document.getElementById('consolePowerSplit');
+  const powerMainBtn = document.getElementById('consolePowerMainBtn');
+  const powerDropBtn = document.getElementById('consolePowerDropBtn');
   const powerFlyout = document.getElementById('consolePowerFlyout');
-  const cadBtn = document.getElementById('consoleCadBtn');
+
+  const resBtn = document.getElementById('consoleResBtn');
+  const resLabel = document.getElementById('consoleResLabel');
+  const resFlyout = document.getElementById('consoleResFlyout');
+
+  const scaleBtn = document.getElementById('consoleScaleBtn');
+  const scaleLabel = document.getElementById('consoleScaleLabel');
+  const scaleFlyout = document.getElementById('consoleScaleFlyout');
+
   const modeBtn = document.getElementById('consoleModeBtn');
+  const modeLabel = document.getElementById('consoleModeLabel');
+  const modeFlyout = document.getElementById('consoleModeFlyout');
 
-  const moreBtn = document.getElementById('consoleMoreBtn');
-  const moreFlyout = document.getElementById('consoleMoreFlyout');
-  const scaleToggleItem = document.getElementById('consoleScaleToggleItem');
-  const scaleCheckIcon = document.getElementById('consoleScaleCheckIcon');
-  const powerPrimaryItem = document.getElementById('consolePowerPrimaryItem');
-  const powerPrimaryIcon = document.getElementById('consolePowerPrimaryIcon');
-  const powerPrimaryText = document.getElementById('consolePowerPrimaryText');
-  const powerRunningGroup = document.getElementById('consolePowerRunningGroup');
-
+  const cadBtn = document.getElementById('consoleCadBtn');
   const shotBtn = document.getElementById('consoleShotBtn');
+  const audioBtn = document.getElementById('consoleAudioBtn');
+  const audioIcon = document.getElementById('consoleAudioIcon');
   const fullscreenBtn = document.getElementById('consoleFullscreenBtn');
+  const fullscreenIcon = document.getElementById('consoleFullscreenIcon');
 
   const fsBar = document.getElementById('consoleFsBar');
   const fsPinBtn = document.getElementById('consoleFsPinBtn');
@@ -70,19 +79,19 @@ export function createConsoleController({
   const emptyDesc = document.getElementById('consoleEmptyDesc');
   const primaryActionBtn = document.getElementById('consolePrimaryActionBtn');
 
+  const sessions = new Map();
   const consoleState = {
     isOpen: false,
     isFullscreen: false,
     fsPinned: true,
-    activeTabId: null,
-    tabs: []
+    activeVmId: null
   };
 
   let toastTimer = null;
   let fsHideTimer = null;
 
-  function activeTab() {
-    return consoleState.tabs.find((t) => t.id === consoleState.activeTabId) || consoleState.tabs[0] || null;
+  function activeSession() {
+    return consoleState.activeVmId ? sessions.get(consoleState.activeVmId) || null : null;
   }
 
   function showToast(text) {
@@ -109,8 +118,10 @@ export function createConsoleController({
 
   function closeAllFlyouts() {
     if (powerFlyout) powerFlyout.hidden = true;
-    if (moreFlyout) moreFlyout.hidden = true;
-    if (newTabFlyout) newTabFlyout.hidden = true;
+    if (switcherFlyout) switcherFlyout.hidden = true;
+    if (resFlyout) resFlyout.hidden = true;
+    if (scaleFlyout) scaleFlyout.hidden = true;
+    if (modeFlyout) modeFlyout.hidden = true;
   }
 
   function syncTheme() {
@@ -118,200 +129,6 @@ export function createConsoleController({
     const accent = getAccentHex ? getAccentHex() : '#4CC2FF';
     win.setAttribute('data-theme', theme === 'light' ? 'light' : 'dark');
     win.style.setProperty('--VmHeaderCheckedBrush', accent);
-  }
-
-  function startTabConnecting(tab, targetMode) {
-    if (tab.connectTimer) clearTimeout(tab.connectTimer);
-    tab.mode = targetMode;
-    tab.connState = 'connecting';
-    tab.inputCaptured = false;
-    render();
-    tab.connectTimer = setTimeout(() => {
-      const isGen1 = tab.vm.generation === 1 || tab.vm.gen === 1;
-      const consoleOff = !isGen1 && (Boolean(tab.adv.shielding) || tab.adv.consoleSupport === false);
-      if (!tab.vm.running) {
-        tab.connState = 'stopped';
-      } else if (consoleOff) {
-        tab.connState = 'disabled';
-      } else {
-        tab.connState = 'connected';
-      }
-      render();
-    }, 460);
-  }
-
-  function renderTabsStrip() {
-    if (!tabsStrip) return;
-    tabsStrip.innerHTML = consoleState.tabs
-      .map((tab) => {
-        const isActive = tab.id === consoleState.activeTabId;
-        const osPath = tab.vm.osIcon ? `/ui-design/os/${escapeHtml(tab.vm.osIcon)}` : '/ui-design/os/Windows.svg';
-        const dotCls =
-          tab.connState === 'connected'
-            ? 'is-connected'
-            : tab.connState === 'connecting'
-              ? 'is-connecting'
-              : '';
-        return `
-          <div class="console-tab ${isActive ? 'is-active' : ''}" data-console-tab-id="${escapeHtml(tab.id)}" role="tab" aria-selected="${isActive}">
-            <img class="console-os-icon" src="${osPath}" alt="" draggable="false" />
-            <span class="console-tab-dot ${dotCls}"></span>
-            <span class="console-tab-name">${escapeHtml(tab.vm.name)}</span>
-            <button type="button" class="console-tab-close" data-console-tab-close="${escapeHtml(tab.id)}" title="关闭此页签">
-              <span class="fi">&#xE8BB;</span>
-            </button>
-          </div>
-        `;
-      })
-      .join('');
-
-    tabsStrip.querySelectorAll('[data-console-tab-id]').forEach((el) => {
-      el.addEventListener('pointerdown', (e) => {
-        if (e.button !== 0 || e.target.closest('[data-console-tab-close]')) return;
-        const tid = el.getAttribute('data-console-tab-id');
-        if (!tid) return;
-
-        // Switch tab immediately without rebuilding tabsStrip DOM (preserves pointer capture)
-        if (tid !== consoleState.activeTabId) {
-          const prev = activeTab();
-          if (prev) prev.inputCaptured = false;
-          consoleState.activeTabId = tid;
-          tabsStrip.querySelectorAll('[data-console-tab-id]').forEach((node) => {
-            const active = node.getAttribute('data-console-tab-id') === tid;
-            node.classList.toggle('is-active', active);
-            node.setAttribute('aria-selected', String(active));
-          });
-          closeAllFlyouts();
-          renderActiveTabContent();
-        }
-
-        const startX = e.clientX;
-        const startY = e.clientY;
-        let isDraggingOut = false;
-        let hasMoved = false;
-        let lastMoveSent = 0;
-        const tabObj = consoleState.tabs.find((t) => t.id === tid);
-        if (!tabObj) return;
-
-        try {
-          el.setPointerCapture(e.pointerId);
-        } catch {}
-
-        const onMove = (ev) => {
-          const dx = ev.clientX - startX;
-          const dy = ev.clientY - startY;
-          if (!hasMoved && Math.hypot(dx, dy) < 6) return;
-          hasMoved = true;
-
-          const outOfWindow =
-            ev.clientX < 0 ||
-            ev.clientY < 0 ||
-            ev.clientX > window.innerWidth ||
-            ev.clientY > window.innerHeight;
-          const tearThreshold = Math.abs(dy) > 28 || outOfWindow;
-
-          if (tearThreshold && isHostedInWinOnWeb) {
-            isDraggingOut = true;
-            el.classList.add('is-dragging-out');
-            if (dragGhost && dragGhostIcon && dragGhostName) {
-              dragGhostIcon.src = tabObj.vm.osIcon
-                ? `/ui-design/os/${tabObj.vm.osIcon}`
-                : '/ui-design/os/Windows.svg';
-              dragGhostName.textContent = tabObj.vm.name || '虚拟机';
-              dragGhost.style.left = `${Math.max(4, Math.min(window.innerWidth - 140, ev.clientX + 10))}px`;
-              dragGhost.style.top = `${Math.max(4, Math.min(window.innerHeight - 36, ev.clientY - 14))}px`;
-              dragGhost.hidden = false;
-            }
-            if (typeof onTabDragMove === 'function') {
-              const now = performance.now();
-              if (now - lastMoveSent > 40) {
-                lastMoveSent = now;
-                onTabDragMove({ active: true, clientX: ev.clientX, clientY: ev.clientY });
-              }
-            }
-          } else {
-            if (isDraggingOut && typeof onTabDragMove === 'function') {
-              onTabDragMove({ active: false, clientX: ev.clientX, clientY: ev.clientY });
-            }
-            isDraggingOut = false;
-            el.classList.remove('is-dragging-out');
-            if (dragGhost) dragGhost.hidden = true;
-
-            // In-strip horizontal reorder using insertBefore (preserves DOM node & pointer capture)
-            if (consoleState.tabs.length > 1) {
-              const curIdx = consoleState.tabs.findIndex((t) => t.id === tid);
-              const tabEls = Array.from(tabsStrip.querySelectorAll('[data-console-tab-id]'));
-              for (let i = 0; i < tabEls.length; i++) {
-                if (i === curIdx) continue;
-                const rect = tabEls[i].getBoundingClientRect();
-                const midX = rect.left + rect.width / 2;
-                if (i < curIdx && ev.clientX < midX) {
-                  const [moved] = consoleState.tabs.splice(curIdx, 1);
-                  consoleState.tabs.splice(i, 0, moved);
-                  tabsStrip.insertBefore(el, tabEls[i]);
-                  break;
-                }
-                if (i > curIdx && ev.clientX > midX) {
-                  const [moved] = consoleState.tabs.splice(curIdx, 1);
-                  consoleState.tabs.splice(i, 0, moved);
-                  tabsStrip.insertBefore(el, tabEls[i].nextSibling);
-                  break;
-                }
-              }
-            }
-          }
-        };
-
-        const cleanup = () => {
-          el.removeEventListener('pointermove', onMove);
-          el.removeEventListener('pointerup', onUp);
-          el.removeEventListener('pointercancel', onCancel);
-          el.classList.remove('is-dragging-out');
-          if (dragGhost) dragGhost.hidden = true;
-          try {
-            el.releasePointerCapture(e.pointerId);
-          } catch {}
-        };
-
-        const onUp = (ev) => {
-          cleanup();
-          if (typeof onTabDragMove === 'function') {
-            onTabDragMove({ active: false, clientX: ev.clientX, clientY: ev.clientY });
-          }
-          if (!isDraggingOut || typeof onTabDragDrop !== 'function') return;
-          const currentTab = consoleState.tabs.find((t) => t.id === tid);
-          if (!currentTab) return;
-          onTabDragDrop({
-            tabId: tid,
-            tabCount: consoleState.tabs.length,
-            clientX: ev.clientX,
-            clientY: ev.clientY,
-            payload: buildTabPayload(currentTab)
-          });
-        };
-
-        const onCancel = () => {
-          cleanup();
-          if (typeof onTabDragMove === 'function') {
-            onTabDragMove({ active: false, clientX: 0, clientY: 0 });
-          }
-        };
-
-        el.addEventListener('pointermove', onMove);
-        el.addEventListener('pointerup', onUp);
-        el.addEventListener('pointercancel', onCancel);
-      });
-    });
-
-    tabsStrip.querySelectorAll('[data-console-tab-close]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const tid = btn.getAttribute('data-console-tab-close');
-        if (tid) closeTab(tid);
-      });
-    });
-
-    notifyDragSpacerRect();
   }
 
   function notifyDragSpacerRect() {
@@ -326,81 +143,119 @@ export function createConsoleController({
     const ro = new ResizeObserver(() => notifyDragSpacerRect());
     ro.observe(dragSpacer);
   }
-  tabsStrip?.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-      tabsStrip.scrollLeft += e.deltaY;
-      e.preventDefault();
-    }
-  }, { passive: false });
 
-  function render() {
-    renderTabsStrip();
-    renderActiveTabContent();
+  function startSessionConnecting(session, targetMode) {
+    if (session.connectTimer) clearTimeout(session.connectTimer);
+    session.mode = targetMode;
+    session.connState = 'connecting';
+    session.inputCaptured = false;
+    render();
+    session.connectTimer = setTimeout(() => {
+      const isGen1 = session.vm.generation === 1 || session.vm.gen === 1;
+      const consoleOff = !isGen1 && (Boolean(session.adv.shielding) || session.adv.consoleSupport === false);
+      if (!session.vm.running) {
+        session.connState = 'stopped';
+      } else if (consoleOff) {
+        session.connState = 'disabled';
+      } else {
+        session.connState = 'connected';
+      }
+      render();
+    }, 440);
   }
 
-  function renderActiveTabContent() {
-    const tab = activeTab();
-    if (!tab) return;
+  function render() {
+    const session = activeSession();
+    if (!session) return;
 
-    const vm = tab.vm;
-    const adv = tab.adv;
+    const vm = session.vm;
+    const adv = session.adv;
     const isGen1 = vm.generation === 1 || vm.gen === 1;
     const consoleOff = !isGen1 && (Boolean(adv.shielding) || adv.consoleSupport === false);
     const isRunning = Boolean(vm.running);
 
-    if (!isRunning && tab.connState !== 'connecting') {
-      tab.connState = 'stopped';
-      tab.inputCaptured = false;
-    } else if (consoleOff && tab.connState !== 'connecting') {
-      tab.connState = 'disabled';
-      tab.inputCaptured = false;
+    if (!isRunning && session.connState !== 'connecting') {
+      session.connState = 'stopped';
+      session.inputCaptured = false;
+    } else if (consoleOff && session.connState !== 'connecting') {
+      session.connState = 'disabled';
+      session.inputCaptured = false;
     }
 
     const vmName = vm.name || '虚拟机';
     const osPath = vm.osIcon ? `/ui-design/os/${vm.osIcon}` : '/ui-design/os/Windows.svg';
 
+    if (switcherOsIcon) switcherOsIcon.src = osPath;
+    if (switcherName) switcherName.textContent = vmName;
+
     if (emptyOs) emptyOs.src = osPath;
     if (fsVmName) fsVmName.textContent = vmName;
     if (guestHostname) guestHostname.textContent = vmName.toUpperCase().replace(/[^A-Z0-9-]/g, '-');
 
-    const isEnhanced = tab.mode === 'enhanced';
-    const connected = tab.connState === 'connected';
+    const isEnhanced = session.mode === 'enhanced';
+    const connected = session.connState === 'connected';
+    const canChangeRes = isRunning && isEnhanced && !isGen1;
+    const zoomVal = session.scaleMode === 'actual' ? '100%' : (session.scaleMode || 'fit');
+    const isMuted = Boolean(session.muted);
 
-    if (powerBtn) {
-      powerBtn.classList.toggle('is-running', isRunning);
-      powerBtn.classList.toggle('is-stopped', !isRunning);
-      powerBtn.title = isRunning ? '电源操作（运行中）' : '启动虚拟机';
-    }
-    if (modeBtn) {
-      modeBtn.classList.toggle('is-enhanced-on', isEnhanced);
-      modeBtn.title = isEnhanced ? '当前为增强会话（点击切换为基本会话）' : '当前为基本会话（点击切换为增强会话）';
-    }
-    if (scaleCheckIcon) {
-      scaleCheckIcon.classList.toggle('is-unchecked', tab.scaleMode !== 'fit');
-    }
-    if (fsModeLabel) {
-      fsModeLabel.textContent = isEnhanced ? '增强会话' : '基本会话';
-    }
+    if (powerStartBtn) powerStartBtn.hidden = isRunning;
+    if (powerSplit) powerSplit.hidden = !isRunning;
 
-    if (powerPrimaryIcon && powerPrimaryText && powerRunningGroup) {
-      powerPrimaryIcon.innerHTML = isRunning ? '&#xE7E8;' : '&#xE768;';
-      powerPrimaryText.textContent = isRunning ? '关机' : '启动';
-      powerRunningGroup.hidden = !isRunning;
-    }
+    if (resBtn) resBtn.disabled = !canChangeRes;
+    if (resLabel) resLabel.textContent = (isRunning && isEnhanced) ? formatResText(session.resolution) : '-';
+    resFlyout?.querySelectorAll('[data-console-res]').forEach((item) => {
+      item.classList.toggle('is-selected', item.getAttribute('data-console-res') === session.resolution);
+    });
 
-    if (cadBtn) cadBtn.disabled = !connected;
-    if (fsCadBtn) fsCadBtn.disabled = !connected;
+    if (scaleLabel) scaleLabel.textContent = zoomVal === 'fit' ? '适应窗口' : zoomVal;
+    scaleFlyout?.querySelectorAll('[data-console-zoom]').forEach((item) => {
+      item.classList.toggle('is-selected', item.getAttribute('data-console-zoom') === zoomVal);
+    });
+
+    if (modeLabel) modeLabel.textContent = isEnhanced ? '增强会话' : '基本会话';
+    modeFlyout?.querySelectorAll('[data-console-session]').forEach((item) => {
+      const m = item.getAttribute('data-console-session');
+      item.classList.toggle('is-selected', m === session.mode);
+      if (m === 'enhanced') item.disabled = consoleOff;
+    });
+    if (fsModeBtn) fsModeBtn.classList.toggle('is-active', isEnhanced);
+    if (fsModeLabel) fsModeLabel.textContent = isEnhanced ? '增强会话' : '基本会话';
+
+    if (cadBtn) {
+      cadBtn.hidden = isEnhanced;
+      cadBtn.disabled = !connected;
+    }
+    if (fsCadBtn) {
+      fsCadBtn.hidden = isEnhanced;
+      fsCadBtn.disabled = !connected;
+    }
     if (shotBtn) shotBtn.disabled = !connected;
 
-    const displayRes = isEnhanced ? formatResText(tab.resolution) : '1024 × 768';
+    if (audioBtn) {
+      audioBtn.classList.toggle('is-checked', isMuted);
+      audioBtn.title = isMuted ? '已静音（点击开启音频）' : '音频开启（点击静音）';
+    }
+    if (audioIcon) audioIcon.innerHTML = isMuted ? '&#xEB4B;' : '&#xEB43;';
+
+    if (fullscreenIcon) fullscreenIcon.innerHTML = consoleState.isFullscreen ? '&#xE688;' : '&#xE685;';
+    if (fullscreenBtn) fullscreenBtn.title = consoleState.isFullscreen ? '退出全屏 (Esc)' : '全屏显示';
+
+    const displayRes = isEnhanced ? formatResText(session.resolution) : '1024 × 768';
     if (guestResLabel) guestResLabel.textContent = displayRes;
     if (guestSessionTag) guestSessionTag.textContent = isEnhanced ? '增强会话' : '基本会话';
 
-    if (viewport) {
-      viewport.classList.toggle('is-actual-scale', tab.scaleMode === 'actual');
-    }
+    if (viewport) viewport.classList.toggle('is-actual-scale', zoomVal !== 'fit');
     if (screenSurface) {
-      screenSurface.classList.toggle('is-captured', connected && tab.inputCaptured);
+      screenSurface.classList.toggle('is-captured', connected && session.inputCaptured);
+      if (zoomVal !== 'fit') {
+        const pct = parseFloat(zoomVal) || 100;
+        const [rw, rh] = (isEnhanced ? String(session.resolution || '1280x720') : '1024x768').split('x').map(Number);
+        screenSurface.style.width = `${Math.round((rw || 1280) * (pct / 100))}px`;
+        screenSurface.style.height = `${Math.round((rh || 720) * (pct / 100))}px`;
+      } else {
+        screenSurface.style.width = '';
+        screenSurface.style.height = '';
+      }
     }
 
     if (emptyState && emptySpinner && emptyOs && emptyTitle && emptyDesc && primaryActionBtn) {
@@ -408,19 +263,19 @@ export function createConsoleController({
         emptyState.hidden = true;
       } else {
         emptyState.hidden = false;
-        if (tab.connState === 'connecting') {
+        if (session.connState === 'connecting') {
           emptySpinner.hidden = false;
           emptyOs.hidden = true;
           emptyTitle.textContent = isEnhanced ? '正在建立增强会话' : '正在建立基本会话';
           emptyDesc.textContent = `正在连接 ${vmName} 的控制台通道，请稍候`;
           primaryActionBtn.hidden = true;
-        } else if (tab.connState === 'disabled') {
+        } else if (session.connState === 'disabled') {
           emptySpinner.hidden = true;
           emptyOs.hidden = false;
           emptyTitle.textContent = '控制台已被禁用';
           emptyDesc.textContent = '已在虚拟机设置中关闭控制台支持，请在高级设置中重新启用';
           primaryActionBtn.hidden = true;
-        } else if (tab.connState === 'disconnected') {
+        } else if (session.connState === 'disconnected') {
           emptySpinner.hidden = true;
           emptyOs.hidden = false;
           emptyTitle.textContent = '控制台连接已断开';
@@ -439,12 +294,26 @@ export function createConsoleController({
     }
 
     win.classList.toggle('is-fullscreen', consoleState.isFullscreen);
-    if (fsBar) {
-      fsBar.hidden = !consoleState.isFullscreen;
-    }
-    if (fsPinBtn) {
-      fsPinBtn.classList.toggle('is-pinned', consoleState.fsPinned);
-    }
+    if (fsBar) fsBar.hidden = !consoleState.isFullscreen;
+    if (fsPinBtn) fsPinBtn.classList.toggle('is-pinned', consoleState.fsPinned);
+
+    notifyDragSpacerRect();
+  }
+
+  function buildSessionPayload(session) {
+    return {
+      id: session.vm.id,
+      name: session.vm.name,
+      running: Boolean(session.vm.running),
+      osIcon: session.vm.osIcon || 'Windows.svg',
+      generation: session.vm.generation ?? session.vm.gen ?? 2,
+      consoleSupport: session.adv.consoleSupport !== false,
+      shielding: Boolean(session.adv.shielding),
+      mode: session.mode,
+      scaleMode: session.scaleMode,
+      resolution: session.resolution,
+      accentHex: getAccentHex ? getAccentHex() : '#4CC2FF'
+    };
   }
 
   function openTab(vmPayload, advPayload) {
@@ -454,78 +323,45 @@ export function createConsoleController({
 
     const vmData = vmPayload || getVm?.() || { id: 'vm-1', name: 'Windows 11', running: true, osIcon: 'Windows.svg', generation: 2 };
     const advData = advPayload || getAdvSettings?.() || { consoleSupport: true, shielding: false };
-    const tabId = vmData.id || `vm-${Date.now()}`;
+    const id = vmData.id || `vm-${Date.now()}`;
 
-    const existing = consoleState.tabs.find((t) => t.id === tabId);
-    if (existing) {
-      existing.vm = { ...existing.vm, ...vmData };
-      existing.adv = { ...existing.adv, ...advData };
-      consoleState.activeTabId = existing.id;
+    let session = sessions.get(id);
+    if (session) {
+      session.vm = { ...session.vm, ...vmData };
+      session.adv = { ...session.adv, ...advData };
+      consoleState.activeVmId = id;
+      onActiveVmChanged?.(id);
       render();
       return;
     }
 
-    const newTab = {
-      id: tabId,
+    session = {
+      id,
       vm: { ...vmData },
       adv: { ...advData },
       mode: vmData.mode || 'enhanced',
       connState: 'stopped',
       scaleMode: vmData.scaleMode || 'fit',
       resolution: vmData.resolution || '1280x720',
-      clipboardEnabled: vmData.clipboardEnabled !== false,
+      muted: Boolean(vmData.muted),
       inputCaptured: false,
       connectTimer: null
     };
-    consoleState.tabs.push(newTab);
-    consoleState.activeTabId = newTab.id;
+    sessions.set(id, session);
+    consoleState.activeVmId = id;
+    onActiveVmChanged?.(id);
 
-    const isGen1 = newTab.vm.generation === 1 || newTab.vm.gen === 1;
-    const consoleOff = !isGen1 && (Boolean(newTab.adv.shielding) || newTab.adv.consoleSupport === false);
-    if (!newTab.vm.running) {
-      newTab.connState = 'stopped';
+    const isGen1 = session.vm.generation === 1 || session.vm.gen === 1;
+    const consoleOff = !isGen1 && (Boolean(session.adv.shielding) || session.adv.consoleSupport === false);
+    if (!session.vm.running) {
+      session.connState = 'stopped';
       render();
     } else if (consoleOff) {
-      newTab.connState = 'disabled';
+      session.connState = 'disabled';
       render();
     } else {
-      startTabConnecting(newTab, newTab.mode);
+      startSessionConnecting(session, session.mode);
     }
-  }
-
-  function closeTab(tabId) {
-    const idx = consoleState.tabs.findIndex((t) => t.id === tabId);
-    if (idx === -1) return;
-    const removed = consoleState.tabs[idx];
-    if (removed.connectTimer) clearTimeout(removed.connectTimer);
-    consoleState.tabs.splice(idx, 1);
-
-    if (consoleState.tabs.length === 0) {
-      close();
-      return;
-    }
-    if (consoleState.activeTabId === tabId) {
-      const next = consoleState.tabs[Math.min(idx, consoleState.tabs.length - 1)];
-      consoleState.activeTabId = next.id;
-    }
-    render();
-  }
-
-  function buildTabPayload(tab) {
-    return {
-      id: tab.vm.id,
-      name: tab.vm.name,
-      running: Boolean(tab.vm.running),
-      osIcon: tab.vm.osIcon || 'Windows.svg',
-      generation: tab.vm.generation ?? tab.vm.gen ?? 2,
-      consoleSupport: tab.adv.consoleSupport !== false,
-      shielding: Boolean(tab.adv.shielding),
-      mode: tab.mode,
-      scaleMode: tab.scaleMode,
-      resolution: tab.resolution,
-      clipboardEnabled: tab.clipboardEnabled,
-      accentHex: getAccentHex ? getAccentHex() : '#4CC2FF'
-    };
   }
 
   function open() {
@@ -534,11 +370,11 @@ export function createConsoleController({
 
   function close() {
     closeAllFlyouts();
-    consoleState.tabs.forEach((t) => {
-      if (t.connectTimer) clearTimeout(t.connectTimer);
+    sessions.forEach((s) => {
+      if (s.connectTimer) clearTimeout(s.connectTimer);
     });
-    consoleState.tabs = [];
-    consoleState.activeTabId = null;
+    sessions.clear();
+    consoleState.activeVmId = null;
     consoleState.isOpen = false;
     consoleState.isFullscreen = false;
     win.classList.remove('is-maximized', 'is-fullscreen');
@@ -549,43 +385,78 @@ export function createConsoleController({
     win.hidden = true;
   }
 
-  // New tab menu (+)
-  newTabBtn?.addEventListener('click', (e) => {
+  // Left-top VM Switcher menu (switch in-place or pop out a separate window)
+  switcherBtn?.addEventListener('click', (e) => {
     e.stopPropagation();
-    const next = newTabFlyout ? newTabFlyout.hidden : false;
+    const next = switcherFlyout ? switcherFlyout.hidden : false;
     closeAllFlyouts();
-    if (!newTabFlyout || !newTabList) return;
+    if (!switcherFlyout || !switcherList) return;
     if (!next) {
-      newTabFlyout.hidden = true;
+      switcherFlyout.hidden = true;
       return;
     }
     const allVms = getAllVms ? getAllVms() : [];
-    newTabList.innerHTML = allVms.length
+    const openVmIds = getOpenVmIds ? getOpenVmIds() : new Set();
+    switcherList.innerHTML = allVms.length
       ? allVms
           .map((item) => {
-            const alreadyOpen = consoleState.tabs.some((t) => t.id === item.id);
+            const isActive = item.id === consoleState.activeVmId;
+            const isOpenElsewhere = !isActive && openVmIds.has(item.id);
+            const cached = sessions.get(item.id);
+            const running = cached ? cached.vm.running : item.running;
             const osPath = item.osIcon ? `/ui-design/os/${escapeHtml(item.osIcon)}` : '/ui-design/os/Windows.svg';
-            const stateTxt = item.running ? '运行中' : '已关机';
+            const statusText = isActive ? '当前' : isOpenElsewhere ? '已打开' : running ? '运行中' : '已关机';
+            const popBtnHtml = !isActive && !isOpenElsewhere
+              ? `<button type="button" class="console-switcher-pop" data-pop-vm-id="${escapeHtml(item.id)}" title="在新独立窗口中打开">
+                   <span class="fi">&#xE8A7;</span>
+                 </button>`
+              : '';
             return `
-              <button type="button" class="console-flyout-item ${alreadyOpen ? 'is-selected' : ''}" data-newtab-vm-id="${escapeHtml(item.id)}">
-                <img class="console-newtab-os" src="${osPath}" alt="" draggable="false" />
-                <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.name)}</span>
-                <span style="font-size:11px;opacity:0.65;">${alreadyOpen ? '已打开' : stateTxt}</span>
-              </button>
+              <div class="console-switcher-row">
+                <button type="button" class="console-switcher-item ${isActive ? 'is-selected' : ''}" data-switch-vm-id="${escapeHtml(item.id)}" data-open-elsewhere="${isOpenElsewhere ? 'true' : 'false'}">
+                  <img class="console-os-icon" src="${osPath}" alt="" draggable="false" />
+                  <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.name)}</span>
+                  <span style="font-size:11px;opacity:0.6;">${statusText}</span>
+                </button>
+                ${popBtnHtml}
+              </div>
             `;
           })
           .join('')
       : '<div style="padding:8px 10px;font-size:12px;opacity:0.65;">暂无其他可用虚拟机</div>';
 
-    newTabList.querySelectorAll('[data-newtab-vm-id]').forEach((btn) => {
+    switcherList.querySelectorAll('[data-switch-vm-id]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const vid = btn.getAttribute('data-newtab-vm-id');
+        const vid = btn.getAttribute('data-switch-vm-id');
+        const isElsewhere = btn.getAttribute('data-open-elsewhere') === 'true';
         const target = allVms.find((v) => v.id === vid);
         closeAllFlyouts();
-        if (target) openTab(target, getAdvSettings?.());
+        if (!target) return;
+        if (isElsewhere) {
+          onFocusExistingWindow?.(target.id);
+          return;
+        }
+        openTab(target, getAdvSettings?.());
       });
     });
-    newTabFlyout.hidden = false;
+
+    switcherList.querySelectorAll('[data-pop-vm-id]').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const vid = btn.getAttribute('data-pop-vm-id');
+        const target = allVms.find((v) => v.id === vid);
+        closeAllFlyouts();
+        if (!target) return;
+        if (typeof onOpenNewWindow === 'function') {
+          const cached = sessions.get(target.id);
+          onOpenNewWindow(cached ? buildSessionPayload(cached) : { ...target, accentHex: getAccentHex?.() || '#4CC2FF' });
+        } else {
+          showToast('请在 WinOnWeb 桌面模式中打开独立窗口');
+        }
+      });
+    });
+
+    switcherFlyout.hidden = false;
   });
 
   closeBtn?.addEventListener('click', close);
@@ -596,76 +467,116 @@ export function createConsoleController({
     if (maxIcon) maxIcon.innerHTML = isMax ? '&#xE923;' : '&#xE922;';
   });
 
-  function toggleSessionMode() {
-    const tab = activeTab();
-    if (!tab) return;
-    const nextMode = tab.mode === 'enhanced' ? 'basic' : 'enhanced';
+  function toggleFlyoutMenu(flyout, e) {
+    e?.stopPropagation();
+    const open = flyout ? flyout.hidden : false;
     closeAllFlyouts();
-    if (tab.vm.running) {
-      startTabConnecting(tab, nextMode);
+    if (flyout) flyout.hidden = !open;
+  }
+
+  function applySessionMode(nextMode) {
+    const session = activeSession();
+    if (!session || session.mode === nextMode) return;
+    closeAllFlyouts();
+    if (session.vm.running) {
+      startSessionConnecting(session, nextMode);
       showToast(nextMode === 'enhanced' ? '正在切换到增强会话' : '正在切换到基本会话');
     } else {
-      tab.mode = nextMode;
+      session.mode = nextMode;
       render();
     }
   }
 
-  modeBtn?.addEventListener('click', toggleSessionMode);
-  fsModeBtn?.addEventListener('click', toggleSessionMode);
+  modeBtn?.addEventListener('click', (e) => toggleFlyoutMenu(modeFlyout, e));
+  modeFlyout?.querySelectorAll('[data-console-session]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const targetMode = item.getAttribute('data-console-session');
+      closeAllFlyouts();
+      if (targetMode) applySessionMode(targetMode);
+    });
+  });
+  fsModeBtn?.addEventListener('click', () => {
+    const session = activeSession();
+    if (!session) return;
+    applySessionMode(session.mode === 'enhanced' ? 'basic' : 'enhanced');
+  });
 
-  scaleToggleItem?.addEventListener('click', () => {
-    const tab = activeTab();
-    if (!tab) return;
-    tab.scaleMode = tab.scaleMode === 'fit' ? 'actual' : 'fit';
-    closeAllFlyouts();
+  resBtn?.addEventListener('click', (e) => {
+    if (resBtn.disabled) return;
+    toggleFlyoutMenu(resFlyout, e);
+  });
+  resFlyout?.querySelectorAll('[data-console-res]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const nextRes = item.getAttribute('data-console-res');
+      closeAllFlyouts();
+      const session = activeSession();
+      if (!session || !nextRes) return;
+      session.resolution = nextRes;
+      render();
+      showToast(`已切换分辨率为 ${formatResText(nextRes)}`);
+    });
+  });
+
+  scaleBtn?.addEventListener('click', (e) => toggleFlyoutMenu(scaleFlyout, e));
+  scaleFlyout?.querySelectorAll('[data-console-zoom]').forEach((item) => {
+    item.addEventListener('click', () => {
+      const nextZoom = item.getAttribute('data-console-zoom');
+      closeAllFlyouts();
+      const session = activeSession();
+      if (!session || !nextZoom) return;
+      session.scaleMode = nextZoom;
+      render();
+    });
+  });
+
+  function stopActiveVm() {
+    const session = activeSession();
+    if (!session) return;
+    session.vm.running = false;
+    session.connState = 'stopped';
+    onVmPowerChanged?.(session.vm);
     render();
+  }
+
+  function startActiveVm() {
+    const session = activeSession();
+    if (!session) return;
+    if (!session.vm.running) {
+      session.vm.running = true;
+      onVmPowerChanged?.(session.vm);
+    }
+    startSessionConnecting(session, session.mode);
+  }
+
+  powerStartBtn?.addEventListener('click', () => {
+    closeAllFlyouts();
+    startActiveVm();
   });
 
-  powerBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const next = powerFlyout ? powerFlyout.hidden : false;
+  powerMainBtn?.addEventListener('click', () => {
     closeAllFlyouts();
-    if (powerFlyout) powerFlyout.hidden = !next;
+    stopActiveVm();
+    showToast('已发送关机指令');
   });
+
+  powerDropBtn?.addEventListener('click', (e) => toggleFlyoutMenu(powerFlyout, e));
 
   powerFlyout?.querySelectorAll('[data-console-power]').forEach((item) => {
     item.addEventListener('click', () => {
       const act = item.getAttribute('data-console-power');
       closeAllFlyouts();
-      const tab = activeTab();
-      if (!tab) return;
-      if (act === 'primary') {
-        if (tab.vm.running) {
-          tab.vm.running = false;
-          tab.connState = 'stopped';
-          onVmPowerChanged?.(tab.vm);
-          render();
-        } else {
-          tab.vm.running = true;
-          onVmPowerChanged?.(tab.vm);
-          startTabConnecting(tab, tab.mode);
-        }
-      } else if (act === 'restart') {
-        startTabConnecting(tab, tab.mode);
+      const session = activeSession();
+      if (!session) return;
+      if (act === 'restart') {
+        startSessionConnecting(session, session.mode);
         showToast('正在重启虚拟机');
-      } else if (act === 'pause' || act === 'save' || act === 'turnoff') {
-        tab.vm.running = false;
-        tab.connState = 'stopped';
-        onVmPowerChanged?.(tab.vm);
-        render();
+      } else if (act === 'shutdown' || act === 'pause' || act === 'save' || act === 'turnoff') {
+        stopActiveVm();
       }
     });
   });
 
-  primaryActionBtn?.addEventListener('click', () => {
-    const tab = activeTab();
-    if (!tab) return;
-    if (!tab.vm.running) {
-      tab.vm.running = true;
-      onVmPowerChanged?.(tab.vm);
-    }
-    startTabConnecting(tab, tab.mode);
-  });
+  primaryActionBtn?.addEventListener('click', startActiveVm);
 
   function sendCad() {
     closeAllFlyouts();
@@ -674,16 +585,9 @@ export function createConsoleController({
   cadBtn?.addEventListener('click', sendCad);
   fsCadBtn?.addEventListener('click', sendCad);
 
-  moreBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const next = moreFlyout ? moreFlyout.hidden : false;
-    closeAllFlyouts();
-    if (moreFlyout) moreFlyout.hidden = !next;
-  });
-
   function takeScreenshot() {
-    const tab = activeTab();
-    if (!tab || tab.connState !== 'connected') return;
+    const session = activeSession();
+    if (!session || session.connState !== 'connected') return;
     closeAllFlyouts();
     if (flashOverlay) {
       flashOverlay.hidden = true;
@@ -696,6 +600,15 @@ export function createConsoleController({
     showToast('已截取当前控制台画面');
   }
   shotBtn?.addEventListener('click', takeScreenshot);
+
+  audioBtn?.addEventListener('click', () => {
+    const session = activeSession();
+    if (!session) return;
+    closeAllFlyouts();
+    session.muted = !session.muted;
+    render();
+    showToast(session.muted ? '控制台音频已静音' : '控制台音频已开启');
+  });
 
   function setFullscreen(flag) {
     consoleState.isFullscreen = Boolean(flag);
@@ -726,18 +639,18 @@ export function createConsoleController({
   });
 
   screenSurface?.addEventListener('click', () => {
-    const tab = activeTab();
-    if (!tab || tab.connState !== 'connected') return;
-    tab.inputCaptured = true;
+    const session = activeSession();
+    if (!session || session.connState !== 'connected') return;
+    session.inputCaptured = true;
     render();
   });
 
   document.addEventListener('keydown', (e) => {
     if (!consoleState.isOpen) return;
-    const tab = activeTab();
+    const session = activeSession();
     if (e.key === 'Escape') {
-      if (tab && tab.inputCaptured) {
-        tab.inputCaptured = false;
+      if (session && session.inputCaptured) {
+        session.inputCaptured = false;
         render();
       } else if (consoleState.isFullscreen) {
         setFullscreen(false);
@@ -751,7 +664,7 @@ export function createConsoleController({
     }
   });
 
-  // Fallback window dragging (only when not hosted inside WinOnWeb window chrome)
+  // Fallback window dragging (when opened outside WinOnWeb desktop)
   if (!isHostedInWinOnWeb) {
     let dragging = false;
     let dragStartX = 0;
@@ -762,9 +675,10 @@ export function createConsoleController({
     titleBar?.addEventListener('mousedown', (e) => {
       if (
         e.target.closest('.caption-buttons') ||
-        e.target.closest('.console-tab') ||
-        e.target.closest('.console-tab-add-btn') ||
-        e.target.closest('.console-tab-detach-btn') ||
+        e.target.closest('.console-anchor') ||
+        e.target.closest('.console-icon-btn') ||
+        e.target.closest('.console-hdr-btn') ||
+        e.target.closest('.console-split-group') ||
         win.classList.contains('is-maximized') ||
         consoleState.isFullscreen
       ) {
@@ -797,7 +711,6 @@ export function createConsoleController({
   return {
     open,
     openTab,
-    closeTab,
     close,
     syncTheme,
     syncVmState: () => {

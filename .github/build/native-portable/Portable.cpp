@@ -179,6 +179,11 @@ public:
     {
         auto exe = root / L"ExHyperV.exe";
         std::wstring command = L"\"" + exe.wstring() + L"\" " + arguments;
+        std::wstring launcher(32768, L'\0');
+        DWORD length = GetModuleFileNameW(nullptr, launcher.data(), static_cast<DWORD>(launcher.size()));
+        check(length != 0 && length < launcher.size());
+        launcher.resize(length);
+        check(SetEnvironmentVariableW(L"EXHYPERV_PORTABLE_LAUNCHER", launcher.c_str()));
         STARTUPINFOW startup{sizeof(startup)};
         PROCESS_INFORMATION process{};
         check(CreateProcessW(exe.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &startup, &process));

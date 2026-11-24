@@ -6189,10 +6189,10 @@ export function initUiDesignWorkbench() {
         </div>
       </div>`;
 
-    const tabsHtml = APP_SETTINGS_SUBNAV.map(
+    const navItemsHtml = APP_SETTINGS_SUBNAV.map(
       (s) => `
-        <button type="button" class="vm-tab-btn ${state.appSettingsSub === s.key ? 'selected' : ''}" data-app-sub="${s.key}">
-          <span class="fi" style="font-size:15px;">${s.glyph}</span>
+        <button type="button" class="subnav-btn ${state.appSettingsSub === s.key ? 'selected' : ''}" data-app-sub="${s.key}">
+          <span class="fi subnav-icon">${s.glyph}</span>
           <span>${s.title}</span>
         </button>`
     ).join('');
@@ -6238,11 +6238,13 @@ export function initUiDesignWorkbench() {
     }
 
     root.innerHTML = `
-      <div class="app-settings-header">
-        <div class="vm-pagetabs app-settings-tabs">${tabsHtml}</div>
-      </div>
-      <div class="app-settings-body">
-        <div class="app-settings-stack">${bodyHtml}</div>
+      <div class="app-settings-shell">
+        <div class="app-settings-nav-pane">
+          <div class="settings-subnav">${navItemsHtml}</div>
+        </div>
+        <div class="app-settings-body">
+          <div class="app-settings-stack">${bodyHtml}</div>
+        </div>
       </div>`;
 
     root.querySelectorAll('[data-app-sub]').forEach((btn) => {

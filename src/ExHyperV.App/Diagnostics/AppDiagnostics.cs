@@ -10,8 +10,8 @@ namespace ExHyperV.App.Diagnostics;
 
 internal static class AppDiagnostics
 {
-    private static readonly string Root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ExHyperV");
-    internal static string DirectoryPath => Path.Combine(Root, "Logs");
+    internal static string DataDirectory { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ExHyperV");
+    internal static string DirectoryPath => Path.Combine(DataDirectory, "Logs");
     private static RollingLog? log;
 
     private static LocalTraceListener? recorder;
@@ -88,7 +88,7 @@ internal static class AppDiagnostics
             try { scheduler = HyperVSchedulerService.GetSchedulerType().ToString(); }
             catch (Exception ex) { Failure("Environment", "SchedulerQueryFailed", ex); }
 
-            DiagnosticBundle.Export(log!, Path.Combine(Root, "Config.xml"), destination,
+            DiagnosticBundle.Export(log!, Path.Combine(DataDirectory, "Config.xml"), destination,
                 $"{header}\nhypervisor={hypervisor}\nvmms={vmms}\nscheduler={scheduler}");
         });
     }

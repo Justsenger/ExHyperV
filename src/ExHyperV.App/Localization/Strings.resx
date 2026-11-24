@@ -147,9 +147,7 @@
   <data name="Settings_ExpandedState" xml:space="preserve">
     <value>Expanded state</value>
   </data>
-  <data name="Settings_Gray" xml:space="preserve">
-    <value>Gray</value>
-  </data>
+  <data name="Settings_Gray" xml:space="preserve"><value>Neutral gray</value></data>
   <data name="Settings_Selected" xml:space="preserve">
     <value>Selected</value>
   </data>
@@ -195,12 +193,7 @@
   <data name="Settings_Language_En" xml:space="preserve">
     <value>English</value>
   </data>
-  <data name="Settings_Language_RestartHint" xml:space="preserve">
-    <value>Language preference saved. Restart the app so every page updates.</value>
-  </data>
-  <data name="Settings_AppearanceSaveFailed" xml:space="preserve">
-    <value>Appearance applied for this session, but could not be saved: {0}</value>
-  </data>
+  <data name="Settings_AppearanceSaveFailed" xml:space="preserve"><value>Could not save settings. {0}</value></data>
   <data name="Cond_PoweredOff" xml:space="preserve">
     <value>Shut down the VM to edit</value>
   </data>
@@ -4053,8 +4046,7 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Storage_AddDevice" xml:space="preserve">
-    <value>添加存储设备</value>
-    <comment>TODO: en</comment>
+    <value>Add storage</value>
   </data>
   <data name="Storage_PassthroughChanged" xml:space="preserve">
     <value>设备身份或分配状态已变化，请重新选择直通设备。</value>
@@ -4689,15 +4681,59 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <value>插槽</value>
     <comment>TODO: en</comment>
   </data>
-  <data name="Settings_Diagnostics" xml:space="preserve"><value>Diagnostics and logs</value></data>
-  <data name="Settings_EnableLogging" xml:space="preserve"><value>Enable runtime logging</value></data>
-  <data name="Settings_VerboseDiagnostics" xml:space="preserve"><value>Detailed diagnostics</value></data>
+  <data name="Settings_Diagnostics" xml:space="preserve"><value>Logs</value></data>
+  <data name="Settings_EnableLogging" xml:space="preserve"><value>Runtime logging</value></data>
+  <data name="Settings_VerboseDiagnostics" xml:space="preserve"><value>Verbose logging</value></data>
   <data name="Settings_DiagnosticsHint" xml:space="preserve"><value>Detailed mode also records routine monitoring samples. Logs use up to 12 MiB.</value></data>
-  <data name="Settings_ExportLogs" xml:space="preserve"><value>Export diagnostic bundle</value></data>
-  <data name="Settings_OpenLogs" xml:space="preserve"><value>Open log folder</value></data>
-  <data name="Settings_ClearLogs" xml:space="preserve"><value>Clear logs</value></data>
+  <data name="Settings_ExportLogs" xml:space="preserve"><value>Export</value></data>
+  <data name="Settings_OpenLogs" xml:space="preserve"><value>Open folder</value></data>
+  <data name="Settings_ClearLogs" xml:space="preserve"><value>Clear</value></data>
   <data name="Settings_ZipType" xml:space="preserve"><value>Diagnostic bundle (.zip)</value></data>
   <data name="Settings_Exported" xml:space="preserve"><value>Diagnostic bundle saved.</value></data>
   <data name="Settings_ClearConfirm" xml:space="preserve"><value>Delete all retained runtime logs? New events will be recorded while logging is enabled.</value></data>
   <data name="Settings_Cleared" xml:space="preserve"><value>Runtime logs cleared.</value></data>
+  <data name="Settings_System" xml:space="preserve"><value>System</value></data>
+  <data name="Settings_Preferences" xml:space="preserve"><value>Preferences</value></data>
+  <data name="Settings_About" xml:space="preserve"><value>About</value></data>
+  <data name="Settings_LanguageHelp" xml:space="preserve"><value>Change the display language. The change takes effect immediately.</value></data>
+  <data name="Settings_ThemeHelp" xml:space="preserve"><value>Use a light or dark appearance, or follow the system setting.</value></data>
+  <data name="Settings_CopyColor" xml:space="preserve"><value>Copy color code</value></data>
+  <data name="Settings_ColorCopied" xml:space="preserve"><value>Copied color code {0}</value></data>
+  <data name="Settings_AutoStart" xml:space="preserve"><value>Launch at sign-in</value></data>
+  <data name="Settings_AutoStartHelp" xml:space="preserve"><value>Start ExHyperV when you sign in to Windows. Choose to show the window or start in the notification area. Windows may ask for administrator approval.</value></data>
+  <data name="Settings_NormalStart" xml:space="preserve"><value>Normal start</value></data>
+  <data name="Settings_SilentStart" xml:space="preserve"><value>Silent start</value></data>
+  <data name="Settings_OnClose" xml:space="preserve"><value>When closing the main window</value></data>
+  <data name="Settings_OnCloseHelp" xml:space="preserve"><value>Exit the app or keep it running in the notification area when you close the window.</value></data>
+  <data name="Settings_Exit" xml:space="preserve"><value>Exit app</value></data>
+  <data name="Settings_ToTray" xml:space="preserve"><value>Minimize to tray</value></data>
+  <data name="Settings_ShowWindow" xml:space="preserve"><value>Show main window</value></data>
+  <data name="Settings_TrayUnavailable" xml:space="preserve"><value>Windows could not add the notification icon. The main window is open.</value></data>
+  <data name="Settings_StartupFailed" xml:space="preserve"><value>Could not update the Windows startup entry. {0}</value></data>
+  <data name="Settings_StartupPathUnavailable" xml:space="preserve"><value>The application executable could not be found.</value></data>
+  <data name="Settings_AutoConsole" xml:space="preserve"><value>Open the console after starting a virtual machine</value></data>
+  <data name="Settings_ConsoleSession" xml:space="preserve"><value>Default console session</value></data>
+  <data name="Settings_ConsoleHelp" xml:space="preserve"><value>Choose the session used for manual and automatic console connections.</value></data>
+  <data name="Settings_Basic" xml:space="preserve"><value>Basic session</value></data>
+  <data name="Settings_Enhanced" xml:space="preserve"><value>Enhanced session</value></data>
+  <data name="Settings_LoggingHelp" xml:space="preserve"><value>Keep a local record of app and Core operations and errors. Rolling log files use up to 12 MiB.</value></data>
+  <data name="Settings_VerboseHelp" xml:space="preserve"><value>Include routine monitoring samples to help investigate performance and sampling problems.</value></data>
+  <data name="Settings_LogManagement" xml:space="preserve"><value>Log management</value></data>
+  <data name="Settings_LogHelp" xml:space="preserve"><value>Open the log folder, export a diagnostic ZIP with sensitive data excluded, or clear the retained logs.</value></data>
+  <data name="Settings_DataFolder" xml:space="preserve"><value>Configuration and data folder</value></data>
+  <data name="Settings_DataHelp" xml:space="preserve"><value>Open the folder containing this user’s ExHyperV settings and data.</value></data>
+  <data name="Settings_AboutDescription" xml:space="preserve"><value>A modern desktop experience for Hyper-V on Windows.</value></data>
+  <data name="Settings_CheckUpdate" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="Settings_AutoUpdate" xml:space="preserve"><value>Check for updates at startup</value></data>
+  <data name="Settings_Docs" xml:space="preserve"><value>Documentation</value></data>
+  <data name="Settings_Feedback" xml:space="preserve"><value>Report an issue</value></data>
+  <data name="Settings_GitHub" xml:space="preserve"><value>GitHub</value></data>
+  <data name="Settings_Sponsor" xml:space="preserve"><value>Sponsor</value></data>
+  <data name="Settings_UpToDate" xml:space="preserve"><value>No newer stable release is available. Current version: {0}</value></data>
+  <data name="Settings_UpdateFound" xml:space="preserve"><value>Version {0} is available.</value></data>
+  <data name="Settings_ViewRelease" xml:space="preserve"><value>View release</value></data>
+  <data name="Settings_UnknownRelease" xml:space="preserve"><value>Could not read the published version number.</value></data>
+  <data name="Settings_OpenLinkFailed" xml:space="preserve"><value>Windows could not open this link.</value></data>
+  <data name="Settings_ConsoleLaunchFailed" xml:space="preserve"><value>Windows could not open the Remote Desktop connection file.</value></data>
+  <data name="Settings_UpdateTimeout" xml:space="preserve"><value>The update check timed out. Please try again later.</value></data>
 </root>

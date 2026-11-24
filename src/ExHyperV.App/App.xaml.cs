@@ -19,6 +19,7 @@ public partial class App : Microsoft.UI.Xaml.Application
     }
 
     private MainWindow? window;
+    private readonly AppearanceSettings settings;
     internal Microsoft.UI.WindowId MainWindowId => window?.AppWindow.Id
         ?? throw new InvalidOperationException(L10n.Get("Main_WindowNotCreated"));
 
@@ -26,7 +27,7 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public App()
     {
-        var settings = AppearanceSettings.Load();
+        settings = AppearanceSettings.Load();
         AppDiagnostics.Start(settings);
         UnhandledException += (_, args) => AppDiagnostics.Crash("WinUIUnhandledException", args.Exception);
         L10n.ApplyLanguage(settings.Language);
@@ -37,8 +38,12 @@ public partial class App : Microsoft.UI.Xaml.Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         // Application.Current's resource projection is available once application construction has finished.
-        Appearance = new AppAppearance();
+        bool login = Environment.GetCommandLineArgs().Contains(StartupRegistration.LoginArgument, StringComparer.Ordinal);
+        if (login && settings.AutoStart == StartupMode.Off) { Exit(); return; }
+        Appearance = new AppAppearance(settings);
         window = new MainWindow();
-        window.Activate();
+        if (!login || settings.AutoStart != StartupMode.Silent || !window.TryHideToTray())
+            window.Activate();
+        if (Appearance.Settings.AutoCheckUpdate) window.CheckForStartupUpdate();
     }
 }

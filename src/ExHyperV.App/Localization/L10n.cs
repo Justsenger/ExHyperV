@@ -11,18 +11,23 @@ internal static class L10n
     private static readonly ResourceManager Manager = new("ExHyperV.App.Localization.Strings", typeof(L10n).Assembly);
 
     internal static string CurrentPreference { get; private set; } = "system";
+    internal static event EventHandler? LanguageChanged;
+    private static CultureInfo uiCulture = InitialUiCulture;
 
     internal static void ApplyLanguage(string? preference)
     {
-        CurrentPreference = NormalizePreference(preference);
-        var culture = CurrentPreference switch
+        var normalized = NormalizePreference(preference);
+        bool changed = CurrentPreference != normalized;
+        CurrentPreference = normalized;
+        uiCulture = normalized switch
         {
             "zh-CN" => ZhCnCulture,
             "en" => EnUsCulture,
             _ => ResolveSystemCulture()
         };
-        CultureInfo.DefaultThreadCurrentUICulture = culture;
-        CultureInfo.CurrentUICulture = culture;
+        CultureInfo.DefaultThreadCurrentUICulture = uiCulture;
+        CultureInfo.CurrentUICulture = uiCulture;
+        if (changed) LanguageChanged?.Invoke(null, EventArgs.Empty);
     }
 
     internal static string NormalizePreference(string? preference) => preference switch
@@ -46,7 +51,7 @@ internal static class L10n
     }
 
     internal static string Get(string key)
-        => Manager.GetString(key, CultureInfo.CurrentUICulture) ?? key;
+        => Manager.GetString(key, uiCulture) ?? key;
 
     internal static string Format(string key, params object?[] args)
         => string.Format(CultureInfo.CurrentCulture, Get(key), args);

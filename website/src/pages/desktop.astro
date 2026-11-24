@@ -71,71 +71,31 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
       };
 
       const mountConsoleBridge = (api: DesktopApi) => {
-        let primaryConsoleId: string | null = null;
+        const consoleVmByCid = new Map<string, string>();
         const exhypervId = api.launchApp('exhyperv');
         if (!exhypervId) return;
 
-        const clearDropTargetHighlight = () => {
-          document.querySelectorAll('.w11-window.is-console-drop-target').forEach((el) => {
-            el.classList.remove('is-console-drop-target');
-          });
+        const broadcastOpenVms = () => {
+          const vmIds = Array.from(new Set(consoleVmByCid.values())).filter(Boolean);
+          for (const cid of consoleVmByCid.keys()) {
+            try {
+              api.sendToInstance(cid, 'exhyperv:console-open-vms', { vmIds });
+            } catch {}
+          }
         };
 
-        const findDropTargetConsole = (srcCid: string, clientX: number, clientY: number) => {
-          const srcWin = document.querySelector<HTMLElement>(`.w11-window[data-instance-id="${CSS.escape(srcCid)}"]`);
-          const srcBody = srcWin?.querySelector<HTMLElement>('.w11-win-body');
-          if (!srcWin || !srcBody) return null;
-
-          const bodyRect = srcBody.getBoundingClientRect();
-          const scale = srcBody.offsetWidth > 0 ? bodyRect.width / srcBody.offsetWidth : 1;
-          const gx = bodyRect.left + clientX * scale;
-          const gy = bodyRect.top + clientY * scale;
-
-          const candidates = Array.from(
-            document.querySelectorAll<HTMLElement>('.w11-window[data-app="exhyperv-console"]:not(.is-minimized)')
-          ).sort((a, b) => Number(b.style.zIndex || 0) - Number(a.style.zIndex || 0));
-
-          for (const targetWin of candidates) {
-            const targetCid = targetWin.dataset.instanceId;
-            if (!targetCid || targetCid === srcCid) continue;
-            const r = targetWin.getBoundingClientRect();
-            if (gx >= r.left && gx <= r.right && gy >= r.top && gy <= r.top + 52 * scale) {
-              return { targetWin, targetCid };
+        const focusConsoleByVmId = (vmId: string) => {
+          for (const [cid, ownedVmId] of consoleVmByCid.entries()) {
+            if (ownedVmId === vmId) {
+              try {
+                api.sendToInstance(cid, 'exhyperv:console-focus-self', {});
+                return true;
+              } catch {
+                consoleVmByCid.delete(cid);
+              }
             }
           }
-          return null;
-        };
-
-        const handleConsoleDragMove = (srcCid: string, moveData: Record<string, unknown>) => {
-          clearDropTargetHighlight();
-          if (!moveData.active) return;
-          const clientX = typeof moveData.clientX === 'number' ? moveData.clientX : 0;
-          const clientY = typeof moveData.clientY === 'number' ? moveData.clientY : 0;
-          const hit = findDropTargetConsole(srcCid, clientX, clientY);
-          if (hit) hit.targetWin.classList.add('is-console-drop-target');
-        };
-
-        const handleConsoleDragDrop = (srcCid: string, dropData: Record<string, unknown>) => {
-          clearDropTargetHighlight();
-          const tabId = typeof dropData.tabId === 'string' ? dropData.tabId : '';
-          const tabCount = typeof dropData.tabCount === 'number' ? dropData.tabCount : 1;
-          const clientX = typeof dropData.clientX === 'number' ? dropData.clientX : 0;
-          const clientY = typeof dropData.clientY === 'number' ? dropData.clientY : 0;
-          const payload = dropData.payload as Record<string, unknown> | undefined;
-          if (!tabId || !payload) return;
-
-          const hit = findDropTargetConsole(srcCid, clientX, clientY);
-          if (hit) {
-            api.sendToInstance(hit.targetCid, 'exhyperv:console-add-tab', payload);
-            api.sendToInstance(srcCid, 'exhyperv:console-drop-accepted', { tabId });
-            return;
-          }
-
-          // Dropped onto desktop outside any other console window -> tear off into a new window
-          if (tabCount > 1) {
-            openDetachedConsole(payload, false);
-            api.sendToInstance(srcCid, 'exhyperv:console-drop-accepted', { tabId });
-          }
+          return false;
         };
 
         const updateConsoleSpacerDrag = (cid: string, rectData: Record<string, unknown>) => {
@@ -155,21 +115,34 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
           spacer.style.width = `${width}px`;
         };
 
-        const openDetachedConsole = (payload: Record<string, unknown>, asPrimary: boolean) => {
+        const openConsoleWindow = (payload: Record<string, unknown>) => {
+          const vmId = typeof payload.id === 'string' ? payload.id : '';
+          if (vmId && focusConsoleByVmId(vmId)) {
+            return null;
+          }
           const cid = api.launchApp('exhyperv-console', payload);
           if (!cid) return null;
-          if (asPrimary) primaryConsoleId = cid;
+          consoleVmByCid.set(cid, vmId);
+          broadcastOpenVms();
           api.subscribeAppEvents(cid, (cChannel, cPayload) => {
             if (cChannel === 'exhyperv:console-power') {
               api.sendToInstance(exhypervId, 'exhyperv:console-power', cPayload);
-            } else if (cChannel === 'exhyperv:console-drag-move' && cPayload && typeof cPayload === 'object') {
-              handleConsoleDragMove(cid, cPayload as Record<string, unknown>);
-            } else if (cChannel === 'exhyperv:console-drag-drop' && cPayload && typeof cPayload === 'object') {
-              handleConsoleDragDrop(cid, cPayload as Record<string, unknown>);
+            } else if (cChannel === 'exhyperv:console-active-vm' && cPayload && typeof cPayload === 'object') {
+              const nextId = (cPayload as { vmId?: string }).vmId;
+              if (typeof nextId === 'string') {
+                consoleVmByCid.set(cid, nextId);
+                broadcastOpenVms();
+              }
+            } else if (cChannel === 'exhyperv:console-focus-vm' && cPayload && typeof cPayload === 'object') {
+              const targetId = (cPayload as { vmId?: string }).vmId;
+              if (typeof targetId === 'string') focusConsoleByVmId(targetId);
+            } else if (cChannel === 'exhyperv:console-new-window' && cPayload && typeof cPayload === 'object') {
+              openConsoleWindow(cPayload as Record<string, unknown>);
             } else if (cChannel === 'exhyperv:console-drag-rect' && cPayload && typeof cPayload === 'object') {
               updateConsoleSpacerDrag(cid, cPayload as Record<string, unknown>);
-            } else if (cChannel === 'exhyperv:console-closed' && primaryConsoleId === cid) {
-              primaryConsoleId = null;
+            } else if (cChannel === 'exhyperv:console-closed') {
+              consoleVmByCid.delete(cid);
+              broadcastOpenVms();
             }
           });
           return cid;
@@ -177,15 +150,7 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
 
         api.subscribeAppEvents(exhypervId, (channel, payload) => {
           if (channel !== 'exhyperv:open-console' || !payload || typeof payload !== 'object') return;
-          if (primaryConsoleId) {
-            try {
-              api.sendToInstance(primaryConsoleId, 'exhyperv:console-add-tab', payload);
-              return;
-            } catch {
-              primaryConsoleId = null;
-            }
-          }
-          openDetachedConsole(payload as Record<string, unknown>, true);
+          openConsoleWindow(payload as Record<string, unknown>);
         });
       };
 
@@ -330,12 +295,6 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
     display: none !important;
   }
 
-  .w11-window.is-console-drop-target {
-    outline: 2px solid #4CC2FF !important;
-    outline-offset: -2px;
-    box-shadow: 0 0 0 4px rgba(76, 194, 255, 0.25), 0 22px 54px rgba(0, 0, 0, 0.55) !important;
-  }
-
   /* Single-row 40px console header: overlay native titlebar transparently so iframe starts at y=0 */
   .w11-window[data-app="exhyperv-console"] .w11-win-titlebar {
     position: absolute !important;
@@ -352,11 +311,10 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
     height: 100% !important;
   }
   .w11-window[data-app="exhyperv-console"] .w11-win-title {
-    flex: 0 0 104px;
+    flex: 0 0 8px;
     height: 40px;
     opacity: 0;
-    pointer-events: auto;
-    cursor: move;
+    pointer-events: none;
   }
   .w11-window[data-app="exhyperv-console"] .w11-win-controls,
   .w11-window[data-app="exhyperv-console"] .w11-win-ctrl {

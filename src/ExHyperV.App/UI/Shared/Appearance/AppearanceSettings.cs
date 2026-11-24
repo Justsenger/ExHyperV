@@ -6,6 +6,10 @@ using Windows.UI;
 
 namespace ExHyperV.App.UI.Shared.Appearance;
 
+internal enum StartupMode { Off, Normal, Silent }
+internal enum WindowCloseBehavior { Exit, Tray }
+internal enum ConsoleSessionMode { RdpBasic, RdpEnhanced }
+
 internal sealed record AppearanceSettings
 {
     public ElementTheme Theme { get; init; } = ElementTheme.Default;
@@ -15,6 +19,10 @@ internal sealed record AppearanceSettings
     public bool VerboseDiagnostics { get; init; }
     public string Language { get; init; } = "system";
     public bool AutoOpenConsole { get; init; } = false;
+    public StartupMode AutoStart { get; init; }
+    public WindowCloseBehavior CloseBehavior { get; init; }
+    public ConsoleSessionMode DefaultConsoleSession { get; init; }
+    public bool AutoCheckUpdate { get; init; } = true;
     public string DefaultPowerAction { get; init; } = "Shutdown";
 
     internal static string NormalizePowerAction(string? value)
@@ -39,6 +47,10 @@ internal sealed record AppearanceSettings
             return value with
             {
                 Language = L10n.NormalizePreference(value.Language),
+                AutoStart = Enum.IsDefined(value.AutoStart) ? value.AutoStart : StartupMode.Off,
+                CloseBehavior = Enum.IsDefined(value.CloseBehavior) ? value.CloseBehavior : WindowCloseBehavior.Exit,
+                DefaultConsoleSession = Enum.IsDefined(value.DefaultConsoleSession) ? value.DefaultConsoleSession : ConsoleSessionMode.RdpBasic,
+                VerboseDiagnostics = value.LoggingEnabled && value.VerboseDiagnostics,
                 DefaultPowerAction = NormalizePowerAction(value.DefaultPowerAction)
             };
         }

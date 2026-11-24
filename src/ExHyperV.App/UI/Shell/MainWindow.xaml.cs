@@ -4,6 +4,7 @@ using ExHyperV.App.UI.Pages.Host;
 using ExHyperV.App.UI.Pages.Settings;
 using ExHyperV.App.UI.Pages.VirtualMachines;
 using ExHyperV.App.UI.Pages.Web;
+using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Feedback;
 using Microsoft.UI.System;
 using Microsoft.UI.Windowing;
@@ -18,6 +19,8 @@ public sealed partial class MainWindow : Window
     private readonly Dictionary<string, FrameworkElement> pages = new();
     private bool closeAfterCleanup;
     private bool cleanupInProgress;
+    private WindowTrayIcon? tray;
+    private bool closed;
     private bool initialSizeApplied;
     private bool initialPaneClosed;
     private XamlRoot? titleBarRoot;
@@ -43,6 +46,7 @@ public sealed partial class MainWindow : Window
         AppWindow.Changed += OnAppWindowChanged;
         Activated += OnActivated;
         ApplyNavigationLocalization();
+        L10n.LanguageChanged += OnLanguageChanged;
         Navigation.SelectedItem = Navigation.MenuItems[0];
         AppWindow.Closing += OnClosing;
         Closed += OnClosed;
@@ -50,11 +54,45 @@ public sealed partial class MainWindow : Window
 
     private void ApplyNavigationLocalization()
     {
+        Root.Language = System.Globalization.CultureInfo.DefaultThreadCurrentUICulture?.Name ?? "en-US";
         NavVirtualMachines.Content = L10n.Get("Nav_VirtualMachines");
         NavHost.Content = L10n.Get("Nav_Host");
         NavWeb.Content = L10n.Get("Nav_Web");
         NavSettings.Content = L10n.Get("Nav_Settings");
-        if (pages.TryGetValue("web", out var webPage) && webPage is WebPage web) web.ApplyLocalization();
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs args)
+    {
+        ApplyNavigationLocalization();
+        ShellNotice.Hide();
+        pages.Clear();
+        if (Navigation.SelectedItem is NavigationViewItem { Tag: string route }) ShowPage(route);
+    }
+
+    private async Task PrepareLanguageChangeAsync()
+    {
+        if (cleanupInProgress) throw new OperationCanceledException();
+        cleanupInProgress = true;
+        Navigation.IsEnabled = false;
+        try
+        {
+            // A pending VM operation can veto disposal. Keep its page reachable in that case.
+            foreach (var entry in pages.ToArray())
+            {
+                if (entry.Value is VirtualMachinesPage vm)
+                {
+                    await vm.StopAsync();
+                    vm.ImmersiveRequested -= SetImmersiveMode;
+                    pages.Remove(entry.Key);
+                }
+                else if (entry.Value is HostPage host)
+                {
+                    await host.StopAsync();
+                    pages.Remove(entry.Key);
+                }
+            }
+        }
+        finally { Navigation.IsEnabled = true; cleanupInProgress = false; }
     }
 
     private void OnRootLoaded(object sender, RoutedEventArgs args)
@@ -90,7 +128,6 @@ public sealed partial class MainWindow : Window
     {
         Root.RequestedTheme = ((App)Application.Current).Appearance.Settings.Theme;
         ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast);
-        ApplyNavigationLocalization();
     }
     private void OnSystemThemeChanged(ThemeSettings sender, object args) => Root.DispatcherQueue.TryEnqueue(() =>
         ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast));
@@ -160,13 +197,18 @@ public sealed partial class MainWindow : Window
 
     private async void OnSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args) => await UiEvent.RunAsync(() =>
     {
-        if ((args.SelectedItem as NavigationViewItem)?.Tag is not string route) return Task.CompletedTask;
+        if (args.SelectedItem is NavigationViewItem { Tag: string route }) ShowPage(route);
+        return Task.CompletedTask;
+    });
+
+    private void ShowPage(string route)
+    {
         if (!pages.TryGetValue(route, out var page))
         {
             page = route switch
             {
                 "virtual-machines" => CreateVirtualMachinesPage(),
-                "settings" => new SettingsPage(),
+                "settings" => new SettingsPage { PrepareLanguageChange = PrepareLanguageChangeAsync },
                 "host" => new HostPage(),
                 "web" => new WebPage(),
                 _ => throw new InvalidOperationException($"Unknown page: {route}")
@@ -177,8 +219,46 @@ public sealed partial class MainWindow : Window
         if (page is HostPage host) host.SetWindowVisible(ContentVisible);
         Diagnostics.AppDiagnostics.Write("Navigation", "PageSelected", $"page={page.GetType().Name}");
         PageContent.Content = page;
-        return Task.CompletedTask;
-    });
+    }
+
+    internal bool TryHideToTray()
+    {
+        if (tray != null) return true;
+        tray = new WindowTrayIcon(WinRT.Interop.WindowNative.GetWindowHandle(this),
+            () => DispatcherQueue.TryEnqueue(RestoreWindow),
+            () => DispatcherQueue.TryEnqueue(async () => { RestoreWindow(); await CloseAfterCleanupAsync(); }));
+        if (!tray.Show())
+        {
+            tray.Dispose();
+            tray = null;
+            ShellNotice.Show(L10n.Get("Settings_TrayUnavailable"));
+            return false;
+        }
+        AppWindow.Hide();
+        return true;
+    }
+
+    private void RestoreWindow()
+    {
+        tray?.Dispose();
+        tray = null;
+        AppWindow.Show();
+        Activate();
+    }
+
+    internal async void CheckForStartupUpdate()
+    {
+        try
+        {
+            var update = await AppUpdates.CheckAsync();
+            if (update == null || closed || !((App)Application.Current).Appearance.Settings.AutoCheckUpdate) return;
+            var open = new Button { Content = L10n.Get("Settings_ViewRelease") };
+            open.Click += async (_, _) => await UiEvent.RunAsync(() => AppUpdates.OpenLinkAsync(AppUpdates.ReleasePage),
+                message => ShellNotice.Show(message));
+            ShellNotice.Show(L10n.Format("Settings_UpdateFound", update), InfoBarSeverity.Informational, open);
+        }
+        catch (Exception error) { Diagnostics.AppDiagnostics.Failure("Updates", "StartupCheckFailed", error); }
+    }
 
     private VirtualMachinesPage CreateVirtualMachinesPage()
     {
@@ -189,6 +269,10 @@ public sealed partial class MainWindow : Window
 
     private async void OnClosed(object sender, WindowEventArgs args) => await UiEvent.RunAsync(async () =>
     {
+        closed = true;
+        tray?.Dispose();
+        tray = null;
+        L10n.LanguageChanged -= OnLanguageChanged;
         // Window.Close() can bypass AppWindow.Closing; normal title-bar closure already stopped active pages above.
         if (!closeAfterCleanup)
         {
@@ -220,6 +304,17 @@ public sealed partial class MainWindow : Window
         if (closeAfterCleanup) return;
         args.Cancel = true;
         if (cleanupInProgress) return;
+        if (((App)Application.Current).Appearance.Settings.CloseBehavior == WindowCloseBehavior.Tray)
+        {
+            TryHideToTray();
+            return;
+        }
+        await CloseAfterCleanupAsync();
+    });
+
+    private async Task CloseAfterCleanupAsync()
+    {
+        if (cleanupInProgress) return;
         var active = pages.Values.OfType<VirtualMachinesPage>().ToArray();
         var hostPages = pages.Values.OfType<HostPage>().ToArray();
         cleanupInProgress = true;
@@ -248,5 +343,5 @@ public sealed partial class MainWindow : Window
             var dialog = new ContentDialog { XamlRoot = Root.XamlRoot, Title = L10n.Get("Main_CloseFailedTitle"), Content = CoreMessageResolver.ResolveException(exception), CloseButtonText = L10n.Get("Main_CloseFailedButton") };
             await dialog.ShowAsync();
         }
-    });
+    }
 }

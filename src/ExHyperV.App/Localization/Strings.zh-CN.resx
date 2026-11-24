@@ -147,9 +147,7 @@
   <data name="Settings_ExpandedState" xml:space="preserve">
     <value>展开状态</value>
   </data>
-  <data name="Settings_Gray" xml:space="preserve">
-    <value>灰色</value>
-  </data>
+  <data name="Settings_Gray" xml:space="preserve"><value>中性灰</value></data>
   <data name="Settings_Selected" xml:space="preserve">
     <value>已选择</value>
   </data>
@@ -195,12 +193,7 @@
   <data name="Settings_Language_En" xml:space="preserve">
     <value>English</value>
   </data>
-  <data name="Settings_Language_RestartHint" xml:space="preserve">
-    <value>语言偏好已保存，重启应用后将在所有页面全面生效。</value>
-  </data>
-  <data name="Settings_AppearanceSaveFailed" xml:space="preserve">
-    <value>外观已在本次运行中生效，但未能保存：{0}</value>
-  </data>
+  <data name="Settings_AppearanceSaveFailed" xml:space="preserve"><value>无法保存设置。{0}</value></data>
   <data name="Cond_PoweredOff" xml:space="preserve">
     <value>关机后可修改</value>
   </data>
@@ -4152,15 +4145,59 @@
   <data name="Storage_Slot" xml:space="preserve">
     <value>插槽</value>
   </data>
-  <data name="Settings_Diagnostics" xml:space="preserve"><value>诊断与日志</value></data>
-  <data name="Settings_EnableLogging" xml:space="preserve"><value>启用运行日志</value></data>
-  <data name="Settings_VerboseDiagnostics" xml:space="preserve"><value>详细诊断模式</value></data>
+  <data name="Settings_Diagnostics" xml:space="preserve"><value>日志</value></data>
+  <data name="Settings_EnableLogging" xml:space="preserve"><value>运行日志</value></data>
+  <data name="Settings_VerboseDiagnostics" xml:space="preserve"><value>详细日志</value></data>
   <data name="Settings_DiagnosticsHint" xml:space="preserve"><value>详细模式会额外记录常规监控采样。日志最多占用 12 MiB。</value></data>
-  <data name="Settings_ExportLogs" xml:space="preserve"><value>导出诊断包</value></data>
-  <data name="Settings_OpenLogs" xml:space="preserve"><value>打开日志文件夹</value></data>
-  <data name="Settings_ClearLogs" xml:space="preserve"><value>清空日志</value></data>
+  <data name="Settings_ExportLogs" xml:space="preserve"><value>导出</value></data>
+  <data name="Settings_OpenLogs" xml:space="preserve"><value>打开目录</value></data>
+  <data name="Settings_ClearLogs" xml:space="preserve"><value>清空</value></data>
   <data name="Settings_ZipType" xml:space="preserve"><value>诊断包 (.zip)</value></data>
   <data name="Settings_Exported" xml:space="preserve"><value>诊断包已保存。</value></data>
   <data name="Settings_ClearConfirm" xml:space="preserve"><value>要删除所有已保留的运行日志吗？启用日志期间，新事件会继续写入。</value></data>
   <data name="Settings_Cleared" xml:space="preserve"><value>运行日志已清空。</value></data>
+  <data name="Settings_System" xml:space="preserve"><value>系统</value></data>
+  <data name="Settings_Preferences" xml:space="preserve"><value>偏好</value></data>
+  <data name="Settings_About" xml:space="preserve"><value>关于</value></data>
+  <data name="Settings_LanguageHelp" xml:space="preserve"><value>更改界面显示语言，切换后立即生效。</value></data>
+  <data name="Settings_ThemeHelp" xml:space="preserve"><value>选择界面的深色或浅色外观，或跟随系统设置。</value></data>
+  <data name="Settings_CopyColor" xml:space="preserve"><value>复制颜色代码</value></data>
+  <data name="Settings_ColorCopied" xml:space="preserve"><value>已复制颜色代码 {0}</value></data>
+  <data name="Settings_AutoStart" xml:space="preserve"><value>开机自启动</value></data>
+  <data name="Settings_AutoStartHelp" xml:space="preserve"><value>登录 Windows 时自动启动 ExHyperV，可选择显示主窗口或静默进入托盘。Windows 可能会请求管理员授权。</value></data>
+  <data name="Settings_NormalStart" xml:space="preserve"><value>正常启动</value></data>
+  <data name="Settings_SilentStart" xml:space="preserve"><value>静默启动</value></data>
+  <data name="Settings_OnClose" xml:space="preserve"><value>关闭主窗口时</value></data>
+  <data name="Settings_OnCloseHelp" xml:space="preserve"><value>选择关闭主窗口后直接退出应用，或最小化到系统托盘继续运行。</value></data>
+  <data name="Settings_Exit" xml:space="preserve"><value>退出应用</value></data>
+  <data name="Settings_ToTray" xml:space="preserve"><value>最小化到托盘</value></data>
+  <data name="Settings_ShowWindow" xml:space="preserve"><value>显示主窗口</value></data>
+  <data name="Settings_TrayUnavailable" xml:space="preserve"><value>无法添加托盘图标，主窗口已保留。</value></data>
+  <data name="Settings_StartupFailed" xml:space="preserve"><value>无法更新 Windows 启动项。{0}</value></data>
+  <data name="Settings_StartupPathUnavailable" xml:space="preserve"><value>找不到应用程序文件。</value></data>
+  <data name="Settings_AutoConsole" xml:space="preserve"><value>启动虚拟机后自动打开控制台</value></data>
+  <data name="Settings_ConsoleSession" xml:space="preserve"><value>默认控制台会话</value></data>
+  <data name="Settings_ConsoleHelp" xml:space="preserve"><value>点击连接或自动打开控制台时默认使用的会话模式。</value></data>
+  <data name="Settings_Basic" xml:space="preserve"><value>基本会话</value></data>
+  <data name="Settings_Enhanced" xml:space="preserve"><value>增强会话</value></data>
+  <data name="Settings_LoggingHelp" xml:space="preserve"><value>在本地记录应用与 Core 的操作信息和异常，滚动日志最多占用 12 MiB。</value></data>
+  <data name="Settings_VerboseHelp" xml:space="preserve"><value>额外记录常规监控采样，用于排查性能或采样异常。</value></data>
+  <data name="Settings_LogManagement" xml:space="preserve"><value>日志管理</value></data>
+  <data name="Settings_LogHelp" xml:space="preserve"><value>可以打开日志目录、导出脱敏的 ZIP 诊断包，或清空已保留的运行日志。</value></data>
+  <data name="Settings_DataFolder" xml:space="preserve"><value>配置与数据目录</value></data>
+  <data name="Settings_DataHelp" xml:space="preserve"><value>打开保存当前用户 ExHyperV 配置和数据的目录。</value></data>
+  <data name="Settings_AboutDescription" xml:space="preserve"><value>为 Windows 上的 Hyper-V，带来现代化桌面体验。</value></data>
+  <data name="Settings_CheckUpdate" xml:space="preserve"><value>检查更新</value></data>
+  <data name="Settings_AutoUpdate" xml:space="preserve"><value>启动时自动检查更新</value></data>
+  <data name="Settings_Docs" xml:space="preserve"><value>官网文档</value></data>
+  <data name="Settings_Feedback" xml:space="preserve"><value>问题反馈</value></data>
+  <data name="Settings_GitHub" xml:space="preserve"><value>GitHub</value></data>
+  <data name="Settings_Sponsor" xml:space="preserve"><value>赞助支持</value></data>
+  <data name="Settings_UpToDate" xml:space="preserve"><value>当前版本为 {0}，暂无更新的稳定版本。</value></data>
+  <data name="Settings_UpdateFound" xml:space="preserve"><value>发现新版本 {0}。</value></data>
+  <data name="Settings_ViewRelease" xml:space="preserve"><value>查看版本</value></data>
+  <data name="Settings_UnknownRelease" xml:space="preserve"><value>无法识别发布版本号。</value></data>
+  <data name="Settings_OpenLinkFailed" xml:space="preserve"><value>Windows 无法打开此链接。</value></data>
+  <data name="Settings_ConsoleLaunchFailed" xml:space="preserve"><value>Windows 无法打开远程桌面连接文件。</value></data>
+  <data name="Settings_UpdateTimeout" xml:space="preserve"><value>检查更新超时，请稍后重试。</value></data>
 </root>

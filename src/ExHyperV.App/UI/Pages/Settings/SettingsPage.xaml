@@ -1,51 +1,73 @@
 <Page x:Class="ExHyperV.App.UI.Pages.Settings.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:feedback="using:ExHyperV.App.UI.Shared.Feedback"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid>
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-    <StackPanel Margin="32" Spacing="24" MaxWidth="800" HorizontalAlignment="Left">
-        <TextBlock x:Name="TitleHeader" Style="{StaticResource PageTitleStyle}" />
-        <Border Style="{StaticResource SectionBorderStyle}" HorizontalAlignment="Stretch">
-            <StackPanel Spacing="20">
-                <TextBlock x:Name="AppearanceSectionHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
-                <ComboBox x:Name="ThemePicker" SelectionChanged="OnThemeChanged" MinWidth="220">
-                    <ComboBoxItem x:Name="ThemeSystemItem" />
-                    <ComboBoxItem x:Name="ThemeLightItem" />
-                    <ComboBoxItem x:Name="ThemeDarkItem" />
-                </ComboBox>
-                <ToggleSwitch x:Name="AccentToggle" Toggled="OnAccentToggled" />
-                <StackPanel x:Name="ColorControls" Spacing="12">
-                    <StackPanel x:Name="ColorSwatches" Orientation="Horizontal" Spacing="8" />
-                    <StackPanel Orientation="Horizontal" Spacing="12">
-                        <Button x:Name="CustomColorButton" Click="OnChooseColor">
-                            <Button.Flyout>
-                                <Flyout x:Name="ColorFlyout">
-                                    <StackPanel Spacing="16">
-                                        <ColorPicker x:Name="AccentPicker" IsAlphaEnabled="False" IsMoreButtonVisible="True" IsHexInputVisible="True" />
-                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                                            <Button x:Name="CancelColorButton" Click="OnCancelColor" />
-                                            <Button x:Name="ApplyColorButton" Click="OnApplyColor" Style="{StaticResource AccentButtonStyle}" />
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:ExHyperV.App.UI.Shared.Controls"
+    xmlns:feedback="using:ExHyperV.App.UI.Shared.Feedback">
+    <Grid Margin="20,20,24,0" ColumnSpacing="18">
+        <Grid.ColumnDefinitions><ColumnDefinition Width="152"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+        <ListView x:Name="Categories" SelectionMode="Single" Margin="0,0,0,24" SelectionChanged="OnCategoryChanged"/>
+        <ScrollViewer x:Name="Body" Grid.Column="1" HorizontalScrollBarVisibility="Disabled" VerticalContentAlignment="Stretch">
+            <Grid Margin="0,0,4,32">
+                <StackPanel x:Name="AppearanceSection" Spacing="10">
+                    <Border Style="{StaticResource SectionBorderStyle}" Padding="17,16">
+                        <StackPanel x:Name="AccentRows" Spacing="12">
+                            <Border BorderThickness="0,1,0,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" Padding="0,12,0,0">
+                                <Grid x:Name="Palette" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <controls:WrapPanel x:Name="Swatches" Spacing="0" VerticalAlignment="Center">
+                                        <Border x:Name="CustomRing" CornerRadius="19" BorderThickness="2" Padding="2">
+                                            <Button x:Name="CustomColor" Width="30" Height="30" MinWidth="0" MinHeight="0" Padding="0" CornerRadius="15">
+                                                <FontIcon x:Name="CustomGlyph" FontSize="14" Glyph="&#xE790;"/>
+                                                <Button.Flyout>
+                                                    <Flyout x:Name="ColorFlyout" Opening="OnChooseColor">
+                                                        <StackPanel Spacing="12">
+                                                            <ColorPicker x:Name="AccentPicker" IsAlphaEnabled="False" IsHexInputVisible="True"/>
+                                                            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="8">
+                                                                <Button x:Name="ApplyColor" Style="{StaticResource AccentButtonStyle}" Click="OnApplyColor"/>
+                                                                <Button x:Name="CancelColor" Click="OnCancelColor"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Flyout>
+                                                </Button.Flyout>
+                                            </Button>
+                                        </Border>
+                                    </controls:WrapPanel>
+                                    <Button x:Name="CopyColor" Grid.Column="1" Height="30" Padding="10,0" Click="OnCopyColor">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <Ellipse x:Name="ColorDot" Width="10" Height="10"/>
+                                            <TextBlock x:Name="Hex" FontFamily="Consolas" FontSize="12"/>
                                         </StackPanel>
-                                    </StackPanel>
-                                </Flyout>
-                            </Button.Flyout>
-                        </Button>
-                        <Button x:Name="ResetColorButton" Click="OnResetColor" />
-                    </StackPanel>
+                                    </Button>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
-                <TextBlock x:Name="ColorHintText" Style="{StaticResource DescriptionStyle}" />
-                <Border Background="{ThemeResource VmHeaderCheckedBrush}" CornerRadius="4" Padding="20,16">
-                    <Grid ColumnSpacing="24">
-                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                        <TextBlock x:Name="ExpandedStateLabel" Foreground="{ThemeResource VmHeaderForegroundBrush}" />
-                        <TextBlock x:Name="ColorValue" Grid.Column="1" Foreground="{ThemeResource VmHeaderForegroundBrush}" />
-                    </Grid>
-                </Border>
-            </StackPanel>
-        </Border>
-    </StackPanel>
-    </ScrollViewer>
-    <feedback:FloatingNoticeBanner x:Name="SaveError" Margin="20" VerticalAlignment="Bottom" />
+                <StackPanel x:Name="SystemSection" Spacing="10" Visibility="Collapsed"/>
+                <StackPanel x:Name="PreferencesSection" Spacing="10" Visibility="Collapsed"/>
+                <StackPanel x:Name="LogsSection" Spacing="10" Visibility="Collapsed"/>
+                <StackPanel x:Name="AboutSection" Visibility="Collapsed" VerticalAlignment="Center" Padding="24,28,24,36" Spacing="16">
+                    <Image Source="ms-appx:///Assets/AppIcon.png" Width="120" Height="120"/>
+                    <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                        <TextBlock Text="ExHyperV" FontSize="26" FontWeight="SemiBold"/>
+                        <Border CornerRadius="16" Padding="10,3" BorderThickness="1" VerticalAlignment="Center"
+                            BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" Background="{ThemeResource ControlFillColorDefaultBrush}">
+                            <TextBlock x:Name="VersionBadge" FontSize="12.5" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                        </Border>
+                    </StackPanel>
+                    <TextBlock x:Name="AboutDescription" TextAlignment="Center" TextWrapping="Wrap" Margin="0,-6,0,0"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+                    <controls:WrapPanel x:Name="AboutActions" HorizontalAlignment="Center" CenterRows="True" Spacing="10" Margin="0,6,0,0"/>
+                    <Border Style="{StaticResource SectionBorderStyle}" CornerRadius="24" Padding="14,6" HorizontalAlignment="Center" Margin="0,4,0,0">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <TextBlock x:Name="AutoUpdateLabel" FontSize="12.5" VerticalAlignment="Center"/>
+                            <ToggleSwitch x:Name="AutoUpdate" OnContent="" OffContent="" MinWidth="0" Toggled="OnAutoUpdate"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+        <feedback:FloatingSuccessToast x:Name="Success" Grid.Column="1" Margin="0,0,0,16"/>
+        <feedback:FloatingNoticeBanner x:Name="Notice" Grid.Column="1" Margin="0,0,0,16" VerticalAlignment="Bottom"/>
     </Grid>
 </Page>

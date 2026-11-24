@@ -1,5 +1,6 @@
 <Window x:Class="ExHyperV.App.UI.Shell.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:feedback="using:ExHyperV.App.UI.Shared.Feedback"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="ExHyperV">
     <Window.SystemBackdrop><MicaBackdrop /></Window.SystemBackdrop>
     <Grid x:Name="Root" Background="Transparent">
@@ -31,5 +32,6 @@
             </NavigationView.FooterMenuItems>
             <ContentControl x:Name="PageContent" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
         </NavigationView>
+        <feedback:FloatingNoticeBanner x:Name="ShellNotice" Grid.Row="1" VerticalAlignment="Bottom" Margin="24"/>
     </Grid>
 </Window>

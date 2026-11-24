@@ -7,6 +7,7 @@ namespace ExHyperV.App.UI.Shared.Controls;
 public partial class WrapPanel : Panel
 {
     public double Spacing { get; set; } = 8;
+    public bool CenterRows { get; set; }
     protected override Size MeasureOverride(Size availableSize)
     {
         double x = 0, y = 0, height = 0, width = 0;
@@ -21,12 +22,27 @@ public partial class WrapPanel : Panel
     }
     protected override Size ArrangeOverride(Size finalSize)
     {
-        double x = 0, y = 0, height = 0;
-        foreach (var child in Children)
+        double y = 0;
+        for (int first = 0; first < Children.Count;)
         {
-            var size = child.DesiredSize;
-            if (x > 0 && x + size.Width > finalSize.Width) { y += height + Spacing; x = 0; height = 0; }
-            child.Arrange(new Rect(x, y, size.Width, size.Height)); x += size.Width + Spacing; height = Math.Max(height, size.Height);
+            double width = Children[first].DesiredSize.Width;
+            double height = Children[first].DesiredSize.Height;
+            int end = first + 1;
+            while (end < Children.Count && width + Spacing + Children[end].DesiredSize.Width <= finalSize.Width)
+            {
+                width += Spacing + Children[end].DesiredSize.Width;
+                height = Math.Max(height, Children[end].DesiredSize.Height);
+                end++;
+            }
+            double x = CenterRows ? Math.Max(0, (finalSize.Width - width) / 2) : 0;
+            for (; first < end; first++)
+            {
+                var child = Children[first];
+                var size = child.DesiredSize;
+                child.Arrange(new Rect(x, y, size.Width, size.Height));
+                x += size.Width + Spacing;
+            }
+            y += height + Spacing;
         }
         return finalSize;
     }

@@ -42,6 +42,7 @@ import '../../shells/win11/win11-tokens.css';
         shielding: false
       };
       let availableVms: Array<Record<string, unknown>> = [vmSnapshot];
+      let openVmIds = new Set<string>();
 
       const ctrl = createConsoleController({
         getVm: () => vmSnapshot,
@@ -49,6 +50,7 @@ import '../../shells/win11/win11-tokens.css';
         getAdvSettings: () => advSnapshot,
         getTheme: () => currentTheme,
         getAccentHex: () => accentHex,
+        getOpenVmIds: () => openVmIds,
         isHostedInWinOnWeb: true,
         onVmPowerChanged: (changedVm: { id?: string; running?: boolean } | undefined) => {
           const target = changedVm || vmSnapshot;
@@ -59,22 +61,27 @@ import '../../shells/win11/win11-tokens.css';
             }).catch(() => {});
           }
         },
-        onTabDragMove: (moveInfo: { active: boolean; clientX: number; clientY: number }) => {
+        onActiveVmChanged: (vmId: string) => {
           if (client.isEmbedded) {
             void client.request('app.event', {
-              channel: 'exhyperv:console-drag-move',
-              payload: moveInfo
+              channel: 'exhyperv:console-active-vm',
+              payload: { vmId }
             }).catch(() => {});
           }
         },
-        onTabDragDrop: (dropInfo: { tabId: string; tabCount: number; clientX: number; clientY: number; payload: Record<string, unknown> }) => {
+        onFocusExistingWindow: (vmId: string) => {
           if (client.isEmbedded) {
             void client.request('app.event', {
-              channel: 'exhyperv:console-drag-drop',
-              payload: {
-                ...dropInfo,
-                payload: { ...dropInfo.payload, availableVms }
-              }
+              channel: 'exhyperv:console-focus-vm',
+              payload: { vmId }
+            }).catch(() => {});
+          }
+        },
+        onOpenNewWindow: (tabPayload: Record<string, unknown>) => {
+          if (client.isEmbedded) {
+            void client.request('app.event', {
+              channel: 'exhyperv:console-new-window',
+              payload: { ...tabPayload, availableVms }
             }).catch(() => {});
           }
         },
@@ -143,8 +150,10 @@ import '../../shells/win11/win11-tokens.css';
             if ((msg.channel === 'exhyperv:console-add-tab' || msg.channel === 'exhyperv:console-sync') && msg.payload) {
               applyLaunchPayload(msg.payload);
               ctrl.openTab(vmSnapshot, advSnapshot);
-            } else if (msg.channel === 'exhyperv:console-drop-accepted' && msg.payload && typeof msg.payload.tabId === 'string') {
-              ctrl.closeTab(msg.payload.tabId);
+            } else if (msg.channel === 'exhyperv:console-open-vms' && msg.payload && Array.isArray(msg.payload.vmIds)) {
+              openVmIds = new Set(msg.payload.vmIds.filter((id): id is string => typeof id === 'string'));
+            } else if (msg.channel === 'exhyperv:console-focus-self') {
+              if (client.isEmbedded) void client.windowControl('focus').catch(() => {});
             }
           }
         }

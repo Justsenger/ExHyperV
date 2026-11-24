@@ -145,24 +145,41 @@ public sealed partial class VmDashboardView
         }
     }
 
-    private void OnConnectClick(object sender, RoutedEventArgs e)
+    private async void OnConnectClick(object sender, RoutedEventArgs e)
     {
         if (current == null) return;
         try
         {
-            string vmconnect = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "vmconnect.exe");
-            if (!System.IO.File.Exists(vmconnect)) vmconnect = "vmconnect.exe";
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = vmconnect,
-                Arguments = $"localhost -G {current.Id:D}",
-                UseShellExecute = true
-            });
+            // VMConnect has no per-launch basic/enhanced switch. Pass the session choice
+            // to the local Hyper-V console endpoint using the Windows RDP client.
+            var mode = ((App)Application.Current).Appearance.Settings.DefaultConsoleSession;
+            await OpenConsoleAsync(current.Id, mode);
         }
         catch (Exception error)
         {
             ShowError(L10n.Format("Dash_ConnectFailed", CoreMessageResolver.ResolveException(error)));
         }
+    }
+
+    private static async Task OpenConsoleAsync(Guid id, ConsoleSessionMode mode)
+    {
+        // Keep one profile per VM and session mode so the shell can open it asynchronously.
+        // Publish it atomically, including when two app instances connect at the same time.
+        string folder = System.IO.Path.Combine(Diagnostics.AppDiagnostics.DataDirectory, "Console");
+        Directory.CreateDirectory(folder);
+        string profile = System.IO.Path.Combine(folder, $"{id:D}-{mode}.rdp");
+        string temporary = profile + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            string blob = mode == ConsoleSessionMode.RdpEnhanced ? $"{id:D};EnhancedMode=1" : id.ToString("D");
+            await File.WriteAllLinesAsync(temporary, (string[])["full address:s:localhost", "server port:i:2179",
+                "negotiate security layer:i:0", $"pcb:s:{blob}", "screen mode id:i:1"], System.Text.Encoding.Unicode);
+            File.Move(temporary, profile, overwrite: true);
+        }
+        finally { File.Delete(temporary); }
+        var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(profile);
+        if (!await Windows.System.Launcher.LaunchFileAsync(file))
+            throw new IOException(L10n.Get("Settings_ConsoleLaunchFailed"));
     }
 
     private void UpdatePowerAppearance()

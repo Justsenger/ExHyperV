@@ -164,6 +164,9 @@ astro-dev-toolbar {
 .fi-fluent {
   font-family: 'FluentSystemIcons-Regular', 'Segoe Fluent Icons', sans-serif;
 }
+.fi-fluent-filled {
+  font-family: 'FluentSystemIcons-Filled', 'FluentSystemIcons-Regular', 'Segoe Fluent Icons', sans-serif;
+}
 .fi-svg {
   width: 1em;
   height: 1em;
@@ -12861,11 +12864,15 @@ button.st-mchain-card:hover {
   --TextFillColorPrimaryBrush: #FFFFFF;
   --TextFillColorSecondaryBrush: rgba(255, 255, 255, 0.78);
   --TextFillColorTertiaryBrush: rgba(255, 255, 255, 0.54);
+  --TextFillColorDisabledBrush: rgba(255, 255, 255, 0.36);
   --ControlFillColorDefaultBrush: rgba(255, 255, 255, 0.0605);
   --ControlFillColorSecondaryBrush: rgba(255, 255, 255, 0.09);
+  --SubtleFillColorSecondaryBrush: rgba(255, 255, 255, 0.0605);
+  --SubtleFillColorTertiaryBrush: rgba(255, 255, 255, 0.04);
   --ControlStrokeColorDefaultBrush: rgba(255, 255, 255, 0.09);
   --CardStrokeColorDefaultBrush: rgba(255, 255, 255, 0.12);
   --DividerStrokeColorDefaultBrush: rgba(255, 255, 255, 0.08);
+  --SystemFillColorSuccessBrush: #6CCB5F;
   --VmHeaderCheckedBrush: #4CC2FF;
   --VmHeaderCheckedHoverBrush: #5BC8FF;
   --VmHeaderForegroundBrush: #000000;
@@ -12898,11 +12905,15 @@ button.st-mchain-card:hover {
   --TextFillColorPrimaryBrush: #1B1B1B;
   --TextFillColorSecondaryBrush: rgba(0, 0, 0, 0.72);
   --TextFillColorTertiaryBrush: rgba(0, 0, 0, 0.52);
+  --TextFillColorDisabledBrush: rgba(0, 0, 0, 0.36);
   --ControlFillColorDefaultBrush: rgba(0, 0, 0, 0.045);
   --ControlFillColorSecondaryBrush: rgba(0, 0, 0, 0.08);
+  --SubtleFillColorSecondaryBrush: rgba(0, 0, 0, 0.0373);
+  --SubtleFillColorTertiaryBrush: rgba(0, 0, 0, 0.0241);
   --ControlStrokeColorDefaultBrush: rgba(0, 0, 0, 0.08);
   --CardStrokeColorDefaultBrush: rgba(0, 0, 0, 0.14);
   --DividerStrokeColorDefaultBrush: rgba(0, 0, 0, 0.08);
+  --SystemFillColorSuccessBrush: #0F7B0F;
 }
 
 .vm-console-window[hidden] {
@@ -12991,62 +13002,105 @@ button.st-mchain-card:hover {
   background: rgba(255, 255, 255, 0.16);
 }
 
-/* TitleBar (Single-row 40px: Brand Drag + Tabs + Minimal Icon Actions) */
+/* TitleBar (Single-row 40px: VM Switcher + Drag Spacer + Stable Action Icons) */
 .console-titlebar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 10px;
-  gap: 8px;
+  padding-left: 8px;
+  gap: 6px;
   background: var(--WindowMicaBg);
   border-bottom: 1px solid var(--DividerStrokeColorDefaultBrush);
   cursor: move;
 }
 
-.console-brand-drag {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 100%;
-  padding-top: 6px;
-  padding-right: 6px;
-  flex-shrink: 0;
-  cursor: move;
-}
-
-.console-brand-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-
-.console-brand-text {
+.console-switcher-btn {
+  height: 28px;
+  width: 248px;
+  padding: 0 9px;
+  border-radius: 5px;
+  border: 1px solid var(--ControlStrokeColorDefaultBrush);
+  background: var(--ControlFillColorDefaultBrush);
+  color: var(--TextFillColorPrimaryBrush);
   font-size: 12.5px;
   font-weight: 600;
-  line-height: 1;
-  color: var(--TextFillColorPrimaryBrush);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.console-switcher-btn:hover {
+  background: var(--ControlFillColorSecondaryBrush);
+}
+
+.console-switcher-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.console-actions-bar {
-  display: inline-flex;
+.console-switcher-caret {
+  font-size: 9px;
+  opacity: 0.72;
+  flex-shrink: 0;
+}
+
+.console-flyout.is-switcher-menu {
+  width: 100%;
+  min-width: 0;
+  padding: 4px;
+  box-sizing: border-box;
+}
+
+.console-switcher-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.console-switcher-row {
+  display: flex;
   align-items: center;
   gap: 2px;
-  height: 100%;
-  padding-top: 4px;
-  flex-shrink: 0;
-  padding-right: 4px;
 }
 
-.console-icon-btn.is-enhanced-on {
-  color: var(--VmHeaderCheckedBrush);
+.console-switcher-item {
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 12.5px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  text-align: left;
 }
 
-.console-icon-btn {
-  width: 30px;
-  height: 28px;
-  border-radius: 5px;
-  border: 1px solid transparent;
+.console-switcher-item:hover {
+  background: var(--ControlFillColorSecondaryBrush);
+}
+
+.console-switcher-item.is-selected {
+  background: color-mix(in srgb, var(--VmHeaderCheckedBrush) 18%, transparent);
+  font-weight: 600;
+}
+
+.console-switcher-pop {
+  width: 26px;
+  height: 30px;
+  border-radius: 4px;
+  border: none;
   background: transparent;
   color: var(--TextFillColorSecondaryBrush);
   font-size: 13px;
@@ -13054,43 +13108,12 @@ button.st-mchain-card:hover {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.console-icon-btn:hover:not(:disabled) {
+.console-switcher-pop:hover {
   background: var(--ControlFillColorSecondaryBrush);
   color: var(--TextFillColorPrimaryBrush);
-}
-
-.console-icon-btn:disabled {
-  opacity: 0.36;
-  cursor: not-allowed;
-}
-
-.console-icon-btn.is-running {
-  color: #6CCB5F;
-}
-
-.console-icon-btn.is-stopped {
-  color: var(--VmHeaderCheckedBrush);
-}
-
-.console-flyout.is-compact-menu {
-  min-width: 196px;
-  padding: 4px;
-}
-
-.console-flyout-item .fi.is-unchecked {
-  opacity: 0;
-}
-
-.console-titlebar-tabs-area {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-  height: 100%;
-  padding-top: 6px;
 }
 
 .console-drag-spacer {
@@ -13098,6 +13121,185 @@ button.st-mchain-card:hover {
   min-width: 48px;
   height: 100%;
   cursor: move;
+}
+
+.console-actions-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  flex-shrink: 0;
+  padding-right: 4px;
+}
+
+.console-actions-bar.is-left {
+  padding-right: 0;
+}
+
+.console-header-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--DividerStrokeColorDefaultBrush);
+  flex-shrink: 0;
+}
+
+.console-icon-btn[hidden],
+.console-split-group[hidden],
+.console-hdr-btn[hidden] {
+  display: none !important;
+}
+
+.console-split-group {
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  transition: background-color 83ms linear;
+}
+
+.console-split-group:hover {
+  background: var(--ControlFillColorDefaultBrush);
+}
+
+.console-split-main {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 4px 0 0 4px;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.console-split-main:hover:not(:disabled) {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+
+.console-split-main.is-running {
+  color: var(--SystemFillColorSuccessBrush);
+}
+
+.console-split-drop {
+  width: 18px;
+  height: 30px;
+  border: none;
+  border-left: 1px solid var(--DividerStrokeColorDefaultBrush);
+  border-radius: 0 4px 4px 0;
+  background: transparent;
+  color: var(--TextFillColorSecondaryBrush);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.console-split-drop:hover {
+  background: var(--SubtleFillColorSecondaryBrush);
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.console-hdr-btn {
+  height: 30px;
+  padding: 0 7px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-family: inherit;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 83ms linear, border-color 83ms linear, color 83ms linear;
+}
+
+.console-hdr-btn:hover:not(:disabled) {
+  background: var(--SubtleFillColorSecondaryBrush);
+}
+
+.console-hdr-btn:active:not(:disabled) {
+  background: var(--SubtleFillColorTertiaryBrush);
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.console-hdr-btn:disabled {
+  color: var(--TextFillColorDisabledBrush);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.console-hdr-icon {
+  font-size: 16px;
+}
+
+.console-btn-caret {
+  font-size: 9px;
+  opacity: 0.72;
+  margin-left: -1px;
+}
+
+.console-icon-btn {
+  width: 32px;
+  height: 30px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--TextFillColorPrimaryBrush);
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 83ms linear, border-color 83ms linear, color 83ms linear;
+}
+
+.console-icon-btn:hover:not(:disabled) {
+  background: var(--SubtleFillColorSecondaryBrush);
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.console-icon-btn:active:not(:disabled) {
+  background: var(--SubtleFillColorTertiaryBrush);
+  color: var(--TextFillColorSecondaryBrush);
+}
+
+.console-icon-btn:disabled {
+  color: var(--TextFillColorDisabledBrush);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.console-icon-btn.is-running {
+  color: var(--SystemFillColorSuccessBrush);
+}
+
+.console-icon-btn.is-checked {
+  background: color-mix(in srgb, var(--VmHeaderCheckedBrush) 16%, transparent);
+  border-color: color-mix(in srgb, var(--VmHeaderCheckedBrush) 32%, transparent);
+  color: var(--TextFillColorPrimaryBrush);
+}
+
+.console-icon-btn.is-checked:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--VmHeaderCheckedBrush) 22%, transparent);
+  border-color: color-mix(in srgb, var(--VmHeaderCheckedBrush) 42%, transparent);
+}
+
+.console-flyout-item .fi-fluent,
+.console-flyout-item .fi-fluent-filled {
+  font-size: 15px;
+}
+
+.console-flyout.is-compact-menu {
+  min-width: 172px;
+  padding: 4px;
 }
 
 .console-tabs-strip {
@@ -13893,25 +14095,32 @@ button.st-mchain-card:hover {
 .app-settings-root {
   height: 100%;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
 }
 
-.app-settings-header {
-  padding: 16px 24px 0;
-  flex-shrink: 0;
+.app-settings-shell {
+  height: 100%;
+  display: grid;
+  grid-template-columns: 152px minmax(0, 1fr);
+  gap: 18px;
+  padding: 20px 24px 0 20px;
+  box-sizing: border-box;
 }
 
-.app-settings-tabs {
-  margin: 0;
+.app-settings-nav-pane {
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.app-settings-nav-pane .settings-subnav {
+  width: 100%;
 }
 
 .app-settings-body {
-  flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 24px 32px;
+  padding: 0 4px 32px 0;
   box-sizing: border-box;
 }
 
@@ -13919,6 +14128,7 @@ button.st-mchain-card:hover {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 100%;
 }
 
 .app-settings-about-showcase {
