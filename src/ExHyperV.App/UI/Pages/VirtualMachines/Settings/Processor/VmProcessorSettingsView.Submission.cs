@@ -41,7 +41,7 @@ public sealed partial class VmProcessorSettingsView
         var hostTask = ReadHostCapabilitiesAsync();
         var contextTask = ReadContextAsync();
         var maxCpuTask = VmProcessorService.GetHostMaxVirtualCpuCountAsync(VmId);
-        await Task.WhenAll(settingsTask, hostTask, contextTask, maxCpuTask);
+        await Task.WhenAll(settingsTask, hostTask, contextTask, maxCpuTask).WaitAsync(CancellationToken);
         var observation = (await settingsTask).RequireData();
         var settings = observation.Values;
         host = await hostTask;
@@ -130,7 +130,8 @@ public sealed partial class VmProcessorSettingsView
             if (result.Success) NotifyChanged();
         }
         catch (Exception ex) { failure = ex; if (ex is CoreOperationException core && core.Result.ErrorKind == ApiErrorKind.OutcomeUnknown) uncertain = true; }
-        try { await LoadAsync(); }
+        try { if (!IsStopped) await LoadAsync(); }
+        catch (OperationCanceledException) when (IsStopped) { }
         catch (Exception ex) { failure ??= ex; }
         foreach (var draft in otherDrafts)
             if (draft.Field.IsFieldEnabled) draft.Field.RestoreDraft(draft.Draft);

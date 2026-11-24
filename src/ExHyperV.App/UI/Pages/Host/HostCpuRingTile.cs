@@ -328,7 +328,8 @@ internal sealed partial class HostCpuRingTile : UserControl
     public void ShowUnavailable()
     {
         pctLabel.Text = "—";
-        ring.Update(Colors.Transparent, [], null);
+        var trackColor = ActualTheme == ElementTheme.Light ? Colors.Black : Colors.White;
+        ring.Update(Color.FromArgb(24, trackColor.R, trackColor.G, trackColor.B), [], null);
         tipRows.Children.Clear();
     }
 

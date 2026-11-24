@@ -86,6 +86,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
     private Task? stopping;
     private readonly List<string> stopFailures = [];
     private ContentDialog? dialog;
+    private Border? renameEditor;
     private bool started, stopped, busy, checkpointsEnabled, dragging, stateAvailable, isFullscreen, hasUserTransform;
     private double zoom = 1.0;
     private Point? pointerPosition;
@@ -175,6 +176,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         stopFailures.Clear();
         stopped = true;
         SetFullscreen(false);
+        CloseRenameEditor();
         dialog?.Hide();
         await operation;
         if (stopFailures.Count == 0) return;
@@ -190,7 +192,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
 
     private void OnPreviewKeyDown(object sender, KeyRoutedEventArgs args)
     {
-        if (args.Key == VirtualKey.Escape && isFullscreen && dialog == null)
+        if (args.Key == VirtualKey.Escape && isFullscreen && dialog == null && renameEditor == null)
         {
             SetFullscreen(false);
             args.Handled = true;
@@ -389,28 +391,15 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         if (action == "Cp_Delete" && !VmCheckpointService.CanMutateHistoricalNode(node, nodes)) return;
 
         var affected = Descendants(nodes, node.Id);
-        var sep = L10n.Get("Common_ListSeparator");
-        var childNames = string.Join(sep, affected.Take(4).Select(n => n.Name)) + (affected.Count > 4 ? " ..." : "");
-        string parentName = nodes.FirstOrDefault(n =>
-            string.Equals(n.Id, node.ParentId, StringComparison.OrdinalIgnoreCase))?.Name ?? "";
-
-        string body = action switch
+        if (action == "Cp_Delete")
         {
-            "Cp_Delete" => affected.Count > 0
-                ? L10n.Format("Cp_DeleteBranchBody", node.Name, affected.Count, childNames)
-                : L10n.Format("Cp_DeleteLeafBody", node.Name),
-            "Cp_Merge" => L10n.Format("Cp_MergeConfirmBody", node.Name, parentName),
-            _ => L10n.Format("Cp_RestoreConfirmBody", node.Name)
-        };
-
-        string title = L10n.Get(action);
-        string acceptLabel = L10n.Get(action switch
-        {
-            "Cp_Delete" => "Cp_MenuDelete",
-            "Cp_Merge" => "Cp_MenuMerge",
-            _ => "Cp_MenuApply"
-        });
-        if (!await ConfirmAsync(title, body, acceptLabel)) return;
+            var names = string.Join(L10n.Get("Common_ListSeparator"), affected.Take(4).Select(n => n.Name));
+            if (affected.Count > 4) names += " ...";
+            string body = affected.Count > 0
+                ? L10n.Format("Cp_DeleteBranchBody", node.Name, affected.Count, names)
+                : L10n.Format("Cp_DeleteLeafBody", node.Name);
+            if (!await ConfirmAsync(L10n.Get(action), body, L10n.Get("Cp_MenuDelete"))) return;
+        }
 
         if (action is "Cp_Delete" or "Cp_Merge")
         {
@@ -438,33 +427,55 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         }, nextSelectedId);
     }
 
-    private async Task RenameAsync(CheckpointNode node)
+    private void ShowRenameEditor(CheckpointNode node)
     {
-        if (PendingWrites.ContainsKey(vmId)) return;
-        var input = new TextBox { Text = node.Name, MinWidth = 280, Header = L10n.Get("Cp_RenameLabel") };
-        dialog = new ContentDialog
+        if (busy || stopped || PendingWrites.ContainsKey(vmId) || !cardVisuals.TryGetValue(node.Id, out var card)) return;
+        var input = new TextBox { Text = node.Name, Width = 168 };
+        AutomationProperties.SetName(input, L10n.Get("Cp_RenameLabel"));
+        var save = new Button { Content = L10n.Get("Cp_SaveAction") };
+        var cancel = new Button { Content = L10n.Get("Common_Cancel") };
+        CloseRenameEditor();
+        var editor = renameEditor = new Border
         {
-            XamlRoot = XamlRoot,
-            Title = L10n.Get("Cp_MenuRename"),
-            Content = input,
-            PrimaryButtonText = L10n.Get("Cp_SaveAction"),
-            CloseButtonText = L10n.Get("Common_Cancel"),
-            DefaultButton = ContentDialogButton.Primary
+            Padding = new Thickness(6), CornerRadius = new CornerRadius(6),
+            Background = Brush("LayerFillColorDefaultBrush"),
+            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { input, save, cancel } }
         };
-        dialog.Opened += (_, _) =>
+        void Commit()
         {
-            input.Focus(FocusState.Programmatic);
-            input.SelectAll();
+            string name = input.Text.Trim();
+            if (name.Length == 0) return;
+            CloseRenameEditor();
+            if (!stopped && !busy && !PendingWrites.ContainsKey(vmId) && name != node.Name)
+                operation = RunAsync(() => MutateAsync(() => VmCheckpointService.RenameSnapshotAsync(vmId, node, name), node.Id));
+        }
+        save.Click += (_, _) => Commit();
+        cancel.Click += (_, _) => CloseRenameEditor();
+        input.KeyDown += (_, e) =>
+        {
+            if (e.Key == VirtualKey.Enter) { e.Handled = true; Commit(); }
+            else if (e.Key == VirtualKey.Escape) { e.Handled = true; CloseRenameEditor(); }
         };
-        ContentDialogResult result;
-        try { result = await dialog.ShowAsync(); }
-        finally { dialog = null; }
-        if (stopped || result != ContentDialogResult.Primary || string.IsNullOrWhiteSpace(input.Text) || input.Text.Trim() == node.Name) return;
-        await MutateAsync(() => VmCheckpointService.RenameSnapshotAsync(vmId, node, input.Text.Trim()), node.Id);
+        Canvas.SetLeft(editor, Canvas.GetLeft(card.Host));
+        Canvas.SetTop(editor, Canvas.GetTop(card.Host) + CardHeight + 4);
+        Canvas.SetZIndex(editor, 200);
+        canvas.Children.Add(editor);
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (renameEditor == editor) { input.Focus(FocusState.Programmatic); input.SelectAll(); }
+        });
+    }
+
+    private void CloseRenameEditor()
+    {
+        if (renameEditor == null) return;
+        canvas.Children.Remove(renameEditor);
+        renameEditor = null;
     }
 
     private void DrawTree()
     {
+        CloseRenameEditor();
         canvas.Children.Clear();
         positions.Clear();
         cardVisuals.Clear();
@@ -649,6 +660,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
     private void SelectNodeInPlace(CheckpointNode node)
     {
         if (selected?.Id == node.Id) return;
+        CloseRenameEditor();
         selected = node;
         foreach (var entry in cardVisuals)
         {
@@ -710,7 +722,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
             Icon = new FontIcon { FontFamily = AppFonts.SegoeFluent, Glyph = "\uE70F" },
             IsEnabled = !blockedByPending
         };
-        renameItem.Click += (_, _) => { selected = node; operation = RunAsync(() => RenameAsync(node)); };
+        renameItem.Click += (_, _) => { selected = node; ShowRenameEditor(node); };
         menu.Items.Add(renameItem);
 
         menu.Items.Add(new MenuFlyoutSeparator());

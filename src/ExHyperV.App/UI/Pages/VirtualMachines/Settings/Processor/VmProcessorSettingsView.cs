@@ -95,6 +95,7 @@ public sealed partial class VmProcessorSettingsView : VmSettingsView
     {
         if (index != 1 || affinityView != null || IsStopped) return;
         affinityView = new VmCpuAffinitySettingsView(VmId);
+        BindChildFeedback(affinityView);
         affinityView.Changed += (_, _) => NotifyChanged();
         affinityView.BusyChanged += SetNestedBusy;
         affinitySection.Child = affinityView;

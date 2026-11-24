@@ -1,7 +1,4 @@
 
-using ExHyperV.App.Diagnostics;
-using ExHyperV.App.UI.Shared;
-using ExHyperV.App.UI.Shared.Feedback;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
 using Microsoft.UI.Xaml.Automation;
@@ -45,20 +42,7 @@ public sealed partial class SettingsPage : Page
 
     private void ApplyLocalization()
     {
-        DiagnosticsHeader.Text = L10n.Get("Settings_Diagnostics");
-        LoggingToggle.Header = L10n.Get("Settings_EnableLogging");
-        VerboseToggle.Header = L10n.Get("Settings_VerboseDiagnostics");
-        LoggingToggle.OnContent = VerboseToggle.OnContent = L10n.Get("Common_On");
-        LoggingToggle.OffContent = VerboseToggle.OffContent = L10n.Get("Common_Off");
-        DiagnosticsHint.Text = L10n.Get("Settings_DiagnosticsHint");
-        ExportLogs.Content = L10n.Get("Settings_ExportLogs");
-        OpenLogs.Content = L10n.Get("Settings_OpenLogs");
-        ClearLogs.Content = L10n.Get("Settings_ClearLogs");
         TitleHeader.Text = L10n.Get("Settings_Title");
-        LanguageSectionHeader.Text = L10n.Get("Settings_LanguageGroup");
-        LanguagePicker.Header = L10n.Get("Settings_Language");
-        LangZhCnItem.Content = L10n.Get("Settings_Language_ZhCn");
-        LangSystemItem.Content = L10n.Get("Settings_Language_System");
         AppearanceSectionHeader.Text = L10n.Get("Settings_Appearance");
         ThemePicker.Header = L10n.Get("Settings_Theme");
         ThemeSystemItem.Content = L10n.Get("Settings_Theme_System");
@@ -80,23 +64,13 @@ public sealed partial class SettingsPage : Page
             AutomationProperties.SetName(button, colorName);
             ToolTipService.SetToolTip(button, colorName);
         }
-        if (LanguageNotice.IsOpen) LanguageNotice.Message = L10n.Get("Settings_Language_RestartHint");
     }
 
     private void UpdateControls()
     {
         updating = true;
         var settings = appearance.Settings;
-        LanguagePicker.SelectedIndex = L10n.NormalizePreference(settings.Language) switch
-        {
-            "zh-CN" => 1,
-            "en" => 2,
-            _ => 0
-        };
         ThemePicker.SelectedIndex = settings.Theme switch { ElementTheme.Light => 1, ElementTheme.Dark => 2, _ => 0 };
-        LoggingToggle.IsOn = settings.LoggingEnabled;
-        VerboseToggle.IsOn = settings.VerboseDiagnostics;
-        VerboseToggle.IsEnabled = settings.LoggingEnabled;
         AccentToggle.IsOn = settings.AccentEnabled;
         foreach (var button in ColorControls.Children.OfType<StackPanel>().SelectMany(panel => panel.Children).OfType<Button>())
             button.IsEnabled = settings.AccentEnabled;
@@ -113,71 +87,9 @@ public sealed partial class SettingsPage : Page
     private void Apply(AppearanceSettings settings)
     {
         string? error = appearance.Set(settings);
-        SaveError.Message = error ?? string.Empty;
-        SaveError.IsOpen = error != null;
+        if (error == null) SaveError.Hide();
+        else SaveError.Show(error);
         UpdateControls();
-    }
-
-    private void OnLoggingChanged(object sender, RoutedEventArgs args)
-    {
-        if (updating) return;
-        var settings = appearance.Settings with { LoggingEnabled = LoggingToggle.IsOn, VerboseDiagnostics = VerboseToggle.IsOn };
-        AppDiagnostics.Configure(settings);
-        Apply(settings);
-    }
-
-    private async void OnExportLogs(object sender, RoutedEventArgs args) => await UiEvent.RunAsync(async () =>
-    {
-        ExportLogs.IsEnabled = false;
-        try
-        {
-            var path = await StoragePickers.SaveAsync($"ExHyperV-{DateTime.Now:yyyyMMdd-HHmmss}.zip", L10n.Get("Settings_ZipType"), ".zip");
-            if (path == null) return;
-            await AppDiagnostics.ExportAsync(path, appearance.Settings);
-            ShowDiagnosticsNotice(L10n.Get("Settings_Exported"));
-        }
-        finally { ExportLogs.IsEnabled = true; }
-    }, ShowDiagnosticsError);
-
-    private async void OnOpenLogs(object sender, RoutedEventArgs args) => await UiEvent.RunAsync(() =>
-    {
-        Directory.CreateDirectory(AppDiagnostics.DirectoryPath);
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(AppDiagnostics.DirectoryPath) { UseShellExecute = true })?.Dispose();
-        return Task.CompletedTask;
-    }, ShowDiagnosticsError);
-
-    private async void OnClearLogs(object sender, RoutedEventArgs args) => await UiEvent.RunAsync(async () =>
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot, RequestedTheme = ActualTheme, Title = L10n.Get("Settings_ClearLogs"),
-            Content = L10n.Get("Settings_ClearConfirm"), PrimaryButtonText = L10n.Get("Settings_ClearLogs"),
-            CloseButtonText = L10n.Get("Common_Cancel"), DefaultButton = ContentDialogButton.Close
-        };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-        await AppDiagnostics.ClearAsync();
-        ShowDiagnosticsNotice(L10n.Get("Settings_Cleared"));
-    }, ShowDiagnosticsError);
-
-    private void ShowDiagnosticsError(string message) => ShowDiagnosticsNotice(message, InfoBarSeverity.Error);
-
-    private void ShowDiagnosticsNotice(string message, InfoBarSeverity severity = InfoBarSeverity.Success)
-    {
-        DiagnosticsNotice.Message = message;
-        DiagnosticsNotice.Severity = severity;
-        DiagnosticsNotice.IsOpen = true;
-    }
-
-    private void OnLanguageChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (updating) return;
-        string lang = (LanguagePicker.SelectedItem as ComboBoxItem)?.Tag as string ?? "system";
-        L10n.ApplyLanguage(lang);
-        Apply(appearance.Settings with { Language = L10n.NormalizePreference(lang) });
-        ApplyLocalization();
-        UpdateControls();
-        LanguageNotice.Message = L10n.Get("Settings_Language_RestartHint");
-        LanguageNotice.IsOpen = true;
     }
 
     private void OnThemeChanged(object sender, SelectionChangedEventArgs args)

@@ -81,7 +81,7 @@ public sealed partial class VmStorageSettingsView
                 progress.Report((i, 100, step.Label + L10n.Get("Common_Completed")));
             }
             return ApiResponse.Ok();
-        }, item.DeviceToken);
+        }, item.DeviceToken, inlineEdit: d.ResizeDirty || d.TypeDirty ? null : d);
     }
 
     private static bool SameFile(VmStorageAttachment a, VmStorageAttachment b) =>

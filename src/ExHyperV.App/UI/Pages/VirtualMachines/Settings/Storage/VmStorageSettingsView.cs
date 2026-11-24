@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Controls;
+using ExHyperV.App.UI.Shared.Feedback;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
@@ -59,7 +60,6 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
             SetHeaderTrailingAction(null);
             page.Children.Clear();
             if (unresolvedChanges.TryGetValue(VmId, out var warning)) page.Children.Add(Banner(warning, InfoBarSeverity.Error));
-            page.Children.Add(Text(L10n.Get("Storage_LoadingDevices"), 13));
         }
         try { await ReadSnapshotAsync(); }
         catch (Exception ex) when (!IsStopped)
@@ -129,7 +129,6 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
 
     private void RenderList()
     {
-        SetHeaderTrailingAction(Command(L10n.Get("Host_Switches_Refresh"), () => _ = RunAsync(LoadAsync)));
         var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
         var hoverBrush = ThemeHelper.ThemeBrush(this, "SubtleFillColorTertiaryBrush");
 
@@ -191,12 +190,12 @@ public sealed partial class VmStorageSettingsView : VmSettingsView
             }
             var identity = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { heading, subtitle } };
 
-            var gear = IconButton(this, "\uF6AA", L10n.Get("Storage_DeviceSettingsTools"), () => _ = RunAsync(() => OpenDetailsAsync(item)), useFluentFont: true);
+            var gear = IconButton(this, "\uF6AA", L10n.Get("Storage_DeviceSettingsTools"), () => _ = UiEvent.RunAsync(() => OpenDetailsAsync(item), message => ShowError(message)), useFluentFont: true);
             var media = item.HasIsoMedia
                 ? IconButton(this, "\uE0BE", L10n.Get("Storage_EjectIso"), () => _ = RunAsync(() => RunSingleAsync(L10n.Get("Storage_EjectIso"),
-                    () => VmStorageService.ModifyDvdDrivePathAsync(VmId, item, ""))), useFluentFont: true)
+                    () => VmStorageService.ModifyDvdDrivePathAsync(VmId, item, ""), openList: true)), useFluentFont: true)
                 : IconButton(this, "\uF60A", L10n.Get("Storage_RemoveDevice"), () => _ = RunAsync(() => RunSingleAsync(L10n.Get("Storage_RemoveDevice"),
-                    () => VmStorageService.RemoveDriveAsync(VmId, item))), useFluentFont: true);
+                    () => VmStorageService.RemoveDriveAsync(VmId, item), openList: true)), useFluentFont: true);
             ((FontIcon)gear.Content).FontSize = ((FontIcon)media.Content).FontSize = 16;
             gear.Tapped += (_, e) => e.Handled = true;
             media.Tapped += (_, e) => e.Handled = true;

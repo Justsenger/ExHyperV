@@ -42,6 +42,15 @@ public sealed partial class VirtualMachinesPage : Page
 
     private async void OnLoaded(object sender, RoutedEventArgs args) => await UiEvent.RunAsync(async () =>
     {
+        if (loadedOnce)
+        {
+            if (ViewModel.Selected is { } vm && ReferenceEquals(vm, Dashboard.SelectedVm))
+            {
+                SetImmersiveMode(Dashboard.IsSettingsImmersive);
+                Dashboard.StartMonitoring(vm.Id);
+                return;
+            }
+        }
         if (loadedOnce) { await Dashboard.SelectAsync(ViewModel.Selected); return; }
         loadedOnce = true;
         await ViewModel.RefreshCommand.ExecuteAsync(null);
@@ -60,8 +69,6 @@ public sealed partial class VirtualMachinesPage : Page
         ViewModel.Cancel();
         await (ViewModel.RefreshCommand.ExecutionTask ?? Task.CompletedTask);
     }
-    public Task<bool> PrepareToLeaveAsync() => Dashboard.TryCloseSettingsAsync();
-
     internal void SetImmersiveMode(bool immersive)
     {
         VmListPanel.Visibility = immersive ? Visibility.Collapsed : Visibility.Visible;

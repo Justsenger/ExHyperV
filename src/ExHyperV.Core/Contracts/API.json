@@ -3507,8 +3507,8 @@
           "GPU"
         ]
       ],
-      "signature": "public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message,\n    IReadOnlyList\u003CGpuDeploymentPartition\u003E Partitions, bool CanGoBack = false)",
-      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-640fbb80511f3d56\u0022\u003EGpuDecisionRequest\u003C/a\u003E(Guid Id, \u003Ca href=\u0022#api-16bfedc8ae936ed7\u0022\u003EGpuDecisionKind\u003C/a\u003E Kind, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Title, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message,\n    IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-3b253a4b4e7b8932\u0022\u003EGpuDeploymentPartition\u003C/a\u003E\u0026gt; Partitions, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E CanGoBack = \u003Cspan class=\u0022keyword\u0022\u003Efalse\u003C/span\u003E)",
+      "signature": "public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message,\r\n    IReadOnlyList\u003CGpuDeploymentPartition\u003E Partitions, bool CanGoBack = false)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-640fbb80511f3d56\u0022\u003EGpuDecisionRequest\u003C/a\u003E(Guid Id, \u003Ca href=\u0022#api-16bfedc8ae936ed7\u0022\u003EGpuDecisionKind\u003C/a\u003E Kind, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Title, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message,\r\n    IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-3b253a4b4e7b8932\u0022\u003EGpuDeploymentPartition\u003C/a\u003E\u0026gt; Partitions, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E CanGoBack = \u003Cspan class=\u0022keyword\u0022\u003Efalse\u003C/span\u003E)",
       "baseTypeHtml": "",
       "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;GpuDecisionRequest\u0026gt;\u003C/code\u003E",
       "derivedTypesHtml": "",
@@ -4807,8 +4807,8 @@
           "GPU"
         ]
       ],
-      "signature": "public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulong SizeInBytes,\n    OperatingSystemType OsType, string TypeDescription, string DiskPath, string DiskDisplayName,\n    bool IsPhysicalDisk, bool IsBitLocker)",
-      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-3b253a4b4e7b8932\u0022\u003EGpuDeploymentPartition\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Id, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E PartitionNumber, \u003Cspan class=\u0022keyword\u0022\u003Eulong\u003C/span\u003E SizeInBytes,\n    \u003Ca href=\u0022#api-f9be4f964cd193ac\u0022\u003EOperatingSystemType\u003C/a\u003E OsType, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E TypeDescription, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DiskPath, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DiskDisplayName,\n    \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsPhysicalDisk, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsBitLocker)",
+      "signature": "public sealed record GpuDeploymentPartition(string Id, int PartitionNumber, ulong SizeInBytes,\r\n    OperatingSystemType OsType, string TypeDescription, string DiskPath, string DiskDisplayName,\r\n    bool IsPhysicalDisk, bool IsBitLocker)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-3b253a4b4e7b8932\u0022\u003EGpuDeploymentPartition\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Id, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E PartitionNumber, \u003Cspan class=\u0022keyword\u0022\u003Eulong\u003C/span\u003E SizeInBytes,\r\n    \u003Ca href=\u0022#api-f9be4f964cd193ac\u0022\u003EOperatingSystemType\u003C/a\u003E OsType, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E TypeDescription, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DiskPath, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DiskDisplayName,\r\n    \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsPhysicalDisk, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsBitLocker)",
       "baseTypeHtml": "",
       "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;GpuDeploymentPartition\u0026gt;\u003C/code\u003E",
       "derivedTypesHtml": "",
@@ -6078,8 +6078,8 @@
           "GPU"
         ]
       ],
-      "signature": "public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDeploymentState State,\n    IReadOnlyList\u003CGpuDeploymentStep\u003E Steps, GpuDecisionRequest? PendingDecision,\n    IReadOnlyList\u003CGpuDeploymentAction\u003E AllowedActions, bool HasAddedAdapter, bool HasPendingCleanup,\n    string? Error = null, string? CleanupError = null, string? LastLog = null)",
-      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E(Guid SessionId, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E Revision, \u003Ca href=\u0022#api-b4fe6c09c7a1b03c\u0022\u003EGpuDeploymentState\u003C/a\u003E State,\n    IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-456c5ce4936ed611\u0022\u003EGpuDeploymentStep\u003C/a\u003E\u0026gt; Steps, \u003Ca href=\u0022#api-640fbb80511f3d56\u0022\u003EGpuDecisionRequest\u003C/a\u003E? PendingDecision,\n    IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-ab1e60fe73d6e64d\u0022\u003EGpuDeploymentAction\u003C/a\u003E\u0026gt; AllowedActions, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasAddedAdapter, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasPendingCleanup,\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Error = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? CleanupError = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LastLog = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E)",
+      "signature": "public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDeploymentState State,\r\n    IReadOnlyList\u003CGpuDeploymentStep\u003E Steps, GpuDecisionRequest? PendingDecision,\r\n    IReadOnlyList\u003CGpuDeploymentAction\u003E AllowedActions, bool HasAddedAdapter, bool HasPendingCleanup,\r\n    string? Error = null, string? CleanupError = null, string? LastLog = null)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E(Guid SessionId, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E Revision, \u003Ca href=\u0022#api-b4fe6c09c7a1b03c\u0022\u003EGpuDeploymentState\u003C/a\u003E State,\r\n    IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-456c5ce4936ed611\u0022\u003EGpuDeploymentStep\u003C/a\u003E\u0026gt; Steps, \u003Ca href=\u0022#api-640fbb80511f3d56\u0022\u003EGpuDecisionRequest\u003C/a\u003E? PendingDecision,\r\n    IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-ab1e60fe73d6e64d\u0022\u003EGpuDeploymentAction\u003C/a\u003E\u0026gt; AllowedActions, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasAddedAdapter, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasPendingCleanup,\r\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Error = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? CleanupError = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LastLog = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E)",
       "baseTypeHtml": "",
       "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;GpuDeploymentSnapshot\u0026gt;\u003C/code\u003E",
       "derivedTypesHtml": "",
@@ -21149,8 +21149,8 @@
           "\u5B58\u50A8"
         ]
       ],
-      "signature": "public sealed record VmDiskChainNode(int Depth, string Path, string? Format = null, string? VhdType = null,\n    Guid? LinkageId = null, Guid? ParentIdentifier = null, bool IdMismatchIgnored = false)",
-      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-cd8e086301e74102\u0022\u003EVmDiskChainNode\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E Depth, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Path, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Format = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? VhdType = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E,\n    Guid? LinkageId = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, Guid? ParentIdentifier = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IdMismatchIgnored = \u003Cspan class=\u0022keyword\u0022\u003Efalse\u003C/span\u003E)",
+      "signature": "public sealed record VmDiskChainNode(int Depth, string Path, string? Format = null, string? VhdType = null,\r\n    Guid? LinkageId = null, Guid? ParentIdentifier = null, bool IdMismatchIgnored = false)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-cd8e086301e74102\u0022\u003EVmDiskChainNode\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E Depth, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Path, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Format = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? VhdType = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E,\r\n    Guid? LinkageId = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, Guid? ParentIdentifier = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IdMismatchIgnored = \u003Cspan class=\u0022keyword\u0022\u003Efalse\u003C/span\u003E)",
       "baseTypeHtml": "",
       "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;VmDiskChainNode\u0026gt;\u003C/code\u003E",
       "derivedTypesHtml": "",
@@ -24935,8 +24935,8 @@
           "\u5347\u7EA7"
         ]
       ],
-      "signature": "public sealed record VmGenerationUpgradeResult(VmGenerationUpgradeStatus Status, Guid OldVmId, Guid? NewVmId,\n    string? ConfigurationDirectory, string? SystemDiskPath, string? FailedStage, string? Error,\n    IReadOnlyList\u003Cstring\u003E RetainedPaths)",
-      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-59c22efd11960c6c\u0022\u003EVmGenerationUpgradeResult\u003C/a\u003E(\u003Ca href=\u0022#api-13470405c86b4bc9\u0022\u003EVmGenerationUpgradeStatus\u003C/a\u003E Status, Guid OldVmId, Guid? NewVmId,\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? ConfigurationDirectory, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? SystemDiskPath, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? FailedStage, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Error,\n    IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; RetainedPaths)",
+      "signature": "public sealed record VmGenerationUpgradeResult(VmGenerationUpgradeStatus Status, Guid OldVmId, Guid? NewVmId,\r\n    string? ConfigurationDirectory, string? SystemDiskPath, string? FailedStage, string? Error,\r\n    IReadOnlyList\u003Cstring\u003E RetainedPaths)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-59c22efd11960c6c\u0022\u003EVmGenerationUpgradeResult\u003C/a\u003E(\u003Ca href=\u0022#api-13470405c86b4bc9\u0022\u003EVmGenerationUpgradeStatus\u003C/a\u003E Status, Guid OldVmId, Guid? NewVmId,\r\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? ConfigurationDirectory, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? SystemDiskPath, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? FailedStage, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Error,\r\n    IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; RetainedPaths)",
       "baseTypeHtml": "",
       "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;VmGenerationUpgradeResult\u0026gt;\u003C/code\u003E",
       "derivedTypesHtml": "",
@@ -36687,8 +36687,8 @@
           "\u5B58\u50A8"
         ]
       ],
-      "signature": "public sealed record VmPassthroughCandidate(HostDiskInfo? Disk, HostOpticalDriveInfo? OpticalDrive,\n    VmPassthroughAvailability Availability, Guid? OwnerVmId, string Message)",
-      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-6efeb44af4edbef9\u0022\u003EVmPassthroughCandidate\u003C/a\u003E(\u003Ca href=\u0022#api-4999a42e73dce6e6\u0022\u003EHostDiskInfo\u003C/a\u003E? Disk, \u003Ca href=\u0022#api-b89e91519a465463\u0022\u003EHostOpticalDriveInfo\u003C/a\u003E? OpticalDrive,\n    \u003Ca href=\u0022#api-7d0121a84c691b55\u0022\u003EVmPassthroughAvailability\u003C/a\u003E Availability, Guid? OwnerVmId, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message)",
+      "signature": "public sealed record VmPassthroughCandidate(HostDiskInfo? Disk, HostOpticalDriveInfo? OpticalDrive,\r\n    VmPassthroughAvailability Availability, Guid? OwnerVmId, string Message)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-6efeb44af4edbef9\u0022\u003EVmPassthroughCandidate\u003C/a\u003E(\u003Ca href=\u0022#api-4999a42e73dce6e6\u0022\u003EHostDiskInfo\u003C/a\u003E? Disk, \u003Ca href=\u0022#api-b89e91519a465463\u0022\u003EHostOpticalDriveInfo\u003C/a\u003E? OpticalDrive,\r\n    \u003Ca href=\u0022#api-7d0121a84c691b55\u0022\u003EVmPassthroughAvailability\u003C/a\u003E Availability, Guid? OwnerVmId, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message)",
       "baseTypeHtml": "",
       "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;VmPassthroughCandidate\u0026gt;\u003C/code\u003E",
       "derivedTypesHtml": "",
@@ -42919,8 +42919,8 @@
           "\u5B58\u50A8"
         ]
       ],
-      "signature": "public sealed record VmResizeSafety(VmDiskInspection Access, long? CurrentCapacityBytes, long MaximumGiB,\n    long? MinimumInternalSizeBytes, long? LastPartitionEndBytes, long? SafeMinimumGiB,\n    VmPartitionLayoutMode Layout, string Message)",
-      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-6253982a4eaa2e64\u0022\u003EVmResizeSafety\u003C/a\u003E(\u003Ca href=\u0022#api-821c05cc5fe3e734\u0022\u003EVmDiskInspection\u003C/a\u003E Access, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E? CurrentCapacityBytes, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E MaximumGiB,\n    \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E? MinimumInternalSizeBytes, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E? LastPartitionEndBytes, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E? SafeMinimumGiB,\n    \u003Ca href=\u0022#api-9e4d38b40a5aba28\u0022\u003EVmPartitionLayoutMode\u003C/a\u003E Layout, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message)",
+      "signature": "public sealed record VmResizeSafety(VmDiskInspection Access, long? CurrentCapacityBytes, long MaximumGiB,\r\n    long? MinimumInternalSizeBytes, long? LastPartitionEndBytes, long? SafeMinimumGiB,\r\n    VmPartitionLayoutMode Layout, string Message)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-6253982a4eaa2e64\u0022\u003EVmResizeSafety\u003C/a\u003E(\u003Ca href=\u0022#api-821c05cc5fe3e734\u0022\u003EVmDiskInspection\u003C/a\u003E Access, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E? CurrentCapacityBytes, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E MaximumGiB,\r\n    \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E? MinimumInternalSizeBytes, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E? LastPartitionEndBytes, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E? SafeMinimumGiB,\r\n    \u003Ca href=\u0022#api-9e4d38b40a5aba28\u0022\u003EVmPartitionLayoutMode\u003C/a\u003E Layout, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message)",
       "baseTypeHtml": "",
       "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;VmResizeSafety\u0026gt;\u003C/code\u003E",
       "derivedTypesHtml": "",
@@ -128796,7 +128796,7 @@
             "category": "\u4E32\u53E3",
             "expression": "VmSerialPortFields.DebuggerMode",
             "valueType": "bool",
-            "order": 2778,
+            "order": 2825,
             "summaryHtml": "\u662F\u5426\u4E3A Windows \u5185\u6838\u8C03\u8BD5\u5668\uFF08WinDbg\uFF09\u4F18\u5316\u4E32\u53E3\u4F20\u8F93\u3002",
             "enumTypeId": null,
             "valuesHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u003Ccode\u003Etrue\u003C/code\u003E\uFF1A\u5F00\u542F\u5185\u6838\u8C03\u8BD5\u4F18\u5316\uFF1B\u003Ccode\u003Efalse\u003C/code\u003E\uFF1A\u666E\u901A\u4E32\u53E3\u6A21\u5F0F\u3002\u003C/div\u003E",
@@ -128877,7 +128877,7 @@
             "category": "\u4E32\u53E3",
             "expression": "VmSerialPortFields.Name",
             "valueType": "string",
-            "order": 1118,
+            "order": 1143,
             "summaryHtml": "\u865A\u62DF\u4E32\u53E3\u7684\u663E\u793A\u540D\u79F0\uFF08\u5982 COM 1\u3001COM 2\uFF09\u3002",
             "enumTypeId": null,
             "valuesHtml": "",
@@ -128956,7 +128956,7 @@
             "category": "\u4E32\u53E3",
             "expression": "VmSerialPortFields.PipePath",
             "valueType": "string",
-            "order": 1924,
+            "order": 1960,
             "summaryHtml": "\u865A\u62DF\u4E32\u53E3\u8FDE\u63A5\u7684\u5BBF\u4E3B\u673A\u547D\u540D\u7BA1\u9053\u8DEF\u5F84\uFF1B\u4E3A\u7A7A\u8868\u793A\u672A\u8FDE\u63A5\u3002",
             "enumTypeId": null,
             "valuesHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003EWindows \u547D\u540D\u7BA1\u9053\u8DEF\u5F84\uFF0C\u4F8B\u5982 \u003Ccode\u003E\\\\.\\pipe\\my-vm-com1\u003C/code\u003E\uFF1B\u7559\u7A7A\u8868\u793A\u672A\u8FDE\u63A5\u3002\u003C/div\u003E",
@@ -129037,7 +129037,7 @@
             "category": "\u4E32\u53E3",
             "expression": "VmSerialPortFields.PortNumber",
             "valueType": "int",
-            "order": 641,
+            "order": 657,
             "summaryHtml": "\u865A\u62DF\u4E32\u53E3\u7684\u56FA\u5B9A\u7AEF\u53E3\u53F7\uFF081 \u8868\u793A COM 1\uFF0C2 \u8868\u793A COM 2\uFF09\u3002",
             "enumTypeId": null,
             "valuesHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u003Ccode\u003E1\u003C/code\u003E\uFF1ACOM 1\uFF1B\u003Ccode\u003E2\u003C/code\u003E\uFF1ACOM 2\u3002\u003C/div\u003E\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u7AEF\u53E3\u7F16\u53F7\u003C/div\u003E",

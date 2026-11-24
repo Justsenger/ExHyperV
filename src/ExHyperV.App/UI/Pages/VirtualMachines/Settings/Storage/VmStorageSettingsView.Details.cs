@@ -13,7 +13,8 @@ public sealed partial class VmStorageSettingsView
     private sealed class DetailDraft(VmStorageAttachment item)
     {
         public readonly VmStorageAttachment Item = item;
-        public VmDiskInspection? Access;
+        public VmDiskInspection Access = new(VmDiskAccessKind.Unavailable, "", VmState.Unknown);
+        public bool AccessKnown;
         public VmResizeSafety? Safety;
         public VmDiskChainInspection? SavedChain, ParentChain;
         public string? InspectionError;
@@ -39,21 +40,23 @@ public sealed partial class VmStorageSettingsView
     private Button? apply;
     private TextBox? mediaBox;
 
-    private async Task OpenDetailsAsync(VmStorageAttachment item)
+    private async Task OpenDetailsAsync(VmStorageAttachment item, bool pathsTab = false)
     {
         editing?.Cancel();
         taskView = null;
-        var d = editing = new(item);
+        var d = editing = new(item) { PathsTab = pathsTab };
         Render();
         scroll.ChangeView(null, 0, null, true);
-        var access = VmStorageService.InspectDiskAsync(VmId, item);
+        bool checkResize = item.VhdType is "Dynamic" or "Fixed" && powerState is VmState.PoweredOff or VmState.Running;
+        var access = Task.Run(() => VmStorageService.InspectDiskAsync(VmId, item));
         var chain = item.VhdType == "Differencing"
-            ? VmStorageService.InspectDifferencingChainAsync(item.PathOrDiskNumber) : null;
-        var safety = item.VhdType is "Dynamic" or "Fixed" && powerState is VmState.PoweredOff or VmState.Running
-            ? VmStorageService.InspectResizeSafetyAsync(VmId, item) : null;
+            ? Task.Run(() => VmStorageService.InspectDifferencingChainAsync(item.PathOrDiskNumber)) : null;
+        var safety = checkResize ? Task.Run(() => VmStorageService.InspectResizeSafetyAsync(VmId, item)) : null;
         try
         {
-            d.Access = Data(await access.WaitAsync(CancellationToken));
+            await Task.WhenAll(access, (Task?)chain ?? Task.CompletedTask, (Task?)safety ?? Task.CompletedTask).WaitAsync(CancellationToken);
+            d.Access = Data(await access);
+            d.AccessKnown = true;
             if (chain != null) d.ParentChain = d.SavedChain = Data(await chain.WaitAsync(CancellationToken));
             if (safety != null) d.Safety = Data(await safety.WaitAsync(CancellationToken));
         }
@@ -86,12 +89,8 @@ public sealed partial class VmStorageSettingsView
         ], ShowList, apply);
         var retry = Command(L10n.Get("Storage_Rescan"), () => _ = RunAsync(() => ReinspectAsync(d)));
         if (d.InspectionError != null) page.Children.Add(Banner(d.InspectionError, InfoBarSeverity.Warning, retry));
-        if (d.Access is not { } access)
-        {
-            if (d.InspectionError == null) page.Children.Add(Banner(L10n.Get("Storage_ProbingMedia")));
-            return;
-        }
-        if (access.Kind != VmDiskAccessKind.Normal)
+        var access = d.Access;
+        if (d.AccessKnown && access.Kind != VmDiskAccessKind.Normal)
         {
             Button? action = access.Kind switch
             {
@@ -131,7 +130,7 @@ public sealed partial class VmStorageSettingsView
         else if (Physical(d.Item))
         {
             page.Children.Add(DeviceFacts(d.Item, showStaleWarning: false));
-            page.Children.Add(Banner(access.CanEditSlot ? L10n.Get("Storage_MoveSlotHint") : L10n.Get("Storage_MoveSlotRestricted")));
+            if (d.AccessKnown) page.Children.Add(Banner(access.CanEditSlot ? L10n.Get("Storage_MoveSlotHint") : L10n.Get("Storage_MoveSlotRestricted")));
         }
         else if (IsDvd(d.Item))
         {
@@ -190,7 +189,7 @@ public sealed partial class VmStorageSettingsView
     private Border MediaEditorRow(DetailDraft d, string? disabledReason)
     {
         bool dvd = IsDvd(d.Item);
-        bool editable = CanWrite && d.Access!.CanEditMedia;
+        bool editable = CanWrite && d.Access.CanEditMedia;
         var feedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
         void UpdateFeedback()
         {
@@ -246,7 +245,7 @@ public sealed partial class VmStorageSettingsView
             UpdateApply(d);
         }
         bool canResize = CanWrite && d.Safety is { } s && (s.CanExpand || s.CanShrink);
-        string? resizeLock = !CanWrite ? null : d.Safety is null ? L10n.Get("Storage_ResizeUnavailable")
+        string? resizeLock = !CanWrite || !d.AccessKnown ? null : d.Safety is null ? L10n.Get("Storage_ResizeUnavailable")
             : (!d.Safety.CanExpand && !d.Safety.CanShrink) ? (Clean(d.Safety.Message) is { Length: > 0 } msg ? msg : disabledReason)
             : null;
         rows.Add(CapacitySection(
@@ -258,7 +257,7 @@ public sealed partial class VmStorageSettingsView
             canResize,
             resizeLock));
         Update();
-        bool canType = CanWrite && d.Access!.CanChangeType;
+        bool canType = CanWrite && d.Access.CanChangeType;
         var type = Pill(d.Type, value => { d.Type = value; UpdateApply(d); }, new("Dynamic", L10n.Get("Dev_VhdDynamic")), new("Fixed", L10n.Get("Dev_VhdFixed")));
         type.SetControlEnabled(canType);
         rows.Add(SettingRow(
@@ -271,6 +270,7 @@ public sealed partial class VmStorageSettingsView
 
     private static FileCheck ResizeCheck(DetailDraft d)
     {
+        if (!d.AccessKnown) return FileCheck.Ok();
         var s = d.Safety;
         if (s == null) return new(!d.ResizeDirty, L10n.Get("Storage_ResizeUnavailableSentence"), InfoBarSeverity.Warning);
         string layout = s.Layout switch
@@ -298,7 +298,7 @@ public sealed partial class VmStorageSettingsView
     private void AddDeleteRows(DetailDraft d, List<UIElement> rows, string? disabledReason)
     {
         string what = IsDvd(d.Item) ? L10n.Get("Storage_IsoFile") : L10n.Get("Storage_DiskFile");
-        bool canDelete = CanWrite && d.Access!.CanDeleteFile;
+        bool canDelete = CanWrite && d.Access.CanDeleteFile;
         var toggle = DangerButton(L10n.Get("Host_Switches_Delete"), () => { d.ConfirmDelete = !d.ConfirmDelete; Render(); }, canDelete);
         if (!canDelete && !string.IsNullOrEmpty(disabledReason))
             ToolTipService.SetToolTip(toggle, disabledReason);
@@ -316,7 +316,7 @@ public sealed partial class VmStorageSettingsView
         }
     }
 
-    private bool ValidDetails(DetailDraft d) => CanWrite && d.Access is { } a &&
+    private bool ValidDetails(DetailDraft d) => CanWrite && d.AccessKnown && d.Access is { } a &&
         (d.ResizeDirty || d.TypeDirty || d.ParentDirty || d.MediaDirty || d.SlotDirty) &&
         (!d.ResizeDirty || ResizeCheck(d).Valid) && (!d.TypeDirty || a.CanChangeType) &&
         (!d.ParentDirty || a.CanEditParentPath && d.Parent.Length > 0 && d.ParentChain?.IsComplete == true) &&

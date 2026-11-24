@@ -36,17 +36,23 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
     public Task PendingWork { get; private set; } = Task.CompletedTask;
     public Task PowerWork { get; private set; } = Task.CompletedTask;
 
-    internal static readonly VmQueryField[] ConfigurationFields = [
-        VmIdentityFields.Name, VmIdentityFields.State, VmIdentityFields.Uptime, VmIdentityFields.Generation,
-        VmIdentityFields.ConfigurationVersion, VmIdentityFields.ConfigurationFilePath,
+    private static readonly VmQueryField[] OverviewFields = [
         VmProcessorFields.Count, VmProcessorFields.ExposeVirtualizationExtensions, VmProcessorFields.SmtMode,
         VmMemoryFields.Startup, VmMemoryFields.DynamicMemoryEnabled, VmMemoryFields.Minimum, VmMemoryFields.Maximum,
+        VmMetadataFields.Key, VmMetadataFields.Value];
+
+    internal static readonly VmQueryField[] ConfigurationFields = [
+        VmIdentityFields.Name, VmIdentityFields.State, VmIdentityFields.Uptime, VmIdentityFields.Generation,
+        VmIdentityFields.ConfigurationVersion, VmIdentityFields.ConfigurationFilePath, .. OverviewFields,
         VmStorageFields.Path, VmStorageFields.DriveType, VmStorageFields.DiskType, VmStorageFields.VirtualDiskType,
         VmStorageFields.CapacityBytes, VmStorageFields.FileSizeBytes, VmStorageFields.DiskModel,
         VmStorageFields.ControllerType, VmStorageFields.ControllerNumber, VmStorageFields.ControllerLocation, VmStorageFields.DiskNumber,
         VmNetworkFields.Name, VmNetworkFields.SwitchName, VmNetworkFields.MacAddress, VmNetworkFields.IpAddresses, VmNetworkFields.IsConnected,
-        VmGpuFields.Name, VmGpuFields.Manu, VmGpuFields.Vendor, VmGpuFields.DriverVersion, VmGpuFields.MemoryBytes, VmGpuFields.HostDeviceInstanceId,
-        VmMetadataFields.Key, VmMetadataFields.Value];
+        VmGpuFields.Name, VmGpuFields.Manu, VmGpuFields.Vendor, VmGpuFields.DriverVersion, VmGpuFields.MemoryBytes, VmGpuFields.HostDeviceInstanceId];
+
+    private static readonly VmQueryField[] FirstSampleFields = [
+        VmIdentityFields.State, VmIdentityFields.Uptime, VmProcessorFields.Count, VmProcessorFields.UsagePercent,
+        VmProcessorMetricFields.Index, VmProcessorMetricFields.UsagePercent, VmMemoryFields.AssignedMiB];
 
     private static readonly VmQueryField[] MetricFields = [
         VmIdentityFields.State, VmIdentityFields.Uptime, VmProcessorFields.UsagePercent,
@@ -166,14 +172,14 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         GpuMessage.Text = "";
         Preview.Source = null;
         PreviewBorder.Visibility = Visibility.Collapsed;
-        OsImage.Source = null;
-        GenericIcon.Visibility = Visibility.Visible;
+        if (vm.OsIconName is { } knownOs) ApplyOperatingSystem(knownOs);
+        else OsImage.Source = null;
         ShowVmArtwork(vm.IsRunning);
         transientServiceBanner = false;
         HideSuccessToast();
         SetPageTabsTrailingAction(null);
         DashboardNoticeBanner.Hide();
-        OverviewPane.Visibility = Visibility.Collapsed;
+        OverviewPane.Visibility = Visibility.Visible;
         LoadingBar.Visibility = Visibility.Visible;
         PowerButton.Visibility = Visibility.Collapsed;
 
@@ -190,13 +196,21 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         if (cache?.GetSnapshot(vm.Id) is { } cached)
         {
             ShowConfiguration(cached);
-            OverviewPane.Visibility = Visibility.Visible;
             LoadingBar.Visibility = Visibility.Collapsed;
         }
+        else
+        {
+            RebuildOverviewRail();
+        }
 
+        StartMonitoring(vm.Id);
+    }
+
+    internal void StartMonitoring(Guid id)
+    {
         var source = new CancellationTokenSource();
         cancellation = source;
-        PendingWork = RunAsync(vm.Id, source);
+        PendingWork = RunAsync(id, source);
         work.RemoveAll(task => task.IsCompleted);
         work.Add(PendingWork);
     }
@@ -215,9 +229,19 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         bool previewStarted = false;
         try
         {
+            await using var query = new VmQueryService();
+            long started = Stopwatch.GetTimestamp();
+            var first = await Task.Run(() => query.QueryAsync(new VmQueryRequest(FirstSampleFields, (Guid[])[id]), token), token);
+            token.ThrowIfCancellationRequested();
+            if (first.HasData && first.Data!.VirtualMachines.FirstOrDefault() is { } basic)
+            {
+                ShowIdentity(basic, live: true, queryElapsed: Stopwatch.GetElapsedTime(started));
+                if (displayedConfiguration == null) ShowProcessorAndMemory(basic);
+                if (stateVerified && state == VmState.Running) UpdateOverviewLiveMetrics(basic);
+                else if (stateVerified && state is VmState.PoweredOff or VmState.Saved or VmState.Suspended) SetOverviewInactive();
+            }
             await queryGate.WaitAsync(token);
             acquired = true;
-            await using var query = new VmQueryService();
             VmQueryRow row;
             if (cache != null) row = await cache.LoadDetailsAsync(id, token);
             else
@@ -372,6 +396,14 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
     {
         displayedConfiguration = row;
         if (!preserveLiveIdentity) ShowIdentity(row);
+        ToolTipService.SetToolTip(VmName, $"{current?.Id}\n{Text(row, VmIdentityFields.ConfigurationFilePath)}");
+        ShowProcessorAndMemory(row);
+        ShowDevices(row);
+        ShowOperatingSystem(row);
+    }
+
+    private void ShowProcessorAndMemory(VmQueryRow row)
+    {
         var count = row.Get(VmProcessorFields.Count);
         if (count.HasValue)
         {
@@ -388,18 +420,12 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             }
             LayoutCoreCharts();
         }
-        ToolTipService.SetToolTip(VmName, $"{current?.Id}\n{Text(row, VmIdentityFields.ConfigurationFilePath)}");
         UpdateOverviewConfiguration(row);
-        ShowDevices(row);
-        ShowOperatingSystem(row);
     }
 
     private void ShowOperatingSystem(VmQueryRow row)
     {
-        var metadata = row.GetCollection(VmQueryCollection.Metadata);
-        var os = metadata.Rows.FirstOrDefault(m => m.Get(VmMetadataFields.Key).Value == VmMetadataService.OsTypeKey)?.Get(VmMetadataFields.Value);
-        if (metadata.State == VmQueryValueState.Available)
-            ApplyOperatingSystem(os is { HasValue: true } ? os.Value : null);
+        if (OsIconSource.ReadName(row) is { } name) ApplyOperatingSystem(name);
     }
 
     private void ApplyOperatingSystem(string? osType)
@@ -408,7 +434,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         var image = OsIconSource.Get(name);
         OsText.Text = name;
         OsImage.Source = image;
-        GenericIcon.Visibility = image == null ? Visibility.Visible : Visibility.Collapsed;
+        if (current != null) current.OsIconName = name;
     }
 
     private void ShowVmArtwork(bool running)
@@ -442,27 +468,6 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             var action = requestedAction ?? (originalState == VmState.Running
                 ? (defaultSave ? VmPowerAction.Save : VmPowerAction.Stop)
                 : VmPowerAction.Start);
-            if (action != VmPowerAction.Start)
-            {
-                string verb = action switch
-                {
-                    VmPowerAction.Stop => L10n.Get("Dash_PowerAction_Stop"),
-                    VmPowerAction.Restart => L10n.Get("Dash_PowerAction_Restart"),
-                    VmPowerAction.Suspend => L10n.Get("Dash_PowerAction_Suspend"),
-                    VmPowerAction.Save => L10n.Get("Dash_PowerAction_Save"),
-                    _ => L10n.Get("Dash_PowerAction_TurnOff")
-                };
-                var dialog = new ContentDialog
-                {
-                    XamlRoot = XamlRoot,
-                    Title = L10n.Format("Dash_PowerConfirmTitle", verb, vm.Name),
-                    Content = L10n.Get(action == VmPowerAction.TurnOff ? "Dash_PowerConfirm_TurnOffBody" : "Dash_PowerConfirm_NormalBody"),
-                    PrimaryButtonText = L10n.Get("Common_Confirm"),
-                    CloseButtonText = L10n.Get("Common_Cancel"),
-                    DefaultButton = ContentDialogButton.Close
-                };
-                if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-            }
             var session = new VmPowerOperationSession(vm.Id, action, vm.Name);
             await session.AdvanceAsync();
             while (session.Stage == VmPowerOperationStage.AwaitingConfirmation && session.Confirmation is { } repair)

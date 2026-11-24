@@ -2389,6 +2389,9 @@ Fixed tries to hold the target MHz.</value>
   <data name="Host_Switches_UpstreamDesc" xml:space="preserve">
     <value>Physical upstream adapter identified by HyperVSwitchService.</value>
   </data>
+  <data name="Host_Switches_NoUpstream" xml:space="preserve">
+    <value>No upstream adapter is available for this mode.</value>
+  </data>
   <data name="Host_Switches_UpstreamNone" xml:space="preserve">
     <value>No upstream / isolated</value>
   </data>
@@ -4167,10 +4170,6 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
   </data>
   <data name="Storage_AutoSlot" xml:space="preserve">
     <value>自动选择插槽</value>
-    <comment>TODO: en</comment>
-  </data>
-  <data name="Storage_LoadingDevices" xml:space="preserve">
-    <value>正在读取存储设备…</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Storage_LoadDevicesFailed" xml:space="preserve">

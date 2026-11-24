@@ -11,6 +11,7 @@ public sealed partial class VmListItem(Guid id, string name, VmState? state, str
     private VmState? state = state;
     private string uptime = uptime;
     public Guid Id { get; } = id;
+    internal string? OsIconName { get; set; }
     public string Name { get => name; set => SetProperty(ref name, value); }
     public string State => state is { } value ? VirtualMachinesPageViewModel.StateText(value) : L10n.Get("VmList_StateUnavailable");
     public VmState? PowerState

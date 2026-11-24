@@ -96,13 +96,14 @@ public sealed partial class VmStorageSettingsView
         }
         void ShowParent()
         {
+            if (!d.AccessKnown) { feedback.Content = null; return; }
             if (d.ParentError != null) feedback.Content = Banner(d.ParentError, InfoBarSeverity.Error);
             else if (d.ParentChain == null)
                 feedback.Content = Banner(d.InspectionError == null ? L10n.Get("Storage_CheckingParentChain") : L10n.Get("Storage_NoChainRetry"), InfoBarSeverity.Informational);
             else
             {
                 FrameworkElement? fix = null;
-                bool canEditParent = CanWrite && d.Access!.CanEditParentPath;
+                bool canEditParent = CanWrite && d.Access.CanEditParentPath;
                 if (d.IgnoreId)
                     fix = InlineCommand(L10n.Get("Storage_DisableForce"), () => { d.IgnoreId = false; InspectParent(); }, canEditParent);
                 else if (d.ParentChain is { Status: VmDiskChainStatus.IdMismatch, Nodes.Count: 2 })
@@ -117,21 +118,21 @@ public sealed partial class VmStorageSettingsView
             d.IgnoreId = false;
             InspectParent();
         }, out _);
-        row.IsEnabled = CanWrite && d.Access!.CanEditParentPath;
+        row.IsEnabled = CanWrite && d.Access.CanEditParentPath;
         rows.Add(FieldRowCard(
             L10n.Get("Storage_ParentPath"),
             L10n.Get("Storage_RelocateParentHelp"),
             null,
             row,
             feedback,
-            CanWrite && d.Access!.CanEditParentPath,
-            d.Access!.CanEditParentPath ? null : disabledReason));
+            CanWrite && d.Access.CanEditParentPath,
+            d.Access.CanEditParentPath ? null : disabledReason));
         if (d.ParentDirty && d.ParentChain == null && d.ParentError == null) InspectParent();
         else ShowParent();
 
         bool complete = d.SavedChain is { IsComplete: true, Nodes.Count: > 1 };
-        bool canExport = CanWrite && complete && d.Access!.CanExport;
-        string exportDesc = complete
+        bool canExport = CanWrite && complete && d.Access.CanExport;
+        string exportDesc = !d.AccessKnown || complete
             ? L10n.Get("Storage_ExportChainHelp")
             : L10n.Get("Storage_UnverifiedExport");
         rows.Add(SettingRow(
@@ -142,8 +143,8 @@ public sealed partial class VmStorageSettingsView
             canExport ? null : !complete ? exportDesc : disabledReason));
         if (d.ExportOpen && canExport) rows.Add(ExportRow(d));
 
-        bool canMerge = CanWrite && complete && d.Access!.CanMerge;
-        string mergeDesc = complete
+        bool canMerge = CanWrite && complete && d.Access.CanMerge;
+        string mergeDesc = !d.AccessKnown || complete
             ? L10n.Get("Storage_MergeParentHelp")
             : L10n.Get("Storage_UnverifiedMerge");
         rows.Add(SettingRow(
@@ -172,7 +173,7 @@ public sealed partial class VmStorageSettingsView
             {
                 var check = await Task.Run(() => CheckMedia(path, dvd: false, create: true), token).WaitAsync(token);
                 token.ThrowIfCancellationRequested();
-                start.IsEnabled = CanWrite && d.Access!.CanExport && check.Valid;
+                start.IsEnabled = CanWrite && d.Access.CanExport && check.Valid;
                 status.Content = check.Valid ? null : Banner(check.Message, check.Severity);
             }, error => status.Content = Banner(error, InfoBarSeverity.Error));
         }
@@ -284,7 +285,7 @@ public sealed partial class VmStorageSettingsView
 
         var confirm = DangerButton(L10n.Get("Storage_ConfirmMerge"), () => _ = RunAsync(() => RunStorageTaskAsync(L10n.Get("Storage_MergeIntoParent"),
             [L10n.Get("Storage_VerifyAncestors"), L10n.Get("Storage_MergeDifferencingDisk"), L10n.Get("Storage_SwitchAndVerify"), L10n.Get("Storage_CleanMergedFiles")],
-            p => VmStorageService.MergeDifferencingDiskAsync(VmId, d.Item, destination, p), d.Item.DeviceToken)), CanWrite && d.Access!.CanMerge);
+            p => VmStorageService.MergeDifferencingDiskAsync(VmId, d.Item, destination, p), d.Item.DeviceToken)), CanWrite && d.Access.CanMerge);
         var cancel = InlineCommand(L10n.Get("Common_Cancel"), () => { d.MergeOpen = false; Render(); });
         confirm.Height = 24;
         confirm.MinHeight = 24;

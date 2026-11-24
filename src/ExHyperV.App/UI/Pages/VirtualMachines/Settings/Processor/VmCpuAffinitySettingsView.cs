@@ -194,9 +194,9 @@ public sealed partial class VmCpuAffinitySettingsView : VmSettingsView
     {
         validRead = false;
         UpdateActions();
-        var processorsTask = HostProcessorService.GetAffinityProcessorsAsync();
-        var stateTask = CpuAffinityService.ReadStateAsync(VmId);
-        await Task.WhenAll(processorsTask, stateTask);
+        var processorsTask = Task.Run(() => HostProcessorService.GetAffinityProcessorsAsync());
+        var stateTask = Task.Run(() => CpuAffinityService.ReadStateAsync(VmId));
+        await Task.WhenAll(processorsTask, stateTask).WaitAsync(CancellationToken);
         var available = (await processorsTask).RequireData();
         var state = (await stateTask).RequireData();
         if (IsStopped) return;
@@ -227,7 +227,8 @@ public sealed partial class VmCpuAffinitySettingsView : VmSettingsView
                 if (item.PackageId is { } package) details.Add(L10n.Format("Affinity_Tooltip_Socket", package));
                 if (item.CoreId is { } core) details.Add(L10n.Format("Affinity_Tooltip_Core", core));
                 if (item.NumaNode is { } numa) details.Add(L10n.Format("Affinity_Tooltip_Numa", numa));
-                details.Add(item.CoreType.ToString());
+                if (item.CoreType == CpuCoreType.Performance) details.Add(L10n.Get("Host_Cpu_PerfCore"));
+                if (item.CoreType == CpuCoreType.Efficient) details.Add(L10n.Get("Host_Cpu_EffCore"));
                 ToolTipService.SetToolTip(choice, string.Join(sep, details));
                 choice.MouseSelectionStarted += BeginSelection;
                 choice.Click += (_, _) => Toggle(choice);
@@ -278,7 +279,7 @@ public sealed partial class VmCpuAffinitySettingsView : VmSettingsView
         Exception? failure = null;
         try
         {
-            result = await CpuAffinityService.SaveAsync(VmId, selected);
+            result = await Task.Run(() => CpuAffinityService.SaveAsync(VmId, selected));
             if (result.ErrorKind == ApiErrorKind.OutcomeUnknown || result.CleanupErrorKind == ApiErrorKind.OutcomeUnknown) MarkUnknownOperation(VmId);
             if (result.Status != CpuAffinityService.SaveStatus.Failed || result.MetadataSaved) NotifyChanged();
         }
@@ -287,8 +288,21 @@ public sealed partial class VmCpuAffinitySettingsView : VmSettingsView
             failure = ex;
             if (ex is CoreOperationException operation && operation.Result.ErrorKind == ApiErrorKind.OutcomeUnknown) MarkUnknownOperation(VmId);
         }
-        try { await LoadAsync(); }
-        catch (Exception ex) { failure ??= ex; }
+        if (result is { MetadataSaved: true, Error: null or "", CleanupError: null or "", SavedPreferenceIssue: null or "" }
+            && result.Status is CpuAffinityService.SaveStatus.Applied or CpuAffinityService.SaveStatus.Queued
+            && selected.Count > 0 && !HasUnknownOperation(VmId))
+        {
+            initialSelection = selected.ToHashSet();
+            initialReselectionRequired = false;
+            source.SetDescription(L10n.Get("Affinity_Desc"));
+            UpdateActions();
+        }
+        else if (!IsStopped)
+        {
+            try { await LoadAsync(); }
+            catch (OperationCanceledException) when (IsStopped) { }
+            catch (Exception ex) { failure ??= ex; }
+        }
         if (result != null)
         {
             var details = new List<string>

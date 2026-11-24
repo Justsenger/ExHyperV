@@ -45,6 +45,9 @@ public sealed partial class VmDashboardView
     private Func<Task>? stopSettings;
     private Action? detachSettingsProgress;
     private readonly List<Task> settingsWork = [];
+    internal bool IsSettingsImmersive => settingsImmersive;
+    private int processorSection = 2;
+    private int memorySection;
     private VmSettingsView? sectionedSettings;
     private Task? closingSettings;
     private bool navigatingSettings;
@@ -116,6 +119,8 @@ public sealed partial class VmDashboardView
         if (selectingSettings || navigatingSettings || SettingsNavigation.SelectedItem is not ListViewItem item) return;
         if (item.Tag is int sectionIndex && sectionedSettings != null)
         {
+            if (sectionedSettings is VmProcessorSettingsView) processorSection = sectionIndex;
+            else memorySection = sectionIndex;
             sectionedSettings.ShowSection(sectionIndex);
             return;
         }
@@ -206,6 +211,7 @@ public sealed partial class VmDashboardView
             _ => throw new ArgumentOutOfRangeException(nameof(viewKey))
         };
 
+        if (view is VmSettingsView settingsView) settingsView.BindFeedbackHost(this);
         sectionedSettings = view is VmSettingsView grouped && grouped.SectionTitles.Any() ? grouped : null;
         if (viewKey is "processor" or "memory")
             ConfigureSectionNavigation();
@@ -225,7 +231,6 @@ public sealed partial class VmDashboardView
         switch (view)
         {
             case VmSettingsView settings:
-                settings.BindFeedbackHost(this);
                 settings.Changed += Changed;
                 stopSettings = settings.StopAsync;
                 settings.BusyChanged += SetSettingsBusy;
@@ -299,8 +304,12 @@ public sealed partial class VmDashboardView
                     });
                 }
             }
-            if (titles.Length > 0 && SettingsNavigation.SelectedIndex != 0)
-                SettingsNavigation.SelectedIndex = 0;
+            if (titles.Length > 0)
+            {
+                int index = Math.Clamp(sectionedSettings is VmProcessorSettingsView ? processorSection : memorySection, 0, titles.Length - 1);
+                SettingsNavigation.SelectedIndex = index;
+                sectionedSettings!.ShowSection(index);
+            }
             SetSettingsNavigationVisible(titles.Length > 0, width: 144);
         }
         finally { selectingSettings = false; }

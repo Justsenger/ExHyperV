@@ -22,9 +22,6 @@ public sealed partial class MainWindow : Window
     private bool initialPaneClosed;
     private XamlRoot? titleBarRoot;
     private readonly ThemeSettings themeSettings;
-    private bool restoringNavigation;
-    private int navigationVersion;
-    private object? activeNavigationItem;
 
     public MainWindow()
     {
@@ -161,22 +158,9 @@ public sealed partial class MainWindow : Window
         AppWindow.TitleBar.ButtonPressedBackgroundColor = Windows.UI.Color.FromArgb(255, dark ? (byte)45 : (byte)215, dark ? (byte)45 : (byte)215, dark ? (byte)45 : (byte)215);
     }
 
-    private async void OnSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args) => await UiEvent.RunAsync(async () =>
+    private async void OnSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args) => await UiEvent.RunAsync(() =>
     {
-        if (restoringNavigation) return;
-        if ((args.SelectedItem as NavigationViewItem)?.Tag is not string route) return;
-        int version = ++navigationVersion;
-        if (PageContent.Content is VirtualMachinesPage current && !await current.PrepareToLeaveAsync())
-        {
-            if (version == navigationVersion)
-            {
-                restoringNavigation = true;
-                try { Navigation.SelectedItem = activeNavigationItem; }
-                finally { restoringNavigation = false; }
-            }
-            return;
-        }
-        if (version != navigationVersion) return;
+        if ((args.SelectedItem as NavigationViewItem)?.Tag is not string route) return Task.CompletedTask;
         if (!pages.TryGetValue(route, out var page))
         {
             page = route switch
@@ -193,7 +177,7 @@ public sealed partial class MainWindow : Window
         if (page is HostPage host) host.SetWindowVisible(ContentVisible);
         Diagnostics.AppDiagnostics.Write("Navigation", "PageSelected", $"page={page.GetType().Name}");
         PageContent.Content = page;
-        activeNavigationItem = args.SelectedItem;
+        return Task.CompletedTask;
     });
 
     private VirtualMachinesPage CreateVirtualMachinesPage()

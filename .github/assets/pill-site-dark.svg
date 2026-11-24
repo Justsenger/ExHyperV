@@ -1,10 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 34" width="160" height="34" role="img" aria-label="Website: ExHyperV.com">
-  <rect x="0.5" y="0.5" width="159" height="33" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
-  <g transform="translate(14, 9)" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="8" cy="8" r="6"/>
-    <ellipse cx="8" cy="8" rx="2.7" ry="6"/>
-    <line x1="2.2" y1="8" x2="13.8" y2="8"/>
-  </g>
-  <text x="37" y="21.2" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif" font-size="12.5" font-weight="600" fill="#e6edf3">ExHyperV.com</text>
-  <path d="M137 14h4.5v4.5m0-4.5-5 5" fill="none" stroke="#7d8590" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="204" height="44" viewBox="0 0 204 44" font-family="Segoe UI,Arial,sans-serif"><rect width="204" height="44" rx="8" fill="#154889"/><g transform="translate(12 8)"><path d="m14 0 14 9-14 9L0 9Z" fill="#9de7ff"/><path d="m0 9 14 9v10L0 19Z" fill="#47a6ff"/><path d="m28 9-14 9v10l14-9Z" fill="#277de0"/></g><text x="51" y="28" font-size="16" font-weight="600" fill="white">ExHyperV.com</text><path d="M179 25l8-8m-7 0h7v7" fill="none" stroke="#bde5ff" stroke-width="1.5"/></svg>

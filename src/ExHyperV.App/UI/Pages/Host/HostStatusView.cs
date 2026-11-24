@@ -223,32 +223,30 @@ internal sealed partial class HostStatusView : UserControl
             selectedKey = "cpu";
 
         SelectRailKey(selectedKey);
-
-        UpdateTheme();
         railScroll.ChangeView(null, savedRailScroll, null, disableAnimation: true);
     }
 
-    public void ApplySample(HostLiveSample sample)
+    public void ApplyProcessorAndMemory(HostLiveSample sample)
     {
-        lastSample = sample;
         cpuMatrix.UpdateReport(sample.CpuReport, currentInventory?.LogicalProcessorCount ?? Environment.ProcessorCount);
         memRing.UpdateTelemetry(currentInventory, sample);
-
         foreach (var entry in railEntries)
-            entry.UpdateSample?.Invoke(sample);
+            if (entry.Category is RailCategory.Cpu or RailCategory.Memory)
+                entry.UpdateSample?.Invoke(sample);
+    }
+
+    public void ApplyDeviceSample(HostLiveSample sample)
+    {
+        lastSample = sample;
+        if (sample.VmSummary != null) memRing.UpdateTelemetry(currentInventory, sample);
+        foreach (var entry in railEntries)
+            if (entry.Category is not (RailCategory.Cpu or RailCategory.Memory))
+                entry.UpdateSample?.Invoke(sample);
 
         if (detailPanels.TryGetValue(selectedKey, out var activeDetail))
         {
             activeDetail.ApplySample(sample);
             detailReading.Text = activeDetail.FormatReading(sample);
-        }
-        else if (selectedKey == "cpu")
-        {
-            detailReading.Text = sample.CpuPercent.HasValue ? $"{Math.Round(sample.CpuPercent.Value):0}%" : "---";
-        }
-        else if (selectedKey == "mem" && sample.Memory is { } mem)
-        {
-            detailReading.Text = $"{mem.UsedGiB:0.0} / {mem.TotalGiB:0.0} GB";
         }
     }
 
@@ -398,8 +396,8 @@ internal sealed partial class HostStatusView : UserControl
             }
         }
 
-        foreach (var pair in detailPanels.Values)
-            pair.RefreshTheme?.Invoke();
+        if (detailPanels.TryGetValue(selectedKey, out var visibleDetail))
+            visibleDetail.RefreshTheme?.Invoke();
     }
 
     private void UpdateResponsiveLayout()

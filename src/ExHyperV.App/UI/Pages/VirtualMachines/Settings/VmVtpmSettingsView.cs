@@ -97,18 +97,7 @@ public sealed partial class VmVtpmSettingsView : VmSettingsView
         return base.StopAsync();
     }
 
-    private async Task ReissueAsync()
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot, Title = L10n.Get("Vtpm_ReissueTitle"),
-            Content = L10n.Format("Vtpm_ReissueBody", VmId),
-            PrimaryButtonText = L10n.Get("Common_Confirm"), CloseButtonText = L10n.Get("Common_Cancel"),
-            DefaultButton = ContentDialogButton.Close
-        };
-        if (await ShowDialogAsync(dialog) == ContentDialogResult.Primary && !IsStopped)
-            await ApplyAsync(VmSecurityService.ReissueLocalKeyProtectorAsync(VmId));
-    }
+    private Task ReissueAsync() => ApplyAsync(VmSecurityService.ReissueLocalKeyProtectorAsync(VmId));
 
     private void BuildOverview()
     {

@@ -18,13 +18,14 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
 
     private readonly HostTelemetrySampler sampler = new();
     private readonly HostStatusView statusView = new();
-    private readonly HostEnvironmentView environmentView = new();
-    private readonly HostSettingsView settingsView = new();
-    private readonly HostSwitchesView switchesView = new();
+    private HostEnvironmentView? environmentView;
+    private HostSettingsView? settingsView;
+    private HostSwitchesView? switchesView;
 
     private readonly DispatcherQueueTimer uptimeTimer;
     private readonly DispatcherTimer successToastTimer = new() { Interval = TimeSpan.FromMilliseconds(2600) };
 
+    private readonly HostInventorySnapshot initialStatus = new();
     private HostInventorySnapshot? inventory;
     private CancellationTokenSource? telemetryCts;
     private CancellationTokenSource? inventoryCts;
@@ -73,18 +74,8 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
         PageTabs.SelectionRequested += OnTabSelectionRequested;
 
         statusView.BindFeedbackHost(this);
-        environmentView.BindFeedbackHost(this);
-        settingsView.BindFeedbackHost(this);
-        switchesView.BindFeedbackHost(this);
-
-        environmentView.InventoryRefreshRequested += ReloadInventoryAsync;
-        settingsView.InventoryRefreshRequested += ReloadInventoryAsync;
-        switchesView.InventoryRefreshRequested += ReloadInventoryAsync;
-
         TabBodyHost.Children.Add(statusView);
-        TabBodyHost.Children.Add(environmentView);
-        TabBodyHost.Children.Add(settingsView);
-        TabBodyHost.Children.Add(switchesView);
+        statusView.ApplyInventory(initialStatus);
         UpdateVisibleTab();
 
         uptimeTimer = DispatcherQueue.CreateTimer();
@@ -102,7 +93,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
         {
             if (inventory != null) ApplyTopSummary(inventory);
             statusView.RefreshTheme();
-            settingsView.RefreshTheme();
+            settingsView?.RefreshTheme();
         };
     }
 
@@ -172,9 +163,34 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
     private void UpdateVisibleTab()
     {
         statusView.Visibility = activeTabIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
-        environmentView.Visibility = activeTabIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
-        settingsView.Visibility = activeTabIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
-        switchesView.Visibility = activeTabIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
+        if (activeTabIndex == 1 && inventory != null && environmentView == null)
+        {
+            environmentView = new HostEnvironmentView();
+            environmentView.BindFeedbackHost(this);
+            environmentView.InventoryRefreshRequested += ReloadInventoryAsync;
+            environmentView.ApplyInventory(inventory);
+            TabBodyHost.Children.Add(environmentView);
+        }
+        if (environmentView != null) environmentView.Visibility = activeTabIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
+        if (activeTabIndex == 2 && inventory != null && settingsView == null)
+        {
+            settingsView = new HostSettingsView();
+            settingsView.BindFeedbackHost(this);
+            settingsView.InventoryRefreshRequested += ReloadInventoryAsync;
+            settingsView.ApplyInventory(inventory);
+            TabBodyHost.Children.Add(settingsView);
+        }
+        if (settingsView != null) settingsView.Visibility = activeTabIndex == 2 ? Visibility.Visible : Visibility.Collapsed;
+        if (activeTabIndex == 3 && inventory != null && switchesView == null)
+        {
+            switchesView = new HostSwitchesView();
+            switchesView.BindFeedbackHost(this);
+            switchesView.InventoryRefreshRequested += ReloadInventoryAsync;
+            switchesView.ApplyInventory(inventory);
+            TabBodyHost.Children.Add(switchesView);
+        }
+        if (switchesView != null) switchesView.Visibility = activeTabIndex == 3 ? Visibility.Visible : Visibility.Collapsed;
+        TabBodyHost.Visibility = activeTabIndex == 0 || inventory != null ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private async Task ReloadInventoryAsync()
@@ -193,12 +209,12 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
             if (inventory == null)
             {
                 LoadingBar.Visibility = Visibility.Visible;
-                TabBodyHost.Visibility = Visibility.Collapsed;
+                EnsureTelemetryState();
             }
 
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
             inventoryCts = cts;
-            var snapshot = await sampler.LoadInventoryAsync(cts.Token);
+            var snapshot = await Task.Run(() => sampler.LoadInventoryAsync(cts.Token), cts.Token);
             cts.Token.ThrowIfCancellationRequested();
             if (!pageActive || stopping) return;
             needsInventory = false;
@@ -207,25 +223,25 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
             lastVmSummary = snapshot.VmSummary ?? lastVmSummary;
             ApplyTopSummary(snapshot);
             statusView.ApplyInventory(snapshot);
-            environmentView.ApplyInventory(snapshot);
-            settingsView.ApplyInventory(snapshot);
-            switchesView.ApplyInventory(snapshot);
+            environmentView?.ApplyInventory(snapshot);
+            settingsView?.ApplyInventory(snapshot);
+            switchesView?.ApplyInventory(snapshot);
 
             LoadingBar.Visibility = Visibility.Collapsed;
-            TabBodyHost.Visibility = Visibility.Visible;
+            UpdateVisibleTab();
             EnsureTelemetryState();
         }
         catch (OperationCanceledException) when (inventoryCts == null || inventoryCts.IsCancellationRequested)
         {
             if (!pageActive || stopping) return;
             LoadingBar.Visibility = Visibility.Collapsed;
-            TabBodyHost.Visibility = Visibility.Visible;
+            UpdateVisibleTab();
         }
         catch (Exception ex)
         {
             if (!pageActive || stopping) return;
             LoadingBar.Visibility = Visibility.Collapsed;
-            TabBodyHost.Visibility = Visibility.Visible;
+            UpdateVisibleTab();
             ShowSettingsNotice(CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error);
         }
         finally
@@ -238,7 +254,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
 
     private void EnsureTelemetryState()
     {
-        if (!pageActive || !windowVisible || stopping || activeTabIndex != 0 || inventory == null)
+        if (!pageActive || !windowVisible || stopping || activeTabIndex != 0)
         {
             telemetryCts?.Cancel();
             return;
@@ -257,35 +273,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
             await previous;
             token.ThrowIfCancellationRequested();
             Diagnostics.AppDiagnostics.Write("HostMonitor", "Started");
-            await using var cpu = await Task.Run(() => new HostCpuThreadMonitorService(), token);
-            using var devices = new HostDeviceTelemetryService();
-            using var network = new HostNetworkTelemetryService();
-            int tick = 0;
-            long nextDeadline = Stopwatch.GetTimestamp();
-
-            while (!token.IsCancellationRequested)
-            {
-                var currentInv = inventory;
-                if (currentInv != null)
-                {
-                    var sample = await Task.Run(() => HostTelemetrySampler.SampleLiveAsync(currentInv, cpu, devices, network, tick++ % 2 == 0, token), token);
-                    token.ThrowIfCancellationRequested();
-
-                    if (pageActive && windowVisible && !stopping && activeTabIndex == 0 && ReferenceEquals(inventory, currentInv))
-                    {
-                        Diagnostics.AppDiagnostics.Write("HostMonitor", "Sample", level: TraceEventType.Verbose);
-                        statusView.ApplySample(sample);
-                        ShowVmSummary(sample.VmSummary);
-                    }
-                }
-
-                long period = (long)(SampleInterval.TotalSeconds * Stopwatch.Frequency);
-                long now = Stopwatch.GetTimestamp();
-                nextDeadline += period;
-                if (nextDeadline <= now)
-                    nextDeadline += ((now - nextDeadline) / period + 1) * period;
-                await Task.Delay(Stopwatch.GetElapsedTime(now, nextDeadline), token);
-            }
+            await Task.WhenAll(SampleProcessorLoopAsync(token), SampleDeviceLoopAsync(token));
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -301,6 +289,49 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
             if (ReferenceEquals(telemetryCts, cts)) telemetryCts = null;
             cts.Dispose();
         }
+    }
+
+    private async Task SampleProcessorLoopAsync(CancellationToken token)
+    {
+        await using var cpu = await Task.Run(() => new HostCpuThreadMonitorService(), token);
+        var warmup = Stopwatch.StartNew();
+        using var timer = new PeriodicTimer(SampleInterval);
+        do
+        {
+            var sample = await Task.Run(() => HostTelemetrySampler.SampleProcessorAndMemory(cpu), token);
+            token.ThrowIfCancellationRequested();
+            statusView.ApplyProcessorAndMemory(sample);
+            if (sample.CpuReport?.Sample.State == ExHyperV.Models.PerformanceSampleState.WarmingUp &&
+                warmup.Elapsed < SampleInterval)
+            {
+                await Task.Delay(150, token);
+                continue;
+            }
+            await timer.WaitForNextTickAsync(token);
+        } while (!token.IsCancellationRequested);
+    }
+
+    private async Task SampleDeviceLoopAsync(CancellationToken token)
+    {
+        using var devices = new HostDeviceTelemetryService();
+        using var network = new HostNetworkTelemetryService();
+        using var timer = new PeriodicTimer(SampleInterval);
+        int tick = 0;
+        do
+        {
+            if (inventory is { } currentInv)
+            {
+                bool refreshVms = ++tick % 2 == 0;
+                var sample = await Task.Run(() => HostTelemetrySampler.SampleDevicesAsync(currentInv, devices, network, refreshVms, token), token);
+                token.ThrowIfCancellationRequested();
+                if (ReferenceEquals(currentInv, inventory))
+                {
+                    Diagnostics.AppDiagnostics.Write("HostMonitor", "Sample", level: TraceEventType.Verbose);
+                    statusView.ApplyDeviceSample(sample);
+                    if (sample.VmSummary != null) ShowVmSummary(sample.VmSummary);
+                }
+            }
+        } while (await timer.WaitForNextTickAsync(token));
     }
 
     private void ShowVmSummary(HostVmSummary? value)
@@ -382,7 +413,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
             if (!pageActive || stopping) return;
             if (inventory != null) ApplyTopSummary(inventory);
             statusView.RefreshTheme();
-            settingsView.RefreshTheme();
+            settingsView?.RefreshTheme();
         });
     }
 

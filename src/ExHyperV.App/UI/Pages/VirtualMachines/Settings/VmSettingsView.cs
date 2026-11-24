@@ -53,6 +53,7 @@ public abstract partial class VmSettingsView : UserControl
     }
 
     internal void BindFeedbackHost(IDashboardFeedbackHost host) => feedbackHost = host;
+    protected void BindChildFeedback(VmSettingsView child) => child.feedbackHost = feedbackHost;
     protected void SetHeaderTrailingAction(UIElement? content) => feedbackHost?.SetPageTabsTrailingAction(content);
 
     public Guid VmId { get; }
@@ -163,7 +164,11 @@ public abstract partial class VmSettingsView : UserControl
             // Leaving the page cancels its pending read.
         }
         catch (ActionableException ex) { ShowError(ex.Message, ex.ActionLabel, ex.OnAction); }
-        catch (Exception ex) { ShowError(CoreMessageResolver.ResolveException(ex)); }
+        catch (Exception ex)
+        {
+            AppDiagnostics.Failure(GetType().Name, "OperationFailed", ex);
+            ShowError(CoreMessageResolver.ResolveException(ex));
+        }
         finally
         {
             operationBusy = false;
@@ -215,13 +220,20 @@ public abstract partial class VmSettingsView : UserControl
         return button;
     }
 
-    protected void ShowInformation(string text)
+    protected void ClearOperationFeedback()
+    {
+        HideAppliedToast();
+        standaloneNotice?.Hide();
+        feedbackHost?.ClearSettingsNotice();
+    }
+
+    protected void ShowInformation(string text, InfoBarSeverity severity = InfoBarSeverity.Informational)
     {
         HideAppliedToast();
         if (feedbackHost != null)
-            feedbackHost.ShowSettingsNotice(text, InfoBarSeverity.Informational);
+            feedbackHost.ShowSettingsNotice(text, severity);
         else
-            EnsureStandaloneNotice().Show(text, InfoBarSeverity.Informational);
+            EnsureStandaloneNotice().Show(text, severity);
     }
 
     protected void ShowAppliedToast(string? text = null)

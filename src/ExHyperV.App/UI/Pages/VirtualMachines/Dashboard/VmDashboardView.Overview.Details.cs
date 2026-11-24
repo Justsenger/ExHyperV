@@ -339,7 +339,12 @@ public sealed partial class VmDashboardView
 
     private string FormatCpuRailStat()
     {
-        string usage = state == VmState.Running && cpuUsagePercent.HasValue ? $"{cpuUsagePercent.Value:N1}%" : "0%";
+        string usage = (state ?? current?.PowerState) switch
+        {
+            VmState.Running when cpuUsagePercent.HasValue => $"{cpuUsagePercent.Value:N1}%",
+            VmState.PoweredOff or VmState.Saved or VmState.Suspended or VmState.FastSaved or VmState.Hibernated => "0%",
+            _ => "---"
+        };
         return cpuCoreCount.HasValue ? L10n.Format("Overview_CpuUsageWithCores", usage, cpuCoreCount.Value) : usage;
     }
 
@@ -347,7 +352,8 @@ public sealed partial class VmDashboardView
     {
         long? capacityMiB = memAssignedMiB ?? memStartupMiB;
         if (!capacityMiB.HasValue || capacityMiB.Value <= 0) return "---";
-        bool running = state == VmState.Running;
+        bool running = (state ?? current?.PowerState) == VmState.Running;
+        if (running && !memUsedPercent.HasValue) return FormatMemoryCapacity(capacityMiB.Value);
         double usedMiB = running && memUsedPercent.HasValue
             ? capacityMiB.Value * memUsedPercent.Value / 100d
             : 0;
@@ -358,7 +364,8 @@ public sealed partial class VmDashboardView
     {
         long? capacityMiB = memAssignedMiB ?? memStartupMiB;
         if (!capacityMiB.HasValue || capacityMiB.Value <= 0) return "---";
-        bool running = state == VmState.Running;
+        bool running = (state ?? current?.PowerState) == VmState.Running;
+        if (running && !memUsedPercent.HasValue) return FormatMemoryCapacity(capacityMiB.Value);
         double usedPct = running && memUsedPercent.HasValue ? memUsedPercent.Value : 0;
         double usedMiB = running && memUsedPercent.HasValue
             ? capacityMiB.Value * usedPct / 100d

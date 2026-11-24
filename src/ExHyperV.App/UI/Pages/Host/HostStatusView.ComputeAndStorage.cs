@@ -38,7 +38,7 @@ internal sealed partial class HostStatusView
             if (sample.CpuPercent is { } pct)
             {
                 spark.Add(pct);
-                string freq = sample.CpuFreqGHz is { } gz and > 0 ? $" {gz:0.00} GHz" : string.Empty;
+                string freq = lastSample?.CpuFreqGHz is { } gz and > 0 ? $" {gz:0.00} GHz" : string.Empty;
                 stat.Text = $"{Math.Round(pct):0}%{freq}";
             }
 
@@ -164,7 +164,6 @@ internal sealed partial class HostStatusView
         }
         chartsGrid.Visibility = scaleHost.Visibility = Visibility.Collapsed;
         noCounterNote.Visibility = Visibility.Visible;
-        RenderGpuKv();
         detailPanels[key] = new DetailPanelEntry
         {
             Key = key,
@@ -279,7 +278,6 @@ internal sealed partial class HostStatusView
             ], CopySuccessToast, CopyErrorBanner);
         }
 
-        RenderDiskKv();
         detailPanels[key] = new DetailPanelEntry
         {
             Key = key,

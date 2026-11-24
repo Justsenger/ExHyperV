@@ -2390,6 +2390,9 @@
   <data name="Host_Switches_UpstreamDesc" xml:space="preserve">
     <value>由 HyperVSwitchService 识别的物理上联适配器。</value>
   </data>
+  <data name="Host_Switches_NoUpstream" xml:space="preserve">
+    <value>没有可用于此模式的上游网卡。</value>
+  </data>
   <data name="Host_Switches_UpstreamNone" xml:space="preserve">
     <value>无上游连接</value>
   </data>
@@ -3651,7 +3654,7 @@
     <value>打包并挂接 ISO</value>
   </data>
   <data name="Storage_AddDevice" xml:space="preserve">
-    <value>添加存储设备</value>
+    <value>添加存储</value>
   </data>
   <data name="Storage_PassthroughChanged" xml:space="preserve">
     <value>设备身份或分配状态已变化，请重新选择直通设备。</value>
@@ -3760,9 +3763,6 @@
   </data>
   <data name="Storage_AutoSlot" xml:space="preserve">
     <value>自动选择插槽</value>
-  </data>
-  <data name="Storage_LoadingDevices" xml:space="preserve">
-    <value>正在读取存储设备…</value>
   </data>
   <data name="Storage_LoadDevicesFailed" xml:space="preserve">
     <value>读取存储设备失败。</value>

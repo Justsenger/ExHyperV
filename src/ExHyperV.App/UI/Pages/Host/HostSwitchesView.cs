@@ -51,7 +51,7 @@ internal sealed partial class HostSwitchesView : UserControl
         toolbar.Children.Add(refreshBtn);
         toolbar.Children.Add(busyRing);
 
-        addBtn.Click += async (_, _) => await UiEvent.RunAsync(() => OpenCreateDialogAsync(), message => feedbackHost?.ShowSettingsNotice(message));
+        addBtn.Click += async (_, _) => await UiEvent.RunAsync(CreateSwitchAsync, message => feedbackHost?.ShowSettingsNotice(message));
         refreshBtn.Click += async (_, _) =>
         {
             if (busy || InventoryRefreshRequested == null) return;
@@ -189,13 +189,16 @@ internal sealed partial class HostSwitchesView : UserControl
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        var applyBtn = SettingsActionButton.CreateRect(L10n.Get("Host_Switches_Apply"), primary: true);
-        var deleteBtn = SettingsActionButton.CreateRect(L10n.Get("Host_Switches_Delete"));
-        deleteBtn.IsEnabled = editable && !busy;
+        var upstreamValue = new TextBox { IsReadOnly = true };
+        var upstreamField = new Grid();
+        upstreamField.Children.Add(upstreamValue);
+        upstreamField.Children.Add(upstreamCombo);
 
         void PopulateUpstreams(SwitchMode selectedMode)
         {
             upstreamCombo.Items.Clear();
+            upstreamCombo.Visibility = Visibility.Collapsed;
+            upstreamValue.Text = L10n.Get("Host_Switches_UpstreamNone");
             if (selectedMode == SwitchMode.Isolated)
             {
                 upstreamCombo.Items.Add(new ComboBoxItem { Content = L10n.Get("Host_Switches_UpstreamNone"), Tag = null });
@@ -209,7 +212,7 @@ internal sealed partial class HostSwitchesView : UserControl
                 : inv.PhysicalAdapters;
 
             int selIdx = -1;
-            var list = pool.ToList();
+            var list = pool.Where(a => !inv.Switches.Any(other => other.Id != sw.Id && other.Upstream?.ConnectionId == a.ConnectionId)).ToList();
 
             for (int i = 0; i < list.Count; i++)
             {
@@ -228,11 +231,13 @@ internal sealed partial class HostSwitchesView : UserControl
             else
             {
                 upstreamCombo.SelectedIndex = selIdx;
+                if (selIdx >= 0) upstreamValue.Text = list[selIdx].DisplayName;
+                else if (editable && selectedMode != sw.SwitchType) upstreamCombo.Visibility = Visibility.Visible;
                 upstreamCombo.IsEnabled = editable && !busy;
             }
         }
 
-        void SyncDirtyAndAvailability()
+        async Task ApplySelectionAsync()
         {
             var curMode = (modeCombo.SelectedItem as ComboBoxItem)?.Tag is SwitchMode m ? m : sw.SwitchType;
             var curUpstream = (upstreamCombo.SelectedItem as ComboBoxItem)?.Tag as SwitchUpstreamAdapter;
@@ -257,27 +262,33 @@ internal sealed partial class HostSwitchesView : UserControl
                 curMode != sw.SwitchType
                 || curUpstream?.ConnectionId != sw.Upstream?.ConnectionId
                 || mgmtToggle.IsOn != sw.AllowManagementOS);
-            applyBtn.IsEnabled = dirty && !busy;
+            if (curMode != sw.SwitchType && SwitchConfigurationRules.RequiresUpstream(curMode) && !upstreamCombo.IsEnabled && curUpstream == null)
+            {
+                feedbackHost?.ShowSettingsNotice(L10n.Get("Host_Switches_NoUpstream"), InfoBarSeverity.Error);
+                RebuildCards();
+                return;
+            }
+            if (dirty && !busy) await ApplyChangeAsync(curMode, curUpstream, mgmtToggle.IsOn);
         }
 
         PopulateUpstreams(sw.SwitchType);
-        SyncDirtyAndAvailability();
+        mgmtToggle.IsEnabled = editable && !busy && sw.SwitchType != SwitchMode.NAT;
         updating = false;
 
-        modeCombo.SelectionChanged += (_, _) =>
+        modeCombo.SelectionChanged += async (_, _) =>
         {
             if (updating) return;
             var nextMode = (modeCombo.SelectedItem as ComboBoxItem)?.Tag is SwitchMode m ? m : sw.SwitchType;
             updating = true;
             try { PopulateUpstreams(nextMode); }
             finally { updating = false; }
-            SyncDirtyAndAvailability();
+            await ApplySelectionAsync();
         };
-        upstreamCombo.SelectionChanged += (_, _) => { if (!updating) SyncDirtyAndAvailability(); };
-        mgmtToggle.Toggled += (_, _) => { if (!updating) SyncDirtyAndAvailability(); };
+        upstreamCombo.SelectionChanged += async (_, _) => { if (!updating) await ApplySelectionAsync(); };
+        mgmtToggle.Toggled += async (_, _) => { if (!updating) await ApplySelectionAsync(); };
 
         form.Children.Add(LabeledControl(L10n.Get("Host_Switches_ModeLabel"), L10n.Get("Host_Switches_ModeDesc"), modeCombo));
-        form.Children.Add(LabeledControl(L10n.Get("Host_Switches_UpstreamLabel"), L10n.Get("Host_Switches_UpstreamDesc"), upstreamCombo));
+        form.Children.Add(LabeledControl(L10n.Get("Host_Switches_UpstreamLabel"), L10n.Get("Host_Switches_UpstreamDesc"), upstreamField));
 
         var mgmtRow = new Grid { ColumnSpacing = 12 };
         mgmtRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -317,49 +328,13 @@ internal sealed partial class HostSwitchesView : UserControl
         }
         form.Children.Add(LabeledControl(L10n.Get("Host_Switches_EndpointsLabel"), L10n.Get("Host_Switches_EndpointsDesc"), epTags));
 
-        // Footer actions & warnings
-        var footer = new Grid { ColumnSpacing = 12, Margin = new Thickness(0, 4, 0, 0) };
-        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-        var noteText = isDefault
-            ? L10n.Get("Host_Switches_DefaultProtected")
-            : (!string.IsNullOrWhiteSpace(sw.StateError) ? sw.StateError : string.Empty);
-        if (!string.IsNullOrWhiteSpace(noteText))
+        async Task ApplyChangeAsync(SwitchMode nextMode, SwitchUpstreamAdapter? nextUpstream, bool nextMgmt)
         {
-            var noteTb = new TextBlock
-            {
-                Text = noteText,
-                FontSize = 12,
-                Foreground = ThemeHelper.TryResourceBrush(ActualTheme,
-                    !string.IsNullOrWhiteSpace(sw.StateError) ? "SystemFillColorCautionBrush" : "TextFillColorSecondaryBrush",
-                    Color.FromArgb(255, 0xA0, 0xA0, 0xA0)),
-                TextWrapping = TextWrapping.Wrap,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(noteTb, 0);
-            footer.Children.Add(noteTb);
-        }
-
-        var actionButtons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        actionButtons.Children.Add(deleteBtn);
-        actionButtons.Children.Add(applyBtn);
-        Grid.SetColumn(actionButtons, 1);
-        footer.Children.Add(actionButtons);
-        SettingsFieldPanel.SetSpan2(footer, true);
-        form.Children.Add(footer);
-
-        applyBtn.Click += async (_, _) =>
-        {
-            if (busy || !editable || !applyBtn.IsEnabled) return;
-            var nextMode = (modeCombo.SelectedItem as ComboBoxItem)?.Tag is SwitchMode m ? m : sw.SwitchType;
-            var nextUpstream = (upstreamCombo.SelectedItem as ComboBoxItem)?.Tag as SwitchUpstreamAdapter;
-            bool nextMgmt = mgmtToggle.IsOn;
-
             string? conflict = SwitchConfigurationRules.GetUpdateConflict(sw.Id, nextMode, nextUpstream, inv.Switches);
             if (conflict != null)
             {
                 feedbackHost?.ShowSettingsNotice(conflict, InfoBarSeverity.Error);
+                RebuildCards();
                 return;
             }
 
@@ -379,41 +354,7 @@ internal sealed partial class HostSwitchesView : UserControl
                     feedbackHost?.ShowSettingsNotice(CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error);
                 }
             });
-        };
-
-        deleteBtn.Click += async (_, _) =>
-        {
-            if (busy || !editable || XamlRoot == null) return;
-            var dialog = new ContentDialog
-            {
-                XamlRoot = XamlRoot,
-                RequestedTheme = ActualTheme,
-                Title = L10n.Format("Host_Switches_DeleteTitle", sw.SwitchName),
-                Content = new TextBlock { Text = L10n.Get("Host_Switches_DeleteBody"), TextWrapping = TextWrapping.Wrap },
-                PrimaryButtonText = L10n.Get("Host_Switches_Delete"),
-                CloseButtonText = L10n.Get("Common_Cancel"),
-                DefaultButton = ContentDialogButton.Close
-            };
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-
-            await RunBusyAsync(async () =>
-            {
-                try
-                {
-                    if (Guid.TryParse(sw.Id, out var id))
-                        await HyperVSwitchService.DeleteSwitchAsync(id);
-                    else
-                        await HyperVSwitchService.DeleteSwitchAsync(sw.SwitchName);
-                    expandedIds.Remove(sw.Id);
-                    feedbackHost?.ShowSuccessToast();
-                    if (InventoryRefreshRequested != null) await InventoryRefreshRequested();
-                }
-                catch (Exception ex)
-                {
-                    feedbackHost?.ShowSettingsNotice(CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error);
-                }
-            });
-        };
+        }
 
         var expander = new Expander
         {
@@ -429,113 +370,21 @@ internal sealed partial class HostSwitchesView : UserControl
         return expander;
     }
 
-    private async Task OpenCreateDialogAsync()
+    private async Task CreateSwitchAsync()
     {
-        if (busy || XamlRoot == null || currentInventory == null) return;
-
-        var nameBox = new TextBox
-        {
-            PlaceholderText = L10n.Get("Host_Switches_NamePlaceholder"),
-            HorizontalAlignment = HorizontalAlignment.Stretch
-        };
-        var modeCombo = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
-        modeCombo.Items.Add(new ComboBoxItem { Content = L10n.Get("Host_Sw_Mode_BridgeFull"), Tag = SwitchMode.Bridge });
-        modeCombo.Items.Add(new ComboBoxItem { Content = L10n.Get("Host_Sw_Mode_Nat"), Tag = SwitchMode.NAT });
-        modeCombo.Items.Add(new ComboBoxItem { Content = L10n.Get("Host_Sw_Mode_IsolatedFull"), Tag = SwitchMode.Isolated });
-        modeCombo.SelectedIndex = 2; // Default safe Isolated
-
-        var upstreamCombo = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
-        var validationTb = new TextBlock
-        {
-            FontSize = 12,
-            Foreground = ThemeHelper.TryResourceBrush(ActualTheme, "SystemFillColorCriticalBrush", Color.FromArgb(255, 0xFF, 0x6B, 0x6B)),
-            TextWrapping = TextWrapping.Wrap,
-            Visibility = Visibility.Collapsed
-        };
-
-        void RefreshAdapterChoices()
-        {
-            upstreamCombo.Items.Clear();
-            var mode = (modeCombo.SelectedItem as ComboBoxItem)?.Tag is SwitchMode m ? m : SwitchMode.Isolated;
-            if (!SwitchConfigurationRules.RequiresUpstream(mode))
-            {
-                upstreamCombo.Items.Add(new ComboBoxItem { Content = L10n.Get("Host_Switches_UpstreamNone"), Tag = null });
-                upstreamCombo.SelectedIndex = 0;
-                upstreamCombo.IsEnabled = false;
-                return;
-            }
-            var available = SwitchConfigurationRules.GetAvailableCreationAdapters(
-                mode, currentInventory.Switches, currentInventory.PhysicalAdapters, cachedBridgeable);
-            foreach (var a in available)
-                upstreamCombo.Items.Add(new ComboBoxItem { Content = a.DisplayName, Tag = a });
-            if (available.Count == 0)
-            {
-                upstreamCombo.Items.Add(new ComboBoxItem { Content = L10n.Get("Host_Switches_UpstreamNone"), Tag = null });
-                upstreamCombo.SelectedIndex = 0;
-                upstreamCombo.IsEnabled = false;
-            }
-            else
-            {
-                upstreamCombo.SelectedIndex = 0;
-                upstreamCombo.IsEnabled = true;
-            }
-        }
-
-        RefreshAdapterChoices();
-        modeCombo.SelectionChanged += (_, _) => RefreshAdapterChoices();
-
-        var body = new StackPanel { Spacing = 10, MinWidth = 360 };
-        body.Children.Add(nameBox);
-        body.Children.Add(new TextBlock { Text = L10n.Get("Host_Switches_ModeLabel"), FontSize = 12.5 });
-        body.Children.Add(modeCombo);
-        body.Children.Add(new TextBlock { Text = L10n.Get("Host_Switches_UpstreamLabel"), FontSize = 12.5 });
-        body.Children.Add(upstreamCombo);
-        body.Children.Add(validationTb);
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            RequestedTheme = ActualTheme,
-            Title = L10n.Get("Host_Switches_DialogTitle"),
-            Content = body,
-            PrimaryButtonText = L10n.Get("Host_Switches_CreateConfirm"),
-            CloseButtonText = L10n.Get("Common_Cancel"),
-            DefaultButton = ContentDialogButton.Primary
-        };
-
-        dialog.PrimaryButtonClick += (_, args) =>
-        {
-            var mode = (modeCombo.SelectedItem as ComboBoxItem)?.Tag is SwitchMode m ? m : SwitchMode.Isolated;
-            var upstream = (upstreamCombo.SelectedItem as ComboBoxItem)?.Tag as SwitchUpstreamAdapter;
-            string? err = SwitchConfigurationRules.GetCreationError(
-                nameBox.Text.Trim(), mode, upstream,
-                currentInventory.Switches, currentInventory.PhysicalAdapters, cachedBridgeable);
-            if (err != null)
-            {
-                args.Cancel = true;
-                validationTb.Text = err;
-                validationTb.Visibility = Visibility.Visible;
-            }
-        };
-
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
-
-        string newName = nameBox.Text.Trim();
-        var chosenMode = (modeCombo.SelectedItem as ComboBoxItem)?.Tag is SwitchMode cm ? cm : SwitchMode.Isolated;
-        var chosenUpstream = (upstreamCombo.SelectedItem as ComboBoxItem)?.Tag as SwitchUpstreamAdapter;
+        if (busy || currentInventory == null) return;
+        var used = currentInventory.Switches.Select(sw => sw.SwitchName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        int index = used.Count + 1;
+        string name;
+        do { name = $"Custom Switch {index++}"; } while (used.Contains(name));
 
         await RunBusyAsync(async () =>
         {
-            try
-            {
-                await HyperVSwitchService.CreateSwitchAsync(newName, chosenMode, chosenUpstream);
-                feedbackHost?.ShowSuccessToast();
-                if (InventoryRefreshRequested != null) await InventoryRefreshRequested();
-            }
-            catch (Exception ex)
-            {
-                feedbackHost?.ShowSettingsNotice(CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error);
-            }
+            await HyperVSwitchService.CreateSwitchAsync(name, SwitchMode.Isolated, null);
+            if (InventoryRefreshRequested != null) await InventoryRefreshRequested();
+            var created = currentInventory.Switches.FirstOrDefault(sw => sw.SwitchName == name);
+            if (created != null) expandedIds.Add(created.Id);
+            feedbackHost?.ShowSuccessToast();
         });
     }
 

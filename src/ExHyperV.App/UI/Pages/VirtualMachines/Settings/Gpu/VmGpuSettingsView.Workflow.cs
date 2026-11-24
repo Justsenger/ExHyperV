@@ -1,5 +1,3 @@
-using System.Text;
-using System.Text.Json;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.Models;
@@ -8,14 +6,12 @@ using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Windows.ApplicationModel.DataTransfer;
 using Windows.UI;
 
 namespace ExHyperV.App.UI.Pages.VirtualMachines.Settings.Gpu;
 
 public sealed partial class VmGpuSettingsView
 {
-    private readonly InfoBar deploymentState = new() { IsOpen = true, IsClosable = false, Visibility = Visibility.Collapsed };
     private readonly StackPanel stepsPanel = new() { Spacing = 8 };
     private readonly ContentControl stepsHost = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
     private readonly StackPanel fallbackDecisionPanel = new() { Spacing = 10 };
@@ -24,11 +20,6 @@ public sealed partial class VmGpuSettingsView
     private readonly Button reconcile = new() { Content = L10n.Get("Gpu_Reconcile") };
     private readonly Button retryCleanup = new() { Content = L10n.Get("Gpu_RetryCleanup") };
     private readonly Button done = new() { Content = L10n.Get("Gpu_BackToList") };
-    private readonly Button restart = new() { Content = L10n.Get("Gpu_Reselect") };
-    private readonly TextBox log = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 140, MaxHeight = 280, FontFamily = AppFonts.Monospace };
-    private readonly TextBox recoveryText = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 260 };
-    private readonly Expander recoveryDetails = new() { Header = L10n.Get("Gpu_RecoveryDetails"), Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
-    private readonly SortedDictionary<long, string> logEntries = new();
 
     private readonly StackPanel footerActions = new() { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Visibility = Visibility.Collapsed };
     private GpuDeploymentSession? workflow;
@@ -44,7 +35,6 @@ public sealed partial class VmGpuSettingsView
         cancel.Click += async (_, _) => await CancelDeploymentAsync();
         reconcile.Click += async (_, _) => await RunGpuOperationAsync(() => PerformSessionActionAsync(GpuDeploymentAction.Reconcile));
         retryCleanup.Click += async (_, _) => await RunGpuOperationAsync(() => PerformSessionActionAsync(GpuDeploymentAction.RetryCleanup));
-        restart.Click += async (_, _) => await RunGpuOperationAsync(ShowSelectionAsync);
         done.Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"];
         done.Click += async (_, _) => await RunGpuOperationAsync(async () =>
         {
@@ -54,34 +44,22 @@ public sealed partial class VmGpuSettingsView
             deployment.Visibility = selection.Visibility = Visibility.Collapsed;
         });
 
-        var copyDetails = new Button { Content = L10n.Get("Gpu_CopyLog"), HorizontalAlignment = HorizontalAlignment.Right };
-        copyDetails.Click += (_, _) => CopyReport();
-
-        var detailsBody = new StackPanel { Spacing = 8 };
-        detailsBody.Children.Add(copyDetails);
-        detailsBody.Children.Add(log);
-        detailsBody.Children.Add(recoveryText);
-        recoveryDetails.Content = detailsBody;
-
         footerActions.Children.Clear();
-        foreach (var button in new[] { cancel, reconcile, retryCleanup, restart, done })
+        foreach (var button in new[] { cancel, reconcile, retryCleanup, done })
             footerActions.Children.Add(button);
 
         stepsHost.Content = stepsPanel;
         fallbackDecisionHost.Content = fallbackDecisionPanel;
 
-        deployment.Children.Add(deploymentState);
         deployment.Children.Add(stepsHost);
         deployment.Children.Add(fallbackDecisionHost);
         deployment.Children.Add(footerActions);
-        deployment.Children.Add(recoveryDetails);
         return deployment;
     }
 
     private async Task StartDeploymentAsync(IReadOnlyList<HostGpuInfo> gpus, GpuDeploymentMode mode)
     {
         EnsureNoUnfinishedDeployment();
-        operationNotice.IsOpen = false;
         var identity = await QueryAsync(VmIdentityFields.Name);
         var name = identity.Get(VmIdentityFields.Name);
         if (!name.HasValue) throw new InvalidOperationException(name.Error ?? L10n.Get("Gpu_ReadVmNameFailed"));
@@ -96,13 +74,8 @@ public sealed partial class VmGpuSettingsView
         activeIsoPctText = null;
         activeIsoFillCol = null;
         activeIsoTrackCol = null;
-        logEntries.Clear();
-        log.Text = string.Empty;
-        recoveryText.Text = string.Empty;
         fallbackDecisionPanel.Children.Clear();
         fallbackDecisionHost.Visibility = Visibility.Collapsed;
-        recoveryDetails.Visibility = Visibility.Collapsed;
-        deploymentState.Visibility = Visibility.Collapsed;
 
         overview.Visibility = selection.Visibility = Visibility.Collapsed;
         deployment.Visibility = Visibility.Visible;
@@ -140,47 +113,30 @@ public sealed partial class VmGpuSettingsView
     private void ApplySnapshot(GpuDeploymentSession source, GpuDeploymentSnapshot value)
     {
         if (IsStopped || !ReferenceEquals(source, workflow)) return;
-        if (!string.IsNullOrWhiteSpace(value.LastLog) && !logEntries.ContainsKey(value.Revision))
-        {
-            logEntries[value.Revision] = value.LastLog;
-            log.Text = string.Join(Environment.NewLine, logEntries.Values);
-        }
         if (snapshot != null && value.Revision <= snapshot.Revision) return;
         snapshot = value;
 
         bool hasErrors = !string.IsNullOrWhiteSpace(value.Error) || !string.IsNullOrWhiteSpace(value.CleanupError);
         if (value.State is GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired or GpuDeploymentState.Cancelled || hasErrors)
         {
-            deploymentState.Title = value.State switch
+            string title = value.State switch
             {
                 GpuDeploymentState.Failed => L10n.Get("Gpu_DeploymentFailed"),
                 GpuDeploymentState.CleanupRequired => value.OutcomeUnknown ? L10n.Get("Gpu_OutcomeUnknown") : L10n.Get("Gpu_CleanupRequired"),
                 GpuDeploymentState.Cancelled => L10n.Get("Gpu_DeploymentCancelled"),
                 _ => L10n.Get("Gpu_StatusNotice")
             };
-            deploymentState.Severity = value.State switch
+            var severity = value.State switch
             {
                 GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired => InfoBarSeverity.Error,
                 GpuDeploymentState.Cancelled => InfoBarSeverity.Warning,
                 _ => InfoBarSeverity.Informational
             };
             var errors = new[] { value.Error, value.CleanupError }.Where(text => !string.IsNullOrWhiteSpace(text)).Distinct();
-            deploymentState.Message = string.Join(Environment.NewLine, errors);
-            deploymentState.Visibility = Visibility.Visible;
-        }
-        else
-        {
-            deploymentState.Visibility = Visibility.Collapsed;
+            Notice(string.Join(Environment.NewLine, errors.Prepend(title)), severity);
         }
 
         RenderTaskSteps(value);
-
-        recoveryText.Text = value.State is GpuDeploymentState.Failed or GpuDeploymentState.CleanupRequired or GpuDeploymentState.Cancelled
-            ? FormatRecovery(value)
-            : string.Empty;
-        recoveryDetails.Visibility = !string.IsNullOrWhiteSpace(recoveryText.Text) || (!string.IsNullOrWhiteSpace(log.Text) && hasErrors)
-            ? Visibility.Visible
-            : Visibility.Collapsed;
 
         RefreshActions();
     }
@@ -393,15 +349,10 @@ public sealed partial class VmGpuSettingsView
         done.Visibility = canReturnToList ? Visibility.Visible : Visibility.Collapsed;
         done.IsEnabled = !busy && canReturnToList;
 
-        bool canRestartSelection = terminal && snapshot?.State is GpuDeploymentState.Cancelled or GpuDeploymentState.Failed;
-        restart.Visibility = canRestartSelection ? Visibility.Visible : Visibility.Collapsed;
-        restart.IsEnabled = !busy && canRestartSelection;
-
         bool hasFooterAction = cancel.Visibility == Visibility.Visible
             || reconcile.Visibility == Visibility.Visible
             || retryCleanup.Visibility == Visibility.Visible
-            || done.Visibility == Visibility.Visible
-            || restart.Visibility == Visibility.Visible;
+            || done.Visibility == Visibility.Visible;
         footerActions.Visibility = hasFooterAction ? Visibility.Visible : Visibility.Collapsed;
 
         bool runningStep = working || snapshot?.State == GpuDeploymentState.Running;
@@ -419,7 +370,7 @@ public sealed partial class VmGpuSettingsView
 
     private void EnsureNoUnfinishedDeployment()
     {
-        if (unconfirmedRemovals.TryGetValue(VmId, out var removal)) throw new InvalidOperationException(removal.Message);
+        if (unconfirmedRemovals.TryGetValue(VmId, out var removal)) throw new InvalidOperationException(removal);
         if (!CanReleaseWorkflow()) throw new InvalidOperationException(L10n.Get("Gpu_UnfinishedDeployment"));
     }
 
@@ -482,36 +433,4 @@ public sealed partial class VmGpuSettingsView
         }
     }
 
-    private static string FormatRecovery(GpuDeploymentSnapshot value)
-    {
-        var text = new StringBuilder();
-        text.AppendLine(L10n.Format("Gpu_DeploymentId", value.SessionId));
-        text.AppendLine(L10n.Format("Gpu_StatusAndOutcome", value.State, value.OutcomeUnknown));
-        if (value.AddedAdapterIds.Count > 0)
-            text.AppendLine(L10n.Format("Gpu_AddedAdapter", string.Join(", ", value.AddedAdapterIds)));
-        else if (!string.IsNullOrWhiteSpace(value.AddedAdapterId))
-            text.AppendLine(L10n.Format("Gpu_AddedAdapter", value.AddedAdapterId));
-        if (value.PendingCleanupAdapterIds.Count > 0)
-            text.AppendLine(L10n.Format("Gpu_PendingCleanupAdapter", string.Join(", ", value.PendingCleanupAdapterIds)));
-        else if (!string.IsNullOrWhiteSpace(value.PendingCleanupAdapterId))
-            text.AppendLine(L10n.Format("Gpu_PendingCleanupAdapter", value.PendingCleanupAdapterId));
-        if (!string.IsNullOrWhiteSpace(value.Error)) text.AppendLine(value.Error);
-        if (!string.IsNullOrWhiteSpace(value.CleanupError)) text.AppendLine(value.CleanupError);
-        if (value.Recovery != null)
-            text.AppendLine(JsonSerializer.Serialize(value.Recovery, RecoveryReportJson.Default.GpuDeploymentRecovery));
-        return text.ToString();
-    }
-
-    private void CopyReport()
-    {
-        try
-        {
-            var data = new DataPackage();
-            data.SetText(log.Text + Environment.NewLine + recoveryText.Text);
-            Clipboard.SetContent(data);
-            Clipboard.Flush();
-            ShowAppliedToast(L10n.Get("Gpu_LogCopied"));
-        }
-        catch (Exception ex) { Notice(L10n.Format("Dev_CopyFailed", CoreMessageResolver.ResolveException(ex)), InfoBarSeverity.Error); }
-    }
 }

@@ -254,7 +254,6 @@ public sealed partial class VmSecuritySettingsView : VmSettingsView
                 available: true, editable: shieldCond.CanModify, null, shieldDisabledReason);
 
             if (!availableTemplates.HasData) ShowError(availableTemplates.Error);
-            else if (shieldCond is { CanModify: false } restriction) ShowInformation(restriction.Reason);
         }
         finally { Updating = false; }
     }

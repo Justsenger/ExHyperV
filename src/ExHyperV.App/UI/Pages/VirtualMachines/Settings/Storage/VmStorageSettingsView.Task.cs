@@ -29,19 +29,24 @@ public sealed partial class VmStorageSettingsView
 
     private async Task RunStorageTaskAsync(string title, string[] steps,
         Func<IProgress<(int StepIndex, int Percent, string Message)>, Task<ApiResponse>> write,
-        string? returnDevice = null, bool openList = false)
+        string? returnDevice = null, bool openList = false, DetailDraft? inlineEdit = null)
     {
         if (!CanWrite) return;
         CancellationToken.ThrowIfCancellationRequested();
         draftProbe.Cancel();
         editing?.Cancel();
         var state = new StorageTask(title, steps, returnDevice);
-        taskView = state;
+        bool stayOnPage = openList || inlineEdit != null;
+        bool fromList = adding == null && editing == null;
         snapshotKnown = false;
-        adding = null;
-        editing = null;
-        Render();
-        scroll.ChangeView(null, 0, null, true);
+        if (!stayOnPage)
+        {
+            taskView = state;
+            adding = null;
+            editing = null;
+            Render();
+            scroll.ChangeView(null, 0, null, true);
+        }
         var progress = new Progress<(int StepIndex, int Percent, string Message)>(p =>
         {
             if (IsStopped || taskView != state || state.Finished || p.StepIndex < state.Step) return;
@@ -78,7 +83,35 @@ public sealed partial class VmStorageSettingsView
         if (result.Success && state.ReadbackError == null)
         {
             ShowAppliedToast(title + L10n.Get("Common_Completed"));
-            if (openList) { ShowList(); return; }
+            if (openList)
+            {
+                if (fromList) Render();
+                else ShowList();
+                return;
+            }
+        }
+        if (stayOnPage)
+        {
+            if (state.ReadbackError == null && inlineEdit != null)
+            {
+                var slot = result.Success && inlineEdit.SlotDirty ? inlineEdit.Slot : null;
+                var device = slot == null
+                    ? attachments.FirstOrDefault(item => item.DeviceToken == inlineEdit.Item.DeviceToken)
+                    : attachments.FirstOrDefault(item => item.ControllerType == slot.Type && item.ControllerNumber == slot.Number && item.ControllerLocation == slot.Location);
+                if (device != null) await OpenDetailsAsync(device, inlineEdit.PathsTab);
+                else ShowList();
+            }
+            else if (state.ReadbackError == null) ShowList();
+            else
+            {
+                adding = null;
+                editing = null;
+                page.Children.Clear();
+                page.Children.Add(Banner(state.ReadbackError, InfoBarSeverity.Error));
+                pivot.Content = null;
+                SetHeaderTrailingAction(Command(L10n.Get("Storage_Rescan"), () => _ = RunAsync(LoadAsync)));
+            }
+            return;
         }
         Render();
     }

@@ -126,22 +126,29 @@ internal sealed class HostTelemetrySampler
         };
     }
 
-    public static async Task<HostLiveSample> SampleLiveAsync(HostInventorySnapshot inventory,
-        HostCpuThreadMonitorService cpu, HostDeviceTelemetryService devices, HostNetworkTelemetryService network,
-        bool refreshVms, CancellationToken token)
+    public static HostLiveSample SampleProcessorAndMemory(HostCpuThreadMonitorService cpu)
     {
-        token.ThrowIfCancellationRequested();
         var report = cpu.GetThreadUsage();
         double? totalCpu = report.Sample.IsValid && report.Threads.Count > 0 && report.Threads.All(t => t.Sample.IsValid)
             ? Math.Clamp(report.Threads.Average(t => (double)t.TotalUsagePercent), 0, 100) : null;
         var memory = HostSystemInfoService.TryReadHostMemoryMiB();
-        var metrics = devices.Read(inventory.Disks.Select(d => d.Number).ToArray());
         return new HostLiveSample
         {
-            CpuPercent = totalCpu, CpuReport = report, CpuFreqGHz = metrics.CpuGHz,
+            CpuPercent = totalCpu, CpuReport = report,
             Memory = memory is { TotalMiB: > 0 } m && m.AvailableMiB <= m.TotalMiB
                 ? new((m.TotalMiB - m.AvailableMiB) / 1024d, m.TotalMiB / 1024d, m.AvailableMiB / 1024d,
                     (int)Math.Round(100d * (m.TotalMiB - m.AvailableMiB) / m.TotalMiB)) : null,
+        };
+    }
+
+    public static async Task<HostLiveSample> SampleDevicesAsync(HostInventorySnapshot inventory,
+        HostDeviceTelemetryService devices, HostNetworkTelemetryService network, bool refreshVms, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var metrics = devices.Read(inventory.Disks.Select(d => d.Number).ToArray());
+        return new HostLiveSample
+        {
+            CpuFreqGHz = metrics.CpuGHz,
             Disks = metrics.Disks, Gpus = metrics.Gpus,
             Adapters = ReadAdapterMetrics(network, inventory.PhysicalAdapters),
             Switches = ReadSwitchMetrics(network, inventory.Switches),

@@ -1,21 +1,11 @@
 <Page x:Class="ExHyperV.App.UI.Pages.Settings.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:feedback="using:ExHyperV.App.UI.Shared.Feedback"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <Grid>
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled">
     <StackPanel Margin="32" Spacing="24" MaxWidth="800" HorizontalAlignment="Left">
         <TextBlock x:Name="TitleHeader" Style="{StaticResource PageTitleStyle}" />
-        <InfoBar x:Name="SaveError" Severity="Warning" IsOpen="False" IsClosable="True" />
-        <InfoBar x:Name="LanguageNotice" Severity="Informational" IsOpen="False" IsClosable="True" />
-        <Border Style="{StaticResource SectionBorderStyle}" HorizontalAlignment="Stretch">
-            <StackPanel Spacing="20">
-                <TextBlock x:Name="LanguageSectionHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
-                <ComboBox x:Name="LanguagePicker" SelectionChanged="OnLanguageChanged" MinWidth="220">
-                    <ComboBoxItem x:Name="LangSystemItem" Tag="system" />
-                    <ComboBoxItem x:Name="LangZhCnItem" Tag="zh-CN" />
-                    <ComboBoxItem x:Name="LangEnItem" Tag="en" Content="English" />
-                </ComboBox>
-            </StackPanel>
-        </Border>
         <Border Style="{StaticResource SectionBorderStyle}" HorizontalAlignment="Stretch">
             <StackPanel Spacing="20">
                 <TextBlock x:Name="AppearanceSectionHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
@@ -54,20 +44,8 @@
                 </Border>
             </StackPanel>
         </Border>
-        <Border Style="{StaticResource SectionBorderStyle}" HorizontalAlignment="Stretch">
-            <StackPanel Spacing="12">
-                <TextBlock x:Name="DiagnosticsHeader" Style="{StaticResource SubtitleTextBlockStyle}" />
-                <ToggleSwitch x:Name="LoggingToggle" Toggled="OnLoggingChanged" />
-                <ToggleSwitch x:Name="VerboseToggle" Toggled="OnLoggingChanged" />
-                <TextBlock x:Name="DiagnosticsHint" Style="{StaticResource DescriptionStyle}" TextWrapping="Wrap" />
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button x:Name="ExportLogs" Click="OnExportLogs" />
-                    <Button x:Name="OpenLogs" Click="OnOpenLogs" />
-                    <Button x:Name="ClearLogs" Click="OnClearLogs" />
-                </StackPanel>
-                <InfoBar x:Name="DiagnosticsNotice" IsOpen="False" IsClosable="True" />
-            </StackPanel>
-        </Border>
     </StackPanel>
     </ScrollViewer>
+    <feedback:FloatingNoticeBanner x:Name="SaveError" Margin="20" VerticalAlignment="Bottom" />
+    </Grid>
 </Page>

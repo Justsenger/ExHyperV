@@ -81,7 +81,6 @@ internal sealed partial class HostStatusView
             ], CopySuccessToast, CopyErrorBanner);
         }
 
-        RenderNicKv();
         detailPanels[key] = new DetailPanelEntry
         {
             Key = key,
@@ -189,7 +188,6 @@ internal sealed partial class HostStatusView
             ], CopySuccessToast, CopyErrorBanner);
         }
 
-        RenderSwitchKv();
         detailPanels[key] = new DetailPanelEntry
         {
             Key = key,

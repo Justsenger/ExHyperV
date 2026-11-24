@@ -359,7 +359,7 @@ public sealed partial class VmStorageSettingsView
         var number = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
         var location = new ComboBox { HorizontalAlignment = HorizontalAlignment.Stretch };
         var automatic = new ToggleSwitch { IsOn = slot.Automatic, OnContent = "", OffContent = "", MinWidth = 0 };
-        var notice = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var notice = new Border();
 
         var grid = new Grid { ColumnSpacing = 12 };
         grid.ColumnDefinitions.Add(new());
@@ -409,12 +409,12 @@ public sealed partial class VmStorageSettingsView
                 slot.Number = plan?.Slot?.ControllerNumber ?? (nums.Contains(slot.Number) ? slot.Number : nums.FirstOrDefault());
                 var locations = VmStorageService.GetAvailableLocations(slot.Type, slot.Number, others);
                 slot.Location = plan?.Slot?.Location ?? (locations.Contains(slot.Location) ? slot.Location : locations.FirstOrDefault(-1));
-                type.ItemsSource = types;
+                type.ItemsSource = types.ToArray();
                 type.SelectedItem = slot.Type;
-                number.ItemsSource = nums;
-                number.SelectedItem = slot.Number;
-                location.ItemsSource = locations;
-                location.SelectedItem = slot.Location;
+                number.ItemsSource = nums.Select(n => n.ToString()).ToArray();
+                number.SelectedItem = slot.Number.ToString();
+                location.ItemsSource = locations.Select(n => n.ToString()).ToArray();
+                location.SelectedItem = slot.Location >= 0 ? slot.Location.ToString() : null;
                 type.IsEnabled = number.IsEnabled = location.IsEnabled = editable && !slot.Automatic;
                 if (original == null) fieldsRow.Visibility = slot.Automatic ? Visibility.Collapsed : Visibility.Visible;
                 summary.Text = slot.Automatic && slot.Location >= 0
@@ -424,18 +424,18 @@ public sealed partial class VmStorageSettingsView
                 {
                     DriveType = driveType, ControllerType = slot.Type, ControllerNumber = slot.Number, Location = slot.Location
                 }, others);
-                notice.Content = slot.Error == null ? null : Banner(slot.Error, InfoBarSeverity.Warning);
+                notice.Child = slot.Error == null ? null : Banner(slot.Error, InfoBarSeverity.Warning);
                 notice.Visibility = slot.Error == null ? Visibility.Collapsed : Visibility.Visible;
             }
             finally { syncing = false; }
             changed();
         }
         type.SelectionChanged += (_, _) => { if (!syncing && type.SelectedItem is string v) { slot.Type = v; Sync(); } };
-        number.SelectionChanged += (_, _) => { if (!syncing && number.SelectedItem is int v) { slot.Number = v; Sync(); } };
-        location.SelectionChanged += (_, _) => { if (!syncing && location.SelectedItem is int v) { slot.Location = v; Sync(); } };
+        number.SelectionChanged += (_, _) => { if (!syncing && int.TryParse(number.SelectedItem as string, out int v)) { slot.Number = v; Sync(); } };
+        location.SelectionChanged += (_, _) => { if (!syncing && int.TryParse(location.SelectedItem as string, out int v)) { slot.Location = v; Sync(); } };
         automatic.Toggled += (_, _) => { slot.Automatic = automatic.IsOn; Sync(); };
         Sync();
-        if (original != null) return CardRow(fieldsStack);
+        if (original != null) return fieldsRow;
         var autoHeader = CardRow(Split(new StackPanel
         {
             Spacing = 3,

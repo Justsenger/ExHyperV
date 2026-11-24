@@ -20,11 +20,8 @@ namespace ExHyperV.App.UI.Pages.VirtualMachines.Settings.Gpu;
 
 public sealed partial class VmGpuSettingsView : VmSettingsView
 {
-    private sealed record UnconfirmedRemoval(string Message, string Details);
 
-    private const string UpgradeBasePathData = "M8,2.3 L12.6,7 H9.8 V10.2 H6.2 V7 H3.4 Z M3.4,11.9 H12.6 V13.45 H3.4 Z";
-
-    private static readonly ConcurrentDictionary<Guid, UnconfirmedRemoval> unconfirmedRemovals = new();
+    private static readonly ConcurrentDictionary<Guid, string> unconfirmedRemovals = new();
 
     private readonly VmQueryService query = new();
     private readonly VmGpuService service;
@@ -37,9 +34,6 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     private readonly StackPanel deployment = new() { Spacing = 8, Visibility = Visibility.Collapsed };
     private readonly ToggleSwitch installDrivers = Switch();
     private readonly Button beginSelectBtn = new() { Content = L10n.Get("Gpu_StartSetup"), IsEnabled = false };
-    private readonly InfoBar operationNotice = new() { IsClosable = true, IsOpen = false, Visibility = Visibility.Collapsed };
-    private readonly TextBox lastOperationDetails = new() { IsReadOnly = true, AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MaxHeight = 220, FontFamily = AppFonts.Monospace };
-    private readonly Expander lastOperation = new() { Header = L10n.Get("Common_OperationDetails"), Visibility = Visibility.Collapsed, HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch };
     private readonly SemaphoreSlim stopGate = new(1, 1);
 
     private bool closing;
@@ -84,22 +78,11 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
 
         overview.Content = assignedList;
 
-        lastOperation.Content = lastOperationDetails;
-        operationNotice.RegisterPropertyChangedCallback(InfoBar.IsOpenProperty, (_, _) =>
-            operationNotice.Visibility = operationNotice.IsOpen ? Visibility.Visible : Visibility.Collapsed);
-        panel.Children.Add(operationNotice);
         panel.Children.Add(overview);
         panel.Children.Add(selection);
         panel.Children.Add(BuildDeploymentPanel());
-        panel.Children.Add(lastOperation);
 
         SetBody(panel);
-        if (unconfirmedRemovals.TryGetValue(vmId, out var previousRemoval))
-        {
-            lastOperationDetails.Text = previousRemoval.Details;
-            lastOperation.Visibility = string.IsNullOrWhiteSpace(previousRemoval.Details) ? Visibility.Collapsed : Visibility.Visible;
-            Notice(previousRemoval.Message, InfoBarSeverity.Error);
-        }
     }
 
     protected override async Task LoadAsync()
@@ -178,7 +161,7 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         ToolTipService.SetToolTip(removeBtn, L10n.Get("Gpu_Remove"));
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(removeBtn, L10n.Get("Gpu_Remove"));
         removeBtn.Tapped += (_, e) => e.Handled = true;
-        removeBtn.Click += async (_, _) => await RunGpuOperationAsync(() => ConfirmAndRemoveAssignmentAsync(gpu));
+        removeBtn.Click += async (_, _) => await RunGpuOperationAsync(() => RemoveAssignmentAsync(gpu));
         actions.Children.Add(removeBtn);
 
         var chevronIcon = new FontIcon
@@ -307,11 +290,11 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
 
     private UIElement BuildUpdateIconButton(VmGpuAssignment gpu, Func<Task> onClick)
     {
-        var glyph = new PathIcon
+        var glyph = new FontIcon
         {
-            Data = ThemeHelper.ParseGeometry(UpgradeBasePathData),
-            Width = 15,
-            Height = 15,
+            Glyph = "\uE898",
+            FontFamily = AppFonts.SegoeFluent,
+            FontSize = 15,
             Foreground = Brush("TextFillColorPrimaryBrush"),
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
@@ -486,7 +469,6 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     private async Task ShowSelectionAsync()
     {
         EnsureNoUnfinishedDeployment();
-        operationNotice.IsOpen = false;
         var result = await Task.Run(HostGpuService.GetHostGpusAsync);
         if (closing || IsStopped) return;
         if (!result.HasData) throw new InvalidOperationException(CoreMessageResolver.ResolveError(result));
@@ -686,41 +668,19 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         await StartDeploymentAsync((HostGpuInfo[])[gpu], GpuDeploymentMode.UpdateDrivers);
     }
 
-    private async Task ConfirmAndRemoveAssignmentAsync(VmGpuAssignment assignment)
-    {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            Title = L10n.Get("Gpu_RemoveAssignment"),
-            Content = L10n.Format("Gpu_ConfirmRemove", assignment.Name),
-            PrimaryButtonText = L10n.Get("Common_Remove"),
-            CloseButtonText = L10n.Get("Common_Cancel"),
-            DefaultButton = ContentDialogButton.Close
-        };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary || closing || IsStopped) return;
-        await RemoveAssignmentAsync(assignment);
-    }
-
     private async Task RemoveAssignmentAsync(VmGpuAssignment assignment)
     {
+        if (closing || IsStopped) return;
         ApiResponse result;
         try { result = await Task.Run(() => service.RemoveGpuPartitionAsync(VmId, assignment)); }
         catch (Exception ex) { result = ApiResponse.Fail(ex.Message, exception: ex); }
         bool removalOutcomeUnknown = result.ErrorKind == ApiErrorKind.OutcomeUnknown;
-        lastOperationDetails.Text = string.Join(Environment.NewLine, new[]
-        {
-            L10n.Format("Gpu_RemovedAdapter", assignment.AdapterId),
-            L10n.Format("Gpu_ResultSuccess", result.Success),
-            L10n.Format("Gpu_ErrorKind", result.ErrorKind),
-            L10n.Format("Gpu_ResultMessage", result.Error)
-        }.Where(text => !string.IsNullOrWhiteSpace(text)));
-        lastOperation.Visibility = Visibility.Visible;
         string resolvedError = result.Success ? string.Empty : CoreMessageResolver.ResolveError(result);
         string detail = removalOutcomeUnknown
             ? L10n.Get("Gpu_RemovalUnknown") + resolvedError
             : resolvedError;
         if (removalOutcomeUnknown)
-            unconfirmedRemovals[VmId] = new UnconfirmedRemoval(detail, lastOperationDetails.Text);
+            unconfirmedRemovals[VmId] = detail;
         NotifyChanged();
 
         string? refreshError = null;
@@ -747,6 +707,7 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     private Task RunGpuOperationAsync(Func<Task> action)
     {
         if (working || closing || IsStopped || IsBusy) return Task.CompletedTask;
+        ClearOperationFeedback();
         working = true;
         RefreshActions();
         operation = RunOperationCoreAsync(action);
@@ -770,10 +731,12 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
 
     private void Notice(string text, InfoBarSeverity severity)
     {
-        operationNotice.Title = severity == InfoBarSeverity.Error ? L10n.Get("Common_OperationIncomplete") : string.Empty;
-        operationNotice.Message = text;
-        operationNotice.Severity = severity;
-        operationNotice.IsOpen = true;
+        if (severity == InfoBarSeverity.Error) ShowError(text);
+        else if (!closing && !IsStopped)
+        {
+            if (severity == InfoBarSeverity.Success) ShowAppliedToast(text);
+            else ShowInformation(text, severity);
+        }
     }
 
     private bool CopyTextToClipboard(string value, string label)

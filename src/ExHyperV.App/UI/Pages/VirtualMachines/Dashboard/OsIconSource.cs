@@ -1,5 +1,6 @@
 
 using ExHyperV.Tools;
+using ExHyperV.Services;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Media;
 
@@ -19,6 +20,14 @@ internal static class OsIconSource
             Images.Add(name, image);
         }
         return image;
+    }
+
+    public static string? ReadName(VmQueryRow row)
+    {
+        var metadata = row.GetCollection(VmQueryCollection.Metadata);
+        if (metadata.State != VmQueryValueState.Available) return null;
+        var os = metadata.Rows.FirstOrDefault(m => m.Get(VmMetadataFields.Key).Value == VmMetadataService.OsTypeKey)?.Get(VmMetadataFields.Value);
+        return GetResourceName(os is { HasValue: true } ? os.Value : null);
     }
 
     public static string GetResourceName(string? osType) =>

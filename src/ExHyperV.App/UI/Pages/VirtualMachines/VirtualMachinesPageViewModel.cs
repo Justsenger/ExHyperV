@@ -3,6 +3,7 @@ using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ExHyperV.App.Localization;
+using ExHyperV.App.UI.Pages.VirtualMachines.Dashboard;
 using ExHyperV.Models;
 using ExHyperV.Services;
 
@@ -51,7 +52,8 @@ public sealed partial class VirtualMachinesPageViewModel : ObservableObject
             {
                 await using var query = new VmQueryService();
                 return await query.QueryAsync(new VmQueryRequest(
-                    (VmQueryField[])[VmIdentityFields.Name, VmIdentityFields.State, VmIdentityFields.Uptime]), cancellationToken).ConfigureAwait(false);
+                    (VmQueryField[])[VmIdentityFields.Name, VmIdentityFields.State, VmIdentityFields.Uptime,
+                    VmMetadataFields.Key, VmMetadataFields.Value]), cancellationToken).ConfigureAwait(false);
             }, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             if (!response.HasData) throw new InvalidOperationException(
@@ -72,6 +74,7 @@ public sealed partial class VirtualMachinesPageViewModel : ObservableObject
                 if (name.HasValue) item.Name = name.Value!;
                 if (state.HasValue) item.PowerState = state.Value;
                 if (uptime.HasValue) item.Uptime = uptime.Value.ToString(@"d\.hh\:mm\:ss");
+                if (OsIconSource.ReadName(row) is { } iconName) item.OsIconName = iconName;
                 updated.Add(item);
             }
             foreach (var vm in all) vm.PropertyChanged -= OnVmPropertyChanged;

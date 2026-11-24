@@ -315,7 +315,7 @@ public sealed partial class VmBootSettingsView : VmSettingsView
             var condition = VmBootService.GetBootOrderModificationCondition(context.Generation, context.State);
             canEdit = condition.CanModify;
             RenderRows();
-            if (!canEdit) ShowInformation(condition.Reason);
+            ToolTipService.SetToolTip(rowsPanel, canEdit ? null : condition.Reason);
         }
         finally { Updating = false; }
     }

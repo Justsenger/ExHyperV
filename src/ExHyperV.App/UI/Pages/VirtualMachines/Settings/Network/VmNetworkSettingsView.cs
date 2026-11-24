@@ -37,8 +37,6 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
     private enum IpReadState { Pending, Reading, Finished }
     private IpReadState ipRead;
     private int ipReadVersion;
-    private string? warning;
-    private InfoBar? ipWarning;
     private int generation;
     private VmState power;
     private VmState? powerDuringLoad;
@@ -78,7 +76,6 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
         ipRead = IpReadState.Pending;
         powerDuringLoad = null;
         switchModes.Clear();
-        ipWarning = null;
         adapters = [];
         RenderList();
         try
@@ -102,6 +99,10 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
             if (current != null && CanWrite) SetPolicySnapshot(current);
             else policy = null;
         }
+        catch (Exception ex) when (!IsStopped && ex is not OperationCanceledException)
+        {
+            throw new ActionableException(CoreMessageResolver.ResolveException(ex), L10n.Get("Common_Reload"), () => RunAsync(LoadAsync));
+        }
         finally
         {
             loading = false;
@@ -111,6 +112,7 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
                 else RenderList();
             }
         }
+        if (UncertainOperations.TryGetValue(VmId, out var blocked)) ShowError(blocked);
         if (switches.Count > 0 && adapters.Count > 0) _ = CompleteSwitchModesAsync(adapters);
     }
 
@@ -128,8 +130,6 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
         if (running != wasRunning)
         {
             ipRead = IpReadState.Pending;
-            if (ipWarning?.Parent == page) page.Children.Remove(ipWarning);
-            ipWarning = null;
             foreach (var adapter in adapters) adapter.IpAddresses.Clear();
         }
         if (adding)
@@ -195,11 +195,10 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
         if (IsStopped || !ReferenceEquals(snapshot, adapters) || ipRead != IpReadState.Reading || version != ipReadVersion) return;
         foreach (var (adapter, read) in connected) adapter.IpAddresses = read.IpAddresses;
         ipRead = IpReadState.Finished;
-        if (error != null) ipWarning = Notice(L10n.Get("Net_IpQueryIncomplete"), error, InfoBarSeverity.Informational);
+        if (error != null) ShowInformation(L10n.Get("Net_IpQueryIncomplete") + "\n" + error);
         if (policy == null && !adding)
         {
             foreach (var update in updateIpTiles) update();
-            if (ipWarning != null) page.Children.Add(ipWarning);
         }
     }
 
@@ -210,10 +209,7 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
         page.Spacing = spacing;
         page.Children.Clear();
         updateIpTiles.Clear();
-        if (UncertainOperations.TryGetValue(VmId, out var blocked))
-            page.Children.Add(Notice(L10n.Get("Net_OutcomeUnknown"), blocked));
-        else if (warning != null)
-            page.Children.Add(Notice(L10n.Get("Net_VerifyConfiguration"), warning));
+
     }
 
     private void BackToList()
@@ -232,20 +228,13 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
         BeginPage();
         if (loading)
         {
-            page.Children.Add(Actions(new ProgressRing { IsActive = true, Width = 20, Height = 20 }, new TextBlock { Text = L10n.Get("Net_Loading") }));
+            page.Children.Add(new ProgressBar { IsIndeterminate = true });
             return;
         }
         var expandedIds = CardExpansion.GetExpanded(VmId, adapters);
         foreach (var adapter in adapters) page.Children.Add(AdapterCard(adapter, expandedIds.Contains(adapter.DeviceId)));
         if (loadedSnapshot || adapters.Count > 0)
             page.Children.Add(BuildAddRowCard(adapters.Count == 0));
-        else if (!loading)
-        {
-            var retry = Notice(L10n.Get("Net_ListLoadFailed"), L10n.Get("Net_ReloadHelp"), InfoBarSeverity.Informational);
-            retry.ActionButton = Command(L10n.Get("Common_Reload"), async () => await RunAsync(LoadAsync));
-            page.Children.Add(retry);
-        }
-        if (ipWarning != null) page.Children.Add(ipWarning);
         RefreshListIps();
     }
 
@@ -510,12 +499,7 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
 
     private async Task RemoveAsync(VmNetworkAdapter adapter)
     {
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot, Title = L10n.Get("Net_RemoveAdapter"), Content = L10n.Format("Net_RemovePrompt", adapter.Name),
-            PrimaryButtonText = L10n.Get("Common_Remove"), CloseButtonText = L10n.Get("Common_Cancel"), DefaultButton = ContentDialogButton.Close
-        };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary || !CanWrite) return;
+        if (!CanWrite) return;
         var result = await VmNetworkService.RemoveNetworkAdapterAsync(VmId, adapter);
         if (result.Success) CardExpansion.SetExpanded(VmId, adapter.DeviceId, false);
         await FinishWriteAsync(L10n.Format("Net_Removed", adapter.Name), result.Success ? null : CoreMessageResolver.ResolveError(result), result.ErrorKind);
@@ -524,7 +508,6 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
     private async Task FinishWriteAsync(string success, string? error, ApiErrorKind kind)
     {
         adding = false;
-        warning = error;
         if (kind == ApiErrorKind.OutcomeUnknown)
             UncertainOperations[VmId] = L10n.Format("Net_PausedUnknown", error);
         NotifyChanged();
@@ -532,9 +515,8 @@ public sealed partial class VmNetworkSettingsView : VmSettingsView
         catch (Exception ex)
         {
             string detail = L10n.Format("Net_RefreshFailure", error ?? success, CoreMessageResolver.ResolveException(ex));
-            warning = detail;
             RenderList();
-            ShowError(detail);
+            ShowError(detail, L10n.Get("Common_Reload"), () => RunAsync(LoadAsync));
             return;
         }
         if (error != null) ShowError(UncertainOperations.GetValueOrDefault(VmId) ?? error);

@@ -49,7 +49,6 @@
      <!-- 缩略图标 / 实时画面预览 -->
      <Grid Width="84" Height="80" VerticalAlignment="Center">
       <Grid x:Name="SystemIconPanel" Background="Transparent" Tapped="OnOpenOsPicker">
-       <FontIcon x:Name="GenericIcon" Glyph="&#xE7F4;" FontSize="52" Opacity="0.7"/>
        <Image x:Name="OsImage" Width="74" Height="74" Stretch="Uniform"/>
       </Grid>
       <Grid x:Name="MonitorPreview" Width="80" Height="74" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center">

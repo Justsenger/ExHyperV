@@ -74,11 +74,11 @@ public sealed partial class VmStorageSettingsView
             new("New", d.Dvd ? L10n.Get("Storage_CreateIso") : L10n.Get("Storage_CreateDisk")),
             new("Physical", d.Dvd ? L10n.Get("Dev_PhysicalOpticalDrive") : L10n.Get("Dev_PhysicalDisk"), !d.Dvd || generation == 1));
         var rows = new List<UIElement> { SettingRow(L10n.Get("Storage_AddMethod"), null, source) };
-        var feedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-        var parentFeedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var feedback = new Border();
+        var parentFeedback = new Border();
         var listFeedback = Stack();
-        var sizeFeedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-        var batchFeedback = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+        var sizeFeedback = new Border();
+        var batchFeedback = new Border();
         bool sourceValid = false;
 
         bool CapacityValid()
@@ -86,7 +86,7 @@ public sealed partial class VmStorageSettingsView
             if (!create || d.Dvd || diff) return true;
             int max = d.Path.EndsWith(".vhd", StringComparison.OrdinalIgnoreCase) ? 2040 : 65536;
             bool valid = int.TryParse(d.Capacity, out var n) && n >= 1 && n <= max;
-            sizeFeedback.Content = valid ? null : max == 2040 && n > max
+            sizeFeedback.Child = valid ? null : max == 2040 && n > max
                 ? Banner(L10n.Get("Storage_VhdCapacityLimit"), InfoBarSeverity.Warning,
                     InlineCommand(L10n.Get("Storage_UseVhdx"), () => { d.Path = Path.ChangeExtension(d.Path, ".vhdx"); Render(); }))
                 : Banner(L10n.Format("Storage_CapacityRange", max), InfoBarSeverity.Warning);
@@ -96,7 +96,7 @@ public sealed partial class VmStorageSettingsView
         {
             bool sizeValid = CapacityValid();
             bool enoughSlots = !physical || d.Selected.Count <= 1 || PhysicalSlots(d).Count == d.Selected.Count;
-            batchFeedback.Content = physical && d.Selected.Count > 1 ? Banner(enoughSlots
+            batchFeedback.Child = physical && d.Selected.Count > 1 ? Banner(enoughSlots
                 ? L10n.Format("Storage_SequentialSlots", d.Selected.Count) : L10n.Get("Storage_NotEnoughSlots"),
                 enoughSlots ? InfoBarSeverity.Informational : InfoBarSeverity.Warning) : null;
             confirm.IsEnabled = CanWrite && powerState is (VmState.PoweredOff or VmState.Running)
@@ -107,18 +107,25 @@ public sealed partial class VmStorageSettingsView
         void SetFeedback(FileCheck check)
         {
             sourceValid = check.Valid;
-            feedback.Content = check.Message.Length > 0 ? Banner(check.Message, check.Severity) : null;
+            feedback.Child = check.Message.Length > 0 ? Banner(check.Message, check.Severity) : null;
             Validate();
         }
 
         void CheckSource()
         {
+            if (d.Dvd && !physical && !create && d.Path.Length == 0)
+            {
+                draftProbe.Cancel();
+                SetFeedback(FileCheck.Ok());
+                return;
+            }
             sourceValid = false;
             Validate();
-            if (gen2Optical)
+            if (gen2Optical || (!physical && string.IsNullOrWhiteSpace(d.Path) && (!d.Dvd || create)))
             {
-                feedback.Content = null;
-                parentFeedback.Content = null;
+                draftProbe.Cancel();
+                feedback.Child = null;
+                parentFeedback.Child = null;
                 listFeedback.Children.Clear();
                 return;
             }
@@ -129,8 +136,8 @@ public sealed partial class VmStorageSettingsView
             }
             else
             {
-                feedback.Content = d.Path.Length > 0 ? Banner(L10n.Get("Storage_CheckingPath")) : null;
-                if (diff) parentFeedback.Content = Path.IsPathFullyQualified(d.Parent)
+                feedback.Child = d.Path.Length > 0 ? Banner(L10n.Get("Storage_CheckingPath")) : null;
+                if (diff) parentFeedback.Child = Path.IsPathFullyQualified(d.Parent)
                     ? Banner(L10n.Get("Storage_CheckingParentChain")) : Banner(L10n.Get("Storage_NoParentSelected"));
             }
             string path = d.Path, parent = d.Parent, folder = d.Folder;
@@ -167,14 +174,14 @@ public sealed partial class VmStorageSettingsView
                 SetFeedback(result);
                 if (diff)
                 {
-                    if (chain == null) parentFeedback.Content = Banner(L10n.Get("Storage_NoParentSelected"));
-                    else parentFeedback.Content = ChainSummary(chain);
+                    if (chain == null) parentFeedback.Child = Banner(L10n.Get("Storage_NoParentSelected"));
+                    else parentFeedback.Child = ChainSummary(chain);
                     sourceValid &= chain?.IsComplete == true;
                     if (chain?.Nodes.FirstOrDefault()?.Format is string format && Path.IsPathFullyQualified(path)
                         && !SamePath(Path.GetExtension(path), format))
                     {
                         sourceValid = false;
-                        parentFeedback.Content = Banner(L10n.Format("Storage_ParentExtensionMismatch", format.TrimStart('.').ToUpperInvariant()), InfoBarSeverity.Warning,
+                        parentFeedback.Child = Banner(L10n.Format("Storage_ParentExtensionMismatch", format.TrimStart('.').ToUpperInvariant()), InfoBarSeverity.Warning,
                             InlineCommand(L10n.Format("Storage_ChangeExtension", format), () => { d.Path = Path.ChangeExtension(path, format); Render(); }));
                     }
                     Validate();

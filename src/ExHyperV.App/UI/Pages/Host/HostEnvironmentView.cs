@@ -23,7 +23,6 @@ internal sealed partial class HostEnvironmentView : UserControl
     };
     private readonly StackPanel stack = new() { Spacing = 18 };
     private readonly StackPanel groupsPanel = new() { Spacing = 18 };
-    private readonly Button refreshBtn = SettingsActionButton.CreateRect(L10n.Get("Host_Env_Refresh"));
     private readonly ProgressRing busyRing = new() { Width = 16, Height = 16, IsActive = false, Visibility = Visibility.Collapsed };
 
     private HostInventorySnapshot? currentInventory;
@@ -36,24 +35,8 @@ internal sealed partial class HostEnvironmentView : UserControl
     {
         scroll.AttachScrollbarClearance(stack, bottomSpacing: 0);
 
-        var topBar = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 10,
-            HorizontalAlignment = HorizontalAlignment.Right
-        };
-        topBar.Children.Add(busyRing);
-        topBar.Children.Add(refreshBtn);
-
-        refreshBtn.Click += async (_, _) => await UiEvent.RunAsync(async () =>
-        {
-            if (busy || InventoryRefreshRequested == null) return;
-            SetBusy(true);
-            try { await InventoryRefreshRequested(); }
-            finally { SetBusy(false); }
-        }, message => feedbackHost?.ShowSettingsNotice(message));
-
-        stack.Children.Add(topBar);
+        busyRing.HorizontalAlignment = HorizontalAlignment.Right;
+        stack.Children.Add(busyRing);
         stack.Children.Add(groupsPanel);
         scroll.Content = stack;
         Content = scroll;
@@ -197,19 +180,7 @@ internal sealed partial class HostEnvironmentView : UserControl
 
     private async Task ToggleHyperVAsync(bool enable)
     {
-        if (busy || XamlRoot == null) return;
-        string verb = L10n.Get(enable ? "Host_Env_Enable" : "Host_Env_Disable");
-        var dialog = new ContentDialog
-        {
-            XamlRoot = XamlRoot,
-            RequestedTheme = ActualTheme,
-            Title = L10n.Format("Host_Env_ToggleConfirmTitle", verb),
-            Content = new TextBlock { Text = L10n.Get("Host_Env_ToggleConfirmBody"), TextWrapping = TextWrapping.Wrap },
-            PrimaryButtonText = L10n.Get("Common_Confirm"),
-            CloseButtonText = L10n.Get("Common_Cancel"),
-            DefaultButton = ContentDialogButton.Close
-        };
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary || feedbackHost == null) return;
+        if (busy || feedbackHost == null) return;
         await feedbackHost.RunHostOperationAsync(() => ApplyHyperVAsync(enable));
     }
 
@@ -248,7 +219,6 @@ internal sealed partial class HostEnvironmentView : UserControl
     private void SetBusy(bool value)
     {
         busy = value;
-        refreshBtn.IsEnabled = !value;
         busyRing.IsActive = value;
         busyRing.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
         if (IsLoaded && currentInventory != null)
