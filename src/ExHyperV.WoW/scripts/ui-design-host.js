@@ -1,6 +1,3 @@
-// HostPage Prototype: Mirrors VirtualMachinesPage / VmDashboardView structure:
-// Top PageTabs ('状态' first, followed by Host settings tabs: '交换机' | '设备' | '计算' | '设置')
-// '状态' tab uses the Task Manager-style left rail + right detail card for Host telemetry & inventory.
 const HOST_SYS = {
   os: 'Windows 11 专业工作站版 (28000)',
   arch: 'ARM64',
@@ -300,7 +297,8 @@ const INITIAL_VM_GROUPS = [
 ];
 
 const HOST_TABS_BASE = [
-  { key: 'state', label: '状态', icon: '&#xE9D9;' },
+  { key: 'overview', label: '总览', icon: '&#xE80F;' },
+  { key: 'state', label: '性能', icon: '&#xE9D9;' },
   { key: 'env', label: '环境', icon: '&#xE9D5;' },
   { key: 'policy', label: '设置', icon: '&#xE713;' },
   { key: 'switches', label: '交换机', icon: '&#xE774;' }
@@ -374,15 +372,14 @@ const hostState = {
   legendPlacement: 'right', // 'right' | 'bottom'
   mockThreads: '12',
   mockVmCount: '2',
-  cpuStatsView: false,
-  memStatsView: false,
+  overviewResource: 'cpu',
   selectedLedVm: null,
   hoveredLedVm: null,
   hoveredLedLp: null,
   selectedMemKey: null,
   hoveredMemKey: null,
   hoveredMemSeg: null,
-  activeTab: 'state',
+  activeTab: 'overview',
   policySub: 'scheduler',
   powerComboOpen: false,
   selectedRail: { kind: 'cpu', idx: 0 }, // 'cpu' | 'mem' | 'nic' | 'switch' | 'gpu' | 'disk'
@@ -594,188 +591,6 @@ function annularSectorPath(cx, cy, rIn, rOut, startDeg, endDeg, cornerR = 2.5) {
   ].join(' ');
 }
 
-function renderHostTopCard() {
-  const style = hostState.topCardStyle;
-  const content = hostState.topCardContent;
-  const planName = POWER_PLANS.find((p) => p.id === hostState.saved.powerPlanId)?.name || '高性能';
-  const virtText = HOST_SYS.arch === 'ARM64' ? 'EL2' : 'VT-x';
-  const iommuLabel = HOST_SYS.arch === 'ARM64' ? 'SMMU' : 'IOMMU';
-  const hvOk = hostState.hyperVEnabled;
-  const hvColor = hvOk ? '#6CCB5F' : '#FCE100';
-  const hvIcon = hvOk ? '&#xE73E;' : '&#xE7BA;';
-  const hvText = hvOk ? 'Hyper-V 已就绪' : 'Hyper-V 未启用';
-
-  const actionBtnHtml = `
-    <button type="button" class="winui-btn host-summary-action-btn" data-host-jump="policy:platform" title="查看 Hyper-V 平台与策略设置">
-      <span class="fi" style="font-size:12px;color:${hvColor};">${hvIcon}</span>
-      <span>${hvText}</span>
-    </button>
-  `;
-
-  // Essential badges (shown in all content presets)
-  const essentialBadges = [
-    `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE7F4;</span><span class="vm-badge-text">${esc(HOST_SYS.arch)}</span></div>`,
-    `<div class="vm-badge" title="正在运行的虚拟机 / 全部虚拟机"><span class="fi vm-badge-icon">&#xE770;</span><span class="vm-badge-text">${HOST_SYS.runningVmCount}/${HOST_SYS.totalVmCount} 台运行</span></div>`
-  ];
-
-  // Standard badges (virtualization & compute policy)
-  const standardBadges = [
-    `<div class="vm-badge" title="CPU 虚拟化与 GPU-PV 支持状态"><span class="fi vm-badge-icon" style="color:${hostState.cpuVirtOk && hostState.gpuPvOk ? '#6CCB5F' : '#FCE100'};">&#xE73E;</span><span class="vm-badge-text">${virtText} / GPU-PV</span></div>`,
-    `<div class="vm-badge" title="${iommuLabel} 设备直通支持"><span class="fi vm-badge-icon" style="color:${hostState.iommuOk ? '#6CCB5F' : '#FCE100'};">&#xE950;</span><span class="vm-badge-text">${iommuLabel} ${hostState.iommuOk ? '已开启' : '未启用'}</span></div>`,
-    `<div class="vm-badge" title="Hyper-V 调度器与宿主电源方案"><span class="fi vm-badge-icon">&#xEA86;</span><span class="vm-badge-text">${esc(getSchedulerLabel(hostState.saved.scheduler, true))} / ${esc(planName)}</span></div>`
-  ];
-
-  // Detailed badges / footer (enhanced session & default paths)
-  const detailedPathsHtml =
-    content === 'detailed'
-      ? `
-        <div class="host-summary-detail-strip">
-          <button type="button" class="host-summary-path-chip" data-copy="${esc(hostState.saved.defaultVmPath)}" title="点击复制默认虚拟机路径：${esc(hostState.saved.defaultVmPath)}">
-            <span class="fi">&#xE8B7;</span>
-            <span class="host-summary-path-label">VM</span>
-            <span class="host-summary-path-val">${esc(hostState.saved.defaultVmPath)}</span>
-            <span class="fi host-summary-copy-ico">&#xE8C8;</span>
-          </button>
-          <button type="button" class="host-summary-path-chip" data-copy="${esc(hostState.saved.defaultVhdPath)}" title="点击复制默认虚拟硬盘路径：${esc(hostState.saved.defaultVhdPath)}">
-            <span class="fi">&#xEDA2;</span>
-            <span class="host-summary-path-label">VHD</span>
-            <span class="host-summary-path-val">${esc(hostState.saved.defaultVhdPath)}</span>
-            <span class="fi host-summary-copy-ico">&#xE8C8;</span>
-          </button>
-          <span class="host-summary-policy-pill">${hostState.saved.enhancedSession ? '增强会话允许' : '增强会话禁止'}，${hostState.saved.volumeAutoMount ? '自动挂载卷' : '隐藏挂载'}</span>
-        </div>
-      `
-      : '';
-
-  const badgesForCompact =
-    content === 'essential' ? essentialBadges : [...essentialBadges, ...standardBadges.slice(0, style === 'merged-tabs' ? 1 : 2)];
-
-  const subtitleParts =
-    content === 'essential'
-      ? [HOST_SYS.os]
-      : [HOST_SYS.os, `连续运行 ${HOST_SYS.uptime}`];
-  const subtitleHtml = subtitleParts
-    .map((p) => `<span>${esc(p)}</span>`)
-    .join('');
-
-  if (style === 'slim-strip') {
-    const slimPills =
-      content === 'essential'
-        ? [`${HOST_SYS.arch}`, `${HOST_SYS.runningVmCount}/${HOST_SYS.totalVmCount} 台运行`]
-        : [`${HOST_SYS.arch}`, `${virtText} / GPU-PV`, `${hostState.saved.scheduler} 调度`, `${HOST_SYS.runningVmCount}/${HOST_SYS.totalVmCount} 台运行`, `运行 ${HOST_SYS.uptime}`];
-    return `
-      <div class="vm-summary-card host-summary-card" data-host-card-style="slim-strip" data-host-card-content="${content}">
-        <div class="host-slim-row">
-          <div class="host-slim-left">
-            <div class="host-summary-icon-box is-slim">
-              <span class="fi">&#xE770;</span>
-            </div>
-            <span class="host-slim-name">${esc(HOST_SYS.hostName)}</span>
-            <span class="host-slim-os">${esc(HOST_SYS.os)}</span>
-            <div class="host-slim-pills">
-              ${slimPills.map((t) => `<span class="host-slim-pill">${esc(t)}</span>`).join('')}
-            </div>
-          </div>
-          <div class="host-slim-right">${actionBtnHtml}</div>
-        </div>
-        ${detailedPathsHtml}
-      </div>
-    `;
-  }
-
-  if (style === 'right-matrix') {
-    const capText =
-      content === 'essential'
-        ? `${virtText} ${hostState.cpuVirtOk ? '就绪' : '未启用'}`
-        : `${virtText} / GPU-PV / ${iommuLabel}`;
-    const schedOrUptimeLabel = content === 'essential' ? '虚拟机汇总' : '调度器 / 运行时间';
-    const schedOrUptimeVal =
-      content === 'essential'
-        ? `${HOST_SYS.runningVmCount} / ${HOST_SYS.totalVmCount} 台运行`
-        : `${hostState.saved.scheduler} / ${HOST_SYS.uptime}`;
-    return `
-      <div class="vm-summary-card host-summary-card" data-host-card-style="right-matrix" data-host-card-content="${content}">
-        <div class="host-matrix-grid">
-          <div class="host-summary-icon-box">
-            <span class="fi">&#xE770;</span>
-          </div>
-          <div class="host-matrix-id">
-            <div class="vm-name-text">${esc(HOST_SYS.hostName)}</div>
-            <div class="host-summary-sub"><span>${esc(HOST_SYS.os)}</span><span>${esc(HOST_SYS.arch)}</span></div>
-          </div>
-          <div class="vm-summary-matrix host-summary-matrix">
-            <div class="vm-matrix-cell">
-              <span class="vm-matrix-label">Hyper-V 平台</span>
-              <span class="vm-matrix-val" style="color:${hvColor};">${hvOk ? '3 项服务正常' : '未启用'}</span>
-            </div>
-            <div class="vm-matrix-cell">
-              <span class="vm-matrix-label">虚拟化能力</span>
-              <span class="vm-matrix-val">${esc(capText)}</span>
-            </div>
-            <div class="vm-matrix-cell" data-host-jump="policy:scheduler" title="点击跳转到 CPU 调度策略">
-              <span class="vm-matrix-label">${schedOrUptimeLabel}</span>
-              <span class="vm-matrix-val">${esc(schedOrUptimeVal)}</span>
-            </div>
-          </div>
-          <div class="host-matrix-actions">${actionBtnHtml}</div>
-        </div>
-        ${detailedPathsHtml}
-      </div>
-    `;
-  }
-
-  if (style === 'mid-3row') {
-    const row2Badges = [
-      `<div class="vm-badge"><span class="fi vm-badge-icon" style="color:${hvColor};">${hvIcon}</span><span class="vm-badge-text">${hvText}</span></div>`,
-      `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE7F4;</span><span class="vm-badge-text">${esc(HOST_SYS.arch)}</span></div>`,
-      `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE770;</span><span class="vm-badge-text">${HOST_SYS.runningVmCount}/${HOST_SYS.totalVmCount} 台运行</span></div>`,
-      ...(content === 'essential' ? [] : [`<div class="vm-badge"><span class="fi vm-badge-icon">&#xE916;</span><span class="vm-badge-text">${esc(HOST_SYS.uptime)}</span></div>`])
-    ];
-    const row3Badges =
-      content === 'essential'
-        ? [`<div class="vm-badge"><span class="fi vm-badge-icon">&#xE74C;</span><span class="vm-badge-text">${esc(HOST_SYS.os)}</span></div>`]
-        : [
-            `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE74C;</span><span class="vm-badge-text">${esc(HOST_SYS.os)}</span></div>`,
-            ...standardBadges
-          ];
-    return `
-      <div class="vm-summary-card host-summary-card" data-host-card-style="mid-3row" data-host-card-content="${content}">
-        <div class="host-mid3-grid">
-          <div class="host-summary-icon-box is-lg">
-            <span class="fi">&#xE770;</span>
-          </div>
-          <div class="host-mid3-center">
-            <div class="vm-name-text">${esc(HOST_SYS.hostName)}</div>
-            <div class="vm-badges-row host-summary-badges">${row2Badges.join('')}</div>
-            <div class="vm-badges-row host-summary-badges">${row3Badges.join('')}</div>
-          </div>
-        </div>
-        ${detailedPathsHtml}
-      </div>
-    `;
-  }
-
-  // 'compact-2row' & 'merged-tabs' share the crisp 2-row geometry (merged-tabs attaches seamlessly to PageTabs below)
-  return `
-    <div class="vm-summary-card host-summary-card" data-host-card-style="${style}" data-host-card-content="${content}">
-      <div class="host-compact-grid">
-        <div class="host-summary-icon-box ${style === 'merged-tabs' ? 'is-sm' : ''}">
-          <span class="fi">&#xE770;</span>
-        </div>
-        <div class="host-compact-right">
-          <div class="host-compact-top">
-            <div class="vm-name-text">${esc(HOST_SYS.hostName)}</div>
-            <div class="vm-badges-row host-summary-badges">${badgesForCompact.join('')}</div>
-            <div class="host-compact-actions">${actionBtnHtml}</div>
-          </div>
-          <div class="host-summary-sub">${subtitleHtml}</div>
-        </div>
-      </div>
-      ${detailedPathsHtml}
-    </div>
-  `;
-}
-
 function formatCompactRate(sendRate, recvRate, format = hostState.railRateFormat) {
   const parse = (s) => {
     const m = String(s || '0 Kbps').trim().match(/^([\d.]+)\s*(Kbps|Mbps|Gbps)$/i);
@@ -945,17 +760,6 @@ function buildHostMemoryBreakdown() {
   };
 }
 
-function renderHostStatsBackFooter(kind) {
-  return `
-    <div class="host-rel-mode-footer">
-      <button type="button" class="host-led-chip host-rel-back-btn" data-host-toggle-stats="${esc(kind)}" title="返回" aria-label="返回">
-        <span class="fi">&#xE72B;</span>
-        <span class="host-led-chip-name">返回</span>
-      </button>
-    </div>
-  `;
-}
-
 function renderHostMemoryLegendSidebar(mem, focusKey) {
   const makeChip = (it, extraCls = '') => `
     <button type="button"
@@ -977,7 +781,6 @@ function renderHostMemoryLegendSidebar(mem, focusKey) {
       <div class="host-led-legend host-led-vm-scroll">
         ${mem.vms.map((v) => makeChip(v)).join('')}
       </div>
-      ${renderHostStatsBackFooter('mem')}
     </div>
   `;
 }
@@ -1053,7 +856,7 @@ function renderHostMemoryPieView(mem, focusKey, hlCls) {
 // ============================================================================
 // Tab 1: 状态 (Task Manager-style Left Rail + Host Telemetry & Inventory)
 // ============================================================================
-function renderStateTab() {
+function renderResourceTab(overview = false) {
   const accentMode = isAccentMode();
   const strokeOf = (fallback) => (accentMode ? 'var(--VmAccentBrush)' : fallback);
   const fillOf = (fallback) => (accentMode ? 'var(--VmChartFillBrush)' : fallback);
@@ -1180,7 +983,7 @@ function renderStateTab() {
     )
     .join('');
 
-  const sel = hostState.selectedRail;
+  const sel = overview ? { kind: hostState.overviewResource } : hostState.selectedRail;
   let icon = '&#xF58E;';
   let rotate = 90;
   let title = 'CPU';
@@ -1189,7 +992,6 @@ function renderStateTab() {
   let jumpTab = 'policy';
   let jumpSub = 'scheduler';
   let jumpLabel = '配置 CPU 调度策略';
-  let showStatsBtn = false;
   let bodyHtml = '';
 
   if (sel.kind === 'cpu' || sel.kind === 'overview') {
@@ -1197,9 +999,9 @@ function renderStateTab() {
     rotate = 90;
     title = 'CPU';
     reading = `${HOST_SYS.cpuPct}%`;
-    if (!hostState.cpuStatsView) {
-      hwSubtitle = HOST_SYS.cpu;
-      showStatsBtn = true;
+    if (!overview) {
+      title = HOST_SYS.cpu;
+      hwSubtitle = '';
       const coreCharts = HOST_SYS.coreHistories
         .map((pts, i) => {
           const cur = pts[pts.length - 1] ?? 0;
@@ -1527,13 +1329,12 @@ function renderStateTab() {
           <div class="host-led-tile-grid ${gridDensityCls}">${tiles}</div>
           <div class="host-rel-summary-box">
             ${legendHtml}
-            ${renderHostStatsBackFooter('cpu')}
           </div>
         </div>
       `;
     }
   } else if (sel.kind === 'mem') {
-    if (!hostState.memStatsView) {
+    if (!overview) {
       icon = '&#xEEA0;';
       rotate = 0;
       title = '内存';
@@ -1542,7 +1343,6 @@ function renderStateTab() {
       jumpTab = 'policy';
       jumpSub = 'scheduler';
       jumpLabel = '配置 NUMA 与电源';
-      showStatsBtn = true;
       const kvItems = [
         renderTitleFirstKvItemHtml({ title: '使用中', stateText: `${HOST_SYS.usedMemoryGb.toFixed(1)} GB` }),
         renderTitleFirstKvItemHtml({ title: '可用', stateText: `${Math.max(0, HOST_SYS.memoryGb - HOST_SYS.usedMemoryGb).toFixed(1)} GB` }),
@@ -1680,21 +1480,29 @@ function renderStateTab() {
   }
 
   const identitySingleLine = !hwSubtitle;
-  const isCpuStats = (sel.kind === 'cpu' || sel.kind === 'overview') && hostState.cpuStatsView;
-  const isMemStats = sel.kind === 'mem' && hostState.memStatsView;
-  const hideCanvasHead = isCpuStats || isMemStats;
-  const statsKind = sel.kind === 'mem' ? 'mem' : 'cpu';
-  const headStatsBtnHtml = showStatsBtn
-    ? `
-      <button type="button" class="tc-head-stats-btn" data-host-toggle-stats="${statsKind}" title="查看宿主与虚拟机占用统计图" aria-label="统计图">
-        <span class="fi">&#xE9D2;</span>
-        <span>统计图</span>
-      </button>
-    `
-    : '';
-  const canvasHeadHtml = hideCanvasHead
-    ? ''
-    : `
+  if (overview) {
+    const memory = buildHostMemoryBreakdown();
+    const running = memory.vms.length;
+    const total = running + HOST_VM_CPU_ALLOCATIONS.filter((vm) => !vm.running).length;
+    return `
+      <div class="vm-settings-area">
+        <div class="settings-subnav">${[['cpu', 'CPU'], ['mem', '内存']].map(([key, label]) =>
+          `<button type="button" class="subnav-btn ${sel.kind === key ? 'selected' : ''}" aria-pressed="${sel.kind === key}" data-overview-resource="${key}"><span>${label}</span></button>`
+        ).join('')}</div>
+        <div class="vm-settings-right">
+          <div class="settings-host-scroll host-resource-overview">
+            <div class="host-overview-summary">
+              <span>虚拟机运行 <strong>${running} / ${total}</strong></span>
+              <span>CPU 占用 <strong>${HOST_SYS.cpuPct}%</strong></span>
+              <span>可用内存 <strong>${memory.freeGb.toFixed(1)} / ${memory.totalGb} GB</strong></span>
+            </div>
+            ${bodyHtml}
+          </div>
+        </div>
+      </div>`;
+  }
+  const isCpu = sel.kind === 'cpu';
+  const canvasHeadHtml = `
             <div class="tc-canvas-head">
               <div class="tc-canvas-identity ${identitySingleLine ? 'is-single-line' : ''}">
                 <div class="tc-head-icon-box">
@@ -1702,14 +1510,13 @@ function renderStateTab() {
                 </div>
                 <div class="tc-canvas-title-wrap">
                   <div class="tc-canvas-title-row">
-                    <span class="tc-canvas-title">${esc(title)}</span>
+                    <span class="tc-canvas-title${isCpu ? ' is-model-title' : ''}"${isCpu ? ` title="${esc(title)}"` : ''}>${isCpu ? title.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map(esc).join('<br>') : esc(title)}</span>
                   </div>
                   ${hwSubtitle ? `<div class="tc-canvas-sub">${esc(hwSubtitle)}</div>` : ''}
                 </div>
               </div>
               <div class="tc-canvas-head-right">
                 <div class="tc-canvas-reading">${esc(reading)}</div>
-                ${headStatsBtnHtml}
               </div>
             </div>
     `;
@@ -1721,7 +1528,7 @@ function renderStateTab() {
           <div class="tc-left-rail">${railHtml}</div>
           <div class="tc-right-card">
             ${canvasHeadHtml}
-            <div class="tc-canvas-body" style="${hideCanvasHead ? 'flex:1;min-height:0;' : ''}">${bodyHtml}</div>
+            <div class="tc-canvas-body">${bodyHtml}</div>
           </div>
         </div>
       </div>
@@ -2081,8 +1888,10 @@ function getHostTabs() {
 
 function renderBodyByActiveTab() {
   switch (hostState.activeTab) {
+    case 'overview':
+      return renderResourceTab(true);
     case 'state':
-      return renderStateTab();
+      return renderResourceTab();
     case 'env':
       return renderEnvTab();
     case 'switches':
@@ -2113,9 +1922,8 @@ export function setHostOverviewCandidate(payloadOrPlacement) {
       hostState.cardStyle = payloadOrPlacement;
     } else if (CPU_DETAIL_STYLES.includes(payloadOrPlacement)) {
       hostState.cpuDetailStyle = payloadOrPlacement;
-      hostState.cpuStatsView = true;
-      hostState.activeTab = 'state';
-      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'cpu';
     }
   } else if (payloadOrPlacement && typeof payloadOrPlacement === 'object') {
     if (CARD_STYLE_CANDIDATES.includes(payloadOrPlacement.cardStyle)) {
@@ -2126,21 +1934,18 @@ export function setHostOverviewCandidate(payloadOrPlacement) {
     }
     if (CPU_DETAIL_STYLES.includes(payloadOrPlacement.cpuDetailStyle)) {
       hostState.cpuDetailStyle = payloadOrPlacement.cpuDetailStyle;
-      hostState.cpuStatsView = true;
-      hostState.activeTab = 'state';
-      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'cpu';
     }
     if (payloadOrPlacement.legendPlacement === 'right' || payloadOrPlacement.legendPlacement === 'bottom') {
       hostState.legendPlacement = payloadOrPlacement.legendPlacement;
-      hostState.cpuStatsView = true;
-      hostState.activeTab = 'state';
-      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'cpu';
     }
     if (HIGHLIGHT_STYLES.includes(payloadOrPlacement.highlightStyle)) {
       hostState.highlightStyle = payloadOrPlacement.highlightStyle;
-      hostState.cpuStatsView = true;
-      hostState.activeTab = 'state';
-      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'cpu';
       if (!hostState.selectedLedVm && !hostState.hoveredLedVm) {
         const firstVm = getMockRunningVms(hostState.mockVmCount)[0];
         hostState.selectedLedVm = firstVm ? firstVm.name : '__host__';
@@ -2148,17 +1953,15 @@ export function setHostOverviewCandidate(payloadOrPlacement) {
     }
     if (payloadOrPlacement.mockThreads) {
       hostState.mockThreads = String(payloadOrPlacement.mockThreads);
-      hostState.cpuStatsView = true;
-      hostState.activeTab = 'state';
-      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'cpu';
     }
     if (payloadOrPlacement.mockVmCount) {
       hostState.mockVmCount = String(payloadOrPlacement.mockVmCount);
-      hostState.cpuStatsView = true;
       hostState.selectedLedVm = null;
       hostState.hoveredLedVm = null;
-      hostState.activeTab = 'state';
-      hostState.selectedRail = { kind: 'cpu', idx: 0 };
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'cpu';
     }
   } else {
     return;
@@ -2179,8 +1982,6 @@ export function renderHostPage() {
     return el ? { sel, top: el.scrollTop, left: el.scrollLeft } : null;
   });
 
-  page.classList?.toggle('has-twin-summary', true);
-  page.classList?.toggle('host-merged-tabs-mode', hostState.topCardStyle === 'merged-tabs');
 
   const tabs = getHostTabs();
   if (!tabs.some((t) => t.key === hostState.activeTab)) {
@@ -2243,7 +2044,6 @@ export function renderHostPage() {
   }
 
   page.innerHTML = `
-    ${renderHostTopCard()}
     <div class="vm-pagetabs host-pagetabs">${tabsHtml}</div>
     ${renderBodyByActiveTab()}
     ${bannerHtml}
@@ -2281,13 +2081,13 @@ function getHostLedTooltipEl() {
 function syncHostLedTooltip(page) {
   const tip = getHostLedTooltipEl();
   if (!tip) return;
-  if (hostState.activeTab !== 'state') {
+  if (hostState.activeTab !== 'overview') {
     tip.hidden = true;
     return;
   }
 
   let anchorEl = null;
-  if (hostState.hoveredMemSeg !== null && hostState.selectedRail.kind === 'mem') {
+  if (hostState.hoveredMemSeg !== null && hostState.overviewResource === 'mem') {
     anchorEl = page?.querySelector?.(`[data-mem-seg="${CSS?.escape ? CSS.escape(hostState.hoveredMemSeg) : hostState.hoveredMemSeg}"]`);
     const rawMemTip = anchorEl?.getAttribute?.('data-mem-tip');
     if (anchorEl && rawMemTip) {
@@ -2502,14 +2302,9 @@ export function initHostPage(options = {}) {
       return;
     }
 
-    const statsToggleBtn = e.target.closest('[data-host-toggle-stats]');
-    if (statsToggleBtn) {
-      const kind = statsToggleBtn.getAttribute('data-host-toggle-stats');
-      if (kind === 'mem') {
-        hostState.memStatsView = !hostState.memStatsView;
-      } else {
-        hostState.cpuStatsView = !hostState.cpuStatsView;
-      }
+    const resourceButton = e.target.closest('[data-overview-resource]');
+    if (resourceButton) {
+      hostState.overviewResource = resourceButton.dataset.overviewResource;
       hostState.hoveredLedVm = null;
       hostState.hoveredLedLp = null;
       hostState.hoveredMemKey = null;

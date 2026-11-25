@@ -50,9 +50,12 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         VmNetworkFields.Name, VmNetworkFields.SwitchName, VmNetworkFields.MacAddress, VmNetworkFields.IpAddresses, VmNetworkFields.IsConnected,
         VmGpuFields.Name, VmGpuFields.Manu, VmGpuFields.Vendor, VmGpuFields.DriverVersion, VmGpuFields.MemoryBytes, VmGpuFields.HostDeviceInstanceId];
 
+    private static readonly VmQueryField[] IdentityFields = [VmIdentityFields.State, VmIdentityFields.Uptime];
     private static readonly VmQueryField[] FirstSampleFields = [
-        VmIdentityFields.State, VmIdentityFields.Uptime, VmProcessorFields.Count, VmProcessorFields.UsagePercent,
-        VmProcessorMetricFields.Index, VmProcessorMetricFields.UsagePercent, VmMemoryFields.AssignedMiB];
+        .. IdentityFields, VmIdentityFields.Generation, VmIdentityFields.ConfigurationVersion,
+        VmProcessorFields.Count, VmProcessorFields.ExposeVirtualizationExtensions, VmProcessorFields.SmtMode,
+        VmMemoryFields.Startup, VmMemoryFields.DynamicMemoryEnabled, VmMemoryFields.Minimum, VmMemoryFields.Maximum,
+        VmMemoryFields.AssignedMiB];
 
     private static readonly VmQueryField[] MetricFields = [
         VmIdentityFields.State, VmIdentityFields.Uptime, VmProcessorFields.UsagePercent,
@@ -225,6 +228,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
     {
         var token = source.Token;
         bool acquired = false;
+        Task detailWork = Task.CompletedTask;
         Task previewWork = Task.CompletedTask;
         bool previewStarted = false;
         try
@@ -237,30 +241,20 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             {
                 ShowIdentity(basic, live: true, queryElapsed: Stopwatch.GetElapsedTime(started));
                 if (displayedConfiguration == null) ShowProcessorAndMemory(basic);
-                if (stateVerified && state == VmState.Running) UpdateOverviewLiveMetrics(basic);
-                else if (stateVerified && state is VmState.PoweredOff or VmState.Saved or VmState.Suspended) SetOverviewInactive();
+                ExHyperV.App.Diagnostics.AppDiagnostics.Write("Dashboard", "FirstConfiguration", $"elapsedMs={Stopwatch.GetElapsedTime(started).TotalMilliseconds:F0}");
+                if (stateVerified && state is VmState.PoweredOff or VmState.Saved or VmState.Suspended) SetOverviewInactive();
             }
             await queryGate.WaitAsync(token);
             acquired = true;
-            VmQueryRow row;
-            if (cache != null) row = await cache.LoadDetailsAsync(id, token);
-            else
-            {
-                var response = await Task.Run(() => query.QueryAsync(new VmQueryRequest(ConfigurationFields, (Guid[])[id]), token), token);
-                if (!response.HasData) throw new InvalidOperationException(
-                    response.Success ? L10n.Get("Dash_ReadVmError") : CoreMessageResolver.ResolveError(response));
-                row = response.Data!.VirtualMachines.FirstOrDefault() ?? throw new InvalidOperationException(L10n.Get("Dash_VmNotInHost"));
-            }
-            token.ThrowIfCancellationRequested();
-            if (!ReferenceEquals(displayedConfiguration, row)) ShowConfiguration(row);
-            LoadingBar.Visibility = Visibility.Collapsed;
-            OverviewPane.Visibility = Visibility.Visible;
+            detailWork = LoadDeviceConfigurationAsync(id, started, token);
             long nextPoll = Stopwatch.GetTimestamp();
             int consecutiveServiceMisses = 0;
             while (!token.IsCancellationRequested)
             {
                 long queryStarted = Stopwatch.GetTimestamp();
-                var metrics = await Task.Run(() => query.QueryAsync(new VmQueryRequest(MetricFields, (Guid[])[id]), token), token);
+                var fields = activeTopKey != "overview" || (stateVerified && state == VmState.PoweredOff)
+                    ? IdentityFields : MetricFields;
+                var metrics = await Task.Run(() => query.QueryAsync(new VmQueryRequest(fields, (Guid[])[id]), token), token);
                 var queryElapsed = Stopwatch.GetElapsedTime(queryStarted);
                 token.ThrowIfCancellationRequested();
                 if (metrics.HasData && metrics.Data!.VirtualMachines.Count == 0)
@@ -281,9 +275,9 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
                     ShowIdentity(sample, live: true, queryElapsed: queryElapsed);
                     if (stateVerified && state == VmState.Running)
                     {
-                        UpdateOverviewLiveMetrics(sample);
+                        if (activeTopKey == "overview" && fields == MetricFields) UpdateOverviewLiveMetrics(sample);
                     }
-                    else if (stateVerified && state is VmState.PoweredOff or VmState.Saved or VmState.Suspended)
+                    else if (activeTopKey == "overview" && stateVerified && state is (VmState.PoweredOff or VmState.Saved or VmState.Suspended))
                     {
                         SetOverviewInactive();
                     }
@@ -328,7 +322,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         finally
         {
             source.Cancel();
-            try { await previewWork; }
+            try { await Task.WhenAll(previewWork, detailWork); }
             finally
             {
                 if (acquired) queryGate.Release();
@@ -339,6 +333,35 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
                 }
                 source.Dispose();
             }
+        }
+    }
+
+    private async Task LoadDeviceConfigurationAsync(Guid id, long started, CancellationToken token)
+    {
+        try
+        {
+            VmQueryRow row;
+            if (cache != null) row = await cache.LoadDetailsAsync(id, token);
+            else
+            {
+                await using var query = new VmQueryService();
+                var response = await Task.Run(() => query.QueryAsync(new VmQueryRequest(ConfigurationFields, (Guid[])[id]), token), token);
+                if (!response.HasData) throw new InvalidOperationException(
+                    response.Success ? L10n.Get("Dash_ReadVmError") : CoreMessageResolver.ResolveError(response));
+                row = response.Data!.VirtualMachines.FirstOrDefault() ?? throw new InvalidOperationException(L10n.Get("Dash_VmNotInHost"));
+            }
+            token.ThrowIfCancellationRequested();
+            if (!ReferenceEquals(displayedConfiguration, row)) ShowConfiguration(row, preserveLiveIdentity: stateVerified);
+            ExHyperV.App.Diagnostics.AppDiagnostics.Write("Dashboard", "DevicesReady", $"elapsedMs={Stopwatch.GetElapsedTime(started).TotalMilliseconds:F0}");
+            LoadingBar.Visibility = Visibility.Collapsed;
+            OverviewPane.Visibility = Visibility.Visible;
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (Exception ex)
+        {
+            if (token.IsCancellationRequested) return;
+            LoadingBar.Visibility = Visibility.Collapsed;
+            ShowError(CoreMessageResolver.ResolveException(ex));
         }
     }
 

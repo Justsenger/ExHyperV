@@ -220,6 +220,8 @@ public sealed partial class VmDashboardView
 
         void Changed(object? sender, EventArgs args)
         {
+            // The console page reads back its own settings. None are part of ConfigurationFields.
+            if (viewKey == "console") return;
             cache?.Invalidate(vm.Id);
             if (!IsLoaded || current?.Id != vm.Id) return;
             var refresh = RefreshConfigurationAsync(vm.Id);

@@ -6,7 +6,6 @@ using ExHyperV.Services;
 using ExHyperV.Tools;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml;
 using Windows.System;
 
@@ -34,19 +33,11 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
     private readonly ToggleSwitch bootVpci = Switch();
     private readonly ToggleSwitch fullScsi = Switch();
     private readonly ToggleSwitch battery = Switch();
+    private readonly Button presetButton;
     private readonly TextBox resolution = new()
     {
-        MinWidth = 152,
-        MaxWidth = 220,
-        IsEnabled = false
-    };
-    private readonly Button resolutionPresets = new()
-    {
-        Width = 32,
-        Height = 32,
-        Padding = new Thickness(0),
-        IsEnabled = false,
-        Content = new FontIcon { Glyph = "\uE70D", FontSize = 11 }
+        BorderThickness = new Thickness(0),
+        CornerRadius = new CornerRadius(4, 0, 0, 4)
     };
     private readonly Button applyResolution = new() { Content = L10n.Get("Common_Apply"), IsEnabled = false };
     private readonly Dictionary<ToggleSwitch, bool> applied = [];
@@ -60,32 +51,42 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
     {
         activeSection = section;
 
-        var presetMenu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
-        void AddPresetItem(string value)
+        var presets = new MenuFlyout();
+        foreach (string preset in ResolutionPresets.Prepend(DefaultResolution))
         {
-            var item = new MenuFlyoutItem { Text = value };
-            item.Click += (_, _) =>
-            {
-                resolution.Text = value;
-                resolution.Focus(FocusState.Programmatic);
-                resolution.Select(resolution.Text.Length, 0);
-            };
-            presetMenu.Items.Add(item);
+            var item = new MenuFlyoutItem { Text = preset };
+            item.Click += (_, _) => resolution.Text = preset;
+            presets.Items.Add(item);
         }
-        AddPresetItem(DefaultResolution);
-        foreach (string preset in ResolutionPresets)
-            AddPresetItem(preset);
-        resolutionPresets.Flyout = presetMenu;
-        string presetLabel = L10n.Get("Advanced_SelectPresetResolution");
-        ToolTipService.SetToolTip(resolutionPresets, presetLabel);
-        AutomationProperties.SetName(resolutionPresets, presetLabel);
-
-        var resolutionInputGroup = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-        resolutionInputGroup.Children.Add(resolution);
-        resolutionInputGroup.Children.Add(resolutionPresets);
-
+        presetButton = new Button
+        {
+            Style = (Style)Application.Current.Resources["SubtleButtonStyle"],
+            Content = new FontIcon { Glyph = "\uE70D", FontSize = 12 },
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Stretch,
+            CornerRadius = new CornerRadius(0, 4, 4, 0),
+            Padding = new Thickness(8, 0, 8, 0),
+            Width = 32,
+            IsEnabled = false,
+            Flyout = presets
+        };
+        AutomationProperties.SetName(presetButton, L10n.Get("Advanced_SelectPresetResolution"));
+        var resolutionField = new Grid { MinWidth = 188, MaxWidth = 220 };
+        resolutionField.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        resolutionField.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        Grid.SetColumn(presetButton, 1);
+        resolutionField.Children.Add(resolution);
+        resolutionField.Children.Add(presetButton);
+        AutomationProperties.SetName(resolution, L10n.Get("Advanced_DefaultResolution"));
         var resolutionEditor = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        resolutionEditor.Children.Add(resolutionInputGroup);
+        resolutionEditor.Children.Add(new Border
+        {
+            Background = Brush("TextControlBackground"),
+            BorderBrush = Brush("TextControlBorderBrush"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            Child = resolutionField
+        });
         resolutionEditor.Children.Add(applyResolution);
         applyResolution.Style = (Style)Application.Current.Resources["AccentButtonStyle"];
 
@@ -172,13 +173,13 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         bootVpci.Toggled += async (_, _) => await ApplyAsync(() => VmPcieService.SetBootPciExpressAsync(VmId, bootVpci.IsOn));
         fullScsi.Toggled += async (_, _) => await ApplyAsync(() => VmStorageService.SetFullScsiCommandSetEnabledAsync(VmId, fullScsi.IsOn));
         battery.Toggled += async (_, _) => await ApplyAsync(() => VmPowerService.SetBatteryEnabledAsync(VmId, battery.IsOn));
-        resolution.KeyDown += async (_, e) =>
+        resolution.PreviewKeyDown += async (_, e) =>
         {
             if (e.Key != VirtualKey.Enter) return;
             e.Handled = true;
-            await RunAsync(ApplyResolutionAsync);
+            await SubmitResolutionAsync();
         };
-        applyResolution.Click += async (_, _) => await RunAsync(ApplyResolutionAsync);
+        applyResolution.Click += async (_, _) => await SubmitResolutionAsync();
     }
 
     private Task ApplyAsync(Func<Task<ApiResponse>> write)
@@ -313,7 +314,6 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                 var resCondition = VmDisplaySettingsService.GetModificationCondition(context.State);
                 var resMeta = cardMeta[resolution];
                 bool canEditResolution = knownResolution && resCondition.CanModify;
-                resolutionPresets.IsEnabled = canEditResolution;
                 applyResolution.IsEnabled = canEditResolution;
                 string? resUnavailableReason = !hasResolution
                     ? type.State == VmQueryValueState.Failed
@@ -324,6 +324,7 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                                 ? L10n.Get("Advanced_ResolutionConsoleDisabled")
                                 : L10n.Get("Advanced_ResolutionUnavailable")
                     : L10n.Get("Advanced_ResolutionPolicyUnsupported");
+                presetButton.IsEnabled = canEditResolution;
                 ApplyCardState(resMeta.Label, resMeta.Info, resolution, resMeta.Description,
                     available: knownResolution, editable: resCondition.CanModify,
                     resUnavailableReason,
@@ -374,6 +375,10 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         if (!value.HasValue && value.State is VmQueryValueState.Failed or VmQueryValueState.Unavailable or VmQueryValueState.Ambiguous)
             errors.Add(meta.Title + "：" + (value.Error ?? L10n.Get("Common_ReadFailed")));
     }
+
+    private Task SubmitResolutionAsync() =>
+        string.Equals(resolution.Text.Trim(), appliedResolutionText, StringComparison.Ordinal)
+            ? Task.CompletedTask : RunAsync(ApplyResolutionAsync);
 
     private async Task ApplyResolutionAsync()
     {

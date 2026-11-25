@@ -27,8 +27,6 @@ public sealed partial class VmCheckpointSettingsView : UserControl
     private const double PitchY = 136;
     private const double MinZoom = 0.45;
     private const double MaxZoom = 1.85;
-    private const string MergeMenuIconPathData =
-        "M 15.5 2 Q 15.7 2 15.85 2.15 Q 16 2.3 16 2.5 Q 16 3.38 15.74 4.22 Q 15.48 5.06 15.01 5.79 Q 14.54 6.51 13.88 7.08 Q 13.21 7.65 12.4 8 Q 13.21 8.35 13.88 8.92 Q 14.54 9.49 15.01 10.21 Q 15.48 10.94 15.74 11.78 Q 16 12.62 16 13.5 Q 16 13.7 15.85 13.85 Q 15.7 14 15.5 14 Q 15.3 14 15.15 13.85 Q 15 13.7 15 13.5 Q 15 12.15 14.33 10.99 Q 13.99 10.41 13.52 9.95 Q 13.05 9.48 12.5 9.16 Q 11.94 8.84 11.3 8.67 Q 10.67 8.5 10 8.5 H 1.7 L 4.85 11.65 Q 5 11.8 5 12 Q 5 12.2 4.85 12.35 Q 4.7 12.5 4.5 12.5 Q 4.3 12.5 4.15 12.35 L 0.15 8.35 Q 0 8.2 0 8 Q 0 7.8 0.15 7.65 L 4.15 3.65 Q 4.3 3.5 4.5 3.5 Q 4.7 3.5 4.85 3.65 Q 5 3.8 5 4 Q 5 4.2 4.85 4.35 L 1.7 7.5 H 10 Q 10.67 7.5 11.3 7.33 Q 11.94 7.16 12.5 6.84 Q 13.05 6.52 13.52 6.05 Q 13.99 5.59 14.33 5.01 Q 15 3.85 15 2.5 Q 15 2.3 15.15 2.15 Q 15.3 2 15.5 2 Z";
 
     private sealed record PendingWrite(string Detail, ApiErrorKind Kind, CheckpointNode? Mount);
     private static readonly Dictionary<Guid, PendingWrite> PendingWrites = new();
@@ -226,7 +224,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
         standaloneNotice?.Hide();
         feedbackHost?.ClearSettingsNotice();
         try { await action(); }
-        catch (Exception ex) { ShowError(CoreMessageResolver.ResolveException(ex)); }
+        catch (Exception ex) { ExHyperV.App.Diagnostics.AppDiagnostics.Failure(nameof(VmCheckpointSettingsView), "OperationFailed", ex); ShowError(CoreMessageResolver.ResolveException(ex)); }
         finally { busy = false; IsEnabled = !stopped; BusyChanged?.Invoke(false); }
     }
 
@@ -752,8 +750,7 @@ public sealed partial class VmCheckpointSettingsView : UserControl
     }
 
     private static IconElement CreateMergeMenuIcon()
-        => (PathIcon)Microsoft.UI.Xaml.Markup.XamlReader.Load(
-            $"<PathIcon xmlns=\"http://schemas.microsoft.com/winfx/2006/xaml/presentation\" Width=\"16\" Height=\"16\" Data=\"{MergeMenuIconPathData}\" />");
+        => (IconElement)((DataTemplate)Application.Current.Resources["CheckpointMergeIcon"]).LoadContent();
 
     private void AddBezierEdge(Point from, Point to, bool isActive, bool isHistoricalDiskMounted)
     {

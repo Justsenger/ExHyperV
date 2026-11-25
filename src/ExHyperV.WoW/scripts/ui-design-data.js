@@ -5,7 +5,7 @@ export const OS_TYPES = [
 ];
 
 export const PAGE_TABS = [
-  { key: 'overview', title: '状态', titleEn: 'Status', titleEnShort: 'Status', glyph: '\uE9D9', fluent: false, rotate: 0, file: 'VmDashboardView.xaml + Monitoring.cs + Devices.cs' },
+  { key: 'overview', title: '性能', titleEn: 'Performance', titleEnShort: 'Performance', glyph: '\uE9D9', fluent: false, rotate: 0, file: 'VmDashboardView.xaml + Monitoring.cs + Devices.cs' },
   { key: 'processor', title: '处理器', titleEn: 'Processor', titleEnShort: 'CPU', glyph: '\uF58E', fluent: false, rotate: 90, file: 'Settings/VmProcessorSettingsView.cs + VmCpuAffinitySettingsView.cs' },
   { key: 'memory', title: '内存', titleEn: 'Memory', titleEnShort: 'RAM', glyph: '\uEEA0', fluent: false, rotate: 0, file: 'Settings/VmMemorySettingsView.cs' },
   { key: 'devices', title: '设备', titleEn: 'Devices', titleEnShort: 'Devices', glyph: '\uF0E2', fluent: false, rotate: 0, file: 'Settings/VmGpuSettingsView.cs + Storage + Network' },

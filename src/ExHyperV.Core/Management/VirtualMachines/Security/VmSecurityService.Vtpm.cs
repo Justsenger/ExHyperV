@@ -92,7 +92,8 @@ public static partial class VmSecurityService
     internal static byte[] DecodeKeyOutput(object? value)
     {
         if (value is byte[] raw && (raw.Length == 0 || raw.Length > sizeof(uint) ||
-            raw.AsSpan().SequenceEqual(new byte[4]) || raw.AsSpan().SequenceEqual(new byte[] { 1, 0, 0, 0 })))
+            raw.AsSpan().SequenceEqual(new byte[4]) || raw.AsSpan().SequenceEqual(new byte[] { 1, 0, 0, 0 }) ||
+            raw.AsSpan().SequenceEqual(new byte[] { 0, 0, 0, 4 })))
             return raw;
         throw new InvalidDataException("宿主未返回可识别的密钥保护器数据。");
     }

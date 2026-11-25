@@ -112,40 +112,39 @@ public static partial class VmConsoleSupportService
             if (!security.HasData) return ApiResponse.FromFailure(security);
             if (security.Data.Shielded) return ApiResponse.Fail("受防护模式已锁定控制台支持。", kind: ApiErrorKind.InvalidState);
         }
-        using var svcForScope = WmiApi.GetVirtualSystemManagementService();
-        var scope = svcForScope.Scope;
-        string guid = vm["Name"]?.ToString() ?? "";
+        var scope = vm.Scope;
         using var settings = WmiApi.GetVmSettings(vm);
         if (settings == null) return ApiResponse.Fail("找不到虚拟机当前配置。", kind: ApiErrorKind.NotFound);
         string affected = settings.Path.Path;
-
         // (设置类, 子类型)。显示无子类型(类名即专属)；鼠标/键盘为通用 RASD + 子类型区分。
         var devices = enable
             ? new (string Cls, string? Sub)[] { (DisplayClass, null), (RasdClass, KeyboardSubType), (RasdClass, MouseSubType) }
             : new (string Cls, string? Sub)[] { (RasdClass, MouseSubType), (RasdClass, KeyboardSubType), (DisplayClass, null) };
 
+        var changes = new List<string>(devices.Length);
         foreach (var (cls, sub) in devices)
         {
-            string? existingPath = FindForVm(scope, cls, guid, sub);
+            string? existingPath = FindForVm(scope, cls, vmId.ToString("D"), sub);
 
             if (enable)
             {
                 if (existingPath != null) continue;   // 已有 → 跳过(幂等)
                 string? tmplXml = FindDefaultTemplate(scope, cls, sub);
                 if (tmplXml == null) return ApiResponse.Fail(string.Format(Properties.Resources.VmConsole_TemplateNotFound, cls, sub));
-                var r = await WmiApi.InvokeAsync(ServiceWql, "AddResourceSettings",
-                    p => { p["AffectedConfiguration"] = affected; p["ResourceSettings"] = new string[] { tmplXml }; });
-                if (!r.Success) return r;
+                changes.Add(tmplXml);
             }
             else
             {
                 if (existingPath == null) continue;   // 已无 → 跳过(幂等)
-                var r = await WmiApi.InvokeAsync(ServiceWql, "RemoveResourceSettings",
-                    p => p["ResourceSettings"] = new string[] { existingPath });
-                if (!r.Success) return r;
+                changes.Add(existingPath);
             }
         }
-        return ApiResponse.Ok();
+        if (changes.Count == 0) return ApiResponse.Ok();
+        return await WmiApi.InvokeAsync(ServiceWql, enable ? "AddResourceSettings" : "RemoveResourceSettings", input =>
+        {
+            if (enable) input["AffectedConfiguration"] = affected;
+            input["ResourceSettings"] = changes.ToArray();
+        });
         }
         catch (Exception ex) { return ApiResponse.Fail(ex.Message, exception: ex); }
     });
@@ -153,7 +152,7 @@ public static partial class VmConsoleSupportService
     // 查该 VM 现有的设备设置 __PATH（无则 null）
     private static string? FindForVm(ManagementScope scope, string cls, string vmGuid, string? subType)
     {
-        string wql = $"SELECT * FROM {cls} WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'"
+        string wql = $"SELECT InstanceID FROM {cls} WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'"
             + (subType != null ? $" AND ResourceSubType = '{subType}'" : "");
         using var searcher = new ManagementObjectSearcher(scope, new ObjectQuery(wql));
         using var col = searcher.Get();

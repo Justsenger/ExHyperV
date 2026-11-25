@@ -70,6 +70,10 @@ public sealed class VtpmTests
         Assert.ThrowsExactly<InvalidDataException>(() => VmSecurityService.DecodeKeyOutput("missing"));
         Assert.ThrowsExactly<InvalidDataException>(() => VmSecurityService.DecodeKeyOutput(new byte[] { 1, 2 }));
         Assert.AreEqual(0, VmSecurityService.DecodeKeyOutput(Array.Empty<byte>()).Length);
+        byte[] emptyHostProtector = [0, 0, 0, 4];
+        var decoded = VmSecurityService.DecodeKeyOutput(emptyHostProtector);
+        CollectionAssert.AreEqual(emptyHostProtector, decoded);
+        Assert.IsFalse(VmSecurityService.ContainsProtector(decoded));
         byte[] key = [1, 2, 3, 4, 5];
         Assert.IsTrue(VmSecurityService.VerifyKeyWrite(key, () => key.ToArray()).Success);
         Assert.AreEqual(ApiErrorKind.Conflict, VmSecurityService.VerifyKeyWrite(key, () => []).ErrorKind);
