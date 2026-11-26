@@ -2,8 +2,12 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.Diagnostics;
 using ExHyperV.Tools;
+using Microsoft.Win32.SafeHandles;
 
 namespace ExHyperV.Services;
+
+using NativeTakeDelegate = Func<(long Adapter, ulong Epoch, long Sequence, ulong SlotDims, SafeFileHandle Handle, ulong ReadKey, ulong ReturnKey)?>;
+using NativeBinderDelegate = Func<Action, (Func<(long Adapter, ulong Epoch, long Sequence, ulong SlotDims, SafeFileHandle Handle, ulong ReadKey, ulong ReturnKey)?> TakeLatest, Func<ulong> RequestCpu, Action Dispose)>;
 
 /// <summary>
 /// 由调用方管理生命周期的单个 FreeRDP 控制台连接。
@@ -12,7 +16,7 @@ namespace ExHyperV.Services;
 /// 事件在后台线程触发；调用方须自行调度界面更新，不得阻塞回调线程。
 /// 此对象不读取或写入宿主剪贴板。连接停止后如需重连，应创建新对象。
 /// </remarks>
-internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVideoSource, IConsoleInput, IConsoleClipboard
+internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVideoSource, IConsoleInput, IConsoleClipboard, IServiceProvider
 {
     private readonly object gate = new();
     private readonly ConsoleConnectionOptions options;
@@ -32,6 +36,9 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     private readonly AudioOutputEndpoint? audioOutput;
     private readonly AudioInputEndpoint? audioInput;
     private Timer? inputRetry;
+    private GpuBridgeSession? gpuSession;
+    private bool gpuCpuForced;
+    private ulong gpuEpochBump;
 
     /// <summary>创建尚未启动的控制台连接并同步校验选项；原生组件在 Start 后加载。</summary>
     /// <param name="options">本地虚拟机连接选项；不能为空且须满足尺寸、缩放和超时限制。</param>
@@ -123,11 +130,14 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
         {
             CoreDiagnostics.Report("ConsoleConnecting", TraceEventType.Information, details: $"enhanced={enhanced}", vmId: options.VmId);
             owned = backend.Create(options, OnNativeEvent, OnNativeFrame);
+            bool openGpuNow;
             lock (gate)
             {
                 native = owned;
+                openGpuNow = !stopping && gpuSession is { IsActive: true } && !gpuCpuForced;
                 if (stopping) owned.Stop();
             }
+            if (openGpuNow) owned.OpenGpu(OnNativeGpuAvailable);
             if (options.HostCursor)
             {
                 Span<byte> mode = [1, 0, 0, 0];
@@ -150,6 +160,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
         finally
         {
             lock (gate) { native = null; stopping = true; inputRetry?.Dispose(); inputRetry = null; inputs.Clear(); }
+            try { owned?.CloseGpu(); } catch (Exception ex) { CoreDiagnostics.Report("NativeGpuCloseFailed", error: ex); }
             try { owned?.Dispose(); }
             catch (Exception ex) { error = 0xffffffff; message ??= ex.Message; }
             bool notifyClipboard, notifyAudioOutput, notifyAudioInput;
@@ -508,6 +519,97 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
         public event Action<bool>? AvailabilityChanged;
         public bool SendAudio(ConsoleAudioFormat format, ReadOnlySpan<byte> samples) => owner.SendAudio(format, samples);
         internal void RaiseAvailabilityChanged(bool available) => Raise(AvailabilityChanged, available);
+    }
+
+    object? IServiceProvider.GetService(Type serviceType)
+    {
+        if (!enhanced || serviceType != typeof(NativeBinderDelegate)) return null;
+        NativeBinderDelegate binder = OpenGpuBridge;
+        return binder;
+    }
+
+    private (NativeTakeDelegate TakeLatest, Func<ulong> RequestCpu, Action Dispose) OpenGpuBridge(Action onAvailable)
+    {
+        ArgumentNullException.ThrowIfNull(onAvailable);
+        var session = new GpuBridgeSession(this, onAvailable);
+        IConsoleNativeConnection? currentNative = null;
+        bool openNow = false;
+        lock (gate)
+        {
+            gpuSession?.Detach();
+            gpuSession = session;
+            gpuCpuForced = false;
+            if (!stopping && native is not null)
+            {
+                currentNative = native;
+                openNow = true;
+            }
+        }
+        if (openNow && currentNative is not null) currentNative.OpenGpu(OnNativeGpuAvailable);
+        return (session.TakeLatest, session.RequestCpu, session.Dispose);
+    }
+
+    private void OnNativeGpuAvailable()
+    {
+        Action? callback;
+        lock (gate) callback = gpuSession is { IsActive: true } && !gpuCpuForced ? gpuSession.Callback : null;
+        Raise(callback);
+    }
+
+    private sealed class GpuBridgeSession(FreeRdpConsoleConnection owner, Action callback) : IDisposable
+    {
+        private bool disposed, switchedToCpu;
+        private ulong cpuEpoch;
+        internal bool IsActive { get { lock (owner.gate) return !disposed && owner.gpuSession == this; } }
+        internal Action Callback => callback;
+
+        internal void Detach() { disposed = true; }
+
+        internal (long Adapter, ulong Epoch, long Sequence, ulong SlotDims, SafeFileHandle Handle, ulong ReadKey, ulong ReturnKey)? TakeLatest()
+        {
+            IConsoleNativeConnection? n;
+            lock (owner.gate)
+            {
+                if (disposed || switchedToCpu || owner.gpuSession != this || owner.stopping || owner.gpuCpuForced) return null;
+                n = owner.native;
+            }
+            return n?.TakeGpuLatest();
+        }
+
+        internal ulong RequestCpu()
+        {
+            IConsoleNativeConnection? n;
+            lock (owner.gate)
+            {
+                ObjectDisposedException.ThrowIf(disposed, this);
+                if (switchedToCpu) return cpuEpoch;
+                switchedToCpu = true;
+                owner.gpuCpuForced = true;
+                n = owner.stopping ? null : owner.native;
+            }
+            ulong nativeEpoch = n?.RequestGpuCpu() ?? 0;
+            lock (owner.gate)
+            {
+                cpuEpoch = owner.gpuEpochBump = Math.Max(owner.gpuEpochBump + 1, nativeEpoch);
+                return cpuEpoch;
+            }
+        }
+
+        public void Dispose()
+        {
+            IConsoleNativeConnection? closeNative = null;
+            lock (owner.gate)
+            {
+                if (disposed) return;
+                disposed = true;
+                if (owner.gpuSession == this)
+                {
+                    owner.gpuSession = null;
+                    if (!owner.stopping) closeNative = owner.native;
+                }
+            }
+            closeNative?.CloseGpu();
+        }
     }
 
     // An observer exception must never unwind through a native FreeRDP callback.

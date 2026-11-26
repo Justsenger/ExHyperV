@@ -1,6 +1,7 @@
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.ConsoleHost;
+using ExHyperV.ConsoleIpc;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using Microsoft.UI.Xaml;
@@ -423,7 +424,7 @@ public sealed partial class ConsoleWindow
             }
         };
         renderWorker ??= new();
-        frames = new(renderWorker.Enqueue, ShowFrame, session as IConsoleGpuSource ?? video as IConsoleGpuSource, ShowGpuFrame, OnCpuRequested);
+        frames = new(renderWorker.Enqueue, ShowFrame, ConsoleCoreGpuSource.Wrap(session) ?? ConsoleCoreGpuSource.Wrap(video), ShowGpuFrame, OnCpuRequested);
         if (video != null)
         {
             video.FrameReceived += frames.Receive;

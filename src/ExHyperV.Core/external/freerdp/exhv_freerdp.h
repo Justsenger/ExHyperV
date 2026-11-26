@@ -103,6 +103,25 @@ EXHV_API int EXHV_CALL exhv_send(void* connection, uint32_t kind,
 /* Offline frame fixture using the real producer and the regular borrowed callback. */
 EXHV_API uint32_t EXHV_CALL exhv_selftest_frames(exhv_callback callback, void* user);
 EXHV_API uint32_t EXHV_CALL exhv_selftest(void);
+
+#define EXHV_GPU_FRAME_VERSION 1u
+typedef struct {
+    uint32_t size, slot;
+    int64_t  adapterLuid;
+    uint64_t epoch, sequence;
+    uint32_t width, height;
+    uint32_t flags, reserved;
+    uint64_t readKey, returnKey;
+    void*    textureHandle;
+} exhv_gpu_frame;
+typedef void (EXHV_CALL *exhv_gpu_callback)(void* user);
+
+EXHV_API int EXHV_CALL exhv_gpu_open(void* connection, exhv_gpu_callback callback, void* user);
+EXHV_API void EXHV_CALL exhv_gpu_close(void* connection);
+EXHV_API int EXHV_CALL exhv_gpu_take_latest(void* connection, uint32_t version, uint32_t size, exhv_gpu_frame* descriptor);
+EXHV_API uint64_t EXHV_CALL exhv_gpu_request_cpu(void* connection);
+EXHV_API int EXHV_CALL exhv_is_gfx_d3d11(void* connection);
+EXHV_API uint32_t EXHV_CALL exhv_selftest_gfx_d3d11(void);
 #ifdef __cplusplus
 }
 #endif

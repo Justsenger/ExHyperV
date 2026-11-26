@@ -641,10 +641,18 @@ const exhv_frame* console_frame_next(ConsoleContext* c){
     const exhv_frame* frame=frame_next(c);
     LeaveCriticalSection(&c->frames->frontGate);return frame;
 }
+BOOL console_frame_promote_front(ConsoleContext* c){
+    if(!c||!c->frames)return FALSE;
+    EnterCriticalSection(&c->frames->frontGate);
+    const exhv_frame* frame=frame_next(c);
+    LeaveCriticalSection(&c->frames->frontGate);return frame!=NULL;
+}
 void* EXHV_CALL exhv_capture_frame(void* handle){
     ConsoleContext* c=handle;
     if(!c||!c->frames)return NULL;
     ConsoleFrames* frames=c->frames;ConsoleFrame* frame=NULL;
+    if(InterlockedCompareExchange(&c->connectedNotified,0,0)&&WaitForSingleObject(c->stop,0)!=WAIT_OBJECT_0)
+        console_gfx_sync_cpu_if_needed(c);
     EnterCriticalSection(&frames->frontGate);
     if(InterlockedCompareExchange(&c->connectedNotified,0,0)&&WaitForSingleObject(c->stop,0)!=WAIT_OBJECT_0
         &&frames->front&&exhv_frame_retain(frames->front))frame=frames->front;

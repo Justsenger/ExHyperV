@@ -1,4 +1,5 @@
 using ExHyperV.Tools;
+using Microsoft.Win32.SafeHandles;
 using System.ComponentModel;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
@@ -22,11 +23,16 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
         => new Connection(GetApi(), options, enhanced, callback, frameCallback);
 
     internal static uint RunSelfTest() => GetApi(AppContext.BaseDirectory).SelfTest();
+    internal static uint RunGfxSelfTest() => GetApi(AppContext.BaseDirectory).SelfTestGfxD3D11?.Invoke()
+        ?? throw new MissingMethodException("exhv_selftest_gfx_d3d11");
 
     private sealed class Connection : IConsoleNativeConnection
     {
         private readonly NativeApi api;
         private readonly Callback callback;
+        private readonly object gpuGate = new();
+        private GpuCallback? gpuCallback;
+        private Action? gpuAvailable;
         private nint handle;
         internal Connection(NativeApi api, ConsoleConnectionOptions options, bool enhanced, Action<uint, byte[], uint, uint> receiver, Action<ConsoleFrame> frameReceiver)
         {
@@ -80,11 +86,73 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
         }
         public unsafe bool Send(uint kind, ReadOnlySpan<byte> payload)
         { fixed (byte* data = payload) return api.Send(handle, kind, (nint)data, (uint)payload.Length) != 0; }
+        public bool SupportsGpu
+        {
+            get
+            {
+                nint h = Volatile.Read(ref handle);
+                return h != 0 && api.IsGfxD3D11 is { } probe && probe(h) != 0;
+            }
+        }
+        public bool OpenGpu(Action available)
+        {
+            lock (gpuGate)
+            {
+                nint h = Volatile.Read(ref handle);
+                if (h == 0 || api.GpuOpen is null || api.IsGfxD3D11 is null || api.IsGfxD3D11(h) == 0) return false;
+                Volatile.Write(ref gpuAvailable, available);
+                gpuCallback ??= _ =>
+                {
+                    var listener = Volatile.Read(ref gpuAvailable);
+                    if (listener is null) return;
+                    try { listener(); }
+                    catch (Exception diagnosticError) { CoreDiagnostics.Report("NativeGpuCallbackFailed", error: diagnosticError); }
+                };
+                return api.GpuOpen(h, gpuCallback, 0) != 0;
+            }
+        }
+        public void CloseGpu()
+        {
+            lock (gpuGate)
+            {
+                Volatile.Write(ref gpuAvailable, null);
+                nint h = Volatile.Read(ref handle);
+                if (h != 0) api.GpuClose?.Invoke(h);
+            }
+        }
+        public (long AdapterLuid, ulong Epoch, long Sequence, ulong SlotDims, SafeFileHandle Texture, ulong ReadKey, ulong ReturnKey)? TakeGpuLatest()
+        {
+            lock (gpuGate)
+            {
+                nint h = Volatile.Read(ref handle);
+                if (h == 0 || api.GpuTakeLatest is null) return null;
+                if (api.GpuTakeLatest(h, 1u, (uint)Marshal.SizeOf<NativeGpuFrameDescriptor>(), out var gf) == 0 || gf.TextureHandle == 0)
+                    return null;
+                var texHandle = new SafeFileHandle(gf.TextureHandle, ownsHandle: true);
+                ulong slotDims = ((ulong)(ushort)gf.Slot) | ((ulong)gf.Width << 16) | ((ulong)gf.Height << 32);
+                return (gf.AdapterLuid, gf.Epoch, checked((long)gf.Sequence), slotDims, texHandle, gf.ReadKey, gf.ReturnKey);
+            }
+        }
+        public ulong RequestGpuCpu()
+        {
+            lock (gpuGate)
+            {
+                nint h = Volatile.Read(ref handle);
+                return (h != 0 && api.GpuRequestCpu is not null) ? api.GpuRequestCpu(h) : 0;
+            }
+        }
         public void Dispose()
         {
-            nint owned = Interlocked.Exchange(ref handle, 0);
+            nint owned;
+            lock (gpuGate)
+            {
+                Volatile.Write(ref gpuAvailable, null);
+                owned = Interlocked.Exchange(ref handle, 0);
+                if (owned != 0) api.GpuClose?.Invoke(owned);
+            }
             if (owned != 0) api.Destroy(owned);
             GC.KeepAlive(callback);
+            GC.KeepAlive(gpuCallback);
         }
     }
 
@@ -95,6 +163,17 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
         internal nint Pixels;
         internal ulong Sequence, BaseSequence;
         internal int Left, Top, Right, Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeGpuFrameDescriptor
+    {
+        internal uint Size, Slot;
+        internal long AdapterLuid;
+        internal ulong Epoch, Sequence;
+        internal uint Width, Height, Flags, Reserved;
+        internal ulong ReadKey, ReturnKey;
+        internal nint TextureHandle;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -233,6 +312,12 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
     private delegate int QueryRegionsDelegate(nint frame, uint version, uint size, out RegionDescriptor regions);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate uint FrameFixtureDelegate(Callback receiver, nint user);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void GpuCallback(nint user);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int GpuOpenDelegate(nint connection, GpuCallback? callback, nint user);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void GpuCloseDelegate(nint connection);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int GpuTakeLatestDelegate(nint connection, uint version, uint size, out NativeGpuFrameDescriptor descriptor);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate ulong GpuRequestCpuDelegate(nint connection);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int IsGfxD3D11Delegate(nint connection);
 
     private sealed class NativeApi(nint module, List<FileStream> locks)
     {
@@ -249,6 +334,12 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
         internal readonly CaptureFrameDelegate CaptureFrame = Export<CaptureFrameDelegate>(module, "exhv_capture_frame");
         internal readonly QueryRegionsDelegate? QueryRegions = Optional<QueryRegionsDelegate>(module, "exhv_frame_query_regions");
         internal readonly FrameFixtureDelegate? FrameFixture = Optional<FrameFixtureDelegate>(module, "exhv_selftest_frames");
+        internal readonly GpuOpenDelegate? GpuOpen = Optional<GpuOpenDelegate>(module, "exhv_gpu_open");
+        internal readonly GpuCloseDelegate? GpuClose = Optional<GpuCloseDelegate>(module, "exhv_gpu_close");
+        internal readonly GpuTakeLatestDelegate? GpuTakeLatest = Optional<GpuTakeLatestDelegate>(module, "exhv_gpu_take_latest");
+        internal readonly GpuRequestCpuDelegate? GpuRequestCpu = Optional<GpuRequestCpuDelegate>(module, "exhv_gpu_request_cpu");
+        internal readonly IsGfxD3D11Delegate? IsGfxD3D11 = Optional<IsGfxD3D11Delegate>(module, "exhv_is_gfx_d3d11");
+        internal readonly SelfTestDelegate? SelfTestGfxD3D11 = Optional<SelfTestDelegate>(module, "exhv_selftest_gfx_d3d11");
         private static T? Optional<T>(nint module, string name) where T : Delegate
             => NativeLibrary.TryGetExport(module, name, out var address) ? Marshal.GetDelegateForFunctionPointer<T>(address) : null;
         private static T Export<T>(nint module, string name) where T : Delegate

@@ -27,4 +27,15 @@ public sealed class ConsoleConnectionTests
     [TestMethod] public Task RejectedResize_PreservesConnection() => ConsoleConnectionChecks.CheckResizeRejection(Check);
     [TestMethod] public Task ClipboardRevision_DiscardsStaleUpdates() => ConsoleConnectionChecks.CheckClipboardRevision(Check);
     [TestMethod] public Task SpecialKeys_AreEncodedCorrectly() => ConsoleConnectionChecks.CheckSpecialKeyboardInput(Check);
+    [TestMethod] public Task GpuBridge_OpensPreStartDecodesSlotDimsAndFallsBackToCpu() => ConsoleConnectionChecks.CheckGpuBridge(Check);
+
+    [TestMethod]
+    public void GpuSource_WrapsOnlyEnhancedConsoleConnections()
+    {
+        ExHyperV.Services.ConsoleConnectionOptions options = new() { VmId = Guid.NewGuid() };
+        using var enhanced = ExHyperV.Services.ConsoleService.CreateConnection(options, ExHyperV.Services.ConsoleService.RdpEnhancedBackendId);
+        using var basic = ExHyperV.Services.ConsoleService.CreateConnection(options, ExHyperV.Services.ConsoleService.RdpBasicBackendId);
+        Assert.IsNotNull(ExHyperV.ConsoleIpc.ConsoleCoreGpuSource.Wrap(enhanced));
+        Assert.IsNull(ExHyperV.ConsoleIpc.ConsoleCoreGpuSource.Wrap(basic));
+    }
 }

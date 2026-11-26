@@ -66,4 +66,75 @@ public sealed unsafe class ConsoleGpuTests
                 if (obj != 0) Marshal.Release(obj);
         }
     }
+
+    [TestMethod]
+    public void ConsoleCoreGpuSource_WrapsBinderDecodesSlotDimsFeedsEncoderAndEnforcesMonotonicCpuEpoch()
+    {
+        using var texture = new ExHyperV.ConsoleIpc.Tests.ConsoleIpcTestTexture(320, 240);
+        Assert.IsNull(ExHyperV.ConsoleIpc.ConsoleCoreGpuSource.Wrap(new object()));
+
+        int closes = 0;
+        ulong cpuRequests = 0;
+        Action? fireAvailable = null;
+        bool returnedFrame = false;
+        Func<Action, (Func<(long, ulong, long, ulong, SafeFileHandle, ulong, ulong)?>, Func<ulong>, Action)> binder = onAvailable =>
+        {
+            fireAvailable = onAvailable;
+            return (
+                () => returnedFrame
+                    ? (texture.Adapter, 2UL, 11L, 3UL | (320UL << 16) | (240UL << 32), new SafeFileHandle(texture.Shared.DangerousGetHandle(), ownsHandle: false), 1UL, 2UL)
+                    : null,
+                () => ++cpuRequests,
+                () => Interlocked.Increment(ref closes));
+        };
+
+        var source = ExHyperV.ConsoleIpc.ConsoleCoreGpuSource.Wrap(new BinderServiceProvider(binder));
+        Assert.IsNotNull(source);
+
+        int notifications = 0;
+        using var delivery = source.OpenDelivery();
+        delivery.Available += () => Interlocked.Increment(ref notifications);
+        Assert.IsNull(delivery.TakeLatest());
+
+        returnedFrame = true;
+        fireAvailable?.Invoke();
+        Assert.AreEqual(1, notifications);
+
+        using var frame = delivery.TakeLatest();
+        Assert.IsNotNull(frame);
+        Assert.AreEqual(texture.Adapter, frame.AdapterLuid);
+        Assert.AreEqual(2UL, frame.Epoch);
+        Assert.AreEqual(3, frame.Slot);
+        Assert.AreEqual(11L, frame.Sequence);
+        Assert.AreEqual(320, frame.Width);
+        Assert.AreEqual(240, frame.Height);
+        Assert.AreEqual(1UL, frame.ReadKey);
+        Assert.AreEqual(2UL, frame.ReturnKey);
+
+        using var encoder = ConsoleH264Encoder.TryCreate(320, 240, true, out _, texture.Adapter);
+        if (encoder is not null)
+        {
+            bool ok = encoder.EncodePacket([], 0, 0, true, frame, out var packet, out bool key);
+            using (packet)
+            {
+                Assert.IsTrue(ok && key && packet is { Data.Length: > 0 },
+                    "Hardware H.264 encoder should encode shared GPU frame from ConsoleCoreGpuSource.");
+            }
+        }
+
+        ulong firstEpoch = delivery.RequestCpu();
+        ulong secondEpoch = delivery.RequestCpu();
+        Assert.IsGreaterThan(0UL, firstEpoch);
+        Assert.IsGreaterThanOrEqualTo(firstEpoch, secondEpoch);
+
+        delivery.Dispose();
+        delivery.Dispose();
+        Assert.AreEqual(1, closes);
+    }
+
+    private sealed class BinderServiceProvider(
+        Func<Action, (Func<(long, ulong, long, ulong, SafeFileHandle, ulong, ulong)?>, Func<ulong>, Action)> binder) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => serviceType == binder.GetType() ? binder : null;
+    }
 }

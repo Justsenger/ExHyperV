@@ -24,6 +24,11 @@ public sealed class WindowsIntegrationTests
 
     [TestMethod]
     [TestCategory("OperationResource")]
+    public void FreeRdp_D3D11GfxPipelineSelfTest()
+        => Assert.AreEqual(0u, FreeRdpNative.RunGfxSelfTest(), "Offline native D3D11 GFX pipeline self-test failed.");
+
+    [TestMethod]
+    [TestCategory("OperationResource")]
     public void FreeRdp_MultiRegionFramesReconstructAndSurviveProducerShutdown() => ConsoleNativeFrameChecks.Run();
 
     [TestMethod]

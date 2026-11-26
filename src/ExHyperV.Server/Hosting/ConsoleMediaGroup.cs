@@ -1,3 +1,4 @@
+using ExHyperV.ConsoleIpc;
 using System.Diagnostics;
 using System.Threading.Channels;
 using ExHyperV.Services;
@@ -38,7 +39,7 @@ internal sealed class ConsoleMediaGroup
         this.video = video;
         Encoding = encoding;
         Regions = regions;
-        if (encoding == "h264" && video is IConsoleGpuSource provider)
+        if (encoding == "h264" && ConsoleCoreGpuSource.Wrap(video) is { } provider)
         {
             try { gpu = provider.OpenDelivery(); gpu.Available += GpuAvailable; }
             catch (Exception) { gpu?.Dispose(); gpu = null; cpuFallback = true; }

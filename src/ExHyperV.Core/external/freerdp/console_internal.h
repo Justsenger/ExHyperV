@@ -5,6 +5,7 @@
 #include <freerdp/dvc.h>
 #include <freerdp/client/disp.h>
 #include <freerdp/client/cliprdr.h>
+#include <freerdp/client/rdpgfx.h>
 #define CONSOLE_LIMIT (64u * 1024u * 1024u)
 #define CLIP_LIMIT (32u * 1024u * 1024u)
 #define CLIP_ITEM_LIMIT (16u * 1024u * 1024u)
@@ -16,6 +17,7 @@ typedef exhv_rect ConsoleRect;
 typedef struct ConsoleFrame ConsoleFrame;
 typedef struct ConsoleFrames ConsoleFrames;
 typedef struct ConsoleCursor ConsoleCursor;
+typedef struct ConsoleGfx ConsoleGfx;
 typedef struct {
     rdpClientContext common;
     HANDLE stop, outputReady, inputReady, outputThread;
@@ -46,6 +48,8 @@ typedef struct {
     BOOL audioOutputOpen, audioInputOpen, audioInit;
     void* audioOutHead; void* audioOutTail; UINT32 audioOutCount, audioOutBytes;
     void* audioInHead; void* audioInTail; UINT32 audioInCount, audioInBytes;
+    ConsoleGfx* gfx;
+    volatile LONG gfxD3D11, gfxForceDisable;
 } ConsoleContext;
 static inline UINT16 get16(const BYTE* p) { return (UINT16)(p[0] | (p[1] << 8)); }
 static inline UINT32 get32(const BYTE* p) { return (UINT32)p[0] | ((UINT32)p[1]<<8) | ((UINT32)p[2]<<16) | ((UINT32)p[3]<<24); }
@@ -66,6 +70,13 @@ void console_frame_commit(ConsoleContext*,ConsoleFrame*);
 void console_frame_commit_region(ConsoleContext*,ConsoleFrame*,INT32,INT32,INT32,INT32,BOOL);
 void console_frame_cancel(ConsoleContext*,ConsoleFrame*);
 const exhv_frame* console_frame_next(ConsoleContext*);
+BOOL console_frame_promote_front(ConsoleContext*);
+BOOL console_gfx_init(ConsoleContext*);
+BOOL console_gfx_connect(ConsoleContext*,RdpgfxClientContext*);
+void console_gfx_disconnect(ConsoleContext*,RdpgfxClientContext*);
+void console_gfx_free(ConsoleContext*);
+BOOL console_gfx_sync_cpu_if_needed(ConsoleContext*);
+int console_gfx_selftest(void);
 BOOL console_cursor_set(ConsoleContext*,const BYTE*,UINT32,UINT32,UINT32,UINT32);
 BOOL console_cursor_position(ConsoleContext*,UINT32,UINT32);
 BOOL console_cursor_pop_pending(ConsoleContext*,UINT32*,UINT32*,UINT32*,UINT32*,BYTE**,UINT32*);

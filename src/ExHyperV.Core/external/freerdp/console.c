@@ -186,10 +186,13 @@ static BOOL save_session_info(rdpContext* ctx,UINT32 type,const void* data){
 }
 static void channel_connected(void* context,const ChannelConnectedEventArgs* e){ConsoleContext* c=context;if(strcmp(e->name,DISP_DVC_CHANNEL_NAME)==0){EnterCriticalSection(&c->displayGate);c->disp=e->pInterface;InterlockedExchange(&c->resizeReady,TRUE);LeaveCriticalSection(&c->displayGate);}
     if(c->enhanced&&strcmp(e->name,CLIPRDR_SVC_CHANNEL_NAME)==0)console_clip_connect(c,e->pInterface);
+    if(c->gfx&&strcmp(e->name,RDPGFX_DVC_CHANNEL_NAME)==0){console_gfx_connect(c,(RdpgfxClientContext*)e->pInterface);return;}
     freerdp_client_OnChannelConnectedEventHandler(&c->common,e);
 }
 static void channel_disconnected(void* context,const ChannelDisconnectedEventArgs* e){ConsoleContext* c=context;if(strcmp(e->name,DISP_DVC_CHANNEL_NAME)==0){EnterCriticalSection(&c->displayGate);c->disp=NULL;InterlockedExchange(&c->resizeReady,FALSE);LeaveCriticalSection(&c->displayGate);}
-    if(strcmp(e->name,CLIPRDR_SVC_CHANNEL_NAME)==0)console_clip_disconnect(c);freerdp_client_OnChannelDisconnectedEventHandler(&c->common,e);
+    if(strcmp(e->name,CLIPRDR_SVC_CHANNEL_NAME)==0)console_clip_disconnect(c);
+    if(c->gfx&&strcmp(e->name,RDPGFX_DVC_CHANNEL_NAME)==0){console_gfx_disconnect(c,(RdpgfxClientContext*)e->pInterface);return;}
+    freerdp_client_OnChannelDisconnectedEventHandler(&c->common,e);
 }
 static BOOL pre_connect(freerdp* i){return PubSub_SubscribeChannelConnected(i->context->pubSub,channel_connected)>=0&&PubSub_SubscribeChannelDisconnected(i->context->pubSub,channel_disconnected)>=0&&freerdp_client_load_addins(i->context->channels,i->context->settings);}
 static BOOL post_connect(freerdp* i){
@@ -221,6 +224,7 @@ static PVIRTUALCHANNELENTRY addin(LPCSTR name,LPCSTR subsystem,LPCSTR type,DWORD
 static INIT_ONCE h264ProbeOnce=INIT_ONCE_STATIC_INIT;
 static volatile LONG h264MfSupported=0;
 static volatile LONG h264ForceDisable=0;
+static volatile LONG gfxForceDisable=0;
 static DWORD WINAPI h264_probe_thread(void* param){
     BOOL* supported=(BOOL*)param;
     // FreeRDP's MediaFoundation H.264 decoder initializes STA COM and unconditionally calls
@@ -298,8 +302,9 @@ void* EXHV_CALL exhv_create(const char* id,UINT32 enhanced,UINT32 w,UINT32 h,UIN
     SET_STR(AuthenticationServiceClass,"Microsoft Virtual Console Service");SET_BOOL(AutoReconnectionEnabled,FALSE);SET_BOOL(CertificateCallbackPreferPEM,TRUE);
     SET_BOOL(ExternalCertificateManagement,TRUE);SET_BOOL(IgnoreCertificate,FALSE);SET_BOOL(UseCommonStdioCallbacks,FALSE);
     BOOL useH264=isEnhanced&&h264_available();
+    BOOL useD3D11Gfx=isEnhanced&&!InterlockedCompareExchange(&gfxForceDisable,0,0)&&console_gfx_init(c);
     SET_INT(DesktopWidth,w);SET_INT(DesktopHeight,h);SET_INT(DesktopScaleFactor,scale);SET_INT(DeviceScaleFactor,100);SET_INT(TcpConnectTimeout,timeout);SET_INT(ColorDepth,32);
-    SET_BOOL(SoftwareGdi,TRUE);SET_BOOL(SupportGraphicsPipeline,TRUE);
+    SET_BOOL(SoftwareGdi,!useD3D11Gfx);SET_BOOL(SupportGraphicsPipeline,TRUE);
     SET_BOOL(GfxThinClient,FALSE);SET_BOOL(GfxSmallCache,FALSE);
     SET_BOOL(GfxProgressive,TRUE);SET_BOOL(GfxProgressiveV2,TRUE);
     SET_BOOL(GfxH264,useH264);SET_BOOL(GfxAVC444,useH264);SET_BOOL(GfxAVC444v2,useH264);
@@ -350,7 +355,7 @@ cleanup:
 }
 void EXHV_CALL exhv_stop(void* handle){ConsoleContext* c=handle;if(!c)return;InterlockedExchange(&c->callerStop,TRUE);SetEvent(c->stop);freerdp_abort_connect_context(&c->common.context);}
 void EXHV_CALL exhv_destroy(void* handle){ConsoleContext* c=handle;if(!c)return;exhv_stop(c);if(c->runStarted&&!c->runFinished)return;
-    for(unsigned i=0;i<INPUT_COUNT;i++)free(c->input[i].data);console_frames_free(c);free(c->pendingClipboard);console_clip_free(c);console_audio_free(c);
+    for(unsigned i=0;i<INPUT_COUNT;i++)free(c->input[i].data);console_gfx_free(c);console_frames_free(c);free(c->pendingClipboard);console_clip_free(c);console_audio_free(c);
     if(c->stop)CloseHandle(c->stop);if(c->inputReady)CloseHandle(c->inputReady);if(c->outputReady)CloseHandle(c->outputReady);
     DeleteCriticalSection(&c->inputGate);DeleteCriticalSection(&c->outputGate);DeleteCriticalSection(&c->clipGate);DeleteCriticalSection(&c->displayGate);if(c->audioInit){DeleteCriticalSection(&c->audioGate);c->audioInit=FALSE;}
     freerdp* instance=c->common.context.instance;freerdp_context_free(instance);freerdp_free(instance);
@@ -524,6 +529,13 @@ UINT32 EXHV_CALL exhv_selftest(void){
         !freerdp_settings_get_bool(fbSettings,FreeRDP_RemoteFxCodec)){exhv_destroy(fallback);return 82;}
     if(!pre_connect(fallback->common.context.instance)){exhv_destroy(fallback);return 83;}
     exhv_stop(fallback);stopped=exhv_run(fallback);exhv_destroy(fallback);if(stopped)return 84;
+    InterlockedExchange(&gfxForceDisable,1);
+    ConsoleContext* gfxFb=exhv_create("12345678-1234-1234-1234-123456789abc",EXHV_SESSION_ENHANCED,1024,768,100,2000,selftest_callback,NULL);
+    InterlockedExchange(&gfxForceDisable,0);
+    if(!gfxFb)return 85;
+    if(!freerdp_settings_get_bool(gfxFb->common.context.settings,FreeRDP_SoftwareGdi)||exhv_is_gfx_d3d11(gfxFb)){exhv_destroy(gfxFb);return 86;}
+    exhv_destroy(gfxFb);
+    int gfxErr=console_gfx_selftest();if(gfxErr)return (uint32_t)gfxErr;
     return 0;
 }
 typedef struct {rdpPointer common; BYTE* pixels;} ConsolePointer;

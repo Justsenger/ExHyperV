@@ -7,6 +7,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using ExHyperV.Services;
 using ExHyperV.Tools;
+using Microsoft.Win32.SafeHandles;
+
+using NativeBinderDelegate = System.Func<System.Action, (System.Func<(long Adapter, ulong Epoch, long Sequence, ulong SlotDims, Microsoft.Win32.SafeHandles.SafeFileHandle Handle, ulong ReadKey, ulong ReturnKey)?> TakeLatest, System.Func<ulong> RequestCpu, System.Action Dispose)>;
 
 internal static class ConsoleConnectionChecks
 {
@@ -32,6 +35,7 @@ internal static class ConsoleConnectionChecks
         await CheckResizeRejection(check);
         await CheckClipboardRevision(check);
         await CheckSpecialKeyboardInput(check);
+        await CheckGpuBridge(check);
     }
 
     internal static async Task CheckConsoleStateQuery(Action<bool, string> check)
@@ -738,6 +742,73 @@ internal static class ConsoleConnectionChecks
             "Console stopped connections cannot send Pause or change the guest lock-key state");
     }
 
+    internal static async Task CheckGpuBridge(Action<bool, string> check)
+    {
+        var basicBackend = new FakeBackend();
+        using var basic = new FreeRdpConsoleConnection(Options(), false, basicBackend);
+        check(((IServiceProvider)basic).GetService(typeof(NativeBinderDelegate)) is null
+            && ((IServiceProvider)basic).GetService(typeof(string)) is null,
+            "Basic session does not expose GPU delivery binder service");
+
+        var backend = new FakeBackend();
+        backend.Native.SimulateGpu = true;
+        using var frameGuard = new ConsoleFrame(4, 4, 16, new byte[64], 1, 0, new(0, 0, 4, 4), true, new FrameOwner(() => { }));
+        backend.Native.FrameToCapture = frameGuard;
+
+        using var connection = new FreeRdpConsoleConnection(Options(), true, backend);
+        check(((IServiceProvider)connection).GetService(typeof(string)) is null,
+            "Enhanced session ignores unrelated IServiceProvider queries");
+        var binder = ((IServiceProvider)connection).GetService(typeof(NativeBinderDelegate)) as NativeBinderDelegate;
+        check(binder is not null, "Enhanced session exposes GPU delivery binder delegate");
+        if (binder is null) return;
+
+        int availableCount = 0;
+        var bridge = binder(() => Interlocked.Increment(ref availableCount));
+        check(backend.Native.GpuOpens == 0 && bridge.TakeLatest() is null,
+            "Pre-Start GPU bridge opening defers native OpenGpu until transport startup");
+
+        await Start(connection, backend);
+        check(backend.Native.GpuOpens == 1, "FreeRdpConsoleConnection opens native GPU delivery when Run starts");
+
+        backend.Native.RaiseGpuAvailable();
+        using var fakeHandle = new SafeFileHandle(nint.Zero, false);
+        ulong slotDims = 3UL | (1280UL << 16) | (720UL << 32);
+        backend.Native.NextGpuFrame = (0x123456L, 2UL, 9L, slotDims, fakeHandle, 1UL, 2UL);
+        var taken = bridge.TakeLatest();
+        check(availableCount == 1
+            && taken is { Adapter: 0x123456L, Epoch: 2UL, Sequence: 9L, SlotDims: var sd, ReadKey: 1UL, ReturnKey: 2UL }
+            && sd == slotDims
+            && (ushort)(sd & 0xFFFFu) == 3
+            && (int)((sd >> 16) & 0xFFFFu) == 1280
+            && (int)((sd >> 32) & 0xFFFFu) == 720,
+            "GPU bridge forwards availability signals and latest shared handle tuple intact");
+
+        backend.Native.NextGpuCpuEpoch = 0;
+        ulong epoch1 = bridge.RequestCpu();
+        ulong epoch1Repeat = bridge.RequestCpu();
+        backend.Native.RaiseGpuAvailable();
+        using var fallbackFrame = connection.Video.CaptureFrame();
+        check(epoch1 > 0 && epoch1Repeat == epoch1
+            && backend.Native.GpuCpuRequests == 1
+            && bridge.TakeLatest() is null
+            && availableCount == 1
+            && fallbackFrame is { Width: 4, Height: 4 },
+            "RequestCpu returns monotonic epoch, suppresses GPU frames/callbacks, and preserves CaptureFrame fallback");
+
+        bridge.Dispose();
+        bridge.Dispose();
+        check(backend.Native.GpuCloses == 1 && Throws<ObjectDisposedException>(() => bridge.RequestCpu()),
+            "Disposing GPU bridge closes native GPU delivery once and rejects subsequent RequestCpu");
+
+        var bridge2 = binder(() => Interlocked.Increment(ref availableCount));
+        ulong epoch2 = bridge2.RequestCpu();
+        check(backend.Native.GpuOpens == 2 && epoch2 > epoch1,
+            "Subsequent GPU bridge RequestCpu advances epoch monotonically even when native returns zero");
+
+        await connection.DisconnectAsync().WaitAsync(Timeout);
+        check(backend.Native.GpuCloses == 2, "DisconnectAsync closes active GPU bridge session cleanly");
+    }
+
     private static async Task Start(FreeRdpConsoleConnection connection, FakeBackend backend)
     {
         connection.Start(); await backend.Native.RunEntered.Task.WaitAsync(Timeout); backend.Emit(1, []);
@@ -788,7 +859,17 @@ internal static class ConsoleConnectionChecks
         internal int Disposals, Stops;
         internal ConsoleFrame? FrameToCapture;
         public ConsoleFrame? CaptureFrame() => FrameToCapture?.Retain();
-        internal bool AcceptInput = true, DelaySend, SendAfterDisposal;
+        internal bool AcceptInput = true, DelaySend, SendAfterDisposal, SimulateGpu;
+        internal int GpuOpens, GpuCloses, GpuCpuRequests;
+        internal ulong NextGpuCpuEpoch = 1;
+        internal (long AdapterLuid, ulong Epoch, long Sequence, ulong SlotDims, SafeFileHandle Texture, ulong ReadKey, ulong ReturnKey)? NextGpuFrame;
+        private Action? gpuAvailable;
+        public bool SupportsGpu => SimulateGpu;
+        public bool OpenGpu(Action available) { Interlocked.Increment(ref GpuOpens); gpuAvailable = available; return SimulateGpu; }
+        public void CloseGpu() => Interlocked.Increment(ref GpuCloses);
+        public (long AdapterLuid, ulong Epoch, long Sequence, ulong SlotDims, SafeFileHandle Texture, ulong ReadKey, ulong ReturnKey)? TakeGpuLatest() => NextGpuFrame;
+        public ulong RequestGpuCpu() { Interlocked.Increment(ref GpuCpuRequests); return NextGpuCpuEpoch; }
+        internal void RaiseGpuAvailable() => gpuAvailable?.Invoke();
         public uint Run()
         {
             if (owner.ConnectOnRun) owner.Emit(1, []);
