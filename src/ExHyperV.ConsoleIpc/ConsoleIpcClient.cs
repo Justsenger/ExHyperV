@@ -184,7 +184,8 @@ internal sealed class ConsoleIpcClient(ConsoleIpcDiscovery discovery, int role) 
                 next.Guest.RawCode != prev.Guest.RawCode || next.Transport.RawCode != prev.Transport.RawCode ||
                 next.TransportKind != prev.TransportKind || next.SurfaceEpoch != prev.SurfaceEpoch ||
                 access.SupportedMask != entry.Current.SupportedMask || access.GrantedMask != entry.Current.GrantedMask ||
-                next.Control != prev.Control || next.Reason != prev.Reason || next.DiagnosticId != prev.DiagnosticId;
+                next.Control.CanView != prev.Control.CanView || next.Control.HasControl != prev.Control.HasControl ||
+                next.Control.Generation != prev.Control.Generation || next.Reason != prev.Reason || next.DiagnosticId != prev.DiagnosticId;
             if (changed)
             {
                 entry.Grant.Cancel();

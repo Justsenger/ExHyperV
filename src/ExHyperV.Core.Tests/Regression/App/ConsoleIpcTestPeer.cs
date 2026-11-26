@@ -153,13 +153,15 @@ internal sealed class ConsoleIpcTestPeer : ConsoleIpcDiscovery, IDisposable
     { w.Text("desktop-1"); w.Write(320); w.Write(240); w.Write(60u); w.Write(1u); }
 
     internal string? ReasonText { get; set; }
+    internal ConsoleControlState Control { get; set; } = new(true, true, 5);
 
     private void Snapshot(BinaryWriter w)
     {
         w.Write(2UL);
         for (int i = 0; i < 4; i++) w.Write(6);
         w.Write(Gpu ? 2 : 1); w.Write(7UL); w.Write(63ul); w.Write(63ul);
-        w.Write(true); w.Write(true); w.Write(5UL);
+        var control = Control;
+        w.Write(control.CanView); w.Write(control.HasControl); w.Write(control.Generation);
         w.Write(1); Mode(w);
         w.Text("guest"); w.Text("domain"); w.Text(ReasonText); w.Text("EXT-200");
     }
