@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "updated_on": "2026-11-26",
+  "title": "GPU-PV 显卡驱动版本要求",
+  "disclaimer": "表中“最低版本”表示最早出现半虚拟化支持线索或必备运行库的版本门槛，不代表达到该版本即保证兼容或稳定运行，建议直接将宿主机系统及显卡驱动升级至官方最新正式版本。",
+  "vendors": [
+    { "id": "nvidia", "name": "NVIDIA" },
+    { "id": "intel", "name": "Intel" },
+    { "id": "amd", "name": "AMD" },
+    { "id": "qualcomm", "name": "Qualcomm" }
+  ],
+  "rows": [
+    {
+      "id": "nvidia-geforce",
+      "vendor": "nvidia",
+      "driver_line": "NVIDIA GeForce",
+      "windows_min_version": "388.13",
+      "windows_supported": true,
+      "linux_min_version": "471.11",
+      "linux_supported": true,
+      "notes": "Linux CUDA 仅支持 Pascal 及以上架构",
+      "tiers": [],
+      "research_anchor": "nvidia-geforce"
+    },
+    {
+      "id": "nvidia-studio",
+      "vendor": "nvidia",
+      "driver_line": "NVIDIA Studio",
+      "windows_min_version": "430.86",
+      "windows_supported": true,
+      "linux_min_version": "471.11",
+      "linux_supported": true,
+      "notes": "Linux CUDA 仅支持 Pascal 及以上架构",
+      "tiers": [],
+      "research_anchor": "nvidia-studio"
+    },
+    {
+      "id": "nvidia-quadro",
+      "vendor": "nvidia",
+      "driver_line": "NVIDIA Quadro",
+      "windows_min_version": "398.36",
+      "windows_supported": true,
+      "linux_min_version": "471.11",
+      "linux_supported": true,
+      "notes": "需运行于 WDDM 模式，Linux CUDA 仅支持 Pascal 及以上架构",
+      "tiers": [],
+      "research_anchor": "nvidia-quadro"
+    },
+    {
+      "id": "nvidia-tesla",
+      "vendor": "nvidia",
+      "driver_line": "NVIDIA Tesla",
+      "windows_min_version": "—",
+      "windows_supported": false,
+      "linux_min_version": "471.41",
+      "linux_supported": true,
+      "notes": "需运行于 WDDM 模式，Linux CUDA 仅支持 Pascal 及以上架构",
+      "tiers": [],
+      "research_anchor": "nvidia-tesla"
+    },
+    {
+      "id": "intel-core-igpu",
+      "vendor": "intel",
+      "driver_line": "Intel 酷睿核显",
+      "windows_min_version": "22.20.16.4771",
+      "windows_supported": true,
+      "linux_min_version": "30.0.100.9684",
+      "linux_supported": true,
+      "notes": "仅支持第 6 代酷睿及以上",
+      "tiers": [],
+      "research_anchor": "intel-core-igpu"
+    },
+    {
+      "id": "intel-arc",
+      "vendor": "intel",
+      "driver_line": "Intel Arc 独显",
+      "windows_min_version": "30.0.101.1325",
+      "windows_supported": true,
+      "linux_min_version": "30.0.101.1325",
+      "linux_supported": true,
+      "notes": "",
+      "tiers": [],
+      "research_anchor": "intel-arc"
+    },
+    {
+      "id": "amd-radeon",
+      "vendor": "amd",
+      "driver_line": "AMD Radeon",
+      "windows_min_version": "24.20.11016.4",
+      "windows_supported": true,
+      "linux_min_version": "27.20.15003.1004",
+      "linux_supported": true,
+      "notes": "Linux ROCm 需 32.0.11021.1007 及以上（仅支持部分 RDNA 3 及以上架构）",
+      "tiers": [],
+      "research_anchor": "amd-radeon"
+    },
+    {
+      "id": "amd-radeon-pro",
+      "vendor": "amd",
+      "driver_line": "AMD Radeon PRO",
+      "windows_min_version": "27.20.1027.2005",
+      "windows_supported": true,
+      "linux_min_version": "27.20.21026.6",
+      "linux_supported": true,
+      "notes": "Linux ROCm 需 32.0.11021.1007 及以上（仅支持部分 RDNA 3 及以上架构）",
+      "tiers": [],
+      "research_anchor": "amd-radeon-pro"
+    },
+    {
+      "id": "qualcomm-adreno",
+      "vendor": "qualcomm",
+      "driver_line": "高通骁龙 Adreno",
+      "windows_min_version": "8cx Gen 1 / Gen 2：27.20.1580.0000，8cx Gen 3：29.0.3432.2700，X 系列：31.0.74.0",
+      "windows_supported": true,
+      "linux_min_version": "8cx Gen 1 / Gen 2：—，8cx Gen 3：29.0.3475.0900，X 系列：31.0.30.0",
+      "linux_supported": true,
+      "notes": "8cx Gen 1 / Gen 2 不支持 Linux",
+      "tiers": [
+        {
+          "name": "8cx Gen 1 / Gen 2",
+          "windows_min_version": "27.20.1580.0000",
+          "linux_min_version": "—"
+        },
+        {
+          "name": "8cx Gen 3",
+          "windows_min_version": "29.0.3432.2700",
+          "linux_min_version": "29.0.3475.0900"
+        },
+        {
+          "name": "X 系列",
+          "windows_min_version": "31.0.74.0",
+          "linux_min_version": "31.0.30.0"
+        }
+      ],
+      "research_anchor": "qualcomm-adreno"
+    }
+  ]
+}
