@@ -8,12 +8,40 @@ const links = [ ['home', '首页', '/'], ['wiki', '系统图鉴', '/os/'], ['doc
   </a>
   <div class="topbar-links">{links.map(([key, label, href]) => <a href={href} data-module={key} data-i18n={key} aria-current={module === key ? 'page' : undefined}>{label}</a>)}</div>
   <div class="topbar-actions">
-    <select class="site-language" data-site-language aria-label="语言" data-i18n-aria="language" hidden>
-      <option value="auto" data-i18n="automatic">自动</option>
-      <option value="zh-CN">简体中文</option>
-      <option value="zh-TW">繁體中文</option>
-      <option value="en">English</option>
-    </select>
+    <div class="topbar-lang" data-site-language>
+      <button type="button" class="topbar-lang-trigger" data-lang-trigger aria-haspopup="listbox" aria-expanded="false" aria-label="语言" title="语言" data-i18n-aria="language" data-i18n-title="language">
+        <svg class="topbar-lang-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 0 0 18M12 3a14 14 0 0 1 0 18" />
+        </svg>
+        <span class="topbar-lang-label" data-site-language-label data-i18n="automatic">自动</span>
+        <svg class="topbar-lang-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m7 10 5 5 5-5" />
+        </svg>
+      </button>
+      <div class="topbar-lang-menu" data-lang-menu role="listbox" aria-label="语言" data-i18n-aria="language" hidden>
+        <button type="button" class="topbar-lang-option" role="option" data-lang-option="auto" aria-selected="true">
+          <span class="topbar-lang-option-main">
+            <span data-i18n="automatic">自动</span>
+            <span class="topbar-lang-detected" data-site-language-detected>简体中文</span>
+          </span>
+          <svg class="topbar-lang-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+        </button>
+        <div class="topbar-lang-divider" role="separator"></div>
+        <button type="button" class="topbar-lang-option" role="option" data-lang-option="zh-CN" aria-selected="false">
+          <span class="topbar-lang-option-main">简体中文</span>
+          <svg class="topbar-lang-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+        </button>
+        <button type="button" class="topbar-lang-option" role="option" data-lang-option="zh-TW" aria-selected="false">
+          <span class="topbar-lang-option-main">繁體中文</span>
+          <svg class="topbar-lang-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+        </button>
+        <button type="button" class="topbar-lang-option" role="option" data-lang-option="en" aria-selected="false">
+          <span class="topbar-lang-option-main">English</span>
+          <svg class="topbar-lang-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>
+        </button>
+      </div>
+    </div>
     <a class="topbar-github" href="https://github.com/Justsenger/ExHyperV" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" /></svg>
     </a>
@@ -82,6 +110,160 @@ const links = [ ['home', '首页', '/'], ['wiki', '系统图鉴', '/os/'], ['doc
     border-left: 1px solid rgba(255, 255, 255, 0.09);
     gap: 6px;
   }
+  header.ex-top .topbar-lang {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  header.ex-top .topbar-lang-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.78);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  header.ex-top .topbar-lang-trigger:hover,
+  header.ex-top .topbar-lang-trigger[aria-expanded="true"] {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.11);
+    border-color: rgba(255, 255, 255, 0.20);
+  }
+  header.ex-top .topbar-lang-trigger:focus {
+    outline: none;
+  }
+  header.ex-top .topbar-lang-trigger:focus-visible {
+    outline: 1.5px solid #52c8ff;
+    outline-offset: 2px;
+  }
+  header.ex-top .topbar-lang-icon {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+  }
+  header.ex-top .topbar-lang-label {
+    white-space: nowrap;
+    line-height: 1;
+  }
+  header.ex-top .topbar-lang-chevron {
+    width: 13px;
+    height: 13px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.7;
+    transition: transform 0.18s ease;
+  }
+  header.ex-top .topbar-lang-trigger[aria-expanded="true"] .topbar-lang-chevron {
+    transform: rotate(180deg);
+  }
+  header.ex-top .topbar-lang-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 1120;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 176px;
+    padding: 6px;
+    border-radius: 14px;
+    background: rgba(13, 18, 28, 0.90);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transform-origin: top right;
+    animation: topbar-lang-menu-in 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  header.ex-top .topbar-lang-menu[hidden] {
+    display: none;
+  }
+  @keyframes topbar-lang-menu-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  header.ex-top .topbar-lang-divider {
+    height: 1px;
+    margin: 4px 6px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  header.ex-top .topbar-lang-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 34px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.84);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.2;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s ease, color 0.12s ease;
+  }
+  header.ex-top .topbar-lang-option:hover,
+  header.ex-top .topbar-lang-option:focus-visible {
+    background: rgba(255, 255, 255, 0.09);
+    color: #ffffff;
+    outline: none;
+  }
+  header.ex-top .topbar-lang-option[aria-selected="true"] {
+    background: rgba(82, 200, 255, 0.14);
+    color: #8cd7ff;
+  }
+  header.ex-top .topbar-lang-option-main {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  header.ex-top .topbar-lang-detected {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.48);
+  }
+  header.ex-top .topbar-lang-option[aria-selected="true"] .topbar-lang-detected {
+    color: rgba(140, 215, 255, 0.72);
+  }
+  header.ex-top .topbar-lang-check {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: #52c8ff;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+  }
+  header.ex-top .topbar-lang-option[aria-selected="true"] .topbar-lang-check {
+    opacity: 1;
+  }
   header.ex-top .topbar-github {
     display: inline-flex;
     align-items: center;
@@ -127,6 +309,29 @@ const links = [ ['home', '首页', '/'], ['wiki', '系统图鉴', '/os/'], ['doc
     header.ex-top .topbar-links a {
       padding: 0 9px;
       font-size: 13px;
+    }
+    header.ex-top .topbar-lang-trigger {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      justify-content: center;
+    }
+    header.ex-top .topbar-lang-label,
+    header.ex-top .topbar-lang-chevron {
+      display: none;
+    }
+    header.ex-top .topbar-lang-menu {
+      right: -32px;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    header.ex-top .topbar-lang-trigger,
+    header.ex-top .topbar-lang-chevron,
+    header.ex-top .topbar-lang-option {
+      transition: none;
+    }
+    header.ex-top .topbar-lang-menu {
+      animation: none;
     }
   }
 </style>

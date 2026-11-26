@@ -76,7 +76,7 @@ internal static class HostReadApiCases
                     .Where(p => p.Id.Length > 0).OrderBy(p => p.Id).ToArray();
                 var result = context.Call(() => HostDiskService.GetHostOpticalDrivesAsync().GetAwaiter().GetResult());
                 context.Require(result.Success, "光驱查询成功：" + result.Error);
-                context.Sequence(baseline, (result.Data ?? []).Select(p => (p.PnpDeviceId, p.Drive, p.Model)).OrderBy(p => p.PnpDeviceId), "光驱身份、盘符与名称；零设备也是有效清单");
+                context.Sequence(baseline, (result.Data ?? []).Select(p => (p.PnpDeviceId, p.Drive, p.Model)).OrderBy(p => p.PnpDeviceId), "光驱身份、盘符与名称，零设备也是有效清单");
                 break;
             }
             case "HyperVHostService.IsIommuEnabled()":

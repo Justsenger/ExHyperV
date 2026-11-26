@@ -154,16 +154,30 @@ public sealed class ApiExecution(ApiCatalog catalog, ApiObjects objects, ApiCode
         foreach (string name in inputs.Keys)
             if (!parameters.Any(parameter => string.Equals(parameter.Name, name, StringComparison.OrdinalIgnoreCase))) throw new ArgumentException($"参数名无效：{name}。");
         object?[] values = parameters.Select(parameter => Argument(parameter, inputs, operation)).ToArray();
-        object? result;
-        if (member.DeclaringType == typeof(ExHyperV.Vmcx.VmcxValue) && member.Name == "Raw")
-            result = ExHyperV.Vmcx.VmcxValue.Raw((byte[])values[0]!);
-        else result = member is ConstructorInfo ctor ? ctor.Invoke(values) : ((MethodInfo)member).Invoke(target, values);
-        result = await AwaitResult(result);
+        object? result = await AwaitResult(InvokeMember(callable, target, values));
         var outputs = parameters.Select((parameter, index) => (parameter, index)).Where(item => item.parameter.ParameterType.IsByRef)
             .ToDictionary(item => item.parameter.Name!, item => codec.Pack(values[item.index]));
         return outputs.Count == 0 ? result : new { result = codec.Pack(result), refArguments = outputs };
         }
         finally { callGate?.Release(); }
+    }
+
+    private static readonly Dictionary<MethodBase, Func<object?, object?[], object?>> SpanCalls = new()
+    {
+        [typeof(ExHyperV.Vmcx.VmcxValue).GetMethod(nameof(ExHyperV.Vmcx.VmcxValue.Raw), [typeof(ReadOnlySpan<byte>)])!] =
+            (_, args) => ExHyperV.Vmcx.VmcxValue.Raw((byte[])args[0]!),
+        [typeof(ConsoleAudioPacket).GetConstructor([typeof(ConsoleAudioFormat), typeof(ReadOnlySpan<byte>), typeof(long), typeof(TimeSpan)])!] =
+            (_, args) => new ConsoleAudioPacket((ConsoleAudioFormat)args[0]!, (byte[])args[1]!, (long)args[2]!, (TimeSpan)args[3]!),
+        [typeof(IConsoleAudioInput).GetMethod(nameof(IConsoleAudioInput.SendAudio), [typeof(ConsoleAudioFormat), typeof(ReadOnlySpan<byte>)])!] =
+            (target, args) => ((IConsoleAudioInput)target!).SendAudio((ConsoleAudioFormat)args[0]!, (byte[])args[1]!)
+    };
+
+    internal static bool SupportsSpanCall(MethodBase member) => SpanCalls.ContainsKey(member);
+
+    internal static object? InvokeMember(MethodBase member, object? target, object?[] values)
+    {
+        if (SpanCalls.TryGetValue(member, out var call)) return call(target, values);
+        return member is ConstructorInfo ctor ? ctor.Invoke(values) : ((MethodInfo)member).Invoke(target, values);
     }
 
     private object Hold(Guid id, ApiOperation operation) { objects.Acquire(id, operation.Held); return objects.Get(id); }

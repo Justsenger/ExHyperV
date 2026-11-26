@@ -1,4 +1,4 @@
-const HOST_THREADS = 32;
+let HOST_THREADS = 12;
 
 const FIELD_META = {
   Count: {
@@ -388,6 +388,8 @@ function patchLiveIndicators(host, store, isEn) {
 }
 
 export function renderComputeSection(host, { state, vm, processorFields, onApplied, showNotice, onLayoutNeeded }) {
+  HOST_THREADS = Math.max(1, Number(state?.hostLogicalCores || 12), Number(vm?.cores || 1));
+  FIELD_META.Count.max = HOST_THREADS;
   const store = getVmStore(state, vm);
   const variant = state.computeVariant || 'energy-fader';
   const flags = state.computeFlags || {
@@ -536,6 +538,7 @@ export function renderComputeSection(host, { state, vm, processorFields, onAppli
       showNotice(isEn ? 'Shut down VM before applying processor count changes.' : '请先关闭虚拟机再应用核心数更改。');
       return;
     }
+    const changedKeys = KEYS.filter((k) => store.draft[k] !== store.saved[k]);
     store.saved = { ...store.draft };
     vm.cores = store.saved.Count;
     if (Array.isArray(processorFields)) {
@@ -544,8 +547,10 @@ export function renderComputeSection(host, { state, vm, processorFields, onAppli
       }
     }
     renderComputeSection(host, { state, vm, processorFields, onApplied, showNotice, onLayoutNeeded });
-    if (onApplied) onApplied(store.saved, vm);
-    showNotice(isEn ? 'Applied' : '已应用');
+    const res = onApplied ? onApplied(store.saved, vm, changedKeys) : null;
+    if (!res || typeof res.then !== 'function') {
+      showNotice(isEn ? 'Applied' : '已应用');
+    }
   });
 
   patchLiveIndicators(host, store, isEn);

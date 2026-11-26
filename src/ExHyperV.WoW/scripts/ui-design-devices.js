@@ -213,6 +213,7 @@ export function renderGpuWorkbench(host, ctx) {
   if (!state.gpuAssignmentsByVm[vm.id]) {
     state.gpuAssignmentsByVm[vm.id] = [];
   }
+  const effectiveDriverMismatch = ctx.isLive ? false : state.gpuDriverMismatch;
   const assigns = state.gpuAssignmentsByVm[vm.id];
   const variant = state.gpuVariant || 'tiles'; // 'expander' | 'tiles' | 'compact' | 'layered'
   const addBtnStyle = state.gpuAddBtnStyle || 'secondary-icon-text';
@@ -697,7 +698,7 @@ export function renderGpuWorkbench(host, ctx) {
     cardsHtml = assigns
       .map((g, idx) => {
         const expanded = g.expanded === true;
-        const drv = resolveGpuDriverDisplay(g, HOST_GPUS, state.gpuDriverMismatch);
+        const drv = resolveGpuDriverDisplay(g, HOST_GPUS, effectiveDriverMismatch);
         const rows = [
           { k: '芯片厂商', v: resolveManu(g), copy: resolveManu(g) },
           { k: '板卡厂商', v: resolveVendor(g), copy: resolveVendor(g) },
@@ -745,7 +746,7 @@ export function renderGpuWorkbench(host, ctx) {
         const { hostDriver, hasDriverUpdate, driverText, copyValue } = resolveGpuDriverDisplay(
           g,
           HOST_GPUS,
-          state.gpuDriverMismatch
+          effectiveDriverMismatch
         );
         const kvItems = [
           renderTitleFirstKvItemHtml({ title: '芯片厂商', stateText: resolveManu(g), copyVal: resolveManu(g) }),
@@ -780,7 +781,7 @@ export function renderGpuWorkbench(host, ctx) {
   } else if (variant === 'compact') {
     cardsHtml = assigns
       .map((g, idx) => {
-        const drv = resolveGpuDriverDisplay(g, HOST_GPUS, state.gpuDriverMismatch);
+        const drv = resolveGpuDriverDisplay(g, HOST_GPUS, effectiveDriverMismatch);
         const expanded = g.expanded === true;
         const body = expanded
           ? `
@@ -826,7 +827,7 @@ export function renderGpuWorkbench(host, ctx) {
   } else {
     cardsHtml = assigns
       .map((g, idx) => {
-        const drv = resolveGpuDriverDisplay(g, HOST_GPUS, state.gpuDriverMismatch);
+        const drv = resolveGpuDriverDisplay(g, HOST_GPUS, effectiveDriverMismatch);
         return `
                 <div class="dev-d-card">
                   <div class="dev-d-head">
@@ -1538,7 +1539,7 @@ const ST_PARENT_DISK_SCENARIOS = [
 
 const ST_PARENT_BADGE_GLYPHS = {
   success: '<span class="fi" aria-hidden="true">&#xE73E;</span>',
-  warning: '<span class="fi" aria-hidden="true">&#xE7BA;</span>',
+  warning: '<span class="fi" aria-hidden="true">&#xF13C;</span>',
   error: '<span class="fi" aria-hidden="true">&#xE711;</span>',
   info: '<span class="fi" aria-hidden="true">&#xE946;</span>'
 };
@@ -5011,15 +5012,28 @@ export function resetNetworkAdaptersForScenario(state, vm, scenario = 'single') 
 
 function syncVmAdaptersFromNetworkState(state, vm) {
   const list = state.networkAdaptersByVm?.[vm.id] || [];
-  vm.adapters = list.map((nic, i) => ({
-    key: nic.id || `net-${i}`,
-    title: nic.name || '网络适配器',
-    subtitle: nic.isConnected ? nic.switchName || 'Default Switch' : '未连接',
-    mac: String(nic.macAddress || '00:15:5D:01:2A:0B').replace(/[^0-9A-Fa-f]/g, '')
-  }));
+  const prevList = Array.isArray(vm.adapters) ? vm.adapters : [];
+  vm.adapters = list.map((nic, i) => {
+    const prev = prevList.find((a) => a.key === (nic.id || nic.key)) || prevList[i] || {};
+    const connected = Boolean(nic.isConnected);
+    const macVal = String(nic.macAddress ?? nic.mac ?? prev.mac ?? '').replace(/[^0-9A-Fa-f]/g, '');
+    return {
+      ...prev,
+      key: nic.id || nic.key || `net-${i}`,
+      title: nic.name || nic.title || prev.title || '网络适配器',
+      isConnected: connected,
+      subtitle: connected ? (nic.switchName || nic.subtitle || '虚拟交换机') : '未连接',
+      mac: macVal || prev.mac || ''
+    };
+  });
 }
 
+let activeSwitchesCatalog = AVAILABLE_VSWITCHES;
+
 function getActiveHostSwitches(state) {
+  if (activeSwitchesCatalog !== AVAILABLE_VSWITCHES) {
+    return activeSwitchesCatalog;
+  }
   const mode = state.nicHostSwitches || 'one';
   if (mode === 'none') return [];
   if (mode === 'one') return [AVAILABLE_VSWITCHES[0]];
@@ -5095,8 +5109,8 @@ function getNicSummarySubtitleParts(nic) {
   if (!nic.isConnected) {
     return ['未连接'];
   }
-  const swObj = AVAILABLE_VSWITCHES.find((s) => s.name === nic.switchName);
-  const swText = `${nic.switchName || 'Default Switch'}${swObj ? ` (${swObj.mode})` : ''}`;
+  const swObj = activeSwitchesCatalog.find((s) => s.name === nic.switchName);
+  const swText = `${nic.switchName || '未连接'}${swObj ? ` (${swObj.mode})` : ''}`;
   return [swText];
 }
 
@@ -5549,7 +5563,7 @@ function buildNicVlanContextInfobarHtml(nic) {
     });
   }
 
-  const swObj = AVAILABLE_VSWITCHES.find((s) => s.name === nic.switchName);
+  const swObj = activeSwitchesCatalog.find((s) => s.name === nic.switchName);
   const swMode = swObj?.mode || 'NAT';
 
   if (swMode === 'NAT') {
@@ -5607,7 +5621,7 @@ function renderNicOneScreenConvergedEditorHtml(
   const tab = normalizeNicPolicyTab(activePolicyTab);
   const switchOptionsHtml = [
     `<option value="__disconnected__" ${!nic.isConnected ? 'selected' : ''}>未连接</option>`,
-    ...AVAILABLE_VSWITCHES.map(
+    ...activeSwitchesCatalog.map(
       (sw) =>
         `<option value="${escapeDeviceHtml(sw.name)}" ${nic.isConnected && nic.switchName === sw.name ? 'selected' : ''}>${escapeDeviceHtml(sw.name)}</option>`
     )
@@ -5795,7 +5809,7 @@ function renderNicConnectionSectionHtml(nic, idx, running, renderSettingLabelHtm
 
   const switchOptionsHtml = [
     `<option value="__disconnected__" ${!nic.isConnected ? 'selected' : ''}>未连接</option>`,
-    ...AVAILABLE_VSWITCHES.map(
+    ...activeSwitchesCatalog.map(
       (sw) =>
         `<option value="${escapeDeviceHtml(sw.name)}" ${nic.isConnected && nic.switchName === sw.name ? 'selected' : ''}>${escapeDeviceHtml(sw.name)}</option>`
     )
@@ -5980,6 +5994,8 @@ export function renderNetworkWorkbench(host, ctx) {
     bindHostControls,
     notifyParentNicState
   } = ctx;
+
+  activeSwitchesCatalog = ctx.isLive ? (Array.isArray(ctx.AVAILABLE_VSWITCHES) ? ctx.AVAILABLE_VSWITCHES : []) : AVAILABLE_VSWITCHES;
 
   const rerender = () => {
     syncVmAdaptersFromNetworkState(state, vm);
@@ -7866,7 +7882,7 @@ export function renderVtpmWorkbench(host, ctx) {
       ? `
         <div class="dev-inline-danger-box" data-stop-prop>
           <div class="dev-inline-danger-info">
-            <span class="winui-floating-banner-badge" style="background:var(--SystemFillColorCautionBrush);color:#000;margin-top:1px;flex-shrink:0;">${ST_PARENT_BADGE_GLYPHS.warning}</span>
+            <span class="winui-floating-banner-badge is-warning" style="margin-top:1px;flex-shrink:0;">${ST_PARENT_BADGE_GLYPHS.warning}</span>
             <div class="dev-inline-danger-text">
               <div class="dev-inline-danger-title">确认关闭 vTPM？</div>
               <div class="dev-inline-danger-path" style="white-space:normal;">${
@@ -8046,7 +8062,9 @@ export function renderPcieWorkbench(host, ctx) {
     setPageTabsTrailingAction
   } = ctx;
 
-  if (!Array.isArray(state.hostPcieDevices)) {
+  if (ctx.isLive) {
+    state.hostPcieDevices = JSON.parse(JSON.stringify(HOST_PCIE_DEVICES));
+  } else if (!Array.isArray(state.hostPcieDevices)) {
     state.hostPcieDevices = JSON.parse(JSON.stringify(HOST_PCIE_DEVICES));
   }
   if (!state.pcieDevicesByVm) state.pcieDevicesByVm = {};

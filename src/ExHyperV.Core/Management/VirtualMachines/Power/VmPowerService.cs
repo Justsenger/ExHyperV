@@ -10,9 +10,10 @@ namespace ExHyperV.Services
     /// <summary>执行单台虚拟机电源控制，管理电源行为和虚拟电池。</summary>
     public static partial class VmPowerService
     {
-        private sealed record VmRuntimeState(ushort EnabledState, int ProcessId);
+        internal sealed record VmRuntimeState(ushort EnabledState, int ProcessId);
 
-        private static readonly TimeSpan PowerRequestTimeout = TimeSpan.FromSeconds(6);
+        private static readonly TimeSpan PowerRequestTimeout = TimeSpan.FromMilliseconds(1500);
+        private static readonly TimeSpan RequestConfirmedPowerOffWaitTimeout = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan PowerOffWaitTimeout = TimeSpan.FromSeconds(5);
 
         /// <summary>按唯一显示名称定位虚拟机并执行指定电源动作。</summary>
@@ -52,7 +53,7 @@ namespace ExHyperV.Services
         /// <param name="vmId">目标虚拟机的非空 GUID。</param>
         /// <param name="action">要执行的动作；未定义的枚举值返回失败。</param>
         /// <returns>参数校验或电源请求的结果；亲和性恢复在启动后由后台继续执行。</returns>
-        /// <remarks>Stop 和 Restart 返回来宾请求结果。TurnOff 请求下电，请求结果未知时停止，只有已结束的请求才进入工作进程核验。</remarks>
+        /// <remarks>Stop 和 Restart 返回来宾请求结果。TurnOff 优先请求下电；超时、受阻或未能在预期时间内关机时，在核验目标虚拟机工作进程身份后直接终止工作进程完成断电。</remarks>
         /// <editentry label="电源控制" category="电源"/>
         public static async Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPowerAction action)
         {
@@ -64,7 +65,7 @@ namespace ExHyperV.Services
             Task<ApiResponse> RequestAsync(ushort state) => WmiApi.InvokeAsync(
                 wql, "RequestStateChange", parameters => parameters["RequestedState"] = state);
             var backend = new PowerActionBackend(RequestAsync,
-                () => ForceTurnOffAsync(vmId.ToString("D"), wql, predicate),
+                () => ForceTurnOffAsync(vmId, wql, predicate),
                 () => StartWithDiagnosticsAsync(vmId, () => HostAzureFeatureSetService.RunTemporarilyDisabledAsync(() => RequestAsync(2))),
                 () => { _ = ApplyStartupAffinityAsync(predicate); });
             CoreDiagnostics.Report("PowerRequested", TraceEventType.Information, details: $"action={action}", vmId: vmId);
@@ -130,56 +131,99 @@ namespace ExHyperV.Services
             }
         }
 
-        private static async Task<ApiResponse> ForceTurnOffAsync(string vmName, string wql, string predicate)
+        private static Task<ApiResponse> ForceTurnOffAsync(Guid vmId, string wql, string predicate) =>
+            ForceTurnOffAsync(
+                vmId,
+                cancellationToken => WmiApi.InvokeAsync(
+                    wql, "RequestStateChange", p => p["RequestedState"] = (ushort)3, cancellationToken: cancellationToken),
+                timeout => WaitForPoweredOffAsync(predicate, timeout),
+                () => GetRuntimeStateAsync(predicate, TimeSpan.FromSeconds(2)),
+                (processId, requireWmiStateMatch) => TerminateWorkerAsync(vmId, processId, predicate, requireWmiStateMatch));
+
+        internal static async Task<ApiResponse> ForceTurnOffAsync(
+            Guid vmId,
+            Func<CancellationToken, Task<ApiResponse>> sendTurnOffRequest,
+            Func<TimeSpan, Task<bool>> waitForPoweredOff,
+            Func<Task<VmRuntimeState?>> readRuntimeState,
+            Func<int, bool, Task<ApiResponse>> terminateWorker,
+            TimeSpan? requestTimeout = null)
         {
-            var requestTask = WmiApi.InvokeAsync(wql, "RequestStateChange",
-                p => p["RequestedState"] = (ushort)3);
+            var timeout = requestTimeout ?? PowerRequestTimeout;
+            using var requestCts = new CancellationTokenSource(timeout);
+            var requestTask = sendTurnOffRequest(requestCts.Token);
 
-            var requestResult = await WaitForTurnOffRequestAsync(requestTask, PowerRequestTimeout);
-            if (requestResult.ErrorKind == ApiErrorKind.OutcomeUnknown)
+            var requestResult = await WaitForTurnOffRequestAsync(requestTask, timeout).ConfigureAwait(false);
+            if (!requestResult.Success)
+                requestCts.Cancel();
+
+            if (requestResult.ErrorKind is ApiErrorKind.AccessDenied or ApiErrorKind.NotFound)
                 return requestResult;
 
-            if (requestResult.Success)
-                return await WaitForPoweredOffAsync(predicate, PowerOffWaitTimeout)
-                    ? ApiResponse.Ok() : WmiJobWaiter.Unknown("已接受关机请求，但尚未确认虚拟机已关闭。");
-
-            var state = await GetRuntimeStateAsync(predicate, TimeSpan.FromSeconds(3));
-            if (state is null)
-            {
-                return requestResult;
-            }
-
-            if (state.EnabledState == 3)
+            if (requestResult.Success && await waitForPoweredOff(RequestConfirmedPowerOffWaitTimeout).ConfigureAwait(false))
                 return ApiResponse.Ok();
 
-            if (state.ProcessId <= 0)
+            var state = await readRuntimeState().ConfigureAwait(false);
+            if (state?.EnabledState == 3)
+                return ApiResponse.Ok();
+
+            int processId = state is not null
+                ? state.ProcessId
+                : await FindWorkerProcessIdAsync(vmId).ConfigureAwait(false);
+            if (processId <= 0)
             {
-                return requestResult;
+                return requestResult.Success
+                    ? WmiJobWaiter.Unknown("已接受关机请求，但尚未确认虚拟机已关闭。")
+                    : requestResult;
             }
 
+            return await terminateWorker(processId, state is not null).ConfigureAwait(false);
+        }
+
+        private static async Task<int> FindWorkerProcessIdAsync(Guid vmId)
+        {
+            var workers = await WmiApi.QueryAsync(
+                "SELECT Handle, ProcessId, Name, CreationDate FROM Win32_Process WHERE Name = 'vmwp.exe'",
+                process =>
+                {
+                    using var owner = process.InvokeMethod("GetOwner", null, null);
+                    if (owner is null || owner["ReturnValue"] is null || Convert.ToUInt32(owner["ReturnValue"]) != 0)
+                        return 0;
+                    string domain = owner["Domain"]?.ToString() ?? string.Empty;
+                    string user = owner["User"]?.ToString() ?? string.Empty;
+                    return domain.Equals("NT VIRTUAL MACHINE", StringComparison.OrdinalIgnoreCase)
+                        && Guid.TryParse(user, out var ownerVm) && ownerVm == vmId
+                        ? Convert.ToInt32(process["ProcessId"])
+                        : 0;
+                }, WmiScope.CimV2).ConfigureAwait(false);
+            return workers.HasData ? workers.Data!.FirstOrDefault(pid => pid > 0) : 0;
+        }
+
+        private static async Task<ApiResponse> TerminateWorkerAsync(
+            Guid vmId, int processId, string predicate, bool requireWmiStateMatch)
+        {
             try
             {
-                using var process = Process.GetProcessById(state.ProcessId);
+                using var process = Process.GetProcessById(processId);
                 // Retain the native handle before reading identity. Kill and the wait
                 // use this same Process instance rather than reopening a reused PID.
                 _ = process.SafeHandle;
                 long creationTime = process.StartTime.ToUniversalTime().ToFileTimeUtc();
-                var identity = await ReadWorkerIdentityAsync(state.ProcessId).ConfigureAwait(false);
+                var identity = await ReadWorkerIdentityAsync(processId).ConfigureAwait(false);
                 if (!process.HasExited)
                 {
                     if (!identity.HasData)
                         return ApiResponse.Fail(identity.Error, identity.Code, identity.ErrorSource,
                             identity.Exception, identity.Success ? ApiErrorKind.Conflict : identity.ErrorKind);
-                    if (!MatchesWorkerIdentity(Guid.Parse(vmName), state.ProcessId, creationTime, identity.Data!))
+                    if (!MatchesWorkerIdentity(vmId, processId, creationTime, identity.Data!))
                         return ApiResponse.Fail("虚拟机工作进程的归属或创建时间已变化，未终止进程。", kind: ApiErrorKind.Conflict);
 
-                    var current = await GetRuntimeStateAsync(predicate, TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+                    var current = await GetRuntimeStateAsync(predicate, TimeSpan.FromSeconds(2)).ConfigureAwait(false);
                     if (current?.EnabledState == 3) return ApiResponse.Ok();
-                    if (current is null || current.ProcessId != state.ProcessId)
+                    if ((requireWmiStateMatch && current is null) || (current is not null && current.ProcessId != processId))
                         return ApiResponse.Fail("无法确认该进程仍属于目标虚拟机，未终止进程。", kind: ApiErrorKind.Conflict);
 
                     process.Kill(entireProcessTree: false);
-                    await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5));
+                    await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false);
                 }
             }
             catch (ArgumentException)
@@ -189,13 +233,13 @@ namespace ExHyperV.Services
             catch (Exception ex)
             {
                 return ApiResponse.Fail(
-                    string.Format(Properties.Resources.Error_VmPower_TerminateWorkerFailed, vmName, ex.Message),
+                    string.Format(Properties.Resources.Error_VmPower_TerminateWorkerFailed, vmId.ToString("D"), ex.Message),
                     exception: ex);
             }
 
-            return await WaitForPoweredOffAsync(predicate, PowerOffWaitTimeout)
+            return await WaitForPoweredOffAsync(predicate, PowerOffWaitTimeout).ConfigureAwait(false)
                 ? ApiResponse.Ok()
-                : ApiResponse.Fail(string.Format(Properties.Resources.Error_VmPower_StillNotOff, vmName));
+                : ApiResponse.Fail(string.Format(Properties.Resources.Error_VmPower_StillNotOff, vmId.ToString("D")));
         }
 
         internal static async Task<ApiResponse> WaitForTurnOffRequestAsync(Task<ApiResponse> request, TimeSpan timeout)

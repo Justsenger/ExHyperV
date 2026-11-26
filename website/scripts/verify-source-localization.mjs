@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { test } from 'node:test';
 import { selectImageSources } from '../src/data/image-source-selection.js';
 import { isBlockedSource } from '../src/data/image-source-policy.js';
+import { interfaceLanguage, normalizeLanguagePreference } from '../src/data/languages.js';
+import { translate } from '../src/data/interface-text.js';
 
 const source = {
   url: 'https://zerofs.link/f/chinese/', origin_provider: 'massgrave', match: 'exact_version_arch', kind: 'mirror',
@@ -73,4 +76,41 @@ test('stored Bob Pony and Massgrave alternatives point to individual media and k
   const win11 = data.records['windows-11-26h2'].x64;
   assert.equal(selectImageSources(win11).find(s => s.provider === 'massgrave').language, 'zh-CN');
   assert(selectImageSources(win11, { language: 'en' }).find(s => s.provider === 'massgrave').language.startsWith('en'));
+});
+
+test('site interface localization supports zh-CN, zh-TW and en consistently with clean punctuation', async () => {
+  assert.equal(interfaceLanguage('zh-CN'), 'zh-CN');
+  assert.equal(interfaceLanguage('zh-HK'), 'zh-TW');
+  assert.equal(interfaceLanguage('zh-TW'), 'zh-TW');
+  assert.equal(interfaceLanguage('ja-JP'), 'en');
+  assert.equal(normalizeLanguagePreference('zh-TW'), 'zh-TW');
+  assert.equal(normalizeLanguagePreference('fr-FR'), 'auto');
+
+  const source = await readFile(new URL('../src/data/interface-text.js', import.meta.url), 'utf8');
+  const keys = ['gpuDocs', 'gpuResearchDocs', 'gpuLeadUpdate', 'gpuLeadThreshold', 'gpuColSeries', 'osRecommended', 'systemParameters'];
+  for (const key of keys) {
+    for (const lang of ['zh-CN', 'zh-TW', 'en']) {
+      const value = translate(key, lang);
+      assert.notEqual(value, key, `Missing ${lang} translation for ${key}`);
+      assert.equal(/[；;·]/.test(value), false, `Forbidden punctuation in ${lang}.${key}: ${value}`);
+    }
+  }
+  assert.match(source, /'zh-CN':/);
+  assert.match(source, /'zh-TW':/);
+  assert.match(source, /\ben:/);
+
+  for (const rel of ['../dist/index.html', '../dist/docs/index.html', '../dist/docs/gpu/index.html', '../dist/os/index.html']) {
+    const fileUrl = new URL(rel, import.meta.url);
+    if (!existsSync(fileUrl)) continue;
+    const html = await readFile(fileUrl, 'utf8');
+    assert(html.includes('data-site-language'), `Missing language switcher in ${rel}`);
+    assert(html.includes('data-lang-trigger') && html.includes('data-lang-option="en"'), `Missing custom language menu options in ${rel}`);
+    assert(!/<div[^>]*data-site-language[^>]*\bhidden\b/.test(html), `Language switcher must be visible in ${rel}`);
+    for (const match of html.matchAll(/data-i18n(?:-aria|-placeholder|-title)?="([^"]+)"/g)) {
+      const key = match[1];
+      for (const lang of ['zh-CN', 'zh-TW', 'en']) {
+        assert.notEqual(translate(key, lang), key, `Untranslated ${lang} key ${key} referenced in ${rel}`);
+      }
+    }
+  }
 });

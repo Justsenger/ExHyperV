@@ -175,7 +175,7 @@ internal static class VmPlatformApiCases
     private static void RequireGuardian()
     {
         if (SystemBaseline.Query("SELECT * FROM MSFT_HgsGuardian WHERE Name='UntrustedGuardian'", @"root\microsoft\windows\hgs").Count == 0)
-            throw new ApiCheckSkippedException("宿主尚未建立 UntrustedGuardian 及证书；请先完成宿主的虚拟 TPM 环境准备。");
+            throw new ApiCheckSkippedException("宿主尚未建立 UntrustedGuardian 及证书，请先完成宿主的虚拟 TPM 环境准备。");
     }
     private static async Task PrepareTpmAsync(Guid id)
     {

@@ -53,6 +53,10 @@ internal static class L10n
     internal static string Get(string key)
         => Manager.GetString(key, uiCulture) ?? key;
 
+    // Windows can return a localized power-setting unit independently of the app language.
+    internal static bool MatchesSystemLabel(string? value, string key) =>
+        value != null && (value == Manager.GetString(key, ZhCnCulture) || value == Manager.GetString(key, EnUsCulture));
+
     internal static string Format(string key, params object?[] args)
         => string.Format(CultureInfo.CurrentCulture, Get(key), args);
 }

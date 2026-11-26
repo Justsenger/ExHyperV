@@ -17,10 +17,12 @@ internal static class ConsoleConnectionChecks
     {
         CheckValidation(check);
         CheckClipboardPayloads(check);
+        CheckAudioPayloads(check);
         await CheckConsoleStateQuery(check);
         await CheckIndependentConnections(check);
         await CheckFrameLeases(check);
         await CheckInput(check);
+        await CheckAudioStreams(check);
         await CheckShutdown(check);
         await CheckStopDuringCreation(check);
         await CheckFailures(check);
@@ -131,6 +133,178 @@ internal static class ConsoleConnectionChecks
         check(!ConsolePayload.IsFrame(new byte[16], 1, 1) && !ConsolePayload.IsFrame([], uint.MaxValue, uint.MaxValue) &&
             !ConsolePayload.IsFrame([], 8192, 8192) && !ConsolePayload.IsFrame([], 0, 1) && ConsolePayload.IsFrame(new byte[16], 2, 2),
             "Console frame admission requires exact bounded BGRA storage and checks multiplication before use");
+        using var allEnabled = new FreeRdpConsoleConnection(Options(), true, new FakeBackend());
+        using var noClip = new FreeRdpConsoleConnection(Options() with { RedirectClipboard = false }, true, new FakeBackend());
+        using var noAudioOut = new FreeRdpConsoleConnection(Options() with { RedirectAudioOutput = false }, true, new FakeBackend());
+        using var noAudioIn = new FreeRdpConsoleConnection(Options() with { RedirectAudioInput = false }, true, new FakeBackend());
+        using var basicDisabled = new FreeRdpConsoleConnection(Options(), false, new FakeBackend());
+        check(allEnabled.Clipboard is not null && allEnabled.AudioOutput is not null && allEnabled.AudioInput is not null &&
+            noClip.Clipboard is null && noClip.AudioOutput is not null && noClip.AudioInput is not null &&
+            noAudioOut.Clipboard is not null && noAudioOut.AudioOutput is null && noAudioOut.AudioInput is not null &&
+            noAudioIn.Clipboard is not null && noAudioIn.AudioOutput is not null && noAudioIn.AudioInput is null &&
+            basicDisabled.Clipboard is null && basicDisabled.AudioOutput is null && basicDisabled.AudioInput is null &&
+            VmQueryFields.Find(VmConsoleFields.EnhancedClipboard.Id) == VmConsoleFields.EnhancedClipboard &&
+            VmQueryFields.Find(VmConsoleFields.EnhancedAudioOutput.Id) == VmConsoleFields.EnhancedAudioOutput &&
+            VmQueryFields.Find(VmConsoleFields.EnhancedAudioInput.Id) == VmConsoleFields.EnhancedAudioInput,
+            "Console exposes per-channel redirection opt-outs on enhanced sessions and registers VmConsoleFields.Enhanced* query fields");
+        var backends = ConsoleService.GetBackends().ToDictionary(item => item.BackendId);
+        check(backends.TryGetValue(ConsoleService.RdpBasicBackendId, out var basicInfo)
+            && !basicInfo.Capabilities.HasFlag(ConsoleCapabilities.AudioOutput)
+            && !basicInfo.Capabilities.HasFlag(ConsoleCapabilities.AudioInput)
+            && backends.TryGetValue(ConsoleService.RdpEnhancedBackendId, out var enhancedInfo)
+            && enhancedInfo.Capabilities.HasFlag(ConsoleCapabilities.AudioOutput)
+            && enhancedInfo.Capabilities.HasFlag(ConsoleCapabilities.AudioInput),
+            "Console backend catalog advertises audio only on RdpEnhanced");
+    }
+
+    internal static void CheckAudioPayloads(Action<bool, string> check)
+    {
+        var s16 = new ConsoleAudioFormat(48000, 2, ConsoleAudioSampleFormat.Signed16LittleEndian);
+        var f32 = new ConsoleAudioFormat(44100, 1, ConsoleAudioSampleFormat.Float32LittleEndian);
+        byte[] source = [1, 2, 3, 4, 5, 6, 7, 8];
+        var packet = new ConsoleAudioPacket(s16, source, 7, TimeSpan.FromMilliseconds(25));
+        source[0] = 99;
+        byte[] copy = packet.CopySamples();
+        copy[1] = 88;
+        check(packet.Samples.SequenceEqual(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 })
+            && packet.CopySamples().SequenceEqual(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 })
+            && packet.Sequence == 7 && packet.Timestamp == TimeSpan.FromMilliseconds(25),
+            "ConsoleAudioPacket owns an independent PCM copy on construction and CopySamples()");
+
+        var floatPacket = new ConsoleAudioPacket(f32, new byte[8], 0, TimeSpan.Zero);
+        check(floatPacket.Format == f32 && floatPacket.Samples.Length == 8,
+            "ConsoleAudioPacket accepts Float32LittleEndian complete frames");
+
+        check(Throws<ArgumentNullException>(() => _ = new ConsoleAudioPacket(null!, new byte[4], 0, TimeSpan.Zero))
+            && Throws<ArgumentOutOfRangeException>(() => _ = new ConsoleAudioPacket(s16 with { SampleRate = 0 }, new byte[4], 0, TimeSpan.Zero))
+            && Throws<ArgumentOutOfRangeException>(() => _ = new ConsoleAudioPacket(s16 with { Channels = 0 }, new byte[4], 0, TimeSpan.Zero))
+            && Throws<ArgumentOutOfRangeException>(() => _ = new ConsoleAudioPacket(s16 with { SampleFormat = (ConsoleAudioSampleFormat)9 }, new byte[4], 0, TimeSpan.Zero))
+            && Throws<ArgumentOutOfRangeException>(() => _ = new ConsoleAudioPacket(s16, new byte[4], -1, TimeSpan.Zero))
+            && Throws<ArgumentOutOfRangeException>(() => _ = new ConsoleAudioPacket(s16, new byte[4], 0, TimeSpan.FromTicks(-1)))
+            && Throws<ArgumentException>(() => _ = new ConsoleAudioPacket(s16, new byte[6], 0, TimeSpan.Zero))
+            && Throws<ArgumentException>(() => _ = new ConsoleAudioPacket(f32, new byte[6], 0, TimeSpan.Zero)),
+            "ConsoleAudioPacket rejects invalid format, sequence, timestamp and incomplete sample frames");
+
+        check(ConsolePayload.TryDecodeAudioFormat(48000, 2u | (0u << 8), out var decodedS16) && decodedS16 == s16
+            && ConsolePayload.TryDecodeAudioFormat(44100, 1u | (1u << 8), out var decodedF32) && decodedF32 == f32
+            && !ConsolePayload.TryDecodeAudioFormat(4000, 2, out _)
+            && !ConsolePayload.TryDecodeAudioFormat(48000, 9, out _)
+            && !ConsolePayload.TryDecodeAudioFormat(48000, 2u | (2u << 8), out _)
+            && !ConsolePayload.TryDecodeAudioFormat(48000, 2u | (1u << 16), out _),
+            "Console audio native format decoder enforces sample rate, channel count and sample format bounds");
+    }
+
+    internal static async Task CheckAudioStreams(Action<bool, string> check)
+    {
+        var basicBackend = new FakeBackend();
+        using var basic = new FreeRdpConsoleConnection(Options(), false, basicBackend);
+        check(basic.AudioOutput is null && basic.AudioInput is null,
+            "RdpBasic connections expose neither AudioOutput nor AudioInput");
+        await Start(basic, basicBackend);
+        basicBackend.Emit(8, [], 1, 0);
+        basicBackend.Emit(9, new byte[8], 48000, 2);
+        basicBackend.Emit(10, [], 48000, 2);
+        check(basic.State == ConsoleConnectionState.Connected && basicBackend.Native.Sent.IsEmpty,
+            "RdpBasic ignores any native audio events without throwing");
+        await basic.DisconnectAsync().WaitAsync(Timeout);
+
+        var backend = new FakeBackend();
+        using var connection = new FreeRdpConsoleConnection(Options(), true, backend);
+        var output = connection.AudioOutput!;
+        var input = connection.AudioInput!;
+        check(output is not null && input is not null && !(output is IConsoleAudioInput) && !(input is IConsoleAudioOutput)
+            && !output.IsAvailable && !input.IsAvailable && input.Format is null
+            && !input.SendAudio(new(48000, 2, ConsoleAudioSampleFormat.Signed16LittleEndian), new byte[8]),
+            "RdpEnhanced audio channels start unavailable and keep output/input surfaces distinct");
+
+        var outStates = new List<bool>();
+        var inStates = new List<bool>();
+        var received = new List<ConsoleAudioPacket>();
+        output.AvailabilityChanged += outStates.Add;
+        output.AudioReceived += received.Add;
+        input.AvailabilityChanged += inStates.Add;
+
+        await Start(connection, backend);
+
+        backend.Emit(8, [], 1, 0);
+        check(output.IsAvailable && outStates.SequenceEqual([true]),
+            "AudioOutput AvailabilityChanged fires when rdpsnd opens");
+
+        backend.Emit(9, new byte[] { 10, 20, 30, 40 }, 48000, 2u | (0u << 8));
+        backend.Emit(9, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }, 44100, 1u | (1u << 8));
+        backend.Emit(9, new byte[] { 1, 2, 3 }, 48000, 2u | (0u << 8)); // Unaligned, dropped.
+        backend.Emit(9, [], 48000, 2); // Empty, dropped.
+        check(received.Count == 2
+            && received[0].Format == new ConsoleAudioFormat(48000, 2, ConsoleAudioSampleFormat.Signed16LittleEndian)
+            && received[0].Sequence == 0 && received[0].Samples.SequenceEqual(new byte[] { 10, 20, 30, 40 })
+            && received[1].Format == new ConsoleAudioFormat(44100, 1, ConsoleAudioSampleFormat.Float32LittleEndian)
+            && received[1].Sequence == 1 && received[1].Timestamp >= received[0].Timestamp,
+            "AudioReceived delivers valid PCM and IEEE Float packets with monotonic sequence and timestamp");
+
+        backend.Emit(8, [], 0, 0);
+        check(!output.IsAvailable && outStates.SequenceEqual([true, false]),
+            "AudioOutput AvailabilityChanged reports false when rdpsnd closes");
+
+        // Re-open output to verify disconnect cleanup below.
+        backend.Emit(8, [], 1, 0);
+
+        backend.Emit(10, [], 48000, 2u | (0u << 8));
+        var s16Format = new ConsoleAudioFormat(48000, 2, ConsoleAudioSampleFormat.Signed16LittleEndian);
+        var wrongRate = new ConsoleAudioFormat(44100, 2, ConsoleAudioSampleFormat.Signed16LittleEndian);
+        check(input.IsAvailable && input.Format == s16Format && inStates.SequenceEqual([true]),
+            "AudioInput reports IsAvailable and negotiated Format on audin open");
+
+        check(!input.SendAudio(wrongRate, new byte[8])
+            && !input.SendAudio(s16Format, ReadOnlySpan<byte>.Empty)
+            && !input.SendAudio(s16Format, new byte[6])
+            && backend.Native.Sent.Count(item => item.Kind == 7) == 0,
+            "SendAudio rejects mismatched format, empty buffer and partial frames before native call");
+
+        byte[] stackPcm = [0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88];
+        byte[] pooledPcm = new byte[8192];
+        pooledPcm[0] = 0xAA; pooledPcm[^1] = 0x55;
+        check(input.SendAudio(s16Format, stackPcm) && input.SendAudio(s16Format, pooledPcm),
+            "SendAudio queues matching small and pooled PCM payloads");
+        var sentAudio = backend.Native.Sent.Where(item => item.Kind == 7).ToArray();
+        check(sentAudio.Length == 2
+            && BinaryPrimitives.ReadUInt32LittleEndian(sentAudio[0].Bytes.AsSpan(0)) == 48000
+            && BinaryPrimitives.ReadUInt16LittleEndian(sentAudio[0].Bytes.AsSpan(4)) == 2
+            && BinaryPrimitives.ReadUInt16LittleEndian(sentAudio[0].Bytes.AsSpan(6)) == 0
+            && BinaryPrimitives.ReadUInt32LittleEndian(sentAudio[0].Bytes.AsSpan(8)) == 8
+            && sentAudio[0].Bytes.AsSpan(12).SequenceEqual(stackPcm)
+            && BinaryPrimitives.ReadUInt32LittleEndian(sentAudio[1].Bytes.AsSpan(8)) == 8192
+            && sentAudio[1].Bytes[12] == 0xAA && sentAudio[1].Bytes[^1] == 0x55,
+            "SendAudio encodes the 12-byte audio header and raw PCM payload faithfully");
+
+        // Dynamic guest format switch while staying open.
+        var f32Format = new ConsoleAudioFormat(44100, 1, ConsoleAudioSampleFormat.Float32LittleEndian);
+        backend.Emit(10, [], 44100, 1u | (1u << 8));
+        check(input.IsAvailable && input.Format == f32Format && inStates.SequenceEqual([true, true])
+            && !input.SendAudio(s16Format, stackPcm) && input.SendAudio(f32Format, new byte[8]),
+            "AudioInput format changes notify listeners, invalidate old format and accept the new format");
+
+        await connection.DisconnectAsync().WaitAsync(Timeout);
+        check(!output.IsAvailable && !input.IsAvailable && input.Format is null
+            && outStates[^1] == false && inStates[^1] == false
+            && !input.SendAudio(f32Format, new byte[8]),
+            "DisconnectAsync resets AudioOutput and AudioInput availability and notifies listeners");
+
+        var optOutBackend = new FakeBackend();
+        using var optOutConnection = new FreeRdpConsoleConnection(
+            Options() with { RedirectClipboard = false, RedirectAudioOutput = false, RedirectAudioInput = false },
+            true,
+            optOutBackend);
+        check(optOutConnection.Clipboard is null && optOutConnection.AudioOutput is null && optOutConnection.AudioInput is null,
+            "Enhanced connection with clipboard and audio redirection disabled exposes none of those channels");
+        await Start(optOutConnection, optOutBackend);
+        optOutBackend.Emit(4, ConsolePayload.TryWriteClipboard(new([new(13, null, new byte[] { 0x41, 0x00, 0x00, 0x00 })]), out var clipBytes) ? clipBytes : []);
+        optOutBackend.Emit(5, [], 1, 0);
+        optOutBackend.Emit(8, [], 1, 0);
+        optOutBackend.Emit(9, new byte[8], 48000, 2);
+        optOutBackend.Emit(10, [], 48000, 2);
+        check(optOutConnection.State == ConsoleConnectionState.Connected && optOutBackend.Native.Sent.IsEmpty,
+            "Enhanced connection ignores disabled clipboard and audio callbacks without throwing");
+        await optOutConnection.DisconnectAsync().WaitAsync(Timeout);
     }
 
     internal static void CheckClipboardPayloads(Action<bool, string> check)
@@ -218,11 +392,17 @@ internal static class ConsoleConnectionChecks
         bool secondObserverRead = false;
         connection.FrameReceived += frame =>
         {
+            if (frame.Sequence != 1) return;
             borrowed = frame; first = frame.Retain(); snapshot = frame.CopyPixels();
             frame.Dispose();
             throw new InvalidOperationException("An observer disposed its own borrowed wrapper");
         };
-        connection.FrameReceived += frame => { secondObserverRead = frame.Pixels[0] == 17; second = frame.Retain(); };
+        connection.FrameReceived += frame =>
+        {
+            if (frame.Sequence != 1) return;
+            secondObserverRead = frame.Pixels[0] == 17;
+            second = frame.Retain();
+        };
         await Start(connection, backend);
         backend.Emit(3, [17, 23, 31, 255], 1, 1);
         try
@@ -234,17 +414,20 @@ internal static class ConsoleConnectionChecks
                 "Console callback-borrowed wrappers cannot be read or retained after callback completion");
             snapshot![0] = 99;
             check(first!.Pixels[0] == 17, "Console CopyPixels returns an independent explicitly allocated snapshot");
+            backend.Emit(3, [1, 2, 3, 255, 4, 5, 6, 255], 2, 1);
+            backend.Emit(3, [8, 9, 10, 255, 11, 12, 13, 255], 1, 2);
             await connection.DisconnectAsync().WaitAsync(Timeout);
-            check(first.Pixels[0] == 17 && second!.Pixels[0] == 17,
-                "Console retained pixels remain readable after native connection cleanup");
+            byte[] expected = [17, 23, 31, 255];
+            check(first.Pixels.SequenceEqual(expected) && second!.Pixels.SequenceEqual(expected),
+                "Console retained pixels survive two resizes and DisconnectAsync byte for byte");
             first.Dispose(); first.Dispose();
-            check(backend.FramesReleased == 0 && second!.Pixels[0] == 17,
+            check(backend.FramesReleased == 2 && second!.Pixels.SequenceEqual(expected),
                 "Console duplicate disposal of one lease cannot release another lease's buffer");
             second!.Dispose();
-            check(backend.FramesReleased == 1 && snapshot[0] == 99,
+            check(backend.FramesReleased == 3 && snapshot[0] == 99,
                 "Console last lease returns the buffer exactly once while copied snapshots survive");
             backend.Emit(3, [1, 2, 3, 255], 1, 1);
-            check(backend.FramesReleased == 2, "Console a late frame after shutdown is promptly returned without publication");
+            check(backend.FramesReleased == 4, "Console a late frame after shutdown is promptly returned without publication");
         }
         finally { first?.Dispose(); second?.Dispose(); }
 

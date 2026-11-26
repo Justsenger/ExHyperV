@@ -127,7 +127,7 @@ internal sealed class ResourceScanner(string reportDirectory, string? configurat
             await process.WaitForExitAsync(CancellationToken.None);
             await Task.WhenAll(output, error);
             cancellationToken.ThrowIfCancellationRequested();
-            return new(InspectionStatus.Unavailable, "读取超过 25 秒，已停止本项检查进程；不能据此认定资源不存在。");
+            return new(InspectionStatus.Unavailable, "读取超过 25 秒，已停止本项检查进程，不能据此认定资源不存在。");
         }
     }
 

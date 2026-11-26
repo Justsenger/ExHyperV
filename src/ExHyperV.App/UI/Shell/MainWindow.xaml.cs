@@ -3,7 +3,7 @@ using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Pages.Host;
 using ExHyperV.App.UI.Pages.Settings;
 using ExHyperV.App.UI.Pages.VirtualMachines;
-using ExHyperV.App.UI.Pages.Web;
+using ExHyperV.App.UI.Pages.VirtualMachines.Console;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Feedback;
 using Microsoft.UI.System;
@@ -23,6 +23,10 @@ public sealed partial class MainWindow : Window
     private bool closed;
     private bool initialSizeApplied;
     private bool initialPaneClosed;
+    private bool isImmersive;
+    private bool paneOpenBeforeImmersive;
+    private bool? pendingImmersiveExitPaneOpen;
+    private double compactPaneLengthBeforeImmersive = 48;
     private XamlRoot? titleBarRoot;
     private readonly ThemeSettings themeSettings;
 
@@ -57,7 +61,6 @@ public sealed partial class MainWindow : Window
         Root.Language = System.Globalization.CultureInfo.DefaultThreadCurrentUICulture?.Name ?? "en-US";
         NavVirtualMachines.Content = L10n.Get("Nav_VirtualMachines");
         NavHost.Content = L10n.Get("Nav_Host");
-        NavWeb.Content = L10n.Get("Nav_Web");
         NavSettings.Content = L10n.Get("Nav_Settings");
     }
 
@@ -88,6 +91,7 @@ public sealed partial class MainWindow : Window
                 else if (entry.Value is HostPage host)
                 {
                     await host.StopAsync();
+                    host.ImmersiveRequested -= SetImmersiveMode;
                     pages.Remove(entry.Key);
                 }
             }
@@ -145,7 +149,11 @@ public sealed partial class MainWindow : Window
 
     private void OnNavigationDisplayModeChanged(NavigationView sender, NavigationViewDisplayModeChangedEventArgs args)
     {
-        if (!initialPaneClosed && args.DisplayMode == NavigationViewDisplayMode.Expanded)
+        if (!isImmersive && pendingImmersiveExitPaneOpen is bool restore)
+        {
+            sender.IsPaneOpen = restore;
+        }
+        else if (!initialPaneClosed && args.DisplayMode == NavigationViewDisplayMode.Expanded)
         {
             initialPaneClosed = true;
             sender.IsPaneOpen = false;
@@ -161,9 +169,42 @@ public sealed partial class MainWindow : Window
 
     internal void SetImmersiveMode(bool immersive)
     {
-        Navigation.IsPaneVisible = !immersive;
-        if (immersive) Navigation.IsPaneOpen = false;
+        if (isImmersive == immersive) return;
+        if (immersive)
+        {
+            paneOpenBeforeImmersive = Navigation.IsPaneOpen;
+            compactPaneLengthBeforeImmersive = Navigation.CompactPaneLength > 0 ? Navigation.CompactPaneLength : 48;
+            pendingImmersiveExitPaneOpen = null;
+            isImmersive = true;
+            Navigation.IsPaneVisible = false;
+            Navigation.IsPaneOpen = false;
+            Navigation.CompactPaneLength = 0;
+            Navigation.PaneDisplayMode = NavigationViewPaneDisplayMode.LeftMinimal;
+            UpdateNavigationContentInset();
+            return;
+        }
+
+        bool restoreOpen = paneOpenBeforeImmersive;
+        pendingImmersiveExitPaneOpen = restoreOpen;
+        isImmersive = false;
+        Navigation.CompactPaneLength = compactPaneLengthBeforeImmersive;
+        Navigation.PaneDisplayMode = NavigationViewPaneDisplayMode.Auto;
+        Navigation.IsPaneVisible = true;
+        Navigation.IsPaneOpen = restoreOpen;
         UpdateNavigationContentInset();
+        Root.DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!isImmersive && !closed && pendingImmersiveExitPaneOpen is bool pending)
+                Navigation.IsPaneOpen = pending;
+        });
+        Root.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            if (!isImmersive && !closed && pendingImmersiveExitPaneOpen is bool pending)
+            {
+                Navigation.IsPaneOpen = pending;
+                pendingImmersiveExitPaneOpen = null;
+            }
+        });
     }
 
     private void UpdateTitleBar()
@@ -208,14 +249,18 @@ public sealed partial class MainWindow : Window
             page = route switch
             {
                 "virtual-machines" => CreateVirtualMachinesPage(),
-                "settings" => new SettingsPage { PrepareLanguageChange = PrepareLanguageChangeAsync },
-                "host" => new HostPage(),
-                "web" => new WebPage(),
+                "settings" => new SettingsPage
+                {
+                    PrepareLanguageChange = PrepareLanguageChangeAsync,
+                    ExtensionTarget = () => pages.GetValueOrDefault("virtual-machines") is VirtualMachinesPage { ViewModel.Selected: { } vm }
+                        ? (vm.Id, vm.Name) : (Guid.Empty, null)
+                },
+                "host" => CreateHostPage(),
                 _ => throw new InvalidOperationException($"Unknown page: {route}")
             };
             pages.Add(route, page);
         }
-        if (route != "virtual-machines") SetImmersiveMode(false);
+        SetImmersiveMode(false);
         if (page is HostPage host) host.SetWindowVisible(ContentVisible);
         Diagnostics.AppDiagnostics.Write("Navigation", "PageSelected", $"page={page.GetType().Name}");
         PageContent.Content = page;
@@ -267,6 +312,13 @@ public sealed partial class MainWindow : Window
         return page;
     }
 
+    private HostPage CreateHostPage()
+    {
+        var page = new HostPage();
+        page.ImmersiveRequested += SetImmersiveMode;
+        return page;
+    }
+
     private async void OnClosed(object sender, WindowEventArgs args) => await UiEvent.RunAsync(async () =>
     {
         closed = true;
@@ -276,6 +328,7 @@ public sealed partial class MainWindow : Window
         // Window.Close() can bypass AppWindow.Closing; normal title-bar closure already stopped active pages above.
         if (!closeAfterCleanup)
         {
+            await ConsoleWindow.CloseAllAsync();
             foreach (var page in pages.Values.OfType<VirtualMachinesPage>().ToArray())
             {
                 try { await page.StopAsync(); }
@@ -324,6 +377,7 @@ public sealed partial class MainWindow : Window
         {
             await Task.WhenAll(active.Select(page => page.StopAsync()));
             await Task.WhenAll(hostPages.Select(page => page.StopAsync()));
+            await ConsoleWindow.CloseAllAsync();
             closeAfterCleanup = true;
             if (!Root.DispatcherQueue.TryEnqueue(Close)) Close();
         }

@@ -25,7 +25,6 @@
             <NavigationView.MenuItems>
                 <NavigationViewItem x:Name="NavVirtualMachines" Tag="virtual-machines"><NavigationViewItem.Icon><FontIcon Glyph="&#xF5ED;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
                 <NavigationViewItem x:Name="NavHost" Tag="host"><NavigationViewItem.Icon><FontIcon Glyph="&#xE90F;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
-                <NavigationViewItem x:Name="NavWeb" Tag="web"><NavigationViewItem.Icon><FontIcon Glyph="&#xE774;" FontSize="18" /></NavigationViewItem.Icon></NavigationViewItem>
             </NavigationView.MenuItems>
             <NavigationView.FooterMenuItems>
                 <NavigationViewItem x:Name="NavSettings" Tag="settings" Icon="Setting" />

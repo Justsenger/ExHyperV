@@ -172,7 +172,7 @@ internal static class VmSettingsApiCases
         if (field.X64 && RuntimeInformation.OSArchitecture != Architecture.X64)
             throw new ApiCheckSkippedException(field.Model + " 需要 x64 SGX 平台，当前为 ARM64。");
         if (n == 22 && RuntimeInformation.OSArchitecture == Architecture.Arm64 && Environment.OSVersion.Version.Build == 29671)
-            throw new ApiCheckSkippedException("ARM64 Build 29671 的 CXL 写入已有 VMMS 崩溃记录；此组合隔离，等待问题修复后解除。");
+            throw new ApiCheckSkippedException("ARM64 Build 29671 的 CXL 写入已有 VMMS 崩溃记录，此组合隔离，等待问题修复后解除。");
         if (n is >= 9 and <= 12)
         {
             Success(c, await VmMemoryService.SetVmMemorySettingsAsync(vm.Id, new() { BackingType = 1 }, false, [nameof(VmMemorySettings.BackingType)]));
@@ -212,7 +212,7 @@ internal static class VmSettingsApiCases
             allowed.UnionWith(["Reservation", "Limit", "TargetMemoryBuffer"]);
             if (field.Model == "Startup")
             {
-                c.Evidence.Add($"系统命令保留动态内存参数：保留={systemExpected!["Reservation"]}，上限={systemExpected["Limit"]}；Core 静态内存约定同步这两个值到启动内存。");
+                c.Evidence.Add($"系统命令保留动态内存参数：保留={systemExpected!["Reservation"]}，上限={systemExpected["Limit"]}，Core 静态内存约定同步这两个值到启动内存。");
                 EqualRaw(c, value, after["Reservation"], "静态内存保留量随启动容量同步");
                 EqualRaw(c, value, after["Limit"], "静态内存上限随启动容量同步");
             }
@@ -235,7 +235,7 @@ internal static class VmSettingsApiCases
         }
         var field = n == 37 ? Processor[4] : Processor[n];
         if (field.X64 && RuntimeInformation.OSArchitecture != Architecture.X64)
-            throw new ApiCheckSkippedException($"{field.Model} 是 x64 处理器设置；当前宿主为 {RuntimeInformation.OSArchitecture}。");
+            throw new ApiCheckSkippedException($"{field.Model} 是 x64 处理器设置，当前宿主为 {RuntimeInformation.OSArchitecture}。");
         if (n == 21 && RuntimeInformation.OSArchitecture != Architecture.Arm64)
             throw new ApiCheckSkippedException("局部外设中断模式需要 ARM64 平台。");
         if (n is 10 or 12 or 13 or 14)
@@ -257,7 +257,7 @@ internal static class VmSettingsApiCases
         }
         var before = Read(vm.Id, "Msvm_ProcessorSettingData"); RequireField(before, field.Native);
         if (n is 22 or 24 && before[field.Native] is null)
-            throw new ApiCheckSkippedException($"宿主未返回 {field.Native} 的当前值，无法核验写入效果；本项尚未提交修改，留待能够读回该字段的环境测试。");
+            throw new ApiCheckSkippedException($"宿主未返回 {field.Native} 的当前值，无法核验写入效果，本项尚未提交修改，留待能够读回该字段的环境测试。");
         object value = field.Value;
         if (value is bool && before[field.Native] is bool old) value = !old;
         if (n == 37) value = Convert.ToInt32(before["Weight"]);
@@ -277,7 +277,7 @@ internal static class VmSettingsApiCases
             if (!probe.GetProperty("accepted").GetBoolean())
             {
                 EqualRaw(c, before[field.Native], Read(vm.Id, "Msvm_ProcessorSettingData")[field.Native], "平台拒绝后配置保持原值");
-                throw new ApiCheckSkippedException("当前宿主与虚拟机版本拒绝此配置；系统 Set-VMProcessor 对照也失败：" + probe.GetProperty("reason").GetString());
+                throw new ApiCheckSkippedException("当前宿主与虚拟机版本拒绝此配置，系统 Set-VMProcessor 对照也失败：" + probe.GetProperty("reason").GetString());
             }
             c.Evidence.Add("系统 Set-VMProcessor 对照成功，Core 写入失败。");
         }
@@ -473,7 +473,7 @@ internal static class VmSettingsApiCases
     private static void RequireField(Dictionary<string, object?> values, string field)
     {
         if (!values.ContainsKey(field))
-            throw new ApiCheckSkippedException($"当前 Windows Build {Environment.OSVersion.Version.Build} 的 Hyper-V 未提供有效的 {field} 属性；此字段写入项跳过。");
+            throw new ApiCheckSkippedException($"当前 Windows Build {Environment.OSVersion.Version.Build} 的 Hyper-V 未提供有效的 {field} 属性，此字段写入项跳过。");
     }
     internal static void Success(ApiCaseContext c, ApiResponse response)
     {

@@ -105,7 +105,7 @@ public class CoreDiagnosticTests
     {
         var failures = new List<string>();
         await PowerWorkflowChecks.Run((ok, name) => { if (!ok) failures.Add(name); });
-        Assert.AreEqual(0, failures.Count, string.Join("; ", failures));
+        Assert.AreEqual(0, failures.Count, string.Join(", ", failures));
 
         var vmId = Guid.NewGuid();
         var backend = new PowerWorkflowChecks.Backend();

@@ -18,6 +18,26 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
     <link rel="stylesheet" href="/typefaces/resource-rounded.css" />
     <title>Windows 11 桌面体验 | ExHyperV</title>
+    <script is:inline>
+      (() => {
+        try {
+          const normalize = (value) => {
+            const raw = String(value || 'und').trim().replaceAll('_', '-');
+            const alias = { cn: 'zh-CN', sc: 'zh-CN', chs: 'zh-CN', cht: 'zh-TW', 'zh-hans': 'zh-CN', 'zh-hant': 'zh-TW', zh: 'zh-CN' };
+            if (alias[raw.toLowerCase()]) return alias[raw.toLowerCase()];
+            try { return Intl.getCanonicalLocales(raw)[0] || 'und'; } catch { return 'und'; }
+          };
+          const saved = localStorage.getItem('exhyperv.language');
+          const pref = saved === 'zh-CN' || saved === 'zh-TW' || saved === 'en' ? saved : 'auto';
+          const lang = pref !== 'auto'
+            ? pref
+            : ((navigator.languages || [navigator.language]).map(normalize).find((item) => item !== 'und') || 'zh-CN');
+          const ui = lang.startsWith('zh') ? (/TW|HK|Hant/.test(lang) ? 'zh-TW' : 'zh-CN') : 'en';
+          document.documentElement.lang = ui;
+          document.documentElement.dataset.uiLang = ui;
+        } catch {}
+      })();
+    </script>
     <link rel="preload" as="image" href="/win11/wallpapers/bloom-dark.webp" />
   </head>
   <body data-module="uiDesign">
@@ -126,7 +146,11 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
           broadcastOpenVms();
           api.subscribeAppEvents(cid, (cChannel, cPayload) => {
             if (cChannel === 'exhyperv:console-power') {
-              api.sendToInstance(exhypervId, 'exhyperv:console-power', cPayload);
+              const enriched = cPayload && typeof cPayload === 'object' ? { ...(cPayload as Record<string, unknown>), cid } : cPayload;
+              api.sendToInstance(exhypervId, 'exhyperv:console-power', enriched);
+            } else if (cChannel === 'exhyperv:console-need-ticket') {
+              const enriched = cPayload && typeof cPayload === 'object' ? { ...(cPayload as Record<string, unknown>), cid } : { cid };
+              api.sendToInstance(exhypervId, 'exhyperv:console-need-ticket', enriched);
             } else if (cChannel === 'exhyperv:console-active-vm' && cPayload && typeof cPayload === 'object') {
               const nextId = (cPayload as { vmId?: string }).vmId;
               if (typeof nextId === 'string') {
@@ -149,8 +173,20 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
         };
 
         api.subscribeAppEvents(exhypervId, (channel, payload) => {
-          if (channel !== 'exhyperv:open-console' || !payload || typeof payload !== 'object') return;
-          openConsoleWindow(payload as Record<string, unknown>);
+          if (channel === 'exhyperv:open-console' && payload && typeof payload === 'object') {
+            openConsoleWindow(payload as Record<string, unknown>);
+            return;
+          }
+          if (
+            (channel === 'exhyperv:console-ticket-reply' || channel === 'exhyperv:console-power-reply') &&
+            payload &&
+            typeof payload === 'object'
+          ) {
+            const targetCid = (payload as { cid?: string }).cid;
+            if (typeof targetCid === 'string' && targetCid) {
+              api.sendToInstance(targetCid, channel, payload);
+            }
+          }
         });
       };
 

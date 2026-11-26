@@ -21,6 +21,47 @@ public sealed class WriteBoundaryTests
     }
 
     [TestMethod]
+    public async Task ForceTurnOffTerminatesWorkerWhenRequestTimesOutOrStaysRunning()
+    {
+        Guid vmId = Guid.NewGuid();
+        var pending = new TaskCompletionSource<ApiResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        bool cancelled = false;
+        int terminatedPid = 0;
+        var timedOutResult = await VmPowerService.ForceTurnOffAsync(
+            vmId,
+            ct => { ct.Register(() => cancelled = true); return pending.Task; },
+            _ => Task.FromResult(false),
+            () => Task.FromResult<VmPowerService.VmRuntimeState?>(new(2, 4321)),
+            (pid, requireMatch) => { terminatedPid = pid; Assert.IsTrue(requireMatch); return Task.FromResult(ApiResponse.Ok()); },
+            TimeSpan.FromMilliseconds(20));
+        Assert.IsTrue(timedOutResult.Success);
+        Assert.IsTrue(cancelled);
+        Assert.AreEqual(4321, terminatedPid);
+
+        terminatedPid = 0;
+        var lingeringResult = await VmPowerService.ForceTurnOffAsync(
+            vmId,
+            _ => Task.FromResult(ApiResponse.Ok()),
+            _ => Task.FromResult(false),
+            () => Task.FromResult<VmPowerService.VmRuntimeState?>(new(2, 9876)),
+            (pid, _) => { terminatedPid = pid; return Task.FromResult(ApiResponse.Ok()); },
+            TimeSpan.FromSeconds(1));
+        Assert.IsTrue(lingeringResult.Success);
+        Assert.AreEqual(9876, terminatedPid);
+
+        bool touchedRuntime = false;
+        var deniedResult = await VmPowerService.ForceTurnOffAsync(
+            vmId,
+            _ => Task.FromResult(ApiResponse.Fail("denied", kind: ApiErrorKind.AccessDenied)),
+            _ => Task.FromResult(false),
+            () => { touchedRuntime = true; return Task.FromResult<VmPowerService.VmRuntimeState?>(new(2, 1111)); },
+            (_, _) => { touchedRuntime = true; return Task.FromResult(ApiResponse.Ok()); },
+            TimeSpan.FromSeconds(1));
+        Assert.AreEqual(ApiErrorKind.AccessDenied, deniedResult.ErrorKind);
+        Assert.IsFalse(touchedRuntime);
+    }
+
+    [TestMethod]
     public void SnapshotRequiresOneSettledCreatedObject()
     {
         Assert.IsTrue(VmCheckpointService.ConfirmSnapshotReceipt(new(ApiResponse.Ok(), ["snapshot"], false)).Success);
@@ -41,6 +82,18 @@ public sealed class WriteBoundaryTests
             }
             catch (Exception e) when (e is InvalidDataException or System.Text.Json.JsonException) { }
         }
+        foreach (string badConsole in new[] { "", "{", "null", "[]", "{\"Clipboard\":\"true\"}", "{\"Clipboard\":1}", "{\"Clipboard\":true,\"clipboard\":false}" })
+        {
+            try
+            {
+                VmMetadataService.ParseConsoleFeatures(new Dictionary<string, string> { [VmMetadataService.ConsoleFeaturesKey] = badConsole });
+                Assert.Fail("Unexpected acceptance: " + badConsole);
+            }
+            catch (Exception e) when (e is InvalidDataException or System.Text.Json.JsonException) { }
+        }
+        Assert.AreEqual(new VmConsoleFeatures(true, true, true), VmMetadataService.ParseConsoleFeatures(null));
+        Assert.AreEqual(new VmConsoleFeatures(false, true, false), VmMetadataService.ParseConsoleFeatures(
+            new Dictionary<string, string> { [VmMetadataService.ConsoleFeaturesKey] = "{\"Clipboard\":false,\"AudioInput\":false}" }));
     }
 
     [TestMethod]
@@ -61,7 +114,8 @@ public sealed class WriteBoundaryTests
             [nameof(adapter.DhcpGuardEnabled), nameof(adapter.SriovEnabled)]);
         Assert.AreEqual(ApiErrorKind.AccessDenied, combined.Failure?.Kind);
         Assert.AreEqual(ApiErrorKind.AccessDenied, (await VmMetadataService.UpsertGpuDriverVersionsAsync(id, [("a", "1")])).ErrorKind);
-        Assert.AreEqual(3, reads);
+        Assert.AreEqual(ApiErrorKind.AccessDenied, (await VmConsoleSupportService.SetEnhancedFeaturesAsync(id, false, true, false)).ErrorKind);
+        Assert.AreEqual(4, reads);
     }
 
     [TestMethod]
@@ -162,5 +216,62 @@ public sealed class WriteBoundaryTests
         var pair = HgsGuardians.ReadGuardianIdentity(stream);
         Assert.IsTrue(HgsGuardians.MatchesPair(pair, signing, encryption));
         Assert.IsFalse(HgsGuardians.MatchesPair(pair, signing, signing));
+    }
+
+    [TestMethod]
+    public async Task FreeRdpHostCursorSendsModeAndRelaysCursorChangesAsync()
+    {
+        var cursors = new List<ConsoleCursor?>();
+        var disconnected = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var backend = new HostCursorFakeBackend(callback =>
+        {
+            byte[] pixels = Enumerable.Range(1, 16).Select(static i => (byte)i).ToArray();
+            callback(11, pixels, 2u | (2u << 16), 1u | (0u << 16));
+            callback(11, [], 0u, 0u);
+        });
+        await using var connection = new FreeRdpConsoleConnection(new() { VmId = Guid.NewGuid(), HostCursor = true }, true, backend);
+        connection.Video.CursorChanged += cursor => cursors.Add(cursor);
+        connection.Disconnected += _ => disconnected.TrySetResult();
+
+        connection.Start();
+        await disconnected.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.IsTrue(backend.SentCommands.Any(static entry => entry.Kind == 8 && entry.Data.SequenceEqual(new byte[] { 1, 0, 0, 0 })));
+        Assert.HasCount(2, cursors);
+        Assert.IsNotNull(cursors[0]);
+        Assert.AreEqual(2, cursors[0]!.Width);
+        Assert.AreEqual(2, cursors[0]!.Height);
+        Assert.AreEqual(1, cursors[0]!.HotX);
+        Assert.AreEqual(0, cursors[0]!.HotY);
+        Assert.AreEqual(16, cursors[0]!.Pixels.Length);
+        Assert.IsNull(cursors[1]);
+    }
+
+    private sealed class HostCursorFakeBackend(Action<Action<uint, byte[], uint, uint>> onRun) : IConsoleNativeBackend, IConsoleNativeConnection
+    {
+        private Action<uint, byte[], uint, uint>? callback;
+        public List<(uint Kind, byte[] Data)> SentCommands { get; } = [];
+
+        public IConsoleNativeConnection Create(ConsoleConnectionOptions options, Action<uint, byte[], uint, uint> callback, Action<ConsoleFrame> frameCallback)
+        {
+            this.callback = callback;
+            return this;
+        }
+
+        public uint Run()
+        {
+            onRun(callback!);
+            return 0;
+        }
+
+        public void Stop() { }
+
+        public bool Send(uint kind, ReadOnlySpan<byte> payload)
+        {
+            SentCommands.Add((kind, payload.ToArray()));
+            return true;
+        }
+
+        public void Dispose() { }
     }
 }

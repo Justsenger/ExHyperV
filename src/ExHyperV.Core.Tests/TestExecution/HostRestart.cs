@@ -28,7 +28,7 @@ internal static class HostRestart
         // A successful restart terminates this process. A blocked/cancelled shutdown
         // must become a visible recovery hold instead of an endless wait or retry.
         await (delay ?? Task.Delay)(ExitTimeout);
-        throw new IOException("宿主在自动重启请求结束后两分钟内仍未重启；保留恢复记录，后续步骤暂停。" +
+        throw new IOException("宿主在自动重启请求结束后两分钟内仍未重启，保留恢复记录，后续步骤暂停。" +
             (requestError is null ? "" : " 原因：" + requestError.Message), requestError);
     }
 

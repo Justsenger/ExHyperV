@@ -253,13 +253,14 @@ public sealed partial class VmDashboardView
 
     private void UpdateOverviewLiveMetrics(VmQueryRow sample)
     {
-        if (sample.Get(VmProcessorFields.UsagePercent) is { HasValue: true } cpu)
+        if (sample.Get(VmProcessorFields.UsagePercent) is { HasValue: true } cpu && double.IsFinite(cpu.Value))
         {
-            cpuUsagePercent = cpu.Value;
-            cpuReadingText = $"{cpu.Value:N1}%";
+            double clampedCpu = Math.Clamp(cpu.Value, 0, 100);
+            cpuUsagePercent = clampedCpu;
+            cpuReadingText = $"{clampedCpu:N1}%";
             if (overviewRailByKey.TryGetValue("cpu", out var cpuRail))
             {
-                cpuRail.Sparkline.Add(cpu.Value);
+                cpuRail.Sparkline.Add(clampedCpu);
                 cpuRail.StatText.Text = FormatCpuRailStat();
             }
         }
@@ -267,8 +268,11 @@ public sealed partial class VmDashboardView
         {
             var index = core.Get(VmProcessorMetricFields.Index);
             var usage = core.Get(VmProcessorMetricFields.UsagePercent);
-            if (index.HasValue && usage.HasValue && charts.TryGetValue(index.Value, out var chart))
-                chart.Add(usage.Value, $"{usage.Value:N1}%");
+            if (index.HasValue && usage.HasValue && double.IsFinite(usage.Value) && charts.TryGetValue(index.Value, out var chart))
+            {
+                double clampedUsage = Math.Clamp(usage.Value, 0, 100);
+                chart.Add(clampedUsage, $"{clampedUsage:N1}%");
+            }
         }
 
         if (sample.Get(VmMemoryFields.AssignedMiB) is { HasValue: true } assigned) memAssignedMiB = assigned.Value;

@@ -1,4 +1,4 @@
-# Each checkpoint records the expected visible state and one original PNG.
+﻿# Each checkpoint records the expected visible state and one original PNG.
 Record-Scene 'vm-list' '虚拟机页面显示搜索框和列表' {
     Select-Page 'NavVirtualMachines' 'VmList'
     $null = Get-Control 'SearchBox'
@@ -16,12 +16,9 @@ Record-Scene 'vm-search-cleared' '清除筛选后回到虚拟机列表' {
     $search.SetValue('')
     $null = Wait-Until { $search.Current.Value -eq '' } 'empty search text'
 }
-Record-Scene 'host-overview' '宿主页显示本机名称及概览' {
-    Select-Page 'NavHost' 'HostNameText'
-    $null = Wait-Until { (Get-Control 'HostNameText').Current.Name -eq $env:COMPUTERNAME } 'host name'
-}
-Record-Scene 'web-page' 'Web 页面显示当前标题' {
-    Select-Page 'NavWeb' 'TitleHeader'
+Record-Scene 'host-overview' '宿主页显示总览与环境就绪项' {
+    Select-Page 'NavHost' 'HostOverviewSubNav'
+    $null = Get-Control 'HostEnvGroupsPanel'
 }
 Record-Scene 'settings-appearance' '应用设置显示语言与外观选项' {
     Select-Page 'NavSettings' 'ThemePicker'

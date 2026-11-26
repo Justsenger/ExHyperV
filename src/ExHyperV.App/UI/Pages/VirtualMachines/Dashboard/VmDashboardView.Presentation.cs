@@ -1,5 +1,6 @@
 
 using ExHyperV.App.Localization;
+using ExHyperV.App.UI.Pages.VirtualMachines.Console;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Controls;
 using ExHyperV.App.UI.Shared.Feedback;
@@ -126,10 +127,11 @@ public sealed partial class VmDashboardView
         ];
         for (int i = 0; i < 4; i++)
         {
-            if (row.Get(fields[i]) is { HasValue: true } sample)
+            if (row.Get(fields[i]) is { HasValue: true } sample && double.IsFinite(sample.Value))
             {
-                gpuCharts[i].Add(sample.Value, $"{sample.Value:N1}%");
-                gpuValues[i] = sample.Value;
+                double clamped = Math.Clamp(sample.Value, 0, 100);
+                gpuCharts[i].Add(clamped, $"{clamped:N1}%");
+                gpuValues[i] = clamped;
             }
         }
         if (gpuValues.Any(value => value.HasValue))
@@ -145,41 +147,17 @@ public sealed partial class VmDashboardView
         }
     }
 
-    private async void OnConnectClick(object sender, RoutedEventArgs e)
+    private void OnConnectClick(object sender, RoutedEventArgs e)
     {
         if (current == null) return;
         try
         {
-            // VMConnect has no per-launch basic/enhanced switch. Pass the session choice
-            // to the local Hyper-V console endpoint using the Windows RDP client.
-            var mode = ((App)Application.Current).Appearance.Settings.DefaultConsoleSession;
-            await OpenConsoleAsync(current.Id, mode);
+            ConsoleWindow.Open(current);
         }
         catch (Exception error)
         {
             ShowError(L10n.Format("Dash_ConnectFailed", CoreMessageResolver.ResolveException(error)));
         }
-    }
-
-    private static async Task OpenConsoleAsync(Guid id, ConsoleSessionMode mode)
-    {
-        // Keep one profile per VM and session mode so the shell can open it asynchronously.
-        // Publish it atomically, including when two app instances connect at the same time.
-        string folder = System.IO.Path.Combine(Diagnostics.AppDiagnostics.DataDirectory, "Console");
-        Directory.CreateDirectory(folder);
-        string profile = System.IO.Path.Combine(folder, $"{id:D}-{mode}.rdp");
-        string temporary = profile + "." + Guid.NewGuid().ToString("N") + ".tmp";
-        try
-        {
-            string blob = mode == ConsoleSessionMode.RdpEnhanced ? $"{id:D};EnhancedMode=1" : id.ToString("D");
-            await File.WriteAllLinesAsync(temporary, (string[])["full address:s:localhost", "server port:i:2179",
-                "negotiate security layer:i:0", $"pcb:s:{blob}", "screen mode id:i:1"], System.Text.Encoding.Unicode);
-            File.Move(temporary, profile, overwrite: true);
-        }
-        finally { File.Delete(temporary); }
-        var file = await Windows.Storage.StorageFile.GetFileFromPathAsync(profile);
-        if (!await Windows.System.Launcher.LaunchFileAsync(file))
-            throw new IOException(L10n.Get("Settings_ConsoleLaunchFailed"));
     }
 
     private void UpdatePowerAppearance()
@@ -202,16 +180,24 @@ public sealed partial class VmDashboardView
             : (Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"];
         PowerButton.BorderThickness = new Thickness(0);
         PowerButton.CornerRadius = state == VmState.Running ? new CornerRadius(8, 0, 0, 8) : new CornerRadius(8);
+        bool actionable = state is VmState.Running or VmState.PoweredOff or VmState.Saved or VmState.Suspended;
+        bool pending = IsPowerPending;
+        bool turnOffPending = pending && activePowerAction == VmPowerAction.TurnOff;
+        PowerButton.IsEnabled = actionable && !pending;
         PowerMenu.Background = PowerButton.Background;
         PowerMenu.Foreground = PowerButton.Foreground;
         PowerMenu.BorderThickness = new Thickness(0);
         PowerMenu.Visibility = state == VmState.Running ? Visibility.Visible : Visibility.Collapsed;
-        PowerMenu.IsEnabled = state == VmState.Running && !powerPending;
+        PowerMenu.IsEnabled = state == VmState.Running && !turnOffPending;
+        PowerMenuRestart.IsEnabled = CanRunPower(VmPowerAction.Restart);
+        PowerMenuSuspend.IsEnabled = CanRunPower(VmPowerAction.Suspend);
+        PowerMenuSave.IsEnabled = CanRunPower(VmPowerAction.Save);
+        PowerMenuTurnOff.IsEnabled = CanRunPower(VmPowerAction.TurnOff);
     }
 
     private async void OnPowerMenuClick(object sender, RoutedEventArgs e) => await UiEvent.RunAsync(async () =>
     {
-        if (current == null || state != VmState.Running || powerPending || sender is not MenuFlyoutItem { Tag: string name } || !Enum.TryParse<VmPowerAction>(name, out var action))
+        if (current == null || state != VmState.Running || sender is not MenuFlyoutItem { Tag: string name } || !Enum.TryParse<VmPowerAction>(name, out var action) || !CanRunPower(action))
             return;
         PowerWork = ChangePowerAsync(current, state, action);
         await PowerWork;

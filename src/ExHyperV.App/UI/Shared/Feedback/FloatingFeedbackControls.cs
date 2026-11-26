@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
+using Windows.UI;
 
 namespace ExHyperV.App.UI.Shared.Feedback;
 
@@ -244,32 +245,89 @@ internal sealed partial class FloatingNoticeBanner : UserControl
 
     private void ApplyThemeBrushes()
     {
+        var (bgKey, _, _, _) = ResolveBannerAppearance(Severity);
         outerBorder.Background = ThemeHelper.ThemeBrush(ActualTheme, "SolidBackgroundFillColorQuarternaryBrush");
         innerBorder.BorderBrush = ThemeHelper.ThemeBrush(ActualTheme, "CardStrokeColorDefaultBrush");
-        innerBorder.Background = ThemeHelper.ThemeBrush(ActualTheme, Severity switch
-        {
-            InfoBarSeverity.Warning => "InfoBarWarningSeverityBackgroundBrush",
-            InfoBarSeverity.Informational => "InfoBarInformationalSeverityBackgroundBrush",
-            InfoBarSeverity.Success => "InfoBarSuccessSeverityBackgroundBrush",
-            _ => "InfoBarErrorSeverityBackgroundBrush"
-        });
-        badge.Background = ThemeHelper.ThemeBrush(ActualTheme, Severity switch
-        {
-            InfoBarSeverity.Warning => "SystemFillColorCautionBrush",
-            InfoBarSeverity.Informational => "SystemFillColorAttentionBrush",
-            InfoBarSeverity.Success => "SystemFillColorSuccessBrush",
-            _ => "SystemFillColorCriticalBrush"
-        });
-        badgeIcon.Glyph = Severity switch
-        {
-            InfoBarSeverity.Warning => "\uE7BA",
-            InfoBarSeverity.Informational => "\uE946",
-            InfoBarSeverity.Success => "\uE73E",
-            _ => "\uE711"
-        };
-        badgeIcon.Foreground = ThemeHelper.ThemeBrush(ActualTheme, "TextOnAccentFillColorPrimaryBrush");
+        innerBorder.Background = ThemeHelper.ThemeBrush(ActualTheme, bgKey);
+        ApplyNoticeBadgeStyle(badge, badgeIcon, ActualTheme, Severity);
         messageBlock.Foreground = ThemeHelper.ThemeBrush(ActualTheme, "TextFillColorPrimaryBrush");
         closeButton.Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+    }
+
+    internal static (string BackgroundKey, string AccentKey, string Glyph, double GlyphFontSize) ResolveBannerAppearance(InfoBarSeverity severity) => severity switch
+    {
+        InfoBarSeverity.Warning => ("InfoBarWarningSeverityBackgroundBrush", "SystemFillColorCautionBrush", "\uF13C", 18),
+        InfoBarSeverity.Informational => ("InfoBarInformationalSeverityBackgroundBrush", "SystemFillColorAttentionBrush", "\uE946", 10),
+        InfoBarSeverity.Success => ("InfoBarSuccessSeverityBackgroundBrush", "SystemFillColorSuccessBrush", "\uE73E", 10),
+        _ => ("InfoBarErrorSeverityBackgroundBrush", "SystemFillColorCriticalBrush", "\uE711", 10)
+    };
+
+    internal static void ApplyNoticeBadgeStyle(Border targetBadge, FontIcon targetIcon, ElementTheme theme, InfoBarSeverity severity, double size = 18)
+    {
+        var (_, accentKey, glyph, glyphFontSize) = ResolveBannerAppearance(severity);
+        targetBadge.Width = size;
+        targetBadge.Height = size;
+        targetBadge.CornerRadius = new CornerRadius(size / 2);
+        targetBadge.VerticalAlignment = VerticalAlignment.Center;
+        targetBadge.Background = ThemeHelper.ThemeBrush(theme, accentKey);
+
+        targetIcon.Glyph = glyph;
+        targetIcon.FontFamily = AppFonts.SegoeFluent;
+        targetIcon.HorizontalAlignment = HorizontalAlignment.Center;
+        targetIcon.VerticalAlignment = VerticalAlignment.Center;
+        targetIcon.FontSize = severity == InfoBarSeverity.Warning ? size : glyphFontSize * (size / 18.0);
+        targetIcon.Margin = severity == InfoBarSeverity.Warning ? new Thickness(0, 0, 0, size * 0.045) : new Thickness(0);
+
+        if (severity == InfoBarSeverity.Warning)
+        {
+            Color fallback = theme == ElementTheme.Light ? Color.FromArgb(255, 157, 93, 0) : Color.FromArgb(255, 252, 225, 0);
+            Color cautionColor = ThemeHelper.ThemeColor(theme, accentKey, fallback);
+            targetIcon.Foreground = new SolidColorBrush(ThemeHelper.ReadableForeground(cautionColor));
+        }
+        else
+        {
+            targetIcon.Foreground = ThemeHelper.ThemeBrush(theme, "TextOnAccentFillColorPrimaryBrush");
+        }
+    }
+
+    internal static Border CreateNoticeBadge(ElementTheme theme, InfoBarSeverity severity, double size = 18)
+    {
+        var targetIcon = new FontIcon();
+        var targetBadge = new Border { Child = targetIcon };
+        ApplyNoticeBadgeStyle(targetBadge, targetIcon, theme, severity, size);
+        return targetBadge;
+    }
+
+    internal static Grid CreateCautionCircleIcon(ElementTheme theme, double size = 20)
+    {
+        Color fallback = theme == ElementTheme.Light ? Color.FromArgb(255, 157, 93, 0) : Color.FromArgb(255, 252, 225, 0);
+        Color cautionColor = ThemeHelper.ThemeColor(theme, "SystemFillColorCautionBrush", fallback);
+        var shift = new TranslateTransform { Y = -size * 0.0625 };
+        return new Grid
+        {
+            Width = size,
+            Height = size,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children =
+            {
+                new FontIcon
+                {
+                    Glyph = "\uF136",
+                    FontFamily = AppFonts.SegoeFluent,
+                    FontSize = size,
+                    Foreground = new SolidColorBrush(cautionColor),
+                    RenderTransform = shift
+                },
+                new FontIcon
+                {
+                    Glyph = "\uF13C",
+                    FontFamily = AppFonts.SegoeFluent,
+                    FontSize = size,
+                    Foreground = new SolidColorBrush(ThemeHelper.ReadableForeground(cautionColor)),
+                    RenderTransform = new TranslateTransform { Y = -size * 0.0625 }
+                }
+            }
+        };
     }
 
     private async Task OpenDetailsDialogAsync()

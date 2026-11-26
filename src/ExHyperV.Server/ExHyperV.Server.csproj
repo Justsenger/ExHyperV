@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>2.0.0-Alpha</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../ExHyperV.Core/Infrastructure/Interop/WindowsImageCodec.cs" Link="Infrastructure/WindowsImageCodec.cs" />
+    <Compile Include="../ExHyperV.Core/Infrastructure/Interop/NativeComInterface.cs;../ExHyperV.Core/Infrastructure/Interop/NativeComStream.cs" Link="Infrastructure/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.Core/Business/Connection/ConsolePayload.cs" Link="Infrastructure/ConsolePayload.cs" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <ProjectReference Include="../ExHyperV.Core/ExHyperV.Core.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../ExHyperV.Core/Contracts/API.md" LogicalName="Core.API.md" />
+    <EmbeddedResource Include="../ExHyperV.Core/Contracts/API.json" LogicalName="Core.API.json" />
+    <EmbeddedResource Include="../ExHyperV.Core/Contracts/FieldHelp.json" LogicalName="Core.FieldHelp.json" />
+    <EmbeddedResource Include="LICENSE" LogicalName="LICENSE" />
+    <EmbeddedResource Include="Api/Contracts.sha256" LogicalName="Core.Contracts.sha256" />
+    <InternalsVisibleTo Include="ExHyperV.Server.Tests" />
+  </ItemGroup>
+</Project>

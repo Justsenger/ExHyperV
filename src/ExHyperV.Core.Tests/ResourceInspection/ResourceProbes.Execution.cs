@@ -28,11 +28,11 @@ internal static partial class ResourceProbes
             case "template-copy":
                 if (!Guid.TryParse(config.TemplateVmId, out var vmId)) return Pending("先选择测试虚拟机模板。");
                 var facts = await TemporaryVm.ReadTemplateFactsAsync(vmId);
-                if (facts.GetProperty("state").GetString() is not ("Off" or "Running")) return Missing("模板处于暂停、保存或切换状态；请恢复运行或正常关机。");
+                if (facts.GetProperty("state").GetString() is not ("Off" or "Running")) return Missing("模板处于暂停、保存或切换状态，请恢复运行或正常关机。");
                 if (facts.GetProperty("state").GetString() == "Running" && Environment.GetEnvironmentVariable("EXHYPERV_TEST_PREPARE_TEMPLATE") == "0")
                     return Missing("本轮已关闭模板自动关机，完整副本测试暂时跳过。");
                 if (facts.GetProperty("disks").GetInt32() == 0) return Missing("模板尚未挂接系统磁盘。");
-                if (new[] { "physical", "dda", "gpu" }.Any(key => facts.GetProperty(key).GetInt32() > 0)) return Missing("模板已挂接物理盘、PCIe 或 GPU；请选择干净模板，设备由各项测试分配。");
+                if (new[] { "physical", "dda", "gpu" }.Any(key => facts.GetProperty(key).GetInt32() > 0)) return Missing("模板已挂接物理盘、PCIe 或 GPU，请选择干净模板，设备由各项测试分配。");
                 long required = checked(facts.GetProperty("bytes").GetInt64() * 2 + 2L * 1024 * 1024 * 1024);
                 long free = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(config.WorkDirectory!))!).AvailableFreeSpace;
                 return free >= required ? Ready(facts.GetProperty("state").GetString() == "Running"
@@ -44,13 +44,13 @@ internal static partial class ResourceProbes
                 string credential = new VmCredentialStore().PathFor(template);
                 if (!File.Exists(credential)) return Missing("请在左侧填写虚拟机账号和密码，再保存登录信息。");
                 var secret = await WindowsTestCommand.RunAsync("$v=Import-Clixml -LiteralPath $a.path;@{valid=($v -is [PSCredential] -and $v.UserName.Length -gt 0 -and $v.Password.Length -gt 0)}|ConvertTo-Json", new { path = credential }, 10);
-                return secret.GetProperty("valid").GetBoolean() ? Ready("加密凭据可读取；连接将在完整副本内核验") : Missing("凭据文件应为当前执行账户导出的 PSCredential。");
+                return secret.GetProperty("valid").GetBoolean() ? Ready("加密凭据可读取，连接将在完整副本内核验") : Missing("凭据文件应为当前执行账户导出的 PSCredential。");
             case "config-access":
                 return ConfigurationAvailability.Inspect();
             case "sharing-idle":
                 var sharing = await ComApi.GetConnectionsAsync();
                 if (!sharing.HasData) return new(InspectionStatus.Unavailable, sharing.Error);
-                return sharing.Data!.Any(v => v.Enabled) ? Missing("宿主已有 ICS 共享；待共享资源空闲后测试交换机写入。") : Ready("宿主当前无 ICS 共享");
+                return sharing.Data!.Any(v => v.Enabled) ? Missing("宿主已有 ICS 共享，待共享资源空闲后测试交换机写入。") : Ready("宿主当前无 ICS 共享");
             case "network-upstream":
                 try { var upstream = await SwitchApiCases.SafeUpstreamAsync(); return Ready(upstream.Name); }
                 catch (ApiCheckSkippedException e) { return Missing(e.Message); }
@@ -61,7 +61,7 @@ internal static partial class ResourceProbes
                     if (package is null) return Missing("Core 发布包缺少 " + rid + " 控制台组件。");
                     using var zip = new System.IO.Compression.ZipArchive(package, System.IO.Compression.ZipArchiveMode.Read);
                     return zip.Entries.Any(v => v.Name == "ExHyperV.FreeRdp.dll" && v.Length > 0)
-                        ? Ready(rid + " 桥接库已打包；建立连接时验证加载与协议") : Missing("原生组件压缩包缺少桥接库。");
+                        ? Ready(rid + " 桥接库已打包，建立连接时验证加载与协议") : Missing("原生组件压缩包缺少桥接库。");
                 }
             case "console-audio":
                 return Missing("当前 Core 的两个 RDP 后端均未提供音频输入通道。");
@@ -72,11 +72,11 @@ internal static partial class ResourceProbes
                 var nvme = await WindowsTestCommand.RunAsync("@(Get-Disk|Where-Object BusType -eq 'NVMe').Count|ConvertTo-Json", timeoutSeconds: 15, mayMutate: false);
                 return nvme.GetInt32() > 0 ? Ready($"{nvme.GetInt32()} 个 NVMe 磁盘") : Missing("宿主当前缺少 NVMe 总线磁盘。");
             case "reboot-resume":
-                if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true") return Missing("当前 Actions 作业会随宿主重启中断；请从本机页面执行重启项，持久续跑会保存完整结果。Actions 跨重启汇报需外部调度端接管。");
+                if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true") return Missing("当前 Actions 作业会随宿主重启中断，请从本机页面执行重启项，持久续跑会保存完整结果。Actions 跨重启汇报需外部调度端接管。");
                 using (var identity = System.Security.Principal.WindowsIdentity.GetCurrent())
                     if (!new System.Security.Principal.WindowsPrincipal(identity).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator)) return Missing("重启续跑需要管理员身份。");
                 return Query("root/cimv2", "SELECT State FROM Win32_Service WHERE Name='Schedule'").Any(v => v["State"] == "Running")
-                    ? Ready("开机续跑可用；所选宿主测试将自动重启。") : Missing("计划任务服务尚未运行。");
+                    ? Ready("开机续跑可用，所选宿主测试将自动重启。") : Missing("计划任务服务尚未运行。");
             default: throw new ArgumentException("未知的资源检查项：" + id);
         }
     }

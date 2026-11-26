@@ -64,26 +64,33 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
         SetSectionedBody(sections);
     }
 
-    private static (int StartupMaxMiB, int DynamicMaxMiB) GetHostMemorySliderBounds()
+    private static int GetHostMemorySliderMaxMiB()
     {
         var hostMem = HostSystemInfoService.TryReadHostMemoryMiB();
         if (hostMem is { TotalMiB: > 0 } hm)
         {
-            int physicalMax = (int)Math.Clamp(hm.TotalMiB, 512L, 1048576L);
-            int dynamicMax = (int)Math.Clamp(Math.Max(physicalMax, hm.TotalMiB * 2L), 1024L, 1048576L);
-            return (physicalMax, dynamicMax);
+            long aligned = (hm.TotalMiB / 2L) * 2L;
+            return (int)Math.Clamp(aligned, 512L, 1048576L);
         }
-        return (65536, 131072);
+        return 65536;
+    }
+
+    private static int SnapMemoryValue(int value, int max, int step, int lowThreshold)
+    {
+        if (value <= lowThreshold) return 32;
+        int floorStep = max / step * step;
+        if (floorStep < max && value >= (floorStep + max + 1) / 2) return max;
+        return Math.Min(max, (int)Math.Round((double)value / step) * step);
     }
 
     private void BuildComputeGroup()
     {
-        var (hostMemMax, dynamicMaxLimit) = GetHostMemorySliderBounds();
+        int hostMemMax = GetHostMemorySliderMaxMiB();
 
         var startup = MemSlider(L10n.Get("Mem_Startup_Title"), nameof(VmMemorySettings.Startup),
-            32, hostMemMax, "MiB", maxTyped: 1048576,
+            32, hostMemMax, "MiB", maxTyped: 0,
             v => $"{v} MiB ({FormatGb(v, 1)})",
-            v => v <= 80 ? 32 : (int)Math.Round(v / 128.0) * 128,
+            v => SnapMemoryValue(v, hostMemMax, 128, 80),
             L10n.Get("Mem_Startup_Desc"));
 
         var weight = MemSlider(L10n.Get("Mem_Weight_Title"), nameof(VmMemorySettings.Weight),
@@ -97,15 +104,15 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
         SettingsFieldPanel.SetSpan2(dynSwitch, true);
 
         var minimum = MemSlider(L10n.Get("Mem_Min_Title"), nameof(VmMemorySettings.Minimum),
-            32, hostMemMax, "MiB", maxTyped: 1048576,
+            32, hostMemMax, "MiB", maxTyped: 0,
             v => $"{v} MiB ({FormatGb(v, 1)})",
-            v => v <= 80 ? 32 : (int)Math.Round(v / 128.0) * 128,
+            v => SnapMemoryValue(v, hostMemMax, 128, 80),
             L10n.Get("Mem_Min_Desc"));
 
         var maximum = MemSlider(L10n.Get("Mem_Max_Title"), nameof(VmMemorySettings.Maximum),
-            32, dynamicMaxLimit, "MiB", maxTyped: 1048576,
+            32, hostMemMax, "MiB", maxTyped: 0,
             v => $"{v} MiB ({FormatGb(v, 1)})",
-            v => v <= 144 ? 32 : (int)Math.Round(v / 256.0) * 256,
+            v => SnapMemoryValue(v, hostMemMax, 256, 144),
             L10n.Get("Mem_Max_Desc"));
 
         var buffer = MemSlider(L10n.Get("Mem_Buffer_Title"), nameof(VmMemorySettings.Buffer),
@@ -153,10 +160,11 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
             width: 400, span2: true,
             description: L10n.Get("Mem_DynAlign_Desc"));
 
+        int hostMemMax = GetHostMemorySliderMaxMiB();
         var maxNumaBlocks = MemSlider(L10n.Get("Mem_NumaBlocks_Title"), nameof(VmMemorySettings.MaxMemoryBlocksPerNumaNode),
-            32, 262144, "MiB", maxTyped: 1048576,
+            32, hostMemMax, "MiB", maxTyped: 0,
             v => $"{v} MiB ({FormatGb(v, 1)})",
-            v => v <= 512 ? 32 : (int)Math.Round(v / 1024.0) * 1024,
+            v => SnapMemoryValue(v, hostMemMax, 1024, 512),
             L10n.Get("Mem_NumaBlocks_Desc"));
         SettingsFieldPanel.SetSpan2(maxNumaBlocks, true);
 
@@ -322,7 +330,9 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
         var prop = typeof(VmMemorySettings).GetProperty(property)!;
         var adapter = new CustomSliderAdapter(
             sliderMin, sliderMax,
-            val => val == null ? sliderMin : Math.Max(sliderMin, Convert.ToInt32(Math.Round(Convert.ToDouble(val, CultureInfo.InvariantCulture)))),
+            val => val == null
+                ? sliderMin
+                : (int)Math.Clamp(Math.Round(Convert.ToDouble(val, CultureInfo.InvariantCulture)), sliderMin, int.MaxValue),
             pos => ConvertToPropertyTypedValue(pos, prop.PropertyType),
             formatTooltip,
             UnitText: unitText,
@@ -576,7 +586,7 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
         mmioSnapshot = mmio;
         fieldStates = observation.States.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal);
 
-        var (hostMemMax, dynamicMaxLimit) = GetHostMemorySliderBounds();
+        int hostMemMax = GetHostMemorySliderMaxMiB();
         Updating = true;
         List<string>? unavailableFields = null;
         try
@@ -584,10 +594,9 @@ public sealed partial class VmMemorySettingsView : VmSettingsView
             foreach (var field in fields)
             {
                 var name = field.Property.Name;
-                if (name is nameof(VmMemorySettings.Startup) or nameof(VmMemorySettings.Minimum))
+                if (name is nameof(VmMemorySettings.Startup) or nameof(VmMemorySettings.Minimum)
+                    or nameof(VmMemorySettings.Maximum) or nameof(VmMemorySettings.MaxMemoryBlocksPerNumaNode))
                     field.UpdateSliderBounds(32, hostMemMax);
-                else if (name == nameof(VmMemorySettings.Maximum))
-                    field.UpdateSliderBounds(32, dynamicMaxLimit);
                 object? value = field.Property.GetValue(memory);
                 if (name == nameof(VmMemorySettings.BackingPageSize))
                     field.SetOptions(memory.SupportsBackingPageSize

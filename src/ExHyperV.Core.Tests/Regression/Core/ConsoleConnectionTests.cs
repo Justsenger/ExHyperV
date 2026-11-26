@@ -11,6 +11,8 @@ public sealed class ConsoleConnectionTests
 
     [TestMethod] public void InvalidOptions_AreRejectedBeforeNativeAllocation() => ConsoleConnectionChecks.CheckValidation(Check);
     [TestMethod] public void Clipboard_PreservesFormatsAndRejectsMalformedPayloads() => ConsoleConnectionChecks.CheckClipboardPayloads(Check);
+    [TestMethod] public void Audio_ValidatesPayloadsAndCopiesIndependentSamples() => ConsoleConnectionChecks.CheckAudioPayloads(Check);
+    [TestMethod] public Task Audio_DeliversOutputAndAcceptsInputOnlyForEnhancedConnections() => ConsoleConnectionChecks.CheckAudioStreams(Check);
     [TestCategory("OperationQuery")]
     [TestMethod] public Task StatePolling_PreservesMatchingAndFailureSemanticsWithoutUiWork() => ConsoleConnectionChecks.CheckConsoleStateQuery(Check);
     [TestMethod] public Task Connections_KeepIndependentStateAndFrames() => ConsoleConnectionChecks.CheckIndependentConnections(Check);

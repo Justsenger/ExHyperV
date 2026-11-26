@@ -265,8 +265,6 @@ internal sealed partial class SettingFieldEditor : UserControl
                     try
                     {
                         int pos = customSlider.ToSliderPos(currentCustomValue);
-                        if (!customSlider.AllowAutoZero && pos > effectiveSliderMax)
-                            energySlider.SetRange(effectiveSliderMin, pos);
                         energySlider.Value = pos;
                     }
                     finally { loading = false; }
@@ -330,8 +328,6 @@ internal sealed partial class SettingFieldEditor : UserControl
                 if (energySlider != null)
                 {
                     int pos = customSlider.ToSliderPos(value);
-                    if (!customSlider.AllowAutoZero)
-                        energySlider.SetRange(customSlider.SliderMin, Math.Max(customSlider.SliderMax, pos));
                     energySlider.Value = pos;
                 }
                 if (text != null)
@@ -570,8 +566,6 @@ internal sealed partial class SettingFieldEditor : UserControl
                 if (energySlider != null)
                 {
                     int pos = customSlider.ToSliderPos(value);
-                    if (!customSlider.AllowAutoZero)
-                        energySlider.SetRange(effectiveSliderMin, Math.Max(effectiveSliderMax, pos));
                     energySlider.Value = pos;
                 }
                 if (text != null)

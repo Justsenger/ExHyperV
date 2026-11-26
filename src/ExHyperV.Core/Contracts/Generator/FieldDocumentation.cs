@@ -11,7 +11,7 @@ internal static partial class ApiDocument
         "VmStorageAttachment", "VmDiskStatus", "VmGpuAssignment", "VmPcieSettings",
         "VmPcieDeviceSetting", "VmSerialPort", "BootOrderItem", "CheckpointNode", "VmMmioSettings",
         "VmSecurityInfo", "VmDisplayResolution", "VmBatteryState",
-        "VmConsoleState", "AffinityState", "VmCpuCoreMetric", "VmDynamicMemoryData", "GpuUsageData",
+        "VmConsoleState", "VmConsoleFeatures", "AffinityState", "VmCpuCoreMetric", "VmDynamicMemoryData", "GpuUsageData",
         "HostCpuThreadConsumerUsage", "HostCpuThreadSnapshot", "HostCpuThreadReport",
         "VmGroup", "CheckpointInfo"
     };

@@ -7,6 +7,19 @@ internal static partial class ApiCaseRegistry
 {
     private static void AddFrameCases(Action<string, Action<ApiCaseContext>[]> add)
     {
+        add("ConsoleAudioPacket.CopySamples()", [c =>
+        {
+            var format = new ConsoleAudioFormat(48000, 2, ConsoleAudioSampleFormat.Signed16LittleEndian);
+            byte[] source = [1, 2, 3, 4, 5, 6, 7, 8];
+            var packet = new ConsoleAudioPacket(format, source, 3, TimeSpan.FromMilliseconds(15));
+            source[0] = 250;
+            byte[] copy = c.Call(packet.CopySamples);
+            c.Sequence(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }, copy, "复制完整 PCM 采样");
+            copy[1] = 240;
+            c.Equal((byte)2, packet.Samples[1], "修改副本不影响音频包内部采样");
+            c.Sequence(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }, c.Call(packet.CopySamples), "再次复制仍返回原采样");
+            c.Throws<ArgumentException>(() => _ = new ConsoleAudioPacket(format, new byte[6], 0, TimeSpan.Zero), "残缺采样帧被构造器拒绝");
+        }]);
         add("ConsoleFrame.构造()", [c =>
         {
             using var frame = c.Call(() => new ConsoleFrame(2, 2, 12, new byte[24], 5));
@@ -88,7 +101,11 @@ internal static partial class ApiCaseRegistry
             var backends = c.Call(ConsoleService.GetBackends);
             c.Sequence(new[] { "RdpBasic", "RdpEnhanced" }, backends.Select(b => b.BackendId), "固定后端目录");
             c.Equal(ConsoleCapabilities.Video | ConsoleCapabilities.Input, backends[0].Capabilities, "基本会话能力");
-            c.Equal(ConsoleCapabilities.Video | ConsoleCapabilities.Input | ConsoleCapabilities.Clipboard | ConsoleCapabilities.DisplayResize, backends[1].Capabilities, "增强会话能力");
+            c.Equal(
+                ConsoleCapabilities.Video | ConsoleCapabilities.Input | ConsoleCapabilities.Clipboard
+                | ConsoleCapabilities.DisplayResize | ConsoleCapabilities.AudioOutput | ConsoleCapabilities.AudioInput,
+                backends[1].Capabilities,
+                "增强会话能力");
             c.Require(backends is IList<ConsoleBackendInfo> { IsReadOnly: true }, "目录为只读集合");
             c.Throws<NotSupportedException>(() => ((IList<ConsoleBackendInfo>)backends).Clear(), "目录拒绝清空");
         }]);
@@ -103,6 +120,7 @@ internal static partial class ApiCaseRegistry
                 c.Equal(ConsoleConnectionState.Disconnected, connection.State, "初始状态");
                 c.Require(connection.Video is not null && connection.Input is not null, "提供画面与输入能力");
                 c.Equal(backend == ConsoleService.RdpEnhancedBackendId, connection.Clipboard is not null, "剪贴板能力与后端匹配");
+                c.Equal(backend == ConsoleService.RdpEnhancedBackendId, connection.AudioOutput is not null && connection.AudioInput is not null, "音频能力与后端匹配");
                 connection!.DisposeAsync().AsTask().GetAwaiter().GetResult();
             }
             var defaultConnection = c.Call(() => ConsoleService.CreateConnection(options));
@@ -114,7 +132,7 @@ internal static partial class ApiCaseRegistry
             c.Throws<ArgumentNullException>(() => c.Call(() => ConsoleService.CreateConnection(null!)), "空选项");
             c.Throws<ArgumentNullException>(() => c.Call(() => ConsoleService.CreateConnection(options, null!)), "空后端");
             c.Throws<ArgumentException>(() => c.Call(() => ConsoleService.CreateConnection(options, "unknown")), "未知后端");
-            c.Throws<ArgumentException>(() => c.Call(() => ConsoleService.CreateConnection(options, "Nimue")), "未实现后端不在公开目录中");
+            c.Throws<ArgumentException>(() => c.Call(() => ConsoleService.CreateConnection(options, "External")), "未实现后端不在公开目录中");
             c.Throws<ArgumentException>(() => c.Call(() => ConsoleService.CreateConnection(new())), "缺少虚拟机身份");
         }]);
         byte[] rgb565 = [0, 248, 224, 7, 31, 0, 255, 255];

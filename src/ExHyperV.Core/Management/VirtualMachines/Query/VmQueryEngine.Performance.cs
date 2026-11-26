@@ -34,6 +34,7 @@ internal sealed partial class VmQueryEngine
                     : matches.Length == 0 || matches[0]["PercentTotalRunTime"] == null ? VmQueryValueState.Unavailable : VmQueryValueState.Available;
                 double value = state == VmQueryValueState.Available ? Convert.ToDouble(matches[0]["PercentTotalRunTime"]) : 0;
                 if (state == VmQueryValueState.Available && (!double.IsFinite(value) || value < 0)) state = VmQueryValueState.Unavailable;
+                else if (state == VmQueryValueState.Available) value = Math.Clamp(value, 0, 100);
                 if (state != VmQueryValueState.Available) overall = state; else samples.Add(value);
                 rows.Add(Row(id + ":" + i, id, ("Index", i), ("UsagePercent", VmProcessorMetricFields.UsagePercent.Make(state, value, perf.Time, perf.Error))));
             }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ExHyperV.Services;
 using ExHyperV.Mcp.Api;
 using ExHyperV.Mcp.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -136,4 +137,44 @@ public sealed class ContractTests
     }
 
     public static void NullableInput(string? value) { }
+
+    [TestMethod]
+    public async Task ConsoleSnapshotsTravelByValueAndRemoteCallsCannotTransferFrameOwnership()
+    {
+        var catalog = new ApiCatalog();
+        var objects = new ApiObjects();
+        var policy = new ApiPolicy(catalog, McpLaunchOptions.Parse(["--read-only", "--toolsets", "console"]));
+        var codec = new ApiCodec(catalog, objects, policy);
+        var stage = new ConsoleExtensionStage(821);
+        var snapshot = new ConsoleExtensionSnapshot(8, stage, stage, stage, stage, (ConsoleTransportKind)72, 2,
+            ConsoleCapabilities.Video, ConsoleCapabilities.None, new(true, false, 0), [ConsoleExtensionActionId.RetryConnection], null, "d8");
+        policy.Demand(typeof(ConsoleExtensionSnapshot).GetConstructors().Single());
+        var packed = JsonSerializer.SerializeToElement(codec.Pack(snapshot));
+        var decoded = (ConsoleExtensionSnapshot)codec.Decode(packed, typeof(ConsoleExtensionSnapshot))!;
+        Assert.AreEqual((821, ConsoleExtensionStateCode.Unknown, 72), (decoded.Host.RawCode, decoded.Host.Code, (int)decoded.TransportKind));
+        CollectionAssert.AreEqual(snapshot.AvailableActions.ToArray(), decoded.AvailableActions.ToArray());
+        Assert.AreEqual(0, objects.Count);
+        var handle = JsonSerializer.SerializeToElement(codec.Pack(snapshot, retain: true)).GetProperty("$handle").GetGuid();
+        Assert.AreEqual(1, objects.Count);
+        Assert.Throws<ArgumentException>(() => codec.Decode(JsonSerializer.SerializeToElement(new Dictionary<string, Guid> { ["$handle"] = handle }), typeof(IDisposable)));
+        await objects.ReleaseAsync(handle);
+        Assert.AreEqual(0, objects.Count);
+        var frameCtor = typeof(ConsoleFrame).GetConstructors().Single(c => c.GetParameters().Any(p => p.Name == "owner"));
+        var schema = JsonSerializer.SerializeToElement(ApiSchema.Arguments(frameCtor, _ => ""));
+        Assert.AreEqual("null", schema.GetProperty("properties").GetProperty("owner").GetProperty("type").GetString());
+        Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(frameCtor));
+        Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(typeof(IConsoleDisplayModes).GetMethod(nameof(IConsoleDisplayModes.SetMode))!));
+        Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(typeof(IConsoleCursorStateSource).GetEvent(nameof(IConsoleCursorStateSource.CursorStateChanged))!));
+    }
+
+    [TestMethod]
+    public void AudioPacketConstructionDecodesBinarySamplesThroughTheTypedNativeSpanAdapter()
+    {
+        var codec = new ApiCodec(new ApiCatalog(), new ApiObjects());
+        byte[] samples = [1, 2, 3, 4];
+        var argument = JsonSerializer.SerializeToElement(new { format = new ConsoleAudioFormat(48000, 2,
+            ConsoleAudioSampleFormat.Signed16LittleEndian), samples, sequence = 2, timestamp = TimeSpan.Zero });
+        var packet = (ConsoleAudioPacket)codec.Decode(argument, typeof(ConsoleAudioPacket))!;
+        CollectionAssert.AreEqual(samples, packet.CopySamples());
+    }
 }

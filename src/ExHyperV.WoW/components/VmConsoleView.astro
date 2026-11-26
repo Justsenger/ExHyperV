@@ -1,6 +1,6 @@
 <!-- VM Console Window View (40px single-row: Brand + VM Switcher + Drag Spacer + Stable Action Icons) -->
 <div class="vm-console-window" id="vmConsoleWindow" data-theme="dark" hidden>
-  <!-- Fullscreen Floating Capsule Bar (Only visible in fullscreen) -->
+  <!-- Fullscreen Top-Docked Connection Bar (Only visible in fullscreen) -->
   <div class="console-fs-bar" id="consoleFsBar" hidden>
     <button type="button" class="console-fs-pin" id="consoleFsPinBtn" title="固定或自动隐藏工具栏">
       <span class="fi">&#xE718;</span>
@@ -11,8 +11,7 @@
       <span class="fi fi-fluent-filled">&#xF4C3;</span>
       <span>Ctrl+Alt+Del</span>
     </button>
-    <button type="button" class="console-tb-btn" id="consoleFsModeBtn" title="切换基本或增强会话">
-      <span class="fi fi-fluent">&#xE4A3;</span>
+    <button type="button" class="console-tb-btn" id="consoleFsModeBtn" title="切换会话模式">
       <span id="consoleFsModeLabel">增强会话</span>
     </button>
     <button type="button" class="console-tb-btn" id="consoleFsExitBtn" title="退出全屏 (Esc)">
@@ -37,23 +36,20 @@
 
     <div class="console-header-sep" aria-hidden="true"></div>
 
-    <!-- Fixed-Position High-Frequency Action Controls Immediately Right of Switcher -->
+    <!-- Left-Aligned Console Action Controls (Power, Resolution, Scale, Session, Audio, CAD, Shot, Fullscreen) -->
     <div class="console-actions-bar is-left">
-      <!-- 1. Power SplitButton / Start -->
+      <!-- 1. Power SplitButton (Fixed 56px slot: Play when stopped, Shutdown/Save + Menu when running) -->
       <div class="console-anchor" id="consolePowerAnchor">
-        <button type="button" class="console-icon-btn is-start" id="consolePowerStartBtn" title="启动虚拟机" hidden>
-          <span class="fi fi-fluent-filled">&#xF610;</span>
-        </button>
         <div class="console-split-group" id="consolePowerSplit">
-          <button type="button" class="console-split-main is-running" id="consolePowerMainBtn" title="关机">
-            <span class="fi fi-fluent">&#xF60F;</span>
+          <button type="button" class="console-split-main" id="consolePowerMainBtn" title="关机">
+            <span class="fi fi-fluent" id="consolePowerMainIcon">&#xF60F;</span>
           </button>
           <button type="button" class="console-split-drop" id="consolePowerDropBtn" title="更多电源操作">
             <span class="fi console-btn-caret">&#xE70D;</span>
           </button>
         </div>
-        <div class="console-flyout is-compact-menu" id="consolePowerFlyout" hidden>
-          <button type="button" class="console-flyout-item" data-console-power="shutdown">
+        <div class="console-flyout is-power-menu" id="consolePowerFlyout" hidden>
+          <button type="button" class="console-flyout-item" data-console-power="shutdown" hidden>
             <span class="fi fi-fluent">&#xF60F;</span><span>关机</span>
           </button>
           <button type="button" class="console-flyout-item" data-console-power="restart">
@@ -76,7 +72,7 @@
       <div class="console-anchor" id="consoleResAnchor">
         <button type="button" class="console-hdr-btn" id="consoleResBtn" title="调整增强会话分辨率">
           <span class="fi fi-fluent console-hdr-icon">&#xEB26;</span>
-          <span id="consoleResLabel">1920 × 1080</span>
+          <span id="consoleResLabel">1280×720</span>
           <span class="fi console-btn-caret">&#xE70D;</span>
         </button>
         <div class="console-flyout" id="consoleResFlyout" hidden>
@@ -94,35 +90,93 @@
       <div class="console-anchor" id="consoleScaleAnchor">
         <button type="button" class="console-hdr-btn" id="consoleScaleBtn" title="调整画面缩放比例">
           <span class="fi fi-fluent console-hdr-icon">&#xF8C5;</span>
-          <span id="consoleScaleLabel">适应窗口</span>
+          <span id="consoleScaleLabel">自动</span>
           <span class="fi console-btn-caret">&#xE70D;</span>
         </button>
         <div class="console-flyout is-compact-menu" id="consoleScaleFlyout" hidden>
-          <button type="button" class="console-flyout-item is-selected" data-console-zoom="fit"><span>适应窗口</span></button>
+          <button type="button" class="console-flyout-item is-selected" data-console-zoom="fit"><span>自动</span></button>
+          <button type="button" class="console-flyout-item" data-console-zoom="physical" data-console-zoom-scope="basic"><span>1:1 物理像素</span></button>
           <div class="console-flyout-sep"></div>
+          <button type="button" class="console-flyout-item" data-console-zoom="300%" data-console-zoom-scope="enhanced" hidden><span>300%</span></button>
+          <button type="button" class="console-flyout-item" data-console-zoom="250%" data-console-zoom-scope="enhanced" hidden><span>250%</span></button>
           <button type="button" class="console-flyout-item" data-console-zoom="200%"><span>200%</span></button>
+          <button type="button" class="console-flyout-item" data-console-zoom="175%" data-console-zoom-scope="enhanced" hidden><span>175%</span></button>
           <button type="button" class="console-flyout-item" data-console-zoom="150%"><span>150%</span></button>
           <button type="button" class="console-flyout-item" data-console-zoom="125%"><span>125%</span></button>
           <button type="button" class="console-flyout-item" data-console-zoom="100%"><span>100%</span></button>
-          <button type="button" class="console-flyout-item" data-console-zoom="75%"><span>75%</span></button>
-          <button type="button" class="console-flyout-item" data-console-zoom="50%"><span>50%</span></button>
+          <button type="button" class="console-flyout-item" data-console-zoom="75%" data-console-zoom-scope="basic"><span>75%</span></button>
+          <button type="button" class="console-flyout-item" data-console-zoom="50%" data-console-zoom-scope="basic"><span>50%</span></button>
         </div>
       </div>
 
       <!-- 4. Session Mode Dropdown -->
       <div class="console-anchor" id="consoleModeAnchor">
-        <button type="button" class="console-hdr-btn" id="consoleModeBtn" title="切换基本或增强会话">
-          <span class="fi fi-fluent console-hdr-icon">&#xE4A3;</span>
+        <button type="button" class="console-hdr-btn" id="consoleModeBtn" title="切换会话模式">
           <span id="consoleModeLabel">增强会话</span>
           <span class="fi console-btn-caret">&#xE70D;</span>
         </button>
         <div class="console-flyout is-compact-menu" id="consoleModeFlyout" hidden>
           <button type="button" class="console-flyout-item" data-console-session="basic"><span>基本会话</span></button>
           <button type="button" class="console-flyout-item is-selected" data-console-session="enhanced"><span>增强会话</span></button>
+          <button type="button" class="console-flyout-item" data-console-session="external"><span>超强会话</span></button>
+          <button type="button" class="console-flyout-item" id="consoleWatchOnly">仅观看</button>
         </div>
       </div>
 
-      <!-- 5. Ctrl + Alt + Del (Basic session only) -->
+      <!-- 4b. Stream Quality / Encoding Dropdown (Live sessions) -->
+      <div class="console-anchor" id="consoleQualityAnchor" hidden>
+        <button type="button" class="console-hdr-btn" id="consoleQualityBtn" title="调整控制台画面编码">
+          <span class="fi console-hdr-icon">&#xE7F4;</span>
+          <span id="consoleQualityLabel">自动</span>
+          <span class="fi console-btn-caret">&#xE70D;</span>
+        </button>
+        <div class="console-flyout is-compact-menu" id="consoleQualityFlyout" hidden>
+          <button type="button" class="console-flyout-item is-selected" data-console-quality="auto"><span>自动协商</span></button>
+          <div class="console-flyout-sep"></div>
+          <button type="button" class="console-flyout-item" data-console-quality="bgra"><span>无损原画 (BGRA)</span></button>
+          <button type="button" class="console-flyout-item" data-console-quality="h264"><span>硬件流 (H.264)</span></button>
+          <button type="button" class="console-flyout-item" data-console-quality="deflate"><span>轻量压缩 (Deflate)</span></button>
+          <button type="button" class="console-flyout-item" data-console-quality="png"><span>兼容模式 (PNG)</span></button>
+        </div>
+      </div>
+
+      <!-- 5. Audio / Mute -->
+      <button type="button" class="console-icon-btn" id="consoleAudioBtn" title="音频开启（点击静音）">
+        <span class="fi fi-fluent" id="consoleAudioIcon">&#xEB43;</span>
+      </button>
+
+      <span id="consoleAccessStatus" aria-live="polite" hidden></span>
+      <button type="button" class="console-hdr-btn" id="consoleTakeControl" hidden>接管控制权</button>
+      <select id="consoleDisplayModes" aria-label="显示模式" hidden></select>
+      <!-- 5b. Microphone Input (Enhanced session only, muted by default) -->
+      <button type="button" class="console-icon-btn" id="consoleMicBtn" title="麦克风已静音（点击开启麦克风输入）" hidden>
+        <span class="fi" id="consoleMicIcon">&#xF781;</span>
+      </button>
+
+      <!-- 5c. Clipboard Text Sync (Enhanced session only) -->
+      <div class="console-anchor" id="consoleClipAnchor" hidden>
+        <button type="button" class="console-icon-btn" id="consoleClipBtn" title="剪贴板文本同步">
+          <span class="fi" id="consoleClipIcon">&#xE77F;</span>
+        </button>
+        <div class="console-flyout is-right is-wide console-clip-flyout" id="consoleClipFlyout" hidden>
+          <div class="console-flyout-head">剪贴板同步（纯文本）</div>
+          <button type="button" class="console-flyout-item" id="consoleClipSendBtn">
+            <span class="fi">&#xE77F;</span>
+            <span>发送本机剪贴板文本到虚拟机</span>
+          </button>
+          <button type="button" class="console-flyout-item" id="consoleClipCopyBtn" disabled>
+            <span class="fi">&#xE8C8;</span>
+            <span id="consoleClipCopyLabel">复制来自虚拟机的文本</span>
+          </button>
+          <div class="console-flyout-sep"></div>
+          <div class="console-clip-manual">
+            <textarea class="winui-textbox console-clip-textarea" id="consoleClipInput" rows="2" placeholder="或在此粘贴/输入文本后点击发送"></textarea>
+            <button type="button" class="winui-btn accent console-clip-send-btn" id="consoleClipManualSendBtn">发送</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Ctrl + Alt + Del (Supported in both Basic and Enhanced sessions) -->
       <button type="button" class="console-icon-btn" id="consoleCadBtn" title="发送 Ctrl + Alt + Del">
         <span class="fi fi-fluent-filled">&#xF4C3;</span>
       </button>
@@ -132,21 +186,14 @@
         <span class="fi fi-fluent">&#xF331;</span>
       </button>
 
-      <!-- 7. Audio / Mute -->
-      <button type="button" class="console-icon-btn" id="consoleAudioBtn" title="音频开启（点击静音）">
-        <span class="fi fi-fluent" id="consoleAudioIcon">&#xEB43;</span>
-      </button>
-    </div>
-
-    <!-- Flexible Center Drag Spacer -->
-    <div class="console-drag-spacer" id="consoleDragSpacer" title="拖动窗口"></div>
-
-    <!-- 8. Window-Level Fullscreen Action Next to System Caption Controls -->
-    <div class="console-actions-bar">
+      <!-- 7. Fullscreen -->
       <button type="button" class="console-icon-btn" id="consoleFullscreenBtn" title="全屏显示">
         <span class="fi fi-fluent" id="consoleFullscreenIcon">&#xE685;</span>
       </button>
     </div>
+
+    <!-- Flexible Right Drag Spacer -->
+    <div class="console-drag-spacer" id="consoleDragSpacer" title="拖动窗口"></div>
 
     <!-- Fallback Caption Buttons (Hidden when hosted inside WinOnWeb chrome) -->
     <div class="caption-buttons">
@@ -164,17 +211,18 @@
 
   <!-- Full-Bleed Console Viewport -->
   <div class="console-viewport" id="consoleViewport">
-    <div class="console-flash-overlay" id="consoleFlashOverlay" hidden></div>
-
     <!-- Toast inside console -->
     <div class="console-toast" id="consoleToast" hidden>
-      <span class="fi console-toast-icon">&#xE73E;</span>
+      <span class="fi console-toast-icon" id="consoleToastIcon">&#xE73E;</span>
       <span id="consoleToastText">已执行操作</span>
     </div>
 
     <!-- Connected Live Screen Mock -->
     <div class="console-screen-stage" id="consoleScreenStage">
       <div class="console-screen-surface" id="consoleScreenSurface" tabindex="0">
+        <!-- Real Server Console Stream Canvas (hidden in Demo mode) -->
+        <canvas class="console-live-canvas" id="consoleLiveCanvas" hidden></canvas>
+        <img id="consoleRemotePointer" aria-hidden="true" alt="" hidden />
         <!-- Simulated Guest OS Desktop -->
         <div class="guest-desktop" id="consoleGuestDesktop">
           <div class="guest-wallpaper-glow"></div>
@@ -227,6 +275,7 @@
         <div class="console-empty-title" id="consoleEmptyTitle">虚拟机已关机</div>
         <div class="console-empty-desc" id="consoleEmptyDesc">启动虚拟机后将自动建立控制台连接</div>
         <div class="console-empty-actions">
+          <button type="button" class="winui-btn" id="consoleFallbackEnhanced" hidden>切换到增强会话</button>
           <button type="button" class="winui-btn-accent" id="consolePrimaryActionBtn">启动并连接</button>
         </div>
       </div>

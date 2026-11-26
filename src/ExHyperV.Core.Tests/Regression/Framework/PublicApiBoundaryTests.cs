@@ -13,15 +13,20 @@ public sealed class PublicApiBoundaryTests
     public void UnimplementedCapabilitiesAreNotExported()
     {
         var exported = typeof(ConsoleService).Assembly.GetExportedTypes();
-        Assert.IsFalse(exported.Any(type => type.Name.StartsWith("ConsoleAudio", StringComparison.Ordinal)
-            || type.Name is "IConsoleAudioInput" or "IConsoleAudioOutput" or "DiskParser" or "MmioPlan" or "PageSizeItem"));
-        Assert.IsNull(typeof(IConsoleConnection).GetProperty("AudioInput"));
-        Assert.IsNull(typeof(IConsoleConnection).GetProperty("AudioOutput"));
-        Assert.IsNull(typeof(ConsoleService).GetField("NimueBackendId"));
+        Assert.IsFalse(exported.Any(type => type.Name is "DiskParser" or "MmioPlan" or "PageSizeItem"));
+        foreach (string expectedAudioType in new[]
+        {
+            "ConsoleAudioFormat", "ConsoleAudioPacket", "ConsoleAudioSampleFormat",
+            "IConsoleAudioInput", "IConsoleAudioOutput"
+        })
+            Assert.IsTrue(exported.Any(type => type.Name == expectedAudioType), expectedAudioType);
+        Assert.IsNotNull(typeof(IConsoleConnection).GetProperty("AudioInput"));
+        Assert.IsNotNull(typeof(IConsoleConnection).GetProperty("AudioOutput"));
+        Assert.IsNull(typeof(ConsoleService).GetField("ExternalBackendId"));
         Assert.IsNull(typeof(ConsoleBackendInfo).GetProperty("IsImplemented"));
         Assert.IsNull(typeof(ConsoleBackendInfo).GetProperty("UnavailableReason"));
         CollectionAssert.AreEqual(new[] { "RdpBasic", "RdpEnhanced" }, ConsoleService.GetBackends().Select(item => item.BackendId).ToArray());
-        Assert.ThrowsExactly<ArgumentException>(() => ConsoleService.CreateConnection(new() { VmId = Guid.NewGuid() }, "Nimue"));
+        Assert.ThrowsExactly<ArgumentException>(() => ConsoleService.CreateConnection(new() { VmId = Guid.NewGuid() }, "External"));
     }
 
     [TestMethod]

@@ -53,6 +53,4 @@
 .architecture-choice[aria-current=true],.architecture-only{border-color:var(--accent);background:var(--container);color:var(--textHighlight)}
 .architecture-choice:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .topbar-actions{display:flex;align-items:center;gap:12px}
-.site-language{max-width:136px;height:32px;padding:3px 22px 3px 9px;border:1px solid #3a3a40;border-radius:7px;background:#0d0e11;color:#e9e9ef;font:inherit;font-size:12px;cursor:pointer;color-scheme:dark}
-.site-language:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 @media(max-width:640px){.architecture-options{padding:20px 16px}}

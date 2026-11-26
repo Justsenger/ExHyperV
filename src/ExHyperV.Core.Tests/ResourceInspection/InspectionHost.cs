@@ -171,7 +171,7 @@ internal static class InspectionHost
                     if (credentialSaveBusy) return Results.Conflict(new { error = "登录信息正在保存。" });
                     var report = scanner.Snapshot();
                     var issues = Automation.DeploymentSetup.GetIssues(report);
-                    if (issues.Length > 0) return Results.Conflict(new { error = string.Join("；", issues) });
+                    if (issues.Length > 0) return Results.Conflict(new { error = string.Join("，", issues) });
                     if (!File.Exists(configuration)) return Results.Conflict(new { error = "请先保存资源选择。" });
                     var current = registration.Read();
                     var scanned = InspectionConfiguration.Read(Path.Combine(reports, report.RunId, "resource-settings.json"));

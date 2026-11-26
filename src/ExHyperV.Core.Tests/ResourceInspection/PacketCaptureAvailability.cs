@@ -10,7 +10,7 @@ internal static class PacketCaptureAvailability
         try
         {
             using var api = (load ?? (() => new PacketMonitorApi()))();
-            return new(InspectionStatus.Ready, "独立抓包接口可用；可与现有捕获共存");
+            return new(InspectionStatus.Ready, "独立抓包接口可用，可与现有捕获共存");
         }
         catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException or PlatformNotSupportedException or BadImageFormatException)
         { return new(InspectionStatus.Missing, "此系统缺少 Core 所需的 Packet Monitor 公开接口。", [error.Message]); }

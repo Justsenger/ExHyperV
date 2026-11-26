@@ -259,7 +259,7 @@ internal static class ConsoleProbe
         public bool ClipboardMarkerReturned { get; set; }
         public bool ClipboardRoundTripVerified => ClipboardQueueAccepted && ClipboardMarkerReturned;
         public string? ClipboardSkippedReason { get; set; }
-        public string ClipboardResult => ClipboardRoundTripVerified ? "Marker returned through Core." : "Bidirectional clipboard not verified; accepting the local queue alone is not proof.";
+        public string ClipboardResult => ClipboardRoundTripVerified ? "Marker returned through Core." : "Bidirectional clipboard not verified. Accepting the local queue alone is not proof.";
         public bool GuestClipboardRestored => false;
     }
 

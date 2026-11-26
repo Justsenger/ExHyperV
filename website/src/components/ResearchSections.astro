@@ -1,0 +1,162 @@
+---
+import { isHttpUrl } from '../data/gpu-research-pages.js';
+
+interface Props {
+  driverLines?: any[];
+  sections?: any[];
+}
+
+const { driverLines = [], sections = [] } = Astro.props;
+---
+{driverLines.map((line) => {
+  const lineTitle = line.title || line.series || line.id;
+  const allArtifacts = [
+    ...(line.windows_threshold?.artifacts || []),
+    ...(line.linux_threshold?.artifacts || []),
+  ];
+  return (
+    <section class="doc-section" id={line.id} aria-labelledby={`${line.id}-title`}>
+      <h2 id={`${line.id}-title`}>{lineTitle}</h2>
+      <dl class="doc-spec">
+        <div class="doc-spec-row">
+          <dt>Windows 门槛</dt>
+          <dd>
+            <code>{line.windows_threshold.version}</code>
+            {line.windows_threshold.previous_tested_version && (
+              <span class="doc-muted">（较早未支持版本：{line.windows_threshold.previous_tested_version}）</span>
+            )}
+            {line.windows_threshold.evidence_summary && <p>{line.windows_threshold.evidence_summary}</p>}
+          </dd>
+        </div>
+        <div class="doc-spec-row">
+          <dt>Linux 门槛</dt>
+          <dd>
+            <code>{line.linux_threshold.version}</code>
+            {line.linux_threshold.previous_tested_version && (
+              <span class="doc-muted">（较早未支持版本：{line.linux_threshold.previous_tested_version}）</span>
+            )}
+            {line.linux_threshold.evidence_summary && <p>{line.linux_threshold.evidence_summary}</p>}
+          </dd>
+        </div>
+        {line.architecture_limits && (
+          <div class="doc-spec-row">
+            <dt>限制说明</dt>
+            <dd>{line.architecture_limits}</dd>
+          </div>
+        )}
+        {line.key_findings?.length > 0 && (
+          <div class="doc-spec-row">
+            <dt>要点记录</dt>
+            <dd>
+              {line.key_findings.map((finding) => <p>{finding}</p>)}
+            </dd>
+          </div>
+        )}
+        {line.open_questions?.length > 0 && (
+          <div class="doc-spec-row">
+            <dt>待真机补测</dt>
+            <dd>
+              {line.open_questions.map((question) => <p>{question}</p>)}
+            </dd>
+          </div>
+        )}
+        {allArtifacts.length > 0 && (
+          <div class="doc-spec-row">
+            <dt>涉及文件</dt>
+            <dd>
+              <details class="doc-details">
+                <summary>查看安装包与内部路径（{allArtifacts.length} 条）</summary>
+                <ul class="doc-details-list">
+                  {allArtifacts.map((artifact) => (
+                    <li>
+                      {isHttpUrl(artifact)
+                        ? <a class="doc-link doc-url" href={artifact.trim()} target="_blank" rel="noopener noreferrer">{artifact}</a>
+                        : <code>{artifact}</code>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </dd>
+          </div>
+        )}
+      </dl>
+    </section>
+  );
+})}
+
+{sections.map((section) => {
+  const rows = section.table?.rows || [];
+  const collapseTable = rows.length > 20;
+  return (
+    <section class="doc-section" id={section.id} aria-labelledby={`${section.id}-title`}>
+      <h2 id={`${section.id}-title`}>{section.title}</h2>
+      {section.paragraphs?.map((paragraph) => <p>{paragraph}</p>)}
+      {section.bullets?.length > 0 && (
+        <ul class="doc-list">
+          {section.bullets.map((bullet) => <li>{bullet}</li>)}
+        </ul>
+      )}
+      {section.links?.length > 0 && (
+        <ul class="doc-list">
+          {section.links.map((item) => (
+            <li>
+              <a class="doc-link" href={item.url} target="_blank" rel="noopener noreferrer">{item.label}</a>
+            </li>
+          ))}
+        </ul>
+      )}
+      {section.table && rows.length > 0 && (
+        collapseTable ? (
+          <details class="doc-details">
+            <summary>展开完整表格（共 {rows.length} 条）</summary>
+            <div class="doc-table-wrap doc-table-wrap--bounded doc-table-wrap--spaced">
+              <table class="doc-table doc-table--sticky">
+                <thead>
+                  <tr>
+                    {section.table.headers.map((header) => <th>{header}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr>
+                      {row.map((cell) => (
+                        <td>
+                          {isHttpUrl(cell)
+                            ? <a class="doc-link doc-url" href={cell.trim()} target="_blank" rel="noopener noreferrer">{cell}</a>
+                            : cell}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        ) : (
+          <div class="doc-table-wrap">
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  {section.table.headers.map((header) => <th>{header}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr>
+                    {row.map((cell) => (
+                      <td>
+                        {isHttpUrl(cell)
+                          ? <a class="doc-link doc-url" href={cell.trim()} target="_blank" rel="noopener noreferrer">{cell}</a>
+                          : cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+    </section>
+  );
+})}

@@ -18,7 +18,7 @@ public sealed partial class SettingsPage : Page
     private readonly ComboBox language = new() { MinWidth = 152 };
     private readonly ComboBox theme = new() { MinWidth = 152 };
     private readonly ToggleSwitch accent = Switch(), autoConsole = Switch(), logging = Switch(), verbose = Switch();
-    private readonly SettingsSegmentedPill startup = new() { Width = 264 }, close = new() { Width = 220 }, session = new() { Width = 196 };
+    private readonly SettingsSegmentedPill startup = new() { Width = 264 }, close = new() { Width = 220 }, session = new();
     private readonly List<(string Hex, Border Ring, Button Button, FontIcon Check)> colors = [];
     private readonly List<StackPanel> sections = [];
     private readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromSeconds(2.6) };
@@ -31,6 +31,7 @@ public sealed partial class SettingsPage : Page
         AddCategory("Settings_Appearance", "\uE790", AppearanceSection);
         AddCategory("Settings_System", "\uE770", SystemSection);
         AddCategory("Settings_Preferences", "\uE9E9", PreferencesSection);
+        AddCategory("Settings_Extensions", "\uE74C", ExtensionsSection);
         AddCategory("Settings_Diagnostics", "\uE9D9", LogsSection);
         AddCategory("Settings_About", "\uE946", AboutSection);
         AutomationProperties.SetName(Categories, L10n.Get("Settings_Title"));
@@ -49,7 +50,17 @@ public sealed partial class SettingsPage : Page
         startup.SetOptions((SettingOption[])[Option(StartupMode.Off, "Common_Off"), Option(StartupMode.Normal, "Settings_NormalStart"),
             Option(StartupMode.Silent, "Settings_SilentStart")]);
         close.SetOptions((SettingOption[])[Option(WindowCloseBehavior.Exit, "Settings_Exit"), Option(WindowCloseBehavior.Tray, "Settings_ToTray")]);
-        session.SetOptions((SettingOption[])[Option(ConsoleSessionMode.RdpBasic, "Settings_Basic"), Option(ConsoleSessionMode.RdpEnhanced, "Settings_Enhanced")]);
+        SettingOption[] modes = [Option(ConsoleSessionMode.RdpBasic, "Settings_Basic"), Option(ConsoleSessionMode.RdpEnhanced, "Settings_Enhanced"),
+            Option(ConsoleSessionMode.External, "Settings_SuperSession")];
+        session.SetOptions(modes);
+        double widest = 0;
+        foreach (var mode in modes)
+        {
+            var label = new TextBlock { Text = mode.Label, FontSize = 13 };
+            label.Measure(new(double.PositiveInfinity, double.PositiveInfinity));
+            widest = Math.Max(widest, label.DesiredSize.Width);
+        }
+        session.MinWidth = Math.Ceiling(widest + 18) * modes.Length + 16;
         SystemSection.Children.Add(Card("Settings_AutoStart", "Settings_AutoStartHelp", startup));
         SystemSection.Children.Add(Card("Settings_OnClose", "Settings_OnCloseHelp", close));
         PreferencesSection.Children.Add(Card("Settings_AutoConsole", "Host_Set_AutoConsole_Desc", autoConsole));
@@ -71,7 +82,7 @@ public sealed partial class SettingsPage : Page
 
         toastTimer.Tick += (_, _) => { toastTimer.Stop(); Success.Hide(); };
         Unloaded += (_, _) => { toastTimer.Stop(); Success.Hide(); };
-        Loaded += (_, _) => Refresh();
+        Loaded += (_, _) => { Refresh(); if (ExtensionsSection.Visibility == Visibility.Visible) RefreshExtensions(); };
         ActualThemeChanged += (_, _) => RefreshPalette();
         Refresh();
     }
@@ -92,6 +103,8 @@ public sealed partial class SettingsPage : Page
     {
         for (int i = 0; i < sections.Count; i++)
             sections[i].Visibility = i == Categories.SelectedIndex ? Visibility.Visible : Visibility.Collapsed;
+        if (ExtensionsSection.Visibility == Visibility.Visible) RefreshExtensions();
+        else ExtensionsSection.Children.Clear();
         Body.ChangeView(null, 0, null, true);
     }
 

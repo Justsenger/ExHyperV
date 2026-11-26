@@ -20,7 +20,11 @@ public sealed class WindowsIntegrationTests
     [TestMethod]
     [TestCategory("OperationResource")]
     public void FreeRdp_OfflineNativeSelfTest()
-        => Assert.AreEqual(0u, FreeRdpNative.RunSelfTest(), "Native frame/input/clipboard self-test failed; no VM is connected.");
+        => Assert.AreEqual(0u, FreeRdpNative.RunSelfTest(), "Offline native frame/input/clipboard self-test failed.");
+
+    [TestMethod]
+    [TestCategory("OperationResource")]
+    public void FreeRdp_MultiRegionFramesReconstructAndSurviveProducerShutdown() => ConsoleNativeFrameChecks.Run();
 
     [TestMethod]
     [TestCategory("OperationResource")]

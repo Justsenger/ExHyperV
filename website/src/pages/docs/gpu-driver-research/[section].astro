@@ -1,0 +1,143 @@
+---
+import ResearchNavLayout from '../../../components/ResearchNavLayout.astro';
+import ResearchSections from '../../../components/ResearchSections.astro';
+import research from '../../../data/gpu-pv-driver-research.json';
+import { researchSectionsMap, pickDriverLines, pickNarrativeSections } from '../../../data/gpu-research-pages.js';
+
+export function getStaticPaths() {
+  return Object.keys(researchSectionsMap).map((section) => ({
+    params: { section },
+  }));
+}
+
+const { section } = Astro.params;
+const meta = researchSectionsMap[section];
+const isPackages = section === 'packages';
+const lines = meta.vendor ? pickDriverLines(meta.vendor) : [];
+const sections = pickNarrativeSections(meta.sectionIds);
+
+const roleLabels = [...new Set((research.packages || []).map((pkg) => pkg.role_in_study).filter(Boolean))];
+const roleSlugMap = new Map(roleLabels.map((label, index) => [label, `role-${index + 1}`]));
+---
+<ResearchNavLayout activeSlug={section} title={`${meta.heading} | GPU-PV 驱动研究档案`} wide={isPackages}>
+  <header class="doc-header">
+    <h1>{meta.heading}</h1>
+    <p class="doc-lead">{meta.lead}</p>
+  </header>
+
+  {isPackages && (
+    <section class="doc-section" id="corpus-index" data-docs-filter-root>
+      <div class="doc-toolbar">
+        <div class="doc-tabs doc-tabs--inline">
+          <button type="button" class="doc-tab" data-filter-group="vendor" data-filter-value="all" aria-pressed="true">全部</button>
+          <button type="button" class="doc-tab" data-filter-group="vendor" data-filter-value="nvidia" aria-pressed="false">NVIDIA</button>
+          <button type="button" class="doc-tab" data-filter-group="vendor" data-filter-value="intel" aria-pressed="false">Intel</button>
+          <button type="button" class="doc-tab" data-filter-group="vendor" data-filter-value="amd" aria-pressed="false">AMD</button>
+          <button type="button" class="doc-tab" data-filter-group="vendor" data-filter-value="qualcomm" aria-pressed="false">Qualcomm</button>
+        </div>
+
+        <div class="doc-tabs doc-tabs--inline">
+          <button type="button" class="doc-tab" data-filter-group="role" data-filter-value="all" aria-pressed="true">全部</button>
+          {roleLabels.map((roleLabel) => (
+            <button
+              type="button"
+              class="doc-tab"
+              data-filter-group="role"
+              data-filter-value={roleSlugMap.get(roleLabel)}
+              aria-pressed="false"
+            >
+              {roleLabel}
+            </button>
+          ))}
+        </div>
+
+        <div class="doc-search-box">
+          <input
+            type="search"
+            class="doc-search"
+            data-filter-search
+            aria-label="搜索驱动安装包"
+            placeholder="搜索文件名、版本、SHA-256 或路径..."
+          />
+          <span class="doc-count" data-filter-count>显示 {research.packages.length} / {research.packages.length} 条</span>
+        </div>
+      </div>
+
+      <div class="doc-table-wrap doc-table-wrap--corpus">
+        <table class="doc-table doc-table--sticky">
+          <thead>
+            <tr>
+              <th>系列与文件名</th>
+              <th>版本</th>
+              <th>架构</th>
+              <th>Windows 情况</th>
+              <th>Linux 情况</th>
+              <th>SHA-256</th>
+              <th>详细信息</th>
+            </tr>
+          </thead>
+          <tbody>
+            {research.packages.map((pkg) => {
+              const evidenceFiles = pkg.evidence_files || [];
+              const roleSlug = pkg.role_in_study ? roleSlugMap.get(pkg.role_in_study) || '' : '';
+              const searchText = [
+                pkg.vendor,
+                pkg.series,
+                pkg.version,
+                pkg.architecture,
+                pkg.filename,
+                pkg.sha256,
+                pkg.windows_gpupv_signal,
+                pkg.linux_gpupv_signal,
+                pkg.role_in_study,
+                ...evidenceFiles,
+                pkg.notes,
+              ].join(' ');
+              return (
+                <tr
+                  data-filter-item
+                  data-filter-vendor={pkg.vendor}
+                  data-filter-role={roleSlug}
+                  data-search-text={searchText}
+                >
+                  <td>
+                    <strong>{pkg.series}</strong>
+                    <span class="doc-filename">{pkg.filename}</span>
+                  </td>
+                  <td class="doc-ver-col"><code>{pkg.version}</code></td>
+                  <td class="doc-arch-col">{pkg.architecture}</td>
+                  <td class="doc-signal-col">{pkg.windows_gpupv_signal || '—'}</td>
+                  <td class="doc-signal-col">{pkg.linux_gpupv_signal || '—'}</td>
+                  <td>
+                    {pkg.sha256 ? (
+                      <span class="doc-sha">
+                        <code title={pkg.sha256}>{pkg.sha256.slice(0, 10)}...</code>
+                        <button type="button" class="doc-copy" data-copy-text={pkg.sha256} aria-label={`复制 ${pkg.filename} 的 SHA-256`}>复制</button>
+                      </span>
+                    ) : '—'}
+                  </td>
+                  <td class="doc-notes-col">
+                    {pkg.notes && <div>{pkg.notes}</div>}
+                    {evidenceFiles.length > 0 && (
+                      <details class="doc-details">
+                        <summary>涉及路径（{evidenceFiles.length} 条）</summary>
+                        <ul class="doc-details-list">
+                          {evidenceFiles.map((file) => <li><code>{file}</code></li>)}
+                        </ul>
+                      </details>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div class="doc-empty" data-filter-empty hidden>没有匹配的驱动包记录。</div>
+    </section>
+  )}
+
+  <ResearchSections driverLines={lines} sections={sections} />
+
+  {isPackages && <script>import '../../../scripts/docs-filter.js';</script>}
+</ResearchNavLayout>

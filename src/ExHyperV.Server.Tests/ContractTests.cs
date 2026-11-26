@@ -1,0 +1,157 @@
+using System.Text.Json;
+using ExHyperV.Services;
+using ExHyperV.Server.Api;
+using ExHyperV.Server.Hosting;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace ExHyperV.Server.Tests;
+
+[TestClass]
+public sealed class ContractTests
+{
+    [TestMethod]
+    public void CorePublicContractHasBeenReviewed()
+    {
+        var catalog = new ApiCatalog();
+        Assert.IsTrue(catalog.ContractReviewed, "Core 契约已变化。检查映射和只读声明后更新 Api/Contracts.sha256。");
+        var coverage = JsonSerializer.SerializeToElement(catalog.Coverage());
+        Assert.AreEqual(0, coverage.GetProperty("transportGaps").GetArrayLength());
+    }
+
+    [TestMethod]
+    public void GenericApiCannotBypassDomainOrReadonlyPolicy()
+    {
+        var catalog = new ApiCatalog();
+        var policy = new ApiPolicy(catalog, LaunchOptions.Parse(["--read-only", "--toolsets", "host"]));
+        var start = catalog.Find("M:ExHyperV.Services.ArpSnoopService.Start");
+        Assert.IsFalse(catalog.IsReadOnly(start));
+        Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(start));
+        var vmPolicy = new ApiPolicy(catalog, LaunchOptions.Parse(["--read-only", "--toolsets", "vm"]));
+        foreach (var memberName in new[] { "GetVtpmStateAsync", "InspectDiskAsync", "InspectDifferencingChainAsync" })
+            vmPolicy.Demand(catalog.Members.Values.Single(member => member.Name == memberName));
+        foreach (var memberName in new[] { "ExportLocalGuardianAsync", "SetVtpmPolicyAsync", "InspectResizeSafetyAsync",
+            "ResizeVirtualDiskAsync", "DeleteAttachedMediaFileAsync", "MergeDifferencingDiskAsync", "CreateSnapshotAsync" })
+        {
+            var member = catalog.Members.Values.Single(item => item.Name == memberName);
+            Assert.IsFalse(catalog.IsReadOnly(member), memberName);
+            Assert.Throws<UnauthorizedAccessException>(() => vmPolicy.Demand(member));
+        }
+        var vm = catalog.Members.Values.First(member => member.Name == "ExecuteControlActionAsync");
+        Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(vm));
+    }
+
+    [TestMethod]
+    public void ParameterSchemaCarriesNamesTypesAndRequiredFields()
+    {
+        var catalog = new ApiCatalog();
+        var member = catalog.Find("M:ExHyperV.Services.VmMemoryService.GetVmMemorySettingsAsync(System.Guid)");
+        var description = JsonSerializer.SerializeToElement(catalog.Describe(member));
+        var input = description.GetProperty("inputSchema");
+        Assert.AreEqual("uuid", input.GetProperty("properties").GetProperty("vmId").GetProperty("format").GetString());
+        Assert.AreEqual("vmId", input.GetProperty("required")[0].GetString());
+        Assert.AreEqual(JsonValueKind.Object, description.GetProperty("valueSchema").ValueKind);
+    }
+
+    [TestMethod]
+    public void ValuesCanStillBeExplicitlyRetainedForInstanceCalls()
+    {
+        var objects = new ApiObjects();
+        var codec = new ApiCodec(new ApiCatalog(), objects);
+        var model = new ExHyperV.Models.VmMemorySettings { Startup = 2048 };
+        codec.Pack(model);
+        Assert.AreEqual(0, objects.Count);
+        var value = JsonSerializer.SerializeToElement(codec.Pack(model, retain: true));
+        Assert.AreSame(model, objects.Get(value.GetProperty("$handle").GetGuid()));
+    }
+
+    [TestMethod]
+    public void ScalarContractsAcceptFlagsCharactersAndExplicitNull()
+    {
+        var codec = new ApiCodec(new ApiCatalog(), new ApiObjects());
+        Assert.AreEqual(FileAttributes.ReadOnly | FileAttributes.Hidden,
+            codec.Decode(JsonSerializer.SerializeToElement("ReadOnly, Hidden"), typeof(FileAttributes)));
+        Assert.AreEqual('中', codec.Decode(JsonSerializer.SerializeToElement("中"), typeof(char)));
+        Assert.IsNull(codec.Decode(JsonSerializer.SerializeToElement<string?>(null), typeof(string)));
+        var flags = JsonSerializer.SerializeToElement(ApiSchema.Type(typeof(FileAttributes), input: true));
+        Assert.IsFalse(flags.TryGetProperty("enum", out _));
+        Assert.AreEqual("string", JsonSerializer.SerializeToElement(ApiSchema.Type(typeof(char), input: true)).GetProperty("type").GetString());
+        var method = typeof(ContractTests).GetMethod(nameof(NullableInput))!;
+        var input = JsonSerializer.SerializeToElement(ApiSchema.Arguments(method, _ => ""));
+        Assert.AreEqual("null", input.GetProperty("properties").GetProperty("value").GetProperty("anyOf")[1].GetProperty("type").GetString());
+    }
+
+    [TestMethod]
+    public void DocumentationProseDoesNotChangeExecutionPolicyOrContractFingerprint()
+    {
+        var original = new ApiCatalog();
+        using var stream = typeof(ApiCatalog).Assembly.GetManifestResourceStream("Core.API.json")!;
+        using var reader = new StreamReader(stream);
+        var data = System.Text.Json.Nodes.JsonNode.Parse(reader.ReadToEnd())!;
+        foreach (var type in data["types"]!.AsArray())
+        {
+            type!["area"] = "改写后的分类标题";
+            foreach (var member in type["members"]!.AsArray())
+                member!["navigationPath"] = new System.Text.Json.Nodes.JsonArray("改写后的目录");
+        }
+        var revised = new ApiCatalog(data.ToJsonString());
+        Assert.AreEqual(original.ContractFingerprint, revised.ContractFingerprint);
+        foreach (var member in original.Members.Values)
+        {
+            Assert.AreEqual(original.IsReadOnly(member), revised.IsReadOnly(member), ApiCatalog.Id(member));
+            Assert.AreEqual(original.Group(member), revised.Group(member), ApiCatalog.Id(member));
+        }
+    }
+
+    [TestMethod]
+    public void ReadOnlyPolicyIncludesPreparationQueriesAndExcludesWrites()
+    {
+        var catalog = new ApiCatalog();
+        foreach (var type in new[] { typeof(ExHyperV.Services.VmMemoryService), typeof(ExHyperV.Services.VmProcessorService) })
+            Assert.IsTrue(catalog.IsReadOnly(type.GetMethod("GetModificationCondition")!));
+        Assert.IsTrue(catalog.IsReadOnly(typeof(ExHyperV.Services.VmCreateService).GetMethod("GetCreationOptionsAsync")!));
+        Assert.IsFalse(catalog.IsReadOnly(typeof(ExHyperV.Services.VmMemoryService).GetMethod("SetVmMemorySettingsAsync")!));
+        Assert.IsFalse(catalog.IsReadOnly(typeof(ExHyperV.Services.VmProcessorService).GetMethod("SetVmProcessorAsync")!));
+    }
+
+    public static void NullableInput(string? value) { }
+
+    [TestMethod]
+    public async Task ConsoleSnapshotsTravelByValueAndRemoteCallsCannotTransferFrameOwnership()
+    {
+        var catalog = new ApiCatalog();
+        var objects = new ApiObjects();
+        var policy = new ApiPolicy(catalog, LaunchOptions.Parse(["--read-only", "--toolsets", "console"]));
+        var codec = new ApiCodec(catalog, objects, policy);
+        var stage = new ConsoleExtensionStage(821);
+        var snapshot = new ConsoleExtensionSnapshot(8, stage, stage, stage, stage, (ConsoleTransportKind)72, 2,
+            ConsoleCapabilities.Video, ConsoleCapabilities.None, new(true, false, 0), [ConsoleExtensionActionId.RetryConnection], null, "d8");
+        policy.Demand(typeof(ConsoleExtensionSnapshot).GetConstructors().Single());
+        var packed = JsonSerializer.SerializeToElement(codec.Pack(snapshot));
+        var decoded = (ConsoleExtensionSnapshot)codec.Decode(packed, typeof(ConsoleExtensionSnapshot))!;
+        Assert.AreEqual((821, ConsoleExtensionStateCode.Unknown, 72), (decoded.Host.RawCode, decoded.Host.Code, (int)decoded.TransportKind));
+        CollectionAssert.AreEqual(snapshot.AvailableActions.ToArray(), decoded.AvailableActions.ToArray());
+        Assert.AreEqual(0, objects.Count);
+        var handle = JsonSerializer.SerializeToElement(codec.Pack(snapshot, retain: true)).GetProperty("$handle").GetGuid();
+        Assert.AreEqual(1, objects.Count);
+        Assert.Throws<ArgumentException>(() => codec.Decode(JsonSerializer.SerializeToElement(new Dictionary<string, Guid> { ["$handle"] = handle }), typeof(IDisposable)));
+        await objects.ReleaseAsync(handle);
+        Assert.AreEqual(0, objects.Count);
+        var frameCtor = typeof(ConsoleFrame).GetConstructors().Single(c => c.GetParameters().Any(p => p.Name == "owner"));
+        var schema = JsonSerializer.SerializeToElement(ApiSchema.Arguments(frameCtor, _ => ""));
+        Assert.AreEqual("null", schema.GetProperty("properties").GetProperty("owner").GetProperty("type").GetString());
+        Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(frameCtor));
+        Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(typeof(IConsoleDisplayModes).GetMethod(nameof(IConsoleDisplayModes.SetMode))!));
+        Assert.Throws<UnauthorizedAccessException>(() => policy.Demand(typeof(IConsoleCursorStateSource).GetEvent(nameof(IConsoleCursorStateSource.CursorStateChanged))!));
+    }
+
+    [TestMethod]
+    public void AudioPacketConstructionDecodesBinarySamplesThroughTheTypedNativeSpanAdapter()
+    {
+        var codec = new ApiCodec(new ApiCatalog(), new ApiObjects());
+        byte[] samples = [1, 2, 3, 4];
+        var argument = JsonSerializer.SerializeToElement(new { format = new ConsoleAudioFormat(48000, 2,
+            ConsoleAudioSampleFormat.Signed16LittleEndian), samples, sequence = 2, timestamp = TimeSpan.Zero });
+        var packet = (ConsoleAudioPacket)codec.Decode(argument, typeof(ConsoleAudioPacket))!;
+        CollectionAssert.AreEqual(samples, packet.CopySamples());
+    }
+}

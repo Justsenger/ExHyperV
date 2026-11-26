@@ -225,7 +225,13 @@ internal static partial class ApiDocument
             Validate(type.Doc, parameters, type.Symbol.TypeParameters.Select(p => p.Name).ToArray(), false, $"{type.Path}:{type.Line} {type.Name}", errors);
             if (primary?.ParameterList != null)
             {
-                type.Members.Add(new($"C:{type.Name}", type.Symbol.Name, "主构造器",
+                // Published pages keep their original anchors. New entries use the same signature as the gateways.
+                string constructorId = $"C:{type.Name}";
+                if (!Catalog.Members.ContainsKey(constructorId))
+                    constructorId = type.Symbol.InstanceConstructors.Single(ctor => ctor.DeclaringSyntaxReferences
+                        .Any(reference => reference.SyntaxTree == primary.SyntaxTree && reference.Span == primary.Span))
+                        .GetDocumentationCommentId()!;
+                type.Members.Add(new(constructorId, type.Symbol.Name, "主构造器",
                     $"public {type.Symbol.Name}{primary.ParameterList.WithoutTrivia().NormalizeWhitespace()};", type.Path, type.Line,
                     new XElement("root", type.Doc.Elements("param").Select(p => new XElement(p)))));
                 if (primary is RecordDeclarationSyntax)

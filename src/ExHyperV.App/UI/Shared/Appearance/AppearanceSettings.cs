@@ -6,24 +6,10 @@ using Windows.UI;
 
 namespace ExHyperV.App.UI.Shared.Appearance;
 
-internal enum StartupMode { Off, Normal, Silent }
-internal enum WindowCloseBehavior { Exit, Tray }
-internal enum ConsoleSessionMode { RdpBasic, RdpEnhanced }
-
-internal sealed record AppearanceSettings
+internal sealed partial record AppearanceSettings
 {
-    public ElementTheme Theme { get; init; } = ElementTheme.Default;
-    public bool AccentEnabled { get; init; } = true;
-    public string AccentColor { get; init; } = "#4CC2FF";
-    public bool LoggingEnabled { get; init; } = true;
-    public bool VerboseDiagnostics { get; init; }
-    public string Language { get; init; } = "system";
-    public bool AutoOpenConsole { get; init; } = false;
-    public StartupMode AutoStart { get; init; }
-    public WindowCloseBehavior CloseBehavior { get; init; }
-    public ConsoleSessionMode DefaultConsoleSession { get; init; }
-    public bool AutoCheckUpdate { get; init; } = true;
-    public string DefaultPowerAction { get; init; } = "Shutdown";
+    [System.Text.Json.Serialization.JsonIgnore]
+    public ElementTheme Theme { get => (ElementTheme)ThemeValue; init => ThemeValue = (int)value; }
 
     internal static string NormalizePowerAction(string? value)
         => string.Equals(value, "Save", StringComparison.OrdinalIgnoreCase) ? "Save" : "Shutdown";

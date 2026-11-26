@@ -9,8 +9,8 @@ namespace ExHyperV.Services;
 /// <param name="Id">电源计划 GUID。</param>
 public sealed record HostPowerPlan(string Name, Guid Id);
 
-/// <summary>枚举宿主电源计划并设置当前活动计划；设置影响整个宿主。</summary>
-public static class HostPowerPlanService
+/// <summary>枚举宿主电源计划、查询与调整子组设置并切换当前活动计划；设置影响整个宿主。</summary>
+public static partial class HostPowerPlanService
 {
     private const uint ErrorSuccess = 0;
     private const uint ErrorMoreData = 234;
@@ -81,33 +81,35 @@ public static class HostPowerPlanService
             throw new Win32Exception((int)result);
     }
 
-    private static string ReadFriendlyName(Guid id)
+    private delegate uint SizedUnicodeReader(byte[]? buffer, ref uint bufferSize);
+
+    private static string ReadFriendlyName(Guid id) =>
+        TryReadUnicodeString((byte[]? buffer, ref uint size) =>
+            PowerReadFriendlyName(IntPtr.Zero, ref id, IntPtr.Zero, IntPtr.Zero, buffer, ref size), out string text) && text.Length > 0
+            ? text
+            : id.ToString();
+
+    private static bool TryReadUnicodeString(SizedUnicodeReader reader, out string text)
     {
         uint size = 0;
-        uint result = PowerReadFriendlyName(
-            IntPtr.Zero,
-            ref id,
-            IntPtr.Zero,
-            IntPtr.Zero,
-            null,
-            ref size);
-
+        uint result = reader(null, ref size);
         if ((result != ErrorSuccess && result != ErrorMoreData) || size == 0)
-            return id.ToString();
+        {
+            text = string.Empty;
+            return result == ErrorSuccess;
+        }
 
         byte[] buffer = new byte[size];
-        result = PowerReadFriendlyName(
-            IntPtr.Zero,
-            ref id,
-            IntPtr.Zero,
-            IntPtr.Zero,
-            buffer,
-            ref size);
+        result = reader(buffer, ref size);
+        if (result != ErrorSuccess || size == 0)
+        {
+            text = string.Empty;
+            return false;
+        }
 
-        if (result != ErrorSuccess)
-            return id.ToString();
-
-        return Encoding.Unicode.GetString(buffer).TrimEnd('\0');
+        int byteCount = Math.Min((int)size, buffer.Length);
+        text = Encoding.Unicode.GetString(buffer, 0, byteCount).TrimEnd('\0');
+        return true;
     }
 
     [DllImport("powrprof.dll", SetLastError = true)]

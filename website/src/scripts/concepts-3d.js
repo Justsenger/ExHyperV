@@ -1531,17 +1531,17 @@ export async function createConcept2Viewer({
     });
   }
 
-  // 6 Floating WinUI 3 Pure OS Emblems (Windows, Ubuntu, ArchLinux, Debian, MacOS, FnOS)
-  // 4 in the open cardinal corridors + 2 flanking left/right outside the side crystal columns
+  // 6 Floating OS Icons (Windows, Ubuntu, ArchLinux, Debian, openSUSE, FnOS)
+  // Arranged in a balanced 3D hexagonal halo cleanly outside the 8-cube silhouette
   const cardAnchors = [
-    new Vector3(4.10, 0.55, 0),      // Windows (bottom-right corridor)
-    new Vector3(0, 0.55, 4.10),      // Ubuntu (bottom-left corridor)
-    new Vector3(-4.48, 0.55, 4.48),  // ArchLinux (far-left flank)
-    new Vector3(-4.10, 0.55, 0),     // Debian (top-left corridor)
-    new Vector3(0, 0.55, -4.10),     // MacOS (top-right corridor)
-    new Vector3(4.48, 0.55, -4.48),  // FnOS (far-right flank)
+    new Vector3(4.55, -1.55, 0),       // Windows (bottom-center)
+    new Vector3(1.55, -0.65, 5.25),    // Ubuntu (bottom-left)
+    new Vector3(-3.45, 1.45, 4.65),    // ArchLinux (top-left)
+    new Vector3(-4.55, 2.25, 0),       // Debian (top-center)
+    new Vector3(-1.55, 1.35, -5.25),   // openSUSE (top-right)
+    new Vector3(3.45, -0.75, -4.65),   // FnOS (bottom-right)
   ];
-  const emblemPlaneGeo = new PlaneGeometry(1.88, 1.88);
+  const emblemPlaneGeo = new PlaneGeometry(2.15, 2.15);
   const emblems = cardAnchors.map((anchor, idx) => {
     const mat = new MeshBasicMaterial({
       map: osPack.textures[idx],
@@ -2043,29 +2043,29 @@ export async function createConcept2Viewer({
         fieldReticleGroup.visible = false;
       }
 
-      // Billboard floating pure OS emblems in the 4 open corridors + compute tether endpoints
-      const worldCamPos = camera.position.clone();
+      const showEmblems = vis > 0.03;
       for (let i = 0; i < emblems.length; i += 1) {
         const em = emblems[i];
-        em.mesh.visible = vis > 0.03;
+        em.mesh.visible = showEmblems;
         const px = em.baseAnchor.x * (0.35 + clampExp * 0.65);
         const py = center.y + em.baseAnchor.y + Math.sin(elapsed * 1.8 + i * 1.4) * 0.12 * clampExp;
         const pz = em.baseAnchor.z * (0.35 + clampExp * 0.65);
-        em.mesh.position.set(px, py, pz);
-        em.mesh.scale.setScalar(0.22 + vis * 0.78);
-        em.mesh.quaternion.copy(pivot.quaternion).invert().multiply(camera.quaternion);
-        em.mat.opacity = vis * 0.98;
+        if (showEmblems) {
+          em.mesh.position.set(px, py, pz);
+          em.mesh.scale.setScalar(0.22 + vis * 0.78);
+          em.mesh.quaternion.copy(pivot.quaternion).invert().multiply(camera.quaternion);
+          em.mat.opacity = vis * 0.96;
+        }
 
-        // Tether from Core halo radius (tighter on pure-light void-nexus) to inner edge of OS emblem
+        const tIdx = cellTargets.length + i;
         const tetherInner = coreStyle === 'void-nexus' ? 0.24 : (coreStyle === 'relic-gem' ? 0.72 : 0.90);
         const dir = new Vector3(px, py - center.y, pz).normalize();
-        const tIdx = cellTargets.length + i;
         linePositions[tIdx * 6 + 0] = center.x + dir.x * tetherInner;
         linePositions[tIdx * 6 + 1] = center.y + dir.y * tetherInner;
         linePositions[tIdx * 6 + 2] = center.z + dir.z * tetherInner;
-        linePositions[tIdx * 6 + 3] = px - dir.x * 0.92;
-        linePositions[tIdx * 6 + 4] = py - dir.y * 0.92;
-        linePositions[tIdx * 6 + 5] = pz - dir.z * 0.92;
+        linePositions[tIdx * 6 + 3] = px - dir.x * 0.95;
+        linePositions[tIdx * 6 + 4] = py - dir.y * 0.95;
+        linePositions[tIdx * 6 + 5] = pz - dir.z * 0.95;
       }
       lineAttr.needsUpdate = true;
 

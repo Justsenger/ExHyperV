@@ -544,7 +544,7 @@ public static async Task<GpuDeploymentSnapshot> RecoverGpuAsync(GpuDeploymentSes
 | 连接方式 | 常量标识 | 适合场景 | 能力范围 |
 | --- | --- | --- | --- |
 | 基本会话 | `RdpBasic` | 看开机画面、进 BIOS/UEFI、装系统、系统未启用增强会话时 | 画面、键盘、鼠标 |
-| 增强会话 | `RdpEnhanced` | 日常远程桌面操作（需来宾系统支持并开启增强会话） | 画面、键盘、鼠标、双向剪贴板、动态调整分辨率 |
+| 增强会话 | `RdpEnhanced` | 日常远程桌面操作（需来宾系统支持并开启增强会话） | 画面、键盘、鼠标、双向剪贴板、动态调整分辨率、双向音频 |
 
 两种后端目前都基于 FreeRDP 实现，可通过 `ConsoleService.GetBackends()` 查当前可用列表。
 
@@ -595,8 +595,8 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
    `FrameReceived` 回调给你的 `ConsoleFrame` 只在回调期间有效。如果想异步拿去渲染或存下来，先调 `frame.Retain()`，用完后一定要 `Dispose()`。或者直接调 `CopyPixels()` 拿一份独立字节数组。
 3. **随时抓当前一帧**
    调 `Video.CaptureFrame()` 可以直接取当前连接的最新完整画面（没有画面时返回 `null`，取到的帧用完记得释放）。基本会话和增强会话各自的画面是独立的，互不替代。
-4. **键盘、鼠标和剪贴板**
-   键盘用 `Input.SendKey()` / `SendKeys()`，鼠标用 `SendPointer()` / `SendClick()`（坐标按来宾桌面像素计算）。**当应用窗口失去焦点时，记得调用 `ReleaseAllInputs()`**，防止 Ctrl/Alt/鼠标左键卡死在按住状态。剪贴板通道就绪由 `IsAvailable` 标识，准备好后即可通过 `SetClipboard()` 和 `ClipboardReceived` 收发文本/图像。
+4. **键盘、鼠标、剪贴板与音频**
+   键盘用 `Input.SendKey()` / `SendKeys()`，鼠标用 `SendPointer()` / `SendClick()`（坐标按来宾桌面像素计算）。**当应用窗口失去焦点时，记得调用 `ReleaseAllInputs()`**，防止 Ctrl/Alt/鼠标左键卡死在按住状态。剪贴板与双向音频（`AudioOutput` / `AudioInput`）仅在增强会话提供，各通道是否就绪分别由对应接口的 `IsAvailable` 标识，外部可直接订阅 PCM 音频输出或按当前 `Format` 提交 PCM 输入。
 
 ## 结果、取消和资源释放
 
@@ -654,7 +654,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: 80afdc5888b1d598eef752d684add102a2a9e30a1514f3d51a47ee889124783f -->
+<!-- source-sha256: a3abbc3900ab672b052b91f9c43c65d2a4ada345d2009a78e27150c14d011b5e -->
 
 程序集：`ExHyperV.Core.dll`，版本：`2.0.0-Alpha`。
 
@@ -703,6 +703,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 键名 | 用途 | 保存内容 |
 | --- | --- | --- |
+| ` ExHyperV.ConsoleFeatures ` | 控制台增强会话功能偏好 | JSON 对象，记录 Clipboard、AudioOutput 和 AudioInput 布尔开关。 |
 | ` ExHyperV.CpuAffinity ` | CPU 亲和性配置 | JSON 文本，记录所选处理器、使用的后端、宿主及处理器拓扑标识。 |
 | ` ExHyperV.GpuDrivers ` | GPU 驱动版本记录 | JSON 字典，键为规范化宿主显卡实例 ID，值为最近一次由工具成功部署到来宾系统的驱动版本。 |
 | ` ExHyperV.OSType ` | 操作系统分类 | 操作系统类型名称，例如 Linux，用于界面识别和图标显示。 |
@@ -903,6 +904,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
+| [` VmConsoleFeatures `](#api-d8ea55713c185eb1) | ` ExHyperV.Services ` | 保存在虚拟机配置文件（.vmcx）中的增强会话资源重定向偏好；未写入时默认全部启用。 |
 | [` VmConsoleFields `](#api-e90b77e987feedc5) | ` ExHyperV.Services ` | 控制台的独立可查询字段；可以任意选择其中一项，不要求整组读取或返回。 |
 | [` VmConsoleState `](#api-a83163a3d74dba4b) | ` ExHyperV.Services ` | 一次读取的控制台状态；只表示查询时的事实。 |
 | [` VmConsoleSupportService `](#api-000ef782924fe6a9) | ` ExHyperV.Services ` | 读取虚拟机控制台状态，管理连接相关配置。 |
@@ -1114,7 +1116,11 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
 | [` HostPowerPlan `](#api-a57b694781de3497) | ` ExHyperV.Services ` | 宿主电源计划的显示名称与稳定 GUID。 |
-| [` HostPowerPlanService `](#api-79f9ca4dbc8029c4) | ` ExHyperV.Services ` | 枚举宿主电源计划并设置当前活动计划；设置影响整个宿主。 |
+| [` HostPowerPlanService `](#api-79f9ca4dbc8029c4) | ` ExHyperV.Services ` | 枚举宿主电源计划、查询与调整子组设置并切换当前活动计划；设置影响整个宿主。 |
+| [` HostPowerSetting `](#api-97f3e2e586a6d823) | ` ExHyperV.Services ` | Windows 电源计划中的单个可调设置项及其交流、直流当前值。 |
+| [` HostPowerSettingOption `](#api-b4dae741c06f8df7) | ` ExHyperV.Services ` | 离散电源设置的可选索引与显示名称。 |
+| [` HostPowerSettingValueKind `](#api-4b1533b38c135473) | ` ExHyperV.Services ` | 宿主电源设置项的值输入模式。 |
+| [` HostPowerSubgroup `](#api-99ab9f96050738a3) | ` ExHyperV.Services ` | Windows 电源计划中的设置子组及其包含的电源设置项。 |
 
 **Hyper-V**
 
@@ -1212,7 +1218,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 选择后端，建立和关闭虚拟机通信连接。
 
-连接对象提供状态通知和视频、控制、剪贴板等接口。控制包含键盘和鼠标。
+连接对象提供状态通知和视频、控制、剪贴板、音频等接口。控制包含键盘和鼠标。
 
 
 
@@ -1220,11 +1226,11 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 
 
-RdpBasic 已提供视频和键鼠；RdpEnhanced 还提供剪贴板和分辨率调整。
+RdpBasic 已提供视频和键鼠，RdpEnhanced 还提供剪贴板、分辨率调整与双向音频。
 
 
 
-从 `ConsoleService` 选择后端；完整连接示例见 `IConsoleConnection`。 连接建立、来宾登录完成、剪贴板通道就绪是三个不同的时点。
+从 `ConsoleService` 选择后端，完整连接示例见 `IConsoleConnection`。 连接建立、来宾登录完成、剪贴板和音频通道就绪是各自独立的时点。
 
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
@@ -1232,8 +1238,16 @@ RdpBasic 已提供视频和键鼠；RdpEnhanced 还提供剪贴板和分辨率�
 | [` ConsoleCapabilities `](#api-a7effae4ff578e31) | ` ExHyperV.Services ` | 控制台后端实现的功能，可使用按位运算组合和检查。 |
 | [` ConsoleConnectionOptions `](#api-e62d45486843fafd) | ` ExHyperV.Services ` | 连接目标、初始桌面尺寸、缩放比例和连接超时。 |
 | [` ConsoleConnectionState `](#api-ea5482a340e8774c) | ` ExHyperV.Services ` | 控制台连接当前处于连接中、已连接还是断开阶段。 |
+| [` ConsoleControlState `](#api-ed17d78637b85727) | ` ExHyperV.Services ` | 观众当前有效权限和控制代次。 |
 | [` ConsoleDisconnectInfo `](#api-29568228a14c6559) | ` ExHyperV.Services ` | 连接结束时提供的诊断信息，用于显示原因或记录日志。 |
+| [` ConsoleExtensionActionId `](#api-0b6cdde59dce365d) | ` ExHyperV.Services ` | 本地登记的固定动作。 |
+| [` ConsoleExtensionActionRequest `](#api-1209f692c88b30a9) | ` ExHyperV.Services ` | 宿主按主体和请求 ID 去重，执行前复核目标、权限及版本。 |
+| [` ConsoleExtensionActionResult `](#api-6cece37796989512) | ` ExHyperV.Services ` | 动作结果用于重新查询权威快照。 |
+| [` ConsoleExtensionSnapshot `](#api-ffbd3ff21f8b15d5) | ` ExHyperV.Services ` | 一个目标虚拟机在当前观众上下文中的四段探测结果。 |
+| [` ConsoleExtensionStage `](#api-1c4f1da0d677ec38) | ` ExHyperV.Services ` | 保留原始状态码以兼容未来版本。 |
+| [` ConsoleExtensionStateCode `](#api-200fc5c69d297eb6) | ` ExHyperV.Services ` | 四段探测结果的通用解释。 |
 | [` ConsoleService `](#api-78a7a0c2e5b1433b) | ` ExHyperV.Services ` | 选择连接方式，创建用于查看和操作虚拟机桌面的控制台连接。 |
+| [` ConsoleTransportKind `](#api-38971bd717a40b67) | ` ExHyperV.Services ` | 当前画面的传输种类。 |
 | [` IConsoleConnection `](#api-53f629596085b5c9) | ` ExHyperV.Services ` | 一条虚拟机桌面连接，提供画面、输入和其他受支持的交互能力。 |
 
 ##### 视频
@@ -1253,8 +1267,17 @@ RdpBasic 已提供视频和键鼠；RdpEnhanced 还提供剪贴板和分辨率�
 | 类型 | 命名空间 | 简介 |
 | --- | --- | --- |
 | [` VmScreenshotImage `](#api-3580d41605c9185d) | ` ExHyperV.Models ` | 一张独立保存的截图，包含尺寸和图像字节，可转换为 JPEG。 |
+| [` ConsoleCoordinateSpace `](#api-7e2b8999966506d1) | ` ExHyperV.Services ` | 远端位置使用的坐标系。 |
+| [` ConsoleCursor `](#api-0c62e497891907a6) | ` ExHyperV.Services ` | 远端虚拟机发来的鼠标指针形状与热点坐标。 |
+| [` ConsoleCursorState `](#api-47b57258dd5312fb) | ` ExHyperV.Services ` | 与已有光标形状事件并存的位置状态。 |
+| [` ConsoleDisplayMode `](#api-381fa5b84e9822ef) | ` ExHyperV.Services ` | 后端可协商的显示模式。 |
+| [` ConsoleDisplayModeResult `](#api-12fc0b3e8aa14116) | ` ExHyperV.Services ` | 模式请求的接受状态和实际生效值。 |
 | [` ConsoleFrame `](#api-972d5767e28038af) | ` ExHyperV.Services ` | 一帧虚拟机桌面画面，包含完整像素、尺寸、序号和本次变化区域。 |
+| [` ConsoleFrameMove `](#api-58b726bdccb476f1) | ` ExHyperV.Services ` | 从不可变基帧读取并覆盖目标矩形。 |
 | [` ConsoleFrameRegion `](#api-323b953e417e6d27) | ` ExHyperV.Services ` | 桌面上需要更新的一块矩形区域，位置和大小以像素表示。 |
+| [` ConsoleFrameUpdateKind `](#api-848935f7d993d8da) | ` ExHyperV.Services ` | 帧相对基线的更新方式。 |
+| [` IConsoleCursorStateSource `](#api-cf42a28c1542a989) | ` ExHyperV.Services ` | 视频源可附加的独立光标流。 |
+| [` IConsoleDisplayModes `](#api-92509f9858b4477e) | ` ExHyperV.Services ` | 可选的视频源能力，按稳定标识协商模式。 |
 | [` IConsoleVideoSource `](#api-f1ecb47435b21fa3) | ` ExHyperV.Services ` | 从同一连接获取单帧或持续接收画面，并在后端支持时请求调整分辨率。 |
 | [` VmScreenshotSource `](#api-8ef86a18b6b1159d) | ` ExHyperV.Services ` | 不建立连接，通过 Hyper-V WMI 获取虚拟机基本控制台的一张截图。 |
 
@@ -1310,7 +1333,27 @@ Core 负责传输；宿主剪贴板的读取和写入由调用方完成。 一�
 | --- | --- | --- |
 | [` ConsoleClipboardData `](#api-382082b2780091a0) | ` ExHyperV.Services ` | 一次剪贴板内容，以及这份内容可供接收方选择的不同格式。 |
 | [` ConsoleClipboardFormat `](#api-30176205ed3087ed) | ` ExHyperV.Services ` | 剪贴板内容的一种表示方式，由格式编号、名称和原始字节组成。 |
+| [` ConsoleClipboardProviderInfo `](#api-f8d862d37070c023) | ` ExHyperV.Services ` | 按虚拟机、来宾会话和传输方向选择剪贴板提供方。 |
 | [` IConsoleClipboard `](#api-199dbda02346a96d) | ` ExHyperV.Services ` | 与来宾交换剪贴板内容，例如双向复制粘贴文字。 |
+| [` IConsoleClipboardProvider `](#api-cff3e485bc19a61f) | ` ExHyperV.Services ` | 宿主可按方向选择此接口挂接到连接。 |
+
+##### 音频
+
+来宾声音接收。
+
+接收方向为“来宾 → 调用方”，数据格式为 PCM，播放由调用方负责。RdpBasic 不提供音频通道，RdpEnhanced 在来宾启用声音服务后可用。
+
+
+
+采样格式和数据包约定见 `ConsoleAudioFormat`、`ConsoleAudioPacket`。
+
+| 类型 | 命名空间 | 简介 |
+| --- | --- | --- |
+| [` ConsoleAudioFormat `](#api-34f8d5f444bc1540) | ` ExHyperV.Services ` | 一批音频采样的采样率、声道数和数值格式。 |
+| [` ConsoleAudioPacket `](#api-dca91d63ad5a1a97) | ` ExHyperV.Services ` | 一段音频采样及其格式、包序号和时间戳。 |
+| [` ConsoleAudioSampleFormat `](#api-bfefa55b473f5a20) | ` ExHyperV.Services ` | PCM 音频中每个采样数值的编码方式。 |
+| [` IConsoleAudioInput `](#api-d949c0cb1a4fd072) | ` ExHyperV.Services ` | 向来宾虚拟机发送麦克风 PCM 音频输入。 |
+| [` IConsoleAudioOutput `](#api-8982aaf97ec63492) | ` ExHyperV.Services ` | 接收来自来宾虚拟机的 PCM 音频输出。 |
 
 #### 管理层面
 
@@ -14062,6 +14105,356 @@ public bool TryGetIp(string? mac, out string ip);
 
 返回：找到有效缓存时为 true；否则为 false 且 ip 为空。
 
+<a id="api-34f8d5f444bc1540"></a>
+
+### `ConsoleAudioFormat` record 类
+
+一批音频采样的采样率、声道数和数值格式。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 音频 |
+| 源文件 | ` Business/Audio/ConsoleAudioFormat.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat SampleFormat) `](#api-2ad1caf2a831f077) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public int Channels { get; init; } `](#api-29daddd109f93a79) | 每个采样时刻的声道数量。 |
+| [` public ConsoleAudioSampleFormat SampleFormat { get; init; } `](#api-dbde7700b3d73cf0) | PCM 中单个声道采样值的编码格式。 |
+| [` public int SampleRate { get; init; } `](#api-18d9057a80f614d6) | 每个声道每秒的采样数。 |
+
+#### 详细说明
+
+```csharp
+public sealed record ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat SampleFormat)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `SampleRate` | 每个声道每秒的采样数。 |
+| `Channels` | 每个采样时刻的声道数量。 |
+| `SampleFormat` | PCM 中单个声道采样值的编码格式。 |
+
+调用约定：采样按声道交错排列：双声道依次保存“第 1 次采样的左、右声道，第 2 次采样的左、右声道……”。 同一采样时刻的全部声道组成一个采样帧。
+
+
+
+例如 48 kHz、双声道、16 位整数，每个采样帧占 4 字节，10 毫秒包含 480 个采样帧，共 1920 字节。
+
+
+
+此记录只描述格式，构造时不检查数值。ConsoleAudioPacket 会检查格式及数据长度。 声道排列遵循标准交错音频顺序，常见单声道为居中，双声道依次为左、右声道。
+
+#### 构造函数说明
+
+<a id="api-2ad1caf2a831f077"></a>
+
+##### 创建音频格式（主构造器）
+
+```csharp
+public ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat SampleFormat);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `SampleRate` | 每个声道每秒的采样数。 |
+| `Channels` | 每个采样时刻的声道数量。 |
+| `SampleFormat` | PCM 中单个声道采样值的编码格式。 |
+
+#### 属性说明
+
+<a id="api-29daddd109f93a79"></a>
+
+##### 声道数（record 属性）
+
+```csharp
+public int Channels { get; init; }
+```
+
+每个采样时刻的声道数量。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 每个采样时刻的声道数量。 |
+| 取值与默认 | 正整数。例如 1 为单声道，2 为双声道。 |
+
+<a id="api-dbde7700b3d73cf0"></a>
+
+##### 采样编码（record 属性）
+
+```csharp
+public ConsoleAudioSampleFormat SampleFormat { get; init; }
+```
+
+PCM 中单个声道采样值的编码格式。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | PCM 中单个声道采样值的编码格式。 |
+
+<a id="api-18d9057a80f614d6"></a>
+
+##### 采样率（record 属性）
+
+```csharp
+public int SampleRate { get; init; }
+```
+
+每个声道每秒的采样数。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 每个声道每秒的采样数。 |
+| 取值与默认 | 正整数，单位为 Hz。例如 48000 为 48 kHz。 |
+
+<a id="api-dca91d63ad5a1a97"></a>
+
+### `ConsoleAudioPacket` 类
+
+一段音频采样及其格式、包序号和时间戳。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 音频 |
+| 源文件 | ` Business/Audio/ConsoleAudioPacket.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleAudioPacket(ConsoleAudioFormat format, ReadOnlySpan<byte> samples, long sequence, TimeSpan timestamp) `](#api-7ced884f097119dd) | 复制一段完整的 PCM 采样，创建可独立保留的音频包。 |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleAudioFormat Format { get; } `](#api-13883892ef8a1bac) | 解释当前采样数据所使用的音频格式。 |
+| [` public ReadOnlySpan<byte> Samples { get; } `](#api-e594e516c61cdf5a) | 音频包独立持有的原始 PCM 采样。 |
+| [` public long Sequence { get; } `](#api-42025f5d02f86b6d) | 当前音频流中的包序号。 |
+| [` public TimeSpan Timestamp { get; } `](#api-6938bca8c47d1496) | 当前音频流中的相对时间。 |
+
+**方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public byte[] CopySamples() `](#api-dcd1b0d6e8bb6ec3) | 复制并返回当前音频包的原始 PCM 采样字节。 |
+
+#### 详细说明
+
+```csharp
+public sealed class ConsoleAudioPacket
+```
+
+调用约定：构造时复制采样数据，因此可在回调返回或连接关闭后继续使用，不需要 Dispose。
+
+示例：
+
+构造一段 10 毫秒的双声道静音，说明数据长度如何由格式计算。
+
+
+
+```csharp
+using ExHyperV.Services;
+public static class AudioPacketExample
+{
+    public static ConsoleAudioPacket Silence()
+    {
+        var format = new ConsoleAudioFormat(48000, 2,
+            ConsoleAudioSampleFormat.Signed16LittleEndian);
+        byte[] samples = new byte[480 * 2 * 2];
+        return new ConsoleAudioPacket(format, samples, 0, TimeSpan.Zero);
+    }
+}
+```
+
+#### 构造函数说明
+
+<a id="api-7ced884f097119dd"></a>
+
+##### 创建音频数据包对象（构造器）
+
+```csharp
+public ConsoleAudioPacket(ConsoleAudioFormat format, ReadOnlySpan<byte> samples, long sequence, TimeSpan timestamp);
+```
+
+复制一段完整的 PCM 采样，创建可独立保留的音频包。
+
+| 参数 | 说明 |
+| --- | --- |
+| `format` | 这段数据的采样率、声道数和数值格式。 |
+| `samples` | 按声道交错排列的原始采样；长度必须为“声道数 &#215; 每个采样字节数”的整数倍，可为空。 |
+| `sequence` | 当前音频流中的包序号，非负；由生产者安排顺序。 |
+| `timestamp` | 当前音频流中的相对时间，非负；更具体的计时起点见 Timestamp。 |
+
+调用约定：返回后可以复用原采样内存。构造器只检查本包的格式、长度、序号和时间是否合法，不检查与上一包的先后关系。
+
+- 异常 `ArgumentNullException`：format 为 null。
+- 异常 `ArgumentOutOfRangeException`：格式无效、声道数过大，或 sequence、timestamp 为负。
+- 异常 `ArgumentException`：数据末尾缺少一个完整采样帧所需的字节。
+
+#### 属性说明
+
+<a id="api-13883892ef8a1bac"></a>
+
+##### 音频格式（属性）
+
+```csharp
+public ConsoleAudioFormat Format { get; }
+```
+
+解释当前采样数据所使用的音频格式。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 解释当前采样数据所使用的音频格式。 |
+
+<a id="api-e594e516c61cdf5a"></a>
+
+##### 采样数据（属性）
+
+```csharp
+public ReadOnlySpan<byte> Samples { get; }
+```
+
+音频包独立持有的原始 PCM 采样。
+
+调用约定：构造时已复制，可在回调结束和连接关闭后继续读取。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 音频包独立持有的原始 PCM 采样。 |
+| 取值与默认 | 按声道交错排列，字节数为“声道数 &#215; 每采样字节数”的整数倍，可为空。 |
+
+<a id="api-42025f5d02f86b6d"></a>
+
+##### 包序号（属性）
+
+```csharp
+public long Sequence { get; }
+```
+
+当前音频流中的包序号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前音频流中的包序号。 |
+| 取值与默认 | 非负整数，由生产者安排，与视频帧序号分别计数。 |
+
+<a id="api-6938bca8c47d1496"></a>
+
+##### 相对时间（属性）
+
+```csharp
+public TimeSpan Timestamp { get; }
+```
+
+当前音频流中的相对时间。
+
+调用约定：表示连接建立后至本包交付的单调递增相对时间，可用于跟踪音频包时序。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前音频流中的相对时间。 |
+| 取值与默认 | 非负时间间隔。 |
+
+#### 方法说明
+
+<a id="api-dcd1b0d6e8bb6ec3"></a>
+
+##### 复制音频采样（方法）
+
+```csharp
+public byte[] CopySamples();
+```
+
+复制并返回当前音频包的原始 PCM 采样字节。
+
+返回：独立持有的 PCM 字节数组副本。
+
+<a id="api-bfefa55b473f5a20"></a>
+
+### `ConsoleAudioSampleFormat` 枚举
+
+PCM 音频中每个采样数值的编码方式。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 音频 |
+| 源文件 | ` Business/Audio/ConsoleAudioSampleFormat.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Float32LittleEndian = 1 `](#api-9e9803e9d467e9c6) | 每个采样占 4 字节，小端 IEEE 754 单精度浮点数，通常用 -1～1 表示完整振幅。 |
+| [` Signed16LittleEndian = 0 `](#api-06aba26d855a7f5f) | 每个采样占 2 字节，小端有符号 16 位整数，数值范围 -32768～32767。 |
+
+#### 详细说明
+
+```csharp
+public enum ConsoleAudioSampleFormat
+```
+
+调用约定：采样按小端字节序存储，以 ConsoleAudioFormat 指定的声道顺序交错排列。
+
+#### 枚举值说明
+
+<a id="api-9e9803e9d467e9c6"></a>
+
+##### Float32LittleEndian（枚举值）
+
+```csharp
+Float32LittleEndian = 1
+```
+
+每个采样占 4 字节，小端 IEEE 754 单精度浮点数，通常用 -1～1 表示完整振幅。
+
+<a id="api-06aba26d855a7f5f"></a>
+
+##### Signed16LittleEndian（枚举值）
+
+```csharp
+Signed16LittleEndian = 0
+```
+
+每个采样占 2 字节，小端有符号 16 位整数，数值范围 -32768～32767。
+
 <a id="api-0bbffb055adaf595"></a>
 
 ### `ConsoleBackendInfo` record 类
@@ -14195,6 +14588,8 @@ public string Name { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
+| [` AudioInput = 32 `](#api-93a45b37927396bc) | 向来宾发送音频输入。 |
+| [` AudioOutput = 16 `](#api-913452124f8ec79c) | 接收来自来宾的音频输出。 |
 | [` Clipboard = 4 `](#api-292c72e6710fb71b) | 与来宾交换剪贴板内容。 |
 | [` DisplayResize = 8 `](#api-afcde72f260256e7) | 请求调整来宾桌面的分辨率和缩放比例。 |
 | [` Input = 2 `](#api-7e464082a6488718) | 发送键鼠输入。 |
@@ -14210,6 +14605,26 @@ public enum ConsoleCapabilities
 调用约定：例如 (capabilities &amp; ConsoleCapabilities.Clipboard) != 0 表示实现了剪贴板。 这份列表描述后端能力；某次连接的通道是否就绪，由对应能力接口报告。
 
 #### 枚举值说明
+
+<a id="api-93a45b37927396bc"></a>
+
+##### AudioInput（枚举值）
+
+```csharp
+AudioInput = 32
+```
+
+向来宾发送音频输入。
+
+<a id="api-913452124f8ec79c"></a>
+
+##### AudioOutput（枚举值）
+
+```csharp
+AudioOutput = 16
+```
+
+接收来自来宾的音频输出。
 
 <a id="api-292c72e6710fb71b"></a>
 
@@ -14459,6 +14874,176 @@ public string? Name { get; init; }
 | 详细含义 | 注册剪贴板格式的名称。 |
 | 取值与默认 | HTML 使用 `HTML Format`，区分大小写；文本和 DIB 使用 null 或空字符串。 |
 
+<a id="api-f8d862d37070c023"></a>
+
+### `ConsoleClipboardProviderInfo` record 类
+
+按虚拟机、来宾会话和传输方向选择剪贴板提供方。Session-scoped clipboard provider capabilities.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 剪贴板 |
+| 源文件 | ` Business/Clipboard/ConsoleClipboardProviderInfo.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleClipboardProviderInfo(string ProviderId, Guid VmId, string GuestSessionId, bool IsReady, bool CanRead, bool CanWrite) `](#api-94414919962853a5) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool CanRead { get; init; } `](#api-9a1b21abf70bc4fc) | 是否允许从来宾读取。 |
+| [` public bool CanWrite { get; init; } `](#api-57ce563acdd4b838) | 是否允许向来宾写入。 |
+| [` public string GuestSessionId { get; init; } = RequireId(GuestSessionId, nameof(GuestSessionId)) `](#api-15da748bdf088e82) | 实际来宾会话的非空标识。 |
+| [` public bool IsReady { get; init; } `](#api-ef16be15fe09da5f) | 提供方通道是否就绪。 |
+| [` public string ProviderId { get; init; } = RequireId(ProviderId, nameof(ProviderId)) `](#api-5b5f6050fa4ef226) | 提供方的非空稳定标识。 |
+| [` public Guid VmId { get; init; } = RequireVm(VmId) `](#api-b73ba6d0cf6a205f) | 提供方所属的目标虚拟机。 |
+
+#### 详细说明
+
+```csharp
+public sealed record ConsoleClipboardProviderInfo(string ProviderId,
+    Guid VmId,
+    string GuestSessionId,
+    bool IsReady,
+    bool CanRead,
+    bool CanWrite)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ProviderId` | 提供方稳定标识。 |
+| `VmId` | 目标虚拟机标识。 |
+| `GuestSessionId` | 实际来宾会话标识。 |
+| `IsReady` | 提供方通道是否就绪。 |
+| `CanRead` | 是否允许从来宾读取。 |
+| `CanWrite` | 是否允许向来宾写入。 |
+
+#### 构造函数说明
+
+<a id="api-94414919962853a5"></a>
+
+##### 创建剪贴板提供方描述（主构造器）
+
+```csharp
+public ConsoleClipboardProviderInfo(string ProviderId, Guid VmId, string GuestSessionId, bool IsReady, bool CanRead, bool CanWrite);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `ProviderId` | 提供方稳定标识。 |
+| `VmId` | 目标虚拟机标识。 |
+| `GuestSessionId` | 实际来宾会话标识。 |
+| `IsReady` | 提供方通道是否就绪。 |
+| `CanRead` | 是否允许从来宾读取。 |
+| `CanWrite` | 是否允许向来宾写入。 |
+
+#### 属性说明
+
+<a id="api-9a1b21abf70bc4fc"></a>
+
+##### 是否允许从来宾读取（record 属性）
+
+```csharp
+public bool CanRead { get; init; }
+```
+
+是否允许从来宾读取。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否允许从来宾读取。 |
+
+<a id="api-57ce563acdd4b838"></a>
+
+##### 是否允许向来宾写入（record 属性）
+
+```csharp
+public bool CanWrite { get; init; }
+```
+
+是否允许向来宾写入。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否允许向来宾写入。 |
+
+<a id="api-15da748bdf088e82"></a>
+
+##### 实际来宾会话标识（属性）
+
+```csharp
+public string GuestSessionId { get; init; } = RequireId(GuestSessionId, nameof(GuestSessionId));
+```
+
+实际来宾会话的非空标识。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 实际来宾会话的非空标识。 |
+
+<a id="api-ef16be15fe09da5f"></a>
+
+##### 提供方通道是否就绪（record 属性）
+
+```csharp
+public bool IsReady { get; init; }
+```
+
+提供方通道是否就绪。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 提供方通道是否就绪。 |
+
+<a id="api-5b5f6050fa4ef226"></a>
+
+##### 提供方稳定标识（属性）
+
+```csharp
+public string ProviderId { get; init; } = RequireId(ProviderId, nameof(ProviderId));
+```
+
+提供方的非空稳定标识。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 提供方的非空稳定标识。 |
+
+<a id="api-b73ba6d0cf6a205f"></a>
+
+##### 目标虚拟机标识（属性）
+
+```csharp
+public Guid VmId { get; init; } = RequireVm(VmId);
+```
+
+提供方所属的目标虚拟机。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 提供方所属的目标虚拟机，必须是非空 GUID。 |
+
 <a id="api-e62d45486843fafd"></a>
 
 ### `ConsoleConnectionOptions` record 类
@@ -14482,6 +15067,11 @@ public string? Name { get; init; }
 | [` public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2) `](#api-7763df3391afb936) | 等待底层连接建立的最长时间。 |
 | [` public uint DesktopScale { get; init; } = 100 `](#api-83de64b0ed6709f2) | 请求的来宾桌面缩放比例。 |
 | [` public int Height { get; init; } = 768 `](#api-9588f922040c059c) | 请求的来宾桌面高度。 |
+| [` public bool HostCursor { get; init; } `](#api-f2eee5f9aa94a329) | 是否将光标形状通过独立事件通知，而不在视频帧像素内合成。 |
+| [` public bool RedirectAudioInput { get; init; } = true `](#api-aefc2ac5d436bd6d) | 是否在增强会话中启用麦克风输入重定向。 |
+| [` public bool RedirectAudioOutput { get; init; } = true `](#api-afb8ca9bd6241eea) | 是否在增强会话中启用声音输出重定向。 |
+| [` public bool RedirectClipboard { get; init; } = true `](#api-262328a623238262) | 是否在增强会话中启用剪贴板重定向。 |
+| [` public string? ViewerContextId { get; init; } `](#api-9e0f9cdeada309c9) | 宿主提供的不透明观众关联标识。 |
 | [` public Guid VmId { get; init; } `](#api-30f96f6a247d12d1) | 要连接的本机虚拟机标识。 |
 | [` public int Width { get; init; } = 1024 `](#api-8dd0fb25967f65e6) | 请求的来宾桌面宽度。 |
 
@@ -14509,7 +15099,7 @@ public TimeSpan ConnectTimeout { get; init; } = TimeSpan.FromSeconds(2);
 
 等待底层连接建立的最长时间。
 
-调用约定：从原生连接对象创建完成后计时；不包含原生库初始化、来宾登录和断开清理。超时由 Disconnected 事件报告。
+调用约定：从原生连接对象创建完成后计时，不包含原生库初始化、来宾登录和断开清理。超时由 Disconnected 事件报告。
 
 **字段说明**
 
@@ -14551,6 +15141,90 @@ public int Height { get; init; } = 768;
 | --- | --- |
 | 详细含义 | 请求的来宾桌面高度。 |
 | 取值与默认 | 200～8192 像素，默认 768。Width &#215; Height &#215; 4 不超过 64 MiB 减 64 字节。 |
+
+<a id="api-f2eee5f9aa94a329"></a>
+
+##### 宿主光标模式（属性）
+
+```csharp
+public bool HostCursor { get; init; }
+```
+
+是否将光标形状通过独立事件通知，而不在视频帧像素内合成。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否将光标形状通过独立事件通知，而不在视频帧像素内合成。 |
+| 取值与默认 | false（默认）将光标合成到画面帧，true 交由宿主原生指针渲染。 |
+
+<a id="api-aefc2ac5d436bd6d"></a>
+
+##### 麦克风输入重定向（属性）
+
+```csharp
+public bool RedirectAudioInput { get; init; } = true;
+```
+
+是否在增强会话中启用麦克风输入重定向。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否在增强会话中启用麦克风输入重定向。 |
+| 取值与默认 | true（默认）允许宿主机向来宾发送麦克风音频，false 禁用麦克风通道，仅对增强会话生效。 |
+
+<a id="api-afb8ca9bd6241eea"></a>
+
+##### 声音输出重定向（属性）
+
+```csharp
+public bool RedirectAudioOutput { get; init; } = true;
+```
+
+是否在增强会话中启用声音输出重定向。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否在增强会话中启用声音输出重定向。 |
+| 取值与默认 | true（默认）将来宾音频流转发给宿主机，false 禁用声音输出通道，仅对增强会话生效。 |
+
+<a id="api-262328a623238262"></a>
+
+##### 剪贴板重定向（属性）
+
+```csharp
+public bool RedirectClipboard { get; init; } = true;
+```
+
+是否在增强会话中启用剪贴板重定向。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 是否在增强会话中启用剪贴板重定向。 |
+| 取值与默认 | true（默认）允许宿主机与来宾同步剪贴板，false 禁用剪贴板通道，仅对增强会话生效。 |
+
+<a id="api-9e0f9cdeada309c9"></a>
+
+##### 观众上下文标识（属性）
+
+```csharp
+public string? ViewerContextId { get; init; }
+```
+
+宿主提供的不透明观众关联标识。Optional viewer correlation ID.
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 缺省为 null，仅用于关联上下文，本身不授予权限。 |
 
 <a id="api-30f96f6a247d12d1"></a>
 
@@ -14661,6 +15335,486 @@ Disconnecting = 3
 
 已请求断开，底层仍在退出。
 
+<a id="api-ed17d78637b85727"></a>
+
+### `ConsoleControlState` 类
+
+观众当前有效权限和控制代次。Effective viewer access and control generation.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 连接 |
+| 源文件 | ` Business/Connection/ConsoleControlState.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleControlState(bool canView, bool hasControl, ulong generation) `](#api-adeec202ba417e22) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool CanView { get; } = canView `](#api-2c8da898e6e70360) | 观众是否获准观看。 |
+| [` public ulong Generation { get; } = generation `](#api-6d2a0a556b68c631) | 控制代次，交接后旧代次失效。 |
+| [` public bool HasControl { get; } = hasControl && !canView ? throw new ArgumentException("控制者需要观看权限。", nameof(hasControl)) : hasControl `](#api-2c3dfa2c4356d1c9) | 观众是否持有控制权。 |
+
+#### 详细说明
+
+```csharp
+public sealed class ConsoleControlState(bool canView, bool hasControl, ulong generation)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `canView` | 观众是否获准观看。 |
+| `hasControl` | 观众是否持有控制权。 |
+| `generation` | 控制代次，交接后旧代次失效。 |
+
+#### 构造函数说明
+
+<a id="api-adeec202ba417e22"></a>
+
+##### 创建观看与控制状态（主构造器）
+
+```csharp
+public ConsoleControlState(bool canView, bool hasControl, ulong generation);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `canView` | 观众是否获准观看。 |
+| `hasControl` | 观众是否持有控制权。 |
+| `generation` | 控制代次，交接后旧代次失效。 |
+
+#### 属性说明
+
+<a id="api-2c8da898e6e70360"></a>
+
+##### 观众是否获准观看（属性）
+
+```csharp
+public bool CanView { get; } = canView;
+```
+
+观众是否获准观看。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 观众是否获准观看。 |
+
+<a id="api-6d2a0a556b68c631"></a>
+
+##### 控制代次（属性）
+
+```csharp
+public ulong Generation { get; } = generation;
+```
+
+控制代次，交接后旧代次失效。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 控制代次，交接后旧代次失效。 |
+
+<a id="api-2c3dfa2c4356d1c9"></a>
+
+##### 观众是否持有控制权（属性）
+
+```csharp
+public bool HasControl { get; } = hasControl && !canView ? throw new ArgumentException("控制者需要观看权限。", nameof(hasControl)) : hasControl;
+```
+
+观众是否持有控制权。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 观众是否持有控制权。 |
+
+<a id="api-7e2b8999966506d1"></a>
+
+### `ConsoleCoordinateSpace` 枚举
+
+远端位置使用的坐标系。Cursor coordinate space.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/ConsoleCoordinateSpace.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` DesktopPixels = 1 `](#api-c597a8943c70ed58) | 来宾桌面物理像素。 |
+| [` Unknown = 0 `](#api-92151bbae09d4be4) | 坐标空间未知。 |
+
+#### 详细说明
+
+```csharp
+public enum ConsoleCoordinateSpace
+```
+
+#### 枚举值说明
+
+<a id="api-c597a8943c70ed58"></a>
+
+##### 来宾桌面物理像素（枚举值）
+
+```csharp
+DesktopPixels = 1
+```
+
+来宾桌面物理像素。
+
+<a id="api-92151bbae09d4be4"></a>
+
+##### 坐标空间未知（枚举值）
+
+```csharp
+Unknown = 0
+```
+
+坐标空间未知。
+
+<a id="api-0c62e497891907a6"></a>
+
+### `ConsoleCursor` record 类
+
+远端虚拟机发来的鼠标指针形状与热点坐标。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/ConsoleCursor.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleCursor(int Width, int Height, int HotX, int HotY, byte[] Pixels) `](#api-44375ca0d905416c) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public int Height { get; init; } `](#api-8eff30cc59f58b41) | 光标位图高度。 |
+| [` public int HotX { get; init; } `](#api-55328eb6f17c22bf) | 热点横向偏移。 |
+| [` public int HotY { get; init; } `](#api-c08091e5be41dc23) | 热点纵向偏移。 |
+| [` public byte[] Pixels { get; init; } `](#api-c6929582039cd37b) | BGRA32 光标像素数据。 |
+| [` public int Width { get; init; } `](#api-b8c1de5d3ac56998) | 光标位图宽度。 |
+
+#### 详细说明
+
+```csharp
+public sealed record ConsoleCursor(int Width, int Height, int HotX, int HotY, byte[] Pixels)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Width` | 光标位图宽度。 |
+| `Height` | 光标位图高度。 |
+| `HotX` | 热点横向偏移。 |
+| `HotY` | 热点纵向偏移。 |
+| `Pixels` | BGRA32 光标像素数据。 |
+
+#### 构造函数说明
+
+<a id="api-44375ca0d905416c"></a>
+
+##### 创建光标形状对象（主构造器）
+
+```csharp
+public ConsoleCursor(int Width, int Height, int HotX, int HotY, byte[] Pixels);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Width` | 光标位图宽度。 |
+| `Height` | 光标位图高度。 |
+| `HotX` | 热点横向偏移。 |
+| `HotY` | 热点纵向偏移。 |
+| `Pixels` | BGRA32 光标像素数据。 |
+
+#### 属性说明
+
+<a id="api-8eff30cc59f58b41"></a>
+
+##### 显示高度（record 属性）
+
+```csharp
+public int Height { get; init; }
+```
+
+光标位图高度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 光标位图高度。 |
+| 取值与默认 | 正整数，单位为像素，范围 1 至 384。 |
+
+<a id="api-55328eb6f17c22bf"></a>
+
+##### 热点横坐标（record 属性）
+
+```csharp
+public int HotX { get; init; }
+```
+
+热点横向偏移。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 热点横向偏移。 |
+| 取值与默认 | 非负整数，单位为像素，小于 Width。 |
+
+<a id="api-c08091e5be41dc23"></a>
+
+##### 热点纵坐标（record 属性）
+
+```csharp
+public int HotY { get; init; }
+```
+
+热点纵向偏移。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 热点纵向偏移。 |
+| 取值与默认 | 非负整数，单位为像素，小于 Height。 |
+
+<a id="api-c6929582039cd37b"></a>
+
+##### 像素数据（record 属性）
+
+```csharp
+public byte[] Pixels { get; init; }
+```
+
+BGRA32 光标像素数据。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | BGRA32 光标像素数据。 |
+| 取值与默认 | 长度等于 Width &#215; Height &#215; 4 的字节数组。 |
+
+<a id="api-b8c1de5d3ac56998"></a>
+
+##### 显示宽度（record 属性）
+
+```csharp
+public int Width { get; init; }
+```
+
+光标位图宽度。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 光标位图宽度。 |
+| 取值与默认 | 正整数，单位为像素，范围 1 至 384。 |
+
+<a id="api-47b57258dd5312fb"></a>
+
+### `ConsoleCursorState` record 类
+
+与已有光标形状事件并存的位置状态。Remote cursor position and composition state.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/ConsoleCursorState.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleCursorState(int X, int Y, bool Visible, bool Composited, ConsoleCoordinateSpace CoordinateSpace, ulong ShapeVersion) `](#api-39e8e2d91879dd86) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool Composited { get; init; } `](#api-0fce1efea2497fc7) | 帧内是否已合成光标。 |
+| [` public ConsoleCoordinateSpace CoordinateSpace { get; init; } `](#api-a2e2dbc9ec67052b) | 位置坐标系，未知值不用于定位。 |
+| [` public ulong ShapeVersion { get; init; } `](#api-7fcc327bc6a1ccf4) | 光标形状版本，零表示尚未取得形状。 |
+| [` public bool Visible { get; init; } `](#api-c54e1daec0e1d3a4) | 远端光标是否可见。 |
+| [` public int X { get; init; } `](#api-99ebebaf59f9c910) | 热点横坐标，原点按坐标空间解释。 |
+| [` public int Y { get; init; } `](#api-faf839ac88e1bf6a) | 热点纵坐标，原点按坐标空间解释。 |
+
+#### 详细说明
+
+```csharp
+public sealed record ConsoleCursorState(int X,
+    int Y,
+    bool Visible,
+    bool Composited,
+    ConsoleCoordinateSpace CoordinateSpace,
+    ulong ShapeVersion)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `X` | 热点横坐标，原点按坐标空间解释。 |
+| `Y` | 热点纵坐标，原点按坐标空间解释。 |
+| `Visible` | 远端光标是否可见。 |
+| `Composited` | 帧内是否已合成光标。 |
+| `CoordinateSpace` | 位置坐标系，未知值不用于定位。 |
+| `ShapeVersion` | 光标形状版本，零表示尚未取得形状。 |
+
+#### 构造函数说明
+
+<a id="api-39e8e2d91879dd86"></a>
+
+##### 创建远端光标状态（主构造器）
+
+```csharp
+public ConsoleCursorState(int X, int Y, bool Visible, bool Composited, ConsoleCoordinateSpace CoordinateSpace, ulong ShapeVersion);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `X` | 热点横坐标，原点按坐标空间解释。 |
+| `Y` | 热点纵坐标，原点按坐标空间解释。 |
+| `Visible` | 远端光标是否可见。 |
+| `Composited` | 帧内是否已合成光标。 |
+| `CoordinateSpace` | 位置坐标系，未知值不用于定位。 |
+| `ShapeVersion` | 光标形状版本，零表示尚未取得形状。 |
+
+#### 属性说明
+
+<a id="api-0fce1efea2497fc7"></a>
+
+##### 帧内是否已合成光标（record 属性）
+
+```csharp
+public bool Composited { get; init; }
+```
+
+帧内是否已合成光标。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 帧内是否已合成光标。 |
+
+<a id="api-a2e2dbc9ec67052b"></a>
+
+##### 位置坐标系（record 属性）
+
+```csharp
+public ConsoleCoordinateSpace CoordinateSpace { get; init; }
+```
+
+位置坐标系，未知值不用于定位。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 位置坐标系，未知值不用于定位。 |
+
+<a id="api-7fcc327bc6a1ccf4"></a>
+
+##### 光标形状版本（record 属性）
+
+```csharp
+public ulong ShapeVersion { get; init; }
+```
+
+光标形状版本，零表示尚未取得形状。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 光标形状版本，零表示尚未取得形状。 |
+
+<a id="api-c54e1daec0e1d3a4"></a>
+
+##### 远端光标是否可见（record 属性）
+
+```csharp
+public bool Visible { get; init; }
+```
+
+远端光标是否可见。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 远端光标是否可见。 |
+
+<a id="api-99ebebaf59f9c910"></a>
+
+##### 热点横坐标（record 属性）
+
+```csharp
+public int X { get; init; }
+```
+
+热点横坐标，原点按坐标空间解释。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 热点横坐标，原点按坐标空间解释。 |
+
+<a id="api-faf839ac88e1bf6a"></a>
+
+##### 热点纵坐标（record 属性）
+
+```csharp
+public int Y { get; init; }
+```
+
+热点纵坐标，原点按坐标空间解释。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 热点纵坐标，原点按坐标空间解释。 |
+
 <a id="api-29568228a14c6559"></a>
 
 ### `ConsoleDisconnectInfo` record 类
@@ -14754,6 +15908,1161 @@ public uint ErrorCode { get; init; }
 | 详细含义 | 连接结束时的后端诊断码。 |
 | 取值与默认 | 当前 RDP 后端使用 FreeRDP 或 Win32 错误码；`0xFFFFFFFF` 为托管异常，`0xFFFFFFFE` 为连接超时，0 为未报告错误。 |
 
+<a id="api-381fa5b84e9822ef"></a>
+
+### `ConsoleDisplayMode` 类
+
+后端可协商的显示模式。Negotiated guest display mode.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/ConsoleDisplayMode.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleDisplayMode(string id, int width, int height, uint refreshNumerator, uint refreshDenominator) `](#api-12a29376f59c5a95) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public int Height { get; } = height > 0 ? height : throw new ArgumentOutOfRangeException(nameof(height)) `](#api-7401696334a49547) | 桌面高度，单位为像素。 |
+| [` public string Id { get; } = !string.IsNullOrWhiteSpace(id) ? id : throw new ArgumentException("需要模式标识。", nameof(id)) `](#api-732c86e32f18148e) | 模式的稳定标识，区分大小写。 |
+| [` public uint RefreshDenominator { get; } = refreshDenominator > 0 ? refreshDenominator : throw new ArgumentOutOfRangeException(nameof(refreshDenominator)) `](#api-4081e322a102eb7b) | 刷新率分母，例如 60000/1001 的分母为 1001。 |
+| [` public uint RefreshNumerator { get; } = refreshNumerator > 0 ? refreshNumerator : throw new ArgumentOutOfRangeException(nameof(refreshNumerator)) `](#api-0bb5b78d5b39d628) | 刷新率分子，单位为赫兹。 |
+| [` public int Width { get; } = width > 0 ? width : throw new ArgumentOutOfRangeException(nameof(width)) `](#api-eccd033400e551a2) | 桌面宽度，单位为像素。 |
+
+#### 详细说明
+
+```csharp
+public sealed class ConsoleDisplayMode(string id,
+    int width,
+    int height,
+    uint refreshNumerator,
+    uint refreshDenominator)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `id` | 模式的稳定标识，区分大小写。 |
+| `width` | 桌面宽度，单位为像素。 |
+| `height` | 桌面高度，单位为像素。 |
+| `refreshNumerator` | 刷新率分子，单位为赫兹。 |
+| `refreshDenominator` | 刷新率分母，例如 60000/1001 的分母为 1001。 |
+
+#### 构造函数说明
+
+<a id="api-12a29376f59c5a95"></a>
+
+##### 创建来宾显示模式（主构造器）
+
+```csharp
+public ConsoleDisplayMode(string id, int width, int height, uint refreshNumerator, uint refreshDenominator);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `id` | 模式的稳定标识，区分大小写。 |
+| `width` | 桌面宽度，单位为像素。 |
+| `height` | 桌面高度，单位为像素。 |
+| `refreshNumerator` | 刷新率分子，单位为赫兹。 |
+| `refreshDenominator` | 刷新率分母，例如 60000/1001 的分母为 1001。 |
+
+#### 属性说明
+
+<a id="api-7401696334a49547"></a>
+
+##### 桌面高度（属性）
+
+```csharp
+public int Height { get; } = height > 0 ? height : throw new ArgumentOutOfRangeException(nameof(height));
+```
+
+桌面高度，单位为像素。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 桌面高度，单位为像素。 |
+
+<a id="api-732c86e32f18148e"></a>
+
+##### 模式的稳定标识（属性）
+
+```csharp
+public string Id { get; } = !string.IsNullOrWhiteSpace(id) ? id : throw new ArgumentException("需要模式标识。", nameof(id));
+```
+
+模式的稳定标识，区分大小写。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 模式的稳定标识，区分大小写。 |
+
+<a id="api-4081e322a102eb7b"></a>
+
+##### 刷新率分母（属性）
+
+```csharp
+public uint RefreshDenominator { get; } = refreshDenominator > 0 ? refreshDenominator : throw new ArgumentOutOfRangeException(nameof(refreshDenominator));
+```
+
+刷新率分母，例如 60000/1001 的分母为 1001。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 刷新率分母，例如 60000/1001 的分母为 1001。 |
+
+<a id="api-0bb5b78d5b39d628"></a>
+
+##### 刷新率分子（属性）
+
+```csharp
+public uint RefreshNumerator { get; } = refreshNumerator > 0 ? refreshNumerator : throw new ArgumentOutOfRangeException(nameof(refreshNumerator));
+```
+
+刷新率分子，单位为赫兹。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 刷新率分子，单位为赫兹。 |
+
+<a id="api-eccd033400e551a2"></a>
+
+##### 桌面宽度（属性）
+
+```csharp
+public int Width { get; } = width > 0 ? width : throw new ArgumentOutOfRangeException(nameof(width));
+```
+
+桌面宽度，单位为像素。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 桌面宽度，单位为像素。 |
+
+<a id="api-12fc0b3e8aa14116"></a>
+
+### `ConsoleDisplayModeResult` record 类
+
+模式请求的接受状态和实际生效值。Mode request acknowledgement.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/ConsoleDisplayModeResult.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleDisplayModeResult(bool Accepted, ConsoleDisplayMode? ActiveMode) `](#api-75f74398a3f0c032) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool Accepted { get; init; } `](#api-61d526ff9b3a6473) | 后端是否接受请求。 |
+| [` public ConsoleDisplayMode? ActiveMode { get; init; } `](#api-a5320e879efbb1ba) | 当前可确认的实际模式，尚未确认时为 null。 |
+
+#### 详细说明
+
+```csharp
+public sealed record ConsoleDisplayModeResult(bool Accepted, ConsoleDisplayMode? ActiveMode)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Accepted` | 后端是否接受请求。 |
+| `ActiveMode` | 当前可确认的实际模式，尚未确认时为 null。 |
+
+#### 构造函数说明
+
+<a id="api-75f74398a3f0c032"></a>
+
+##### 创建模式切换结果（主构造器）
+
+```csharp
+public ConsoleDisplayModeResult(bool Accepted, ConsoleDisplayMode? ActiveMode);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Accepted` | 后端是否接受请求。 |
+| `ActiveMode` | 当前可确认的实际模式，尚未确认时为 null。 |
+
+#### 属性说明
+
+<a id="api-61d526ff9b3a6473"></a>
+
+##### 后端是否接受请求（record 属性）
+
+```csharp
+public bool Accepted { get; init; }
+```
+
+后端是否接受请求。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 后端是否接受请求。 |
+
+<a id="api-a5320e879efbb1ba"></a>
+
+##### 当前可确认的实际模式（record 属性）
+
+```csharp
+public ConsoleDisplayMode? ActiveMode { get; init; }
+```
+
+当前可确认的实际模式，尚未确认时为 null。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前可确认的实际模式，尚未确认时为 null。 |
+
+<a id="api-0b6cdde59dce365d"></a>
+
+### `ConsoleExtensionActionId` 枚举
+
+本地登记的固定动作。Fixed extension action identifiers.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 连接 |
+| 源文件 | ` Business/Connection/ConsoleExtensionActionId.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` ActivateHost = 1 `](#api-fb9d56aaae24c3a4) | 激活宿主组件。 |
+| [` DeployGuestComponent = 3 `](#api-3a4cad9d3fbc3deb) | 部署来宾组件。 |
+| [` MaintainHost = 2 `](#api-a375e9a636d279b6) | 维护宿主组件。 |
+| [` RetryConnection = 4 `](#api-4dae59f78e62ad82) | 重试目标连接。 |
+| [` Unknown = 0 `](#api-b5cc74ec9e86553f) | 未知动作。 |
+
+#### 详细说明
+
+```csharp
+public enum ConsoleExtensionActionId
+```
+
+#### 枚举值说明
+
+<a id="api-fb9d56aaae24c3a4"></a>
+
+##### 激活宿主组件（枚举值）
+
+```csharp
+ActivateHost = 1
+```
+
+激活宿主组件。
+
+<a id="api-3a4cad9d3fbc3deb"></a>
+
+##### 部署来宾组件（枚举值）
+
+```csharp
+DeployGuestComponent = 3
+```
+
+部署来宾组件。
+
+<a id="api-a375e9a636d279b6"></a>
+
+##### 维护宿主组件（枚举值）
+
+```csharp
+MaintainHost = 2
+```
+
+维护宿主组件。
+
+<a id="api-4dae59f78e62ad82"></a>
+
+##### 重试目标连接（枚举值）
+
+```csharp
+RetryConnection = 4
+```
+
+重试目标连接。
+
+<a id="api-b5cc74ec9e86553f"></a>
+
+##### 未知动作（枚举值）
+
+```csharp
+Unknown = 0
+```
+
+未知动作。
+
+<a id="api-1209f692c88b30a9"></a>
+
+### `ConsoleExtensionActionRequest` 类
+
+宿主按主体和请求 ID 去重，执行前复核目标、权限及版本。Version-bound action request.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 连接 |
+| 源文件 | ` Business/Connection/ConsoleExtensionActionRequest.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleExtensionActionRequest(Guid requestId, ulong snapshotVersion, ConsoleExtensionActionId action, Guid? vmId, string? componentId, string? viewerContextId) `](#api-c461ab127a29e1b0) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleExtensionActionId Action { get; } = Enum.IsDefined(action) && action != ConsoleExtensionActionId.Unknown ? action : throw new ArgumentOutOfRangeException(nameof(action)) `](#api-cb02fe625872b5fd) | 请求执行的固定动作。 |
+| [` public string? ComponentId { get; } = action switch  {  ConsoleExtensionActionId.DeployGuestComponent when string.IsNullOrWhiteSpace(componentId) =>  throw new ArgumentException("部署需要组件标识。", nameof(componentId)),  not ConsoleExtensionActionId.DeployGuestComponent when componentId is not null =>  throw new ArgumentException("只有部署动作接受组件标识。", nameof(componentId)),  _ => componentId  } `](#api-c32cb59933493806) | 部署时协商的组件标识，执行方按本地白名单解析。 |
+| [` public Guid RequestId { get; } = requestId != Guid.Empty ? requestId : throw new ArgumentException("需要请求标识。", nameof(requestId)) `](#api-f627258d96d6731a) | 请求去重标识。 |
+| [` public ulong SnapshotVersion { get; } = snapshotVersion `](#api-efbf21a524ab9eef) | 动作所依据的快照版本。 |
+| [` public string? ViewerContextId { get; } = viewerContextId `](#api-c478735eca05f82b) | 不透明观众关联标识，仅供匹配上下文。 |
+| [` public Guid? VmId { get; } = vmId == Guid.Empty \|\| (vmId is null &&  action is ConsoleExtensionActionId.DeployGuestComponent or ConsoleExtensionActionId.RetryConnection)  ? throw new ArgumentException("需要有效的目标虚拟机标识。", nameof(vmId)) : vmId `](#api-c900e443cb9b696e) | 当前虚拟机目标，宿主级动作可为空。 |
+
+#### 详细说明
+
+```csharp
+public sealed class ConsoleExtensionActionRequest(Guid requestId,
+    ulong snapshotVersion,
+    ConsoleExtensionActionId action,
+    Guid? vmId,
+    string? componentId,
+    string? viewerContextId)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `requestId` | 请求去重标识。 |
+| `snapshotVersion` | 动作所依据的快照版本。 |
+| `action` | 请求执行的固定动作。 |
+| `vmId` | 当前虚拟机目标，宿主级动作可为空。 |
+| `componentId` | 部署时协商的组件标识，执行方按本地白名单解析。 |
+| `viewerContextId` | 不透明观众关联标识，仅供匹配上下文。 |
+
+#### 构造函数说明
+
+<a id="api-c461ab127a29e1b0"></a>
+
+##### 创建扩展动作请求（主构造器）
+
+```csharp
+public ConsoleExtensionActionRequest(Guid requestId, ulong snapshotVersion, ConsoleExtensionActionId action, Guid? vmId, string? componentId, string? viewerContextId);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `requestId` | 请求去重标识。 |
+| `snapshotVersion` | 动作所依据的快照版本。 |
+| `action` | 请求执行的固定动作。 |
+| `vmId` | 当前虚拟机目标，宿主级动作可为空。 |
+| `componentId` | 部署时协商的组件标识，执行方按本地白名单解析。 |
+| `viewerContextId` | 不透明观众关联标识，仅供匹配上下文。 |
+
+#### 属性说明
+
+<a id="api-cb02fe625872b5fd"></a>
+
+##### 请求执行的固定动作（属性）
+
+```csharp
+public ConsoleExtensionActionId Action { get; } = Enum.IsDefined(action) && action != ConsoleExtensionActionId.Unknown ? action : throw new ArgumentOutOfRangeException(nameof(action));
+```
+
+请求执行的固定动作。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 请求执行的固定动作。 |
+
+<a id="api-c32cb59933493806"></a>
+
+##### 部署时协商的组件标识（属性）
+
+```csharp
+public string? ComponentId { get; } = action switch
+    {
+        ConsoleExtensionActionId.DeployGuestComponent when string.IsNullOrWhiteSpace(componentId) =>
+            throw new ArgumentException("部署需要组件标识。", nameof(componentId)),
+        not ConsoleExtensionActionId.DeployGuestComponent when componentId is not null =>
+            throw new ArgumentException("只有部署动作接受组件标识。", nameof(componentId)),
+        _ => componentId
+    };
+```
+
+部署时协商的组件标识，执行方按本地白名单解析。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 部署时协商的组件标识，执行方按本地白名单解析。 |
+
+<a id="api-f627258d96d6731a"></a>
+
+##### 请求去重标识（属性）
+
+```csharp
+public Guid RequestId { get; } = requestId != Guid.Empty ? requestId : throw new ArgumentException("需要请求标识。", nameof(requestId));
+```
+
+请求去重标识。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 请求去重标识。 |
+
+<a id="api-efbf21a524ab9eef"></a>
+
+##### 动作所依据的快照版本（属性）
+
+```csharp
+public ulong SnapshotVersion { get; } = snapshotVersion;
+```
+
+动作所依据的快照版本。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 动作所依据的快照版本。 |
+
+<a id="api-c478735eca05f82b"></a>
+
+##### 不透明观众关联标识（属性）
+
+```csharp
+public string? ViewerContextId { get; } = viewerContextId;
+```
+
+不透明观众关联标识，仅供匹配上下文。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 不透明观众关联标识，仅供匹配上下文。 |
+
+<a id="api-c900e443cb9b696e"></a>
+
+##### 当前虚拟机目标（属性）
+
+```csharp
+public Guid? VmId { get; } = vmId == Guid.Empty || (vmId is null &&
+        action is ConsoleExtensionActionId.DeployGuestComponent or ConsoleExtensionActionId.RetryConnection)
+        ? throw new ArgumentException("需要有效的目标虚拟机标识。", nameof(vmId)) : vmId;
+```
+
+当前虚拟机目标，宿主级动作可为空。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前虚拟机目标，宿主级动作可为空。 |
+
+<a id="api-6cece37796989512"></a>
+
+### `ConsoleExtensionActionResult` record 类
+
+动作结果用于重新查询权威快照。Result correlated with the original request.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 连接 |
+| 源文件 | ` Business/Connection/ConsoleExtensionActionResult.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleExtensionActionResult(Guid RequestId, bool Accepted, ulong SnapshotVersion, string? Reason, string? DiagnosticId) `](#api-d6b2ba19b7f94b0c) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool Accepted { get; init; } `](#api-20a73c195d7a53c8) | 宿主是否接受动作。 |
+| [` public string? DiagnosticId { get; init; } `](#api-dcda084d0e85c532) | 用于关联诊断的非敏感编号。 |
+| [` public string? Reason { get; init; } `](#api-e4400f644312fe5b) | 已脱敏的拒绝或重试原因。 |
+| [` public Guid RequestId { get; init; } `](#api-54d4127582b6b2bc) | 原请求标识。 |
+| [` public ulong SnapshotVersion { get; init; } `](#api-5a7b8c1643498d93) | 响应对应的权威快照版本。 |
+
+#### 详细说明
+
+```csharp
+public sealed record ConsoleExtensionActionResult(Guid RequestId,
+    bool Accepted,
+    ulong SnapshotVersion,
+    string? Reason,
+    string? DiagnosticId)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `RequestId` | 原请求标识。 |
+| `Accepted` | 宿主是否接受动作。 |
+| `SnapshotVersion` | 响应对应的权威快照版本。 |
+| `Reason` | 已脱敏的拒绝或重试原因。 |
+| `DiagnosticId` | 用于关联诊断的非敏感编号。 |
+
+#### 构造函数说明
+
+<a id="api-d6b2ba19b7f94b0c"></a>
+
+##### 创建扩展动作响应（主构造器）
+
+```csharp
+public ConsoleExtensionActionResult(Guid RequestId, bool Accepted, ulong SnapshotVersion, string? Reason, string? DiagnosticId);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `RequestId` | 原请求标识。 |
+| `Accepted` | 宿主是否接受动作。 |
+| `SnapshotVersion` | 响应对应的权威快照版本。 |
+| `Reason` | 已脱敏的拒绝或重试原因。 |
+| `DiagnosticId` | 用于关联诊断的非敏感编号。 |
+
+#### 属性说明
+
+<a id="api-20a73c195d7a53c8"></a>
+
+##### 宿主是否接受动作（record 属性）
+
+```csharp
+public bool Accepted { get; init; }
+```
+
+宿主是否接受动作。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主是否接受动作。 |
+
+<a id="api-dcda084d0e85c532"></a>
+
+##### 用于关联诊断的非敏感编号（record 属性）
+
+```csharp
+public string? DiagnosticId { get; init; }
+```
+
+用于关联诊断的非敏感编号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 用于关联诊断的非敏感编号。 |
+
+<a id="api-e4400f644312fe5b"></a>
+
+##### 已脱敏的拒绝或重试原因（record 属性）
+
+```csharp
+public string? Reason { get; init; }
+```
+
+已脱敏的拒绝或重试原因。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 已脱敏的拒绝或重试原因。 |
+
+<a id="api-54d4127582b6b2bc"></a>
+
+##### 原请求标识（record 属性）
+
+```csharp
+public Guid RequestId { get; init; }
+```
+
+原请求标识。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 原请求标识。 |
+
+<a id="api-5a7b8c1643498d93"></a>
+
+##### 响应对应的权威快照版本（record 属性）
+
+```csharp
+public ulong SnapshotVersion { get; init; }
+```
+
+响应对应的权威快照版本。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 响应对应的权威快照版本。 |
+
+<a id="api-ffbd3ff21f8b15d5"></a>
+
+### `ConsoleExtensionSnapshot` 类
+
+一个目标虚拟机在当前观众上下文中的四段探测结果。Versioned per-viewer extension status.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 连接 |
+| 源文件 | ` Business/Connection/ConsoleExtensionSnapshot.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleExtensionSnapshot(ulong version, ConsoleExtensionStage host, ConsoleExtensionStage authorization, ConsoleExtensionStage guest, ConsoleExtensionStage transport, ConsoleTransportKind transportKind, ulong surfaceEpoch, ConsoleCapabilities supported, ConsoleCapabilities granted, ConsoleControlState control, IReadOnlyList<ConsoleExtensionActionId> availableActions, string? reason, string? diagnosticId) `](#api-f2ec60c233457c75) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleExtensionStage Authorization { get; } = authorization ?? throw new ArgumentNullException(nameof(authorization)) `](#api-fcedcf333e79b2df) | 当前主体授权状态。 |
+| [` public IReadOnlyList<ConsoleExtensionActionId> AvailableActions { get; } = Array.AsReadOnly(availableActions.Where(id => Enum.IsDefined(id) && id != ConsoleExtensionActionId.Unknown).Distinct().ToArray()) `](#api-06d5e094e01002ee) | 经调用方识别的允许动作，未知动作默认禁用。 |
+| [` public ConsoleControlState Control { get; } = control ?? throw new ArgumentNullException(nameof(control)) `](#api-099a45c07cf32744) | 当前观众的有效控制状态。 |
+| [` public string? DiagnosticId { get; } = diagnosticId `](#api-4341f6ee6fbe3dc5) | 用于关联诊断的非敏感编号。 |
+| [` public ConsoleCapabilities Granted { get; } = granted `](#api-c450219421ec3ff0) | 当前主体获准的能力范围。 |
+| [` public ConsoleExtensionStage Guest { get; } = guest ?? throw new ArgumentNullException(nameof(guest)) `](#api-c0c8a85558057956) | 目标虚拟机组件状态。 |
+| [` public ConsoleExtensionStage Host { get; } = host ?? throw new ArgumentNullException(nameof(host)) `](#api-f09e1ca47d5523d6) | 宿主组件状态。 |
+| [` public string? Reason { get; } = reason `](#api-438816605fec3333) | 提供方已脱敏的原因说明。 |
+| [` public ConsoleCapabilities Supported { get; } = supported `](#api-fa74a8f30737bdcd) | 后端声明支持的能力。 |
+| [` public ulong SurfaceEpoch { get; } = surfaceEpoch `](#api-ed597b459f84a8ab) | 传输表面纪元，变化后使用完整帧。 |
+| [` public ConsoleExtensionStage Transport { get; } = transport ?? throw new ArgumentNullException(nameof(transport)) `](#api-6443284a69c3ff9d) | 传输路径状态。 |
+| [` public ConsoleTransportKind TransportKind { get; } = transportKind `](#api-2d432ae7726efaec) | 当前传输种类，未知值走通用显示。 |
+| [` public ulong Version { get; } = version `](#api-d110326aca64b78f) | 权威快照版本，动作请求须回传此值。 |
+
+#### 详细说明
+
+```csharp
+public sealed class ConsoleExtensionSnapshot(ulong version,
+    ConsoleExtensionStage host,
+    ConsoleExtensionStage authorization,
+    ConsoleExtensionStage guest,
+    ConsoleExtensionStage transport,
+    ConsoleTransportKind transportKind,
+    ulong surfaceEpoch,
+    ConsoleCapabilities supported,
+    ConsoleCapabilities granted,
+    ConsoleControlState control,
+    IReadOnlyList<ConsoleExtensionActionId> availableActions,
+    string? reason,
+    string? diagnosticId)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `version` | 权威快照版本，动作请求须回传此值。 |
+| `host` | 宿主组件状态。 |
+| `authorization` | 当前主体授权状态。 |
+| `guest` | 目标虚拟机组件状态。 |
+| `transport` | 传输路径状态。 |
+| `transportKind` | 当前传输种类，未知值走通用显示。 |
+| `surfaceEpoch` | 传输表面纪元，变化后使用完整帧。 |
+| `supported` | 后端声明支持的能力。 |
+| `granted` | 当前主体获准的能力范围。 |
+| `control` | 当前观众的有效控制状态。 |
+| `availableActions` | 经调用方识别的允许动作，未知动作默认禁用。 |
+| `reason` | 提供方已脱敏的原因说明。 |
+| `diagnosticId` | 用于关联诊断的非敏感编号。 |
+
+#### 构造函数说明
+
+<a id="api-f2ec60c233457c75"></a>
+
+##### 创建扩展状态快照（主构造器）
+
+```csharp
+public ConsoleExtensionSnapshot(ulong version, ConsoleExtensionStage host, ConsoleExtensionStage authorization, ConsoleExtensionStage guest, ConsoleExtensionStage transport, ConsoleTransportKind transportKind, ulong surfaceEpoch, ConsoleCapabilities supported, ConsoleCapabilities granted, ConsoleControlState control, IReadOnlyList<ConsoleExtensionActionId> availableActions, string? reason, string? diagnosticId);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `version` | 权威快照版本，动作请求须回传此值。 |
+| `host` | 宿主组件状态。 |
+| `authorization` | 当前主体授权状态。 |
+| `guest` | 目标虚拟机组件状态。 |
+| `transport` | 传输路径状态。 |
+| `transportKind` | 当前传输种类，未知值走通用显示。 |
+| `surfaceEpoch` | 传输表面纪元，变化后使用完整帧。 |
+| `supported` | 后端声明支持的能力。 |
+| `granted` | 当前主体获准的能力范围。 |
+| `control` | 当前观众的有效控制状态。 |
+| `availableActions` | 经调用方识别的允许动作，未知动作默认禁用。 |
+| `reason` | 提供方已脱敏的原因说明。 |
+| `diagnosticId` | 用于关联诊断的非敏感编号。 |
+
+#### 属性说明
+
+<a id="api-fcedcf333e79b2df"></a>
+
+##### 当前主体授权状态（属性）
+
+```csharp
+public ConsoleExtensionStage Authorization { get; } = authorization ?? throw new ArgumentNullException(nameof(authorization));
+```
+
+当前主体授权状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前主体授权状态。 |
+
+<a id="api-06d5e094e01002ee"></a>
+
+##### 经调用方识别的允许动作（属性）
+
+```csharp
+public IReadOnlyList<ConsoleExtensionActionId> AvailableActions { get; } = Array.AsReadOnly(availableActions.Where(id => Enum.IsDefined(id) && id != ConsoleExtensionActionId.Unknown).Distinct().ToArray());
+```
+
+经调用方识别的允许动作，未知动作默认禁用。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 经调用方识别的允许动作，未知动作默认禁用。 |
+
+<a id="api-099a45c07cf32744"></a>
+
+##### 当前观众的有效控制状态（属性）
+
+```csharp
+public ConsoleControlState Control { get; } = control ?? throw new ArgumentNullException(nameof(control));
+```
+
+当前观众的有效控制状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前观众的有效控制状态。 |
+
+<a id="api-4341f6ee6fbe3dc5"></a>
+
+##### 用于关联诊断的非敏感编号（属性）
+
+```csharp
+public string? DiagnosticId { get; } = diagnosticId;
+```
+
+用于关联诊断的非敏感编号。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 用于关联诊断的非敏感编号。 |
+
+<a id="api-c450219421ec3ff0"></a>
+
+##### 当前主体获准的能力范围（属性）
+
+```csharp
+public ConsoleCapabilities Granted { get; } = granted;
+```
+
+当前主体获准的能力范围。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前主体获准的能力范围。 |
+
+<a id="api-c0c8a85558057956"></a>
+
+##### 目标虚拟机组件状态（属性）
+
+```csharp
+public ConsoleExtensionStage Guest { get; } = guest ?? throw new ArgumentNullException(nameof(guest));
+```
+
+目标虚拟机组件状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 目标虚拟机组件状态。 |
+
+<a id="api-f09e1ca47d5523d6"></a>
+
+##### 宿主组件状态（属性）
+
+```csharp
+public ConsoleExtensionStage Host { get; } = host ?? throw new ArgumentNullException(nameof(host));
+```
+
+宿主组件状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 宿主组件状态。 |
+
+<a id="api-438816605fec3333"></a>
+
+##### 提供方已脱敏的原因说明（属性）
+
+```csharp
+public string? Reason { get; } = reason;
+```
+
+提供方已脱敏的原因说明。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 提供方已脱敏的原因说明。 |
+
+<a id="api-fa74a8f30737bdcd"></a>
+
+##### 后端声明支持的能力（属性）
+
+```csharp
+public ConsoleCapabilities Supported { get; } = supported;
+```
+
+后端声明支持的能力。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 后端声明支持的能力。 |
+
+<a id="api-ed597b459f84a8ab"></a>
+
+##### 传输表面纪元（属性）
+
+```csharp
+public ulong SurfaceEpoch { get; } = surfaceEpoch;
+```
+
+传输表面纪元，变化后使用完整帧。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 传输表面纪元，变化后使用完整帧。 |
+
+<a id="api-6443284a69c3ff9d"></a>
+
+##### 传输路径状态（属性）
+
+```csharp
+public ConsoleExtensionStage Transport { get; } = transport ?? throw new ArgumentNullException(nameof(transport));
+```
+
+传输路径状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 传输路径状态。 |
+
+<a id="api-2d432ae7726efaec"></a>
+
+##### 当前传输种类（属性）
+
+```csharp
+public ConsoleTransportKind TransportKind { get; } = transportKind;
+```
+
+当前传输种类，未知值走通用显示。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 当前传输种类，未知值走通用显示。 |
+
+<a id="api-d110326aca64b78f"></a>
+
+##### 权威快照版本（属性）
+
+```csharp
+public ulong Version { get; } = version;
+```
+
+权威快照版本，动作请求须回传此值。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 权威快照版本，动作请求须回传此值。 |
+
+<a id="api-1c4f1da0d677ec38"></a>
+
+### `ConsoleExtensionStage` record 类
+
+保留原始状态码以兼容未来版本。Preserves unrecognized status codes.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 连接 |
+| 源文件 | ` Business/Connection/ConsoleExtensionStage.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleExtensionStage(int RawCode) `](#api-c2d6ea0be7e18038) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleExtensionStateCode Code { get; } `](#api-7619deb887d389fd) | 当前版本可以解释的状态。 |
+| [` public int RawCode { get; init; } `](#api-9a4f1cc256fb4d2d) | 提供方报告的原始整数状态码。 |
+
+#### 详细说明
+
+```csharp
+public sealed record ConsoleExtensionStage(int RawCode)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `RawCode` | 提供方报告的原始整数状态码。 |
+
+#### 构造函数说明
+
+<a id="api-c2d6ea0be7e18038"></a>
+
+##### 创建扩展分段状态（主构造器）
+
+```csharp
+public ConsoleExtensionStage(int RawCode);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `RawCode` | 提供方报告的原始整数状态码。 |
+
+#### 属性说明
+
+<a id="api-7619deb887d389fd"></a>
+
+##### 已知状态（属性）
+
+```csharp
+public ConsoleExtensionStateCode Code { get; }
+```
+
+当前版本可以解释的状态。Known interpretation of the raw code.
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 未识别的原码映射为 Unknown。 |
+
+<a id="api-9a4f1cc256fb4d2d"></a>
+
+##### 提供方报告的原始整数状态码（record 属性）
+
+```csharp
+public int RawCode { get; init; }
+```
+
+提供方报告的原始整数状态码。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 提供方报告的原始整数状态码。 |
+
+<a id="api-200fc5c69d297eb6"></a>
+
+### `ConsoleExtensionStateCode` 枚举
+
+四段探测结果的通用解释。Known extension stage codes.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 连接 |
+| 源文件 | ` Business/Connection/ConsoleExtensionStateCode.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` AccessDenied = 3 `](#api-27729c102d53abb6) | 访问被拒绝。 |
+| [` Incompatible = 5 `](#api-79109595645badf7) | 版本不兼容。 |
+| [` Missing = 4 `](#api-fda47c2685945933) | 组件缺失。 |
+| [` Ready = 6 `](#api-804adeef5f8691b5) | 已就绪。 |
+| [` Unknown = 0 `](#api-177617f3050528ce) | 状态未知。 |
+| [` Unreachable = 2 `](#api-49d5276236a62ec4) | 服务不可达。 |
+| [` Unverified = 1 `](#api-0f9335c86335160a) | 尚未证实。 |
+
+#### 详细说明
+
+```csharp
+public enum ConsoleExtensionStateCode
+```
+
+#### 枚举值说明
+
+<a id="api-27729c102d53abb6"></a>
+
+##### 访问被拒绝（枚举值）
+
+```csharp
+AccessDenied = 3
+```
+
+访问被拒绝。
+
+<a id="api-79109595645badf7"></a>
+
+##### 版本不兼容（枚举值）
+
+```csharp
+Incompatible = 5
+```
+
+版本不兼容。
+
+<a id="api-fda47c2685945933"></a>
+
+##### 组件缺失（枚举值）
+
+```csharp
+Missing = 4
+```
+
+组件缺失。
+
+<a id="api-804adeef5f8691b5"></a>
+
+##### 已就绪（枚举值）
+
+```csharp
+Ready = 6
+```
+
+已就绪。
+
+<a id="api-177617f3050528ce"></a>
+
+##### 状态未知（枚举值）
+
+```csharp
+Unknown = 0
+```
+
+状态未知。
+
+<a id="api-49d5276236a62ec4"></a>
+
+##### 服务不可达（枚举值）
+
+```csharp
+Unreachable = 2
+```
+
+服务不可达。
+
+<a id="api-0f9335c86335160a"></a>
+
+##### 尚未证实（枚举值）
+
+```csharp
+Unverified = 1
+```
+
+尚未证实。
+
 <a id="api-972d5767e28038af"></a>
 
 ### `ConsoleFrame` 类
@@ -14774,7 +17083,8 @@ public uint ErrorCode { get; init; }
 
 | 成员 | 说明 |
 | --- | --- |
-| [` public ConsoleFrame(int width, int height, int stride, ReadOnlyMemory<byte> pixels, long sequence) `](#api-c1824b67530e7d8f) | 使用调用方提供的像素内存创建租约；任何关联租约存活期间都不得修改该内存。 |
+| [` public ConsoleFrame(int width, int height, int stride, ReadOnlyMemory<byte> pixels, long sequence) `](#api-c1824b67530e7d8f) | 使用调用方提供的像素内存创建租约，任何关联租约存活期间都不得修改该内存。 |
+| [` public ConsoleFrame(int width, int height, int stride, ReadOnlyMemory<byte> pixels, long sequence, long baseSequence, ConsoleFrameUpdateKind updateKind, IReadOnlyList<ConsoleFrameRegion>? dirtyRegions = null, IReadOnlyList<ConsoleFrameMove>? moveRegions = null, IDisposable? owner = null) `](#api-fc1a20b34cf56c57) | 使用只读像素和可选所有者创建完整快照租约。 |
 
 **属性**
 
@@ -14783,11 +17093,15 @@ public uint ErrorCode { get; init; }
 | [` public long BaseSequence { get; } `](#api-ffd9b3afb8291670) | Damage 所依据的前一帧序号。 |
 | [` public int ByteLength { get; } `](#api-0dd98558052c2c13) | 整帧像素缓冲区的长度。 |
 | [` public ConsoleFrameRegion Damage { get; } `](#api-c0ca95b63fdbbdea) | 相对 BaseSequence 发生变化的桌面区域。 |
+| [` public IReadOnlyList<ConsoleFrameRegion> DirtyRegions { get; } `](#api-214441c0c214f7f7) | 移动完成后从当前快照覆盖的矩形，读取期间保持租约有效。 |
+| [` public bool HasChanges { get; } `](#api-391e354c1dcc95e4) | 是否有像素需要刷新。 |
 | [` public bool HasFullDamage { get; } `](#api-f3cf8f02d41f9263) | 本次画面是否需要全量刷新。 |
 | [` public int Height { get; } `](#api-616a1e77beb8c421) | 完整来宾桌面的高度。 |
+| [` public IReadOnlyList<ConsoleFrameMove> MoveRegions { get; } `](#api-5c2829187c7170c2) | 依次从同一基帧复制到目标的区域，读取期间保持租约有效。 |
 | [` public ReadOnlySpan<byte> Pixels { get; } `](#api-0f916becd52bb8d3) | 当前帧的只读像素内存。 |
 | [` public long Sequence { get; } `](#api-7ed89a64cc88291b) | 本连接生成画面时递增的帧序号。 |
 | [` public int Stride { get; } `](#api-15bad73304b82dfa) | 像素缓冲区每行占用的字节数。 |
+| [` public ConsoleFrameUpdateKind UpdateKind { get; } `](#api-460c44f6b1e55a21) | 帧相对基线的更新类型。 |
 | [` public int Width { get; } `](#api-d082eed74a45c63e) | 完整来宾桌面的宽度。 |
 
 **方法**
@@ -14795,7 +17109,7 @@ public uint ErrorCode { get; init; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public byte[] CopyPixels() `](#api-e5049e309fda705d) | 复制整帧像素，取得可以独立保存和修改的字节数组。 |
-| [` public void Dispose() `](#api-9636f7084707a2fd) | 释放当前这份帧租约；重复释放没有额外效果。 |
+| [` public void Dispose() `](#api-9636f7084707a2fd) | 释放当前这份帧租约，重复释放没有额外效果。 |
 | [` public ConsoleFrame Retain() `](#api-276168d816a67152) | 保留这帧画面，供回调结束后继续使用，不复制像素。 |
 
 #### 详细说明
@@ -14804,11 +17118,11 @@ public uint ErrorCode { get; init; }
 public sealed class ConsoleFrame : IDisposable
 ```
 
-调用约定：Pixels 是 BGRA32 像素：每个像素依次为蓝、绿、红、Alpha 四个字节，图像从上到下排列。 当前控制台后端的帧已包含远端光标，Alpha 为 255；自行构造的帧保留调用方提供的像素。 按 Stride 计算下一行的位置，按 Width 和 Height 取得桌面尺寸。
+调用约定：Pixels 是 BGRA32 像素：每个像素依次为蓝、绿、红、Alpha 四个字节，图像从上到下排列。 当前控制台后端的帧已包含远端光标，Alpha 为 255，自行构造的帧保留调用方提供的像素。 按 Stride 计算下一行的位置，按 Width 和 Height 取得桌面尺寸。
 
 
 
-这个对象也负责保持像素内存有效，称为“帧租约”。FrameReceived 回调中的帧由 Core 临时借出； 只在回调内使用时无需保留。要在回调后使用，请调用 Retain，并在使用完毕后 Dispose；需要独立数组则调用 CopyPixels。
+这个对象也负责保持像素内存有效，称为“帧租约”。FrameReceived 回调中的帧由 Core 临时借出， 只在回调内使用时无需保留。要在回调后使用，请调用 Retain，并在使用完毕后 Dispose，需要独立数组则调用 CopyPixels。
 
 
 
@@ -14845,7 +17159,7 @@ public static class RetainedFrameExample
         }
         finally
         {
-            // 先关闭入队入口；晚到的 Enqueue 会自行释放，不能再留下新帧。
+            // 先关闭入队入口，晚到的 Enqueue 会自行释放，不能再留下新帧。
             queue.Writer.TryComplete();
             try
             {
@@ -14871,20 +17185,43 @@ public static class RetainedFrameExample
 public ConsoleFrame(int width, int height, int stride, ReadOnlyMemory<byte> pixels, long sequence);
 ```
 
-使用调用方提供的像素内存创建租约；任何关联租约存活期间都不得修改该内存。
+使用调用方提供的像素内存创建租约，任何关联租约存活期间都不得修改该内存。
 
 | 参数 | 说明 |
 | --- | --- |
 | `width` | 正数图像宽度，单位为像素。 |
 | `height` | 正数图像高度，单位为像素。 |
-| `stride` | 每行字节数；必须为 4 的倍数且不小于 width &#215; 4，可包含行尾填充。 |
-| `pixels` | 长度必须等于 stride &#215; height 的完整像素内存，不复制；任何租约存活时都不得修改或释放其底层内存。 |
-| `sequence` | 正数帧序号；此构造将 BaseSequence 设为 sequence - 1 并标记整帧变化。 |
+| `stride` | 每行字节数，必须为 4 的倍数且不小于 width &#215; 4，可包含行尾填充。 |
+| `pixels` | 长度必须等于 stride &#215; height 的完整像素内存，不复制，任何租约存活时都不得修改或释放其底层内存。 |
+| `sequence` | 正数帧序号，此构造将 BaseSequence 设为 sequence - 1 并标记整帧变化。 |
 
 调用约定：仅验证像素描述与内存长度，不复制或冻结调用方内存。长度运算使用 64 位整数，拒绝无法用托管内存长度表示的帧。
 
 - 异常 `ArgumentOutOfRangeException`：尺寸、行长度或帧序号无效，或帧字节数超出可表示范围。
 - 异常 `ArgumentException`：像素内存长度与图像描述不一致。
+
+<a id="api-fc1a20b34cf56c57"></a>
+
+##### 使用变化区域创建帧租约（构造器）
+
+```csharp
+public ConsoleFrame(int width, int height, int stride, ReadOnlyMemory<byte> pixels, long sequence, long baseSequence, ConsoleFrameUpdateKind updateKind, IReadOnlyList<ConsoleFrameRegion>? dirtyRegions = null, IReadOnlyList<ConsoleFrameMove>? moveRegions = null, IDisposable? owner = null);
+```
+
+使用只读像素和可选所有者创建完整快照租约。Creates a lease without copying pixels.
+
+| 参数 | 说明 |
+| --- | --- |
+| `width` | 桌面宽度，单位为像素。 |
+| `height` | 桌面高度，单位为像素。 |
+| `stride` | 每行字节数，按四字节对齐。 |
+| `pixels` | 包含全部行的 BGRA32 内存，各租约存活期间必须保持有效且不可变。 |
+| `sequence` | 当前正数序号。 |
+| `baseSequence` | 基帧序号，必须小于当前序号。完整帧允许零。 |
+| `updateKind` | 完整帧自行生成整屏矩形，增量帧至少提供一个区域，无变化帧没有区域。 |
+| `dirtyRegions` | 增量中需要用当前像素覆盖的非空区域。 |
+| `moveRegions` | 按顺序从同一基帧取样的移动列表。 |
+| `owner` | 成功构造时接管此所有者，最后一个租约释放时调用 Dispose。构造失败时所有权仍归调用方。 |
 
 #### 属性说明
 
@@ -14934,7 +17271,7 @@ public ConsoleFrameRegion Damage { get; }
 
 相对 BaseSequence 发生变化的桌面区域。
 
-调用约定：用于局部刷新；Pixels 始终保存完整画面。
+调用约定：用于局部刷新，Pixels 始终保存完整画面。
 
 **字段说明**
 
@@ -14942,6 +17279,38 @@ public ConsoleFrameRegion Damage { get; }
 | --- | --- |
 | 详细含义 | 相对 BaseSequence 发生变化的桌面区域。 |
 | 取值与默认 | 以桌面左上角为原点的像素矩形。 |
+
+<a id="api-214441c0c214f7f7"></a>
+
+##### 脏区列表（属性）
+
+```csharp
+public IReadOnlyList<ConsoleFrameRegion> DirtyRegions { get; }
+```
+
+移动完成后从当前快照覆盖的矩形，读取期间保持租约有效。Dirty pixel rectangles.
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 完整帧包含整个桌面，无变化帧为空。 |
+
+<a id="api-391e354c1dcc95e4"></a>
+
+##### 帧是否变化（属性）
+
+```csharp
+public bool HasChanges { get; }
+```
+
+是否有像素需要刷新。True for full and delta updates.
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 无变化帧为 false。 |
 
 <a id="api-f3cf8f02d41f9263"></a>
 
@@ -14958,7 +17327,7 @@ public bool HasFullDamage { get; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 本次画面是否需要全量刷新。 |
-| 取值与默认 | true：刷新整个桌面；false：可根据 BaseSequence 和 Damage 局部刷新。 |
+| 取值与默认 | true：刷新整个桌面，false：可根据 BaseSequence 和 Damage 局部刷新。 |
 
 <a id="api-616a1e77beb8c421"></a>
 
@@ -14976,6 +17345,22 @@ public int Height { get; }
 | --- | --- |
 | 详细含义 | 完整来宾桌面的高度。 |
 | 取值与默认 | 正整数，单位为物理像素。 |
+
+<a id="api-5c2829187c7170c2"></a>
+
+##### 移动区域列表（属性）
+
+```csharp
+public IReadOnlyList<ConsoleFrameMove> MoveRegions { get; }
+```
+
+依次从同一基帧复制到目标的区域，读取期间保持租约有效。Base frame moves.
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 重叠移动均从原始基帧读取，最后覆盖脏区。 |
 
 <a id="api-0f916becd52bb8d3"></a>
 
@@ -14996,7 +17381,7 @@ public ReadOnlySpan<byte> Pixels { get; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 当前帧的只读像素内存。 |
-| 取值与默认 | 从上到下排列的 BGRA32：每像素依次为蓝、绿、红、Alpha 四个字节；行长度为 Stride，完整长度为 ByteLength。连接生成的帧包含远端光标，Alpha 为 255。 |
+| 取值与默认 | 从上到下排列的 BGRA32：每像素依次为蓝、绿、红、Alpha 四个字节，行长度为 Stride，完整长度为 ByteLength。连接生成的帧包含远端光标，Alpha 为 255。 |
 
 <a id="api-7ed89a64cc88291b"></a>
 
@@ -15013,7 +17398,7 @@ public long Sequence { get; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 本连接生成画面时递增的帧序号。 |
-| 取值与默认 | 正整数；重复获取同一画面时序号不变。 |
+| 取值与默认 | 正整数，重复获取同一画面时序号不变。 |
 
 <a id="api-15bad73304b82dfa"></a>
 
@@ -15030,7 +17415,23 @@ public int Stride { get; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 像素缓冲区每行占用的字节数。 |
-| 取值与默认 | 4 的倍数，不小于 Width &#215; 4；连接生成的帧为 Width &#215; 4，自行构造时可包含行尾填充。 |
+| 取值与默认 | 4 的倍数，不小于 Width &#215; 4，连接生成的帧为 Width &#215; 4，自行构造时可包含行尾填充。 |
+
+<a id="api-460c44f6b1e55a21"></a>
+
+##### 帧更新类别（属性）
+
+```csharp
+public ConsoleFrameUpdateKind UpdateKind { get; }
+```
+
+帧相对基线的更新类型。Frame update kind.
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 完整帧、增量或无变化。 |
 
 <a id="api-d082eed74a45c63e"></a>
 
@@ -15061,7 +17462,7 @@ public byte[] CopyPixels();
 
 复制整帧像素，取得可以独立保存和修改的字节数组。
 
-返回：长度为 ByteLength 的新数组，按原来的 Stride 排列；同时保存 Width、Height、Stride 才能解释它。
+返回：长度为 ByteLength 的新数组，按原来的 Stride 排列，同时保存 Width、Height、Stride 才能解释它。
 
 调用约定：适合需要长期保留或交给会修改数据的组件。只想延后读取时可使用 Retain，避免这次复制。
 
@@ -15075,7 +17476,7 @@ public byte[] CopyPixels();
 public void Dispose();
 ```
 
-释放当前这份帧租约；重复释放没有额外效果。
+释放当前这份帧租约，重复释放没有额外效果。
 
 调用约定：释放后不能再读取此对象的 Pixels、调用 Retain 或 CopyPixels。 其他通过 Retain 取得的帧仍可使用。不要在读取此租约的同时由另一线程释放它。
 
@@ -15089,12 +17490,120 @@ public ConsoleFrame Retain();
 
 保留这帧画面，供回调结束后继续使用，不复制像素。
 
-返回：一份新的帧租约，共享当前像素；调用方用完后必须 Dispose。
+返回：一份新的帧租约，共享当前像素，调用方用完后必须 Dispose。
 
-调用约定：每次 Retain 取得一份独立租约，直到该租约释放为止均可读取像素。 及时释放保留的帧；缓冲池耗尽时会暂停新帧输出。
+调用约定：每次 Retain 取得一份独立租约，直到该租约释放为止均可读取像素。 及时释放保留的帧，缓冲池耗尽时会暂停新帧输出。
 
 - 异常 `ObjectDisposedException`：当前租约已经释放。
 - 异常 `InvalidOperationException`：同一缓冲区的租约数量已达整数上限。
+
+<a id="api-58b726bdccb476f1"></a>
+
+### `ConsoleFrameMove` record 结构
+
+从不可变基帧读取并覆盖目标矩形。Move from the base frame before applying dirty pixels.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 结构 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/ConsoleFrameMove.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleFrameMove(int SourceX, int SourceY, ConsoleFrameRegion Destination) `](#api-963e925c892f12a2) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public ConsoleFrameRegion Destination { get; init; } `](#api-2d33c6da02d851c8) | 目标矩形，源矩形与其等大。 |
+| [` public int SourceX { get; init; } `](#api-f8caa34212ec30cc) | 源矩形的左边界，单位为像素。 |
+| [` public int SourceY { get; init; } `](#api-1bd2ffa3012e0f1a) | 源矩形的上边界，单位为像素。 |
+
+#### 详细说明
+
+```csharp
+public readonly record struct ConsoleFrameMove(int SourceX, int SourceY, ConsoleFrameRegion Destination)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `SourceX` | 源矩形的左边界，单位为像素。 |
+| `SourceY` | 源矩形的上边界，单位为像素。 |
+| `Destination` | 目标矩形，源矩形与其等大。 |
+
+#### 构造函数说明
+
+<a id="api-963e925c892f12a2"></a>
+
+##### 创建帧移动区域（主构造器）
+
+```csharp
+public ConsoleFrameMove(int SourceX, int SourceY, ConsoleFrameRegion Destination);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `SourceX` | 源矩形的左边界，单位为像素。 |
+| `SourceY` | 源矩形的上边界，单位为像素。 |
+| `Destination` | 目标矩形，源矩形与其等大。 |
+
+#### 属性说明
+
+<a id="api-2d33c6da02d851c8"></a>
+
+##### 目标矩形（record 属性）
+
+```csharp
+public ConsoleFrameRegion Destination { get; init; }
+```
+
+目标矩形，源矩形与其等大。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 目标矩形，源矩形与其等大。 |
+
+<a id="api-f8caa34212ec30cc"></a>
+
+##### 源矩形的左边界（record 属性）
+
+```csharp
+public int SourceX { get; init; }
+```
+
+源矩形的左边界，单位为像素。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 源矩形的左边界，单位为像素。 |
+
+<a id="api-1bd2ffa3012e0f1a"></a>
+
+##### 源矩形的上边界（record 属性）
+
+```csharp
+public int SourceY { get; init; }
+```
+
+源矩形的上边界，单位为像素。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 源矩形的上边界，单位为像素。 |
 
 <a id="api-323b953e417e6d27"></a>
 
@@ -15274,6 +17783,68 @@ public ConsoleFrameRegion Union(ConsoleFrameRegion other);
 调用约定：合并不相邻区域时，返回的矩形也会包含两者之间的像素。
 
 - 异常 `OverflowException`：计算矩形边界时超出整数范围。
+
+<a id="api-848935f7d993d8da"></a>
+
+### `ConsoleFrameUpdateKind` 枚举
+
+帧相对基线的更新方式。Frame update kind.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/ConsoleFrameUpdateKind.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Delta = 1 `](#api-ad8abd79b6d0be62) | 增量刷新。 |
+| [` Full = 2 `](#api-b895a21d3f4ebae3) | 完整刷新。 |
+| [` Unchanged = 0 `](#api-57d184129365d67f) | 画面无变化。 |
+
+#### 详细说明
+
+```csharp
+public enum ConsoleFrameUpdateKind
+```
+
+#### 枚举值说明
+
+<a id="api-ad8abd79b6d0be62"></a>
+
+##### 增量刷新（枚举值）
+
+```csharp
+Delta = 1
+```
+
+增量刷新。
+
+<a id="api-b895a21d3f4ebae3"></a>
+
+##### 完整刷新（枚举值）
+
+```csharp
+Full = 2
+```
+
+完整刷新。
+
+<a id="api-57d184129365d67f"></a>
+
+##### 画面无变化（枚举值）
+
+```csharp
+Unchanged = 0
+```
+
+画面无变化。
 
 <a id="api-fc9ac7bacf776039"></a>
 
@@ -15575,7 +18146,7 @@ Right = 2
 | 成员 | 说明 |
 | --- | --- |
 | [` public const string RdpBasicBackendId = "RdpBasic" `](#api-67820999b25792f3) | RDP 基本会话的后端标识，提供视频和键鼠输入。 |
-| [` public const string RdpEnhancedBackendId = "RdpEnhanced" `](#api-f88e5239b9fd534c) | RDP 增强会话的后端标识，另提供剪贴板和分辨率调整，需要来宾支持增强会话。 |
+| [` public const string RdpEnhancedBackendId = "RdpEnhanced" `](#api-f88e5239b9fd534c) | RDP 增强会话的后端标识，另提供剪贴板、分辨率调整与双向音频，需要来宾支持增强会话。 |
 
 #### 详细说明
 
@@ -15587,7 +18158,7 @@ public static class ConsoleService
 
 
 
-RdpBasic 提供基本画面和键鼠；RdpEnhanced 还提供剪贴板和分辨率调整，需要来宾支持增强会话。 两者目前均由 FreeRDP 实现。
+RdpBasic 提供基本画面和键鼠，RdpEnhanced 还提供剪贴板、分辨率调整与双向音频，需要来宾支持增强会话。 两者目前均由 FreeRDP 实现。
 
 #### 静态方法说明
 
@@ -15654,14 +18225,98 @@ RDP 基本会话的后端标识，提供视频和键鼠输入。
 public const string RdpEnhancedBackendId = "RdpEnhanced";
 ```
 
-RDP 增强会话的后端标识，另提供剪贴板和分辨率调整，需要来宾支持增强会话。
+RDP 增强会话的后端标识，另提供剪贴板、分辨率调整与双向音频，需要来宾支持增强会话。
 
 **字段说明**
 
 | 项目 | 说明 |
 | --- | --- |
-| 详细含义 | RDP 增强会话的后端标识，另提供剪贴板和分辨率调整，需要来宾支持增强会话。 |
+| 详细含义 | RDP 增强会话的后端标识，另提供剪贴板、分辨率调整与双向音频，需要来宾支持增强会话。 |
 | 取值与默认 | `RdpEnhanced`。 |
+
+<a id="api-38971bd717a40b67"></a>
+
+### `ConsoleTransportKind` 枚举
+
+当前画面的传输种类。Frame transport kind.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 连接 |
+| 源文件 | ` Business/Connection/ConsoleTransportKind.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` CpuShared = 1 `](#api-577dc605f836923f) | 共享 CPU 内存。 |
+| [` GpuShared = 2 `](#api-a541095074560ed7) | 共享 GPU 表面。 |
+| [` RdpBasic = 3 `](#api-e1423140f1d23e70) | 基本会话。 |
+| [` RdpEnhanced = 4 `](#api-af8d4f490f00f5bd) | 增强会话。 |
+| [` Unknown = 0 `](#api-e39b047bb7c4885c) | 路径未知。 |
+
+#### 详细说明
+
+```csharp
+public enum ConsoleTransportKind
+```
+
+#### 枚举值说明
+
+<a id="api-577dc605f836923f"></a>
+
+##### 共享 CPU 内存（枚举值）
+
+```csharp
+CpuShared = 1
+```
+
+共享 CPU 内存。
+
+<a id="api-a541095074560ed7"></a>
+
+##### 共享 GPU 表面（枚举值）
+
+```csharp
+GpuShared = 2
+```
+
+共享 GPU 表面。
+
+<a id="api-e1423140f1d23e70"></a>
+
+##### 基本会话（枚举值）
+
+```csharp
+RdpBasic = 3
+```
+
+基本会话。
+
+<a id="api-af8d4f490f00f5bd"></a>
+
+##### 增强会话（枚举值）
+
+```csharp
+RdpEnhanced = 4
+```
+
+增强会话。
+
+<a id="api-e39b047bb7c4885c"></a>
+
+##### 路径未知（枚举值）
+
+```csharp
+Unknown = 0
+```
+
+路径未知。
 
 <a id="api-300a4de29fad713b"></a>
 
@@ -19124,7 +21779,7 @@ public string Name { get; init; }
 
 ### `HostPowerPlanService` 类
 
-枚举宿主电源计划并设置当前活动计划；设置影响整个宿主。
+枚举宿主电源计划、查询与调整子组设置并切换当前活动计划；设置影响整个宿主。
 
 | 项目 | 内容 |
 | --- | --- |
@@ -19132,7 +21787,7 @@ public string Name { get; init; }
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
 | 功能归属 | 管理层面 / 宿主 / 电源 |
-| 源文件 | ` Management/Host/Power/HostPowerPlanService.cs ` |
+| 源文件 | ` Management/Host/Power/HostPowerPlanService.Settings.cs ` |
 
 #### 成员概览
 
@@ -19141,13 +21796,22 @@ public string Name { get; init; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public static Guid? GetActivePowerPlanId() `](#api-0d0751d7762c8633) | 读取宿主当前活动电源计划的 GUID。 |
+| [` public static IReadOnlyList<HostPowerSubgroup> GetPowerPlanSubgroups(Guid planId, bool includeHidden = false) `](#api-846eb3b837658574) | 枚举指定 Windows 电源计划下的全部子组及电源设置项元数据与当前 AC/DC 值。 |
 | [` public static IReadOnlyList<HostPowerPlan> GetPowerPlans() `](#api-acc29645411c8b3d) | 枚举系统电源计划及可读取的名称。 |
+| [` public static bool HasBattery() `](#api-0bc2f377e4f1ab30) | 检测当前宿主是否安装了系统电池。 |
 | [` public static void SetActivePowerPlan(Guid id) `](#api-8a6806d53be998d9) | 激活指定宿主电源计划。 |
+| [` public static void SetPowerSettingValue(Guid planId, Guid subgroupId, Guid settingId, uint value, bool applyToDc) `](#api-6990b51371906332) | 更新指定电源计划中单项设置的交流（AC）或直流（DC）值。 |
+
+**字段与常量**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static readonly Guid NoSubgroupId `](#api-d8325f581f9e7da8) | Windows 电源策略中用于归类无子组全局设置的特殊 GUID。 |
 
 #### 详细说明
 
 ```csharp
-public static class HostPowerPlanService
+public static partial class HostPowerPlanService
 ```
 
 #### 静态方法说明
@@ -19166,6 +21830,27 @@ public static Guid? GetActivePowerPlanId();
 
 返回：活动计划的 GUID；未能取得时为 null。
 
+<a id="api-846eb3b837658574"></a>
+
+##### 查询电源计划设置子组（方法）
+
+```csharp
+public static IReadOnlyList<HostPowerSubgroup> GetPowerPlanSubgroups(Guid planId, bool includeHidden = false);
+```
+
+功能归属：管理层面 / 宿主 / 电源。
+
+枚举指定 Windows 电源计划下的全部子组及电源设置项元数据与当前 AC/DC 值。
+
+| 参数 | 说明 |
+| --- | --- |
+| `planId` | 电源计划 GUID。 |
+| `includeHidden` | 是否包含系统默认隐藏（ATTRIB_HIDE）的底层设置项。 |
+
+返回：按常用硬件类别排序的子组列表；planId 为空或枚举无结果时返回空列表。
+
+调用约定：同时查询默认可枚举子组与无子组全局项（NoSubgroupId）；无可用设置项的子组不会出现在结果中。
+
 <a id="api-acc29645411c8b3d"></a>
 
 ##### 电源计划清单（方法）
@@ -19179,6 +21864,20 @@ public static IReadOnlyList<HostPowerPlan> GetPowerPlans();
 枚举系统电源计划及可读取的名称。
 
 返回：已枚举到的计划列表；枚举结束或遇到接口错误时停止，可能返回部分列表。
+
+<a id="api-0bc2f377e4f1ab30"></a>
+
+##### 检测系统电池（方法）
+
+```csharp
+public static bool HasBattery();
+```
+
+功能归属：管理层面 / 宿主 / 电源。
+
+检测当前宿主是否安装了系统电池。
+
+返回：检测到系统电池时为 true；台式机/服务器或无法识别为带电池设备时为 false。
 
 <a id="api-8a6806d53be998d9"></a>
 
@@ -19199,6 +21898,510 @@ public static void SetActivePowerPlan(Guid id);
 调用约定：作用于宿主全局；原生接口失败时抛出 Win32Exception。
 
 - 异常 `Win32Exception`：系统拒绝激活指定计划，错误码保留在 NativeErrorCode 中。
+
+<a id="api-6990b51371906332"></a>
+
+##### 修改电源计划设置项（方法）
+
+```csharp
+public static void SetPowerSettingValue(Guid planId, Guid subgroupId, Guid settingId, uint value, bool applyToDc);
+```
+
+功能归属：管理层面 / 宿主 / 电源。
+
+更新指定电源计划中单项设置的交流（AC）或直流（DC）值。
+
+| 参数 | 说明 |
+| --- | --- |
+| `planId` | 目标电源计划 GUID。 |
+| `subgroupId` | 所属子组 GUID（无子组设置传 NoSubgroupId）。 |
+| `settingId` | 目标设置 GUID。 |
+| `value` | 要写入的无符号整数值或选项索引。 |
+| `applyToDc` | true 表示写入使用电池 (DC) 索引，false 表示写入接通电源 (AC) 索引。 |
+
+调用约定：若目标计划为宿主当前活动计划，写入后会同步激活方案使其立即生效；原生接口失败时抛出 Win32Exception。
+
+- 异常 `ArgumentException`：planId、subgroupId 或 settingId 为空 GUID。
+- 异常 `Win32Exception`：系统拒绝写入或激活电源方案，错误码保留在 NativeErrorCode 中。
+
+#### 字段与常量说明
+
+<a id="api-d8325f581f9e7da8"></a>
+
+##### 无子组标识（字段）
+
+```csharp
+public static readonly Guid NoSubgroupId;
+```
+
+功能归属：管理层面 / 宿主 / 电源。
+
+Windows 电源策略中用于归类无子组全局设置的特殊 GUID。
+
+<a id="api-97f3e2e586a6d823"></a>
+
+### `HostPowerSetting` record 类
+
+Windows 电源计划中的单个可调设置项及其交流、直流当前值。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 电源 |
+| 源文件 | ` Management/Host/Power/HostPowerPlanService.Settings.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public HostPowerSetting(Guid SubgroupId, Guid Id, string Name, string Description, bool IsHidden, HostPowerSettingValueKind ValueKind, uint Minimum, uint Maximum, uint Increment, string Unit, IReadOnlyList<HostPowerSettingOption> Options, uint AcValue, uint DcValue) `](#api-33207e380707b559) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public uint AcValue { get; init; } `](#api-47835e7eb4de7b66) | 接通电源 (AC) 下的当前设置索引。 |
+| [` public uint DcValue { get; init; } `](#api-cf960eae4839b2aa) | 使用电池 (DC) 下的当前设置索引。 |
+| [` public string Description { get; init; } `](#api-be813aa6d5175f23) | 系统原生提供的设置说明文本；无说明时为空字符串。 |
+| [` public Guid Id { get; init; } `](#api-c5b14e4ada5acf9d) | 电源设置 GUID。 |
+| [` public uint Increment { get; init; } `](#api-a1c12c47a952b880) | 范围设置步长；至少为 1。 |
+| [` public bool IsHidden { get; init; } `](#api-e9c57a6f1bfee9d8) | 系统属性是否将其标记为默认隐藏（ATTRIB\_HIDE）。 |
+| [` public uint Maximum { get; init; } `](#api-956c9a5a7a277f0a) | 范围设置最大值；非范围类型为 0，原始值为 uint.MaxValue。 |
+| [` public uint Minimum { get; init; } `](#api-27f457b9af27d138) | 范围设置最小值；非范围类型为 0。 |
+| [` public string Name { get; init; } `](#api-f2bbcd23d09bba29) | 设置显示名称；不可读时回退为 GUID 文本。 |
+| [` public IReadOnlyList<HostPowerSettingOption> Options { get; init; } `](#api-27a1e50577785ada) | 离散设置的所有可选索引；非离散类型为只读空列表。 |
+| [` public Guid SubgroupId { get; init; } `](#api-48b2a8df601338db) | 所属子组 GUID。 |
+| [` public string Unit { get; init; } `](#api-825314b1d6dd02c1) | 范围设置单位文本（如 %、秒、毫秒）；无单位时为空字符串。 |
+| [` public HostPowerSettingValueKind ValueKind { get; init; } `](#api-823fa8fa983a30b6) | 值表示类型：离散选项、数值范围或原始无符号整数。 |
+
+#### 详细说明
+
+```csharp
+public sealed record HostPowerSetting(
+    Guid SubgroupId,
+    Guid Id,
+    string Name,
+    string Description,
+    bool IsHidden,
+    HostPowerSettingValueKind ValueKind,
+    uint Minimum,
+    uint Maximum,
+    uint Increment,
+    string Unit,
+    IReadOnlyList<HostPowerSettingOption> Options,
+    uint AcValue,
+    uint DcValue)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `SubgroupId` | 所属子组 GUID。 |
+| `Id` | 电源设置 GUID。 |
+| `Name` | 设置显示名称；不可读时回退为 GUID 文本。 |
+| `Description` | 系统原生提供的设置说明文本；无说明时为空字符串。 |
+| `IsHidden` | 系统属性是否将其标记为默认隐藏（ATTRIB_HIDE）。 |
+| `ValueKind` | 值表示类型：离散选项、数值范围或原始无符号整数。 |
+| `Minimum` | 范围设置最小值；非范围类型为 0。 |
+| `Maximum` | 范围设置最大值；非范围类型为 0，原始值为 uint.MaxValue。 |
+| `Increment` | 范围设置步长；至少为 1。 |
+| `Unit` | 范围设置单位文本（如 %、秒、毫秒）；无单位时为空字符串。 |
+| `Options` | 离散设置的所有可选索引；非离散类型为只读空列表。 |
+| `AcValue` | 接通电源 (AC) 下的当前设置索引。 |
+| `DcValue` | 使用电池 (DC) 下的当前设置索引。 |
+
+#### 构造函数说明
+
+<a id="api-33207e380707b559"></a>
+
+##### 创建宿主电源设置项对象（主构造器）
+
+```csharp
+public HostPowerSetting(Guid SubgroupId, Guid Id, string Name, string Description, bool IsHidden, HostPowerSettingValueKind ValueKind, uint Minimum, uint Maximum, uint Increment, string Unit, IReadOnlyList<HostPowerSettingOption> Options, uint AcValue, uint DcValue);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `SubgroupId` | 所属子组 GUID。 |
+| `Id` | 电源设置 GUID。 |
+| `Name` | 设置显示名称；不可读时回退为 GUID 文本。 |
+| `Description` | 系统原生提供的设置说明文本；无说明时为空字符串。 |
+| `IsHidden` | 系统属性是否将其标记为默认隐藏（ATTRIB_HIDE）。 |
+| `ValueKind` | 值表示类型：离散选项、数值范围或原始无符号整数。 |
+| `Minimum` | 范围设置最小值；非范围类型为 0。 |
+| `Maximum` | 范围设置最大值；非范围类型为 0，原始值为 uint.MaxValue。 |
+| `Increment` | 范围设置步长；至少为 1。 |
+| `Unit` | 范围设置单位文本（如 %、秒、毫秒）；无单位时为空字符串。 |
+| `Options` | 离散设置的所有可选索引；非离散类型为只读空列表。 |
+| `AcValue` | 接通电源 (AC) 下的当前设置索引。 |
+| `DcValue` | 使用电池 (DC) 下的当前设置索引。 |
+
+#### 属性说明
+
+<a id="api-47835e7eb4de7b66"></a>
+
+##### 交流电源设置值（record 属性）
+
+```csharp
+public uint AcValue { get; init; }
+```
+
+接通电源 (AC) 下的当前设置索引。
+
+<a id="api-cf960eae4839b2aa"></a>
+
+##### 直流电源设置值（record 属性）
+
+```csharp
+public uint DcValue { get; init; }
+```
+
+使用电池 (DC) 下的当前设置索引。
+
+<a id="api-be813aa6d5175f23"></a>
+
+##### 说明（record 属性）
+
+```csharp
+public string Description { get; init; }
+```
+
+系统原生提供的设置说明文本；无说明时为空字符串。
+
+<a id="api-c5b14e4ada5acf9d"></a>
+
+##### 设置标识（record 属性）
+
+```csharp
+public Guid Id { get; init; }
+```
+
+电源设置 GUID。
+
+<a id="api-a1c12c47a952b880"></a>
+
+##### 步进增量（record 属性）
+
+```csharp
+public uint Increment { get; init; }
+```
+
+范围设置步长；至少为 1。
+
+<a id="api-e9c57a6f1bfee9d8"></a>
+
+##### 是否隐藏项（record 属性）
+
+```csharp
+public bool IsHidden { get; init; }
+```
+
+系统属性是否将其标记为默认隐藏（ATTRIB_HIDE）。
+
+<a id="api-956c9a5a7a277f0a"></a>
+
+##### 最大值（record 属性）
+
+```csharp
+public uint Maximum { get; init; }
+```
+
+范围设置最大值；非范围类型为 0，原始值为 uint.MaxValue。
+
+<a id="api-27f457b9af27d138"></a>
+
+##### 最小值（record 属性）
+
+```csharp
+public uint Minimum { get; init; }
+```
+
+范围设置最小值；非范围类型为 0。
+
+<a id="api-f2bbcd23d09bba29"></a>
+
+##### 名称（record 属性）
+
+```csharp
+public string Name { get; init; }
+```
+
+设置显示名称；不可读时回退为 GUID 文本。
+
+<a id="api-27a1e50577785ada"></a>
+
+##### 可选索引清单（record 属性）
+
+```csharp
+public IReadOnlyList<HostPowerSettingOption> Options { get; init; }
+```
+
+离散设置的所有可选索引；非离散类型为只读空列表。
+
+<a id="api-48b2a8df601338db"></a>
+
+##### 所属子组标识（record 属性）
+
+```csharp
+public Guid SubgroupId { get; init; }
+```
+
+所属子组 GUID。
+
+<a id="api-825314b1d6dd02c1"></a>
+
+##### 单位（record 属性）
+
+```csharp
+public string Unit { get; init; }
+```
+
+范围设置单位文本（如 %、秒、毫秒）；无单位时为空字符串。
+
+<a id="api-823fa8fa983a30b6"></a>
+
+##### 值类型（record 属性）
+
+```csharp
+public HostPowerSettingValueKind ValueKind { get; init; }
+```
+
+值表示类型：离散选项、数值范围或原始无符号整数。
+
+<a id="api-b4dae741c06f8df7"></a>
+
+### `HostPowerSettingOption` record 类
+
+离散电源设置的可选索引与显示名称。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 电源 |
+| 源文件 | ` Management/Host/Power/HostPowerPlanService.Settings.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public HostPowerSettingOption(uint Value, string Name) `](#api-c5c76c916fe917ed) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public string Name { get; init; } `](#api-8745e1f7f421884d) | 系统提供的选项友好名称。 |
+| [` public uint Value { get; init; } `](#api-3fffe228d0a296c3) | 写入电源方案时使用的选项索引。 |
+
+#### 详细说明
+
+```csharp
+public sealed record HostPowerSettingOption(uint Value, string Name)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Value` | 写入电源方案时使用的选项索引。 |
+| `Name` | 系统提供的选项友好名称。 |
+
+#### 构造函数说明
+
+<a id="api-c5c76c916fe917ed"></a>
+
+##### 创建宿主电源设置选项对象（主构造器）
+
+```csharp
+public HostPowerSettingOption(uint Value, string Name);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Value` | 写入电源方案时使用的选项索引。 |
+| `Name` | 系统提供的选项友好名称。 |
+
+#### 属性说明
+
+<a id="api-8745e1f7f421884d"></a>
+
+##### 选项名称（record 属性）
+
+```csharp
+public string Name { get; init; }
+```
+
+系统提供的选项友好名称。
+
+<a id="api-3fffe228d0a296c3"></a>
+
+##### 选项索引值（record 属性）
+
+```csharp
+public uint Value { get; init; }
+```
+
+写入电源方案时使用的选项索引。
+
+<a id="api-4b1533b38c135473"></a>
+
+### `HostPowerSettingValueKind` 枚举
+
+宿主电源设置项的值输入模式。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 电源 |
+| 源文件 | ` Management/Host/Power/HostPowerPlanService.Settings.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` Choice = 0 `](#api-95c11f781d8d14b7) | 固定离散选项索引列表。 |
+| [` Range = 1 `](#api-fff6cb0d487b9eb7) | 定义了最小、最大与步长的连续无符号整数范围。 |
+| [` RawValue = 2 `](#api-9ffea998fc34eea0) | 未定义选项列表与上下限的原始无符号整数设置。 |
+
+#### 详细说明
+
+```csharp
+public enum HostPowerSettingValueKind
+```
+
+#### 枚举值说明
+
+<a id="api-95c11f781d8d14b7"></a>
+
+##### Choice（枚举值）
+
+```csharp
+Choice = 0
+```
+
+固定离散选项索引列表。
+
+<a id="api-fff6cb0d487b9eb7"></a>
+
+##### Range（枚举值）
+
+```csharp
+Range = 1
+```
+
+定义了最小、最大与步长的连续无符号整数范围。
+
+<a id="api-9ffea998fc34eea0"></a>
+
+##### RawValue（枚举值）
+
+```csharp
+RawValue = 2
+```
+
+未定义选项列表与上下限的原始无符号整数设置。
+
+<a id="api-99ab9f96050738a3"></a>
+
+### `HostPowerSubgroup` record 类
+
+Windows 电源计划中的设置子组及其包含的电源设置项。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 宿主 / 电源 |
+| 源文件 | ` Management/Host/Power/HostPowerPlanService.Settings.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public HostPowerSubgroup(Guid Id, string Name, IReadOnlyList<HostPowerSetting> Settings) `](#api-82094410f8d68613) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public Guid Id { get; init; } `](#api-4cff5da438a65bba) | 子组 GUID（全局无子组项对应 HostPowerPlanService.NoSubgroupId）。 |
+| [` public string Name { get; init; } `](#api-e0fc3bff1d7d72ba) | 子组友好名称；对于 NoSubgroupId 返回空字符串，由调用方按需本地化展示。 |
+| [` public IReadOnlyList<HostPowerSetting> Settings { get; init; } `](#api-6d82806f899114a9) | 该子组下已读取的电源设置集合。 |
+
+#### 详细说明
+
+```csharp
+public sealed record HostPowerSubgroup(
+    Guid Id,
+    string Name,
+    IReadOnlyList<HostPowerSetting> Settings)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Id` | 子组 GUID（全局无子组项对应 HostPowerPlanService.NoSubgroupId）。 |
+| `Name` | 子组友好名称；对于 NoSubgroupId 返回空字符串，由调用方按需本地化展示。 |
+| `Settings` | 该子组下已读取的电源设置集合。 |
+
+#### 构造函数说明
+
+<a id="api-82094410f8d68613"></a>
+
+##### 创建宿主电源子组对象（主构造器）
+
+```csharp
+public HostPowerSubgroup(Guid Id, string Name, IReadOnlyList<HostPowerSetting> Settings);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Id` | 子组 GUID（全局无子组项对应 HostPowerPlanService.NoSubgroupId）。 |
+| `Name` | 子组友好名称；对于 NoSubgroupId 返回空字符串，由调用方按需本地化展示。 |
+| `Settings` | 该子组下已读取的电源设置集合。 |
+
+#### 属性说明
+
+<a id="api-4cff5da438a65bba"></a>
+
+##### 子组标识（record 属性）
+
+```csharp
+public Guid Id { get; init; }
+```
+
+子组 GUID（全局无子组项对应 HostPowerPlanService.NoSubgroupId）。
+
+<a id="api-e0fc3bff1d7d72ba"></a>
+
+##### 子组名称（record 属性）
+
+```csharp
+public string Name { get; init; }
+```
+
+子组友好名称；对于 NoSubgroupId 返回空字符串，由调用方按需本地化展示。
+
+<a id="api-6d82806f899114a9"></a>
+
+##### 设置清单（record 属性）
+
+```csharp
+public IReadOnlyList<HostPowerSetting> Settings { get; init; }
+```
+
+该子组下已读取的电源设置集合。
 
 <a id="api-be843791603a448d"></a>
 
@@ -21555,6 +24758,200 @@ public static Task UpdateSwitchConfigurationAsync(string switchName, SwitchMode 
 
 调用约定：名称在宿主网络锁内解析一次，重名返回 AmbiguousTarget。明确失败才尝试恢复；结果未知时停止后续修改及恢复。CoreOperationException.Result 保留失败类别、原始错误和恢复结果，调用方应重新读取实际状态。
 
+<a id="api-d949c0cb1a4fd072"></a>
+
+### `IConsoleAudioInput` 接口
+
+向来宾虚拟机发送麦克风 PCM 音频输入。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 接口 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 音频 |
+| 源文件 | ` Business/Audio/Input/IConsoleAudioInput.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` ConsoleAudioFormat? Format { get; } `](#api-324de9ff89aa2d92) | 发送通道当前接受的采样格式。 |
+| [` bool IsAvailable { get; } `](#api-1c918d04411dba90) | 音频发送通道是否已就绪。 |
+
+**事件**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` event Action<bool>? AvailabilityChanged `](#api-71bffcbcad7505b8) | 发送通道的可用状态或采样格式变化时通知。 |
+
+**方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` bool SendAudio(ConsoleAudioFormat format, ReadOnlySpan<byte> samples) `](#api-4b650c40d5b6382b) | 把一段按当前格式准备好的 PCM 音频交给来宾。 |
+
+#### 详细说明
+
+```csharp
+public interface IConsoleAudioInput
+```
+
+调用约定：RdpBasic 为 null，RdpEnhanced 通过增强会话动态音频输入通道接收宿主采集或提供的 PCM 采样。
+
+#### 属性说明
+
+<a id="api-324de9ff89aa2d92"></a>
+
+##### 当前采样格式（属性）
+
+```csharp
+ConsoleAudioFormat? Format { get; }
+```
+
+发送通道当前接受的采样格式。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 发送通道当前接受的采样格式。 |
+| 取值与默认 | 尚未协商或通道不可用时为 null。 |
+
+<a id="api-1c918d04411dba90"></a>
+
+##### 可用状态（属性）
+
+```csharp
+bool IsAvailable { get; }
+```
+
+音频发送通道是否已就绪。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 音频发送通道是否已就绪。 |
+| 取值与默认 | true 表示就绪，false 表示未就绪或已断开。 |
+
+#### 事件说明
+
+<a id="api-71bffcbcad7505b8"></a>
+
+##### 音频输入可用状态变化（事件）
+
+```csharp
+event Action<bool>? AvailabilityChanged;
+```
+
+发送通道的可用状态或采样格式变化时通知。
+
+调用约定：参数为变化后的 IsAvailable。即使仍为 true，也应重新读取 Format，确认采样格式是否改变。
+
+#### 方法说明
+
+<a id="api-4b650c40d5b6382b"></a>
+
+##### 发送音频采样（方法）
+
+```csharp
+bool SendAudio(ConsoleAudioFormat format, ReadOnlySpan<byte> samples);
+```
+
+把一段按当前格式准备好的 PCM 音频交给来宾。
+
+| 参数 | 说明 |
+| --- | --- |
+| `format` | 这批 samples 实际使用的格式，应与当前 Format 相同。 |
+| `samples` | 原始 PCM 字节，包含完整的采样帧，本次调用返回后可复用该内存。 |
+
+返回：true 表示数据已加入发送队列，通道不可用、格式不匹配或队列无法接收时为 false。
+
+调用约定：格式可能在采集期间改变。发送时仍传入这批数据原来的格式，如果被拒绝，重新读取 Format 后为下一批数据调整格式。
+
+<a id="api-8982aaf97ec63492"></a>
+
+### `IConsoleAudioOutput` 接口
+
+接收来自来宾虚拟机的 PCM 音频输出。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 接口 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 音频 |
+| 源文件 | ` Business/Audio/Output/IConsoleAudioOutput.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` bool IsAvailable { get; } `](#api-761e37d9a061b591) | 音频接收通道是否已就绪。 |
+
+**事件**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` event Action<ConsoleAudioPacket>? AudioReceived `](#api-91ed73ff857079e0) | 收到一段来宾声音时通知，参数包含采样字节和格式。 |
+| [` event Action<bool>? AvailabilityChanged `](#api-1ddd3617040ad708) | 音频接收通道变为可用或不可用时通知，参数为变化后的 IsAvailable。 |
+
+#### 详细说明
+
+```csharp
+public interface IConsoleAudioOutput
+```
+
+调用约定：RdpBasic 为 null，RdpEnhanced 通过增强会话通道交付来宾声音的 PCM 音频包，播放或混音由调用方负责。
+
+#### 属性说明
+
+<a id="api-761e37d9a061b591"></a>
+
+##### 可用状态（属性）
+
+```csharp
+bool IsAvailable { get; }
+```
+
+音频接收通道是否已就绪。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 音频接收通道是否已就绪。 |
+| 取值与默认 | true 表示就绪，false 表示未就绪或已断开。 |
+
+#### 事件说明
+
+<a id="api-91ed73ff857079e0"></a>
+
+##### 收到来宾音频（事件）
+
+```csharp
+event Action<ConsoleAudioPacket>? AudioReceived;
+```
+
+收到一段来宾声音时通知，参数包含采样字节和格式。
+
+调用约定：回调在后台线程执行，应尽快返回。数据由音频包独立持有，可直接交给后续处理，无需另行复制或保留租约。
+
+<a id="api-1ddd3617040ad708"></a>
+
+##### 音频输出可用状态变化（事件）
+
+```csharp
+event Action<bool>? AvailabilityChanged;
+```
+
+音频接收通道变为可用或不可用时通知，参数为变化后的 IsAvailable。
+
 <a id="api-199dbda02346a96d"></a>
 
 ### `IConsoleClipboard` 接口
@@ -21706,6 +25103,52 @@ bool SetClipboard(ConsoleClipboardData clipboard);
 
 调用约定：调用返回后可以复用输入数据。
 
+<a id="api-cff3e485bc19a61f"></a>
+
+### `IConsoleClipboardProvider` 接口
+
+宿主可按方向选择此接口挂接到连接。Optional clipboard provider.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 接口 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 剪贴板 |
+| 源文件 | ` Business/Clipboard/IConsoleClipboardProvider.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` ConsoleClipboardProviderInfo ProviderInfo { get; } `](#api-6b176a6f4435c7bd) | 读取当前提供方、目标、就绪状态和方向。 |
+
+#### 详细说明
+
+```csharp
+public interface IConsoleClipboardProvider : IConsoleClipboard
+```
+
+#### 属性说明
+
+<a id="api-6b176a6f4435c7bd"></a>
+
+##### 读取提供方描述（属性）
+
+```csharp
+ConsoleClipboardProviderInfo ProviderInfo { get; }
+```
+
+读取当前提供方、目标、就绪状态和方向。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 每次切换提供方时重新核对目标和方向。 |
+
 <a id="api-53f629596085b5c9"></a>
 
 ### `IConsoleConnection` 接口
@@ -21726,6 +25169,8 @@ bool SetClipboard(ConsoleClipboardData clipboard);
 
 | 成员 | 说明 |
 | --- | --- |
+| [` IConsoleAudioInput? AudioInput { get; } `](#api-6d2ef8efd8158d4f) | 向来宾发送麦克风音频输入的接口。 |
+| [` IConsoleAudioOutput? AudioOutput { get; } `](#api-b533977aa46e1380) | 接收来宾声音输出的接口。 |
 | [` string BackendId { get; } `](#api-f5c787e1964eb9c0) | 当前连接使用的后端标识。 |
 | [` IConsoleClipboard? Clipboard { get; } `](#api-83526b9be88d1f35) | 收发来宾剪贴板内容的接口。 |
 | [` IConsoleInput? Input { get; } `](#api-6c119e309cccccce) | 向来宾发送键盘和鼠标输入的接口。 |
@@ -21799,6 +25244,40 @@ public static class ConnectionExample
 
 #### 属性说明
 
+<a id="api-6d2ef8efd8158d4f"></a>
+
+##### 音频输入通道（属性）
+
+```csharp
+IConsoleAudioInput? AudioInput { get; }
+```
+
+向来宾发送麦克风音频输入的接口。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 向来宾发送麦克风音频输入的接口。 |
+| 取值与默认 | RdpBasic 为 null，RdpEnhanced 提供接口，来宾打开采集后 IsAvailable 为 true。 |
+
+<a id="api-b533977aa46e1380"></a>
+
+##### 音频输出通道（属性）
+
+```csharp
+IConsoleAudioOutput? AudioOutput { get; }
+```
+
+接收来宾声音输出的接口。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 接收来宾声音输出的接口。 |
+| 取值与默认 | RdpBasic 为 null，RdpEnhanced 提供接口，通道就绪后 IsAvailable 为 true。 |
+
 <a id="api-f5c787e1964eb9c0"></a>
 
 ##### 后端标识（属性）
@@ -21831,7 +25310,7 @@ IConsoleClipboard? Clipboard { get; }
 | 项目 | 说明 |
 | --- | --- |
 | 详细含义 | 收发来宾剪贴板内容的接口。 |
-| 取值与默认 | RdpBasic 为 null；RdpEnhanced 提供接口，通道就绪后 IsAvailable 为 true。 |
+| 取值与默认 | RdpBasic 为 null，RdpEnhanced 提供接口，通道就绪后 IsAvailable 为 true。 |
 
 <a id="api-6c119e309cccccce"></a>
 
@@ -21948,6 +25427,129 @@ void Start();
 调用约定：连接前先启动虚拟机。每个对象只能启动一次，重连需新建对象。 启动后发生的连接失败通过 Disconnected 报告。
 
 - 异常 `InvalidOperationException`：已经启动过，或对象已请求关闭。
+
+<a id="api-cf42a28c1542a989"></a>
+
+### `IConsoleCursorStateSource` 接口
+
+视频源可附加的独立光标流。Optional remote cursor state stream.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 接口 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/IConsoleCursorStateSource.cs ` |
+
+#### 成员概览
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` ConsoleCursorState? CursorState { get; } `](#api-f0b70b5a03ead816) | 最近一次位置和合成状态。 |
+
+**事件**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` event Action<ConsoleCursorState>? CursorStateChanged `](#api-e9e4ef369660fbac) | 后端报告位置、可见性或形状版本变化时触发。 |
+
+#### 详细说明
+
+```csharp
+public interface IConsoleCursorStateSource
+```
+
+#### 属性说明
+
+<a id="api-f0b70b5a03ead816"></a>
+
+##### 读取光标状态（属性）
+
+```csharp
+ConsoleCursorState? CursorState { get; }
+```
+
+最近一次位置和合成状态。
+
+**字段说明**
+
+| 项目 | 说明 |
+| --- | --- |
+| 详细含义 | 首次报告前为 null。 |
+
+#### 事件说明
+
+<a id="api-e9e4ef369660fbac"></a>
+
+##### 光标状态变化（事件）
+
+```csharp
+event Action<ConsoleCursorState>? CursorStateChanged;
+```
+
+后端报告位置、可见性或形状版本变化时触发。
+
+<a id="api-92509f9858b4477e"></a>
+
+### `IConsoleDisplayModes` 接口
+
+可选的视频源能力，按稳定标识协商模式。Optional display mode negotiation.
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 接口 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 业务层面 / 视频 |
+| 源文件 | ` Business/Video/IConsoleDisplayModes.cs ` |
+
+#### 成员概览
+
+**方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` IReadOnlyList<ConsoleDisplayMode> GetModes() `](#api-34117dcea272f617) | 读取当前可用的模式列表。 |
+| [` ConsoleDisplayModeResult SetMode(string id) `](#api-f67458a3c40a7eb3) | 请求切换到已枚举的模式。 |
+
+#### 详细说明
+
+```csharp
+public interface IConsoleDisplayModes
+```
+
+#### 方法说明
+
+<a id="api-34117dcea272f617"></a>
+
+##### 枚举显示模式（方法）
+
+```csharp
+IReadOnlyList<ConsoleDisplayMode> GetModes();
+```
+
+读取当前可用的模式列表。
+
+返回：按后端顺序排列的模式，未就绪时可为空。
+
+<a id="api-f67458a3c40a7eb3"></a>
+
+##### 请求切换模式（方法）
+
+```csharp
+ConsoleDisplayModeResult SetMode(string id);
+```
+
+请求切换到已枚举的模式。
+
+| 参数 | 说明 |
+| --- | --- |
+| `id` | 当前后端提供的稳定模式标识。 |
+
+返回：是否接受请求和当前已确认的实际模式。
 
 <a id="api-ab4762a60b6762dc"></a>
 
@@ -22203,6 +25805,7 @@ bool SynchronizeKeyboard(ConsoleKeyboardToggleState flags);
 
 | 成员 | 说明 |
 | --- | --- |
+| [` event Action<ConsoleCursor?>? CursorChanged `](#api-7d486aae53a6a520) | 启用宿主光标模式时，收到远端指针形状变化或隐藏时通知，参数为 null 表示隐藏指针。 |
 | [` event Action<ConsoleFrame>? FrameReceived `](#api-87b9df2906679e18) | 收到新画面时通知；参数中的帧在本次回调期间可用。 |
 | [` event Action<uint>? ResizeRejected `](#api-f2f5ecb7b595c286) | 已入队的尺寸调整请求在显示通道发送失败时通知。 |
 
@@ -22276,6 +25879,18 @@ bool SupportsResize { get; }
 | 取值与默认 | RdpEnhanced 为 true，RdpBasic 为 false。 |
 
 #### 事件说明
+
+<a id="api-7d486aae53a6a520"></a>
+
+##### 光标变化通知（事件）
+
+```csharp
+event Action<ConsoleCursor?>? CursorChanged;
+```
+
+启用宿主光标模式时，收到远端指针形状变化或隐藏时通知，参数为 null 表示隐藏指针。
+
+调用约定：仅当连接选项 HostCursor 为 true 时触发，在后台线程执行。
 
 <a id="api-87b9df2906679e18"></a>
 
@@ -24886,6 +28501,96 @@ public static async Task<ApiResponse<VmConfigurationState>> ReadAsync(string vmN
 
 返回：配置状态视图，虚拟机不存在或读取失败时返回错误。
 
+<a id="api-d8ea55713c185eb1"></a>
+
+### `VmConsoleFeatures` record 类
+
+保存在虚拟机配置文件（.vmcx）中的增强会话资源重定向偏好；未写入时默认全部启用。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Services ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / 控制台 |
+| 源文件 | ` Management/VirtualMachines/Console/VmConsoleSupportService.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public VmConsoleFeatures(bool Clipboard = true, bool AudioOutput = true, bool AudioInput = true) `](#api-dc70c9f11c4f76d0) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public bool AudioInput { get; init; } `](#api-b77ad2b5b7e64aae) | 是否允许在增强会话中传入宿主机麦克风音频。 |
+| [` public bool AudioOutput { get; init; } `](#api-099068134bf6e7cb) | 是否允许在增强会话中输出虚拟机声音。 |
+| [` public bool Clipboard { get; init; } `](#api-c981cfc11eeb1147) | 是否允许在增强会话中共享剪贴板。 |
+
+#### 详细说明
+
+```csharp
+public sealed record VmConsoleFeatures(bool Clipboard = true, bool AudioOutput = true, bool AudioInput = true)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Clipboard` | 是否允许在增强会话中共享剪贴板。 |
+| `AudioOutput` | 是否允许在增强会话中输出虚拟机声音。 |
+| `AudioInput` | 是否允许在增强会话中传入宿主机麦克风音频。 |
+
+#### 构造函数说明
+
+<a id="api-dc70c9f11c4f76d0"></a>
+
+##### 创建增强会话偏好对象（主构造器）
+
+```csharp
+public VmConsoleFeatures(bool Clipboard = true, bool AudioOutput = true, bool AudioInput = true);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `Clipboard` | 是否允许在增强会话中共享剪贴板。 |
+| `AudioOutput` | 是否允许在增强会话中输出虚拟机声音。 |
+| `AudioInput` | 是否允许在增强会话中传入宿主机麦克风音频。 |
+
+#### 属性说明
+
+<a id="api-b77ad2b5b7e64aae"></a>
+
+##### 麦克风输入重定向（record 属性）
+
+```csharp
+public bool AudioInput { get; init; }
+```
+
+是否允许在增强会话中传入宿主机麦克风音频。
+
+<a id="api-099068134bf6e7cb"></a>
+
+##### 声音输出重定向（record 属性）
+
+```csharp
+public bool AudioOutput { get; init; }
+```
+
+是否允许在增强会话中输出虚拟机声音。
+
+<a id="api-c981cfc11eeb1147"></a>
+
+##### 剪贴板共享（record 属性）
+
+```csharp
+public bool Clipboard { get; init; }
+```
+
+是否允许在增强会话中共享剪贴板。
+
 <a id="api-e90b77e987feedc5"></a>
 
 ### `VmConsoleFields` 类
@@ -24907,7 +28612,10 @@ public static async Task<ApiResponse<VmConfigurationState>> ReadAsync(string vmN
 | 成员 | 说明 |
 | --- | --- |
 | [` public static readonly VmQueryField<bool> BasicEnabled `](#api-c6db329667e7f67f) | 基本控制台开关：虚拟机是否配置了基本控制台所需的合成显示控制器。 |
+| [` public static readonly VmQueryField<bool> EnhancedAudioInput `](#api-6b0c2c56f6cf7539) | 增强会话麦克风输入：是否允许在增强会话中传入本机麦克风。 |
+| [` public static readonly VmQueryField<bool> EnhancedAudioOutput `](#api-9c0e5f54cd1e1c85) | 增强会话声音输出：是否允许在增强会话中输出虚拟机声音。 |
 | [` public static readonly VmQueryField<bool> EnhancedAvailable `](#api-378a903d86ea7534) | 增强会话可用状态：Hyper-V 当前是否报告增强会话已可用。 |
+| [` public static readonly VmQueryField<bool> EnhancedClipboard `](#api-af7c86047ad76c17) | 增强会话剪贴板共享：是否允许在增强会话中同步剪贴板。 |
 | [` public static readonly VmQueryField<bool> LockOnDisconnect `](#api-24f299eba845f37a) | 控制台断开时锁定：是否配置在控制台断开连接时锁定来宾系统。 |
 
 #### 详细说明
@@ -24930,6 +28638,30 @@ public static readonly VmQueryField<bool> BasicEnabled;
 
 **取值说明：** `true`：配置了合成显示控制器；`false`：未配置。
 
+<a id="api-6b0c2c56f6cf7539"></a>
+
+##### 增强会话麦克风输入（字段）
+
+```csharp
+public static readonly VmQueryField<bool> EnhancedAudioInput;
+```
+
+是否允许在增强会话中向虚拟机传入本机麦克风。工具栏默认仍保持静音直到手动开启，修改将在下次连接或重连时生效。
+
+**取值说明：** `true`（默认）：允许传入麦克风，`false`：禁用增强会话麦克风通道。
+
+<a id="api-9c0e5f54cd1e1c85"></a>
+
+##### 增强会话声音输出（字段）
+
+```csharp
+public static readonly VmQueryField<bool> EnhancedAudioOutput;
+```
+
+是否在增强会话中将虚拟机声音输出转发到宿主机。修改将在下次连接或重连增强会话时生效。
+
+**取值说明：** `true`（默认）：允许接收来宾声音，`false`：禁用增强会话声音输出通道。
+
 <a id="api-378a903d86ea7534"></a>
 
 ##### 增强会话可用状态（字段）
@@ -24941,6 +28673,18 @@ public static readonly VmQueryField<bool> EnhancedAvailable;
 Hyper-V 当前是否报告增强会话已可用。
 
 **取值说明：** EnhancedSessionModeState 为 2（允许且可用）时返回 true；3（不允许）、6（允许但尚不可用）及其他非空编码返回 false，无法由此 bool 区分具体原因。
+
+<a id="api-af7c86047ad76c17"></a>
+
+##### 增强会话剪贴板共享（字段）
+
+```csharp
+public static readonly VmQueryField<bool> EnhancedClipboard;
+```
+
+是否在增强会话中启用双向剪贴板共享。修改将在下次连接或重连增强会话时生效。
+
+**取值说明：** `true`（默认）：允许共享剪贴板，`false`：禁用增强会话剪贴板通道。
 
 <a id="api-24f299eba845f37a"></a>
 
@@ -25078,10 +28822,12 @@ public Guid VmId { get; init; }
 | 成员 | 说明 |
 | --- | --- |
 | [` public static Task<ApiResponse<VmConsoleState>> GetConsoleStateAsync(Guid vmId) `](#api-e8b0b9c1bf99f255) | 按稳定身份读取控制台名称、运行状态及增强会话可用性。 |
+| [` public static async Task<ApiResponse<VmConsoleFeatures>> GetEnhancedFeaturesAsync(Guid vmId) `](#api-f27888834f829413) | 从虚拟机配置文件（.vmcx）读取增强会话资源重定向偏好。 |
 | [` public static VmModificationCondition GetModificationCondition(int generation, VmState state) `](#api-8623f13ea517b354) | 评估基本控制台开关的修改条件。 |
 | [` public static async Task<ApiResponse<bool>> IsConsoleSupportEnabledAsync(Guid vmId) `](#api-0b848d91bf6c6582) | 以合成显示控制器是否存在判断基本控制台支持是否启用。 |
 | [` public static async Task<ApiResponse<bool>> IsEnhancedSessionAvailableAsync(Guid vmId) `](#api-f50d6eb23736c6d4) | 检查 Hyper-V 当前是否报告增强会话可用。 |
 | [` public static Task<ApiResponse> SetConsoleSupportAsync(Guid vmId, bool enable) `](#api-4d11e062bfef7aea) | 为已停止的第二代虚拟机添加或移除基本控制台的键盘、鼠标及显示设备。 |
+| [` public static Task<ApiResponse> SetEnhancedFeaturesAsync(Guid vmId, bool clipboard, bool audioOutput, bool audioInput) `](#api-e79a64aa6abe5531) | 将增强会话资源重定向偏好保存到虚拟机配置文件（.vmcx）的 HostOnlyItems 中。 |
 | [` public static Task<ApiResponse> SetLockOnDisconnectAsync(Guid vmId, bool enabled) `](#api-4841b4f47d6619d8) | 设置控制台断开时是否锁定来宾。 |
 
 #### 详细说明
@@ -25109,6 +28855,24 @@ public static Task<ApiResponse<VmConsoleState>> GetConsoleStateAsync(Guid vmId);
 | `vmId` | 目标虚拟机的稳定 GUID。 |
 
 返回：读取结果；找不到目标与查询失败均明确报告，不按同名虚拟机回退。
+
+<a id="api-f27888834f829413"></a>
+
+##### 读取增强会话偏好（方法）
+
+```csharp
+public static async Task<ApiResponse<VmConsoleFeatures>> GetEnhancedFeaturesAsync(Guid vmId);
+```
+
+功能归属：管理层面 / 虚拟机 / 控制台。
+
+从虚拟机配置文件（.vmcx）读取增强会话资源重定向偏好。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+
+返回：成功返回剪贴板、声音输出与麦克风开关；尚未单独配置时三项均返回 true。
 
 <a id="api-8623f13ea517b354"></a>
 
@@ -25183,6 +28947,29 @@ public static Task<ApiResponse> SetConsoleSupportAsync(Guid vmId, bool enable);
 | `enable` | true 请求启用该设置，false 请求关闭。 |
 
 返回：操作结果；步骤失败时返回错误，并保留此前已完成的设备变更。
+
+<a id="api-e79a64aa6abe5531"></a>
+
+##### 设置增强会话偏好（方法）
+
+```csharp
+public static Task<ApiResponse> SetEnhancedFeaturesAsync(Guid vmId, bool clipboard, bool audioOutput, bool audioInput);
+```
+
+功能归属：管理层面 / 虚拟机 / 控制台。
+
+将增强会话资源重定向偏好保存到虚拟机配置文件（.vmcx）的 HostOnlyItems 中。
+
+| 参数 | 说明 |
+| --- | --- |
+| `vmId` | 目标虚拟机的稳定 GUID。 |
+| `clipboard` | 是否启用增强会话剪贴板共享。 |
+| `audioOutput` | 是否启用增强会话声音输出。 |
+| `audioInput` | 是否启用增强会话麦克风输入。 |
+
+返回：提交结果；修改将在下次连接或重连增强会话时生效。
+
+调用约定：通过 VmMetadataService 保存为 HostOnlyItems（Source=4），不暴露给来宾系统，关机和运行状态下均可修改并随虚拟机导出携带。
 
 <a id="api-4841b4f47d6619d8"></a>
 
@@ -31499,6 +35286,7 @@ public static readonly VmQueryField<string> Value;
 
 | 成员 | 说明 |
 | --- | --- |
+| [` public const string ConsoleFeaturesKey = "ExHyperV.ConsoleFeatures" `](#api-8142e690bcb60b6e) | 控制台增强会话功能偏好的键名；保存剪贴板共享、声音输出和麦克风输入开关的 JSON 对象，不暴露给来宾。 |
 | [` public const string CpuAffinityKey = "ExHyperV.CpuAffinity" `](#api-31eda3684731eb6a) | 处理器亲和性的键名。 |
 | [` public const string GpuDriversKey = "ExHyperV.GpuDrivers" `](#api-b42f7452c19f4a62) | 已部署显卡驱动版本的键名；保存以规范化宿主显卡实例 ID 为键、已写入来宾的驱动版本为值的 JSON 字典。 |
 | [` public const string OsTypeKey = "ExHyperV.OSType" `](#api-840af435315cad08) | 操作系统分类的键名；值与 OsImages 使用的分类名称一致。 |
@@ -31610,6 +35398,18 @@ public static Task<ApiResponse> SetOperatingSystemTypeAsync(Guid vmId, string os
 返回：操作系统分类的保存结果。
 
 #### 字段与常量说明
+
+<a id="api-8142e690bcb60b6e"></a>
+
+##### 控制台增强会话偏好键（字段）
+
+```csharp
+public const string ConsoleFeaturesKey = "ExHyperV.ConsoleFeatures";
+```
+
+功能归属：管理层面 / 虚拟机 / 自定义数据。
+
+控制台增强会话功能偏好的键名；保存剪贴板共享、声音输出和麦克风输入开关的 JSON 对象，不暴露给来宾。
 
 <a id="api-31eda3684731eb6a"></a>
 
@@ -34493,7 +38293,7 @@ public static async Task<ApiResponse> ExecuteControlActionAsync(Guid vmId, VmPow
 
 返回：参数校验或电源请求的结果；亲和性恢复在启动后由后台继续执行。
 
-调用约定：Stop 和 Restart 返回来宾请求结果。TurnOff 请求下电，请求结果未知时停止，只有已结束的请求才进入工作进程核验。
+调用约定：Stop 和 Restart 返回来宾请求结果。TurnOff 优先请求下电；超时、受阻或未能在预期时间内关机时，在核验目标虚拟机工作进程身份后直接终止工作进程完成断电。
 
 <a id="api-fcc28063736ec953"></a>
 

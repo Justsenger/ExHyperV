@@ -9,15 +9,86 @@
 <script id="api-title">
 (() => {
   'use strict';
-  // Match the website's automatic interface language, including live browser changes.
-  const updateTitle = () => {
-    const language = (navigator.languages?.[0] || navigator.language || 'zh-CN').replaceAll('_','-').toLowerCase();
-    document.title = language.startsWith('zh')
-      ? (/tw|hk|hant/.test(language) ? 'API 文件' : 'API 文档')
-      : 'API Documentation';
+  // Match the website's interface language preference and browser fallback, including live updates.
+  const normalize = value => {
+    const raw = String(value || 'und').trim().replaceAll('_', '-');
+    const alias = { cn: 'zh-CN', sc: 'zh-CN', chs: 'zh-CN', cht: 'zh-TW', 'zh-hans': 'zh-CN', 'zh-hant': 'zh-TW', zh: 'zh-CN' };
+    const hit = alias[raw.toLowerCase()];
+    if (hit) return hit;
+    try { return Intl.getCanonicalLocales(raw)[0] || 'und'; } catch { return 'und'; }
   };
-  updateTitle();
-  window.addEventListener('languagechange',updateTitle);
+  const uiFromLocale = value => {
+    const locale = normalize(value);
+    return locale.startsWith('zh') ? (/TW|HK|Hant/.test(locale) ? 'zh-TW' : 'zh-CN') : 'en';
+  };
+  const readPreference = () => {
+    try {
+      const saved = typeof localStorage !== 'undefined' && localStorage.getItem('exhyperv.language');
+      return saved === 'zh-CN' || saved === 'zh-TW' || saved === 'en' ? saved : 'auto';
+    } catch { return 'auto'; }
+  };
+  const resolveLanguage = (preference = readPreference()) => {
+    if (preference !== 'auto') return uiFromLocale(preference);
+    const list = Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language];
+    const hit = list.map(normalize).find(item => item !== 'und') || 'zh-CN';
+    return uiFromLocale(hit);
+  };
+  const labels = {
+    'zh-CN': {
+      title: 'API 文档', skip: '跳到正文', nav: '主站导航', homeAria: 'ExHyperV 首页',
+      home: '首页', wiki: '系统图鉴', docs: '文档', uiDesign: '在线体验',
+      langLabel: '语言', langAuto: '自动',
+    },
+    'zh-TW': {
+      title: 'API 文件', skip: '跳到正文', nav: '主站導覽', homeAria: 'ExHyperV 首頁',
+      home: '首頁', wiki: '系統圖鑑', docs: '文件', uiDesign: '線上體驗',
+      langLabel: '語言', langAuto: '自動',
+    },
+    en: {
+      title: 'API Documentation', skip: 'Skip to content', nav: 'Main navigation', homeAria: 'ExHyperV Home',
+      home: 'Home', wiki: 'System Gallery', docs: 'Docs', uiDesign: 'Live Demo',
+      langLabel: 'Language', langAuto: 'Auto',
+    },
+  };
+  const optionNames = { 'zh-CN': '简体中文', 'zh-TW': '繁體中文', en: 'English' };
+  const applyLanguage = () => {
+    const preference = readPreference();
+    const browserUi = resolveLanguage('auto');
+    const ui = resolveLanguage(preference);
+    const copy = labels[ui] || labels['zh-CN'];
+    document.title = copy.title;
+    if (document.documentElement) document.documentElement.lang = ui;
+    if (typeof document.querySelectorAll === 'function') {
+      for (const el of document.querySelectorAll('[data-api-i18n]')) {
+        const key = el.getAttribute('data-api-i18n');
+        if (copy[key]) el.textContent = copy[key];
+      }
+      for (const el of document.querySelectorAll('[data-api-i18n-aria]')) {
+        const key = el.getAttribute('data-api-i18n-aria');
+        if (copy[key]) el.setAttribute('aria-label', copy[key]);
+      }
+      for (const el of document.querySelectorAll('[data-api-i18n-title]')) {
+        const key = el.getAttribute('data-api-i18n-title');
+        if (copy[key]) el.setAttribute('title', copy[key]);
+      }
+      const root = document.getElementById('api-lang');
+      if (root) {
+        const label = root.querySelector('[data-site-language-label]');
+        if (label) label.textContent = preference === 'auto' ? copy.langAuto : (optionNames[preference] || copy.langAuto);
+        const detected = root.querySelector('[data-site-language-detected]');
+        if (detected) detected.textContent = optionNames[browserUi] || '简体中文';
+        for (const opt of root.querySelectorAll('[data-lang-option]')) {
+          opt.setAttribute('aria-selected', String(opt.getAttribute('data-lang-option') === preference));
+        }
+      }
+    }
+  };
+  applyLanguage();
+  window.__applyApiLanguage = applyLanguage;
+  window.addEventListener('languagechange', applyLanguage);
+  window.addEventListener('storage', event => {
+    if (!event || event.key === 'exhyperv.language' || event.key === null) applyLanguage();
+  });
 })();
 </script>
 <script id="theme-init">
@@ -25,15 +96,10 @@
   'use strict';
   const onWebsite = /^https?:$/.test(location.protocol) && /^\/api(?:\/|$)/.test(location.pathname);
   document.documentElement.dataset.siteContext = onWebsite ? 'website' : 'standalone';
-  const key = 'exhyperv-doc-theme';
-  const normalize = value => ['system','light','dark'].includes(value) ? value : 'system';
   const media = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-  let preference = 'system';
-  try { preference = normalize(localStorage.getItem(key)); } catch {}
   const apply = () => {
-    document.documentElement.dataset.theme = preference === 'system' ? (media?.matches ? 'dark' : 'light') : preference;
+    document.documentElement.dataset.theme = media?.matches ? 'dark' : 'light';
   };
-  // Set the palette before the first paint, including when storage is unavailable.
   apply();
   document.addEventListener('DOMContentLoaded', () => {
     if (onWebsite) {
@@ -45,24 +111,84 @@
       const home = document.querySelector('[data-site-home]');
       home.href = '/';
       home.setAttribute('aria-label', 'ExHyperV 首页');
+      home.setAttribute('data-api-i18n-aria', 'homeAria');
+      document.querySelector('[data-api-site-favicon]')?.removeAttribute('hidden');
+      document.querySelector('[data-api-github]')?.removeAttribute('hidden');
     }
-    const selector = document.getElementById('theme-select');
-    selector.value = preference;
+    const closeAllMenus = () => {
+      for (const root of document.querySelectorAll('.topbar-menu-wrap')) {
+        root.querySelector('[data-menu-trigger]')?.setAttribute('aria-expanded', 'false');
+        const m = root.querySelector('[data-menu-panel]');
+        if (m) m.hidden = true;
+      }
+    };
+    const bindMenu = (root, onSelect) => {
+      const trigger = root?.querySelector('[data-menu-trigger]');
+      const menu = root?.querySelector('[data-menu-panel]');
+      if (!root || !trigger || !menu) return;
+      trigger.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const willOpen = menu.hidden;
+        closeAllMenus();
+        if (willOpen) {
+          menu.hidden = false;
+          trigger.setAttribute('aria-expanded', 'true');
+          if (event.detail === 0) {
+            (menu.querySelector('[aria-selected="true"]') || menu.querySelector('[role="option"]'))?.focus({ preventScroll: true });
+          }
+        }
+      });
+      menu.addEventListener('click', (event) => {
+        const opt = event.target instanceof Element ? event.target.closest('[role="option"]') : null;
+        if (opt) onSelect(opt, event.detail === 0, trigger);
+      });
+      trigger.addEventListener('keydown', (event) => {
+        if (menu.hidden && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+          event.preventDefault();
+          closeAllMenus();
+          menu.hidden = false;
+          trigger.setAttribute('aria-expanded', 'true');
+          const options = [...menu.querySelectorAll('[role="option"]')];
+          (event.key === 'ArrowUp' ? options.at(-1) : (menu.querySelector('[aria-selected="true"]') || options[0]))?.focus({ preventScroll: true });
+        }
+      });
+      menu.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          closeAllMenus();
+          trigger.focus({ preventScroll: true });
+          return;
+        }
+        if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+        const options = [...menu.querySelectorAll('[role="option"]')];
+        if (!options.length) return;
+        event.preventDefault();
+        const idx = options.indexOf(document.activeElement);
+        let nextIdx = 0;
+        if (event.key === 'ArrowDown') nextIdx = idx >= 0 ? (idx + 1) % options.length : 0;
+        else if (event.key === 'ArrowUp') nextIdx = idx >= 0 ? (idx - 1 + options.length) % options.length : options.length - 1;
+        else if (event.key === 'End') nextIdx = options.length - 1;
+        options[nextIdx]?.focus({ preventScroll: true });
+      });
+    };
+    document.addEventListener('click', (event) => {
+      if (!(event.target instanceof Element) || !event.target.closest('.topbar-menu-wrap')) closeAllMenus();
+    });
+    const langRoot = document.getElementById('api-lang');
+    bindMenu(langRoot, (opt, returnFocus, trigger) => {
+      const val = opt.getAttribute('data-lang-option');
+      const next = val === 'zh-CN' || val === 'zh-TW' || val === 'en' ? val : 'auto';
+      try {
+        if (next === 'auto') localStorage.removeItem('exhyperv.language');
+        else localStorage.setItem('exhyperv.language', next);
+      } catch {}
+      closeAllMenus();
+      window.__applyApiLanguage?.();
+      if (returnFocus) trigger?.focus({ preventScroll: true });
+    });
+    window.__applyApiLanguage?.();
     apply();
-    selector.addEventListener('change', () => {
-      preference = normalize(selector.value);
-      apply();
-      try { localStorage.setItem(key, preference); } catch {}
-    });
-    const systemChanged = () => { if (preference === 'system') apply(); };
-    if (media?.addEventListener) media.addEventListener('change', systemChanged);
-    else if (media?.addListener) media.addListener(systemChanged);
-    window.addEventListener('storage', event => {
-      if (event.key !== key && event.key !== null) return;
-      preference = normalize(event.newValue);
-      selector.value = preference;
-      apply();
-    });
+    if (media?.addEventListener) media.addEventListener('change', apply);
+    else if (media?.addListener) media.addListener(apply);
   });
 })();
 </script>
@@ -70,13 +196,13 @@
 <script type="text/plain" id="comfortaa-font-license">__FONT_LICENSE__</script>
 </head>
 <body>
-<a class="skip-link" href="#main-content">跳到正文</a>
+<a class="skip-link" href="#main-content" data-api-i18n="skip">跳到正文</a>
 <header class="site-header">
-  <div class="topbar">
-    <div class="topbar-brand"><button class="mobile-menu" id="mobile-menu" type="button" aria-label="展开类型目录" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button><a class="brand" href="#overview" data-site-home aria-label="ExHyperV API 文档首页"><span class="brand-text">ExHyperV</span></a></div>
-    <nav class="site-links" data-site-navigation aria-label="主站导航" hidden><a href="/">首页</a><a href="/os/">系统图鉴</a><a href="/docs/" aria-current="page">文档</a><a href="/desktop/">在线体验</a></nav>
-    <div class="topbar-actions"><select id="theme-select" class="theme-select" aria-label="文档主题" title="文档主题"><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select></div>
-  </div>
+  <nav class="topbar" aria-label="主站导航" data-api-i18n-aria="nav">
+    <div class="topbar-brand"><button class="mobile-menu" id="mobile-menu" type="button" aria-label="展开类型目录" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg></button><a class="brand" href="#overview" data-site-home aria-label="ExHyperV API 文档首页"><img src="/favicon-32x32.png?v=2" width="19" height="19" alt="" class="topbar-site-icon" data-api-site-favicon hidden><span class="brand-text">ExHyperV</span></a></div>
+    <div class="site-links" data-site-navigation hidden><a href="/" data-api-i18n="home">首页</a><a href="/os/" data-api-i18n="wiki">系统图鉴</a><a href="/docs/" aria-current="page" data-api-i18n="docs">文档</a><a href="/desktop/" data-api-i18n="uiDesign">在线体验</a></div>
+    <div class="topbar-actions"><div id="api-lang" class="topbar-lang topbar-menu-wrap" data-site-language><button type="button" class="topbar-lang-trigger" data-lang-trigger data-menu-trigger aria-haspopup="listbox" aria-expanded="false" aria-label="语言" title="语言" data-api-i18n-aria="langLabel" data-api-i18n-title="langLabel"><svg class="topbar-lang-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 0 0 18M12 3a14 14 0 0 1 0 18" /></svg><span class="topbar-lang-label" data-site-language-label data-api-i18n="langAuto">自动</span><svg class="topbar-lang-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg></button><div class="topbar-lang-menu" data-lang-menu data-menu-panel role="listbox" aria-label="语言" data-api-i18n-aria="langLabel" hidden><button type="button" class="topbar-lang-option" role="option" data-lang-option="auto" aria-selected="true"><span class="topbar-lang-option-main"><span data-api-i18n="langAuto">自动</span><span class="topbar-lang-detected" data-site-language-detected>简体中文</span></span><svg class="topbar-lang-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></button><div class="topbar-lang-divider" role="separator"></div><button type="button" class="topbar-lang-option" role="option" data-lang-option="zh-CN" aria-selected="false"><span class="topbar-lang-option-main">简体中文</span><svg class="topbar-lang-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></button><button type="button" class="topbar-lang-option" role="option" data-lang-option="zh-TW" aria-selected="false"><span class="topbar-lang-option-main">繁體中文</span><svg class="topbar-lang-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></button><button type="button" class="topbar-lang-option" role="option" data-lang-option="en" aria-selected="false"><span class="topbar-lang-option-main">English</span><svg class="topbar-lang-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg></button></div></div><a class="topbar-github" data-api-github hidden href="https://github.com/Justsenger/ExHyperV" target="_blank" rel="noopener noreferrer" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z" /></svg></a></div>
+  </nav>
 </header>
 <div class="nav-scrim" id="nav-scrim"></div>
 <div class="layout">
@@ -651,7 +777,8 @@
     '连接':'发现控制台后端并建立虚拟机连接会话',
     '视频':'获取实时屏幕帧流与单帧截图',
     '控制':'向来宾发送键盘按键与鼠标输入',
-    '剪贴板':'在宿主机与来宾之间传输文本和图像'
+    '剪贴板':'在宿主机与来宾之间传输文本和图像',
+    '音频':'双向传输来宾 PCM 音频输出与麦克风输入'
   };
   const toolDescriptions = {
     'VMCX 文件':'读取、查找、编辑和校验虚拟机配置文件。',
@@ -670,27 +797,51 @@
       '连接':'<path d="m9 15 6-6M8 17l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M16 7l1-1a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(1 0) scale(.92)"/>',
       '视频':'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
       '控制':'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/>',
-      '剪贴板':'<path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2M8 12h8M8 16h6"/><rect x="8" y="2" width="8" height="5" rx="1.5"/>'
+      '剪贴板':'<path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2M8 12h8M8 16h6"/><rect x="8" y="2" width="8" height="5" rx="1.5"/>',
+      '音频':'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>'
     };
-    return `<nav class="overview-entries" aria-label="${escape(label)}">${items.map(item =>
-      link(item.id,`<svg class="overview-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${icons[item.label]}</svg><span class="overview-entry-name">${escape(item.label)}</span>`,'overview-entry')).join('')}</nav>`;
+    return `<nav class="overview-entries" aria-label="${escape(label)}">${items.map(item => {
+      const iconPath = icons[item.label] || '';
+      const desc = item.description ? `<span class="overview-entry-description">${escape(item.description)}</span>` : '';
+      return link(item.id,
+        `<span class="overview-entry-badge"><svg class="overview-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${iconPath}</svg></span>`
+        + `<span class="overview-entry-body"><span class="overview-entry-name">${escape(item.label)}</span>${desc}</span>`
+        + `<span class="overview-entry-arrow" aria-hidden="true">→</span>`,
+        'overview-entry');
+    }).join('')}</nav>`;
   }
   function renderOverview() {
     currentType = null;
     main.className = 'article overview-page';
     const business = referenceGroups.filter(group => group.path[0] === '业务层面')
-      .map(group => ({id:group.id,label:group.path[1]}));
-    main.innerHTML = `<div class="overview-columns" id="overview"><section class="overview-domain" aria-labelledby="overview-management"><header class="overview-domain-heading"><h2 id="overview-management">管理层面</h2></header>${overviewEntries(categoryHubs,'管理分类')}</section>`
-      + `<section class="overview-domain" aria-labelledby="overview-business"><header class="overview-domain-heading"><h2 id="overview-business">业务层面</h2></header>${overviewEntries(business,'业务分类')}</section></div>`;
+      .map(group => ({id:group.id,label:group.path[1],description:businessDescriptions[group.path[1]] || ''}));
+    main.innerHTML = `<div class="overview-shell" id="overview"><header class="overview-hero"><div class="overview-title-row"><h1>ExHyperV.Core API</h1>${data.version ? `<span class="overview-version">${escape(data.version)}</span>` : ''}</div><p class="overview-lead">直接嵌入 Windows 应用进程的 Hyper-V 核心类库，涵盖虚拟机配置与调度管理，以及控制台实时连接交互。</p></header>`
+      + `<div class="overview-columns"><section class="overview-domain overview-domain--management" aria-labelledby="overview-management"><header class="overview-domain-heading"><h2 id="overview-management">管理层面</h2><p class="overview-domain-subtitle">虚拟机生命周期、配置读写与宿主工具</p></header>${overviewEntries(categoryHubs,'管理分类')}</section>`
+      + `<section class="overview-domain overview-domain--business" aria-labelledby="overview-business"><header class="overview-domain-heading"><h2 id="overview-business">业务层面</h2><p class="overview-domain-subtitle">控制台连接会话、实时音视频与键鼠剪贴板交互</p></header>${overviewEntries(business,'业务分类')}</section></div></div>`;
     setBreadcrumb('概览');
+  }
+  function summarizeManagementGroup(group) {
+    const names = (group.fields || []).slice(0, 3).map(field => field.label).filter(Boolean);
+    if (names.length) return names.join('、') + ((group.fields || []).length > 3 ? ' 等' : '');
+    const methodNames = (group.methods || []).slice(0, 2).map(entry => entry.label).filter(Boolean);
+    return methodNames.join('、');
+  }
+  function summarizeInstanceGroup(group) {
+    const raw = group.actions?.[0]?.variants?.[0]?.member?.summaryText || '';
+    return raw.replace(/。$/, '');
   }
   function renderCategoryHub(hub) {
     currentType = null;
     main.className = 'article category-index';
-    const cards = groups => categoryCards(groups.map(group => ({id:group.id,label:group.path.at(-1)})),hub.label+'分类');
+    const back = `<p class="hub-crumb">${link('overview','概览')} <span aria-hidden="true">/</span> <span>管理层面</span></p>`;
+    const cards = (groups, isInstance = false) => categoryCards(groups.map(group => ({
+      id:group.id,
+      label:group.path.at(-1),
+      description:isInstance ? summarizeInstanceGroup(group) : summarizeManagementGroup(group)
+    })),hub.label+'分类');
     let content;
     if (hub.id === 'category-vm') {
-      content = `<section><h2>实例操作</h2>${cards(instanceGroups)}</section>`
+      content = `<section><h2>实例操作</h2>${cards(instanceGroups, true)}</section>`
         + `<section><h2>配置与状态</h2>${cards(managementGroups.filter(group => group.path[1] === '虚拟机'))}</section>`;
     } else if (hub.id === 'category-host') {
       content = cards(managementGroups.filter(group => group.path[1] === '宿主'));
@@ -698,7 +849,7 @@
       content = categoryCards(referenceGroups.filter(group => group.path[1] === '工具')
         .map(group => ({id:group.id,label:group.path.at(-1),description:toolDescriptions[group.path.at(-1)]})),'工具分类');
     }
-    main.innerHTML = `<header id="${hub.id}"><h1>${escape(hub.label)}</h1></header>${content}`;
+    main.innerHTML = `<header class="hub-header" id="${hub.id}">${back}<h1>${escape(hub.label)}</h1><p class="hub-lead">${escape(hub.description || '')}</p></header>${content}`;
     setBreadcrumb('管理层面 / '+hub.label);
   }
   function affinityGroupLinks(area) {

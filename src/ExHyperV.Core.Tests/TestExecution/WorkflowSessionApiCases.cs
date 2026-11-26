@@ -14,7 +14,7 @@ internal static class WorkflowSessionApiCases
         or "VmPcieChangeSession.构造()" or "VmPcieChangeSession.ApplyAsync()" or "PcieAssignmentSession.构造()" or "PcieAssignmentSession.AdvanceAsync()";
     internal static Task RunAsync(CatalogTest p, ApiCaseContext c)
     {
-        c.Evidence.Add("状态机契约：使用受控底层响应，逐次调用真实 Core 会话 API；设备效果由对应实机 API 项核验。");
+        c.Evidence.Add("状态机契约：使用受控底层响应，逐次调用真实 Core 会话 API，设备效果由对应实机 API 项核验。");
         return p.Api.StartsWith("GpuDeploymentSession.") ? GpuAsync(p, c) : p.Api.StartsWith("VmPowerOperationSession.") ? PowerAsync(p, c) : PcieAsync(p, c);
     }
     private static async Task GpuAsync(CatalogTest p, ApiCaseContext c)

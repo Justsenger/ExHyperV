@@ -1,9 +1,0 @@
-<Page x:Class="ExHyperV.App.UI.Pages.Web.WebPage"
-    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="32" Spacing="24" MaxWidth="800" HorizontalAlignment="Left">
-            <TextBlock x:Name="TitleHeader" Style="{StaticResource PageTitleStyle}" />
-        </StackPanel>
-    </ScrollViewer>
-</Page>

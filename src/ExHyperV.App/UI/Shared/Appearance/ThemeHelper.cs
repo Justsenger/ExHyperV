@@ -1,8 +1,9 @@
 
-using Microsoft.UI.Xaml.Markup;
+using System.Globalization;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI;
+using Windows.Foundation;
 using Windows.UI;
 
 namespace ExHyperV.App.UI.Shared.Appearance;
@@ -155,6 +156,191 @@ internal static class ThemeHelper
             : new SolidColorBrush(fallback);
 
     internal static Geometry ParseGeometry(string pathData)
-        => ((Microsoft.UI.Xaml.Shapes.Path)XamlReader.Load(
-            $"<Path xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation' Data='{pathData}'/>")).Data;
+    {
+        var geometry = new PathGeometry { FillRule = FillRule.Nonzero };
+        if (string.IsNullOrWhiteSpace(pathData)) return geometry;
+
+        int i = 0;
+        void SkipSeparators()
+        {
+            while (i < pathData.Length && (char.IsWhiteSpace(pathData[i]) || pathData[i] == ',')) i++;
+        }
+
+        double ReadNumber()
+        {
+            SkipSeparators();
+            int start = i;
+            if (i < pathData.Length && (pathData[i] == '+' || pathData[i] == '-')) i++;
+            while (i < pathData.Length && char.IsAsciiDigit(pathData[i])) i++;
+            if (i < pathData.Length && pathData[i] == '.')
+            {
+                i++;
+                while (i < pathData.Length && char.IsAsciiDigit(pathData[i])) i++;
+            }
+            if (i < pathData.Length && (pathData[i] == 'e' || pathData[i] == 'E'))
+            {
+                i++;
+                if (i < pathData.Length && (pathData[i] == '+' || pathData[i] == '-')) i++;
+                while (i < pathData.Length && char.IsAsciiDigit(pathData[i])) i++;
+            }
+            if (i == start) throw new FormatException($"Invalid SVG path number at index {start}.");
+            return double.Parse(pathData.AsSpan(start, i - start), NumberStyles.Float, CultureInfo.InvariantCulture);
+        }
+
+        bool ReadFlag()
+        {
+            SkipSeparators();
+            if (i >= pathData.Length || (pathData[i] != '0' && pathData[i] != '1'))
+                throw new FormatException($"Invalid SVG arc flag at index {i}.");
+            return pathData[i++] == '1';
+        }
+
+        SkipSeparators();
+        if (i + 1 < pathData.Length && pathData[i] is 'F' or 'f' && pathData[i + 1] is '0' or '1')
+        {
+            geometry.FillRule = pathData[i + 1] == '0' ? FillRule.EvenOdd : FillRule.Nonzero;
+            i += 2;
+        }
+
+        Point cur = default, lastCubicCtrl = default, lastQuadCtrl = default;
+        char cmd = '\0', prevCmd = '\0';
+        PathFigure? figure = null;
+
+        PathFigure EnsureFigure()
+        {
+            if (figure != null) return figure;
+            figure = new PathFigure { StartPoint = cur, IsFilled = true };
+            geometry.Figures.Add(figure);
+            return figure;
+        }
+
+        while (true)
+        {
+            SkipSeparators();
+            if (i >= pathData.Length) break;
+            if (char.IsLetter(pathData[i])) cmd = pathData[i++];
+            else if (cmd == '\0') break;
+
+            bool rel = char.IsLower(cmd);
+            Point Rel(double x, double y) => rel ? new(cur.X + x, cur.Y + y) : new(x, y);
+
+            switch (cmd)
+            {
+                case 'M':
+                case 'm':
+                    cur = Rel(ReadNumber(), ReadNumber());
+                    figure = new PathFigure { StartPoint = cur, IsFilled = true };
+                    geometry.Figures.Add(figure);
+                    lastCubicCtrl = lastQuadCtrl = cur;
+                    prevCmd = cmd;
+                    cmd = rel ? 'l' : 'L';
+                    break;
+                case 'L':
+                case 'l':
+                    cur = Rel(ReadNumber(), ReadNumber());
+                    EnsureFigure().Segments.Add(new LineSegment { Point = cur });
+                    lastCubicCtrl = lastQuadCtrl = cur;
+                    prevCmd = cmd;
+                    break;
+                case 'H':
+                case 'h':
+                    double hx = ReadNumber();
+                    cur = new Point(rel ? cur.X + hx : hx, cur.Y);
+                    EnsureFigure().Segments.Add(new LineSegment { Point = cur });
+                    lastCubicCtrl = lastQuadCtrl = cur;
+                    prevCmd = cmd;
+                    break;
+                case 'V':
+                case 'v':
+                    double vy = ReadNumber();
+                    cur = new Point(cur.X, rel ? cur.Y + vy : vy);
+                    EnsureFigure().Segments.Add(new LineSegment { Point = cur });
+                    lastCubicCtrl = lastQuadCtrl = cur;
+                    prevCmd = cmd;
+                    break;
+                case 'C':
+                case 'c':
+                {
+                    var p1 = Rel(ReadNumber(), ReadNumber());
+                    var p2 = Rel(ReadNumber(), ReadNumber());
+                    var p3 = Rel(ReadNumber(), ReadNumber());
+                    EnsureFigure().Segments.Add(new BezierSegment { Point1 = p1, Point2 = p2, Point3 = p3 });
+                    lastCubicCtrl = p2;
+                    cur = lastQuadCtrl = p3;
+                    prevCmd = cmd;
+                    break;
+                }
+                case 'S':
+                case 's':
+                {
+                    var p1 = prevCmd is 'C' or 'c' or 'S' or 's'
+                        ? new Point(2 * cur.X - lastCubicCtrl.X, 2 * cur.Y - lastCubicCtrl.Y)
+                        : cur;
+                    var p2 = Rel(ReadNumber(), ReadNumber());
+                    var p3 = Rel(ReadNumber(), ReadNumber());
+                    EnsureFigure().Segments.Add(new BezierSegment { Point1 = p1, Point2 = p2, Point3 = p3 });
+                    lastCubicCtrl = p2;
+                    cur = lastQuadCtrl = p3;
+                    prevCmd = cmd;
+                    break;
+                }
+                case 'Q':
+                case 'q':
+                {
+                    var p1 = Rel(ReadNumber(), ReadNumber());
+                    var p2 = Rel(ReadNumber(), ReadNumber());
+                    EnsureFigure().Segments.Add(new QuadraticBezierSegment { Point1 = p1, Point2 = p2 });
+                    lastQuadCtrl = p1;
+                    cur = lastCubicCtrl = p2;
+                    prevCmd = cmd;
+                    break;
+                }
+                case 'T':
+                case 't':
+                {
+                    var p1 = prevCmd is 'Q' or 'q' or 'T' or 't'
+                        ? new Point(2 * cur.X - lastQuadCtrl.X, 2 * cur.Y - lastQuadCtrl.Y)
+                        : cur;
+                    var p2 = Rel(ReadNumber(), ReadNumber());
+                    EnsureFigure().Segments.Add(new QuadraticBezierSegment { Point1 = p1, Point2 = p2 });
+                    lastQuadCtrl = p1;
+                    cur = lastCubicCtrl = p2;
+                    prevCmd = cmd;
+                    break;
+                }
+                case 'A':
+                case 'a':
+                {
+                    double rx = Math.Abs(ReadNumber()), ry = Math.Abs(ReadNumber()), angle = ReadNumber();
+                    bool largeArc = ReadFlag(), sweep = ReadFlag();
+                    var p = Rel(ReadNumber(), ReadNumber());
+                    EnsureFigure().Segments.Add(new ArcSegment
+                    {
+                        Size = new Size(rx, ry),
+                        RotationAngle = angle,
+                        IsLargeArc = largeArc,
+                        SweepDirection = sweep ? SweepDirection.Clockwise : SweepDirection.Counterclockwise,
+                        Point = p
+                    });
+                    cur = lastCubicCtrl = lastQuadCtrl = p;
+                    prevCmd = cmd;
+                    break;
+                }
+                case 'Z':
+                case 'z':
+                    if (figure != null)
+                    {
+                        figure.IsClosed = true;
+                        cur = figure.StartPoint;
+                        figure = null;
+                    }
+                    lastCubicCtrl = lastQuadCtrl = cur;
+                    prevCmd = cmd;
+                    break;
+                default:
+                    throw new FormatException($"Unsupported SVG path command '{cmd}'.");
+            }
+        }
+        return geometry;
+    }
 }

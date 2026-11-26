@@ -186,7 +186,7 @@ internal static class VmTransferApiCases
             if (spec.Item1)
             {
                 var preview = await VmImportService.PreparePreviewsAsync(result.OutputPath!, VmImportPlacementMode.HostDirectories); await using var batch = preview.Batch;
-                c.Require(preview.Success && batch!.VirtualMachines.Single().Preview.Disks.All(d => d.Exists), preview.Result.Error + "；导出产物可预览且磁盘引用有效");
+                c.Require(preview.Success && batch!.VirtualMachines.Single().Preview.Disks.All(d => d.Exists), preview.Result.Error + "，导出产物可预览且磁盘引用有效");
                 await using var verify = TemporaryVm.Reserve(c);
                 var imported = await WindowsTestCommand.RunAsync("""
                     $files=@(Get-ChildItem -LiteralPath $a.source -Filter *.vmcx -Recurse|Where-Object {$_.Directory.Name -eq 'Virtual Machines'})

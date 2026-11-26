@@ -1,13 +1,90 @@
-name: Build desktop release packages
+name: 发布
 
 on:
   workflow_dispatch:
+    inputs:
+      release_type:
+        description: '发布类型（beta=替换唯一预发布版 / release=正式发布）'
+        required: true
+        type: choice
+        options:
+          - beta
+          - release
+        default: beta
 
 permissions:
   contents: read
 
 jobs:
-  package:
+  prepare:
+    name: 校验版本与发布状态
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.config.outputs.VERSION }}
+      tag: ${{ steps.config.outputs.TAG }}
+      mode: ${{ steps.config.outputs.MODE }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - id: config
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $projects = @(
+            'src/ExHyperV.App/ExHyperV.App.csproj',
+            'src/ExHyperV.Core/ExHyperV.Core.csproj',
+            'src/ExHyperV.Server/ExHyperV.Server.csproj',
+            'src/ExHyperV.Mcp/ExHyperV.Mcp.csproj'
+          )
+          $versions = @{}
+          foreach ($path in $projects) {
+            [xml]$xml = Get-Content -LiteralPath $path -Raw -Encoding UTF8
+            $v = $xml.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
+            if ([string]::IsNullOrWhiteSpace($v)) { throw "Missing Version in $path" }
+            $versions[$path] = $v.Trim()
+          }
+          $unique = @($versions.Values | Select-Object -Unique)
+          if ($unique.Count -ne 1) {
+            $details = ($versions.GetEnumerator() | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join ', '
+            throw "Project versions must match before release: $details"
+          }
+          $ver = $unique[0]
+          if ($ver -notmatch '^[0-9A-Za-z][0-9A-Za-z._-]*$') {
+            throw "Unsafe version string: $ver"
+          }
+          $tag = "V$ver"
+          $mode = '${{ inputs.release_type }}'
+
+          $remoteTag = git ls-remote --tags origin "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to query remote tags for $tag" }
+          $tagExists = -not [string]::IsNullOrWhiteSpace(($remoteTag -join ''))
+
+          if ($mode -eq 'release' -and $tagExists) {
+            throw "Tag $tag already exists on origin. Bump Version in the csproj files before creating an official release."
+          }
+          if ($mode -eq 'beta' -and $tagExists) {
+            $releaseJson = gh release view "$tag" --json isPrerelease 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              $rel = $releaseJson | ConvertFrom-Json
+              if (-not $rel.isPrerelease) {
+                throw "Tag $tag belongs to an existing formal release. Bump Version before publishing a new beta."
+              }
+            } else {
+              throw "Tag $tag already exists on origin without a prerelease record. Remove it or bump Version before publishing."
+            }
+          }
+
+          "VERSION=$ver" >> $env:GITHUB_OUTPUT
+          "TAG=$tag" >> $env:GITHUB_OUTPUT
+          "MODE=$mode" >> $env:GITHUB_OUTPUT
+          Write-Host "Version=$ver Mode=$mode Tag=$tag"
+
+  test:
+    name: 双架构基础测试（${{ matrix.architecture }}）
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -17,46 +94,285 @@ jobs:
           - architecture: arm64
             runner: windows-11-vs2026-arm
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           dotnet-version: '11.0.x'
       - name: Run Core regression tests
         shell: pwsh
         run: ./src/ExHyperV.Core.Tests/Scripts/Test-Core.ps1 -Runtime win-${{ matrix.architecture }} -Suite Regression -LockedRestore
-      - name: Build portable and Setup executables
+      - name: Run MCP tests
+        shell: pwsh
+        run: ./src/ExHyperV.Mcp.Tests/Test-Mcp.ps1 -Runtime win-${{ matrix.architecture }}
+      - name: Run Server tests
+        shell: pwsh
+        run: ./src/ExHyperV.Server.Tests/Test-Server.ps1 -Runtime win-${{ matrix.architecture }}
+
+  build_and_sign:
+    name: 构建并签名双架构产物
+    needs: [prepare, test]
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          dotnet-version: '11.0.x'
+      - name: Ensure Inno Setup and VS ARM64 C++ tools
         shell: pwsh
         run: |
           choco install innosetup --version=6.7.3 --yes --no-progress --allow-downgrade
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed' }
-          ./.github/setup/Build-Installer.ps1 -Architecture ${{ matrix.architecture }}
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vsPath = & $vswhere -latest -products '*' -version '[18.0,19.0)' -property installationPath | Select-Object -First 1
+          if (-not $vsPath) { throw 'Visual Studio 2026 was not found' }
+          $hasArm64 = & $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath | Select-Object -First 1
+          if (-not $hasArm64) {
+            Write-Host 'Installing VS 2026 ARM64 C++ build tools...'
+            $setup = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/setup.exe'
+            $proc = Start-Process -FilePath $setup -ArgumentList 'modify', '--installPath', "`"$vsPath`"", '--add', 'Microsoft.VisualStudio.Component.VC.Tools.ARM64', '--quiet', '--norestart', '--nocache' -Wait -PassThru
+            if ($proc.ExitCode -notin 0, 3010) { throw "Visual Studio ARM64 C++ installation failed: $($proc.ExitCode)" }
+          }
+      - name: Setup Certum Code Signing
+        shell: bash
+        run: |
+          chmod +x ./.github/scripts/install-simplysign.sh
+          ./.github/scripts/install-simplysign.sh
+          powershell -ExecutionPolicy Bypass -File "./.github/scripts/configure-simplysign-registry.ps1"
+      - name: Authenticate Certum
+        shell: bash
+        env:
+          CERTUM_OTP_URI: ${{ secrets.CERTUM_OTP_URI }}
+          CERTUM_USERNAME: ${{ secrets.CERTUM_USERNAME }}
+          CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
+          CERTUM_EXE_PATH: ${{ secrets.CERTUM_EXE_PATH }}
+        run: |
+          for attempt in $(seq 1 10); do
+            echo "Authentication attempt ${attempt}/10"
+            if powershell -ExecutionPolicy Bypass -File "./.github/scripts/connect-simplySign-enhanced.ps1"; then
+              echo "Authentication completed"
+              sleep 10
+              exit 0
+            fi
+            [ "$attempt" -lt 10 ] && sleep 10
+          done
+          echo "ERROR: Certum authentication failed after 10 attempts"
+          exit 1
+      - name: Build and sign desktop Setup and Portable executables (x64 & arm64)
+        shell: pwsh
+        env:
+          CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
+        run: |
+          ./.github/setup/Build-Installer.ps1 -Architecture x64,arm64 -Version '${{ needs.prepare.outputs.version }}' -EnableSigning
+      - name: Build, sign and zip ExHyperV.Server & ExHyperV.Mcp (x64 & arm64)
+        shell: pwsh
+        env:
+          CERTUM_CERTIFICATE_SHA1: ${{ secrets.CERTUM_CERTIFICATE_SHA1 }}
+        run: |
+          $version = '${{ needs.prepare.outputs.version }}'
+          $stageRoot = '.cache/verify-stage'
+          $packageRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget/packages' }
+          New-Item -ItemType Directory -Path '.cache/release' -Force | Out-Null
+          foreach ($arch in @('x64', 'arm64')) {
+            $runtime = "win-$arch"
+            ./src/ExHyperV.Server/Build.ps1 -Runtime $runtime
+            ./src/ExHyperV.Mcp/Build.ps1 -Runtime $runtime
+            foreach ($dir in @(".cache/server/$runtime", ".cache/mcp/$runtime")) {
+              $targets = @(Get-ChildItem -LiteralPath $dir -Recurse -File | Where-Object { $_.Name -like 'ExHyperV.*' -and $_.Extension -iin @('.exe', '.dll') })
+              if ($targets.Count -eq 0) { throw "No ExHyperV binaries found in $dir" }
+              foreach ($file in $targets) {
+                $global:LASTEXITCODE = 0
+                & ./.github/setup/Sign-File.ps1 -FilePath $file.FullName
+                if ($LASTEXITCODE -ne 0) { throw "Signing failed for $($file.FullName)" }
+              }
+            }
+            $serverZip = ".cache/release/ExHyperV.Server_V${version}_${runtime}.zip"
+            $mcpZip = ".cache/release/ExHyperV.Mcp_V${version}_${runtime}.zip"
+            Compress-Archive -Path "./.cache/server/$runtime/*" -DestinationPath $serverZip -CompressionLevel Optimal -Force
+            Compress-Archive -Path "./.cache/mcp/$runtime/*" -DestinationPath $mcpZip -CompressionLevel Optimal -Force
+
+            $framework = Join-Path $packageRoot "microsoft.windowsappsdk.runtime/2.6.5/tools/MSIX/win10-$arch/Microsoft.WindowsAppRuntime.2.msix"
+            if (-not (Test-Path -LiteralPath $framework)) { throw "Missing Windows App Runtime MSIX: $framework" }
+
+            $archStage = Join-Path $stageRoot $arch
+            New-Item -ItemType Directory -Path $archStage -Force | Out-Null
+            Copy-Item ".cache/release/ExHyperV_V${version}_Setup_${arch}.exe" $archStage -Force
+            Copy-Item ".cache/release/ExHyperV_V${version}_${arch}.exe" $archStage -Force
+            Copy-Item $serverZip $archStage -Force
+            Copy-Item $mcpZip $archStage -Force
+            Copy-Item ".cache/installer-work/${runtime}/application.sha256" (Join-Path $archStage 'application.sha256') -Force
+            Copy-Item -LiteralPath $framework -Destination (Join-Path $archStage 'Microsoft.WindowsAppRuntime.2.msix') -Force
+          }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: signed-release-assets
+          path: |
+            .cache/release/*.exe
+            .cache/release/*.zip
+          include-hidden-files: true
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: signed-verify-x64
+          path: .cache/verify-stage/x64/*
+          include-hidden-files: true
+          if-no-files-found: error
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: signed-verify-arm64
+          path: .cache/verify-stage/arm64/*
+          include-hidden-files: true
+          if-no-files-found: error
+
+  verify:
+    name: 实机验证已签名产物（${{ matrix.architecture }}）
+    needs: [prepare, build_and_sign]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x64
+            runner: windows-2025-vs2026
+          - architecture: arm64
+            runner: windows-11-vs2026-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v7
+        with:
+          name: signed-verify-${{ matrix.architecture }}
+          path: verify-assets
       - name: Install the system Windows App Runtime for native launch tests
         shell: powershell
         run: |
           $arch = '${{ matrix.architecture }}'
-          $packageRoot = if ($env:NUGET_PACKAGES) { $env:NUGET_PACKAGES } else { Join-Path $env:USERPROFILE '.nuget/packages' }
-          $framework = Join-Path $packageRoot "microsoft.windowsappsdk.runtime/2.6.5/tools/MSIX/win10-$arch/Microsoft.WindowsAppRuntime.2.msix"
+          $framework = Join-Path $PWD 'verify-assets/Microsoft.WindowsAppRuntime.2.msix'
           if (!(Get-AppxPackage Microsoft.WindowsAppRuntime.2 | Where-Object { $_.Architecture -eq $arch -and [version]$_.Version -ge [version]'2.6.5.0' })) {
             Add-AppxPackage -Path $framework -ErrorAction Stop
           }
-      - name: Verify launch, shortcuts, upgrade and uninstall
+      - name: Verify signed desktop launch, shortcuts, upgrade and uninstall
         shell: pwsh
         run: |
-          [xml]$project = Get-Content src/ExHyperV.App/ExHyperV.App.csproj -Raw
-          $version = $project.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
-          $base = ".cache/release/ExHyperV_V$version"
+          $version = '${{ needs.prepare.outputs.version }}'
+          $arch = '${{ matrix.architecture }}'
+          $base = "verify-assets/ExHyperV_V$version"
           $env:DOTNET_ROOT = $env:DOTNET_ROOT_ARM64 = $env:DOTNET_ROOT_X64 = Join-Path $env:RUNNER_TEMP 'missing-dotnet'
           $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'dotnet' }) -join ';'
-          $hash = Get-Content '.cache/installer-work/win-${{ matrix.architecture }}/application.sha256'
-          ./.github/setup/Test-Installer.ps1 -ExpectedVersion $version -VerifyLaunch `
+          $hash = (Get-Content 'verify-assets/application.sha256' -Raw).Trim()
+          ./.github/setup/Test-Installer.ps1 -ExpectedVersion $version -VerifyLaunch -RequireValidSignatures `
             -ExpectedApplicationHash $hash `
-            -InstallerPath "${base}_Setup_${{ matrix.architecture }}.exe" -PortablePath "${base}_${{ matrix.architecture }}.exe"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+            -InstallerPath "${base}_Setup_${arch}.exe" -PortablePath "${base}_${arch}.exe"
+      - name: Verify signed ExHyperV.Server & ExHyperV.Mcp packages
+        shell: pwsh
+        run: |
+          $version = '${{ needs.prepare.outputs.version }}'
+          $runtime = 'win-${{ matrix.architecture }}'
+          $env:DOTNET_ROOT = $env:DOTNET_ROOT_ARM64 = $env:DOTNET_ROOT_X64 = Join-Path $env:RUNNER_TEMP 'missing-dotnet'
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch 'dotnet' }) -join ';'
+          foreach ($app in @('ExHyperV.Server', 'ExHyperV.Mcp')) {
+            $extract = "verify-extract/$app"
+            Expand-Archive -LiteralPath "verify-assets/${app}_V${version}_${runtime}.zip" -DestinationPath $extract -Force
+            $targets = @(Get-ChildItem -LiteralPath $extract -Recurse -File | Where-Object { $_.Name -like 'ExHyperV.*' -and $_.Extension -iin @('.exe', '.dll') })
+            if ($targets.Count -eq 0) { throw "No ExHyperV binaries found in $extract" }
+            foreach ($file in $targets) {
+              $sig = Get-AuthenticodeSignature -FilePath $file.FullName
+              if ($sig.Status -ne 'Valid') { throw "Invalid signature on $($file.FullName): $($sig.Status)" }
+            }
+          }
+          & 'verify-extract/ExHyperV.Server/ExHyperV.Server.exe' --verify-contracts
+          if ($LASTEXITCODE -ne 0) { throw "Signed Server contract check failed: $LASTEXITCODE" }
+          & 'verify-extract/ExHyperV.Mcp/ExHyperV.Mcp.exe' --verify-contracts
+          if ($LASTEXITCODE -ne 0) { throw "Signed MCP contract check failed: $LASTEXITCODE" }
+
+  release:
+    name: 创建 GitHub Release
+    needs: [prepare, build_and_sign, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
         with:
-          name: ExHyperV-${{ matrix.architecture }}
-          path: .cache/release/*.exe
-          include-hidden-files: true
-          if-no-files-found: error
+          name: signed-release-assets
+          path: release-assets
+      - name: Verify all 8 release assets exist
+        shell: bash
+        run: |
+          VERSION='${{ needs.prepare.outputs.version }}'
+          expected=(
+            "ExHyperV_V${VERSION}_x64.exe"
+            "ExHyperV_V${VERSION}_arm64.exe"
+            "ExHyperV_V${VERSION}_Setup_x64.exe"
+            "ExHyperV_V${VERSION}_Setup_arm64.exe"
+            "ExHyperV.Server_V${VERSION}_win-x64.zip"
+            "ExHyperV.Server_V${VERSION}_win-arm64.zip"
+            "ExHyperV.Mcp_V${VERSION}_win-x64.zip"
+            "ExHyperV.Mcp_V${VERSION}_win-arm64.zip"
+          )
+          for file in "${expected[@]}"; do
+            test -f "release-assets/$file" || { echo "Missing release asset: $file"; exit 1; }
+          done
+          ls -lh release-assets
+      - name: Delete existing prereleases before publishing beta
+        if: needs.prepare.outputs.mode == 'beta'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release list --repo "${{ github.repository }}" --limit 1000 --json tagName,isPrerelease --jq '.[] | select(.isPrerelease) | .tagName' | while read -r old_tag; do
+            [ -z "$old_tag" ] && continue
+            echo "Deleting old prerelease: $old_tag"
+            gh release delete "$old_tag" --repo "${{ github.repository }}" --cleanup-tag --yes || gh release delete "$old_tag" --repo "${{ github.repository }}" --yes
+          done
+      - name: Create Beta Prerelease
+        if: needs.prepare.outputs.mode == 'beta'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TAG='${{ needs.prepare.outputs.tag }}'
+          BUILD_TIME=$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M')
+          NOTES=$(printf '🧪 这是于 %s（UTC+8）生成的测试版本，包含预览性的功能改进或修复，随时可能被后续测试版本覆盖，具体改动请查看提交记录。\n\n🧪 This is a preview build generated at %s (UTC+8), containing preview changes that may be superseded by later test builds. Please check the commit history for details.' "$BUILD_TIME" "$BUILD_TIME")
+          gh release create "$TAG" release-assets/* --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "$TAG" --notes "$NOTES" --prerelease
+      - name: Create Official Release
+        if: needs.prepare.outputs.mode == 'release'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          TAG='${{ needs.prepare.outputs.tag }}'
+          gh release create "$TAG" release-assets/* --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "$TAG" --generate-notes
+      - name: Check Winget token
+        id: winget
+        if: needs.prepare.outputs.mode == 'release'
+        shell: bash
+        env:
+          TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          if [ -n "$TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "WINGET_TOKEN is not set, skipping Winget submission."
+          fi
+      - name: Submit to Winget
+        if: needs.prepare.outputs.mode == 'release' && steps.winget.outputs.configured == 'true'
+        uses: vedantmgoyal2009/winget-releaser@v2
+        with:
+          identifier: Justsenger.ExHyperV
+          installers-regex: '^ExHyperV_V.+_(x64|arm64)\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}
+          version: ${{ needs.prepare.outputs.version }}
+          release-tag: ${{ needs.prepare.outputs.tag }}

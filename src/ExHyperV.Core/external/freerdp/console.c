@@ -8,12 +8,16 @@
 #include <freerdp/addin.h>
 #include <freerdp/client/rdpgfx.h>
 #include <freerdp/channels/channels.h>
+#include <freerdp/channels/rdpsnd.h>
+#include <freerdp/channels/audin.h>
 #include <freerdp/input.h>
 #include <freerdp/graphics.h>
 #include <freerdp/codec/color.h>
+#include <freerdp/codec/h264.h>
 #include <freerdp/error.h>
 #include <freerdp/log.h>
 #include <iphlpapi.h>
+#include <objbase.h>
 #include <winsvc.h>
 #include <ws2tcpip.h>
 #include <stdlib.h>
@@ -42,7 +46,18 @@ void console_deliver_aux(ConsoleContext* c){
     EnterCriticalSection(&c->outputGate);BYTE* clip=c->pendingClipboard;UINT32 size=c->pendingClipboardSize,revision=c->pendingClipboardRevision;BOOL ready=c->readyPending;UINT32 value=c->readyValue;
     BOOL failed=c->commandFailurePending;UINT32 command=c->failedCommand,error=c->commandError;
     c->pendingClipboard=NULL;c->pendingClipboardSize=0;c->readyPending=FALSE;c->commandFailurePending=FALSE;LeaveCriticalSection(&c->outputGate);
-    if(c->callback&&WaitForSingleObject(c->stop,0)!=WAIT_OBJECT_0){if(ready)c->callback(5,NULL,0,value,0,c->user);if(clip)c->callback(4,clip,size,revision,0,c->user);if(failed)c->callback(6,NULL,0,command,error,c->user);}free(clip);
+    UINT32 cw=0,ch=0,chx=0,chy=0,cbytes=0;BYTE* cpixels=NULL;BOOL emitCursor=console_cursor_pop_pending(c,&cw,&ch,&chx,&chy,&cpixels,&cbytes);
+    if(c->callback&&WaitForSingleObject(c->stop,0)!=WAIT_OBJECT_0){
+        if(ready)c->callback(5,NULL,0,value,0,c->user);
+        if(clip)c->callback(4,clip,size,revision,0,c->user);
+        if(emitCursor){
+            UINT32 dim=(cw&0xFFFFu)|((ch&0xFFFFu)<<16),hot=(chx&0xFFFFu)|((chy&0xFFFFu)<<16);
+            c->callback(11,cpixels,cbytes,dim,hot,c->user);
+        }
+        if(failed)c->callback(6,NULL,0,command,error,c->user);
+    }
+    free(clip);free(cpixels);
+    console_audio_deliver(c);
 }
 static DWORD WINAPI output_thread(void* arg) {
     ConsoleContext* c=arg;HANDLE waits[]={c->stop,c->outputReady,console_frames_available(c)};
@@ -65,11 +80,21 @@ static BOOL input_valid(UINT32 kind,const BYTE* b,UINT32 n) {
     case 3:return n==12&&dimensions(get32(b),get32(b+4))&&get32(b+8)>=100&&get32(b+8)<=500;
     case 4:return console_clip_valid(b,n);
     case 5:return n==4&&!(get32(b)&~15u);
+    case 7:return console_audio_input_valid(b,n);
+    case 8:return n==4&&get32(b)<=1u;
     default:return FALSE;
     }
 }
 int EXHV_CALL exhv_send(void* handle,UINT32 kind,const BYTE* b,UINT32 n) {
-    ConsoleContext* c=handle;if(!c||!input_valid(kind,b,n)||WaitForSingleObject(c->stop,0)==WAIT_OBJECT_0||!InterlockedCompareExchange(&c->connected,0,0))return 0;
+    ConsoleContext* c=handle;if(!c||!input_valid(kind,b,n)||WaitForSingleObject(c->stop,0)==WAIT_OBJECT_0)return 0;
+    if(kind==8){
+        LONG enabled=get32(b)!=0?1:0;
+        InterlockedExchange(&c->nativeCursor,enabled);
+        if(enabled){EnterCriticalSection(&c->outputGate);c->cursorEmitPending=TRUE;LeaveCriticalSection(&c->outputGate);SetEvent(c->outputReady);}
+        return 1;
+    }
+    if(!InterlockedCompareExchange(&c->connected,0,0))return 0;
+    if(kind==7)return console_audio_send(c,b,n)?1:0;
     if((kind<=2||kind==6)&&!InterlockedCompareExchange(&c->displayReady,0,0))return 0;
     if(kind==2){EnterCriticalSection(&c->outputGate);BOOL inside=get16(b)<c->frameWidth&&get16(b+2)<c->frameHeight;LeaveCriticalSection(&c->outputGate);if(!inside)return 0;}
     if(kind==3&&(!c->enhanced||!InterlockedCompareExchange(&c->resizeReady,0,0)))return 0;
@@ -82,8 +107,17 @@ int EXHV_CALL exhv_send(void* handle,UINT32 kind,const BYTE* b,UINT32 n) {
     LeaveCriticalSection(&c->inputGate);SetEvent(c->inputReady);return 1;
 }
 static BOOL process_input(ConsoleContext* c) {
+    if(!console_audio_process_input(c))return FALSE;
     for(;;){if(WaitForSingleObject(c->stop,0)==WAIT_OBJECT_0)return TRUE;ConsoleInput entry={0};EnterCriticalSection(&c->inputGate);if(!c->count){LeaveCriticalSection(&c->inputGate);return TRUE;}
-        entry=c->input[c->head];memset(&c->input[c->head],0,sizeof(entry));c->head=(c->head+1)%INPUT_COUNT;c->count--;c->inputBytes-=entry.size;LeaveCriticalSection(&c->inputGate);
+        entry=c->input[c->head];memset(&c->input[c->head],0,sizeof(entry));c->head=(c->head+1)%INPUT_COUNT;c->count--;c->inputBytes-=entry.size;
+        // Coalesce back-to-back pure pointer moves so stale positions never queue behind a busy loop.
+        while(entry.kind==2&&!(get16(entry.data+4)&7)&&(INT16)get16(entry.data+6)==0&&c->count>0){
+            ConsoleInput* next=&c->input[c->head];
+            if(next->kind!=2||(get16(next->data+4)&7)||(INT16)get16(next->data+6)!=0)break;
+            free(entry.data);
+            entry=*next;memset(next,0,sizeof(*next));c->head=(c->head+1)%INPUT_COUNT;c->count--;c->inputBytes-=entry.size;
+        }
+        LeaveCriticalSection(&c->inputGate);
         BYTE* b=entry.data;BOOL ok=TRUE;rdpContext* ctx=&c->common.context;
         if(entry.kind==1){UINT16 flags=(b[2]?KBD_FLAGS_EXTENDED:0)|(b[3]?KBD_FLAGS_DOWN:KBD_FLAGS_RELEASE);ok=freerdp_input_send_keyboard_event(ctx->input,flags,get16(b));}
         else if(entry.kind==2){UINT16 x=get16(b),y=get16(b+2),buttons=get16(b+4);INT16 wheel=(INT16)get16(b+6);
@@ -107,7 +141,33 @@ static BOOL process_input(ConsoleContext* c) {
     }
 }
 static BOOL begin_paint(rdpContext* ctx){ctx->gdi->primary->hdc->hwnd->invalid->null=TRUE;ctx->gdi->primary->hdc->hwnd->ninvalid=0;return TRUE;}
-static BOOL end_paint(rdpContext* ctx){if(ctx->gdi->primary->hdc->hwnd->invalid->null)return TRUE;return console_frame((ConsoleContext*)ctx,ctx->gdi->primary_buffer,ctx->gdi->width,ctx->gdi->height,ctx->gdi->stride,FALSE);}
+static BOOL end_paint(rdpContext* ctx){
+    HGDI_WND hwnd=ctx->gdi->primary->hdc->hwnd;
+    HGDI_RGN inv=hwnd->invalid;
+    if(inv->null)return TRUE;
+    INT32 w=(INT32)ctx->gdi->width,h=(INT32)ctx->gdi->height;
+    INT32 bl=MAX(0,inv->x),bt=MAX(0,inv->y),br=MIN(w,inv->x+inv->w),bb=MIN(h,inv->y+inv->h);
+    if(br<=bl||bb<=bt)return TRUE;
+    if(hwnd->ninvalid>1&&hwnd->cinvalid){
+        ConsoleRect stackRects[32];
+        ConsoleRect* rects=stackRects;
+        if((UINT32)hwnd->ninvalid>32)rects=malloc((size_t)hwnd->ninvalid*sizeof(*rects));
+        if(rects){
+            UINT32 count=0;
+            for(INT32 i=0;i<hwnd->ninvalid;i++){
+                if(hwnd->cinvalid[i].null)continue;
+                INT32 l=MAX(0,hwnd->cinvalid[i].x),t=MAX(0,hwnd->cinvalid[i].y);
+                INT32 r=MIN(w,hwnd->cinvalid[i].x+hwnd->cinvalid[i].w),b=MIN(h,hwnd->cinvalid[i].y+hwnd->cinvalid[i].h);
+                if(r>l&&b>t){rects[count++]=(ConsoleRect){l,t,r,b};}
+            }
+            BOOL ok=console_frame_regions((ConsoleContext*)ctx,ctx->gdi->primary_buffer,
+                ctx->gdi->width,ctx->gdi->height,ctx->gdi->stride,FALSE,rects,count,FALSE);
+            if(rects!=stackRects)free(rects);
+            return ok;
+        }
+    }
+    return console_frame_region((ConsoleContext*)ctx,ctx->gdi->primary_buffer,ctx->gdi->width,ctx->gdi->height,ctx->gdi->stride,FALSE,bl,bt,br,bb,FALSE);
+}
 static BOOL desktop_resize(rdpContext* ctx){UINT32 w=freerdp_settings_get_uint32(ctx->settings,FreeRDP_DesktopWidth),h=freerdp_settings_get_uint32(ctx->settings,FreeRDP_DesktopHeight);return w&&h&&w<=8192&&h<=8192&&(UINT64)w*h*4<=CONSOLE_LIMIT-64&&gdi_resize(ctx->gdi,w,h);}
 static void notify_login(ConsoleContext* c){
     if(InterlockedCompareExchange(&c->connectedNotified,0,0)&&InterlockedCompareExchange(&c->loginComplete,0,0)&&InterlockedCompareExchange(&c->loginNotified,1,0)==0)console_emit(c,2,NULL,0,0,0);
@@ -137,7 +197,7 @@ static BOOL post_connect(freerdp* i){
     i->context->update->BeginPaint=begin_paint;i->context->update->EndPaint=end_paint;i->context->update->DesktopResize=desktop_resize;
     register_pointer(i->context);return TRUE;
 }
-static void post_disconnect(freerdp* i){InterlockedExchange(&((ConsoleContext*)i->context)->connected,FALSE);gdi_free(i);}
+static void post_disconnect(freerdp* i){ConsoleContext* c=(ConsoleContext*)i->context;InterlockedExchange(&c->connected,FALSE);console_audio_disconnect(c);gdi_free(i);}
 static DWORD verify_certificate(freerdp* i,const char* host,UINT16 port,const char* cn,const char* subject,const char* issuer,const char* fp,DWORD flags){
     (void)i;(void)cn;(void)subject;(void)issuer;(void)fp;return host&&strcmp(host,"127.0.0.1")==0&&port==2179&&!(flags&(VERIFY_CERT_FLAG_GATEWAY|VERIFY_CERT_FLAG_REDIRECT))&&vmms_peer(TRUE)?2:0;
 }
@@ -152,7 +212,43 @@ static BOOL client_new(freerdp* i,rdpContext* ctx){
     ((ConsoleContext*)ctx)->previousSaveSessionInfo=client_common_save_session_info;ctx->update->SaveSessionInfo=save_session_info;
     i->PreConnect=pre_connect;i->PostConnect=post_connect;i->PostDisconnect=post_disconnect;i->VerifyCertificateEx=verify_certificate;i->VerifyX509Certificate=verify_x509;i->VerifyChangedCertificateEx=NULL;i->RetryDialog=no_retry;i->AuthenticateEx=authenticate;return TRUE;
 }
-static PVIRTUALCHANNELENTRY addin(LPCSTR name,LPCSTR subsystem,LPCSTR type,DWORD flags){if(strcmp(name,"exhv-fbr")==0&&(flags&FREERDP_ADDIN_CHANNEL_DYNAMIC))return (PVIRTUALCHANNELENTRY)console_fbr_entry;return freerdp_channels_load_static_addin_entry(name,subsystem,type,flags);}
+static PVIRTUALCHANNELENTRY addin(LPCSTR name,LPCSTR subsystem,LPCSTR type,DWORD flags){
+    if(strcmp(name,"exhv-fbr")==0&&(flags&FREERDP_ADDIN_CHANNEL_DYNAMIC))return (PVIRTUALCHANNELENTRY)console_fbr_entry;
+    if(strcmp(name,RDPSND_CHANNEL_NAME)==0&&subsystem&&strcmp(subsystem,"exhv-audio")==0)return (PVIRTUALCHANNELENTRY)console_rdpsnd_entry;
+    if(strcmp(name,AUDIN_CHANNEL_NAME)==0&&subsystem&&strcmp(subsystem,"exhv-audio")==0)return (PVIRTUALCHANNELENTRY)console_audin_entry;
+    return freerdp_channels_load_static_addin_entry(name,subsystem,type,flags);
+}
+static INIT_ONCE h264ProbeOnce=INIT_ONCE_STATIC_INIT;
+static volatile LONG h264MfSupported=0;
+static volatile LONG h264ForceDisable=0;
+static DWORD WINAPI h264_probe_thread(void* param){
+    BOOL* supported=(BOOL*)param;
+    // FreeRDP's MediaFoundation H.264 decoder initializes STA COM and unconditionally calls
+    // CoUninitialize() on teardown even on RPC_E_CHANGED_MODE. Isolate the probe on a
+    // dedicated Win32 thread so the caller thread's COM apartment state is never altered.
+    H264_CONTEXT* h264=h264_context_new(FALSE);
+    if(h264){
+        *supported=h264_context_reset(h264,64,64);
+        h264_context_free(h264);
+    }
+    return 0;
+}
+static BOOL CALLBACK probe_h264_once(PINIT_ONCE once,PVOID parameter,PVOID* context){
+    (void)once;(void)parameter;(void)context;
+    BOOL supported=FALSE;
+    HANDLE thread=CreateThread(NULL,0,h264_probe_thread,&supported,0,NULL);
+    if(thread){
+        WaitForSingleObject(thread,INFINITE);
+        CloseHandle(thread);
+    }
+    InterlockedExchange(&h264MfSupported,supported?1:0);
+    return TRUE;
+}
+static BOOL h264_available(void){
+    if(InterlockedCompareExchange(&h264ForceDisable,0,0))return FALSE;
+    if(!InitOnceExecuteOnce(&h264ProbeOnce,probe_h264_once,NULL,NULL))return FALSE;
+    return InterlockedCompareExchange(&h264MfSupported,0,0)!=0;
+}
 static INIT_ONCE initializeOnce=INIT_ONCE_STATIC_INIT;
 static BOOL CALLBACK initialize_library(PINIT_ONCE once,PVOID parameter,PVOID* context){
     (void)once;(void)parameter;(void)context;WSADATA data={0};
@@ -171,7 +267,11 @@ static BOOL local_product_id(char* result,size_t capacity){
     return WideCharToMultiByte(CP_UTF8,WC_ERR_INVALID_CHARS,value,-1,result,(int)capacity,NULL,NULL)>0;
 }
 void* EXHV_CALL exhv_create(const char* id,UINT32 enhanced,UINT32 w,UINT32 h,UINT32 scale,UINT32 timeout,exhv_callback callback,void* user){
-    if(!valid_guid(id)||enhanced>1||!dimensions(w,h)||scale<100||scale>500||!timeout||timeout>120000||!callback||!InitOnceExecuteOnce(&initializeOnce,initialize_library,NULL,NULL))return NULL;
+    BOOL isEnhanced=(enhanced&EXHV_SESSION_ENHANCED)!=0;
+    BOOL allowClipboard=isEnhanced&&(enhanced&EXHV_SESSION_NO_CLIPBOARD)==0;
+    BOOL allowAudioOutput=isEnhanced&&(enhanced&EXHV_SESSION_NO_AUDIO_OUTPUT)==0;
+    BOOL allowAudioInput=isEnhanced&&(enhanced&EXHV_SESSION_NO_AUDIO_INPUT)==0;
+    if(!valid_guid(id)||(enhanced&~EXHV_SESSION_MASK)||(!isEnhanced&&enhanced!=0u)||!dimensions(w,h)||scale<100||scale>500||!timeout||timeout>120000||!callback||!InitOnceExecuteOnce(&initializeOnce,initialize_library,NULL,NULL))return NULL;
     // The CLI client_context_new helper overwrites the process addin provider
     // on every call. Use the core allocator so concurrent console creation can
     // never replace our FBR provider while another connection loads its DVCs.
@@ -179,10 +279,10 @@ void* EXHV_CALL exhv_create(const char* id,UINT32 enhanced,UINT32 w,UINT32 h,UIN
     instance->ContextSize=sizeof(ConsoleContext);instance->ContextNew=client_new;
     if(!freerdp_context_new(instance)){freerdp_free(instance);return NULL;}
     rdpContext* ctx=instance->context;ConsoleContext* c=(ConsoleContext*)ctx;
-    c->callback=callback;c->user=user;c->enhanced=enhanced;c->stop=CreateEventW(NULL,TRUE,FALSE,NULL);c->outputReady=CreateEventW(NULL,FALSE,FALSE,NULL);c->inputReady=CreateEventW(NULL,FALSE,FALSE,NULL);
-    InitializeCriticalSection(&c->outputGate);InitializeCriticalSection(&c->inputGate);InitializeCriticalSection(&c->clipGate);InitializeCriticalSection(&c->displayGate);
+    c->callback=callback;c->user=user;c->enhanced=isEnhanced;c->stop=CreateEventW(NULL,TRUE,FALSE,NULL);c->outputReady=CreateEventW(NULL,FALSE,FALSE,NULL);c->inputReady=CreateEventW(NULL,FALSE,FALSE,NULL);
+    InitializeCriticalSection(&c->outputGate);InitializeCriticalSection(&c->inputGate);InitializeCriticalSection(&c->clipGate);InitializeCriticalSection(&c->displayGate);console_audio_init(c);
     if(!console_frames_init(c)){exhv_destroy(c);return NULL;}
-    char pcb[80];snprintf(pcb,sizeof(pcb),"%s%s",id,enhanced?";EnhancedMode=1":"");rdpSettings* s=ctx->settings;BOOL ok=TRUE;
+    char pcb[80];snprintf(pcb,sizeof(pcb),"%s%s",id,isEnhanced?";EnhancedMode=1":"");rdpSettings* s=ctx->settings;BOOL ok=TRUE;
 #define SET_BOOL(k,v) ok=freerdp_settings_set_bool(s,FreeRDP_##k,v)&&ok
 #define SET_INT(k,v) ok=freerdp_settings_set_uint32(s,FreeRDP_##k,v)&&ok
 #define SET_STR(k,v) ok=freerdp_settings_set_string(s,FreeRDP_##k,v)&&ok
@@ -197,20 +297,33 @@ void* EXHV_CALL exhv_create(const char* id,UINT32 enhanced,UINT32 w,UINT32 h,UIN
     SET_BOOL(ExtSecurity,FALSE);
     SET_STR(AuthenticationServiceClass,"Microsoft Virtual Console Service");SET_BOOL(AutoReconnectionEnabled,FALSE);SET_BOOL(CertificateCallbackPreferPEM,TRUE);
     SET_BOOL(ExternalCertificateManagement,TRUE);SET_BOOL(IgnoreCertificate,FALSE);SET_BOOL(UseCommonStdioCallbacks,FALSE);
+    BOOL useH264=isEnhanced&&h264_available();
     SET_INT(DesktopWidth,w);SET_INT(DesktopHeight,h);SET_INT(DesktopScaleFactor,scale);SET_INT(DeviceScaleFactor,100);SET_INT(TcpConnectTimeout,timeout);SET_INT(ColorDepth,32);
-    SET_BOOL(SoftwareGdi,TRUE);SET_BOOL(SupportGraphicsPipeline,TRUE);SET_BOOL(GfxH264,FALSE);SET_BOOL(DynamicResolutionUpdate,enhanced);SET_BOOL(RedirectClipboard,enhanced);SET_BOOL(LogonNotify,TRUE);SET_BOOL(AllowFontSmoothing,TRUE);
-    // A local VMConnect transport needs no RDP8 network probing/device channel.
-    // These defaults otherwise make load_addins request absent rdpdr/rdpsnd.
+    SET_BOOL(SoftwareGdi,TRUE);SET_BOOL(SupportGraphicsPipeline,TRUE);
+    SET_BOOL(GfxThinClient,FALSE);SET_BOOL(GfxSmallCache,FALSE);
+    SET_BOOL(GfxProgressive,TRUE);SET_BOOL(GfxProgressiveV2,TRUE);
+    SET_BOOL(GfxH264,useH264);SET_BOOL(GfxAVC444,useH264);SET_BOOL(GfxAVC444v2,useH264);
+    SET_BOOL(GfxSendQoeAck,TRUE);SET_BOOL(GfxSuspendFrameAck,FALSE);SET_INT(FrameAcknowledge,2);
+    SET_BOOL(RemoteFxCodec,TRUE);
+    SET_BOOL(AllowDesktopComposition,isEnhanced);SET_BOOL(DisableFullWindowDrag,!isEnhanced);SET_BOOL(DisableMenuAnims,!isEnhanced);
+    SET_BOOL(DisableThemes,FALSE);SET_BOOL(DisableWallpaper,FALSE);
+    SET_BOOL(DynamicResolutionUpdate,isEnhanced);SET_BOOL(RedirectClipboard,allowClipboard);SET_BOOL(LogonNotify,TRUE);SET_BOOL(AllowFontSmoothing,TRUE);
+    // A local VMConnect transport needs no RDP8 network probing or host device shares.
+    // Enhanced mode adds headless audio while drives, printers, smartcards and ports stay disabled.
     SET_BOOL(NetworkAutoDetect,FALSE);SET_BOOL(SupportHeartbeatPdu,FALSE);SET_BOOL(SupportMultitransport,FALSE);SET_BOOL(DeviceRedirection,FALSE);
     SET_BOOL(RedirectDrives,FALSE);SET_BOOL(RedirectHomeDrive,FALSE);SET_BOOL(RedirectSerialPorts,FALSE);SET_BOOL(RedirectSmartCards,FALSE);SET_BOOL(RedirectPrinters,FALSE);
-    SET_BOOL(AudioPlayback,FALSE);SET_BOOL(AudioCapture,FALSE);
+    SET_BOOL(AudioPlayback,allowAudioOutput);SET_BOOL(AudioCapture,allowAudioInput);
     // In this headless client GrabMouse only enables remote pointer-position
     // callbacks; no native window or host mouse capture exists.
     SET_BOOL(GrabMouse,TRUE);
     char systemPath[MAX_PATH+32];UINT length=GetSystemDirectoryA(systemPath,MAX_PATH);if(!length||length>=MAX_PATH)ok=FALSE;else{strcat(systemPath,"\\secur32.dll");SET_STR(SspiModule,systemPath);}
     const char* fbr[]={"exhv-fbr"};const char* gfx[]={"rdpgfx"};const char* disp[]={"disp"};const char* clip[]={"cliprdr"};
+    const char* snd[]={"rdpsnd","sys:exhv-audio","latency:200"};const char* mic[]={"audin","sys:exhv-audio"};
     ok=freerdp_client_add_dynamic_channel(s,1,fbr)&&freerdp_client_add_dynamic_channel(s,1,gfx)&&ok;
-    if(enhanced)ok=freerdp_client_add_dynamic_channel(s,1,disp)&&freerdp_client_add_static_channel(s,1,clip)&&ok;
+    if(isEnhanced)ok=freerdp_client_add_dynamic_channel(s,1,disp)&&ok;
+    if(allowClipboard)ok=freerdp_client_add_static_channel(s,1,clip)&&ok;
+    if(allowAudioOutput)ok=freerdp_client_add_static_channel(s,3,snd)&&freerdp_client_add_dynamic_channel(s,3,snd)&&ok;
+    if(allowAudioInput)ok=freerdp_client_add_dynamic_channel(s,2,mic)&&ok;
 #undef SET_BOOL
 #undef SET_INT
 #undef SET_STR
@@ -237,9 +350,9 @@ cleanup:
 }
 void EXHV_CALL exhv_stop(void* handle){ConsoleContext* c=handle;if(!c)return;InterlockedExchange(&c->callerStop,TRUE);SetEvent(c->stop);freerdp_abort_connect_context(&c->common.context);}
 void EXHV_CALL exhv_destroy(void* handle){ConsoleContext* c=handle;if(!c)return;exhv_stop(c);if(c->runStarted&&!c->runFinished)return;
-    for(unsigned i=0;i<INPUT_COUNT;i++)free(c->input[i].data);console_frames_free(c);free(c->pendingClipboard);console_clip_free(c);
+    for(unsigned i=0;i<INPUT_COUNT;i++)free(c->input[i].data);console_frames_free(c);free(c->pendingClipboard);console_clip_free(c);console_audio_free(c);
     if(c->stop)CloseHandle(c->stop);if(c->inputReady)CloseHandle(c->inputReady);if(c->outputReady)CloseHandle(c->outputReady);
-    DeleteCriticalSection(&c->inputGate);DeleteCriticalSection(&c->outputGate);DeleteCriticalSection(&c->clipGate);DeleteCriticalSection(&c->displayGate);
+    DeleteCriticalSection(&c->inputGate);DeleteCriticalSection(&c->outputGate);DeleteCriticalSection(&c->clipGate);DeleteCriticalSection(&c->displayGate);if(c->audioInit){DeleteCriticalSection(&c->audioGate);c->audioInit=FALSE;}
     freerdp* instance=c->common.context.instance;freerdp_context_free(instance);freerdp_free(instance);
 }
 static void EXHV_CALL selftest_callback(UINT32 kind,const BYTE* data,UINT32 length,UINT32 a,UINT32 b,void* user){(void)kind;(void)data;(void)length;(void)a;(void)b;(void)user;}
@@ -298,13 +411,26 @@ done:
     if(test.entered)CloseHandle(test.entered);if(test.release)CloseHandle(test.release);if(test.second)CloseHandle(test.second);
     DeleteCriticalSection(&c.outputGate);return result;
 }
+static DWORD WINAPI h264_com_selftest_thread(void* param){
+    UINT32* err=(UINT32*)param;
+    HRESULT hrFirst=CoInitializeEx(NULL,COINIT_MULTITHREADED);
+    if(hrFirst!=S_OK&&hrFirst!=S_FALSE){*err=76;return 0;}
+    (void)h264_available();
+    HRESULT hrAfter=CoInitializeEx(NULL,COINIT_MULTITHREADED);
+    if(hrAfter!=S_FALSE)*err=77;
+    if(hrAfter==S_OK||hrAfter==S_FALSE)CoUninitialize();
+    CoUninitialize();
+    return 0;
+}
 UINT32 EXHV_CALL exhv_selftest(void){
     BYTE key[]={30,0,0,1};if(!input_valid(1,key,4))return 1;key[2]=2;if(input_valid(1,key,4))return 2;
     BYTE pointer[8]={0};put16(pointer+4,8);if(input_valid(2,pointer,8))return 3;put16(pointer+4,0);put16(pointer+6,(UINT16)-120);if(!input_valid(2,pointer,8))return 4;
     BYTE resize[12]={0};put32(resize,8192);put32(resize+4,8192);put32(resize+8,100);if(input_valid(3,resize,12))return 5;
     if(!input_valid(6,NULL,0)||input_valid(6,key,1))return 56;BYTE toggles[4]={15,0,0,0};if(!input_valid(5,toggles,4))return 57;toggles[0]=16;if(input_valid(5,toggles,4))return 58;
+    BYTE nc[4]={1,0,0,0};if(!input_valid(8,nc,4))return 71;nc[0]=2;if(input_valid(8,nc,4))return 72;
     if(console_clip_selftest())return 10+console_clip_selftest();if(console_fbr_selftest())return 30+console_fbr_selftest();
     UINT32 framesCheck=(UINT32)console_frames_selftest();if(framesCheck)return 100+framesCheck;
+    int audioCheck=console_audio_selftest();if(audioCheck)return 150+audioCheck;
     ConsoleContext c={0};
     UINT32 frameCheck=frame_output_selftest();if(frameCheck)return 70+frameCheck;
     if(valid_guid("00000000-0000-0000-0000-000000000000")||!valid_guid("12345678-1234-1234-1234-123456789abc"))return 41;
@@ -315,7 +441,10 @@ UINT32 EXHV_CALL exhv_selftest(void){
     // creation; testing only load_addins does not exercise drdynvc's lookup.
     ConsoleContext* second=exhv_create("12345678-1234-1234-1234-123456789abd",0,1024,768,100,2000,selftest_callback,NULL);
     if(!second){exhv_destroy(actual);return 64;}
-    BOOL providerGood=freerdp_get_current_addin_provider()==addin&&freerdp_load_channel_addin_entry("exhv-fbr",NULL,NULL,FREERDP_ADDIN_CHANNEL_DYNAMIC)==(PVIRTUALCHANNELENTRY)console_fbr_entry;
+    BOOL providerGood=freerdp_get_current_addin_provider()==addin&&
+        freerdp_load_channel_addin_entry("exhv-fbr",NULL,NULL,FREERDP_ADDIN_CHANNEL_DYNAMIC)==(PVIRTUALCHANNELENTRY)console_fbr_entry&&
+        freerdp_load_channel_addin_entry(RDPSND_CHANNEL_NAME,"exhv-audio",NULL,FREERDP_ADDIN_CHANNEL_DYNAMIC)==(PVIRTUALCHANNELENTRY)console_rdpsnd_entry&&
+        freerdp_load_channel_addin_entry(AUDIN_CHANNEL_NAME,"exhv-audio",NULL,0)==(PVIRTUALCHANNELENTRY)console_audin_entry;
     exhv_destroy(second);if(!providerGood){exhv_destroy(actual);return 65;}
     EventTest eventTest={0};actual->callback=event_test_callback;actual->user=&eventTest;
     actual->loginComplete=TRUE;notify_login(actual);console_emit(actual,5,NULL,0,1,0);console_deliver_aux(actual);
@@ -337,6 +466,15 @@ UINT32 EXHV_CALL exhv_selftest(void){
         verify_x509(instance,&certificate,1,"127.0.0.1",2179,VERIFY_CERT_FLAG_GATEWAY)||verify_x509(instance,NULL,0,"127.0.0.1",2179,0)){exhv_destroy(actual);return 62;}
     if(!freerdp_settings_get_bool(actual->common.context.settings,FreeRDP_AllowFontSmoothing)){exhv_destroy(actual);return 48;}
     if(freerdp_settings_get_bool(settings,FreeRDP_ExtSecurity)){exhv_destroy(actual);return 63;}
+    BOOL expectedH264=h264_available();
+    if(freerdp_settings_get_bool(settings,FreeRDP_GfxSmallCache)||freerdp_settings_get_bool(settings,FreeRDP_GfxThinClient)||
+        !freerdp_settings_get_bool(settings,FreeRDP_GfxProgressive)||!freerdp_settings_get_bool(settings,FreeRDP_GfxProgressiveV2)||
+        !freerdp_settings_get_bool(settings,FreeRDP_GfxSendQoeAck)||freerdp_settings_get_bool(settings,FreeRDP_GfxSuspendFrameAck)||
+        freerdp_settings_get_uint32(settings,FreeRDP_FrameAcknowledge)!=2u||
+        !freerdp_settings_get_bool(settings,FreeRDP_RemoteFxCodec)||!freerdp_settings_get_bool(settings,FreeRDP_AllowDesktopComposition)||
+        freerdp_settings_get_bool(settings,FreeRDP_GfxH264)!=expectedH264||
+        freerdp_settings_get_bool(settings,FreeRDP_GfxAVC444)!=expectedH264||
+        freerdp_settings_get_bool(settings,FreeRDP_GfxAVC444v2)!=expectedH264){exhv_destroy(actual);return 78;}
     char expectedProductId[128];const char* configuredProductId=freerdp_settings_get_string(settings,FreeRDP_ClientProductId);
     if(!local_product_id(expectedProductId,sizeof(expectedProductId))||!configuredProductId||strcmp(expectedProductId,configuredProductId)!=0){exhv_destroy(actual);return 68;}
     // A full input queue explicitly refuses the next item; no accepted key-up
@@ -352,7 +490,40 @@ UINT32 EXHV_CALL exhv_selftest(void){
     // Must return before VMMS peer lookup or Connect, including stop-before-run.
     UINT32 stopped=exhv_run(actual);exhv_destroy(actual);if(stopped)return 47;
     actual=exhv_create("12345678-1234-1234-1234-123456789abc",0,1024,768,100,2000,selftest_callback,NULL);
-    if(!actual)return 53;if(!pre_connect(actual->common.context.instance)){exhv_destroy(actual);return 54;}exhv_stop(actual);stopped=exhv_run(actual);exhv_destroy(actual);if(stopped)return 55;
+    if(!actual)return 53;
+    if(freerdp_settings_get_bool(actual->common.context.settings,FreeRDP_AudioPlayback)||freerdp_settings_get_bool(actual->common.context.settings,FreeRDP_AudioCapture)){exhv_destroy(actual);return 69;}
+    BYTE basicPcm[20]={0};put32(basicPcm,48000);put16(basicPcm+4,2);put16(basicPcm+6,0);put32(basicPcm+8,8);
+    InterlockedExchange(&actual->connected,TRUE);BOOL basicRejected=!exhv_send(actual,7,basicPcm,sizeof(basicPcm));InterlockedExchange(&actual->connected,FALSE);
+    if(!basicRejected){exhv_destroy(actual);return 70;}
+    if(!pre_connect(actual->common.context.instance)){exhv_destroy(actual);return 54;}exhv_stop(actual);stopped=exhv_run(actual);exhv_destroy(actual);if(stopped)return 55;
+    if(exhv_create("12345678-1234-1234-1234-123456789abc",EXHV_SESSION_NO_CLIPBOARD,1024,768,100,2000,selftest_callback,NULL)||
+        exhv_create("12345678-1234-1234-1234-123456789abc",EXHV_SESSION_MASK+1u,1024,768,100,2000,selftest_callback,NULL))return 71;
+    actual=exhv_create("12345678-1234-1234-1234-123456789abc",EXHV_SESSION_MASK,1024,768,100,2000,selftest_callback,NULL);
+    if(!actual)return 72;
+    rdpSettings* optOutSettings=actual->common.context.settings;
+    if(!freerdp_settings_get_bool(optOutSettings,FreeRDP_DynamicResolutionUpdate)||
+        freerdp_settings_get_bool(optOutSettings,FreeRDP_RedirectClipboard)||
+        freerdp_settings_get_bool(optOutSettings,FreeRDP_AudioPlayback)||
+        freerdp_settings_get_bool(optOutSettings,FreeRDP_AudioCapture)){exhv_destroy(actual);return 73;}
+    if(!pre_connect(actual->common.context.instance)){exhv_destroy(actual);return 74;}
+    exhv_stop(actual);stopped=exhv_run(actual);exhv_destroy(actual);if(stopped)return 75;
+    UINT32 comErr=0;HANDLE comThread=CreateThread(NULL,0,h264_com_selftest_thread,&comErr,0,NULL);
+    if(!comThread)return 79;
+    if(WaitForSingleObject(comThread,5000)!=WAIT_OBJECT_0){CloseHandle(comThread);return 80;}
+    CloseHandle(comThread);if(comErr)return comErr;
+    InterlockedExchange(&h264ForceDisable,1);
+    ConsoleContext* fallback=exhv_create("12345678-1234-1234-1234-123456789abc",EXHV_SESSION_ENHANCED,1024,768,100,2000,selftest_callback,NULL);
+    InterlockedExchange(&h264ForceDisable,0);
+    if(!fallback)return 81;
+    rdpSettings* fbSettings=fallback->common.context.settings;
+    if(freerdp_settings_get_bool(fbSettings,FreeRDP_GfxH264)||
+        freerdp_settings_get_bool(fbSettings,FreeRDP_GfxAVC444)||
+        freerdp_settings_get_bool(fbSettings,FreeRDP_GfxAVC444v2)||
+        !freerdp_settings_get_bool(fbSettings,FreeRDP_SupportGraphicsPipeline)||
+        !freerdp_settings_get_bool(fbSettings,FreeRDP_GfxProgressive)||
+        !freerdp_settings_get_bool(fbSettings,FreeRDP_RemoteFxCodec)){exhv_destroy(fallback);return 82;}
+    if(!pre_connect(fallback->common.context.instance)){exhv_destroy(fallback);return 83;}
+    exhv_stop(fallback);stopped=exhv_run(fallback);exhv_destroy(fallback);if(stopped)return 84;
     return 0;
 }
 typedef struct {rdpPointer common; BYTE* pixels;} ConsolePointer;
@@ -373,30 +544,76 @@ static BOOL pointer_default(rdpContext* ctx) {
 }
 static BOOL pointer_position(rdpContext* ctx,UINT32 x,UINT32 y) {return console_cursor_position((ConsoleContext*)ctx,x,y);}
 
+static void* read_tcp_table(ULONG af, TCP_TABLE_CLASS cls) {
+    DWORD size = 0;
+    DWORD rc = GetExtendedTcpTable(NULL, &size, FALSE, af, cls, 0);
+    if (rc != ERROR_INSUFFICIENT_BUFFER || !size) return NULL;
+    for (unsigned attempt = 0; attempt < 4; attempt++) {
+        void* table = malloc(size);
+        if (!table) return NULL;
+        rc = GetExtendedTcpTable(table, &size, FALSE, af, cls, 0);
+        if (rc == NO_ERROR) return table;
+        free(table);
+        if (rc != ERROR_INSUFFICIENT_BUFFER || !size) break;
+    }
+    return NULL;
+}
+
+static BOOL is_v6_any_or_loopback(const UCHAR a[16]) {
+    for (unsigned i = 0; i < 15; i++) if (a[i]) return FALSE;
+    return a[15] == 0 || a[15] == 1;
+}
+
 static BOOL vmms_peer(BOOL connected) {
-    BOOL ok=FALSE; SC_HANDLE scm=OpenSCManagerW(NULL,NULL,SC_MANAGER_CONNECT); if(!scm) return FALSE;
-    SC_HANDLE svc=OpenServiceW(scm,L"vmms",SERVICE_QUERY_STATUS); SERVICE_STATUS_PROCESS st={0}; DWORD n=0;
-    if(svc&&QueryServiceStatusEx(svc,SC_STATUS_PROCESS_INFO,(BYTE*)&st,sizeof(st),&n)&&st.dwCurrentState==SERVICE_RUNNING&&st.dwProcessId) {
-        DWORD size=0; if(GetExtendedTcpTable(NULL,&size,FALSE,AF_INET,TCP_TABLE_OWNER_PID_ALL,0)==ERROR_INSUFFICIENT_BUFFER) {
-            MIB_TCPTABLE_OWNER_PID* table=malloc(size);
-            if(table&&GetExtendedTcpTable(table,&size,FALSE,AF_INET,TCP_TABLE_OWNER_PID_ALL,0)==NO_ERROR) {
-                for(DWORD k=0;k<table->dwNumEntries;k++) {
-                    MIB_TCPROW_OWNER_PID* server=&table->table[k];
-                    if(server->dwOwningPid!=st.dwProcessId||ntohs((u_short)server->dwLocalPort)!=2179)continue;
-                    if(!connected&&server->dwState==MIB_TCP_STATE_LISTEN&&(server->dwLocalAddr==0||server->dwLocalAddr==htonl(INADDR_LOOPBACK)))ok=TRUE;
-                    if(connected&&server->dwState==MIB_TCP_STATE_ESTAB&&server->dwLocalAddr==htonl(INADDR_LOOPBACK))
-                        for(DWORD j=0;j<table->dwNumEntries;j++) {
-                            MIB_TCPROW_OWNER_PID* client=&table->table[j];
-                            if(client->dwOwningPid==GetCurrentProcessId()&&client->dwState==MIB_TCP_STATE_ESTAB&&
-                                client->dwLocalAddr==server->dwRemoteAddr&&client->dwRemoteAddr==server->dwLocalAddr&&
-                                client->dwLocalPort==server->dwRemotePort&&client->dwRemotePort==server->dwLocalPort)ok=TRUE;
+    BOOL ok = FALSE; SC_HANDLE scm = OpenSCManagerW(NULL, NULL, SC_MANAGER_CONNECT); if (!scm) return FALSE;
+    SC_HANDLE svc = OpenServiceW(scm, L"vmms", SERVICE_QUERY_STATUS); SERVICE_STATUS_PROCESS st = {0}; DWORD n = 0;
+    if (svc && QueryServiceStatusEx(svc, SC_STATUS_PROCESS_INFO, (BYTE*)&st, sizeof(st), &n) && st.dwCurrentState == SERVICE_RUNNING && st.dwProcessId) {
+        if (!connected) {
+            // Windows 26H1+ GetExtendedTcpTable reports dwState=0 for listeners in
+            // PID tables. TCP_TABLE_OWNER_PID_LISTENER yields kernel listening sockets only.
+            MIB_TCPTABLE_OWNER_PID* v4 = read_tcp_table(AF_INET, TCP_TABLE_OWNER_PID_LISTENER);
+            if (v4) {
+                for (DWORD k = 0; k < v4->dwNumEntries; k++) {
+                    MIB_TCPROW_OWNER_PID* server = &v4->table[k];
+                    if (server->dwOwningPid == st.dwProcessId && ntohs((u_short)server->dwLocalPort) == 2179 &&
+                        server->dwRemotePort == 0 && (server->dwLocalAddr == 0 || server->dwLocalAddr == htonl(INADDR_LOOPBACK))) {
+                        ok = TRUE; break;
+                    }
+                }
+                free(v4);
+            }
+            if (!ok) {
+                MIB_TCP6TABLE_OWNER_PID* v6 = read_tcp_table(AF_INET6, TCP_TABLE_OWNER_PID_LISTENER);
+                if (v6) {
+                    for (DWORD k = 0; k < v6->dwNumEntries; k++) {
+                        MIB_TCP6ROW_OWNER_PID* server = &v6->table[k];
+                        if (server->dwOwningPid == st.dwProcessId && ntohs((u_short)server->dwLocalPort) == 2179 &&
+                            server->dwRemotePort == 0 && is_v6_any_or_loopback(server->ucLocalAddr)) {
+                            ok = TRUE; break;
                         }
+                    }
+                    free(v6);
                 }
             }
-            free(table);
+        } else {
+            MIB_TCPTABLE_OWNER_PID* table = read_tcp_table(AF_INET, TCP_TABLE_OWNER_PID_ALL);
+            if (table) {
+                for (DWORD k = 0; k < table->dwNumEntries; k++) {
+                    MIB_TCPROW_OWNER_PID* server = &table->table[k];
+                    if (server->dwOwningPid != st.dwProcessId || ntohs((u_short)server->dwLocalPort) != 2179) continue;
+                    if (server->dwState == MIB_TCP_STATE_ESTAB && server->dwLocalAddr == htonl(INADDR_LOOPBACK))
+                        for (DWORD j = 0; j < table->dwNumEntries; j++) {
+                            MIB_TCPROW_OWNER_PID* client = &table->table[j];
+                            if (client->dwOwningPid == GetCurrentProcessId() && client->dwState == MIB_TCP_STATE_ESTAB &&
+                                client->dwLocalAddr == server->dwRemoteAddr && client->dwRemoteAddr == server->dwLocalAddr &&
+                                client->dwLocalPort == server->dwRemotePort && client->dwRemotePort == server->dwLocalPort) ok = TRUE;
+                        }
+                }
+                free(table);
+            }
         }
     }
-    if(svc) CloseServiceHandle(svc); CloseServiceHandle(scm); return ok;
+    if (svc) CloseServiceHandle(svc); CloseServiceHandle(scm); return ok;
 }
 
 static void register_pointer(rdpContext* ctx) { rdpPointer pointer={0};pointer.size=sizeof(ConsolePointer);pointer.New=pointer_new;pointer.Free=pointer_free;pointer.Set=pointer_set;pointer.SetNull=pointer_null;pointer.SetDefault=pointer_default;pointer.SetPosition=pointer_position;graphics_register_pointer(ctx->graphics,&pointer); }

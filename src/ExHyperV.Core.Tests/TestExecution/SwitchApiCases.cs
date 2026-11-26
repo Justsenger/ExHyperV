@@ -13,7 +13,7 @@ internal static class SwitchApiCases
     internal static async Task RunAsync(CatalogTest p, ApiCaseContext c)
     {
         var sharing = await ComApi.GetConnectionsAsync(); c.Require(sharing.HasData, sharing.Error);
-        if (sharing.Data!.Any(v => v.Enabled)) throw new ApiCheckSkippedException("宿主已有 ICS 共享配置；交换机写入测试等待共享资源空闲。");
+        if (sharing.Data!.Any(v => v.Enabled)) throw new ApiCheckSkippedException("宿主已有 ICS 共享配置，交换机写入测试等待共享资源空闲。");
         bool usesUpstream = p.Api.Contains("Update") || p.Api.Contains("Delete") || p.Id is "T-8e882037c098524e-2" or "T-8e882037c098524e-3";
         SwitchUpstreamAdapter? upstream = usesUpstream ? await SafeUpstreamAsync() : null;
         var adapterState = upstream is null ? default : await WindowsTestCommand.RunAsync("$n=Get-CimInstance Win32_NetworkAdapterConfiguration|Where-Object {$_.SettingID -eq $a.id};@{dhcp=[bool]$n.DHCPEnabled;dns=@($n.DNSServerSearchOrder)}|ConvertTo-Json", new { id = upstream.ConnectionId });
@@ -76,7 +76,7 @@ internal static class SwitchApiCases
                 """, new { id = adapter.ConnectionId });
             if (check.GetProperty("safe").GetBoolean()) return adapter;
         }
-        throw new ApiCheckSkippedException("缺少闲置物理上游网卡：测试要求链路断开、无业务 IP、无默认路由且尚未绑定交换机；现用网络保持原样。");
+        throw new ApiCheckSkippedException("缺少闲置物理上游网卡：测试要求链路断开、无业务 IP、无默认路由且尚未绑定交换机，现用网络保持原样。");
     }
     private static async Task VerifyModeAsync(ApiCaseContext c, Guid id, SwitchMode mode, SwitchUpstreamAdapter? upstream)
     {

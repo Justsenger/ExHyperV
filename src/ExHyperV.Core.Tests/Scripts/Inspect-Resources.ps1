@@ -44,7 +44,7 @@ function Update-PreviousInspection($Session) {
     if ($Session.automaticRebootForNewRuns) { return }
     $active = Get-InspectionValue '/api/tests'
     if ($active -and $active.running) {
-        Write-Host '当前轮次保持原版本；结束后再次打开“启动测试”将更新程序。'
+        Write-Host '当前轮次保持原版本，结束后再次打开“启动测试”将更新程序。'
         return
     }
     Write-Host '正在更新测试程序…'

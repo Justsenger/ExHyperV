@@ -2,6 +2,7 @@
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Controls;
+using ExHyperV.App.UI.Shared.Feedback;
 using ExHyperV.App.UI.Shared;
 using ExHyperV.Models;
 using ExHyperV.Services;
@@ -64,18 +65,8 @@ public sealed partial class VmStorageSettingsView
     private Border Banner(string message, InfoBarSeverity severity = InfoBarSeverity.Informational,
         FrameworkElement? action = null, FrameworkElement? inlineExtra = null, string? tooltip = null)
     {
-        var (background, accent, glyph) = severity switch
-        {
-            InfoBarSeverity.Error => ("InfoBarErrorSeverityBackgroundBrush", "SystemFillColorCriticalBrush", "\uE711"),
-            InfoBarSeverity.Warning => ("InfoBarWarningSeverityBackgroundBrush", "SystemFillColorCautionBrush", "\uE7BA"),
-            InfoBarSeverity.Success => ("InfoBarSuccessSeverityBackgroundBrush", "SystemFillColorSuccessBrush", "\uE73E"),
-            _ => ("InfoBarInformationalSeverityBackgroundBrush", "SystemFillColorAttentionBrush", "\uE946")
-        };
-        var icon = new FontIcon
-        {
-            Glyph = glyph, FontFamily = AppFonts.SegoeFluent, FontSize = 13,
-            Foreground = ThemeHelper.ThemeBrush(this, accent), VerticalAlignment = VerticalAlignment.Center
-        };
+        var (background, _, _, _) = FloatingNoticeBanner.ResolveBannerAppearance(severity);
+        var icon = FloatingNoticeBanner.CreateNoticeBadge(ActualTheme, severity);
         var titleText = new TextBlock
         {
             Text = Clean(message), FontSize = 13,

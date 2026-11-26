@@ -26,7 +26,15 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
     private bool? gpuDriverBound;
     private VmListItem? current;
     private VmState? state;
-    private bool powerPending;
+    private Guid? activePowerVmId;
+    private VmPowerAction? activePowerAction;
+    private long powerGeneration;
+    private bool IsPowerPending => activePowerVmId == current?.Id && current != null;
+
+    private bool CanRunPower(VmPowerAction action) =>
+        !IsPowerPending || (activePowerAction != VmPowerAction.TurnOff
+            && action != activePowerAction
+            && action is VmPowerAction.TurnOff or VmPowerAction.Restart);
     private bool stateVerified;
     private bool transientServiceBanner;
     private NoticeOrigin activeNoticeOrigin;
@@ -103,9 +111,12 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
 
     public async Task StopAsync()
     {
+        ++powerGeneration;
+        activePowerVmId = null;
+        activePowerAction = null;
         await CloseSettings();
         Stop();
-        await Task.WhenAll(work.Append(PowerWork));
+        await Task.WhenAll(work);
     }
 
     internal event Action<bool>? ImmersiveRequested;
@@ -249,6 +260,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             detailWork = LoadDeviceConfigurationAsync(id, started, token);
             long nextPoll = Stopwatch.GetTimestamp();
             int consecutiveServiceMisses = 0;
+            int consecutiveEmptyVmList = 0;
             while (!token.IsCancellationRequested)
             {
                 long queryStarted = Stopwatch.GetTimestamp();
@@ -259,6 +271,11 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
                 token.ThrowIfCancellationRequested();
                 if (metrics.HasData && metrics.Data!.VirtualMachines.Count == 0)
                 {
+                    if (Settings.VmSettingsView.HasActiveSettingsWrite || ++consecutiveEmptyVmList < 2)
+                    {
+                        nextPoll = await WaitForNextPollAsync(nextPoll, MetricInterval, token);
+                        continue;
+                    }
                     state = null;
                     PowerButton.Visibility = PowerMenu.Visibility = Visibility.Collapsed;
                     throw new InvalidOperationException(L10n.Get("Dash_VmRemoved"));
@@ -266,6 +283,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
                 if (metrics.HasData && metrics.Data!.VirtualMachines.FirstOrDefault() is { } sample)
                 {
                     consecutiveServiceMisses = 0;
+                    consecutiveEmptyVmList = 0;
                     if (transientServiceBanner)
                     {
                         transientServiceBanner = false;
@@ -285,7 +303,11 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
                 else if (!metrics.HasData)
                 {
                     bool serviceUnavailable = CoreErrorClassifier.IsServiceUnavailable(metrics.Code, metrics.ErrorSource, metrics.Exception);
-                    if (serviceUnavailable && ++consecutiveServiceMisses < 2)
+                    if (serviceUnavailable && Settings.VmSettingsView.HasActiveSettingsWrite)
+                    {
+                        consecutiveServiceMisses = 0;
+                    }
+                    else if (serviceUnavailable && ++consecutiveServiceMisses < 2)
                     {
                         // 单次瞬断先静默重连一次。
                     }
@@ -392,9 +414,6 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             if (live && current != null) current.PowerState = status.Value;
             UpdatePowerAppearance();
             PowerButton.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
-            bool actionable = state is VmState.Running or VmState.PoweredOff or VmState.Saved or VmState.Suspended;
-            PowerButton.IsEnabled = actionable && !powerPending;
-            PowerMenu.IsEnabled = actionable && !powerPending;
         }
         else if (live)
         {
@@ -473,67 +492,115 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
 
     private async void OnPowerClick(object sender, RoutedEventArgs args) => await UiEvent.RunAsync(async () =>
     {
-        if (current == null || powerPending) return;
+        if (current == null || IsPowerPending) return;
         PowerWork = ChangePowerAsync(current, state);
         await PowerWork;
     }, message => ShowError(message));
 
     private async Task ChangePowerAsync(VmListItem vm, VmState? originalState, VmPowerAction? requestedAction = null)
     {
-        powerPending = true;
-        PowerButton.IsEnabled = false;
+        bool defaultSave = string.Equals(
+            ((App)Application.Current).Appearance?.Settings.DefaultPowerAction,
+            "Save",
+            StringComparison.OrdinalIgnoreCase);
+        var action = requestedAction ?? (originalState == VmState.Running
+            ? (defaultSave ? VmPowerAction.Save : VmPowerAction.Stop)
+            : VmPowerAction.Start);
+        if (!CanRunPower(action)) return;
+        long generation = ++powerGeneration;
+        activePowerVmId = vm.Id;
+        activePowerAction = action;
+        UpdatePowerAppearance();
+        bool CurrentOperation() => generation == powerGeneration;
+        bool CurrentVmOperation() => generation == powerGeneration && current?.Id == vm.Id;
         try
         {
-            bool defaultSave = string.Equals(
-                ((App)Application.Current).Appearance?.Settings.DefaultPowerAction,
-                "Save",
-                StringComparison.OrdinalIgnoreCase);
-            var action = requestedAction ?? (originalState == VmState.Running
-                ? (defaultSave ? VmPowerAction.Save : VmPowerAction.Stop)
-                : VmPowerAction.Start);
             var session = new VmPowerOperationSession(vm.Id, action, vm.Name);
             await session.AdvanceAsync();
             while (session.Stage == VmPowerOperationStage.AwaitingConfirmation && session.Confirmation is { } repair)
             {
-                if (current?.Id != vm.Id || XamlRoot == null)
+                if (!CurrentVmOperation() || XamlRoot == null)
                 {
                     await session.SubmitDecisionAsync(repair.RequestId, approve: false);
                     break;
                 }
                 var (approved, gpuSelections) = await PromptPowerRepairAsync(repair);
                 await session.SubmitDecisionAsync(repair.RequestId, approved, gpuSelections);
+                if (!CurrentOperation()) break;
                 if (session.Stage == VmPowerOperationStage.ReadyToRetry)
                     await session.AdvanceAsync();
             }
 
             cache?.Invalidate(vm.Id);
+            if (!CurrentOperation()) return;
             if (session.Stage == VmPowerOperationStage.Completed)
             {
-                if (!string.IsNullOrWhiteSpace(session.RepairNotice) && current?.Id == vm.Id)
+                if (!string.IsNullOrWhiteSpace(session.RepairNotice) && CurrentVmOperation())
                 {
                     ShowError(session.RepairNotice, InfoBarSeverity.Informational);
                     _ = RefreshConfigurationAsync(vm.Id);
                 }
                 if (action is VmPowerAction.Start or VmPowerAction.Restart)
                     await RestoreAffinityAfterStartAsync(vm.Id);
+                if (!CurrentOperation()) return;
                 if (action == VmPowerAction.Start
                     && originalState == VmState.PoweredOff
                     && (((App)Application.Current).Appearance?.Settings.AutoOpenConsole ?? false)
-                    && current?.Id == vm.Id)
+                    && CurrentVmOperation())
                 {
                     OnConnectClick(this, new RoutedEventArgs());
                 }
             }
-            else if (session.Stage == VmPowerOperationStage.Failed && current?.Id == vm.Id)
+            else if (session.Stage == VmPowerOperationStage.Failed && session.Failure is { } failure)
             {
-                string message = session.Failure != null
-                    ? CoreMessageResolver.ResolveError(session.Failure)
-                    : session.Error;
-                ShowError(message);
+                if (action == VmPowerAction.Restart && VmPowerFallback.CanEscalate(failure))
+                {
+                    var (escalated, resetResult) = await VmPowerFallback.TryForceResetAsync(vm.Id, failure);
+                    cache?.Invalidate(vm.Id);
+                    if (!CurrentOperation()) return;
+                    if (escalated)
+                    {
+                        await RestoreAffinityAfterStartAsync(vm.Id);
+                        if (CurrentVmOperation()) ShowSuccessToast(L10n.Get("Dash_Power_RestartEscalated"));
+                    }
+                    else if (CurrentVmOperation())
+                    {
+                        ShowError(CoreMessageResolver.ResolveError(resetResult));
+                    }
+                }
+                else if (action == VmPowerAction.Stop && VmPowerFallback.CanEscalate(failure)
+                    && CurrentVmOperation() && XamlRoot != null)
+                {
+                    string reason = CoreMessageResolver.ResolveError(failure);
+                    if (await VmPowerFallback.ConfirmForceTurnOffAsync(XamlRoot, ActualTheme, vm.Name, reason) && CurrentOperation())
+                    {
+                        var turnOff = await Task.Run(() => VmPowerService.ExecuteControlActionAsync(vm.Id, VmPowerAction.TurnOff));
+                        cache?.Invalidate(vm.Id);
+                        if (!turnOff.Success && CurrentVmOperation())
+                            ShowError(CoreMessageResolver.ResolveError(turnOff));
+                    }
+                }
+                else if (CurrentVmOperation())
+                {
+                    ShowError(CoreMessageResolver.ResolveError(failure));
+                }
+            }
+            else if (session.Stage == VmPowerOperationStage.Failed && CurrentVmOperation())
+            {
+                ShowError(session.Error);
             }
         }
-        catch (Exception ex) { if (current?.Id == vm.Id) ShowError(CoreMessageResolver.ResolveException(ex)); }
-        finally { powerPending = false; PowerButton.IsEnabled = true; }
+        catch (Exception ex) { if (CurrentVmOperation()) ShowError(CoreMessageResolver.ResolveException(ex)); }
+        finally
+        {
+            if (generation == powerGeneration)
+            {
+                activePowerVmId = null;
+                activePowerAction = null;
+                if (state != null) UpdatePowerAppearance();
+                else PowerButton.IsEnabled = true;
+            }
+        }
     }
 
     private async Task<(bool Approved, Dictionary<Guid, string>? GpuSelections)> PromptPowerRepairAsync(VmPowerRepairConfirmation repair)

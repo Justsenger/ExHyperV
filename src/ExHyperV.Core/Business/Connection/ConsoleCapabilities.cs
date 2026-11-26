@@ -15,5 +15,9 @@ public enum ConsoleCapabilities
     /// <summary>与来宾交换剪贴板内容。</summary>
     Clipboard = 4,
     /// <summary>请求调整来宾桌面的分辨率和缩放比例。</summary>
-    DisplayResize = 8
+    DisplayResize = 8,
+    /// <summary>接收来自来宾的音频输出。</summary>
+    AudioOutput = 16,
+    /// <summary>向来宾发送音频输入。</summary>
+    AudioInput = 32
 }

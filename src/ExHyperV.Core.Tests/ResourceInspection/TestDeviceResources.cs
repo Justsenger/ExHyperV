@@ -21,7 +21,7 @@ internal static class TestDeviceResources
         var response = await HostDiskService.GetHostOpticalDrivesAsync();
         if (!response.Success) throw new InvalidOperationException(response.Error);
         var choices = (response.Data ?? []).Select(d => new ResourceChoice(d.PnpDeviceId,
-            string.IsNullOrEmpty(d.Drive) ? d.Model : $"{d.Drive} · {d.Model}",
+            string.IsNullOrEmpty(d.Drive) ? d.Model : $"{d.Drive} / {d.Model}",
             Fingerprint: Fingerprint(d.PnpDeviceId, d.Model))).ToArray();
         return DescribeSelection("测试光驱", config.OpticalDrive, choices, "未发现光驱，相关测试跳过。", "当前光驱缺少可用身份。");
     }
@@ -46,7 +46,7 @@ internal static class TestDeviceResources
                 : !string.IsNullOrWhiteSpace(d.SerialNumber) ? "serial:" + d.SerialNumber.Trim() : "number:" + d.Number;
             var reason = !d.CanPassthrough ? d.Status : protectedNumbers.Contains(d.Number)
                 ? "包含测试程序、缓存或分页文件" : stableId.StartsWith("number:") ? "缺少稳定设备身份" : null;
-            return new ResourceChoice(stableId, $"磁盘 {d.Number} · {d.FriendlyName} · {d.SizeGiB:0.0} GiB",
+            return new ResourceChoice(stableId, $"磁盘 {d.Number} / {d.FriendlyName} / {d.SizeGiB:0.0} GiB",
                 d.Status, UnavailableReason: reason,
                 Fingerprint: Fingerprint(d.UniqueId, d.SerialNumber, d.SizeBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)));
         }).ToArray();
@@ -58,7 +58,7 @@ internal static class TestDeviceResources
     internal static ResourceResult DescribeSelection(string label, RegisteredDevice? selected, ResourceChoice[] choices,
         string empty, string blocked)
     {
-        var details = choices.Select(c => c.Name + (c.UnavailableReason is null ? "" : " · " + c.UnavailableReason)).ToArray();
+        var details = choices.Select(c => c.Name + (c.UnavailableReason is null ? "" : " / " + c.UnavailableReason)).ToArray();
         ResourceResult Result(InspectionStatus status, string text) => new(status, text, details, choices);
         if (selected is not null)
         {
@@ -67,7 +67,7 @@ internal static class TestDeviceResources
             if (current.UnavailableReason is not null) return Result(InspectionStatus.Missing, $"{current.Name}：{current.UnavailableReason}。");
             if (current.Fingerprint != selected.Fingerprint)
                 return Result(InspectionStatus.Missing, "设备身份发生变化，请清除原选择、保存后重新指定。");
-            return Result(InspectionStatus.Ready, "已选择 · " + current.Name);
+            return Result(InspectionStatus.Ready, "已选择 / " + current.Name);
         }
         if (choices.Length == 0) return Result(InspectionStatus.Missing, empty);
         if (choices.All(c => c.UnavailableReason is not null)) return Result(InspectionStatus.Missing, blocked);

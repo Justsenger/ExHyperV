@@ -77,7 +77,7 @@ internal static class VmBootPowerApiCases
             }
             c.Evidence.Add($"已核验第 {generation} 代启动配置。");
         }
-        if (generations.Length == 1) c.Evidence.Add("本机 ARM64 覆盖第二代 UEFI；第一代 BIOS 分支由 x64 主机覆盖。");
+        if (generations.Length == 1) c.Evidence.Add("本机 ARM64 覆盖第二代 UEFI，第一代 BIOS 分支由 x64 主机覆盖。");
     }
 
     private static List<Dictionary<string, object?>> NativeBootSources(Guid id)
@@ -132,7 +132,7 @@ internal static class VmBootPowerApiCases
             do {$v=Get-VM -Id ([guid]$a.id); $s=@($v|Get-VMIntegrationService|Where-Object {$_.Id.ToString() -match '0e0b6031-5213-4934-818b-38d90ced39db'}); if($s.Count -eq 1 -and $s[0].Enabled -and $s[0].PrimaryStatusDescription -and $s[0].PrimaryOperationalStatus -eq 'Ok'){break}; Start-Sleep -Milliseconds 500}while((Get-Date) -lt $end)
             @{ready=($s.Count -eq 1 -and $s[0].Enabled -and $s[0].PrimaryOperationalStatus -eq 'Ok')}|ConvertTo-Json
             """, new { id = vm.Id }, 200);
-        if (!ready.GetProperty("ready").GetBoolean()) throw new ApiCheckSkippedException("模板副本的正常关闭集成服务尚未就绪，保留正常关机语义；本项结束后清理专属副本。");
+        if (!ready.GetProperty("ready").GetBoolean()) throw new ApiCheckSkippedException("模板副本的正常关闭集成服务尚未就绪，保留正常关机语义，本项结束后清理专属副本。");
         await VmTestAccess.ReadyWindowsAsync(c, vm);
         await Act("Save", "Saved"); await Act("Start", "Running");
         const string bootTimeScript = "@{boot=(Get-CimInstance Win32_OperatingSystem).LastBootUpTime.ToUniversalTime().Ticks}";

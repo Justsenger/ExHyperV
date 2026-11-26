@@ -1,6 +1,7 @@
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Diagnostics;
 using ExHyperV.Tools;
-using System.Buffers.Binary;
 
 namespace ExHyperV.Services;
 
@@ -20,11 +21,16 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private IConsoleNativeConnection? native;
     private ConsoleConnectionState state;
-    private bool started, stopping, clipboardAvailable;
+    private bool started, stopping, clipboardAvailable, audioOutputAvailable, audioInputAvailable;
     private bool connectTimedOut;
     private int desktopWidth, desktopHeight;
     private uint clipboardRevision;
+    private ConsoleAudioFormat? lastAudioOutputFormat, audioInputFormat;
+    private long audioOutputSequence, audioStartStamp;
+    private TimeSpan lastAudioOutputTimestamp;
     private readonly ConsoleInputBuffer inputs;
+    private readonly AudioOutputEndpoint? audioOutput;
+    private readonly AudioInputEndpoint? audioInput;
     private Timer? inputRetry;
 
     /// <summary>创建尚未启动的控制台连接并同步校验选项；原生组件在 Start 后加载。</summary>
@@ -38,10 +44,24 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(backend);
         options.Validate();
+        ValidateDesktop(options);
         this.options = options;
         this.enhanced = enhanced;
         this.backend = backend;
+        if (enhanced)
+        {
+            if (options.RedirectAudioOutput) audioOutput = new(this);
+            if (options.RedirectAudioInput) audioInput = new(this);
+        }
         inputs = new((kind, data) => native is not null && native.Send(kind, data));
+    }
+
+    private static void ValidateDesktop(ConsoleConnectionOptions options)
+    {
+        if (!ConsolePayload.IsDesktopSize(options.Width, options.Height))
+            throw new ArgumentOutOfRangeException(nameof(options.Width));
+        if (options.DesktopScale is < 100 or > 500)
+            throw new ArgumentOutOfRangeException(nameof(options.DesktopScale));
     }
 
     /// <summary>线程安全读取的连接状态。</summary>
@@ -52,8 +72,12 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     public IConsoleVideoSource Video => this;
     /// <summary>键鼠输入能力。</summary>
     public IConsoleInput Input => this;
-    /// <summary>增强会话提供剪贴板能力；基本会话为 null，就绪状态须另查 IsAvailable。</summary>
-    public IConsoleClipboard? Clipboard => enhanced ? this : null;
+    /// <summary>增强会话启用剪贴板重定向时提供剪贴板能力，否则为 null。就绪状态由 IsAvailable 报告。</summary>
+    public IConsoleClipboard? Clipboard => enhanced && options.RedirectClipboard ? this : null;
+    /// <summary>增强会话提供声音输出能力，基本会话为 null。</summary>
+    public IConsoleAudioOutput? AudioOutput => audioOutput;
+    /// <summary>增强会话提供麦克风输入能力，基本会话为 null。</summary>
+    public IConsoleAudioInput? AudioInput => audioInput;
     bool IConsoleVideoSource.SupportsResize => enhanced;
     bool IConsoleClipboard.IsAvailable
     {
@@ -67,6 +91,8 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     public event Action<ConsoleDisconnectInfo>? Disconnected;
     /// <summary>收到一帧借用像素，仅在回调期间有效；异步处理前须调用 Retain，并在处理完成后释放保留的租约。</summary>
     public event Action<ConsoleFrame>? FrameReceived;
+    /// <summary>启用宿主光标模式时，收到远端指针形状变化或隐藏时通知。</summary>
+    public event Action<ConsoleCursor?>? CursorChanged;
     /// <summary>增强会话收到支持格式的数据时在后台线程通知；调用方负责宿主剪贴板交互，回调不可阻塞。</summary>
     public event Action<ConsoleClipboardData>? ClipboardReceived;
     /// <summary>增强会话剪贴板通道可用性变化时在后台线程通知；false 时 SetClipboard 不可发送。</summary>
@@ -102,6 +128,11 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
                 native = owned;
                 if (stopping) owned.Stop();
             }
+            if (options.HostCursor)
+            {
+                Span<byte> mode = [1, 0, 0, 0];
+                owned.Send(8, mode);
+            }
             using var deadline = new Timer(_ =>
             {
                 lock (gate)
@@ -121,19 +152,26 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
             lock (gate) { native = null; stopping = true; inputRetry?.Dispose(); inputRetry = null; inputs.Clear(); }
             try { owned?.Dispose(); }
             catch (Exception ex) { error = 0xffffffff; message ??= ex.Message; }
-            bool notifyClipboard;
+            bool notifyClipboard, notifyAudioOutput, notifyAudioInput;
             lock (gate)
             {
                 if (connectTimedOut) { error = 0xfffffffe; message = "The Hyper-V console connection timed out."; }
                 state = ConsoleConnectionState.Disconnected;
                 notifyClipboard = clipboardAvailable;
+                notifyAudioOutput = audioOutputAvailable;
+                notifyAudioInput = audioInputAvailable;
                 clipboardAvailable = false;
+                audioOutputAvailable = false;
+                audioInputAvailable = false;
+                audioInputFormat = null;
             }
             // A Disconnected subscriber can safely await/perform disposal: native cleanup is finished.
             CoreDiagnostics.Report("ConsoleDisconnected", error == 0 ? TraceEventType.Information : TraceEventType.Error,
                 details: $"errorCode={error}", vmId: options.VmId);
             completion.TrySetResult();
             if (notifyClipboard) Raise(ClipboardAvailabilityChanged, false);
+            if (notifyAudioOutput) audioOutput?.RaiseAvailabilityChanged(false);
+            if (notifyAudioInput) audioInput?.RaiseAvailabilityChanged(false);
             Raise(Disconnected, new ConsoleDisconnectInfo(error, message));
         }
     }
@@ -144,7 +182,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
         switch (kind)
         {
             case 1:
-                lock (gate) { if (stopping || state == ConsoleConnectionState.Connected) return; state = ConsoleConnectionState.Connected; }
+                lock (gate) { if (stopping || state == ConsoleConnectionState.Connected) return; state = ConsoleConnectionState.Connected; audioStartStamp = Stopwatch.GetTimestamp(); }
                 CoreDiagnostics.Report("ConsoleConnected", TraceEventType.Information, vmId: options.VmId);
                 Raise(Connected);
                 break;
@@ -152,7 +190,7 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
                 if (State == ConsoleConnectionState.Connected) Raise(LoginCompleted);
                 break;
             case 4:
-                if (enhanced && ConsolePayload.TryReadClipboard(data, out var clipboard))
+                if (enhanced && options.RedirectClipboard && ConsolePayload.TryReadClipboard(data, out var clipboard))
                 {
                     lock (gate)
                     {
@@ -162,12 +200,59 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
                 }
                 break;
             case 5:
-                bool available = enhanced && a != 0;
+                bool available = enhanced && options.RedirectClipboard && a != 0;
                 lock (gate) { if (stopping || clipboardAvailable == available) return; clipboardAvailable = available; }
                 Raise(ClipboardAvailabilityChanged, available);
                 break;
             case 6:
                 if (a == 3 && enhanced) Raise(ResizeRejected, b);
+                else if (a == 7 && enhanced) CoreDiagnostics.Report("AudioInputWriteFailed", TraceEventType.Warning, details: $"error={b}", vmId: options.VmId);
+                break;
+            case 8:
+                if (!enhanced) return;
+                bool outAvailable = a != 0;
+                lock (gate) { if (stopping || audioOutput is null || audioOutputAvailable == outAvailable) return; audioOutputAvailable = outAvailable; }
+                audioOutput.RaiseAvailabilityChanged(outAvailable);
+                break;
+            case 9:
+                if (!enhanced || data.Length == 0 || data.Length > ConsolePayload.MaxAudioPacketBytes
+                    || !ConsolePayload.TryDecodeAudioFormat(a, b, out var decodedFormat)
+                    || !ConsolePayload.TryGetAudioFrameAlignment(decodedFormat!, out int alignment)
+                    || data.Length % alignment != 0) return;
+                ConsoleAudioPacket packet;
+                lock (gate)
+                {
+                    if (stopping || state != ConsoleConnectionState.Connected || audioOutput is null) return;
+                    var format = lastAudioOutputFormat == decodedFormat ? lastAudioOutputFormat! : (lastAudioOutputFormat = decodedFormat!);
+                    if (audioStartStamp == 0) audioStartStamp = Stopwatch.GetTimestamp();
+                    var elapsed = Stopwatch.GetElapsedTime(audioStartStamp);
+                    if (elapsed < lastAudioOutputTimestamp) elapsed = lastAudioOutputTimestamp;
+                    else lastAudioOutputTimestamp = elapsed;
+                    packet = new ConsoleAudioPacket(format, data, audioOutputSequence++, elapsed);
+                }
+                audioOutput.RaiseAudioReceived(packet);
+                break;
+            case 10:
+                if (!enhanced) return;
+                bool inAvailable = a != 0;
+                ConsoleAudioFormat? inFormat = null;
+                if (inAvailable && !ConsolePayload.TryDecodeAudioFormat(a, b, out inFormat)) return;
+                lock (gate)
+                {
+                    if (stopping || audioInput is null) return;
+                    if (!inAvailable && !audioInputAvailable && audioInputFormat is null) return;
+                    audioInputAvailable = inAvailable;
+                    audioInputFormat = inAvailable ? inFormat : null;
+                }
+                audioInput.RaiseAvailabilityChanged(inAvailable);
+                break;
+            case 11:
+                int cw = (int)(a & 0xFFFF), ch = (int)(a >> 16);
+                int hx = (int)(b & 0xFFFF), hy = (int)(b >> 16);
+                if (cw > 0 && ch > 0 && cw <= 384 && ch <= 384 && data.Length == cw * ch * 4 && hx < cw && hy < ch)
+                    Raise(CursorChanged, new ConsoleCursor(cw, ch, hx, hy, data));
+                else
+                    Raise(CursorChanged, null);
                 break;
         }
     }
@@ -376,6 +461,54 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
     public ValueTask DisposeAsync() => new(DisconnectAsync());
     /// <summary>请求清理并立即返回，不阻塞事件线程；需要等待原生资源释放时使用 DisposeAsync。</summary>
     public void Dispose() => _ = DisconnectAsync();
+
+    private bool IsAudioOutputAvailable { get { lock (gate) return audioOutputAvailable && !stopping && state == ConsoleConnectionState.Connected; } }
+    private bool IsAudioInputAvailable { get { lock (gate) return audioInputAvailable && !stopping && state == ConsoleConnectionState.Connected; } }
+    private ConsoleAudioFormat? CurrentAudioInputFormat { get { lock (gate) return audioInputAvailable && !stopping && state == ConsoleConnectionState.Connected ? audioInputFormat : null; } }
+
+    private bool SendAudio(ConsoleAudioFormat format, ReadOnlySpan<byte> samples)
+    {
+        ArgumentNullException.ThrowIfNull(format);
+        if (!enhanced || samples.IsEmpty || samples.Length > ConsolePayload.MaxAudioPacketBytes
+            || !ConsolePayload.TryGetAudioFrameAlignment(format, out int alignment)
+            || samples.Length % alignment != 0) return false;
+
+        int packetLength = 12 + samples.Length;
+        byte[]? rented = packetLength > 4096 ? ArrayPool<byte>.Shared.Rent(packetLength) : null;
+        try
+        {
+            Span<byte> packet = rented is not null ? rented.AsSpan(0, packetLength) : stackalloc byte[packetLength];
+            ConsolePayload.WriteAudioInputHeader(packet, format, samples.Length);
+            samples.CopyTo(packet[12..]);
+            lock (gate)
+            {
+                if (!CanSendInput || !audioInputAvailable || format != audioInputFormat) return false;
+                return native!.Send(7, packet);
+            }
+        }
+        finally
+        {
+            if (rented is not null) ArrayPool<byte>.Shared.Return(rented);
+        }
+    }
+
+    private sealed class AudioOutputEndpoint(FreeRdpConsoleConnection owner) : IConsoleAudioOutput
+    {
+        public bool IsAvailable => owner.IsAudioOutputAvailable;
+        public event Action<bool>? AvailabilityChanged;
+        public event Action<ConsoleAudioPacket>? AudioReceived;
+        internal void RaiseAvailabilityChanged(bool available) => Raise(AvailabilityChanged, available);
+        internal void RaiseAudioReceived(ConsoleAudioPacket packet) => Raise(AudioReceived, packet);
+    }
+
+    private sealed class AudioInputEndpoint(FreeRdpConsoleConnection owner) : IConsoleAudioInput
+    {
+        public bool IsAvailable => owner.IsAudioInputAvailable;
+        public ConsoleAudioFormat? Format => owner.CurrentAudioInputFormat;
+        public event Action<bool>? AvailabilityChanged;
+        public bool SendAudio(ConsoleAudioFormat format, ReadOnlySpan<byte> samples) => owner.SendAudio(format, samples);
+        internal void RaiseAvailabilityChanged(bool available) => Raise(AvailabilityChanged, available);
+    }
 
     // An observer exception must never unwind through a native FreeRDP callback.
     private static void Raise(Action? handlers)

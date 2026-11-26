@@ -46,7 +46,7 @@ try {
     $lastPhase = ''
     $labels = @{ waiting = '等待'; running = '执行中'; passed = '通过'; failed = '失败'; skipped = '跳过'; cancelled = '已取消' }
     while ($true) {
-        if ($run.runId -ne $runId) { throw '页面轮次已变化，停止收集；原轮次报告保存在测试程序报告目录。' }
+        if ($run.runId -ne $runId) { throw '页面轮次已变化，停止收集，原轮次报告保存在测试程序报告目录。' }
         if ($run.phase -ne $lastPhase -and $run.phase -like '*宿主重启*') { Write-Host $run.phase }
         $lastPhase = $run.phase
         foreach ($item in @($run.items | Where-Object selected)) {
@@ -61,7 +61,7 @@ try {
         $json = $run | ConvertTo-Json -Depth 40
         [IO.File]::WriteAllText((Join-Path $output 'results.json'), $json, (New-Object Text.UTF8Encoding($false)))
         if (!$run.running) { break }
-        if ((Get-Date) -ge $deadline) { throw '结果收集已超时；页面继续执行，可用 -Attach 重新收集。' }
+        if ((Get-Date) -ge $deadline) { throw '结果收集已超时，页面继续执行，可用 -Attach 重新收集。' }
         Start-Sleep -Seconds 2
         $run = Read-Api '/api/tests'
     }

@@ -153,11 +153,11 @@ public sealed class ResourceInspectionTests
         ]);
         Assert.AreEqual(InspectionStatus.Ready, result.Status);
         Assert.HasCount(5, result.Items!);
-        Assert.IsTrue(result.Items![0].StartsWith("NVIDIA ·", StringComparison.Ordinal));
+        Assert.IsTrue(result.Items![0].StartsWith("NVIDIA /", StringComparison.Ordinal));
         Assert.IsTrue(result.Items[1].Contains("NVIDIA 卡二", StringComparison.Ordinal));
-        Assert.IsTrue(result.Items[2].StartsWith("Intel ·", StringComparison.Ordinal));
-        Assert.IsTrue(result.Items[3].StartsWith("AMD ·", StringComparison.Ordinal));
-        Assert.IsTrue(result.Items[4].StartsWith("Qualcomm ·", StringComparison.Ordinal));
+        Assert.IsTrue(result.Items[2].StartsWith("Intel /", StringComparison.Ordinal));
+        Assert.IsTrue(result.Items[3].StartsWith("AMD /", StringComparison.Ordinal));
+        Assert.IsTrue(result.Items[4].StartsWith("Qualcomm /", StringComparison.Ordinal));
         Assert.IsTrue(result.Items.All(item => item.Contains("设备 ID", StringComparison.Ordinal)));
         Assert.IsFalse(result.Items.Any(item => item.Contains("Microsoft", StringComparison.Ordinal) || item.Contains("其他厂商", StringComparison.Ordinal)));
     }
@@ -174,8 +174,8 @@ public sealed class ResourceInspectionTests
             (@"PCI\VEN_17CB&DEV_1234\ONE", "卡六", "OEM", "6")
         ]);
         Assert.HasCount(6, result.Items!);
-        Assert.AreEqual(2, result.Items!.Count(item => item.StartsWith("AMD ·", StringComparison.Ordinal)));
-        Assert.AreEqual(2, result.Items!.Count(item => item.StartsWith("Qualcomm ·", StringComparison.Ordinal)));
+        Assert.AreEqual(2, result.Items!.Count(item => item.StartsWith("AMD /", StringComparison.Ordinal)));
+        Assert.AreEqual(2, result.Items!.Count(item => item.StartsWith("Qualcomm /", StringComparison.Ordinal)));
     }
 
     [TestMethod]

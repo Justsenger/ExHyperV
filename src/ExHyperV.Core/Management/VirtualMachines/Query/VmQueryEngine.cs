@@ -35,7 +35,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
         ["Settings"] = new("Msvm_VirtualSystemSettingData", "VirtualSystemIdentifier", WmiScope.HyperV, "VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'"),
         ["Processor"] = new("Msvm_ProcessorSettingData", "InstanceID", WmiScope.HyperV, "ResourceType = 3", true),
         ["Memory"] = new("Msvm_MemorySettingData", "InstanceID", WmiScope.HyperV, "ResourceType = 4", true),
-        ["Computer"] = new("Msvm_ComputerSystem", "Name", WmiScope.HyperV, "Caption = 'Virtual Machine'"),
+        ["Computer"] = new("Msvm_ComputerSystem", "Name", WmiScope.HyperV),
         ["Display"] = new("Msvm_SyntheticDisplayControllerSettingData", "InstanceID", WmiScope.HyperV, null, true),
         ["Security"] = new("Msvm_SecuritySettingData", "InstanceID", WmiScope.HyperV, null, true),
         ["Battery"] = new("Msvm_BatterySettingData", "InstanceID", WmiScope.HyperV),
@@ -101,6 +101,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
                     Need("Summary", "ElementName", "EnabledState", "UpTime", "MemoryUsage", "MemoryAvailable", "AvailableMemoryBuffer");
                     Need("Memory", "DynamicMemoryEnabled"); break;
                 case "Metadata":
+                case "ConsoleFeatures":
                     Need("Settings", "InstanceID"); Need("MetadataRaw", "HostOnlyItems"); break;
                 case "DisplayPresence": Need("Display", "InstanceID"); break;
                 case "Battery": Need("Battery", "InstanceID"); break;
@@ -330,7 +331,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
             if (!battery.Rows.Any(r => r.Key.Contains("Default", StringComparison.OrdinalIgnoreCase))) return field.Make(VmQueryValueState.Unsupported, null, battery.Time, "没有虚拟电池默认模板。");
             return field.Make(VmQueryValueState.Available, battery.Rows.Any(r => Owned(r, id)), battery.Time);
         }
-        if (sourceName is "Affinity" or "GpuPerformance" or "ProcessorPerformance")
+        if (sourceName is "Affinity" or "GpuPerformance" or "ProcessorPerformance" or "ConsoleFeatures")
         {
             var result = await DerivedAsync(sourceName, id).ConfigureAwait(false);
             return Cell(field, result.Rows.FirstOrDefault(r => r.Key == id.ToString("D")), result);

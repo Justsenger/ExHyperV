@@ -84,7 +84,7 @@ internal static class GpuWorkflowChecks
         var failed = await manualSession.SubmitDecisionAsync(new GpuPartitionSelection(selectionId, selection.PendingDecision.Partitions[0].Id));
         check(failed.State == GpuDeploymentState.Failed && failed.Error == "failed" && manual.Removed.SequenceEqual(["new-adapter"])
             && manual.MetadataRecordedCount == 0,
-            "Selecting Windows executes sync immediately; driver failure removes this deployment's adapter without recording metadata");
+            "Selecting Windows executes sync immediately. Driver failure removes this deployment's adapter without recording metadata");
 
         foreach (var os in new[] { OperatingSystemType.Unknown, OperatingSystemType.EFI, OperatingSystemType.Linux })
         {

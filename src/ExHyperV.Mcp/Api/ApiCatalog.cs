@@ -218,8 +218,10 @@ public sealed class ApiCatalog
         transportGaps = Members.Values.Where(member => member switch
         {
             MethodBase callable => callable.GetParameters().Any(parameter => parameter.ParameterType.IsPointer
-                || parameter.ParameterType.IsByRefLike && parameter.ParameterType != typeof(ReadOnlySpan<byte>)),
-            PropertyInfo property => property.PropertyType.IsByRefLike && !(property.DeclaringType == typeof(ConsoleFrame) && property.Name == "Pixels"),
+                || parameter.ParameterType.IsByRefLike && !ApiExecution.SupportsSpanCall(callable)),
+            PropertyInfo property => property.PropertyType.IsByRefLike
+                && !(property.DeclaringType == typeof(ConsoleFrame) && property.Name == "Pixels")
+                && !(property.DeclaringType == typeof(ConsoleAudioPacket) && property.Name == "Samples"),
             _ => false
         }).Select(Id).ToArray()
     };

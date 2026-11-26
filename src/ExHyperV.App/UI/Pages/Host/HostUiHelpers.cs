@@ -292,4 +292,100 @@ internal static class HostUiHelpers
         };
         return button;
     }
+
+    internal static readonly Color OtherConsumerColor = Color.FromArgb(255, 0x4B, 0x55, 0x63);
+
+    internal static readonly Color[] VmConsumerPalette =
+    [
+        Color.FromArgb(255, 0x6C, 0xCB, 0x5F),
+        Color.FromArgb(255, 0x4A, 0xA8, 0x6C),
+        Color.FromArgb(255, 0x34, 0x8E, 0x7B),
+        Color.FromArgb(255, 0x3D, 0x7A, 0x8A),
+        Color.FromArgb(255, 0x4B, 0x6B, 0x7F),
+        Color.FromArgb(255, 0x56, 0x64, 0x75),
+        Color.FromArgb(255, 0x5C, 0x61, 0x6B)
+    ];
+
+    internal static Color GetHostConsumerColor(ElementTheme actualTheme) =>
+        ThemeHelper.ThemeColor(actualTheme, "VmAccentBrush", Color.FromArgb(255, 0x4C, 0xC2, 0xFF));
+
+    internal static Color GetVmPaletteColor(int slot) =>
+        slot >= 0 && slot < VmConsumerPalette.Length ? VmConsumerPalette[slot] : OtherConsumerColor;
+
+    internal static Border BuildMiniBadge(ElementTheme actualTheme, string text, Color? foregroundOverride = null)
+    {
+        bool light = actualTheme == ElementTheme.Light;
+        Brush bg = ThemeHelper.TryResourceBrush(actualTheme, "VmBadgeBrush",
+            light ? Color.FromArgb(0x0A, 0, 0, 0) : Color.FromArgb(0x10, 0xFF, 0xFF, 0xFF));
+        Brush border = ThemeHelper.TryResourceBrush(actualTheme, "VmStrokeBrush",
+            light ? Color.FromArgb(0x0F, 0, 0, 0) : Color.FromArgb(0x19, 0xFF, 0xFF, 0xFF));
+        Brush fg = foregroundOverride is { } color
+            ? new SolidColorBrush(color)
+            : ThemeHelper.TryResourceBrush(actualTheme, "TextFillColorSecondaryBrush",
+                light ? Color.FromArgb(0x9E, 0, 0, 0) : Color.FromArgb(0xC5, 0xFF, 0xFF, 0xFF));
+        var label = new TextBlock
+        {
+            Text = text,
+            FontSize = 11,
+            Foreground = fg,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Typography.SetNumeralAlignment(label, FontNumeralAlignment.Tabular);
+        return new Border
+        {
+            MinHeight = 20,
+            Padding = new Thickness(7, 1, 7, 1),
+            CornerRadius = new CornerRadius(4),
+            BorderThickness = new Thickness(1),
+            Background = bg,
+            BorderBrush = border,
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = label
+        };
+    }
+
+    internal static Border BuildPillTag(ElementTheme actualTheme, string label, string value, Color? accentValue = null)
+    {
+        bool light = actualTheme == ElementTheme.Light;
+        Brush bg = ThemeHelper.TryResourceBrush(actualTheme, "ControlFillColorTertiaryBrush",
+            light ? Color.FromArgb(0x08, 0, 0, 0) : Color.FromArgb(0x0D, 0xFF, 0xFF, 0xFF));
+        Brush border = ThemeHelper.TryResourceBrush(actualTheme, "DividerStrokeColorDefaultBrush",
+            Color.FromArgb(0x22, 0x80, 0x80, 0x80));
+        Brush secondary = ThemeHelper.TryResourceBrush(actualTheme, "TextFillColorSecondaryBrush",
+            light ? Color.FromArgb(0x9E, 0, 0, 0) : Color.FromArgb(0xC5, 0xFF, 0xFF, 0xFF));
+        Brush primary = accentValue is { } col
+            ? new SolidColorBrush(col)
+            : ThemeHelper.TryResourceBrush(actualTheme, "TextFillColorPrimaryBrush",
+                light ? Color.FromArgb(0xE4, 0, 0, 0) : Colors.White);
+
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+        row.Children.Add(new TextBlock { Text = label, FontSize = 11, Foreground = secondary, VerticalAlignment = VerticalAlignment.Center });
+        var valBlock = new TextBlock
+        {
+            Text = value,
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            Foreground = primary,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        Typography.SetNumeralAlignment(valBlock, FontNumeralAlignment.Tabular);
+        row.Children.Add(valBlock);
+
+        return new Border
+        {
+            Padding = new Thickness(7, 2, 7, 2),
+            CornerRadius = new CornerRadius(4),
+            BorderThickness = new Thickness(1),
+            Background = bg,
+            BorderBrush = border,
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = row
+        };
+    }
+
+    internal static string FormatVramSize(ulong? memoryBytes)
+    {
+        if (memoryBytes is not { } bytes) return "---";
+        return bytes >= 1024UL * 1024 * 1024 ? $"{bytes / 1073741824.0:0.#} GB" : $"{bytes / 1048576.0:0} MB";
+    }
 }

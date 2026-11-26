@@ -5,16 +5,16 @@ namespace ExHyperV.Services;
 /// <para>先用 <see cref="ConsoleService.GetBackends"/> 查看可用后端，再用 <see cref="ConsoleService.CreateConnection"/> 创建连接。
 /// 创建后订阅画面、连接状态等事件，调用 <see cref="IConsoleConnection.Start"/> 开始连接。
 /// 连接的用法见 <see cref="IConsoleConnection"/>。</para>
-/// <para>RdpBasic 提供基本画面和键鼠；RdpEnhanced 还提供剪贴板和分辨率调整，需要来宾支持增强会话。
+/// <para>RdpBasic 提供基本画面和键鼠，RdpEnhanced 还提供剪贴板、分辨率调整与双向音频，需要来宾支持增强会话。
 /// 两者目前均由 FreeRDP 实现。</para>
 /// </remarks>
 /// <businessdoc category="连接">
 /// <summary>选择后端，建立和关闭虚拟机通信连接。</summary>
-/// <para>连接对象提供状态通知和视频、控制、剪贴板等接口。控制包含键盘和鼠标。</para>
+/// <para>连接对象提供状态通知和视频、控制、剪贴板、音频等接口。控制包含键盘和鼠标。</para>
 /// <para>调用顺序：选择后端 → 创建连接 → 订阅事件 → Start → 使用所需能力 → DisconnectAsync 或 DisposeAsync。</para>
-/// <para>RdpBasic 已提供视频和键鼠；RdpEnhanced 还提供剪贴板和分辨率调整。</para>
-/// <para>从 <see cref="ConsoleService"/> 选择后端；完整连接示例见 <see cref="IConsoleConnection"/>。
-/// 连接建立、来宾登录完成、剪贴板通道就绪是三个不同的时点。</para>
+/// <para>RdpBasic 已提供视频和键鼠，RdpEnhanced 还提供剪贴板、分辨率调整与双向音频。</para>
+/// <para>从 <see cref="ConsoleService"/> 选择后端，完整连接示例见 <see cref="IConsoleConnection"/>。
+/// 连接建立、来宾登录完成、剪贴板和音频通道就绪是各自独立的时点。</para>
 /// </businessdoc>
 public static class ConsoleService
 {
@@ -24,9 +24,9 @@ public static class ConsoleService
     /// <values kind="format"><c>RdpBasic</c>。</values>
     /// </fielddoc>
     public const string RdpBasicBackendId = "RdpBasic";
-    /// <summary>RDP 增强会话的后端标识，另提供剪贴板和分辨率调整，需要来宾支持增强会话。</summary>
+    /// <summary>RDP 增强会话的后端标识，另提供剪贴板、分辨率调整与双向音频，需要来宾支持增强会话。</summary>
     /// <fielddoc>
-    /// <meaning>RDP 增强会话的后端标识，另提供剪贴板和分辨率调整，需要来宾支持增强会话。</meaning>
+    /// <meaning>RDP 增强会话的后端标识，另提供剪贴板、分辨率调整与双向音频，需要来宾支持增强会话。</meaning>
     /// <values kind="format"><c>RdpEnhanced</c>。</values>
     /// </fielddoc>
     public const string RdpEnhancedBackendId = "RdpEnhanced";
@@ -64,7 +64,9 @@ public static class ConsoleService
             enhanced ? RdpEnhancedBackendId : RdpBasicBackendId,
             enhanced ? "RDP Enhanced" : "RDP Basic",
             ConsoleCapabilities.Video | ConsoleCapabilities.Input |
-            (enhanced ? ConsoleCapabilities.Clipboard | ConsoleCapabilities.DisplayResize : ConsoleCapabilities.None));
+            (enhanced
+                ? ConsoleCapabilities.Clipboard | ConsoleCapabilities.DisplayResize | ConsoleCapabilities.AudioOutput | ConsoleCapabilities.AudioInput
+                : ConsoleCapabilities.None));
         public IConsoleConnection Create(ConsoleConnectionOptions options) => new FreeRdpConsoleConnection(options, enhanced);
     }
 

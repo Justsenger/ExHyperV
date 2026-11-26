@@ -8,19 +8,62 @@ function loadImage(src, onReady) {
   return img;
 }
 
+/**
+ * Rasterize an SVG at explicit targetSize×targetSize so small intrinsic
+ * viewBoxes (e.g. 24×24 or 32×32) render razor-sharp on high-res textures.
+ */
+function loadSvgVector(src, targetSize, onReady) {
+  if (typeof fetch !== 'function' || typeof DOMParser !== 'function') {
+    loadImage(src, onReady);
+    return;
+  }
+  fetch(src)
+    .then((res) => (res.ok ? res.text() : Promise.reject(new Error(`HTTP ${res.status}`))))
+    .then((svgText) => {
+      const doc = new DOMParser().parseFromString(svgText, 'image/svg+xml');
+      const svg = doc.documentElement;
+      if (!svg || svg.nodeName.toLowerCase() !== 'svg') {
+        loadImage(src, onReady);
+        return;
+      }
+      if (!svg.getAttribute('viewBox')) {
+        const w = parseFloat(svg.getAttribute('width') || '128') || 128;
+        const h = parseFloat(svg.getAttribute('height') || '128') || 128;
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+      }
+      svg.setAttribute('width', String(targetSize));
+      svg.setAttribute('height', String(targetSize));
+      const serialized = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([serialized], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        onReady(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        loadImage(src, onReady);
+      };
+      img.src = url;
+    })
+    .catch(() => loadImage(src, onReady));
+}
+
 function createCanvasTex(size) {
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.anisotropy = 8;
   return { canvas, ctx: canvas.getContext('2d'), texture };
 }
 
 /**
- * Pure transparent WinUI 3 OS vector icons (no dark card background, no border, no text labels)
- * for Concept 2's 6 exploded hexagonal-ring emblems.
+ * Load the 6 safe-compromise OS SVG icons into crisp 1024px CanvasTextures
+ * for Concept 2's exploded corridor nodes.
  */
 export function createOsIconPack() {
   const presets = [
@@ -28,70 +71,50 @@ export function createOsIconPack() {
     { id: 'Ubuntu', scale: 0.70, shadow: 'rgba(8, 18, 42, 0.40)', glow: null },
     { id: 'ArchLinux', scale: 0.70, shadow: 'rgba(8, 18, 42, 0.40)', glow: 'rgba(205, 240, 255, 0.28)' },
     { id: 'Debian', scale: 0.72, shadow: 'rgba(255, 240, 246, 0.62)', glow: 'rgba(255, 255, 255, 0.55)' },
-    { id: 'MacOS', scale: 0.68, shadow: 'rgba(10, 22, 46, 0.40)', glow: 'rgba(235, 246, 255, 0.48)', tint: '#9eb0c7' },
+    { id: 'openSUSE', scale: 0.70, shadow: 'rgba(6, 26, 42, 0.40)', glow: 'rgba(135, 235, 165, 0.35)' },
     { id: 'FnOS', scale: 0.68, shadow: 'rgba(6, 26, 62, 0.42)', glow: 'rgba(185, 224, 255, 0.35)' },
   ];
 
-  const items = presets.map((cfg) => ({
-    cfg,
-    img: null,
-    ...createCanvasTex(512),
-  }));
+  const S = 1024;
+  const items = presets.map((cfg) => {
+    const { ctx, texture } = createCanvasTex(S);
+    const maxDim = Math.round(S * cfg.scale);
 
-  function renderItem(item) {
-    const { cfg, img, ctx, texture } = item;
-    const S = 512;
-    ctx.clearRect(0, 0, S, S);
-    if (!img) {
+    loadSvgVector(`/ui-design/os/${cfg.id}.svg`, maxDim, (img) => {
+      ctx.clearRect(0, 0, S, S);
+
+      const ratio = img.width / Math.max(1, img.height);
+      const drawW = ratio >= 1 ? maxDim : maxDim * ratio;
+      const drawH = ratio >= 1 ? maxDim / ratio : maxDim;
+      const dx = (S - drawW) / 2;
+      const dy = (S - drawH) / 2;
+
+      if (cfg.glow) {
+        ctx.save();
+        ctx.shadowColor = cfg.glow;
+        ctx.shadowBlur = 28;
+        ctx.shadowOffsetY = 0;
+        ctx.drawImage(img, dx, dy, drawW, drawH);
+        ctx.restore();
+      }
+
+      ctx.save();
+      ctx.shadowColor = cfg.shadow;
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 8;
+      ctx.drawImage(img, dx, dy, drawW, drawH);
+      ctx.restore();
+
       texture.needsUpdate = true;
-      return;
-    }
-
-    const sz = Math.round(S * cfg.scale);
-    const offset = Math.round((S - sz) / 2);
-
-    let srcDraw = img;
-    if (cfg.tint) {
-      const tintCanvas = document.createElement('canvas');
-      tintCanvas.width = sz;
-      tintCanvas.height = sz;
-      const tctx = tintCanvas.getContext('2d');
-      tctx.drawImage(img, 0, 0, sz, sz);
-      tctx.globalCompositeOperation = 'source-in';
-      tctx.fillStyle = cfg.tint;
-      tctx.fillRect(0, 0, sz, sz);
-      srcDraw = tintCanvas;
-    }
-
-    ctx.save();
-    if (cfg.glow) {
-      ctx.shadowColor = cfg.glow;
-      ctx.shadowBlur = 16;
-      ctx.shadowOffsetY = 0;
-      ctx.drawImage(srcDraw, offset, offset, sz, sz);
-    }
-    ctx.shadowColor = cfg.shadow;
-    ctx.shadowBlur = 22;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 8;
-    ctx.drawImage(srcDraw, offset, offset, sz, sz);
-    ctx.restore();
-
-    texture.needsUpdate = true;
-  }
-
-  for (const item of items) {
-    renderItem(item);
-    loadImage(`/ui-design/os/${item.cfg.id}.svg`, (img) => {
-      item.img = img;
-      renderItem(item);
     });
-  }
+
+    return texture;
+  });
 
   return {
-    textures: items.map((item) => item.texture),
+    textures: items,
     dispose() {
-      for (const item of items) item.texture.dispose();
+      for (const tex of items) tex.dispose();
     },
   };
 }

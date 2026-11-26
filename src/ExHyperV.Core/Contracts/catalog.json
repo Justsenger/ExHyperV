@@ -476,6 +476,10 @@
       "剪贴板"
     ],
     [
+      "业务层面",
+      "音频"
+    ],
+    [
       "管理层面",
       "共用类型"
     ]
@@ -1384,6 +1388,33 @@
       ],
       "group": "host"
     },
+    "ExHyperV.Services.ConsoleAudioFormat": {
+      "title": "音频格式",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "音频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleAudioPacket": {
+      "title": "音频数据包",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "音频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleAudioSampleFormat": {
+      "title": "音频采样编码",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "音频"
+      ],
+      "group": "console"
+    },
     "ExHyperV.Services.ConsoleBackendInfo": {
       "title": "连接后端信息",
       "role": "contract",
@@ -1435,6 +1466,15 @@
       "path": [
         "业务层面",
         "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleCursor": {
+      "title": "光标形状",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
       ],
       "group": "console"
     },
@@ -1801,6 +1841,50 @@
       ],
       "group": "host"
     },
+    "ExHyperV.Services.HostPowerSetting": {
+      "title": "宿主电源设置项",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "电源"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.HostPowerSettingOption": {
+      "title": "宿主电源设置选项",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "电源"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.HostPowerSettingValueKind": {
+      "title": "宿主电源设置值类型",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "电源"
+      ],
+      "group": "host"
+    },
+    "ExHyperV.Services.HostPowerSubgroup": {
+      "title": "宿主电源设置子组",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "宿主",
+        "查询",
+        "电源"
+      ],
+      "group": "host"
+    },
     "ExHyperV.Services.HostProcessorPlatform": {
       "title": "宿主处理器平台",
       "role": "contract",
@@ -2053,6 +2137,24 @@
         "网络"
       ],
       "group": "host"
+    },
+    "ExHyperV.Services.IConsoleAudioInput": {
+      "title": "音频输入",
+      "role": "entry",
+      "path": [
+        "业务层面",
+        "音频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.IConsoleAudioOutput": {
+      "title": "音频输出",
+      "role": "entry",
+      "path": [
+        "业务层面",
+        "音频"
+      ],
+      "group": "console"
     },
     "ExHyperV.Services.IConsoleClipboard": {
       "title": "剪贴板交互",
@@ -2328,6 +2430,17 @@
         "查询"
       ],
       "group": "vm"
+    },
+    "ExHyperV.Services.VmConsoleFeatures": {
+      "title": "虚拟机增强会话偏好",
+      "role": "contract",
+      "path": [
+        "管理层面",
+        "虚拟机",
+        "查询",
+        "控制台"
+      ],
+      "group": "console"
     },
     "ExHyperV.Services.VmConsoleFields": {
       "title": "控制台字段",
@@ -4170,6 +4283,168 @@
         "共用类型"
       ],
       "group": "core"
+    },
+    "ExHyperV.Services.ConsoleFrameUpdateKind": {
+      "title": "帧更新类型",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleFrameMove": {
+      "title": "帧移动区域",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleDisplayMode": {
+      "title": "来宾显示模式",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleDisplayModeResult": {
+      "title": "模式切换结果",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.IConsoleDisplayModes": {
+      "title": "枚举与切换模式",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleCoordinateSpace": {
+      "title": "光标坐标空间",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleCursorState": {
+      "title": "远端光标状态",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.IConsoleCursorStateSource": {
+      "title": "光标状态来源",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "视频"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleTransportKind": {
+      "title": "画面传输路径",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleControlState": {
+      "title": "观看与控制状态",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleExtensionStateCode": {
+      "title": "扩展状态码",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleExtensionStage": {
+      "title": "扩展分段状态",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleExtensionActionId": {
+      "title": "扩展动作标识",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleExtensionSnapshot": {
+      "title": "扩展状态快照",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleExtensionActionRequest": {
+      "title": "扩展动作请求",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleExtensionActionResult": {
+      "title": "扩展动作响应",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "连接"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.ConsoleClipboardProviderInfo": {
+      "title": "剪贴板提供方描述",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "剪贴板"
+      ],
+      "group": "console"
+    },
+    "ExHyperV.Services.IConsoleClipboardProvider": {
+      "title": "可挂接的剪贴板提供方",
+      "role": "contract",
+      "path": [
+        "业务层面",
+        "剪贴板"
+      ],
+      "group": "console"
     }
   },
   "members": {
@@ -12496,6 +12771,138 @@
       "group": "host",
       "readOnly": true
     },
+    "C:ExHyperV.Services.ConsoleAudioFormat": {
+      "title": "创建音频格式",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleAudioFormat.Channels": {
+      "title": "声道数",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleAudioFormat.SampleFormat": {
+      "title": "采样编码",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleAudioFormat.SampleRate": {
+      "title": "采样率",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.ConsoleAudioPacket.#ctor(ExHyperV.Services.ConsoleAudioFormat,System.ReadOnlySpan{System.Byte},System.Int64,System.TimeSpan)": {
+      "title": "创建音频数据包对象",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.ConsoleAudioPacket.CopySamples": {
+      "title": "复制音频采样",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleAudioPacket.Format": {
+      "title": "音频格式",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleAudioPacket.Samples": {
+      "title": "采样数据",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleAudioPacket.Sequence": {
+      "title": "包序号",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleAudioPacket.Timestamp": {
+      "title": "相对时间",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.ConsoleAudioSampleFormat.Float32LittleEndian": {
+      "title": "Float32LittleEndian",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.ConsoleAudioSampleFormat.Signed16LittleEndian": {
+      "title": "Signed16LittleEndian",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
     "C:ExHyperV.Services.ConsoleBackendInfo": {
       "title": "创建连接后端信息对象",
       "paths": [
@@ -12531,6 +12938,28 @@
     },
     "P:ExHyperV.Services.ConsoleBackendInfo.Name": {
       "title": "名称",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.ConsoleCapabilities.AudioInput": {
+      "title": "AudioInput",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.ConsoleCapabilities.AudioOutput": {
+      "title": "AudioOutput",
       "paths": [
         [
           "业务层面",
@@ -12694,6 +13123,50 @@
       "group": "console",
       "readOnly": false
     },
+    "P:ExHyperV.Services.ConsoleConnectionOptions.HostCursor": {
+      "title": "宿主光标模式",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleConnectionOptions.RedirectAudioInput": {
+      "title": "麦克风输入重定向",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleConnectionOptions.RedirectAudioOutput": {
+      "title": "声音输出重定向",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleConnectionOptions.RedirectClipboard": {
+      "title": "剪贴板重定向",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
     "P:ExHyperV.Services.ConsoleConnectionOptions.VmId": {
       "title": "虚拟机标识",
       "paths": [
@@ -12755,6 +13228,72 @@
         [
           "业务层面",
           "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "C:ExHyperV.Services.ConsoleCursor": {
+      "title": "创建光标形状对象",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleCursor.Height": {
+      "title": "显示高度",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleCursor.HotX": {
+      "title": "热点横坐标",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleCursor.HotY": {
+      "title": "热点纵坐标",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleCursor.Pixels": {
+      "title": "像素数据",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleCursor.Width": {
+      "title": "显示宽度",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
         ]
       ],
       "group": "console",
@@ -15123,6 +15662,370 @@
       "group": "host",
       "readOnly": false
     },
+    "F:ExHyperV.Services.HostPowerPlanService.NoSubgroupId": {
+      "title": "无子组标识",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostPowerPlanService.GetPowerPlanSubgroups(System.Guid,System.Boolean)": {
+      "title": "查询电源计划设置子组",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostPowerPlanService.HasBattery": {
+      "title": "检测系统电池",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.HostPowerPlanService.SetPowerSettingValue(System.Guid,System.Guid,System.Guid,System.UInt32,System.Boolean)": {
+      "title": "修改电源计划设置项",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "修改",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "C:ExHyperV.Services.HostPowerSetting": {
+      "title": "创建宿主电源设置项对象",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.HostPowerSetting.AcValue": {
+      "title": "交流电源设置值",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.DcValue": {
+      "title": "直流电源设置值",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.Description": {
+      "title": "说明",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.Id": {
+      "title": "设置标识",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.Increment": {
+      "title": "步进增量",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.IsHidden": {
+      "title": "是否隐藏项",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.Maximum": {
+      "title": "最大值",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.Minimum": {
+      "title": "最小值",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.Name": {
+      "title": "名称",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.Options": {
+      "title": "可选索引清单",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.SubgroupId": {
+      "title": "所属子组标识",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.Unit": {
+      "title": "单位",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSetting.ValueKind": {
+      "title": "值类型",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "C:ExHyperV.Services.HostPowerSettingOption": {
+      "title": "创建宿主电源设置选项对象",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.HostPowerSettingOption.Name": {
+      "title": "选项名称",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSettingOption.Value": {
+      "title": "选项索引值",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.HostPowerSettingValueKind.Choice": {
+      "title": "Choice",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.HostPowerSettingValueKind.Range": {
+      "title": "Range",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.HostPowerSettingValueKind.RawValue": {
+      "title": "RawValue",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "C:ExHyperV.Services.HostPowerSubgroup": {
+      "title": "创建宿主电源子组对象",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.HostPowerSubgroup.Id": {
+      "title": "子组标识",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSubgroup.Name": {
+      "title": "子组名称",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.HostPowerSubgroup.Settings": {
+      "title": "设置清单",
+      "paths": [
+        [
+          "管理层面",
+          "宿主",
+          "查询",
+          "电源"
+        ]
+      ],
+      "group": "host",
+      "readOnly": true
+    },
     "F:ExHyperV.Services.HostProcessorPlatform.Amd": {
       "title": "Amd",
       "paths": [
@@ -16586,6 +17489,83 @@
       "group": "host",
       "readOnly": false
     },
+    "E:ExHyperV.Services.IConsoleAudioInput.AvailabilityChanged": {
+      "title": "音频输入可用状态变化",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.IConsoleAudioInput.SendAudio(ExHyperV.Services.ConsoleAudioFormat,System.ReadOnlySpan{System.Byte})": {
+      "title": "发送音频采样",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.IConsoleAudioInput.Format": {
+      "title": "当前采样格式",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.IConsoleAudioInput.IsAvailable": {
+      "title": "可用状态",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "E:ExHyperV.Services.IConsoleAudioOutput.AudioReceived": {
+      "title": "收到来宾音频",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "E:ExHyperV.Services.IConsoleAudioOutput.AvailabilityChanged": {
+      "title": "音频输出可用状态变化",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.IConsoleAudioOutput.IsAvailable": {
+      "title": "可用状态",
+      "paths": [
+        [
+          "业务层面",
+          "音频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
     "E:ExHyperV.Services.IConsoleClipboard.ClipboardAvailabilityChanged": {
       "title": "剪贴板可用状态变化",
       "paths": [
@@ -16676,6 +17656,28 @@
     },
     "M:ExHyperV.Services.IConsoleConnection.Start": {
       "title": "开始连接",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.IConsoleConnection.AudioInput": {
+      "title": "音频输入通道",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.IConsoleConnection.AudioOutput": {
+      "title": "音频输出通道",
       "paths": [
         [
           "业务层面",
@@ -16819,6 +17821,17 @@
           "业务层面",
           "控制",
           "键盘"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "E:ExHyperV.Services.IConsoleVideoSource.CursorChanged": {
+      "title": "光标变化通知",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
         ]
       ],
       "group": "console",
@@ -18168,6 +19181,97 @@
       "group": "console",
       "readOnly": true
     },
+    "F:ExHyperV.Services.VmConsoleFields.EnhancedAudioInput": {
+      "title": "增强会话麦克风输入",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmConsoleFields.EnhancedAudioOutput": {
+      "title": "增强会话声音输出",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.VmConsoleFields.EnhancedClipboard": {
+      "title": "增强会话剪贴板共享",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "C:ExHyperV.Services.VmConsoleFeatures": {
+      "title": "创建增强会话偏好对象",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.VmConsoleFeatures.AudioInput": {
+      "title": "麦克风输入重定向",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmConsoleFeatures.AudioOutput": {
+      "title": "声音输出重定向",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.VmConsoleFeatures.Clipboard": {
+      "title": "剪贴板共享",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
     "C:ExHyperV.Services.VmConsoleState": {
       "title": "创建虚拟机控制台状态对象",
       "paths": [
@@ -18245,6 +19349,32 @@
       ],
       "group": "console",
       "readOnly": true
+    },
+    "M:ExHyperV.Services.VmConsoleSupportService.GetEnhancedFeaturesAsync(System.Guid)": {
+      "title": "读取增强会话偏好",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "查询",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.VmConsoleSupportService.SetEnhancedFeaturesAsync(System.Guid,System.Boolean,System.Boolean,System.Boolean)": {
+      "title": "设置增强会话偏好",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "控制台"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
     },
     "M:ExHyperV.Services.VmConsoleSupportService.GetModificationCondition(System.Int32,ExHyperV.Models.VmState)": {
       "title": "评估修改条件",
@@ -22530,6 +23660,19 @@
       ],
       "group": "vm",
       "readOnly": true
+    },
+    "F:ExHyperV.Services.VmMetadataService.ConsoleFeaturesKey": {
+      "title": "控制台增强会话偏好键",
+      "paths": [
+        [
+          "管理层面",
+          "虚拟机",
+          "修改",
+          "自定义数据"
+        ]
+      ],
+      "group": "vm",
+      "readOnly": false
     },
     "F:ExHyperV.Services.VmMetadataService.CpuAffinityKey": {
       "title": "处理器亲和性键",
@@ -33081,6 +34224,1040 @@
       ],
       "group": "core",
       "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleFrameUpdateKind.Unchanged": {
+      "title": "画面无变化",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleFrameUpdateKind.Delta": {
+      "title": "增量刷新",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleFrameUpdateKind.Full": {
+      "title": "完整刷新",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleFrameMove.#ctor(System.Int32,System.Int32,ExHyperV.Services.ConsoleFrameRegion)": {
+      "title": "创建帧移动区域",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleFrameMove.SourceX": {
+      "title": "源矩形的左边界",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleFrameMove.SourceY": {
+      "title": "源矩形的上边界",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleFrameMove.Destination": {
+      "title": "目标矩形",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleDisplayMode.#ctor(System.String,System.Int32,System.Int32,System.UInt32,System.UInt32)": {
+      "title": "创建来宾显示模式",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleDisplayMode.Id": {
+      "title": "模式的稳定标识",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleDisplayMode.Width": {
+      "title": "桌面宽度",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleDisplayMode.Height": {
+      "title": "桌面高度",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleDisplayMode.RefreshNumerator": {
+      "title": "刷新率分子",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleDisplayMode.RefreshDenominator": {
+      "title": "刷新率分母",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleDisplayModeResult.#ctor(System.Boolean,ExHyperV.Services.ConsoleDisplayMode)": {
+      "title": "创建模式切换结果",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleDisplayModeResult.Accepted": {
+      "title": "后端是否接受请求",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleDisplayModeResult.ActiveMode": {
+      "title": "当前可确认的实际模式",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.IConsoleDisplayModes.GetModes": {
+      "title": "枚举显示模式",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.IConsoleDisplayModes.SetMode(System.String)": {
+      "title": "请求切换模式",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.ConsoleCoordinateSpace.Unknown": {
+      "title": "坐标空间未知",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleCoordinateSpace.DesktopPixels": {
+      "title": "来宾桌面物理像素",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleCursorState.#ctor(System.Int32,System.Int32,System.Boolean,System.Boolean,ExHyperV.Services.ConsoleCoordinateSpace,System.UInt64)": {
+      "title": "创建远端光标状态",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleCursorState.X": {
+      "title": "热点横坐标",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleCursorState.Y": {
+      "title": "热点纵坐标",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleCursorState.Visible": {
+      "title": "远端光标是否可见",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleCursorState.Composited": {
+      "title": "帧内是否已合成光标",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleCursorState.CoordinateSpace": {
+      "title": "位置坐标系",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleCursorState.ShapeVersion": {
+      "title": "光标形状版本",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.IConsoleCursorStateSource.CursorState": {
+      "title": "读取光标状态",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "E:ExHyperV.Services.IConsoleCursorStateSource.CursorStateChanged": {
+      "title": "光标状态变化",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "F:ExHyperV.Services.ConsoleTransportKind.Unknown": {
+      "title": "路径未知",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleTransportKind.CpuShared": {
+      "title": "共享 CPU 内存",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleTransportKind.GpuShared": {
+      "title": "共享 GPU 表面",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleTransportKind.RdpBasic": {
+      "title": "基本会话",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleTransportKind.RdpEnhanced": {
+      "title": "增强会话",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleControlState.#ctor(System.Boolean,System.Boolean,System.UInt64)": {
+      "title": "创建观看与控制状态",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleControlState.CanView": {
+      "title": "观众是否获准观看",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleControlState.HasControl": {
+      "title": "观众是否持有控制权",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleControlState.Generation": {
+      "title": "控制代次",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionStateCode.Unknown": {
+      "title": "状态未知",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionStateCode.Unverified": {
+      "title": "尚未证实",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionStateCode.Unreachable": {
+      "title": "服务不可达",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionStateCode.AccessDenied": {
+      "title": "访问被拒绝",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionStateCode.Missing": {
+      "title": "组件缺失",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionStateCode.Incompatible": {
+      "title": "版本不兼容",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionStateCode.Ready": {
+      "title": "已就绪",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleExtensionStage.#ctor(System.Int32)": {
+      "title": "创建扩展分段状态",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionStage.RawCode": {
+      "title": "提供方报告的原始整数状态码",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionStage.Code": {
+      "title": "已知状态",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionActionId.Unknown": {
+      "title": "未知动作",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionActionId.ActivateHost": {
+      "title": "激活宿主组件",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionActionId.MaintainHost": {
+      "title": "维护宿主组件",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionActionId.DeployGuestComponent": {
+      "title": "部署来宾组件",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "F:ExHyperV.Services.ConsoleExtensionActionId.RetryConnection": {
+      "title": "重试目标连接",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleExtensionSnapshot.#ctor(System.UInt64,ExHyperV.Services.ConsoleExtensionStage,ExHyperV.Services.ConsoleExtensionStage,ExHyperV.Services.ConsoleExtensionStage,ExHyperV.Services.ConsoleExtensionStage,ExHyperV.Services.ConsoleTransportKind,System.UInt64,ExHyperV.Services.ConsoleCapabilities,ExHyperV.Services.ConsoleCapabilities,ExHyperV.Services.ConsoleControlState,System.Collections.Generic.IReadOnlyList{ExHyperV.Services.ConsoleExtensionActionId},System.String,System.String)": {
+      "title": "创建扩展状态快照",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Version": {
+      "title": "权威快照版本",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Host": {
+      "title": "宿主组件状态",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Authorization": {
+      "title": "当前主体授权状态",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Guest": {
+      "title": "目标虚拟机组件状态",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Transport": {
+      "title": "传输路径状态",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.TransportKind": {
+      "title": "当前传输种类",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.SurfaceEpoch": {
+      "title": "传输表面纪元",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Supported": {
+      "title": "后端声明支持的能力",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Granted": {
+      "title": "当前主体获准的能力范围",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Control": {
+      "title": "当前观众的有效控制状态",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.AvailableActions": {
+      "title": "经调用方识别的允许动作",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.Reason": {
+      "title": "提供方已脱敏的原因说明",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionSnapshot.DiagnosticId": {
+      "title": "用于关联诊断的非敏感编号",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleExtensionActionRequest.#ctor(System.Guid,System.UInt64,ExHyperV.Services.ConsoleExtensionActionId,System.Nullable{System.Guid},System.String,System.String)": {
+      "title": "创建扩展动作请求",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionRequest.RequestId": {
+      "title": "请求去重标识",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionRequest.SnapshotVersion": {
+      "title": "动作所依据的快照版本",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionRequest.Action": {
+      "title": "请求执行的固定动作",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionRequest.VmId": {
+      "title": "当前虚拟机目标",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionRequest.ComponentId": {
+      "title": "部署时协商的组件标识",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionRequest.ViewerContextId": {
+      "title": "不透明观众关联标识",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleExtensionActionResult.#ctor(System.Guid,System.Boolean,System.UInt64,System.String,System.String)": {
+      "title": "创建扩展动作响应",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionResult.RequestId": {
+      "title": "原请求标识",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionResult.Accepted": {
+      "title": "宿主是否接受动作",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionResult.SnapshotVersion": {
+      "title": "响应对应的权威快照版本",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionResult.Reason": {
+      "title": "已脱敏的拒绝或重试原因",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleExtensionActionResult.DiagnosticId": {
+      "title": "用于关联诊断的非敏感编号",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "M:ExHyperV.Services.ConsoleClipboardProviderInfo.#ctor(System.String,System.Guid,System.String,System.Boolean,System.Boolean,System.Boolean)": {
+      "title": "创建剪贴板提供方描述",
+      "paths": [
+        [
+          "业务层面",
+          "剪贴板"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleClipboardProviderInfo.ProviderId": {
+      "title": "提供方稳定标识",
+      "paths": [
+        [
+          "业务层面",
+          "剪贴板"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleClipboardProviderInfo.VmId": {
+      "title": "目标虚拟机标识",
+      "paths": [
+        [
+          "业务层面",
+          "剪贴板"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleClipboardProviderInfo.GuestSessionId": {
+      "title": "实际来宾会话标识",
+      "paths": [
+        [
+          "业务层面",
+          "剪贴板"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleClipboardProviderInfo.IsReady": {
+      "title": "提供方通道是否就绪",
+      "paths": [
+        [
+          "业务层面",
+          "剪贴板"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleClipboardProviderInfo.CanRead": {
+      "title": "是否允许从来宾读取",
+      "paths": [
+        [
+          "业务层面",
+          "剪贴板"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.ConsoleClipboardProviderInfo.CanWrite": {
+      "title": "是否允许向来宾写入",
+      "paths": [
+        [
+          "业务层面",
+          "剪贴板"
+        ]
+      ],
+      "group": "console",
+      "readOnly": true
+    },
+    "P:ExHyperV.Services.IConsoleClipboardProvider.ProviderInfo": {
+      "title": "读取提供方描述",
+      "paths": [
+        [
+          "业务层面",
+          "剪贴板"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleFrame.UpdateKind": {
+      "title": "帧更新类别",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleFrame.HasChanges": {
+      "title": "帧是否变化",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleFrame.DirtyRegions": {
+      "title": "脏区列表",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleFrame.MoveRegions": {
+      "title": "移动区域列表",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "M:ExHyperV.Services.ConsoleFrame.#ctor(System.Int32,System.Int32,System.Int32,System.ReadOnlyMemory{System.Byte},System.Int64,System.Int64,ExHyperV.Services.ConsoleFrameUpdateKind,System.Collections.Generic.IReadOnlyList{ExHyperV.Services.ConsoleFrameRegion},System.Collections.Generic.IReadOnlyList{ExHyperV.Services.ConsoleFrameMove},System.IDisposable)": {
+      "title": "使用变化区域创建帧租约",
+      "paths": [
+        [
+          "业务层面",
+          "视频"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
+    },
+    "P:ExHyperV.Services.ConsoleConnectionOptions.ViewerContextId": {
+      "title": "观众上下文标识",
+      "paths": [
+        [
+          "业务层面",
+          "连接"
+        ]
+      ],
+      "group": "console",
+      "readOnly": false
     }
   },
   "hostEntries": [
@@ -33591,6 +35768,29 @@
       "category": "电源",
       "label": "当前电源计划",
       "related": "HostPowerPlanService.GetActivePowerPlanId"
+    },
+    {
+      "owner": "HostPowerPlanService",
+      "member": "HasBattery",
+      "area": "查询",
+      "category": "电源",
+      "label": "系统电池检测"
+    },
+    {
+      "owner": "HostPowerPlanService",
+      "member": "GetPowerPlanSubgroups",
+      "area": "查询",
+      "category": "电源",
+      "label": "电源计划子组设置",
+      "related": "HostPowerPlanService.SetPowerSettingValue"
+    },
+    {
+      "owner": "HostPowerPlanService",
+      "member": "SetPowerSettingValue",
+      "area": "修改",
+      "category": "电源",
+      "label": "电源计划子组设置",
+      "related": "HostPowerPlanService.GetPowerPlanSubgroups"
     },
     {
       "owner": "HyperVHostService",

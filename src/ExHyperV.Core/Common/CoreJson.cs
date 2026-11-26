@@ -14,6 +14,7 @@ namespace ExHyperV;
 [JsonSerializable(typeof(SetCpuGroupRequest))]
 [JsonSerializable(typeof(List<int>))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSerializable(typeof(VmConsoleFeatures))]
 [JsonSerializable(typeof(Dictionary<string, object?>), TypeInfoPropertyName = "FieldMap")]
 [JsonSerializable(typeof(List<Dictionary<string, object?>>))]
 [JsonSerializable(typeof(NetworkPropertyFingerprint[]))]

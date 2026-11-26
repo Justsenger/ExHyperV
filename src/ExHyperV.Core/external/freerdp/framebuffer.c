@@ -28,6 +28,7 @@ static DWORD fbr_capture(FbrChannel* c,BOOL first,BOOL* copied){
     // allocation or local lock acquisition occurs while its mutex is held.
     ConsoleFrame* frame=console_frame_reserve(c->owner,c->width,c->height);
     if(!frame)return ERROR_NOT_ENOUGH_MEMORY;
+    BOOL needsFull=first||console_frame_needs_full(frame);
     HANDLE waits[]={c->stop,c->owner->stop,c->mutex};DWORD wait=WaitForMultipleObjects(3,waits,FALSE,INFINITE);
     if(wait==WAIT_OBJECT_0||wait==WAIT_OBJECT_0+1){console_frame_cancel(c->owner,frame);return ERROR_CANCELLED;}
     if(wait!=WAIT_OBJECT_0+2&&wait!=WAIT_ABANDONED_0+2){DWORD error=GetLastError();console_frame_cancel(c->owner,frame);return error?error:ERROR_INVALID_HANDLE;}
@@ -37,12 +38,15 @@ static DWORD fbr_capture(FbrChannel* c,BOOL first,BOOL* copied){
     INT32 left=(INT32)get32(c->header),top=(INT32)get32(c->header+4),right=(INT32)get32(c->header+8),bottom=(INT32)get32(c->header+12);
     BOOL dirty=right>left&&bottom>top;
     if(dirty)valid=valid&&left>=0&&top>=0&&right<=(INT32)c->width&&bottom<=(INT32)c->height;
+    INT32 l=needsFull?0:left,t=needsFull?0:top,r=needsFull?(INT32)c->width:right,b=needsFull?(INT32)c->height:bottom;
     if(valid&&(first||dirty)){
-        valid=console_frame_copy(frame,c->pixels,c->width*4,c->bottomUp);
+        valid=console_frame_copy_region(frame,c->pixels,c->width*4,c->bottomUp,l,t,r,b,needsFull);
         if(valid){memset(c->header,0,16);*copied=TRUE;}
     }
     if(!ReleaseMutex(c->mutex)){DWORD error=GetLastError();console_frame_cancel(c->owner,frame);return error;}
-    if(*copied)console_frame_commit(c->owner,frame);else console_frame_cancel(c->owner,frame);
+    if(*copied){
+        console_frame_commit_region(c->owner,frame,l,t,r,b,needsFull);
+    }else console_frame_cancel(c->owner,frame);
     return valid?ERROR_SUCCESS:ERROR_INVALID_DATA;
 }
 static DWORD WINAPI fbr_frames(void* p) {
@@ -119,6 +123,43 @@ done:
     console_frames_free(&owner);if(owner.stop)CloseHandle(owner.stop);if(owner.outputReady)CloseHandle(owner.outputReady);
     if(channel.stop)CloseHandle(channel.stop);if(channel.mutex)CloseHandle(channel.mutex);DeleteCriticalSection(&owner.outputGate);return error;
 }
+static int fbr_dirty_selftest(void){
+    int error=0;ConsoleContext owner={0};FbrChannel channel={0};BOOL copied=FALSE;
+    BYTE header[56]={0};BYTE pixels[4*4*4];
+    for(unsigned i=0;i<sizeof(pixels);i++)pixels[i]=(BYTE)(i+1);
+    put32(header+16,40);put32(header+20,4);put32(header+24,4);put16(header+28,1);put16(header+30,32);
+    InitializeCriticalSection(&owner.outputGate);owner.stop=CreateEventW(NULL,TRUE,FALSE,NULL);owner.outputReady=CreateEventW(NULL,FALSE,FALSE,NULL);
+    channel.stop=CreateEventW(NULL,TRUE,FALSE,NULL);channel.mutex=CreateMutexW(NULL,FALSE,NULL);
+    channel.owner=&owner;channel.header=header;channel.pixels=pixels;channel.width=4;channel.height=4;channel.bottomUp=TRUE;
+    if(!owner.stop||!owner.outputReady||!channel.stop||!channel.mutex||!console_frames_init(&owner)){error=1;goto done;}
+    if(fbr_capture(&channel,TRUE,&copied)!=ERROR_SUCCESS||!copied){error=2;goto done;}
+    const exhv_frame* fullFrame=console_frame_next(&owner);
+    // In bottom-up 4x4, top-down y=0 is bottom row (srcY=3, byte offset 48).
+    if(!fullFrame||fullFrame->pixels[0]!=49||fullFrame->pixels[3]!=255){error=3;goto done;}
+    // Now corrupt outside the dirty box (1,1,3,3) in shared memory and update ONLY (1,1,3,3).
+    // Partial FBR capture must NOT read shared-memory garbage outside (1,1,3,3).
+    memset(pixels,0xAA,sizeof(pixels));
+    for(INT32 y=1;y<3;y++)for(INT32 x=1;x<3;x++){
+        UINT32 srcY=4u-(UINT32)y-1u;size_t idx=((size_t)srcY*4u+(size_t)x)*4u;
+        pixels[idx]=(BYTE)(200+x+y*4);pixels[idx+1]=77;pixels[idx+2]=88;pixels[idx+3]=0;
+    }
+    put32(header,1);put32(header+4,1);put32(header+8,3);put32(header+12,3);
+    if(fbr_capture(&channel,FALSE,&copied)!=ERROR_SUCCESS||!copied){error=4;goto done;}
+    if(get32(header)!=0||get32(header+4)!=0||get32(header+8)!=0||get32(header+12)!=0){error=5;goto done;}
+    const exhv_frame* dirtyFrame=console_frame_next(&owner);
+    if(!dirtyFrame||dirtyFrame->flags||dirtyFrame->left!=1||dirtyFrame->top!=1||dirtyFrame->right!=3||dirtyFrame->bottom!=3){error=6;goto done;}
+    exhv_regions regions;
+    if(!exhv_frame_query_regions(dirtyFrame,EXHV_REGIONS_VERSION,sizeof(regions),&regions)
+        ||regions.updateKind!=EXHV_UPDATE_DELTA||regions.dirtyCount!=1||regions.moveCount
+        ||memcmp(regions.dirty,&(exhv_rect){1,1,3,3},sizeof(exhv_rect))){error=8;goto done;}
+    // Outside dirty rect keeps initial pixels (top-down row 0 col 0 == 49), never 0xAA.
+    if(dirtyFrame->pixels[0]!=49||dirtyFrame->pixels[(1*4+1)*4]!=205||dirtyFrame->pixels[(2*4+2)*4]!=210||dirtyFrame->pixels[(2*4+2)*4+3]!=255){error=7;goto done;}
+done:
+    if(owner.stop)SetEvent(owner.stop);if(channel.stop)SetEvent(channel.stop);
+    console_frames_free(&owner);if(owner.stop)CloseHandle(owner.stop);if(owner.outputReady)CloseHandle(owner.outputReady);
+    if(channel.stop)CloseHandle(channel.stop);if(channel.mutex)CloseHandle(channel.mutex);DeleteCriticalSection(&owner.outputGate);
+    return error;
+}
 int console_fbr_selftest(void) {
     BYTE b[72]={0};WCHAR result[128];const char* id="12345678-1234-1234-1234-123456789abc";
     for(unsigned i=0;i<36;i++)put16(b+i*2,(UINT16)id[i]);
@@ -126,7 +167,8 @@ int console_fbr_selftest(void) {
     if(wcscmp(result,L"Global\\Microsoft::Windows::RDS::FBR-12345678-1234-1234-1234-123456789abc")!=0)return 4;
     if(object_name(b,71,0,72,result,128)||object_name(b,72,UINT32_MAX,72,result,128)||object_name(b,72,0,70,result,128))return 2;
     b[0]='\\';if(object_name(b,72,0,72,result,128))return 3;
-    int lockCheck=fbr_lock_selftest();return lockCheck?10+lockCheck:0;
+    int lockCheck=fbr_lock_selftest();if(lockCheck)return 10+lockCheck;
+    int dirtyCheck=fbr_dirty_selftest();return dirtyCheck?20+dirtyCheck:0;
 }
 static UINT fbr_data(IWTSVirtualChannelCallback* iface,wStream* stream) {
     FbrChannel* c=(FbrChannel*)iface; const BYTE* data=Stream_Pointer(stream); size_t length=Stream_GetRemainingLength(stream);

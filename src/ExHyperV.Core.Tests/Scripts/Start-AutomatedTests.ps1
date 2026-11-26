@@ -31,7 +31,7 @@ $manifest = Join-Path $root 'request.json'
 if (Test-Path -LiteralPath $manifest) {
     $saved = Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($saved.runId -ne $RunId -or $saved.sourceRevision -ne $Revision) { throw '该目录已有其他测试轮次。' }
-    Write-Output "本轮已经提交，保留原执行；结果目录：$root"
+    Write-Output "本轮已经提交，保留原执行，结果目录：$root"
     return
 }
 foreach ($peer in @(Get-ChildItem -LiteralPath $parent -Directory | Where-Object Name -Match '^[0-9a-f]{32}$')) {

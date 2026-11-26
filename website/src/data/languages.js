@@ -8,6 +8,12 @@ export function normalizeLanguage(value = 'und') {
   try { return Intl.getCanonicalLocales(raw)[0] || 'und'; } catch { return 'und'; }
 }
 
+export const supportedSitePreferences = ['auto', 'zh-CN', 'zh-TW', 'en'];
+
+export function normalizeLanguagePreference(value) {
+  return value === 'zh-CN' || value === 'zh-TW' || value === 'en' ? value : 'auto';
+}
+
 export function interfaceLanguage(language) {
   const locale = normalizeLanguage(language);
   if (locale.startsWith('zh')) return /TW|HK|Hant/.test(locale) ? 'zh-TW' : 'zh-CN';

@@ -33,5 +33,32 @@ public static class VmConsoleFields
     /// </fielddoc>
     public static readonly VmQueryField<bool> LockOnDisconnect = new("Console.LockOnDisconnect", "控制台断开时锁定", "控制台", VmQueryCollection.VirtualMachine, "Settings", "LockOnDisconnect");
 
-    internal static readonly VmQueryField[] Items = [BasicEnabled, EnhancedAvailable, LockOnDisconnect];
+    /// <summary>增强会话剪贴板共享：是否允许在增强会话中同步剪贴板。</summary>
+    /// <fielddoc>
+    /// <meaning>是否在增强会话中启用双向剪贴板共享。修改将在下次连接或重连增强会话时生效。</meaning>
+    /// <source>当前配置 KVP 组件的 HostOnlyItems 键 ExHyperV.ConsoleFeatures，未配置时默认为 true。</source>
+    /// <modification kind="supported" input="clipboard, audioOutput, audioInput" submission="整组提交"><see cref="VmConsoleSupportService.SetEnhancedFeaturesAsync"/></modification>
+    /// <values kind="options"><c>true</c>（默认）：允许共享剪贴板，<c>false</c>：禁用增强会话剪贴板通道。</values>
+    /// </fielddoc>
+    public static readonly VmQueryField<bool> EnhancedClipboard = new("Console.EnhancedClipboard", "增强会话剪贴板共享", "控制台", VmQueryCollection.VirtualMachine, "ConsoleFeatures", "EnhancedClipboard");
+
+    /// <summary>增强会话声音输出：是否允许在增强会话中输出虚拟机声音。</summary>
+    /// <fielddoc>
+    /// <meaning>是否在增强会话中将虚拟机声音输出转发到宿主机。修改将在下次连接或重连增强会话时生效。</meaning>
+    /// <source>当前配置 KVP 组件的 HostOnlyItems 键 ExHyperV.ConsoleFeatures，未配置时默认为 true。</source>
+    /// <modification kind="supported" input="clipboard, audioOutput, audioInput" submission="整组提交"><see cref="VmConsoleSupportService.SetEnhancedFeaturesAsync"/></modification>
+    /// <values kind="options"><c>true</c>（默认）：允许接收来宾声音，<c>false</c>：禁用增强会话声音输出通道。</values>
+    /// </fielddoc>
+    public static readonly VmQueryField<bool> EnhancedAudioOutput = new("Console.EnhancedAudioOutput", "增强会话声音输出", "控制台", VmQueryCollection.VirtualMachine, "ConsoleFeatures", "EnhancedAudioOutput");
+
+    /// <summary>增强会话麦克风输入：是否允许在增强会话中传入本机麦克风。</summary>
+    /// <fielddoc>
+    /// <meaning>是否允许在增强会话中向虚拟机传入本机麦克风。工具栏默认仍保持静音直到手动开启，修改将在下次连接或重连时生效。</meaning>
+    /// <source>当前配置 KVP 组件的 HostOnlyItems 键 ExHyperV.ConsoleFeatures，未配置时默认为 true。</source>
+    /// <modification kind="supported" input="clipboard, audioOutput, audioInput" submission="整组提交"><see cref="VmConsoleSupportService.SetEnhancedFeaturesAsync"/></modification>
+    /// <values kind="options"><c>true</c>（默认）：允许传入麦克风，<c>false</c>：禁用增强会话麦克风通道。</values>
+    /// </fielddoc>
+    public static readonly VmQueryField<bool> EnhancedAudioInput = new("Console.EnhancedAudioInput", "增强会话麦克风输入", "控制台", VmQueryCollection.VirtualMachine, "ConsoleFeatures", "EnhancedAudioInput");
+
+    internal static readonly VmQueryField[] Items = [BasicEnabled, EnhancedAvailable, LockOnDisconnect, EnhancedClipboard, EnhancedAudioOutput, EnhancedAudioInput];
 }

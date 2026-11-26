@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory)][string]$DependencyRoot,
     [Parameter(Mandatory)][string]$DependencyPrefix,
     [Parameter(Mandatory)][string]$WorkDirectory,
-    [ValidateSet('arm64','x64')][string]$Architecture='arm64'
+    [ValidateSet('arm64','x64')][string]$Architecture='arm64',
+    [switch]$ReuseBuiltDependencies
 )
 $ErrorActionPreference='Stop'
 $dep=(Resolve-Path -LiteralPath $DependencyRoot).Path.Replace('\','/')
@@ -33,16 +34,19 @@ set(CMAKE_MAKE_PROGRAM "$llvm/mingw32-make.exe" CACHE FILEPATH "")
 set(CMAKE_C_FLAGS_INIT "-D__STDC_NO_THREADS__=1")
 "@ | Set-Content -LiteralPath $toolchain
 function Run([string]$Name,[string[]]$Arguments){
-    & $cmake @Arguments *> "$work/$Name.log"
-    $code=$LASTEXITCODE;Set-Content -LiteralPath "$work/$Name.exit" -Value $code
+    $previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
+    try{& $cmake @Arguments *> "$work/$Name.log";$code=$LASTEXITCODE}finally{$ErrorActionPreference=$previous}
+    Set-Content -LiteralPath "$work/$Name.exit" -Value $code
     if($code -ne 0){Get-Content "$work/$Name.log" -Tail 35;throw "$Name failed ($code)."}
 }
 function RunTool([string]$Name,[string]$Executable,[string[]]$Arguments){
-    & $Executable @Arguments *> "$work/$Name.log"
-    $code=$LASTEXITCODE;Set-Content -LiteralPath "$work/$Name.exit" -Value $code
+    $previous=$ErrorActionPreference;$ErrorActionPreference='Continue'
+    try{& $Executable @Arguments *> "$work/$Name.log";$code=$LASTEXITCODE}finally{$ErrorActionPreference=$previous}
+    Set-Content -LiteralPath "$work/$Name.exit" -Value $code
     if($code -ne 0){Get-Content "$work/$Name.log" -Tail 35;throw "$Name failed ($code)."}
 }
 
+function Build-Dependencies {
 # Rebuild OpenSSL rather than copying DLLs containing the supplier's local prefix.
 # Relative source/compiler names also keep buildinf's embedded CFLAGS portable;
 # putting an absolute -ffile-prefix-map argument there would disclose it again.
@@ -114,9 +118,9 @@ $options=@('--preset','minimal-library','-S',$source,'-B',"$work/freerdp",'-G','
     '-DCMAKE_C_FLAGS=-D__STDC_NO_THREADS__=1 -UWINPR_DEFINE_ATTR_NODISCARD -Wno-pre-c23-compat','-DCMAKE_POLICY_VERSION_MINIMUM=3.5',
     '-DWITH_OPENSSL=ON','-DWITH_MBEDTLS=OFF',"-DOPENSSL_ROOT_DIR=$prefix",'-DWITH_CLIENT_COMMON=ON','-DWITH_CLIENT_WINDOWS=OFF','-DWITH_CLIENT_SDL=OFF',
     '-DWITH_SERVER=OFF','-DWITH_WINPR_TOOLS=OFF','-DWITH_NATIVE_SSPI=ON','-DBUILD_TESTING=OFF','-DWITH_MANPAGES=OFF','-DWITH_CHANNELS=ON',
-    '-DWITH_SMARTCARD_EMULATE=OFF','-DWITH_KRB5=OFF','-DWITH_MEDIA_FOUNDATION=OFF','-DUSE_UNWIND=OFF')
+    '-DWITH_SMARTCARD_EMULATE=OFF','-DWITH_KRB5=OFF','-DWITH_MEDIA_FOUNDATION=ON','-DUSE_UNWIND=OFF','-DWITH_WINMM=OFF')
 foreach($channel in Get-ChildItem -LiteralPath "$source/channels" -Directory){if(Test-Path -LiteralPath "$($channel.FullName)/ChannelOptions.cmake"){
-    $enabled=if($channel.Name -in @('drdynvc','disp','rdpgfx','cliprdr')){'ON'}else{'OFF'}
+    $enabled=if($channel.Name -in @('drdynvc','disp','rdpgfx','cliprdr','rdpsnd','audin','rdpdr')){'ON'}else{'OFF'}
     $options+="-DCHANNEL_$($channel.Name.ToUpperInvariant())=$enabled"
     $options+="-DCHANNEL_$($channel.Name.ToUpperInvariant())_CLIENT=$enabled"
     $options+="-DCHANNEL_$($channel.Name.ToUpperInvariant())_SERVER=OFF"
@@ -124,6 +128,19 @@ foreach($channel in Get-ChildItem -LiteralPath "$source/channels" -Directory){if
 Run 'freerdp-configure' $options
 Run 'freerdp-build' @('--build',"$work/freerdp",'-j','4')
 Run 'freerdp-install' @('--install',"$work/freerdp",'--prefix',$prefix)
+}
+
+# A bridge-only rebuild is valid when all stripped dependency DLLs still match
+# the previously packaged dependency manifest for the selected architecture.
+$zip=Join-Path $PSScriptRoot "runtimes/win-$Architecture/console-native.zip"
+if($ReuseBuiltDependencies){
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive=[IO.Compression.ZipFile]::OpenRead($zip)
+    try {
+        $reader=[IO.StreamReader]::new($archive.GetEntry('sha256.json').Open())
+        try { $previousHashes=$reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+    } finally { $archive.Dispose() }
+} else { Build-Dependencies }
 Run 'bridge-configure' @('-S',$PSScriptRoot,'-B',"$work/bridge",'-G','MinGW Makefiles',"-DCMAKE_TOOLCHAIN_FILE=$toolchain","-DCMAKE_PREFIX_PATH=$prefix",'-DCMAKE_BUILD_TYPE=Release')
 Run 'bridge-build' @('--build',"$work/bridge",'-j','4')
 $out=Join-Path $work ('package-'+[Guid]::NewGuid().ToString('N'))
@@ -162,13 +179,18 @@ Copy-Item -LiteralPath "$dep/zlib/LICENSE" -Destination "$out/LICENSE-zlib.txt"
 Copy-Item -LiteralPath "$PSScriptRoot/LICENSE-IronRDP-MIT.txt" -Destination $out
 $hashes=[ordered]@{}
 Get-ChildItem -LiteralPath $out -Filter '*.dll' -File | Sort-Object Name | ForEach-Object{$hashes[$_.Name]=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
+if($ReuseBuiltDependencies){
+    foreach($name in $hashes.Keys){
+        if($name -ne 'ExHyperV.FreeRdp.dll' -and $hashes[$name] -ne $previousHashes.$name){
+            throw "Cached dependency differs from reviewed package: $name"
+        }
+    }
+}
 [IO.File]::WriteAllText("$out/sha256.json",($hashes|ConvertTo-Json))
 $checks="$work/checks";New-Item -ItemType Directory -Force $checks | Out-Null
 Copy-Item -LiteralPath "$work/bridge/ExHyperV.FreeRdpChecks.exe" -Destination $checks
 Get-ChildItem -LiteralPath $out -Filter '*.dll' | Copy-Item -Destination $checks
-& "$checks/ExHyperV.FreeRdpChecks.exe" *> "$work/selftest.log"
-$code=$LASTEXITCODE;Set-Content -LiteralPath "$work/selftest.exit" -Value $code
-if($code -ne 0){Get-Content "$work/selftest.log";throw "Native selftest failed ($code)."}
+RunTool 'selftest' "$checks/ExHyperV.FreeRdpChecks.exe" @()
 $zip=Join-Path $PSScriptRoot "runtimes/win-$Architecture/console-native.zip"
 $sevenZip = Get-Command 7z.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
 if (!$sevenZip) { $sevenZip = Join-Path $env:ProgramFiles '7-Zip/7z.exe' }

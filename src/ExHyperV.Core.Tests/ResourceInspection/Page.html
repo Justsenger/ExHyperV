@@ -284,7 +284,7 @@
   function updateSelection(){
     $('selection-count').textContent='已选 '+selection.size+' 项';
     const items=latest?.plan?.items||[];
-    $('selection-conditions').textContent='全部 '+items.length+' 项 · 条件齐备 '+items.filter(i=>i.eligible).length+' 项 · 资源待准备 '+items.filter(i=>i.implemented&&!i.eligible).length+' 项'+(items.some(i=>!i.implemented)?' · 执行代码待接入 '+items.filter(i=>!i.implemented).length+' 项':'');
+    $('selection-conditions').textContent='全部 '+items.length+' 项 / 条件齐备 '+items.filter(i=>i.eligible).length+' 项 / 资源待准备 '+items.filter(i=>i.implemented&&!i.eligible).length+' 项'+(items.some(i=>!i.implemented)?' / 执行代码待接入 '+items.filter(i=>!i.implemented).length+' 项':'');
     filterPlan();
   }
   function filterPlan(){
@@ -302,7 +302,7 @@
     $('progress-text').textContent=completed+' / '+report.items.length;
     $('progress').max=report.items.length;$('progress').value=completed;
     $('counts').replaceChildren(...['ready','missing','pending','unavailable'].map(key=>metric(key,labels[key],report.items.filter(i=>i.result.status===key).length)));
-    $('context').textContent=report.executionContext+' · '+new Date(report.started).toLocaleString('zh-CN',{hour12:false});
+    $('context').textContent=report.executionContext+' / '+new Date(report.started).toLocaleString('zh-CN',{hour12:false});
     $('notice').textContent=report.error||'';
     renderPlan(report.plan);
     for(const item of report.items){
@@ -358,7 +358,7 @@
     function options(elementId,source,empty){
       const items=resourceChoices(source);
       const select=$(elementId),value=select.value;select.replaceChildren(new Option(empty,''));
-      for(const item of items){const option=new Option(elementId==='select-template'?item.name:item.name+(item.unavailableReason?' · '+item.unavailableReason:''),item.id);option.disabled=!!item.unavailableReason;option.title=item.unavailableReason||'';select.append(option);}
+      for(const item of items){const option=new Option(elementId==='select-template'?item.name:item.name+(item.unavailableReason?' / '+item.unavailableReason:''),item.id);option.disabled=!!item.unavailableReason;option.title=item.unavailableReason||'';select.append(option);}
       if(value&&!items.some(item=>item.id.toLowerCase()===value.toLowerCase())){const option=new Option(savedSelectionMessage(source),value);option.title=value;select.append(option);}
       select.value=items.find(item=>item.id.toLowerCase()===value.toLowerCase())?.id||value;
     }
@@ -422,7 +422,7 @@
         list.append(...reasons.map(text=>node('li','',text.replace('：条件检查待实现',''))));reason.append(list);row.append(reason);descriptions.push(reason.id);
       }
       input.setAttribute('aria-describedby',descriptions.join(' '));
-      if(!item.implemented)row.append(node('p','test-description execution-readiness',item.reasons.filter(reason=>!resourceReasons.includes(reason)&&!pendingChecks.includes(reason)).join('；')));
+      if(!item.implemented)row.append(node('p','test-description execution-readiness',item.reasons.filter(reason=>!resourceReasons.includes(reason)&&!pendingChecks.includes(reason)).join('，')));
       const context=node('details','test-context'),contextList=node('ul');context.append(node('summary','','API 与收尾'),node('code','',item.api),contextList);
       contextList.append(node('li','','条件：'+((item.conditions||[]).join('、')||'固定输入')),...(item.recovery||[]).map(text=>node('li','',text)));row.append(context);
       input.addEventListener('change',()=>{if(input.disabled)return;if(input.checked)selection.add(item.id);else selection.delete(item.id);updateSelection();});
@@ -446,8 +446,8 @@
     $('test-progress').max=Math.max(1,selectedItems.length);$('test-progress').value=ended;
 
     $('execution-counts').replaceChildren(...Object.keys(testLabels).map(key=>metric(key,testLabels[key],selectedItems.filter(i=>i.status===key).length)));
-    $('execution-context').textContent='已记录 API 调用 '+report.apiCalls+' 次'+(report.apiMilliseconds===null?'':' · 各项累计 '+Math.round(report.apiMilliseconds)+' ms')+' · '+new Date(report.started).toLocaleString('zh-CN',{hour12:false});
-    if(report.environment)$('execution-context').textContent+=' · '+report.environment.windowsVersion+' · '+report.environment.hostArchitecture;
+    $('execution-context').textContent='已记录 API 调用 '+report.apiCalls+' 次'+(report.apiMilliseconds===null?'':' / 各项累计 '+Math.round(report.apiMilliseconds)+' ms')+' / '+new Date(report.started).toLocaleString('zh-CN',{hour12:false});
+    if(report.environment)$('execution-context').textContent+=' / '+report.environment.windowsVersion+' / '+report.environment.hostArchitecture;
     $('execution-notice').textContent=report.error||'';
     for(const item of selectedItems){
       let ui=results.get(item.id);
@@ -496,7 +496,7 @@
         $('update-notice').hidden=!$('update-notice').textContent;
       }
       render(await getJson('/api/report'));if(!registration)applyRegistration(await getJson('/api/resources'));renderTest(await getJson('/api/tests'));restoreView();
-      if(deployment){const setup=await getJson('/api/deployment');deploymentReady=setup.issues.length===0;$('deployment-summary').textContent=latest.running?'正在检查测试条件…':deploymentReady?'当前可执行 '+setup.available+' 项；其余项目按资源条件跳过。选择会保存，后续自动复用。':setup.issues.join('；');controls();}
+      if(deployment){const setup=await getJson('/api/deployment');deploymentReady=setup.issues.length===0;$('deployment-summary').textContent=latest.running?'正在检查测试条件…':deploymentReady?'当前可执行 '+setup.available+' 项，其余项目按资源条件跳过。选择会保存，后续自动复用。':setup.issues.join('，');controls();}
       if(pageChanged&&!latest.running&&!latestTest?.running&&!startBusy&&!scanBusy&&!stopBusy&&!resourceDirty&&!resourceSaveBusy&&!credentialBusy&&!credentialDirty)reloadPage();
     }
     catch(error){if(!deploymentFinished){connected=false;$('phase').textContent='连接已断开';$('notice').textContent='显示上次结果，请检查后台程序。';$('execution-notice').textContent='连接已断开，显示上次测试状态。';controls();}}
@@ -563,7 +563,7 @@
   });
   if(archivedReport){
     $('resource-form').hidden=true;$('save-resources').hidden=true;
-    render(archivedReport);$('rescan').hidden=true;$('selection-notice').textContent='这是保存的报告；实际执行请使用本机检查页面。';
+    render(archivedReport);$('rescan').hidden=true;$('selection-notice').textContent='这是保存的报告，实际执行请使用本机检查页面。';
     renderTest(archivedTest);
   }else refresh();
 </script>

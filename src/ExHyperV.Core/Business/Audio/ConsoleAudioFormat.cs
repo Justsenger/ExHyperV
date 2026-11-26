@@ -21,8 +21,8 @@ namespace ExHyperV.Services;
 /// <remarks>
 /// <para>采样按声道交错排列：双声道依次保存“第 1 次采样的左、右声道，第 2 次采样的左、右声道……”。
 /// 同一采样时刻的全部声道组成一个采样帧。</para>
-/// <para>例如 48 kHz、双声道、16 位整数，每个采样帧占 4 字节；10 毫秒包含 480 个采样帧，共 1920 字节。</para>
+/// <para>例如 48 kHz、双声道、16 位整数，每个采样帧占 4 字节，10 毫秒包含 480 个采样帧，共 1920 字节。</para>
 /// <para>此记录只描述格式，构造时不检查数值。ConsoleAudioPacket 会检查格式及数据长度。
-/// 控制台音频后端待接入，多声道顺序待确定。</para>
+/// 声道排列遵循标准交错音频顺序，常见单声道为居中，双声道依次为左、右声道。</para>
 /// </remarks>
-internal sealed record ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat SampleFormat);
+public sealed record ConsoleAudioFormat(int SampleRate, int Channels, ConsoleAudioSampleFormat SampleFormat);

@@ -1,0 +1,55 @@
+---
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { researchNavItems } from '../data/gpu-research-pages.js';
+import '../styles/gpu-docs.css';
+
+interface Props {
+  activeSlug: string;
+  title: string;
+  wide?: boolean;
+}
+
+const { activeSlug, title, wide = false } = Astro.props;
+const current = researchNavItems.find((item) => item.slug === activeSlug);
+---
+<SiteLayout module="docs" title={title}>
+  <div class:list={['doc-page', { 'doc-page--wide': wide }]}>
+    <nav class="doc-crumb" aria-label="页面路径">
+      <a href="/docs/" data-i18n="docs">文档</a>
+      <span aria-hidden="true">/</span>
+      <a href="/docs/gpu/">显卡驱动要求</a>
+      <span aria-hidden="true">/</span>
+      {activeSlug ? (
+        <>
+          <a href="/docs/gpu-driver-research/">驱动研究档案</a>
+          <span aria-hidden="true">/</span>
+          <span>{current?.title || title}</span>
+        </>
+      ) : (
+        <span>驱动研究档案</span>
+      )}
+    </nav>
+
+    <div class="doc-layout">
+      <aside class="doc-sidebar" aria-label="驱动研究档案目录">
+        <p class="doc-sidebar-title">驱动研究档案</p>
+        <nav class="doc-sidebar-nav">
+          {researchNavItems.map((item) => (
+            <a
+              class="doc-sidebar-link"
+              href={item.href}
+              aria-current={item.slug === activeSlug ? 'page' : undefined}
+            >
+              {item.title}
+            </a>
+          ))}
+        </nav>
+        <a class="doc-sidebar-back" href="/docs/gpu/">← 返回显卡驱动要求</a>
+      </aside>
+
+      <article class:list={['doc-article', { 'doc-article--wide': wide }]} data-docs-gpu-research>
+        <slot />
+      </article>
+    </div>
+  </div>
+</SiteLayout>

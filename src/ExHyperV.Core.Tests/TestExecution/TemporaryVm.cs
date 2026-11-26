@@ -37,7 +37,7 @@ internal sealed class TemporaryVm : IAsyncDisposable
     internal static async Task<TemporaryVm> CreateAsync(ApiCaseContext context, int generation = 2)
     {
         if (generation == 1 && System.Runtime.InteropServices.RuntimeInformation.OSArchitecture == System.Runtime.InteropServices.Architecture.Arm64)
-            throw new ApiCheckSkippedException("ARM64 Hyper-V 仅支持第二代虚拟机；第一代 BIOS 项请在 x64 测试机执行。");
+            throw new ApiCheckSkippedException("ARM64 Hyper-V 仅支持第二代虚拟机，第一代 BIOS 项请在 x64 测试机执行。");
         var vm = Reserve(context);
         try
         {
@@ -96,7 +96,7 @@ internal sealed class TemporaryVm : IAsyncDisposable
         if (facts.GetProperty("state").GetString() != "Off") throw new ApiCheckSkippedException("模板状态已变化，本项完整副本测试跳过。");
         if (facts.GetProperty("disks").GetInt32() == 0) throw new ApiCheckSkippedException("指定模板尚未连接可启动的系统磁盘。");
         if (new[] { "physical", "dda", "gpu" }.Any(key => facts.GetProperty(key).GetInt32() > 0))
-            throw new ApiCheckSkippedException("模板已挂接物理盘、PCIe 或 GPU；请使用仅含完整虚拟磁盘的干净模板，设备由各项测试按已登记资源分配。");
+            throw new ApiCheckSkippedException("模板已挂接物理盘、PCIe 或 GPU，请使用仅含完整虚拟磁盘的干净模板，设备由各项测试按已登记资源分配。");
         long startupBytes = VmTestMemory.TemplateStartupBytes(facts.GetProperty("memoryStartupBytes").GetInt64());
         var sourceBytes = facts.GetProperty("bytes").GetInt64();
         var available = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(context.DirectoryPath))!).AvailableFreeSpace;
@@ -156,8 +156,8 @@ internal sealed class TemporaryVm : IAsyncDisposable
                     checkpoints = facts.GetProperty("checkpoints").GetInt32(), paths = facts.GetProperty("paths").EnumerateArray().Select(v => v.GetString()).ToArray() }, 1800);
             vm.Id = Guid.Parse(copy.GetProperty("id").GetString()!); Save(vm.JournalDirectory, new(vm.Name, vm.Root, vm.Id));
             context.Evidence.Add("已从指定模板制作完整磁盘副本，独立身份：" + vm.Id);
-            context.Evidence.Add($"副本采用固定 {startupBytes / 1073741824d:F1} GiB 内存；模板原配置保留。");
-            context.Evidence.Add("副本光驱已弹出模板安装介质；模板光驱保持原配置。");
+            context.Evidence.Add($"副本采用固定 {startupBytes / 1073741824d:F1} GiB 内存，模板原配置保留。");
+            context.Evidence.Add("副本光驱已弹出模板安装介质，模板光驱保持原配置。");
             return vm;
         }
         catch { await CleanupAsync(vm.JournalDirectory); throw; }
@@ -234,6 +234,6 @@ internal sealed class TemporaryVm : IAsyncDisposable
     {
         if (File.Exists(Path.Combine(context.DirectoryPath, "recovery-hold.txt"))) return;
         await CleanupAsync(JournalDirectory);
-        context.Evidence.Add("专属虚拟机已注销；系统复查确认清理完成。");
+        context.Evidence.Add("专属虚拟机已注销，系统复查确认清理完成。");
     }
 }

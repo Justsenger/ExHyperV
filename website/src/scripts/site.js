@@ -244,6 +244,7 @@ function initialize() {
   document.fonts.ready.then(measureNames);
 }
 
+document.addEventListener('astro:after-swap', () => initializeLocalization());
 document.addEventListener('astro:page-load', initialize);
 document.addEventListener('astro:before-preparation', hideFullName);
 document.addEventListener('astro:before-swap', () => {

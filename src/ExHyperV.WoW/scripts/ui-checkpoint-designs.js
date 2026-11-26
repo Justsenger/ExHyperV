@@ -20,7 +20,11 @@ function renderNodeThumbContent(homeMode) {
 
 export function renderCheckpointWorkbench(host, { state, initialNodes }) {
   const homeMode = state.checkpointCandidate || DEFAULT_CHECKPOINT_ART_MODE;
-  const nodes = state.checkpointNodes;
+  const nodes = Array.isArray(state.checkpointNodes) ? state.checkpointNodes : [];
+  if (nodes.length === 0) {
+    host.innerHTML = `<div style="opacity:0.6;font-size:13px;padding:18px 24px;">暂无快照节点</div>`;
+    return;
+  }
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const childrenMap = new Map();
   nodes.forEach((n) => childrenMap.set(n.id, []));
@@ -32,6 +36,7 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
 
   const currentNode = nodes.find((n) => n.type === 'Current') || nodes[nodes.length - 1];
   const sel = byId.get(state.checkpointSelectedId) || currentNode;
+  if (!sel) return;
   state.checkpointSelectedId = sel.id;
   const openNode = state.checkpointMenuOpenId ? byId.get(state.checkpointMenuOpenId) : null;
 
@@ -344,8 +349,8 @@ export function renderCheckpointWorkbench(host, { state, initialNodes }) {
         e.preventDefault();
         const rect = bg.getBoundingClientRect();
         const curZoom = Number(state.checkpointZoom) || 1;
-        const factor = e.deltaY < 0 ? 1.1 : 0.9;
-        const nextZoom = Math.min(1.8, Math.max(0.45, +(curZoom * factor).toFixed(3)));
+        const step = e.deltaY < 0 ? 0.1 : -0.1;
+        const nextZoom = Math.min(1.85, Math.max(0.45, +Number((curZoom + step).toFixed(2))));
         if (nextZoom === curZoom) return;
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;

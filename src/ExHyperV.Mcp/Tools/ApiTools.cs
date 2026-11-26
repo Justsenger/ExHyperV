@@ -78,6 +78,7 @@ public sealed class ApiTools(ApiCatalog catalog, ApiObjects objects, ApiCodec co
         object? result = member switch
         {
             PropertyInfo property when instance is ConsoleFrame frame && property.Name == "Pixels" => frame.CopyPixels(),
+            PropertyInfo property when instance is ConsoleAudioPacket packet && property.Name == "Samples" => packet.CopySamples(),
             PropertyInfo { GetMethod.IsPublic: true } property => property.GetValue(instance, IndexArguments(property, arguments ?? default)),
             FieldInfo field => field.GetValue(instance),
             _ => throw new ArgumentException("请使用具有公开读取入口的属性或字段标识。")

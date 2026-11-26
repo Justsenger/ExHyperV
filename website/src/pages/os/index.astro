@@ -17,6 +17,7 @@ function pickVersion(codename: string) {
 
 const groups = [
   {
+    key: 'osGroupDesktop',
     title: '桌面操作系统',
     items: [
       pickVersion('windows-11-26h2'),
@@ -25,6 +26,7 @@ const groups = [
     ].filter(Boolean),
   },
   {
+    key: 'osGroupServer',
     title: '服务器系统',
     items: [
       pickVersion('server-2025'),
@@ -32,6 +34,7 @@ const groups = [
     ].filter(Boolean),
   },
   {
+    key: 'osGroupBackup',
     title: '备用系统',
     items: [
       pickVersion('windows-pe-10-0-26100'),
@@ -41,16 +44,16 @@ const groups = [
 ];
 ---
 <SiteLayout module="wiki">
-  <section class="os-home" data-os-home aria-label="常用系统推荐">
+  <section class="os-home" data-os-home aria-label="常用系统推荐" data-i18n-aria="osRecommended">
     <header class="os-hero">
-      <h1>常用系统推荐</h1>
-      <button type="button" class="mobile-catalog-btn" data-open-catalog>全部目录</button>
+      <h1 data-i18n="osRecommended">常用系统推荐</h1>
+      <button type="button" class="mobile-catalog-btn" data-open-catalog data-i18n="osAllCategories">全部目录</button>
     </header>
 
     <div class="os-groups">
       {groups.map(group => (
         <section class="os-group">
-          <h2>{group.title}</h2>
+          <h2 data-i18n={group.key}>{group.title}</h2>
           <div class="os-entries">
             {group.items.map(item => item && (
               <a class="os-entry" href={`/os/${item.codename}/`}>

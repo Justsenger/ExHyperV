@@ -64,7 +64,7 @@ internal static class VmCreationApiCases
         if (scenario == 1)
         {
             var guardian = await WindowsTestCommand.RunAsync("@{ready=(@(Get-HgsGuardian -Name UntrustedGuardian -ErrorAction SilentlyContinue).Count -eq 1)}|ConvertTo-Json");
-            if (!guardian.GetProperty("ready").GetBoolean()) throw new ApiCheckSkippedException("默认创建参数会启用 TPM；宿主尚未准备 UntrustedGuardian，本项等待 TPM 环境就绪。");
+            if (!guardian.GetProperty("ready").GetBoolean()) throw new ApiCheckSkippedException("默认创建参数会启用 TPM，宿主尚未准备 UntrustedGuardian，本项等待 TPM 环境就绪。");
             await OneAsync(c, version, options => { options.DiskMode = 0; options.ProcessorCount = 4; options.MemoryMiB = 4096; options.DiskSizeGiB = 128; options.EnableDynamicMemory = true; options.EnableTpm = true; options.EnableSecureBoot = true; });
         }
         else if (scenario == 2)
@@ -74,7 +74,7 @@ internal static class VmCreationApiCases
             foreach (string isolation in IsolationTypes().Where(s => s != "Disabled"))
             {
                 string? firmware = isolation == "OpenHCL" ? c.Configuration.SampleFiles.FirstOrDefault(file => Path.GetExtension(file).Equals(".igvm", StringComparison.OrdinalIgnoreCase) && File.Exists(file)) : null;
-                if (isolation == "OpenHCL" && firmware is null) throw new ApiCheckSkippedException("普通代数与版本已核验；OpenHCL 创建需要已准备的 IGVM 固件文件，第一步尚未登记该材料。");
+                if (isolation == "OpenHCL" && firmware is null) throw new ApiCheckSkippedException("普通代数与版本已核验，OpenHCL 创建需要已准备的 IGVM 固件文件，第一步尚未登记该材料。");
                 await OneAsync(c, version, options => { options.IsolationType = isolation; options.OpenHclIgvmPath = firmware ?? ""; });
             }
         }
@@ -116,7 +116,7 @@ internal static class VmCreationApiCases
         var result = await c.CallAsync(() => VmCreateService.CreateVirtualMachineAsync(request));
         if (result.VmId.HasValue) vm.RecordIdentity(result.VmId.Value);
         c.RequireSettled(result.OutcomeUnknown || result.CleanupErrorKind == ExHyperV.Tools.ApiErrorKind.OutcomeUnknown, result.Error ?? result.CleanupError ?? "创建回执终态未知");
-        c.Require(result.Success && result.VmId.HasValue, $"创建 {request.Generation} 代 / {version} / {request.IsolationType}：{result.Error}；清理：{result.CleanupError}");
+        c.Require(result.Success && result.VmId.HasValue, $"创建 {request.Generation} 代 / {version} / {request.IsolationType}：{result.Error}，清理：{result.CleanupError}");
         c.Equal(original, JsonSerializer.Serialize(request), "输入参数保持原值"); c.Equal(expectAdjusted, result.NameAdjusted, "名称避让标志");
         c.Equal(result.ActualName, SystemBaseline.Vm(vm.Id)["ElementName"]?.ToString(), "系统名称与结果一致");
         var actual = await WindowsTestCommand.RunAsync("""

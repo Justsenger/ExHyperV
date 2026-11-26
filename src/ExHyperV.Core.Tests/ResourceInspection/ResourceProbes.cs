@@ -36,7 +36,7 @@ internal static partial class ResourceProbes
         new("pcie", "真实设备", "PCIe 设备", "发现设备后再核验可直通能力和专用归属", "PCIe 直通"),
         new("pcie-host", "真实设备", "PCIe 宿主条件", "服务器系统或已开启设备分配策略", "PCIe 直通"),
         new("test-pcie", "真实设备", "选定 PCIe 设备", "已选择设备且实例标识和位置路径仍相符", "PCIe 直通"),
-        new("disks", "真实设备", "物理测试盘", "选择闲置磁盘并保存身份；系统盘及已占用磁盘置灰", "物理盘与存储直通"),
+        new("disks", "真实设备", "物理测试盘", "选择闲置磁盘并保存身份，系统盘及已占用磁盘置灰", "物理盘与存储直通"),
         new("optical", "真实设备", "测试光驱", "选择光驱并保存设备身份", "光驱相关测试"),
         .. ExecutionChecks
     ];
@@ -71,7 +71,7 @@ internal static partial class ResourceProbes
         {
             case "platform":
                 var os = RuntimeInformation.OSArchitecture;
-                var description = $"Build {Environment.OSVersion.Version.Build} · {os}";
+                var description = $"Build {Environment.OSVersion.Version.Build} / {os}";
                 return os is Architecture.Arm64 or Architecture.X64 && os == RuntimeInformation.ProcessArchitecture
                     ? Ready(description) : Missing($"宿主 {os}，进程架构不匹配");
             case "identity":
@@ -107,7 +107,7 @@ internal static partial class ResourceProbes
                     : Missing("低于 5.1");
             case "memory":
                 var memory = Query("root/cimv2", "SELECT TotalVisibleMemorySize, FreePhysicalMemory FROM Win32_OperatingSystem").Single();
-                return Ready($"{Environment.ProcessorCount} 核 · 内存 {GiB(memory["TotalVisibleMemorySize"], 1024)} GiB，可用 {GiB(memory["FreePhysicalMemory"], 1024)} GiB");
+                return Ready($"{Environment.ProcessorCount} 核 / 内存 {GiB(memory["TotalVisibleMemorySize"], 1024)} GiB，可用 {GiB(memory["FreePhysicalMemory"], 1024)} GiB");
             case "iso-support":
                 var isoProbe = await CommandAsync(Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe"),
                     "-NoProfile", "-NonInteractive", "-Command", "$ErrorActionPreference='Stop'; $image=New-Object -ComObject IMAPI2FS.MsftFileSystemImage; try { $null=Get-Command Mount-DiskImage,Dismount-DiskImage,Get-DiskImage,Get-Volume -ErrorAction Stop; 'ready' } finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($image) }");
@@ -118,17 +118,17 @@ internal static partial class ResourceProbes
             case "workspace":
                 Directory.CreateDirectory(config.WorkDirectory!);
                 ResourceRegistration.VerifyDirectory(config.WorkDirectory!);
-                return Ready($"读写通过 · {config.WorkDirectory}");
+                return Ready($"读写通过 / {config.WorkDirectory}");
             case "vms":
                 // Same locale-independent VM summary source used by Core's VmQueryService.
                 var vms = Query("root/virtualization/v2", "SELECT Name, ElementName, EnabledState FROM Msvm_SummaryInformation");
                 return new(vms.Count == 0 ? InspectionStatus.Missing : InspectionStatus.Ready,
-                    vms.Count == 0 ? "当前清单为空；创建模板后重新检查即可选择。" : $"{vms.Count} 台",
-                    vms.Select(v => $"{v["ElementName"]} · {VmState(v["EnabledState"])} · {v["Name"]}").ToArray(),
+                    vms.Count == 0 ? "当前清单为空，创建模板后重新检查即可选择。" : $"{vms.Count} 台",
+                    vms.Select(v => $"{v["ElementName"]} / {VmState(v["EnabledState"])} / {v["Name"]}").ToArray(),
                     vms.Select(v => new ResourceChoice(v["Name"], v["ElementName"], VmState(v["EnabledState"]))).ToArray());
             case "resource-selection":
                 return Ready(config.TemplateVmId is not null || config.PcieDevices.Length > 0 || config.PhysicalDisk is not null || config.OpticalDrive is not null
-                    ? "已读取保存的选择；后续启动自动复用。" : "使用默认缓存；模板与设备选择保存后自动复用。");
+                    ? "已读取保存的选择，后续启动自动复用。" : "使用默认缓存，模板与设备选择保存后自动复用。");
             case "templates":
                 return SelectedTemplate(config.TemplateVmId, "测试虚拟机模板");
             case "test-vm":
@@ -139,14 +139,14 @@ internal static partial class ResourceProbes
                 ResourceRegistration.VerifyDirectory(config.WorkDirectory!);
                 if (Query("root/virtualization/v2", "SELECT Name FROM Msvm_VirtualSystemManagementService").Count == 0)
                     return Missing("请先启动 Hyper-V 管理服务。");
-                return Ready("管理接口与测试目录已就绪；执行时创建临时虚拟机。");
+                return Ready("管理接口与测试目录已就绪，执行时创建临时虚拟机。");
             case "switches":
                 var switches = Query("root/virtualization/v2", "SELECT Name, ElementName FROM Msvm_VirtualEthernetSwitch");
-                return new(InspectionStatus.Ready, $"{switches.Count} 台", switches.Select(s => $"{s["ElementName"]} · {s["Name"]}").ToArray(),
+                return new(InspectionStatus.Ready, $"{switches.Count} 台", switches.Select(s => $"{s["ElementName"]} / {s["Name"]}").ToArray(),
                     switches.Select(s => new ResourceChoice(s["Name"], s["ElementName"])).ToArray());
             case "adapters":
                 var adapters = Query("root/cimv2", "SELECT Name, NetConnectionID, NetConnectionStatus FROM Win32_NetworkAdapter WHERE NetConnectionID IS NOT NULL");
-                return Ready($"{adapters.Count} 个", adapters.Select(a => $"{a["NetConnectionID"]} · {a["Name"]} · 连接状态 {a["NetConnectionStatus"]}").ToArray());
+                return Ready($"{adapters.Count} 个", adapters.Select(a => $"{a["NetConnectionID"]} / {a["Name"]} / 连接状态 {a["NetConnectionStatus"]}").ToArray());
             case "gpu":
                 return GpuInventory.Describe(Win32Api.GetPresentDisplayAdapters());
             case "gpu-partitions":
@@ -157,7 +157,7 @@ internal static partial class ResourceProbes
                 var pciResult = await HostPcieService.GetPCIeInfoAsync();
                 if (!pciResult.HasData) throw new InvalidOperationException($"PCIe 查询失败：{pciResult.Error}");
                 var pci = pciResult.Data.Devices;
-                return new(InspectionStatus.Ready, $"{pci.Count} 个候选；在上方勾选用于直通测试的设备。",
+                return new(InspectionStatus.Ready, $"{pci.Count} 个候选，在上方勾选用于直通测试的设备。",
                     pci.Select(d => d.FriendlyName).ToArray(), pci.Select(d => new ResourceChoice(d.InstanceId, d.FriendlyName, d.Status, d.Path)).ToArray());
             case "pcie-host":
                 if (HostProductTypeService.IsServerSystem()) return Ready("宿主允许设备分配");
@@ -192,7 +192,7 @@ internal static partial class ResourceProbes
         if (string.IsNullOrWhiteSpace(vmId)) return Pending($"请在上方选择“{label}”，再点“保存并检查”。");
         var vm = choices.SingleOrDefault(v => v.Id.Equals(vmId, StringComparison.OrdinalIgnoreCase));
         return vm is null ? Missing($"已保存的{label}已离开本机清单，请在上方重新选择。")
-            : Ready($"已指定 {vm.Name} · {vm.Detail}；测试时创建完整副本。", vm.Id);
+            : Ready($"已指定 {vm.Name} / {vm.Detail}，测试时创建完整副本。", vm.Id);
     }
 
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -242,7 +242,7 @@ internal static partial class ResourceProbes
             if (File.Exists(candidate)) return candidate;
         }
         if (File.Exists(knownPath)) return knownPath;
-        throw new FileNotFoundException($"未找到 {name}；当前进程的 PATH 与已知安装位置均未命中。");
+        throw new FileNotFoundException($"未找到 {name}，当前进程的 PATH 与已知安装位置均未命中。");
     }
 
     private static async Task<string> CommandAsync(string file, params string[] arguments)
@@ -261,7 +261,7 @@ internal static partial class ResourceProbes
     {
         if (!policy.HasData) throw new InvalidOperationException($"设备分配策略读取失败：{policy.Error}");
         return policy.Data ? Ready("宿主允许设备分配")
-            : Missing("需要服务器系统或已开启的设备分配策略；本轮跳过 PCIe 直通测试。");
+            : Missing("需要服务器系统或已开启的设备分配策略，本轮跳过 PCIe 直通测试。");
     }
 
     internal static ProcessStartInfo WorkerStart(string id, string? configurationPath)

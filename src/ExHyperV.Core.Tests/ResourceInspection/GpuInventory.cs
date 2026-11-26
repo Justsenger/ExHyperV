@@ -18,7 +18,7 @@ internal static class GpuInventory
             return new(InspectionStatus.Missing, "未找到 N / I / A / Q 显卡");
 
         var items = devices.Select(device =>
-            $"{device.Vendor} · {device.Adapter.Name} · 驱动 {Known(device.Adapter.DriverVersion)} · 设备 ID {device.Adapter.InstanceId}").ToArray();
+            $"{device.Vendor} / {device.Adapter.Name} / 驱动 {Known(device.Adapter.DriverVersion)} / 设备 ID {device.Adapter.InstanceId}").ToArray();
         var missingDriver = devices.Any(device => string.IsNullOrWhiteSpace(device.Adapter.DriverVersion));
         return new(missingDriver ? InspectionStatus.Pending : InspectionStatus.Ready,
             $"{devices.Length} 张" + (missingDriver ? "，部分驱动未知" : ""), items);

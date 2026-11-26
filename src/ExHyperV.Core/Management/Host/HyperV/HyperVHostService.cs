@@ -149,6 +149,7 @@ namespace ExHyperV.Services
             ApiResponse<ulong> ReadLaunchType();
             Task<ApiResponse> WriteLaunchTypeAsync(bool enabled);
             Task<HyperVEnvironmentStatus> GetDiagnosticsAsync();
+            Task<VmmsRecoveryResult> StartVmmsIfStoppedAsync() => Task.FromResult(new VmmsRecoveryResult(false, false, null));
             bool? ReadHypervisorState();
         }
 
@@ -204,6 +205,15 @@ namespace ExHyperV.Services
                 if (!restart)
                 {
                     var runtime = await backend.GetDiagnosticsAsync().ConfigureAwait(false);
+                    if (enabled && runtime.Hypervisor.State == HyperVCheckState.Passed &&
+                        runtime.Vmms is { State: HyperVCheckState.NotReady, DiagnosticKind: HyperVDiagnosticKind.NotRunning })
+                    {
+                        var recovery = await backend.StartVmmsIfStoppedAsync().ConfigureAwait(false);
+                        steps.Add(OperationStepResult.From("RecoverVmms",
+                            recovery.Recovered ? ApiResponse.Ok() : ApiResponse.Fail(recovery.Error ?? "拉起 vmms 服务失败。")));
+                        if (recovery.Recovered)
+                            runtime = await backend.GetDiagnosticsAsync().ConfigureAwait(false);
+                    }
                     bool satisfied = enabled ? runtime.IsReady
                         : runtime.Hypervisor.State == HyperVCheckState.NotReady
                           && runtime.Hypervisor.DiagnosticKind == HyperVDiagnosticKind.NotRunning;
@@ -241,6 +251,7 @@ namespace ExHyperV.Services
             public ApiResponse<ulong> ReadLaunchType() => BcdStoreClient.Read(BcdSetting.HypervisorLaunchType);
             public Task<ApiResponse> WriteLaunchTypeAsync(bool enabled) => BcdStoreClient.SetAsync(BcdSetting.HypervisorLaunchType, enabled ? 1ul : 0ul);
             public Task<HyperVEnvironmentStatus> GetDiagnosticsAsync() => GetHyperVDiagnosticsAsync();
+            public Task<VmmsRecoveryResult> StartVmmsIfStoppedAsync() => VmmsServiceRecovery.TryRecoverIfStoppedAsync();
             public bool? ReadHypervisorState() => IsHypervisorActive();
         }
     }

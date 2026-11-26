@@ -19,11 +19,13 @@ internal sealed partial class HostStatusView
         var stat = new TextBlock { Text = "---%", FontSize = 11.5 };
         Typography.SetNumeralAlignment(stat, FontNumeralAlignment.Tabular);
 
+        string cpuHeaderTitle = string.IsNullOrWhiteSpace(inventory.CpuModel) ? L10n.Get("Overview_Cpu") : inventory.CpuModel;
+
         var item = CreateRailEntry(
             key: "cpu",
             category: RailCategory.Cpu,
-            detailTitle: L10n.Get("Overview_Cpu"),
-            detailSubtitle: inventory.CpuModel,
+            detailTitle: cpuHeaderTitle,
+            detailSubtitle: string.Empty,
             detailGlyph: "\uF58E",
             detailGlyphRotation: 90,
             categoryColor: ColorForCategory(RailCategory.Cpu),
@@ -31,17 +33,108 @@ internal sealed partial class HostStatusView
             titleText: title,
             subtitleText: null,
             statText: stat,
-            tooltip: inventory.CpuModel);
+            tooltip: cpuHeaderTitle);
+
+        int lpCount = Math.Max(1, inventory.LogicalProcessorCount);
+        int cols = lpCount <= 4 ? 2 : lpCount > 32 ? 8 : lpCount > 16 ? 6 : 4;
+        var coreCharts = new VmUsageChart[lpCount];
+        var coreGrid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
+        for (int c = 0; c < cols; c++)
+            coreGrid.ColumnDefinitions.Add(new ColumnDefinition());
+        int rows = (int)Math.Ceiling(lpCount / (double)cols);
+        for (int r = 0; r < rows; r++)
+            coreGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+        for (int i = 0; i < lpCount; i++)
+        {
+            var chart = new VmUsageChart(i.ToString(), VmUsageChartKind.Processor, chartHeight: VmUsageChart.ProcessorHeight);
+            coreCharts[i] = chart;
+            Grid.SetRow(chart, i / cols);
+            Grid.SetColumn(chart, i % cols);
+            coreGrid.Children.Add(chart);
+        }
+
+        string? lastFreqRendered = null;
+        string currentFreqText = "---";
+        HostCpuThreadReport? lastCpuReportRef = null;
+        var kvBorder = new Border();
+        var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
+        panel.Children.Add(coreGrid);
+        panel.Children.Add(kvBorder);
+        detailBodyHost.Children.Add(panel);
+
+        void RenderCpuKv()
+        {
+            string virtText = L10n.Get(inventory.CpuVirtOk ? "Host_Perf_Enabled" : "Host_Perf_Disabled");
+            bool hvReady = inventory.Diagnostics?.IsReady == true;
+            string hvText = L10n.Get(hvReady ? "Host_HyperVReady" : "Host_HyperVNotReady");
+            string schedText = HostUiHelpers.FormatSchedulerLabel(inventory.RunningScheduler, full: true);
+            string numaText = L10n.Get(inventory.NumaSpanningEnabled switch
+            {
+                true => "Common_On",
+                false => "Common_Off",
+                null => "Common_Unavailable"
+            });
+            string archText = inventory.Arch.ToString().ToUpperInvariant();
+            string osText = string.IsNullOrWhiteSpace(inventory.OsCaption) ? "---" : inventory.OsCaption;
+
+            kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
+            (HostUiHelpers.KvTileSpec[])[
+                new(L10n.Get("Host_Perf_LogicalProcessors"), L10n.Format("Host_Perf_ThreadsVal", lpCount)),
+                new(L10n.Get("Host_Perf_CurFreq"), currentFreqText),
+                new(L10n.Get("Host_Env_CpuVirt"), virtText, Caution: !inventory.CpuVirtOk),
+                new(L10n.Get("Host_Perf_Platform"), hvText, Caution: !hvReady),
+                new(L10n.Get("Host_Perf_Scheduler"), schedText),
+                new(L10n.Get("Host_Mem_NumaSpanning"), numaText),
+                new(L10n.Get("Host_Arch"), archText),
+                new(L10n.Get("Host_Os"), osText, CopyValue: string.IsNullOrWhiteSpace(inventory.OsCaption) ? null : inventory.OsCaption)
+            ], CopySuccessToast, CopyErrorBanner);
+        }
+
+        detailPanels["cpu"] = new DetailPanelEntry
+        {
+            Key = "cpu",
+            Category = RailCategory.Cpu,
+            Root = panel,
+            ApplySample = sample =>
+            {
+                if (sample.CpuReport is { Sample.IsValid: true } report && !ReferenceEquals(report, lastCpuReportRef))
+                {
+                    lastCpuReportRef = report;
+                    foreach (var t in report.Threads)
+                    {
+                        if (t.LogicalProcessorIndex >= 0 && t.LogicalProcessorIndex < coreCharts.Length && t.Sample.IsValid)
+                        {
+                            double clamped = Math.Clamp(t.TotalUsagePercent, 0, 100);
+                            coreCharts[t.LogicalProcessorIndex].Add(clamped, $"{Math.Round(clamped):0}%");
+                        }
+                    }
+                }
+                string nextFreq = sample.CpuFreqGHz is { } gz and > 0 ? $"{gz:0.00} GHz" : "---";
+                if (!string.Equals(nextFreq, lastFreqRendered, StringComparison.Ordinal))
+                {
+                    currentFreqText = nextFreq;
+                    lastFreqRendered = nextFreq;
+                    RenderCpuKv();
+                }
+            },
+            FormatReading = sample => sample.CpuPercent is { } pct ? $"{Math.Round(pct):0}%" : "---%",
+            RefreshTheme = () =>
+            {
+                Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Cpu);
+                foreach (var ch in coreCharts) ch.SetAccentColor(custom);
+                RenderCpuKv();
+            }
+        };
 
         item.UpdateSample = sample =>
         {
             if (sample.CpuPercent is { } pct)
             {
                 spark.Add(pct);
-                string freq = lastSample?.CpuFreqGHz is { } gz and > 0 ? $" {gz:0.00} GHz" : string.Empty;
+                string freq = sample.CpuFreqGHz is { } gz and > 0 ? $" {gz:0.00} GHz" : string.Empty;
                 stat.Text = $"{Math.Round(pct):0}%{freq}";
             }
-
         };
     }
 
@@ -67,6 +160,70 @@ internal sealed partial class HostStatusView
             subtitleText: null,
             statText: stat,
             tooltip: initialStat);
+
+        var trendChart = new VmUsageChart(L10n.Get("Host_Mem_Trend"), VmUsageChartKind.Memory, chartHeight: 136);
+        string usedStr = "---";
+        string availStr = "---";
+        string totalStr = initialStat;
+        string? lastKvSig = null;
+        HostMemoryUsage? lastMemRef = null;
+
+        var kvBorder = new Border();
+        var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
+        panel.Children.Add(trendChart);
+        panel.Children.Add(kvBorder);
+        detailBodyHost.Children.Add(panel);
+
+        void RenderMemKv()
+        {
+            string numaText = L10n.Get(inventory.NumaSpanningEnabled switch
+            {
+                true => "Common_On",
+                false => "Common_Off",
+                null => "Common_Unavailable"
+            });
+            string planText = string.IsNullOrWhiteSpace(inventory.ActivePowerPlanName) ? "---" : inventory.ActivePowerPlanName;
+
+            kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
+            (HostUiHelpers.KvTileSpec[])[
+                new(L10n.Get("Host_Mem_InUse"), usedStr),
+                new(L10n.Get("Host_Mem_Available"), availStr),
+                new(L10n.Get("Host_Mem_PhysicalCap"), totalStr),
+                new(L10n.Get("Host_Mem_NumaSpanning"), numaText),
+                new(L10n.Get("Host_Mem_PowerPlan"), planText)
+            ], CopySuccessToast, CopyErrorBanner);
+        }
+
+        detailPanels[key] = new DetailPanelEntry
+        {
+            Key = key,
+            Category = RailCategory.Memory,
+            Root = panel,
+            ApplySample = sample =>
+            {
+                if (sample.Memory is not { } m || ReferenceEquals(m, lastMemRef)) return;
+                lastMemRef = m;
+                trendChart.Add(m.Percent, $"{m.Percent}%");
+                usedStr = $"{m.UsedGiB:0.0} GB";
+                availStr = $"{m.AvailableGiB:0.0} GB";
+                totalStr = $"{m.TotalGiB:0.0} GB";
+                string sig = $"{usedStr}|{availStr}|{totalStr}";
+                if (!string.Equals(sig, lastKvSig, StringComparison.Ordinal))
+                {
+                    lastKvSig = sig;
+                    RenderMemKv();
+                }
+            },
+            FormatReading = sample => sample.Memory is { } m
+                ? $"{m.UsedGiB:0.0} / {m.TotalGiB:0.0} GB"
+                : initialStat,
+            RefreshTheme = () =>
+            {
+                Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Memory);
+                trendChart.SetAccentColor(custom);
+                RenderMemKv();
+            }
+        };
 
         item.UpdateSample = sample =>
         {
@@ -160,7 +317,11 @@ internal sealed partial class HostStatusView
 
         void AddReading(VmUsageChart chart, double? value)
         {
-            if (value is double pct) chart.Add(pct, $"{pct:0}%");
+            if (value is double pct && double.IsFinite(pct))
+            {
+                double clamped = Math.Clamp(pct, 0, 100);
+                chart.Add(clamped, $"{clamped:0}%");
+            }
         }
         chartsGrid.Visibility = scaleHost.Visibility = Visibility.Collapsed;
         noCounterNote.Visibility = Visibility.Visible;

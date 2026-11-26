@@ -354,6 +354,7 @@ public static class VmMemoryService
     {
         bool isVmRunning;
         bool numaDisabled = false;
+        VmMemorySettings? beforeSnapshot = null;
         var steps = new List<OperationStepResult>();
         try
         {
@@ -386,6 +387,7 @@ public static class VmMemoryService
             if (selectionError != null) return selectionError;
             if (validation is { Success: false }) return validation;
             if (!plan.HasData) return ApiResponse.Fail(Properties.Resources.Error_Memory_VmNotFound, kind: ApiErrorKind.NotFound);
+            beforeSnapshot = plan.Data.Before;
             bool dynamicChanged = selection.Contains(nameof(VmMemorySettings.DynamicMemoryEnabled))
                 && plan.Data.Before.DynamicMemoryEnabled != plan.Data.Target.DynamicMemoryEnabled;
             if (dynamicChanged && !isVmRunning && plan.Data.Target.DynamicMemoryEnabled)
@@ -398,7 +400,7 @@ public static class VmMemoryService
                     return ApiResponse.Fail("无法核实虚拟 NUMA 配置。", kind: ApiErrorKind.Unsupported);
                 if (numa.Data == true)
                 {
-                    var disabled = await DisableVirtualNumaAsync(vmId);
+                    var disabled = await SetVirtualNumaEnabledAsync(vmId, false);
                     steps.Add(OperationStepResult.From("DisableVirtualNuma", disabled));
                     if (!disabled.Success) return disabled.WithSteps(steps);
                     numaDisabled = true;
@@ -409,6 +411,8 @@ public static class VmMemoryService
             steps.Add(OperationStepResult.From("Memory", result));
             if (!result.Success)
             {
+                var recovered = await RecoverFromVmmsCrashAsync(vmId, beforeSnapshot, selection, result, numaDisabled, steps);
+                if (recovered != null) return recovered;
                 if (result.ErrorKind != ApiErrorKind.OutcomeUnknown && isVmRunning && result.DiagnosticCode == CoreErrorCode.MethodFailed
                     && selection.Contains(nameof(VmMemorySettings.Startup)) && !plan.Data.Target.DynamicMemoryEnabled)
                     result = result.WithDiagnostic(CoreErrorCode.RuntimeMemoryResizeFailed);
@@ -418,9 +422,103 @@ public static class VmMemoryService
         }
         catch (Exception ex)
         {
-            var failure = ex is CoreOperationException operation ? operation.Result : WmiJobWaiter.FromException(ex, submitted: false);
+            var failure = ex is CoreOperationException operation ? operation.Result : WmiJobWaiter.FromException(ex, submitted: beforeSnapshot != null);
+            if (beforeSnapshot != null)
+            {
+                var recovered = await RecoverFromVmmsCrashAsync(vmId, beforeSnapshot, selection, failure, numaDisabled, steps);
+                if (recovered != null) return recovered;
+            }
             return MemoryWriteFailure(failure, numaDisabled).WithSteps(steps);
         }
+    }
+
+    private static async Task<ApiResponse?> RecoverFromVmmsCrashAsync(
+        Guid vmId,
+        VmMemorySettings before,
+        SettingsSelection<VmMemorySettings> selection,
+        ApiResponse failure,
+        bool numaDisabled,
+        List<OperationStepResult> steps)
+    {
+        bool isCxl = selection.Contains(nameof(VmMemorySettings.CxlEnabled));
+        bool suspectCrash = isCxl
+            || failure.ErrorKind == ApiErrorKind.OutcomeUnknown
+            || failure.DiagnosticCode == CoreErrorCode.VmmsUnavailableOrShuttingDown
+            || CoreErrorClassifier.IsServiceUnavailable(failure.Code, failure.ErrorSource, failure.Exception);
+        if (!suspectCrash) return null;
+
+        var recovery = await VmmsServiceRecovery.TryRecoverIfStoppedAsync(recoverWhenAlreadyRunning: true).ConfigureAwait(false);
+        if (!recovery.Attempted) return null;
+
+        steps.Add(OperationStepResult.From("RecoverVmms",
+            recovery.Recovered ? ApiResponse.Ok() : ApiResponse.Fail(recovery.Error ?? "拉起 vmms 服务失败。")));
+
+        if (!recovery.Recovered)
+        {
+            return MemoryWriteFailure(ApiResponse.Fail(
+                $"Hyper-V 服务已停止且自动重启失败：{recovery.Error}",
+                failure.Code, failure.ErrorSource, failure.Exception, failure.ErrorKind)
+                .WithDiagnostic(CoreErrorCode.VmmsRecoveryFailed, recovery.Error ?? ""),
+                numaDisabled).WithSteps(steps);
+        }
+
+        var readBack = await GetVmMemorySettingsAsync(vmId).ConfigureAwait(false);
+        if (readBack.HasData)
+        {
+            bool unchanged = true;
+            foreach (string name in selection.Names)
+            {
+                var prop = typeof(VmMemorySettings).GetProperty(name);
+                if (prop != null && !Equals(prop.GetValue(before), prop.GetValue(readBack.Data.Values)))
+                {
+                    unchanged = false;
+                    break;
+                }
+            }
+
+            if (unchanged)
+            {
+                bool vnumaRestored = true;
+                if (numaDisabled)
+                {
+                    var numaOn = await SetVirtualNumaEnabledAsync(vmId, true).ConfigureAwait(false);
+                    steps.Add(OperationStepResult.From("RestoreVirtualNuma", numaOn));
+                    vnumaRestored = numaOn.Success;
+                }
+
+                string msg = isCxl
+                    ? "开启 CXL 失败，Hyper-V 服务已自动恢复且配置未发生变更。"
+                    : "应用内存配置失败，Hyper-V 服务已自动恢复且配置未发生变更。";
+                if (numaDisabled && !vnumaRestored)
+                {
+                    return ApiResponse.Fail(msg + "（虚拟 NUMA 未能恢复）",
+                        failure.Code, failure.ErrorSource, failure.Exception, ApiErrorKind.OutcomeUnknown)
+                        .WithDiagnostic(CoreErrorCode.VmmsCrashedVnumaUnrestored)
+                        .WithSteps(steps);
+                }
+
+                var diagCode = isCxl ? CoreErrorCode.VmmsCrashedCxlRecovered : CoreErrorCode.VmmsCrashedRecovered;
+                // 已核实配置未落盘，将不确定的 Memory 步骤归档为确定失败，避免前端误判锁定页面。
+                for (int i = 0; i < steps.Count; i++)
+                {
+                    if (steps[i].Name == "Memory" && steps[i].State == OperationStepState.OutcomeUnknown)
+                    {
+                        steps[i] = OperationStepResult.From("Memory",
+                            ApiResponse.Fail(msg, failure.Code, failure.ErrorSource, failure.Exception, ApiErrorKind.OperationFailed)
+                                .WithDiagnostic(diagCode));
+                    }
+                }
+                return ApiResponse.Fail(msg, failure.Code, failure.ErrorSource, failure.Exception, ApiErrorKind.OperationFailed)
+                    .WithDiagnostic(diagCode)
+                    .WithSteps(steps);
+            }
+        }
+
+        return MemoryWriteFailure(ApiResponse.Fail(
+            "应用期间 Hyper-V 服务发生重启，最终配置状态尚未确认。",
+            failure.Code, failure.ErrorSource, failure.Exception, ApiErrorKind.OutcomeUnknown)
+            .WithDiagnostic(CoreErrorCode.VmmsRecoveredOutcomeUnknown),
+            numaDisabled).WithSteps(steps);
     }
 
     internal static VmMemorySettings MergeMemorySelection(VmMemorySettings current, SettingsSelection<VmMemorySettings> selection)
@@ -486,10 +584,10 @@ public static class VmMemoryService
                 failure.DiagnosticCode == CoreErrorCode.None ? [failure.Error] : failure.DiagnosticArgs.ToArray());
     }
 
-    private static Task<ApiResponse> DisableVirtualNumaAsync(Guid vmId)
+    private static Task<ApiResponse> SetVirtualNumaEnabledAsync(Guid vmId, bool enabled)
         => WmiApi.WithObjectAsync(
             wql: $"SELECT * FROM Msvm_VirtualSystemSettingData WHERE {VmIdentity.SettingsPredicate(vmId)}",
-            modifier: obj => obj["VirtualNumaEnabled"] = false,
+            modifier: obj => { if (obj.HasProperty("VirtualNumaEnabled")) obj["VirtualNumaEnabled"] = enabled; },
             submitMethod: "ModifySystemSettings", submitParamName: "SystemSettings", wrapInArray: false);
 
     internal static bool SupportsSingleMemorySetting(string property) =>

@@ -30,7 +30,7 @@ internal static class WindowsTestCommand
             await process.WaitForExitAsync();
             await Task.WhenAll(output, error);
             if (mayMutate && RecoveryDirectory.Value is { } directory)
-                File.WriteAllText(Path.Combine(directory, "recovery-hold.txt"), "系统命令超时；服务中的原生作业可能仍在继续，需核对终态后恢复。");
+                File.WriteAllText(Path.Combine(directory, "recovery-hold.txt"), "系统命令超时，服务中的原生作业可能仍在继续，需核对终态后恢复。");
             throw new TimeoutException("系统核验进程超时，已结束该子进程。");
         }
         var text = await output; var errors = await error;

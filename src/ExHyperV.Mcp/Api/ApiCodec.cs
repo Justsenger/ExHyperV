@@ -20,6 +20,9 @@ public sealed class ApiCodec(ApiCatalog catalog, ApiObjects objects, ApiPolicy? 
             if (type.IsValueType && Nullable.GetUnderlyingType(type) == null) throw new ArgumentException($"{type.Name} 需要有效值。");
             return null;
         }
+        // Only an in-process frame producer can transfer ownership of a live resource.
+        if (type == typeof(IDisposable))
+            throw new ArgumentException("远程构造帧时所有者必须为空。");
         if (input.ValueKind == JsonValueKind.Object && input.TryGetProperty("$handle", out var handle))
         {
             Guid id = handle.GetGuid();
@@ -108,9 +111,9 @@ public sealed class ApiCodec(ApiCatalog catalog, ApiObjects objects, ApiPolicy? 
             {
                 if (!values.TryGetValue(parameter.Name!, out var value)) return parameter.DefaultValue;
                 assigned.Add(parameter.Name!);
-                return Decode(value, parameter.ParameterType, operation);
+                return Decode(value, parameter.ParameterType == typeof(ReadOnlySpan<byte>) ? typeof(byte[]) : parameter.ParameterType, operation);
             }).ToArray();
-            instance = constructor.Invoke(arguments);
+            instance = ApiExecution.InvokeMember(constructor, null, arguments)!;
         }
         else if (type.IsValueType) instance = Activator.CreateInstance(type)!;
         else throw new ArgumentException($"{type.Name} 请通过公开构造函数或工厂取得 $handle。");
@@ -118,6 +121,14 @@ public sealed class ApiCodec(ApiCatalog catalog, ApiObjects objects, ApiPolicy? 
         {
             if (assigned.Contains(name)) continue;
             var property = type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+            // A returned stage or rectangle includes its computed interpretation. Verify it without applying a setter.
+            if ((type == typeof(ConsoleExtensionStage) && property?.Name == nameof(ConsoleExtensionStage.Code))
+                || (type == typeof(ConsoleFrameRegion) && property?.Name == nameof(ConsoleFrameRegion.IsEmpty)))
+            {
+                if (!Equals(property.GetValue(instance), Decode(value, property.PropertyType, operation)))
+                    throw new ArgumentException($"{type.Name}.{name} 与构造参数不一致。");
+                continue;
+            }
             if (property?.SetMethod?.IsPublic == true) { property.SetValue(instance, Decode(value, property.PropertyType, operation)); continue; }
             var field = type.GetField(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
             if (field != null && !field.IsInitOnly) { field.SetValue(instance, Decode(value, field.FieldType, operation)); continue; }
@@ -169,12 +180,12 @@ public sealed class ApiCodec(ApiCatalog catalog, ApiObjects objects, ApiPolicy? 
             {
                 if (property.GetMethod?.IsPublic != true || property.GetIndexParameters().Length > 0 || property.PropertyType.IsByRefLike) continue;
                 if (property.Name.Contains("Password", StringComparison.OrdinalIgnoreCase) || property.Name.Contains("Passphrase", StringComparison.OrdinalIgnoreCase)) { data[property.Name] = "[私密值]"; continue; }
-                try { data[property.Name] = Pack(property.GetValue(value), childOwned, depth - 1, retain, childParent, snapshot, parents); }
+                try { data[property.Name] = Pack(property.GetValue(value), childOwned, depth - 1, false, childParent, snapshot, parents); }
                 catch (Exception error) { data[property.Name] = new { readError = error.GetBaseException().Message }; }
             }
             foreach (var field in type.GetFields(BindingFlags.Public | BindingFlags.Instance))
                 data[field.Name] = field.Name.Contains("Password", StringComparison.OrdinalIgnoreCase) || field.Name.Contains("Passphrase", StringComparison.OrdinalIgnoreCase)
-                    ? "[私密值]" : Pack(field.GetValue(value), childOwned, depth - 1, retain, childParent, snapshot, parents);
+                    ? "[私密值]" : Pack(field.GetValue(value), childOwned, depth - 1, false, childParent, snapshot, parents);
             return data;
         }
         finally { parents.Remove(value); }

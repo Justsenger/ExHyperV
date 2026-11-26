@@ -123,7 +123,13 @@ assert(homeEntries.length > 0, 'OS home must render recommended system entries')
 for (const codename of homeEntries) assert(ids.includes(codename), `OS home links to unknown system: ${codename}`);
 const docs = await readFile(path.join(root, 'dist/docs/index.html'), 'utf8');
 assert(docs.includes('href="/api/"') && docs.includes('data-astro-reload'), 'API entry must load the standalone Core document');
+assert(docs.includes('href="/docs/gpu/"') && docs.includes('href="/docs/gpu-driver-research/"'), 'Docs index must link to GPU driver docs and research report');
 assert(!docs.includes('href="/sdk/"'), 'Old SDK entry remains');
+const gpuDocs = await readFile(path.join(root, 'dist/docs/gpu/index.html'), 'utf8');
+assert(gpuDocs.includes('data-docs-gpu') && gpuDocs.includes('NVIDIA GeForce'), 'GPU docs page must render driver requirements');
+const gpuResearch = await readFile(path.join(root, 'dist/docs/gpu-driver-research/index.html'), 'utf8');
+const gpuNvidia = await readFile(path.join(root, 'dist/docs/gpu-driver-research/nvidia/index.html'), 'utf8');
+assert(gpuResearch.includes('data-docs-gpu-research') && gpuNvidia.includes('id="nvidia-geforce"'), 'GPU research pages must render overview and vendor anchors');
 await assert.rejects(access(path.join(root, 'dist/sdk')), 'Removed /sdk/ route must not be generated');
 for (const name of ['Comfortaa-OFL.txt', 'Resource-Han-Rounded-OFL.txt', 'Astro-LICENSE.txt', 'THIRD_PARTY_NOTICES.txt']) {
   await access(path.join(root, 'dist/licenses', name));

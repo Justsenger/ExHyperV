@@ -27,7 +27,7 @@ internal static class VmDeviceApiCases
             await WindowsTestCommand.RunAsync("Get-VM -Id ([guid]$a.id)|Get-VMNetworkAdapter|Remove-VMNetworkAdapter -Confirm:$false; @{ready=$true}|ConvertTo-Json", new { id = vm.Id });
             c.Equal(0, VmSettingsApiCases.ReadMany(vm.Id, nicClass).Count, "起始网卡清单为空");
             var result = await c.CallAsync(() => VmNetworkService.AddNetworkAdapterAsync(vm.Id));
-            c.Require(result.Success, $"创建结果 {result.ErrorKind}：{result.Error}；清理：{result.CleanupError}");
+            c.Require(result.Success, $"创建结果 {result.ErrorKind}：{result.Error}，清理：{result.CleanupError}");
             c.Equal(VmNetworkAdapterCreationState.Present, result.AdapterState, "网卡已存在");
             c.Equal(VmNetworkAdapterInitializationState.Completed, result.InitializationState, "连接资源初始化完成");
             var actual = VmSettingsApiCases.ReadMany(vm.Id, nicClass);
@@ -79,7 +79,7 @@ internal static class VmDeviceApiCases
                     var retained = VmSettingsApiCases.ReadMany(vm.Id, nicClass).Single();
                     VmSettingsApiCases.EqualRaw(c, true, retained["StaticMacAddress"], "切换被拒后仍为静态模式");
                     VmSettingsApiCases.EqualRaw(c, "00155D123456", retained["Address"], "切换被拒后保留已写入的地址");
-                    throw new ApiCheckSkippedException("静态 MAC 已核验；切回动态模式时，当前 VMMS 对 Core 和 Set-VMNetworkAdapter 都拒绝了全零动态地址。");
+                    throw new ApiCheckSkippedException("静态 MAC 已核验，切回动态模式时，当前 VMMS 对 Core 和 Set-VMNetworkAdapter 都拒绝了全零动态地址。");
                 }
             }
             VmSettingsApiCases.Success(c, response);

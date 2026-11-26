@@ -391,50 +391,6 @@ internal sealed partial class HostSettingsView : UserControl
         return grid;
     }
 
-    private UIElement BuildPowerSection()
-    {
-        var panel = new SettingsFieldPanel { Spacing = 12 };
-        var plans = HostPowerPlanService.GetPowerPlans();
-        Guid? activeId = HostPowerPlanService.GetActivePowerPlanId();
-
-        var combo = new ComboBox
-        {
-            MinWidth = 220,
-            IsEnabled = plans.Count > 0 && !busy
-        };
-        int selectedIdx = -1;
-        for (int i = 0; i < plans.Count; i++)
-        {
-            combo.Items.Add(new ComboBoxItem { Content = plans[i].Name, Tag = plans[i].Id });
-            if (activeId == plans[i].Id) selectedIdx = i;
-        }
-        combo.SelectedIndex = selectedIdx;
-
-        combo.SelectionChanged += async (_, _) =>
-        {
-            if (updating || busy || combo.SelectedItem is not ComboBoxItem { Tag: Guid planId }) return;
-            await RunBusyAsync(async () =>
-            {
-                try
-                {
-                    await Task.Run(() => HostPowerPlanService.SetActivePowerPlan(planId));
-                    feedbackHost?.ShowSuccessToast();
-                    await RefreshInventoryAsync();
-                }
-                catch (Exception ex)
-                {
-                    feedbackHost?.ShowSettingsNotice(CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error);
-                    RenderSection();
-                }
-            });
-        };
-
-        var card = SettingCard(Row(L10n.Get("Host_Set_Power_Title"), L10n.Get("Host_Set_Power_Desc"), combo));
-        SettingsFieldPanel.SetSpan2(card, true);
-        panel.Children.Add(card);
-        return panel;
-    }
-
     private UIElement BuildPathsSection(HostInventorySnapshot inv)
     {
         var panel = new SettingsFieldPanel { Spacing = 12 };

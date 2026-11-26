@@ -103,12 +103,12 @@ internal static class HostInventoryApiCases
                     """, mayMutate: false);
                 bool hasEvent = events.GetProperty("count").GetInt32() > 0;
                 if (hasEvent != p.Id.EndsWith("-1", StringComparison.Ordinal))
-                    throw new ApiCheckSkippedException(hasEvent ? "本次启动存在调度器事件；缺席事件场景留待对应环境。" : "本次启动缺席调度器事件；存在事件场景留待对应环境。");
+                    throw new ApiCheckSkippedException(hasEvent ? "本次启动存在调度器事件，缺席事件场景留待对应环境。" : "本次启动缺席调度器事件，存在事件场景留待对应环境。");
                 byte[] buffer = new byte[16]; int status = NtQuerySystemInformation(91, buffer, 16, out uint length);
                 if (status < 0 || length != 16 || buffer[2] > 1 || Environment.OSVersion.Version.Build < 18362) throw new ApiCheckSkippedException("内核未提供可独立核验的运行期调度器字段。");
                 expected = buffer[2] == 0 ? HyperVSchedulerType.Unknown : buffer[3] switch { 1 or 2 => HyperVSchedulerType.Classic, 3 => HyperVSchedulerType.Core, 4 => HyperVSchedulerType.Root, _ => HyperVSchedulerType.Unknown };
                 if (buffer[2] == 1 && expected == HyperVSchedulerType.Unknown) throw new ApiCheckSkippedException("当前内核调度器编号尚无可核验定义：" + buffer[3]);
-                c.Equal(expected, c.Call(HyperVSchedulerService.GetSchedulerType), "独立内核运行期字段；事件日志仅为 Core 的后备来源");
+                c.Equal(expected, c.Call(HyperVSchedulerService.GetSchedulerType), "独立内核运行期字段，事件日志仅为 Core 的后备来源");
             }
             return;
         }
@@ -164,7 +164,7 @@ internal static class HostInventoryApiCases
             await WindowsTestCommand.RunAsync("$nic=Get-VM -Id $a.id|Get-VMNetworkAdapter; $nic|Set-VMNetworkAdapter -StaticMacAddress $a.mac; $nic|Connect-VMNetworkAdapter -SwitchName $a.name; @{ok=$true}|ConvertTo-Json", new { id = vm.Id, name = network.Name, mac = "02" + vm.Id.ToString("N")[..10] });
             var native = await WindowsTestCommand.RunAsync("@{items=@(Get-VM -Id $a.id|Get-VMNetworkAdapter|Select-Object VMName,MacAddress)}|ConvertTo-Json -Depth 4", new { id = vm.Id });
             var result = await c.CallAsync(() => HyperVSwitchService.GetFullSwitchNetworkStateAsync(network.Name));
-            static string Endpoint(string? name, string? mac) => $"{name} · {mac?.Replace(":", "").Replace("-", "").ToUpperInvariant()}";
+            static string Endpoint(string? name, string? mac) => $"{name} / {mac?.Replace(":", "").Replace("-", "").ToUpperInvariant()}";
             c.Sequence(native.GetProperty("items").EnumerateArray().Select(x => Endpoint(x.GetProperty("VMName").GetString(), x.GetProperty("MacAddress").GetString())).Order(), result.Select(x => Endpoint(x.Name, x.MacAddress)).Order(), "专属交换机端点名称与 MAC"); return;
         }
         var adapters = await WindowsTestCommand.RunAsync("$physical=@(Get-CimInstance -Namespace root/StandardCimv2 -ClassName MSFT_NetAdapter|Where-Object ConnectorPresent|Select-Object -ExpandProperty PnPDeviceID); @{items=@(Get-CimInstance Win32_NetworkAdapter|Where-Object {$_.NetConnectionID -and $physical -contains $_.PNPDeviceID}|Select-Object GUID,PNPDeviceID,NetConnectionID)}|ConvertTo-Json -Depth 4");

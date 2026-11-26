@@ -1,10 +1,10 @@
 ---
 const { build, wddm, xddm = false, descriptiveLabels = false } = Astro.props;
 ---
-<dl class="readonly-parameters" data-parameters-readonly data-parameter-descriptive={descriptiveLabels || undefined} aria-label="系统参数">
+<dl class="readonly-parameters" data-parameters-readonly data-parameter-descriptive={descriptiveLabels || undefined} aria-label="系统参数" data-i18n-aria="systemParameters">
   {build && <div class="parameter-pair"><dt>Build</dt><dd data-build-number={build}>{build}</dd></div>}
   {wddm && <div class="parameter-pair"><dt>WDDM</dt><dd data-wddm-version>{wddm}</dd></div>}
-  {xddm && <div class="parameter-pair"><dt class="visually-hidden">显示驱动模型</dt><dd data-xddm>XDDM</dd></div>}
+  {xddm && <div class="parameter-pair"><dt class="visually-hidden" data-i18n="displayDriverModel">显示驱动模型</dt><dd data-xddm>XDDM</dd></div>}
 </dl>
 
 <style>

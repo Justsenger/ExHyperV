@@ -786,12 +786,13 @@ test('ExHyperV WoW uses standalone local-machine mock hardware without connectin
   const prevWindow = globalThis.window;
   const prevDocument = globalThis.document;
   try {
+    const pageListeners = new Map();
     const fakePageHost = {
       hidden: false,
       dataset: {},
       innerHTML: '',
       contains: () => false,
-      addEventListener: () => {},
+      addEventListener: (type, fn) => pageListeners.set(type, fn),
       querySelectorAll: () => [],
       querySelector: () => null,
     };
@@ -821,6 +822,8 @@ test('ExHyperV WoW uses standalone local-machine mock hardware without connectin
 
     uiHostMod.initHostPage();
     assert.equal(fakeWinListeners.has('win11:hardware'), false);
+    // The hardware details live on the performance tab.
+    pageListeners.get('click')({ target: { closest: (selector) => selector === '[data-host-tab]' ? { getAttribute: () => 'state' } : null } });
     assert.ok(fakePageHost.innerHTML.includes('ARM64'));
     assert.ok(fakePageHost.innerHTML.includes('Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz'));
     assert.ok(fakePageHost.innerHTML.includes('Qualcomm(R) Adreno(TM) X1-85 GPU'));
@@ -1090,4 +1093,386 @@ test('mergeWin11SkeletonText merges gzipped Explorer c-skeleton.txt.gz cleanly',
   // Verify idempotency when merged a second time
   const addedSecond = win11FsSkeletonMod.mergeWin11SkeletonText(nodes, rawText);
   assert.equal(addedSecond, 0);
+});
+
+test('console-wire resolves host cursor CSS strings and safely guards oversize or hidden pointers', async () => {
+  const wire = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'scripts/console-wire.js'));
+  assert.equal(wire.resolveRemoteCursorStyle(null), null);
+  assert.equal(wire.resolveRemoteCursorStyle({ type: 'cursor', visible: false }), null);
+  assert.equal(
+    wire.resolveRemoteCursorStyle({ type: 'cursor', visible: true, width: 32, height: 32, hotX: 40, hotY: -3, png: 'AQI=' }),
+    'url("data:image/png;base64,AQI=") 31 0, default',
+  );
+  assert.equal(
+    await wire.resolveRemoteCursorStyle({ type: 'cursor', visible: true, width: 192, height: 192, hotX: 10, hotY: 10, png: 'AQI=' }),
+    'default',
+  );
+  assert.equal(wire.hostDisplayScalePercent(1), 100);
+  assert.equal(wire.hostDisplayScalePercent(1.5), 150);
+  assert.equal(wire.hostDisplayScalePercent(2.25), 225);
+  assert.equal(wire.hostDisplayScalePercent(4), 300);
+  assert.equal(wire.resolveEnhancedDesktopScale(0, 1280, 2), 100);
+  assert.equal(wire.resolveEnhancedDesktopScale(0, 1920, 2), 200);
+  assert.equal(wire.resolveEnhancedDesktopScale(175, 1280, 2), 175);
+  assert.equal(wire.resolveEnhancedDesktopScale(600, 1280, 1), 500);
+});
+
+test('console-wire decodes H.264 type-3 packets, swaps unaligned BGRA fast, and selects optimal encodings', async () => {
+  const wire = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'scripts/console-wire.js'));
+
+  // 1. Packet type 3 parsing + SPS codec extraction
+  const annexB = new Uint8Array([0x00, 0x00, 0x00, 0x01, 0x67, 0x4d, 0x40, 0x1f, 0x00, 0x00, 0x00, 0x01, 0x65, 0x88]);
+  const h264Buf = new ArrayBuffer(34 + annexB.length);
+  const h264Bytes = new Uint8Array(h264Buf);
+  const h264View = new DataView(h264Buf);
+  h264Bytes[0] = 0x45;
+  h264Bytes[1] = 0x58;
+  h264Bytes[2] = 3;
+  h264Bytes[3] = 3; // keyFrame + hardware
+  h264Bytes[4] = 0;
+  h264View.setBigInt64(6, 77n, true);
+  h264View.setBigInt64(14, 16667n, true);
+  h264View.setUint16(22, 1920, true);
+  h264View.setUint16(24, 1080, true);
+  h264View.setUint32(26, 16667, true);
+  h264Bytes.set(annexB, 34);
+
+  const parsedH264 = wire.parseConsoleBinaryPacket(h264Buf);
+  assert.equal(parsedH264?.kind, 'h264');
+  assert.equal(parsedH264?.isKeyFrame, true);
+  assert.equal(parsedH264?.isHardware, true);
+  assert.equal(parsedH264?.sequence, 77);
+  assert.equal(parsedH264?.timestampUs, 16667);
+  assert.equal(parsedH264?.width, 1920);
+  assert.equal(parsedH264?.height, 1080);
+  assert.equal(wire.extractH264CodecFromAnnexB(parsedH264.payload), 'avc1.4d401f');
+  assert.equal(wire.extractH264CodecFromAnnexB(new Uint8Array([0, 0, 1, 0x67, 0x42, 0xe0, 0x1e, 0])), 'avc1.42e01e');
+
+  // 2. Fast 32-bit BGRA -> RGBA swap on unaligned offset-34 payload
+  const bgraPacket = new Uint8Array(34 + 8);
+  bgraPacket[0] = 0x45;
+  bgraPacket[1] = 0x58;
+  bgraPacket[2] = 1;
+  bgraPacket[3] = 1;
+  bgraPacket[4] = 0;
+  const pv = new DataView(bgraPacket.buffer);
+  pv.setBigInt64(6, 1n, true);
+  pv.setBigInt64(14, 0n, true);
+  pv.setUint16(22, 2, true);
+  pv.setUint16(24, 1, true);
+  pv.setUint16(30, 2, true);
+  pv.setUint16(32, 1, true);
+  bgraPacket.set([10, 20, 30, 0, 40, 50, 60, 128], 34); // BGRA -> RGBA with A=255
+  const parsedBgra = wire.parseConsoleBinaryPacket(bgraPacket);
+  assert.equal(parsedBgra.payload.byteOffset, 34);
+
+  const rgbaOut = new Uint8ClampedArray(8);
+  wire.swapBgraToRgba32(parsedBgra.payload, new Uint32Array(rgbaOut.buffer), 2, new Uint8Array(rgbaOut.buffer));
+  assert.deepEqual(Array.from(rgbaOut), [30, 20, 10, 255, 60, 50, 40, 255]);
+
+  // 3. Encoding auto-selection + backward compatibility with older server
+  assert.equal(wire.isLoopbackHost('http://127.0.0.1:5191'), true);
+  assert.equal(wire.isLoopbackHost('http://localhost:5191'), true);
+  assert.equal(wire.isLoopbackHost('http://[::1]:5191'), true);
+  assert.equal(wire.isLoopbackHost('https://192.168.1.50:5191'), false);
+
+  assert.equal(wire.selectInitialConsoleEncoding({ serverUrl: 'http://127.0.0.1:5191', preference: 'auto', hasWebCodecs: true, hasDecompressionStream: true }), 'bgra');
+  assert.equal(wire.selectInitialConsoleEncoding({ serverUrl: 'https://192.168.1.50:5191', preference: 'bgra', hasWebCodecs: true, hasDecompressionStream: true }), 'bgra');
+  // Without known server capabilities yet (could be old ExHyperV.Server.exe), remote starts safely on deflate
+  assert.equal(wire.selectInitialConsoleEncoding({ serverUrl: 'https://192.168.1.50:5191', preference: 'auto', hasWebCodecs: true, hasDecompressionStream: true }), 'deflate');
+  assert.equal(wire.selectInitialConsoleEncoding({ serverUrl: 'https://192.168.1.50:5191', preference: 'auto', serverSupportedEncodings: ['bgra', 'deflate', 'png', 'h264'], hasWebCodecs: true, hasDecompressionStream: true }), 'h264');
+
+  assert.equal(wire.selectNegotiatedConsoleEncoding({ serverUrl: 'https://192.168.1.50:5191', preference: 'auto', capabilities: { supportedEncodings: ['bgra', 'deflate', 'png', 'h264'] }, hasWebCodecs: true, hasDecompressionStream: true }), 'h264');
+  assert.equal(wire.selectNegotiatedConsoleEncoding({ serverUrl: 'https://192.168.1.50:5191', preference: 'auto', capabilities: { supportedEncodings: ['bgra', 'deflate', 'png', 'h264'] }, hasWebCodecs: false, hasDecompressionStream: true }), 'deflate');
+  assert.equal(wire.selectNegotiatedConsoleEncoding({ serverUrl: 'https://192.168.1.50:5191', preference: 'auto', capabilities: { supportedEncodings: ['bgra', 'deflate', 'png', 'h264'] }, hasWebCodecs: false, hasDecompressionStream: false }), 'png');
+  assert.equal(wire.selectNegotiatedConsoleEncoding({ serverUrl: 'https://192.168.1.50:5191', preference: 'auto', capabilities: {}, hasWebCodecs: true, hasDecompressionStream: true }), 'deflate');
+
+  // 4. DPR physical scaling
+  assert.deepEqual(wire.computeScaledSurfaceCssDimensions(1920, 1080, 'physical', 2), { width: 960, height: 540, crisp: true });
+  assert.deepEqual(wire.computeScaledSurfaceCssDimensions(1024, 768, '200%', 2), { width: 2048, height: 1536, crisp: true });
+});
+
+test('createConsoleRenderer coalesces BGRA frames non-blockingly and handles WebCodecs H.264 + fallback', async () => {
+  const wire = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'scripts/console-wire.js'));
+  const prevImageData = globalThis.ImageData;
+  const prevVideoDecoder = globalThis.VideoDecoder;
+  const prevEncodedChunk = globalThis.EncodedVideoChunk;
+
+  try {
+    globalThis.ImageData = class MockImageData {
+      constructor(a, b, c) {
+        if (a instanceof Uint8ClampedArray) {
+          this.data = a;
+          this.width = b;
+          this.height = c;
+        } else {
+          this.width = a;
+          this.height = b;
+          this.data = new Uint8ClampedArray(a * b * 4);
+        }
+      }
+    };
+
+    const scheduledCallbacks = [];
+    const putCalls = [];
+    const drawImageCalls = [];
+    const fakeCtx = {
+      putImageData(imgData, x, y) {
+        putCalls.push({ x, y, width: imgData.width, height: imgData.height, firstRgba: Array.from(imgData.data.slice(0, 4)) });
+      },
+      drawImage(img, x, y, w, h) {
+        drawImageCalls.push({ id: img.id, x, y, w, h });
+      },
+      clearRect() {}
+    };
+    const fakeCanvas = { width: 0, height: 0, getContext: () => fakeCtx };
+
+    const decoderEvents = { configured: [], decoded: [], closedCount: 0 };
+    let decoderCallbacks = null;
+    globalThis.EncodedVideoChunk = class MockEncodedVideoChunk {
+      constructor(init) {
+        Object.assign(this, init);
+      }
+    };
+    globalThis.VideoDecoder = class MockVideoDecoder {
+      constructor(cb) {
+        decoderCallbacks = cb;
+        this.state = 'configured';
+      }
+      configure(cfg) {
+        decoderEvents.configured.push(cfg);
+      }
+      decode(chunk) {
+        decoderEvents.decoded.push(chunk);
+      }
+      close() {
+        this.state = 'closed';
+        decoderEvents.closedCount++;
+      }
+    };
+
+    const codecErrors = [];
+    const renderer = wire.createConsoleRenderer(fakeCanvas, {
+      scheduleFrame: (fn) => {
+        scheduledCallbacks.push(fn);
+        return scheduledCallbacks.length;
+      },
+      cancelFrame: () => {},
+      onCodecError: (codec, err) => codecErrors.push({ codec, err })
+    });
+
+    // Enqueue partial BGRA then superseded by fullFrame BGRA before rAF runs
+    renderer.enqueueVideo({
+      kind: 'video',
+      encoding: 'bgra',
+      fullFrame: false,
+      width: 4,
+      height: 4,
+      rect: { x: 0, y: 0, width: 1, height: 1 },
+      payload: new Uint8Array([1, 2, 3, 255])
+    });
+    renderer.enqueueVideo({
+      kind: 'video',
+      encoding: 'bgra',
+      fullFrame: true,
+      width: 4,
+      height: 4,
+      rect: { x: 0, y: 0, width: 4, height: 4 },
+      payload: new Uint8Array(4 * 4 * 4).fill(9)
+    });
+    // Contained dirty rect followed by covering dirty rect
+    renderer.enqueueVideo({
+      kind: 'video',
+      encoding: 'bgra',
+      fullFrame: false,
+      width: 4,
+      height: 4,
+      rect: { x: 1, y: 1, width: 1, height: 1 },
+      payload: new Uint8Array([10, 20, 30, 255])
+    });
+    renderer.enqueueVideo({
+      kind: 'video',
+      encoding: 'bgra',
+      fullFrame: false,
+      width: 4,
+      height: 4,
+      rect: { x: 0, y: 0, width: 2, height: 2 },
+      payload: new Uint8Array([11, 22, 33, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
+    });
+
+    assert.equal(putCalls.length, 0, 'enqueueVideo must defer painting to rAF');
+    scheduledCallbacks.shift()();
+    assert.equal(putCalls.length, 2, 'only latest fullFrame + covering dirty rect should be drawn');
+    assert.deepEqual(putCalls[0], { x: 0, y: 0, width: 4, height: 4, firstRgba: [9, 9, 9, 255] });
+    assert.deepEqual(putCalls[1], { x: 0, y: 0, width: 2, height: 2, firstRgba: [33, 22, 11, 255] });
+
+    // A delta before the keyframe is skipped. The keyframe configures VideoDecoder and outputs frames.
+    renderer.enqueueVideo({
+      kind: 'h264',
+      isKeyFrame: false,
+      width: 128,
+      height: 128,
+      timestampUs: 1000,
+      payload: new Uint8Array([0, 0, 0, 1, 0x41, 1])
+    });
+    assert.equal(decoderEvents.configured.length, 0);
+
+    renderer.enqueueVideo({
+      kind: 'h264',
+      isKeyFrame: true,
+      width: 128,
+      height: 128,
+      timestampUs: 2000,
+      payload: new Uint8Array([0, 0, 0, 1, 0x67, 0x42, 0xe0, 0x1e, 0, 0, 0, 1, 0x65, 1])
+    });
+    assert.equal(decoderEvents.configured[0].codec, 'avc1.42e01e');
+    assert.equal(decoderEvents.decoded.length, 1);
+
+    // Emit two decoded VideoFrames before rAF + 1 idle lossless BGRA compensation frame after
+    const closedFrames = [];
+    decoderCallbacks.output({ id: 'f1', displayWidth: 128, displayHeight: 128, close: () => closedFrames.push('f1') });
+    decoderCallbacks.output({ id: 'f2', displayWidth: 128, displayHeight: 128, close: () => closedFrames.push('f2') });
+    assert.deepEqual(closedFrames, ['f1'], 'superseded H.264 VideoFrame must close immediately');
+
+    renderer.enqueueVideo({
+      kind: 'video',
+      encoding: 'bgra',
+      fullFrame: false,
+      width: 128,
+      height: 128,
+      rect: { x: 8, y: 8, width: 1, height: 1 },
+      payload: new Uint8Array([5, 6, 7, 255])
+    });
+
+    putCalls.length = 0;
+    scheduledCallbacks.shift()();
+    assert.deepEqual(drawImageCalls, [{ id: 'f2', x: 0, y: 0, w: 128, h: 128 }]);
+    assert.deepEqual(closedFrames, ['f1', 'f2']);
+    assert.equal(putCalls.length, 1);
+    assert.deepEqual(putCalls[0].firstRgba, [7, 6, 5, 255]);
+
+    // Codec error triggers fallback callback cleanly
+    decoderCallbacks.error(new Error('decode failed'));
+    assert.equal(codecErrors.length, 1);
+    assert.equal(codecErrors[0].codec, 'h264');
+    renderer.destroy();
+  } finally {
+    globalThis.ImageData = prevImageData;
+    globalThis.VideoDecoder = prevVideoDecoder;
+    globalThis.EncodedVideoChunk = prevEncodedChunk;
+  }
+});
+
+test('console-wire encodes and decodes UTF-16LE clipboard text and Type 3 PCM audio input packets', async () => {
+  const wire = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'scripts/console-wire.js'));
+  const msg = wire.encodeClipboardTextMessage('Hello\n世界!');
+  assert.equal(msg.type, 'clipboard');
+  assert.equal(msg.formats.length, 1);
+  assert.equal(msg.formats[0].id, 13);
+  assert.equal(msg.formats[0].name, null);
+  const rawClip = Buffer.from(msg.formats[0].data, 'base64');
+  assert.equal(rawClip.length % 2, 0);
+  assert.equal(rawClip[rawClip.length - 1], 0);
+  assert.equal(rawClip[rawClip.length - 2], 0);
+  assert.equal(wire.decodeClipboardTextMessage(msg), 'Hello\n世界!');
+  assert.equal(wire.decodeClipboardTextMessage({ formats: [{ id: 8, data: 'AA==' }] }), null);
+
+  const s16Packet = wire.encodeConsoleAudioInputPacket(
+    { sampleRate: 48000, channels: 2, sampleFormat: 'Signed16LittleEndian' },
+    [new Float32Array(441).fill(0.5)],
+    44100,
+    123456n,
+  );
+  assert.ok(s16Packet instanceof Uint8Array);
+  assert.equal(s16Packet[0], 0x45);
+  assert.equal(s16Packet[1], 0x58);
+  assert.equal(s16Packet[2], 3);
+  assert.equal(s16Packet[3], 0);
+  assert.equal(s16Packet[4], 1);
+  assert.equal(s16Packet[5], 2);
+  const s16View = new DataView(s16Packet.buffer, s16Packet.byteOffset, s16Packet.byteLength);
+  assert.equal(s16View.getInt32(6, true), 48000);
+  assert.equal(s16View.getBigInt64(10, true), 123456n);
+  assert.equal((s16Packet.length - 18) % 4, 0);
+
+  const f32Packet = wire.encodeConsoleAudioInputPacket(
+    { sampleRate: 44100, channels: 1, sampleFormat: 'Float32LittleEndian' },
+    [new Float32Array([0.25, -0.25]), new Float32Array([0.25, -0.25])],
+    44100,
+    0n,
+  );
+  assert.ok(f32Packet instanceof Uint8Array);
+  assert.equal(f32Packet[4], 2);
+  assert.equal(f32Packet[5], 1);
+  assert.equal(f32Packet.length, 18 + 8);
+});
+
+test('console v2 reconstructs moves from the displayed base and rejects malformed or mandatory extensions', async () => {
+  const wire = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'scripts/console-wire.js'));
+  const packet = (sequence, full, dirty, moves) => {
+    const header = 40 + dirty.length * 8 + moves.length * 12;
+    const bytes = new Uint8Array(header + dirty.reduce((n, r) => n + r.values.length * 4, 0));
+    const v = new DataView(bytes.buffer);
+    bytes.set([69, 88, 4, Number(full), 0, 2]);
+    v.setUint32(6, bytes.length, true);
+    v.setBigInt64(10, BigInt(sequence), true);
+    v.setBigInt64(18, BigInt(sequence - 1), true);
+    v.setUint16(26, 5, true); v.setUint16(28, 1, true);
+    v.setUint16(30, dirty.length, true); v.setUint16(32, moves.length, true); v.setUint32(34, header, true);
+    let meta = 40, data = header;
+    function fields(numbers) { for (const value of numbers) { v.setUint16(meta, value, true); meta += 2; } }
+    for (const r of dirty) {
+      fields([r.x, 0, r.values.length, 1]);
+      for (const b of r.values) { bytes.set([b, b, b, 255], data); data += 4; }
+    }
+    for (const [from, to, width] of moves) fields([from, 0, to, 0, width, 1]);
+    return bytes;
+  };
+  const pixels = new Uint8Array(5);
+  const context = {
+    putImageData(image, x, y, sx = 0, sy = 0, width = image.width) {
+      for (let i = sx; i < sx + width; i++) pixels[x + i] = image.data[i * 4];
+    },
+    getImageData() { return { width: 5, data: Uint8Array.from([...pixels].flatMap(v => [v, v, v, 255])) }; }
+  };
+  let refreshed = 0;
+  const displayed = [];
+  const renderer = wire.createConsoleRenderer({ getContext: () => context }, {
+    onDisplayed: n => displayed.push(n), onNeedKeyFrame: () => refreshed++
+  });
+  const full = packet(1, true, [{ x: 0, values: [1, 2, 3, 4, 5] }], []);
+  const delta = packet(2, false, [{ x: 0, values: [9] }, { x: 4, values: [8] }], [[2, 1, 2], [1, 3, 1]]);
+  assert.equal(wire.parseConsoleBinaryPacket(full), null);
+  renderer.enqueueVideo(wire.parseConsoleBinaryPacket(full, 2));
+  renderer.enqueueVideo(wire.parseConsoleBinaryPacket(delta, 2));
+  assert.deepEqual([...pixels], [9, 3, 4, 2, 8]);
+  assert.deepEqual(displayed, [1, 2]);
+  renderer.enqueueVideo(wire.parseConsoleBinaryPacket(packet(5, false, [], []), 2));
+  assert.equal(refreshed, 1);
+  for (const offset of [3, 4, 5, 6, 30, 32, 34, 38, 40, 56]) {
+    const bad = delta.slice(); bad[offset] = 255;
+    assert.equal(wire.parseConsoleBinaryPacket(bad, 2), null, 'field at ' + offset);
+  }
+  assert.equal(wire.parseConsoleBinaryPacket(delta.subarray(0, -1), 2), null);
+});
+
+test('console client negotiates scoped v2 and preserves requested rights when connecting to v1', async () => {
+  const { requestConsoleConnection } = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'scripts/server-adapter.js'));
+  const issued = [];
+  const client = {
+    serverInfo: { authenticationMode: 'password' },
+    issueWsTicket: async scope => { issued.push(scope); return { ticket: 'test', serverUrl: 'https://server.test' }; },
+    consoleBackends: async () => ({ backends: [{ backendId: 'RdpBasic', rights: ['Watch', 'Control'] }] })
+  };
+  assert.equal((await requestConsoleConnection(client, 'vm', 'basic')).protocol, 1);
+  assert.deepEqual(issued, [{}]);
+  await assert.rejects(requestConsoleConnection(client, 'vm', 'basic', true));
+  await assert.rejects(requestConsoleConnection(client, 'vm', 'external'));
+  assert.equal(issued.length, 1);
+  client.serverInfo.consoleProtocolVersions = [1, 2];
+  assert.equal((await requestConsoleConnection(client, 'vm', 'basic', true)).protocol, 2);
+  assert.deepEqual(issued[1], { vmId: 'vm', backendId: 'RdpBasic', channel: 'console', requestedRights: ['Watch'] });
+  assert.deepEqual((await requestConsoleConnection(client, 'vm', 'basic', false, ['Watch'])).rights, ['Watch']);
+  client.issueWsTicket = async () => { throw Error('denied'); };
+  await assert.rejects(requestConsoleConnection(client, 'vm', 'basic'), /denied/);
 });

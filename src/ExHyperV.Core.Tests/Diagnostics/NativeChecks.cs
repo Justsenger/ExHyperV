@@ -103,7 +103,7 @@ internal static class NativeChecks
                 {
                     using var actual = WmiApi.GetVmComputerSystem(vm.Id);
                     if (actual == null) continue;
-                    if (!string.Equals(actual["ElementName"]?.ToString(), vm.Name, StringComparison.Ordinal)) throw new InvalidOperationException("Fixture identity changed; preserving it for inspection.");
+                    if (!string.Equals(actual["ElementName"]?.ToString(), vm.Name, StringComparison.Ordinal)) throw new InvalidOperationException("Fixture identity changed. Preserving it for inspection.");
                     var result = await WmiApi.InvokeAsync("SELECT * FROM Msvm_VirtualSystemManagementService", "DestroySystem", p => p["AffectedSystem"] = actual.Path.Path);
                     if (!result.Success) throw new InvalidOperationException(result.Error);
                     using var remaining = WmiApi.GetVmComputerSystem(vm.Id);

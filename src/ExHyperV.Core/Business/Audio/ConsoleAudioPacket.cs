@@ -1,8 +1,7 @@
 namespace ExHyperV.Services;
 
 /// <summary>一段音频采样及其格式、包序号和时间戳。</summary>
-/// <remarks>构造时复制采样数据，因此可在回调返回或连接关闭后继续使用，不需要 Dispose。
-/// 当前此类型是音频接口的数据约定，内置控制台后端尚未输出音频包。</remarks>
+/// <remarks>构造时复制采样数据，因此可在回调返回或连接关闭后继续使用，不需要 Dispose。</remarks>
 /// <example>
 /// <para>构造一段 10 毫秒的双声道静音，说明数据长度如何由格式计算。</para>
 /// <code>
@@ -19,7 +18,7 @@ namespace ExHyperV.Services;
 /// }
 /// </code>
 /// </example>
-internal sealed class ConsoleAudioPacket
+public sealed class ConsoleAudioPacket
 {
     private readonly byte[] data;
 
@@ -61,14 +60,17 @@ internal sealed class ConsoleAudioPacket
     /// <summary>音频包独立持有的原始 PCM 采样。</summary>
     /// <fielddoc>
     /// <meaning>音频包独立持有的原始 PCM 采样。</meaning>
-    /// <values kind="format">按声道交错排列；字节数为“声道数 × 每采样字节数”的整数倍，可为空。</values>
+    /// <values kind="format">按声道交错排列，字节数为“声道数 × 每采样字节数”的整数倍，可为空。</values>
     /// </fielddoc>
     /// <remarks>构造时已复制，可在回调结束和连接关闭后继续读取。</remarks>
     public ReadOnlySpan<byte> Samples => data;
+    /// <summary>复制并返回当前音频包的原始 PCM 采样字节。</summary>
+    /// <returns>独立持有的 PCM 字节数组副本。</returns>
+    public byte[] CopySamples() => data.ToArray();
     /// <summary>当前音频流中的包序号。</summary>
     /// <fielddoc>
     /// <meaning>当前音频流中的包序号。</meaning>
-    /// <values kind="format">非负整数，由生产者安排；与视频帧序号分别计数。</values>
+    /// <values kind="format">非负整数，由生产者安排，与视频帧序号分别计数。</values>
     /// </fielddoc>
     public long Sequence { get; }
     /// <summary>当前音频流中的相对时间。</summary>
@@ -76,6 +78,6 @@ internal sealed class ConsoleAudioPacket
     /// <meaning>当前音频流中的相对时间。</meaning>
     /// <values kind="format">非负时间间隔。</values>
     /// </fielddoc>
-    /// <remarks>音频后端待接入，音画同步的时间基准待定义。</remarks>
+    /// <remarks>表示连接建立后至本包交付的单调递增相对时间，可用于跟踪音频包时序。</remarks>
     public TimeSpan Timestamp { get; }
 }

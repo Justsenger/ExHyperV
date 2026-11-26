@@ -39,10 +39,34 @@ import '../../shells/win11/win11-tokens.css';
       };
       let advSnapshot = {
         consoleSupport: true,
-        shielding: false
+        shielding: false,
+        consoleClipboard: true,
+        consoleAudioOutput: true,
+        consoleAudioInput: true
       };
       let availableVms: Array<Record<string, unknown>> = [vmSnapshot];
       let openVmIds = new Set<string>();
+      let serverMode: 'demo' | 'live' = 'demo';
+      let serverUrl = '';
+      let unusedInitialTicket: string | null = null;
+      let initialTicketVmId = '';
+      let nextRequestSeq = 1;
+      const pendingTicketRequests = new Map<
+        string,
+        {
+          resolve: (value: { mode: 'live'; serverUrl: string; ticket: string; protocol?: number; backendId?: string; rights?: string[]; extension?: unknown } | null) => void;
+          reject: (reason?: unknown) => void;
+          timer: ReturnType<typeof setTimeout>;
+        }
+      >();
+      const pendingPowerRequests = new Map<
+        string,
+        {
+          resolve: (handled: boolean) => void;
+          reject: (reason?: unknown) => void;
+          timer: ReturnType<typeof setTimeout>;
+        }
+      >();
 
       const ctrl = createConsoleController({
         getVm: () => vmSnapshot,
@@ -51,8 +75,66 @@ import '../../shells/win11/win11-tokens.css';
         getTheme: () => currentTheme,
         getAccentHex: () => accentHex,
         getOpenVmIds: () => openVmIds,
+        getServerConnection: async (targetVm: { id?: string } | undefined, mode: string, watchOnly: boolean, ceiling: string[] | null) => {
+          if (serverMode !== 'live' || !serverUrl) return null;
+          const targetId = String(targetVm?.id || vmSnapshot.id || '');
+          if (unusedInitialTicket !== null && (!initialTicketVmId || initialTicketVmId === targetId)) {
+            const ticket = unusedInitialTicket;
+            unusedInitialTicket = null;
+            return { mode: 'live', serverUrl, ticket };
+          }
+          if (!client.isEmbedded) {
+            return { mode: 'live', serverUrl, ticket: '' };
+          }
+          const requestId = `ticket-${Date.now()}-${nextRequestSeq++}`;
+          return new Promise((resolve, reject) => {
+            const timer = setTimeout(() => {
+              pendingTicketRequests.delete(requestId);
+              reject(new Error('向主应用请求控制台连接票据超时'));
+            }, 10000);
+            pendingTicketRequests.set(requestId, { resolve, reject, timer });
+            client
+              .request('app.event', {
+                channel: 'exhyperv:console-need-ticket',
+                payload: { requestId, vmId: targetId, mode, watchOnly, ceiling }
+              })
+              .catch((err) => {
+                clearTimeout(timer);
+                pendingTicketRequests.delete(requestId);
+                reject(err);
+              });
+          });
+        },
+        executeVmPowerAction: async (vmId: string, action: string) => {
+          if (serverMode !== 'live') return false;
+          if (!client.isEmbedded) return true;
+          const requestId = `power-${Date.now()}-${nextRequestSeq++}`;
+          return new Promise<boolean>((resolve, reject) => {
+            const timer = setTimeout(() => {
+              pendingPowerRequests.delete(requestId);
+              reject(new Error('等待虚拟机电源操作完成超时'));
+            }, 30000);
+            pendingPowerRequests.set(requestId, { resolve, reject, timer });
+            client
+              .request('app.event', {
+                channel: 'exhyperv:console-power',
+                payload: {
+                  id: vmId,
+                  action,
+                  running: action === 'start' || action === 'restart',
+                  requestId
+                }
+              })
+              .catch((err) => {
+                clearTimeout(timer);
+                pendingPowerRequests.delete(requestId);
+                reject(err);
+              });
+          });
+        },
         isHostedInWinOnWeb: true,
         onVmPowerChanged: (changedVm: { id?: string; running?: boolean } | undefined) => {
+          if (serverMode === 'live') return;
           const target = changedVm || vmSnapshot;
           if (client.isEmbedded) {
             void client.request('app.event', {
@@ -81,7 +163,13 @@ import '../../shells/win11/win11-tokens.css';
           if (client.isEmbedded) {
             void client.request('app.event', {
               channel: 'exhyperv:console-new-window',
-              payload: { ...tabPayload, availableVms }
+              payload: {
+                ...tabPayload,
+                availableVms,
+                serverMode,
+                serverUrl,
+                wsTicket: ''
+              }
             }).catch(() => {});
           }
         },
@@ -121,13 +209,36 @@ import '../../shells/win11/win11-tokens.css';
         if (typeof raw.generation === 'number') nextVm.generation = raw.generation;
         if (typeof raw.mode === 'string') nextVm.mode = raw.mode;
         if (typeof raw.scaleMode === 'string') nextVm.scaleMode = raw.scaleMode;
+        if (typeof raw.desktopScale === 'number') nextVm.desktopScale = raw.desktopScale;
         if (typeof raw.resolution === 'string') nextVm.resolution = raw.resolution;
         if (typeof raw.clipboardEnabled === 'boolean') nextVm.clipboardEnabled = raw.clipboardEnabled;
+        if (typeof raw.serverMode === 'string') {
+          serverMode = raw.serverMode === 'live' ? 'live' : 'demo';
+          nextVm.serverMode = serverMode;
+          if (serverMode === 'demo') {
+            serverUrl = '';
+            unusedInitialTicket = null;
+          }
+        }
+        if (typeof raw.serverUrl === 'string') {
+          serverUrl = raw.serverUrl;
+          nextVm.serverUrl = serverUrl;
+        }
+        if (typeof raw.wsTicket === 'string') {
+          unusedInitialTicket = raw.wsTicket ? raw.wsTicket : null;
+          initialTicketVmId = typeof raw.id === 'string' ? raw.id : String(nextVm.id || '');
+          nextVm.wsTicket = raw.wsTicket;
+        } else if (serverMode === 'live' && raw.serverMode === 'live' && raw.wsTicket === '') {
+          unusedInitialTicket = null;
+        }
         vmSnapshot = nextVm as typeof vmSnapshot;
 
         const nextAdv = { ...advSnapshot };
         if (typeof raw.consoleSupport === 'boolean') nextAdv.consoleSupport = raw.consoleSupport;
         if (typeof raw.shielding === 'boolean') nextAdv.shielding = raw.shielding;
+        if (typeof raw.consoleClipboard === 'boolean') nextAdv.consoleClipboard = raw.consoleClipboard;
+        if (typeof raw.consoleAudioOutput === 'boolean') nextAdv.consoleAudioOutput = raw.consoleAudioOutput;
+        if (typeof raw.consoleAudioInput === 'boolean') nextAdv.consoleAudioInput = raw.consoleAudioInput;
         advSnapshot = nextAdv;
 
         if (Array.isArray(raw.availableVms) && raw.availableVms.length > 0) {
@@ -150,6 +261,41 @@ import '../../shells/win11/win11-tokens.css';
             if ((msg.channel === 'exhyperv:console-add-tab' || msg.channel === 'exhyperv:console-sync') && msg.payload) {
               applyLaunchPayload(msg.payload);
               ctrl.openTab(vmSnapshot, advSnapshot);
+            } else if (msg.channel === 'exhyperv:console-ticket-reply' && msg.payload) {
+              const reqId = typeof msg.payload.requestId === 'string' ? msg.payload.requestId : '';
+              const pending = pendingTicketRequests.get(reqId);
+              if (pending) {
+                clearTimeout(pending.timer);
+                pendingTicketRequests.delete(reqId);
+                if (msg.payload.serverMode === 'live' && typeof msg.payload.serverUrl === 'string' && msg.payload.serverUrl) {
+                  serverMode = 'live';
+                  serverUrl = msg.payload.serverUrl;
+                  pending.resolve({
+                    mode: 'live',
+                    serverUrl,
+                    protocol: Number(msg.payload.protocol) || 1, rights: msg.payload.rights as string[] | undefined, backendId: String(msg.payload.backendId || ''), extension: msg.payload.extension,
+                    ticket: typeof msg.payload.wsTicket === 'string' ? msg.payload.wsTicket : ''
+                  });
+                } else if (msg.payload.serverMode === 'demo') {
+                  serverMode = 'demo';
+                  serverUrl = '';
+                  pending.resolve(null);
+                } else {
+                  pending.reject(new Error(typeof msg.payload.error === 'string' ? msg.payload.error : '获取控制台连接票据失败'));
+                }
+              }
+            } else if (msg.channel === 'exhyperv:console-power-reply' && msg.payload) {
+              const reqId = typeof msg.payload.requestId === 'string' ? msg.payload.requestId : '';
+              const pending = pendingPowerRequests.get(reqId);
+              if (pending) {
+                clearTimeout(pending.timer);
+                pendingPowerRequests.delete(reqId);
+                if (msg.payload.ok === false) {
+                  pending.reject(new Error(typeof msg.payload.error === 'string' ? msg.payload.error : '虚拟机电源操作失败'));
+                } else {
+                  pending.resolve(msg.payload.mode !== 'demo');
+                }
+              }
             } else if (msg.channel === 'exhyperv:console-open-vms' && msg.payload && Array.isArray(msg.payload.vmIds)) {
               openVmIds = new Set(msg.payload.vmIds.filter((id): id is string => typeof id === 'string'));
             } else if (msg.channel === 'exhyperv:console-focus-self') {

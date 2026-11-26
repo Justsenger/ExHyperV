@@ -12,16 +12,16 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
     // Successful code modules stay loaded for the process; every connection owns and frees its contexts.
     private static readonly object ApiGate = new();
     private static NativeApi? loadedApi;
-    private static NativeApi GetApi()
+    private static NativeApi GetApi(string? cacheRoot = null)
     {
         // Publish only a complete load. LoadApi releases failed modules and file locks;
         // a later connection may retry after a temporary extraction/loading failure.
-        lock (ApiGate) return loadedApi ??= LoadApi();
+        lock (ApiGate) return loadedApi ??= LoadApi(cacheRoot);
     }
     public IConsoleNativeConnection Create(ConsoleConnectionOptions options, Action<uint, byte[], uint, uint> callback, Action<ConsoleFrame> frameCallback)
         => new Connection(GetApi(), options, enhanced, callback, frameCallback);
 
-    internal static uint RunSelfTest() => GetApi().SelfTest();
+    internal static uint RunSelfTest() => GetApi(AppContext.BaseDirectory).SelfTest();
 
     private sealed class Connection : IConsoleNativeConnection
     {
@@ -40,14 +40,25 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
                         DeliverFrame(api, data, length, a, b, frameReceiver);
                         return;
                     }
-                    if (kind == 3 || length > ConsolePayload.MaxClipboardBytes || (length != 0 && data == 0)) return;
+                    uint limit = kind == 9 ? (uint)ConsolePayload.MaxAudioPacketBytes
+                        : kind == 11 ? 1024u * 1024u
+                        : ConsolePayload.MaxClipboardBytes;
+                    if (kind == 3 || length > limit || (length != 0 && data == 0)) return;
                     byte[] copy = length == 0 ? [] : new byte[checked((int)length)];
                     if (length != 0) Marshal.Copy(data, copy, 0, copy.Length);
                     receiver(kind, copy, a, b);
                 }
                 catch (Exception diagnosticError) { CoreDiagnostics.Report("NativeCallbackFailed", error: diagnosticError); }
             };
-            handle = api.Create(options.VmId.ToString("D"), enhanced ? 1u : 0u,
+            uint modeFlags = 0u;
+            if (enhanced)
+            {
+                modeFlags |= 1u;
+                if (!options.RedirectClipboard) modeFlags |= 2u;
+                if (!options.RedirectAudioOutput) modeFlags |= 4u;
+                if (!options.RedirectAudioInput) modeFlags |= 8u;
+            }
+            handle = api.Create(options.VmId.ToString("D"), modeFlags,
                 (uint)options.Width, (uint)options.Height, options.DesktopScale,
                 (uint)Math.Ceiling(options.ConnectTimeout.TotalMilliseconds), callback, 0);
             if (handle == 0) throw new InvalidOperationException("FreeRDP could not initialize the console connection.");
@@ -86,6 +97,54 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
         internal int Left, Top, Right, Bottom;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RegionDescriptor
+    {
+        internal ConsoleFrameUpdateKind Kind;
+        internal uint DirtyCount, MoveCount, Reserved;
+        internal nint Dirty, Moves;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        internal int Left, Top, Right, Bottom;
+        internal readonly ConsoleFrameRegion Region => new(Left, Top, checked(Right - Left), checked(Bottom - Top));
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeMove
+    {
+        internal int SourceX, SourceY;
+        internal NativeRect Destination;
+    }
+
+    // SafeHandle pins each individual read even if a saved list outlives its frame.
+    private sealed class RegionList<TNative, T>(NativeFrameHandle owner, nint address, int count, Func<TNative, T> convert)
+        : IReadOnlyList<T> where TNative : unmanaged
+    {
+        public int Count => count;
+        public unsafe T this[int index]
+        {
+            get
+            {
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual((uint)index, (uint)count);
+                bool held = false;
+                try
+                {
+                    owner.DangerousAddRef(ref held);
+                    return convert(((TNative*)address)[index]);
+                }
+                finally { if (held) owner.DangerousRelease(); }
+            }
+        }
+        public IEnumerator<T> GetEnumerator()
+        {
+            for (int i = 0; i < Count; i++) yield return this[i];
+        }
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
     private static void DeliverFrame(NativeApi api, nint descriptor, uint length, uint width, uint height, Action<ConsoleFrame> receiver)
     {
         if (descriptor == 0 || length != 64) return;
@@ -102,10 +161,12 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
         try
         {
             owner = new NativeFrameHandle(descriptor, api.FrameRelease);
-            using var lease = new ConsoleFrame((int)width, (int)height, (int)frame.Stride, frame.Pixels, (int)frame.ByteLength,
-                owner, (long)frame.Sequence, (long)frame.BaseSequence,
-                new(frame.Left, frame.Top, frame.Right - frame.Left, frame.Bottom - frame.Top), (frame.Flags & 1) != 0);
+            var envelope = new ConsoleFrameRegion(frame.Left, frame.Top, frame.Right - frame.Left, frame.Bottom - frame.Top);
+            using var lease = ReadFrame(api, owner, frame, envelope);
+            if (lease == null) return;
             transferred = true;
+            // Disjoint dirty rectangles can give the legacy reader a full-screen envelope.
+            if (lease.Damage != envelope) return;
             receiver(lease);
         }
         finally
@@ -116,6 +177,38 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
                 else api.FrameRelease(descriptor);
             }
         }
+    }
+
+    private static ConsoleFrame? ReadFrame(NativeApi api, NativeFrameHandle owner, FrameDescriptor frame, ConsoleFrameRegion envelope)
+    {
+        if (api.QueryRegions == null)
+            return new((int)frame.Width, (int)frame.Height, (int)frame.Stride, frame.Pixels, (int)frame.ByteLength,
+                owner, (long)frame.Sequence, (long)frame.BaseSequence, envelope, (frame.Flags & 1) != 0);
+
+        if (api.QueryRegions(owner.DangerousGetHandle(), 1, (uint)Marshal.SizeOf<RegionDescriptor>(), out var regions) == 0
+            || regions.Reserved != 0 || regions.DirtyCount > int.MaxValue / 16 || regions.MoveCount > int.MaxValue / 24
+            || (regions.DirtyCount != 0 && regions.Dirty == 0) || (regions.MoveCount != 0 && regions.Moves == 0)) return null;
+
+        IReadOnlyList<ConsoleFrameRegion> dirty = regions.DirtyCount == 0 ? [] :
+            new RegionList<NativeRect, ConsoleFrameRegion>(owner, regions.Dirty, (int)regions.DirtyCount, static r => r.Region);
+        IReadOnlyList<ConsoleFrameMove> moves = regions.MoveCount == 0 ? [] :
+            new RegionList<NativeMove, ConsoleFrameMove>(owner, regions.Moves, (int)regions.MoveCount,
+                static m => new(m.SourceX, m.SourceY, m.Destination.Region));
+        return new((int)frame.Width, (int)frame.Height, (int)frame.Stride, frame.Pixels, (int)frame.ByteLength,
+            owner, (long)frame.Sequence, (long)frame.BaseSequence, regions.Kind, dirty, moves);
+    }
+
+    internal static void RunFrameFixture(Action<ConsoleFrame> receiver)
+    {
+        var api = GetApi(AppContext.BaseDirectory);
+        Exception? failure = null;
+        var fixture = api.FrameFixture ?? throw new EntryPointNotFoundException("The native frame fixture is missing.");
+        uint result = fixture((_, data, length, width, height, _) =>
+        {
+            try { DeliverFrame(api, data, length, width, height, receiver); }
+            catch (Exception error) { failure ??= error; }
+        }, 0);
+        if (result != 0 || failure != null) throw new InvalidDataException($"Frame fixture failed ({result}).", failure);
     }
 
     private sealed class NativeFrameHandle : SafeHandle
@@ -136,6 +229,11 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int FrameRetainDelegate(nint frame);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate nint CaptureFrameDelegate(nint connection);
 
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int QueryRegionsDelegate(nint frame, uint version, uint size, out RegionDescriptor regions);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate uint FrameFixtureDelegate(Callback receiver, nint user);
+
     private sealed class NativeApi(nint module, List<FileStream> locks)
     {
         // Keep the verified files open for the same lifetime as the loaded module, including its dependencies.
@@ -149,11 +247,15 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
         internal readonly FrameRetainDelegate FrameRetain = Export<FrameRetainDelegate>(module, "exhv_frame_retain");
         internal readonly StopDelegate FrameRelease = Export<StopDelegate>(module, "exhv_frame_release");
         internal readonly CaptureFrameDelegate CaptureFrame = Export<CaptureFrameDelegate>(module, "exhv_capture_frame");
+        internal readonly QueryRegionsDelegate? QueryRegions = Optional<QueryRegionsDelegate>(module, "exhv_frame_query_regions");
+        internal readonly FrameFixtureDelegate? FrameFixture = Optional<FrameFixtureDelegate>(module, "exhv_selftest_frames");
+        private static T? Optional<T>(nint module, string name) where T : Delegate
+            => NativeLibrary.TryGetExport(module, name, out var address) ? Marshal.GetDelegateForFunctionPointer<T>(address) : null;
         private static T Export<T>(nint module, string name) where T : Delegate
             => Marshal.GetDelegateForFunctionPointer<T>(NativeLibrary.GetExport(module, name));
     }
 
-    private static NativeApi LoadApi()
+    private static NativeApi LoadApi(string? cacheRoot)
     {
         string rid = RuntimeInformation.ProcessArchitecture switch
         {
@@ -165,7 +267,7 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
         using var bytes = new MemoryStream();
         resource.CopyTo(bytes);
         string identity = Convert.ToHexString(SHA256.HashData(bytes.GetBuffer().AsSpan(0, checked((int)bytes.Length))));
-        string folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        string folder = Path.Combine(cacheRoot ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "ExHyperV", "console-native", rid, identity);
         using var mutex = new Mutex(false, @"Local\ExHyperV.ConsoleNative." + identity);
         bool acquired = false;

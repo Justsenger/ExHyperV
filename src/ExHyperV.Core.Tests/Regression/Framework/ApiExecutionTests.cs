@@ -513,7 +513,7 @@ public sealed class ApiExecutionTests
             var runner = new VmQueryTestRunner(directory, execute: (_, _, _) =>
             {
                 calls++;
-                return Task.FromResult(new ApiCaseResult(ApiTestStatus.Failed, "原操作失败；恢复记录已保留", ["归属记录"], 1, 3, RecoveryRequired: true));
+                return Task.FromResult(new ApiCaseResult(ApiTestStatus.Failed, "原操作失败，恢复记录已保留", ["归属记录"], 1, 3, RecoveryRequired: true));
             });
             Assert.IsTrue(runner.TryStart(resources, Request(resources, ids), CancellationToken.None, out _));
             await runner.Completion;
@@ -524,7 +524,7 @@ public sealed class ApiExecutionTests
             StringAssert.Contains(result.Items.Single(i => i.Id == ids[1]).Detail, "尚未调用");
             Assert.IsNotNull(result.Error);
             StringAssert.Contains(result.Error, "IsoBuilderService.BuildUdfIso()");
-            StringAssert.Contains(result.Error, "原操作失败；恢复记录已保留");
+            StringAssert.Contains(result.Error, "原操作失败，恢复记录已保留");
             Assert.IsFalse(result.Running);
         });
     }

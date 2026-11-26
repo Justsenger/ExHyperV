@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Management;
+using System.Text.Json;
+using System.Xml;
 using ExHyperV.Models;
 using ExHyperV.Tools;
 
@@ -78,6 +80,7 @@ internal sealed partial class VmQueryEngine
                 var groups = await VmGroupService.ReadAsync().ConfigureAwait(false);
                 return Done(groups.Groups.SelectMany(g => g.VmIds.Where(_ids.Contains).Select(vm => Row(g.Id.ToString("D"), vm, ("Id", g.Id), ("Name", g.Name)))));
             case "Metadata": return BuildMetadata();
+            case "ConsoleFeatures": return BuildConsoleFeatures();
             case "Storage": return BuildStorage();
             case "DiskFiles": return await BuildDiskFilesAsync().ConfigureAwait(false);
             case "Connections": return BuildConnections();
@@ -119,6 +122,38 @@ internal sealed partial class VmQueryEngine
             if (kvp == null) throw new InvalidDataException("未找到当前配置的 HostOnlyItems 组件。");
             foreach (var pair in VmMetadataService.ParseItems(kvp.Strings("HostOnlyItems")))
                 rows.Add(Row(id + ":" + pair.Key, id, ("Key", pair.Key), ("Value", pair.Value)));
+        }
+        return Done(rows);
+    }
+
+    private ReadResult BuildConsoleFeatures()
+    {
+        var settings = Read("Settings"); var data = Read("MetadataRaw");
+        if (settings.State != VmQueryValueState.Available) return settings;
+        if (data.State != VmQueryValueState.Available) return data;
+        var rows = new List<RawRow>(_ids.Length);
+        foreach (var id in _ids)
+        {
+            try
+            {
+                var config = settings.Rows.SingleOrDefault(r => Owned(r, id))
+                    ?? throw new InvalidDataException("未找到虚拟机当前配置。");
+                var kvp = data.Rows.SingleOrDefault(r => r.Key.Equals(config.Text("InstanceID") + "\\" + VmMetadataService.ComponentId, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new InvalidDataException("未找到当前配置的 HostOnlyItems 组件。");
+                var metadata = VmMetadataService.ParseItems(kvp.Strings("HostOnlyItems"));
+                var features = VmMetadataService.ParseConsoleFeatures(metadata);
+                rows.Add(Row(id.ToString("D"), id,
+                    ("EnhancedClipboard", features.Clipboard),
+                    ("EnhancedAudioOutput", features.AudioOutput),
+                    ("EnhancedAudioInput", features.AudioInput)));
+            }
+            catch (Exception ex) when (ex is XmlException or JsonException or InvalidDataException or ArgumentException)
+            {
+                rows.Add(Row(id.ToString("D"), id,
+                    ("EnhancedClipboard", VmConsoleFields.EnhancedClipboard.Make(VmQueryValueState.Failed, null, data.Time, ex.Message)),
+                    ("EnhancedAudioOutput", VmConsoleFields.EnhancedAudioOutput.Make(VmQueryValueState.Failed, null, data.Time, ex.Message)),
+                    ("EnhancedAudioInput", VmConsoleFields.EnhancedAudioInput.Make(VmQueryValueState.Failed, null, data.Time, ex.Message))));
+            }
         }
         return Done(rows);
     }

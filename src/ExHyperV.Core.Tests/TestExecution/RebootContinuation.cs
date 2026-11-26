@@ -69,7 +69,7 @@ internal static class RebootContinuation
         string? configuration, CatalogTest[] cases, Action<ApiTestReport> update, int inspectionPort)
     {
         if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true")
-            throw new InvalidOperationException("当前 Actions 作业缺少跨宿主重启的外部接管端；请从本机测试页面执行重启项。");
+            throw new InvalidOperationException("当前 Actions 作业缺少跨宿主重启的外部接管端，请从本机测试页面执行重启项。");
         string run = Path.Combine(reports, resources.RunId, "api-tests", report.RunId), directory = Path.Combine(run, "reboot-continuation"), bin = Path.Combine(directory, "bin");
         if (Path.GetFullPath(bin).StartsWith(Path.GetFullPath(AppContext.BaseDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
             throw new IOException("续跑报告目录应位于程序发布目录之外。");
@@ -99,7 +99,7 @@ internal static class RebootContinuation
             batch = Read(state);
             if (batch.Started) throw new IOException("续跑任务已经接管，结果将由持久任务继续保存：" + state, e);
             // Mark the durable batch complete before removing the task, so a delayed trigger exits immediately.
-            batch = batch with { Completed = true, Report = report with { Running = false, Finished = DateTimeOffset.Now, Phase = "重启续跑条件待补齐", Items = report.Items.Select(i => batch.CheckIds.Contains(i.Id) ? i with { Status = ApiTestStatus.Skipped, Detail = "当前账户的最高权限开机续跑任务注册失败；宿主配置保持原样。" + e.Message } : i).ToArray() } }; Save(state, batch); return batch.Report;
+            batch = batch with { Completed = true, Report = report with { Running = false, Finished = DateTimeOffset.Now, Phase = "重启续跑条件待补齐", Items = report.Items.Select(i => batch.CheckIds.Contains(i.Id) ? i with { Status = ApiTestStatus.Skipped, Detail = "当前账户的最高权限开机续跑任务注册失败，宿主配置保持原样。" + e.Message } : i).ToArray() } }; Save(state, batch); return batch.Report;
         }
         // The scheduled task owns the durable result. After reboot this waiting process may disappear;
         // a new inspection host reads the same marker and result, without resubmitting the tests.
@@ -124,7 +124,7 @@ internal static class RebootContinuation
                     if (!batch.Completed && batch.WaitingForBoot is null && !taskState.GetProperty("running").GetBoolean()
                         && DateTime.UtcNow - File.GetLastWriteTimeUtc(state) > TimeSpan.FromMinutes(2))
                     {
-                        const string message = "重启续跑进程已退出，保存的阶段仍未完成；请核对原配置与恢复材料。";
+                        const string message = "重启续跑进程已退出，保存的阶段仍未完成，请核对原配置与恢复材料。";
                         File.WriteAllText(Path.Combine(batch.Directory, "recovery-hold.txt"), message);
                         batch = Finish(batch, message, ApiTestStatus.Skipped);
                         batch = batch with { Report = batch.Report with { Error = message, Items = batch.Report.Items.Select(v => v.Status == ApiTestStatus.Running ? v with { Status = ApiTestStatus.Failed, Detail = message } : v).ToArray() } };
@@ -157,7 +157,7 @@ internal static class RebootContinuation
                 var running = ExHyperV.Services.HyperVSchedulerService.GetSchedulerType();
                 if (!pending.Success || pending.HasData || configured != running || configured == ExHyperV.Services.HyperVSchedulerType.Unknown)
                 {
-                    batch = Finish(batch, "宿主已有待生效的系统类型／调度器配置，或当前模式无法核验；请先处理原有变更。", ApiTestStatus.Skipped);
+                    batch = Finish(batch, "宿主已有待生效的系统类型／调度器配置，或当前模式无法核验，请先处理原有变更。", ApiTestStatus.Skipped);
                     Save(statePath, batch); await RemoveTaskAsync(batch); return 0;
                 }
                 var vms = await WindowsTestCommand.RunAsync("@{items=@(Get-VM|Select-Object @{n='id';e={$_.Id.ToString()}},@{n='state';e={$_.State.ToString()}},@{n='automaticStartAction';e={$_.AutomaticStartAction.ToString()}})}|ConvertTo-Json -Depth 4");
@@ -222,7 +222,7 @@ internal static class RebootContinuation
                 if (cancelled) break;
             }
             await RestoreMachinesAsync(batch.Machines!);
-            batch = Finish(batch, File.Exists(Path.Combine(batch.Directory, "cancel.request")) ? "已停止；宿主与虚拟机原状态已恢复" : "所选 API 测试及宿主恢复已完成", ApiTestStatus.Cancelled); Save(statePath, batch);
+            batch = Finish(batch, File.Exists(Path.Combine(batch.Directory, "cancel.request")) ? "已停止，宿主与虚拟机原状态已恢复" : "所选 API 测试及宿主恢复已完成", ApiTestStatus.Cancelled); Save(statePath, batch);
             await RemoveTaskAsync(batch); return batch.Report.Items.Any(v => v.Status == ApiTestStatus.Failed) ? 1 : 0;
         }
         catch (Exception e)

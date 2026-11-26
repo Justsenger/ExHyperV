@@ -136,6 +136,32 @@ internal static class ConsoleApiCases
                     { c.Require(c.Call(() => conn.SetClipboard(data)), "格式进入发送队列"); var clipboardCommand = backend.Native.Sent.Last(); c.Equal(4U, clipboardCommand.Kind, "剪贴板指令"); c.Require(ConsolePayload.TryReadClipboard(clipboardCommand.Bytes, out var decoded), "接收端解码"); c.Sequence(data.Formats[0].Data.ToArray(), decoded.Formats[0].Data.ToArray(), "格式内容完整"); }
                 }
                 break;
+            case "IConsoleAudioInput.SendAudio()":
+                var basicAudioBackend = new ConsoleConnectionChecks.FakeBackend();
+                await using (var basic = new FreeRdpConsoleConnection(new() { VmId = Guid.NewGuid() }, false, basicAudioBackend))
+                    c.Require(basic.AudioOutput is null && basic.AudioInput is null, "基本会话不提供音频通道");
+                var audioOut = conn.AudioOutput!;
+                var audioIn = conn.AudioInput!;
+                var receivedPackets = new List<ConsoleAudioPacket>();
+                audioOut.AudioReceived += receivedPackets.Add;
+                var expectedFormat = new ConsoleAudioFormat(48000, 2, ConsoleAudioSampleFormat.Signed16LittleEndian);
+                c.Require(!c.Call(() => audioIn.SendAudio(expectedFormat, new byte[8])), "音频输入就绪前拒绝发送");
+                backend.Emit(8, [], 1, 0);
+                backend.Emit(9, [1, 2, 3, 4], 48000, 2u | (0u << 8));
+                c.Require(audioOut.IsAvailable && receivedPackets.Count == 1 && receivedPackets[0].Format == expectedFormat, "增强会话交付音频输出包");
+                backend.Emit(10, [], 48000, 2u | (0u << 8));
+                c.Require(audioIn.IsAvailable && audioIn.Format == expectedFormat, "音频输入报告格式与可用状态");
+                c.Require(!c.Call(() => audioIn.SendAudio(new(44100, 2, ConsoleAudioSampleFormat.Signed16LittleEndian), new byte[8])), "拒绝不匹配的采样率");
+                c.Require(!c.Call(() => audioIn.SendAudio(expectedFormat, new byte[6])), "拒绝残缺采样帧");
+                byte[] micBytes = [9, 8, 7, 6, 5, 4, 3, 2];
+                c.Require(c.Call(() => audioIn.SendAudio(expectedFormat, micBytes)), "接受匹配格式的麦克风采样");
+                var micCommand = backend.Native.Sent.Last(item => item.Kind == 7);
+                c.Equal(48000U, BinaryPrimitives.ReadUInt32LittleEndian(micCommand.Bytes), "音频采样率");
+                c.Equal(8U, BinaryPrimitives.ReadUInt32LittleEndian(micCommand.Bytes.AsSpan(8)), "音频负载长度");
+                c.Require(micCommand.Bytes.AsSpan(12).SequenceEqual(micBytes), "发送保留原始 PCM 字节");
+                await conn.DisconnectAsync();
+                c.Require(!audioOut.IsAvailable && !audioIn.IsAvailable && audioIn.Format is null, "断线后复位音频可用状态");
+                break;
             default: throw new InvalidOperationException(p.Api);
         }
     }
@@ -169,7 +195,7 @@ internal static class ConsoleApiCases
             ushort immediate = Convert.ToUInt16(SystemBaseline.Vm(vm.Id)["EnabledState"]);
             // The API promises Hyper-V input acceptance. Firmware and the installed
             // OS decide how to react; a firmware reset is a valid reaction.
-            c.Evidence.Add($"Hyper-V 已接受 Ctrl+Alt+Del；调用后观测到状态码 {immediate}。已核验有效目标、空 ID 和缺席目标的接口结果。"); return;
+            c.Evidence.Add($"Hyper-V 已接受 Ctrl+Alt+Del，调用后观测到状态码 {immediate}。已核验有效目标、空 ID 和缺席目标的接口结果。"); return;
         }
         if (p.Api == "VmScreenshotSource.CaptureAsync()")
         {
@@ -213,7 +239,7 @@ internal static class ConsoleApiCases
                 await Task.Delay(250, c.Token);
             } while (DateTime.UtcNow < deadline && connection.State == ConsoleConnectionState.Connected);
             if (!accepted && !loggedOn.Task.IsCompleted && connection.State == ConsoleConnectionState.Connected)
-                throw new ApiCheckSkippedException("增强会话已有登录画面，但尚未登录桌面，显示通道未就绪；分辨率实测需要已登录的测试桌面。");
+                throw new ApiCheckSkippedException("增强会话已有登录画面，但尚未登录桌面，显示通道未就绪，分辨率实测需要已登录的测试桌面。");
             c.Require(accepted, "尺寸请求进入真实连接");
             await resized.Task.WaitAsync(TimeSpan.FromSeconds(30)); c.Evidence.Add("已收到 1600×900 的实际画面帧。");
         }

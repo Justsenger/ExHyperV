@@ -29,7 +29,7 @@ internal static class VmPerformanceSamplingCases
             c.Require(sample.State != PerformanceSampleState.NotSampled, "每个设备具有明确的采样状态");
             if (sample.IsValid) c.Require(double.IsFinite(first) && double.IsFinite(second) && first >= 0 && second >= 0, "有效速率为有限非负数，单位为字节/秒");
         }
-        c.Evidence.Add(string.Join("；", samples.GroupBy(s => s.PerformanceSample.State).Select(g => $"{g.Key}：{g.Count()}")));
+        c.Evidence.Add(string.Join("，", samples.GroupBy(s => s.PerformanceSample.State).Select(g => $"{g.Key}：{g.Count()}")));
         if (samples.All(s => !s.PerformanceSample.IsValid))
             throw new ApiCheckSkippedException("本轮缺少有效速率样本：" + string.Join("、", samples.Select(s => s.PerformanceSample.State).Distinct()));
 
@@ -80,7 +80,7 @@ internal static class VmPerformanceSamplingCases
             var counter = new Counter(instance, () => kind == "Bytes Sent/sec" ? sent : received);
             counters.Add(counter); return counter;
         });
-        c.Evidence.Add("注入固定网卡计数器，实际调用 Core 公开采样 API；宿主设备保持原状态。");
+        c.Evidence.Add("注入固定网卡计数器，实际调用 Core 公开采样 API，宿主设备保持原状态。");
         await SampleAsync();
         c.Equal(PerformanceSampleState.WarmingUp, adapter.PerformanceSample.State, "首次采样预热");
         await SampleAsync();

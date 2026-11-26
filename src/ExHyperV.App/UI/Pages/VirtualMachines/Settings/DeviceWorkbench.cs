@@ -534,13 +534,13 @@ internal static class DeviceWorkbench
     internal static Border PivotHeader(
         FrameworkElement scope,
         IReadOnlyList<(string Glyph, string Label, bool Active, Action OnSelect)> tabs,
-        Action onBack,
+        Action? onBack = null,
         Button? trailingButton = null) => PivotHeader(scope, tabs, onBack, trailingButton, actionBottomMargin: 4);
 
     internal static Border PivotHeader(
         FrameworkElement scope,
         IReadOnlyList<(string Glyph, string Label, bool Active, Action OnSelect)> tabs,
-        Action onBack,
+        Action? onBack,
         Button? trailingButton,
         double actionBottomMargin)
     {
@@ -605,29 +605,76 @@ internal static class DeviceWorkbench
             btn.FontSize = 13;
         }
 
-        var backBtn = new Button { Content = L10n.Get("Pcie_Back") };
-        StyleCompactHeaderButton(backBtn);
-        backBtn.Click += (_, _) => onBack();
-
-        FrameworkElement right;
-        if (trailingButton is null)
+        FrameworkElement? right = null;
+        if (onBack is not null)
         {
-            right = backBtn;
+            var backBtn = new Button { Content = L10n.Get("Pcie_Back") };
+            StyleCompactHeaderButton(backBtn);
+            backBtn.Click += (_, _) => onBack();
+            if (trailingButton is null)
+            {
+                right = backBtn;
+            }
+            else
+            {
+                StyleCompactHeaderButton(trailingButton);
+                right = Actions(backBtn, trailingButton);
+            }
         }
-        else
+        else if (trailingButton is not null)
         {
             StyleCompactHeaderButton(trailingButton);
-            right = Actions(backBtn, trailingButton);
+            right = trailingButton;
         }
-        right.Margin = new Thickness(0, 0, 0, actionBottomMargin);
-        right.VerticalAlignment = VerticalAlignment.Center;
+
+        FrameworkElement headerChild = tabRow;
+        if (right is not null)
+        {
+            right.Margin = new Thickness(0, 0, 0, actionBottomMargin);
+            right.VerticalAlignment = VerticalAlignment.Center;
+            headerChild = Split(tabRow, right);
+        }
 
         return new Border
         {
             BorderBrush = ThemeHelper.ThemeBrush(scope, "DividerStrokeColorDefaultBrush"),
             BorderThickness = new Thickness(0, 0, 0, 1),
-            Child = Split(tabRow, right)
+            Child = headerChild
         };
+    }
+
+    internal static Border InlineBanner(FrameworkElement scope, string message, InfoBarSeverity severity)
+    {
+        var (background, _, _, _) = FloatingNoticeBanner.ResolveBannerAppearance(severity);
+        var badge = FloatingNoticeBanner.CreateNoticeBadge(scope.ActualTheme, severity);
+        var text = new TextBlock
+        {
+            Text = message,
+            FontSize = 12.5,
+            FontWeight = FontWeights.Medium,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        var row = new Grid { ColumnSpacing = 10 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(text, 1);
+        row.Children.Add(badge);
+        row.Children.Add(text);
+        var banner = new Border
+        {
+            MinHeight = 36,
+            Margin = new Thickness(0, 2, 0, 0),
+            Padding = new Thickness(12, 7, 12, 7),
+            CornerRadius = new CornerRadius(6),
+            BorderThickness = new Thickness(1),
+            BorderBrush = ThemeHelper.ThemeBrush(scope, "CardStrokeColorDefaultBrush"),
+            Background = ThemeHelper.ThemeBrush(scope, background),
+            Child = row
+        };
+        AutomationProperties.SetName(banner, message);
+        AutomationProperties.SetLiveSetting(banner, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
+        return banner;
     }
 
     internal static InfoBar Notice(string title, string message, InfoBarSeverity severity = InfoBarSeverity.Warning) =>

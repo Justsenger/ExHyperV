@@ -1,18 +1,18 @@
 namespace ExHyperV.Services;
 
-/// <summary>来宾声音接收的预留接口；当前内置后端尚未实现。</summary>
-/// <remarks>连接的 AudioOutput 当前为 null。接口约定通过 AudioReceived 交付 PCM 音频包，由调用方播放或编码。</remarks>
+/// <summary>接收来自来宾虚拟机的 PCM 音频输出。</summary>
+/// <remarks>RdpBasic 为 null，RdpEnhanced 通过增强会话通道交付来宾声音的 PCM 音频包，播放或混音由调用方负责。</remarks>
 /// <businessdoc category="音频">
-/// <summary>来宾声音接收；当前尚未实现。</summary>
-/// <para>接收方向为“来宾 → 调用方”，数据格式为 PCM；播放由调用方负责。RdpBasic 和 RdpEnhanced 尚未接入音频。</para>
+/// <summary>来宾声音接收。</summary>
+/// <para>接收方向为“来宾 → 调用方”，数据格式为 PCM，播放由调用方负责。RdpBasic 不提供音频通道，RdpEnhanced 在来宾启用声音服务后可用。</para>
 /// <para>采样格式和数据包约定见 <see cref="ConsoleAudioFormat"/>、<see cref="ConsoleAudioPacket"/>。</para>
 /// </businessdoc>
-internal interface IConsoleAudioOutput
+public interface IConsoleAudioOutput
 {
     /// <summary>音频接收通道是否已就绪。</summary>
     /// <fielddoc>
     /// <meaning>音频接收通道是否已就绪。</meaning>
-    /// <values kind="options">true：就绪；false：未就绪或已断开。</values>
+    /// <values kind="options">true 表示就绪，false 表示未就绪或已断开。</values>
     /// </fielddoc>
     bool IsAvailable { get; }
     /// <summary>音频接收通道变为可用或不可用时通知，参数为变化后的 IsAvailable。</summary>

@@ -50,7 +50,7 @@ internal static class VmDeletionApiCases
             {
                 c.Require(new[] { own, child }.All(path => preview.RetainedDiskFiles.Contains(path, StringComparer.OrdinalIgnoreCase)
                     && !preview.DiskFiles.Contains(path, StringComparer.OrdinalIgnoreCase)), "无法确认依赖时预览保留候选磁盘");
-                throw new ApiCheckSkippedException("已核验保护行为；专属盘删除预览需要其他虚拟机的磁盘引用可读。缺失：" + string.Join("、", missing));
+                throw new ApiCheckSkippedException("已核验保护行为，专属盘删除预览需要其他虚拟机的磁盘引用可读。缺失：" + string.Join("、", missing));
             }
             c.Require(preview.DiskFiles.Contains(own, StringComparer.OrdinalIgnoreCase) && preview.DiskFiles.Contains(child, StringComparer.OrdinalIgnoreCase), "预览包括专属磁盘和专属差分子盘");
         }
@@ -67,7 +67,7 @@ internal static class VmDeletionApiCases
                 c.Equal(VmRegistrationState.Unregistered, result.RegistrationState, "返回实际注销状态");
                 c.Require(new[] { own, child }.All(path => File.Exists(path) && result.RetainedPaths.Contains(path, StringComparer.OrdinalIgnoreCase)), "无法确认依赖时保留并报告磁盘");
                 c.Evidence.Add(result.CleanupError!);
-                throw new ApiCheckSkippedException("已核验注销与磁盘保护；删除专属盘需要其他虚拟机的磁盘引用可读。缺失：" + string.Join("、", missing));
+                throw new ApiCheckSkippedException("已核验注销与磁盘保护，删除专属盘需要其他虚拟机的磁盘引用可读。缺失：" + string.Join("、", missing));
             }
             c.Require(result.Success, "彻底删除：" + result.Error + " " + result.CleanupError);
             c.Require(!File.Exists(own) && !File.Exists(child), "目标专属磁盘清理");

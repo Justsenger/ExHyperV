@@ -78,12 +78,6 @@
   <data name="Nav_Host" xml:space="preserve">
     <value>Host</value>
   </data>
-  <data name="Nav_Web" xml:space="preserve">
-    <value>Web</value>
-  </data>
-  <data name="Web_Title" xml:space="preserve">
-    <value>Web</value>
-  </data>
   <data name="Nav_Settings" xml:space="preserve">
     <value>Settings</value>
   </data>
@@ -1806,6 +1800,9 @@ Fixed tries to hold the target MHz.</value>
   <data name="Cpu_Val_CountRange" xml:space="preserve">
     <value>Cores (vCPU) must be between 1 and {0}.</value>
   </data>
+  <data name="Cpu_Val_CountPositive" xml:space="preserve">
+    <value>Cores (vCPU) must be at least 1.</value>
+  </data>
   <data name="Cpu_Val_ResRange" xml:space="preserve">
     <value>Processor reservation must be between 0% and 100%.</value>
   </data>
@@ -2196,6 +2193,81 @@ Fixed tries to hold the target MHz.</value>
   <data name="Host_Env_PendingSwitch" xml:space="preserve">
     <value>Pending product type switch to {0} (awaiting restart)</value>
   </data>
+  <data name="Host_Env_PendingRestart" xml:space="preserve">
+    <value>Restart pending</value>
+  </data>
+  <data name="Host_Env_StartService" xml:space="preserve">
+    <value>Start service</value>
+  </data>
+  <data name="Host_Env_CpuInfo_Ready" xml:space="preserve">
+    <value>Hardware virtualization is enabled. The processor can run Hyper-V virtual machines.</value>
+  </data>
+  <data name="Host_Env_CpuInfo_Unavailable" xml:space="preserve">
+    <value>Hardware virtualization was not detected. Enable virtualization in BIOS or UEFI. If this host is a virtual machine, enable nested virtualization.</value>
+  </data>
+  <data name="Host_Env_HvInfo_Ready" xml:space="preserve">
+    <value>The hypervisor, Virtual Machine Management service (VMMS), and Hyper-V WMI interface are running.</value>
+  </data>
+  <data name="Host_Env_HvInfo_PendingEnable" xml:space="preserve">
+    <value>Hyper-V is configured to start. Restart the host to finish enabling it.</value>
+  </data>
+  <data name="Host_Env_HvInfo_PendingDisable" xml:space="preserve">
+    <value>The hypervisor is still running in this session. It will be disabled when the host restarts.</value>
+  </data>
+  <data name="Host_Env_HvInfo_Unknown" xml:space="preserve">
+    <value>The current Hyper-V status could not be determined.</value>
+  </data>
+  <data name="Host_Env_HvInfo_Inactive" xml:space="preserve">
+    <value>The hypervisor is not running. Enable Hyper-V to configure the required Windows features and boot settings.</value>
+  </data>
+  <data name="Host_Env_HvInfo_VmmsStopped" xml:space="preserve">
+    <value>The Virtual Machine Management service (VMMS) is not running. Start the service to restore Hyper-V management.</value>
+  </data>
+  <data name="Host_Env_HvInfo_VmmsDisabled" xml:space="preserve">
+    <value>The Virtual Machine Management service (VMMS) is disabled. Change its startup type before starting the service.</value>
+  </data>
+  <data name="Host_Env_HvInfo_VmmsExeMissing" xml:space="preserve">
+    <value>The VMMS executable is missing. Repair the Hyper-V components.</value>
+  </data>
+  <data name="Host_Env_HvInfo_VmmsExeMissingPath" xml:space="preserve">
+    <value>The VMMS executable is missing from {0}. Repair the Hyper-V components.</value>
+  </data>
+  <data name="Host_Env_HvInfo_VmmsMissing" xml:space="preserve">
+    <value>The Virtual Machine Management service (VMMS) is not installed. Enable Hyper-V to install the required components.</value>
+  </data>
+  <data name="Host_Env_HvInfo_WmiError" xml:space="preserve">
+    <value>VMMS is running, but the Hyper-V WMI management interface is unavailable.</value>
+  </data>
+  <data name="Host_Env_Notice_PendingEnable" xml:space="preserve">
+    <value>Hyper-V has been configured to start. Restart the host to apply this change.</value>
+  </data>
+  <data name="Host_Env_Notice_PendingDisable" xml:space="preserve">
+    <value>The hypervisor is configured to stay off at boot. Restart the host to apply this change.</value>
+  </data>
+  <data name="Host_Env_Notice_VmmsStarted" xml:space="preserve">
+    <value>VMMS has started. Hyper-V is ready.</value>
+  </data>
+  <data name="Host_Env_GpuPvInfo_Ready" xml:space="preserve">
+    <value>GPU-PV requires Windows 10 version 1803 (build 17134) or later.</value>
+  </data>
+  <data name="Host_Env_GpuPvInfo_Unavailable" xml:space="preserve">
+    <value>This OS is below the GPU-PV minimum of Windows 10 version 1803 (build 17134).</value>
+  </data>
+  <data name="Host_Env_IommuInfo_Ready" xml:space="preserve">
+    <value>The host reports hardware DMA protection for PCIe device passthrough.</value>
+  </data>
+  <data name="Host_Env_IommuInfo_Unavailable" xml:space="preserve">
+    <value>Hardware DMA protection was not detected. Enable IOMMU or SMMU support in the host firmware.</value>
+  </data>
+  <data name="Host_Env_ServerInfo_Ready" xml:space="preserve">
+    <value>This host runs Windows Server, which supports Discrete Device Assignment (DDA) for PCIe passthrough.</value>
+  </data>
+  <data name="Host_Env_ServerInfo_Workstation" xml:space="preserve">
+    <value>This host runs a client edition of Windows. Native PCIe passthrough with Discrete Device Assignment (DDA) requires Windows Server.</value>
+  </data>
+  <data name="Host_Env_ServerInfo_Pending" xml:space="preserve">
+    <value>Native PCIe passthrough (DDA) requires Windows Server. The product type change to {0} takes effect when the host restarts.</value>
+  </data>
   <data name="Host_Set_Sub_Scheduler" xml:space="preserve">
     <value>CPU Scheduler</value>
   </data>
@@ -2248,7 +2320,64 @@ Fixed tries to hold the target MHz.</value>
     <value>Power Plan</value>
   </data>
   <data name="Host_Set_Power_Desc" xml:space="preserve">
-    <value>Enumerate installed Windows power schemes and switch the active plan.</value>
+    <value>Enumerate installed Windows power schemes, switch the active plan, and adjust subgroup settings below.</value>
+  </data>
+  <data name="Host_Set_Power_SearchPlaceholder" xml:space="preserve">
+    <value>Filter power settings, subgroups, or descriptions...</value>
+  </data>
+  <data name="Host_Set_Power_ExpandAll" xml:space="preserve">
+    <value>Expand All</value>
+  </data>
+  <data name="Host_Set_Power_CollapseAll" xml:space="preserve">
+    <value>Collapse All</value>
+  </data>
+  <data name="Host_Set_Power_ShowHidden" xml:space="preserve">
+    <value>Show Hidden</value>
+  </data>
+  <data name="Host_Set_Power_ShowHiddenDesc" xml:space="preserve">
+    <value>Show advanced Windows power settings hidden by default.</value>
+  </data>
+  <data name="Host_Set_Power_Count" xml:space="preserve">
+    <value>{0} items</value>
+  </data>
+  <data name="Host_Set_Power_CountRatio" xml:space="preserve">
+    <value>{0} / {1}</value>
+  </data>
+  <data name="Host_Set_Power_ColSetting" xml:space="preserve">
+    <value>Setting</value>
+  </data>
+  <data name="Host_Set_Power_ColAc" xml:space="preserve">
+    <value>Plugged in (AC)</value>
+  </data>
+  <data name="Host_Set_Power_ColDc" xml:space="preserve">
+    <value>On battery (DC)</value>
+  </data>
+  <data name="Host_Set_Power_HiddenTag" xml:space="preserve">
+    <value>Hidden</value>
+  </data>
+  <data name="Host_Set_Power_NoSubgroup" xml:space="preserve">
+    <value>General System Power</value>
+  </data>
+  <data name="Host_Set_Power_RangeHint" xml:space="preserve">
+    <value>Range: {0}–{1}</value>
+  </data>
+  <data name="Host_Set_Power_RangeUnitHint" xml:space="preserve">
+    <value>Range: {0}–{1} {2}</value>
+  </data>
+  <data name="Host_Set_Power_ZeroNeverHint" xml:space="preserve">
+    <value>{0} (0 = Never)</value>
+  </data>
+  <data name="Host_Set_Power_CustomOption" xml:space="preserve">
+    <value>Custom ({0})</value>
+  </data>
+  <data name="Host_Set_Power_InvalidNumber" xml:space="preserve">
+    <value>Please enter a valid integer between {0} and {1}.</value>
+  </data>
+  <data name="Host_Set_Power_Empty" xml:space="preserve">
+    <value>No matching power settings found. Try clearing the filter or enabling Show Hidden.</value>
+  </data>
+  <data name="Host_Set_Power_Loading" xml:space="preserve">
+    <value>Loading power plan settings...</value>
   </data>
   <data name="Host_Set_PathVm_Title" xml:space="preserve">
     <value>Default VM Location</value>
@@ -4736,4 +4865,164 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
   <data name="Settings_OpenLinkFailed" xml:space="preserve"><value>Windows could not open this link.</value></data>
   <data name="Settings_ConsoleLaunchFailed" xml:space="preserve"><value>Windows could not open the Remote Desktop connection file.</value></data>
   <data name="Settings_UpdateTimeout" xml:space="preserve"><value>The update check timed out. Please try again later.</value></data>
+  <data name="Console_Title" xml:space="preserve"><value>{0} — Virtual machine console</value></data>
+  <data name="Console_Stopped" xml:space="preserve"><value>Virtual machine is not running</value></data>
+  <data name="Console_Disabled" xml:space="preserve"><value>Console is disabled</value></data>
+  <data name="Console_DisabledHint" xml:space="preserve"><value>Enable the console in the virtual machine’s advanced settings</value></data>
+  <data name="Console_Connecting" xml:space="preserve"><value>Connecting...</value></data>
+  <data name="Console_Disconnected" xml:space="preserve"><value>Disconnected</value></data>
+  <data name="Console_StartConnect" xml:space="preserve"><value>Start and connect</value></data>
+  <data name="Console_Reconnect" xml:space="preserve"><value>Reconnect</value></data>
+  <data name="Console_Resolution" xml:space="preserve"><value>Change enhanced session resolution</value></data>
+  <data name="Console_BasicResolution" xml:space="preserve"><value>Current display resolution (resizing is unavailable in basic session)</value></data>
+  <data name="Console_Size" xml:space="preserve"><value>{0}×{1}</value></data>
+  <data name="Console_SizeChoice" xml:space="preserve"><value>{0} × {1}</value></data>
+  <data name="Console_Zoom" xml:space="preserve"><value>Zoom</value></data>
+  <data name="Console_EnhancedScale" xml:space="preserve"><value>Change enhanced session display scale</value></data>
+  <data name="Console_Percent" xml:space="preserve"><value>{0}%</value></data>
+  <data name="Console_SendSas" xml:space="preserve"><value>Send Ctrl + Alt + Del</value></data>
+  <data name="Console_Sas" xml:space="preserve"><value>Ctrl+Alt+Del</value></data>
+  <data name="Console_Capture" xml:space="preserve"><value>Copy a screenshot</value></data>
+  <data name="Console_Copied" xml:space="preserve"><value>Screenshot copied to clipboard</value></data>
+  <data name="Console_NoFrame" xml:space="preserve"><value>No frame is available yet</value></data>
+  <data name="Console_Mute" xml:space="preserve"><value>Mute guest audio</value></data>
+  <data name="Console_Unmute" xml:space="preserve"><value>Unmute guest audio</value></data>
+  <data name="Console_Fullscreen" xml:space="preserve"><value>Full screen</value></data>
+  <data name="Console_ExitFullscreen" xml:space="preserve"><value>Exit full screen</value></data>
+  <data name="Console_Pin" xml:space="preserve"><value>Pin or automatically hide the toolbar</value></data>
+  <data name="Console_Current" xml:space="preserve"><value>Current</value></data>
+  <data name="Console_Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Console_NewWindow" xml:space="preserve"><value>Open in a new window</value></data>
+  <data name="Console_InputRejected" xml:space="preserve"><value>The guest did not accept the input</value></data>
+  <data name="Console_ResizeRejected" xml:space="preserve"><value>The guest did not accept the resolution change</value></data>
+  <data name="Console_ClipboardBusy" xml:space="preserve"><value>The clipboard is busy</value></data>
+  <data name="Console_ClipboardFailed" xml:space="preserve"><value>Could not synchronize the clipboard</value></data>
+  <data name="Console_AudioFailed" xml:space="preserve"><value>Could not play guest audio</value></data>
+  <data name="Console_SessionMode" xml:space="preserve"><value>Switch session mode</value></data>
+  <data name="Console_EnhancedUnavailable" xml:space="preserve"><value>Enhanced session becomes available once the Generation 2 guest OS is ready</value></data>
+  <data name="Console_SwitchingEnhanced" xml:space="preserve"><value>Switching to enhanced session...</value></data>
+  <data name="Console_SwitchingBasic" xml:space="preserve"><value>Switching to basic session...</value></data>
+  <data name="Dash_Power_RestartEscalated" xml:space="preserve"><value>Guest did not respond to graceful restart, performed hard reset automatically</value></data>
+  <data name="Dash_Power_StopFallbackTitle" xml:space="preserve"><value>Could not shut down {0} cleanly</value></data>
+  <data name="Dash_Power_StopFallbackBody" xml:space="preserve"><value>{0}&#x0A;Force turn off instead? Unsaved guest data may be lost.</value></data>
+  <data name="Host_Set_Power_SecondsUnit" xml:space="preserve"><value>Seconds</value></data>
+  <data name="Host_Tab_Overview" xml:space="preserve"><value>Overview</value></data>
+  <data name="Host_Tab_Perf" xml:space="preserve"><value>Performance</value></data>
+  <data name="Host_Overview_Sub_Storage" xml:space="preserve"><value>Storage</value></data>
+  <data name="Host_Overview_Sub_Network" xml:space="preserve"><value>Network</value></data>
+  <data name="Overview_Gpu" xml:space="preserve"><value>GPU</value></data>
+  <data name="Host_Perf_LogicalProcessors" xml:space="preserve"><value>Logical processors</value></data>
+  <data name="Host_Perf_ThreadsVal" xml:space="preserve"><value>{0} threads</value></data>
+  <data name="Host_Perf_CurFreq" xml:space="preserve"><value>Current speed</value></data>
+  <data name="Host_Perf_Platform" xml:space="preserve"><value>Hyper-V platform</value></data>
+  <data name="Host_Perf_Scheduler" xml:space="preserve"><value>Hypervisor scheduler</value></data>
+  <data name="Host_Perf_Enabled" xml:space="preserve"><value>Enabled</value></data>
+  <data name="Host_Perf_Disabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="Host_Mem_Trend" xml:space="preserve"><value>Memory usage trend</value></data>
+  <data name="Host_Gpu_NoPhysical" xml:space="preserve"><value>No physical graphics adapters reported by the host</value></data>
+  <data name="Host_Gpu_MultiGpuNote" xml:space="preserve"><value>With multiple physical GPUs present, VM GPU engine counters are reported per VM rather than per physical card and are not duplicated across cards</value></data>
+  <data name="Host_Gpu_NoAssignedVms" xml:space="preserve"><value>No GPU-PV assigned VMs</value></data>
+  <data name="Host_Gpu_RoleHost" xml:space="preserve"><value>Host desktop and system composition</value></data>
+  <data name="Host_Gpu_RoleVm" xml:space="preserve"><value>GPU-PV partition</value></data>
+  <data name="Host_Gpu_Partitionable" xml:space="preserve"><value>GPU-PV partitionable</value></data>
+  <data name="Host_Gpu_NotPartitionable" xml:space="preserve"><value>Not partitionable</value></data>
+  <data name="Host_Gpu_DedicatedVramBadge" xml:space="preserve"><value>Dedicated VRAM {0}</value></data>
+  <data name="Host_Gpu_SharedVmsBadge" xml:space="preserve"><value>{0} shared VMs</value></data>
+  <data name="Host_Gpu_PhysTotalLoad" xml:space="preserve"><value>Physical total load</value></data>
+  <data name="Host_Gpu_PeakEngine" xml:space="preserve"><value>{0} peak engine</value></data>
+  <data name="Host_Gpu_ShareTitle" xml:space="preserve"><value>Physical GPU share (0 - 100%)</value></data>
+  <data name="Host_Gpu_ShareTotal" xml:space="preserve"><value>Total {0}%</value></data>
+  <data name="Host_Gpu_ShareFocus" xml:space="preserve"><value>{0} {1}%</value></data>
+  <data name="Host_Gpu_Engine3d" xml:space="preserve"><value>3D</value></data>
+  <data name="Host_Gpu_EngineCopy" xml:space="preserve"><value>Copy</value></data>
+  <data name="Host_Gpu_EngineEnc" xml:space="preserve"><value>Encode</value></data>
+  <data name="Host_Gpu_EngineDec" xml:space="preserve"><value>Decode</value></data>
+  <data name="Host_Gpu_EngineIdle" xml:space="preserve"><value>Idle (0%)</value></data>
+  <data name="Host_Storage_NoPhysical" xml:space="preserve"><value>No physical disks reported by the host</value></data>
+  <data name="Host_Storage_Offline" xml:space="preserve"><value>Offline idle</value></data>
+  <data name="Host_Storage_TotalRw" xml:space="preserve"><value>Physical disk total Read / Write</value></data>
+  <data name="Host_Storage_FocusRw" xml:space="preserve"><value>{0} Read / Write</value></data>
+  <data name="Host_Storage_RoleHost" xml:space="preserve"><value>Host storage throughput</value></data>
+  <data name="Host_Storage_RolePassthrough" xml:space="preserve"><value>Passthrough physical disk</value></data>
+  <data name="Host_Storage_StatusPassthrough" xml:space="preserve"><value>VM exclusive passthrough</value></data>
+  <data name="Host_Storage_StatusShared" xml:space="preserve"><value>Host + {0} VM shared</value></data>
+  <data name="Host_Storage_StatusHostOnly" xml:space="preserve"><value>Host only</value></data>
+  <data name="Host_Storage_PassthroughBadge" xml:space="preserve"><value>Passthrough capable</value></data>
+  <data name="Host_Storage_SystemOrAssignedBadge" xml:space="preserve"><value>System or allocated disk</value></data>
+  <data name="Host_Storage_ShareTitle" xml:space="preserve"><value>Physical disk I/O share</value></data>
+  <data name="Host_Storage_TotalThroughput" xml:space="preserve"><value>Total {0}</value></data>
+  <data name="Host_Storage_IdleOfflinePassthrough" xml:space="preserve"><value>This disk is offline and eligible for passthrough, not yet attached to any VM. Once attached, it will be exclusively accessed by that VM.</value></data>
+  <data name="Host_Storage_IdleOfflineOther" xml:space="preserve"><value>This physical disk is currently offline</value></data>
+  <data name="Host_Storage_Iops" xml:space="preserve"><value>IOPS</value></data>
+  <data name="Host_Storage_Queue" xml:space="preserve"><value>Queue</value></data>
+  <data name="Host_Storage_NoVms" xml:space="preserve"><value>No passthrough VMs</value></data>
+  <data name="Host_Net_ColNics" xml:space="preserve"><value>Physical NICs ({0})</value></data>
+  <data name="Host_Net_ColSwitches" xml:space="preserve"><value>Virtual switches ({0})</value></data>
+  <data name="Host_Net_ColEndpoints" xml:space="preserve"><value>Host &amp; VMs ({0})</value></data>
+  <data name="Host_Net_Media_WiredShort" xml:space="preserve"><value>Wired NIC</value></data>
+  <data name="Host_Net_Media_CellularShort" xml:space="preserve"><value>Cellular</value></data>
+  <data name="Host_Net_Media_TunnelShort" xml:space="preserve"><value>Tunnel</value></data>
+  <data name="Host_Net_Media_OtherShort" xml:space="preserve"><value>NIC</value></data>
+  <data name="Host_Net_ModeBridge" xml:space="preserve"><value>External bridge</value></data>
+  <data name="Host_Net_ModeNatHcn" xml:space="preserve"><value>NAT (HCN)</value></data>
+  <data name="Host_Net_ModeNat" xml:space="preserve"><value>NAT</value></data>
+  <data name="Host_Net_ModeIsolated" xml:space="preserve"><value>Isolated</value></data>
+  <data name="Host_Net_SwitchL2" xml:space="preserve"><value>Layer-2 switch</value></data>
+  <data name="Host_Net_NoUpstream" xml:space="preserve"><value>No physical upstream</value></data>
+  <data name="Host_Net_HostOsNode" xml:space="preserve"><value>Host OS ports</value></data>
+  <data name="Host_Net_PortsCount" xml:space="preserve"><value>{0} ports</value></data>
+  <data name="Host_Net_L2SharedOnly" xml:space="preserve"><value>L2 shared only</value></data>
+  <data name="Host_Net_NoHostShare" xml:space="preserve"><value>Host sharing disabled</value></data>
+  <data name="Host_Net_VmRunning" xml:space="preserve"><value>Running</value></data>
+  <data name="Host_Net_VmStopped" xml:space="preserve"><value>Stopped</value></data>
+  <data name="Host_Net_EdgeHostShare" xml:space="preserve"><value>Host shared</value></data>
+  <data name="Host_Net_EdgeNatDefault" xml:space="preserve"><value>NAT default uplink</value></data>
+  <data name="Host_Net_EdgeNatTunnel" xml:space="preserve"><value>NAT tunnel route</value></data>
+  <data name="Host_Net_EdgeNatAlt" xml:space="preserve"><value>NAT fallback</value></data>
+  <data name="Host_Net_ZoomOut" xml:space="preserve"><value>Zoom out</value></data>
+  <data name="Host_Net_ZoomReset" xml:space="preserve"><value>Reset zoom and center</value></data>
+  <data name="Host_Net_ZoomIn" xml:space="preserve"><value>Zoom in</value></data>
+  <data name="Host_Net_FullscreenEnter" xml:space="preserve"><value>Full screen</value></data>
+  <data name="Host_Net_FullscreenExit" xml:space="preserve"><value>Exit full screen</value></data>
+  <data name="Host_Net_DefaultAdapter" xml:space="preserve"><value>Network adapter</value></data>
+  <data name="Advanced_EnhancedClipboard" xml:space="preserve"><value>Enhanced session clipboard</value></data>
+  <data name="Advanced_EnhancedClipboardHelp" xml:space="preserve"><value>Synchronize clipboard content with the guest during enhanced sessions (takes effect on next connect or reconnect)</value></data>
+  <data name="Advanced_EnhancedAudioOutput" xml:space="preserve"><value>Enhanced session audio output</value></data>
+  <data name="Advanced_EnhancedAudioOutputHelp" xml:space="preserve"><value>Forward guest system audio to this device during enhanced sessions (takes effect on next connect or reconnect)</value></data>
+  <data name="Advanced_EnhancedAudioInput" xml:space="preserve"><value>Enhanced session microphone input</value></data>
+  <data name="Advanced_EnhancedAudioInputHelp" xml:space="preserve"><value>Allow sending local microphone input during enhanced sessions (stays muted by default until unmuted on the toolbar, takes effect on next connect or reconnect)</value></data>
+  <data name="Advanced_EnhancedGen1Unsupported" xml:space="preserve"><value>Generation 1 virtual machines only support basic sessions</value></data>
+  <data name="Advanced_EnhancedConsoleDisabled" xml:space="preserve"><value>Console support is disabled, enable Console first to configure enhanced session features</value></data>
+  <data name="Console_TabBasic" xml:space="preserve"><value>Basic session</value></data>
+  <data name="Console_TabEnhanced" xml:space="preserve"><value>Enhanced session</value></data>
+  <data name="Console_MicMute" xml:space="preserve"><value>Mute microphone input</value></data>
+  <data name="Console_MicUnmute" xml:space="preserve"><value>Enable microphone input</value></data>
+  <data name="Console_MicEnhancedOnly" xml:space="preserve"><value>Microphone input is only available in enhanced sessions</value></data>
+  <data name="Console_MicDisabledInSettings" xml:space="preserve"><value>Microphone input is disabled in Advanced console settings for this VM</value></data>
+  <data name="Console_MicWaitingGuest" xml:space="preserve"><value>Waiting for guest audio input channel</value></data>
+  <data name="Console_MicUnavailable" xml:space="preserve"><value>No microphone input device is available</value></data>
+  <data name="Console_MicFailed" xml:space="preserve"><value>Could not start microphone capture</value></data>
+  <data name="Console_AudioDisabledInSettings" xml:space="preserve"><value>Audio output is disabled in Advanced console settings for this VM</value></data>
+  <data name="Settings_Extensions" xml:space="preserve"><value>Extensions</value></data>
+  <data name="Settings_SuperSession" xml:space="preserve"><value>Super session</value></data>
+  <data name="Extension_Host" xml:space="preserve"><value>Host component</value></data>
+  <data name="Extension_Authorization" xml:space="preserve"><value>Authorization</value></data>
+  <data name="Extension_Guest" xml:space="preserve"><value>Virtual machine component</value></data>
+  <data name="Extension_Session" xml:space="preserve"><value>Current session</value></data>
+  <data name="Extension_Path" xml:space="preserve"><value>Transport</value></data>
+  <data name="Extension_Diagnostic" xml:space="preserve"><value>Diagnostic ID</value></data>
+  <data name="Extension_Offline" xml:space="preserve"><value>Not connected</value></data>
+  <data name="Extension_Unverified" xml:space="preserve"><value>Unverified</value></data>
+  <data name="Extension_Unreachable" xml:space="preserve"><value>Unreachable</value></data>
+  <data name="Extension_AccessDenied" xml:space="preserve"><value>Access denied</value></data>
+  <data name="Extension_Missing" xml:space="preserve"><value>Missing</value></data>
+  <data name="Extension_Incompatible" xml:space="preserve"><value>Incompatible</value></data>
+  <data name="Extension_Ready" xml:space="preserve"><value>Ready</value></data>
+  <data name="Extension_Unknown" xml:space="preserve"><value>Unknown ({0})</value></data>
+  <data name="Extension_OpenActivation" xml:space="preserve"><value>Open activation</value></data>
+  <data name="Extension_MaintainHost" xml:space="preserve"><value>Maintain host</value></data>
+  <data name="Extension_DeployVmGuest" xml:space="preserve"><value>Deploy guest component</value></data>
+  <data name="Extension_RetryConnection" xml:space="preserve"><value>Retry connection</value></data>
+  <data name="Console_ViewOnly" xml:space="preserve"><value>View only</value></data>
+  <data name="Console_DisplayMode" xml:space="preserve"><value>{0} × {1} / {2:0.##} Hz</value></data>
 </root>

@@ -54,6 +54,9 @@ public interface IConsoleVideoSource
     /// <remarks>回调通常在后台线程执行。可直接读取 frame.Pixels；要交给其他线程，先调用 frame.Retain() 并负责释放保留的帧。
     /// 显示缩放由调用方处理，帧中的尺寸始终是来宾桌面像素。</remarks>
     event Action<ConsoleFrame>? FrameReceived;
+    /// <summary>启用宿主光标模式时，收到远端指针形状变化或隐藏时通知，参数为 null 表示隐藏指针。</summary>
+    /// <remarks>仅当连接选项 HostCursor 为 true 时触发，在后台线程执行。</remarks>
+    event Action<ConsoleCursor?>? CursorChanged;
     /// <summary>后端是否提供桌面分辨率和缩放调整能力。</summary>
     /// <fielddoc>
     /// <meaning>后端是否提供桌面分辨率和缩放调整能力。</meaning>

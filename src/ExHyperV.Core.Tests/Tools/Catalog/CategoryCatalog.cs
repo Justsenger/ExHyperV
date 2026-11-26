@@ -13,7 +13,7 @@ internal sealed class CategoryCatalog
     private readonly List<string> categoryOrder = [];
     private static readonly Dictionary<string, string[]> ContractAliases = new(StringComparer.Ordinal)
     {
-        ["控制台事件"] = ["IConsoleConnection", "IConsoleVideoSource", "IConsoleClipboard"]
+        ["控制台事件"] = ["IConsoleConnection", "IConsoleVideoSource", "IConsoleClipboard", "IConsoleAudioOutput", "IConsoleAudioInput"]
     };
 
     public CategoryCatalog(string core)
@@ -105,7 +105,7 @@ internal sealed class CategoryCatalog
     {
         var paths = locations.ToArray();
         var shared = paths[0].TakeWhile((part, index) => paths.All(path => path.Length > index && path[index] == part)).ToArray();
-        if (shared.Length == 0) throw new InvalidOperationException("Test spans Core category roots; split its contract explicitly.");
+        if (shared.Length == 0) throw new InvalidOperationException("Test spans Core category roots. Split its contract explicitly.");
         return string.Join(Separator, shared);
     }
     private static string Normalize(string name) => name.Replace("<T>", "");

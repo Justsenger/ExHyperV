@@ -45,6 +45,7 @@
                 </StackPanel>
                 <StackPanel x:Name="SystemSection" Spacing="10" Visibility="Collapsed"/>
                 <StackPanel x:Name="PreferencesSection" Spacing="10" Visibility="Collapsed"/>
+                <StackPanel x:Name="ExtensionsSection" Spacing="10" Visibility="Collapsed"/>
                 <StackPanel x:Name="LogsSection" Spacing="10" Visibility="Collapsed"/>
                 <StackPanel x:Name="AboutSection" Visibility="Collapsed" VerticalAlignment="Center" Padding="24,28,24,36" Spacing="16">
                     <Image Source="ms-appx:///Assets/AppIcon.png" Width="120" Height="120"/>

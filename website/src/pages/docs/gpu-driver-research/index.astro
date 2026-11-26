@@ -1,0 +1,40 @@
+---
+import ResearchNavLayout from '../../../components/ResearchNavLayout.astro';
+import ResearchSections from '../../../components/ResearchSections.astro';
+import research from '../../../data/gpu-pv-driver-research.json';
+import { pickNarrativeSections } from '../../../data/gpu-research-pages.js';
+
+const overviewSections = pickNarrativeSections(['cross-vendor', 'limitations', 'reproduce']);
+---
+<ResearchNavLayout activeSlug="" title="GPU-PV 驱动研究档案">
+  <header class="doc-header">
+    <h1>GPU-PV 驱动研究档案</h1>
+    <p class="doc-lead">汇总了 {research.packages.length} 个官方驱动包的解包提取记录与公开实机反馈，用于说明各厂商 GPU-PV 最低版本门槛是怎么确定的。按左侧目录可查看具体厂商依据或搜索全部安装包。</p>
+  </header>
+
+  <section class="doc-section">
+    <h2>说明与判定方式</h2>
+    <p>{research.scope_note}</p>
+    {research.corpus_summary.collection_window && (
+      <p class="doc-muted">{research.corpus_summary.collection_window}</p>
+    )}
+    {research.methodology?.length > 0 && (
+      <details class="doc-details">
+        <summary>查看判定规则（Windows / Linux / 去重统计）</summary>
+        {research.methodology.map((method) => (
+          <div>
+            <h3>{method.title}</h3>
+            <p>{method.summary}</p>
+            {method.criteria?.length > 0 && (
+              <ul class="doc-list">
+                {method.criteria.map((criterion) => <li>{criterion}</li>)}
+              </ul>
+            )}
+          </div>
+        ))}
+      </details>
+    )}
+  </section>
+
+  <ResearchSections sections={overviewSections} />
+</ResearchNavLayout>

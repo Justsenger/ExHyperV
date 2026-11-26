@@ -4,6 +4,7 @@
     <TestingExtensionsProfile>None</TestingExtensionsProfile>
     <EnableMicrosoftTestingExtensionsTrxReport>true</EnableMicrosoftTestingExtensionsTrxReport>
     <IsPackable>false</IsPackable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
@@ -23,6 +24,17 @@
     <!-- Keep the existing diagnostic executable usable; share its verified scenarios. -->
     <Compile Include="../ExHyperV.App/Diagnostics/RollingLog.cs;../ExHyperV.App/Diagnostics/DiagnosticBundle.cs;../ExHyperV.App/Diagnostics/LocalTraceListener.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Settings/Network/VmNetworkPolicyDraft.cs" Link="Scenarios/VmNetworkPolicyDraft.cs" />
+    <Compile Include="../ExHyperV.App/DesktopJson.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Shared/Appearance/AppearancePreferences.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Shared/Appearance/ConsoleSessionModeConverter.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Shared/ConsoleHost/ConsoleExtensionCatalog.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleFrameDamage.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleSessionState.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Shared/ConsoleHost/ConsoleGpuDelivery.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/FramePresenter.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleSwapChainRenderer.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleSwapChainRenderer.Shared.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleSessionLifetime.cs" Link="Scenarios/ConsoleSessionLifetime.cs" />
     <Compile Remove="Diagnostics/**;Tools/**" />
     <Compile Include="Diagnostics/*Checks.cs"
              Exclude="Diagnostics/NativeChecks.cs;Diagnostics/HostNetworkChecks.cs"

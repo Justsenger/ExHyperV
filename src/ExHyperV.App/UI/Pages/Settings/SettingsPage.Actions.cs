@@ -3,6 +3,7 @@ using ExHyperV.App.Diagnostics;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared;
 using ExHyperV.App.UI.Shared.Controls;
+using ExHyperV.App.UI.Shared.ConsoleHost;
 using ExHyperV.App.UI.Shared.Feedback;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -13,6 +14,19 @@ namespace ExHyperV.App.UI.Pages.Settings;
 
 public sealed partial class SettingsPage
 {
+    internal Func<(Guid Id, string? Name)>? ExtensionTarget { get; init; }
+
+    private void RefreshExtensions()
+    {
+        var target = ExtensionTarget?.Invoke() ?? (Guid.Empty, null);
+        ExtensionsSection.Children.Clear();
+        ExtensionsSection.Children.Add(new Border
+        {
+            Style = (Style)Application.Current.Resources["SectionBorderStyle"], Padding = new(17, 14, 17, 14),
+            Child = new ConsoleExtensionPanel(target.Item1, target.Item2)
+        });
+    }
+
     private void BuildLogs()
     {
         LogsSection.Children.Add(Card("Settings_EnableLogging", "Settings_LoggingHelp", logging));

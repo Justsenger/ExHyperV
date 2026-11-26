@@ -19,10 +19,10 @@ internal static class PcieApiCases
         var selected = c.Configuration.PcieDevices.OrderBy(v => v.InstanceId, StringComparer.OrdinalIgnoreCase).First();
         var device = inventory.Data!.Devices.SingleOrDefault(v => v.InstanceId.Equals(selected.InstanceId, StringComparison.OrdinalIgnoreCase) && v.Path.Equals(selected.LocationPath, StringComparison.OrdinalIgnoreCase));
         if (device is null) throw new ApiCheckSkippedException("已选 PCIe 设备的身份或位置已变化，请在第一步重新选择。");
-        if (device.Assignment.Kind != PcieAssignmentKind.Host) throw new ApiCheckSkippedException("已选设备当前归属为 " + device.Assignment.Kind + "；本项使用宿主拥有的闲置设备。");
+        if (device.Assignment.Kind != PcieAssignmentKind.Host) throw new ApiCheckSkippedException("已选设备当前归属为 " + device.Assignment.Kind + "，本项使用宿主拥有的闲置设备。");
         var disks = await HostPcieService.GetControllerDisksAsync(device.InstanceId); c.Require(disks.HasData, disks.Error);
         if (disks.Data!.Any(v => v.IsBoot || v.IsSystem)) throw new ApiCheckSkippedException("已选控制器连接着宿主系统盘或启动盘。");
-        if (disks.Data!.Any(v => !v.IsOffline)) throw new ApiCheckSkippedException("已选控制器还有联机磁盘；请提前释放这些磁盘后再测直通。");
+        if (disks.Data!.Any(v => !v.IsOffline)) throw new ApiCheckSkippedException("已选控制器还有联机磁盘，请提前释放这些磁盘后再测直通。");
         await using var restore = new HostStateJournal(c); restore.ConfigurationElement(AppDataPaths.ConfigFilePath, "MmioCeilingMb");
         await using var vm = await TemporaryVm.CreateAsync(c);
         string path = Path.Combine(c.DirectoryPath, "pcie-device.json"); var journal = new Journal(device.InstanceId, device.Path, vm.Id);

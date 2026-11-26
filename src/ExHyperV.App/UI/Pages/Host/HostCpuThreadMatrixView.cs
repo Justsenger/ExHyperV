@@ -377,7 +377,12 @@ internal sealed partial class HostCpuThreadMatrixView : UserControl
             }
 
             var slices = new List<CpuRingSlice>();
-            // VMs first (stable slot order), unattributed guest next, host last (matching prototype).
+            // Host anchors the ring clockwise from 12 o'clock, followed by VMs in stable slot order.
+            if (snap.HostUsagePercent is > 0 and float hostUsage)
+            {
+                slices.Add(new CpuRingSlice(HostKey, L10n.Get("Host_Cpu_HostOwner"), hostUsage, hostColor));
+            }
+
             var orderedVms = snap.Consumers
                 .Where(c => !c.IsHost && c.VmId is { } id && id != Guid.Empty && c.UsagePercent > 0)
                 .OrderBy(c => vmColorSlots.TryGetValue(c.VmId!.Value, out int s) ? s : int.MaxValue);
@@ -396,19 +401,15 @@ internal sealed partial class HostCpuThreadMatrixView : UserControl
             if (snap.UnattributedUsagePercent > 0)
                 slices.Add(new CpuRingSlice("unattributed", L10n.Get("Host_Cpu_Unattributed"), snap.UnattributedUsagePercent, OtherColor));
 
-            if (snap.HostUsagePercent is > 0 and float hostUsage)
-            {
-                slices.Add(new CpuRingSlice(HostKey, L10n.Get("Host_Cpu_HostOwner"), hostUsage, hostColor));
-            }
-
-            // Aggregate tiny tail slices (< 2% or beyond top 5) into one clean "Other" arc unless focused.
+            // Aggregate tiny tail slices (< 2% or beyond top 5) into one clean "Other" arc unless host or focused.
             var sortedForArc = slices.Where(s => s.Percent > 0).ToList();
             var keptArcs = new List<CpuRingSlice>();
             double otherPct = 0;
             foreach (var s in sortedForArc)
             {
+                bool isHost = string.Equals(s.ConsumerKey, HostKey, StringComparison.Ordinal);
                 bool isFocused = focused != null && string.Equals(s.ConsumerKey, focused, StringComparison.Ordinal);
-                if (isFocused || (keptArcs.Count < 5 && s.Percent >= 2.0))
+                if (isHost || isFocused || (keptArcs.Count < 5 && s.Percent >= 2.0))
                     keptArcs.Add(s);
                 else
                     otherPct += s.Percent;

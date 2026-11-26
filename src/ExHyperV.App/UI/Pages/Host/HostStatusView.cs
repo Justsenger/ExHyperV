@@ -79,10 +79,6 @@ internal sealed partial class HostStatusView : UserControl
     private readonly TextBlock detailSubtitle = new() { FontSize = 12.5, TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock detailReading = new() { FontSize = 20, FontWeight = FontWeights.SemiBold, VerticalAlignment = VerticalAlignment.Center };
 
-    private readonly Grid cpuHost = new();
-    private readonly HostCpuThreadMatrixView cpuMatrix = new();
-    private readonly Grid memHost = new();
-    private readonly HostMemoryRingView memRing = new();
     private readonly ScrollViewer detailBodyScroll = new()
     {
         VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
@@ -166,14 +162,6 @@ internal sealed partial class HostStatusView : UserControl
         Grid.SetRow(detailHeader, 0);
         detailRoot.Children.Add(detailHeader);
 
-        cpuHost.Children.Add(cpuMatrix);
-        Grid.SetRow(cpuHost, 1);
-        detailRoot.Children.Add(cpuHost);
-
-        memHost.Children.Add(memRing);
-        Grid.SetRow(memHost, 1);
-        detailRoot.Children.Add(memHost);
-
         detailBodyScroll.Content = detailBodyHost;
         Grid.SetRow(detailBodyScroll, 1);
         detailRoot.Children.Add(detailBodyScroll);
@@ -185,9 +173,6 @@ internal sealed partial class HostStatusView : UserControl
     {
         currentInventory = inventory;
         double savedRailScroll = railScroll.VerticalOffset;
-
-        cpuMatrix.InitializeTopology(inventory.LogicalProcessorCount);
-        memRing.UpdateTelemetry(inventory, null);
 
         railPanel.Children.Clear();
         railEntries.Clear();
@@ -219,7 +204,7 @@ internal sealed partial class HostStatusView : UserControl
         foreach (var sw in inventory.Switches)
             AddSwitchItem(inventory, sw);
 
-        if (!detailPanels.ContainsKey(selectedKey) && selectedKey != "cpu" && selectedKey != "mem")
+        if (!detailPanels.ContainsKey(selectedKey))
             selectedKey = "cpu";
 
         SelectRailKey(selectedKey);
@@ -228,54 +213,71 @@ internal sealed partial class HostStatusView : UserControl
 
     public void ApplyProcessorAndMemory(HostLiveSample sample)
     {
-        cpuMatrix.UpdateReport(sample.CpuReport, currentInventory?.LogicalProcessorCount ?? Environment.ProcessorCount);
-        memRing.UpdateTelemetry(currentInventory, sample);
+        lastSample = MergeSamples(lastSample, sample);
         foreach (var entry in railEntries)
             if (entry.Category is RailCategory.Cpu or RailCategory.Memory)
-                entry.UpdateSample?.Invoke(sample);
+                entry.UpdateSample?.Invoke(lastSample);
+
+        if (detailPanels.TryGetValue("cpu", out var cpuDetail)) cpuDetail.ApplySample(lastSample);
+        if (detailPanels.TryGetValue("mem", out var memDetail)) memDetail.ApplySample(lastSample);
+        if (selectedKey is "cpu" or "mem" && detailPanels.TryGetValue(selectedKey, out var active))
+            detailReading.Text = active.FormatReading(lastSample);
     }
 
     public void ApplyDeviceSample(HostLiveSample sample)
     {
-        lastSample = sample;
-        if (sample.VmSummary != null) memRing.UpdateTelemetry(currentInventory, sample);
+        lastSample = MergeSamples(lastSample, sample);
         foreach (var entry in railEntries)
             if (entry.Category is not (RailCategory.Cpu or RailCategory.Memory))
-                entry.UpdateSample?.Invoke(sample);
+                entry.UpdateSample?.Invoke(lastSample);
+            else if (entry.Category == RailCategory.Cpu)
+                entry.UpdateSample?.Invoke(lastSample);
 
         if (detailPanels.TryGetValue(selectedKey, out var activeDetail))
         {
-            activeDetail.ApplySample(sample);
-            detailReading.Text = activeDetail.FormatReading(sample);
+            activeDetail.ApplySample(lastSample);
+            detailReading.Text = activeDetail.FormatReading(lastSample);
         }
+    }
+
+    private static HostLiveSample MergeSamples(HostLiveSample? previous, HostLiveSample incoming)
+    {
+        if (previous == null) return incoming;
+        return new HostLiveSample
+        {
+            CpuPercent = incoming.CpuPercent ?? previous.CpuPercent,
+            CpuFreqGHz = incoming.CpuFreqGHz ?? previous.CpuFreqGHz,
+            CpuReport = incoming.CpuReport ?? previous.CpuReport,
+            Memory = incoming.Memory ?? previous.Memory,
+            VmSummary = incoming.VmSummary ?? previous.VmSummary,
+            Disks = incoming.Disks.Count > 0 ? incoming.Disks : previous.Disks,
+            Adapters = incoming.Adapters.Count > 0 ? incoming.Adapters : previous.Adapters,
+            Switches = incoming.Switches.Count > 0 ? incoming.Switches : previous.Switches,
+            Gpus = incoming.Gpus.Count > 0 ? incoming.Gpus : previous.Gpus,
+            VmGpus = incoming.VmGpus ?? previous.VmGpus,
+            VmStorage = incoming.VmStorage ?? previous.VmStorage,
+            VmNetworks = incoming.VmNetworks ?? previous.VmNetworks
+        };
     }
 
     public void RefreshTheme()
     {
         UpdateTheme();
-        cpuMatrix.RefreshTheme();
-        memRing.RefreshTheme();
     }
 
     private void SelectRailKey(string key)
     {
         selectedKey = key;
-        bool isCpu = key == "cpu";
-        bool isMem = key == "mem";
-        bool isFullCanvas = isCpu || isMem;
 
-        // CPU and Memory visualizations fill the detail card without consuming top header height.
-        detailHeader.Visibility = isFullCanvas ? Visibility.Collapsed : Visibility.Visible;
-        cpuHost.Visibility = isCpu ? Visibility.Visible : Visibility.Collapsed;
-        memHost.Visibility = isMem ? Visibility.Visible : Visibility.Collapsed;
-        detailBodyScroll.Visibility = isFullCanvas ? Visibility.Collapsed : Visibility.Visible;
-        detailRoot.RowSpacing = isFullCanvas ? 0 : 10;
+        detailHeader.Visibility = Visibility.Visible;
+        detailBodyScroll.Visibility = Visibility.Visible;
+        detailRoot.RowSpacing = 10;
 
         foreach (var pair in detailPanels)
             pair.Value.Root.Visibility = pair.Key == key ? Visibility.Visible : Visibility.Collapsed;
 
         var selectedEntry = railEntries.FirstOrDefault(e => e.Key == key);
-        if (selectedEntry != null && !isFullCanvas)
+        if (selectedEntry != null)
         {
             detailIcon.Glyph = selectedEntry.DetailGlyph;
             detailIconRotation.Angle = selectedEntry.DetailGlyphRotation;
@@ -283,9 +285,9 @@ internal sealed partial class HostStatusView : UserControl
             detailSubtitle.Text = selectedEntry.DetailSubtitle;
             detailSubtitle.Visibility = string.IsNullOrWhiteSpace(selectedEntry.DetailSubtitle) ? Visibility.Collapsed : Visibility.Visible;
             if (lastSample != null && detailPanels.TryGetValue(key, out var panel))
-            {
                 detailReading.Text = panel.FormatReading(lastSample);
-            }
+            else if (detailPanels.TryGetValue(key, out var fallbackPanel))
+                detailReading.Text = fallbackPanel.FormatReading(new HostLiveSample());
         }
 
         UpdateTheme();

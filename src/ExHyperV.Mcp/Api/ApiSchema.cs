@@ -22,7 +22,8 @@ internal static class ApiSchema
         {
             if (parameter.IsOut || parameter.ParameterType == typeof(CancellationToken)) continue;
             var shape = Type(parameter.ParameterType, input: true);
-            if (!parameter.ParameterType.IsValueType && new NullabilityInfoContext().Create(parameter).ReadState == NullabilityState.Nullable)
+            if (parameter.ParameterType != typeof(IDisposable) && !parameter.ParameterType.IsValueType
+                && new NullabilityInfoContext().Create(parameter).ReadState == NullabilityState.Nullable)
                 shape = new() { ["anyOf"] = new JsonArray(shape, new JsonObject { ["type"] = "null" }) };
             shape["description"] = description(parameter);
             properties[parameter.Name!] = shape;
@@ -34,6 +35,7 @@ internal static class ApiSchema
     internal static JsonObject Type(Type type, bool input, int depth = 0, HashSet<Type>? path = null)
     {
         if (type.IsByRef) type = type.GetElementType()!;
+        if (input && type == typeof(IDisposable)) return new() { ["type"] = "null" };
         if (type == typeof(void) || type == typeof(Task) || type == typeof(ValueTask)) return new() { ["type"] = "null" };
         if (type.IsGenericType && type.GetGenericTypeDefinition() is var generic && (generic == typeof(Task<>) || generic == typeof(ValueTask<>)))
             return Type(type.GetGenericArguments()[0], input, depth, path);

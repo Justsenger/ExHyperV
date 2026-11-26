@@ -92,7 +92,7 @@ internal static class CpuAffinityApiCases
             c.Sequence(baseline.Data!.Select(v => v.GroupId).Order(), result.Data!.Select(v => v.GroupId).Order(), "CPU 组 GUID 清单");
             foreach (var group in result.Data) Compare(c, baseline.Data!.Single(v => v.GroupId == group.GroupId), group); return;
         }
-        if (mode is not (HyperVSchedulerType.Classic or HyperVSchedulerType.Core)) throw new ApiCheckSkippedException("当前为 " + mode + " 调度器；CPU 组策略写入适用于 Classic/Core。");
+        if (mode is not (HyperVSchedulerType.Classic or HyperVSchedulerType.Core)) throw new ApiCheckSkippedException("当前为 " + mode + " 调度器，CPU 组策略写入适用于 Classic/Core。");
         var topology = await HcsApi.GetProcessorTopologyAsync(); c.Require(topology.HasData && topology.Data!.Count > 0, topology.Error);
         var id = Guid.NewGuid(); TemporaryCpuGroups.Record(c, id);
         var create = await HcsApi.CreateCpuGroupAsync(id, topology.Data!.Select(v => v.LpIndex).Take(1).ToArray()); c.RequireSettled(create.ErrorKind == ApiErrorKind.OutcomeUnknown, create.Error); c.Require(create.Success, create.Error);

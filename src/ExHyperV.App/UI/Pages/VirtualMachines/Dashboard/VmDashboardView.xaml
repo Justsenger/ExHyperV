@@ -142,10 +142,10 @@
            <MenuFlyoutItem x:Name="PowerMenuSuspend" Tag="Suspend" Click="OnPowerMenuClick">
             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xF5A2;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular"/></MenuFlyoutItem.Icon>
            </MenuFlyoutItem>
-           <MenuFlyoutSeparator/>
            <MenuFlyoutItem x:Name="PowerMenuSave" Tag="Save" Click="OnPowerMenuClick">
             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xF680;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular"/></MenuFlyoutItem.Icon>
            </MenuFlyoutItem>
+           <MenuFlyoutSeparator/>
            <MenuFlyoutItem x:Name="PowerMenuTurnOff" Tag="TurnOff" Click="OnPowerMenuClick" Foreground="#E81123">
             <MenuFlyoutItem.Icon><FontIcon Glyph="&#xF60F;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular" Foreground="#E81123"/></MenuFlyoutItem.Icon>
            </MenuFlyoutItem>

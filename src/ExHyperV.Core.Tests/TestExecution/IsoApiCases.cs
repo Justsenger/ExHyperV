@@ -30,7 +30,7 @@ internal static class IsoApiCases
             if (File.Exists(target)) { using (File.Open(target, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { } File.Delete(target); }
             foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
                 using (File.Open(file, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) { }
-            context.Evidence.Add("失败后的源文件可独占打开；残留输出已清理。");
+            context.Evidence.Add("失败后的源文件可独占打开，残留输出已清理。");
             return;
         }
         var expected = Directory.GetFiles(source, "*", SearchOption.AllDirectories).Select(file => new ImageFile(

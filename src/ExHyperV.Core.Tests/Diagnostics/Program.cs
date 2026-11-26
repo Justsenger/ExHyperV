@@ -14,6 +14,7 @@ if (ConfigurationIsolationChecks.RunWorker(args) is int workerExitCode)
 if (args.Contains("--console-native-selftest"))
 {
     uint result = FreeRdpNative.RunSelfTest();
+    if (result == 0) ConsoleNativeFrameChecks.Run();
     Console.WriteLine(JsonSerializer.Serialize(new { mode = "console-native-offline", result, vmConnectionsAttempted = 0 }));
     Environment.ExitCode = result == 0 ? 0 : 1;
     return;

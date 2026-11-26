@@ -93,7 +93,7 @@ internal static class FileApiCases
             stream.Position = 2 * 512 + 40; stream.Write(BitConverter.GetBytes(1UL));
         }
         var malformed = c.Call(() => parser.GetPartitions(invalid));
-        c.Require(malformed.All(row => row.PartitionNumber != 1), "起始 LBA 大于终止 LBA 的分区应被排除；实际：" + string.Join("；", malformed.Select(p => $"分区 {p.PartitionNumber}，{p.SizeInBytes} 字节")));
+        c.Require(malformed.All(row => row.PartitionNumber != 1), "起始 LBA 大于终止 LBA 的分区应被排除，实际：" + string.Join("，", malformed.Select(p => $"分区 {p.PartitionNumber}，{p.SizeInBytes} 字节")));
         foreach (var (first, last) in new[] { (0UL, 2048UL), (1UL, ulong.MaxValue), (ulong.MaxValue - 1, ulong.MaxValue) })
         {
             WriteDisk(invalid, 512, true);

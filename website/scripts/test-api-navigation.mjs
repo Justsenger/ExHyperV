@@ -66,7 +66,7 @@ const members = data.types.flatMap(type=>type.members.map(member=>({type,member}
 const member = (owner,name) => data.types.find(type=>type.shortName===owner).members.find(item=>item.name===name);
 const stripLinks = value => value.replace(/<\/?a\b[^>]*>/g,'');
 
-test('the API home is a concise overview with seven working category buttons', () => {
+test('the API home is a concise overview with eight working category buttons', () => {
   const view = page();
   assert.equal(view.breadcrumb, '概览');
   const content = view.content;
@@ -77,8 +77,8 @@ test('the API home is a concise overview with seven working category buttons', (
   assert.match(content, /id="overview-business">业务层面/);
   assert.doesNotMatch(content, /<table|member-card|type-overview|使用说明/);
   const buttons = [...content.matchAll(/href="#([^"]+)" class="overview-entry"/g)].map(match => match[1]);
-  assert.equal(buttons.length, 7);
-  assert.equal(new Set(buttons).size, 7);
+  assert.equal(buttons.length, 8);
+  assert.equal(new Set(buttons).size, 8);
   for (const id of buttons) {
     const destination = view.open(id);
     assert.notEqual(view.breadcrumb, '概览', id);

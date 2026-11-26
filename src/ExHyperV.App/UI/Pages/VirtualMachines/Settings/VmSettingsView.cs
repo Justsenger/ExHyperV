@@ -18,6 +18,8 @@ namespace ExHyperV.App.UI.Pages.VirtualMachines.Settings;
 public abstract partial class VmSettingsView : UserControl
 {
     private CancellationTokenSource cancellation = new();
+    private static int activeOperationsCount;
+    internal static bool HasActiveSettingsWrite => Volatile.Read(ref activeOperationsCount) > 0;
     private readonly Grid layout = new();
     private readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromMilliseconds(2600) };
     private readonly ContentControl body = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch, VerticalContentAlignment = VerticalAlignment.Stretch };
@@ -151,6 +153,7 @@ public abstract partial class VmSettingsView : UserControl
 
     private async Task RunOperationAsync(Func<Task> operation)
     {
+        Interlocked.Increment(ref activeOperationsCount);
         operationBusy = true;
         body.IsEnabled = false;
         BusyChanged?.Invoke(true);
@@ -171,6 +174,7 @@ public abstract partial class VmSettingsView : UserControl
         }
         finally
         {
+            Interlocked.Decrement(ref activeOperationsCount);
             operationBusy = false;
             if (!stopped)
             {

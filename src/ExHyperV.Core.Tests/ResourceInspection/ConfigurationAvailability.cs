@@ -11,7 +11,7 @@ internal static class ConfigurationAvailability
         {
             var document = (read ?? AppConfigurationStore.Load)();
             if (document.Root is null) throw new InvalidDataException("配置文件缺少根元素。");
-            return new(InspectionStatus.Ready, "可读取；测试仅恢复涉及的字段");
+            return new(InspectionStatus.Ready, "可读取，测试仅恢复涉及的字段");
         }
         catch (Exception error)
         {

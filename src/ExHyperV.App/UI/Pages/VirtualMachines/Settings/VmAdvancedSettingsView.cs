@@ -1,5 +1,6 @@
 
 using ExHyperV.App.Localization;
+using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Controls;
 using ExHyperV.Models;
 using ExHyperV.Services;
@@ -28,6 +29,9 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
     private readonly ToggleSwitch console = Switch();
     private readonly ToggleSwitch numLock = Switch();
     private readonly ToggleSwitch lockOnDisconnect = Switch();
+    private readonly ToggleSwitch enhancedClipboard = Switch();
+    private readonly ToggleSwitch enhancedAudioOutput = Switch();
+    private readonly ToggleSwitch enhancedAudioInput = Switch();
     private readonly ToggleSwitch hibernation = Switch();
     private readonly ToggleSwitch turnOffOnRestart = Switch();
     private readonly ToggleSwitch bootVpci = Switch();
@@ -41,6 +45,15 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
     };
     private readonly Button applyResolution = new() { Content = L10n.Get("Common_Apply"), IsEnabled = false };
     private readonly Dictionary<ToggleSwitch, bool> applied = [];
+    private readonly ContentControl consoleTabsHost = new() { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+    private readonly ContentControl consoleEnhancedNoticeHost = new()
+    {
+        HorizontalContentAlignment = HorizontalAlignment.Stretch,
+        Visibility = Visibility.Collapsed
+    };
+    private readonly SettingsFieldPanel basicConsolePanel = new() { Spacing = 12 };
+    private readonly StackPanel enhancedConsoleHost = new() { Spacing = 10, Visibility = Visibility.Collapsed };
+    private bool consoleEnhancedTab;
     private readonly Dictionary<FrameworkElement, CardMeta> cardMeta = [];
     private VmDisplayResolution? appliedResolution;
     private string appliedResolutionText = string.Empty;
@@ -107,6 +120,26 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         }
 
         var panel = new SettingsFieldPanel { Spacing = 12 };
+        void AddEnhancedFeatureCards(SettingsFieldPanel target)
+        {
+            target.Children.Add(MakeToggleCard(
+                L10n.Get("Advanced_EnhancedClipboard"),
+                L10n.Get("Advanced_EnhancedClipboardHelp"),
+                enhancedClipboard,
+                span2: true));
+            target.Children.Add(MakeToggleCard(
+                L10n.Get("Advanced_EnhancedAudioOutput"),
+                L10n.Get("Advanced_EnhancedAudioOutputHelp"),
+                enhancedAudioOutput,
+                span2: true));
+            target.Children.Add(MakeToggleCard(
+                L10n.Get("Advanced_EnhancedAudioInput"),
+                L10n.Get("Advanced_EnhancedAudioInputHelp"),
+                enhancedAudioInput,
+                span2: true));
+        }
+
+        UIElement bodyRoot = panel;
         switch (section)
         {
             case Section.Power:
@@ -128,17 +161,51 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                 break;
 
             case Section.Console:
-                panel.Children.Add(MakeToggleCard(
+                basicConsolePanel.Children.Add(MakeToggleCard(
                     L10n.Get("Advanced_EnableConsole"),
                     L10n.Get("Advanced_ConsoleHelp"),
                     console,
                     span2: true));
-                panel.Children.Add(MakeToggleCard(
+                basicConsolePanel.Children.Add(MakeToggleCard(
                     L10n.Get("Advanced_LockOnDisconnect"),
                     L10n.Get("Advanced_LockOnDisconnectHelp"),
                     lockOnDisconnect,
                     span2: true));
-                panel.Children.Add(MakeResolutionCard());
+                basicConsolePanel.Children.Add(MakeResolutionCard());
+
+                var enhancedPanel = new SettingsFieldPanel { Spacing = 12 };
+                AddEnhancedFeatureCards(enhancedPanel);
+                enhancedConsoleHost.Children.Add(consoleEnhancedNoticeHost);
+                enhancedConsoleHost.Children.Add(enhancedPanel);
+
+                void RenderConsoleTabs()
+                {
+                    var header = DeviceWorkbench.PivotHeader(
+                        this,
+                        ((string, string, bool, Action)[])[
+                            ("\uE7F4", L10n.Get("Console_TabBasic"), !consoleEnhancedTab, () => SelectConsoleTab(false)),
+                            ("\uE839", L10n.Get("Console_TabEnhanced"), consoleEnhancedTab, () => SelectConsoleTab(true))
+                        ],
+                        onBack: null);
+                    header.Padding = new Thickness(0, 0, 0, 1);
+                    consoleTabsHost.Content = header;
+                }
+
+                void SelectConsoleTab(bool enhanced)
+                {
+                    if (consoleEnhancedTab == enhanced) return;
+                    consoleEnhancedTab = enhanced;
+                    basicConsolePanel.Visibility = enhanced ? Visibility.Collapsed : Visibility.Visible;
+                    enhancedConsoleHost.Visibility = enhanced ? Visibility.Visible : Visibility.Collapsed;
+                    RenderConsoleTabs();
+                }
+
+                RenderConsoleTabs();
+                bodyRoot = new StackPanel
+                {
+                    Spacing = 12,
+                    Children = { consoleTabsHost, basicConsolePanel, enhancedConsoleHost }
+                };
                 break;
 
             case Section.Other:
@@ -151,6 +218,7 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                 panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_EnableConsole"), L10n.Get("Advanced_ConsoleHelp"), console, span2: true));
                 panel.Children.Add(MakeToggleCard(L10n.Get("Advanced_LockOnDisconnect"), L10n.Get("Advanced_LockOnDisconnectHelp"), lockOnDisconnect, span2: true));
                 panel.Children.Add(MakeResolutionCard());
+                AddEnhancedFeatureCards(panel);
                 break;
         }
 
@@ -162,12 +230,15 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
         }
 
         var content = new StackPanel { Margin = new Thickness(0, 4, 0, 24) };
-        content.Children.Add(panel);
+        content.Children.Add(bodyRoot);
         SetBody(content);
 
         console.Toggled += async (_, _) => await ApplyAsync(() => VmConsoleSupportService.SetConsoleSupportAsync(VmId, console.IsOn));
         numLock.Toggled += async (_, _) => await ApplyAsync(() => VmBootService.SetBootNumLockAsync(VmId, numLock.IsOn));
         lockOnDisconnect.Toggled += async (_, _) => await ApplyAsync(() => VmConsoleSupportService.SetLockOnDisconnectAsync(VmId, lockOnDisconnect.IsOn));
+        enhancedClipboard.Toggled += async (_, _) => await ApplyAsync(() => VmConsoleSupportService.SetEnhancedFeaturesAsync(VmId, enhancedClipboard.IsOn, enhancedAudioOutput.IsOn, enhancedAudioInput.IsOn));
+        enhancedAudioOutput.Toggled += async (_, _) => await ApplyAsync(() => VmConsoleSupportService.SetEnhancedFeaturesAsync(VmId, enhancedClipboard.IsOn, enhancedAudioOutput.IsOn, enhancedAudioInput.IsOn));
+        enhancedAudioInput.Toggled += async (_, _) => await ApplyAsync(() => VmConsoleSupportService.SetEnhancedFeaturesAsync(VmId, enhancedClipboard.IsOn, enhancedAudioOutput.IsOn, enhancedAudioInput.IsOn));
         hibernation.Toggled += async (_, _) => await ApplyAsync(() => VmPowerService.SetHibernationEnabledAsync(VmId, hibernation.IsOn));
         turnOffOnRestart.Toggled += async (_, _) => await ApplyAsync(() => VmPowerService.SetTurnOffOnGuestRestartAsync(VmId, turnOffOnRestart.IsOn));
         bootVpci.Toggled += async (_, _) => await ApplyAsync(() => VmPcieService.SetBootPciExpressAsync(VmId, bootVpci.IsOn));
@@ -217,6 +288,9 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
             VmSecurityFields.Shielded,
             VmConsoleFields.BasicEnabled,
             VmConsoleFields.LockOnDisconnect,
+            VmConsoleFields.EnhancedClipboard,
+            VmConsoleFields.EnhancedAudioOutput,
+            VmConsoleFields.EnhancedAudioInput,
             VmDisplayFields.ResolutionType,
             VmDisplayFields.Width,
             VmDisplayFields.Height
@@ -233,6 +307,9 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
             VmConsoleFields.BasicEnabled,
             VmBootGlobalFields.NumLock,
             VmConsoleFields.LockOnDisconnect,
+            VmConsoleFields.EnhancedClipboard,
+            VmConsoleFields.EnhancedAudioOutput,
+            VmConsoleFields.EnhancedAudioInput,
             VmPowerBatteryFields.EnableHibernation,
             VmPowerBatteryFields.TurnOffOnGuestRestart,
             VmPcieFields.BootPciExpress,
@@ -331,6 +408,23 @@ public sealed partial class VmAdvancedSettingsView : VmSettingsView
                     resCondition.Reason);
                 if (!hasResolution && type.State == VmQueryValueState.Failed)
                     errors.Add(L10n.Get("Advanced_ResolutionPrefix") + type.Error);
+
+                string? enhancedLockedReason = context.Generation == 1
+                    ? L10n.Get("Advanced_EnhancedGen1Unsupported")
+                    : consoleLockedByShield
+                        ? (shielding.HasValue ? L10n.Get("Advanced_ConsoleShielded") : shielding.Error)
+                        : consoleValue.HasValue && !consoleValue.Value
+                            ? L10n.Get("Advanced_EnhancedConsoleDisabled")
+                            : null;
+                consoleEnhancedNoticeHost.Content = string.IsNullOrEmpty(enhancedLockedReason)
+                    ? null
+                    : DeviceWorkbench.InlineBanner(this, enhancedLockedReason, InfoBarSeverity.Warning);
+                consoleEnhancedNoticeHost.Visibility = string.IsNullOrEmpty(enhancedLockedReason)
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
+                SetSwitch(enhancedClipboard, row.Get(VmConsoleFields.EnhancedClipboard), enhancedLockedReason == null, errors, enhancedLockedReason);
+                SetSwitch(enhancedAudioOutput, row.Get(VmConsoleFields.EnhancedAudioOutput), enhancedLockedReason == null, errors, enhancedLockedReason);
+                SetSwitch(enhancedAudioInput, row.Get(VmConsoleFields.EnhancedAudioInput), enhancedLockedReason == null, errors, enhancedLockedReason);
             }
 
             if (activeSection is Section.All or Section.Other)

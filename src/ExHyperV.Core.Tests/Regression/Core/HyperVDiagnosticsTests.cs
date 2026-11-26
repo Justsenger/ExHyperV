@@ -84,6 +84,34 @@ public sealed class HyperVDiagnosticsTests
     }
 
     [TestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task EnablingRecoversStoppedVmmsAndVerifiesReadiness(bool recoverySucceeds)
+    {
+        var backend = new ConfigurationBackend();
+        var service = new VmmsServiceInfo("Stopped", "Auto", 0, 0, 0, null, new(VmmsImageState.Exists, null));
+        backend.Diagnostics.Service = () => Task.FromResult<VmmsServiceInfo?>(service);
+        int attempts = 0;
+        backend.Recover = () =>
+        {
+            attempts++;
+            if (recoverySucceeds) service = service with { State = "Running" };
+            return new(true, recoverySucceeds, recoverySucceeds ? null : "Start failed");
+        };
+
+        var result = await HyperVHostService.SetHyperVEnabledAsync(true, backend);
+
+        Assert.AreEqual(1, attempts);
+        Assert.AreEqual(recoverySucceeds, result.Success);
+        Assert.IsFalse(result.RequiresRestart);
+        Assert.AreEqual(recoverySucceeds ? 2 : 1, backend.DiagnosticsCalls);
+        Assert.AreEqual(recoverySucceeds ? 1 : 0, backend.Diagnostics.WmiReads);
+        var step = result.Steps.Single(step => step.Name == "RecoverVmms");
+        Assert.AreEqual(recoverySucceeds ? OperationStepState.Succeeded : OperationStepState.Failed, step.State);
+        Assert.AreEqual(recoverySucceeds ? null : "Start failed", step.Failure?.Message);
+    }
+
+    [TestMethod]
     public async Task DisablingChangesBootConfigurationAndRetainsInstalledFeatures()
     {
         var backend = new ConfigurationBackend { Launch = 1, Active = true };
@@ -145,6 +173,9 @@ public sealed class HyperVDiagnosticsTests
         internal ulong Launch = 1;
         internal bool? Active = true, LastWrite;
         internal int FeatureCalls, BootReads, BootWrites, DiagnosticsCalls;
+        internal readonly DiagnosticsBackend Diagnostics = new();
+        internal Func<VmmsRecoveryResult> Recover = () => throw new AssertFailedException("Unexpected VMMS recovery");
+        public Task<VmmsRecoveryResult> StartVmmsIfStoppedAsync() => Task.FromResult(Recover());
         public Task<ApiResponse> EnableFeaturesAsync() { FeatureCalls++; return Task.FromResult(Features); }
         public ApiResponse<ulong> ReadLaunchType() { BootReads++; return ApiResponse<ulong>.Ok(Launch); }
         public Task<ApiResponse> WriteLaunchTypeAsync(bool enabled) { BootWrites++; LastWrite = enabled; return Task.FromResult(ApiResponse.Ok()); }
@@ -152,7 +183,7 @@ public sealed class HyperVDiagnosticsTests
         public Task<HyperVEnvironmentStatus> GetDiagnosticsAsync()
         {
             DiagnosticsCalls++;
-            return HyperVEnvironmentInspector.GetAsync(new DiagnosticsBackend(), TimeSpan.FromSeconds(1));
+            return HyperVEnvironmentInspector.GetAsync(Diagnostics, TimeSpan.FromSeconds(1));
         }
     }
 }

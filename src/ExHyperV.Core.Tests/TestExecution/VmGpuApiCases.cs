@@ -33,7 +33,7 @@ internal static class VmGpuApiCases
             await using var restore = new HostStateJournal(c); restore.ConfigurationElement(AppDataPaths.ConfigFilePath, "MmioCeilingMb");
             await using var vm = await TemporaryVm.CopyTemplateAsync(c);
             var host = await SelectGpuAsync(c);
-            var scan = await c.CallAsync(() => gpu.ScanVmPartitionsAsync(vm.Id, c.Token)); c.RequireSettled(scan.OutcomeUnknown || scan.CleanupRequired, string.Join(";", scan.CleanupErrors)); c.Require(scan.Success, string.Join(";", scan.Errors));
+            var scan = await c.CallAsync(() => gpu.ScanVmPartitionsAsync(vm.Id, c.Token)); c.RequireSettled(scan.OutcomeUnknown || scan.CleanupRequired, string.Join("，", scan.CleanupErrors)); c.Require(scan.Success, string.Join("，", scan.Errors));
             foreach (var partition in scan.Partitions)
                 c.Evidence.Add($"分区 {partition.PartitionNumber}：{partition.OsType}，{partition.SizeInBytes / 1073741824d:F1} GiB，BitLocker={partition.IsBitLocker}，磁盘 {partition.DiskDisplayName}");
             if (scan.Partitions.Count == 0)
@@ -65,8 +65,8 @@ internal static class VmGpuApiCases
             }
             var partitions = scan.Partitions.Where(v => v.OsType == OperatingSystemType.Windows && !v.IsBitLocker).ToArray();
             if (partitions.Length == 0 && scan.Partitions.Any(v => v.OsType == OperatingSystemType.Windows && v.IsBitLocker))
-                throw new ApiCheckSkippedException("模板的 Windows 分区已启用 BitLocker；离线 GPU 驱动部署需要可直接读取的系统分区。");
-            if (partitions.Length != 1) throw new ApiCheckSkippedException("模板副本需有唯一可用 Windows 系统分区；当前识别到 " + partitions.Length + " 个。");
+                throw new ApiCheckSkippedException("模板的 Windows 分区已启用 BitLocker，离线 GPU 驱动部署需要可直接读取的系统分区。");
+            if (partitions.Length != 1) throw new ApiCheckSkippedException("模板副本需有唯一可用 Windows 系统分区，当前识别到 " + partitions.Length + " 个。");
             if (p.Id == "T-126f66d78af91bcd-2")
             {
                 var part = partitions[0]; string original = part.DiskPath; part.DiskPath += ".changed";
@@ -165,7 +165,7 @@ internal static class VmGpuApiCases
         if (physical is null) file = await TemporaryDisk.AttachAsync(vm, "partition-scan", sizeBytes: 2L * 1024 * 1024 * 1024);
         else { var add = await VmStorageService.AddDriveAsync(vm.Id, new() { IsPhysical = true, PhysicalDisk = physical.Disk, PathOrNumber = physical.Disk.Number.ToString() }); c.RequireSettled(add.ErrorKind is ApiErrorKind.OutcomeUnknown or ApiErrorKind.CleanupRequired, add.Error); c.Require(add.Success, add.Error); }
         var before = await DiskStateAsync(file, physical?.Disk.Number);
-        var result = await c.CallAsync(() => service.ScanVmPartitionsAsync(vm.Id, c.Token)); c.RequireSettled(result.OutcomeUnknown || result.CleanupRequired, string.Join(";", result.CleanupErrors)); c.Require(result.Success, string.Join(";", result.Errors));
+        var result = await c.CallAsync(() => service.ScanVmPartitionsAsync(vm.Id, c.Token)); c.RequireSettled(result.OutcomeUnknown || result.CleanupRequired, string.Join("，", result.CleanupErrors)); c.Require(result.Success, string.Join("，", result.Errors));
         c.Equal(before.GetRawText(), (await DiskStateAsync(file, physical?.Disk.Number)).GetRawText(), "扫描后恢复挂载、离线与只读状态");
         if (file is not null) { c.Require(result.Partitions.Any(p => p.PartitionNumber > 0 && p.SizeInBytes > 0 && p.DiskPath == file), "测试 NTFS 分区及磁盘路径"); c.Equal("partition-scan", await TemporaryDisk.MarkerAsync(file), "扫描保持原文件内容"); }
         var cancelled = await c.CallAsync(() => service.ScanVmPartitionsAsync(vm.Id, new CancellationToken(true))); c.Require(cancelled.IsCancelled && !cancelled.Success && cancelled.CleanupErrors.Count == 0, "提前取消返回明确状态");
@@ -213,7 +213,7 @@ internal static class VmGpuApiCases
         long bytes = Directory.EnumerateFiles(package.HostFileRepository, "*", SearchOption.AllDirectories).Sum(path => new FileInfo(path).Length);
         long required = checked(bytes + 1024L * 1024 * 1024);
         long hostFree = new DriveInfo(Path.GetPathRoot(Path.GetFullPath(c.DirectoryPath))!).AvailableFreeSpace;
-        if (hostFree < required) throw new ApiCheckSkippedException($"GPU 驱动库约 {bytes / 1073741824d:F1} GiB，副本所在磁盘现有 {hostFree / 1073741824d:F1} GiB；需要额外 1 GiB 余量。");
+        if (hostFree < required) throw new ApiCheckSkippedException($"GPU 驱动库约 {bytes / 1073741824d:F1} GiB，副本所在磁盘现有 {hostFree / 1073741824d:F1} GiB，需要额外 1 GiB 余量。");
         var volume = await WindowsTestCommand.RunAsync("""
             $mounted=$false
             try{$disk=Mount-VHD -Path $a.path -ReadOnly -NoDriveLetter -PassThru|Get-Disk;$mounted=$true

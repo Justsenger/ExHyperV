@@ -18,6 +18,8 @@ import {
   HOST_PCIE_DEVICES,
   CHECKPOINT_NODES
 } from './ui-design-data.js';
+import { createServerAdapter } from './server-adapter.js';
+import { renderRemotePage } from './remote-page.js';
 
 export function initUiDesignWorkbench() {
   const winEl = document.getElementById('winuiWindow');
@@ -46,16 +48,61 @@ export function initUiDesignWorkbench() {
   let consoleCtrlPromise = null;
   let settingsRenderToken = 0;
 
+  const DEFAULT_CONSOLE_FEATURES = Object.freeze({
+    consoleClipboard: true,
+    consoleAudioOutput: true,
+    consoleAudioInput: true
+  });
+
+  function readCachedVmConsoleFeatures(vmId) {
+    const prevAdv = vmId ? state.advSettingsByVm[vmId] : null;
+    if (!prevAdv || typeof prevAdv !== 'object') return { ...DEFAULT_CONSOLE_FEATURES };
+    return {
+      consoleClipboard: prevAdv.consoleClipboard !== false,
+      consoleAudioOutput: prevAdv.consoleAudioOutput !== false,
+      consoleAudioInput: prevAdv.consoleAudioInput !== false
+    };
+  }
+
+  function emitConsoleSync(vmId, adv) {
+    if (!vmId || !adv) return;
+    window.__WOW_APP_CLIENT__?.emitAppEvent?.('exhyperv:console-sync', {
+      id: vmId,
+      consoleSupport: Boolean(adv.consoleSupport),
+      shielding: Boolean(adv.shielding),
+      consoleClipboard: adv.consoleClipboard !== false,
+      consoleAudioOutput: adv.consoleAudioOutput !== false,
+      consoleAudioInput: adv.consoleAudioInput !== false
+    });
+  }
+
+  function preferredConsoleMode() {
+    return state.defaultConsoleMode === 'External' ? 'external' : state.defaultConsoleMode === 'RdpEnhanced' ? 'enhanced' : 'basic';
+  }
   function loadConsoleCtrl() {
     if (consoleCtrl) return Promise.resolve(consoleCtrl);
     if (!consoleCtrlPromise) {
       consoleCtrlPromise = import('./ui-design-console.js').then((mod) => {
         consoleCtrl = mod.createConsoleController({
-          getVm,
-          getAllVms: () => VM_ITEMS,
-          getAdvSettings: () => state.advSettings,
+          getVm: () => ({ ...getVm(), mode: preferredConsoleMode() }),
+          getAllVms: () => activeVms,
+          getAdvSettings: (vmItem) => {
+            const id = vmItem?.id;
+            if (!id || id === state.selectedVmId) return state.advSettings;
+            return state.advSettingsByVm[id] || {
+              consoleSupport: true,
+              shielding: false,
+              ...DEFAULT_CONSOLE_FEATURES
+            };
+          },
           getTheme: () => winEl.getAttribute('data-theme') || 'dark',
           getAccentHex: () => state.accentHex,
+          getServerConnection: (vm, mode, watchOnly, ceiling) => (serverAdapter.isLive ? serverAdapter.issueConsoleTicket(vm.id, mode, watchOnly, ceiling) : Promise.resolve(null)),
+          executeVmPowerAction: async (vmId, action) => {
+            if (!serverAdapter.isLive) return false;
+            await serverAdapter.executeVmPower(vmId, action);
+            return true;
+          },
           onVmPowerChanged: () => {
             syncStandaloneHostRailPanel();
             notifyParentHostState();
@@ -122,6 +169,7 @@ export function initUiDesignWorkbench() {
     activeTabKey: 'overview',
     deviceSubKey: 'gpu',
     advancedSubKey: 'power',
+    consoleSubTab: 'basic',
     tailOrder: 'checkpoints-first',
     advSettings: {
       secureBoot: true,
@@ -135,6 +183,9 @@ export function initUiDesignWorkbench() {
       fullScsi: false,
       numLock: false,
       consoleSupport: true,
+      consoleClipboard: true,
+      consoleAudioOutput: true,
+      consoleAudioInput: true,
       resolution: '默认',
       lockOnDisconnect: false,
       hibernation: false,
@@ -280,7 +331,13 @@ export function initUiDesignWorkbench() {
     autoStartMode: 'off', // 'off' | 'normal' | 'silent'
     closeBehavior: 'exit', // 'exit' | 'tray'
     autoOpenConsole: false,
-    defaultConsoleMode: 'RdpBasic',
+    defaultConsoleMode: (() => {
+      try {
+        const saved = localStorage.getItem('exhyperv.console.defaultBackend');
+        if (saved === 'External' || saved === 'RdpEnhanced') return saved;
+      } catch {}
+      return 'RdpBasic';
+    })(),
     defaultPowerAction: 'Shutdown',
     loggingEnabled: true,
     verboseDiagnostics: false,
@@ -323,10 +380,525 @@ export function initUiDesignWorkbench() {
       weightPresetMode: false
     },
     computeByVm: {},
-    hostLogicalCores: 12
+    bootEntriesByVm: {},
+    checkpointNodesByVm: {},
+    checkpointEnabledByVm: {},
+    advSettingsByVm: {},
+    pcieSettingsByVm: {},
+    hostLogicalCores: 12,
+    hostCpuModel: '',
+    _hydratedVmId: ''
   };
 
-  const getVm = () => VM_ITEMS.find((v) => v.id === state.selectedVmId) || VM_ITEMS[0];
+  const EMPTY_LIVE_VM = {
+    id: '',
+    guid: '',
+    name: '暂无虚拟机',
+    osImage: '/ui-design/os/Windows.svg',
+    osIcon: 'Windows.svg',
+    osText: '---',
+    running: false,
+    stateText: '暂无虚拟机',
+    liveUptime: '00:00:00',
+    cores: 0,
+    memoryGb: 0,
+    usedMemoryGb: 0,
+    configText: '当前宿主机暂无已注册的 Hyper-V 虚拟机',
+    ipWhenRunning: '---',
+    gpus: [],
+    disks: [],
+    adapters: [],
+    _empty: true
+  };
+
+  let activeVms = structuredClone(VM_ITEMS);
+  const demoSnapshots = {
+    gpuAssignmentsByVm: structuredClone(state.gpuAssignmentsByVm),
+    storageItemsByVm: structuredClone(state.storageItemsByVm),
+    networkAdaptersByVm: structuredClone(state.networkAdaptersByVm),
+    computeByVm: structuredClone(state.computeByVm),
+    isaByVm: structuredClone(state.isaByVm),
+    bootEntries: structuredClone(state.bootEntries),
+    serialPortsByVm: structuredClone(state.serialPortsByVm),
+    vtpmByVm: structuredClone(state.vtpmByVm),
+    pcieDevicesByVm: structuredClone(state.pcieDevicesByVm),
+    pcieSettingsByVm: structuredClone(state.pcieSettingsByVm),
+    checkpointNodes: structuredClone(state.checkpointNodes),
+    checkpointSelectedId: state.checkpointSelectedId,
+    checkpointEnabled: state.checkpointEnabled,
+    advSettings: structuredClone(state.advSettings),
+    processorFields: Object.fromEntries(
+      PROCESSOR_SECTIONS.flatMap((s) => (s.fields || []).map((f) => [f.id, { value: f.value, savedValue: f.savedValue ?? f.value }]))
+    ),
+    memoryFields: Object.fromEntries(
+      MEMORY_SECTIONS.flatMap((s) => (s.fields || []).map((f) => [f.id, { value: f.value, savedValue: f.savedValue ?? f.value }]))
+    )
+  };
+
+  const getVm = () => activeVms.find((v) => v.id === state.selectedVmId) || activeVms[0] || EMPTY_LIVE_VM;
+
+  const KNOWN_SB_TEMPLATES = {
+    '1734c6e8-3154-4dda-ba5f-a874cc483422': 'Microsoft Windows',
+    '272e7447-90a4-4563-a4b9-8e4ab00526ce': 'Microsoft UEFI 证书颁发机构',
+    '4292ae2b-ee2c-42b5-a969-dd8f8689f6f3': '受防护的开源 VM'
+  };
+
+  function resolveSecureBootTemplateLabel(templateId, templates = []) {
+    const clean = String(templateId || '').trim().toLowerCase().replace(/[{}]/g, '');
+    if (!clean) return 'Microsoft Windows';
+    if (KNOWN_SB_TEMPLATES[clean]) return KNOWN_SB_TEMPLATES[clean];
+    const hit = (Array.isArray(templates) ? templates : []).find((t) =>
+      String(t.Id ?? t.id ?? '').trim().toLowerCase().replace(/[{}]/g, '') === clean
+    );
+    const name = String(hit?.Name ?? hit?.name ?? '').toLowerCase();
+    if (name.includes('uefi')) return 'Microsoft UEFI 证书颁发机构';
+    if (name.includes('shielded') || name.includes('open source') || name.includes('开源')) return '受防护的开源 VM';
+    return 'Microsoft Windows';
+  }
+
+  function applyVmDetailToState(vmId, detailOverride = null) {
+    if (!serverAdapter.isLive || !vmId) return false;
+    const detail = detailOverride || serverAdapter.state.vmDetailsByVm?.[vmId];
+    const vm = activeVms.find((v) => v.id === vmId);
+    const isSelected = vmId === state.selectedVmId;
+
+    if (!detail) {
+      if (isSelected && state._hydratedVmId !== vmId) {
+        state.bootEntries = [];
+        state.checkpointNodes = [];
+        state.checkpointSelectedId = '';
+        state.storageItems = structuredClone(state.storageItemsByVm[vmId] || []);
+        if (!state.serialPortsByVm[vmId]) state.serialPortsByVm[vmId] = [];
+        if (!state.networkAdaptersByVm[vmId]) state.networkAdaptersByVm[vmId] = vm?.adapters ? structuredClone(vm.adapters) : [];
+        state.affinityMask = new Set();
+        state.savedAffinityMask = new Set();
+        const vmFeatures = readCachedVmConsoleFeatures(vmId);
+        state.advSettings = {
+          secureBoot: false,
+          secureBootTemplate: 'Microsoft Windows',
+          tpmEnabled: false,
+          encryptState: false,
+          shielding: false,
+          bindHostTpm: false,
+          vbsOptOut: false,
+          migratableDisabled: false,
+          fullScsi: false,
+          numLock: false,
+          consoleSupport: true,
+          ...vmFeatures,
+          resolution: '默认',
+          lockOnDisconnect: false,
+          hibernation: false,
+          turnOffOnRestart: false,
+          batteryPassthrough: false
+        };
+      }
+      return false;
+    }
+
+    state.storageItemsByVm[vmId] = structuredClone(detail.storageItems || []);
+    if (vm) {
+      vm.disks = detail.disks || vm.disks;
+      vm.storageItems = detail.storageItems || vm.storageItems;
+    }
+    state.bootEntriesByVm[vmId] = structuredClone(detail.bootEntries || []);
+    state.checkpointNodesByVm[vmId] = structuredClone(detail.checkpointNodes || []);
+    state.checkpointEnabledByVm[vmId] = detail.checkpointsEnabled !== false;
+    state.serialPortsByVm[vmId] = structuredClone(detail.serialPorts || []);
+    if (Array.isArray(detail.networkAdapters)) {
+      state.networkAdaptersByVm[vmId] = structuredClone(detail.networkAdapters);
+      if (vm) vm.adapters = structuredClone(detail.networkAdapters);
+    }
+
+    if (detail.vtpm) {
+      const rawHosts = detail.vtpm.AuthorizedHosts ?? detail.vtpm.authorizedHosts;
+      const authHosts = Array.isArray(rawHosts)
+        ? rawHosts.map((h, i) => ({
+            id: (h.IsLocal ?? h.isLocal) ? 'local' : `host-${i}`,
+            name: h.Name ?? h.name ?? '',
+            thumbprint:
+              h.SigningThumbprint ?? h.signingThumbprint ?? h.EncryptionThumbprint ?? h.encryptionThumbprint ?? '',
+            isLocal: Boolean(h.IsLocal ?? h.isLocal)
+          }))
+        : [];
+      const guardian = detail.vtpm.LocalGuardianName ?? detail.vtpm.localGuardianName ?? '';
+      state.vtpmByVm[vmId] = {
+        kpConfigured: Boolean(detail.vtpm.KeyProtectorConfigured ?? detail.vtpm.keyProtectorConfigured),
+        hasPreviousKey: Boolean(detail.vtpm.HasPreviousKey ?? detail.vtpm.hasPreviousKey),
+        boundHost: guardian ? `当前宿主 (${guardian})` : authHosts[0]?.name || '',
+        authorizedHosts: authHosts,
+        signingThumbprint: detail.vtpm.LocalSigningThumbprint ?? detail.vtpm.localSigningThumbprint ?? '',
+        guestStateFile:
+          detail.vtpm.GuestStateFile ?? detail.vtpm.guestStateFile ?? detail.vtpm.GuestStateDescription ?? ''
+      };
+    }
+
+    state.pcieDevicesByVm[vmId] = structuredClone(detail.pcieDevices || []);
+    if (detail.pcie) {
+      state.pcieSettingsByVm[vmId] = {
+        emulationEnabled: Boolean(detail.pcie.EmulationEnabled ?? detail.pcie.emulationEnabled ?? true),
+        topology: String(detail.pcie.Topology ?? detail.pcie.topology ?? '0'),
+        bootVpci: Boolean(detail.pcie.BootPciExpress ?? detail.pcie.bootPciExpress ?? false)
+      };
+    }
+
+    const res = detail.displayResolution;
+    const resType = res?.ResolutionType ?? res?.resolutionType;
+    const resW = res?.Width ?? res?.width;
+    const resH = res?.Height ?? res?.height;
+    const resolutionText =
+      resType === 3 && resW && resH
+        ? `${resW} x ${resH}`
+        : '默认';
+
+    const sec = detail.sec || {};
+    const vtpm = detail.vtpm || {};
+    const consoleFeatures = detail.consoleFeatures || {};
+    const vmAdv = {
+      secureBoot: Boolean(sec.SecureBootEnabled ?? sec.secureBootEnabled),
+      secureBootTemplate: resolveSecureBootTemplateLabel(
+        sec.SecureBootTemplateId ?? sec.secureBootTemplateId,
+        detail.secureBootTemplates
+      ),
+      tpmEnabled: Boolean(vtpm.TpmEnabled ?? vtpm.tpmEnabled ?? sec.TpmEnabled ?? sec.tpmEnabled),
+      encryptState: Boolean(vtpm.EncryptEnabled ?? vtpm.encryptEnabled ?? sec.EncryptEnabled ?? sec.encryptEnabled),
+      shielding: Boolean(vtpm.Shielded ?? vtpm.shielded ?? sec.Shielded ?? sec.shielded),
+      bindHostTpm: Boolean(vtpm.BindToHostTpm ?? vtpm.bindToHostTpm),
+      vbsOptOut: Boolean(vtpm.VirtualizationBasedSecurityOptOut ?? vtpm.virtualizationBasedSecurityOptOut),
+      migratableDisabled: Boolean(
+        vtpm.MigrationDisabled ?? vtpm.migrationDisabled ?? (vtpm.MigratablePolicy === 1)
+      ),
+      fullScsi: false,
+      numLock: Boolean(detail.numLock),
+      consoleSupport:
+        detail.consoleSupportEnabled != null ? Boolean(detail.consoleSupportEnabled) : true,
+      consoleClipboard: (consoleFeatures.Clipboard ?? consoleFeatures.clipboard) !== false,
+      consoleAudioOutput: (consoleFeatures.AudioOutput ?? consoleFeatures.audioOutput) !== false,
+      consoleAudioInput: (consoleFeatures.AudioInput ?? consoleFeatures.audioInput) !== false,
+      resolution: resolutionText,
+      lockOnDisconnect: false,
+      hibernation: false,
+      turnOffOnRestart: false,
+      batteryPassthrough: Boolean(detail.battery?.Enabled ?? detail.battery?.enabled)
+    };
+    state.advSettingsByVm[vmId] = vmAdv;
+
+    if (!isSelected) return true;
+
+    const switchedVm = state._hydratedVmId !== vmId;
+    state._hydratedVmId = vmId;
+    state.storageItems = structuredClone(detail.storageItems || []);
+    state.bootEntries = structuredClone(detail.bootEntries || []);
+    state.checkpointNodes = structuredClone(detail.checkpointNodes || []);
+    state.checkpointEnabled = detail.checkpointsEnabled !== false;
+    if (!state.checkpointNodes.some((n) => n.id === state.checkpointSelectedId)) {
+      const curNode =
+        state.checkpointNodes.find((n) => n.isCurrent || n.type === 'Current') ||
+        state.checkpointNodes[state.checkpointNodes.length - 1];
+      state.checkpointSelectedId = curNode?.id || '';
+    }
+    state.advSettings = structuredClone(vmAdv);
+
+    if (detail.procRaw) {
+      const pr = detail.procRaw;
+      const computeObj = {
+        Count: Number(pr.Count ?? vm?.cores ?? 1),
+        Reservation: Math.round(Number(pr.Reservation ?? 0) / 1000),
+        Limit: Math.min(100, Math.round(Number(pr.Limit ?? 100000) / 1000)),
+        RelativeWeight: Number(pr.RelativeWeight ?? 100)
+      };
+      const curComp = state.computeByVm[vmId];
+      const compClean =
+        !curComp ||
+        switchedVm ||
+        (curComp.draft.Count === curComp.saved.Count &&
+          curComp.draft.Reservation === curComp.saved.Reservation &&
+          curComp.draft.Limit === curComp.saved.Limit &&
+          curComp.draft.RelativeWeight === curComp.saved.RelativeWeight);
+      if (compClean) {
+        state.computeByVm[vmId] = { saved: { ...computeObj }, draft: { ...computeObj } };
+      } else {
+        state.computeByVm[vmId].saved = { ...computeObj };
+      }
+
+      for (const secDef of PROCESSOR_SECTIONS) {
+        for (const f of secDef.fields || []) {
+          if (!(f.id in pr)) continue;
+          const rawVal = pr[f.id];
+          let nextVal;
+          if (f.kind === 'toggle') {
+            nextVal = Boolean(rawVal);
+          } else if (f.id === 'Reservation' || f.id === 'Limit') {
+            nextVal = rawVal == null ? '' : String(Math.min(100, Math.round(Number(rawVal) / 1000)));
+          } else {
+            nextVal = rawVal == null ? '' : String(rawVal);
+          }
+          const wasDirty = !switchedVm && f.savedValue !== undefined && f.value !== f.savedValue;
+          f.savedValue = nextVal;
+          if (!wasDirty) f.value = nextVal;
+        }
+      }
+
+      const isaObj = {
+        nested: Boolean(pr.ExposeVirtualizationExtensions),
+        legacyOs: Boolean(pr.CompatibilityForOlderOperatingSystemsEnabled),
+        migrationEnabled: Boolean(pr.CompatibilityForMigrationEnabled),
+        migrationMode: String(pr.CompatibilityForMigrationMode || 'MinimumFeatureSet'),
+        cpuBrand: String(pr.CpuBrandString || '')
+      };
+      const curIsa = state.isaByVm[vmId];
+      const isaClean =
+        !curIsa ||
+        switchedVm ||
+        (curIsa.draft.nested === curIsa.saved.nested &&
+          curIsa.draft.legacyOs === curIsa.saved.legacyOs &&
+          curIsa.draft.migrationEnabled === curIsa.saved.migrationEnabled &&
+          curIsa.draft.migrationMode === curIsa.saved.migrationMode &&
+          curIsa.draft.cpuBrand === curIsa.saved.cpuBrand);
+      if (isaClean) {
+        state.isaByVm[vmId] = { saved: { ...isaObj }, draft: { ...isaObj } };
+      } else {
+        state.isaByVm[vmId].saved = { ...isaObj };
+      }
+    }
+
+    if (detail.memRaw) {
+      const mr = detail.memRaw;
+      for (const secDef of MEMORY_SECTIONS) {
+        for (const f of secDef.fields || []) {
+          if (!(f.id in mr)) continue;
+          const rawVal = mr[f.id];
+          const nextVal = f.kind === 'toggle' ? Boolean(rawVal) : rawVal == null ? '' : String(rawVal);
+          const wasDirty = !switchedVm && f.savedValue !== undefined && f.value !== f.savedValue;
+          f.savedValue = nextVal;
+          if (!wasDirty) f.value = nextVal;
+        }
+      }
+    }
+
+    if (detail.affinityState) {
+      const affRaw =
+        detail.affinityState.SavedProcessors ??
+        detail.affinityState.savedProcessors ??
+        detail.affinityState.AppliedProcessors ??
+        detail.affinityState.appliedProcessors ??
+        [];
+      const nextAff = Array.isArray(affRaw) ? affRaw.map((n) => Number(n)).filter(Number.isFinite) : [];
+      const affClean =
+        switchedVm ||
+        !state.savedAffinityMask ||
+        (state.affinityMask?.size === state.savedAffinityMask.size &&
+          Array.from(state.affinityMask).every((x) => state.savedAffinityMask.has(x)));
+      state.savedAffinityMask = new Set(nextAff);
+      if (affClean) {
+        state.affinityMask = new Set(nextAff);
+      }
+    }
+
+    return true;
+  }
+
+  function updateRemoteNavIndicator(st) {
+    const demoBadge = document.getElementById('winuiDemoBadge');
+    if (demoBadge) {
+      demoBadge.hidden = st.mode === 'live' && st.status === 'connected';
+    }
+    const dot = document.getElementById('navRemoteDot');
+    const item = document.getElementById('navRemoteItem');
+    if (!dot) return;
+    dot.classList.remove('is-live', 'is-connecting', 'is-error');
+    if (st.mode === 'live' && st.status === 'connected') {
+      dot.hidden = false;
+      dot.classList.add('is-live');
+      if (item) item.title = `远程（已连接 ${st.serverUrl}）`;
+    } else if (st.status === 'connecting') {
+      dot.hidden = false;
+      dot.classList.add('is-connecting');
+      if (item) item.title = '远程（正在连接宿主机）';
+    } else if (st.status === 'error') {
+      dot.hidden = false;
+      dot.classList.add('is-error');
+      if (item) item.title = '远程（连接失败，当前保持演示模式）';
+    } else {
+      dot.hidden = true;
+      if (item) item.title = '远程（当前为演示模式）';
+    }
+  }
+
+  function syncTelemetryTarget() {
+    if (!serverAdapter.isLive) return;
+    const vm = getVm();
+    if (state.navTarget === 'host') {
+      const runningIds = activeVms.filter((v) => v.running && v.id).map((v) => v.id);
+      void serverAdapter.syncTelemetrySubscription({ host: true, vmIds: runningIds });
+    } else if (state.navTarget === 'vm') {
+      const vmIds = vm && vm.id && !vm._empty ? [vm.id] : [];
+      void serverAdapter.syncTelemetrySubscription({ host: serverAdapter.hasToolset('host') && vmIds.length === 0, vmIds });
+    }
+  }
+
+  function applyLiveVmListToUi(vms) {
+    activeVms = Array.isArray(vms) ? vms : [];
+    if (!activeVms.some((v) => v.id === state.selectedVmId)) {
+      state.selectedVmId = activeVms[0]?.id || '';
+    }
+    activeVms.forEach((vm) => {
+      state.gpuAssignmentsByVm[vm.id] = vm.gpus || [];
+      const cachedDetail = serverAdapter.state.vmDetailsByVm?.[vm.id];
+      if (cachedDetail?.storageItems?.length) {
+        vm.disks = cachedDetail.disks || vm.disks;
+        vm.storageItems = cachedDetail.storageItems;
+        state.storageItemsByVm[vm.id] = structuredClone(cachedDetail.storageItems);
+      } else {
+        state.storageItemsByVm[vm.id] = vm.storageItems?.length ? vm.storageItems : vm.disks || [];
+      }
+      if (Array.isArray(cachedDetail?.networkAdapters) && cachedDetail.networkAdapters.length > 0) {
+        const mergedNics = cachedDetail.networkAdapters.map((cn, idx) => {
+          const liveAdp = (vm.adapters || []).find((a) => a.key === cn.key || a.key === cn.id) || (vm.adapters || [])[idx];
+          return liveAdp
+            ? {
+                ...cn,
+                sendRate: liveAdp.sendRate || cn.sendRate,
+                recvRate: liveAdp.recvRate || cn.recvRate,
+                txRate: liveAdp.txRate || cn.txRate,
+                rxRate: liveAdp.rxRate || cn.rxRate,
+                sendPts: liveAdp.sendPts || cn.sendPts,
+                recvPts: liveAdp.recvPts || cn.recvPts,
+                ips: liveAdp.ips?.length ? liveAdp.ips : cn.ips,
+                ipv4: liveAdp.ipv4 || cn.ipv4,
+                ipv6: liveAdp.ipv6 || cn.ipv6
+              }
+            : cn;
+        });
+        vm.adapters = mergedNics;
+        state.networkAdaptersByVm[vm.id] = structuredClone(mergedNics);
+      } else {
+        state.networkAdaptersByVm[vm.id] = vm.adapters || [];
+      }
+    });
+    if (serverAdapter.isLive) {
+      hostMod?.applyLiveHostTelemetry?.({
+        liveVms: activeVms,
+        sys: {
+          runningVmCount: activeVms.filter((v) => v.running).length,
+          totalVmCount: activeVms.length,
+          vmAllocatedRamGb: Number(activeVms.reduce((sum, v) => sum + (v.running ? v.memoryGb || 0 : 0), 0).toFixed(1)),
+          vmAllocatedVcpu: activeVms.reduce((sum, v) => sum + (v.running ? v.cores || 0 : 0), 0)
+        }
+      });
+    }
+    if (serverAdapter.isLive && state.selectedVmId) {
+      applyVmDetailToState(state.selectedVmId);
+      const curVm = getVm();
+      if (curVm && !curVm._empty) {
+        void serverAdapter.loadVmDetails(curVm.id);
+      }
+    }
+    renderVmList();
+    renderDashboardSummary();
+    if (state.navTarget === 'vm') {
+      renderActiveWorkspace();
+    }
+    syncTelemetryTarget();
+  }
+
+  const serverAdapter = createServerAdapter({
+    onStatusChange: (st) => {
+      updateRemoteNavIndicator(st);
+      if (state.navTarget === 'remote') {
+        const pageRemote = document.getElementById('pageRemote');
+        if (pageRemote) renderRemotePage(pageRemote, serverAdapter);
+      }
+    },
+    onVmsUpdated: (vms) => {
+      applyLiveVmListToUi(vms);
+    },
+    onVmDetailsUpdated: (vmId, detail) => {
+      applyVmDetailToState(vmId, detail);
+      if (vmId === state.selectedVmId) {
+        renderVmList();
+        renderDashboardSummary();
+        if (state.navTarget === 'vm') {
+          renderActiveWorkspace();
+        }
+      }
+    },
+    onHostUpdated: (snapshot) => {
+      if (snapshot?.sys) {
+        if (snapshot.sys.threads) state.hostLogicalCores = snapshot.sys.threads;
+        if (snapshot.sys.cpu) state.hostCpuModel = snapshot.sys.cpu;
+      }
+      loadHostMod().then((mod) => {
+        mod.applyLiveHostSnapshot(snapshot);
+        mod.setHostActionHandler((action, payload) => serverAdapter.executeHostAction(action, payload));
+      });
+    },
+    onHostTelemetryTick: (snapshot) => {
+      hostMod?.applyLiveHostTelemetry?.(snapshot);
+    },
+    onVmTelemetryTick: () => {
+      if (state.navTarget === 'vm') {
+        renderDashboardSummary();
+        if (state.activeTabKey === 'overview') renderOverview();
+      }
+    },
+    onModeSwitched: (nextMode) => {
+      if (nextMode === 'demo') {
+        activeVms = structuredClone(VM_ITEMS);
+        state.selectedVmId = activeVms[0]?.id || 'vm-test';
+        state.hostLogicalCores = 12;
+        state.hostCpuModel = '';
+        state._hydratedVmId = '';
+        state.bootEntriesByVm = {};
+        state.checkpointNodesByVm = {};
+        state.checkpointEnabledByVm = {};
+        state.advSettingsByVm = {};
+        state.gpuAssignmentsByVm = structuredClone(demoSnapshots.gpuAssignmentsByVm);
+        state.storageItemsByVm = structuredClone(demoSnapshots.storageItemsByVm);
+        state.networkAdaptersByVm = structuredClone(demoSnapshots.networkAdaptersByVm);
+        state.computeByVm = structuredClone(demoSnapshots.computeByVm);
+        state.isaByVm = structuredClone(demoSnapshots.isaByVm);
+        state.bootEntries = structuredClone(demoSnapshots.bootEntries);
+        state.serialPortsByVm = structuredClone(demoSnapshots.serialPortsByVm);
+        state.vtpmByVm = structuredClone(demoSnapshots.vtpmByVm);
+        state.pcieDevicesByVm = structuredClone(demoSnapshots.pcieDevicesByVm);
+        state.pcieSettingsByVm = structuredClone(demoSnapshots.pcieSettingsByVm);
+        state.hostPcieDevices = null;
+        state.affinityMask = new Set([0, 1, 2, 3, 4, 5, 6, 7]);
+        state.savedAffinityMask = new Set(state.affinityMask);
+        state.checkpointNodes = structuredClone(demoSnapshots.checkpointNodes);
+        state.checkpointSelectedId = demoSnapshots.checkpointSelectedId;
+        state.checkpointEnabled = demoSnapshots.checkpointEnabled;
+        state.advSettings = structuredClone(demoSnapshots.advSettings);
+        for (const secDef of PROCESSOR_SECTIONS) {
+          for (const f of secDef.fields || []) {
+            const snapF = demoSnapshots.processorFields[f.id];
+            if (snapF) {
+              f.value = snapF.value;
+              f.savedValue = snapF.savedValue;
+            }
+          }
+        }
+        for (const secDef of MEMORY_SECTIONS) {
+          for (const f of secDef.fields || []) {
+            const snapF = demoSnapshots.memoryFields[f.id];
+            if (snapF) {
+              f.value = snapF.value;
+              f.savedValue = snapF.savedValue;
+            }
+          }
+        }
+        hostMod?.resetHostToDemo?.();
+        renderVmList();
+        renderDashboardSummary();
+        renderActiveWorkspace();
+        showNotice('已切回演示模式', 'info');
+      } else {
+        syncTelemetryTarget();
+        showNotice(`已连接到宿主机 ${serverAdapter.state.serverUrl}`, 'success');
+      }
+    }
+  });
 
   function hexToRgbTuple(hex) {
     const clean = hex.replace('#', '');
@@ -414,7 +986,7 @@ export function initUiDesignWorkbench() {
     banner.classList.remove('is-success', 'is-warning', 'is-info', 'is-error');
     banner.classList.add(`is-${severity}`);
     if (bannerIcon) {
-      const icons = { warning: '\uE7BA', info: '\uE946', success: '\uE73E', error: '\uE711' };
+      const icons = { warning: '\uF13C', info: '\uE946', success: '\uE73E', error: '\uE711' };
       bannerIcon.textContent = icons[severity] || '\uE711';
     }
     const rawText = String(message || '').trim() || '操作失败';
@@ -497,6 +1069,18 @@ export function initUiDesignWorkbench() {
   }
 
   function getCoreSample(idx) {
+    const vm = getVm();
+    if (serverAdapter.isLive) {
+      const perCore = vm?.telemetry?.perCoreHistories?.[idx];
+      const hist =
+        Array.isArray(perCore) && perCore.length > 0
+          ? perCore
+          : Array.isArray(vm?.telemetry?.cpuHistory) && vm.telemetry.cpuHistory.length > 0
+            ? vm.telemetry.cpuHistory
+            : [0, 0];
+      const latest = hist[hist.length - 1] ?? 0;
+      return { base: latest, pts: hist.slice(-7) };
+    }
     const base = 14 + ((idx * 11) % 36);
     const pts = [base - 6, base + 4, base - 2, base + 9, base + 3, base + 12, base];
     return { base, pts };
@@ -629,7 +1213,7 @@ export function initUiDesignWorkbench() {
     const container = document.getElementById('vmListContainer');
     if (!container) return;
     const q = state.searchQuery.trim().toLowerCase();
-    const filtered = VM_ITEMS.filter((vm) => !q || vm.name.toLowerCase().includes(q));
+    const filtered = activeVms.filter((vm) => !q || vm.name.toLowerCase().includes(q));
 
     container.innerHTML = filtered
       .map((vm) => {
@@ -662,9 +1246,18 @@ export function initUiDesignWorkbench() {
         state.ribbonComboOpen = false;
         syncStandaloneHostRailPanel();
         notifyParentHostState();
+        if (serverAdapter.isLive && state.selectedVmId) {
+          applyVmDetailToState(state.selectedVmId);
+        } else if (state.selectedVmId) {
+          Object.assign(state.advSettings, readCachedVmConsoleFeatures(state.selectedVmId));
+        }
         renderVmList();
         renderDashboardSummary();
         renderActiveWorkspace();
+        syncTelemetryTarget();
+        if (serverAdapter.isLive && state.selectedVmId) {
+          void serverAdapter.loadVmDetails(state.selectedVmId);
+        }
       });
     });
   }
@@ -677,13 +1270,13 @@ export function initUiDesignWorkbench() {
     const previewBorder = document.getElementById('vmPreviewBorder');
     if (osImg) osImg.src = vm.osImage;
     if (sysIconPanel) {
-      sysIconPanel.style.cursor = 'pointer';
-      sysIconPanel.title = '点击切换系统标志';
+      sysIconPanel.style.cursor = vm._empty ? 'default' : 'pointer';
+      sysIconPanel.title = vm._empty ? '' : '点击切换系统标志';
       if (!sysIconPanel.dataset.osPickerBound) {
         sysIconPanel.dataset.osPickerBound = '1';
         sysIconPanel.addEventListener('click', (e) => {
           e.stopPropagation();
-          toggleOsPickerFlyout();
+          if (!getVm()._empty) toggleOsPickerFlyout();
         });
       }
     }
@@ -702,14 +1295,17 @@ export function initUiDesignWorkbench() {
     if (powerWrap && powerMainBtn && powerDropBtn) {
       powerWrap.className = `power-split-wrap ${vm.running ? 'running' : 'stopped'}`;
       powerMainBtn.textContent = vm.running ? '关机' : '启动';
-      powerDropBtn.hidden = !vm.running;
-      if (!vm.running && powerFlyout) powerFlyout.hidden = true;
+      powerMainBtn.disabled = Boolean(vm._empty);
+      powerDropBtn.hidden = !vm.running || Boolean(vm._empty);
+      if ((!vm.running || vm._empty) && powerFlyout) powerFlyout.hidden = true;
     }
+    const connectBtn = document.getElementById('vmConnectBtn');
+    if (connectBtn) connectBtn.disabled = Boolean(vm._empty);
 
     const stateText = document.getElementById('vmStateText');
     const uptimeText = document.getElementById('vmUptimeText');
     const genTextEl = document.getElementById('vmGenText');
-    if (stateText) stateText.textContent = vm.running ? '运行中' : '已关机';
+    if (stateText) stateText.textContent = serverAdapter.isLive ? (vm.stateText || (vm.running ? '运行中' : '已关机')) : (vm.running ? '运行中' : '已关机');
     if (uptimeText) uptimeText.textContent = vm.running ? vm.liveUptime : '00:00:00';
     if (genTextEl) {
       genTextEl.textContent = `${vm.gen || 2}代`;
@@ -875,9 +1471,17 @@ export function initUiDesignWorkbench() {
         const picked = btn.getAttribute('data-pick-os');
         if (!picked) return;
         const curVm = getVm();
+        if (!curVm || curVm._empty) return;
+        closeOsPickerFlyout();
+        if (serverAdapter.isLive) {
+          serverAdapter
+            .setVmOsType(curVm.id, picked)
+            .then(() => showNotice('系统图标已同步到宿主机元数据'))
+            .catch((err) => showNotice(err?.message || '修改系统图标失败', 'error'));
+          return;
+        }
         curVm.osText = picked;
         curVm.osImage = `/ui-design/os/${picked}.svg`;
-        closeOsPickerFlyout();
         renderDashboardSummary();
       });
     });
@@ -988,12 +1592,39 @@ export function initUiDesignWorkbench() {
     const activeGpu = gpuAssigns[state.selectedGpuIdx] || gpuAssigns[0] || null;
     const activeDisk = vm.disks[state.selectedDiskIdx] || vm.disks[0];
     const activeNet = vm.adapters[state.selectedNetIdx] || vm.adapters[0];
-    const memPct = vm.running ? Math.round((vm.usedMemoryGb / vm.memoryGb) * 100) : 0;
+    const isLive = serverAdapter.isLive;
+    const cpuPctNum = isLive ? Number(vm.telemetry?.cpuPct ?? 0) : 24.8;
+    const cpuPctText = vm.running ? `${cpuPctNum.toFixed(1)}%` : '0%';
+    const cpuHist = isLive
+      ? Array.isArray(vm.telemetry?.cpuHistory) && vm.telemetry.cpuHistory.length >= 2
+        ? vm.telemetry.cpuHistory.slice(-7)
+        : [0, 0]
+      : [18, 22, 20, 29, 26, 25, 25];
+    const memPctRaw = vm.running && vm.memoryGb > 0 ? Math.round((vm.usedMemoryGb / vm.memoryGb) * 100) : 0;
+    const memPct = isLive ? Math.min(100, Math.max(0, memPctRaw)) : memPctRaw;
+    const memHist = isLive
+      ? Array.isArray(vm.telemetry?.memHistory) && vm.telemetry.memHistory.length >= 2
+        ? vm.telemetry.memHistory.slice(-7)
+        : [memPct, memPct]
+      : [58, 60, 62, 65, 67, 69, memPct];
     const usedMemText = vm.running ? vm.usedMemoryGb.toFixed(1) : '0.0';
     const totalMemText = vm.memoryGb.toFixed(1);
     const availGb = vm.running ? Math.max(0, vm.memoryGb - vm.usedMemoryGb).toFixed(1) : vm.memoryGb.toFixed(1);
     const coreSamples = Array.from({ length: vm.cores }, (_, i) => getCoreSample(i));
-    return { activeGpu, activeDisk, activeNet, memPct, usedMemText, totalMemText, availGb, coreSamples };
+    return {
+      activeGpu,
+      activeDisk,
+      activeNet,
+      cpuPctNum,
+      cpuPctText,
+      cpuHist,
+      memPct,
+      memHist,
+      usedMemText,
+      totalMemText,
+      availGb,
+      coreSamples
+    };
   }
 
   function renderKvGridHtml(items, gridClass = '') {
@@ -1050,7 +1681,8 @@ export function initUiDesignWorkbench() {
 
   function getCpuSummaryMeta() {
     const affinitySec = PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity');
-    const hostCpuModel = affinitySec?.cpuModel || 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz';
+    const hostCpuModel =
+      state.hostCpuModel || affinitySec?.cpuModel || 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz';
     const nestedOn = Boolean(getProcessorField('ExposeVirtualizationExtensions')?.value);
     const smtVal = getProcessorField('SmtMode')?.value || 'Inherit';
     const htText = smtVal === 'MultiThread' ? '开启' : smtVal === 'SingleThread' ? '关闭' : '自动';
@@ -1109,26 +1741,37 @@ export function initUiDesignWorkbench() {
     const dynamicEnabled = Boolean(getMemoryField('DynamicMemoryEnabled')?.value);
     const minMib = Number(getMemoryField('Minimum')?.value ?? 512);
     const maxMib = Number(getMemoryField('Maximum')?.value ?? 16384);
-    const demandMib = vm.running ? Math.round((vm.usedMemoryGb ?? 1.4) * 1024) : 0;
-    const smartPagingActive = Boolean(vm.running && dynamicEnabled && state.memSmartPagingAlert);
+    const demandMib = vm.running
+      ? serverAdapter.isLive
+        ? Math.round((vm.demandMemoryGb ?? vm.usedMemoryGb ?? 0) * 1024)
+        : Math.round((vm.usedMemoryGb ?? 1.4) * 1024)
+      : 0;
+    const smartPagingActive = serverAdapter.isLive
+      ? Boolean(vm.running && vm.smartPagingMiB > 0)
+      : Boolean(vm.running && dynamicEnabled && state.memSmartPagingAlert);
 
     return {
       dynamicEnabled,
       rangeText: `${formatMibCapacity(minMib)} - ${formatMibCapacity(maxMib)}`,
       pressureText: vm.running ? `${t.memPct}%` : '---',
-      demandText: vm.running ? formatMibCapacity(demandMib) : '---',
+      demandText: vm.running && demandMib > 0 ? formatMibCapacity(demandMib) : '---',
       smartPagingActive,
-      smartPagingText: smartPagingActive ? '256 MB（使用中）' : ''
+      smartPagingText: smartPagingActive
+        ? serverAdapter.isLive
+          ? `${vm.smartPagingMiB} MB（使用中）`
+          : '256 MB（使用中）'
+        : ''
     };
   }
 
   function buildMemCanvasHtml(vm, t, chartHeight = 184) {
     const meta = getMemorySummaryMeta(vm, t);
+    const memSeries = t.memHist || [t.memPct, t.memPct];
     const chart = createUsageChartHtml(
       '内存使用趋势',
       vm.running,
       `${t.memPct}%`,
-      [58, 60, 62, 65, 67, 69, t.memPct],
+      memSeries,
       false,
       chartHeight
     );
@@ -1181,6 +1824,17 @@ export function initUiDesignWorkbench() {
   }
 
   function resolveLiveGpuTelemetry(gpu, idx = 0) {
+    const vm = getVm();
+    const liveTel = serverAdapter.isLive ? vm?.telemetry : null;
+    if (liveTel && (Array.isArray(liveTel.gpu3dHistory) || Array.isArray(liveTel.gpuHistory))) {
+      return {
+        pct: liveTel.gpu3dPct || 0,
+        pts3d: (liveTel.gpu3dHistory || liveTel.gpuHistory || [0, 0]).slice(-6),
+        ptsCopy: (liveTel.gpuCopyHistory || [0, 0]).slice(-6),
+        ptsEnc: (liveTel.gpuEncHistory || [0, 0]).slice(-6),
+        ptsDec: (liveTel.gpuDecHistory || [0, 0]).slice(-6)
+      };
+    }
     return {
       pct: idx === 0 ? 18 : 6,
       pts3d: [10, 14, 22, 16, 19, 18],
@@ -1252,8 +1906,173 @@ export function initUiDesignWorkbench() {
   }
 
   function resolveDiskViewModel(disk, idx, vm) {
+    if (!disk) {
+      return {
+        isPhysical: false,
+        isIso: false,
+        isDifferencing: false,
+        isStale: false,
+        icon: '&#xEDA2;',
+        slot: `SCSI 0:${idx}`,
+        sourceState: '虚拟磁盘',
+        rightTitle: '类型',
+        rightState: '—',
+        rightCopy: '',
+        title: '暂无磁盘',
+        fileSizeText: '---',
+        capacityText: '---',
+        ratio: 0,
+        pctText: '0%',
+        headerReading: '---',
+        railStat: '',
+        railTip: '',
+        readRate: '0 B/s',
+        writeRate: '0 B/s',
+        readIops: 0,
+        writeIops: 0,
+        readPts: [0, 0],
+        writePts: [0, 0],
+        diskFormatState: 'VHDX',
+        diskTypeState: '—',
+        parentPath: '',
+        pathTitle: '路径',
+        pathText: '未配置',
+        pathCopy: ''
+      };
+    }
+
     const slot = disk.controllerLoc || `SCSI 0:${idx}`;
-    const mode = idx === 0 ? state.diskPreviewMode : 'virtual';
+    const mode = serverAdapter.isLive ? 'live' : idx === 0 ? state.diskPreviewMode : 'virtual';
+
+    if (mode === 'live') {
+      const readRate = vm.running ? (disk.readRate || '0 B/s') : '0 B/s';
+      const writeRate = vm.running ? (disk.writeRate || '0 B/s') : '0 B/s';
+      const readPts = Array.isArray(disk.readPts) && disk.readPts.length >= 2 ? disk.readPts.slice(-7) : [0, 0];
+      const writePts = Array.isArray(disk.writePts) && disk.writePts.length >= 2 ? disk.writePts.slice(-7) : [0, 0];
+
+      if (disk.driveType === 'DvdDrive') {
+        const isPhysCd = disk.diskType === 'Physical';
+        const hasMedia = isPhysCd || Boolean(disk.hasIsoMedia && disk.path);
+        const title = disk.title || (hasMedia ? 'ISO 镜像' : '空光驱');
+        const capText = hasMedia && disk.capacityText !== '---' ? disk.capacityText : hasMedia ? '已挂载' : '未挂载';
+        return {
+          isPhysical: isPhysCd,
+          isIso: true,
+          isDifferencing: false,
+          isStale: false,
+          icon: '&#xE958;',
+          slot,
+          diskNumber: disk.diskNumber,
+          serialNumber: disk.serialNumber || '',
+          sourceState: isPhysCd ? '物理光驱' : '虚拟光驱',
+          rightTitle: isPhysCd ? '序列号' : '',
+          rightState: isPhysCd ? (disk.serialNumber || '未取得') : '',
+          rightCopy: isPhysCd ? (disk.serialNumber || '') : '',
+          title,
+          fileSizeText: disk.fileSizeText !== '---' ? disk.fileSizeText : capText,
+          capacityText: capText,
+          pctText: hasMedia ? '只读' : '空',
+          headerReading: capText,
+          railStat: vm.running && hasMedia ? `读 ${readRate} 写 ${writeRate}` : '',
+          railTip: disk.path ? `${title}\n${disk.path}` : title,
+          readRate,
+          writeRate: '0 B/s',
+          readIops: disk.readIops ?? 0,
+          writeIops: 0,
+          readPts,
+          writePts: [0, 0],
+          diskTypeState: '',
+          parentPath: '',
+          pathTitle: '路径',
+          pathText: disk.path || '未挂载镜像',
+          pathCopy: disk.path || ''
+        };
+      }
+
+      if (disk.diskType === 'Physical' || disk.physicalInfo) {
+        const p = disk.physicalInfo || {};
+        const isStale = Boolean(disk.isPassthroughStale);
+        const diskNum = p.diskNumber ?? disk.diskNumber ?? idx;
+        const physPath = disk.path || `\\\\.\\PhysicalDrive${diskNum}`;
+        const capText = disk.capacityText || p.capacityText || '---';
+        const serialNum = p.serialNumber || disk.serialNumber || '未取得';
+        return {
+          isPhysical: true,
+          isIso: false,
+          isDifferencing: false,
+          isStale,
+          icon: '&#xEDA2;',
+          slot,
+          diskNumber: diskNum,
+          serialNumber: serialNum,
+          sourceState: isStale ? '物理磁盘（脱机）' : '物理磁盘',
+          rightTitle: '序列号',
+          rightState: serialNum,
+          rightCopy: serialNum === '未取得' ? '' : serialNum,
+          title: isStale ? `PhysicalDrive${diskNum}` : (p.model || disk.title || `PhysicalDrive${diskNum}`),
+          fileSizeText: capText,
+          capacityText: capText,
+          pctText: '100%',
+          headerReading: isStale ? '已脱机' : capText,
+          railStat: isStale ? '已脱机' : vm.running ? `读 ${readRate} 写 ${writeRate}` : '',
+          railTip: `${p.model || disk.title}\n${physPath}`,
+          readRate,
+          writeRate,
+          readIops: disk.readIops ?? p.readIops ?? 0,
+          writeIops: disk.writeIops ?? p.writeIops ?? 0,
+          readPts,
+          writePts,
+          diskTypeState: isStale ? '物理直通（脱机）' : '物理直通',
+          parentPath: '',
+          pathTitle: '路径',
+          pathText: physPath,
+          pathCopy: isStale ? '' : physPath
+        };
+      }
+
+      const rawType = String(disk.vhdType || disk.vhdFormat || disk.subtitle || 'Dynamic');
+      const isFixed = rawType === 'Fixed' || rawType.includes('固定');
+      const isDiff = rawType === 'Differencing' || Boolean(disk.parentPath) || rawType.includes('差异') || rawType.includes('差分');
+      const diskTypeState = isFixed ? '固定大小' : isDiff ? '差异' : '动态扩展';
+      const ext = (disk.path || '').toLowerCase().endsWith('.vhd') ? 'VHD' : 'VHDX';
+      const fileSizeText = isFixed ? disk.capacityText : disk.fileSizeText;
+      const capacityText = disk.capacityText;
+      const ratio = isFixed ? 1 : disk.ratio || 0;
+      const pctNum = ratio * 100;
+      const pctText = `${pctNum < 1 && pctNum > 0 ? pctNum.toFixed(1) : Math.round(pctNum)}%`;
+      return {
+        isPhysical: false,
+        isIso: false,
+        isDifferencing: isDiff,
+        isStale: false,
+        icon: '&#xEDA2;',
+        slot,
+        sourceState: '虚拟磁盘',
+        rightTitle: '类型',
+        rightState: diskTypeState,
+        rightCopy: '',
+        title: disk.title,
+        fileSizeText,
+        capacityText,
+        ratio,
+        pctText,
+        headerReading: `${fileSizeText} / ${capacityText}`,
+        railStat: vm.running ? `读 ${readRate} 写 ${writeRate}` : '',
+        railTip: `${disk.title}\n${disk.path}`,
+        readRate,
+        writeRate,
+        readIops: disk.readIops ?? 0,
+        writeIops: disk.writeIops ?? 0,
+        readPts,
+        writePts,
+        diskFormatState: ext,
+        diskTypeState,
+        parentPath: disk.parentPath || '',
+        pathTitle: '路径',
+        pathText: disk.path || '---',
+        pathCopy: disk.path || ''
+      };
+    }
 
     if (mode === 'physical-cd') {
       const cdModel = 'ASUS BW-16D1HT Blu-ray Drive';
@@ -1612,8 +2431,68 @@ export function initUiDesignWorkbench() {
   }
 
   function resolveNetViewModel(net, vm = getVm()) {
-    const mode = state.netPreviewMode || 'connected';
     const isRunning = Boolean(vm && vm.running);
+    if (serverAdapter.isLive) {
+      if (!net) {
+        return {
+          isConnected: false,
+          switchName: '',
+          switchType: '—',
+          macAddress: '---',
+          macMode: '—',
+          ipv4List: [],
+          ipv6List: [],
+          vlanText: '未启用',
+          sendRate: '0 bps',
+          recvRate: '0 bps',
+          sendPts: [0, 0],
+          recvPts: [0, 0],
+          activeChart: false,
+          railSub: '未连接',
+          railStat: '',
+          headerTitle: '未连接',
+          headerReading: ''
+        };
+      }
+      const isConn = Boolean(net.isConnected);
+      const sName = isConn ? net.subtitle || '虚拟交换机' : '';
+      const macAddr = net.mac ? formatMacAddress(net.mac) : '---';
+      const macMod = net.isStaticMac ? '静态' : '动态';
+      const rawIps = Array.isArray(net.ips) ? net.ips.filter(Boolean) : [];
+      const ipv4s = isRunning ? rawIps.filter((x) => !x.includes(':')) : [];
+      if (isRunning && !ipv4s.length && net.ipv4 && net.ipv4 !== '---') ipv4s.push(net.ipv4);
+      const ipv6s = isRunning ? rawIps.filter((x) => x.includes(':')) : [];
+      if (isRunning && !ipv6s.length && net.ipv6) ipv6s.push(net.ipv6);
+      const sRate = isRunning ? net.sendRate || net.txRate || '0 bps' : '0 bps';
+      const rRate = isRunning ? net.recvRate || net.rxRate || '0 bps' : '0 bps';
+      const sPts = Array.isArray(net.sendPts) && net.sendPts.length >= 2 ? net.sendPts.slice(-7) : [0, 0];
+      const rPts = Array.isArray(net.recvPts) && net.recvPts.length >= 2 ? net.recvPts.slice(-7) : [0, 0];
+      const act = isRunning && isConn;
+      const hMode = state.netHeaderMode || 'switch-ip';
+      const hTitle = hMode === 'adapter-switch' ? net.title || '网络适配器' : isConn ? sName : '未连接';
+      const hReading = hMode === 'adapter-switch' ? (isConn ? sName : '未连接') : '';
+      return {
+        isConnected: isConn,
+        switchName: sName,
+        switchType: isConn ? net.switchType || '虚拟交换机' : '—',
+        macAddress: macAddr,
+        macMode: macMod,
+        ipv4List: ipv4s,
+        ipv6List: ipv6s,
+        vlanText: net.vlanText || '未启用',
+        sendRate: sRate,
+        recvRate: rRate,
+        sendPts: sPts,
+        recvPts: rPts,
+        activeChart: act,
+        railSub: isConn ? sName : '未连接',
+        railStat: act ? `发 ${sRate} 收 ${rRate}` : '',
+        headerTitle: hTitle,
+        headerReading: hReading
+      };
+    }
+
+    const mode = state.netPreviewMode || 'connected';
     let isConnected = true;
     let switchName = (net && net.subtitle) || 'Default Switch';
     let switchType = 'NAT';
@@ -1739,7 +2618,7 @@ export function initUiDesignWorkbench() {
     const kvItems = [];
 
     if ( cand === 'a' ) {
-      // 方案 A（推荐 · 2上1下同磁盘节奏）：顶部标题已是 Default Switch / 未连接
+      // 方案 A（推荐，2上1下同磁盘节奏）：顶部标题已是 Default Switch / 未连接
       // 左上 IPv4 地址 📋 | 右上 MAC 地址 📋 | 下方通栏 IPv6 地址（支持多条各自带 📋）
       kvItems.push(
         renderNetIpKvItemHtml({
@@ -1838,7 +2717,7 @@ export function initUiDesignWorkbench() {
     let title = getCpuSummaryMeta().hostCpuModel;
     let pill = '';
     let sub = '';
-    let reading = vm.running ? '24.8%' : '0%';
+    let reading = t.cpuPctText;
     let cfgTab = 'processor';
     let cfgDev = '';
     let cfgLabel = '处理器';
@@ -1960,8 +2839,8 @@ export function initUiDesignWorkbench() {
         idx: 0,
         title: 'CPU',
         sub: '',
-        stat: `${vm.running ? '24.8%' : '0%'} ${vm.cores} 核心`,
-        pts: [18, 22, 20, 29, 26, 25, 25],
+        stat: `${t.cpuPctText} ${vm.cores} 核心`,
+        pts: t.cpuHist,
         color: '#3898EC',
         fill: 'rgba(56, 152, 236, 0.22)',
         tip: `CPU (${vm.cores} 核)`
@@ -1972,7 +2851,7 @@ export function initUiDesignWorkbench() {
         title: '内存',
         sub: '',
         stat: `${t.memPct}% ${t.usedMemText}/${t.totalMemText} GB`,
-        pts: [58, 60, 62, 65, 67, 69, t.memPct],
+        pts: t.memHist,
         color: '#9D5CE6',
         fill: 'rgba(157, 92, 230, 0.22)',
         tip: `内存 ${t.totalMemText} GB`
@@ -2028,7 +2907,7 @@ export function initUiDesignWorkbench() {
       .map(
         (r) => `
         <button class="tmw-item ${accentMode ? 'accent-mode' : ''} ${isSel(r.kind, r.idx) ? 'selected' : ''}" data-tc-select="${r.kind}:${r.idx}" title="${r.tip}">
-          <div class="tmw-thumb">${renderSparkThumbSvg(r.pts, vm.running && (r.kind !== 'net' || resolveNetViewModel(null, vm).isConnected), strokeOf(r.color), fillOf(r.fill))}</div>
+          <div class="tmw-thumb">${renderSparkThumbSvg(r.pts, vm.running && (r.kind !== 'net' || resolveNetViewModel(vm.adapters[r.idx] || null, vm).isConnected), strokeOf(r.color), fillOf(r.fill))}</div>
           <div class="tmw-info">
             <div class="tmw-title-row">
               <span class="tmw-title">${r.title}</span>
@@ -2134,8 +3013,12 @@ export function initUiDesignWorkbench() {
       memCard.classList.toggle('selected', state.selectedResource === 'mem');
     }
 
+    const origTelemetry = getOverviewTelemetry(vm, gpuAssigns);
+
     if (cpuVal) {
-      cpuVal.innerHTML = vm.running ? `24.8<span class="unit"> %</span>` : `0.0<span class="unit"> %</span>`;
+      cpuVal.innerHTML = vm.running
+        ? `${origTelemetry.cpuPctNum.toFixed(1)}<span class="unit"> %</span>`
+        : `0.0<span class="unit"> %</span>`;
     }
     if (memVal) {
       memVal.innerHTML = vm.running
@@ -2158,13 +3041,13 @@ export function initUiDesignWorkbench() {
       } else {
         // VmDashboardView.xaml.cs line 16: new("内存使用趋势", VmUsageChartKind.Memory)
         const memChartHost = document.getElementById('overviewMemoryChartHost');
-        const pct = Math.round((vm.usedMemoryGb / vm.memoryGb) * 100);
+        const pct = origTelemetry.memPct;
         if (memChartHost) {
           memChartHost.innerHTML = createUsageChartHtml(
             '内存使用趋势',
             vm.running,
             `${pct}%`,
-            [58, 60, 62, 65, 67, 69, pct],
+            origTelemetry.memHist,
             false,
             214
           );
@@ -2224,14 +3107,15 @@ export function initUiDesignWorkbench() {
           `
           )
           .join('');
+        const liveGpu = resolveLiveGpuTelemetry(gpuAssigns[0], 0);
         const bodyHtml = !vm.running
           ? `<div style="opacity:0.6;font-size:13px;margin:0 4px;">虚拟机未启动</div>`
           : `
             <div class="gpu-charts-grid">
-              ${createUsageChartHtml('3D', true, '18%', [10, 14, 22, 16, 19, 18], true, 148)}
-              ${createUsageChartHtml('数据复制', true, '4%', [2, 3, 5, 4, 4, 4], true, 148)}
-              ${createUsageChartHtml('视频编码', true, '0%', [0, 0, 0, 0, 0, 0], true, 148)}
-              ${createUsageChartHtml('视频解码', true, '6%', [3, 5, 8, 6, 7, 6], true, 148)}
+              ${createUsageChartHtml('3D', true, `${liveGpu.pct}%`, liveGpu.pts3d, true, 148)}
+              ${createUsageChartHtml('数据复制', true, `${liveGpu.ptsCopy.at(-1) ?? 0}%`, liveGpu.ptsCopy, true, 148)}
+              ${createUsageChartHtml('视频编码', true, `${liveGpu.ptsEnc.at(-1) ?? 0}%`, liveGpu.ptsEnc, true, 148)}
+              ${createUsageChartHtml('视频解码', true, `${liveGpu.ptsDec.at(-1) ?? 0}%`, liveGpu.ptsDec, true, 148)}
             </div>
           `;
         gpuPanel.innerHTML = `
@@ -2260,26 +3144,31 @@ export function initUiDesignWorkbench() {
         })
         .join('');
       const activeDisk = vm.disks[state.selectedDiskIdx] || vm.disks[0];
-      const [fileNum, fileUnit] = activeDisk.fileSizeText.split(' ');
-      const [capNum, capUnit] = activeDisk.capacityText.split(' ');
-      storagePanel.innerHTML = `
-        <div class="metric-selectors-grid">${diskCards}</div>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div>
-            <div class="storage-capacity-line">
-              <div><span class="cap-label">文件占用</span><span class="cap-num">${fileNum}</span> <span>${fileUnit}</span></div>
-              <div><span class="cap-label">虚拟容量</span><span class="cap-num">${capNum}</span> <span>${capUnit}</span></div>
+      if (!activeDisk) {
+        storagePanel.innerHTML = `<div style="opacity:0.6;font-size:13px;margin:0 4px;">暂无存储设备</div>`;
+      } else {
+        const dView = resolveDiskViewModel(activeDisk, state.selectedDiskIdx, vm);
+        const [fileNum = dView.fileSizeText, fileUnit = ''] = String(dView.fileSizeText || '---').split(' ');
+        const [capNum = dView.capacityText, capUnit = ''] = String(dView.capacityText || '---').split(' ');
+        storagePanel.innerHTML = `
+          <div class="metric-selectors-grid">${diskCards}</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <div class="storage-capacity-line">
+                <div><span class="cap-label">文件占用</span><span class="cap-num">${fileNum}</span> <span>${fileUnit}</span></div>
+                <div><span class="cap-label">虚拟容量</span><span class="cap-num">${capNum}</span> <span>${capUnit}</span></div>
+              </div>
+              <div class="storage-capacity-meter">
+                <div class="storage-capacity-fill" style="width:${((dView.ratio || 0) * 100).toFixed(1)}%;"></div>
+              </div>
             </div>
-            <div class="storage-capacity-meter">
-              <div class="storage-capacity-fill" style="width:${(activeDisk.ratio * 100).toFixed(1)}%;"></div>
+            <div class="transfer-charts-grid">
+              ${createUsageChartHtml('读取', vm.running, dView.readRate, dView.readPts, false, 132)}
+              ${createUsageChartHtml('写入', vm.running && !dView.isIso, dView.writeRate, dView.writePts, false, 132)}
             </div>
           </div>
-          <div class="transfer-charts-grid">
-            ${createUsageChartHtml('读取', vm.running, '1.2 MB/s', [8, 18, 12, 24, 15, 14], false, 132)}
-            ${createUsageChartHtml('写入', vm.running, '420 KB/s', [4, 9, 6, 12, 8, 7], false, 132)}
-          </div>
-        </div>
-      `;
+        `;
+      }
       storagePanel.querySelectorAll('[data-disk-idx]').forEach((btn) => {
         btn.addEventListener('click', () => {
           state.selectedDiskIdx = Number(btn.getAttribute('data-disk-idx'));
@@ -2291,7 +3180,8 @@ export function initUiDesignWorkbench() {
       const netCards = vm.adapters
         .map((n, idx) => {
           const sel = idx === state.selectedNetIdx;
-          const secReading = vm.running ? '↑ 48 KB/s  ↓ 1.2 MB/s' : '';
+          const nv = resolveNetViewModel(n, vm);
+          const secReading = nv.railStat;
           return `
             <button class="vm-metric-card ${sel ? 'selected' : ''}" data-net-idx="${idx}">
               <span class="fi vm-metric-icon">&#xE839;</span>
@@ -2308,39 +3198,48 @@ export function initUiDesignWorkbench() {
         })
         .join('');
       const activeNet = vm.adapters[state.selectedNetIdx] || vm.adapters[0];
-      const ipv4Html = vm.running
-        ? `<button class="network-copy-btn" data-copy="${vm.ipWhenRunning}"><span>${vm.ipWhenRunning}</span><span class="fi" style="font-size:12px;opacity:0.5;">&#xE8C8;</span></button>`
-        : `<span style="font-size:12px;opacity:0.8;">未获取</span>`;
-      const ipv6Html = vm.running
-        ? `<button class="network-copy-btn" data-copy="${vm.ipv6WhenRunning}"><span>${vm.ipv6WhenRunning}</span><span class="fi" style="font-size:12px;opacity:0.5;">&#xE8C8;</span></button>`
-        : `<span style="font-size:12px;opacity:0.8;">未获取</span>`;
+      if (!activeNet) {
+        netPanel.innerHTML = `<div style="opacity:0.6;font-size:13px;margin:0 4px;">暂无网络适配器</div>`;
+      } else {
+        const netInfo = resolveNetViewModel(activeNet, vm);
+        const firstIpv4 = netInfo.ipv4List[0] || '';
+        const firstIpv6 = netInfo.ipv6List[0] || '';
+        const ipv4Html =
+          vm.running && firstIpv4
+            ? `<button class="network-copy-btn" data-copy="${firstIpv4}"><span>${firstIpv4}</span><span class="fi" style="font-size:12px;opacity:0.5;">&#xE8C8;</span></button>`
+            : `<span style="font-size:12px;opacity:0.8;">未获取</span>`;
+        const ipv6Html =
+          vm.running && firstIpv6
+            ? `<button class="network-copy-btn" data-copy="${firstIpv6}"><span>${firstIpv6}</span><span class="fi" style="font-size:12px;opacity:0.5;">&#xE8C8;</span></button>`
+            : `<span style="font-size:12px;opacity:0.8;">未获取</span>`;
 
-      netPanel.innerHTML = `
-        <div class="metric-selectors-grid">${netCards}</div>
-        <div class="network-addresses-stack">
-          <div class="network-addresses-pair">
-            <div class="network-addr-group">
-              <span class="network-addr-title">MAC</span>
-              <button class="network-copy-btn" data-copy="${activeNet.mac}">
-                <span>${activeNet.mac}</span>
-                <span class="fi" style="font-size:12px;opacity:0.5;">&#xE8C8;</span>
-              </button>
+        netPanel.innerHTML = `
+          <div class="metric-selectors-grid">${netCards}</div>
+          <div class="network-addresses-stack">
+            <div class="network-addresses-pair">
+              <div class="network-addr-group">
+                <span class="network-addr-title">MAC</span>
+                <button class="network-copy-btn" data-copy="${netInfo.macAddress}">
+                  <span>${netInfo.macAddress}</span>
+                  <span class="fi" style="font-size:12px;opacity:0.5;">&#xE8C8;</span>
+                </button>
+              </div>
+              <div class="network-addr-group">
+                <span class="network-addr-title">IPv4</span>
+                ${ipv4Html}
+              </div>
             </div>
             <div class="network-addr-group">
-              <span class="network-addr-title">IPv4</span>
-              ${ipv4Html}
+              <span class="network-addr-title">IPv6</span>
+              ${ipv6Html}
             </div>
           </div>
-          <div class="network-addr-group">
-            <span class="network-addr-title">IPv6</span>
-            ${ipv6Html}
+          <div class="transfer-charts-grid">
+            ${createUsageChartHtml('发送', netInfo.activeChart, netInfo.sendRate, netInfo.sendPts, false, 132)}
+            ${createUsageChartHtml('接收', netInfo.activeChart, netInfo.recvRate, netInfo.recvPts, false, 132)}
           </div>
-        </div>
-        <div class="transfer-charts-grid">
-          ${createUsageChartHtml('发送', vm.running, '48 KB/s', [5, 8, 6, 11, 7, 6], false, 132)}
-          ${createUsageChartHtml('接收', vm.running, '1.2 MB/s', [14, 28, 19, 34, 22, 20], false, 132)}
-        </div>
-      `;
+        `;
+      }
       netPanel.querySelectorAll('[data-copy]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const val = btn.getAttribute('data-copy');
@@ -2519,7 +3418,7 @@ export function initUiDesignWorkbench() {
     `;
   }
 
-  // 5. Render Settings Area (处理器 / 内存 / 设备[显卡·存储·网卡·PCIe] / 快照 / 高级[引导·安全·控制台·电源])
+  // 5. Render Settings Area (处理器 / 内存 / 设备[显卡、存储、网卡、PCIe] / 快照 / 高级[引导、安全、控制台、电源])
   function renderSubnavItems(subnav, items, activeId, onSelect) {
     subnav.innerHTML = items
       .map((item, idx) => {
@@ -2551,7 +3450,66 @@ export function initUiDesignWorkbench() {
         const settingKey = sw.getAttribute('data-setting-key');
         if (settingKey && settingKey in state.advSettings) {
           state.advSettings[settingKey] = isOn;
-          showNotice('已应用');
+          const curVm = getVm();
+          if (curVm && !curVm._empty) {
+            if (!state.advSettingsByVm[curVm.id]) {
+              state.advSettingsByVm[curVm.id] = structuredClone(state.advSettings);
+            } else {
+              state.advSettingsByVm[curVm.id][settingKey] = isOn;
+            }
+          }
+          if (
+            settingKey === 'consoleClipboard' ||
+            settingKey === 'consoleAudioOutput' ||
+            settingKey === 'consoleAudioInput'
+          ) {
+            const syncedAdv = structuredClone(state.advSettings);
+            if (curVm && !curVm._empty) {
+              emitConsoleSync(curVm.id, syncedAdv);
+            }
+            if (serverAdapter.isLive && curVm && !curVm._empty) {
+              serverAdapter
+                .saveConsoleSetting(curVm.id, 'enhancedFeatures', {
+                  clipboard: syncedAdv.consoleClipboard !== false,
+                  audioOutput: syncedAdv.consoleAudioOutput !== false,
+                  audioInput: syncedAdv.consoleAudioInput !== false
+                })
+                .then(() => showNotice('已保存至宿主机，将在下次连接或重连增强会话时生效'))
+                .catch((err) => {
+                  state.advSettings[settingKey] = !isOn;
+                  if (state.advSettingsByVm[curVm.id]) {
+                    state.advSettingsByVm[curVm.id][settingKey] = !isOn;
+                  }
+                  emitConsoleSync(curVm.id, state.advSettings);
+                  renderActiveWorkspace();
+                  showNotice(err?.message || '保存设置失败', 'error');
+                });
+            } else {
+              showNotice('已应用，将在下次连接或重连增强会话时生效');
+            }
+          } else if (serverAdapter.isLive && curVm && !curVm._empty) {
+            let req = null;
+            if (settingKey === 'hibernation' || settingKey === 'turnOffOnRestart' || settingKey === 'batteryPassthrough') {
+              req = serverAdapter.savePowerSetting(curVm.id, settingKey, isOn);
+            } else if (settingKey === 'consoleSupport' || settingKey === 'lockOnDisconnect') {
+              req = serverAdapter.saveConsoleSetting(curVm.id, settingKey, isOn);
+            } else if (settingKey === 'numLock') {
+              req = serverAdapter.saveCompatSetting(curVm.id, settingKey, isOn);
+            }
+            if (req) {
+              req
+                .then(() => showNotice('已保存至宿主机'))
+                .catch((err) => {
+                  state.advSettings[settingKey] = !isOn;
+                  renderActiveWorkspace();
+                  showNotice(err?.message || '保存设置失败', 'error');
+                });
+            } else {
+              showNotice('已应用');
+            }
+          } else {
+            showNotice('已应用');
+          }
         }
         const procFieldId = sw.getAttribute('data-proc-field-id');
         if (procFieldId) {
@@ -2686,7 +3644,16 @@ export function initUiDesignWorkbench() {
             state,
             vm,
             processorFields: sec.fields,
-            onApplied: (saved) => {
+            onApplied: (saved, targetVm, changedKeys) => {
+              if (serverAdapter.isLive && vm && !vm._empty) {
+                const dirtyProps = Array.isArray(changedKeys) && changedKeys.length > 0
+                  ? changedKeys
+                  : ['Count', 'Reservation', 'Limit', 'RelativeWeight'];
+                return serverAdapter
+                  .saveProcessorSettings(vm.id, saved, dirtyProps)
+                  .then(() => showNotice('处理器配置已保存至宿主机'))
+                  .catch((err) => showNotice(err?.message || '保存处理器配置失败', 'error'));
+              }
               vm.configText = String(vm.configText || '').replace(/^\d+\s*核/, `${saved.Count} 核`);
               renderVmList();
               renderDashboardSummary();
@@ -2702,8 +3669,13 @@ export function initUiDesignWorkbench() {
 
     // Section 2: 核心绑定 (VmCpuAffinitySettingsView.cs lines 16-295)
     if (sec.kind === 'affinity') {
+      const curVm = getVm();
       if (!state.savedAffinityMask) state.savedAffinityMask = new Set(state.affinityMask);
-      const totalCores = Math.max(1, state.hostLogicalCores || 12);
+      const liveAffProcs = serverAdapter.isLive ? serverAdapter.state.liveHostSnapshot?.affinityProcs : null;
+      const totalCores =
+        Array.isArray(liveAffProcs) && liveAffProcs.length > 0
+          ? liveAffProcs.length
+          : Math.max(1, state.hostLogicalCores || 12);
       const splitIdx = Math.ceil(totalCores / 2);
       const isAffinityDirty = () => {
         if (state.affinityMask.size !== state.savedAffinityMask.size) return true;
@@ -2717,13 +3689,19 @@ export function initUiDesignWorkbench() {
         return count === 0 ? '自由调度' : `已绑定 ${count} / ${totalCores}`;
       };
 
-      const coreMeta = Array.from({ length: totalCores }, (_, i) => {
-        // Hybrid P/E demo when cores carry distinct types (matches WinUI3 CpuCoreType check)
-        const type = totalCores >= 8 ? (i < splitIdx ? 'perf' : 'eff') : 'perf';
-        return { index: i, type };
-      });
-      const hasHybridCores =
-        coreMeta.some((c) => c.type === 'perf') && coreMeta.some((c) => c.type === 'eff');
+      const coreMeta =
+        Array.isArray(liveAffProcs) && liveAffProcs.length > 0
+          ? liveAffProcs.map((p, idx) => ({
+              index: Number.isFinite(p.index) ? p.index : idx,
+              type: String(p.coreType || '').toLowerCase() === 'efficient' ? 'eff' : 'perf'
+            }))
+          : Array.from({ length: totalCores }, (_, i) => ({
+              index: i,
+              type: totalCores >= 8 ? (i < splitIdx ? 'perf' : 'eff') : 'perf'
+            }));
+      const perfIndices = coreMeta.filter((c) => c.type === 'perf').map((c) => c.index);
+      const effIndices = coreMeta.filter((c) => c.type === 'eff').map((c) => c.index);
+      const hasHybridCores = perfIndices.length > 0 && effIndices.length > 0;
 
       const PERF_BOLT_SVG = `<svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" stroke="rgba(0,0,0,0.35)" stroke-width="1" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 1.5L3.8 8.8h3.7L6.5 14.5l5.7-7.3H8.5l1-5.7z"/></svg>`;
       const EFF_LEAF_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" stroke="rgba(0,0,0,0.35)" stroke-width="1" stroke-linejoin="round" aria-hidden="true"><path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/></svg>`;
@@ -2775,9 +3753,13 @@ export function initUiDesignWorkbench() {
           el.classList.toggle('selected', state.affinityMask.has(idx));
         });
         const isPerfOnly =
-          state.affinityMask.size === 8 && [0, 1, 2, 3, 4, 5, 6, 7].every((i) => state.affinityMask.has(i));
+          perfIndices.length > 0 &&
+          state.affinityMask.size === perfIndices.length &&
+          perfIndices.every((i) => state.affinityMask.has(i));
         const isEffOnly =
-          state.affinityMask.size === 8 && [8, 9, 10, 11, 12, 13, 14, 15].every((i) => state.affinityMask.has(i));
+          effIndices.length > 0 &&
+          state.affinityMask.size === effIndices.length &&
+          effIndices.every((i) => state.affinityMask.has(i));
         host.querySelector('[data-affinity-quick="perf"]')?.classList.toggle('active', isPerfOnly);
         host.querySelector('[data-affinity-quick="eff"]')?.classList.toggle('active', isEffOnly);
         const statusEl = host.querySelector('#affinityStatusText');
@@ -2836,10 +3818,10 @@ export function initUiDesignWorkbench() {
       host.querySelectorAll('[data-affinity-quick]').forEach((btn) => {
         btn.addEventListener('click', () => {
           const mode = btn.getAttribute('data-affinity-quick');
-          if (mode === 'all') state.affinityMask = new Set(Array.from({ length: totalCores }, (_, i) => i));
+          if (mode === 'all') state.affinityMask = new Set(coreMeta.map((c) => c.index));
           else if (mode === 'clear') state.affinityMask = new Set();
-          else if (mode === 'perf') state.affinityMask = new Set(Array.from({ length: splitIdx }, (_, i) => i));
-          else if (mode === 'eff') state.affinityMask = new Set(Array.from({ length: Math.max(0, totalCores - splitIdx) }, (_, i) => splitIdx + i));
+          else if (mode === 'perf') state.affinityMask = new Set(perfIndices);
+          else if (mode === 'eff') state.affinityMask = new Set(effIndices);
           syncAffinityDom();
         });
       });
@@ -2849,8 +3831,22 @@ export function initUiDesignWorkbench() {
         syncAffinityDom();
       });
       host.querySelector('#affinityApplyBtn')?.addEventListener('click', () => {
+        const prevMask = new Set(state.savedAffinityMask);
+        const nextArr = Array.from(state.affinityMask).sort((a, b) => a - b);
         state.savedAffinityMask = new Set(state.affinityMask);
         syncAffinityDom();
+        if (serverAdapter.isLive && curVm && !curVm._empty) {
+          serverAdapter
+            .saveCpuAffinity(curVm.id, nextArr)
+            .then(() => showNotice('核心绑定已保存至宿主机'))
+            .catch((err) => {
+              state.savedAffinityMask = prevMask;
+              state.affinityMask = new Set(prevMask);
+              syncAffinityDom();
+              showNotice(err?.message || '保存核心绑定失败', 'error');
+            });
+          return;
+        }
         showNotice(state.uiLang === 'en' ? 'Applied' : '已应用');
       });
       syncAffinityDom();
@@ -2861,7 +3857,9 @@ export function initUiDesignWorkbench() {
     if (sec === PROCESSOR_SECTIONS[2] && state.isaVariant !== 'original-5cards') {
       const vm = getVm();
       const hostCpuModel =
-        PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity')?.cpuModel || 'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz';
+        state.hostCpuModel ||
+        PROCESSOR_SECTIONS.find((s) => s.kind === 'affinity')?.cpuModel ||
+        'Snapdragon(R) X 12-core X1E80100 @ 3.40 GHz';
       if (!state.isaByVm[vm.id]) {
         const initObj = {
           nested: true,
@@ -3209,6 +4207,40 @@ export function initUiDesignWorkbench() {
       });
 
       host.querySelector('#isaApplyBtn')?.addEventListener('click', () => {
+        const changedProps = [];
+        const vals = {};
+        if (d.nested !== s.nested) {
+          changedProps.push('ExposeVirtualizationExtensions');
+          vals.ExposeVirtualizationExtensions = Boolean(d.nested);
+        }
+        if (d.legacyOs !== s.legacyOs) {
+          changedProps.push('CompatibilityForOlderOperatingSystemsEnabled');
+          vals.CompatibilityForOlderOperatingSystemsEnabled = Boolean(d.legacyOs);
+        }
+        if (d.migrationEnabled !== s.migrationEnabled) {
+          changedProps.push('CompatibilityForMigrationEnabled');
+          vals.CompatibilityForMigrationEnabled = Boolean(d.migrationEnabled);
+        }
+        if (d.migrationMode !== s.migrationMode) {
+          changedProps.push('CompatibilityForMigrationMode');
+          vals.CompatibilityForMigrationMode = d.migrationMode || 'MinimumFeatureSet';
+        }
+        if (d.cpuBrand !== s.cpuBrand) {
+          changedProps.push('CpuBrandString');
+          vals.CpuBrandString = d.cpuBrand || '';
+        }
+        if (serverAdapter.isLive && vm && !vm._empty && changedProps.length > 0) {
+          serverAdapter
+            .saveProcessorSettings(vm.id, vals, changedProps)
+            .then(() => {
+              store.saved = { ...store.draft };
+              renderProcessorSection(host, sec);
+              bindSettingsHostControls(host);
+              showNotice('指令集配置已保存至宿主机');
+            })
+            .catch((err) => showNotice(err?.message || '保存指令集配置失败', 'error'));
+          return;
+        }
         store.saved = { ...store.draft };
         renderProcessorSection(host, sec);
         bindSettingsHostControls(host);
@@ -3806,6 +4838,29 @@ export function initUiDesignWorkbench() {
         });
 
         host.querySelector('#procGroupApplyBtn')?.addEventListener('click', () => {
+          const curVm = getVm();
+          const changedKeys = [];
+          const vals = {};
+          sec.fields.forEach((f) => {
+            if (f.value !== f.savedValue) {
+              changedKeys.push(f.id);
+              if (f.kind === 'toggle') vals[f.id] = Boolean(f.value);
+              else if (f.kind === 'stepper') vals[f.id] = f.value === '' || f.value == null ? null : Number(f.value);
+              else vals[f.id] = f.value === '' ? null : f.value;
+            }
+          });
+          if (serverAdapter.isLive && curVm && !curVm._empty && changedKeys.length > 0) {
+            serverAdapter
+              .saveProcessorSettings(curVm.id, vals, changedKeys)
+              .then(() => {
+                sec.fields.forEach((f) => { f.savedValue = f.value; });
+                renderProcessorSection(host, sec);
+                bindSettingsHostControls(host);
+                showNotice('处理器配置已保存至宿主机');
+              })
+              .catch((err) => showNotice(err?.message || '保存处理器配置失败', 'error'));
+            return;
+          }
           sec.fields.forEach((f) => {
             f.savedValue = f.value;
           });
@@ -4236,6 +5291,29 @@ export function initUiDesignWorkbench() {
       });
 
       host.querySelector('#procGroupApplyBtn')?.addEventListener('click', () => {
+        const curVm = getVm();
+        const changedKeys = [];
+        const vals = {};
+        sec.fields.forEach((f) => {
+          if (f.value !== f.savedValue) {
+            changedKeys.push(f.id);
+            if (f.kind === 'toggle') vals[f.id] = Boolean(f.value);
+            else if (f.kind === 'stepper') vals[f.id] = f.value === '' || f.value == null ? null : Number(f.value);
+            else vals[f.id] = f.value === '' ? null : f.value;
+          }
+        });
+        if (serverAdapter.isLive && curVm && !curVm._empty && changedKeys.length > 0) {
+          serverAdapter
+            .saveProcessorSettings(curVm.id, vals, changedKeys)
+            .then(() => {
+              sec.fields.forEach((f) => { f.savedValue = f.value; });
+              renderProcessorSection(host, sec);
+              bindSettingsHostControls(host);
+              showNotice('频率调节已保存至宿主机');
+            })
+            .catch((err) => showNotice(err?.message || '保存频率设置失败', 'error'));
+          return;
+        }
         sec.fields.forEach((f) => {
           f.savedValue = f.value;
         });
@@ -4622,6 +5700,28 @@ export function initUiDesignWorkbench() {
       bindSettingsHostControls(host);
     });
     host.querySelector('#procGroupApplyBtn')?.addEventListener('click', () => {
+      const curVm = getVm();
+      const changedKeys = [];
+      const vals = {};
+      sec.fields.forEach((f) => {
+        if (f.value !== f.savedValue) {
+          changedKeys.push(f.id);
+          if (f.kind === 'toggle') vals[f.id] = Boolean(f.value);
+          else if (f.kind === 'stepper') vals[f.id] = f.value === '' || f.value == null ? null : Number(f.value);
+          else vals[f.id] = f.value === '' ? null : f.value;
+        }
+      });
+      if (serverAdapter.isLive && curVm && !curVm._empty && changedKeys.length > 0) {
+        serverAdapter
+          .saveProcessorSettings(curVm.id, vals, changedKeys)
+          .then(() => {
+            sec.fields.forEach((f) => { f.savedValue = f.value; });
+            syncSecActionBtns();
+            showNotice('处理器配置已保存至宿主机');
+          })
+          .catch((err) => showNotice(err?.message || '保存处理器配置失败', 'error'));
+        return;
+      }
       sec.fields.forEach((f) => {
         f.savedValue = f.value;
       });
@@ -5049,6 +6149,30 @@ export function initUiDesignWorkbench() {
       bindSettingsHostControls(host);
     });
     host.querySelector('#memGroupApplyBtn')?.addEventListener('click', () => {
+      const curVm = getVm();
+      const changedKeys = [];
+      const vals = {};
+      sec.fields.forEach((f) => {
+        if (f.value !== f.savedValue) {
+          changedKeys.push(f.id);
+          if (f.kind === 'toggle') vals[f.id] = Boolean(f.value);
+          else if (f.kind === 'text') vals[f.id] = f.value === '' || f.value == null ? 0 : Number(f.value);
+          else if (f.kind === 'choice') vals[f.id] = /^\d+$/.test(String(f.value)) ? Number(f.value) : f.value;
+          else vals[f.id] = String(f.value || '');
+        }
+      });
+      if (serverAdapter.isLive && curVm && !curVm._empty && changedKeys.length > 0) {
+        serverAdapter
+          .saveMemorySettings(curVm.id, vals, changedKeys)
+          .then(() => {
+            sec.fields.forEach((f) => { f.savedValue = f.value; });
+            host.querySelectorAll('.energy-card.is-dirty').forEach((el) => el.classList.remove('is-dirty'));
+            syncSecActionBtns();
+            showNotice('内存配置已保存至宿主机');
+          })
+          .catch((err) => showNotice(err?.message || '保存内存配置失败', 'error'));
+        return;
+      }
       sec.fields.forEach((f) => {
         f.savedValue = f.value;
       });
@@ -5060,13 +6184,16 @@ export function initUiDesignWorkbench() {
 
   // Tab 3: 存储 (Mirrors GPU-PV Workbench Style & VmStorageSettingsView Capabilities)
   function renderStorageTab(host, renderToken = settingsRenderToken) {
+    const isLive = serverAdapter.isLive;
+    const liveHost = isLive ? serverAdapter.state.liveHostSnapshot : null;
     runLazyHostRender(host, renderToken, devicesMod, loadDevicesMod, (mod) => {
       mod.renderStorageWorkbench(host, {
         state,
         vm: getVm(),
-        HOST_PHYSICAL_DISKS,
-        HOST_OPTICAL_DRIVES,
-        INITIAL_STORAGE_ITEMS,
+        isLive,
+        HOST_PHYSICAL_DISKS: isLive ? liveHost?.disks || [] : HOST_PHYSICAL_DISKS,
+        HOST_OPTICAL_DRIVES: isLive ? liveHost?.opticalDrives || [] : HOST_OPTICAL_DRIVES,
+        INITIAL_STORAGE_ITEMS: isLive ? [] : INITIAL_STORAGE_ITEMS,
         renderTitleFirstKvItemHtml,
         renderSettingLabelHtml,
         renderDashboardSummary,
@@ -5111,13 +6238,16 @@ export function initUiDesignWorkbench() {
   }
 
   function renderGpuTab(host, renderToken = settingsRenderToken) {
+    const isLive = serverAdapter.isLive;
+    const liveHost = isLive ? serverAdapter.state.liveHostSnapshot : null;
     runLazyHostRender(host, renderToken, devicesMod, loadDevicesMod, (mod) => {
       mod.renderGpuWorkbench(host, {
         state,
         vm: getVm(),
-        HOST_GPUS,
-        INITIAL_GPU_PARTITIONS,
-        INITIAL_GPU_ASSIGNMENTS,
+        isLive,
+        HOST_GPUS: isLive ? liveHost?.gpus || [] : HOST_GPUS,
+        INITIAL_GPU_PARTITIONS: isLive ? [] : INITIAL_GPU_PARTITIONS,
+        INITIAL_GPU_ASSIGNMENTS: isLive ? [] : INITIAL_GPU_ASSIGNMENTS,
         renderTitleFirstKvItemHtml,
         renderSettingLabelHtml,
         renderDashboardSummary,
@@ -5133,10 +6263,14 @@ export function initUiDesignWorkbench() {
 
   // Tab 5: 网络 (VmNetworkSettingsView.cs — 3 Redesign Candidates + Legacy Reference)
   function renderNetworkTab(host, renderToken = settingsRenderToken) {
+    const isLive = serverAdapter.isLive;
+    const liveHost = isLive ? serverAdapter.state.liveHostSnapshot : null;
     runLazyHostRender(host, renderToken, devicesMod, loadDevicesMod, (mod) => {
       mod.renderNetworkWorkbench(host, {
         state,
         vm: getVm(),
+        isLive,
+        AVAILABLE_VSWITCHES: isLive ? liveHost?.switches || [] : undefined,
         renderTitleFirstKvItemHtml,
         renderSettingLabelHtml,
         renderDashboardSummary,
@@ -5152,7 +6286,7 @@ export function initUiDesignWorkbench() {
     });
   }
 
-  // 高级 -> 引导顺序 (纯启动设备排序 · 单击设为首选 + 按住拖拽微调)
+  // 高级 -> 引导顺序 (纯启动设备排序，单击设为首选 + 按住拖拽微调)
   function renderBootTab(host) {
     const flipReorder = (mutateFn) => {
       const before = new Map();
@@ -5179,6 +6313,31 @@ export function initUiDesignWorkbench() {
         }
       });
     };
+
+    const vm = getVm();
+    const persistBootOrder = (prevEntries) => {
+      if (!serverAdapter.isLive || !vm || vm._empty) {
+        showNotice('已应用');
+        return;
+      }
+      serverAdapter
+        .saveVmBootOrder(vm.id, state.bootEntries)
+        .then(() => showNotice('启动顺序已保存'))
+        .catch((err) => {
+          state.bootEntries = prevEntries;
+          renderBootTab(host);
+          showNotice(err?.message || '保存启动顺序失败', 'error');
+        });
+    };
+
+    if (!Array.isArray(state.bootEntries) || state.bootEntries.length === 0) {
+      host.innerHTML = `
+        <div class="boot-cascade-list">
+          <div style="opacity:0.6;font-size:13px;padding:14px 16px;">暂无可配置启动设备</div>
+        </div>
+      `;
+      return;
+    }
 
     const itemsHtml = state.bootEntries
       .map((b, idx) => {
@@ -5253,22 +6412,24 @@ export function initUiDesignWorkbench() {
 
           if (!dragging) {
             if (startIdx > 0) {
+              const prevEntries = structuredClone(state.bootEntries);
               flipReorder(() => {
                 const [moved] = state.bootEntries.splice(startIdx, 1);
                 state.bootEntries.unshift(moved);
               });
-              showNotice('已应用');
+              persistBootOrder(prevEntries);
             }
             return;
           }
 
           card.classList.remove('is-dragging');
           if (currentIdx !== startIdx) {
+            const prevEntries = structuredClone(state.bootEntries);
             flipReorder(() => {
               const [moved] = state.bootEntries.splice(startIdx, 1);
               state.bootEntries.splice(currentIdx, 0, moved);
             });
-            showNotice('已应用');
+            persistBootOrder(prevEntries);
           } else {
             card.style.transition = 'transform 180ms cubic-bezier(0.2, 0.85, 0.25, 1)';
             card.style.transform = '';
@@ -5307,10 +6468,24 @@ export function initUiDesignWorkbench() {
 
   // 控制台 (VmConsoleSupportService + VmDisplaySettingsService)
   function renderConsoleTab(host) {
+    if (host._consoleHostClickHandler) {
+      host.removeEventListener('click', host._consoleHostClickHandler);
+      host._consoleHostClickHandler = null;
+    }
+
     const vm = getVm();
     const isGen1 = vm?.generation === 1 || vm?.gen === 1;
     const consoleLockedByShield = !isGen1 && Boolean(state.advSettings.shielding);
     const consoleOn = !consoleLockedByShield && Boolean(state.advSettings.consoleSupport);
+    const enhancedBlockedReason = isGen1
+      ? '第 1 代虚拟机仅支持基本会话，无法配置增强会话资源'
+      : consoleLockedByShield
+        ? '已在「安全」中开启受防护模式并锁定关闭，需先关闭受防护模式'
+        : !consoleOn
+          ? '已关闭「启用控制台」，开启控制台后才可使用增强会话'
+          : '';
+    const enhancedLocked = Boolean(enhancedBlockedReason);
+    const consoleSubTab = state.consoleSubTab === 'enhanced' ? 'enhanced' : 'basic';
     const resPresets = [
       '默认',
       '3840 x 2160',
@@ -5330,61 +6505,143 @@ export function initUiDesignWorkbench() {
           `<button type="button" class="winui-combo-item ${state.advSettings.resolution === r ? 'is-selected' : ''}" data-console-res-preset="${escapeHtmlText(r)}" role="option" aria-selected="${state.advSettings.resolution === r}"><span>${escapeHtmlText(r)}</span></button>`
       )
       .join('');
-    host.innerHTML = `
-      <div style="padding:4px 24px 24px 24px;">
-        <div class="isa-grid-2x2">
-          <div class="isa-card uniform-1row span-2${consoleLockedByShield ? ' is-disabled' : ''}">
-            <div class="isa-card-row">
-              ${renderSettingLabelHtml(
-                '启用控制台',
-                consoleLockedByShield
-                  ? '已在「安全」中开启受防护模式并锁定关闭，需先关闭受防护模式才能启用'
-                  : '仅第 2 代虚拟机有效。关闭后会移除虚拟显示与键鼠，无法点击“连接”打开画面，适合纯 RDP、SSH 或显卡直通串流场景'
-              )}
-              <div class="winui-switch ${consoleOn ? 'on' : ''}${consoleLockedByShield ? ' disabled is-locked' : ''}" data-setting-key="consoleSupport"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-            </div>
+
+    const basicBodyHtml = `
+      <div class="isa-grid-2x2">
+        <div class="isa-card uniform-1row span-2${consoleLockedByShield ? ' is-disabled' : ''}">
+          <div class="isa-card-row">
+            ${renderSettingLabelHtml(
+              '启用控制台',
+              consoleLockedByShield
+                ? '已在「安全」中开启受防护模式并锁定关闭，需先关闭受防护模式才能启用'
+                : '仅第 2 代虚拟机有效。关闭后会移除虚拟显示与键鼠，无法点击“连接”打开画面，适合纯 RDP、SSH 或显卡直通串流场景'
+            )}
+            <div class="winui-switch ${consoleOn ? 'on' : ''}${consoleLockedByShield ? ' disabled is-locked' : ''}" data-setting-key="consoleSupport"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
           </div>
-          <div class="isa-card uniform-1row span-2">
-            <div class="isa-card-row">
-              ${renderSettingLabelHtml('断开时锁屏', '关闭控制台连接窗口时，自动锁定虚拟机内的系统')}
-              <div class="winui-switch ${state.advSettings.lockOnDisconnect ? 'on' : ''}" data-setting-key="lockOnDisconnect"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
-            </div>
+        </div>
+        <div class="isa-card uniform-1row span-2">
+          <div class="isa-card-row">
+            ${renderSettingLabelHtml('断开时锁屏', '关闭控制台连接窗口时，自动锁定虚拟机内的系统')}
+            <div class="winui-switch ${state.advSettings.lockOnDisconnect ? 'on' : ''}" data-setting-key="lockOnDisconnect"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
           </div>
-          <div class="isa-card uniform-1row span-2">
-            <div class="isa-card-row">
-              ${renderSettingLabelHtml('默认分辨率', '控制台使用基本会话时的默认窗口分辨率，需在关机状态下修改')}
-              <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-                <div class="winui-combo" id="consoleResCombo">
-                  <div style="display:flex;align-items:center;gap:4px;">
-                    <input
-                      type="text"
-                      class="winui-textbox"
-                      id="consoleResInput"
-                      value="${escapeHtmlText(state.advSettings.resolution || '默认')}"
-                      placeholder="默认 或 宽 x 高"
-                      autocomplete="off"
-                      style="width:152px;"
-                    />
-                    <button
-                      type="button"
-                      class="winui-btn console-res-preset-btn"
-                      id="consoleResPresetBtn"
-                      title="选择常用分辨率"
-                      aria-haspopup="listbox"
-                      aria-expanded="false"
-                    >
-                      <span class="fi" style="font-size:11px;">&#xE70D;</span>
-                    </button>
-                  </div>
-                  <div class="winui-combo-flyout" id="consoleResFlyout" role="listbox" hidden>${resItems}</div>
+        </div>
+        <div class="isa-card uniform-1row span-2">
+          <div class="isa-card-row">
+            ${renderSettingLabelHtml('默认分辨率', '控制台使用基本会话时的默认窗口分辨率，需在关机状态下修改')}
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <div class="winui-combo" id="consoleResCombo">
+                <div class="console-res-field">
+                  <input
+                    type="text"
+                    class="winui-textbox console-res-input"
+                    id="consoleResInput"
+                    value="${escapeHtmlText(state.advSettings.resolution || '默认')}"
+                    placeholder="默认 或 宽 x 高"
+                    autocomplete="off"
+                  />
+                  <button
+                    type="button"
+                    class="winui-btn console-res-preset-btn"
+                    id="consoleResPresetBtn"
+                    title="选择常用分辨率"
+                    aria-haspopup="listbox"
+                    aria-expanded="false"
+                  >
+                    <span class="fi winui-combo-chevron" style="font-size:11px;">&#xE70D;</span>
+                  </button>
                 </div>
-                <button class="winui-btn accent" id="consoleResApplyBtn" type="button">应用</button>
+                <div class="winui-combo-flyout" id="consoleResFlyout" role="listbox" hidden>${resItems}</div>
               </div>
+              <button class="winui-btn accent" id="consoleResApplyBtn" type="button">应用</button>
             </div>
           </div>
         </div>
       </div>
     `;
+
+    const enhancedNoticeHtml = enhancedBlockedReason
+      ? `
+        <div class="winui-floating-banner is-inline is-warning" role="status" style="margin-bottom:10px;">
+          <span class="winui-floating-banner-badge is-warning"><span class="fi">&#xF13C;</span></span>
+          <div class="winui-floating-banner-text">${escapeHtmlText(enhancedBlockedReason)}</div>
+        </div>
+      `
+      : '';
+
+    const enhancedBodyHtml = `
+      ${enhancedNoticeHtml}
+      <div class="isa-grid-2x2">
+        <div class="isa-card uniform-1row span-2${enhancedLocked ? ' is-disabled' : ''}">
+          <div class="isa-card-row">
+            ${renderSettingLabelHtml(
+              '增强会话剪贴板共享',
+              enhancedBlockedReason || '允许在增强会话中与虚拟机同步剪贴板内容，修改将在下次连接或重连增强会话时生效'
+            )}
+            <div class="winui-switch ${!enhancedLocked && state.advSettings.consoleClipboard !== false ? 'on' : ''}${enhancedLocked ? ' disabled is-locked' : ''}" data-setting-key="consoleClipboard"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+          </div>
+        </div>
+        <div class="isa-card uniform-1row span-2${enhancedLocked ? ' is-disabled' : ''}">
+          <div class="isa-card-row">
+            ${renderSettingLabelHtml(
+              '增强会话声音输出',
+              enhancedBlockedReason || '允许在增强会话中接收虚拟机播放的系统声音，修改将在下次连接或重连增强会话时生效'
+            )}
+            <div class="winui-switch ${!enhancedLocked && state.advSettings.consoleAudioOutput !== false ? 'on' : ''}${enhancedLocked ? ' disabled is-locked' : ''}" data-setting-key="consoleAudioOutput"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+          </div>
+        </div>
+        <div class="isa-card uniform-1row span-2${enhancedLocked ? ' is-disabled' : ''}">
+          <div class="isa-card-row">
+            ${renderSettingLabelHtml(
+              '增强会话麦克风输入',
+              enhancedBlockedReason || '允许在增强会话中向虚拟机传入本机麦克风，工具栏默认仍为静音直到手动开启，修改将在下次连接或重连时生效'
+            )}
+            <div class="winui-switch ${!enhancedLocked && state.advSettings.consoleAudioInput !== false ? 'on' : ''}${enhancedLocked ? ' disabled is-locked' : ''}" data-setting-key="consoleAudioInput"><div class="winui-switch-track"><div class="winui-switch-thumb"></div></div></div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    host.innerHTML = `
+      <div style="padding:4px 24px 24px 24px;">
+        <div class="st-pivot-track" role="tablist" style="margin-bottom:12px;">
+          <button
+            class="st-pivot-btn ${consoleSubTab === 'basic' ? 'active' : ''}"
+            data-console-subtab="basic"
+            id="consoleSubBasicBtn"
+            type="button"
+            role="tab"
+            aria-selected="${consoleSubTab === 'basic'}"
+          >
+            <span class="fi" style="font-size:13.5px;">&#xE7F4;</span>
+            <span>基本会话</span>
+          </button>
+          <button
+            class="st-pivot-btn ${consoleSubTab === 'enhanced' ? 'active' : ''}"
+            data-console-subtab="enhanced"
+            id="consoleSubEnhancedBtn"
+            type="button"
+            role="tab"
+            aria-selected="${consoleSubTab === 'enhanced'}"
+          >
+            <span class="fi" style="font-size:13.5px;">&#xE839;</span>
+            <span>增强会话</span>
+          </button>
+        </div>
+        ${consoleSubTab === 'enhanced' ? enhancedBodyHtml : basicBodyHtml}
+      </div>
+    `;
+
+    host.querySelectorAll('[data-console-subtab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const nextSub = btn.getAttribute('data-console-subtab') === 'enhanced' ? 'enhanced' : 'basic';
+        if (state.consoleSubTab === nextSub) return;
+        state.consoleSubTab = nextSub;
+        host.scrollTop = 0;
+        renderSettingsArea();
+      });
+    });
+
+    if (consoleSubTab !== 'basic') return;
 
     const resCombo = host.querySelector('#consoleResCombo');
     const resInput = host.querySelector('#consoleResInput');
@@ -5414,6 +6671,19 @@ export function initUiDesignWorkbench() {
         return;
       }
       if (raw === '默认') {
+        if (serverAdapter.isLive && vm && !vm._empty) {
+          serverAdapter
+            .saveConsoleSetting(vm.id, 'resolution', '默认')
+            .then(() => {
+              state.advSettings.resolution = '默认';
+              resInput.value = '默认';
+              syncResPresetSelection('默认');
+              closeResFlyout();
+              showNotice('控制台分辨率已保存至宿主机');
+            })
+            .catch((err) => showNotice(err?.message || '保存控制台分辨率失败', 'error'));
+          return;
+        }
         state.advSettings.resolution = '默认';
         resInput.value = '默认';
         syncResPresetSelection('默认');
@@ -5433,6 +6703,19 @@ export function initUiDesignWorkbench() {
         return;
       }
       const normalized = `${width & ~1} x ${height & ~1}`;
+      if (serverAdapter.isLive && vm && !vm._empty) {
+        serverAdapter
+          .saveConsoleSetting(vm.id, 'resolution', normalized)
+          .then(() => {
+            state.advSettings.resolution = normalized;
+            resInput.value = normalized;
+            syncResPresetSelection(normalized);
+            closeResFlyout();
+            showNotice('控制台分辨率已保存至宿主机');
+          })
+          .catch((err) => showNotice(err?.message || '保存控制台分辨率失败', 'error'));
+        return;
+      }
       state.advSettings.resolution = normalized;
       resInput.value = normalized;
       syncResPresetSelection(normalized);
@@ -5470,11 +6753,12 @@ export function initUiDesignWorkbench() {
       });
     });
 
-    host.addEventListener('click', (e) => {
+    host._consoleHostClickHandler = (e) => {
       if (resFlyout && !resFlyout.hidden && !resCombo?.contains(e.target)) {
         closeResFlyout();
       }
-    });
+    };
+    host.addEventListener('click', host._consoleHostClickHandler);
 
     resInput?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -5605,9 +6889,11 @@ export function initUiDesignWorkbench() {
     `;
 
     host.querySelectorAll('[data-security-sb-val]').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         if (sbLocked) return;
         const val = btn.getAttribute('data-security-sb-val');
+        const prevSb = adv.secureBoot;
+        const prevTpl = adv.secureBootTemplate;
         if (val === 'off') {
           adv.secureBoot = false;
         } else {
@@ -5616,6 +6902,24 @@ export function initUiDesignWorkbench() {
         }
         renderSecurityTab(host);
         bindSettingsHostControls(host);
+        if (serverAdapter.isLive && vm && !vm._empty) {
+          try {
+            if (val === 'off') {
+              await serverAdapter.saveSecuritySetting(vm.id, 'secureBoot', false);
+            } else {
+              if (!prevSb) await serverAdapter.saveSecuritySetting(vm.id, 'secureBoot', true);
+              await serverAdapter.saveSecuritySetting(vm.id, 'secureBootTemplate', val);
+            }
+            showNotice('安全启动设置已保存至宿主机');
+          } catch (err) {
+            adv.secureBoot = prevSb;
+            adv.secureBootTemplate = prevTpl;
+            renderSecurityTab(host);
+            bindSettingsHostControls(host);
+            showNotice(err?.message || '保存安全启动设置失败', 'error');
+          }
+          return;
+        }
         showNotice('已应用');
       });
     });
@@ -5625,7 +6929,19 @@ export function initUiDesignWorkbench() {
         const key = sw.dataset.securityKey;
         if (key === 'encryptState') {
           if (!canEditEnc) return;
-          adv.encryptState = !adv.encryptState;
+          const next = !adv.encryptState;
+          if (serverAdapter.isLive && vm && !vm._empty) {
+            try {
+              await serverAdapter.saveSecuritySetting(vm.id, 'encryptState', next);
+              renderSecurityTab(host);
+              bindSettingsHostControls(host);
+              showNotice('加密设置已保存至宿主机');
+            } catch (err) {
+              showNotice(err?.message || '保存加密设置失败', 'error');
+            }
+            return;
+          }
+          adv.encryptState = next;
           if (adv.encryptState) {
             adv.tpmEnabled = true;
             const mod = devicesMod || (await loadDevicesMod());
@@ -5633,7 +6949,19 @@ export function initUiDesignWorkbench() {
           }
         } else if (key === 'shielding') {
           if (!canEditShield) return;
-          adv.shielding = !adv.shielding;
+          const next = !adv.shielding;
+          if (serverAdapter.isLive && vm && !vm._empty) {
+            try {
+              await serverAdapter.saveSecuritySetting(vm.id, 'shielding', next);
+              renderSecurityTab(host);
+              bindSettingsHostControls(host);
+              showNotice('受防护模式已保存至宿主机');
+            } catch (err) {
+              showNotice(err?.message || '保存受防护模式失败', 'error');
+            }
+            return;
+          }
+          adv.shielding = next;
           if (adv.shielding) {
             adv.secureBoot = true;
             adv.tpmEnabled = true;
@@ -5696,14 +7024,30 @@ export function initUiDesignWorkbench() {
     host.querySelectorAll('[data-compat-key]').forEach((sw) => {
       sw.addEventListener('click', () => {
         const key = sw.dataset.compatKey;
+        let nextVal = false;
         if (key === 'bootVpci') {
           if (!canEditPcieBoot) return;
           pcieCfg.bootVpci = !pcieCfg.bootVpci;
+          nextVal = pcieCfg.bootVpci;
         } else if (key === 'fullScsi') {
           adv.fullScsi = !adv.fullScsi;
+          nextVal = adv.fullScsi;
         }
         renderCompatTab(host);
         bindSettingsHostControls(host);
+        if (serverAdapter.isLive && vm && !vm._empty) {
+          serverAdapter
+            .saveCompatSetting(vm.id, key, nextVal)
+            .then(() => showNotice('兼容设置已保存至宿主机'))
+            .catch((err) => {
+              if (key === 'bootVpci') pcieCfg.bootVpci = !nextVal;
+              else if (key === 'fullScsi') adv.fullScsi = !nextVal;
+              renderCompatTab(host);
+              bindSettingsHostControls(host);
+              showNotice(err?.message || '保存兼容设置失败', 'error');
+            });
+          return;
+        }
         showNotice('已应用');
       });
     });
@@ -5711,12 +7055,15 @@ export function initUiDesignWorkbench() {
 
   // Tab 9: PCIe (对齐存储物理磁盘直通交互：单机列表 + 全局设备池)
   function renderPcieTab(host, renderToken = settingsRenderToken) {
+    const isLive = serverAdapter.isLive;
+    const liveHost = isLive ? serverAdapter.state.liveHostSnapshot : null;
     runLazyHostRender(host, renderToken, devicesMod, loadDevicesMod, (mod) => {
       mod.renderPcieWorkbench(host, {
         state,
         vm: getVm(),
-        vmItems: VM_ITEMS,
-        HOST_PCIE_DEVICES,
+        vmItems: activeVms,
+        isLive,
+        HOST_PCIE_DEVICES: isLive ? liveHost?.pcieDevices || [] : HOST_PCIE_DEVICES,
         renderTitleFirstKvItemHtml,
         renderSettingLabelHtml,
         showNotice,
@@ -5807,7 +7154,7 @@ export function initUiDesignWorkbench() {
     const srcTag = document.getElementById('wbSourceFileTag');
     if (srcTag) {
       if (state.navTarget === 'host') srcTag.textContent = 'UI/Pages/HostPage.xaml';
-      else if (state.navTarget === 'web') srcTag.textContent = 'UI/Pages/Web/WebPage.xaml';
+      else if (state.navTarget === 'remote') srcTag.textContent = 'ExHyperV.WoW/RemoteConnection';
       else if (state.navTarget === 'settings') srcTag.textContent = 'UI/Pages/SettingsPage.xaml';
       else if (state.activeTabKey === 'devices' || state.activeTabKey === 'advanced') {
         const subKey = state.activeTabKey === 'devices' ? state.deviceSubKey : state.advancedSubKey;
@@ -5820,7 +7167,7 @@ export function initUiDesignWorkbench() {
       const target = chip.getAttribute('data-wb-jump');
       const active =
         (state.navTarget === 'host' && target === 'nav:host') ||
-        (state.navTarget === 'web' && target === 'nav:web') ||
+        (state.navTarget === 'remote' && target === 'nav:remote') ||
         (state.navTarget === 'settings' && target === 'nav:settings') ||
         (state.navTarget === 'vm' && target === state.activeTabKey);
       chip.classList.toggle('active', active);
@@ -5836,7 +7183,7 @@ export function initUiDesignWorkbench() {
     });
     const minimalTitle = document.getElementById('minimalNavTitle');
     if (minimalTitle) {
-      minimalTitle.textContent = target === 'host' ? '宿主' : target === 'web' ? 'Web' : target === 'settings' ? '应用设置' : '虚拟机';
+      minimalTitle.textContent = target === 'host' ? '宿主' : target === 'remote' ? '远程' : target === 'settings' ? '应用设置' : '虚拟机';
     }
     const navView = document.getElementById('winuiNavView');
     const backdrop = document.getElementById('navDrawerBackdrop');
@@ -5844,17 +7191,23 @@ export function initUiDesignWorkbench() {
     if (backdrop) backdrop.hidden = true;
     const pageVm = document.getElementById('pageVirtualMachines');
     const pageHost = document.getElementById('pageHost');
-    const pageWeb = document.getElementById('pageWeb');
+    const pageRemote = document.getElementById('pageRemote');
     const pageSettings = document.getElementById('pageSettings');
     if (pageVm) pageVm.style.display = target === 'vm' ? 'grid' : 'none';
     if (pageHost) {
       pageHost.hidden = target !== 'host';
       pageHost.style.display = target === 'host' ? 'grid' : 'none';
     }
-    if (pageWeb) pageWeb.hidden = target !== 'web';
+    if (pageRemote) {
+      pageRemote.hidden = target !== 'remote';
+      if (target === 'remote') renderRemotePage(pageRemote, serverAdapter);
+    }
     if (pageSettings) {
       pageSettings.hidden = target !== 'settings';
       if (target === 'settings') renderAppSettingsPage();
+    }
+    if (target !== 'host') {
+      document.getElementById('winuiWindow')?.classList.remove('is-host-topo-fullscreen');
     }
     if (target === 'host') {
       if (hostMod) {
@@ -5865,17 +7218,40 @@ export function initUiDesignWorkbench() {
         });
       }
     }
+    syncTelemetryTarget();
     renderActiveWorkspace();
   }
 
-  function toggleVmPower() {
-    const vm = getVm();
-    vm.running = !vm.running;
+  async function executePowerCommand(vm, actionName) {
+    if (!vm || vm._empty) return;
+    if (serverAdapter.isLive) {
+      try {
+        await serverAdapter.executeVmPower(vm.id, actionName);
+        showNotice(`已提交电源指令：${vm.name}`);
+      } catch (err) {
+        showNotice(err?.message || '电源操作失败', 'error');
+      }
+      return;
+    }
+    if (actionName === 'Start') vm.running = true;
+    else if (actionName === 'Stop' || actionName === 'TurnOff' || actionName === 'Save' || actionName === 'Suspend') vm.running = false;
+    else vm.running = true;
     syncStandaloneHostRailPanel();
     notifyParentHostState();
     renderVmList();
     renderDashboardSummary();
     renderActiveWorkspace();
+  }
+
+  function toggleVmPower() {
+    const vm = getVm();
+    if (!vm || vm._empty) return;
+    const nextAction = !vm.running
+      ? 'Start'
+      : String(state.defaultPowerAction || 'Shutdown').toLowerCase() === 'save'
+        ? 'Save'
+        : 'Stop';
+    void executePowerCommand(vm, nextAction);
   }
 
   // Bind Top-level UI Events
@@ -5914,10 +7290,24 @@ export function initUiDesignWorkbench() {
   });
 
   document.getElementById('vmPowerMainBtn')?.addEventListener('click', toggleVmPower);
-  document.getElementById('vmConnectBtn')?.addEventListener('click', () => {
+  document.getElementById('vmConnectBtn')?.addEventListener('click', async () => {
     const vm = getVm();
+    if (!vm || vm._empty) return;
+    let liveConn = null;
+    if (serverAdapter.isLive) {
+      if (!state.advSettingsByVm[vm.id]) {
+        await serverAdapter.loadVmDetails(vm.id);
+        applyVmDetailToState(vm.id);
+      }
+      try {
+        liveConn = { serverUrl: serverAdapter.client.baseUrl };
+      } catch (err) {
+        showNotice(err?.message || '申请控制台访问票据失败', 'error');
+        return;
+      }
+    }
     const wowClient = window.__WOW_APP_CLIENT__;
-    if (wowClient?.isEmbedded && typeof wowClient.emitAppEvent === 'function' && vm) {
+    if (wowClient?.isEmbedded && typeof wowClient.emitAppEvent === 'function') {
       wowClient.emitAppEvent('exhyperv:open-console', {
         id: vm.id,
         name: vm.name,
@@ -5926,8 +7316,15 @@ export function initUiDesignWorkbench() {
         generation: vm.generation ?? vm.gen ?? 2,
         consoleSupport: Boolean(state.advSettings.consoleSupport),
         shielding: Boolean(state.advSettings.shielding),
+        consoleClipboard: state.advSettings.consoleClipboard !== false,
+        consoleAudioOutput: state.advSettings.consoleAudioOutput !== false,
+        consoleAudioInput: state.advSettings.consoleAudioInput !== false,
         accentHex: state.accentHex,
-        availableVms: VM_ITEMS.map((item) => ({
+        serverMode: liveConn ? 'live' : 'demo',
+        serverUrl: liveConn?.serverUrl || '',
+        mode: preferredConsoleMode(),
+        wsTicket: '',
+        availableVms: activeVms.map((item) => ({
           id: item.id,
           name: item.name,
           running: Boolean(item.running),
@@ -5950,11 +7347,12 @@ export function initUiDesignWorkbench() {
       const act = btn.getAttribute('data-power-action');
       const flyout = document.getElementById('vmPowerFlyout');
       if (flyout) flyout.hidden = true;
-      if (act === 'turnoff' || act === 'save') {
-        getVm().running = false;
-        renderVmList();
-        renderDashboardSummary();
-        renderActiveWorkspace();
+      const vm = getVm();
+      if (!vm || vm._empty) return;
+      const mapAct = { restart: 'Restart', pause: 'Suspend', save: 'Save', turnoff: 'TurnOff', shutdown: 'Stop' };
+      const resolved = mapAct[act];
+      if (resolved) {
+        void executePowerCommand(vm, resolved);
       }
     });
   });
@@ -6011,6 +7409,7 @@ export function initUiDesignWorkbench() {
     { key: 'appearance', title: '外观', glyph: '&#xE790;' },
     { key: 'startup', title: '系统', glyph: '&#xE770;' },
     { key: 'behavior', title: '偏好', glyph: '&#xE9E9;' },
+    { key: 'extensions', title: '扩展', glyph: '&#xE74C;' },
     { key: 'diagnostics', title: '日志', glyph: '&#xE9D9;' },
     { key: 'about', title: '关于', glyph: '&#xE946;' }
   ];
@@ -6117,9 +7516,10 @@ export function initUiDesignWorkbench() {
       </div>`;
 
     const defaultConsoleCtrl = `
-      <div class="isa-pill-track" id="settingsDefaultConsoleSeg" style="width:196px;flex-shrink:0;" role="radiogroup" aria-label="默认控制台会话">
+      <div class="isa-pill-track" id="settingsDefaultConsoleSeg" style="min-width:196px;flex-shrink:0;" role="radiogroup" aria-label="默认控制台会话">
         <button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'RdpBasic' ? 'active' : ''}" data-console-val="RdpBasic">基本会话</button>
         <button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'RdpEnhanced' ? 'active' : ''}" data-console-val="RdpEnhanced">增强会话</button>
+        <button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'External' ? 'active' : ''}" data-console-val="External">超强会话</button>
       </div>`;
 
     const defaultPowerCtrl = `
@@ -6219,6 +7619,8 @@ export function initUiDesignWorkbench() {
       bodyHtml = `
         ${rowCard('启动虚拟机后自动打开控制台', '在列表或总览中启动虚拟机并成功后，自动打开控制台连接窗口', c.switchHtml('settingsAutoConsoleSwitch', state.autoOpenConsole))}
         ${rowCard('默认控制台会话', '点击连接或自动打开控制台时默认使用的会话模式', c.defaultConsoleCtrl)}`;
+    } else if (state.appSettingsSub === 'extensions') {
+      bodyHtml = rowCard('扩展', '请在宿主桌面端管理扩展', '<span id="consoleExtensionSummary">宿主组件、授权、目标虚拟机组件与传输路径尚未证实</span>');
     } else if (state.appSettingsSub === 'diagnostics') {
       bodyHtml = `
         ${rowCard('运行日志', '记录应用与 Core 的操作元数据及异常，本地滚动保存最多 12 MiB', c.switchHtml('settingsLoggingSwitch', state.loggingEnabled))}
@@ -6335,9 +7737,23 @@ export function initUiDesignWorkbench() {
       });
     });
 
+    const summary = root.querySelector('#consoleExtensionSummary');
+    if (summary && serverAdapter.isLive && serverAdapter.client.serverInfo?.consoleProtocolVersions?.includes(2) && getVm()?.id) {
+      serverAdapter.client.consoleBackends(getVm().id).then(({ backends }) => {
+        const ext = backends.find(item => item.extension)?.extension;
+        if (!ext) return;
+        const states = ['未知', '尚未证实', '不可达', '未获授权', '未安装', '版本不兼容', '已就绪'];
+        const rows = [['宿主组件', ext.host], ['授权', ext.authorization], ['目标虚拟机组件', ext.guest], ['当前传输路径', ext.transport]];
+        const parts = rows.map(([label, stage]) => label + '：' + (states[stage?.rawCode] || '未知'));
+        if (ext.transportKind === 1 || ext.transportKind === 2) parts.push(ext.transportKind === 1 ? 'CPU 共享' : 'GPU 共享');
+        if (/^[a-z0-9-]{1,32}$/i.test(ext.diagnosticId || '')) parts.push(ext.diagnosticId);
+        summary.textContent = parts.join(' / ');
+      }).catch(() => { summary.textContent = '状态不可达'; });
+    }
     root.querySelectorAll('#settingsDefaultConsoleSeg [data-console-val]').forEach((btn) => {
       btn.addEventListener('click', () => {
         state.defaultConsoleMode = btn.getAttribute('data-console-val') || 'RdpBasic';
+        try { localStorage.setItem('exhyperv.console.defaultBackend', state.defaultConsoleMode); } catch {}
         renderAppSettingsPage();
         showNotice('已更新默认控制台会话', 'success');
       });
@@ -7191,7 +8607,39 @@ export function initUiDesignWorkbench() {
     } else if (msg.channel === 'exhyperv:gpu-candidate') {
       applyGpuCandidateData(msg.payload);
     } else if (msg.channel === 'exhyperv:console-power' && msg.payload && typeof msg.payload === 'object') {
-      const targetVm = VM_ITEMS.find((v) => v.id === msg.payload.id) || getVm();
+      const targetVm = activeVms.find((v) => v.id === msg.payload.id) || getVm();
+      if (serverAdapter.isLive && msg.payload.action && targetVm && !targetVm._empty) {
+        Promise.resolve(executePowerCommand(targetVm, msg.payload.action))
+          .then(() => {
+            if (msg.payload.requestId) {
+              emitHostAppEvent('exhyperv:console-power-reply', {
+                cid: msg.payload.cid,
+                requestId: msg.payload.requestId,
+                ok: true,
+                running: Boolean(targetVm.running)
+              });
+            }
+          })
+          .catch((err) => {
+            if (msg.payload.requestId) {
+              emitHostAppEvent('exhyperv:console-power-reply', {
+                cid: msg.payload.cid,
+                requestId: msg.payload.requestId,
+                ok: false,
+                error: err?.message || '虚拟机电源操作失败'
+              });
+            }
+          });
+        return;
+      }
+      if (msg.payload.requestId) {
+        emitHostAppEvent('exhyperv:console-power-reply', {
+          cid: msg.payload.cid,
+          requestId: msg.payload.requestId,
+          ok: true,
+          mode: 'demo'
+        });
+      }
       if (targetVm && typeof msg.payload.running === 'boolean') {
         targetVm.running = msg.payload.running;
         syncStandaloneHostRailPanel();
@@ -7199,6 +8647,37 @@ export function initUiDesignWorkbench() {
         renderVmList();
         renderDashboardSummary();
         renderActiveWorkspace();
+      }
+    } else if (msg.channel === 'exhyperv:console-need-ticket' && msg.payload && typeof msg.payload === 'object') {
+      if (serverAdapter.isLive) {
+        serverAdapter
+          .issueConsoleTicket(msg.payload.vmId, msg.payload.mode, msg.payload.watchOnly === true, msg.payload.ceiling)
+          .then((conn) => {
+            emitHostAppEvent('exhyperv:console-ticket-reply', {
+              cid: msg.payload.cid,
+              requestId: msg.payload.requestId,
+              serverMode: 'live',
+              serverUrl: conn?.serverUrl || '',
+              protocol: conn?.protocol, rights: conn?.rights, backendId: conn?.backendId, extension: conn?.extension,
+              wsTicket: conn?.ticket || ''
+            });
+          })
+          .catch((err) => {
+            emitHostAppEvent('exhyperv:console-ticket-reply', {
+              cid: msg.payload.cid,
+              requestId: msg.payload.requestId,
+              serverMode: 'error',
+              error: err?.message || '获取控制台连接票据失败'
+            });
+          });
+      } else {
+        emitHostAppEvent('exhyperv:console-ticket-reply', {
+          cid: msg.payload.cid,
+          requestId: msg.payload.requestId,
+          serverMode: 'demo',
+          serverUrl: '',
+          wsTicket: ''
+        });
       }
     }
   });

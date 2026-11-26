@@ -2,6 +2,7 @@ using System.Globalization;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Controls;
+using ExHyperV.App.UI.Shared.Feedback;
 using ExHyperV.Models;
 using ExHyperV.Services;
 using ExHyperV.Tools;
@@ -423,42 +424,8 @@ public sealed partial class VmNetworkSettingsView
         group.Children.Add(bypassNotice);
     }
 
-    private Border InlineBanner(string message, InfoBarSeverity severity)
-    {
-        var (background, accent, glyph) = severity switch
-        {
-            InfoBarSeverity.Warning => ("InfoBarWarningSeverityBackgroundBrush", "SystemFillColorCautionBrush", "\uE7BA"),
-            InfoBarSeverity.Error => ("InfoBarErrorSeverityBackgroundBrush", "SystemFillColorCriticalBrush", "\uE711"),
-            _ => ("InfoBarInformationalSeverityBackgroundBrush", "SystemFillColorAttentionBrush", "\uE946")
-        };
-        var badge = new Border
-        {
-            Width = 18, Height = 18, CornerRadius = new(9), VerticalAlignment = VerticalAlignment.Center,
-            Background = ThemeHelper.ThemeBrush(this, accent),
-            Child = new FontIcon { Glyph = glyph, FontFamily = AppFonts.SegoeFluent, FontSize = 10,
-                Foreground = ThemeHelper.ThemeBrush(this, "TextOnAccentFillColorPrimaryBrush") }
-        };
-        var text = new TextBlock
-        {
-            Text = message, FontSize = 12.5, FontWeight = Microsoft.UI.Text.FontWeights.Medium,
-            TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center
-        };
-        var row = new Grid { ColumnSpacing = 10 };
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        Grid.SetColumn(text, 1);
-        row.Children.Add(badge);
-        row.Children.Add(text);
-        var banner = new Border
-        {
-            MinHeight = 36, Margin = new(0, 2, 0, 0), Padding = new(12, 7, 12, 7), CornerRadius = new(6),
-            BorderThickness = new(1), BorderBrush = ThemeHelper.ThemeBrush(this, "CardStrokeColorDefaultBrush"),
-            Background = ThemeHelper.ThemeBrush(this, background), Child = row
-        };
-        AutomationProperties.SetName(banner, message);
-        AutomationProperties.SetLiveSetting(banner, Microsoft.UI.Xaml.Automation.Peers.AutomationLiveSetting.Polite);
-        return banner;
-    }
+    private Border InlineBanner(string message, InfoBarSeverity severity) =>
+        DeviceWorkbench.InlineBanner(this, message, severity);
 
     private async Task ApplyPolicyAsync(VmNetworkPolicyDraft draft)
     {

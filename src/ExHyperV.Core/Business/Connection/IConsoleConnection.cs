@@ -67,9 +67,21 @@ public interface IConsoleConnection : IDisposable, IAsyncDisposable
     /// <summary>收发来宾剪贴板内容的接口。</summary>
     /// <fielddoc>
     /// <meaning>收发来宾剪贴板内容的接口。</meaning>
-    /// <values kind="format">RdpBasic 为 null；RdpEnhanced 提供接口，通道就绪后 IsAvailable 为 true。</values>
+    /// <values kind="format">RdpBasic 为 null，RdpEnhanced 提供接口，通道就绪后 IsAvailable 为 true。</values>
     /// </fielddoc>
     IConsoleClipboard? Clipboard { get; }
+    /// <summary>接收来宾声音输出的接口。</summary>
+    /// <fielddoc>
+    /// <meaning>接收来宾声音输出的接口。</meaning>
+    /// <values kind="format">RdpBasic 为 null，RdpEnhanced 提供接口，通道就绪后 IsAvailable 为 true。</values>
+    /// </fielddoc>
+    IConsoleAudioOutput? AudioOutput { get; }
+    /// <summary>向来宾发送麦克风音频输入的接口。</summary>
+    /// <fielddoc>
+    /// <meaning>向来宾发送麦克风音频输入的接口。</meaning>
+    /// <values kind="format">RdpBasic 为 null，RdpEnhanced 提供接口，来宾打开采集后 IsAvailable 为 true。</values>
+    /// </fielddoc>
+    IConsoleAudioInput? AudioInput { get; }
     /// <summary>底层连接建立时通知。</summary>
     event Action? Connected;
     /// <summary>后端报告用户登录完成时通知；并非所有后端都会报告此事件。</summary>

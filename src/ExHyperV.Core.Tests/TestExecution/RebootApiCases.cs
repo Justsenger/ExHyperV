@@ -31,7 +31,7 @@ internal static class RebootApiCases
         var state = Read(c.DirectoryPath);
         if (state is null)
         {
-            if (HyperVHostService.GetVmmsStatus() == 0) throw new ApiCheckSkippedException("重启测试使用预先安装的 Hyper-V 组件；当前宿主尚未安装。");
+            if (HyperVHostService.GetVmmsStatus() == 0) throw new ApiCheckSkippedException("重启测试使用预先安装的 Hyper-V 组件，当前宿主尚未安装。");
             var pending = HostProductTypeService.GetPendingSwitch(); c.Require(pending.Success, pending.Error);
             if (pending.HasData) throw new ApiCheckSkippedException("宿主已有系统类型切换或恢复线索，请先完成该项再启动重启测试。");
             string product = ProductType(); if (product is not ("WinNT" or "ServerNT")) throw new ApiCheckSkippedException("当前产品类型为 " + product + "，本轮支持工作站与普通服务器。");
@@ -56,7 +56,7 @@ internal static class RebootApiCases
         {
             // Power loss or process failure interrupted the native submission. Its outcome is uncertain.
             File.WriteAllText(Path.Combine(c.DirectoryPath, "recovery-hold.txt"), "重启续跑检测到未确认的提交阶段：" + state.Phase);
-            throw new IOException("上次进程在提交阶段结束，原生结果待核验；已保留原配置与恢复材料。");
+            throw new IOException("上次进程在提交阶段结束，原生结果待核验，已保留原配置与恢复材料。");
         }
         if (state.Phase is "AwaitTestBoot" or "AwaitRestoreBoot")
         {

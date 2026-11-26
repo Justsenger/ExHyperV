@@ -178,3 +178,9 @@ public static partial class VmConsoleSupportService
 /// <param name="IsRunning">是否处于活动状态。</param>
 /// <param name="IsEnhancedAvailable">Hyper-V 是否报告增强会话可用。</param>
 public sealed record VmConsoleState(Guid VmId, string Name, bool IsRunning, bool IsEnhancedAvailable);
+
+/// <summary>保存在虚拟机配置文件（.vmcx）中的增强会话资源重定向偏好；未写入时默认全部启用。</summary>
+/// <param name="Clipboard">是否允许在增强会话中共享剪贴板。</param>
+/// <param name="AudioOutput">是否允许在增强会话中输出虚拟机声音。</param>
+/// <param name="AudioInput">是否允许在增强会话中传入宿主机麦克风音频。</param>
+public sealed record VmConsoleFeatures(bool Clipboard = true, bool AudioOutput = true, bool AudioInput = true);

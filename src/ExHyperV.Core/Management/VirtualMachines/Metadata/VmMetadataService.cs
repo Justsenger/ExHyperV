@@ -36,6 +36,10 @@ public static partial class VmMetadataService
     /// <metadatakey purpose="GPU 驱动版本记录">JSON 字典，键为规范化宿主显卡实例 ID，值为最近一次由工具成功部署到来宾系统的驱动版本。</metadatakey>
     public const string GpuDriversKey = "ExHyperV.GpuDrivers";
 
+    /// <summary>控制台增强会话功能偏好的键名；保存剪贴板共享、声音输出和麦克风输入开关的 JSON 对象，不暴露给来宾。</summary>
+    /// <metadatakey purpose="控制台增强会话功能偏好">JSON 对象，记录 Clipboard、AudioOutput 和 AudioInput 布尔开关。</metadatakey>
+    public const string ConsoleFeaturesKey = "ExHyperV.ConsoleFeatures";
+
     internal const string ComponentId = "2A34B1C2-FD73-4043-8A5B-DD2159BC743F";
     private const string ComponentClass = "Msvm_KvpExchangeComponentSettingData";
     private const string ItemClass = "Msvm_KvpExchangeDataItem";
@@ -91,6 +95,40 @@ public static partial class VmMetadataService
     public static Task<ApiResponse> RemoveAsync(Guid vmId, string key)
         => key == GpuDriversKey ? VmSettingsWriteLock.RunAsync(vmId, () => WriteAsync(vmId, key, string.Empty, true))
             : WriteAsync(vmId, key, string.Empty, true);
+
+    internal static Task<ApiResponse> WriteConsoleFeaturesAsync(Guid vmId, bool clipboard, bool audioOutput, bool audioInput) =>
+        VmSettingsWriteLock.RunAsync(vmId, () => clipboard && audioOutput && audioInput
+            ? WriteAsync(vmId, ConsoleFeaturesKey, string.Empty, remove: true)
+            : WriteAsync(vmId, ConsoleFeaturesKey,
+                JsonSerializer.Serialize(new VmConsoleFeatures(clipboard, audioOutput, audioInput), CoreJson.Default.VmConsoleFeatures),
+                remove: false));
+
+    internal static VmConsoleFeatures ParseConsoleFeatures(IReadOnlyDictionary<string, string>? metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue(ConsoleFeaturesKey, out string? raw)) return new();
+        using var document = JsonDocument.Parse(raw);
+        if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException(ConsoleFeaturesKey);
+        bool clipboard = true, audioOutput = true, audioInput = true;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in document.RootElement.EnumerateObject())
+        {
+            if (!seen.Add(entry.Name)) throw new InvalidDataException("控制台增强会话偏好中存在重复字段。");
+            if (entry.Name.Equals(nameof(VmConsoleFeatures.Clipboard), StringComparison.OrdinalIgnoreCase))
+                clipboard = ReadBool(entry.Value);
+            else if (entry.Name.Equals(nameof(VmConsoleFeatures.AudioOutput), StringComparison.OrdinalIgnoreCase))
+                audioOutput = ReadBool(entry.Value);
+            else if (entry.Name.Equals(nameof(VmConsoleFeatures.AudioInput), StringComparison.OrdinalIgnoreCase))
+                audioInput = ReadBool(entry.Value);
+        }
+        return new(clipboard, audioOutput, audioInput);
+
+        static bool ReadBool(JsonElement value) => value.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            _ => throw new InvalidDataException("控制台增强会话偏好字段必须是布尔值。")
+        };
+    }
 
     internal static Dictionary<string, string> ParseGpuDriversMap(IReadOnlyDictionary<string, string>? metadata)
     {

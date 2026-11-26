@@ -228,7 +228,7 @@ var options = new VmGenerationUpgradeOptions { EnableSecureBoot = true };
 | 连接方式 | 常量标识 | 适合场景 | 能力范围 |
 | --- | --- | --- | --- |
 | 基本会话 | `RdpBasic` | 看开机画面、进 BIOS/UEFI、装系统、系统未启用增强会话时 | 画面、键盘、鼠标 |
-| 增强会话 | `RdpEnhanced` | 日常远程桌面操作（需来宾系统支持并开启增强会话） | 画面、键盘、鼠标、双向剪贴板、动态调整分辨率 |
+| 增强会话 | `RdpEnhanced` | 日常远程桌面操作（需来宾系统支持并开启增强会话） | 画面、键盘、鼠标、双向剪贴板、动态调整分辨率、双向音频 |
 
 两种后端目前都基于 FreeRDP 实现，可通过 `ConsoleService.GetBackends()` 查当前可用列表。
 
@@ -248,8 +248,8 @@ var options = new VmGenerationUpgradeOptions { EnableSecureBoot = true };
    `FrameReceived` 回调给你的 `ConsoleFrame` 只在回调期间有效。如果想异步拿去渲染或存下来，先调 `frame.Retain()`，用完后一定要 `Dispose()`。或者直接调 `CopyPixels()` 拿一份独立字节数组。
 3. **随时抓当前一帧**
    调 `Video.CaptureFrame()` 可以直接取当前连接的最新完整画面（没有画面时返回 `null`，取到的帧用完记得释放）。基本会话和增强会话各自的画面是独立的，互不替代。
-4. **键盘、鼠标和剪贴板**
-   键盘用 `Input.SendKey()` / `SendKeys()`，鼠标用 `SendPointer()` / `SendClick()`（坐标按来宾桌面像素计算）。**当应用窗口失去焦点时，记得调用 `ReleaseAllInputs()`**，防止 Ctrl/Alt/鼠标左键卡死在按住状态。剪贴板通道就绪由 `IsAvailable` 标识，准备好后即可通过 `SetClipboard()` 和 `ClipboardReceived` 收发文本/图像。
+4. **键盘、鼠标、剪贴板与音频**
+   键盘用 `Input.SendKey()` / `SendKeys()`，鼠标用 `SendPointer()` / `SendClick()`（坐标按来宾桌面像素计算）。**当应用窗口失去焦点时，记得调用 `ReleaseAllInputs()`**，防止 Ctrl/Alt/鼠标左键卡死在按住状态。剪贴板与双向音频（`AudioOutput` / `AudioInput`）仅在增强会话提供，各通道是否就绪分别由对应接口的 `IsAvailable` 标识，外部可直接订阅 PCM 音频输出或按当前 `Format` 提交 PCM 输入。
 
 ## 结果、取消和资源释放
 

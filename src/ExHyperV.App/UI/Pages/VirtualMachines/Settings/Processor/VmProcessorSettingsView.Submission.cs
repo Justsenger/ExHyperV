@@ -46,8 +46,11 @@ public sealed partial class VmProcessorSettingsView
         var settings = observation.Values;
         host = await hostTask;
         powerState = (await contextTask).State;
+        int hostLogicalCpus = Math.Max(1, Environment.ProcessorCount);
         int? reportedMaximum = await maxCpuTask;
-        hostMaxVirtualCpus = reportedMaximum ?? Math.Max(1, settings.Count);
+        hostMaxVirtualCpus = reportedMaximum is > 0
+            ? Math.Min(hostLogicalCpus, reportedMaximum.Value)
+            : hostLogicalCpus;
         if (IsStopped) return;
 
         fieldStates = observation.States;
@@ -118,7 +121,7 @@ public sealed partial class VmProcessorSettingsView
             changed.Add(field.Property.Name);
         }
         if (changed.Count == 0) return false;
-        ValidateProcessorSubmission(proposed, changed, hostMaxVirtualCpus);
+        ValidateProcessorSubmission(proposed, changed);
         var otherDrafts = fields.Select(f => f.Editor).Where(f => f.HasPendingEdit && !submitted.Contains(f))
             .Select(f => (Field: f, Draft: f.CaptureDraft())).ToArray();
         ApiResponse? result = null;
@@ -149,11 +152,10 @@ public sealed partial class VmProcessorSettingsView
         return new InvalidOperationException(message);
     }
 
-    private static void ValidateProcessorSubmission(VmProcessorSettings proposed, IReadOnlyCollection<string> changed, int maxVirtualCpus)
+    private static void ValidateProcessorSubmission(VmProcessorSettings proposed, IReadOnlyCollection<string> changed)
     {
-        int maxLogical = Math.Max(1, maxVirtualCpus);
-        if (changed.Contains(nameof(VmProcessorSettings.Count)) && (proposed.Count < 1 || proposed.Count > maxLogical))
-            throw new InvalidOperationException(L10n.Format("Cpu_Val_CountRange", maxLogical));
+        if (changed.Contains(nameof(VmProcessorSettings.Count)) && proposed.Count < 1)
+            throw new InvalidOperationException(L10n.Get("Cpu_Val_CountPositive"));
         if (changed.Contains(nameof(VmProcessorSettings.Reservation)) && proposed.Reservation > 100000)
             throw new InvalidOperationException(L10n.Get("Cpu_Val_ResRange"));
         if (changed.Contains(nameof(VmProcessorSettings.Limit)) && proposed.Limit > 100000)
