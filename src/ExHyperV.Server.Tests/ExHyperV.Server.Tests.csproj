@@ -9,6 +9,8 @@
     <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../ExHyperV.Core.Tests/Regression/App/ConsoleIpcTestPeer.cs" Link="ConsoleIpcTestPeer.cs" />
+    <Compile Include="../ExHyperV.Core.Tests/Regression/App/ConsoleIpcTestTexture.cs" Link="ConsoleIpcTestTexture.cs" />
     <None Include="../ExHyperV.WoW/scripts/console-wire.js" Link="console-wire.js" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Invoke-TestChild.ps1" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.7" />

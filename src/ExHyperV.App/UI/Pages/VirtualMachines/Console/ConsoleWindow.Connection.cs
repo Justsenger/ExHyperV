@@ -10,7 +10,8 @@ namespace ExHyperV.App.UI.Pages.VirtualMachines.Console;
 public sealed partial class ConsoleWindow
 {
     private enum View { Connecting, Connected, Stopped, Disconnected, Disabled }
-    private View view = View.Connecting;
+    private int viewState = (int)View.Connecting;
+    private View view { get => (View)Volatile.Read(ref viewState); set => Volatile.Write(ref viewState, (int)value); }
     private IConsoleConnection? connection;
     private FramePresenter? frames;
     private ConsoleClipboardBridge? clipboard;
@@ -69,7 +70,10 @@ public sealed partial class ConsoleWindow
         zoom = preferences?.Zoom ?? 0;
         desktopScale = preferences?.DesktopScale ?? 0;
         muted = preferences?.Muted ?? false;
-        sessionState.Preference = preferences?.Mode ?? Appearance.Settings.DefaultConsoleSession;
+        var defaultMode = Appearance.Settings.ShowExtensionEntries || Appearance.Settings.DefaultConsoleSession != ConsoleSessionMode.External
+            ? Appearance.Settings.DefaultConsoleSession
+            : ConsoleSessionMode.RdpBasic;
+        sessionState.Preference = preferences?.Mode ?? defaultMode;
         extensionStatus = false;
         reconnect = true;
         retryPending = false;
@@ -418,7 +422,8 @@ public sealed partial class ConsoleWindow
                 video.ResizeRejected -= Rejected;
             }
         };
-        frames = new(work => DispatcherQueue.TryEnqueue(() => work()), ShowFrame, session as IConsoleGpuSource ?? video as IConsoleGpuSource, ShowGpuFrame, OnCpuRequested);
+        renderWorker ??= new();
+        frames = new(renderWorker.Enqueue, ShowFrame, session as IConsoleGpuSource ?? video as IConsoleGpuSource, ShowGpuFrame, OnCpuRequested);
         if (video != null)
         {
             video.FrameReceived += frames.Receive;

@@ -30,12 +30,14 @@ internal sealed partial record AppearanceSettings
             if (!File.Exists(path)) return new();
             var value = JsonSerializer.Deserialize(File.ReadAllText(path), DesktopJson.Default.AppearanceSettings);
             if (value == null || !Enum.IsDefined(value.Theme) || !TryParseColor(value.AccentColor, out _)) return new();
+            var defaultSession = Enum.IsDefined(value.DefaultConsoleSession) ? value.DefaultConsoleSession : ConsoleSessionMode.RdpBasic;
+            if (!value.ShowExtensionEntries && defaultSession == ConsoleSessionMode.External) defaultSession = ConsoleSessionMode.RdpBasic;
             return value with
             {
                 Language = L10n.NormalizePreference(value.Language),
                 AutoStart = Enum.IsDefined(value.AutoStart) ? value.AutoStart : StartupMode.Off,
                 CloseBehavior = Enum.IsDefined(value.CloseBehavior) ? value.CloseBehavior : WindowCloseBehavior.Exit,
-                DefaultConsoleSession = Enum.IsDefined(value.DefaultConsoleSession) ? value.DefaultConsoleSession : ConsoleSessionMode.RdpBasic,
+                DefaultConsoleSession = defaultSession,
                 VerboseDiagnostics = value.LoggingEnabled && value.VerboseDiagnostics,
                 DefaultPowerAction = NormalizePowerAction(value.DefaultPowerAction)
             };

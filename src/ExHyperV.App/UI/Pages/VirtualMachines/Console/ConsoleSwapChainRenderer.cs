@@ -31,7 +31,8 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
     private static readonly Guid IidIDXGIFactory2 = new("50c83a1c-e072-4c48-87b0-3630fa36a6d0");
     private static readonly Guid IidIDXGISwapChain2 = new("a8be2ac4-199f-4946-b331-79599fb98de7");
 
-    private readonly ConsoleFrameRegion[][] dirtyHistory = new ConsoleFrameRegion[BufferCount - 1][];
+    private readonly ConsoleFrameRegion[]?[] dirtyHistory = new ConsoleFrameRegion[BufferCount - 1][];
+    private readonly List<ConsoleFrameRegion> scratchRegions = new(ConsoleDamageAccumulator.RegionLimit + 2);
     private nint device;
     private nint context;
     private nint factory;
@@ -45,6 +46,7 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
     private float lastScaleY;
     private bool usingWarp;
     private bool hasFrame;
+    private bool lastPresentOccluded;
     private bool disabled;
     private bool disposed;
 
@@ -98,6 +100,7 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
     {
         disabled = false;
         hasFrame = false;
+        lastPresentOccluded = false;
         fullFramesRemaining = 0;
         width = height = 0;
         lastScaleX = lastScaleY = 0;
@@ -146,6 +149,8 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
         }
 
         ConsoleFrameRegion[] dirty = damage.Full ? [new(0, 0, width, height)] : damage.Dirty;
+        hr = EnsureBackingTexture();
+        if (hr < 0) return hr;
         if (!damage.Full && damage.Moves.Length != 0)
         {
             hr = ApplyMoves(damage.Moves);
@@ -161,7 +166,15 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
                     context, backingTexture, 0, &box, pixels, (uint)frame.Stride, 0);
             }
         }
-        hr = PresentFromBacking(damage.Moves.Length == 0 ? dirty : [.. dirty, .. damage.Moves.Select(m => m.Destination)]);
+        ConsoleFrameRegion[] historyEntry;
+        if (damage.Moves.Length == 0) historyEntry = dirty;
+        else
+        {
+            historyEntry = new ConsoleFrameRegion[dirty.Length + damage.Moves.Length];
+            Array.Copy(dirty, historyEntry, dirty.Length);
+            for (int i = 0; i < damage.Moves.Length; i++) historyEntry[dirty.Length + i] = damage.Moves[i].Destination;
+        }
+        hr = PresentFromBacking(historyEntry);
         if (hr < 0) return hr;
 
         hasFrame = true;
@@ -227,6 +240,7 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
         Release(ref moveTexture);
         ClearSharedSlots();
         hasFrame = false;
+        lastPresentOccluded = false;
         Array.Clear(dirtyHistory);
 
         int hr;
@@ -273,10 +287,19 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
             if (hr < 0) return hr;
         }
 
+        width = targetWidth;
+        height = targetHeight;
+        fullFramesRemaining = BufferCount;
+        return 0;
+    }
+
+    private int EnsureBackingTexture()
+    {
+        if (backingTexture != 0) return 0;
         var backingDesc = new D3D11Texture2DDesc
         {
-            Width = (uint)targetWidth,
-            Height = (uint)targetHeight,
+            Width = (uint)width,
+            Height = (uint)height,
             MipLevels = 1,
             ArraySize = 1,
             Format = FormatBgra8Unorm,
@@ -285,14 +308,10 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
             BindFlags = BindShaderResource
         };
         nint backingPtr = 0;
-        hr = ((delegate* unmanaged[Stdcall]<nint, D3D11Texture2DDesc*, nint, nint*, int>)Slot(device, 5))(
+        int hr = ((delegate* unmanaged[Stdcall]<nint, D3D11Texture2DDesc*, nint, nint*, int>)Slot(device, 5))(
             device, &backingDesc, 0, &backingPtr);
         if (hr < 0 || backingPtr == 0) return hr < 0 ? hr : unchecked((int)0x80004005);
         backingTexture = backingPtr;
-
-        width = targetWidth;
-        height = targetHeight;
-        fullFramesRemaining = BufferCount;
         return 0;
     }
 
@@ -327,27 +346,34 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
         try
         {
             var full = new ConsoleFrameRegion(0, 0, width, height);
-            bool copyAll = fullFramesRemaining > 0 || changes.Contains(full);
-            ConsoleFrameRegion[] regions = copyAll ? [] : dirtyHistory.Where(h => h != null)
-                .SelectMany(h => h).Concat(changes).Distinct().ToArray();
-            copyAll |= regions.Contains(full) || regions.Length > ConsoleDamageAccumulator.RegionLimit;
+            bool copyAll = fullFramesRemaining > 0 || ContainsRegion(changes, full);
+            scratchRegions.Clear();
+            if (!copyAll)
+            {
+                for (int h = 0; h < dirtyHistory.Length; h++)
+                {
+                    if (dirtyHistory[h] is { } prior && !AddUniqueRegions(prior, full)) { copyAll = true; break; }
+                }
+                if (!copyAll && !AddUniqueRegions(changes, full)) copyAll = true;
+            }
             NativeRect* rects = stackalloc NativeRect[ConsoleDamageAccumulator.RegionLimit];
             DxgiPresentParameters parameters = default;
-            if (copyAll || regions.Length == 0) CopyResource(buffer, backingTexture);
+            if (copyAll || scratchRegions.Count == 0) CopyResource(buffer, backingTexture);
             else
             {
-                for (int i = 0; i < regions.Length; i++)
+                for (int i = 0; i < scratchRegions.Count; i++)
                 {
-                    var r = regions[i];
+                    var r = scratchRegions[i];
                     var box = ToBox(r);
                     CopySubresourceRegion(buffer, (uint)r.X, (uint)r.Y, backingTexture, &box);
                     rects[i] = new() { Left = r.X, Top = r.Y, Right = r.X + r.Width, Bottom = r.Y + r.Height };
                 }
-                parameters.DirtyRectsCount = (uint)regions.Length;
+                parameters.DirtyRectsCount = (uint)scratchRegions.Count;
                 parameters.DirtyRects = rects;
             }
             hr = Present1(&parameters);
-            if (hr == DxgiStatusOccluded)
+            lastPresentOccluded = hr == DxgiStatusOccluded;
+            if (lastPresentOccluded)
             {
                 fullFramesRemaining = BufferCount;
                 Array.Clear(dirtyHistory);
@@ -361,6 +387,33 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
             return hr;
         }
         finally { Release(ref buffer); }
+    }
+
+    private static bool ContainsRegion(ConsoleFrameRegion[] items, ConsoleFrameRegion target)
+    {
+        for (int i = 0; i < items.Length; i++)
+            if (items[i] == target) return true;
+        return false;
+    }
+
+    private bool AddUniqueRegions(ConsoleFrameRegion[] items, ConsoleFrameRegion full)
+    {
+        for (int i = 0; i < items.Length; i++)
+        {
+            var region = items[i];
+            if (region == full) return false;
+            bool seen = false;
+            for (int j = 0; j < scratchRegions.Count; j++)
+            {
+                if (scratchRegions[j] == region) { seen = true; break; }
+            }
+            if (!seen)
+            {
+                if (scratchRegions.Count >= ConsoleDamageAccumulator.RegionLimit) return false;
+                scratchRegions.Add(region);
+            }
+        }
+        return true;
     }
 
     private int ApplyMatrixTransform(float scaleX, float scaleY)
@@ -407,6 +460,7 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
     private void TearDownDevice()
     {
         hasFrame = false;
+        lastPresentOccluded = false;
         fullFramesRemaining = 0;
         width = height = 0;
         lastScaleX = lastScaleY = 0;

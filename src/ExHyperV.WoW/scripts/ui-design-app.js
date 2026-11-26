@@ -77,6 +77,7 @@ export function initUiDesignWorkbench() {
   }
 
   function preferredConsoleMode() {
+    if (!state.showExtensionEntries && state.defaultConsoleMode === 'External') return 'basic';
     return state.defaultConsoleMode === 'External' ? 'external' : state.defaultConsoleMode === 'RdpEnhanced' ? 'enhanced' : 'basic';
   }
   function loadConsoleCtrl() {
@@ -97,6 +98,7 @@ export function initUiDesignWorkbench() {
           },
           getTheme: () => winEl.getAttribute('data-theme') || 'dark',
           getAccentHex: () => state.accentHex,
+          getShowExtensionEntries: () => state.showExtensionEntries,
           getServerConnection: (vm, mode, watchOnly, ceiling) => (serverAdapter.isLive ? serverAdapter.issueConsoleTicket(vm.id, mode, watchOnly, ceiling) : Promise.resolve(null)),
           executeVmPowerAction: async (vmId, action) => {
             if (!serverAdapter.isLive) return false;
@@ -331,10 +333,18 @@ export function initUiDesignWorkbench() {
     autoStartMode: 'off', // 'off' | 'normal' | 'silent'
     closeBehavior: 'exit', // 'exit' | 'tray'
     autoOpenConsole: false,
+    showExtensionEntries: (() => {
+      try {
+        return localStorage.getItem('exhyperv.extensions.showEntries') !== '0';
+      } catch {}
+      return true;
+    })(),
     defaultConsoleMode: (() => {
       try {
+        const showExt = localStorage.getItem('exhyperv.extensions.showEntries') !== '0';
         const saved = localStorage.getItem('exhyperv.console.defaultBackend');
-        if (saved === 'External' || saved === 'RdpEnhanced') return saved;
+        if (saved === 'External' && showExt) return 'External';
+        if (saved === 'RdpEnhanced') return 'RdpEnhanced';
       } catch {}
       return 'RdpBasic';
     })(),
@@ -7519,7 +7529,7 @@ export function initUiDesignWorkbench() {
       <div class="isa-pill-track" id="settingsDefaultConsoleSeg" style="min-width:196px;flex-shrink:0;" role="radiogroup" aria-label="默认控制台会话">
         <button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'RdpBasic' ? 'active' : ''}" data-console-val="RdpBasic">基本会话</button>
         <button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'RdpEnhanced' ? 'active' : ''}" data-console-val="RdpEnhanced">增强会话</button>
-        <button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'External' ? 'active' : ''}" data-console-val="External">超强会话</button>
+        ${(state.showExtensionEntries || state.defaultConsoleMode === 'External') ? `<button type="button" class="isa-pill-btn ${state.defaultConsoleMode === 'External' ? 'active' : ''}" data-console-val="External">超强会话</button>` : ''}
       </div>`;
 
     const defaultPowerCtrl = `
@@ -7620,7 +7630,9 @@ export function initUiDesignWorkbench() {
         ${rowCard('启动虚拟机后自动打开控制台', '在列表或总览中启动虚拟机并成功后，自动打开控制台连接窗口', c.switchHtml('settingsAutoConsoleSwitch', state.autoOpenConsole))}
         ${rowCard('默认控制台会话', '点击连接或自动打开控制台时默认使用的会话模式', c.defaultConsoleCtrl)}`;
     } else if (state.appSettingsSub === 'extensions') {
-      bodyHtml = rowCard('扩展', '请在宿主桌面端管理扩展', '<span id="consoleExtensionSummary">宿主组件、授权、目标虚拟机组件与传输路径尚未证实</span>');
+      bodyHtml = `
+        ${rowCard('显示扩展功能入口', '在控制台与设置等界面中显示超强会话等扩展功能入口，关闭后将隐藏对应入口，可随时再次开启', c.switchHtml('settingsShowExtensionsSwitch', state.showExtensionEntries))}
+        ${rowCard('外部扩展状态', '以只读方式查看宿主机组件、授权及目标虚拟机组件的当前状态', '<span id="consoleExtensionSummary">宿主组件、授权、目标虚拟机组件与传输路径尚未证实</span>')}`;
     } else if (state.appSettingsSub === 'diagnostics') {
       bodyHtml = `
         ${rowCard('运行日志', '记录应用与 Core 的操作元数据及异常，本地滚动保存最多 12 MiB', c.switchHtml('settingsLoggingSwitch', state.loggingEnabled))}
@@ -7813,6 +7825,15 @@ export function initUiDesignWorkbench() {
     };
 
     bindToggle('settingsAutoConsoleSwitch', () => state.autoOpenConsole, (v) => { state.autoOpenConsole = v; });
+    bindToggle('settingsShowExtensionsSwitch', () => state.showExtensionEntries, (v) => {
+      state.showExtensionEntries = v;
+      try { localStorage.setItem('exhyperv.extensions.showEntries', v ? '1' : '0'); } catch {}
+      if (!v && state.defaultConsoleMode === 'External') {
+        state.defaultConsoleMode = 'RdpBasic';
+        try { localStorage.setItem('exhyperv.console.defaultBackend', 'RdpBasic'); } catch {}
+      }
+      consoleCtrl?.syncVmState?.();
+    });
     bindToggle('settingsAutoUpdateSwitch', () => state.autoCheckUpdate, (v) => { state.autoCheckUpdate = v; });
     bindToggle('settingsLoggingSwitch', () => state.loggingEnabled, (v) => {
       state.loggingEnabled = v;

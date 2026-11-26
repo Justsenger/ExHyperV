@@ -12,15 +12,31 @@ internal enum ConsoleBackendFailure : uint
 
 internal sealed class ConsoleSessionState
 {
+    private volatile string? activeBackend;
+    private volatile ConsoleControlState control = new(false, false, 0);
+    private int policyBits, capabilityBits, transportState;
+    private volatile bool accepting;
+
     internal ConsoleSessionMode Preference { get; set; }
     internal ConsoleSessionMode? Fallback { get; private set; }
-    internal string? ActiveBackend { get; private set; }
+    internal string? ActiveBackend { get => activeBackend; private set => activeBackend = value; }
     internal ConsoleSessionMode Target => Fallback ?? Preference;
-    internal ConsoleCapabilities Policy { get; private set; }
-    internal ConsoleCapabilities Capabilities { get; private set; }
-    internal ConsoleControlState Control { get; private set; } = new(false, false, 0);
-    internal ConsoleTransportKind Transport { get; private set; }
-    private bool accepting;
+    internal ConsoleCapabilities Policy
+    {
+        get => (ConsoleCapabilities)Volatile.Read(ref policyBits);
+        private set => Volatile.Write(ref policyBits, (int)value);
+    }
+    internal ConsoleCapabilities Capabilities
+    {
+        get => (ConsoleCapabilities)Volatile.Read(ref capabilityBits);
+        private set => Volatile.Write(ref capabilityBits, (int)value);
+    }
+    internal ConsoleControlState Control { get => control; private set => control = value; }
+    internal ConsoleTransportKind Transport
+    {
+        get => (ConsoleTransportKind)Volatile.Read(ref transportState);
+        private set => Volatile.Write(ref transportState, (int)value);
+    }
 
     internal void Activate(string backend, ConsoleCapabilities policy, ConsoleCapabilities supported, ConsoleControlState control)
     {

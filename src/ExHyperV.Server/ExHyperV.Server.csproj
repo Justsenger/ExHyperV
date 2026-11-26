@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <DefineConstants>$(DefineConstants);EXHYPERV_SERVER</DefineConstants>
     <TargetFramework>net11.0-windows</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Version>2.0.0-Alpha</Version>
@@ -10,6 +11,7 @@
     <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../ExHyperV.ConsoleIpc/*.cs" Link="ConsoleIpc/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.Core/Infrastructure/Interop/WindowsImageCodec.cs" Link="Infrastructure/WindowsImageCodec.cs" />
     <Compile Include="../ExHyperV.Core/Infrastructure/Interop/NativeComInterface.cs;../ExHyperV.Core/Infrastructure/Interop/NativeComStream.cs" Link="Infrastructure/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.Core/Business/Connection/ConsolePayload.cs" Link="Infrastructure/ConsolePayload.cs" />

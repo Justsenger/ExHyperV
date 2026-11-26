@@ -4483,10 +4483,8 @@
   <data name="Extension_Incompatible" xml:space="preserve"><value>不兼容</value></data>
   <data name="Extension_Ready" xml:space="preserve"><value>就绪</value></data>
   <data name="Extension_Unknown" xml:space="preserve"><value>未知（{0}）</value></data>
-  <data name="Extension_OpenActivation" xml:space="preserve"><value>打开激活</value></data>
-  <data name="Extension_MaintainHost" xml:space="preserve"><value>维护宿主组件</value></data>
-  <data name="Extension_DeployVmGuest" xml:space="preserve"><value>部署虚拟机组件</value></data>
-  <data name="Extension_RetryConnection" xml:space="preserve"><value>重试连接</value></data>
+  <data name="Settings_ShowExtensionEntries" xml:space="preserve"><value>显示扩展功能入口</value></data>
+  <data name="Settings_ShowExtensionEntriesHelp" xml:space="preserve"><value>在控制台与设置等界面中显示超强会话等扩展功能入口，关闭后将隐藏对应入口，可随时再次开启</value></data>
   <data name="Console_ViewOnly" xml:space="preserve"><value>仅观看</value></data>
   <data name="Console_DisplayMode" xml:space="preserve"><value>{0} × {1} / {2:0.##} Hz</value></data>
 </root>

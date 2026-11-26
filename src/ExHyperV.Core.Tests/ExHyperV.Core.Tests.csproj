@@ -11,6 +11,8 @@
     <GenerateTestingPlatformApplicationHelper>true</GenerateTestingPlatformApplicationHelper>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../ExHyperV.ConsoleIpc/*.cs" Link="ConsoleIpc/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Shared/ConsoleHost/ConsoleIpcHostConnector.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.7" />
     <!-- Inspect App source with the compiler shipped in the selected SDK. -->
     <Reference Include="Microsoft.CodeAnalysis" HintPath="$(NetCoreRoot)sdk/$(NETCoreSdkVersion)/Roslyn/bincore/Microsoft.CodeAnalysis.dll" />
@@ -34,6 +36,7 @@
     <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/FramePresenter.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleSwapChainRenderer.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleSwapChainRenderer.Shared.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleRenderWorker.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleSessionLifetime.cs" Link="Scenarios/ConsoleSessionLifetime.cs" />
     <Compile Remove="Diagnostics/**;Tools/**" />
     <Compile Include="Diagnostics/*Checks.cs"

@@ -43,6 +43,7 @@
     <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../ExHyperV.ConsoleIpc/*.cs" Link="ConsoleIpc/%(Filename)%(Extension)" />
     <!-- Runtime supplies WindowsAppSDK-VersionInfo.cs to the unpackaged bootstrap initializer. -->
     <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="2.6.5" />
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="2.6.5" />

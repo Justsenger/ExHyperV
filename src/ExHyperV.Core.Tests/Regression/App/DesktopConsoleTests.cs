@@ -133,7 +133,38 @@ public sealed class DesktopConsoleTests
     }
 
     [TestMethod]
-    public async Task CatalogChecksSnapshotVersionTargetAndFixedActionBeforeDispatch()
+    public void ExtensionEntryPreferenceDefaultsOnAndHidesCleanly()
+    {
+        var type = DesktopJson.Default.AppearanceSettings;
+        var legacy = JsonSerializer.Deserialize("""{"DefaultConsoleSession":"External"}""", type)!;
+        Assert.IsTrue(legacy.ShowExtensionEntries);
+        Assert.AreEqual(ConsoleSessionMode.External, legacy.DefaultConsoleSession);
+        var hidden = legacy with { ShowExtensionEntries = false };
+        var roundTrip = JsonSerializer.Deserialize(JsonSerializer.Serialize(hidden, type), type)!;
+        Assert.IsFalse(roundTrip.ShowExtensionEntries);
+    }
+
+    [TestMethod]
+    public async Task RenderWorkerRunsFramesOnDedicatedBackgroundThread()
+    {
+        int callerThread = Environment.CurrentManagedThreadId;
+        int workerThread = 0;
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var worker = new ConsoleRenderWorker();
+        Assert.IsTrue(worker.Enqueue(() =>
+        {
+            workerThread = Environment.CurrentManagedThreadId;
+            done.SetResult();
+        }));
+        await done.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Assert.AreNotEqual(0, workerThread);
+        Assert.AreNotEqual(callerThread, workerThread);
+        int value = await worker.InvokeAsync(() => 42);
+        Assert.AreEqual(42, value);
+    }
+
+    [TestMethod]
+    public void CatalogInspectsReadOnlySnapshotsAndValidatesDiagnostics()
     {
         var catalog = new ConsoleExtensionCatalog();
         var vm = Guid.NewGuid();
@@ -147,18 +178,9 @@ public sealed class DesktopConsoleTests
         Assert.ThrowsExactly<ArgumentException>(() => catalog.Register(connector));
         var snapshot = catalog.Inspect(vm);
         Assert.IsTrue(ConsoleExtensionCatalog.Ready(snapshot));
+        Assert.IsEmpty(snapshot.AvailableActions);
         Assert.IsNull(ConsoleExtensionCatalog.Diagnostic("private/text"));
         Assert.AreEqual("EXT-123", ConsoleExtensionCatalog.Diagnostic("EXT-123"));
-        Assert.IsNull(await catalog.ExecuteAsync(vm, 0, ConsoleExtensionActionId.MaintainHost, default));
-        Assert.IsNull(await catalog.ExecuteAsync(vm, 2, ConsoleExtensionActionId.ActivateHost, default));
-        Assert.IsNull(await catalog.ExecuteAsync(Guid.Empty, 2, ConsoleExtensionActionId.RetryConnection, default));
-        Assert.IsNull(await catalog.ExecuteAsync(vm, 2, (ConsoleExtensionActionId)99, default));
-        await Assert.ThrowsExactlyAsync<OperationCanceledException>(() => catalog.ExecuteAsync(vm, 2,
-            ConsoleExtensionActionId.MaintainHost, new CancellationToken(true)));
-        Assert.IsNull(connector.Last);
-        Assert.IsTrue((await catalog.ExecuteAsync(vm, 2, ConsoleExtensionActionId.DeployGuestComponent, default))!.Accepted);
-        Assert.AreEqual(vm, connector.Last!.VmId);
-        Assert.AreEqual("guest", connector.Last.ComponentId);
     }
 
     [TestMethod]
@@ -260,22 +282,14 @@ public sealed class DesktopConsoleTests
     {
         public string BackendId => "External";
         public event Action<Guid>? SnapshotChanged { add { } remove { } }
-        internal ConsoleExtensionActionRequest? Last;
         public ConsoleExtensionSnapshot Inspect(Guid vmId)
         {
             var ready = new ConsoleExtensionStage((int)ConsoleExtensionStateCode.Ready);
             return new(2, ready, ready, ready, ready, ConsoleTransportKind.GpuShared, 4,
                 ConsoleCapabilities.Video, ConsoleCapabilities.Video, new(true, false, 1),
-                [ConsoleExtensionActionId.MaintainHost, ConsoleExtensionActionId.DeployGuestComponent, ConsoleExtensionActionId.RetryConnection],
-                null, "EXT-123");
+                [], null, "EXT-123");
         }
         public IReadOnlyList<ConsoleDisplayMode> GetModes(Guid vmId) => [];
         public IConsoleConnection Connect(ConsoleConnectionOptions options) => throw new NotSupportedException();
-        public string GetGuestComponentId(Guid vmId, ulong version) => "guest";
-        public Task<ConsoleExtensionActionResult> ExecuteActionAsync(ConsoleExtensionActionRequest request, CancellationToken token)
-        {
-            Last = request;
-            return Task.FromResult(new ConsoleExtensionActionResult(request.RequestId, true, 2, null, null));
-        }
     }
 }

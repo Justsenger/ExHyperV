@@ -23,7 +23,8 @@ public sealed partial class ConsoleWindow : Window
     private readonly DispatcherTimer noticeTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private Task switchWork = Task.CompletedTask;
     private Task? closeWork;
-    private bool closing, active, fullscreen, pinned = true, manualWindowSize, verifyFit;
+    private volatile bool closing;
+    private bool active, fullscreen, pinned = true, manualWindowSize, verifyFit;
     private double layoutScale;
     private RectInt32 interactiveRect;
     private readonly List<SizeInt32> pendingAutoResizes = [];

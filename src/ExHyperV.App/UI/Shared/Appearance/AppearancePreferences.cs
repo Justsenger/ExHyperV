@@ -19,6 +19,7 @@ internal sealed partial record AppearanceSettings
     public StartupMode AutoStart { get; init; }
     public WindowCloseBehavior CloseBehavior { get; init; }
     public ConsoleSessionMode DefaultConsoleSession { get; init; }
+    public bool ShowExtensionEntries { get; init; } = true;
     public bool AutoCheckUpdate { get; init; } = true;
     public string DefaultPowerAction { get; init; } = "Shutdown";
 }

@@ -4,6 +4,8 @@ internal static class Program
 {
     public static Task<int> Main(string[] args)
     {
+        if (args is ["--console-ipc-peer", var pipe, var parent] && Guid.TryParseExact(pipe, "N", out var id) &&
+            int.TryParse(parent, out int pid) && pid > 0) return ConsoleIpcProcessTests.RunPeer(id, pid);
         if (args.FirstOrDefault() is "--resource-probe" or "--inspect-resources" or "--api-test-worker"
             or "--run-api-suite" or "--resume-reboot-tests")
             ResourceInspection.TestNetwork.Initialize();

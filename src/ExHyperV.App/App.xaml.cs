@@ -2,6 +2,8 @@
 using ExHyperV.App.Diagnostics;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared.Appearance;
+using ExHyperV.App.UI.Shared.ConsoleHost;
+using ExHyperV.ConsoleIpc;
 using ExHyperV.App.UI.Shell;
 using Microsoft.UI.Xaml;
 
@@ -27,6 +29,7 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public App()
     {
+        ConsoleExtensionCatalog.Local.Register(new ConsoleIpcHostConnector(new ConsoleIpcClient(new ConsoleIpcDiscovery(), 1)));
         settings = AppearanceSettings.Load();
         AppDiagnostics.Start(settings);
         UnhandledException += (_, args) => AppDiagnostics.Crash("WinUIUnhandledException", args.Exception);

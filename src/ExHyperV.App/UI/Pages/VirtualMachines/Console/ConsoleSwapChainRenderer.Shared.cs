@@ -68,20 +68,46 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer
         }
 
         var scale = ComputeScale(dipWidth, dipHeight, width, height);
-        if (scale != (lastScaleX, lastScaleY))
+        if (Math.Abs(scale.ScaleX - lastScaleX) > 1e-5f || Math.Abs(scale.ScaleY - lastScaleY) > 1e-5f)
         {
             hr = ApplyMatrixTransform(scale.ScaleX, scale.ScaleY);
             if (hr < 0) return hr;
         }
+        hr = EnsureBackingTexture();
+        if (hr < 0) return hr;
         hr = ((delegate* unmanaged[Stdcall]<nint, ulong, uint, int>)Slot(slot.Mutex, 8))(slot.Mutex, frame.ReadKey, 16);
         if (hr != 0) return hr;
         try { CopyResource(backingTexture, slot.Texture); }
         finally { hr = ((delegate* unmanaged[Stdcall]<nint, ulong, int>)Slot(slot.Mutex, 9))(slot.Mutex, frame.ReturnKey); }
         if (hr != 0) return hr;
-        hr = PresentFromBacking([new(0, 0, width, height)]);
+        hr = PresentFullFromBacking();
         hasFrame = hr >= 0;
         if (hasFrame) sharedSequence = frame.Sequence;
         return hr;
+    }
+
+    private int PresentFullFromBacking()
+    {
+        var iid = IidID3D11Texture2D;
+        nint buffer = 0;
+        int hr = ((delegate* unmanaged[Stdcall]<nint, uint, Guid*, nint*, int>)Slot(swapChain, 9))(swapChain, 0, &iid, &buffer);
+        if (hr < 0) return hr;
+        try
+        {
+            CopyResource(buffer, backingTexture);
+            DxgiPresentParameters parameters = default;
+            hr = Present1(&parameters);
+            lastPresentOccluded = hr == DxgiStatusOccluded;
+            fullFramesRemaining = BufferCount;
+            if (lastPresentOccluded) Array.Clear(dirtyHistory);
+            else
+            {
+                Array.Copy(dirtyHistory, 1, dirtyHistory, 0, dirtyHistory.Length - 1);
+                dirtyHistory[^1] = null;
+            }
+            return hr;
+        }
+        finally { Release(ref buffer); }
     }
 
     private int OpenSlot(ConsoleGpuFrame frame, out (nint Texture, nint Mutex) slot)
@@ -120,7 +146,7 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer
         }
     }
 
-    // A screenshot owns its staging copy while UI rendering continues on the same dispatcher.
+    // A screenshot owns its staging copy while UI rendering continues on another dispatcher.
     internal Readback? BeginReadback()
     {
         if (!hasFrame || backingTexture == 0) return null;
@@ -128,7 +154,7 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer
             ArraySize = 1, Format = FormatBgra8Unorm, SampleDescCount = 1, Usage = UsageStaging, CPUAccessFlags = 0x20000 };
         nint staging = 0;
         int hr = ((delegate* unmanaged[Stdcall]<nint, D3D11Texture2DDesc*, nint, nint*, int>)Slot(device, 5))(device, &desc, 0, &staging);
-        if (hr < 0) return null;
+        if (hr < 0 || staging == 0) return null;
         CopyResource(staging, backingTexture);
         ((delegate* unmanaged[Stdcall]<nint, void>)Slot(context, 111))(context); // Flush
         ((delegate* unmanaged[Stdcall]<nint, uint>)Slot(context, 1))(context);

@@ -5019,10 +5019,8 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
   <data name="Extension_Incompatible" xml:space="preserve"><value>Incompatible</value></data>
   <data name="Extension_Ready" xml:space="preserve"><value>Ready</value></data>
   <data name="Extension_Unknown" xml:space="preserve"><value>Unknown ({0})</value></data>
-  <data name="Extension_OpenActivation" xml:space="preserve"><value>Open activation</value></data>
-  <data name="Extension_MaintainHost" xml:space="preserve"><value>Maintain host</value></data>
-  <data name="Extension_DeployVmGuest" xml:space="preserve"><value>Deploy guest component</value></data>
-  <data name="Extension_RetryConnection" xml:space="preserve"><value>Retry connection</value></data>
+  <data name="Settings_ShowExtensionEntries" xml:space="preserve"><value>Show extension entries</value></data>
+  <data name="Settings_ShowExtensionEntriesHelp" xml:space="preserve"><value>Show extension entries such as Super session in console and settings views. Turn off to hide them without affecting active connections</value></data>
   <data name="Console_ViewOnly" xml:space="preserve"><value>View only</value></data>
   <data name="Console_DisplayMode" xml:space="preserve"><value>{0} × {1} / {2:0.##} Hz</value></data>
 </root>

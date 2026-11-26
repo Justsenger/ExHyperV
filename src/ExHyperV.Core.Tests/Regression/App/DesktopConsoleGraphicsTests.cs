@@ -22,7 +22,7 @@ public sealed class DesktopConsoleGraphicsTests
 
     private static byte[] Pixels(params byte[] row) => row.SelectMany(b => new byte[] { b, b, b, 255 }).ToArray();
 
-    private static byte[] Readback(ConsoleSwapChainRenderer renderer)
+    internal static byte[] Readback(ConsoleSwapChainRenderer renderer)
     {
         using var copy = renderer.BeginReadback();
         Assert.IsNotNull(copy);

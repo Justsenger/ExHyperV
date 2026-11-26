@@ -20,6 +20,7 @@ export function createConsoleController({
   getAdvSettings,
   getTheme,
   getAccentHex,
+  getShowExtensionEntries,
   getOpenVmIds,
   getDefaultPowerAction,
   getServerConnection,
@@ -140,6 +141,10 @@ export function createConsoleController({
   let pendingPointerMove = null;
   let pointerMoveRafId = 0;
   let webCodecsH264Supported = typeof VideoDecoder !== 'undefined' && typeof EncodedVideoChunk !== 'undefined';
+  const showExtensionEntriesEnabled = () => {
+    if (typeof getShowExtensionEntries === 'function') return Boolean(getShowExtensionEntries());
+    try { return localStorage.getItem('exhyperv.extensions.showEntries') !== '0'; } catch { return true; }
+  };
   void isH264WebCodecsSupported().then((supported) => {
     webCodecsH264Supported = supported;
   });
@@ -946,10 +951,12 @@ export function createConsoleController({
 
     if (modeBtn) modeBtn.disabled = !isRunning || consoleOff;
     if (modeLabel) modeLabel.textContent = modeNames[session.mode];
+    const showExtEntry = showExtensionEntriesEnabled();
     modeFlyout?.querySelectorAll('[data-console-session]').forEach((item) => {
       const m = item.getAttribute('data-console-session');
       item.classList.toggle('is-selected', m === session.mode);
       if (m === 'enhanced') item.disabled = !isRunning || consoleOff || isGen1;
+      if (m === 'external') item.hidden = !showExtEntry && !external;
     });
     if (fsModeBtn) {
       fsModeBtn.classList.toggle('is-active', isEnhanced);
@@ -1427,7 +1434,11 @@ export function createConsoleController({
   fsModeBtn?.addEventListener('click', () => {
     const session = activeSession();
     if (!session || fsModeBtn.disabled) return;
-    applySessionMode(({ basic: 'enhanced', enhanced: 'external', external: 'basic' })[session.mode]);
+    const allowExternal = showExtensionEntriesEnabled() || session.mode === 'external';
+    const next = allowExternal
+      ? { basic: 'enhanced', enhanced: 'external', external: 'basic' }
+      : { basic: 'enhanced', enhanced: 'basic', external: 'basic' };
+    applySessionMode(next[session.mode]);
   });
 
   qualityBtn?.addEventListener('click', (e) => {

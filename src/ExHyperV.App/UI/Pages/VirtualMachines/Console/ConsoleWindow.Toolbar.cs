@@ -114,7 +114,7 @@ public sealed partial class ConsoleWindow
         Surface.IsTabStop = Sas.IsEnabled;
         ExtensionDetails.Visibility = ShowWhen(extensionStatus && view == View.Disconnected);
         if (ExtensionDetails.Visibility == Visibility.Visible)
-            ExtensionDetails.Content ??= new ConsoleExtensionPanel(vm.Id, vm.Name, () => SwitchSessionMode(ConsoleSessionMode.External));
+            ExtensionDetails.Content ??= new ConsoleExtensionPanel(vm.Id, vm.Name);
         else ExtensionDetails.Content = null;
         FullscreenIcon.Glyph = fullscreen ? "\uE688" : "\uE685";
         Tip(Fullscreen, L10n.Get(fullscreen ? "Console_ExitFullscreen" : "Console_Fullscreen"));
@@ -265,13 +265,18 @@ public sealed partial class ConsoleWindow
     private void OnSessionModeMenu(object sender, RoutedEventArgs args)
     {
         bool canEnhanced = powerState == VmState.Running && view != View.Disabled && firstGenKnown != true && enhancedAvailable;
-        ShowCompactFlyout((FrameworkElement)sender, (CompactMenuOption[])[
+        var options = new List<CompactMenuOption>(3)
+        {
             new(L10n.Get("Settings_Basic"), sessionState.ActiveBackend == "RdpBasic", true, () => SwitchSessionMode(ConsoleSessionMode.RdpBasic)),
             new(L10n.Get("Settings_Enhanced"), IsEnhanced, canEnhanced, () => SwitchSessionMode(ConsoleSessionMode.RdpEnhanced),
-                canEnhanced ? null : L10n.Get("Console_EnhancedUnavailable")),
-            new(L10n.Get("Settings_SuperSession"), sessionState.ActiveBackend == ConsoleExtensionCatalog.External, true,
-                () => SwitchSessionMode(ConsoleSessionMode.External))
-        ]);
+                canEnhanced ? null : L10n.Get("Console_EnhancedUnavailable"))
+        };
+        if (Appearance.Settings.ShowExtensionEntries || sessionState.ActiveBackend == ConsoleExtensionCatalog.External || sessionState.Target == ConsoleSessionMode.External)
+        {
+            options.Add(new(L10n.Get("Settings_SuperSession"), sessionState.ActiveBackend == ConsoleExtensionCatalog.External, true,
+                () => SwitchSessionMode(ConsoleSessionMode.External)));
+        }
+        ShowCompactFlyout((FrameworkElement)sender, options);
     }
 
     private void OnCapsuleModeToggle(object sender, RoutedEventArgs args) => OnSessionModeMenu(sender, args);

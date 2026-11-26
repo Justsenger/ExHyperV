@@ -17,12 +17,13 @@ public sealed partial class SettingsPage : Page
     private readonly AppAppearance appearance = ((App)Application.Current).Appearance;
     private readonly ComboBox language = new() { MinWidth = 152 };
     private readonly ComboBox theme = new() { MinWidth = 152 };
-    private readonly ToggleSwitch accent = Switch(), autoConsole = Switch(), logging = Switch(), verbose = Switch();
+    private readonly ToggleSwitch accent = Switch(), autoConsole = Switch(), showExtensions = Switch(), logging = Switch(), verbose = Switch();
     private readonly SettingsSegmentedPill startup = new() { Width = 264 }, close = new() { Width = 220 }, session = new();
     private readonly List<(string Hex, Border Ring, Button Button, FontIcon Check)> colors = [];
     private readonly List<StackPanel> sections = [];
     private readonly DispatcherTimer toastTimer = new() { Interval = TimeSpan.FromSeconds(2.6) };
     private bool updating = true;
+    private bool? sessionIncludesExternal;
     internal Func<Task>? PrepareLanguageChange { get; init; }
 
     public SettingsPage()
@@ -50,17 +51,7 @@ public sealed partial class SettingsPage : Page
         startup.SetOptions((SettingOption[])[Option(StartupMode.Off, "Common_Off"), Option(StartupMode.Normal, "Settings_NormalStart"),
             Option(StartupMode.Silent, "Settings_SilentStart")]);
         close.SetOptions((SettingOption[])[Option(WindowCloseBehavior.Exit, "Settings_Exit"), Option(WindowCloseBehavior.Tray, "Settings_ToTray")]);
-        SettingOption[] modes = [Option(ConsoleSessionMode.RdpBasic, "Settings_Basic"), Option(ConsoleSessionMode.RdpEnhanced, "Settings_Enhanced"),
-            Option(ConsoleSessionMode.External, "Settings_SuperSession")];
-        session.SetOptions(modes);
-        double widest = 0;
-        foreach (var mode in modes)
-        {
-            var label = new TextBlock { Text = mode.Label, FontSize = 13 };
-            label.Measure(new(double.PositiveInfinity, double.PositiveInfinity));
-            widest = Math.Max(widest, label.DesiredSize.Width);
-        }
-        session.MinWidth = Math.Ceiling(widest + 18) * modes.Length + 16;
+        UpdateSessionOptions(appearance.Settings);
         SystemSection.Children.Add(Card("Settings_AutoStart", "Settings_AutoStartHelp", startup));
         SystemSection.Children.Add(Card("Settings_OnClose", "Settings_OnCloseHelp", close));
         PreferencesSection.Children.Add(Card("Settings_AutoConsole", "Host_Set_AutoConsole_Desc", autoConsole));
@@ -76,6 +67,13 @@ public sealed partial class SettingsPage : Page
         close.SelectionChanged += value => Apply(appearance.Settings with { CloseBehavior = (WindowCloseBehavior)value! });
         session.SelectionChanged += value => Apply(appearance.Settings with { DefaultConsoleSession = (ConsoleSessionMode)value! });
         autoConsole.Toggled += (_, _) => Apply(appearance.Settings with { AutoOpenConsole = autoConsole.IsOn });
+        showExtensions.Toggled += (_, _) => Apply(appearance.Settings with
+        {
+            ShowExtensionEntries = showExtensions.IsOn,
+            DefaultConsoleSession = !showExtensions.IsOn && appearance.Settings.DefaultConsoleSession == ConsoleSessionMode.External
+                ? ConsoleSessionMode.RdpBasic
+                : appearance.Settings.DefaultConsoleSession
+        });
         logging.Toggled += (_, _) => Apply(appearance.Settings with
             { LoggingEnabled = logging.IsOn, VerboseDiagnostics = logging.IsOn && appearance.Settings.VerboseDiagnostics });
         verbose.Toggled += (_, _) => Apply(appearance.Settings with { VerboseDiagnostics = logging.IsOn && verbose.IsOn });
@@ -166,6 +164,8 @@ public sealed partial class SettingsPage : Page
         startup.SelectedValue = prefs.AutoStart;
         close.SelectedValue = prefs.CloseBehavior;
         autoConsole.IsOn = prefs.AutoOpenConsole;
+        showExtensions.IsOn = prefs.ShowExtensionEntries;
+        UpdateSessionOptions(prefs);
         session.SelectedValue = prefs.DefaultConsoleSession;
         logging.IsOn = prefs.LoggingEnabled;
         verbose.IsOn = prefs.VerboseDiagnostics;

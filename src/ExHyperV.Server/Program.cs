@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -141,6 +142,11 @@ internal static class Program
         builder.Services.AddSingleton<ConsoleSources>();
         builder.Services.AddSingleton<Func<ITelemetrySampler>>(() => new CoreTelemetrySampler());
         configure?.Invoke(builder.Services);
+        if (!builder.Services.Any(s => s.ServiceType == typeof(IConsoleExtensionProvider)))
+        {
+            builder.Services.TryAddSingleton<ExHyperV.ConsoleIpc.ConsoleIpcDiscovery>();
+            builder.Services.AddSingleton<IConsoleExtensionProvider, ConsoleIpcServerProvider>();
+        }
         var app = builder.Build();
         // Synchronous HTTP calls may be waiting for a Core decision while Kestrel drains requests.
         app.Lifetime.ApplicationStopping.Register(app.Services.GetRequiredService<ApiExecution>().BeginStop);

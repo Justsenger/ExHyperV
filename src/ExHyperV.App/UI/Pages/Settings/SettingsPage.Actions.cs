@@ -2,6 +2,7 @@ using System.Diagnostics;
 using ExHyperV.App.Diagnostics;
 using ExHyperV.App.Localization;
 using ExHyperV.App.UI.Shared;
+using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.Controls;
 using ExHyperV.App.UI.Shared.ConsoleHost;
 using ExHyperV.App.UI.Shared.Feedback;
@@ -16,10 +17,31 @@ public sealed partial class SettingsPage
 {
     internal Func<(Guid Id, string? Name)>? ExtensionTarget { get; init; }
 
+    private void UpdateSessionOptions(AppearanceSettings prefs)
+    {
+        bool includeExternal = prefs.ShowExtensionEntries || prefs.DefaultConsoleSession == ConsoleSessionMode.External;
+        if (includeExternal == sessionIncludesExternal) return;
+        sessionIncludesExternal = includeExternal;
+        SettingOption[] modes = includeExternal
+            ? [Option(ConsoleSessionMode.RdpBasic, "Settings_Basic"), Option(ConsoleSessionMode.RdpEnhanced, "Settings_Enhanced"),
+                Option(ConsoleSessionMode.External, "Settings_SuperSession")]
+            : [Option(ConsoleSessionMode.RdpBasic, "Settings_Basic"), Option(ConsoleSessionMode.RdpEnhanced, "Settings_Enhanced")];
+        session.SetOptions(modes);
+        double widest = 0;
+        foreach (var mode in modes)
+        {
+            var label = new TextBlock { Text = mode.Label, FontSize = 13 };
+            label.Measure(new(double.PositiveInfinity, double.PositiveInfinity));
+            widest = Math.Max(widest, label.DesiredSize.Width);
+        }
+        session.MinWidth = Math.Ceiling(widest + 18) * modes.Length + 16;
+    }
+
     private void RefreshExtensions()
     {
         var target = ExtensionTarget?.Invoke() ?? (Guid.Empty, null);
         ExtensionsSection.Children.Clear();
+        ExtensionsSection.Children.Add(Card("Settings_ShowExtensionEntries", "Settings_ShowExtensionEntriesHelp", showExtensions));
         ExtensionsSection.Children.Add(new Border
         {
             Style = (Style)Application.Current.Resources["SectionBorderStyle"], Padding = new(17, 14, 17, 14),

@@ -4,7 +4,10 @@ namespace ExHyperV.Server.Hosting;
 
 // A trusted local provider supplies the isolation identity and invalidates the grant on changes.
 internal sealed record ExtensionAccess(ConsoleExtensionSnapshot Snapshot, IReadOnlyList<ConsoleDisplayMode> Modes,
-    string? GuestSession, string? IsolationDomain, CancellationToken Revoked);
+    string? GuestSession, string? IsolationDomain, CancellationToken Revoked)
+{
+    internal ExHyperV.ConsoleIpc.IpcAccess? Ipc { get; init; }
+}
 
 internal interface IConsoleExtensionProvider
 {
@@ -33,11 +36,16 @@ internal sealed class ConsoleDirectory(IConsoleSessionFactory builtin, IEnumerab
     internal string[] Backends => ["RdpBasic", "RdpEnhanced", .. ExtensionIds];
     internal string[] ExtensionIds => extensions.Count == 0 ? [ExtensionSlot] : extensions.Keys.Order(StringComparer.Ordinal).ToArray();
 
-    internal object[] HostSummary() => ExtensionIds.Select(id => (object)new
+    internal object[] HostSummary() => ExtensionIds.Select(id =>
     {
-        backendId = id, connectorRegistered = extensions.ContainsKey(id),
-        host = new ConsoleExtensionStage((int)(extensions.ContainsKey(id) ? ConsoleExtensionStateCode.Unverified : ConsoleExtensionStateCode.Unreachable)),
-        diagnosticId = extensions.ContainsKey(id) ? null : "EXT-001"
+        bool registered = extensions.TryGetValue(id, out var provider);
+        var local = (provider as ConsoleIpcServerProvider)?.HostStatus;
+        return (object)new
+        {
+            backendId = id, connectorRegistered = registered,
+            host = local?.Host ?? new ConsoleExtensionStage((int)(registered ? ConsoleExtensionStateCode.Unverified : ConsoleExtensionStateCode.Unreachable)),
+            diagnosticId = local?.DiagnosticId ?? (registered ? null : "EXT-001")
+        };
     }).ToArray();
 
     private static ExtensionAccess Offline(ConsoleExtensionStateCode code)

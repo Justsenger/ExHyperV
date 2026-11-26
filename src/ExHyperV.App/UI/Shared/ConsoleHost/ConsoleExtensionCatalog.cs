@@ -21,8 +21,6 @@ internal interface IConsoleHostExtensionConnector
 
     // A connector must positively confirm the same guest session and equivalent rights.
     bool AllowsFallback(Guid vmId, string targetBackend) => false;
-    string? GetGuestComponentId(Guid vmId, ulong version) => null;
-    Task<ConsoleExtensionActionResult> ExecuteActionAsync(ConsoleExtensionActionRequest request, CancellationToken token);
 }
 
 internal sealed class ConsoleExtensionCatalog
@@ -86,27 +84,4 @@ internal sealed class ConsoleExtensionCatalog
             if (provider == null || !Ready(Inspect(options.VmId))) throw new UnauthorizedAccessException();
             return await provider.ConnectAsync(options, token).ConfigureAwait(false);
         }, token);
-
-    internal static bool IsAvailable(ConsoleExtensionSnapshot s, ConsoleExtensionActionId action, Guid vmId) =>
-        s.AvailableActions.Contains(action) && action switch
-        {
-            ConsoleExtensionActionId.ActivateHost or ConsoleExtensionActionId.MaintainHost => true,
-            ConsoleExtensionActionId.DeployGuestComponent or ConsoleExtensionActionId.RetryConnection => vmId != Guid.Empty,
-            _ => false
-        };
-
-    internal async Task<ConsoleExtensionActionResult?> ExecuteAsync(Guid vmId, ulong version,
-        ConsoleExtensionActionId action, CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-        var provider = connector;
-        var snapshot = Inspect(vmId);
-        if (provider == null || snapshot.Version != version || !IsAvailable(snapshot, action, vmId)) return null;
-        string? component = action == ConsoleExtensionActionId.DeployGuestComponent ? provider.GetGuestComponentId(vmId, version) : null;
-        if (action == ConsoleExtensionActionId.DeployGuestComponent && string.IsNullOrWhiteSpace(component)) return null;
-        var request = new ConsoleExtensionActionRequest(Guid.NewGuid(), version, action,
-            vmId == Guid.Empty ? null : vmId, component, null);
-        var result = await provider.ExecuteActionAsync(request, token);
-        return result.RequestId == request.RequestId ? result : null;
-    }
 }

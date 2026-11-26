@@ -1,5 +1,4 @@
 using ExHyperV.App.Localization;
-using ExHyperV.App.UI.Shared.Controls;
 using ExHyperV.App.UI.Shared.Feedback;
 using ExHyperV.Services;
 using Microsoft.UI.Xaml;
@@ -12,28 +11,24 @@ internal sealed partial class ConsoleExtensionPanel : StackPanel
 {
     private readonly Guid vmId;
     private readonly string? vmName;
-    private readonly Action? retry;
-    private CancellationTokenSource? lifetime;
-    private bool executing;
+    private readonly DispatcherTimer pollTimer = new() { Interval = TimeSpan.FromSeconds(2) };
 
-    internal ConsoleExtensionPanel(Guid vmId, string? vmName, Action? retry = null)
+    internal ConsoleExtensionPanel(Guid vmId, string? vmName)
     {
         this.vmId = vmId;
         this.vmName = vmName;
-        this.retry = retry;
         Spacing = 10;
+        pollTimer.Tick += (_, _) => { if (IsLoaded) Refresh(); };
         Loaded += (_, _) =>
         {
-            lifetime = new();
             ConsoleExtensionCatalog.Local.Changed += Changed;
+            pollTimer.Start();
             Refresh();
         };
         Unloaded += (_, _) =>
         {
+            pollTimer.Stop();
             ConsoleExtensionCatalog.Local.Changed -= Changed;
-            lifetime?.Cancel();
-            lifetime?.Dispose();
-            lifetime = null;
         };
     }
 
@@ -60,31 +55,6 @@ internal sealed partial class ConsoleExtensionPanel : StackPanel
         Row("Extension_Diagnostic", diagnostic ?? "—", diagnostic);
         if (!string.IsNullOrWhiteSpace(s.Reason))
             Children.Add(new TextBlock { Text = s.Reason, TextWrapping = TextWrapping.Wrap });
-        var actions = new WrapPanel();
-        foreach (var (action, key) in new[] {
-            (ConsoleExtensionActionId.ActivateHost, "OpenActivation"), (ConsoleExtensionActionId.MaintainHost, "MaintainHost"),
-            (ConsoleExtensionActionId.DeployGuestComponent, "DeployVmGuest"), (ConsoleExtensionActionId.RetryConnection, "RetryConnection") })
-        {
-            if (!ConsoleExtensionCatalog.IsAvailable(s, action, vmId)) continue;
-            var button = new Button { Content = L10n.Get("Extension_" + key), IsEnabled = !executing };
-            button.Click += async (_, _) =>
-            {
-                if (executing || lifetime == null) return;
-                var token = lifetime.Token;
-                executing = true;
-                actions.IsHitTestVisible = false;
-                try
-                {
-                    var result = await catalog.ExecuteAsync(vmId, s.Version, action, token);
-                    if (!token.IsCancellationRequested && result?.Accepted == true && action == ConsoleExtensionActionId.RetryConnection)
-                        retry?.Invoke();
-                }
-                catch (Exception) { /* Refresh authoritative public status after a failed action. */ }
-                finally { executing = false; if (!token.IsCancellationRequested) Refresh(); }
-            };
-            actions.Children.Add(button);
-        }
-        if (actions.Children.Count != 0) Children.Add(actions);
     }
 
     private void Row(string key, string value, string? copy = null)

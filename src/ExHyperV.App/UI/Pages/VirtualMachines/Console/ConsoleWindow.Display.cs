@@ -21,6 +21,13 @@ namespace ExHyperV.App.UI.Pages.VirtualMachines.Console;
 public sealed partial class ConsoleWindow
 {
     private ConsoleSwapChainRenderer? gpuRenderer;
+    private ConsoleRenderWorker? renderWorker;
+    private readonly object renderMetricsGate = new();
+    private double renderDipWidth, renderDipHeight;
+    private float renderScaleX = 1f, renderScaleY = 1f;
+    private int renderDispatchedWidth, renderDispatchedHeight;
+    private bool renderUiSwapChain;
+    private ConsoleTransportKind renderPath;
     private WriteableBitmap? bitmap;
     private Stream? pixelStream;
     private long sequence;
@@ -29,17 +36,49 @@ public sealed partial class ConsoleWindow
     private bool keyboardCaptured;
     private IConsoleInput? Input => active && view == View.Connected && sessionState.CanInput && Granted(ConsoleCapabilities.Input) ? connection?.Input : null;
 
-    private ConsoleSwapChainRenderer CreateRenderer() => new(BindSwapChain,
-        () => (GpuScreen.CompositionScaleX, GpuScreen.CompositionScaleY),
+    private ConsoleSwapChainRenderer CreateRenderer() => new(BindSwapChain, ReadCompositionScale,
         (name, detail) => AppDiagnostics.Write("Console", name, detail));
+
+    private (float X, float Y) ReadCompositionScale()
+    {
+        lock (renderMetricsGate) return (renderScaleX, renderScaleY);
+    }
+
+    private void UpdateCompositionScale()
+    {
+        float x = GpuScreen.CompositionScaleX, y = GpuScreen.CompositionScaleY;
+        lock (renderMetricsGate)
+        {
+            if (x > 0) renderScaleX = x;
+            if (y > 0) renderScaleY = y;
+        }
+    }
 
     private unsafe int BindSwapChain(nint chain)
     {
-        Guid iid = new("63aad0b8-7c24-40ff-85a8-640d944cc325");
-        int hr = ((IWinRTObject)GpuScreen).NativeObject.TryAs(iid, out nint native);
-        if (hr < 0) return hr;
-        try { return ((delegate* unmanaged[Stdcall]<nint, nint, int>)(*(nint**)native)[3])(native, chain); }
-        finally { System.Runtime.InteropServices.Marshal.Release(native); }
+        if (closing) return 0;
+        if (chain != 0) _ = ((delegate* unmanaged[Stdcall]<nint, uint>)(*(nint**)chain)[1])(chain);
+        if (!DispatcherQueue.TryEnqueue(() =>
+        {
+            try
+            {
+                if (closing) return;
+                Guid iid = new("63aad0b8-7c24-40ff-85a8-640d944cc325");
+                int hr = ((IWinRTObject)GpuScreen).NativeObject.TryAs(iid, out nint native);
+                if (hr < 0) return;
+                try { _ = ((delegate* unmanaged[Stdcall]<nint, nint, int>)(*(nint**)native)[3])(native, chain); }
+                finally { System.Runtime.InteropServices.Marshal.Release(native); }
+            }
+            finally
+            {
+                if (chain != 0) _ = ((delegate* unmanaged[Stdcall]<nint, uint>)(*(nint**)chain)[2])(chain);
+            }
+        }))
+        {
+            if (chain != 0) _ = ((delegate* unmanaged[Stdcall]<nint, uint>)(*(nint**)chain)[2])(chain);
+            return unchecked((int)0x80004005);
+        }
+        return 0;
     }
 
     private bool CanDisplay => !closing && view == View.Connected && Granted(ConsoleCapabilities.Video);
@@ -53,29 +92,75 @@ public sealed partial class ConsoleWindow
         Render();
     }
 
+    private (double DipWidth, double DipHeight) PrepareRenderTarget(int frameWidth, int frameHeight, out bool notifySize)
+    {
+        double dipWidth, dipHeight;
+        lock (renderMetricsGate)
+        {
+            notifySize = renderDispatchedWidth != frameWidth || renderDispatchedHeight != frameHeight;
+            if (notifySize)
+            {
+                renderDispatchedWidth = frameWidth;
+                renderDispatchedHeight = frameHeight;
+            }
+            dipWidth = renderDipWidth > 0 ? renderDipWidth : frameWidth;
+            dipHeight = renderDipHeight > 0 ? renderDipHeight : frameHeight;
+        }
+        if (notifySize) DispatcherQueue.TryEnqueue(() => { if (!closing) SetFrameSize(frameWidth, frameHeight); });
+        return (dipWidth, dipHeight);
+    }
+
     private void ShowFrame(ConsoleFrame frame, ConsoleFrameDamage damage)
     {
         if (!CanDisplay) return;
-        if (liveSize != (frame.Width, frame.Height) || sequence != damage.BaseSequence ||
-            sessionState.Transport == ConsoleTransportKind.GpuShared) damage = ConsoleFrameDamage.FullFrame;
-        SetFrameSize(frame.Width, frame.Height);
-        if (sessionState.ActiveBackend == ConsoleExtensionCatalog.External) SetPath(ConsoleTransportKind.CpuShared);
+        var (dipWidth, dipHeight) = PrepareRenderTarget(frame.Width, frame.Height, out bool sizeChanged);
+        if (sizeChanged || sequence != damage.BaseSequence || renderPath == ConsoleTransportKind.GpuShared)
+            damage = ConsoleFrameDamage.FullFrame;
+        if (renderPath != ConsoleTransportKind.CpuShared)
+        {
+            renderPath = ConsoleTransportKind.CpuShared;
+            if (sessionState.ActiveBackend == ConsoleExtensionCatalog.External)
+                DispatcherQueue.TryEnqueue(() => { if (!closing) SetPath(ConsoleTransportKind.CpuShared); });
+        }
         gpuRenderer ??= CreateRenderer();
-        if (!gpuRenderer.IsDisabled && gpuRenderer.TryPresent(frame, damage, Surface.Width, Surface.Height))
-            UseSwapChain();
-        else ShowBitmapFallback(frame, damage);
+        if (!gpuRenderer.IsDisabled && gpuRenderer.TryPresent(frame, damage, dipWidth, dipHeight))
+        {
+            if (!renderUiSwapChain)
+            {
+                renderUiSwapChain = true;
+                DispatcherQueue.TryEnqueue(() => { if (!closing) UseSwapChain(); });
+            }
+        }
+        else
+        {
+            renderUiSwapChain = false;
+            var retained = frame.Retain();
+            if (!DispatcherQueue.TryEnqueue(() =>
+            {
+                using (retained) { if (!closing && CanDisplay) ShowBitmapFallback(retained, damage); }
+            }))
+                retained.Dispose();
+        }
         sequence = frame.Sequence;
     }
 
     private bool ShowGpuFrame(ConsoleGpuFrame frame)
     {
         if (!CanDisplay) return true;
-        SetFrameSize(frame.Width, frame.Height);
+        var (dipWidth, dipHeight) = PrepareRenderTarget(frame.Width, frame.Height, out _);
         gpuRenderer ??= CreateRenderer();
-        if (!gpuRenderer.TryPresent(frame, Surface.Width, Surface.Height)) return false;
-        UseSwapChain();
+        if (!gpuRenderer.TryPresent(frame, dipWidth, dipHeight)) return false;
+        if (!renderUiSwapChain)
+        {
+            renderUiSwapChain = true;
+            DispatcherQueue.TryEnqueue(() => { if (!closing) UseSwapChain(); });
+        }
         sequence = 0;
-        SetPath(ConsoleTransportKind.GpuShared);
+        if (renderPath != ConsoleTransportKind.GpuShared)
+        {
+            renderPath = ConsoleTransportKind.GpuShared;
+            DispatcherQueue.TryEnqueue(() => { if (!closing) SetPath(ConsoleTransportKind.GpuShared); });
+        }
         return true;
     }
 
@@ -99,9 +184,15 @@ public sealed partial class ConsoleWindow
 
     private void OnCpuRequested()
     {
-        gpuRenderer?.Clear();
-        sequence = 0;
-        SetPath(ConsoleTransportKind.CpuShared);
+        void ClearOnRenderThread()
+        {
+            gpuRenderer?.Clear();
+            sequence = 0;
+            renderPath = ConsoleTransportKind.CpuShared;
+        }
+        if (renderWorker?.Enqueue(ClearOnRenderThread) != true) ClearOnRenderThread();
+        if (DispatcherQueue.HasThreadAccess) SetPath(ConsoleTransportKind.CpuShared);
+        else DispatcherQueue.TryEnqueue(() => { if (!closing) SetPath(ConsoleTransportKind.CpuShared); });
     }
 
     private void ShowBitmapFallback(ConsoleFrame frame, ConsoleFrameDamage damage)
@@ -148,25 +239,39 @@ public sealed partial class ConsoleWindow
         GpuScreen.Visibility = Visibility.Collapsed;
         Screen.Visibility = Visibility.Collapsed;
         Screen.Source = null;
-        gpuRenderer?.Clear();
         pixelStream?.Dispose();
         pixelStream = null;
         bitmap = null;
         bitmapSequence = 0;
         liveSize = null;
-        sequence = 0;
+        lock (renderMetricsGate)
+        {
+            renderDispatchedWidth = 0;
+            renderDispatchedHeight = 0;
+            renderUiSwapChain = false;
+        }
+        if (renderWorker?.Enqueue(() => { sequence = 0; renderPath = ConsoleTransportKind.Unknown; gpuRenderer?.Clear(); }) != true)
+        {
+            sequence = 0;
+            renderPath = ConsoleTransportKind.Unknown;
+            gpuRenderer?.Clear();
+        }
     }
 
     private void DisposeDisplay()
     {
         ClearFrame();
-        gpuRenderer?.Dispose();
+        var worker = renderWorker;
+        renderWorker = null;
+        var renderer = gpuRenderer;
         gpuRenderer = null;
+        if (worker != null) worker.DisposeWith(() => renderer?.Dispose());
+        else renderer?.Dispose();
     }
 
     private void OnGpuScreenScaleChanged(SwapChainPanel sender, object args)
     {
-        if (!closing) SizeSurface();
+        if (!closing) { UpdateCompositionScale(); SizeSurface(); }
     }
 
     private void OnViewportSizeChanged(object sender, SizeChangedEventArgs args)
@@ -198,9 +303,24 @@ public sealed partial class ConsoleWindow
         Surface.Width = width;
         Surface.Height = height;
         CursorClip.Rect = new(0, 0, width, height);
-        if (gpuRenderer?.HasSurface(size.Width, size.Height) == true && !gpuRenderer.UpdateDisplaySize(width, height) &&
-            sessionState.Transport == ConsoleTransportKind.GpuShared)
-            frames?.RequestCpu();
+        UpdateCompositionScale();
+        lock (renderMetricsGate)
+        {
+            renderDipWidth = width;
+            renderDipHeight = height;
+        }
+        if (gpuRenderer != null)
+        {
+            void UpdateSize()
+            {
+                double dipW, dipH;
+                lock (renderMetricsGate) { dipW = renderDipWidth; dipH = renderDipHeight; }
+                if (gpuRenderer?.HasSurface(size.Width, size.Height) == true && !gpuRenderer.UpdateDisplaySize(dipW, dipH) &&
+                    sessionState.Transport == ConsoleTransportKind.GpuShared)
+                    frames?.RequestCpu();
+            }
+            if (renderWorker?.Enqueue(UpdateSize) != true) UpdateSize();
+        }
         UpdateCursor();
     }
 
@@ -261,13 +381,24 @@ public sealed partial class ConsoleWindow
     {
         if (!CanDisplay) return null;
         if (sessionState.Transport != ConsoleTransportKind.GpuShared) return source?.Video?.CaptureFrame();
-        using var readback = gpuRenderer?.BeginReadback();
-        for (int i = 0; readback != null && i < 100 && source == connection && CanDisplay; i++)
+        var worker = renderWorker;
+        var renderer = gpuRenderer;
+        if (worker == null || renderer == null) return null;
+        var readback = await worker.InvokeAsync(() => renderer.BeginReadback());
+        if (readback == null) return null;
+        try
         {
-            if (readback.Read() is { } frame) return frame;
-            await Task.Delay(10);
+            for (int i = 0; i < 100 && source == connection && CanDisplay; i++)
+            {
+                if (await worker.InvokeAsync(() => readback.Read()) is { } frame) return frame;
+                await Task.Delay(10);
+            }
+            return null;
         }
-        return null;
+        finally
+        {
+            await worker.InvokeAsync<object?>(() => { readback.Dispose(); return null; });
+        }
     }
 
     private async void OnScreenshot(object sender, RoutedEventArgs e) => await UiEvent.RunAsync(async () =>
