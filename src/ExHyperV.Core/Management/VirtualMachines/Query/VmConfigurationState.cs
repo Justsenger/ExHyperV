@@ -15,7 +15,7 @@ public sealed record VmConfigurationState
     public VmState State { get; }
     internal ushort StateCode { get; }
 
-    /// <summary>创建配置校验使用的状态快照；不读取或修改虚拟机。</summary>
+    /// <summary>创建配置校验使用的状态视图，不读取或修改虚拟机。</summary>
     /// <param name="id">虚拟机的稳定 GUID 文本。</param>
     /// <param name="generation">虚拟机代数。</param>
     /// <param name="state">虚拟机运行状态。</param>
@@ -37,7 +37,7 @@ public sealed record VmConfigurationState
 
     /// <summary>读取用于配置校验的虚拟机标识、代数与当前 Hyper-V 状态。</summary>
     /// <param name="vmName">目标虚拟机的显示名称。</param>
-    /// <returns>配置状态快照；虚拟机不存在或读取失败时返回错误。</returns>
+    /// <returns>配置状态视图，虚拟机不存在或读取失败时返回错误。</returns>
     public static async Task<ApiResponse<VmConfigurationState>> ReadAsync(string vmName)
     {
         var identity = await VmIdentity.ResolveAsync(vmName);

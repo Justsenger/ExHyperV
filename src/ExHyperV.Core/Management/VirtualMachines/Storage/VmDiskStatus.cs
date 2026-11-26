@@ -50,6 +50,35 @@ namespace ExHyperV.Models
         public PerformanceSampleInfo PerformanceSample { get => _performanceSample; set => _performanceSample = value; }
         private PerformanceSampleInfo _performanceSample = new(PerformanceSampleState.NotSampled, default);
 
+        /// <summary>ReadBytesPerSecond 本次采样的状态和时间，缺测时保留此前的数值。</summary>
+        public PerformanceSampleInfo ReadBytesSample { get; internal set; } = new(PerformanceSampleState.NotSampled, default);
+
+        /// <summary>WriteBytesPerSecond 本次采样的状态和时间，缺测时保留此前的数值。</summary>
+        public PerformanceSampleInfo WriteBytesSample { get; internal set; } = new(PerformanceSampleState.NotSampled, default);
+
+        /// <summary>ReadOperationsPerSecond 本次采样的状态和时间，缺测时保留此前的数值。</summary>
+        public PerformanceSampleInfo ReadOperationsSample { get; internal set; } = new(PerformanceSampleState.NotSampled, default);
+
+        /// <summary>WriteOperationsPerSecond 本次采样的状态和时间，缺测时保留此前的数值。</summary>
+        public PerformanceSampleInfo WriteOperationsSample { get; internal set; } = new(PerformanceSampleState.NotSampled, default);
+
+        /// <summary>QueueLength 本次采样的状态和时间，缺测时保留此前的数值。</summary>
+        public PerformanceSampleInfo QueueLengthSample { get; internal set; } = new(PerformanceSampleState.NotSampled, default);
+
+        /// <summary>ErrorCount 本次采样的状态和时间，缺测时保留此前的数值。</summary>
+        public PerformanceSampleInfo ErrorCountSample { get; internal set; } = new(PerformanceSampleState.NotSampled, default);
+
+        internal void SetPerformanceState(PerformanceSampleInfo sample)
+        {
+            PerformanceSample = sample;
+            ReadBytesSample = sample;
+            WriteBytesSample = sample;
+            ReadOperationsSample = sample;
+            WriteOperationsSample = sample;
+            QueueLengthSample = sample;
+            ErrorCountSample = sample;
+        }
+
         /// <summary>最大容量的本次读取状态；无效时不得将 MaxSize 的默认值解释为零容量。</summary>
         public PerformanceSampleInfo CapacitySample { get => _capacitySample; set => _capacitySample = value; }
         private PerformanceSampleInfo _capacitySample = new(PerformanceSampleState.NotSampled, default);

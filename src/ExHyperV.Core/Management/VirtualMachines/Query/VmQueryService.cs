@@ -16,9 +16,9 @@ namespace ExHyperV.Services
     /// <param name="Code">原生错误码；未提供时通常为 -1。</param>
     public sealed record VmQueryIssue(string Component, string Error, ApiErrorKind ErrorKind, ApiErrorSource ErrorSource, int Code);
 
-    /// <summary>一次虚拟机清单快照，包含虚拟机及未完整取得的可选信息。</summary>
+    /// <summary>一次虚拟机清单视图，包含虚拟机及未完整取得的可选信息。</summary>
     /// <param name="VirtualMachines">按活动状态和名称排序的虚拟机列表。</param>
-    /// <param name="Issues">可选读取失败或不支持的明细；必需读取失败不会产生成功快照。</param>
+    /// <param name="Issues">可选读取失败或不支持的明细，必需读取失败不会产生成功结果。</param>
     public sealed record VmInventorySnapshot(IReadOnlyList<VmInstance> VirtualMachines, IReadOnlyList<VmQueryIssue> Issues)
     {
         /// <summary>本次列表所需的必需和可选读取均未报告问题。</summary>
@@ -26,7 +26,7 @@ namespace ExHyperV.Services
     }
 
     /// <summary>读取虚拟机列表并持有按需创建的性能计数器；调用者负责释放实例。</summary>
-    /// <remarks>列表读取是一次快照，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp；仅有效样本用于更新数值。更新方法直接修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样；部分普通 WMI 查询不依赖计数器。</remarks>
+    /// <remarks>列表读取是一次性读取，性能更新是另行调用。计数器首次建立基线时标记 WarmingUp，仅有效样本用于更新数值。更新方法直接修改传入模型，缺测通过 PerformanceSample 等状态报告。DisposeAsync 会等待本实例进行中的计数器工作，释放后不能再开始性能采样，部分普通 WMI 查询不依赖计数器。</remarks>
     public partial class VmQueryService : IDisposable, IAsyncDisposable
     {
         /// <summary>虚拟机当前内存占用与压力、需求及来宾视角指标。</summary>
@@ -144,7 +144,16 @@ namespace ExHyperV.Services
         private const string QueryMemSettings = "SELECT InstanceID, VirtualQuantity FROM Msvm_MemorySettingData WHERE ResourceType = 4";
         private const string QuerySettings = "SELECT ConfigurationID, InstanceID, VirtualSystemSubType, Version FROM Msvm_VirtualSystemSettingData WHERE VirtualSystemType = 'Microsoft:Hyper-V:System:Realized'";
         private const string QueryGpuPvSettings = "SELECT InstanceID, HostResource FROM Msvm_GpuPartitionSettingData";
-        private const string QueryDiskPerf = "SELECT Name, ReadBytesPersec, WriteBytesPersec, ReadOperationsPerSec, WriteOperationsPerSec, QueueLength, ErrorCount FROM Win32_PerfFormattedData_Counters_HyperVVirtualStorageDevice";
+        private const string DiskPerfClass = "Win32_PerfFormattedData_Counters_HyperVVirtualStorageDevice";
+        private static readonly Dictionary<string, string> DiskCounterColumns = new()
+        {
+            [nameof(VmDiskStatus.ReadBytesPerSecond)] = "ReadBytesPersec",
+            [nameof(VmDiskStatus.WriteBytesPerSecond)] = "WriteBytesPersec",
+            [nameof(VmDiskStatus.ReadOperationsPerSecond)] = "ReadOperationsPerSec",
+            [nameof(VmDiskStatus.WriteOperationsPerSecond)] = "WriteOperationsPerSec",
+            [nameof(VmDiskStatus.QueueLength)] = "QueueLength",
+            [nameof(VmDiskStatus.ErrorCount)] = "ErrorCount"
+        };
         private const string QuerySwitches = "SELECT Name, ElementName FROM Msvm_VirtualEthernetSwitch";
         private const string QueryGuestNetwork = "SELECT InstanceID, IPAddresses FROM Msvm_GuestNetworkAdapterConfiguration";
 
@@ -200,7 +209,7 @@ namespace ExHyperV.Services
             }
         }
 
-        /// <summary>汇集虚拟机及设备配置生成完整列表快照；只需少量字段时使用 QueryAsync。</summary>
+        /// <summary>汇集虚拟机及设备配置生成完整列表视图，只需少量字段时使用 QueryAsync。</summary>
         /// <returns>成功时返回虚拟机列表及可选读取问题；必需摘要、配置、元数据、内存、存储或网卡基础读取失败时返回失败，不伪装为空列表。</returns>
         /// <remarks>可选 GPU 能力、来宾 IP 和友好名称读取失败时保留可用列表及既有显示回退，并在 Issues 中报告原生原因；使用 IsComplete 区分完整与部分结果。</remarks>
         public async Task<ApiResponse<VmInventorySnapshot>> GetVmListAsync()
@@ -298,6 +307,14 @@ namespace ExHyperV.Services
                     obj["Address"]?.ToString() ?? ""
                 ), WmiScope.HyperV);
 
+            var allEmulatedPortsTask = WmiApi.QueryAsync(
+                "SELECT ElementName, InstanceID, Address FROM Msvm_EmulatedEthernetPortSettingData",
+                obj => new PortItem(
+                    obj["InstanceID"]?.ToString() ?? "",
+                    obj["ElementName"]?.ToString() ?? "",
+                    obj["Address"]?.ToString() ?? ""
+                ), WmiScope.HyperV);
+
             var allAllocsTask = WmiApi.QueryAsync(
                 "SELECT EnabledState, InstanceID, HostResource FROM Msvm_EthernetPortAllocationSettingData",
                 obj => new AllocItem(
@@ -318,7 +335,7 @@ namespace ExHyperV.Services
 
             await Task.WhenAll(vDiskTask, pDiskTask, hvDiskTask, hostDiskTask,
                 summaryTask, memTask, configTask, gpuPvTask, pciMapTask,
-                allPortsTask, allAllocsTask, allSwitchesTask, guestNetTask, partGpuTask, metadataTask).ConfigureAwait(false);
+                allPortsTask, allEmulatedPortsTask, allAllocsTask, allSwitchesTask, guestNetTask, partGpuTask, metadataTask).ConfigureAwait(false);
 
             RequireInventoryRead(summaryTask.Result, "VirtualMachineSummary");
             RequireInventoryRead(configTask.Result, "VirtualMachineConfiguration");
@@ -329,6 +346,7 @@ namespace ExHyperV.Services
             RequireInventoryRead(hvDiskTask.Result, "VirtualMachinePhysicalDisks");
             RequireInventoryRead(hostDiskTask.Result, "HostPhysicalDisks");
             RequireInventoryRead(allPortsTask.Result, "NetworkAdapters");
+            RequireInventoryRead(allEmulatedPortsTask.Result, "EmulatedNetworkAdapters");
             RequireInventoryRead(allAllocsTask.Result, "NetworkConnections");
             var issues = new List<VmQueryIssue>();
             AddInventoryIssue(issues, gpuPvTask.Result, "GpuAssignments", optionalClass: true);
@@ -348,7 +366,8 @@ namespace ExHyperV.Services
             var memList = memTask.Result.Data ?? new List<MemItem>();
             var configs = configTask.Result.Data ?? new List<ConfigItem>();
             var gpuPvList = gpuPvTask.Result.Data ?? new List<GpuPvItem>();
-            var allPorts = allPortsTask.Result.Data ?? new List<PortItem>();
+            var allPorts = (allPortsTask.Result.Data ?? new List<PortItem>())
+                .Concat(allEmulatedPortsTask.Result.Data ?? new List<PortItem>()).ToList();
             var allAllocs = allAllocsTask.Result.Data ?? new List<AllocItem>();
             var allSwitches = allSwitchesTask.Result.Data ?? new List<SwitchItem>();
             var guestNet = guestNetTask.Result.Data ?? new List<GuestNetItem>();
@@ -367,7 +386,7 @@ namespace ExHyperV.Services
                 .Where(x => !string.IsNullOrEmpty(x.VmGuid))
                 .ToDictionary(x => x.VmGuid, x => x, StringComparer.OrdinalIgnoreCase);
 
-            // 用已实现配置的完整标识匹配 KVP 组件，不把检查点中的旧选择混入当前列表。
+            // 用已实现配置的完整标识匹配 KVP 组件，不把快照中的旧选择混入当前列表。
             var osTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var config in configMap.Values)
             {
@@ -442,7 +461,8 @@ namespace ExHyperV.Services
                 {
                     Id = port.InstanceID,
                     Name = port.ElementName,
-                    MacAddress = FormatMac(port.Address)
+                    MacAddress = FormatMac(port.Address),
+                    IsLegacy = port.InstanceID.Split('\\').Length >= 3
                 };
 
                 if (allocsMap.TryGetValue(port.InstanceID, out var alloc))
@@ -457,7 +477,7 @@ namespace ExHyperV.Services
                     }
                 }
 
-                string devKey = port.InstanceID.Split('\\').LastOrDefault() ?? "";
+                string devKey = port.InstanceID.Split('\\').ElementAtOrDefault(1) ?? "";
                 if (!string.IsNullOrEmpty(devKey) && guestIpMap.TryGetValue(devKey, out var ips))
                     adapter.IpAddresses = ips;
                 adapter.IpAddresses = VmIpService.ResolveAdapterAddresses(adapter.MacAddress, adapter.IpAddresses).Addresses;
@@ -636,26 +656,20 @@ namespace ExHyperV.Services
         /// <summary>采样磁盘性能计数器，将磁盘读写速率写入传入的虚拟机模型。</summary>
         /// <param name="vms">要采样的虚拟机集合；更新方法会修改其中对应性能字段，调用者负责安排呈现线程。</param>
         /// <remarks>读写速率单位为字节/秒，按后备文件或物理设备统计，共享介质使用介质级速率。完整设备身份与计数器唯一匹配时更新值；采样状态见 PerformanceSample，非活动 VM 为 NotApplicable。</remarks>
-        public async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms)
+        public Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms) => UpdateDiskPerformanceAsync(vms, DiskCounterColumns.Keys);
+
+        internal async Task UpdateDiskPerformanceAsync(IEnumerable<VmInstance> vms, IEnumerable<string> requestedMetrics)
         {
             var machines = vms.ToArray();
             var observedAt = DateTimeOffset.UtcNow;
             foreach (var vm in machines)
                 foreach (var disk in vm.Disks)
-                    disk.PerformanceSample = new(vm.IsRunning ? PerformanceSampleState.Unavailable
-                        : InactivePerformanceState(vm), observedAt);
+                    disk.SetPerformanceState(new(vm.IsRunning ? PerformanceSampleState.Unavailable
+                        : InactivePerformanceState(vm), observedAt));
             if (!machines.Any(vm => vm.IsRunning && vm.Disks.Count > 0)) return;
             try
             {
-                var perfTask = WmiApi.QueryAsync(QueryDiskPerf, obj => new PerfItem(
-                    obj["Name"]?.ToString() ?? "",
-                    obj["ReadBytesPersec"] is null ? null : Convert.ToUInt64(obj["ReadBytesPersec"]),
-                    obj["WriteBytesPersec"] is null ? null : Convert.ToUInt64(obj["WriteBytesPersec"]),
-                    obj["ReadOperationsPerSec"] is null ? null : Convert.ToUInt64(obj["ReadOperationsPerSec"]),
-                    obj["WriteOperationsPerSec"] is null ? null : Convert.ToUInt64(obj["WriteOperationsPerSec"]),
-                    obj["QueueLength"] is null ? null : Convert.ToUInt64(obj["QueueLength"]),
-                    obj["ErrorCount"] is null ? null : Convert.ToUInt64(obj["ErrorCount"])
-                ), WmiScope.CimV2);
+                var perfTask = ReadDiskCountersAsync(requestedMetrics);
                 var identitiesTask = WmiApi.QueryAsync(
                     "SELECT HostResource FROM Msvm_StorageAllocationSettingData WHERE ResourceType = 31 OR ResourceType = 16",
                     obj => obj["HostResource"] as string[]
@@ -680,19 +694,43 @@ namespace ExHyperV.Services
                 foreach (var disk in machines.Where(vm => vm.IsRunning).SelectMany(vm => vm.Disks))
                 {
                     if (disk.DiskType == "Physical" && !physicalIdentities.Success)
-                        disk.PerformanceSample = new(PerformanceSampleState.Failed, observedAt, physicalIdentities.Error);
+                        disk.SetPerformanceState(new(PerformanceSampleState.Failed, observedAt, physicalIdentities.Error));
                     else if (disk.DiskType != "Physical" && !identities.Success)
-                        disk.PerformanceSample = new(PerformanceSampleState.Failed, observedAt, identities.Error);
+                        disk.SetPerformanceState(new(PerformanceSampleState.Failed, observedAt, identities.Error));
                 }
             }
             catch (Exception ex) { SetDiskSampleFailure(machines, observedAt, PerformanceSampleState.Failed, ex.Message); }
+        }
+
+        private static async Task<ApiResponse<List<PerfItem>>> ReadDiskCountersAsync(IEnumerable<string> requestedMetrics)
+        {
+            var columns = requestedMetrics.Select(metric => DiskCounterColumns[metric]).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            PerfItem Map(ManagementObject row)
+            {
+                ulong? Counter(string column) => columns.Contains(column) && row.HasProperty(column)
+                    ? row[column] switch { ulong n => n, uint n => n, _ => null } : null;
+                return new(row["Name"]?.ToString() ?? "", Counter("ReadBytesPersec"), Counter("WriteBytesPersec"),
+                    Counter("ReadOperationsPerSec"), Counter("WriteOperationsPerSec"), Counter("QueueLength"), Counter("ErrorCount"));
+            }
+
+            string Projection() => "SELECT " + string.Join(", ", columns.Prepend("Name")) + " FROM " + DiskPerfClass;
+            var result = await WmiApi.QueryAsync(Projection(), Map, WmiScope.CimV2).ConfigureAwait(false);
+            if (!result.Success && result.Code == (int)ManagementStatus.InvalidQuery)
+            {
+                // An older provider can expose only a subset of the requested counters.
+                using var schema = new ManagementClass(new ManagementScope(WmiScope.CimV2), new ManagementPath(DiskPerfClass), null);
+                schema.Get();
+                columns.IntersectWith(schema.Properties.Cast<PropertyData>().Select(property => property.Name));
+                result = await WmiApi.QueryAsync(Projection(), Map, WmiScope.CimV2).ConfigureAwait(false);
+            }
+            return result;
         }
 
         private static void SetDiskSampleFailure(IEnumerable<VmInstance> machines, DateTimeOffset observedAt,
             PerformanceSampleState state, string error)
         {
             foreach (var disk in machines.Where(vm => vm.IsRunning).SelectMany(vm => vm.Disks))
-                disk.PerformanceSample = new(state, observedAt, error);
+                disk.SetPerformanceState(new(state, observedAt, error));
         }
 
         internal static void ApplyDiskPerformance(IEnumerable<VmInstance> machines, IReadOnlyList<PerfItem> samples,
@@ -714,7 +752,7 @@ namespace ExHyperV.Services
                 {
                     if (!vm.IsRunning)
                     {
-                        disk.PerformanceSample = new(InactivePerformanceState(vm), observedAt);
+                        disk.SetPerformanceState(new(InactivePerformanceState(vm), observedAt));
                         continue;
                     }
                     string? path = disk.DiskType == "Physical" ? null : CanonicalDiskPath(disk.Path);
@@ -728,27 +766,31 @@ namespace ExHyperV.Services
                         || disk.DiskType == "Physical" && names.Any(name => deviceOwners.GetValueOrDefault(name) > 1);
                     if (ambiguous)
                     {
-                        disk.PerformanceSample = new(PerformanceSampleState.Ambiguous, observedAt, "存储计数器身份不能唯一对应到当前磁盘。");
+                        disk.SetPerformanceState(new(PerformanceSampleState.Ambiguous, observedAt, "存储计数器身份不能唯一对应到当前磁盘。"));
                         continue;
                     }
                     if (matches.Length == 0)
                     {
-                        disk.PerformanceSample = new(PerformanceSampleState.Unavailable, observedAt, "未找到完整磁盘身份对应的计数器。");
+                        disk.SetPerformanceState(new(PerformanceSampleState.Unavailable, observedAt, "未找到完整磁盘身份对应的计数器。"));
                         continue;
                     }
                     var sample = matches[0];
-                    if (!sample.Read.HasValue || !sample.Write.HasValue || sample.Read > long.MaxValue || sample.Write > long.MaxValue)
+                    var valid = new PerformanceSampleInfo(PerformanceSampleState.Valid, observedAt);
+                    var missing = new PerformanceSampleInfo(PerformanceSampleState.Unavailable, observedAt, "计数器缺失或超出有效范围。");
+                    PerformanceSampleInfo Apply(ulong? value, Action<long> set)
                     {
-                        disk.PerformanceSample = new(PerformanceSampleState.Unavailable, observedAt, "磁盘速率字段缺失或超出有效范围。");
-                        continue;
+                        if (value is not ulong number || number > long.MaxValue) return missing;
+                        set((long)number);
+                        return valid;
                     }
-                    disk.ReadBytesPerSecond = (long)sample.Read.Value;
-                    disk.WriteBytesPerSecond = (long)sample.Write.Value;
-                    disk.ReadOperationsPerSecond = sample.ReadOps is { } ro && ro <= long.MaxValue ? (long)ro : 0;
-                    disk.WriteOperationsPerSecond = sample.WriteOps is { } wo && wo <= long.MaxValue ? (long)wo : 0;
-                    disk.QueueLength = sample.QueueLength is { } ql && ql <= long.MaxValue ? (long)ql : 0;
-                    disk.ErrorCount = sample.ErrorCount is { } ec && ec <= long.MaxValue ? (long)ec : 0;
-                    disk.PerformanceSample = new(PerformanceSampleState.Valid, observedAt);
+
+                    disk.ReadBytesSample = Apply(sample.Read, value => disk.ReadBytesPerSecond = value);
+                    disk.WriteBytesSample = Apply(sample.Write, value => disk.WriteBytesPerSecond = value);
+                    disk.ReadOperationsSample = Apply(sample.ReadOps, value => disk.ReadOperationsPerSecond = value);
+                    disk.WriteOperationsSample = Apply(sample.WriteOps, value => disk.WriteOperationsPerSecond = value);
+                    disk.QueueLengthSample = Apply(sample.QueueLength, value => disk.QueueLength = value);
+                    disk.ErrorCountSample = Apply(sample.ErrorCount, value => disk.ErrorCount = value);
+                    disk.PerformanceSample = disk.ReadBytesSample.IsValid && disk.WriteBytesSample.IsValid ? valid : missing;
                 }
             }
         }
@@ -938,7 +980,7 @@ namespace ExHyperV.Services
                             {
                                 _gpuCounters.Remove(counter);
                                 _gpuCounterOwners.Remove(name);
-                                try { counter.Dispose(); } catch { }
+                                try { counter.Dispose(); } catch (Exception diagnosticError) { CoreDiagnostics.Report("GpuCounterCleanupFailed", error: diagnosticError); }
                             }
                         }
                     }
@@ -1075,7 +1117,7 @@ namespace ExHyperV.Services
                         if (counter != null)
                         {
                             _networkCounters.Remove(counter);
-                            try { counter.Dispose(); } catch { }
+                            try { counter.Dispose(); } catch (Exception diagnosticError) { CoreDiagnostics.Report("NetworkCounterCleanupFailed", error: diagnosticError); }
                         }
                     }
                 }
@@ -1362,7 +1404,7 @@ namespace ExHyperV.Services
                 var service = _service;
                 _service = null;
                 // Cleanup failure must not replace the existing per-disk fallback or abort the list.
-                try { service?.Dispose(); } catch { }
+                try { service?.Dispose(); } catch (Exception diagnosticError) { CoreDiagnostics.Report("StorageServiceCleanupFailed", error: diagnosticError); }
             }
 
             public void Dispose()

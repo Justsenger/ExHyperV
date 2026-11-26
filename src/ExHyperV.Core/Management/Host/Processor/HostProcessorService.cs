@@ -27,8 +27,13 @@ public static class HostProcessorService
                 return ApiResponse<IReadOnlyList<HostAffinityProcessor>>.Fail(topology.Error, topology.Code, topology.ErrorSource, topology.Exception, topology.ErrorKind);
             if (topology.Data.Count == 0 || topology.Data.Any(p => p.LpIndex > int.MaxValue))
                 return ApiResponse<IReadOnlyList<HostAffinityProcessor>>.Fail("HCS 处理器拓扑为空或编号无法表示。", kind: ApiErrorKind.InvalidState);
+            var coreTypes = HostCpuEtwNative.ReadProcessorTopology()
+                .ToDictionary(item => item.LogicalProcessorIndex, item => item.CoreType);
             return ApiResponse<IReadOnlyList<HostAffinityProcessor>>.Ok(Array.AsReadOnly(topology.Data.OrderBy(p => p.LpIndex)
-                .Select(p => new HostAffinityProcessor((int)p.LpIndex, p.PackageId, p.CoreId, p.NodeNumber, CpuCoreType.Unknown)).ToArray()));
+                .Select(p => new HostAffinityProcessor(
+                    (int)p.LpIndex, p.PackageId, p.CoreId, p.NodeNumber,
+                    p.RootVpIndex >= 0 && coreTypes.TryGetValue(p.RootVpIndex, out var coreType)
+                        ? coreType : CpuCoreType.Unknown)).ToArray()));
         }
 
 }

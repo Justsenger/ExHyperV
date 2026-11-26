@@ -87,6 +87,32 @@ internal static class QueryNetworkRuleChecks
                 Verify(success.Success && success.Error == string.Empty && steps.SequenceEqual(["security", "offload"]),
                     "combined network settings apply in the original order");
 
+                var missingSwitchForConnectedAdd = await VmNetworkService.AddNetworkAdapterAsync(Guid.NewGuid(), null, isConnected: true);
+                Verify(!missingSwitchForConnectedAdd.Success
+                    && missingSwitchForConnectedAdd.AdapterState == VmNetworkAdapterCreationState.NotCreated
+                    && missingSwitchForConnectedAdd.InitializationState == VmNetworkAdapterInitializationState.NotStarted
+                    && missingSwitchForConnectedAdd.ErrorKind == ApiErrorKind.InvalidArgument,
+                    "adding a connected adapter without a switch GUID fails before any WMI creation");
+
+                var emptySwitchAdd = await VmNetworkService.AddNetworkAdapterAsync(Guid.NewGuid(), Guid.Empty, isConnected: false);
+                Verify(!emptySwitchAdd.Success
+                    && emptySwitchAdd.AdapterState == VmNetworkAdapterCreationState.NotCreated
+                    && emptySwitchAdd.ErrorKind == ApiErrorKind.InvalidArgument,
+                    "adding an adapter with Guid.Empty switch ID fails before any WMI creation");
+
+                var invalidMacAdd = await VmNetworkService.AddNetworkAdapterAsync(Guid.NewGuid(), Guid.NewGuid(), isConnected: true, staticMacAddress: "invalid-mac");
+                Verify(!invalidMacAdd.Success
+                    && invalidMacAdd.AdapterState == VmNetworkAdapterCreationState.NotCreated
+                    && invalidMacAdd.Error == R.Error_Net_MacInvalid
+                    && invalidMacAdd.ErrorKind == ApiErrorKind.InvalidArgument,
+                    "adding an adapter with invalid static MAC fails before querying the VM");
+
+                var invalidLegacyAdd = await VmNetworkService.AddNetworkAdapterAsync(Guid.NewGuid(), null, isConnected: true, isLegacy: true);
+                Verify(!invalidLegacyAdd.Success
+                    && invalidLegacyAdd.AdapterState == VmNetworkAdapterCreationState.NotCreated
+                    && invalidLegacyAdd.ErrorKind == ApiErrorKind.InvalidArgument,
+                    "adding a connected legacy adapter without a switch GUID fails before any WMI creation");
+
                 Verify(VmDisplaySettingsService.GetResolutionError(3, 200, 200) == null &&
                     VmDisplaySettingsService.GetResolutionError(3, 7680, 4320) == null &&
                     VmDisplaySettingsService.GetResolutionError(3, 201, 201) == null,

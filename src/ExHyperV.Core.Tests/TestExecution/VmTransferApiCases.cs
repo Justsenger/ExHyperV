@@ -167,7 +167,7 @@ internal static class VmTransferApiCases
         if (p.Api == "VmExportService.GetCheckpointsAsync()")
         {
             var result = await c.CallAsync(() => VmExportService.GetCheckpointsAsync(source.Id)); c.Require(result.HasData, result.Error);
-            c.Sequence(native.GetProperty("ids").EnumerateArray().Select(v => Guid.Parse(v.GetString()!)).OrderBy(v => v), result.Data!.Select(v => Guid.Parse(v.Id)).OrderBy(v => v), "检查点 GUID"); c.Equal("export-A", result.Data!.Single().Name, "检查点名称"); return;
+            c.Sequence(native.GetProperty("ids").EnumerateArray().Select(v => Guid.Parse(v.GetString()!)).OrderBy(v => v), result.Data!.Select(v => Guid.Parse(v.Id)).OrderBy(v => v), "快照 GUID"); c.Equal("export-A", result.Data!.Single().Name, "快照名称"); return;
         }
         var checkpoints = await VmExportService.GetCheckpointsAsync(source.Id); c.Require(checkpoints.HasData, checkpoints.Error);
         bool runningCase = p.Id.EndsWith("-2", StringComparison.Ordinal);
@@ -181,7 +181,7 @@ internal static class VmTransferApiCases
             var expectedConfig = spec.Item2 == VmExportCheckpointMode.Single
                 ? Guid.Parse(native.GetProperty("ids").EnumerateArray().Single().GetString()!) : source.Id;
             c.Require(File.Exists(Path.Combine(result.OutputPath!, "Virtual Machines", $"{expectedConfig:D}.vmcx")),
-                $"导出主配置使用{(spec.Item2 == VmExportCheckpointMode.Single ? "检查点" : "虚拟机")}身份：{expectedConfig}");
+                $"导出主配置使用{(spec.Item2 == VmExportCheckpointMode.Single ? "快照" : "虚拟机")}身份：{expectedConfig}");
             var exportedDisks = Directory.EnumerateFiles(result.OutputPath!, "*", SearchOption.AllDirectories).Where(f => new[] { ".vhd", ".vhdx", ".avhdx" }.Contains(Path.GetExtension(f), StringComparer.OrdinalIgnoreCase)).ToArray(); c.Equal(spec.Item1, exportedDisks.Length > 0, "磁盘包含规则");
             if (spec.Item1)
             {
@@ -197,7 +197,7 @@ internal static class VmTransferApiCases
                     @{id=$vm.Id.ToString();snapshots=@($vm|Get-VMSnapshot).Count}|ConvertTo-Json
                     """, new { source = result.OutputPath, root = verify.Root, name = verify.Name }, 180);
                 verify.RecordIdentity(Guid.Parse(imported.GetProperty("id").GetString()!));
-                c.Equal(spec.Item2 == VmExportCheckpointMode.All ? 1 : 0, imported.GetProperty("snapshots").GetInt32(), "系统重新导入后的检查点数量");
+                c.Equal(spec.Item2 == VmExportCheckpointMode.All ? 1 : 0, imported.GetProperty("snapshots").GetInt32(), "系统重新导入后的快照数量");
                 c.Equal("transfer-marker", await TemporaryDisk.MarkerAsync((await TemporaryDisk.PathsAsync(verify.Id)).Single()), "系统重新导入后磁盘内容保持");
             }
             c.Equal(spec.Item3 ? (ushort)2 : (ushort)3, Convert.ToUInt16(SystemBaseline.Vm(source.Id)["EnabledState"]), "源运行状态保留");

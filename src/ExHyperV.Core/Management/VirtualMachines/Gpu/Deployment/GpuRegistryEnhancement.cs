@@ -16,7 +16,7 @@ internal static class GpuRegistryEnhancement
             {
                 reportWarning($"[GPU 注册表增强警告] {stage}；临时键：HKLM\\{mountKey}；文件：{hivePath}；{details}");
             }
-            catch { /* 警告回调不能阻断部署或本次 hive 的清理。 */ }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("WarningObserverFailed", error: diagnosticError); }
         }
 
         try

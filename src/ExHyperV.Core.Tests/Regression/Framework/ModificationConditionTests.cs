@@ -121,8 +121,7 @@ public sealed class ModificationConditionTests
         Assert.IsFalse(VmBootService.GetBootOrderModificationCondition(1, VmState.Running).CanModify);
         var security = new VmSecurityService.VmSecurityInfo(false, "", false, false, false);
         var condition = VmSecurityService.GetModificationCondition(2, VmState.PoweredOff, security, VmSecurityService.Setting.Encryption);
-        Assert.IsFalse(condition.CanModify);
-        Assert.IsTrue(condition.Reason.Contains("TPM", StringComparison.Ordinal));
+        Assert.IsTrue(condition.CanModify);
         Assert.IsNull(condition.RequiredState);
         Assert.IsTrue(VmSecurityService.GetModificationCondition(2, VmState.PoweredOff, security, VmSecurityService.Setting.Tpm).CanModify);
     }

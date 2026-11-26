@@ -66,7 +66,7 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[Thumbnail] {ex.Message}");
+                    CoreDiagnostics.Report("ThumbnailReadFailed", error: ex);
                     return null;
                 }
             });
@@ -97,7 +97,7 @@ namespace ExHyperV.Services
                 var realized = configurations.Where(item => string.Equals(
                     item["VirtualSystemType"]?.ToString(), "Microsoft:Hyper-V:System:Realized",
                     StringComparison.Ordinal)).ToList();
-                // 沿用当前配置读取的兼容约定；不把检查点或计划配置作为后备。
+                // 沿用当前配置读取的兼容约定；不把快照或计划配置作为后备。
                 var candidates = realized.Count > 0 ? realized : configurations.Where(item => string.Equals(
                     item["VirtualSystemType"]?.ToString(), "Microsoft:Hyper-V:System:Definition",
                     StringComparison.Ordinal)).ToList();

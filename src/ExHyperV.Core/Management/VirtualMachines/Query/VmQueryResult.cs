@@ -60,7 +60,7 @@ public sealed class VmQueryRow
     internal VmQueryRow(string key, IDictionary<string, VmQueryValue> values, IDictionary<VmQueryCollection, VmQueryCollectionResult>? collections = null)
     { Key = key; Values = new ReadOnlyDictionary<string, VmQueryValue>(new Dictionary<string, VmQueryValue>(values)); Collections = new ReadOnlyDictionary<VmQueryCollection, VmQueryCollectionResult>(collections == null ? new Dictionary<VmQueryCollection, VmQueryCollectionResult>() : new Dictionary<VmQueryCollection, VmQueryCollectionResult>(collections)); }
     /// <summary>虚拟机记录为 GUID；子对象为本次来源的稳定身份或明确标注的序号。不可当作任意底层操作路径。</summary>
-    /// <remarks>Key 用于同一虚拟机、同类集合内的记录关联。虚拟机及所属分组使用 GUID；元数据使用 VM GUID 与键名；引导项使用 VM GUID 与顺序号，重排后更新。设备和检查点使用后端记录标识，重建或迁移后可能变化。</remarks>
+    /// <remarks>Key 用于同一虚拟机、同类集合内的记录关联。虚拟机及所属分组使用 GUID，元数据使用 VM GUID 与键名，引导项使用 VM GUID 与顺序号，重排后更新。设备和快照使用后端记录标识，重建或迁移后可能变化。</remarks>
     public string Key { get; }
     /// <summary>按字段稳定标识索引的结果；不包含为了关联而内部读取的依赖字段。</summary>
     public IReadOnlyDictionary<string, VmQueryValue> Values { get; }

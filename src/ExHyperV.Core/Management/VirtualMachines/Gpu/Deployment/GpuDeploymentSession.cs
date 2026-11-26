@@ -5,7 +5,7 @@ using R = ExHyperV.Properties.Resources;
 namespace ExHyperV.Services;
 
 /// <summary>管理一次进程内 GPU 部署；Core 推进各步骤，并在需要确认时暂停，等待带版本标识的明确决定。</summary>
-/// <remarks>每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前快照。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器；已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场；按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。</remarks>
+/// <remarks>每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前状态。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器，已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场，按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。</remarks>
 public sealed class GpuDeploymentSession
 {
     private readonly IGpuDeploymentBackend backend;
@@ -15,6 +15,8 @@ public sealed class GpuDeploymentSession
     private readonly Guid sessionId = Guid.NewGuid();
     private readonly List<GpuDeploymentStep> steps;
     private readonly Dictionary<string, DiskPartitionInfo> partitions = new();
+    private readonly List<string> addedAdapterIds = new();
+    private readonly List<string> cleanupAdapterIds = new();
     private Action<GpuDeploymentSnapshot>? report;
     private GpuDeploymentSnapshot snapshot = null!;
     private GpuDeploymentState state = GpuDeploymentState.Created;
@@ -26,22 +28,41 @@ public sealed class GpuDeploymentSession
     private enum AfterPowerOff { Advance, Scan, Windows }
     private AfterPowerOff afterPowerOff;
     private bool needConfig, unidentifiedAssignment;
-    private string? addedAdapterId, cleanupAdapterId, error, cleanupError;
+    private string? error, cleanupError;
     private string? retainedDiskCleanupError;
+    private bool isDriverSkipped;
     private bool outcomeUnknown;
     private bool assignmentNeedsReconciliation;
 
-    /// <summary>创建尚未开始执行的单次 GPU 部署会话。</summary>
+    /// <summary>创建尚未开始执行的单张 GPU 部署会话。</summary>
     /// <param name="vmId">目标虚拟机 GUID；后续会按身份核对目标。</param>
     /// <param name="vmName">目标虚拟机名称，应与 vmId 对应。</param>
     /// <param name="gpu">目标宿主 GPU 及可分区资源信息。</param>
     /// <param name="gpuService">执行 GPU 查询与配置的服务。</param>
     /// <param name="queryService">读取目标虚拟机信息的服务；由调用方持有和释放，须在部署及后续核实、清理期间保持可用。</param>
     /// <param name="mode">本次部署范围，默认新增 GPU 并安装驱动；未定义的枚举值会被拒绝。</param>
+    /// <exception cref="ArgumentNullException">gpu 为 null。</exception>
     /// <exception cref="ArgumentOutOfRangeException">mode 不是定义的部署模式。</exception>
     public GpuDeploymentSession(Guid vmId, string vmName, HostGpuInfo gpu, VmGpuService gpuService,
         VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers)
-        : this(new NativeGpuDeploymentBackend(vmId, vmName, gpu, gpuService, queryService), mode) { }
+        : this(vmId, vmName, [gpu ?? throw new ArgumentNullException(nameof(gpu))], gpuService, queryService, mode) { }
+
+    /// <summary>创建尚未开始执行的多卡或单卡批量 GPU 部署会话。</summary>
+    /// <param name="vmId">目标虚拟机 GUID；后续会按身份核对目标。</param>
+    /// <param name="vmName">目标虚拟机名称，应与 vmId 对应。</param>
+    /// <param name="gpus">目标宿主 GPU 列表，至少包含一张有效显卡。</param>
+    /// <param name="gpuService">执行 GPU 查询与配置的服务。</param>
+    /// <param name="queryService">读取目标虚拟机信息的服务；由调用方持有和释放，须在部署及后续核实、清理期间保持可用。</param>
+    /// <param name="mode">本次部署范围，默认新增 GPU 并安装驱动；未定义的枚举值会被拒绝。</param>
+    /// <exception cref="ArgumentNullException">gpus 为 null。</exception>
+    /// <exception cref="ArgumentException">gpus 为空或包含 null 项。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">mode 不是定义的部署模式。</exception>
+    public GpuDeploymentSession(Guid vmId, string vmName, IReadOnlyList<HostGpuInfo> gpus, VmGpuService gpuService,
+        VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers)
+        : this(new NativeGpuDeploymentBackend(vmId, ValidateGpuList(gpus), gpuService), mode)
+    {
+        ArgumentNullException.ThrowIfNull(queryService);
+    }
 
     internal GpuDeploymentSession(IGpuDeploymentBackend backend, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers)
     {
@@ -52,16 +73,24 @@ public sealed class GpuDeploymentSession
         Publish();
     }
 
+    private static IReadOnlyList<HostGpuInfo> ValidateGpuList(IReadOnlyList<HostGpuInfo> gpus)
+    {
+        ArgumentNullException.ThrowIfNull(gpus);
+        if (gpus.Count == 0 || gpus.Any(g => g == null))
+            throw new ArgumentException("请至少选择一张有效的宿主显卡。", nameof(gpus));
+        return gpus.ToArray();
+    }
+
     // Polling never waits for a native operation. Returned values cannot mutate this session.
     /// <summary>读取最近发布的状态，不等待正在进行的底层操作。</summary>
-    /// <returns>当前部署状态快照。</returns>
+    /// <returns>当前部署状态。</returns>
     public GpuDeploymentSnapshot GetStatus() => Volatile.Read(ref snapshot);
     /// <summary>仅发送协作式取消请求，立即返回；正在执行的不可取消底层调用仍需自行结束。</summary>
     public void RequestCancellation() => cancellation.Cancel();
 
     /// <summary>开始部署并执行到等待用户决定或结束；同一会话只能从 Created 状态启动。</summary>
-    /// <param name="progress">可选的快照通知，在执行流程所在的上下文同步触发。回调应快速返回；界面更新需调度到界面线程。阻塞等待会话写操作会导致死锁；回调异常会被隔离。</param>
-    /// <returns>停止推进时的最新快照，可能仍需用户决定。</returns>
+    /// <param name="progress">可选的状态通知，在执行流程所在的上下文同步触发。回调应快速返回，界面更新需调度到界面线程。阻塞等待会话写操作会导致死锁，回调异常会被隔离。</param>
+    /// <returns>停止推进时的最新状态，可能仍需用户决定。</returns>
     /// <exception cref="InvalidOperationException">会话已经离开 Created 状态。</exception>
     /// <editentry label="GPU 驱动部署流程" category="GPU"/>
     public async Task<GpuDeploymentSnapshot> StartAsync(Action<GpuDeploymentSnapshot>? progress = null)
@@ -77,16 +106,15 @@ public sealed class GpuDeploymentSession
     }
 
     /// <summary>校验当前请求 ID 及输入类型，然后推进部署。</summary>
-    /// <param name="decision">与 PendingDecision 对应的确认、分区、Linux 输入或返回决定；不能为空。</param>
-    /// <returns>执行至下一次等待或结束后的快照。</returns>
-    /// <remarks>选择分区后会重新核对磁盘状态。确认 PowerOff 会直接 TurnOff；确认 Windows 安装会修改离线分区，Linux 部署可能启动或重启来宾。</remarks>
+    /// <param name="decision">与 PendingDecision 对应的确认、分区、回退动作或返回决定；不能为空。</param>
+    /// <returns>执行至下一次等待或结束后的状态。</returns>
+    /// <remarks>选择非加密 Windows 分区后会直接执行离线驱动写入，确认 PowerOff 会直接 TurnOff，提交 SkipDriver 会跳过驱动安装。</remarks>
     /// <exception cref="ArgumentNullException">decision 为 null。</exception>
     /// <exception cref="InvalidOperationException">没有待确认事项，或请求 ID、输入种类与当前事项不匹配。</exception>
-    /// <exception cref="ArgumentException">分区不在当前列表、分区不受支持或已加密，或 Linux 脚本、地址、端口、凭据不符合要求。</exception>
+    /// <exception cref="ArgumentException">分区不在当前列表、分区不受支持（如 Linux）或已开启 BitLocker。</exception>
     public async Task<GpuDeploymentSnapshot> SubmitDecisionAsync(GpuDeploymentDecision decision)
     {
         ArgumentNullException.ThrowIfNull(decision);
-        decision = CopyDecision(decision);
         await gate.WaitAsync();
         try
         {
@@ -106,58 +134,26 @@ public sealed class GpuDeploymentSession
                         if (kind == GpuDecisionKind.PowerOff)
                         {
                             await PowerOffAsync();
-                            if (afterPowerOff == AfterPowerOff.Windows) await PrepareSelectedPartitionAsync();
+                            if (afterPowerOff == AfterPowerOff.Windows) await ExecuteWindowsDriverSyncAsync();
                             else if (afterPowerOff == AfterPowerOff.Scan) await ScanPartitionsAsync();
                             else { Succeed(R.Msg_Gpu_Off); index++; await AdvanceAsync(); }
-                        }
-                        else if (kind == GpuDecisionKind.InstallWindows)
-                        {
-                            if (!(await ReadPowerAsync()).IsOff)
-                            {
-                                AskPowerOff(forWindows: true);
-                                return;
-                            }
-                            await VerifyPartitionAsync();
-                            cancellation.Token.ThrowIfCancellationRequested();
-                            var synced = await backend.SyncWindowsAsync(selected!, DriverProgress);
-                            if (!synced.Success) throw new InvalidOperationException(synced.Message);
-                            CompleteDrivers(R.Msg_Gpu_DriverOk);
-                        }
-                        else if (kind == GpuDecisionKind.StartLinux)
-                        {
-                            if ((await ReadPowerAsync()).IsOff)
-                            {
-                                await VerifyPartitionAsync();
-                                cancellation.Token.ThrowIfCancellationRequested();
-                                await backend.PowerAsync("Start");
-                                await Task.Delay(3000, cancellation.Token);
-                            }
-                            await AskLinuxCredentialsAsync();
                         }
                         break;
                     case GpuPartitionSelection choice:
                         selected = ClonePartition(partitions[choice.PartitionId]);
                         await PrepareSelectedPartitionAsync();
                         break;
+                    case GpuDriverFallbackSelection fallback:
+                        await VerifyTargetAsync();
+                        if (fallback.Action != GpuDriverFallbackAction.SkipDriver)
+                            throw new ArgumentException(R.Gpu_DecisionExpired);
+                        isDriverSkipped = true;
+                        selected = null;
+                        CompleteDrivers(R.Msg_Gpu_DriverSkipped);
+                        break;
                     case GpuBackToPartitions:
                         selected = null;
                         Ask(GpuDecisionKind.SelectPartition, R.Label_SelectPart, R.Msg_Gpu_ManualSelect);
-                        break;
-                    case GpuLinuxInput input:
-                        await VerifyTargetAsync();
-                        if ((await ReadPowerAsync()).IsOff)
-                        {
-                            Ask(GpuDecisionKind.StartLinux, R.Task_Gpu_Driver, R.Gpu_ConfirmLinuxStart, canGoBack: true);
-                            return;
-                        }
-                        var result = await backend.ProvisionLinuxAsync(input.Script!, input.Credentials!, text =>
-                        {
-                            var match = System.Text.RegularExpressions.Regex.Match(text, @"\[STEP:\s*(.*?)\]");
-                            SetStep(GpuDeploymentStepStatus.Running, match.Success ? match.Groups[1].Value : null, text);
-                        }, cancellation.Token);
-                        if (!(result == "OK" || (result.Contains("successfully") && result.Contains("signing"))))
-                            throw new InvalidOperationException(result);
-                        CompleteDrivers(R.Msg_Gpu_LinuxDeployDone);
                         break;
                 }
             });
@@ -165,8 +161,8 @@ public sealed class GpuDeploymentSession
         finally { gate.Release(); }
     }
 
-    /// <summary>请求取消，等待当前操作退出后尝试清理本次新增的适配器。</summary>
-    /// <returns>取消或既有终态快照；清理未完成时返回 CleanupRequired。</returns>
+    /// <summary>请求取消，等待当前操作退出后尝试清理本次新增的全部适配器。</summary>
+    /// <returns>取消或既有终态，清理未完成时返回 CleanupRequired。</returns>
     /// <remarks>等待当前步骤结束后取消，已完成的修改保留。会话已终止或等待清理时返回当前状态。OutcomeUnknown 时先按 AllowedActions 调用 ReconcileAsync 核实，再决定是否调用 RetryCleanupAsync。</remarks>
     public async Task<GpuDeploymentSnapshot> CancelAsync()
     {
@@ -212,7 +208,7 @@ public sealed class GpuDeploymentSession
     }
 
     /// <summary>只读核实本次部署和清理的原生任务、GPU 适配器及临时磁盘资源。</summary>
-    /// <returns>更新后的快照。原任务结束且资源已恢复时进入原定的 Failed 或 Cancelled；仍需清理时停在 CleanupRequired，并更新 AllowedActions。</returns>
+    /// <returns>更新后的状态。原任务结束且资源已恢复时进入原定的 Failed 或 Cancelled，仍需清理时停在 CleanupRequired，并更新 AllowedActions。</returns>
     /// <remarks>核实已记录的适配器、电源、MMIO 和临时磁盘任务。仍在运行、读取失败或缺少最终回执时保留 OutcomeUnknown。Recovery 中的 Operations、Resources、ObservedValues 分别提供任务结果、恢复资源和本次观测值；后续清理由调用方按 AllowedActions 发起。</remarks>
     /// <exception cref="InvalidOperationException">当前 AllowedActions 不包含 Reconcile。</exception>
     public async Task<GpuDeploymentSnapshot> ReconcileAsync()
@@ -234,7 +230,7 @@ public sealed class GpuDeploymentSession
                         Publish();
                         return GetStatus();
                     }
-                    addedAdapterId = cleanupAdapterId = result.CreatedAdapterId;
+                    TrackAddedAdapter(result.CreatedAdapterId);
                     unidentifiedAssignment = assignmentNeedsReconciliation = false;
                 }
                 var observed = await backend.ReconcileRecoveryAsync();
@@ -244,17 +240,16 @@ public sealed class GpuDeploymentSession
                 {
                     retainedDiskCleanupError = backend.HasPendingRecovery ? "临时磁盘资源尚未恢复，请调用 RetryCleanupAsync。" : null;
                     cleanupError = retainedDiskCleanupError;
-                    // A completed removal may already have removed the exact owned adapter.
+                    // A completed removal may already have removed owned adapters.
                     // This observation never issues a new removal or resumes deployment.
-                    if (cleanupAdapterId != null)
+                    if (cleanupAdapterIds.Count > 0)
                     {
                         await backend.VerifyTargetAsync();
                         var adapters = await backend.GetAdaptersAsync();
                         if (!adapters.Success) throw new InvalidOperationException(R.Gpu_CleanupRequired);
-                        if (!adapters.Adapters.Any(a => string.Equals(a.Id, cleanupAdapterId, StringComparison.OrdinalIgnoreCase)))
-                            cleanupAdapterId = null;
+                        cleanupAdapterIds.RemoveAll(id => !adapters.Adapters.Any(a => string.Equals(a.Id, id, StringComparison.OrdinalIgnoreCase)));
                     }
-                    if (cleanupAdapterId == null && !unidentifiedAssignment && !backend.HasPendingRecovery)
+                    if (cleanupAdapterIds.Count == 0 && !unidentifiedAssignment && !backend.HasPendingRecovery)
                         state = cleanupDestination;
                 }
             }
@@ -276,7 +271,7 @@ public sealed class GpuDeploymentSession
             cancellation.Token.ThrowIfCancellationRequested();
             if (state == GpuDeploymentState.Running && index == steps.Count)
             {
-                cleanupAdapterId = null;
+                cleanupAdapterIds.Clear();
                 unidentifiedAssignment = false;
                 state = GpuDeploymentState.Completed;
                 Publish();
@@ -284,10 +279,10 @@ public sealed class GpuDeploymentSession
         }
         catch (Exception exception)
         {
-            outcomeUnknown |= exception is OperationOutcomeUnknownException;
+            outcomeUnknown |= exception is CoreOperationException { Result.ErrorKind: ApiErrorKind.OutcomeUnknown };
             if (outcomeUnknown) retainedDiskCleanupError = exception.Message;
             if (exception is GpuDeploymentCleanupException) retainedDiskCleanupError = exception.Message;
-            error = cancellation.IsCancellationRequested ? null : exception.Message;
+            error = cancellation.IsCancellationRequested && !outcomeUnknown ? null : exception.Message;
             SetStep(GpuDeploymentStepStatus.Failed, error ?? R.Btn_Cancel, error);
             await EndAsync(cancellation.IsCancellationRequested ? GpuDeploymentState.Cancelled : GpuDeploymentState.Failed);
         }
@@ -305,25 +300,20 @@ public sealed class GpuDeploymentSession
             string description;
             switch (steps[index].Type)
             {
-                case GpuDeploymentStepKind.Prepare:
-                    await backend.PrepareHostAsync();
-                    description = R.Msg_Gpu_Policy;
-                    break;
-                case GpuDeploymentStepKind.ConfigCheck:
-                    needConfig = !await backend.CheckConfigurationAsync();
-                    description = needConfig ? R.Msg_Gpu_ConfigNeeded : R.Msg_Gpu_ConfigOk;
-                    break;
                 case GpuDeploymentStepKind.PowerCheck:
                     if (mode != GpuDeploymentMode.AddWithoutDrivers && !(await ReadPowerAsync()).IsOff)
                     {
-                        AskPowerOff(forWindows: false);
+                        AskPowerOff(AfterPowerOff.Advance);
                         return;
                     }
                     description = mode == GpuDeploymentMode.AddWithoutDrivers ? R.Msg_Skip : R.Msg_Gpu_Off;
                     break;
                 case GpuDeploymentStepKind.Optimization:
+                    await backend.PrepareHostAsync();
+                    needConfig = !await backend.CheckConfigurationAsync();
                     description = needConfig && (await ReadPowerAsync()).IsOff
-                        ? (await backend.OptimizeAsync() ? R.Msg_Gpu_MmioOk : R.Error_Gpu_OptFail) : R.Msg_Skip;
+                        ? (await backend.OptimizeAsync() ? R.Msg_Gpu_MmioOk : R.Error_Gpu_OptFail)
+                        : (needConfig ? R.Msg_Skip : R.Msg_Gpu_ConfigOk);
                     break;
                 case GpuDeploymentStepKind.Assign:
                     await AssignAsync();
@@ -334,30 +324,43 @@ public sealed class GpuDeploymentSession
                     return;
                 default: throw new InvalidOperationException();
             }
-            cancellation.Token.ThrowIfCancellationRequested();
             Succeed(description);
             index++;
+            cancellation.Token.ThrowIfCancellationRequested();
         }
     }
 
     private async Task AssignAsync()
     {
-        cancellation.Token.ThrowIfCancellationRequested();
-        // 收到创建回执前，异常仍可能发生在底层已经写入之后。
-        unidentifiedAssignment = true;
-        assignmentNeedsReconciliation = true;
-        var assigned = await backend.AssignAsync();
-        addedAdapterId = cleanupAdapterId = string.IsNullOrWhiteSpace(assigned.CreatedAdapterId) ? null : assigned.CreatedAdapterId;
-        unidentifiedAssignment = assigned.OwnershipUncertain;
-        assignmentNeedsReconciliation = assigned.OwnershipUncertain || assigned.Response.ErrorKind == ApiErrorKind.OutcomeUnknown;
-        OperationOutcomeUnknownException.ThrowIfUnknown(assigned.Response);
-        if (!assigned.Response.Success) throw new InvalidOperationException(assigned.Response.Error, assigned.Response.Exception);
-        if (unidentifiedAssignment) throw new InvalidOperationException(R.Warn_Gpu_RollbackAdapterNotIdentified);
-        if (cleanupAdapterId == null)
+        int total = backend.GpuCount;
+        for (int i = 0; i < total; i++)
         {
+            cancellation.Token.ThrowIfCancellationRequested();
+            // 收到创建回执前，异常仍可能发生在底层已经写入之后。
             unidentifiedAssignment = true;
-            throw new InvalidOperationException(R.Warn_Gpu_RollbackAdapterNotIdentified);
+            assignmentNeedsReconciliation = true;
+            var assigned = await backend.AssignAtAsync(i);
+            string? createdId = string.IsNullOrWhiteSpace(assigned.CreatedAdapterId) ? null : assigned.CreatedAdapterId;
+            if (createdId != null) TrackAddedAdapter(createdId);
+            unidentifiedAssignment = assigned.OwnershipUncertain;
+            assignmentNeedsReconciliation = assigned.OwnershipUncertain || assigned.Response.ErrorKind == ApiErrorKind.OutcomeUnknown;
+            OperationOutcomeUnknownException.ThrowIfUnknown(assigned.Response);
+            if (!assigned.Response.Success) throw new InvalidOperationException(assigned.Response.Error, assigned.Response.Exception);
+            if (unidentifiedAssignment) throw new InvalidOperationException(R.Warn_Gpu_RollbackAdapterNotIdentified);
+            if (createdId == null)
+            {
+                unidentifiedAssignment = true;
+                throw new InvalidOperationException(R.Warn_Gpu_RollbackAdapterNotIdentified);
+            }
         }
+    }
+
+    private void TrackAddedAdapter(string adapterId)
+    {
+        if (!addedAdapterIds.Contains(adapterId, StringComparer.OrdinalIgnoreCase))
+            addedAdapterIds.Add(adapterId);
+        if (!cleanupAdapterIds.Contains(adapterId, StringComparer.OrdinalIgnoreCase))
+            cleanupAdapterIds.Add(adapterId);
     }
 
     private async Task PowerOffAsync()
@@ -373,9 +376,9 @@ public sealed class GpuDeploymentSession
         }
     }
 
-    private void AskPowerOff(bool forWindows)
+    private void AskPowerOff(AfterPowerOff nextAction)
     {
-        afterPowerOff = forWindows ? AfterPowerOff.Windows : AfterPowerOff.Advance;
+        afterPowerOff = nextAction;
         Ask(GpuDecisionKind.PowerOff, R.Task_Gpu_Power, R.Gpu_ConfirmPowerOff);
     }
 
@@ -384,8 +387,7 @@ public sealed class GpuDeploymentSession
         await VerifyTargetAsync();
         if (!(await ReadPowerAsync()).IsOff)
         {
-            AskPowerOff(forWindows: false);
-            afterPowerOff = AfterPowerOff.Scan;
+            AskPowerOff(AfterPowerOff.Scan);
             return;
         }
         cancellation.Token.ThrowIfCancellationRequested();
@@ -397,38 +399,59 @@ public sealed class GpuDeploymentSession
         partitions.Clear();
         foreach (var partition in found) partitions.Add(Guid.NewGuid().ToString("N"), ClonePartition(partition));
         selected = null;
-        if (found.Count == 1 && IsSupported(found[0]))
+
+        var usable = found.Where(IsSupported).ToList();
+        bool hasBitLocker = found.Any(p => p.IsBitLocker);
+        bool hasLinux = found.Any(p => p.OsType == OperatingSystemType.Linux);
+        if (usable.Count == 1 && !hasBitLocker && !hasLinux)
         {
-            selected = ClonePartition(found[0]);
+            selected = ClonePartition(usable[0]);
             await PrepareSelectedPartitionAsync();
         }
-        else Ask(GpuDecisionKind.SelectPartition, R.Label_SelectPart, R.Msg_Gpu_ManualSelect);
+        else Ask(GpuDecisionKind.SelectPartition, R.Label_SelectPart, BuildPartitionSelectMessage(usable.Count, hasLinux, hasBitLocker));
     }
+
+    private static string BuildPartitionSelectMessage(int usableCount, bool hasLinux, bool hasBitLocker) => (usableCount, hasLinux, hasBitLocker) switch
+    {
+        (0, true, true) => R.Msg_Gpu_LinuxAndBitLockerUnsupported,
+        (0, true, false) => R.Msg_Gpu_LinuxUnsupported,
+        (0, false, true) => R.Msg_Gpu_BitLockerRequired,
+        (> 0, true, true) => R.Msg_Gpu_SelectPartWithLinuxAndBitLocker,
+        (> 0, true, false) => R.Msg_Gpu_SelectPartWithLinux,
+        (> 0, false, true) => R.Msg_Gpu_SelectPartWithBitLocker,
+        (0, false, false) => R.Msg_Gpu_NoUsableWindowsPart,
+        _ => R.Msg_Gpu_ManualSelect
+    };
 
     private async Task PrepareSelectedPartitionAsync()
     {
         await VerifyTargetAsync();
-        if (selected!.OsType == OperatingSystemType.Windows)
-        {
-            if (!(await ReadPowerAsync()).IsOff) AskPowerOff(forWindows: true);
-            else
-            {
-                Ask(GpuDecisionKind.InstallWindows, R.Task_Gpu_Driver,
-                    string.Format(R.Gpu_ConfirmWindowsInstall, selected.DisplayName), canGoBack: true);
-            }
-        }
-        else if ((await ReadPowerAsync()).IsOff)
-            Ask(GpuDecisionKind.StartLinux, R.Task_Gpu_Driver, R.Gpu_ConfirmLinuxStart, canGoBack: true);
-        else await AskLinuxCredentialsAsync();
+        if (!(await ReadPowerAsync()).IsOff) AskPowerOff(AfterPowerOff.Windows);
+        else await ExecuteWindowsDriverSyncAsync();
     }
 
-    private async Task AskLinuxCredentialsAsync()
+    private async Task ExecuteWindowsDriverSyncAsync()
     {
-        DriverProgress(R.Msg_Gpu_IpScanning);
-        string ip = await backend.FindIpAsync();
+        if (!(await ReadPowerAsync()).IsOff)
+        {
+            AskPowerOff(AfterPowerOff.Windows);
+            return;
+        }
+        await VerifyPartitionAsync();
         cancellation.Token.ThrowIfCancellationRequested();
-        Ask(GpuDecisionKind.LinuxCredentials, R.Label_ConnectToLinuxVm, R.Msg_Gpu_SshConfirm,
-            Ipv4.SelectBest(ip), canGoBack: true);
+        var synced = await backend.SyncWindowsAsync(selected!, DriverProgress);
+        if (!synced.Success)
+        {
+            if (IsPartitionFallbackReason(synced.Message))
+            {
+                selected = null;
+                Ask(GpuDecisionKind.DriverFallback, R.Task_Gpu_Driver, synced.Message!, canGoBack: partitions.Count > 1);
+                return;
+            }
+            throw new InvalidOperationException(synced.Message);
+        }
+        await backend.RecordGuestDriverVersionsAsync();
+        CompleteDrivers(R.Msg_Gpu_DriverOk);
     }
 
     private async Task VerifyPartitionAsync()
@@ -463,7 +486,7 @@ public sealed class GpuDeploymentSession
         {
             GpuConfirmation => pending.Input == GpuDecisionInput.Confirmation,
             GpuPartitionSelection => pending.Input == GpuDecisionInput.Partition,
-            GpuLinuxInput => pending.Input == GpuDecisionInput.LinuxCredentials,
+            GpuDriverFallbackSelection => pending.Input is GpuDecisionInput.Partition or GpuDecisionInput.DriverFallback,
             GpuBackToPartitions => pending.CanGoBack,
             _ => false
         };
@@ -472,31 +495,34 @@ public sealed class GpuDeploymentSession
         {
             if (!partitions.TryGetValue(choice.PartitionId, out var partition)) throw new ArgumentException(R.Gpu_InvalidPartition);
             if (partition.IsBitLocker) throw new ArgumentException(R.Error_Gpu_BitLocker);
+            if (partition.OsType == OperatingSystemType.Linux) throw new ArgumentException(R.Error_Gpu_LinuxUnsupported);
             if (!IsSupported(partition)) throw new ArgumentException(R.Gpu_InvalidPartition);
         }
-        if (decision is GpuLinuxInput input)
+        if (decision is GpuDriverFallbackSelection fallback && !Enum.IsDefined(fallback.Action))
         {
-            var c = input.Credentials;
-            if (input.Script == null || string.IsNullOrWhiteSpace(input.Script.SourceUrl) || string.IsNullOrWhiteSpace(input.Script.FileName)
-                || c == null || string.IsNullOrWhiteSpace(c.Host) || string.IsNullOrWhiteSpace(c.Username))
-                throw new ArgumentException(R.VmPage_GpuCheckDeploy);
-            if (string.IsNullOrEmpty(Ipv4.SelectBest(c.Host))) throw new ArgumentException(R.Error_Gpu_NoIpv4);
-            if (c.Port is < 1 or > 65535) throw new ArgumentException(R.Gpu_InvalidSshPort);
-            if (c.UseProxy && (string.IsNullOrWhiteSpace(c.ProxyHost) || c.ProxyPort is null or < 1 or > 65535))
-                throw new ArgumentException(R.Validation_ProxyIpAndPortMismatch);
+            throw new ArgumentException(R.Gpu_DecisionExpired);
         }
     }
 
     private static bool IsSupported(DiskPartitionInfo p) =>
-        !p.IsBitLocker && p.OsType is OperatingSystemType.Windows or OperatingSystemType.Linux;
+        !p.IsBitLocker && p.OsType == OperatingSystemType.Windows;
 
-    private void Ask(GpuDecisionKind kind, string title, string message, string host = "", bool canGoBack = false)
+    private static bool IsPartitionFallbackReason(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return false;
+        if (message.Contains(R.Error_Gpu_BitLocker, StringComparison.OrdinalIgnoreCase)) return true;
+
+        var parts = R.Error_Gpu_InvalidSystemPart.Split("{0}", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return parts.Length > 0 && parts.All(part => message.Contains(part, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void Ask(GpuDecisionKind kind, string title, string message, bool canGoBack = false)
     {
         cancellation.Token.ThrowIfCancellationRequested();
         var options = Array.AsReadOnly(partitions.Select(p => new GpuDeploymentPartition(p.Key, p.Value.PartitionNumber,
             p.Value.SizeInBytes, p.Value.OsType, p.Value.TypeDescription, p.Value.DiskPath, p.Value.DiskDisplayName,
             p.Value.IsPhysicalDisk, p.Value.IsBitLocker)).ToArray());
-        pending = new(Guid.NewGuid(), kind, title, message, options, host, canGoBack);
+        pending = new(Guid.NewGuid(), kind, title, message, options, canGoBack);
         state = GpuDeploymentState.WaitingForDecision;
         SetStep(GpuDeploymentStepStatus.Running, message);
     }
@@ -530,21 +556,25 @@ public sealed class GpuDeploymentSession
         {
             if (outcomeUnknown) throw new InvalidOperationException("底层操作结果尚未确认，已保留资源，未执行后续清理。");
             if (unidentifiedAssignment) throw new InvalidOperationException(R.Warn_Gpu_RollbackAdapterNotIdentified);
-            if (cleanupAdapterId != null)
+            if (cleanupAdapterIds.Count > 0)
             {
                 await backend.VerifyTargetAsync();
                 var adapters = await backend.GetAdaptersAsync();
                 if (!adapters.Success) throw new InvalidOperationException(R.Gpu_CleanupRequired);
-                if (adapters.Adapters.Any(a => string.Equals(a.Id, cleanupAdapterId, StringComparison.OrdinalIgnoreCase))
-                    && !await backend.RemoveAsync(cleanupAdapterId)) throw new InvalidOperationException(R.Gpu_CleanupRequired);
-                cleanupAdapterId = null;
+                foreach (string id in cleanupAdapterIds.ToArray())
+                {
+                    if (adapters.Adapters.Any(a => string.Equals(a.Id, id, StringComparison.OrdinalIgnoreCase))
+                        && !await backend.RemoveAsync(id))
+                        throw new InvalidOperationException(R.Gpu_CleanupRequired);
+                    cleanupAdapterIds.Remove(id);
+                }
             }
             state = retainedDiskCleanupError == null && !backend.HasPendingRecovery ? destination : GpuDeploymentState.CleanupRequired;
             if (backend.HasPendingRecovery && cleanupError == null) cleanupError = "临时磁盘资源尚未恢复，请核实后重试清理。";
         }
         catch (Exception exception)
         {
-            outcomeUnknown |= exception is OperationOutcomeUnknownException;
+            outcomeUnknown |= exception is CoreOperationException { Result.ErrorKind: ApiErrorKind.OutcomeUnknown };
             cleanupError = retainedDiskCleanupError == null ? exception.Message
                 : retainedDiskCleanupError + Environment.NewLine + exception.Message;
             state = GpuDeploymentState.CleanupRequired;
@@ -567,50 +597,44 @@ public sealed class GpuDeploymentSession
             _ => Array.Empty<GpuDeploymentAction>()
         };
         var next = new GpuDeploymentSnapshot(sessionId, ++revision, state, Array.AsReadOnly(steps.ToArray()), pending,
-            Array.AsReadOnly(actions), addedAdapterId, cleanupAdapterId, error, cleanupError, log)
-            { OutcomeUnknown = outcomeUnknown, Recovery = backend.GetRecovery() };
+            Array.AsReadOnly(actions), addedAdapterIds.Count > 0, cleanupAdapterIds.Count > 0, error, cleanupError, log)
+        {
+            OutcomeUnknown = outcomeUnknown,
+            AddedAdapterId = addedAdapterIds.LastOrDefault(),
+            AddedAdapterIds = Array.AsReadOnly(addedAdapterIds.ToArray()),
+            PendingCleanupAdapterId = cleanupAdapterIds.FirstOrDefault(),
+            PendingCleanupAdapterIds = Array.AsReadOnly(cleanupAdapterIds.ToArray()),
+            IsDriverSkipped = isDriverSkipped,
+            Recovery = backend.GetRecovery()
+        };
         Volatile.Write(ref snapshot, next);
         try { report?.Invoke(next); }
-        catch (Exception exception) { System.Diagnostics.Debug.WriteLine(exception); }
+        catch (Exception exception) { CoreDiagnostics.Report("DeploymentObserverFailed", error: exception); }
     }
 
     private static DiskPartitionInfo ClonePartition(DiskPartitionInfo p) => new(p.PartitionNumber, p.SizeInBytes, p.OsType, p.TypeDescription)
         { DiskPath = p.DiskPath, DiskDisplayName = p.DiskDisplayName, IsPhysicalDisk = p.IsPhysicalDisk, IsBitLocker = p.IsBitLocker, ScannedVmId = p.ScannedVmId, ScannedDiskPath = p.ScannedDiskPath, ScannedPhysical = p.ScannedPhysical, ScannedDiskIdentity = p.ScannedDiskIdentity };
 
-    private static GpuDeploymentDecision CopyDecision(GpuDeploymentDecision decision)
-    {
-        if (decision is not GpuLinuxInput input) return decision;
-        var s = input.Script;
-        var c = input.Credentials;
-        return new GpuLinuxInput(input.RequestId,
-            s == null ? null : new LinuxGpuDeploymentScript { Name = s.Name, Description = s.Description, Author = s.Author,
-                Version = s.Version, SourceUrl = s.SourceUrl, FileName = s.FileName },
-            c == null ? null : new SshCredentials { Host = c.Host, Port = c.Port, Username = c.Username, Password = c.Password,
-                UseProxy = c.UseProxy, ProxyHost = c.ProxyHost, ProxyPort = c.ProxyPort, InstallGraphics = c.InstallGraphics });
-    }
-
     private static List<GpuDeploymentStep> BuildSteps(GpuDeploymentMode mode)
     {
         var result = new List<GpuDeploymentStep>();
         void Add(GpuDeploymentStepKind type, string name, string description) => result.Add(new(type, name, description, GpuDeploymentStepStatus.Pending));
-        if (mode != GpuDeploymentMode.UpdateDrivers)
-        {
-            Add(GpuDeploymentStepKind.Prepare, R.Task_Gpu_Prepare, R.Msg_Gpu_PreparingHost);
-            Add(GpuDeploymentStepKind.ConfigCheck, R.Task_Gpu_Config, R.Msg_Gpu_CheckingConfig);
-        }
-        Add(GpuDeploymentStepKind.PowerCheck, R.Task_Gpu_Power, R.Msg_Gpu_CheckingPower);
+        if (mode != GpuDeploymentMode.AddWithoutDrivers)
+            Add(GpuDeploymentStepKind.PowerCheck, R.Task_Gpu_Power, R.Msg_Gpu_CheckingPower);
         if (mode != GpuDeploymentMode.UpdateDrivers)
         {
             Add(GpuDeploymentStepKind.Optimization, R.Task_Gpu_Opt, R.Msg_Gpu_Mmio);
             Add(GpuDeploymentStepKind.Assign, R.Task_Gpu_Assign, R.Msg_Gpu_Creating);
         }
-        if (mode != GpuDeploymentMode.AddWithoutDrivers) Add(GpuDeploymentStepKind.Driver, R.Task_Gpu_Driver, R.Msg_Gpu_WaitingScan);
+        if (mode != GpuDeploymentMode.AddWithoutDrivers)
+            Add(GpuDeploymentStepKind.Driver, R.Task_Gpu_Driver, R.Msg_Gpu_WaitingScan);
         return result;
     }
 }
 
 internal interface IGpuDeploymentBackend
 {
+    int GpuCount => 1;
     bool HasRecovery => false;
     bool HasPendingRecovery => false;
     Task<ApiResponse> ReconcileRecoveryAsync() => Task.FromResult(ApiResponse.Ok());
@@ -626,40 +650,51 @@ internal interface IGpuDeploymentBackend
     Task<bool> OptimizeAsync();
     Task<(bool Success, List<(string Id, string InstancePath)> Adapters)> GetAdaptersAsync();
     Task<GpuAssignmentAttempt> AssignAsync();
+    Task<GpuAssignmentAttempt> AssignAtAsync(int index) => AssignAsync();
     Task<bool> RemoveAsync(string adapterId);
     Task<List<DiskPartitionInfo>> GetPartitionsAsync();
     Task<(bool Success, string Message)> SyncWindowsAsync(DiskPartitionInfo partition, Action<string> log);
-    Task<string> FindIpAsync();
-    Task<string> ProvisionLinuxAsync(LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> log, CancellationToken token);
+    Task RecordGuestDriverVersionsAsync() => Task.CompletedTask;
 }
 
 internal sealed class GpuDeploymentCleanupException(string message) : Exception(message);
 
-internal sealed class NativeGpuDeploymentBackend(Guid vmId, string vmName, HostGpuInfo selectedGpu, VmGpuService gpu, VmQueryService query) : IGpuDeploymentBackend
+internal sealed class NativeGpuDeploymentBackend(
+    Guid vmId,
+    IReadOnlyList<HostGpuInfo> selectedGpus,
+    VmGpuService gpu) : IGpuDeploymentBackend
 {
     private readonly GpuRecoveryJournal recovery = new();
+    private readonly List<WmiCreationTrace> assignmentTraces = new();
+    private WmiCreationTrace? lastAssignmentTrace;
+
+    public int GpuCount => selectedGpus.Count;
     public bool HasRecovery => recovery.HasRecords;
     public bool HasPendingRecovery => recovery.NeedsCleanup;
     public Task<ApiResponse> ReconcileRecoveryAsync() => recovery.ReconcileAsync();
     public Task<ApiResponse> RetryRecoveryAsync() => recovery.RetryAsync();
-    private WmiCreationTrace? assignmentTrace;
+
     public GpuDeploymentRecovery? GetRecovery()
     {
-        if (assignmentTrace is null && !recovery.HasRecords) return null;
-        var trace = assignmentTrace;
-        return new(recovery.Id, vmId, recovery.StartedAtUtc, trace?.JobPath,
-            Array.AsReadOnly((trace?.Result?.CreatedPaths.Length > 0 ? trace.Result.CreatedPaths : trace?.DirectPaths ?? []).ToArray()))
+        if (assignmentTraces.Count == 0 && !recovery.HasRecords) return null;
+        string[] createdPaths = assignmentTraces
+            .SelectMany(t => t.Result?.CreatedPaths.Length > 0 ? t.Result.CreatedPaths : t.DirectPaths)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return new(recovery.Id, vmId, recovery.StartedAtUtc, lastAssignmentTrace?.JobPath, Array.AsReadOnly(createdPaths))
         {
-            Operations = recovery.Operations, Resources = recovery.Resources,
+            Operations = recovery.Operations,
+            Resources = recovery.Resources,
             ObservedValues = new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(new Dictionary<string, string>(recovery.ObservedValues))
         };
     }
-    public Task<GpuAssignmentAttempt> ReconcileAssignmentAsync() => assignmentTrace is { } trace
+
+    public Task<GpuAssignmentAttempt> ReconcileAssignmentAsync() => lastAssignmentTrace is { } trace
         ? gpu.ReconcileAssignmentAsync(vmId, trace)
         : Task.FromResult(new GpuAssignmentAttempt(ApiResponse.Fail("未留下创建回执。", kind: ApiErrorKind.OutcomeUnknown), OwnershipUncertain: true));
-    private readonly string gpuPath = selectedGpu.PartitionableGpuPath;
-    private readonly string instanceId = selectedGpu.InstanceId;
-    private readonly string manufacturer = selectedGpu.Manu;
+
+    private static string ResolveGpuPath(HostGpuInfo info)
+        => string.IsNullOrEmpty(info.PartitionableGpuPath) ? info.InstanceId : info.PartitionableGpuPath;
 
     public async Task VerifyTargetAsync()
     {
@@ -667,23 +702,27 @@ internal sealed class NativeGpuDeploymentBackend(Guid vmId, string vmName, HostG
         if (!response.HasData)
             throw new InvalidOperationException(response.Success ? "目标虚拟机已不存在。" : response.Error);
     }
+
     public async Task PrepareHostAsync()
     {
         var result = await Task.Run(() => HostGpuService.SetAssignmentRestrictionsRelaxed(true));
         if (!result.Success) throw new InvalidOperationException(result.Error, result.Exception);
     }
+
     public async Task<bool> CheckConfigurationAsync()
     {
         var result = await gpu.CheckVmForGpuAsync(vmId);
         if (!result.HasData) throw new InvalidOperationException(result.Error, result.Exception);
         return result.Data;
     }
+
     public async Task<(bool IsOff, string State)> IsPoweredOffAsync()
     {
         var result = await VmConfigurationState.ReadAsync(vmId);
         if (!result.HasData) throw new InvalidOperationException(result.Error, result.Exception);
         return (result.Data!.IsPoweredOff, result.Data.State.ToString());
     }
+
     public Task PowerAsync(string action) => recovery.RunAsync("Power:" + action, async () =>
     {
         var result = await VmPowerService.ExecuteControlActionAsync(vmId, action);
@@ -691,6 +730,7 @@ internal sealed class NativeGpuDeploymentBackend(Guid vmId, string vmName, HostG
         if (!result.Success) throw new InvalidOperationException(result.Error, result.Exception);
         return true;
     }, ObservePowerAsync);
+
     public Task<bool> OptimizeAsync() => recovery.RunAsync("Mmio", async () =>
     {
         var result = await gpu.OptimizeVmForGpuAsync(vmId);
@@ -706,6 +746,7 @@ internal sealed class NativeGpuDeploymentBackend(Guid vmId, string vmName, HostG
         recovery.ObservedValues["Power.State"] = result.Data.State.ToString();
         return ApiResponse.Ok();
     }
+
     private async Task<ApiResponse> ObserveMmioAsync()
     {
         var power = await ObservePowerAsync();
@@ -717,16 +758,27 @@ internal sealed class NativeGpuDeploymentBackend(Guid vmId, string vmName, HostG
         recovery.ObservedValues["Mmio.HighBaseMiB"] = settings.Data.HighBaseMiB?.ToString() ?? "Unavailable";
         return ApiResponse.Ok();
     }
-    public Task<(bool Success, List<(string Id, string InstancePath)> Adapters)> GetAdaptersAsync() => gpu.TryGetVmGpuAdaptersAsync(vmId);
-    public Task<GpuAssignmentAttempt> AssignAsync() =>
-        gpu.AssignGpuPartitionWithOwnershipAsync(vmId, string.IsNullOrEmpty(gpuPath) ? instanceId : gpuPath,
-            assignmentTrace = new("Msvm_GpuPartitionSettingData"));
+
+    public Task<(bool Success, List<(string Id, string InstancePath)> Adapters)> GetAdaptersAsync()
+        => gpu.TryGetVmGpuAdaptersAsync(vmId);
+
+    public Task<GpuAssignmentAttempt> AssignAsync() => AssignAtAsync(0);
+
+    public Task<GpuAssignmentAttempt> AssignAtAsync(int index)
+    {
+        var trace = new WmiCreationTrace("Msvm_GpuPartitionSettingData");
+        assignmentTraces.Add(trace);
+        lastAssignmentTrace = trace;
+        return gpu.AssignGpuPartitionWithOwnershipAsync(vmId, ResolveGpuPath(selectedGpus[index]), trace);
+    }
+
     public Task<bool> RemoveAsync(string adapterId) => recovery.RunAsync("RemoveAdapter", async () =>
     {
         var result = await gpu.RemoveGpuPartitionAsync(vmId, adapterId);
         OperationOutcomeUnknownException.ThrowIfUnknown(result);
         return result.Success;
     });
+
     public Task<List<DiskPartitionInfo>> GetPartitionsAsync() => recovery.RunAsync("Partitions", async () =>
     {
         var result = await gpu.ScanVmPartitionsAsync(vmId);
@@ -736,35 +788,23 @@ internal sealed class NativeGpuDeploymentBackend(Guid vmId, string vmName, HostG
         if (!result.Success) throw new InvalidOperationException(string.Join(Environment.NewLine, result.Errors.Concat(result.CleanupErrors)));
         return result.Partitions.ToList();
     });
+
     public Task<(bool Success, string Message)> SyncWindowsAsync(DiskPartitionInfo partition, Action<string> log) => recovery.RunAsync("WindowsDrivers", async () =>
     {
-        var result = await gpu.SyncWindowsDriversAsync(vmId, gpuPath, manufacturer, partition, log);
+        var result = await gpu.SyncWindowsDriversCoreAsync(vmId, selectedGpus, partition, log);
         OperationOutcomeUnknownException.ThrowIfUnknown(result);
         if (result.ErrorKind is ApiErrorKind.CleanupRequired or ApiErrorKind.OutcomeUnknown) throw new GpuDeploymentCleanupException(result.Error);
         return (result.Success, result.Error);
     });
-    public async Task<string> ProvisionLinuxAsync(LinuxGpuDeploymentScript script, SshCredentials credentials, Action<string> log, CancellationToken token)
+
+    public Task RecordGuestDriverVersionsAsync() => recovery.RunAsync("GpuDriverVersions", async () =>
     {
-        // Linux 部署入口按名称执行，提交前必须核对名称仍指向所选 GUID。
-        var target = await VmIdentity.ResolveAsync(vmName);
-        if (!target.HasData || target.Data != vmId)
-            throw new InvalidOperationException("Linux 部署目标名称已变化或不唯一，请重新选择目标。");
-        return await gpu.ProvisionLinuxGpuAsync(vmName, string.IsNullOrEmpty(gpuPath) ? instanceId : gpuPath, manufacturer, script, credentials, log, token);
-    }
-    public async Task<string> FindIpAsync()
-    {
-        var adapters = await VmNetworkService.GetNetworkAdaptersAsync(vmId);
-        if (!adapters.HasData) throw new InvalidOperationException(adapters.Error, adapters.Exception);
-        string mac = adapters.Data!.FirstOrDefault()?.MacAddress ?? string.Empty;
-        if (!string.IsNullOrEmpty(mac))
-            for (int i = 0; i < 3; i++)
-            {
-                var found = await VmIpService.LookupAsync(vmId, mac);
-                if (!found.Success) throw new InvalidOperationException(found.Error, found.Exception);
-                string ip = found.Data?.FirstOrDefault()?.Address ?? string.Empty;
-                if (!string.IsNullOrEmpty(ip)) return ip;
-                await Task.Delay(2000);
-            }
-        return string.Empty;
-    }
+        var updates = selectedGpus
+            .Where(g => !string.IsNullOrWhiteSpace(g.InstanceId) && !string.IsNullOrWhiteSpace(g.DriverVersion))
+            .Select(g => (g.InstanceId, g.DriverVersion));
+        var result = await VmMetadataService.UpsertGpuDriverVersionsAsync(vmId, updates).ConfigureAwait(false);
+        OperationOutcomeUnknownException.ThrowIfUnknown(result);
+        if (!result.Success) throw new CoreOperationException(result);
+        return true;
+    });
 }

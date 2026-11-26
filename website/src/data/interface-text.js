@@ -3,7 +3,7 @@ import { interfaceLanguage } from './languages.js';
 const text = {
   'zh-CN': {
     rotateModel: 'ExHyperV 三维图标，拖拽或使用方向键旋转，双击复位',
-    productDescription: '为 Windows 上的 Hyper-V，带来卓越的现代化桌面体验。', download: '下载', viewSource: '查看源码', releases: '版本与更新',
+    productDescription: '为 Windows 上的 Hyper-V，带来现代化桌面体验。', download: '下载', viewSource: '查看源码', releases: '版本与更新',
     home: '首页', wiki: '系统图鉴', docs: '文档', uiDesign: '在线体验', changelog: '更新日志', navigation: '主站导航', categories: '系统分类',
     search: '搜索...', searchVersions: '搜索版本', expandCategories: '展开分类', closeCategories: '关闭分类',
     architectures: '系统架构', architecture: '架构', imageSources: '镜像来源', searchSuffix: '检索',
@@ -13,7 +13,7 @@ const text = {
   },
   'zh-TW': {
     rotateModel: 'ExHyperV 三維圖示，拖曳或使用方向鍵旋轉，按兩下重設',
-    productDescription: '為 Windows 上的 Hyper-V，帶來卓越的現代化桌面體驗。', download: '下載', viewSource: '查看原始碼', releases: '版本與更新',
+    productDescription: '為 Windows 上的 Hyper-V，帶來現代化桌面體驗。', download: '下載', viewSource: '查看原始碼', releases: '版本與更新',
     home: '首頁', wiki: '系統圖鑑', docs: '文件', uiDesign: '線上體驗', changelog: '更新日誌', navigation: '主站導覽', categories: '系統分類',
     search: '搜尋...', searchVersions: '搜尋版本', expandCategories: '展開分類', closeCategories: '關閉分類',
     architectures: '系統架構', architecture: '架構', imageSources: '映像來源', searchSuffix: '搜尋',
@@ -22,8 +22,8 @@ const text = {
     buildNumberLabel: '組建版本號', graphicsVersionLabel: '圖形驅動版本',
   },
   en: {
-    rotateModel: 'ExHyperV 3D icon. Drag or use arrow keys to rotate; double-click to reset.',
-    productDescription: 'A premier modern desktop experience for Hyper-V on Windows.', download: 'Download', viewSource: 'View source', releases: 'Releases and updates',
+    rotateModel: 'ExHyperV 3D icon. Drag or use arrow keys to rotate, or double-click to reset.',
+    productDescription: 'A modern desktop experience for Hyper-V on Windows.', download: 'Download', viewSource: 'View source', releases: 'Releases and updates',
     home: 'Home', wiki: 'System Gallery', docs: 'Docs', uiDesign: 'Live Demo', changelog: 'Changelog', navigation: 'Main navigation', categories: 'System categories',
     search: 'Search...', searchVersions: 'Search versions', expandCategories: 'Open categories', closeCategories: 'Close categories',
     architectures: 'System architectures', architecture: 'Architecture', imageSources: 'Image sources', searchSuffix: 'search',

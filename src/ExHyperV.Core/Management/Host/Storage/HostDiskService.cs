@@ -70,7 +70,7 @@ namespace ExHyperV.Services
                     busType = Convert.ToUInt16(obj["BusType"] ?? 0),
                     isSystem = Convert.ToBoolean(obj["IsSystem"] ?? false),
                     isBoot = Convert.ToBoolean(obj["IsBoot"] ?? false),
-                    isOffline = Convert.ToBoolean(obj["IsOffline"] ?? false),
+                    isOffline = obj["IsOffline"] as bool?,
                     isReadOnly = Convert.ToBoolean(obj["IsReadOnly"] ?? false),
                     sizeBytes = Convert.ToInt64(obj["Size"] ?? 0L),
                     uniqueId = obj["UniqueId"]?.ToString() ?? string.Empty,
@@ -101,7 +101,7 @@ namespace ExHyperV.Services
                     else
                     {
                         can = true;
-                        status = (d.isReadOnly && !d.isOffline)
+                        status = (d.isReadOnly && d.isOffline == false)
                             ? Properties.Resources.Storage_DiskStatus_ReadOnly
                             : Properties.Resources.Storage_DiskStatus_Available;
                     }
@@ -115,6 +115,7 @@ namespace ExHyperV.Services
                         UniqueId = d.uniqueId,
                         SerialNumber = d.serialNumber,
                         Status = status,
+                        IsOffline = d.isOffline,
                         CanPassthrough = can
                     };
                 })

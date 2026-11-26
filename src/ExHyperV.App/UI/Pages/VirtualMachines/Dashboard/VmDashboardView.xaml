@@ -1,0 +1,297 @@
+<UserControl x:Class="ExHyperV.App.UI.Pages.VirtualMachines.Dashboard.VmDashboardView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="using:ExHyperV.App.UI.Pages.VirtualMachines.Dashboard"
+ xmlns:feedback="using:ExHyperV.App.UI.Shared.Feedback">
+ <UserControl.Resources>
+  <Style x:Key="BadgeStyle" TargetType="Border">
+   <Setter Property="Background" Value="{ThemeResource VmBadgeBrush}"/>
+   <Setter Property="BorderBrush" Value="{ThemeResource VmStrokeBrush}"/>
+   <Setter Property="BorderThickness" Value="1"/>
+   <Setter Property="CornerRadius" Value="4"/>
+   <Setter Property="Padding" Value="10,5"/>
+  </Style>
+  <Style x:Key="BadgeText" TargetType="TextBlock">
+   <Setter Property="FontSize" Value="12.5"/>
+   <Setter Property="VerticalAlignment" Value="Center"/>
+  </Style>
+  <Style x:Key="OverviewKvCardStyle" TargetType="Border">
+   <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
+   <Setter Property="BorderBrush" Value="{ThemeResource VmStrokeBrush}"/>
+   <Setter Property="BorderThickness" Value="1"/>
+   <Setter Property="CornerRadius" Value="6"/>
+   <Setter Property="Padding" Value="14,12"/>
+  </Style>
+  <Style x:Key="OverviewKvWellStyle" TargetType="Border">
+   <Setter Property="Background" Value="{ThemeResource VmKvWellBrush}"/>
+   <Setter Property="BorderBrush" Value="{ThemeResource VmKvWellBorderBrush}"/>
+   <Setter Property="BorderThickness" Value="1"/>
+   <Setter Property="CornerRadius" Value="6"/>
+   <Setter Property="Padding" Value="14,10"/>
+  </Style>
+ </UserControl.Resources>
+ <Border x:Name="OuterFrame" Background="{ThemeResource VmSurfaceBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1" CornerRadius="8">
+  <Grid x:Name="Body" Visibility="Collapsed">
+   <Grid.RowDefinitions>
+    <RowDefinition Height="Auto"/>
+    <RowDefinition Height="Auto"/>
+    <RowDefinition Height="*"/>
+   </Grid.RowDefinitions>
+
+   <!-- 顶部摘要卡片（mid-3row） -->
+   <Border x:Name="SummaryCard" Margin="16,12,16,0" Padding="20,16,20,16" MinHeight="120" CornerRadius="8"
+           Background="{ThemeResource VmSummaryBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1">
+    <Grid ColumnSpacing="20">
+     <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="84"/>
+      <ColumnDefinition Width="*"/>
+     </Grid.ColumnDefinitions>
+
+     <!-- 缩略图标 / 实时画面预览 -->
+     <Grid Width="84" Height="80" VerticalAlignment="Center">
+      <Grid x:Name="SystemIconPanel" Background="Transparent" Tapped="OnOpenOsPicker">
+       <Image x:Name="OsImage" Width="74" Height="74" Stretch="Uniform"/>
+      </Grid>
+      <Grid x:Name="MonitorPreview" Width="80" Height="74" Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Center">
+       <Border Width="12" Height="12" Background="#777777" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+       <Border Width="44" Height="4" Background="#999999" CornerRadius="2" VerticalAlignment="Bottom"/>
+       <Border Height="60" VerticalAlignment="Top" Background="#141414" BorderBrush="#141414" BorderThickness="4" CornerRadius="5">
+        <Border x:Name="PreviewBorder" Visibility="Collapsed" Background="#0B0B0B">
+         <Image x:Name="Preview" Stretch="Uniform"/>
+        </Border>
+       </Border>
+      </Grid>
+     </Grid>
+
+     <!-- 右侧三行信息 + 垂直居中电源操作 -->
+     <Grid Grid.Column="1" VerticalAlignment="Center" ColumnSpacing="16">
+      <Grid.RowDefinitions>
+       <RowDefinition Height="Auto"/>
+       <RowDefinition Height="Auto"/>
+       <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+       <ColumnDefinition Width="*"/>
+       <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+
+      <TextBlock x:Name="VmName" Grid.Row="0" Grid.Column="0" FontSize="24" Margin="0,0,0,4"
+                 TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+
+      <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+       <Border Style="{StaticResource BadgeStyle}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+         <FontIcon Glyph="&#xE9DD;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular" FontSize="14"/>
+         <TextBlock x:Name="StateText" Style="{StaticResource BadgeText}"/>
+        </StackPanel>
+       </Border>
+       <Border Style="{StaticResource BadgeStyle}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+         <FontIcon Glyph="&#xF827;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular" FontSize="14"/>
+         <TextBlock x:Name="UptimeText" Style="{StaticResource BadgeText}" Typography.NumeralAlignment="Tabular"/>
+        </StackPanel>
+       </Border>
+       <Border x:Name="GenerationPanel" Style="{StaticResource BadgeStyle}" Visibility="Collapsed">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+         <FontIcon Glyph="&#xF54C;" FontSize="14"/>
+         <TextBlock x:Name="GenerationText" Style="{StaticResource BadgeText}"/>
+        </StackPanel>
+       </Border>
+       <Border x:Name="VersionPanel" Style="{StaticResource BadgeStyle}" Visibility="Collapsed">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+         <FontIcon Glyph="&#xE946;" FontSize="14"/>
+         <TextBlock x:Name="VersionText" Style="{StaticResource BadgeText}" Typography.NumeralAlignment="Tabular"/>
+        </StackPanel>
+       </Border>
+      </StackPanel>
+
+      <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Spacing="8">
+       <Button x:Name="OsBadgeButton" Click="OnOpenOsPicker"
+               Background="{ThemeResource VmBadgeBrush}" BorderBrush="{ThemeResource VmStrokeBrush}"
+               BorderThickness="1" CornerRadius="4" Padding="10,5">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+         <FontIcon Glyph="&#xE74C;" FontSize="14"/>
+         <TextBlock x:Name="OsText" Style="{StaticResource BadgeText}"/>
+         <FontIcon Glyph="&#xE70D;" FontSize="10" Opacity="0.72" VerticalAlignment="Center"/>
+        </StackPanel>
+       </Button>
+       <Button x:Name="GuidBadgeButton" Click="OnCopyGuidClick"
+               Background="{ThemeResource VmBadgeBrush}" BorderBrush="{ThemeResource VmStrokeBrush}"
+               BorderThickness="1" CornerRadius="4" Padding="10,5">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+         <TextBlock x:Name="GuidText" Style="{StaticResource BadgeText}" Typography.NumeralAlignment="Tabular" TextTrimming="CharacterEllipsis"/>
+         <FontIcon Glyph="&#xE8C8;" FontSize="12" Opacity="0.72" VerticalAlignment="Center"/>
+        </StackPanel>
+       </Button>
+      </StackPanel>
+
+      <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="1" Spacing="8" VerticalAlignment="Center" MinWidth="116">
+       <Grid>
+        <Grid.ColumnDefinitions>
+         <ColumnDefinition Width="*"/>
+         <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Button x:Name="PowerButton" Grid.Column="0" Height="34" CornerRadius="8" HorizontalAlignment="Stretch" Click="OnPowerClick">
+         <TextBlock x:Name="PowerText"/>
+        </Button>
+        <DropDownButton x:Name="PowerMenu" Grid.Column="1" Height="34" CornerRadius="0,8,8,0" Padding="8,0" Visibility="Collapsed">
+         <DropDownButton.Flyout>
+          <MenuFlyout>
+           <MenuFlyoutItem x:Name="PowerMenuRestart" Tag="Restart" Click="OnPowerMenuClick">
+            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xF140;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular"/></MenuFlyoutItem.Icon>
+           </MenuFlyoutItem>
+           <MenuFlyoutItem x:Name="PowerMenuSuspend" Tag="Suspend" Click="OnPowerMenuClick">
+            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xF5A2;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular"/></MenuFlyoutItem.Icon>
+           </MenuFlyoutItem>
+           <MenuFlyoutSeparator/>
+           <MenuFlyoutItem x:Name="PowerMenuSave" Tag="Save" Click="OnPowerMenuClick">
+            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xF680;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular"/></MenuFlyoutItem.Icon>
+           </MenuFlyoutItem>
+           <MenuFlyoutItem x:Name="PowerMenuTurnOff" Tag="TurnOff" Click="OnPowerMenuClick" Foreground="#E81123">
+            <MenuFlyoutItem.Icon><FontIcon Glyph="&#xF60F;" FontFamily="ms-appx:///Assets/Fonts/FluentSystemIcons-Regular.ttf#FluentSystemIcons-Regular" Foreground="#E81123"/></MenuFlyoutItem.Icon>
+           </MenuFlyoutItem>
+          </MenuFlyout>
+         </DropDownButton.Flyout>
+        </DropDownButton>
+       </Grid>
+       <Button x:Name="ConnectButton" Height="34" CornerRadius="8" HorizontalAlignment="Stretch" Click="OnConnectClick"/>
+      </StackPanel>
+     </Grid>
+    </Grid>
+   </Border>
+
+   <Grid x:Name="PageTabsRow" Grid.Row="1" Margin="16,12,16,8" ColumnSpacing="8">
+    <Grid.ColumnDefinitions>
+     <ColumnDefinition Width="*"/>
+     <ColumnDefinition Width="Auto"/>
+    </Grid.ColumnDefinitions>
+    <local:VmTabs x:Name="PageTabs" Grid.Column="0"/>
+    <ContentControl x:Name="PageTabsTrailingHost" Grid.Column="1" IsTabStop="False" VerticalAlignment="Center" Visibility="Collapsed"/>
+   </Grid>
+
+   <!-- 状态概览：Win11 任务管理器双栏视图 -->
+   <Grid x:Name="OverviewArea" Grid.Row="2" Margin="16,0,16,16">
+    <ProgressBar x:Name="LoadingBar" IsIndeterminate="True" VerticalAlignment="Top"/>
+    <Grid x:Name="OverviewPane" Visibility="Collapsed" ColumnSpacing="12" RowSpacing="10">
+     <Grid.ColumnDefinitions>
+      <ColumnDefinition x:Name="OverviewRailColumn" Width="224"/>
+      <ColumnDefinition x:Name="OverviewDetailColumn" Width="*"/>
+     </Grid.ColumnDefinitions>
+     <Grid.RowDefinitions>
+      <RowDefinition x:Name="OverviewTopRow" Height="*"/>
+      <RowDefinition x:Name="OverviewBottomRow" Height="0"/>
+     </Grid.RowDefinitions>
+
+     <ScrollViewer x:Name="OverviewRailScroll" Grid.Row="0" Grid.Column="0"
+                   VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel x:Name="OverviewRail" Spacing="4"/>
+     </ScrollViewer>
+
+     <Border x:Name="OverviewDetailCard" Grid.Row="0" Grid.Column="1"
+             Background="{ThemeResource VmCardBrush}" BorderBrush="{ThemeResource VmStrokeBrush}"
+             BorderThickness="1" CornerRadius="8" Padding="16,13">
+      <Grid RowSpacing="10">
+       <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+       </Grid.RowDefinitions>
+
+       <Border Grid.Row="0" Padding="0,0,0,10"
+               BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+        <Grid ColumnSpacing="12">
+         <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto"/>
+          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="Auto"/>
+         </Grid.ColumnDefinitions>
+         <Border x:Name="OverviewDetailIconBox" Width="36" Height="36" CornerRadius="7" VerticalAlignment="Center"
+                 Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                 BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1">
+          <FontIcon x:Name="OverviewDetailIcon" FontSize="16" RenderTransformOrigin="0.5,0.5">
+           <FontIcon.RenderTransform>
+            <RotateTransform x:Name="OverviewDetailIconRotation" Angle="0"/>
+           </FontIcon.RenderTransform>
+          </FontIcon>
+         </Border>
+         <StackPanel Grid.Column="1" Spacing="3" VerticalAlignment="Center">
+          <Grid ColumnSpacing="8">
+           <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+           </Grid.ColumnDefinitions>
+           <TextBlock x:Name="OverviewDetailTitle" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="2" VerticalAlignment="Center"/>
+           <Border x:Name="OverviewDetailPill" Grid.Column="1" Visibility="Collapsed" VerticalAlignment="Center"
+                   CornerRadius="4" Padding="7,2" Background="{ThemeResource VmBadgeBrush}"
+                   BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1">
+            <TextBlock x:Name="OverviewDetailPillText" FontSize="11.5"/>
+           </Border>
+          </Grid>
+          <TextBlock x:Name="OverviewDetailSubtitle" FontSize="12.5" Visibility="Collapsed"
+                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+         </StackPanel>
+         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+          <TextBlock x:Name="OverviewDetailReading" FontSize="20" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular" VerticalAlignment="Center"/>
+          <Button x:Name="OverviewDetailGear" Width="36" Height="36" Padding="0" CornerRadius="18"
+                  Background="{ThemeResource ControlFillColorDefaultBrush}"
+                  BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" BorderThickness="1"
+                  Click="OnOverviewGearClick">
+           <FontIcon Glyph="&#xE713;" FontSize="16" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
+          </Button>
+         </StackPanel>
+        </Grid>
+       </Border>
+
+       <ScrollViewer x:Name="OverviewDetailScroll" Grid.Row="1"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid x:Name="OverviewDetailBody">
+         <StackPanel x:Name="CpuDetailPanel" Spacing="10">
+          <Grid x:Name="CoreCharts"/>
+          <Border x:Name="CpuKvCard"/>
+         </StackPanel>
+         <StackPanel x:Name="MemoryDetailPanel" Spacing="10" Visibility="Collapsed">
+          <Grid x:Name="MemoryChartHost"/>
+          <Border x:Name="MemoryKvCard"/>
+         </StackPanel>
+         <StackPanel x:Name="DiskDetailPanel" Spacing="10" Visibility="Collapsed">
+          <StackPanel x:Name="DiskDetailContent" Spacing="10"/>
+         </StackPanel>
+         <StackPanel x:Name="NetworkDetailPanel" Spacing="10" Visibility="Collapsed">
+          <StackPanel x:Name="NetworkDetailContent" Spacing="10"/>
+         </StackPanel>
+         <StackPanel x:Name="GpuDetailPanel" Spacing="10" Visibility="Collapsed">
+          <TextBlock x:Name="GpuMessage" Opacity="0.6" TextWrapping="Wrap" Margin="2,0"/>
+          <Grid x:Name="GpuCharts" ColumnSpacing="8" RowSpacing="8" Visibility="Collapsed"/>
+          <Border x:Name="GpuKvCard"/>
+         </StackPanel>
+        </Grid>
+       </ScrollViewer>
+      </Grid>
+     </Border>
+    </Grid>
+   </Grid>
+
+   <!-- 设置面板 -->
+   <Grid x:Name="SettingsArea" Grid.Row="2" Margin="16,0,16,16" Visibility="Collapsed" ColumnSpacing="16">
+    <Grid.ColumnDefinitions>
+     <ColumnDefinition x:Name="SettingsNavigationColumn" Width="156"/>
+     <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+    <ListView x:Name="SettingsNavigation" SelectionMode="Single" HorizontalContentAlignment="Stretch"
+              SelectionChanged="OnSettingsSelectionChanged">
+     <ListView.ItemContainerTransitions>
+      <TransitionCollection/>
+     </ListView.ItemContainerTransitions>
+    </ListView>
+    <Grid Grid.Column="1">
+     <ContentControl x:Name="SettingsHost" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+     <ProgressBar x:Name="SettingsLoadingBar" Height="2" VerticalAlignment="Top" Margin="0"
+         Foreground="{ThemeResource VmAccentBrush}" Background="Transparent" Visibility="Collapsed" IsHitTestVisible="False"/>
+    </Grid>
+   </Grid>
+
+   <feedback:FloatingSuccessToast x:Name="OverlaySuccessToast" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                                MaxWidth="780" Margin="20,0,20,18" Visibility="Collapsed"/>
+   <feedback:FloatingNoticeBanner x:Name="DashboardNoticeBanner" Grid.Row="2" HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+                                MaxWidth="780" Margin="20,0,20,16" Visibility="Collapsed" Closed="OnErrorClosed"/>
+  </Grid>
+ </Border>
+</UserControl>

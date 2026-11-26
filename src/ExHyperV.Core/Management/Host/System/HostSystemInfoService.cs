@@ -1,3 +1,5 @@
+using ExHyperV.Tools;
+using System.Runtime.InteropServices;
 using System.Management;
 
 namespace ExHyperV.Services
@@ -31,6 +33,43 @@ namespace ExHyperV.Services
         /// <returns>格式化后的宿主物理处理器型号显示文本；不可用时返回回退文本。</returns>
         public static Task<string> GetProcessorDisplayNameAsync() => CachedProcessorDisplayName.Value;
 
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct MemoryStatusEx
+        {
+            public uint dwLength;
+            public uint dwMemoryLoad;
+            public ulong ullTotalPhys;
+            public ulong ullAvailPhys;
+            public ulong ullTotalPageFile;
+            public ulong ullAvailPageFile;
+            public ulong ullTotalVirtual;
+            public ulong ullAvailVirtual;
+            public ulong ullAvailExtendedVirtual;
+        }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GlobalMemoryStatusEx(ref MemoryStatusEx lpBuffer);
+
+        /// <summary>读取宿主可用和总物理内存（MiB），采样失败时返回 null。</summary>
+        /// <returns>可用及总物理内存（MiB），读取失败时为 null。</returns>
+        public static (long AvailableMiB, long TotalMiB)? TryReadHostMemoryMiB()
+        {
+            try
+            {
+                var status = new MemoryStatusEx { dwLength = (uint)Marshal.SizeOf<MemoryStatusEx>() };
+                if (!GlobalMemoryStatusEx(ref status) || status.ullTotalPhys == 0)
+                    return null;
+
+                const ulong mib = 1024UL * 1024UL;
+                return ((long)(status.ullAvailPhys / mib), (long)(status.ullTotalPhys / mib));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private static SystemInfo GetSystemInfo()
         {
             string osCaption = "N/A";
@@ -54,7 +93,7 @@ namespace ExHyperV.Services
                     break;
                 }
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("OsInfoReadFailed", error: diagnosticError); }
 
             // CPU 信息
             try
@@ -85,7 +124,7 @@ namespace ExHyperV.Services
                         : $"{name}{speedSuffix}";
                 }
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("ProcessorInfoReadFailed", error: diagnosticError); }
 
             // 内存信息
             try
@@ -104,7 +143,7 @@ namespace ExHyperV.Services
                 if (totalGb > 0)
                     memoryInfo = $"{Math.Round(totalGb, 2).ToString(System.Globalization.CultureInfo.InvariantCulture)} GB";
             }
-            catch { }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("MemoryInfoReadFailed", error: diagnosticError); }
 
             return new SystemInfo(osCaption, osArch, cpuInfo, memoryInfo);
         }

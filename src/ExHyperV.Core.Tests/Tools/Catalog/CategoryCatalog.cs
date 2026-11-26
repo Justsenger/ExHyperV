@@ -42,7 +42,7 @@ internal sealed class CategoryCatalog
 
     private static JsonDocument ReadDocumentation(string core)
     {
-        string model = Path.GetFullPath(Path.Combine(core, "../../doc/api/API.json"));
+        string model = Path.GetFullPath(Path.Combine(core, "Contracts/API.json"));
         var data = JsonDocument.Parse(File.ReadAllText(model));
         if (data.RootElement.GetProperty("schemaVersion").GetInt32() != 1)
         {

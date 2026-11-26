@@ -112,7 +112,7 @@ internal static class Win32Api
     // ── PnP 设备枚举 ─────────────────────────────────────────────
 
     /// <summary>枚举 PnP 设备身份、状态和位置路径，包含可识别的历史节点。</summary>
-    /// <returns>设备快照列表；调用方需根据 IsPresent、设备类别等筛选。</returns>
+    /// <returns>设备信息列表，调用方需根据 IsPresent、设备类别等筛选。</returns>
     public static List<PciDeviceInfo> GetAllDevices()
     {
         var sw = Stopwatch.StartNew();
@@ -142,13 +142,13 @@ internal static class Win32Api
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[Win32Api.GetAllDevices] Win32_PnPEntity failed: {ex.Message}");
+            CoreDiagnostics.Report("PnpEntityQueryFailed", error: ex);
         }
-        Debug.WriteLine($"[Win32Api.GetAllDevices] Win32_PnPEntity: {pnpEntityMap.Count} ({sw.ElapsedMilliseconds}ms)");
+        CoreDiagnostics.Report("PnpEntitiesRead", TraceEventType.Verbose, details: $"count={pnpEntityMap.Count} elapsedMs={sw.ElapsedMilliseconds}");
 
         // CM_Get_Device_ID_List：FILTER_NONE 枚举所有设备（含分配给VM的Unknown设备）
         var allIds = GetDeviceIdList(NativeMethods.CM_GETIDLIST_FILTER_NONE);
-        Debug.WriteLine($"[Win32Api.GetAllDevices] CM all devices: {allIds.Count} ({sw.ElapsedMilliseconds}ms)");
+        CoreDiagnostics.Report("DeviceNodesEnumerated", TraceEventType.Verbose, details: $"count={allIds.Count} elapsedMs={sw.ElapsedMilliseconds}");
 
         // 并行查每个设备属性
         var results = allIds.AsParallel().Select(instanceId =>
@@ -170,7 +170,7 @@ internal static class Win32Api
             }
             if (lcr != NativeMethods.CR_SUCCESS)
             {
-                Debug.WriteLine($"[Win32Api.GetAllDevices] CM_Locate_DevNode failed '{instanceId}' cr={lcr}");
+                CoreDiagnostics.Report("LocateDeviceNodeFailed", details: $"configRet={lcr}");
                 return null;
             }
 
@@ -234,7 +234,7 @@ internal static class Win32Api
             };
         }).Where(x => x != null).Cast<PciDeviceInfo>().ToList();
 
-        Debug.WriteLine($"[Win32Api.GetAllDevices] Done. {results.Count} ({sw.ElapsedMilliseconds}ms)");
+        CoreDiagnostics.Report("DevicesMapped", TraceEventType.Verbose, details: $"count={results.Count} elapsedMs={sw.ElapsedMilliseconds}");
         return results;
     }
 
@@ -352,7 +352,7 @@ internal static class Win32Api
     /// <param name="filePath">保存目标完整路径；若已有文件会先尝试删除。</param>
     public static ApiResponse SaveHive(string subKeyName, string filePath)
     {
-        try { if (File.Exists(filePath)) File.Delete(filePath); } catch { }
+        try { if (File.Exists(filePath)) File.Delete(filePath); } catch (Exception diagnosticError) { CoreDiagnostics.Report("PreviousHiveRemovalFailed", error: diagnosticError); }
         int openRet = NativeMethods.RegOpenKeyEx(NativeMethods.HKEY_LOCAL_MACHINE, subKeyName, 0, (int)NativeMethods.KEY_READ, out nint hKey);
         if (openRet != 0) return ApiResponse.Fail($"RegOpenKeyEx failed: {subKeyName}", openRet, ApiErrorSource.Win32);
         try
@@ -425,7 +425,7 @@ internal static class Win32Api
     public static bool CloseHandle(nint handle) => NativeMethods.CloseHandle(handle);
 }
 
-/// <summary>Windows PnP 枚举得到的设备快照；除 PCI 设备外也可能包含其他设备节点。</summary>
+/// <summary>Windows PnP 枚举得到的设备信息，除 PCI 设备外也可能包含其他设备节点。</summary>
 internal class PciDeviceInfo
 {
     /// <summary>完整 PnP 设备实例 ID，用于设备身份匹配。</summary>

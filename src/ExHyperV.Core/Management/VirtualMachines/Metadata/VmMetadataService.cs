@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 using ExHyperV.Tools;
@@ -30,6 +31,10 @@ public static partial class VmMetadataService
     /// <summary>处理器亲和性的键名。新保存使用 Version=2 的 JSON，包含 Backend、LogicalProcessors、HostFingerprint 和 TopologyFingerprint；后两项为宿主 UUID 和编号拓扑的摘要。旧数组与版本 1 记录保留可读，但非空旧选择需要重新保存。空集合表示不限制。</summary>
     /// <metadatakey purpose="CPU 亲和性配置">JSON 文本，记录所选处理器、使用的后端、宿主及处理器拓扑标识。</metadatakey>
     public const string CpuAffinityKey = "ExHyperV.CpuAffinity";
+
+    /// <summary>已部署显卡驱动版本的键名；保存以规范化宿主显卡实例 ID 为键、已写入来宾的驱动版本为值的 JSON 字典。</summary>
+    /// <metadatakey purpose="GPU 驱动版本记录">JSON 字典，键为规范化宿主显卡实例 ID，值为最近一次由工具成功部署到来宾系统的驱动版本。</metadatakey>
+    public const string GpuDriversKey = "ExHyperV.GpuDrivers";
 
     internal const string ComponentId = "2A34B1C2-FD73-4043-8A5B-DD2159BC743F";
     private const string ComponentClass = "Msvm_KvpExchangeComponentSettingData";
@@ -75,7 +80,8 @@ public static partial class VmMetadataService
     /// <remarks>按键新增或覆盖。同一键的并发修改以系统接受的写入为准；失败后重新读取。容量上限由 VMMS 校验。</remarks>
     /// <editentry label="写入自定义数据" category="自定义数据"/>
     public static Task<ApiResponse> SetAsync(Guid vmId, string key, string value)
-        => WriteAsync(vmId, key, value, remove: false);
+        => key == GpuDriversKey ? VmSettingsWriteLock.RunAsync(vmId, () => WriteAsync(vmId, key, value, false))
+            : WriteAsync(vmId, key, value, false);
 
     /// <summary>删除指定 HostOnlyItems 键；键已不存在时直接成功。</summary>
     /// <param name="vmId">目标虚拟机的标识。</param>
@@ -83,7 +89,76 @@ public static partial class VmMetadataService
     /// <returns>指定键不存在时成功；查询或删除失败返回失败，不清理其他键。</returns>
     /// <editentry label="删除自定义数据" category="自定义数据"/>
     public static Task<ApiResponse> RemoveAsync(Guid vmId, string key)
-        => WriteAsync(vmId, key, string.Empty, remove: true);
+        => key == GpuDriversKey ? VmSettingsWriteLock.RunAsync(vmId, () => WriteAsync(vmId, key, string.Empty, true))
+            : WriteAsync(vmId, key, string.Empty, true);
+
+    internal static Dictionary<string, string> ParseGpuDriversMap(IReadOnlyDictionary<string, string>? metadata)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (metadata == null || !metadata.TryGetValue(GpuDriversKey, out string? raw)) return map;
+        using var document = JsonDocument.Parse(raw);
+        if (document.RootElement.ValueKind != JsonValueKind.Object) throw new InvalidDataException(GpuDriversKey);
+        foreach (var entry in document.RootElement.EnumerateObject())
+        {
+            string key = NormalizeGpuDriverKey(entry.Name);
+            if (key.Length == 0 || entry.Value.ValueKind != JsonValueKind.String
+                || string.IsNullOrWhiteSpace(entry.Value.GetString()) || !map.TryAdd(key, entry.Value.GetString()!.Trim()))
+                throw new InvalidDataException("无效或重复的 GPU 驱动版本记录。");
+        }
+        return map;
+    }
+
+    internal static string NormalizeGpuDriverKey(string instanceId)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId)) return string.Empty;
+        string normalized = instanceId.Trim().ToUpperInvariant();
+        if (normalized.StartsWith(@"\\?\", StringComparison.Ordinal)) normalized = normalized[4..];
+        int suffix = normalized.IndexOf("#{", StringComparison.Ordinal);
+        if (suffix >= 0) normalized = normalized[..suffix];
+        return normalized.Replace('\\', '#').Replace("#", string.Empty, StringComparison.Ordinal);
+    }
+
+    internal static Task<ApiResponse> UpsertGpuDriverVersionsAsync(Guid vmId, IEnumerable<(string InstanceId, string DriverVersion)> updates)
+    {
+        var snapshot = updates.ToArray();
+        return VmSettingsWriteLock.RunAsync(vmId, () => UpsertUnderLockAsync(vmId, snapshot));
+    }
+
+    private static async Task<ApiResponse> UpsertUnderLockAsync(Guid vmId, (string InstanceId, string DriverVersion)[] updates)
+    {
+        var current = await ReadAsync(vmId).ConfigureAwait(false);
+        if (!current.HasData) return ApiResponse.Fail(current.Error, current.Code, current.ErrorSource, current.Exception, current.ErrorKind);
+        var map = ParseGpuDriversMap(current.Data);
+        bool changed = false;
+        foreach (var (instanceId, driverVersion) in updates)
+        {
+            string key = NormalizeGpuDriverKey(instanceId);
+            if (string.IsNullOrEmpty(key) || string.IsNullOrWhiteSpace(driverVersion)) continue;
+            string cleanVer = driverVersion.Trim();
+            if (!map.TryGetValue(key, out string? prev) || !string.Equals(prev, cleanVer, StringComparison.OrdinalIgnoreCase))
+            {
+                map[key] = cleanVer;
+                changed = true;
+            }
+        }
+        if (!changed) return ApiResponse.Ok();
+        return await WriteAsync(vmId, GpuDriversKey, JsonSerializer.Serialize(map, CoreJson.Default.DictionaryStringString), false).ConfigureAwait(false);
+    }
+
+    internal static async Task<ApiResponse> RemoveGpuDriverVersionUnderLockAsync(Guid vmId, string instanceId)
+    {
+        HostResourceLock.AssertHeld(VmSettingsWriteLock.Resource(vmId));
+        string key = NormalizeGpuDriverKey(instanceId);
+        if (string.IsNullOrEmpty(key)) return ApiResponse.Ok();
+        var current = await ReadAsync(vmId).ConfigureAwait(false);
+        if (!current.HasData) return ApiResponse.Fail(current.Error, current.Code, current.ErrorSource, current.Exception, current.ErrorKind);
+        if (!current.Data.ContainsKey(GpuDriversKey)) return ApiResponse.Ok();
+        var map = ParseGpuDriversMap(current.Data);
+        if (!map.Remove(key)) return ApiResponse.Ok();
+        return map.Count == 0
+            ? await WriteAsync(vmId, GpuDriversKey, string.Empty, true).ConfigureAwait(false)
+            : await WriteAsync(vmId, GpuDriversKey, JsonSerializer.Serialize(map, CoreJson.Default.DictionaryStringString), false).ConfigureAwait(false);
+    }
 
     private static async Task<ApiResponse> WriteAsync(Guid vmId, string key, string value, bool remove)
     {
@@ -116,14 +191,14 @@ public static partial class VmMetadataService
         if (!result.Success) return result;
 
         var saved = await ReadAsync(vmId).ConfigureAwait(false);
-        if (!saved.HasData) return ApiResponse.Fail(saved.Error, saved.Code, saved.ErrorSource, saved.Exception, saved.ErrorKind);
+        if (!saved.HasData) return ApiResponse.Fail(saved.Error, saved.Code, saved.ErrorSource, saved.Exception, ApiErrorKind.OutcomeUnknown);
         bool remains = saved.Data.TryGetValue(key, out string? actual);
         return (remove ? !remains : remains && string.Equals(actual, value, StringComparison.Ordinal))
             ? ApiResponse.Ok()
-            : ApiResponse.Fail("VMMS 提交后回读的元数据与请求不一致，请重新读取虚拟机配置。");
+            : ApiResponse.Fail("VMMS 提交后回读的元数据与请求不一致，请重新读取虚拟机配置。", kind: ApiErrorKind.Conflict);
     }
 
-    // 列表查询一次读取全部组件，由当前已实现配置的 InstanceID 选择对应组件，排除检查点配置。
+    // 列表查询一次读取全部组件，由当前已实现配置的 InstanceID 选择对应组件，排除快照配置。
     internal static Task<ApiResponse<List<(string Id, string[] Items)>>> ReadAllAsync()
         => WmiApi.QueryAsync(
             $"SELECT InstanceID, HostOnlyItems FROM {ComponentClass}",

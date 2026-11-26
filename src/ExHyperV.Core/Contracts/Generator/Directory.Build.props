@@ -1,0 +1,7 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)../../../Directory.Build.props" />
+  <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)../../../../.cache/api-documentation/generator</ArtifactsPath>
+  </PropertyGroup>
+</Project>

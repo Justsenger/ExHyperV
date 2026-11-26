@@ -14,17 +14,17 @@ $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
 $projectDirectory = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $repo = [IO.Path]::GetFullPath((Join-Path $projectDirectory '../..'))
-$artifactRoot = Join-Path $repo '.artifacts/1x/core-tests'
+$artifactRoot = Join-Path $repo '.cache/1x/core-tests'
 $buildRoot = Join-Path $artifactRoot "build/$Runtime"
 $runId = (Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)
 $results = Join-Path $artifactRoot "results/$Runtime/$runId"
 $null = New-Item -ItemType Directory -Path $results -Force
 
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
-if (!(Test-Path -LiteralPath $vswhere)) { throw 'Install Visual Studio 2026 / Build Tools with the .NET desktop workload (Core has a COM reference).' }
-$msbuild = @(& $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -find 'MSBuild\Current\Bin\MSBuild.exe') | Select-Object -First 1
-if (!$msbuild) { throw 'Visual Studio 2026 MSBuild was not found. dotnet build cannot resolve the Core IMAPI2FS COM reference.' }
 $dotnet = (Get-Command dotnet -ErrorAction Stop).Source
+$msbuild = if (Test-Path -LiteralPath $vswhere) {
+    & $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -find 'MSBuild\Current\Bin\MSBuild.exe' | Select-Object -First 1
+}
 
 # Check the maintained test plan against the current public API before building.
 & $dotnet run --project (Join-Path $projectDirectory 'Tools/Catalog') -- --audit-tests $repo
@@ -40,7 +40,7 @@ try {
     $env:EXHYPERV_TEST_WINDOWS = if ($Suite -eq 'Regression') { '0' } else { '1' }
     Push-Location $projectDirectory
     try {
-        # VS MSBuild handles COM; isolated artifacts avoid the application build's obj/bin.
+        # Isolated artifacts avoid the application build's obj/bin.
         $buildArguments = @(
             'ExHyperV.Core.Tests.csproj', '/restore', '/t:Build', '/nologo', '/nr:false',
             '/p:Configuration=Release', "/p:RuntimeIdentifier=$Runtime",
@@ -48,7 +48,7 @@ try {
             '/clp:ErrorsOnly;Summary', "/flp:LogFile=$results/build.log;Verbosity=normal"
         )
         if ($LockedRestore) { $buildArguments += '/p:RestoreLockedMode=true' }
-        & $msbuild @buildArguments
+        if ($msbuild) { & $msbuild @buildArguments } else { & $dotnet msbuild @buildArguments }
         if ($LASTEXITCODE -ne 0) { throw "Core test build failed ($LASTEXITCODE). Log: $results/build.log" }
 
         $module = Join-Path $buildRoot "bin/ExHyperV.Core.Tests/release_$Runtime/ExHyperV.Core.Tests.exe"

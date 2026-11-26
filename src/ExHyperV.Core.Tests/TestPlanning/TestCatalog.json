@@ -36,7 +36,7 @@
       "media"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "文件写入使用测试副本；保存结果后清理本轮文件、挂载和句柄。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
@@ -56,7 +56,7 @@
       "physical"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "仅使用第一步选定的专用磁盘；记录并恢复脱机、只读、盘符和挂接状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
@@ -791,6 +791,21 @@
     "operation": "读取指定虚拟机当前配置的全部 宿主元数据"
   },
   {
+    "id": "contract.vmprocessorservice.gethostmaxvirtualcpucountasync",
+    "api": "VmProcessorService.GetHostMaxVirtualCpuCountAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 处理器",
+    "name": "查询二代机处理器上限",
+    "expected": "与唯一的宿主最大配置记录一致，无法确认时返回 null",
+    "requirements": [
+      "vm"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "查询二代机处理器上限"
+  },
+  {
     "id": "T-9d4d40cea9ce96a0-1",
     "api": "VmProcessorService.GetVmProcessorAsync()",
     "group": "管理层面 / 虚拟机 / 查询 / 处理器",
@@ -878,6 +893,70 @@
     ],
     "order": 11,
     "operation": "读取虚拟机内存设置"
+  },
+  {
+    "id": "contract.vmstorageservice.getpassthroughcandidatesasync",
+    "api": "VmStorageService.GetPassthroughCandidatesAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 存储",
+    "name": "枚举直通候选",
+    "expected": "宿主物理盘编号集合一致，每条记录仅标识一种设备",
+    "requirements": [
+      "vm",
+      "hyperv"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "枚举直通候选"
+  },
+  {
+    "id": "contract.vmstorageservice.inspectdiskasync",
+    "api": "VmStorageService.InspectDiskAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 存储",
+    "name": "检查已挂接测试盘",
+    "expected": "关机独占动态盘状态正常且允许扩展",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "检查已挂接测试盘"
+  },
+  {
+    "id": "contract.vmstorageservice.inspectdifferencingchainasync",
+    "api": "VmStorageService.InspectDifferencingChainAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 存储",
+    "name": "检查测试差分链",
+    "expected": "完整链依次列出已建立的叶盘和父盘路径",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "检查测试差分链"
+  },
+  {
+    "id": "contract.vmstorageservice.inspectresizesafetyasync",
+    "api": "VmStorageService.InspectResizeSafetyAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 存储",
+    "name": "读取容量调整边界",
+    "expected": "64 MiB 测试盘允许扩展，没有整 GiB 收缩空间",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "读取容量调整边界"
   },
   {
     "id": "T-173f032235ecbf39-1",
@@ -980,6 +1059,45 @@
     "operation": "从已有来源中选择地址：宿主已嗅探到的值优先"
   },
   {
+    "id": "contract.vmnetworkadapter.clone",
+    "api": "VmNetworkAdapter.Clone()",
+    "group": "管理层面 / 虚拟机 / 查询 / 网络",
+    "name": "复制网卡配置",
+    "expected": "标量一致，修改副本的三个列表不影响原配置",
+    "requirements": [
+      "inputs"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "复制网卡配置"
+  },
+  {
+    "id": "contract.vmnetworkservice.getswitchiovcapacitiesasync",
+    "api": "VmNetworkService.GetSwitchIovCapacitiesAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 网络",
+    "name": "读取 VF 容量",
+    "expected": "交换机 GUID 和 VF 容量与 WMI 独立清单一致",
+    "requirements": [
+      "hyperv"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "读取 VF 容量"
+  },
+  {
+    "id": "contract.vmnetworkservice.normalizestaticmac",
+    "api": "VmNetworkService.NormalizeStaticMac()",
+    "group": "管理层面 / 虚拟机 / 查询 / 网络",
+    "name": "规范化静态 MAC",
+    "expected": "合法地址返回大写十二位文本，非法字符返回 null",
+    "requirements": [
+      "inputs"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "规范化静态 MAC"
+  },
+  {
     "id": "T-89e195f5d054408b-1",
     "api": "VmNetworkService.GetNetworkAdaptersAsync()",
     "group": "管理层面 / 虚拟机 / 查询 / 网络",
@@ -1025,7 +1143,7 @@
       "vm"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 9,
@@ -1059,7 +1177,7 @@
       "vmcx"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "文件写入使用测试副本；保存结果后清理本轮文件、挂载和句柄。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
@@ -1137,6 +1255,21 @@
     ],
     "order": 11,
     "operation": "读取第一代 BIOS 或第二代固件的启动设备顺序"
+  },
+  {
+    "id": "contract.vmsecurityservice.getvtpmstateasync",
+    "api": "VmSecurityService.GetVtpmStateAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 安全",
+    "name": "查询虚拟 TPM 安全快照",
+    "expected": "TPM 与屏蔽开关和系统安全配置一致",
+    "requirements": [
+      "vm"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "查询虚拟 TPM 安全快照"
   },
   {
     "id": "T-504aacd0165dca21-1",
@@ -1246,9 +1379,9 @@
   },
   {
     "id": "T-e6fea5a9ae34fed0-1",
-    "api": "VmSpacetimeService.GetCheckpointsEnabledAsync()",
-    "group": "管理层面 / 虚拟机 / 查询 / 检查点",
-    "name": "读取并核对：普通虚拟机的检查点设置或树结构",
+    "api": "VmCheckpointService.GetCheckpointsEnabledAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 快照",
+    "name": "读取并核对：普通虚拟机的快照设置或树结构",
     "expected": "逐字段与独立读取系统 WMI的同一对象记录相等，身份按稳定 ID 对齐",
     "requirements": [
       "hyperv",
@@ -1259,13 +1392,13 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 9,
-    "operation": "读取虚拟机检查点是否启用"
+    "operation": "读取虚拟机快照是否启用"
   },
   {
     "id": "T-18886ae2be628ce1-1",
-    "api": "VmSpacetimeService.GetSpacetimeNodesAsync()",
-    "group": "管理层面 / 虚拟机 / 查询 / 检查点",
-    "name": "读取并核对：普通虚拟机的检查点设置或树结构",
+    "api": "VmCheckpointService.GetCheckpointNodesAsync()",
+    "group": "管理层面 / 虚拟机 / 查询 / 快照",
+    "name": "读取并核对：普通虚拟机的快照设置或树结构",
     "expected": "逐字段与独立读取系统 WMI的同一对象记录相等，身份按稳定 ID 对齐",
     "requirements": [
       "hyperv",
@@ -1278,7 +1411,7 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 14,
-    "operation": "读取检查点树、当前状态和历史磁盘挂接信息"
+    "operation": "读取快照树、当前状态和历史磁盘挂接信息"
   },
   {
     "id": "T-d40cf06a5ccf520f-1",
@@ -1309,7 +1442,7 @@
     "api": "VmNetworkService.AddNetworkAdapterAsync()",
     "group": "管理层面 / 虚拟机 / 修改 / 网络",
     "name": "向空网卡虚拟机添加适用类型网卡",
-    "expected": "新增唯一设备，默认字段和虚拟机关联正确",
+    "expected": "新增唯一设备，默认字段和虚拟机关联正确。参数化重载创建的第二张网卡保持断开并回读指定静态 MAC。",
     "requirements": [
       "hyperv",
       "vm"
@@ -3436,6 +3569,134 @@
     "order": 0
   },
   {
+    "id": "contract.vmstorageservice.resizevirtualdiskasync",
+    "api": "VmStorageService.ResizeVirtualDiskAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "扩展专属磁盘",
+    "expected": "系统回读容量为 1 GiB",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "扩展专属磁盘"
+  },
+  {
+    "id": "contract.vmstorageservice.modifydriveslotasync",
+    "api": "VmStorageService.ModifyDriveSlotAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "迁移 SCSI 槽位",
+    "expected": "系统清单中的测试硬盘位于目标槽位 8",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "迁移 SCSI 槽位"
+  },
+  {
+    "id": "contract.vmstorageservice.deleteattachedmediafileasync",
+    "api": "VmStorageService.DeleteAttachedMediaFileAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "删除专属测试介质",
+    "expected": "路径和对应硬盘挂接均已消失",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "删除专属测试介质"
+  },
+  {
+    "id": "contract.vmstorageservice.convertvirtualdisktypeasync",
+    "api": "VmStorageService.ConvertVirtualDiskTypeAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "转换专属磁盘类型",
+    "expected": "系统确认新挂接为固定盘，原文件保留",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "转换专属磁盘类型"
+  },
+  {
+    "id": "contract.vmstorageservice.upgradevhdtovhdxasync",
+    "api": "VmStorageService.UpgradeVhdToVhdxAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "转换专属 VHD",
+    "expected": "系统确认同名 VHDX 已挂接，原 VHD 保留",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "转换专属 VHD"
+  },
+  {
+    "id": "contract.vmstorageservice.reconnectparentdiskasync",
+    "api": "VmStorageService.ReconnectParentDiskAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "重连到同身份父盘副本",
+    "expected": "Get-VHD 回读叶盘指向父盘副本",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "重连到同身份父盘副本"
+  },
+  {
+    "id": "contract.vmstorageservice.exportdifferencingdiskasync",
+    "api": "VmStorageService.ExportDifferencingDiskAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "导出独立磁盘",
+    "expected": "导出盘无父盘、容量一致，原叶盘仍挂接",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "导出独立磁盘"
+  },
+  {
+    "id": "contract.vmstorageservice.mergedifferencingdiskasync",
+    "api": "VmStorageService.MergeDifferencingDiskAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 存储",
+    "name": "合并专属两层链",
+    "expected": "系统确认挂接更新到父盘，已消费的叶盘清理完毕",
+    "requirements": [
+      "vm",
+      "media"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "合并专属两层链"
+  },
+  {
     "id": "T-87444f817bed9ba9-1",
     "api": "VmStorageService.GetMediaPathError()",
     "group": "管理层面 / 虚拟机 / 修改 / 存储",
@@ -3824,7 +4085,7 @@
     "api": "GpuDeploymentSession.构造()",
     "group": "管理层面 / 虚拟机 / 修改 / GPU",
     "name": "以固定目标和每个支持的模式建立对象",
-    "expected": "初始目标、步骤和模式正确；仅构造阶段保持实际资源原状态",
+    "expected": "初始目标、步骤和模式正确；仅构造阶段保持实际资源原状态。多卡重载同样从 Created 开始。",
     "requirements": [
       "inputs",
       "lifecycle"
@@ -3848,17 +4109,6 @@
     "operation": "读取显卡部署进度"
   },
   {
-    "id": "T-64b688add0b0794e-1",
-    "api": "LinuxGpuDeploymentScript.ToString()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "固定脚本名称与说明",
-    "expected": "文本使用声明的显示字段",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "取得脚本的显示名称"
-  },
-  {
     "id": "api.gpu-select",
     "api": "VmGpuRepairService.StaleGpuPartition.SelectCandidate()",
     "group": "管理层面 / 虚拟机 / 修改 / GPU",
@@ -3872,19 +4122,6 @@
     "order": 0
   },
   {
-    "id": "T-369e7cd15ebcac51-1",
-    "api": "VmGpuService.GetAvailableScriptsAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "有效在线索引及受控网络失败",
-    "expected": "有效索引解析出预期脚本清单；失败按入口约定返回空清单并保留测试证据",
-    "requirements": [
-      "internet"
-    ],
-    "recovery": [],
-    "order": 3,
-    "operation": "从在线索引读取可选 Linux GPU 部署脚本"
-  },
-  {
     "id": "T-0f3fa40d86861ea2-1",
     "api": "GpuDeploymentSession.RequestCancellation()",
     "group": "管理层面 / 虚拟机 / 修改 / GPU",
@@ -3895,7 +4132,7 @@
       "lifecycle"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。"
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。"
     ],
     "order": 8,
     "operation": "仅发送协作式取消请求"
@@ -3911,7 +4148,7 @@
       "gpupv"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 11,
@@ -3931,7 +4168,7 @@
     ],
     "recovery": [
       "使用当前账户；仅备份并恢复本轮涉及的 MMIO 缓存字段，其余配置保留当前值。",
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 13,
@@ -3948,7 +4185,7 @@
       "vmcx"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "文件写入使用测试副本；保存结果后清理本轮文件、挂载和句柄。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
@@ -3968,7 +4205,7 @@
       "gpupv"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 19,
@@ -3987,7 +4224,7 @@
       "gpupv"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 19,
@@ -4004,7 +4241,7 @@
       "lifecycle"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 30,
@@ -4021,7 +4258,7 @@
       "lifecycle"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 30,
@@ -4044,53 +4281,6 @@
     "order": 40
   },
   {
-    "id": "T-d053e61d72713b5a-1",
-    "api": "VmGpuService.ProvisionLinuxGpuAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "具备 SSH 和依赖的 Linux 完整副本执行脚本",
-    "expected": "脚本退出结果明确，副本重启后 Core 取得真实 GPU 性能采样",
-    "requirements": [
-      "hyperv",
-      "vm",
-      "gpupv",
-      "driver",
-      "ssh",
-      "internet",
-      "template",
-      "counters",
-      "config"
-    ],
-    "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 44,
-    "operation": "部署 Linux 显卡驱动"
-  },
-  {
-    "id": "T-d053e61d72713b5a-2",
-    "api": "VmGpuService.ProvisionLinuxGpuAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / GPU",
-    "name": "SSH 登录失败",
-    "expected": "在 Linux 完整副本上使用错误密码请求部署，返回失败结果；副本随后清理。",
-    "requirements": [
-      "hyperv",
-      "vm",
-      "gpupv",
-      "driver",
-      "ssh",
-      "internet",
-      "template",
-      "counters"
-    ],
-    "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
-      "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
-    ],
-    "order": 44,
-    "operation": "部署 Linux 显卡驱动"
-  },
-  {
     "id": "T-126f66d78af91bcd-1",
     "api": "VmGpuService.SyncWindowsDriversAsync()",
     "group": "管理层面 / 虚拟机 / 修改 / GPU",
@@ -4105,7 +4295,7 @@
       "config"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 50,
@@ -4126,7 +4316,7 @@
       "config"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 50,
@@ -4143,7 +4333,7 @@
       "lifecycle"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 56,
@@ -4160,7 +4350,7 @@
       "lifecycle"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 56,
@@ -4177,7 +4367,7 @@
       "lifecycle"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 56,
@@ -4194,7 +4384,7 @@
       "lifecycle"
     ],
     "recovery": [
-      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除检查点与差分链。物理盘分支单独核验选定设备及原状态。",
+      "GPU 写入在完整虚拟机副本和完整独立磁盘上进行；模板保留。结果保存后删除副本，GPU 路径排除快照与差分链。物理盘分支单独核验选定设备及原状态。",
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 56,
@@ -4555,6 +4745,21 @@
     "operation": "校验串口命名管道路径格式"
   },
   {
+    "id": "contract.vmserialportservice.setportsettingsasync",
+    "api": "VmSerialPortService.SetPortSettingsAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 串口",
+    "name": "提交串口路径并保留调试模式",
+    "expected": "COM1 回读为指定管道，调试开关保留",
+    "requirements": [
+      "vm"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "提交串口路径并保留调试模式"
+  },
+  {
     "id": "T-serial-pipe-1",
     "api": "VmSerialPortService.SetPipePathAsync()",
     "group": "管理层面 / 虚拟机 / 修改 / 串口",
@@ -4747,6 +4952,98 @@
     "recovery": [],
     "order": 10010,
     "operation": "验证 VmBootService.GetNumLockModificationCondition"
+  },
+  {
+    "id": "contract.vmsecurityservice.exportlocalguardianasync",
+    "api": "VmSecurityService.ExportLocalGuardianAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 安全",
+    "name": "导出已登记宿主的公钥",
+    "expected": "测试目录中的 CER 不含私钥，指纹与本机 Guardian 一致",
+    "requirements": [
+      "vm",
+      "files"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "导出已登记宿主的公钥"
+  },
+  {
+    "id": "contract.vmsecurityservice.granthostaccessasync",
+    "api": "VmSecurityService.GrantHostAccessAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 安全",
+    "name": "重复授予本机 Guardian",
+    "expected": "使用已登记的本机证书时原保护器字节保持一致",
+    "requirements": [
+      "vm",
+      "files"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "重复授予本机 Guardian"
+  },
+  {
+    "id": "contract.vmsecurityservice.reissuelocalkeyprotectorasync",
+    "api": "VmSecurityService.ReissueLocalKeyProtectorAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 安全",
+    "name": "签发专属虚拟机保护器",
+    "expected": "系统回读非空且授权列表包含本机",
+    "requirements": [
+      "vm"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "签发专属虚拟机保护器"
+  },
+  {
+    "id": "contract.vmsecurityservice.restorepreviouskeyprotectorasync",
+    "api": "VmSecurityService.RestorePreviousKeyProtectorAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 安全",
+    "name": "恢复上一版保护器",
+    "expected": "两次签发后还原，保护器字节与首次签发一致",
+    "requirements": [
+      "vm"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "恢复上一版保护器"
+  },
+  {
+    "id": "contract.vmsecurityservice.revokehostaccessasync",
+    "api": "VmSecurityService.RevokeHostAccessAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 安全",
+    "name": "拒绝撤销保护器所有者",
+    "expected": "所有者的证书对受保护，拒绝后系统密钥未变化",
+    "requirements": [
+      "vm"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "拒绝撤销保护器所有者"
+  },
+  {
+    "id": "contract.vmsecurityservice.setvtpmpolicyasync",
+    "api": "VmSecurityService.SetVtpmPolicyAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 安全",
+    "name": "修改来宾 VBS 策略",
+    "expected": "通过 WMI 独立回读与请求值一致",
+    "requirements": [
+      "vm"
+    ],
+    "recovery": [
+      "按归属记录清理专属虚拟机及工作文件。"
+    ],
+    "order": 1,
+    "operation": "修改来宾 VBS 策略"
   },
   {
     "id": "T-438e700cde99ca50-1",
@@ -5656,43 +5953,54 @@
   },
   {
     "id": "T-b14757a9dfd6ac57-1",
-    "api": "VmSpacetimeService.CanCreateMoment()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
-    "name": "检查点开关与历史挂接组合",
-    "expected": "已启用检查点且没有打开的历史磁盘挂接时返回 true；其余返回 false。",
+    "api": "VmCheckpointService.CanCreateSnapshot()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
+    "name": "快照开关与历史挂接组合",
+    "expected": "已启用快照且没有打开的历史磁盘挂接时返回 true；其余返回 false。",
     "requirements": [],
     "recovery": [],
     "order": 0,
-    "operation": "检查是否允许创建检查点"
+    "operation": "检查是否允许创建快照"
+  },
+  {
+    "id": "T-9d2a15f0b38471ce-1",
+    "api": "VmCheckpointService.CanMergeHistoricalNode()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
+    "name": "单线父子合并与分叉根节点禁用规则",
+    "expected": "仅当目标与父节点均为历史快照、目标为父节点唯一直接子节点且无打开的历史磁盘挂接时返回 true。",
+    "requirements": [],
+    "recovery": [],
+    "order": 0,
+    "operation": "判断历史快照是否允许向左合并到父快照"
   },
   {
     "id": "T-501503fc23323a0a-1",
-    "api": "VmSpacetimeService.CanMutateHistoricalNode()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.CanMutateHistoricalNode()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "历史节点身份与已打开的历史挂接组合",
     "expected": "目标为 Snapshot 且节点集合没有打开的历史挂接时返回 true。",
     "requirements": [],
     "recovery": [],
     "order": 0,
-    "operation": "判断历史检查点是否能执行修改"
+    "operation": "判断历史快照是否能执行修改"
   },
   {
     "id": "T-0c5a1fddbe95fa8c-1",
-    "api": "VmSpacetimeService.CanOperateHistoricalNode()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.CanOperateHistoricalNode()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "空节点、当前节点与历史节点",
     "expected": "仅 NodeType 为 Snapshot 的节点返回 true。",
     "requirements": [],
     "recovery": [],
     "order": 0,
-    "operation": "判断节点是否代表可操作的历史检查点"
+    "operation": "判断节点是否代表可操作的历史快照"
   },
   {
     "id": "T-fe99c3f3519670dc-1",
-    "api": "VmSpacetimeService.HasOpenWormhole()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.HasMountedHistoricalDisk()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "null、空节点集合及含历史挂接的集合",
-    "expected": "存在 IsWormhole=true 的节点时返回 true；其余返回 false。",
+    "expected": "存在 IsHistoricalDiskMounted=true 的节点时返回 true；其余返回 false。",
     "requirements": [],
     "recovery": [],
     "order": 0,
@@ -5700,9 +6008,9 @@
   },
   {
     "id": "T-b4fc23f42b6939a9-1",
-    "api": "VmSpacetimeService.SetCheckpointsEnabledAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
-    "name": "修改普通虚拟机的检查点开关",
+    "api": "VmCheckpointService.SetCheckpointsEnabledAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
+    "name": "修改普通虚拟机的快照开关",
     "expected": "独立读取系统配置，目标字段等于请求值，其他字段保留原值",
     "requirements": [
       "hyperv",
@@ -5713,12 +6021,12 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 9,
-    "operation": "修改虚拟机是否允许使用检查点"
+    "operation": "修改虚拟机是否允许使用快照"
   },
   {
     "id": "T-b4fc23f42b6939a9-2",
-    "api": "VmSpacetimeService.SetCheckpointsEnabledAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.SetCheckpointsEnabledAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "对相同值再次调用",
     "expected": "成功或明确的已达目标结果；对象数量、关联关系保持稳定",
     "requirements": [
@@ -5730,12 +6038,12 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 9,
-    "operation": "修改虚拟机是否允许使用检查点"
+    "operation": "修改虚拟机是否允许使用快照"
   },
   {
     "id": "T-b4fc23f42b6939a9-3",
-    "api": "VmSpacetimeService.SetCheckpointsEnabledAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.SetCheckpointsEnabledAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "目标在调用前已删除",
     "expected": "返回该入口声明的失败结果；其他测试对象保持原值",
     "requirements": [
@@ -5747,12 +6055,12 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 9,
-    "operation": "修改虚拟机是否允许使用检查点"
+    "operation": "修改虚拟机是否允许使用快照"
   },
   {
     "id": "T-4e79f42fbf5e71c0-1",
-    "api": "VmSpacetimeService.AnnihilateAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.DeleteSnapshotAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "删除单个或指定范围的普通虚拟机历史节点",
     "expected": "目标节点消失，保留节点可用，当前虚拟机数据可读",
     "requirements": [
@@ -5765,14 +6073,14 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 14,
-    "operation": "删除检查点历史"
+    "operation": "删除快照历史"
   },
   {
     "id": "T-7325ee4faf5598db-1",
-    "api": "VmSpacetimeService.ConvergeAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.MergeSnapshotAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "合并普通虚拟机的指定历史节点",
-    "expected": "目标历史关系按契约合并，当前磁盘数据哈希保持",
+    "expected": "目标合并到父节点且保留父名称与后续节点，当前磁盘数据哈希保持",
     "requirements": [
       "hyperv",
       "vm",
@@ -5783,13 +6091,13 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 14,
-    "operation": "合并检查点历史"
+    "operation": "合并快照历史"
   },
   {
     "id": "T-46dbcff9303b9cb9-1",
-    "api": "VmSpacetimeService.RenameSnapshotAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
-    "name": "修改指定普通虚拟机检查点名称",
+    "api": "VmCheckpointService.RenameSnapshotAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
+    "name": "修改指定普通虚拟机快照名称",
     "expected": "独立读取系统配置，目标字段等于请求值，其他字段保留原值",
     "requirements": [
       "hyperv",
@@ -5801,12 +6109,12 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 14,
-    "operation": "按检查点 WMI 路径修改其显示名称"
+    "operation": "按快照 WMI 路径修改其显示名称"
   },
   {
     "id": "T-46dbcff9303b9cb9-2",
-    "api": "VmSpacetimeService.RenameSnapshotAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.RenameSnapshotAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "对相同值再次调用",
     "expected": "成功或明确的已达目标结果；对象数量、关联关系保持稳定",
     "requirements": [
@@ -5819,12 +6127,12 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 14,
-    "operation": "按检查点 WMI 路径修改其显示名称"
+    "operation": "按快照 WMI 路径修改其显示名称"
   },
   {
     "id": "T-46dbcff9303b9cb9-3",
-    "api": "VmSpacetimeService.RenameSnapshotAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.RenameSnapshotAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "目标在调用前已删除",
     "expected": "返回该入口声明的失败结果；其他测试对象保持原值",
     "requirements": [
@@ -5837,14 +6145,14 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 14,
-    "operation": "按检查点 WMI 路径修改其显示名称"
+    "operation": "按快照 WMI 路径修改其显示名称"
   },
   {
     "id": "T-16c56d9933208e93-1",
-    "api": "VmSpacetimeService.TeleportAsync(SpacetimeNode node, Guid vmId, IEnumerable<SpacetimeNode>? nodes = null)",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
-    "name": "普通虚拟机检查点前后设置固定文件标记",
-    "expected": "恢复后文件与配置匹配该检查点，树结构正确",
+    "api": "VmCheckpointService.ApplySnapshotAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null)",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
+    "name": "普通虚拟机快照前后设置固定文件标记",
+    "expected": "恢复后文件与配置匹配该快照，树结构正确",
     "requirements": [
       "vm",
       "media",
@@ -5855,14 +6163,14 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 14,
-    "operation": "恢复虚拟机到检查点"
+    "operation": "恢复虚拟机到快照"
   },
   {
     "id": "T-c242c1712e0e6b76-1",
-    "api": "VmSpacetimeService.TeleportAsync(SpacetimeNode node, Guid vmId, IEnumerable<SpacetimeNode>? nodes = null)",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
-    "name": "普通虚拟机检查点前后设置固定文件标记",
-    "expected": "恢复后文件与配置匹配该检查点，树结构正确",
+    "api": "VmCheckpointService.ApplySnapshotAsync(CheckpointNode node, Guid vmId, IEnumerable<CheckpointNode>? nodes = null)",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
+    "name": "普通虚拟机快照前后设置固定文件标记",
+    "expected": "恢复后文件与配置匹配该快照，树结构正确",
     "requirements": [
       "vm",
       "media",
@@ -5873,13 +6181,13 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 14,
-    "operation": "恢复虚拟机到检查点"
+    "operation": "恢复虚拟机到快照"
   },
   {
     "id": "T-49b88f9d897de1e2-1",
-    "api": "VmSpacetimeService.CaptureMomentAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
-    "name": "普通虚拟机分别建立标准与适用的生产检查点",
+    "api": "VmCheckpointService.CreateSnapshotAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
+    "name": "普通虚拟机分别建立标准与适用的生产快照",
     "expected": "系统树新增正确父子节点，磁盘引用正确；GPU 测试副本另走完整复制",
     "requirements": [
       "vm",
@@ -5892,12 +6200,12 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 19,
-    "operation": "创建普通虚拟机检查点"
+    "operation": "创建普通虚拟机快照"
   },
   {
     "id": "T-fa211cadaf1d3105-1",
-    "api": "VmSpacetimeService.CloseWormholeAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.DismountHistoricalDiskAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "关闭本轮创建的历史挂接",
     "expected": "临时挂接与其自有资源清理，历史原盘保留",
     "requirements": [
@@ -5917,8 +6225,8 @@
   },
   {
     "id": "T-166d084ef62fcae7-1",
-    "api": "VmSpacetimeService.OpenWormholeAsync()",
-    "group": "管理层面 / 虚拟机 / 修改 / 检查点",
+    "api": "VmCheckpointService.MountHistoricalDiskAsync()",
+    "group": "管理层面 / 虚拟机 / 修改 / 快照",
     "name": "挂接普通虚拟机的指定历史磁盘",
     "expected": "临时挂接指向对应历史内容，原历史盘内容保持",
     "requirements": [
@@ -6351,7 +6659,7 @@
     "id": "T-b2c764360bd4d4db-1",
     "api": "VmExportService.GetCheckpointsAsync()",
     "group": "管理层面 / 虚拟机 / 实例 / 导出",
-    "name": "读取并核对：检查点身份或磁盘路径集合",
+    "name": "读取并核对：快照身份或磁盘路径集合",
     "expected": "逐字段与独立读取系统 WMI的同一对象记录相等，身份按稳定 ID 对齐",
     "requirements": [
       "hyperv",
@@ -6362,13 +6670,13 @@
       "操作限定于测试自有虚拟机；模板作为复制来源，结束后清理本轮副本。"
     ],
     "order": 9,
-    "operation": "读取指定虚拟机的检查点和父子关系"
+    "operation": "读取指定虚拟机的快照和父子关系"
   },
   {
     "id": "T-6aacddf312b4fbd4-1",
     "api": "VmExportService.GetVirtualHardDisksAsync()",
     "group": "管理层面 / 虚拟机 / 实例 / 导出",
-    "name": "读取并核对：检查点身份或磁盘路径集合",
+    "name": "读取并核对：快照身份或磁盘路径集合",
     "expected": "逐字段与独立读取系统 WMI的同一对象记录相等，身份按稳定 ID 对齐",
     "requirements": [
       "hyperv",
@@ -6385,7 +6693,7 @@
     "id": "T-1c6c574652672a58-1",
     "api": "VmExportService.ExportAsync()",
     "group": "管理层面 / 虚拟机 / 实例 / 导出",
-    "name": "普通虚拟机的完整导出、配置导出、指定检查点导出",
+    "name": "普通虚拟机的完整导出、配置导出、指定快照导出",
     "expected": "目录内容与导出选项一致；源虚拟机和磁盘保持原内容；核对输出路径、操作状态未知标记及保留路径",
     "requirements": [
       "hyperv",
@@ -6421,6 +6729,63 @@
     "operation": "导出虚拟机"
   },
   {
+    "id": "T-26c65804ad30f5f3-1",
+    "api": "VmGenerationUpgradeService.UpgradeToGeneration2Async()",
+    "group": "管理层面 / 虚拟机 / 实例 / 升级",
+    "name": "将专属无硬盘一代虚拟机升级为二代",
+    "expected": "确认原 GUID 注销，新机保持关机、原名原目录、安全启动和 TPM 关闭，硬盘回执为空，原 GUID 重入成功",
+    "requirements": [
+      "hyperv",
+      "hostwrite",
+      "vm",
+      "gen1upgrade"
+    ],
+    "recovery": [
+      "只使用测试程序创建的虚拟机，按确认的 GUID 清理，未决时保留恢复材料。"
+    ],
+    "order": 1,
+    "operation": "直接升级为二代"
+  },
+  {
+    "id": "T-62c4adf495365c46-1",
+    "api": "VmGenerationUpgradeService.UpgradeToGeneration2Async()",
+    "group": "管理层面 / 虚拟机 / 实例 / 升级",
+    "name": "升级仅挂 ISO 的一代虚拟机并启用安全启动",
+    "expected": "逐项核对光驱介质、关机状态、同名同目录及选定的安全启动模板",
+    "requirements": [
+      "hyperv",
+      "hostwrite",
+      "vm",
+      "gen1upgrade",
+      "iso"
+    ],
+    "recovery": [
+      "只使用测试程序创建的虚拟机，按确认的 GUID 清理，未决时保留恢复材料。"
+    ],
+    "order": 1,
+    "operation": "按选项升级为二代"
+  },
+  {
+    "id": "T-26c65804ad30f5f3-2",
+    "api": "VmGenerationUpgradeService.UpgradeToGeneration2Async()",
+    "group": "管理层面 / 虚拟机 / 实例 / 升级",
+    "name": "迁移两块独立 VHD 和一块现有 VHDX",
+    "expected": "IDE 与 SCSI 上的空白 VHD 均转换到正式路径，原 VHDX 文件身份保持一致，提交后只保留正式磁盘",
+    "requirements": [
+      "hyperv",
+      "hostwrite",
+      "vm",
+      "gen1upgrade",
+      "media",
+      "capacity"
+    ],
+    "recovery": [
+      "只使用测试程序创建的虚拟机，按确认的 GUID 清理，未决时保留恢复材料。"
+    ],
+    "order": 2,
+    "operation": "直接升级为二代"
+  },
+  {
     "id": "T-c93daf231c3d1b8f-1",
     "api": "HostSystemInfoService.GetSystemInfoAsync()",
     "group": "管理层面 / 宿主 / 查询 / 基本信息",
@@ -6434,11 +6799,37 @@
     "operation": "获取进程缓存的系统概况"
   },
   {
+    "id": "contract.hostdevicetelemetryservice.read",
+    "api": "HostDeviceTelemetryService.Read()",
+    "group": "管理层面 / 宿主 / 查询 / 基本信息",
+    "name": "采样宿主设备",
+    "expected": "空磁盘筛选返回空磁盘表，已报告的频率为正，GPU 引擎占比在有效范围内",
+    "requirements": [
+      "counters"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "采样宿主设备"
+  },
+  {
+    "id": "contract.hostdevicetelemetryservice.dispose",
+    "api": "HostDeviceTelemetryService.Dispose()",
+    "group": "管理层面 / 宿主 / 查询 / 基本信息",
+    "name": "释放设备采样器",
+    "expected": "重复释放安全，随后读取抛出 ObjectDisposedException",
+    "requirements": [
+      "lifecycle"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "释放设备采样器"
+  },
+  {
     "id": "T-eaef85770bcc18a5-1",
     "api": "HostProcessorPlatformService.GetArchitecture()",
     "group": "管理层面 / 宿主 / 查询 / 处理器",
     "name": "读取宿主操作系统架构",
-    "expected": "返回值与 GetNativeSystemInfo 提供的宿主原生架构一致；另行记录本进程架构。",
+    "expected": "返回值与 IsWow64Process2 提供的宿主原生架构一致，同时记录本进程架构。",
     "requirements": [
       "windows"
     ],
@@ -6559,6 +6950,77 @@
     "operation": "读取每个宿主逻辑处理器及虚拟 CPU 的当前性能计数器样本"
   },
   {
+    "id": "api.host-cpu-thread-monitor-ctor",
+    "api": "HostCpuThreadMonitorService.构造()",
+    "group": "管理层面 / 宿主 / 查询 / 处理器",
+    "name": "在宿主创建逻辑处理器线程监控对象",
+    "expected": "创建成功并返回与宿主逻辑核心一致的拓扑列表，释放时清理会话与计数器",
+    "requirements": [
+      "windows",
+      "lifecycle"
+    ],
+    "recovery": [],
+    "order": 8,
+    "operation": "创建宿主逻辑处理器线程监控实例，并启动后台虚拟机映射及 ETW／性能计数器采样器"
+  },
+  {
+    "id": "api.host-cpu-thread-monitor-dispose",
+    "api": "HostCpuThreadMonitorService.Dispose()",
+    "group": "管理层面 / 宿主 / 查询 / 处理器",
+    "name": "同步释放线程监控器并拒绝后续采样",
+    "expected": "停止 ETW 会话并释放计数器，已释放实例抛出 ObjectDisposedException",
+    "requirements": [
+      "windows",
+      "lifecycle"
+    ],
+    "recovery": [],
+    "order": 8,
+    "operation": "同步永久停止监控实例，并等待 ETW 会话、后台任务及性能计数器全部释放"
+  },
+  {
+    "id": "api.host-cpu-thread-monitor-dispose-async",
+    "api": "HostCpuThreadMonitorService.DisposeAsync()",
+    "group": "管理层面 / 宿主 / 查询 / 处理器",
+    "name": "异步释放线程监控器并拒绝后续采样",
+    "expected": "停止 ETW 会话并释放计数器，已释放实例抛出 ObjectDisposedException",
+    "requirements": [
+      "windows",
+      "lifecycle"
+    ],
+    "recovery": [],
+    "order": 8,
+    "operation": "异步永久停止监控实例，并等待 ETW 会话、后台任务及性能计数器全部释放"
+  },
+  {
+    "id": "api.host-cpu-thread-monitor-get",
+    "api": "HostCpuThreadMonitorService.GetThreadUsage()",
+    "group": "管理层面 / 宿主 / 查询 / 处理器",
+    "name": "连续采样每逻辑处理器使用率及宿主机占比",
+    "expected": "返回与物理核心数一致的快照，每核心总占用、宿主占比与来宾占比严格归一不超过 100%",
+    "requirements": [
+      "windows",
+      "counters",
+      "lifecycle"
+    ],
+    "recovery": [],
+    "order": 8,
+    "operation": "读取自上次调用以来的宿主物理逻辑处理器占用及宿主机／虚拟机拆分结果"
+  },
+  {
+    "id": "api.host-cpu-thread-monitor-sample",
+    "api": "HostCpuThreadMonitorService.SampleAsync()",
+    "group": "管理层面 / 宿主 / 查询 / 处理器",
+    "name": "启动临时虚拟机按窗口采样宿主机与虚拟机归属拆分",
+    "expected": "在完整窗口后返回 Valid 报告；Root+管理员归属为 KernelContextSwitch，Classic/Core或降级归属为 PerformanceCounter",
+    "requirements": [
+      "windows",
+      "counters"
+    ],
+    "recovery": [],
+    "order": 9,
+    "operation": "在给定采样窗口内采集一帧完整的宿主逻辑处理器占用归属快照"
+  },
+  {
     "id": "api.cpu-manufacturers",
     "api": "HostProcessorPlatformService.GetManufacturersAsync()",
     "group": "管理层面 / 宿主 / 查询 / 处理器",
@@ -6611,6 +7073,19 @@
     ],
     "recovery": [],
     "order": 20
+  },
+  {
+    "id": "contract.hostsysteminfoservice.tryreadhostmemorymib",
+    "api": "HostSystemInfoService.TryReadHostMemoryMiB()",
+    "group": "管理层面 / 宿主 / 查询 / 内存",
+    "name": "读取物理内存",
+    "expected": "总量为正，可用量在零与总量之间",
+    "requirements": [
+      "windows"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "读取物理内存"
   },
   {
     "id": "T-b1e7de3eb3d4ce6d-1",
@@ -6750,6 +7225,84 @@
     "recovery": [],
     "order": 0,
     "operation": "取得上游网卡的显示名称"
+  },
+  {
+    "id": "contract.hostdevicetelemetryservice.readadapteraddresses",
+    "api": "HostDeviceTelemetryService.ReadAdapterAddresses()",
+    "group": "管理层面 / 宿主 / 查询 / 网络",
+    "name": "查询接口地址",
+    "expected": "接口 GUID 和 MAC 与系统网络接口清单一致",
+    "requirements": [
+      "windows"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "查询接口地址"
+  },
+  {
+    "id": "contract.hostnetworktelemetryservice.getadapterthroughput",
+    "api": "HostNetworkTelemetryService.GetAdapterThroughput()",
+    "group": "管理层面 / 宿主 / 查询 / 网络",
+    "name": "查询不存在的适配器",
+    "expected": "缺测带观测时间且没有吞吐值",
+    "requirements": [
+      "windows"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "查询不存在的适配器"
+  },
+  {
+    "id": "contract.hostnetworktelemetryservice.getswitchthroughput",
+    "api": "HostNetworkTelemetryService.GetSwitchThroughput()",
+    "group": "管理层面 / 宿主 / 查询 / 网络",
+    "name": "查询不存在的交换机",
+    "expected": "缺测带观测时间且没有吞吐值",
+    "requirements": [
+      "windows"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "查询不存在的交换机"
+  },
+  {
+    "id": "contract.hostnetworktelemetryservice.reset",
+    "api": "HostNetworkTelemetryService.Reset()",
+    "group": "管理层面 / 宿主 / 查询 / 网络",
+    "name": "重置真实接口计数器",
+    "expected": "重置后首次读取回到 WarmingUp 且没有速率",
+    "requirements": [
+      "counters"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "重置真实接口计数器"
+  },
+  {
+    "id": "contract.hostnetworktelemetryservice.dispose",
+    "api": "HostNetworkTelemetryService.Dispose()",
+    "group": "管理层面 / 宿主 / 查询 / 网络",
+    "name": "释放网络采样器",
+    "expected": "释放后拒绝新采样",
+    "requirements": [
+      "lifecycle"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "释放网络采样器"
+  },
+  {
+    "id": "contract.hypervswitchservice.getallupstreamadaptersasync",
+    "api": "HyperVSwitchService.GetAllUpstreamAdaptersAsync()",
+    "group": "管理层面 / 宿主 / 查询 / 网络",
+    "name": "查询上游连接",
+    "expected": "GUID 唯一且包含可桥接候选",
+    "requirements": [
+      "hyperv"
+    ],
+    "recovery": [],
+    "order": 1,
+    "operation": "查询上游连接"
   },
   {
     "id": "T-0bbb050d21026f1b-1",
@@ -9452,17 +10005,6 @@
     "recovery": [],
     "order": 0,
     "operation": "判断服务不可用状态"
-  },
-  {
-    "id": "T-1a2b3c4d5e6f0004-1",
-    "api": "HyperVServiceCoordination.BeginActiveSettingsWrite()",
-    "group": "管理层面 / 共用类型",
-    "name": "进入与释放主动配置写入作用域",
-    "expected": "进入后 HasActiveSettingsWrite=true，Dispose 后恢复且重复 Dispose 安全",
-    "requirements": [],
-    "recovery": [],
-    "order": 0,
-    "operation": "切换主动配置写入标记"
   },
   {
     "id": "T-db8598581b9373e3-1",

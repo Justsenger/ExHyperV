@@ -1,8 +1,12 @@
 ---
-import '../win11-shell/win11-tokens.css';
+import '../shells/win11/win11-tokens.css';
 import '../styles/brand.css';
 import Topbar from '../components/Topbar.astro';
-import Win11Desktop from '../win11-shell/Win11Desktop.astro';
+import Win11Desktop from '../shells/win11/Win11Desktop.astro';
+import { EXHYPERV_HOST_CONFIG } from '../../../src/ExHyperV.WoW/data/exhyperv-desktop-config';
+import { HOST_CANDIDATE_PANEL } from '../../../src/ExHyperV.WoW/data/exhyperv-design-candidates';
+
+const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
 ---
 
 <!doctype html>
@@ -17,11 +21,271 @@ import Win11Desktop from '../win11-shell/Win11Desktop.astro';
     <link rel="preload" as="image" href="/win11/wallpapers/bloom-dark.webp" />
   </head>
   <body data-module="uiDesign">
-    <Topbar module="uiDesign" />
-    <Win11Desktop />
+    {!cleanMode && <Topbar module="uiDesign" />}
+    <Win11Desktop hostConfig={EXHYPERV_HOST_CONFIG} />
+    {!cleanMode && HOST_CANDIDATE_PANEL.sections.length > 0 && (
+      <aside
+        class="w11-dcp-panel"
+        id="desktopCandidatesPanel"
+        aria-label={HOST_CANDIDATE_PANEL.title}
+        data-dcp-mappings={JSON.stringify(HOST_CANDIDATE_PANEL.mappings)}
+      >
+        <div class="w11-dcp-header" id="desktopDcpHeader">
+          <span class="w11-dcp-title">{HOST_CANDIDATE_PANEL.title}</span>
+          <button type="button" class="w11-dcp-toggle" id="desktopDcpCollapseBtn" title="收起/展开候选菜单">−</button>
+        </div>
+        <div class="w11-dcp-body" id="desktopDcpBody">
+          {HOST_CANDIDATE_PANEL.sections.map((sec) => (
+            <>
+              <div class="w11-dcp-subhead">{sec.subhead}</div>
+              <div class="w11-dcp-list">
+                {sec.items.map((item) => (
+                  <button
+                    type="button"
+                    class={`w11-dcp-chip ${item.active ? 'active' : ''}`}
+                    {...{ [item.attr]: item.value }}
+                  >
+                    <span class="w11-dcp-chip-main">
+                      {item.icon && <span class="fi w11-dcp-icon" aria-hidden="true">{item.icon}</span>}
+                      <span>{item.label}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ))}
+        </div>
+      </aside>
+    )}
     <script>
       import { initializeLocalization } from '../scripts/localization.js';
       initializeLocalization();
+
+      type DesktopApi = {
+        launchApp: (appId: string, launchArgs?: Record<string, unknown>) => string | null;
+        sendToInstance: (instanceId: string, channel: string, payload?: unknown) => void;
+        subscribeAppEvents: (
+          instanceId: string,
+          listener: (channel: string, payload: unknown, pid: number) => void,
+        ) => () => void;
+      };
+
+      const mountConsoleBridge = (api: DesktopApi) => {
+        const consoleVmByCid = new Map<string, string>();
+        const exhypervId = api.launchApp('exhyperv');
+        if (!exhypervId) return;
+
+        const broadcastOpenVms = () => {
+          const vmIds = Array.from(new Set(consoleVmByCid.values())).filter(Boolean);
+          for (const cid of consoleVmByCid.keys()) {
+            try {
+              api.sendToInstance(cid, 'exhyperv:console-open-vms', { vmIds });
+            } catch {}
+          }
+        };
+
+        const focusConsoleByVmId = (vmId: string) => {
+          for (const [cid, ownedVmId] of consoleVmByCid.entries()) {
+            if (ownedVmId === vmId) {
+              try {
+                api.sendToInstance(cid, 'exhyperv:console-focus-self', {});
+                return true;
+              } catch {
+                consoleVmByCid.delete(cid);
+              }
+            }
+          }
+          return false;
+        };
+
+        const updateConsoleSpacerDrag = (cid: string, rectData: Record<string, unknown>) => {
+          const left = typeof rectData.left === 'number' ? rectData.left : 0;
+          const width = typeof rectData.width === 'number' ? rectData.width : 0;
+          const winEl = document.querySelector<HTMLElement>(`.w11-window[data-instance-id="${CSS.escape(cid)}"]`);
+          const titlebar = winEl?.querySelector<HTMLElement>('.w11-win-titlebar');
+          if (!winEl || !titlebar) return;
+          let spacer = titlebar.querySelector<HTMLElement>('.w11-console-spacer-drag');
+          if (!spacer) {
+            spacer = document.createElement('div');
+            spacer.className = 'w11-console-spacer-drag';
+            spacer.dataset.winDrag = winEl.dataset.wid || '';
+            titlebar.appendChild(spacer);
+          }
+          spacer.style.left = `${left}px`;
+          spacer.style.width = `${width}px`;
+        };
+
+        const openConsoleWindow = (payload: Record<string, unknown>) => {
+          const vmId = typeof payload.id === 'string' ? payload.id : '';
+          if (vmId && focusConsoleByVmId(vmId)) {
+            return null;
+          }
+          const cid = api.launchApp('exhyperv-console', payload);
+          if (!cid) return null;
+          consoleVmByCid.set(cid, vmId);
+          broadcastOpenVms();
+          api.subscribeAppEvents(cid, (cChannel, cPayload) => {
+            if (cChannel === 'exhyperv:console-power') {
+              api.sendToInstance(exhypervId, 'exhyperv:console-power', cPayload);
+            } else if (cChannel === 'exhyperv:console-active-vm' && cPayload && typeof cPayload === 'object') {
+              const nextId = (cPayload as { vmId?: string }).vmId;
+              if (typeof nextId === 'string') {
+                consoleVmByCid.set(cid, nextId);
+                broadcastOpenVms();
+              }
+            } else if (cChannel === 'exhyperv:console-focus-vm' && cPayload && typeof cPayload === 'object') {
+              const targetId = (cPayload as { vmId?: string }).vmId;
+              if (typeof targetId === 'string') focusConsoleByVmId(targetId);
+            } else if (cChannel === 'exhyperv:console-new-window' && cPayload && typeof cPayload === 'object') {
+              openConsoleWindow(cPayload as Record<string, unknown>);
+            } else if (cChannel === 'exhyperv:console-drag-rect' && cPayload && typeof cPayload === 'object') {
+              updateConsoleSpacerDrag(cid, cPayload as Record<string, unknown>);
+            } else if (cChannel === 'exhyperv:console-closed') {
+              consoleVmByCid.delete(cid);
+              broadcastOpenVms();
+            }
+          });
+          return cid;
+        };
+
+        api.subscribeAppEvents(exhypervId, (channel, payload) => {
+          if (channel !== 'exhyperv:open-console' || !payload || typeof payload !== 'object') return;
+          openConsoleWindow(payload as Record<string, unknown>);
+        });
+      };
+
+      const mountCandidatePanel = (api: DesktopApi) => {
+        mountConsoleBridge(api);
+        const dcpPanel = document.getElementById('desktopCandidatesPanel');
+        const dcpHeader = document.getElementById('desktopDcpHeader');
+        const dcpCollapseBtn = document.getElementById('desktopDcpCollapseBtn');
+        const shellRoot = document.querySelector<HTMLElement>('[data-win11-root]');
+        if (!dcpPanel) {
+          api.launchApp('exhyperv');
+          return;
+        }
+        import('../../../src/ExHyperV.WoW/scripts/fluent-glyph-fallback.js').then(({ initFluentGlyphFallback }) => {
+          initFluentGlyphFallback(dcpPanel);
+        });
+        if (dcpPanel.dataset.bound === '1') return;
+        dcpPanel.dataset.bound = '1';
+
+        const setActiveChip = (selector: string, attr: string, val: string) => {
+          dcpPanel.querySelectorAll<HTMLElement>(selector).forEach((btn) => {
+            const rawAttr = btn.getAttribute(attr);
+            if (rawAttr === 'toggle') {
+              btn.classList.toggle('active', val === 'on');
+            } else {
+              btn.classList.toggle('active', rawAttr === val);
+            }
+          });
+        };
+
+        const railCandidateMappings: [string, string][] = (() => {
+          try {
+            return JSON.parse(dcpPanel.dataset.dcpMappings || '[]');
+          } catch {
+            return [];
+          }
+        })();
+
+        let activeInstanceId: string | null = null;
+        let unsubAppEvents: (() => void) | null = null;
+
+        const handleAppEvent = (channel: string, payload: unknown) => {
+          if (!payload || typeof payload !== 'object') return;
+          if (channel === 'exhyperv:host-sync') {
+            const data = payload as Record<string, string | undefined>;
+            railCandidateMappings.forEach(([attr, key]) => {
+              const v = data[key];
+              if (v) setActiveChip(`[${attr}]`, attr, v);
+            });
+          }
+        };
+
+        const ensureExHypervInstance = () => {
+          const id = api.launchApp('exhyperv');
+          if (id && id !== activeInstanceId) {
+            unsubAppEvents?.();
+            activeInstanceId = id;
+            unsubAppEvents = api.subscribeAppEvents(id, handleAppEvent);
+          }
+          return activeInstanceId;
+        };
+
+        const sendHostCandidateMsg = (payload: Record<string, unknown>) => {
+          const id = ensureExHypervInstance();
+          if (id) api.sendToInstance(id, 'exhyperv:host-candidate', payload);
+        };
+
+        railCandidateMappings.forEach(([attr, key]) => {
+          dcpPanel.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const val = btn.getAttribute(attr);
+              if (!val) return;
+              if (val === 'toggle') {
+                const nextVal = btn.classList.contains('active') ? 'off' : 'on';
+                setActiveChip(`[${attr}]`, attr, nextVal);
+                sendHostCandidateMsg({ [key]: nextVal });
+              } else {
+                setActiveChip(`[${attr}]`, attr, val);
+                sendHostCandidateMsg({ [key]: val });
+              }
+            });
+          });
+        });
+
+        dcpCollapseBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const collapsed = dcpPanel.classList.toggle('is-collapsed');
+          dcpCollapseBtn.textContent = collapsed ? '+' : '−';
+        });
+
+        if (dcpHeader && shellRoot) {
+          let dragging = false;
+          let offX = 0;
+          let offY = 0;
+          let startX = 0;
+          let startY = 0;
+          const getScale = () => {
+            const rect = shellRoot.getBoundingClientRect();
+            const w = shellRoot.offsetWidth || window.innerWidth;
+            return w > 0 ? rect.width / w : 1;
+          };
+          dcpHeader.addEventListener('pointerdown', (e) => {
+            if (e.button !== 0 || (e.target as HTMLElement)?.closest('#desktopDcpCollapseBtn')) return;
+            const s = getScale() || 1;
+            dragging = true;
+            startX = e.clientX / s - offX;
+            startY = e.clientY / s - offY;
+            dcpHeader.setPointerCapture(e.pointerId);
+          });
+          dcpHeader.addEventListener('pointermove', (e) => {
+            if (!dragging) return;
+            const s = getScale() || 1;
+            offX = e.clientX / s - startX;
+            offY = e.clientY / s - startY;
+            dcpPanel.style.transform = `translate3d(${offX}px, ${offY}px, 0)`;
+          });
+          dcpHeader.addEventListener('pointerup', (e) => {
+            if (!dragging) return;
+            dragging = false;
+            dcpHeader.releasePointerCapture(e.pointerId);
+          });
+        }
+
+        ensureExHypervInstance();
+      };
+
+      const rootEl = document.querySelector<HTMLElement & { __winOnWebApi?: DesktopApi }>('[data-win11-root]');
+      if (rootEl?.__winOnWebApi) {
+        mountCandidatePanel(rootEl.__winOnWebApi);
+      } else {
+        window.addEventListener('winonweb:ready', (e) => {
+          const detail = (e as CustomEvent<DesktopApi>).detail;
+          if (detail) mountCandidatePanel(detail);
+        });
+      }
     </script>
   </body>
 </html>
@@ -29,6 +293,40 @@ import Win11Desktop from '../win11-shell/Win11Desktop.astro';
 <style is:global>
   [hidden] {
     display: none !important;
+  }
+
+  /* Single-row 40px console header: overlay native titlebar transparently so iframe starts at y=0 */
+  .w11-window[data-app="exhyperv-console"] .w11-win-titlebar {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    height: 40px !important;
+    background: transparent !important;
+    border-bottom: none !important;
+    pointer-events: none;
+  }
+  .w11-window[data-app="exhyperv-console"] .w11-win-body {
+    height: 100% !important;
+  }
+  .w11-window[data-app="exhyperv-console"] .w11-win-title {
+    flex: 0 0 8px;
+    height: 40px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .w11-window[data-app="exhyperv-console"] .w11-win-controls,
+  .w11-window[data-app="exhyperv-console"] .w11-win-ctrl {
+    height: 40px;
+    pointer-events: auto;
+  }
+  .w11-window[data-app="exhyperv-console"] .w11-console-spacer-drag {
+    position: absolute;
+    top: 0;
+    height: 40px;
+    pointer-events: auto;
+    cursor: move;
   }
 
   body[data-module="uiDesign"] {
@@ -111,5 +409,147 @@ import Win11Desktop from '../win11-shell/Win11Desktop.astro';
     .ex-top {
       height: 56px;
     }
+  }
+
+  /* 右侧浮动设计候选菜单（ExHyperV 外部插槽） */
+  .w11-dcp-panel {
+    position: absolute;
+    right: 14px;
+    top: 82px;
+    width: 242px;
+    z-index: 900;
+    background: rgba(30, 31, 34, 0.92);
+    -webkit-backdrop-filter: saturate(1.4) blur(18px);
+    backdrop-filter: saturate(1.4) blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    font-family: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .w11-dcp-panel.is-collapsed .w11-dcp-body {
+    display: none;
+  }
+
+  .w11-dcp-header {
+    padding: 9px 10px 9px 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: move;
+  }
+
+  .w11-dcp-panel.is-collapsed .w11-dcp-header {
+    border-bottom: none;
+  }
+
+  .w11-dcp-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+  }
+
+  .w11-dcp-toggle {
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 14px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .w11-dcp-toggle:hover {
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff;
+  }
+
+  .w11-dcp-body {
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    padding-bottom: 6px;
+  }
+
+  .w11-dcp-subhead {
+    padding: 8px 10px 4px 12px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .w11-dcp-list {
+    padding: 0 8px 4px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .w11-dcp-chip {
+    width: 100%;
+    height: 30px;
+    padding: 0 9px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .w11-dcp-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+  }
+
+  .w11-dcp-chip.active {
+    background: rgba(76, 194, 255, 0.16);
+    border-color: #4CC2FF;
+    color: #ffffff;
+    font-weight: 500;
+  }
+
+  .w11-dcp-chip.active::after {
+    content: '✓';
+    font-size: 11px;
+    color: #4CC2FF;
+    flex-shrink: 0;
+  }
+
+  .w11-dcp-chip-main {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .w11-dcp-icon {
+    font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets', 'FluentSystemIcons-Regular', sans-serif;
+    font-size: 14px;
+    line-height: 1;
+    width: 16px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .w11-dcp-icon .fi-svg {
+    width: 1em;
+    height: 1em;
+    display: block;
   }
 </style>

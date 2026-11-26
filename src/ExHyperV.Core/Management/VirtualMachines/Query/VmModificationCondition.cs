@@ -2,7 +2,7 @@ using ExHyperV.Tools;
 
 namespace ExHyperV.Models;
 
-/// <summary>一项虚拟机设置在当前快照下的修改条件。</summary>
+/// <summary>一项虚拟机设置在当前状态下的修改条件。</summary>
 /// <remarks>查询条件不锁定虚拟机状态。修改入口使用同一规则重新检查，最终执行结果由 VMMS 返回。</remarks>
 public sealed record VmModificationCondition
 {

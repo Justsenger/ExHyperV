@@ -26,6 +26,18 @@ public sealed class SerialPortTests
     }
 
     [TestMethod]
+    public async Task WorkbenchUsesDistinctPipesAndValidatesTheWholeDraft()
+    {
+        var id = Guid.Parse("c21a3f24-cd6b-4698-9f52-35274765fe88");
+        Assert.AreEqual(ApiErrorKind.InvalidArgument, (await VmSerialPortService.SetPortSettingsAsync(id, 2, " ", true)).ErrorKind);
+        Assert.AreEqual(ApiErrorKind.InvalidArgument, (await VmSerialPortService.SetPortSettingsAsync(id, 1, "bad?", false)).ErrorKind);
+        Assert.IsFalse(new VmSerialPort().IsConnected);
+        Assert.IsTrue(new VmSerialPort { PipePath = @"\\.\pipe\debug" }.IsConnected);
+        CollectionAssert.AreEqual(new[] { "" }, VmSerialPortService.BuildConnectionValues(""));
+        CollectionAssert.AreEqual(new[] { @"\\.\pipe\com1" }, VmSerialPortService.BuildConnectionValues(@"\\.\pipe\com1"));
+    }
+
+    [TestMethod]
     public void ModificationConditionRequiresPoweredOffState()
     {
         foreach (var state in Enum.GetValues<VmState>())

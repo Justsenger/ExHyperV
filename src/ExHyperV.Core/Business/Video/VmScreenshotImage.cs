@@ -1,7 +1,5 @@
 using System.Buffers.Binary;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Runtime.InteropServices;
+using ExHyperV.Infrastructure.Interop;
 
 namespace ExHyperV.Models;
 
@@ -76,9 +74,8 @@ public sealed class VmScreenshotImage
     /// <remarks>读取宽高并保留原编码内容；不支持或损坏的图片由解码器抛出异常。</remarks>
     public static VmScreenshotImage FromEncoded(byte[] data)
     {
-        using var stream = new MemoryStream(data, writable: false);
-        using var image = Image.FromStream(stream);
-        return new(data, image.Width, image.Height, 0, true);
+        var size = WindowsImageCodec.Dimensions(data);
+        return new(data, size.Width, size.Height, 0, true);
     }
 
     // Headless consumers have a Windows JPEG codec. WPF supplies its existing WIC
@@ -89,39 +86,21 @@ public sealed class VmScreenshotImage
     /// 即使输入已经是 JPEG，此方法也会重新编码。想保留原文件字节时使用 CopyBytes。</remarks>
     public byte[] EncodeJpeg()
     {
-        using var bitmap = new Bitmap(Width, Height, PixelFormat.Format24bppRgb);
-        if (IsEncoded)
+        if (IsEncoded) return WindowsImageCodec.JpegFromEncoded(bytes, Width, Height);
+        int stride = checked((Width * 3 + 3) & ~3);
+        var bgr = new byte[checked(stride * Height)];
+        for (int y = 0; y < Height; y++)
         {
-            using var stream = new MemoryStream(bytes, writable: false);
-            using var image = Image.FromStream(stream);
-            using var graphics = Graphics.FromImage(bitmap);
-            graphics.DrawImageUnscaled(image, 0, 0);
-        }
-        else
-        {
-            var bits = bitmap.LockBits(new Rectangle(0, 0, Width, Height), ImageLockMode.WriteOnly, PixelFormat.Format24bppRgb);
-            try
+            for (int x = 0; x < Width; x++)
             {
-                var row = new byte[Width * 3];
-                for (int y = 0; y < Height; y++)
-                {
-                    for (int x = 0; x < Width; x++)
-                    {
-                        int pixel = bytes[y * Stride + x * 2] | (bytes[y * Stride + x * 2 + 1] << 8);
-                        int b = pixel & 31, g = (pixel >> 5) & 63, r = (pixel >> 11) & 31;
-                        row[x * 3] = (byte)((b << 3) | (b >> 2));
-                        row[x * 3 + 1] = (byte)((g << 2) | (g >> 4));
-                        row[x * 3 + 2] = (byte)((r << 3) | (r >> 2));
-                    }
-                    Marshal.Copy(row, 0, bits.Scan0 + y * bits.Stride, row.Length);
-                }
+                int pixel = BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(y * Stride + x * 2));
+                int b = pixel & 31, g = (pixel >> 5) & 63, r = (pixel >> 11) & 31;
+                int offset = y * stride + x * 3;
+                bgr[offset] = (byte)((b << 3) | (b >> 2));
+                bgr[offset + 1] = (byte)((g << 2) | (g >> 4));
+                bgr[offset + 2] = (byte)((r << 3) | (r >> 2));
             }
-            finally { bitmap.UnlockBits(bits); }
         }
-        using var output = new MemoryStream();
-        using var parameters = new EncoderParameters(1);
-        parameters.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, 80L);
-        bitmap.Save(output, ImageCodecInfo.GetImageEncoders().Single(c => c.FormatID == ImageFormat.Jpeg.Guid), parameters);
-        return output.ToArray();
+        return WindowsImageCodec.JpegFromBgr24(bgr, Width, Height, stride);
     }
 }

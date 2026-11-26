@@ -1,3 +1,5 @@
+using ExHyperV.Tools;
+
 namespace ExHyperV.Services;
 
 // 只协调一次导入对象的使用与清理，不管理宿主或 Core 的进程生命周期。
@@ -26,7 +28,7 @@ internal sealed class VmImportLifetime
         lock (_sync) _closed = true;
         // 不在锁内执行取消回调；异常回调也不能阻止后续等待及资源清理。
         try { _stop.Cancel(); }
-        catch (AggregateException) { }
+        catch (AggregateException error) { CoreDiagnostics.Report("ImportCancellationCallbackFailed", error: error); }
     }
 
     internal Task CleanupAsync(Func<Task> cleanup, Action? stopChildren = null)

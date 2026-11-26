@@ -41,6 +41,20 @@ function showFullName(target, pinned = false) {
   target.setAttribute('aria-describedby', popup.id);
 }
 
+function ensureNameInfoButton(source) {
+  let info = source.nextElementSibling;
+  if (info?.matches('[data-name-for]')) return info;
+  info = document.createElement('button');
+  info.className = 'name-info';
+  info.type = 'button';
+  info.dataset.nameFor = source.id;
+  info.dataset.fullNameLabel = source.dataset.fullName || '';
+  info.setAttribute('aria-label', `查看完整名称：${info.dataset.fullNameLabel}`);
+  info.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></svg>';
+  source.insertAdjacentElement('afterend', info);
+  return info;
+}
+
 function measureNames() {
   cancelAnimationFrame(nameMeasureFrame);
   nameMeasureFrame = requestAnimationFrame(() => {
@@ -50,8 +64,9 @@ function measureNames() {
       const label = source.querySelector('.nav-label');
       const overflow = label.clientWidth > 0 && label.scrollWidth > label.clientWidth + 1;
       source.classList.toggle('has-name-overflow', overflow);
-      const info = source.nextElementSibling;
-      if (info?.matches('[data-name-for]')) info.hidden = !overflow;
+      const existing = source.nextElementSibling?.matches('[data-name-for]') ? source.nextElementSibling : null;
+      if (overflow) ensureNameInfoButton(source).hidden = false;
+      else if (existing) existing.hidden = true;
     }
   });
 }

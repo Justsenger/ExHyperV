@@ -1,25 +1,36 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <DefaultItemExcludes>$(DefaultItemExcludes);external\**\runtimes\*\native\**</DefaultItemExcludes>
-    <Nullable>enable</Nullable>
+    <TargetFramework>net11.0-windows</TargetFramework>
+    <DefaultItemExcludes>$(DefaultItemExcludes);external\**\runtimes\*\native\**;Contracts\**</DefaultItemExcludes>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Version>2.0.0-Alpha</Version>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RootNamespace>ExHyperV</RootNamespace>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <!-- Keep one build configuration for all consumers; MCP also reads these API comments. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <SatelliteResourceLanguages>en;zh-Hans;zh-CN</SatelliteResourceLanguages>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(ExHyperVConsoleRuntime)' != ''">
+    <!-- Do not share an incrementally built desktop Core with dual-architecture consumers. -->
+    <ArtifactsPivots>$(Configuration)_desktop_$(ExHyperVConsoleRuntime)</ArtifactsPivots>
+    <OutputPath Condition="'$(UseArtifactsOutput)' != 'true'">bin\$(Configuration)\desktop_$(ExHyperVConsoleRuntime)\</OutputPath>
+    <IntermediateOutputPath Condition="'$(UseArtifactsOutput)' != 'true'">$(BaseIntermediateOutputPath)$(Configuration)\desktop_$(ExHyperVConsoleRuntime)\</IntermediateOutputPath>
+  </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="Contracts\**" />
+    <EmbeddedResource Remove="Contracts\**" />
+    <None Remove="Contracts\**" />
     <None Update="ThirdPartyNotices\SharpZipLib.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="external/freerdp/runtimes/win-arm64/console-native.zip" Condition="Exists('external/freerdp/runtimes/win-arm64/console-native.zip')" LogicalName="ExHyperV.ConsoleNative.win-arm64.zip" />
-    <EmbeddedResource Include="external/freerdp/runtimes/win-x64/console-native.zip" Condition="Exists('external/freerdp/runtimes/win-x64/console-native.zip')" LogicalName="ExHyperV.ConsoleNative.win-x64.zip" />
+    <EmbeddedResource Include="external/freerdp/runtimes/win-arm64/console-native.zip"
+        Condition="'$(ExHyperVConsoleRuntime)' == ''" LogicalName="ExHyperV.ConsoleNative.win-arm64.zip" />
+    <EmbeddedResource Include="external/freerdp/runtimes/win-x64/console-native.zip"
+        Condition="'$(ExHyperVConsoleRuntime)' == ''" LogicalName="ExHyperV.ConsoleNative.win-x64.zip" />
+    <BrotliResource Include="external/freerdp/runtimes/$(ExHyperVConsoleRuntime)/console-native.zip" Kind="zip"
+        Condition="'$(ExHyperVConsoleRuntime)' != ''" LogicalName="ExHyperV.ConsoleNative.$(ExHyperVConsoleRuntime).zip.br" />
     <PackageReference Include="SharpZipLib" Version="1.4.2" />
-    <PackageReference Include="System.Management" Version="10.0.8" />
     <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
     <InternalsVisibleTo Include="ExHyperV.CoreChecks" />
   </ItemGroup>
@@ -35,23 +46,13 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="SSH.NET" Version="2026.0.0" />
-    <PackageReference Include="System.Drawing.Common" Version="10.0.7" />
     <EmbeddedResource Include="Assets/pci.ids" LogicalName="ExHyperV.Assets.pci.ids" />
-    <COMReference Include="IMAPI2FS">
-      <WrapperTool>tlbimp</WrapperTool>
-      <VersionMinor>0</VersionMinor>
-      <VersionMajor>1</VersionMajor>
-      <Guid>2c941fd0-975b-59be-a960-9a2a262853a5</Guid>
-      <Lcid>0</Lcid>
-      <Isolated>false</Isolated>
-      <EmbedInteropTypes>true</EmbedInteropTypes>
-    </COMReference>
   </ItemGroup>
   <Target Name="ValidateConsoleNativePackages" BeforeTargets="PrepareForBuild;GenerateNuspec" Condition="'$(DesignTimeBuild)' != 'true'">
-    <Error Condition="!Exists('$(MSBuildProjectDirectory)/external/freerdp/runtimes/win-arm64/console-native.zip')"
-           Text="Core 缺少 ARM64 FreeRDP 原生包：external/freerdp/runtimes/win-arm64/console-native.zip。请补齐后再构建或打包。" />
-    <Error Condition="!Exists('$(MSBuildProjectDirectory)/external/freerdp/runtimes/win-x64/console-native.zip')"
-           Text="Core 缺少 x64 FreeRDP 原生包：external/freerdp/runtimes/win-x64/console-native.zip。请补齐后再构建或打包。" />
+    <Error Condition="'$(ExHyperVConsoleRuntime)' != '' And '$(ExHyperVConsoleRuntime)' != 'win-arm64' And '$(ExHyperVConsoleRuntime)' != 'win-x64'"
+           Text="Unsupported console architecture: $(ExHyperVConsoleRuntime)" />
+    <Error Condition="'%(EmbeddedResource.Extension)' == '.zip' And !Exists('%(EmbeddedResource.FullPath)')"
+           Text="Core 缺少原生包 %(EmbeddedResource.Identity)。" />
   </Target>
+  <Import Project="../../.github/build/winui-publish/CompressedResources.targets" />
 </Project>

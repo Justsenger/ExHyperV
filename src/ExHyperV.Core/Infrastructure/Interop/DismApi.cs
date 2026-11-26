@@ -104,6 +104,13 @@ internal static class DismApi
     internal static Task<DismFeatureOperation> EnableFeatureWithResultAsync(string featureName, bool enableAll, INativeApi native)
         => RunFeatureAsync("DismEnableFeature", session => native.EnableFeature(session, featureName, enableAll), native);
 
+    internal static async Task<ApiResponse> AddPackageAsync(string packagePath, bool ignoreCheck = false, bool preventPending = false)
+        => (await AddPackageWithResultAsync(packagePath, ignoreCheck, preventPending, new NativeApi()).ConfigureAwait(false)).Response;
+
+    internal static Task<DismFeatureOperation> AddPackageWithResultAsync(
+        string packagePath, bool ignoreCheck, bool preventPending, INativeApi native)
+        => RunFeatureAsync("DismAddPackage", session => native.AddPackage(session, packagePath, ignoreCheck, preventPending), native);
+
     /// <summary>将给定功能名称原样提交给 DISM 禁用接口。</summary>
     /// <remarks>修改宿主在线映像，需要管理权限；不会自动重启。</remarks>
     /// <returns>功能请求成功（包括需要重启）且清理完成时为成功；清理失败返回 CleanupRequired，并保留功能请求结果。</returns>
@@ -247,6 +254,7 @@ internal static class DismApi
         int Initialize();
         int OpenSession(out uint session);
         int GetFeatureInfo(uint session, string feature, out nint info);
+        int AddPackage(uint session, string packagePath, bool ignoreCheck, bool preventPending);
         int EnableFeature(uint session, string feature, bool enableAll);
         int DisableFeature(uint session, string feature, bool removePayload);
         int Delete(nint info);
@@ -260,6 +268,8 @@ internal static class DismApi
         public int OpenSession(out uint session) => DismNativeMethods.DismOpenSession(DismNativeMethods.DISM_ONLINE_IMAGE, null, null, out session);
         public int GetFeatureInfo(uint session, string feature, out nint info) => DismNativeMethods.DismGetFeatureInfo(
             session, feature, null, DismNativeMethods.DismPackageIdentifier.DismPackageNone, out info);
+        public int AddPackage(uint session, string packagePath, bool ignoreCheck, bool preventPending) => DismNativeMethods.DismAddPackage(
+            session, packagePath, ignoreCheck, preventPending, nint.Zero, nint.Zero, nint.Zero);
         public int EnableFeature(uint session, string feature, bool enableAll) => DismNativeMethods.DismEnableFeature(
             session, feature, null, DismNativeMethods.DismPackageIdentifier.DismPackageNone,
             false, null, 0, enableAll, nint.Zero, nint.Zero, nint.Zero);
@@ -312,6 +322,16 @@ internal static class DismNativeMethods
 
     [DllImport("dismapi.dll")]
     internal static extern int DismDelete(nint structure);
+
+    [DllImport("dismapi.dll", CharSet = CharSet.Unicode)]
+    public static extern int DismAddPackage(
+        uint session,
+        [MarshalAs(UnmanagedType.LPWStr)] string packagePath,
+        [MarshalAs(UnmanagedType.Bool)] bool ignoreCheck,
+        [MarshalAs(UnmanagedType.Bool)] bool preventPending,
+        nint cancelEvent,
+        nint progress,
+        nint userData);
 
     [DllImport("dismapi.dll", CharSet = CharSet.Unicode)]
     public static extern int DismEnableFeature(

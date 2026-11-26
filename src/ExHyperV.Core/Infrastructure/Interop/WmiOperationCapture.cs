@@ -10,9 +10,10 @@ internal sealed class WmiOperationCapture : IDisposable
     private static readonly AsyncLocal<WmiOperationCapture?> current = new();
     private readonly WmiOperationCapture? previous;
     private readonly Action<WmiOperationReceipt> record;
+    private readonly Action<WmiOperationReceipt>? changed;
     private bool active = true;
-    internal WmiOperationCapture(Action<WmiOperationReceipt> record)
-    { this.record = record; previous = current.Value; current.Value = this; }
+    internal WmiOperationCapture(Action<WmiOperationReceipt> record, Action<WmiOperationReceipt>? changed = null)
+    { this.changed = changed; this.record = record; previous = current.Value; current.Value = this; }
     internal static WmiOperationReceipt? Start(string method, string target, string scope, WmiContext? context)
     {
         var capture = current.Value;
@@ -20,15 +21,21 @@ internal sealed class WmiOperationCapture : IDisposable
         lock (capture)
         {
             if (!capture.active) return null;
-            var receipt = new WmiOperationReceipt(method, target, scope, context ?? WmiContext.Local);
+            var receipt = new WmiOperationReceipt(method, target, scope, context ?? WmiContext.Local, capture.changed == null ? null : capture.OnChanged);
             capture.record(receipt);
             return receipt;
         }
     }
+    private void OnChanged(WmiOperationReceipt receipt)
+    {
+        lock (this) { if (active) changed?.Invoke(receipt); }
+    }
+
     public void Dispose() { lock (this) active = false; current.Value = previous; }
 }
 
-internal sealed class WmiOperationReceipt(string method, string target, string scope, WmiContext context)
+internal sealed class WmiOperationReceipt(string method, string target, string scope, WmiContext context,
+    Action<WmiOperationReceipt>? changed = null)
 {
     internal Guid Id { get; } = Guid.NewGuid();
     internal DateTimeOffset StartedAtUtc { get; } = DateTimeOffset.UtcNow;
@@ -36,7 +43,7 @@ internal sealed class WmiOperationReceipt(string method, string target, string s
     internal string Target { get; } = target;
     private string? job;
     private ApiResponse? result;
-    internal string? Job { get { lock (this) return job; } set { lock (this) job = value; } }
+    internal string? Job { get { lock (this) return job; } set { lock (this) job = value; changed?.Invoke(this); } }
     internal ApiResponse? Result { get { lock (this) return result; } }
     internal bool IsSettled => Result is { ErrorKind: not ApiErrorKind.OutcomeUnknown };
     internal void Complete(ApiResponse value)
@@ -44,8 +51,10 @@ internal sealed class WmiOperationReceipt(string method, string target, string s
         lock (this)
         {
             // A late waiter timeout must not overwrite an independently observed terminal result.
-            if (result is null || result.ErrorKind == ApiErrorKind.OutcomeUnknown) result = value;
+            if (IsSettled) return;
+            result = value;
         }
+        changed?.Invoke(this);
     }
     internal async Task<ApiResponse> ObserveAsync(Func<Task<ApiResponse>>? read = null)
     {

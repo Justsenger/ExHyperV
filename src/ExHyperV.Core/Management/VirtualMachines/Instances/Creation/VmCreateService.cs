@@ -24,7 +24,17 @@ namespace ExHyperV.Services
 
         internal static bool MustPreserveCreation(ApiErrorKind kind) =>
             kind is ApiErrorKind.OutcomeUnknown or ApiErrorKind.CleanupRequired;
-        private const string DefaultSystemSettingsWql =
+        // The VSSD carries the exact root and name. Both creation paths use the same native receipt and host lock.
+        internal static Task<WmiCreationResult> DefineAtExactLocationAsync(string settings) =>
+            HostAzureFeatureSetService.RunTemporarilyDisabledAsync(() => WmiApi.InvokeCreationAsync(ServiceWql,
+                "DefineSystem", "Msvm_ComputerSystem", input =>
+                {
+                    input["SystemSettings"] = settings;
+                    input["ResourceSettings"] = Array.Empty<string>();
+                    input["ReferenceConfiguration"] = null;
+                }, resultField: "ResultingSystem"));
+
+        internal const string DefaultSystemSettingsWql =
             "SELECT * FROM Msvm_VirtualSystemSettingData " +
             "WHERE InstanceID = 'Microsoft:Definition\\\\VirtualSystem\\\\Default'";
 
@@ -296,22 +306,7 @@ namespace ExHyperV.Services
 
                 defineSystemInvoked = true;
                 defineSystemOutcomeUnknown = true;
-                Task<WmiCreationResult> DefineSystemAsync() => WmiApi.InvokeCreationAsync(
-                    ServiceWql,
-                    "DefineSystem",
-                    "Msvm_ComputerSystem",
-                    p2 =>
-                    {
-                        p2["SystemSettings"] = vssdXml;
-                        p2["ResourceSettings"] = Array.Empty<string>();
-                        p2["ReferenceConfiguration"] = null;
-                    },
-                    resultField: "ResultingSystem");
-
-                // DefineSystem 不得观察到主机级 Azure 暂存模式。始终持有共享锁，
-                // 防止并发 CPU 或 PCIe 操作在状态检查与创建之间临时开启该模式。
-                var defineResp = await HostAzureFeatureSetService
-                    .RunTemporarilyDisabledAsync(DefineSystemAsync);
+                var defineResp = await DefineAtExactLocationAsync(vssdXml);
 
                 defineSystemOutcomeUnknown = defineResp.OutcomeUnknown;
                 vmCreated = defineResp.CreatedPaths.Length > 0;

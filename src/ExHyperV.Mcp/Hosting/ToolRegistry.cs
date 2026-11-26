@@ -83,7 +83,6 @@ public static class ToolRegistry
         else if (name == "host_hyperv_status") data = Shape(("success", "boolean"), ("isReady", "boolean"), ("statusText", "string"), ("diagnostics", "object"));
         else if (name == "host_system_info") data = Shape(("success", "boolean"));
         else if (name == "vm_query_fields") data = Shape(("success", "boolean"), ("total", "integer"), ("offset", "integer"), ("limit", "integer"), ("fields", "array"));
-        else if (name == "gpu_linux_scripts") data = Shape(("success", "boolean"), ("scripts", "array"));
         else if (name is "server_request_release" or "server_task_release" or "core_api_set" or "core_callback_reply" or "core_operation_release" or "core_object_release" or "core_event_unsubscribe" or "gpu_deployment_release")
             data = Shape(("success", "boolean"));
         else throw new InvalidOperationException($"工具 {name} 需要登记返回结构。");
@@ -112,7 +111,7 @@ public static class ToolRegistry
             "vm_power" => ("VmPowerService", "ExecuteControlActionAsync"), "vm_rename" => ("VmEditService", "RenameVmAsync"),
             "vm_create" => ("VmCreateService", "CreateVirtualMachineAsync"), "vm_creation_options" => ("VmCreateService", "GetCreationOptionsAsync"),
             "vm_delete_preview" => ("VmDeleteService", "PreviewPurgeAsync"), "vm_unregister" => ("VmDeleteService", "DeleteVmAsync"), "vm_purge" => ("VmDeleteService", "PurgeVmAsync"),
-            "vm_network_adapters" => ("VmNetworkService", "GetNetworkAdaptersAsync"), "vm_checkpoints" => ("VmSpacetimeService", "GetSpacetimeNodesAsync"),
+            "vm_network_adapters" => ("VmNetworkService", "GetNetworkAdaptersAsync"), "vm_checkpoints" => ("VmCheckpointService", "GetCheckpointNodesAsync"),
             "vm_query" => ("VmQueryService", "QueryAsync"), "vm_gpu_assignments" => ("VmGpuService", "GetVmGpuAssignmentsAsync"),
             "host_disks" => ("HostDiskService", "GetHostDisksAsync"), "host_optical_drives" => ("HostDiskService", "GetHostOpticalDrivesAsync"),
             "host_gpus" => ("HostGpuService", "GetHostGpusAsync"), "host_switches" => ("VmNetworkService", "GetAvailableSwitchesAsync"), _ => default

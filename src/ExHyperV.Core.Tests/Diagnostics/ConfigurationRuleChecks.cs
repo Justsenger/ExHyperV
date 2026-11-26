@@ -88,8 +88,8 @@ internal static class ConfigurationRuleChecks
             && VmSecurityService.GetSettingError(2, VmState.PoweredOff, shielded, VmSecurityService.Setting.Shielding) == null,
             "Security rules: shielding locks dependent toggles but allows changing shielding itself");
         check(!VmSecurityService.CanEdit(1, VmState.PoweredOff) && !VmSecurityService.CanEdit(2, VmState.Running)
-            && VmSecurityService.GetSettingError(2, VmState.PoweredOff, unshielded with { TpmEnabled = false }, VmSecurityService.Setting.Encryption) != null,
-            "Security rules: generation, runtime, and TPM prerequisites are enforced");
+            && VmSecurityService.GetSettingError(2, VmState.PoweredOff, unshielded with { TpmEnabled = false }, VmSecurityService.Setting.Encryption) == null,
+            "安全设置校验代数与电源状态，开启加密可自动准备虚拟 TPM");
         check(!VmConsoleSupportService.CanToggleConsoleSupport(1, false) && VmConsoleSupportService.CanToggleConsoleSupport(2, false)
             && !VmConsoleSupportService.CanToggleConsoleSupport(2, true),
             "Console rules: only offline generation-2 console devices can be changed");

@@ -28,7 +28,7 @@ public sealed record PcieAssignmentTarget
     /// <summary>虚拟机稳定 GUID；只有 Kind 为 VirtualMachine 时有值，操作不按显示名称重新定位。</summary>
     public Guid? VirtualMachineId { get; }
 
-    /// <summary>虚拟机显示名称快照，仅用于呈现；重命名不改变目标身份。</summary>
+    /// <summary>虚拟机显示名称副本，仅用于呈现，重命名不改变目标身份。</summary>
     public string? VirtualMachineName { get; }
 
     /// <summary>表示设备由宿主使用，也可用于请求将设备归还宿主。</summary>
@@ -39,7 +39,7 @@ public sealed record PcieAssignmentTarget
 
     /// <summary>按稳定 GUID 创建虚拟机归属或目标，显示名称不参与定位。</summary>
     /// <param name="virtualMachineId">目标虚拟机的非空 GUID。</param>
-    /// <param name="displayName">可选显示名称快照；未提供时以 GUID 展示。</param>
+    /// <param name="displayName">可选显示名称副本，未提供时以 GUID 展示。</param>
     /// <returns>表示该虚拟机的不可变目标。</returns>
     /// <exception cref="ArgumentException">GUID 为空。</exception>
     public static PcieAssignmentTarget ForVirtualMachine(Guid virtualMachineId, string? displayName = null)

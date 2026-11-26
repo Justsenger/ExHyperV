@@ -59,7 +59,7 @@ internal sealed partial class VmQueryEngine
                 ("HasGpuEngineInstance", Value(VmGpuPerformanceFields.HasGpuEngineInstance, g.HasGpuEngineInstance, g.EnginePresenceSample)));
         }));
     }
-    private static VmQueryValue Value(VmQueryField field, object value, PerformanceSampleInfo? sample) => field.Make(SampleState(sample), value, sample?.ObservedAtUtc ?? DateTimeOffset.UtcNow, sample?.Error);
+    private static VmQueryValue Value(VmQueryField field, object value, PerformanceSampleInfo? sample) => field.Make(SampleState(sample), sample?.IsValid == true ? value : null, sample?.ObservedAtUtc ?? DateTimeOffset.UtcNow, sample?.Error);
 
     private Task<ReadResult> BuildNetworkPerformanceAsync()
     {
@@ -88,7 +88,7 @@ internal sealed partial class VmQueryEngine
                 {
                     object? value = sample?[pair.Item2];
                     var cellState = state == VmQueryValueState.Available && value == null ? VmQueryValueState.Unavailable : state;
-                    string? reason = cellState == VmQueryValueState.Ambiguous ? "当前虚拟网卡与性能实例不能唯一关联；不使用检查点中的历史网卡作为运行时拥有者。" : perf.Error;
+                    string? reason = cellState == VmQueryValueState.Ambiguous ? "当前虚拟网卡与性能实例不能唯一关联；不使用快照中的历史网卡作为运行时拥有者。" : perf.Error;
                     row.Values[pair.Item1.Property] = pair.Item1.Make(cellState, value == null ? null : Convert.ToUInt64(value), perf.Time, reason);
                 }
                 rows.Add(row);
@@ -108,13 +108,14 @@ internal sealed partial class VmQueryEngine
                 var disk = new VmDiskStatus { Path = item.Text("Path"), DiskType = item.Text("DiskType"), PnpDeviceId = item.Text("PnpDeviceId") };
                 vm.Disks.Add(disk); identities.Add(disk, item);
             }
-        await owner.UpdateDiskPerformanceAsync(machines).ConfigureAwait(false);
+        await owner.UpdateDiskPerformanceAsync(machines, request.Fields.Where(f => f.Source == "DiskPerformance")
+            .Select(f => f.Property)).ConfigureAwait(false);
         return Done(machines.SelectMany(vm => vm.Disks.Select(d => Row(identities[d].Key, vm.Id,
-            ("ReadBytesPerSecond", Value(VmStorageFields.ReadBytesPerSecond, d.ReadBytesPerSecond, d.PerformanceSample)),
-            ("WriteBytesPerSecond", Value(VmStorageFields.WriteBytesPerSecond, d.WriteBytesPerSecond, d.PerformanceSample)),
-            ("ReadOperationsPerSecond", Value(VmStorageFields.ReadOperationsPerSecond, d.ReadOperationsPerSecond, d.PerformanceSample)),
-            ("WriteOperationsPerSecond", Value(VmStorageFields.WriteOperationsPerSecond, d.WriteOperationsPerSecond, d.PerformanceSample)),
-            ("QueueLength", Value(VmStorageFields.QueueLength, d.QueueLength, d.PerformanceSample)),
-            ("ErrorCount", Value(VmStorageFields.ErrorCount, d.ErrorCount, d.PerformanceSample))))));
+            ("ReadBytesPerSecond", Value(VmStorageFields.ReadBytesPerSecond, d.ReadBytesPerSecond, d.ReadBytesSample)),
+            ("WriteBytesPerSecond", Value(VmStorageFields.WriteBytesPerSecond, d.WriteBytesPerSecond, d.WriteBytesSample)),
+            ("ReadOperationsPerSecond", Value(VmStorageFields.ReadOperationsPerSecond, d.ReadOperationsPerSecond, d.ReadOperationsSample)),
+            ("WriteOperationsPerSecond", Value(VmStorageFields.WriteOperationsPerSecond, d.WriteOperationsPerSecond, d.WriteOperationsSample)),
+            ("QueueLength", Value(VmStorageFields.QueueLength, d.QueueLength, d.QueueLengthSample)),
+            ("ErrorCount", Value(VmStorageFields.ErrorCount, d.ErrorCount, d.ErrorCountSample))))));
     }
 }

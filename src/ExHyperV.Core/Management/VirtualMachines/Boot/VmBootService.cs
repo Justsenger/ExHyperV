@@ -525,7 +525,7 @@ public static partial class VmBootService
                 foreach (var (idx, model) in resp.Data)
                     if (idx >= 0) map[idx] = model;
         }
-        catch { }
+        catch (Exception diagnosticError) { CoreDiagnostics.Report("DiskModelLookupFailed", error: diagnosticError); }
         return map;
     }
 

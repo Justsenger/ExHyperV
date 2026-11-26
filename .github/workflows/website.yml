@@ -6,8 +6,7 @@ on:
     paths:
       - 'website/**'
       - 'src/ExHyperV.Core/**'
-      - 'doc/api/**'
-      - 'tools/api-docs/**'
+      - 'src/ExHyperV.WoW/**'
       - '.github/workflows/website.yml'
       - '**/Directory.Build.*'
       - '**/global.json'
@@ -16,8 +15,7 @@ on:
     paths:
       - 'website/**'
       - 'src/ExHyperV.Core/**'
-      - 'doc/api/**'
-      - 'tools/api-docs/**'
+      - 'src/ExHyperV.WoW/**'
       - '.github/workflows/website.yml'
       - '**/Directory.Build.*'
       - '**/global.json'
@@ -52,7 +50,7 @@ jobs:
           package_json_file: website/package.json
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - run: pnpm verify

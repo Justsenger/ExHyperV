@@ -9,7 +9,7 @@ public sealed class HostDiskMountLease : IAsyncDisposable
     private readonly TaskCompletionSource _release;
     private readonly Task<ApiResponse> _completion;
 
-    /// <summary>取得使用权后的挂载快照，包含实际访问模式和是否由本次建立。失败结果也需释放使用期。</summary>
+    /// <summary>取得使用权后的挂载记录，包含实际访问模式和是否由本次建立。失败结果也需释放使用期。</summary>
     public HostDiskMountResult Result { get; }
 
     /// <summary>清理和资源锁释放完成后的结果；尚未完成时为 null。失败时可结合 Result.ImagePath 核对剩余挂载。</summary>

@@ -10,7 +10,7 @@ public enum VmPcieGuestMode : byte
     Emulated = 1,
 }
 
-/// <summary>虚拟机 PCIe 系统设置及已分配设备的查询快照。</summary>
+/// <summary>虚拟机 PCIe 系统设置及已分配设备的查询结果。</summary>
 public sealed class VmPcieSettings
 {
     /// <summary>宿主是否提供 PCIe 系统设置对象及 EmulationMode、Topology 属性。</summary>

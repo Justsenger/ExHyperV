@@ -14,7 +14,7 @@ namespace ExHyperV.Services
     /// <param name="IsOffline">是否已经脱机。</param>
     public readonly record struct ControllerDisk(int Number, string FriendlyName, bool IsSystem, bool IsBoot, bool IsOffline)
     {
-        // 磁盘号会复用；执行时用内部身份快照验证预览中的同一块盘。
+        // 磁盘号会复用；执行时用内部身份记录验证预览中的同一块盘。
         internal HostDiskSnapshot? Snapshot { get; init; }
     }
 
@@ -174,7 +174,7 @@ namespace ExHyperV.Services
     public static class HostPcieService
     {
         // 字符串标记仅供内部执行流程使用；公开契约由 PcieAssignmentTarget 表示归属。
-        // 内部入口仍归一化旧版本产生的中英文快照。
+        // 内部入口仍归一化旧版本产生的中英文标识文本。
         /// <summary>表示设备归属宿主的固定标识。</summary>
         internal static readonly string HostKey = "\u200BHost";
         /// <summary>设备已从宿主卸除且未分配给 VM 的稳定状态值。</summary>
@@ -285,7 +285,7 @@ namespace ExHyperV.Services
         }
 
         /// <summary>读取宿主 PCIe 设备、当前归属与可选虚拟机目标。</summary>
-        /// <returns>设备与稳定 GUID 目标快照；显式 WMI 查询失败返回错误，原生 PnP 枚举的部分失败仍可能表现为设备缺项或空清单。</returns>
+        /// <returns>设备与稳定 GUID 目标列表，显式 WMI 查询失败返回错误，原生 PnP 枚举的部分失败仍可能表现为设备缺项或空清单。</returns>
         public static Task<ApiResponse<PcieHostInfo>> GetPCIeInfoAsync() => ReadPcieInfoAsync(false);
 
         private static async Task<ApiResponse<PcieHostInfo>> ReadPcieInfoAsync(bool requireCompleteAssignments)

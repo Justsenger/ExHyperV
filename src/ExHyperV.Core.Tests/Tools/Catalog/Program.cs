@@ -67,7 +67,7 @@ catch (Exception error)
 }
 
 static bool IsOwnSource(string path) => !path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
-    .Intersect(new[] { "bin", "obj", "external", ".artifacts", "Documentation" }, StringComparer.OrdinalIgnoreCase).Any()
+    .Intersect(new[] { "bin", "obj", "external", ".artifacts", ".cache", "Contracts", "Documentation" }, StringComparer.OrdinalIgnoreCase).Any()
     && !path.EndsWith("Resources.Designer.cs", StringComparison.OrdinalIgnoreCase);
 
 sealed record Method(string Key, string Path, int Line);

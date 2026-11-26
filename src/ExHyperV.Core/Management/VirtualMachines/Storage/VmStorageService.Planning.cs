@@ -54,7 +54,7 @@ public sealed record VmStorageAddRequest
     public uint? BlockSizeBytes { get; init; }
     /// <summary>新 ISO 的卷标；null 使用制作器默认值，其他来源必须为 null。</summary>
     public string? IsoVolumeLabel { get; init; }
-    /// <summary>GetHostDisksAsync 取得的物理硬盘快照；必须包含编号、正数字节容量及唯一标识或序列号。执行时重新核对所有已提供的身份字段和容量，不信任 CanPassthrough 显示标记。</summary>
+    /// <summary>GetHostDisksAsync 取得的物理硬盘信息，必须包含编号、正数字节容量及唯一标识或序列号。执行时重新核对所有已提供的身份字段和容量，不信任 CanPassthrough 显示标记。</summary>
     public HostDiskInfo? PhysicalDisk { get; init; }
 }
 
@@ -103,11 +103,11 @@ public static partial class VmStorageService
     /// <returns>IDE 为 0、1，SCSI 为 0 至 3。</returns>
     public static IReadOnlyList<int> GetControllerNumbers(string type) => Enumerable.Range(0, type == "IDE" ? 2 : 4).ToArray();
 
-    /// <summary>从已有挂接快照中排除占用位置，计算指定控制器的空闲槽位。</summary>
+    /// <summary>从已有挂接记录中排除占用位置，计算指定控制器的空闲槽位。</summary>
     /// <param name="type">控制器类型 IDE 或 SCSI。</param>
     /// <param name="number">从零开始的控制器编号。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
-    /// <returns>根据当前挂接快照得到的可用槽位编号，从零开始。</returns>
+    /// <param name="items">当前存储挂接记录，用于检测控制器和槽位占用。</param>
+    /// <returns>根据当前挂接记录得到的可用槽位编号，从零开始。</returns>
     public static IReadOnlyList<int> GetAvailableLocations(string type, int number, IEnumerable<VmStorageAttachment> items)
     {
         var used = items.Where(item => item.ControllerType == type && item.ControllerNumber == number)
@@ -118,17 +118,17 @@ public static partial class VmStorageService
     /// <summary>检查指定控制器是否仍有可用槽位。</summary>
     /// <param name="type">控制器类型 IDE 或 SCSI。</param>
     /// <param name="number">从零开始的控制器编号。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
+    /// <param name="items">当前存储挂接记录，用于检测控制器和槽位占用。</param>
     /// <returns>已满时返回说明，否则为 null。</returns>
     public static string? GetControllerFullError(string type, int number, IEnumerable<VmStorageAttachment> items)
         => GetAvailableLocations(type, number, items).Count == 0
             ? string.Format(Properties.Resources.Error_Storage_CtrlFull, type, number) : null;
 
-    /// <summary>按当前规则和已有设备快照选择首个适合新增驱动的空闲槽位。</summary>
+    /// <summary>按当前规则和已有设备记录选择首个适合新增驱动的空闲槽位。</summary>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
     /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <param name="driveType">驱动类型 HardDisk 或 DvdDrive。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
+    /// <param name="items">当前存储挂接记录，用于检测控制器和槽位占用。</param>
     /// <returns>可用槽位，或没有槽位时的错误说明。</returns>
     public static VmStorageSlotPlan GetBestSlot(int generation, bool isRunning, string driveType, IEnumerable<VmStorageAttachment> items)
     {
@@ -151,8 +151,8 @@ public static partial class VmStorageService
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
     /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
     /// <param name="request">待检查的新增存储设备请求。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
-    /// <returns>首个错误说明；符合当前快照时为 null。执行时需重新核对槽位。</returns>
+    /// <param name="items">当前存储挂接记录，用于检测控制器和槽位占用。</param>
+    /// <returns>首个错误说明，符合当前规则时为 null。执行时需重新核对槽位。</returns>
     public static string? GetAddSlotError(int generation, bool isRunning, VmStorageAddRequest request,
         IEnumerable<VmStorageAttachment> items)
     {
@@ -174,7 +174,7 @@ public static partial class VmStorageService
     /// <param name="request">待检查的新增存储设备请求。</param>
     /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
     /// <param name="isRunning">虚拟机当前是否处于活动状态。</param>
-    /// <param name="items">当前存储挂接快照，用于检测控制器和槽位占用。</param>
+    /// <param name="items">当前存储挂接记录，用于检测控制器和槽位占用。</param>
     /// <returns>可执行请求或错误、提示状态；准备过程中可能创建宿主目录。</returns>
     public static VmStorageAddPreparation PrepareAddRequest(VmStorageAddRequest request,
         int generation, bool isRunning, IEnumerable<VmStorageAttachment> items)
@@ -262,9 +262,9 @@ public static partial class VmStorageService
                 return Invalid("物理硬盘必须提供查询所得编号、正数容量及唯一标识或序列号，不能仅按编号挂接。");
             if (!string.IsNullOrWhiteSpace(request.PathOrNumber)
                 && (!int.TryParse(request.PathOrNumber, out int number) || number != disk.Number))
-                return Invalid("物理硬盘编号与所选磁盘快照不一致。");
+                return Invalid("物理硬盘编号与所选磁盘记录不一致。");
         }
-        else if (request.PhysicalDisk != null) return Invalid("物理硬盘快照不能用于其他介质来源。");
+        else if (request.PhysicalDisk != null) return Invalid("物理硬盘选择不能用于其他介质来源。");
         if (request.IsPhysical && request.DriveType == "DvdDrive"
             && (string.IsNullOrWhiteSpace(request.PathOrNumber) || int.TryParse(request.PathOrNumber, out _)))
             return Invalid("物理光驱必须提供宿主查询所得的 PNP 标识。");
@@ -340,6 +340,9 @@ public static partial class VmStorageService
     /// <returns>限制说明；允许继续时为 null。</returns>
     internal static string? GetEditStoragePathError(VmStorageAttachment item, bool isRunning)
     {
+        // The legacy picker accepts a path for a running SCSI drive. Submission uses
+        // the full power-state rule and detailed settings use InspectDiskAsync.
+        if (isRunning && item.ControllerType == "SCSI" && CanEditStoragePath(item)) return null;
         var condition = GetMediaModificationCondition(item, isRunning ? VmState.Running : VmState.PoweredOff);
         return condition.CanModify ? null : condition.Reason;
     }
@@ -347,27 +350,30 @@ public static partial class VmStorageService
     /// <summary>评估更换存储介质路径的条件。</summary>
     /// <param name="item">查询返回的存储挂接。</param>
     /// <param name="state">查询得到的虚拟机电源状态。</param>
-    /// <returns>是否允许更换及原因；IDE 硬盘需要关机，光驱和 SCSI 设备由实际提交结果判断。</returns>
+    /// <returns>硬盘需要彻底关机，虚拟光驱可在运行时更换 ISO。</returns>
     public static VmModificationCondition GetMediaModificationCondition(VmStorageAttachment item, VmState state)
         => !CanEditStoragePath(item) ? VmModificationCondition.Unsupported(Properties.Resources.Error_Storage_PhysicalMod)
-            : item.DriveType == "HardDisk" && item.ControllerType == "IDE" ? VmModificationCondition.PoweredOff(state)
-            : VmModificationCondition.Allowed;
+            : item.DriveType == "DvdDrive" && state == VmState.Running ? VmModificationCondition.Allowed
+            : VmModificationCondition.PoweredOff(state);
 
     /// <summary>评估压缩虚拟机所挂接磁盘的条件。</summary>
     /// <param name="item">查询返回的存储挂接。</param>
     /// <param name="state">查询得到的虚拟机电源状态。</param>
     /// <returns>是否允许发起压缩及原因；文件占用情况由压缩操作检查。</returns>
     public static VmModificationCondition GetCompactionCondition(VmStorageAttachment item, VmState state)
+        => GetCompactionTargetCondition(item) is { CanModify: false } invalid ? invalid : VmModificationCondition.PoweredOff(state);
+
+    private static VmModificationCondition GetCompactionTargetCondition(VmStorageAttachment item)
         => item.DriveType != "HardDisk" || item.DiskType != "Virtual" || string.IsNullOrWhiteSpace(item.PathOrDiskNumber)
-            ? VmModificationCondition.Unsupported("请选择虚拟硬盘文件。")
-            : VmModificationCondition.PoweredOff(state);
+            ? VmModificationCondition.Unsupported("请选择虚拟硬盘文件。") : VmModificationCondition.Allowed;
 
     /// <summary>评估移除存储挂接的条件。</summary>
     /// <param name="item">查询返回的存储挂接。</param>
     /// <param name="state">查询得到的虚拟机电源状态。</param>
     /// <returns>是否允许移除及原因。</returns>
     public static VmModificationCondition GetRemovalCondition(VmStorageAttachment item, VmState state)
-        => item.ControllerType == "IDE" ? VmModificationCondition.PoweredOff(state) : VmModificationCondition.Allowed;
+        => item.ControllerType == "SCSI" && state == VmState.Running ? VmModificationCondition.Allowed
+            : VmModificationCondition.PoweredOff(state);
 
     /// <summary>校验介质路径是否存在；空路径按弹出介质处理。</summary>
     /// <param name="newPath">要引用的介质文件路径；允许空值的光驱校验入口将其视为无介质。</param>

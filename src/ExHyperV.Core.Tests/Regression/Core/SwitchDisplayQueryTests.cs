@@ -206,11 +206,95 @@ public sealed class SwitchDisplayQueryTests
         Assert.AreEqual("ICS private connection has no public connection.", state.StateError);
     }
 
+    [TestMethod]
+    public void ResolveInternalNatState_DistinguishesHcnWinNatIcsAndPureInternal()
+    {
+        var hcn = HyperVSwitchService.ResolveInternalNatState(
+            "C08CB7B8-9B3C-408E-8E30-5E16A3AEB444",
+            SwitchMode.Isolated,
+            "172.30.240.0/20",
+            [],
+            ["172.30.240.1"]);
+        Assert.AreEqual(SwitchMode.NAT, hcn.Mode);
+        Assert.AreEqual(SwitchNatEngine.HcnManaged, hcn.NatEngine);
+        Assert.AreEqual("172.30.240.0/20", hcn.SubnetPrefix);
+
+        var winNat = HyperVSwitchService.ResolveInternalNatState(
+            Guid.NewGuid().ToString("D"),
+            SwitchMode.Isolated,
+            null,
+            ["192.168.253.0/24"],
+            ["192.168.253.1"]);
+        Assert.AreEqual(SwitchMode.NAT, winNat.Mode);
+        Assert.AreEqual(SwitchNatEngine.WinNat, winNat.NatEngine);
+        Assert.AreEqual("192.168.253.0/24", winNat.SubnetPrefix);
+
+        var ics = HyperVSwitchService.ResolveInternalNatState(
+            Guid.NewGuid().ToString("D"),
+            SwitchMode.NAT,
+            null,
+            ["192.168.253.0/24"],
+            ["192.168.137.1"]);
+        Assert.AreEqual(SwitchMode.NAT, ics.Mode);
+        Assert.AreEqual(SwitchNatEngine.IcsShared, ics.NatEngine);
+        Assert.AreEqual("192.168.137.0/24", ics.SubnetPrefix);
+
+        var pureInternal = HyperVSwitchService.ResolveInternalNatState(
+            Guid.NewGuid().ToString("D"),
+            SwitchMode.Isolated,
+            null,
+            ["192.168.253.0/24"],
+            ["10.0.0.1"]);
+        Assert.AreEqual(SwitchMode.Isolated, pureInternal.Mode);
+        Assert.AreEqual(SwitchNatEngine.None, pureInternal.NatEngine);
+        Assert.IsNull(pureInternal.SubnetPrefix);
+    }
+
+    [TestMethod]
+    public void ClassifyMediaKind_IdentifiesWiredWiFiCellularAndTunnel()
+    {
+        Assert.AreEqual(AdapterMediaKind.WiFi, HyperVSwitchService.ClassifyMediaKind(9, true, "Qualcomm(R) FastConnect(TM) 7800"));
+        Assert.AreEqual(AdapterMediaKind.Cellular, HyperVSwitchService.ClassifyMediaKind(8, true, "Surface 5G Mobile Broadband"));
+        Assert.AreEqual(AdapterMediaKind.Tunnel, HyperVSwitchService.ClassifyMediaKind(0, false, "Tailscale Tunnel"));
+        Assert.AreEqual(AdapterMediaKind.Wired, HyperVSwitchService.ClassifyMediaKind(14, true, "Intel(R) Ethernet Controller I226-V"));
+        Assert.AreEqual(AdapterMediaKind.Wired, HyperVSwitchService.ClassifyMediaKind(0, true, "Realtek Gaming 2.5GbE Family Controller"));
+        Assert.AreEqual(AdapterMediaKind.Other, HyperVSwitchService.ClassifyMediaKind(0, false, "Bluetooth Device (Personal Area Network)"));
+    }
+
+    [TestMethod]
+    public void TelemetryNormalizationAndHcnSubnetParsing_HandleRealWindowsFormats()
+    {
+        Assert.AreEqual("Qualcomm[R] FastConnect[TM] 7800 _2",
+            HostNetworkTelemetryService.NormalizePerfInstanceName("Qualcomm(R) FastConnect(TM) 7800 #2"));
+        Assert.AreEqual("172.30.240.0/20",
+            HyperVSwitchService.ParseHcnSubnetPrefix("{\"Name\":\"Default Switch\",\"Subnets\":[{\"AddressPrefix\":\"172.30.240.0/20\"}]}"));
+        Assert.IsNull(HyperVSwitchService.ParseHcnSubnetPrefix("{}"));
+    }
+
     private static SwitchUpstreamAdapter Adapter(Guid id) => new(id, "device", "adapter", "adapter", "external-port", true);
 
     private sealed class RejectingSynchronizationContext : SynchronizationContext
     {
         public override void Post(SendOrPostCallback callback, object? state)
             => throw new InvalidOperationException("The network reader captured the caller's context.");
+    }
+    [TestMethod]
+    public void NetworkThroughputDistinguishesWarmupInvalidAndIdle()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var warmup = HostNetworkTelemetryService.ClassifySample(false, 0, 0, now);
+        Assert.AreEqual(PerformanceSampleState.WarmingUp, warmup.Sample.State);
+        Assert.AreEqual(now, warmup.Sample.ObservedAtUtc);
+        Assert.IsNull(warmup.Throughput);
+        var missing = HostNetworkTelemetryService.ClassifySample(true, float.NaN, 3, now);
+        Assert.AreEqual(PerformanceSampleState.Unavailable, missing.Sample.State);
+        Assert.IsNull(missing.Throughput);
+        var idle = HostNetworkTelemetryService.ClassifySample(true, 0, 0, now);
+        Assert.IsTrue(idle.Sample.IsValid);
+        Assert.AreEqual(0d, idle.Throughput!.TotalBytesPerSec);
+        using var monitor = new HostNetworkTelemetryService();
+        monitor.Reset();
+        monitor.Dispose();
+        Assert.ThrowsExactly<ObjectDisposedException>(monitor.Reset);
     }
 }

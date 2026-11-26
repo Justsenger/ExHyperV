@@ -13,7 +13,10 @@ namespace ExHyperV.Services
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <returns>挂接列表或查询错误；控制器编号与槽位使用从零开始的索引。</returns>
         /// <remarks>存在物理磁盘挂接时，宿主磁盘映射或身份读取失败会返回查询错误，不把缺测当成直通盘失效。</remarks>
-        public static async Task<ApiResponse<List<VmStorageAttachment>>> GetVmStorageItemsAsync(Guid vmId)
+        public static Task<ApiResponse<List<VmStorageAttachment>>> GetVmStorageItemsAsync(Guid vmId)
+            => GetVmStorageItemsAsync(vmId, readMetadata: true);
+
+        private static async Task<ApiResponse<List<VmStorageAttachment>>> GetVmStorageItemsAsync(Guid vmId, bool readMetadata)
         {
             if (vmId == Guid.Empty) return ApiResponse<List<VmStorageAttachment>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
 
@@ -63,7 +66,7 @@ namespace ExHyperV.Services
                 {
                     Dictionary<string, int>? hvDiskMap = null;
                     Dictionary<int, HostDiskInfoCache>? osDiskMap = null;
-                    return BuildStorageItems(allResources, ref hvDiskMap, ref osDiskMap, vmId);
+                    return BuildStorageItems(allResources, ref hvDiskMap, ref osDiskMap, vmId, readMetadata);
                 }).ConfigureAwait(false);
                 return ApiResponse<List<VmStorageAttachment>>.Ok(items.OrderBy(i => i.ControllerType).ThenBy(i => i.ControllerNumber).ThenBy(i => i.ControllerLocation).ToList());
             }
@@ -113,7 +116,7 @@ namespace ExHyperV.Services
             List<StorageResource> allResources,
             ref Dictionary<string, int>? hvDiskMap,
             ref Dictionary<int, HostDiskInfoCache>? osDiskMap,
-            Guid vmId)
+            Guid vmId, bool readMetadata)
         {
             var resultList = new List<VmStorageAttachment>();
             var parentRegex = new Regex("InstanceID=\"([^\"]+)\"", RegexOptions.Compiled);
@@ -192,13 +195,11 @@ namespace ExHyperV.Services
 
                         if (!string.IsNullOrWhiteSpace(rawPath))
                         {
-                            bool isPhysicalHardDisk =
-                                rawPath.Contains("Msvm_DiskDrive", StringComparison.OrdinalIgnoreCase) ||
-                                rawPath.ToUpper().Contains("PHYSICALDRIVE");
-
-                            bool isPhysicalCdRom =
-                                rawPath.Contains("CDROM", StringComparison.OrdinalIgnoreCase) ||
-                                rawPath.Contains("Msvm_OpticalDrive", StringComparison.OrdinalIgnoreCase);
+                            bool isPhysicalHardDisk = resType == 17 && (slot.ResourceSubType == "Microsoft:Hyper-V:Physical Disk Drive"
+                                || rawPath.Contains("Msvm_DiskDrive.DeviceID=", StringComparison.OrdinalIgnoreCase)
+                                || rawPath.StartsWith(@"\\.\PhysicalDrive", StringComparison.OrdinalIgnoreCase));
+                            bool isPhysicalCdRom = resType == 16 && (!Path.IsPathFullyQualified(rawPath)
+                                || rawPath.Contains("Msvm_OpticalDrive.DeviceID=", StringComparison.OrdinalIgnoreCase));
 
                             if (isPhysicalHardDisk)
                             {
@@ -263,15 +264,7 @@ namespace ExHyperV.Services
                             {
                                 driveItem.DiskType = "Virtual";
                                 driveItem.PathOrDiskNumber = rawPath.Trim('"');
-                                if (File.Exists(driveItem.PathOrDiskNumber))
-                                {
-                                    try
-                                    {
-                                        driveItem.DiskSizeGiB =
-                                            new FileInfo(driveItem.PathOrDiskNumber).Length / 1073741824.0;
-                                    }
-                                    catch { }
-                                }
+                                if (readMetadata) ReadAttachmentMetadata(driveItem);
                             }
                         }
                     }
@@ -286,6 +279,7 @@ namespace ExHyperV.Services
                         osDiskMap != null && osDiskMap.TryGetValue(driveItem.DiskNumber, out var physical))
                     {
                         physicalIdentity = physical.Identity;
+                        driveItem.IsHostDiskOffline = physicalIdentity?.IsOffline;
                     }
                     driveItem.AttachSelection(new VmStorageSelection(vmId, ctrl.Identity(), slot.Identity(),
                         selectedMedia, physicalIdentity));
@@ -375,30 +369,67 @@ namespace ExHyperV.Services
             string token = drive.SelectionToken;
             var selected = VmStorageRemoval.Select(vmId, token, await GetVmStorageItemsAsync(vmId));
             if (!selected.HasData) return VmStorageRemoval.Failure(selected);
-            var state = await VmConfigurationState.ReadAsync(vmId);
-            if (!state.HasData) return state.Success ? ApiResponse.Fail("未找到虚拟机。", kind: ApiErrorKind.NotFound)
-                : ApiResponse.Fail(state.Error, state.Code, state.ErrorSource, state.Exception, state.ErrorKind);
-            var condition = GetCompactionCondition(selected.Data, state.Data.State);
-            return condition.CanModify ? await CompactDiskAsync(selected.Data.PathOrDiskNumber) : condition.ToResponse();
+            var eligibility = GetCompactionTargetCondition(selected.Data);
+            if (!eligibility.CanModify) return eligibility.ToResponse();
+            return await CompactLockedAsync(selected.Data.PathOrDiskNumber, async () =>
+            {
+                var current = VmStorageRemoval.Select(vmId, token, await GetVmStorageItemsAsync(vmId));
+                if (!current.HasData) return VmStorageRemoval.Failure(current);
+                if (drive.MediaFileToken != null && drive.MediaFileToken != current.Data.MediaFileToken)
+                    return Conflict("介质文件已被替换，请重新选择。");
+                var access = await InspectCurrent(vmId, current.Data);
+                return access.CanCompact ? ApiResponse.Ok() : Denied(access.Message);
+            });
         }
 
         // 压缩虚拟磁盘
 
-        /// <summary>请求 Hyper-V 压缩虚拟磁盘文件的物理占用。</summary>
+        /// <summary>请求以两阶段深度压缩（只读挂载感知文件系统 + 脱机全零扫描）回收虚拟磁盘文件占用的物理空间。</summary>
         /// <param name="vhdPath">待压缩的虚拟磁盘文件路径。</param>
         /// <returns>压缩结果；操作改变磁盘文件，能否执行取决于主机和磁盘当前占用状态。</returns>
     /// <editentry label="压缩虚拟磁盘" category="存储"/>
         public static async Task<ApiResponse> CompactDiskAsync(string vhdPath)
         {
-            return await WmiApi.InvokeAsync(
-                "SELECT * FROM Msvm_ImageManagementService",
-                "CompactVirtualHardDisk",
-                p =>
+            if (string.IsNullOrWhiteSpace(vhdPath))
+                return ApiResponse.Fail("请提供虚拟磁盘文件路径。", kind: ApiErrorKind.InvalidArgument);
+
+            string fullPath;
+            try { fullPath = Path.GetFullPath(vhdPath); }
+            catch (Exception ex) { return ApiResponse.Fail("虚拟磁盘路径无效：" + ex.Message, exception: ex, kind: ApiErrorKind.InvalidArgument); }
+
+            if (!File.Exists(fullPath))
+                return ApiResponse.Fail(Properties.Resources.Error_Storage_FileNotExist, kind: ApiErrorKind.NotFound);
+
+            return await CompactLockedAsync(fullPath, async () =>
+            {
+                var dependency = await FindDependency([fullPath], new VmStorageAttachment());
+                if (dependency.Kind != VmDiskAccessKind.Normal)
+                    return Denied(dependency.Detail + " 已挂接的磁盘请从对应虚拟机发起压缩。");
+                using var reader = new VirtualDiskMetadataReader();
+                if (reader.ReadGeometry(fullPath).Type == "Fixed") return Denied("固定大小磁盘不支持压缩。");
+                if (!await IsHostMounted(fullPath)) ProbeExclusiveRead(fullPath);
+                return ApiResponse.Ok();
+            }).ConfigureAwait(false);
+        }
+
+        private static async Task<ApiResponse> CompactLockedAsync(string path, Func<Task<ApiResponse>> validate)
+        {
+            try
+            {
+                return await HostDiskService.WithImageLockAsync(path, () => WithStorageConfigurationLock(async () =>
                 {
-                    p["Path"] = vhdPath;
-                    p["Mode"] = 1u;
-                },
-                WmiScope.HyperV);
+                    using var pin = HostDiskResource.PinImage(path);
+                    try { HostResourceLock.AssertHeld(HostDiskResource.Image(pin)); }
+                    catch (InvalidOperationException ex) { return ApiResponse.Fail("虚拟磁盘身份已变化。", exception: ex, kind: ApiErrorKind.Conflict); }
+                    var condition = await validate();
+                    if (!condition.Success) return condition;
+                    return VirtualDiskCompactor.Compact(path);
+                }));
+            }
+            catch (Exception error)
+            {
+                return error is CoreOperationException operation ? operation.Result : HostDiskService.LockFailure(error);
+            }
         }
 
         // 主机物理磁盘列表
@@ -417,7 +448,7 @@ namespace ExHyperV.Services
                 foreach (var path in requestedPaths)
                 {
                     try { if (File.Exists(path)) result[path] = new FileInfo(path).Length; }
-                    catch { }
+                    catch (Exception diagnosticError) { CoreDiagnostics.Report("DiskLengthReadFailed", error: diagnosticError); }
                 }
                 return result;
             });
@@ -509,8 +540,12 @@ namespace ExHyperV.Services
             }
         }
 
-        internal static async Task<ApiResponse<VmStorageSlot>> AddDriveUnderLockAsync(
+        internal static Task<ApiResponse<VmStorageSlot>> AddDriveUnderLockAsync(
             Guid vmId, VmStorageAddRequest request, Action<string>? onVhdCreated = null)
+            => HostResourceLock.RunAsync(StorageConfigurationLock, () => AddSelectedDriveAsync(vmId, request, onVhdCreated));
+
+        private static async Task<ApiResponse<VmStorageSlot>> AddSelectedDriveAsync(
+            Guid vmId, VmStorageAddRequest request, Action<string>? onVhdCreated)
         {
             if (vmId == Guid.Empty)
                 return ApiResponse<VmStorageSlot>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
@@ -597,6 +632,8 @@ namespace ExHyperV.Services
 
                 int enabledState = WmiApi.Prop<int>(vmObj, "EnabledState", 0);
                 bool isRunning = enabledState == 2;
+                if (VmMapper.MapState((ushort)enabledState) is not (VmState.PoweredOff or VmState.Running))
+                    return ApiResponse<VmStorageSlot>.Fail("请等待虚拟机彻底关机后再添加存储设备。", kind: ApiErrorKind.InvalidState);
 
                 settings = WmiApi.GetVmSettings(vmObj);
                 if (settings == null)
@@ -1070,7 +1107,10 @@ namespace ExHyperV.Services
             catch (Exception error) { return HostDiskService.LockFailure(error); }
         }
 
-        private static async Task<ApiResponse> RemoveDriveCoreAsync(Guid vmId, VmStorageAttachment drive)
+        private static Task<ApiResponse> RemoveDriveCoreAsync(Guid vmId, VmStorageAttachment drive)
+            => WithStorageConfigurationLock(() => RemoveSelectedDriveAsync(vmId, drive));
+
+        private static async Task<ApiResponse> RemoveSelectedDriveAsync(Guid vmId, VmStorageAttachment drive)
         {
             if (drive.Selection is not { IsValid: true } selection || selection.VmId != vmId)
                 return ApiResponse.Fail("存储挂接身份不完整，请重新查询。", kind: ApiErrorKind.InvalidArgument);
@@ -1147,7 +1187,11 @@ namespace ExHyperV.Services
         public static Task<ApiResponse> ModifyHardDrivePathAsync(Guid vmId, VmStorageAttachment drive, string newPath)
             => ModifyMediaPathAsync(vmId, drive, "HardDisk", "Microsoft:Hyper-V:Virtual Hard Disk", newPath);
 
-        private static async Task<ApiResponse> ModifyMediaPathAsync(Guid vmId, VmStorageAttachment drive,
+        private static Task<ApiResponse> ModifyMediaPathAsync(Guid vmId, VmStorageAttachment drive,
+            string driveType, string resourceSubType, string newPath)
+            => WithStorageConfigurationLock(() => ModifySelectedMediaAsync(vmId, drive, driveType, resourceSubType, newPath));
+
+        private static async Task<ApiResponse> ModifySelectedMediaAsync(Guid vmId, VmStorageAttachment drive,
             string driveType, string resourceSubType, string newPath)
         {
             if (vmId == Guid.Empty || drive == null || string.IsNullOrWhiteSpace(drive.DeviceToken))
@@ -1165,6 +1209,8 @@ namespace ExHyperV.Services
             var current = selected.Data;
             if (current.DriveType != driveType)
                 return ApiResponse.Fail("所选驱动器类型与修改入口不符。", kind: ApiErrorKind.InvalidArgument);
+            if (driveType == "DvdDrive" && !string.IsNullOrWhiteSpace(newPath) && Extension(newPath) != ".iso")
+                return Invalid("虚拟光驱仅支持 ISO 文件，留空可弹出介质。");
             var condition = GetMediaModificationCondition(current, VmMapper.MapState(Convert.ToUInt16(vmObj["EnabledState"])));
             if (!condition.CanModify) return condition.ToResponse();
             var selection = current.Selection!;
@@ -1227,9 +1273,9 @@ namespace ExHyperV.Services
             });
         }
 
-        /// <summary>按物理磁盘查询快照核对身份，并从指定虚拟机移除其直通挂接。</summary>
+        /// <summary>按物理磁盘查询结果核对身份，并从指定虚拟机移除其直通挂接。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <param name="disk">GetHostDisksAsync 取得的物理硬盘快照；必须提供身份和容量，执行前重新核对。</param>
+        /// <param name="disk">GetHostDisksAsync 取得的物理硬盘信息，必须提供身份和容量，执行前重新核对。</param>
         /// <returns>成功时包含原控制器类型、编号和槽位，供重新挂接使用；失败不返回默认槽位。</returns>
         public static async Task<ApiResponse<VmStorageSlot>> DetachPhysicalDiskAsync(Guid vmId, HostDiskInfo disk)
         {

@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Reflection.PortableExecutable;
 using System.Runtime.InteropServices;
 using ExHyperV.Models;
 using ExHyperV.Services;
@@ -67,14 +69,21 @@ internal static partial class ApiCaseRegistry
     }
     private static void CheckArchitecture(ApiCaseContext c)
     {
-        GetNativeSystemInfo(out var system);
-        var expected = system.Architecture switch { 0 => Architecture.X86, 5 => Architecture.Arm, 9 => Architecture.X64, 12 => Architecture.Arm64, _ => throw new InvalidDataException("系统架构代码尚待支持：" + system.Architecture) };
-        c.Equal(expected, c.Call(HostProcessorPlatformService.GetArchitecture), "与 GetNativeSystemInfo 独立对照宿主架构");
+        // GetNativeSystemInfo can report x64 to an emulated x64 process on ARM64.
+        const nint currentProcessPseudoHandle = -1;
+        if (!IsWow64Process2(currentProcessPseudoHandle, out _, out var nativeMachine))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        var expected = nativeMachine switch
+        {
+            Machine.I386 => Architecture.X86,
+            Machine.Amd64 => Architecture.X64,
+            Machine.Arm or Machine.ArmThumb2 => Architecture.Arm,
+            Machine.Arm64 => Architecture.Arm64,
+            _ => throw new InvalidDataException("未知宿主架构：" + nativeMachine)
+        };
+        c.Equal(expected, c.Call(HostProcessorPlatformService.GetArchitecture),
+            $"与 Windows 原生架构对照，进程架构为 {RuntimeInformation.ProcessArchitecture}");
     }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativeSystemInfo
-    {
-        public ushort Architecture, Reserved; public uint PageSize; public IntPtr Minimum, Maximum; public UIntPtr Mask; public uint Count, Type, Granularity; public ushort Level, Revision;
-    }
-    [DllImport("kernel32.dll")] private static extern void GetNativeSystemInfo(out NativeSystemInfo system);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool IsWow64Process2(nint process, out Machine processMachine, out Machine nativeMachine);
 }

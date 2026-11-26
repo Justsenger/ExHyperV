@@ -6,7 +6,7 @@ namespace ExHyperV.Services;
 internal sealed record HostCpuGroupBinding(VmCpuGroupBinding Binding, HostCpuGroupMember Member);
 internal sealed record HostCpuGroupBindings(IReadOnlyList<HostCpuGroupBinding> Items, bool Complete, string? Error);
 
-// 只查当前配置关联；历史检查点中的 CpuGroupId 不能充当活跃成员。
+// 只查当前配置关联；历史快照中的 CpuGroupId 不能充当活跃成员。
 internal static class HostCpuGroupMemberReader
 {
     private sealed record VmRow(Guid Id, string? Name, VmState State);

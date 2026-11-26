@@ -8,8 +8,8 @@ namespace ExHyperV.Services;
 /// <param name="State">本次查询的虚拟机运行状态。</param>
 public sealed record HostCpuGroupMember(Guid VmId, string? Name, VmState State);
 
-/// <summary>宿主 CPU 组的处理器、调度策略与成员快照。</summary>
-/// <remarks>组策略适用于 Classic/Core 调度器，修改会影响该组全部使用者。成员列表覆盖 WMI 可见的 Hyper-V 虚拟机；其他 HCS 使用者不在此列表中。修改时将最新快照的 Revision 原样传回 <see cref="HostCpuGroupService"/>。</remarks>
+/// <summary>宿主 CPU 组的处理器、调度策略与成员视图。</summary>
+/// <remarks>组策略适用于 Classic/Core 调度器，修改会影响该组全部使用者。成员列表覆盖 WMI 可见的 Hyper-V 虚拟机，其他 HCS 使用者不在此列表中。修改时将最新视图的 Revision 原样传回 <see cref="HostCpuGroupService"/>。</remarks>
 public sealed class HostCpuGroupInfo
 {
     internal HostCpuGroupInfo(Guid groupId, uint[]? processors, uint? cpuCap, uint? priority, uint? reserve, uint? weight,

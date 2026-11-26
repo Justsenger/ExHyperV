@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net10.0-windows7.0": {
+    "net11.0-windows7.0": {
       "ModelContextProtocol": {
         "type": "Direct",
         "requested": "[2.3.0, )",
@@ -29,20 +29,10 @@
           "ModelContextProtocol": "[2.3.0]"
         }
       },
-      "BouncyCastle.Cryptography": {
-        "type": "Transitive",
-        "resolved": "2.7.0",
-        "contentHash": "U+12df8UEWHgBi04YVf/Lgi2dy3SItlIYvHjjEVa/BngCQIzDCDRBk50DDByCfDvSbe5pRNFr3b7UrVK2kMcLw=="
-      },
       "Microsoft.Extensions.AI.Abstractions": {
         "type": "Transitive",
         "resolved": "10.11.0",
         "contentHash": "h4DX/TdJU4fk1GGaf19n6Kujkj6VXbGeL4UEOsQ8+ZJC5fVApPauokCtvBP684BYbczUYZQNfo1mbmyHG4WVSg=="
-      },
-      "Microsoft.Win32.SystemEvents": {
-        "type": "Transitive",
-        "resolved": "10.0.7",
-        "contentHash": "yRy88RjP9RlFxiaxwkGSh5e7lhSRCUaSwYW323ssK85XTm13b3y65Yp8HuURXNnxGQGo9L4Bz19aQAbrfTyJqA=="
       },
       "ModelContextProtocol.Core": {
         "type": "Transitive",
@@ -56,19 +46,6 @@
         "type": "Transitive",
         "resolved": "1.4.2",
         "contentHash": "yjj+3zgz8zgXpiiC3ZdF/iyTBbz2fFvMxZFEBPUcwZjIvXOf37Ylm+K58hqMfIBt5JgU/Z2uoUS67JmTLe973A=="
-      },
-      "SSH.NET": {
-        "type": "Transitive",
-        "resolved": "2026.0.0",
-        "contentHash": "Yu9dirPq8l3oaat0+OQ7K0nUf5MmYltpia5UGqsApTG4zTPvBC1cxbNnC3NERij26dUST0A3Ef1QdHSn5ArbWQ==",
-        "dependencies": {
-          "BouncyCastle.Cryptography": "2.7.0"
-        }
-      },
-      "System.CodeDom": {
-        "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "23AxxQYf5rjSmsawFw8kCVLRvvCIKMCnZWnRzBcHkzwsBra5eTv4k88BV6fEN+f3FVHO7PneZj3LOEyQnnPhTA=="
       },
       "System.Configuration.ConfigurationManager": {
         "type": "Transitive",
@@ -86,22 +63,6 @@
           "System.Configuration.ConfigurationManager": "8.0.0"
         }
       },
-      "System.Drawing.Common": {
-        "type": "Transitive",
-        "resolved": "10.0.7",
-        "contentHash": "t0dLoUJOFMMyHqwpDuTKVlKVry92yUhf7qwihVT2MUrg3y/ZOHKpij5nb+jb20UT3vc7UlQWQlNmV9NQ5c7aSA==",
-        "dependencies": {
-          "Microsoft.Win32.SystemEvents": "10.0.7"
-        }
-      },
-      "System.Management": {
-        "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "8GgwcQgAv1Xg0z4vkJ759AJOFbZpK17cX9+21SOHo+KXS+VUhwSBeFSzjDJyyaEiJwgQ0D5sGnfpEs2hjyZrmA==",
-        "dependencies": {
-          "System.CodeDom": "10.0.8"
-        }
-      },
       "System.Security.Cryptography.ProtectedData": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -110,20 +71,12 @@
       "exhyperv.core": {
         "type": "Project",
         "dependencies": {
-          "SSH.NET": "[2026.0.0, )",
           "SharpZipLib": "[1.4.2, )",
-          "System.Diagnostics.PerformanceCounter": "[8.0.0, )",
-          "System.Drawing.Common": "[10.0.7, )",
-          "System.Management": "[10.0.8, )"
+          "System.Diagnostics.PerformanceCounter": "[8.0.0, )"
         }
       }
     },
-    "net10.0-windows7.0/win-arm64": {
-      "Microsoft.Win32.SystemEvents": {
-        "type": "Transitive",
-        "resolved": "10.0.7",
-        "contentHash": "yRy88RjP9RlFxiaxwkGSh5e7lhSRCUaSwYW323ssK85XTm13b3y65Yp8HuURXNnxGQGo9L4Bz19aQAbrfTyJqA=="
-      },
+    "net11.0-windows7.0/win-arm64": {
       "System.Diagnostics.PerformanceCounter": {
         "type": "Transitive",
         "resolved": "8.0.0",
@@ -131,36 +84,15 @@
         "dependencies": {
           "System.Configuration.ConfigurationManager": "8.0.0"
         }
-      },
-      "System.Management": {
-        "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "8GgwcQgAv1Xg0z4vkJ759AJOFbZpK17cX9+21SOHo+KXS+VUhwSBeFSzjDJyyaEiJwgQ0D5sGnfpEs2hjyZrmA==",
-        "dependencies": {
-          "System.CodeDom": "10.0.8"
-        }
       }
     },
-    "net10.0-windows7.0/win-x64": {
-      "Microsoft.Win32.SystemEvents": {
-        "type": "Transitive",
-        "resolved": "10.0.7",
-        "contentHash": "yRy88RjP9RlFxiaxwkGSh5e7lhSRCUaSwYW323ssK85XTm13b3y65Yp8HuURXNnxGQGo9L4Bz19aQAbrfTyJqA=="
-      },
+    "net11.0-windows7.0/win-x64": {
       "System.Diagnostics.PerformanceCounter": {
         "type": "Transitive",
         "resolved": "8.0.0",
         "contentHash": "lX6DXxtJqVGWw7N/QmVoiCyVQ+Q/Xp+jVXPr3gLK1jJExSn1qmAjJQeb8gnOYeeBTG3E3PmG1nu92eYj/TEjpg==",
         "dependencies": {
           "System.Configuration.ConfigurationManager": "8.0.0"
-        }
-      },
-      "System.Management": {
-        "type": "Transitive",
-        "resolved": "10.0.8",
-        "contentHash": "8GgwcQgAv1Xg0z4vkJ759AJOFbZpK17cX9+21SOHo+KXS+VUhwSBeFSzjDJyyaEiJwgQ0D5sGnfpEs2hjyZrmA==",
-        "dependencies": {
-          "System.CodeDom": "10.0.8"
         }
       }
     }

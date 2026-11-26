@@ -117,6 +117,6 @@ internal static class WmiJobWaiter
     private static void Report(IProgress<int>? progress, int value)
     {
         try { progress?.Report(Math.Clamp(value, 0, 100)); }
-        catch (Exception ex) { Debug.WriteLine($"WMI progress callback failed: {ex.Message}"); }
+        catch (Exception ex) { CoreDiagnostics.Report("ProgressCallbackFailed", error: ex); }
     }
 }

@@ -1,5 +1,10 @@
 using System.Diagnostics;
 using System.Management;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
+using System.Text.Json;
 using Microsoft.Win32;
 using ExHyperV.Models;
 using ExHyperV.Tools;
@@ -92,7 +97,7 @@ namespace ExHyperV.Services
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[GetVmAdaptersOnSwitchAsync] error: {ex.Message}");
+                        CoreDiagnostics.Report("SwitchAdapterQueryFailed", error: ex);
                         return null;
                     }
                 }
@@ -146,6 +151,7 @@ namespace ExHyperV.Services
             }
             return new SwitchEndpointInfo
             {
+                IsManagementOs = true,
                 Name = Properties.Resources.DisplayName_HostManagementOS,
                 MacAddress = mac,
                 IpAddress = Ipv4.SelectBest(ipAddresses)
@@ -154,7 +160,7 @@ namespace ExHyperV.Services
         // ══════════════════════════════════════════════════════════════════
         //  GetNetworkInfoAsync — WmiApi
         // ══════════════════════════════════════════════════════════════════
-        /// <summary>读取交换机、连接模式和可用物理上游网卡快照。</summary>
+        /// <summary>读取交换机、连接模式和可用物理上游网卡视图。</summary>
         /// <returns>交换机和物理网卡列表；网卡等读取失败可抛出异常，交换机主查询失败当前返回空交换机列表，不能与确实没有交换机区分。逐交换机识别问题见 StateError。</returns>
         public static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> PhysicalAdapters)> GetNetworkInfoAsync()
             => ReadNetworkInfoAsync(GetPhysicalAdaptersAsync, ComApi.GetConnectionsAsync,
@@ -167,6 +173,7 @@ namespace ExHyperV.Services
         {
             internal Task<List<SwitchUpstreamAdapter>> PhysicalAdapters { get; } = physicalAdapters;
             internal Lazy<Task<ApiResponse<List<IcsConnection>>>> Connections { get; } = new(readConnections);
+            internal Lazy<Task<IReadOnlyList<string>>> WinNatPrefixes { get; } = new(GetWinNatPrefixesAsync);
         }
 
         internal static Task<(List<SwitchInfo> Switches, List<SwitchUpstreamAdapter> PhysicalAdapters)> ReadNetworkInfoAsync(
@@ -186,19 +193,100 @@ namespace ExHyperV.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Error in GetNetworkInfoAsync: {ex}");
+                    CoreDiagnostics.Report("NetworkInfoQueryFailed", error: ex);
                     throw;
                 }
             });
 
-        // 保留实际连接 GUID，按 PnP 身份关联物理设备；NDIS 占位接口不参与 ICS 连接选择。
-        private static async Task<List<SwitchUpstreamAdapter>> GetPhysicalAdaptersAsync()
+        private sealed record NetAdapterMeta(
+            Guid Guid,
+            string PnPDeviceId,
+            int NdisPhysicalMedium,
+            bool ConnectorPresent,
+            bool Virtual,
+            bool HardwareInterface,
+            uint InterfaceIndex,
+            ulong? Speed,
+            string Description);
+
+        private sealed record ConnectionProfileMeta(uint InterfaceIndex, string Name, int Ipv4Connectivity, int Ipv6Connectivity);
+
+        internal static AdapterMediaKind ClassifyMediaKind(int ndisPhysicalMedium, bool connectorPresent, string description)
         {
-            var physical = await WmiApi.QueryCimAsync(
-                "SELECT PnPDeviceID FROM MSFT_NetAdapter WHERE ConnectorPresent = TRUE",
-                p => p["PnPDeviceID"]?.ToString() ?? "", WmiScope.StdCimV2);
-            RequireSuccess(physical);
-            var ids = new HashSet<string>(physical.Data ?? new(), StringComparer.OrdinalIgnoreCase);
+            if (ndisPhysicalMedium == 9) return AdapterMediaKind.WiFi;
+            if (ndisPhysicalMedium == 8) return AdapterMediaKind.Cellular;
+            if (ndisPhysicalMedium == 14) return AdapterMediaKind.Wired;
+            if (!connectorPresent)
+            {
+                if (description.Contains("Bluetooth", StringComparison.OrdinalIgnoreCase))
+                    return AdapterMediaKind.Other;
+                return AdapterMediaKind.Tunnel;
+            }
+            if (ndisPhysicalMedium == 0)
+            {
+                if (description.Contains("Bluetooth", StringComparison.OrdinalIgnoreCase))
+                    return AdapterMediaKind.Other;
+                return AdapterMediaKind.Wired;
+            }
+            return AdapterMediaKind.Other;
+        }
+
+        private static async Task<(Dictionary<Guid, NetAdapterMeta> ByGuid, HashSet<string> ConnectorPresentPnPIds, Dictionary<uint, ConnectionProfileMeta> Profiles)>
+            ReadAdapterMetadataAsync()
+        {
+            var metaResp = await WmiApi.QueryCimAsync(
+                "SELECT InterfaceGuid, PnPDeviceID, NdisPhysicalMedium, Speed, ConnectorPresent, Virtual, HardwareInterface, InterfaceIndex, InterfaceDescription FROM MSFT_NetAdapter",
+                p =>
+                {
+                    Guid.TryParse(p["InterfaceGuid"]?.ToString(), out Guid guid);
+                    return new NetAdapterMeta(
+                        guid,
+                        p["PnPDeviceID"]?.ToString() ?? string.Empty,
+                        Convert.ToInt32(p["NdisPhysicalMedium"] ?? 0),
+                        Convert.ToBoolean(p["ConnectorPresent"] ?? false),
+                        Convert.ToBoolean(p["Virtual"] ?? false),
+                        Convert.ToBoolean(p["HardwareInterface"] ?? false),
+                        Convert.ToUInt32(p["InterfaceIndex"] ?? 0),
+                        p["Speed"] is null ? null : Convert.ToUInt64(p["Speed"]),
+                        p["InterfaceDescription"]?.ToString() ?? string.Empty);
+                },
+                WmiScope.StdCimV2);
+            RequireSuccess(metaResp);
+
+            var byGuid = new Dictionary<Guid, NetAdapterMeta>();
+            var connectorIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var item in metaResp.Data ?? [])
+            {
+                if (item.ConnectorPresent && !string.IsNullOrEmpty(item.PnPDeviceId))
+                    connectorIds.Add(item.PnPDeviceId);
+                if (item.Guid != Guid.Empty && !byGuid.ContainsKey(item.Guid))
+                    byGuid[item.Guid] = item;
+            }
+
+            var profiles = new Dictionary<uint, ConnectionProfileMeta>();
+            var profileResp = await WmiApi.QueryCimAsync(
+                "SELECT InterfaceIndex, Name, IPv4Connectivity, IPv6Connectivity FROM MSFT_NetConnectionProfile",
+                p => new ConnectionProfileMeta(
+                    Convert.ToUInt32(p["InterfaceIndex"] ?? 0),
+                    p["Name"]?.ToString() ?? string.Empty,
+                    Convert.ToInt32(p["IPv4Connectivity"] ?? 0),
+                    Convert.ToInt32(p["IPv6Connectivity"] ?? 0)),
+                WmiScope.StdCimV2);
+            if (profileResp.Success && profileResp.Data != null)
+            {
+                foreach (var prof in profileResp.Data)
+                {
+                    if (prof.InterfaceIndex != 0 && !profiles.ContainsKey(prof.InterfaceIndex))
+                        profiles[prof.InterfaceIndex] = prof;
+                }
+            }
+
+            return (byGuid, connectorIds, profiles);
+        }
+
+        private static async Task<List<SwitchUpstreamAdapter>> QueryAdaptersAsync(bool includeVirtualTunnels)
+        {
+            var (byGuid, connectorIds, profiles) = await ReadAdapterMetadataAsync();
             var connections = await WmiApi.QueryAsync(
                 "SELECT GUID, PNPDeviceID, Name, NetConnectionID, NetConnectionStatus FROM Win32_NetworkAdapter WHERE NetConnectionID IS NOT NULL",
                 p => new SwitchUpstreamAdapter(Guid.Parse(p["GUID"].ToString()!), p["PNPDeviceID"]?.ToString() ?? "",
@@ -213,9 +301,45 @@ namespace ExHyperV.Services
                 RequireSuccess(response);
                 foreach (var port in response.Data ?? new()) ports[port.Id] = port.Path;
             }
-            return (connections.Data ?? new()).Where(a => ids.Contains(a.DeviceId))
-                .Select(a => a with { ExternalPortPath = ports.GetValueOrDefault(a.ConnectionId, "") }).ToList();
+
+            var list = new List<SwitchUpstreamAdapter>();
+            foreach (var adapter in connections.Data ?? [])
+            {
+                bool hasConnector = connectorIds.Contains(adapter.DeviceId);
+                byGuid.TryGetValue(adapter.ConnectionId, out var meta);
+                bool isTunnelCandidate = includeVirtualTunnels && !hasConnector && meta is { Virtual: true, HardwareInterface: false }
+                    && !adapter.Description.Contains("Hyper-V Virtual Ethernet Adapter", StringComparison.OrdinalIgnoreCase)
+                    && !adapter.Description.Contains("Bluetooth", StringComparison.OrdinalIgnoreCase);
+
+                if (!hasConnector && !isTunnelCandidate) continue;
+
+                AdapterMediaKind mediaKind = meta != null
+                    ? ClassifyMediaKind(meta.NdisPhysicalMedium, meta.ConnectorPresent, adapter.Description)
+                    : AdapterMediaKind.Wired;
+                ConnectionProfileMeta? profile = meta != null && profiles.TryGetValue(meta.InterfaceIndex, out var foundProfile)
+                    ? foundProfile : null;
+                bool hasInternet = profile != null && (profile.Ipv4Connectivity >= 4 || profile.Ipv6Connectivity >= 4);
+
+                list.Add(adapter with
+                {
+                    ExternalPortPath = ports.GetValueOrDefault(adapter.ConnectionId, string.Empty),
+                    MediaKind = mediaKind,
+                    ConnectionProfileName = string.IsNullOrWhiteSpace(profile?.Name) ? null : profile!.Name,
+                    HasInternetAccess = hasInternet,
+                    LinkSpeed = meta?.Speed
+                });
+            }
+            return list;
         }
+
+        // 保留实际连接 GUID，按 PnP 身份关联物理设备；NDIS 占位接口不参与 ICS 连接选择。
+        private static Task<List<SwitchUpstreamAdapter>> GetPhysicalAdaptersAsync()
+            => QueryAdaptersAsync(includeVirtualTunnels: false);
+
+        /// <summary>获取全部可用于虚拟交换机上游的活跃连接适配器（包含物理以太网/Wi-Fi/蜂窝移动及 L3 虚拟隧道适配器）。</summary>
+        /// <returns>按介质与能力标注的上游适配器列表。</returns>
+        public static Task<List<SwitchUpstreamAdapter>> GetAllUpstreamAdaptersAsync()
+            => QueryAdaptersAsync(includeVirtualTunnels: true);
 
         /// <summary>筛选已找到 Hyper-V 外部端口的宿主物理网卡。</summary>
         /// <returns>桥接候选列表；未在此排除其他交换机占用或断开链路，提交前仍需校验。</returns>
@@ -233,7 +357,7 @@ namespace ExHyperV.Services
 
             if (!switchObjects.Success || switchObjects.Data == null)
             {
-                Debug.WriteLine($"[NetworkService] GetSwitchList WMI error: {switchObjects.Error}");
+                CoreDiagnostics.Report("SwitchListQueryFailed", details: $"errorCode={switchObjects.Code} errorKind={switchObjects.ErrorKind}");
                 if (requireSuccess) throw new InvalidOperationException(switchObjects.Error);
                 return new List<SwitchInfo>();
             }
@@ -248,7 +372,7 @@ namespace ExHyperV.Services
                         // A runtime port can outlive its configuration association.
                         // Keep this switch visible without losing every healthy switch.
                         // Configuration transactions still use the strict reader below.
-                        Debug.WriteLine(ex);
+                        CoreDiagnostics.Report("SwitchProjectionFailed", error: ex);
                         return new SwitchInfo
                         {
                             SwitchName = switchObj["ElementName"]?.ToString() ?? string.Empty,
@@ -294,18 +418,196 @@ namespace ExHyperV.Services
                 Guid.TryParse(external["DeviceID"]?.ToString()?.Replace("Microsoft:", "", StringComparison.OrdinalIgnoreCase), out externalAdapterId);
             }
 
-            var networkState = await ReadSwitchNetworkStateAsync(externalPorts.Count, externalAdapterId,
-                () => GetHostConnectionIdAsync(Guid.Parse(switchGuid)), readContext);
+            string resolvedId = string.IsNullOrEmpty(switchId) ? switchGuid : switchId;
+            Guid? parsedHostConnId = null;
+            async Task<Guid> GetCachedHostConnIdAsync()
+            {
+                if (parsedHostConnId.HasValue) return parsedHostConnId.Value;
+                parsedHostConnId = await GetHostConnectionIdAsync(Guid.Parse(switchGuid));
+                return parsedHostConnId.Value;
+            }
+            var networkState = await ReadSwitchNetworkStateAsync(externalPorts.Count, externalAdapterId, GetCachedHostConnIdAsync, readContext);
+
+            HyperVSwitchKind switchKind = externalPorts.Count > 0
+                ? HyperVSwitchKind.External
+                : hasInternal
+                    ? HyperVSwitchKind.Internal
+                    : HyperVSwitchKind.Private;
+
+            SwitchMode finalMode = networkState.Type;
+            SwitchNatEngine natEngine = SwitchNatEngine.None;
+            string? subnetPrefix = null;
+
+            if (switchKind == HyperVSwitchKind.Internal)
+            {
+                string? hcnSubnet = TryQueryHcnSubnetPrefix(resolvedId)
+                    ?? (!string.Equals(resolvedId, switchGuid, StringComparison.OrdinalIgnoreCase) ? TryQueryHcnSubnetPrefix(switchGuid) : null);
+                IReadOnlyList<string> winNatPrefixes = await (readContext?.WinNatPrefixes.Value ?? GetWinNatPrefixesAsync());
+                IReadOnlyList<string> hostIps = [];
+                if (networkState.Type != SwitchMode.NAT && hcnSubnet == null && !SwitchConfigurationRules.IsDefaultSwitch(resolvedId) && winNatPrefixes.Count > 0)
+                {
+                    Guid hcId = await GetCachedHostConnIdAsync();
+                    if (hcId != Guid.Empty) hostIps = ReadHostAdapterIpv4Addresses(hcId);
+                }
+
+                (finalMode, natEngine, subnetPrefix) = ResolveInternalNatState(
+                    resolvedId,
+                    networkState.Type,
+                    hcnSubnet,
+                    winNatPrefixes,
+                    hostIps);
+            }
 
             return new SwitchInfo
             {
                 SwitchName = switchName,
-                SwitchType = networkState.Type,
+                SwitchType = finalMode,
+                SwitchKind = switchKind,
+                NatEngine = natEngine,
+                SubnetPrefix = subnetPrefix,
                 AllowManagementOS = hasInternal,
-                Id = string.IsNullOrEmpty(switchId) ? switchGuid : switchId,
+                Id = resolvedId,
                 Upstream = networkState.Upstream,
                 StateError = networkState.StateError
             };
+        }
+
+        internal static (SwitchMode Mode, SwitchNatEngine NatEngine, string? SubnetPrefix) ResolveInternalNatState(
+            string switchId,
+            SwitchMode icsDetectedMode,
+            string? hcnSubnetPrefix,
+            IReadOnlyList<string> winNatPrefixes,
+            IReadOnlyList<string> hostIpv4Addresses)
+        {
+            if (icsDetectedMode == SwitchMode.NAT)
+            {
+                return (SwitchMode.NAT, SwitchNatEngine.IcsShared, "192.168.137.0/24");
+            }
+            if (!string.IsNullOrWhiteSpace(hcnSubnetPrefix) || SwitchConfigurationRules.IsDefaultSwitch(switchId))
+            {
+                return (SwitchMode.NAT, SwitchNatEngine.HcnManaged, hcnSubnetPrefix);
+            }
+            foreach (string cidr in winNatPrefixes)
+            {
+                foreach (string ip in hostIpv4Addresses)
+                {
+                    if (IsIpv4InCidr(ip, cidr))
+                        return (SwitchMode.NAT, SwitchNatEngine.WinNat, cidr);
+                }
+            }
+            return (SwitchMode.Isolated, SwitchNatEngine.None, null);
+        }
+
+        internal static bool IsIpv4InCidr(string ipText, string cidr)
+        {
+            if (string.IsNullOrWhiteSpace(ipText) || string.IsNullOrWhiteSpace(cidr)) return false;
+            int slash = cidr.IndexOf('/');
+            if (slash <= 0) return false;
+            if (!IPAddress.TryParse(ipText.Trim(), out IPAddress? ip) || ip.AddressFamily != AddressFamily.InterNetwork) return false;
+            if (!IPAddress.TryParse(cidr[..slash].Trim(), out IPAddress? net) || net.AddressFamily != AddressFamily.InterNetwork) return false;
+            if (!int.TryParse(cidr[(slash + 1)..].Trim(), out int prefix) || prefix < 0 || prefix > 32) return false;
+            byte[] ipBytes = ip.GetAddressBytes();
+            byte[] netBytes = net.GetAddressBytes();
+            uint ipVal = ((uint)ipBytes[0] << 24) | ((uint)ipBytes[1] << 16) | ((uint)ipBytes[2] << 8) | ipBytes[3];
+            uint netVal = ((uint)netBytes[0] << 24) | ((uint)netBytes[1] << 16) | ((uint)netBytes[2] << 8) | netBytes[3];
+            uint mask = prefix == 0 ? 0u : uint.MaxValue << (32 - prefix);
+            return (ipVal & mask) == (netVal & mask);
+        }
+
+        private static IReadOnlyList<string> ReadHostAdapterIpv4Addresses(Guid hostConnectionId)
+        {
+            try
+            {
+                foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (Guid.TryParse(nic.Id, out Guid g) && g == hostConnectionId)
+                    {
+                        return nic.GetIPProperties().UnicastAddresses
+                            .Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork)
+                            .Select(a => a.Address.ToString())
+                            .ToList();
+                    }
+                }
+            }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("AdapterAddressLookupFailed", error: diagnosticError); }
+            return [];
+        }
+
+        private static async Task<IReadOnlyList<string>> GetWinNatPrefixesAsync()
+        {
+            try
+            {
+                var resp = await WmiApi.QueryCimAsync(
+                    "SELECT InternalIPInterfaceAddressPrefix, Active FROM MSFT_NetNat",
+                    p => (Prefix: p["InternalIPInterfaceAddressPrefix"]?.ToString() ?? string.Empty,
+                          Active: Convert.ToInt32(p["Active"] ?? 0) != 0),
+                    WmiScope.StdCimV2);
+                if (!resp.Success || resp.Data == null) return [];
+                return resp.Data.Where(n => n.Active && !string.IsNullOrWhiteSpace(n.Prefix)).Select(n => n.Prefix).ToList();
+            }
+            catch
+            {
+                return [];
+            }
+        }
+
+        [DllImport("computenetwork.dll", CharSet = CharSet.Unicode)]
+        private static extern int HcnOpenNetwork(ref Guid id, out IntPtr network, out IntPtr errorRecord);
+
+        [DllImport("computenetwork.dll", CharSet = CharSet.Unicode)]
+        private static extern int HcnQueryNetworkProperties(IntPtr network, string query, out IntPtr properties, out IntPtr errorRecord);
+
+        [DllImport("computenetwork.dll")]
+        private static extern int HcnCloseNetwork(IntPtr network);
+
+        internal static string? ParseHcnSubnetPrefix(string? json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return null;
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("Subnets", out var subnets) && subnets.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var sub in subnets.EnumerateArray())
+                    {
+                        if (sub.TryGetProperty("AddressPrefix", out var ap) && ap.ValueKind == JsonValueKind.String)
+                        {
+                            string? val = ap.GetString();
+                            if (!string.IsNullOrWhiteSpace(val)) return val;
+                        }
+                    }
+                }
+            }
+            catch (Exception diagnosticError) { CoreDiagnostics.Report("SwitchPrefixLookupFailed", error: diagnosticError); }
+            return null;
+        }
+
+        private static string? TryQueryHcnSubnetPrefix(string? switchGuid)
+        {
+            if (!Guid.TryParse(switchGuid, out Guid id)) return null;
+            try
+            {
+                int hrOpen = HcnOpenNetwork(ref id, out IntPtr netHandle, out IntPtr err1);
+                if (err1 != IntPtr.Zero) Marshal.FreeCoTaskMem(err1);
+                if (hrOpen != 0 || netHandle == IntPtr.Zero) return null;
+                try
+                {
+                    int hrQuery = HcnQueryNetworkProperties(netHandle, "{}", out IntPtr propPtr, out IntPtr err2);
+                    if (err2 != IntPtr.Zero) Marshal.FreeCoTaskMem(err2);
+                    if (hrQuery != 0 || propPtr == IntPtr.Zero) return null;
+                    string? json = Marshal.PtrToStringUni(propPtr);
+                    Marshal.FreeCoTaskMem(propPtr);
+                    return ParseHcnSubnetPrefix(json);
+                }
+                finally
+                {
+                    HcnCloseNetwork(netHandle);
+                }
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         internal static async Task<(SwitchMode Type, SwitchUpstreamAdapter? Upstream, string? StateError)> ReadSwitchNetworkStateAsync(
@@ -534,7 +836,7 @@ namespace ExHyperV.Services
             catch (SwitchConfigurationConflictException) { throw; }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error in DeleteSwitchAsync: {ex}");
+                CoreDiagnostics.Report("SwitchDeletionFailed", error: ex);
                 throw ConfigurationFailure(ex);
             }
         }
@@ -565,7 +867,7 @@ namespace ExHyperV.Services
         private static async Task UpdateSwitchCoreAsync(
             Guid switchId, SwitchMode mode, SwitchUpstreamAdapter? upstream, bool allowManagementOS)
         {
-            // 预检和快照不修改配置；只有实际切换开始后的失败才执行恢复。
+            // 预检和状态采集不修改配置；只有实际切换开始后的失败才执行恢复。
             var existing = await GetSwitchListAsync(requireSuccess: true);
             using var target = await GetSwitchObjectAsync(switchId);
             var conflict = SwitchConfigurationRules.GetUpdateConflict(target["Name"]?.ToString() ?? string.Empty,
@@ -626,7 +928,7 @@ namespace ExHyperV.Services
             public static async Task<HostIpv4Settings?> CaptureAsync(Guid id)
             {
                 if (id == Guid.Empty) return null;
-                // 在 WmiApi 管理的对象生命周期内完成快照，保留属性解析失败的诊断。
+                // 在 WmiApi 管理的对象生命周期内完成属性提取，保留属性解析失败的诊断。
                 var result = await WmiApi.WithFirstAsync(AdapterQuery(id),
                     config => Task.FromResult(ReadSettings(config, id)), WmiScope.CimV2);
                 if (!result.Success)
@@ -950,7 +1252,7 @@ namespace ExHyperV.Services
 
         private static async Task<List<PortAllocation>> GetPortAllocationsAsync(ManagementObject switchObj)
         {
-            // 返回值只保留属性快照，避免 QueryRelatedAsync 释放对象后再读取。
+            // 返回值只保留属性副本，避免 QueryRelatedAsync 释放对象后再读取。
             var portPaths = await WmiApi.QueryRelatedAsync(
                 switchObj, "Msvm_EthernetSwitchPort", p => p.Path.Path, "Msvm_SystemDevice");
             if (!portPaths.Success || portPaths.Data == null)
@@ -1123,7 +1425,7 @@ namespace ExHyperV.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error getting full network state for switch '{switchName}': {ex.Message}");
+                CoreDiagnostics.Report("SwitchStateReadFailed", error: ex);
                 return new List<SwitchEndpointInfo>();
             }
         }

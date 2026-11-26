@@ -24,7 +24,7 @@ namespace ExHyperV.Models
         };
 
         /// <summary>将备份值恢复到当前编辑模型。</summary>
-        /// <param name="other">要恢复的设置快照；null 时不做操作。</param>
+        /// <param name="other">要恢复的设置副本，null 时不做操作。</param>
         public void Restore(VmMmioSettings other)
         {
             if (other is null) return;

@@ -395,7 +395,7 @@ internal static partial class WmiApi
                     return ApiResponse<string[]>.Fail($"WMI object not found: {wql}");
 
                 using var inParams = target.GetMethodParameters(methodName);
-                setParams?.Invoke(inParams);
+                FillMethodParameters(methodName, inParams, setParams);
 
                 cancellationToken.ThrowIfCancellationRequested();
                 submitted = true;
@@ -469,7 +469,7 @@ internal static partial class WmiApi
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 using var inParams = target.GetMethodParameters(methodName);
-                setParams?.Invoke(inParams);
+                FillMethodParameters(methodName, inParams, setParams);
 
                 cancellationToken.ThrowIfCancellationRequested();
                 submitted = true;
@@ -525,7 +525,7 @@ internal static partial class WmiApi
                 var ms = WmiConnectionCache.GetManagementScope(scope, ctx);
                 using var cls = new ManagementClass(ms, new ManagementPath(className), null);
                 using var inParams = cls.GetMethodParameters(methodName);
-                setParams?.Invoke(inParams);
+                FillMethodParameters(methodName, inParams, setParams);
 
                 submitted = true;
                 var outParams = cls.InvokeMethod(methodName, inParams, null);
@@ -978,7 +978,7 @@ internal static partial class WmiApi
         return col.Cast<ManagementObject>().FirstOrDefault();
     }
 
-    /// <summary>从 VM 对象取得其当前已实现配置，而非检查点配置。</summary>
+    /// <summary>从 VM 对象取得其当前已实现配置，而非快照配置。</summary>
     /// <returns>调用方拥有且必须 Dispose 的配置对象；未找到时为 null。</returns>
     /// <param name="vmComputerSystem">调用方持有的 VM WMI 对象，查询期间必须有效；本方法不释放该输入对象。</param>
     public static ManagementObject? GetVmSettings(ManagementObject vmComputerSystem)
@@ -1091,6 +1091,13 @@ internal static partial class WmiApi
             }, cancellationToken, hyperV, progress, timeout);
         }
         catch (Exception ex) { return WmiJobWaiter.FromException(ex, submitted: true); }
+    }
+
+    private static void FillMethodParameters(string methodName, ManagementBaseObject? parameters, Action<ManagementBaseObject>? configure)
+    {
+        if (configure is null) return;
+        if (parameters is null) throw new InvalidOperationException($"WMI 方法 {methodName} 没有可填写的入参对象。");
+        configure(parameters);
     }
 
     private static int ReadReturnCode(ManagementBaseObject output) =>

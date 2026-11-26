@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using ExHyperV.Tools;
@@ -202,38 +201,8 @@ internal static class HyperVFeatureInstaller
 
         public async Task<ApiResponse> AddPackageAsync(string path)
         {
-            // .mum 补装沿用已验证的系统命令；DismAddPackage 的公开合同未承诺接受 .mum。
-            // 不使用 shell、UAC 或 PATH 查找；无重启、无超时杀进程，等组件维护实际结束。
-            string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
-            string system = Environment.Is64BitOperatingSystem && !Environment.Is64BitProcess ? "Sysnative" : "System32";
-            var start = new ProcessStartInfo(Path.Combine(windows, system, "dism.exe"))
-            {
-                UseShellExecute = false, CreateNoWindow = true,
-                RedirectStandardOutput = true, RedirectStandardError = true
-            };
-            foreach (string argument in new[] { "/Online", "/NoRestart", "/Add-Package", "/PackagePath:" + path })
-                start.ArgumentList.Add(argument);
-            using var process = new Process { StartInfo = start };
-            bool started = false;
-            try
-            {
-                started = process.Start();
-                if (!started) return ApiResponse.Fail("DISM 组件安装进程未启动。", kind: ApiErrorKind.OperationFailed);
-                Task stdout = process.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
-                Task stderr = process.StandardError.BaseStream.CopyToAsync(Stream.Null);
-                await process.WaitForExitAsync().ConfigureAwait(false);
-                await Task.WhenAll(stdout, stderr).ConfigureAwait(false);
-                int code = process.ExitCode;
-                return code == 0 ? ApiResponse.Ok() : code == 3010 ? ApiResponse.Ok().WithRestartReason(RestartReason.PackageRegistration) : ApiResponse.Fail(
-                    $"DISM 添加组件 {Path.GetFileName(path)} 失败：0x{code:X8}；详细信息见系统 DISM/CBS 日志。",
-                    code, ApiErrorSource.Win32, kind: code is 5 or unchecked((int)0x80070005)
-                        ? ApiErrorKind.AccessDenied : ApiErrorKind.OperationFailed);
-            }
-            catch (Exception error)
-            {
-                return ApiResponse.Fail($"DISM 组件安装未确认完成：{error.Message}", error.HResult,
-                    ApiErrorSource.Win32, error, started ? ApiErrorKind.OutcomeUnknown : ApiErrorKind.OperationFailed);
-            }
+            var added = await DismApi.AddPackageAsync(path).ConfigureAwait(false);
+            return added.RequiresRestart ? added.WithRestartReason(RestartReason.PackageRegistration) : added;
         }
     }
 }

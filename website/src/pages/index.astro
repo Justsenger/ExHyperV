@@ -78,10 +78,10 @@ import HomeModel from '../components/HomeModel.astro';
   <section class="home-hero" aria-labelledby="home-title">
     <div class="home-copy">
       <h1 id="home-title">ExHyperV</h1>
-      <p data-i18n="productDescription">为 Windows 上的 Hyper-V，带来卓越的现代化桌面体验。</p>
+      <p data-i18n="productDescription">为 Windows 上的 Hyper-V，带来现代化桌面体验。</p>
       <div class="home-actions">
-        <a class="home-button home-primary" href="https://github.com/Justsenger/ExHyperV/releases" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v5h14v-5" /></svg><span data-i18n="download">下载</span></a>
-        <a class="home-button" href="https://github.com/Justsenger/ExHyperV" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18" /></svg><span data-i18n="viewSource">查看源码</span></a>
+        <a class="home-button home-primary" href="https://github.com/Justsenger/ExHyperV/releases" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="home-download-arrow" d="M12 4.5v10m0 0-3.75-3.75M12 14.5l3.75-3.75" /><path d="M5 17v1.25A1.75 1.75 0 0 0 6.75 20h10.5A1.75 1.75 0 0 0 19 18.25V17" /></svg><span data-i18n="download">下载</span></a>
+        <a class="home-button" href="https://github.com/Justsenger/ExHyperV" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16" /></svg><span data-i18n="viewSource">查看源码</span></a>
       </div>
     </div>
     <div class="home-art">
@@ -197,6 +197,11 @@ import HomeModel from '../components/HomeModel.astro';
     .home-bg-bloom-svg {
       animation: none !important;
     }
+    .home-button,
+    .home-download-arrow {
+      transition: none !important;
+      transform: none !important;
+    }
   }
 
   :global(html:has(body[data-module="home"])) {
@@ -227,12 +232,7 @@ import HomeModel from '../components/HomeModel.astro';
     line-height: 1.08;
     font-weight: 500;
     letter-spacing: -0.04em;
-    color: #f4f8ff;
-    background: linear-gradient(180deg, #ffffff 30%, rgba(168, 210, 255, 0.78) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    filter: drop-shadow(0 8px 28px rgba(24, 118, 255, 0.16));
+    color: #ffffff;
   }
   .home-copy p {
     margin: 18px 0 0;
@@ -247,13 +247,13 @@ import HomeModel from '../components/HomeModel.astro';
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 9px;
-    min-height: 48px;
-    padding: 0 24px;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 22px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.045);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
     color: rgba(240, 246, 255, 0.90);
     font-size: 14px;
     font-weight: 500;
@@ -268,17 +268,32 @@ import HomeModel from '../components/HomeModel.astro';
   }
   .home-button:active { transform: translateY(1px) scale(0.99); }
   .home-primary {
-    background: linear-gradient(180deg, #2184ff 0%, #0d54eb 100%);
-    color: #ffffff;
-    border-color: rgba(118, 192, 255, 0.45);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 20px -4px rgba(14, 92, 248, 0.50);
+    min-width: 136px;
+    background: #f3f7fc;
+    color: #081220;
+    border-color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   }
   .home-primary:hover {
-    background: linear-gradient(180deg, #3290ff 0%, #1562ff 100%);
-    border-color: rgba(148, 210, 255, 0.65);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 8px 24px -4px rgba(22, 108, 255, 0.58);
+    background: #ffffff;
+    color: #050c18;
+    border-color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px -6px rgba(180, 215, 255, 0.28);
   }
-  .home-button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  .home-primary:active { transform: translateY(0) scale(0.99); }
+  .home-button svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .home-download-arrow { transition: transform 0.18s ease; }
+  .home-primary:hover .home-download-arrow { transform: translateY(1.5px); }
   .home-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
   .home-art {
     display: flex;
@@ -328,7 +343,8 @@ import HomeModel from '../components/HomeModel.astro';
     .home-copy h1 { font-size: 36px; letter-spacing: -1.1px; }
     .home-copy p { margin-top: 10px; font-size: 14.5px; line-height: 1.65; }
     .home-actions { gap: 10px; margin-top: 18px; }
-    .home-button { min-height: 42px; padding: 9px 16px; }
+    .home-button { min-height: 40px; padding: 0 18px; }
+    .home-primary { min-width: 120px; }
   }
 </style>
 

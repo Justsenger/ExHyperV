@@ -1,6 +1,6 @@
+using ExHyperV.Tools;
 using System.ComponentModel;
 using System.IO.Compression;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -45,7 +45,7 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
                     if (length != 0) Marshal.Copy(data, copy, 0, copy.Length);
                     receiver(kind, copy, a, b);
                 }
-                catch { /* Never unwind a managed exception into the transport or framebuffer thread. */ }
+                catch (Exception diagnosticError) { CoreDiagnostics.Report("NativeCallbackFailed", error: diagnosticError); }
             };
             handle = api.Create(options.VmId.ToString("D"), enhanced ? 1u : 0u,
                 (uint)options.Width, (uint)options.Height, options.DesktopScale,
@@ -161,8 +161,7 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
             Architecture.X64 => "win-x64",
             _ => throw new PlatformNotSupportedException("The FreeRDP console supports Windows ARM64 and x64.")
         };
-        using var resource = typeof(FreeRdpNative).Assembly.GetManifestResourceStream($"ExHyperV.ConsoleNative.{rid}.zip")
-            ?? throw new FileNotFoundException($"The {rid} native console package was not included in this build.");
+        using var resource = OpenConsolePackage(rid);
         using var bytes = new MemoryStream();
         resource.CopyTo(bytes);
         string identity = Convert.ToHexString(SHA256.HashData(bytes.GetBuffer().AsSpan(0, checked((int)bytes.Length))));
@@ -231,6 +230,16 @@ internal sealed class FreeRdpNative(bool enhanced) : IConsoleNativeBackend
             throw;
         }
         finally { if (acquired) mutex.ReleaseMutex(); }
+    }
+
+    private static Stream OpenConsolePackage(string rid)
+    {
+        string name = $"ExHyperV.ConsoleNative.{rid}.zip";
+        var core = typeof(FreeRdpNative).Assembly;
+        if (core.GetManifestResourceStream(name + ".br") is { } packed)
+            return new BrotliStream(packed, CompressionMode.Decompress);
+        if (core.GetManifestResourceStream(name) is { } portable) return portable;
+        throw new FileNotFoundException($"The {rid} native console package was not included in this build.");
     }
 
     private static void VerifyLoadedDependencies(IEnumerable<FileStream> files)

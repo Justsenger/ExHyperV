@@ -67,7 +67,6 @@ internal static partial class ApiCaseRegistry
             var part = c.Call(() => new DiskPartitionInfo(2, 1073741824, OperatingSystemType.Windows, "固定说明"));
             c.Equal(2, part.PartitionNumber, "编号"); c.Equal(1073741824ul, part.SizeInBytes, "字节数"); c.Equal(OperatingSystemType.Windows, part.OsType, "系统分类"); c.Equal("固定说明", part.TypeDescription, "说明");
         }]);
-        add("LinuxGpuDeploymentScript.ToString()", [c => { var script = new LinuxGpuDeploymentScript { Name = "Linux 驱动脚本", Description = "测试说明" }; c.Equal("Linux 驱动脚本", c.Call(script.ToString), "仅返回名称"); }]);
         add("SwitchUpstreamAdapter.ToString()", [c =>
         {
             foreach (var (name, expected) in new[] { ("网络连接", "网卡型号 (网络连接)"), ("", "网卡型号") })
@@ -92,7 +91,7 @@ internal static partial class ApiCaseRegistry
         foreach (var state in api == "interlocks" ? new[] { VmState.PoweredOff } : Enum.GetValues<VmState>())
         {
             bool allowed = api == "interlocks" || generation == 2 && state == VmState.PoweredOff;
-            bool[] expected = [allowed, allowed && !shield, allowed && !shield && secure, allowed && !shield, allowed && !shield && tpm, allowed];
+            bool[] expected = [allowed, allowed && !shield, allowed && !shield && secure, allowed && !shield, allowed && !shield, allowed];
             if (api == "error")
             {
                 var settings = Enum.GetValues<VmSecurityService.Setting>();

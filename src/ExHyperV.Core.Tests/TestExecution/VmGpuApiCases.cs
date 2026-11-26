@@ -1,5 +1,3 @@
-using System.Net;
-using System.Net.Http;
 using System.Security.Cryptography;
 using System.Text.Json;
 using ExHyperV.Services;
@@ -13,9 +11,9 @@ namespace ExHyperV.Core.Tests.TestExecution;
 internal static class VmGpuApiCases
 {
     internal static bool Supports(CatalogTest p) => p.Api is "VmGpuService.构造()" or "VmGpuService.CheckVmForGpuAsync()"
-        or "VmGpuService.GetVmGpuAssignmentsAsync()" or "VmGpuService.GetAvailableScriptsAsync()" or "VmGpuService.OptimizeVmForGpuAsync()"
+        or "VmGpuService.GetVmGpuAssignmentsAsync()" or "VmGpuService.OptimizeVmForGpuAsync()"
         or "VmGpuService.AssignGpuPartitionAsync()" or "VmGpuService.RemoveGpuPartitionAsync()" or "VmGpuService.ScanVmPartitionsAsync()"
-        or "VmGpuService.SyncWindowsDriversAsync()" or "VmGpuService.ProvisionLinuxGpuAsync()"
+        or "VmGpuService.SyncWindowsDriversAsync()"
         or "VmGpuRepairService.ResolveVmcxAsync()" or "VmGpuRepairService.FindStaleGpuPartitionsAsync()" or "VmGpuRepairService.RepairAsync()"
         or "VmGpuRepairService.StaleGpuPartition.SelectCandidate()" || p.Id is "T-319692fabf672c00-1" or "T-319692fabf672c00-3";
     internal static async Task RunAsync(CatalogTest p, ApiCaseContext c)
@@ -28,8 +26,6 @@ internal static class VmGpuApiCases
             c.Equal("candidate-B", chosen.SelectedCandidate!.Id, "按身份选择且保留原始大小写"); c.Require(original.RequiresSelection && !chosen.RequiresSelection, "选择返回新对象，原快照保留");
             foreach (string invalid in new[] { "", "GPU model", "0" }) c.Throws<ArgumentException>(() => c.Call(() => original.SelectCandidate(invalid)), "候选身份校验"); return;
         }
-        if (p.Api.Contains("GetAvailableScripts")) { await ScriptsAsync(c, gpu); return; }
-        if (p.Api.Contains("ProvisionLinux")) { await LinuxAsync(p, c, query, gpu); return; }
         if (p.Api.StartsWith("VmGpuRepairService.")) { await RepairAsync(p, c); return; }
         if (p.Api.Contains("ScanVmPartitions")) { await ScanAsync(p, c, gpu); return; }
         if (p.Api.Contains("SyncWindowsDrivers") || p.Id.StartsWith("T-319692fabf672c00", StringComparison.Ordinal))
@@ -226,47 +222,5 @@ internal static class VmGpuApiCases
             """, new { path = partition.DiskPath, partition = partition.PartitionNumber });
         if (volume.GetInt64() < required) throw new ApiCheckSkippedException($"虚拟机系统分区需容纳 {bytes / 1073741824d:F1} GiB 驱动库及 1 GiB 余量，现有 {volume.GetInt64() / 1073741824d:F1} GiB。");
         c.Evidence.Add($"宿主与副本系统分区均可容纳 {bytes / 1073741824d:F1} GiB 驱动库。");
-    }
-    private static async Task ScriptsAsync(ApiCaseContext c, VmGpuService service)
-    {
-        const string url = ResourceInspection.TestNetwork.ScriptIndexUrl;
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) }; string json;
-        try { json = await client.GetStringAsync(url, c.Token); } catch (HttpRequestException e) { throw new ApiCheckSkippedException("在线脚本索引暂不可达：" + e.Message); }
-        var expected = JsonSerializer.Deserialize<LinuxGpuDeploymentScript[]>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-        var actual = await c.CallAsync(service.GetAvailableScriptsAsync); c.Sequence(expected.Select(v => v.FileName).Order(), actual.Select(v => v.FileName).Order(), "脚本索引文件名完整性"); c.Sequence(actual.Select(v => v.Name).Order(), actual.Select(v => v.Name), "脚本名称排序");
-        foreach (var item in actual) c.Require(item.SourceUrl == url[..^"index.json".Length] + item.FileName, "脚本来源路径");
-        var oldProxy = HttpClient.DefaultProxy; try { HttpClient.DefaultProxy = new WebProxy("http://127.0.0.1:1"); c.Equal(0, (await c.CallAsync(service.GetAvailableScriptsAsync)).Count, "受控网络故障返回空列表"); } finally { HttpClient.DefaultProxy = oldProxy; }
-    }
-    private static async Task LinuxAsync(CatalogTest p, ApiCaseContext c, VmQueryService query, VmGpuService service)
-    {
-        VmTestAccess.RequireCredentials(c);
-        await using var vm = await TemporaryVm.CopyTemplateAsync(c); var gpu = await SelectGpuAsync(c);
-        var credentials = await VmTestAccess.SshAsync(c, vm);
-        var scripts = await service.GetAvailableScriptsAsync(); if (scripts.Count == 0) throw new ApiCheckSkippedException("在线部署脚本索引为空，缺少可执行脚本。");
-        string distribution, version;
-        using (var client = new Renci.SshNet.SshClient(credentials.Host, credentials.Port, credentials.Username, credentials.Password))
-        {
-            client.ConnectionInfo.Timeout = TimeSpan.FromSeconds(15); client.Connect();
-            using var info = client.CreateCommand(". /etc/os-release; printf '%s\\n%s\\n' \"$ID\" \"$VERSION_ID\"");
-            info.CommandTimeout = TimeSpan.FromSeconds(10);
-            var lines = info.Execute().Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            if (info.ExitStatus != 0 || lines.Length != 2) throw new ApiCheckSkippedException("Linux 副本尚未提供可核验的系统 ID 与版本。");
-            distribution = lines[0]; version = lines[1];
-        }
-        var compatible = scripts.Where(v => v.FileName.StartsWith(distribution + "-" + version + "-", StringComparison.OrdinalIgnoreCase)).ToArray();
-        if (compatible.Length != 1) throw new ApiCheckSkippedException($"在线索引尚无唯一匹配 {distribution} {version} 的部署脚本，已保留明确的系统版本要求。");
-        var script = compatible[0];
-        if (p.Id.EndsWith("-2", StringComparison.Ordinal))
-        {
-            credentials.Password = Guid.NewGuid().ToString("N"); using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            var failed = await c.CallAsync(() => service.ProvisionLinuxGpuAsync(vm.Name, gpu.InstanceId, gpu.Manu, script, credentials, _ => { }, limit.Token)); c.Require(failed != "OK", "错误 SSH 密码产生失败结果"); return;
-        }
-        await using var restore = new HostStateJournal(c); restore.ConfigurationElement(AppDataPaths.ConfigFilePath, "MmioCeilingMb");
-        await WindowsTestCommand.RunAsync("Get-VM -Id $a.id|Stop-VM -TurnOff -Force;@{off=$true}|ConvertTo-Json", new { id = vm.Id });
-        await SystemBaseline.WaitStateAsync(vm.Id, 3);
-        Require(c, await service.OptimizeVmForGpuAsync(vm.Id), "Linux GPU MMIO 准备"); Require(c, await service.AssignGpuPartitionAsync(vm.Id, gpu), "Linux GPU 分配");
-        credentials = await VmTestAccess.SshAsync(c, vm);
-        var result = await c.CallAsync(() => service.ProvisionLinuxGpuAsync(vm.Name, gpu.InstanceId, gpu.Manu, script, credentials, _ => { }, c.Token)); c.Equal("OK", result, "Linux 部署结果");
-        await WaitGpuSampleAsync(c, query, new VmInstance(vm.Id, vm.Name) { StateCode = 2, HasGpuAssignment = true });
     }
 }

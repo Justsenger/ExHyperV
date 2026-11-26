@@ -82,6 +82,7 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
                 Need("Ports", "InstanceID", "Address", "ElementName");
                 Need("EmulatedPorts", "InstanceID", "Address", "ElementName");
                 if (source == "Ports") Need("EmulatedPorts", field.Property);
+                if (field == VmNetworkFields.VlanMode) Need("NetVlan", "AccessVlanId");
             }
             if (field.Collection == VmQueryCollection.Storage || source == "CheckpointDisks")
             {
@@ -245,12 +246,21 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
     private static VmQueryValue Cell(VmQueryField field, RawRow? row, ReadResult source)
     {
         if (source.State != VmQueryValueState.Available) return Failure(field, source);
+        if (row == null && field == VmNetworkFields.VlanMode)
+            return field.Make(VmQueryValueState.Available, VlanOperationMode.Off, source.Time);
         if (row == null) return field.Make(VmQueryValueState.Unavailable, null, source.Time, "未找到当前对象记录。");
         if (row[field.Property] is VmQueryValue cell) return cell;
         if (!row.Values.TryGetValue(field.Property, out var raw)) return field.Make(VmQueryValueState.Unsupported, null, source.Time, "当前提供者没有该属性。");
         if (raw == null) return field.Make(VmQueryValueState.Unavailable, null, source.Time, "提供者返回空值。");
         try
         {
+            if (field == VmNetworkFields.VlanMode)
+            {
+                var mode = Convert.ToUInt32(raw);
+                if (mode == 1 && row["AccessVlanId"] == null)
+                    return field.Make(VmQueryValueState.Unavailable, null, source.Time, "未取得接入 VLAN ID。");
+                return field.Make(VmQueryValueState.Available, VmNetworkService.ReadVlanMode(mode, Convert.ToInt32(row["AccessVlanId"])), source.Time);
+            }
             object? value = field.ConvertValue != null ? field.ConvertValue(raw)
                 : field.ValueType.IsInstanceOfType(raw) ? raw
                 : field.ValueType.IsEnum ? Enum.ToObject(field.ValueType, raw)
@@ -287,10 +297,10 @@ internal sealed partial class VmQueryEngine(VmQueryService owner, VmQueryRequest
             var summary = _summary.Rows.Single(r => Guid.Parse(r.Key) == id);
             var memory = Read("Memory");
             var rows = memory.Rows.Where(r => Owned(r, id)).ToArray();
-            bool? dynamic = rows.Length == 1 ? rows[0]["DynamicMemoryEnabled"] as bool? : null;
+            bool? dynamicMemory = rows.Length == 1 ? rows[0]["DynamicMemoryEnabled"] as bool? : null;
             var data = _runtimeMemorySamples.TryGetValue(id, out var balancerSample) ? balancerSample
                 : VmQueryService.MapRuntimeMemory(summary["MemoryUsage"], summary["MemoryAvailable"],
-                    Convert.ToUInt16(summary["EnabledState"] ?? 0), dynamic, _summary.Time, summary["AvailableMemoryBuffer"]);
+                    Convert.ToUInt16(summary["EnabledState"] ?? 0), dynamicMemory, _summary.Time, summary["AvailableMemoryBuffer"]);
             if ((field == VmMemoryFields.AvailablePercent || field == VmMemoryFields.AvailableBufferPercent)
                 && memory.State != VmQueryValueState.Available)
                 return Failure(field, memory);

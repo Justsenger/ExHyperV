@@ -152,7 +152,7 @@ public static partial class VmProcessorService
     /// <param name="state">查询得到的虚拟机电源状态。</param>
     /// <param name="host">查询得到的宿主处理器能力。</param>
     /// <returns>是否允许修改及原因。开关按切换到相反值评估，其他设置检查状态和平台条件。</returns>
-    /// <remarks>使用传入的快照，不查询宿主。实际修改会重新读取配置并检查完整请求。</remarks>
+    /// <remarks>使用传入的配置视图，不查询宿主。实际修改会重新读取配置并检查完整请求。</remarks>
     public static VmModificationCondition GetModificationCondition(VmProcessorSettings settings, string propertyName,
         VmState state, HostCapabilities host)
     {
@@ -217,10 +217,41 @@ public static partial class VmProcessorService
         nameof(VmProcessorSettings.PerfCpuFreqDesiredMhz) or nameof(VmProcessorSettings.PerfCpuEnergyPerformancePreference) or
         nameof(VmProcessorSettings.PerfCpuAutonomousActivityWindow) or nameof(VmProcessorSettings.PerfCpuIgnoreHostMaxFrequency);
 
+    /// <summary>读取宿主报告的虚拟处理器上限并应用代数限制。无法确认时返回 null。</summary>
+    /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
+    /// <returns>宿主报告并经虚拟机代数约束的上限，无法确认时为 null。</returns>
+    public static async Task<int?> GetHostMaxVirtualCpuCountAsync(Guid vmId)
+    {
+        if (vmId == Guid.Empty) return null;
+        var vm = await VmConfigurationState.ReadAsync(vmId).ConfigureAwait(false);
+        if (!vm.HasData || vm.Data.Generation is not (1 or 2)) return null;
+        var limits = await WmiApi.QueryAsync(
+            "SELECT VirtualQuantity FROM Msvm_ProcessorSettingData WHERE InstanceID LIKE 'Microsoft:Definition%Maximum'",
+            obj => obj["VirtualQuantity"] == null ? 0 : Convert.ToInt32(obj["VirtualQuantity"])).ConfigureAwait(false);
+        if (!limits.HasData || limits.Data.Count != 1 || limits.Data[0] <= 0) return null;
+        return vm.Data.Generation == 1 ? Math.Min(64, limits.Data[0]) : limits.Data[0];
+    }
+
     /// <summary>读取虚拟机的处理器配置。</summary>
     /// <param name="vmId">目标虚拟机的标识。</param>
     /// <returns>处理器配置及支持的设置项。虚拟机或配置不存在时返回 NotFound；查询失败时附带原因。可空值的含义见 <see cref="VmProcessorSettings"/>。</returns>
-    public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId)
+    public static Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId)
+        => GetVmProcessorCoreAsync(vmId);
+
+    /// <summary>读取虚拟机的处理器配置，可选择临时启用宿主预览功能开关以读回隐藏频率设置。</summary>
+    /// <param name="vmId">目标虚拟机的标识。</param>
+    /// <param name="includePreviewSettings">为 true 时在查询期间临时启用宿主预览功能开关；需要管理员权限。</param>
+    /// <returns>处理器配置及支持的设置项。虚拟机或配置不存在时返回 NotFound；查询失败或恢复失败时附带原因。</returns>
+    public static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorAsync(Guid vmId, bool includePreviewSettings)
+    {
+        if (vmId == Guid.Empty)
+            return ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
+        return includePreviewSettings
+            ? await HostAzureFeatureSetService.RunTemporarilyEnabledResponseAsync(() => GetVmProcessorCoreAsync(vmId)).ConfigureAwait(false)
+            : await GetVmProcessorCoreAsync(vmId).ConfigureAwait(false);
+    }
+
+    private static async Task<ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>> GetVmProcessorCoreAsync(Guid vmId)
     {
         if (vmId == Guid.Empty)
             return ApiResponse<VmSettingsSnapshot<VmProcessorSettings>>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
@@ -239,7 +270,7 @@ public static partial class VmProcessorService
             if (procData == null) return null;
 
             return MapProcessorSnapshot(MapProcessor(procData),
-                procData.Properties.Cast<PropertyData>().ToDictionary(p => p.Name, p => (object?)p.Value));
+                procData.Properties.Cast<PropertyData>().ToDictionary(p => p.Name, p => (object?)p.Value, StringComparer.OrdinalIgnoreCase));
         });
 
         if (!results.Success)
@@ -292,7 +323,6 @@ public static partial class VmProcessorService
 
     private static async Task<ApiResponse> ApplyProcessorSettingsAsync(Guid vmId, SettingsSelection<VmProcessorSettings> selection)
     {
-        using var _ = HyperVServiceCoordination.BeginActiveSettingsWrite();
         try
         {
             var host = await GetHostCapabilitiesAsync();

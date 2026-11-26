@@ -1766,29 +1766,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 &gt;&gt;&gt; [Fatal Error] Linux deploy failed: {0} 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_DeployFatal {
-            get {
-                return ResourceManager.GetString("Error_Gpu_DeployFatal", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Cannot dismount disk: Disk not found in VM config. 的本地化字符串。
         /// </summary>
         public static string Error_Gpu_DiskNotFound {
             get {
                 return ResourceManager.GetString("Error_Gpu_DiskNotFound", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Env fetch failed 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_EnvFail {
-            get {
-                return ResourceManager.GetString("Error_Gpu_EnvFail", resourceCulture);
             }
         }
         
@@ -1807,24 +1789,6 @@ namespace ExHyperV.Properties {
         public static string Error_Gpu_InvalidSystemPart {
             get {
                 return ResourceManager.GetString("Error_Gpu_InvalidSystemPart", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Failed to auto-get IP. Enter manually. 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_IpManual {
-            get {
-                return ResourceManager.GetString("Error_Gpu_IpManual", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 [Rollback] Linux deploy failed. Removing GPU... 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_LinuxRollback {
-            get {
-                return ResourceManager.GetString("Error_Gpu_LinuxRollback", resourceCulture);
             }
         }
         
@@ -1906,15 +1870,6 @@ namespace ExHyperV.Properties {
         public static string Error_Gpu_Rollback {
             get {
                 return ResourceManager.GetString("Error_Gpu_Rollback", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 SSH connection timed out. Check VM networking. 的本地化字符串。
-        /// </summary>
-        public static string Error_Gpu_SshTimeout {
-            get {
-                return ResourceManager.GetString("Error_Gpu_SshTimeout", resourceCulture);
             }
         }
         
@@ -2106,15 +2061,6 @@ namespace ExHyperV.Properties {
         public static string Error_PhysicalAdapterInUse {
             get {
                 return ResourceManager.GetString("Error_PhysicalAdapterInUse", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 [X] Command execution failed.Exit code: {0}): {1} 的本地化字符串。
-        /// </summary>
-        public static string Error_SshCommandFailed {
-            get {
-                return ResourceManager.GetString("Error_SshCommandFailed", resourceCulture);
             }
         }
         
@@ -2716,15 +2662,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 HTTP Proxy (Optional) 的本地化字符串。
-        /// </summary>
-        public static string GroupBox_HttpProxyOptional {
-            get {
-                return ResourceManager.GetString("GroupBox_HttpProxyOptional", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Host 的本地化字符串。
         /// </summary>
         public static string Host {
@@ -2898,15 +2835,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 If you cannot connect directly to GitHub.com, please use a stable and reliable proxy. 的本地化字符串。
-        /// </summary>
-        public static string Info_UseProxyForGitHub {
-            get {
-                return ResourceManager.GetString("Info_UseProxyForGitHub", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 InstanceId 的本地化字符串。
         /// </summary>
         public static string Instanceid {
@@ -3002,15 +2930,6 @@ namespace ExHyperV.Properties {
         public static string Label_ConfigLog {
             get {
                 return ResourceManager.GetString("Label_ConfigLog", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Connect to Linux Virtual Machine 的本地化字符串。
-        /// </summary>
-        public static string Label_ConnectToLinuxVm {
-            get {
-                return ResourceManager.GetString("Label_ConnectToLinuxVm", resourceCulture);
             }
         }
         
@@ -3164,15 +3083,6 @@ namespace ExHyperV.Properties {
         public static string Label_GpuSettings {
             get {
                 return ResourceManager.GetString("Label_GpuSettings", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Host IP Address: 的本地化字符串。
-        /// </summary>
-        public static string Label_HostIpAddress {
-            get {
-                return ResourceManager.GetString("Label_HostIpAddress", resourceCulture);
             }
         }
         
@@ -3425,15 +3335,6 @@ namespace ExHyperV.Properties {
         public static string Label_Progress {
             get {
                 return ResourceManager.GetString("Label_Progress", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Proxy IP Address: 的本地化字符串。
-        /// </summary>
-        public static string Label_ProxyIpAddress {
-            get {
-                return ResourceManager.GetString("Label_ProxyIpAddress", resourceCulture);
             }
         }
         
@@ -4282,15 +4183,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 &gt;&gt;&gt; Starting Linux deployment 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_DeployStart {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_DeployStart", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Single Windows partition detected. Syncing drivers... 的本地化字符串。
         /// </summary>
         public static string Msg_Gpu_DetectWin {
@@ -4341,69 +4233,6 @@ namespace ExHyperV.Properties {
         public static string Msg_Gpu_InjectingReg {
             get {
                 return ResourceManager.GetString("Msg_Gpu_InjectingReg", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Successfully got IP: {0} 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_IpOk {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_IpOk", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Sniffing VM IP address... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_IpScanning {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_IpScanning", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Auto-starting VM to initialize network... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_IpSniff {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_IpSniff", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 &gt;&gt;&gt; Linux deployment complete. 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_LinuxDeployDone {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_LinuxDeployDone", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Remote environment initialized. Temp: {0} 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_LinuxRemoteInit {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_LinuxRemoteInit", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Linux partition detected. Waiting for VM to start... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_LinuxVm {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_LinuxVm", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Waiting for VM network readiness and IP... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_LinuxWaitingIp {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_LinuxWaitingIp", resourceCulture);
             }
         }
         
@@ -4543,15 +4372,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Confirm SSH credentials to start... 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_SshConfirm {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_SshConfirm", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Syncing driver files... 的本地化字符串。
         /// </summary>
         public static string Msg_Gpu_SyncingFiles {
@@ -4584,15 +4404,6 @@ namespace ExHyperV.Properties {
         public static string Msg_Gpu_Unmounting {
             get {
                 return ResourceManager.GetString("Msg_Gpu_Unmounting", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Using Proxy: {0}:{1} 的本地化字符串。
-        /// </summary>
-        public static string Msg_Gpu_UsingProxy {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_UsingProxy", resourceCulture);
             }
         }
         
@@ -5026,15 +4837,6 @@ namespace ExHyperV.Properties {
         public static string Label_Path {
             get {
                 return ResourceManager.GetString("Label_Path", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 e.g., 192.168.1.100 的本地化字符串。
-        /// </summary>
-        public static string Placeholder_IpAddressExample {
-            get {
-                return ResourceManager.GetString("Placeholder_IpAddressExample", resourceCulture);
             }
         }
         
@@ -5968,15 +5770,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Proxy IP and Port must be either both filled or both empty. 的本地化字符串。
-        /// </summary>
-        public static string Validation_ProxyIpAndPortMismatch {
-            get {
-                return ResourceManager.GetString("Validation_ProxyIpAndPortMismatch", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 vCPU Count 的本地化字符串。
         /// </summary>
         public static string VCpuCount {
@@ -6112,38 +5905,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Spacetime 的本地化字符串。
-        /// </summary>
-        public static string VmDashboard_DescSpacetime {
-            get {
-                return ResourceManager.GetString("VmDashboard_DescSpacetime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 {Binding IpAddressDisplay, FallbackValue=&apos;Fetching...&apos;} 的本地化字符串。
         /// </summary>
         public static string VmDashboard_TabBoot {
             get {
                 return ResourceManager.GetString("VmDashboard_TabBoot", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Boot Order and Device List 的本地化字符串。
-        /// </summary>
-        public static string VmDashboard_TabSpacetime {
-            get {
-                return ResourceManager.GetString("VmDashboard_TabSpacetime", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Snapshot Management and Spacetime Travel 的本地化字符串。
-        /// </summary>
-        public static string VmDashboardView_SnapshotAndSpacetime {
-            get {
-                return ResourceManager.GetString("VmDashboardView_SnapshotAndSpacetime", resourceCulture);
             }
         }
         
@@ -6530,15 +6296,6 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 Connected to spacetime &quot;{0}&quot; 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgConnectedTo2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgConnectedTo2", resourceCulture);
-            }
-        }
-        
         
         
         /// <summary>
@@ -6645,24 +6402,6 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 This spacetime has been annihilated. 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgSpacetimeAnnihilated2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgSpacetimeAnnihilated2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Spacetime converged to the previous node 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgSpacetimeConverged2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgSpacetimeConverged2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Large Page Granularity 的本地化字符串。
         /// </summary>
         public static string VmPage_MemGranularityLarge {
@@ -6672,38 +6411,11 @@ namespace ExHyperV.Properties {
         }
         
         /// <summary>
-        ///   查找类似 Spacetime created successfully 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgSpacetimeCreated2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgSpacetimeCreated2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   查找类似 Read/Write 的本地化字符串。
         /// </summary>
         public static string VmPage_SgxLaunchReadWrite {
             get {
                 return ResourceManager.GetString("VmPage_SgxLaunchReadWrite", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Timeline restored to normal 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgTimelineRestored2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgTimelineRestored2", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Traveled to spacetime: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmPage_MsgTraveledTo2 {
-            get {
-                return ResourceManager.GetString("VmPage_MsgTraveledTo2", resourceCulture);
             }
         }
         
@@ -7184,592 +6896,234 @@ namespace ExHyperV.Properties {
             }
         }
         
-        /// <summary>
-        ///   查找类似 Annihilation failed: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrAnnihilateFailed {
+        public static string VmCheckpointService_ErrCannotDetermineDiskDir {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrAnnihilateFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrCannotDetermineDiskDir", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Unable to determine the disk directory. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrCannotDetermineDiskDir {
+
+        public static string VmCheckpointService_ErrCannotMerge {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrCannotDetermineDiskDir", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrCannotMerge", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Exception while closing wormhole: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrCloseWormholeException {
+
+        public static string VmCheckpointService_ErrDismountHistoricalDiskException {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrCloseWormholeException", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrDismountHistoricalDiskException", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Convergence failed: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrConvergeFailed {
+
+        public static string VmCheckpointService_ErrCreateDiffDiskFailed {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrConvergeFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrCreateDiffDiskFailed", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Failed to create temporary differencing disk: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrCreateDiffDiskFailed {
+
+        public static string VmCheckpointService_ErrCreateFailed {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrCreateDiffDiskFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrCreateFailed", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Spacetime lookup failed: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrLookupFailed {
+
+        public static string VmCheckpointService_ErrDeleteFailed {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrLookupFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrDeleteFailed", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 This node has no active wormhole. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrNoActiveWormhole {
+
+        public static string VmCheckpointService_ErrLookupFailed {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrNoActiveWormhole", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrLookupFailed", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 This node already has an active wormhole. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrNodeHasWormhole {
+
+        public static string VmCheckpointService_ErrMergeFailed {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrNodeHasWormhole", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrMergeFailed", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 No available SCSI slots. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrNoScsiSlot {
+
+        public static string VmCheckpointService_ErrNoActiveHistoricalDisk {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrNoScsiSlot", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrNoActiveHistoricalDisk", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Can only travel to historical snapshot points. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrOnlyHistoricalNode {
+
+        public static string VmCheckpointService_ErrNodeHasHistoricalDisk {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrOnlyHistoricalNode", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrNodeHasHistoricalDisk", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Wormholes can only be opened on snapshot nodes. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrOnlySnapshotNode {
+
+        public static string VmCheckpointService_ErrNoScsiSlot {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrOnlySnapshotNode", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrNoScsiSlot", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Operation exception: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrOperationException {
+
+        public static string VmCheckpointService_ErrOnlyHistoricalNode {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrOperationException", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrOnlyHistoricalNode", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Operation failed: WMI error code {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrOperationWmiCode {
+
+        public static string VmCheckpointService_ErrOnlySnapshotNode {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrOperationWmiCode", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrOnlySnapshotNode", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Origin and current nodes cannot be annihilated. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrOriginCurrentNoAnnihilate {
+
+        public static string VmCheckpointService_ErrOperationException {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrOriginCurrentNoAnnihilate", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrOperationException", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Origin and current nodes cannot be converged. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrOriginCurrentNoConverge {
+
+        public static string VmCheckpointService_ErrOperationWmiCode {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrOriginCurrentNoConverge", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrOperationWmiCode", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 This node is a parent-chain node of the current spacetime. Opening a wormhole would cause a spacetime paradox. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrParentChainNode {
+
+        public static string VmCheckpointService_ErrOriginCurrentNoDelete {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrParentChainNode", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrOriginCurrentNoDelete", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Rename service exception: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrRenameException {
+
+        public static string VmCheckpointService_ErrParentChainNode {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrRenameException", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrParentChainNode", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Snapshot disk path is invalid. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrSnapshotPathInvalid {
+
+        public static string VmCheckpointService_ErrRenameException {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrSnapshotPathInvalid", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrRenameException", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Spacetime collapse: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrSpacetimeCollapse {
+
+        public static string VmCheckpointService_ErrSnapshotPathInvalid {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrSpacetimeCollapse", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrSnapshotPathInvalid", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Spacetime exception: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrSpacetimeException {
+
+        public static string VmCheckpointService_ErrUpdateWmiCode {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrSpacetimeException", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrUpdateWmiCode", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Travel failed: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrTravelFailed {
+
+        public static string VmCheckpointService_ErrVmCarrierNotFound {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrTravelFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrVmCarrierNotFound", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Update failed: WMI error code: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrUpdateWmiCode {
+
+        public static string VmCheckpointService_ErrVmNotFound {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrUpdateWmiCode", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrVmNotFound", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Specified VM carrier not found. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrVmCarrierNotFound {
+
+        public static string VmCheckpointService_ErrWmiMgmtSvcNotFound {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrVmCarrierNotFound", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrWmiMgmtSvcNotFound", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Virtual machine not found 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrVmNotFound {
+
+        public static string VmCheckpointService_ErrHistoricalDiskAlreadyExists {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrVmNotFound", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_ErrHistoricalDiskAlreadyExists", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 WMI management service not found 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrWmiMgmtSvcNotFound {
+
+        public static string VmCheckpointService_LogReadCheckpointFailed {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrWmiMgmtSvcNotFound", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_LogReadCheckpointFailed", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 A wormhole already exists in the current spacetime. Please close the existing wormhole before opening a new one, or a spacetime paradox will occur. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_ErrWormholeAlreadyExists {
+
+        public static string VmCheckpointService_LogHistoricalDiskDetectFailed {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_ErrWormholeAlreadyExists", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_LogHistoricalDiskDetectFailed", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 [Spacetime] Failed to clean screenshot: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_LogCleanScreenFailed {
+
+        public static string VmCheckpointService_LogHistoricalDisk {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_LogCleanScreenFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_LogHistoricalDisk", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 [Spacetime] Failed to read checkpoint state: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_LogReadCheckpointFailed {
+
+        public static string VmCheckpointService_LogHistoricalDiskMarkedOk {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_LogReadCheckpointFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_LogHistoricalDiskMarkedOk", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 [Spacetime] Snapshot screenshot cleaned: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_LogSnapshotScreenCleaned {
+
+        public static string VmCheckpointService_MsgCheckpointDisabled {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_LogSnapshotScreenCleaned", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgCheckpointDisabled", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 [Wormhole] Detection failed: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_LogWormholeDetectFailed {
+
+        public static string VmCheckpointService_MsgCheckpointEnabled {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_LogWormholeDetectFailed", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgCheckpointEnabled", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 [Wormhole] Wormhole disk: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_LogWormholeDisk {
+
+        public static string VmCheckpointService_MsgCreated {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_LogWormholeDisk", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgCreated", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 [Wormhole] Marked successfully: {0} 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_LogWormholeMarkedOk {
+
+        public static string VmCheckpointService_MsgDeleted {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_LogWormholeMarkedOk", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgDeleted", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Spacetime anchor set. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgAnchorSet {
+
+        public static string VmCheckpointService_MsgMerged {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgAnchorSet", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgMerged", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Spacetime branch fully annihilated. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgAnnihilated {
+
+        public static string VmCheckpointService_MsgNameUpdated {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgAnnihilated", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgNameUpdated", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Checkpoint disabled 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgCheckpointDisabled {
+
+        public static string VmCheckpointService_MsgHistoricalDiskDismounted {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgCheckpointDisabled", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgHistoricalDiskDismounted", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Checkpoint enabled 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgCheckpointEnabled {
+
+        public static string VmCheckpointService_MsgHistoricalDiskMounted {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgCheckpointEnabled", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_MsgHistoricalDiskMounted", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Converging spacetime... 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgConverging {
+
+        public static string VmCheckpointService_NodeLabelCurrent {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgConverging", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_NodeLabelCurrent", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Name updated successfully 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgNameUpdated {
+
+        public static string VmCheckpointService_NodeLabelOrigin {
             get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgNameUpdated", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_NodeLabelOrigin", resourceCulture);
             }
         }
-        
-        /// <summary>
-        ///   查找类似 Travel initiated, restoring running state... 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgTravelInitiated {
-            get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgTravelInitiated", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Travel succeeded. VM has returned to the specified spacetime point (powered off). 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgTravelSucceeded {
-            get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgTravelSucceeded", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Wormhole closed. Timeline restored to normal. 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgWormholeClosed {
-            get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgWormholeClosed", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Wormhole opened 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_MsgWormholeOpened {
-            get {
-                return ResourceManager.GetString("VmSpacetimeService_MsgWormholeOpened", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Current 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_NodeLabelCurrent {
-            get {
-                return ResourceManager.GetString("VmSpacetimeService_NodeLabelCurrent", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Origin 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeService_NodeLabelOrigin {
-            get {
-                return ResourceManager.GetString("VmSpacetimeService_NodeLabelOrigin", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Close Wormhole 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_BtnCloseWormhole {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_BtnCloseWormhole", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Spacetime Convergence 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_BtnConverge {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_BtnConverge", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Create Spacetime 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_BtnCreate {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_BtnCreate", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Delete 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_BtnDelete {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_BtnDelete", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Export Topology Map 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_BtnExportTopology {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_BtnExportTopology", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Open Wormhole 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_BtnOpenWormhole {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_BtnOpenWormhole", resourceCulture);
-            }
-        }
-        
-        
-        /// <summary>
-        ///   查找类似 Travel 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_BtnTravel {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_BtnTravel", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Save disk and memory state 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_DescContinuous {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_DescContinuous", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Save disk state 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_DescStatic {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_DescStatic", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 PNG Image|*.png 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_DlgExportFilter {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_DlgExportFilter", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Export Spacetime Topology Map 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_DlgExportTitle {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_DlgExportTitle", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Action 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_LabelAction {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_LabelAction", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Checkpoint 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_LabelCheckpoint {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_LabelCheckpoint", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Spacetime Details 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_LabelDetails {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_LabelDetails", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 [DRAG] !!! Abnormal displacement delta=({0},{1}) discarded 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_LogAbnormalDelta {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_LogAbnormalDelta", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 No anchor selected 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_MsgNoAnchor {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_MsgNoAnchor", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Syncing... 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_MsgSyncing {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_MsgSyncing", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Wormhole Interfering 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_StateWormholeActive {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_StateWormholeActive", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Spacetime Management 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_TitleMgmt {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_TitleMgmt", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Continuous Spacetime 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_TypeContinuous {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_TypeContinuous", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 Static Spacetime 的本地化字符串。
-        /// </summary>
-        public static string VmSpacetimeSettings_TypeStatic {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_TypeStatic", resourceCulture);
-            }
-        }
-        
+
         /// <summary>
         ///   查找类似 Optimize Disk 的本地化字符串。
         /// </summary>
@@ -7785,15 +7139,6 @@ namespace ExHyperV.Properties {
         public static string Warn_DynRamRunning {
             get {
                 return ResourceManager.GetString("Warn_DynRamRunning", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   查找类似 [Warning] Env exception: {0} 的本地化字符串。
-        /// </summary>
-        public static string Warn_Gpu_EnvExc {
-            get {
-                return ResourceManager.GetString("Warn_Gpu_EnvExc", resourceCulture);
             }
         }
         
@@ -8348,13 +7693,6 @@ namespace ExHyperV.Properties {
             get { return ResourceManager.GetString("Error_Gpu_PowerOffTimeout", resourceCulture); }
         }
 
-        public static string Msg_Gpu_LinuxDetected {
-            get { return ResourceManager.GetString("Msg_Gpu_LinuxDetected", resourceCulture); }
-        }
-
-        public static string Msg_Gpu_LinuxAutoPrep {
-            get { return ResourceManager.GetString("Msg_Gpu_LinuxAutoPrep", resourceCulture); }
-        }
         /// <summary>
         ///   查找类似 安全 的本地化字符串。
         /// </summary>
@@ -8452,14 +7790,6 @@ namespace ExHyperV.Properties {
             }
         }
         /// <summary>
-        ///   Looks up a localized string similar to [Info] Selected script: {0}.
-        /// </summary>
-        public static string Log_Gpu_SelectedScript {
-            get {
-                return ResourceManager.GetString("Log_Gpu_SelectedScript", resourceCulture);
-            }
-        }
-        /// <summary>
         ///   Looks up a localized string similar to Syncing: {0} -> {1}.
         /// </summary>
         public static string Log_Gpu_Syncing {
@@ -8467,116 +7797,9 @@ namespace ExHyperV.Properties {
                 return ResourceManager.GetString("Log_Gpu_Syncing", resourceCulture);
             }
         }
-        /// <summary>
-        ///   Looks up a localized string similar to [ExHyperV] Starting VM....
-        /// </summary>
-        public static string Log_Gpu_StartingVm {
+        public static string VmCheckpointService_HintDismountHistoricalDiskFirst {
             get {
-                return ResourceManager.GetString("Log_Gpu_StartingVm", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Uploading driver and WSL libraries....
-        /// </summary>
-        public static string Log_Gpu_UploadingDriverWsl {
-            get {
-                return ResourceManager.GetString("Log_Gpu_UploadingDriverWsl", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Downloading remote script inside VM: {0}.
-        /// </summary>
-        public static string Log_Gpu_DownloadingScript {
-            get {
-                return ResourceManager.GetString("Log_Gpu_DownloadingScript", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to [Attempt {0}] Executing script....
-        /// </summary>
-        public static string Log_Gpu_ExecutingAttempt {
-            get {
-                return ResourceManager.GetString("Log_Gpu_ExecutingAttempt", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to VM reboot required. Restarting now....
-        /// </summary>
-        public static string Log_Gpu_RebootRequired {
-            get {
-                return ResourceManager.GetString("Log_Gpu_RebootRequired", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to VM is back online. Resuming deployment....
-        /// </summary>
-        public static string Log_Gpu_VmBackOnline {
-            get {
-                return ResourceManager.GetString("Log_Gpu_VmBackOnline", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Failed to get VM MAC address..
-        /// </summary>
-        public static string Error_Gpu_NoMac {
-            get {
-                return ResourceManager.GetString("Error_Gpu_NoMac", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to No valid IPv4 address found..
-        /// </summary>
-        public static string Error_Gpu_NoIpv4 {
-            get {
-                return ResourceManager.GetString("Error_Gpu_NoIpv4", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Cancelled.
-        /// </summary>
-        public static string Msg_Gpu_Cancelled {
-            get {
-                return ResourceManager.GetString("Msg_Gpu_Cancelled", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to VM failed to come back online after reboot..
-        /// </summary>
-        public static string Error_Gpu_RebootNoResponse {
-            get {
-                return ResourceManager.GetString("Error_Gpu_RebootNoResponse", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Script execution failed (no success signal)..
-        /// </summary>
-        public static string Error_Gpu_ScriptNoSuccess {
-            get {
-                return ResourceManager.GetString("Error_Gpu_ScriptNoSuccess", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Maximum reboot attempts reached..
-        /// </summary>
-        public static string Error_Gpu_MaxReboots {
-            get {
-                return ResourceManager.GetString("Error_Gpu_MaxReboots", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to Error: {0}.
-        /// </summary>
-        public static string Error_Gpu_LinuxGeneric {
-            get {
-                return ResourceManager.GetString("Error_Gpu_LinuxGeneric", resourceCulture);
-            }
-        }
-        /// <summary>
-        ///   Looks up a localized string similar to A wormhole is open — close it before you can create / delete / converge spacetimes..
-        /// </summary>
-        public static string VmSpacetimeSettings_HintCloseWormholeFirst {
-            get {
-                return ResourceManager.GetString("VmSpacetimeSettings_HintCloseWormholeFirst", resourceCulture);
+                return ResourceManager.GetString("VmCheckpointService_HintDismountHistoricalDiskFirst", resourceCulture);
             }
         }
         public static string Cpu_ApicMode {
@@ -10115,11 +9338,18 @@ namespace ExHyperV.Properties {
         public static string Tray_Exit => ResourceManager.GetString("Tray_Exit", resourceCulture);
         public static string Gpu_ConfirmPowerOff => ResourceManager.GetString("Gpu_ConfirmPowerOff", resourceCulture);
         public static string Gpu_ConfirmWindowsInstall => ResourceManager.GetString("Gpu_ConfirmWindowsInstall", resourceCulture);
-        public static string Gpu_ConfirmLinuxStart => ResourceManager.GetString("Gpu_ConfirmLinuxStart", resourceCulture);
         public static string Gpu_DecisionExpired => ResourceManager.GetString("Gpu_DecisionExpired", resourceCulture);
         public static string Gpu_InvalidPartition => ResourceManager.GetString("Gpu_InvalidPartition", resourceCulture);
-        public static string Gpu_InvalidSshPort => ResourceManager.GetString("Gpu_InvalidSshPort", resourceCulture);
         public static string Gpu_CleanupRequired => ResourceManager.GetString("Gpu_CleanupRequired", resourceCulture);
+        public static string Msg_Gpu_DriverSkipped => ResourceManager.GetString("Msg_Gpu_DriverSkipped", resourceCulture);
+        public static string Error_Gpu_LinuxUnsupported => ResourceManager.GetString("Error_Gpu_LinuxUnsupported", resourceCulture);
+        public static string Msg_Gpu_LinuxUnsupported => ResourceManager.GetString("Msg_Gpu_LinuxUnsupported", resourceCulture);
+        public static string Msg_Gpu_BitLockerRequired => ResourceManager.GetString("Msg_Gpu_BitLockerRequired", resourceCulture);
+        public static string Msg_Gpu_LinuxAndBitLockerUnsupported => ResourceManager.GetString("Msg_Gpu_LinuxAndBitLockerUnsupported", resourceCulture);
+        public static string Msg_Gpu_SelectPartWithLinuxAndBitLocker => ResourceManager.GetString("Msg_Gpu_SelectPartWithLinuxAndBitLocker", resourceCulture);
+        public static string Msg_Gpu_SelectPartWithLinux => ResourceManager.GetString("Msg_Gpu_SelectPartWithLinux", resourceCulture);
+        public static string Msg_Gpu_SelectPartWithBitLocker => ResourceManager.GetString("Msg_Gpu_SelectPartWithBitLocker", resourceCulture);
+        public static string Msg_Gpu_NoUsableWindowsPart => ResourceManager.GetString("Msg_Gpu_NoUsableWindowsPart", resourceCulture);
         public static string ConsoleWindow_FrameStatistics => ResourceManager.GetString("ConsoleWindow_FrameStatistics", resourceCulture);
         public static string ConsoleWindow_FrameStatisticsHint => ResourceManager.GetString("ConsoleWindow_FrameStatisticsHint", resourceCulture);
         public static string ConsoleWindow_FrameStatisticsFormat => ResourceManager.GetString("ConsoleWindow_FrameStatisticsFormat", resourceCulture);

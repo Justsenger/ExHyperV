@@ -55,7 +55,6 @@ namespace ExHyperV.Services
                     : ApiResponse.FromFailure(state);
             var condition = GetModificationCondition(state.Data!.State);
             if (!condition.CanModify) return condition.ToResponse();
-            using var _ = HyperVServiceCoordination.BeginActiveSettingsWrite();
             return await WmiApi.WithObjectAsync(
                 wql: RealizedSettingsWql(vmId),
                 modifier: obj =>
@@ -142,10 +141,10 @@ namespace ExHyperV.Services
 
                 var p = ComputeMmioPlan(ceilingMb);
 
-                Debug.WriteLine(Properties.Resources.VmMmio_LogFinalResult);
-                Debug.WriteLine($" - HighMmioGapBase: {p.BaseMiB}");
-                Debug.WriteLine($" - HighMmioGapSize: {p.HighSizeMiB}");
-                Debug.WriteLine($" - LowMmioGapSize: {p.LowSizeMiB}");
+                CoreDiagnostics.Report("MmioCalculated", TraceEventType.Verbose);
+                CoreDiagnostics.Report("HighMmioBase", TraceEventType.Verbose, details: $"mib={p.BaseMiB}");
+                CoreDiagnostics.Report("HighMmioSize", TraceEventType.Verbose, details: $"mib={p.HighSizeMiB}");
+                CoreDiagnostics.Report("LowMmioSize", TraceEventType.Verbose, details: $"mib={p.LowSizeMiB}");
 
                 var resp = await WmiApi.WithObjectAsync(
                     wql: RealizedSettingsWql(vmId),
@@ -157,13 +156,13 @@ namespace ExHyperV.Services
                         obj["GuestControlledCacheTypes"] = true;
                     });
 
-                if (resp.Success) Debug.WriteLine(Properties.Resources.VmMmio_LogConfigApplied);
+                if (resp.Success) CoreDiagnostics.Report("MmioApplied", TraceEventType.Information);
                 return resp;
             }
             catch (OperationOutcomeUnknownException ex) { return ex.Result; }
             catch (Exception ex)
             {
-                Debug.WriteLine(string.Format(Properties.Resources.VmMmio_LogError, ex.Message));
+                CoreDiagnostics.Report("MmioApplyFailed", error: ex);
                 return ApiResponse.Fail(ex.Message, exception: ex, kind: ApiErrorKind.OperationFailed);
             }
         }
@@ -245,7 +244,7 @@ namespace ExHyperV.Services
         {
             foreach (ulong ceilingMb in ProbeCeilingCandidatesMb)
             {
-                Debug.WriteLine($"[VmMmio] 正在探测 MMIO 上限: {ceilingMb} MB");
+                CoreDiagnostics.Report("MmioCeilingProbe", TraceEventType.Verbose, details: $"mib={ceilingMb}");
 
                 var setResp = await configure(ceilingMb);
                 OperationOutcomeUnknownException.ThrowIfUnknown(setResp);
@@ -255,7 +254,7 @@ namespace ExHyperV.Services
                 OperationOutcomeUnknownException.ThrowIfUnknown(startResp);
                 if (!startResp.Success) continue;
 
-                Debug.WriteLine($"[VmMmio] 探测成功，主机 MMIO 上限: {ceilingMb} MB");
+                CoreDiagnostics.Report("MmioCeilingDetected", TraceEventType.Information, details: $"mib={ceilingMb}");
                 var stop = await power(StateDisabled);
                 OperationOutcomeUnknownException.ThrowIfUnknown(stop);
                 if (!stop.Success)

@@ -143,7 +143,7 @@ while($queue.Count){
         elseif(!(Test-Path -LiteralPath (Join-Path ([Environment]::SystemDirectory) $name)) -and $name -notmatch '^(api|ext)-ms-'){throw "Unresolved dependency: $name"}
     }}
 }
-RunTool 'strip-debug' "$llvm/llvm-strip.exe" (@('--strip-debug')+@(Get-ChildItem -LiteralPath $out -Filter '*.dll' -File | Select-Object -ExpandProperty FullName))
+RunTool 'strip-all' "$llvm/llvm-strip.exe" (@('--strip-all')+@(Get-ChildItem -LiteralPath $out -Filter '*.dll' -File | Select-Object -ExpandProperty FullName))
 # Reject development roots in actual payload strings before creating a package.
 $privateRoots=@($dep,$work,$PSScriptRoot,[Environment]::GetFolderPath('UserProfile')) |
     Where-Object {$_} | ForEach-Object {$_.Replace('\','/');$_.Replace('/','\')} | Sort-Object -Unique
@@ -170,5 +170,19 @@ Get-ChildItem -LiteralPath $out -Filter '*.dll' | Copy-Item -Destination $checks
 $code=$LASTEXITCODE;Set-Content -LiteralPath "$work/selftest.exit" -Value $code
 if($code -ne 0){Get-Content "$work/selftest.log";throw "Native selftest failed ($code)."}
 $zip=Join-Path $PSScriptRoot "runtimes/win-$Architecture/console-native.zip"
-Compress-Archive -Path "$out/*" -DestinationPath $zip -Force
+$sevenZip = Get-Command 7z.exe -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty Source
+if (!$sevenZip) { $sevenZip = Join-Path $env:ProgramFiles '7-Zip/7z.exe' }
+if (Test-Path -LiteralPath $sevenZip) {
+    # Build a new archive so an obsolete DLL cannot survive an update.
+    $stagingZip = Join-Path $work ("console-" + [guid]::NewGuid().ToString('N') + '.zip')
+    try {
+        & $sevenZip a -tzip -mm=Deflate -mx=9 -mfb=258 -mpass=15 $stagingZip "$out/*"
+        if ($LASTEXITCODE) { throw "FreeRDP archive compression failed ($LASTEXITCODE)" }
+        Copy-Item -LiteralPath $stagingZip -Destination $zip -Force
+    } finally {
+        if (Test-Path -LiteralPath $stagingZip) { Remove-Item -LiteralPath $stagingZip }
+    }
+} else {
+    Compress-Archive -Path "$out/*" -DestinationPath $zip -CompressionLevel Optimal -Force
+}
 Write-Output "FreeRDP bridge built and offline checks passed: $zip"

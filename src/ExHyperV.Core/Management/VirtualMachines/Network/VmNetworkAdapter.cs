@@ -17,7 +17,9 @@ namespace ExHyperV.Models
         /// <summary>中继模式，使用本征 VLAN 和允许 VLAN 列表。</summary>
         Trunk = 2,
         /// <summary>专用 VLAN 模式。</summary>
-        Private = 3
+        Private = 3,
+        /// <summary>端口不标记 VLAN，在 WMI 中以接入模式和 VLAN ID 0 表示。</summary>
+        Off = 4
     }
 
     // WMI: Msvm_EthernetSwitchPortVlanSettingData.PvlanMode
@@ -74,11 +76,19 @@ namespace ExHyperV.Models
         {
             get
             {
-                // 合成网卡为 Microsoft:VMGUID\DEVICEGUID；模拟网卡末尾另有 \0。
+                // 标准网卡为 Microsoft:VMGUID\DEVICEGUID；旧版网卡末尾另有 \0。
                 var segments = Id.Split('\\');
                 return segments.Length > 1 && Guid.TryParse(segments[1], out var id) ? id : Guid.Empty;
             }
         }
+
+        /// <summary>是否为第 1 代虚拟机使用的旧版网卡（需在关机状态添加，且不支持硬件加速）；false 表示标准网卡。</summary>
+        public bool IsLegacy
+        {
+            get => _isLegacy ?? Id.Split('\\').Length >= 3;
+            set => _isLegacy = value;
+        }
+        private bool? _isLegacy;
 
         /// <summary>虚拟网卡名称。</summary>
         public string Name { get => _name; set => _name = value; }
@@ -128,6 +138,8 @@ namespace ExHyperV.Models
         /// <summary>虚拟网卡 MAC 地址。</summary>
         public string MacAddress { get => _macAddress; set => _macAddress = value; }
         private string _macAddress = string.Empty;
+        /// <summary>宿主是否已为此网卡报告非空 MAC 地址。</summary>
+        public bool HasReportedMac { get; internal set; } = true;
 
         // 指示 MAC 地址是否为静态配置。 WMI: Msvm_SyntheticEthernetPortSettingData.StaticMacAddress
         /// <summary>是否使用静态 MAC 地址配置。</summary>
@@ -190,6 +202,20 @@ namespace ExHyperV.Models
         /// <summary>中继模式下允许通过的 VLAN ID 可变列表。</summary>
         public List<int> TrunkAllowedVlanIds { get => _trunkAllowedVlanIds; set => _trunkAllowedVlanIds = value; }
         private List<int> _trunkAllowedVlanIds = new List<int>();
+
+        /// <summary>混杂端口允许通信的辅助 VLAN ID。</summary>
+        public List<int> PvlanSecondaryIds { get; set; } = [];
+
+        /// <summary>复制当前网卡配置副本，并为各可变列表建立独立副本。</summary>
+        /// <returns>网卡配置的独立副本，各可变列表单独复制。</returns>
+        public VmNetworkAdapter Clone()
+        {
+            var copy = (VmNetworkAdapter)MemberwiseClone();
+            copy.IpAddresses = [.. IpAddresses];
+            copy.TrunkAllowedVlanIds = [.. TrunkAllowedVlanIds];
+            copy.PvlanSecondaryIds = [.. PvlanSecondaryIds];
+            return copy;
+        }
 
         /// <summary>专用 VLAN 的主 VLAN ID。</summary>
         public int PvlanPrimaryId { get => _pvlanPrimaryId; set => _pvlanPrimaryId = value; }

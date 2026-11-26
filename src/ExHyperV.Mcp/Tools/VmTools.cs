@@ -110,8 +110,8 @@ public sealed class VmTools
     public static Task<CallToolResult> Network(Guid vmId) => ToolReply.Run(async () =>
         ToolReply.From(await VmNetworkService.GetNetworkAdaptersAsync(ToolReply.VmId(vmId))));
 
-    [McpServerTool(Name = "vm_checkpoints", Title = "读取虚拟机检查点", ReadOnly = true, OpenWorld = false)]
-    [Description("读取检查点及当前状态节点。")]
+    [McpServerTool(Name = "vm_checkpoints", Title = "读取虚拟机快照", ReadOnly = true, OpenWorld = false)]
+    [Description("读取快照及当前状态节点。")]
     public static Task<CallToolResult> Checkpoints(Guid vmId) => ToolReply.Run(async () =>
-        ToolReply.From(await VmSpacetimeService.GetSpacetimeNodesAsync(ToolReply.VmId(vmId))));
+        ToolReply.From(await VmCheckpointService.GetCheckpointNodesAsync(ToolReply.VmId(vmId))));
 }

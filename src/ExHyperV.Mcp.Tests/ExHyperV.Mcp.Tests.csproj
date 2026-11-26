@@ -1,8 +1,6 @@
 <Project Sdk="MSTest.Sdk/4.5.2">
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <TargetFramework>net11.0-windows</TargetFramework>
     <TestingExtensionsProfile>None</TestingExtensionsProfile>
     <EnableMicrosoftTestingExtensionsTrxReport>true</EnableMicrosoftTestingExtensionsTrxReport>
     <IsPackable>false</IsPackable>
@@ -10,6 +8,7 @@
     <RuntimeIdentifiers>win-arm64;win-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="10.0.7" />
     <ProjectReference Include="../ExHyperV.Mcp/ExHyperV.Mcp.csproj" />
   </ItemGroup>
   <Target Name="CopyCoreApiDocumentation" AfterTargets="Build">

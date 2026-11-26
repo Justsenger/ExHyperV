@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ExHyperV.Mcp.Api;
+using ExHyperV.Mcp.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ExHyperV.Mcp.Tests;
@@ -13,6 +14,45 @@ public sealed class RuntimeTests
         var objects = new ApiObjects();
         var codec = new ApiCodec(catalog, objects);
         return (objects, codec, new(catalog, objects, codec, NullLogger<ApiExecution>.Instance));
+    }
+
+    [TestMethod]
+    public async Task ConsoleImagePreservesBgraAlphaAndSkipsRowPadding()
+    {
+        var catalog = new ApiCatalog();
+        var objects = new ApiObjects();
+        var codec = new ApiCodec(catalog, objects);
+        var tools = new Tools.ApiTools(catalog, objects, codec,
+            new ApiExecution(catalog, objects, codec, NullLogger<ApiExecution>.Instance),
+            new ApiPolicy(catalog, McpLaunchOptions.Parse(["--read-only"])));
+        byte[] pixels = [0, 0, 255, 255, 0, 255, 0, 128, 99, 99, 99, 99,
+                         255, 0, 0, 255, 31, 42, 53, 200, 99, 99, 99, 99];
+        using var frame = new ExHyperV.Services.ConsoleFrame(2, 2, 12, pixels, 1);
+        var reply = await tools.Image(objects.Add(frame, owned: false));
+        var image = (ModelContextProtocol.Protocol.ImageContentBlock)reply.Content.Single();
+        Assert.AreEqual("image/png", image.MimeType);
+        using var reference = new System.Drawing.Bitmap(2, 2, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        var bits = reference.LockBits(new(0, 0, 2, 2), System.Drawing.Imaging.ImageLockMode.WriteOnly, reference.PixelFormat);
+        try
+        {
+            for (int y = 0; y < 2; y++)
+                System.Runtime.InteropServices.Marshal.Copy(pixels, y * 12, bits.Scan0 + y * bits.Stride, 8);
+        }
+        finally { reference.UnlockBits(bits); }
+        using var expectedPng = new MemoryStream();
+        reference.Save(expectedPng, System.Drawing.Imaging.ImageFormat.Png);
+        CollectionAssert.AreEqual(expectedPng.ToArray(), image.DecodedData.ToArray());
+        using var stream = new MemoryStream(image.DecodedData.ToArray());
+        using var bitmap = new System.Drawing.Bitmap(stream);
+        Assert.AreEqual(2, bitmap.Width);
+        Assert.AreEqual(2, bitmap.Height);
+        for (int y = 0; y < 2; y++)
+        for (int x = 0; x < 2; x++)
+        {
+            int offset = y * 12 + x * 4;
+            var expected = System.Drawing.Color.FromArgb(pixels[offset + 3], pixels[offset + 2], pixels[offset + 1], pixels[offset]);
+            Assert.AreEqual(expected.ToArgb(), bitmap.GetPixel(x, y).ToArgb());
+        }
     }
 
     [TestMethod]

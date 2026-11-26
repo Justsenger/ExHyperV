@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using ExHyperV.Tools;
 using ExHyperV.Models;
@@ -14,91 +13,22 @@ namespace ExHyperV.Services
     /// </remarks>
     public class HyperVCpuMonitorService : IDisposable, IAsyncDisposable
     {
-        private static readonly Dictionary<int, CpuCoreType> _coreTypeCache = new Dictionary<int, CpuCoreType>();
-        private static bool _isHybrid = false;
-
-        static HyperVCpuMonitorService()
-        {
-            InitializeCoreTypes();
-        }
+        private static readonly Dictionary<int, CpuCoreType> _coreTypeCache = InitializeCoreTypes();
 
         /// <summary>读取首次探测宿主拓扑时缓存的核心性能分类。</summary>
         /// <returns>存在不同 EfficiencyClass 时，最高类别为 Performance，其余为 Efficient；同类核心、编号未找到或探测失败时为 Unknown。</returns>
         /// <param name="coreId">Windows 处理器组编号 × 64 + 组内位号。</param>
         /// <remarks>根据 Windows EfficiencyClass 分为性能和能效两类；首次探测结果在进程内缓存。</remarks>
         public static CpuCoreType GetCoreType(int coreId)
-        {
-            if (!_isHybrid) return CpuCoreType.Unknown;
-            return _coreTypeCache.TryGetValue(coreId, out var type) ? type : CpuCoreType.Unknown;
-        }
+            => _coreTypeCache.TryGetValue(coreId, out var type) ? type : CpuCoreType.Unknown;
 
-        private static void InitializeCoreTypes()
+        private static Dictionary<int, CpuCoreType> InitializeCoreTypes()
         {
-            try
-            {
-                uint returnLength = 0;
-                GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP.RelationProcessorCore, IntPtr.Zero, ref returnLength);
-                if (returnLength == 0) return;
-                IntPtr buffer = Marshal.AllocHGlobal((int)returnLength);
-                try
-                {
-                    if (GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP.RelationProcessorCore, buffer, ref returnLength))
-                    {
-                        var ptr = buffer;
-                        long offset = 0;
-                        byte maxClass = 0;
-                        byte minClass = 255;
-                        var tempInfo = new List<(int Id, byte Class)>();
-                        while (offset < returnLength)
-                        {
-                            var info = Marshal.PtrToStructure<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>(ptr);
-                            if (info.Relationship == LOGICAL_PROCESSOR_RELATIONSHIP.RelationProcessorCore)
-                            {
-                                byte efficiencyClass = info.Processor.EfficiencyClass;
-                                if (efficiencyClass > maxClass) maxClass = efficiencyClass;
-                                if (efficiencyClass < minClass) minClass = efficiencyClass;
-                                for (int i = 0; i < info.Processor.GroupCount; i++)
-                                {
-                                    IntPtr groupMaskPtr = ptr + (int)Marshal.OffsetOf<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>("Processor")
-                                                          + (int)Marshal.OffsetOf<PROCESSOR_RELATIONSHIP>("GroupMask")
-                                                          + i * Marshal.SizeOf<GROUP_AFFINITY>();
-                                    var groupInfo = Marshal.PtrToStructure<GROUP_AFFINITY>(groupMaskPtr);
-                                    ulong mask = (ulong)groupInfo.Mask;
-                                    for (int bit = 0; bit < 64; bit++)
-                                    {
-                                        if ((mask & (1UL << bit)) != 0)
-                                        {
-                                            tempInfo.Add((bit + groupInfo.Group * 64, efficiencyClass));
-                                        }
-                                    }
-                                }
-                            }
-                            offset += info.Size;
-                            ptr = IntPtr.Add(ptr, (int)info.Size);
-                        }
-                        if (maxClass > minClass)
-                        {
-                            _isHybrid = true;
-                            foreach (var item in tempInfo)
-                            {
-                                _coreTypeCache[item.Id] = (item.Class == maxClass) ? CpuCoreType.Performance : CpuCoreType.Efficient;
-                            }
-                        }
-                    }
-                }
-                finally
-                {
-                    Marshal.FreeHGlobal(buffer);
-                }
-            }
-            catch { _isHybrid = false; }
+            var cache = new Dictionary<int, CpuCoreType>();
+            foreach (var (key, type) in HostCpuEtwNative.ReadCoreTypesByGroupBit())
+                cache[key.Bit + key.Group * 64] = type;
+            return cache;
         }
-
-        [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GetLogicalProcessorInformationEx(LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType, IntPtr Buffer, ref uint ReturnedLength);
-        private enum LOGICAL_PROCESSOR_RELATIONSHIP { RelationProcessorCore = 0 }
-        [StructLayout(LayoutKind.Sequential)] private struct SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX { public LOGICAL_PROCESSOR_RELATIONSHIP Relationship; public uint Size; public PROCESSOR_RELATIONSHIP Processor; }
-        [StructLayout(LayoutKind.Sequential)] private struct PROCESSOR_RELATIONSHIP { public byte Flags; public byte EfficiencyClass; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 20)] public byte[] Reserved; public ushort GroupCount; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1)] public GROUP_AFFINITY[] GroupMask; }
-        [StructLayout(LayoutKind.Sequential)] private struct GROUP_AFFINITY { public UIntPtr Mask; public ushort Group; [MarshalAs(UnmanagedType.ByValArray, SizeConst = 3)] public ushort[] Reserved; }
 
         internal sealed class Counter(Func<float> sample, Action release) : IDisposable
         {
@@ -190,7 +120,7 @@ namespace ExHyperV.Services
         private static void ReleaseCounter(Counter counter)
         {
             try { counter.Dispose(); }
-            catch (Exception error) { Debug.WriteLine($"[CpuMonitor] Counter cleanup failed: {error.Message}"); }
+            catch (Exception error) { CoreDiagnostics.Report("CounterCleanupFailed", error: error); }
         }
 
         private const string HostCategory = "Hyper-V Hypervisor Logical Processor";

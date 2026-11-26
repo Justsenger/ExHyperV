@@ -6,13 +6,13 @@ namespace ExHyperV.Services
 {
     /// <summary>读取和修改第 2 代虚拟机的安全启动、虚拟 TPM、保存状态及迁移流量加密设置。</summary>
     /// <remarks>修改前要求虚拟机完全关机；启用虚拟 TPM 时由 Core 准备所需的密钥保护配置。具体能力和互锁限制通过查询及校验接口读取。</remarks>
-    public static class VmSecurityService
+    public static partial class VmSecurityService
     {
-        // Msvm_SecuritySettingData 改单个标志：走 WithObjectAsync，serviceWql 指向 Msvm_SecurityService.ModifySecuritySettings
+        // 安全属性通过安全服务提交，固件属性通过虚拟系统管理服务提交。
         private const string SecuritySettingWql = "SELECT * FROM Msvm_SecuritySettingData WHERE InstanceID LIKE 'Microsoft:{0}%'";
         private const string SecurityServiceWql = "SELECT * FROM Msvm_SecurityService";
 
-        /// <summary>成功读取的安全设置快照；读取失败由外层 ApiResponse 表示。</summary>
+        /// <summary>成功读取的安全设置视图，读取失败由外层 ApiResponse 表示。</summary>
         /// <param name="SecureBootEnabled">安全启动是否启用。</param>
         /// <param name="SecureBootTemplateId">当前安全启动模板 GUID 字符串。</param>
         /// <param name="TpmEnabled">虚拟 TPM 是否启用。</param>
@@ -43,9 +43,9 @@ namespace ExHyperV.Services
 
         /// <summary>判断虚拟机是否为第 2 代且已经完全关机。</summary>
         /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-        /// <param name="state">当前运行状态快照；只有 PoweredOff 满足关机要求。保存、挂起、休眠、过渡及未知状态均不满足。</param>
+        /// <param name="state">当前运行状态，只有 PoweredOff 满足关机要求。保存、挂起、休眠、过渡及未知状态均不满足。</param>
         /// <returns>第 2 代且 state 为 PoweredOff 时返回 true；各安全开关的互锁规则另由 GetCapabilities 检查。</returns>
-        /// <remarks>此方法只判断传入的快照，不查询宿主。实际修改入口会重新读取状态；返回 true 不锁定后续状态。</remarks>
+        /// <remarks>此方法只判断传入的状态，不查询宿主。实际修改入口会重新读取状态，返回 true 不锁定后续状态。</remarks>
         internal static bool CanEdit(int generation, VmState state) => generation == 2 && state == VmState.PoweredOff;
 
         /// <summary>仅按安全启动、TPM 和屏蔽状态计算各安全开关之间的互锁关系。</summary>
@@ -56,14 +56,12 @@ namespace ExHyperV.Services
         internal static Capabilities GetInterlocks(bool secureBoot, bool tpm, bool shielded)
         {
             bool unlocked = !shielded;
-            // These depend only on the security selections. A caller can bind VM-state
-            // availability separately without caching state inside each child control.
-            return new(true, unlocked, unlocked && secureBoot, unlocked, unlocked && tpm, true);
+            return new(true, unlocked, unlocked && secureBoot, unlocked, unlocked, true);
         }
 
         /// <summary>合并代数、运行状态和安全开关互锁规则。</summary>
         /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-        /// <param name="state">运行状态快照；PoweredOff 时允许修改。</param>
+        /// <param name="state">运行状态，PoweredOff 时允许修改。</param>
         /// <param name="secureBoot">当前安全启动状态。</param>
         /// <param name="tpm">当前虚拟 TPM 状态。</param>
         /// <param name="shielded">当前屏蔽状态。</param>
@@ -79,7 +77,7 @@ namespace ExHyperV.Services
 
         /// <summary>校验指定安全设置是否满足当前代数、运行状态和互锁规则。</summary>
         /// <param name="generation">虚拟机代数，使用 1 或 2。</param>
-        /// <param name="state">当前运行状态快照；保存、挂起、休眠、过渡及未知状态均返回需要完全关机。</param>
+        /// <param name="state">当前运行状态，保存、挂起、休眠、过渡及未知状态均返回需要完全关机。</param>
         /// <param name="current">当前成功读取的安全设置，含互锁所需开关。</param>
         /// <param name="setting">准备修改的安全设置项。</param>
         /// <returns>不允许修改的说明；允许继续时为 null。</returns>
@@ -105,8 +103,6 @@ namespace ExHyperV.Services
                 return VmModificationCondition.Denied("请先关闭屏蔽保护。");
             if (setting == Setting.SecureBootTemplate && !current.SecureBootEnabled)
                 return VmModificationCondition.Denied("请先开启安全启动。");
-            if (setting == Setting.Encryption && !current.TpmEnabled)
-                return VmModificationCondition.Denied("请先开启虚拟 TPM。");
             return VmModificationCondition.Allowed;
         }
 
@@ -126,7 +122,7 @@ namespace ExHyperV.Services
 
         /// <summary>读取安全启动模板、TPM、状态加密及屏蔽状态；任何必要子查询失败时返回失败。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <returns>安全配置快照或查询失败。此模型把 null 或非 bool 的属性值折为 false；需要区分缺测与关闭时使用相应 VmSecurityFields 查询结果。</returns>
+        /// <returns>安全配置视图或查询失败。此模型把 null 或非 bool 的属性值折为 false，需要区分缺测与关闭时使用相应 VmSecurityFields 查询结果。</returns>
         public static async Task<ApiResponse<VmSecurityInfo>> GetSecuritySettingsAsync(Guid vmId)
         {
             if (vmId == Guid.Empty) return ApiResponse<VmSecurityInfo>.Fail("虚拟机 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
@@ -184,20 +180,22 @@ namespace ExHyperV.Services
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <param name="enabled">是否启用安全启动。</param>
         /// <returns>写入结果或当前状态限制。</returns>
-        public static async Task<ApiResponse> SetSecureBootAsync(Guid vmId, bool enabled)
+        public static Task<ApiResponse> SetSecureBootAsync(Guid vmId, bool enabled) =>
+            VmSettingsWriteLock.RunAsync(vmId, async () =>
         {
             var validation = await ValidateSettingAsync(vmId, Setting.SecureBoot);
             if (!validation.Success) return validation;
             return await WmiApi.WithObjectAsync(SystemSettingWql(vmId),
                 obj => { if (!obj.HasProperty("SecureBootEnabled")) throw new NotSupportedException(Properties.Resources.Error_VerNotSupport); obj["SecureBootEnabled"] = enabled; },
                 submitMethod: "ModifySystemSettings", submitParamName: "SystemSettings", wrapInArray: false);
-        }
+        });
 
         /// <summary>设置安全启动信任模板。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
         /// <param name="templateId">宿主安全启动模板查询结果中的 GUID。</param>
         /// <returns>写入结果；无效 GUID 在提交前拒绝。</returns>
-        public static async Task<ApiResponse> SetSecureBootTemplateAsync(Guid vmId, Guid templateId)
+        public static Task<ApiResponse> SetSecureBootTemplateAsync(Guid vmId, Guid templateId) =>
+            VmSettingsWriteLock.RunAsync(vmId, async () =>
         {
             if (templateId == Guid.Empty) return ApiResponse.Fail("安全启动模板 GUID 不能为空。", kind: ApiErrorKind.InvalidArgument);
             var validation = await ValidateSettingAsync(vmId, Setting.SecureBootTemplate);
@@ -205,50 +203,59 @@ namespace ExHyperV.Services
             return await WmiApi.WithObjectAsync(SystemSettingWql(vmId),
                 obj => { if (!obj.HasProperty("SecureBootTemplateId")) throw new NotSupportedException(Properties.Resources.Error_VerNotSupport); obj["SecureBootTemplateId"] = templateId.ToString("D"); },
                 submitMethod: "ModifySystemSettings", submitParamName: "SystemSettings", wrapInArray: false);
-        }
+        });
 
-        /// <summary>修改保存状态和迁移流量加密，遵守 TPM 与屏蔽互锁规则。</summary>
+        /// <summary>开启状态加密时准备本机密钥，并在同次安全配置提交中开启虚拟 TPM。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <param name="enabled">是否启用加密。</param>
-        /// <returns>当前状态校验及底层写入结果。</returns>
-        public static async Task<ApiResponse> SetEncryptionAsync(Guid vmId, bool enabled)
-        {
-            var validation = await ValidateSettingAsync(vmId, Setting.Encryption);
-            return validation.Success ? await ModifySecurityFlagAsync(vmId, s => s["EncryptStateAndVmMigrationTraffic"] = enabled) : validation;
-        }
+        /// <param name="enabled">请求的开关值。</param>
+        /// <returns>加密设置及已经执行的前置步骤的结果。</returns>
+        public static Task<ApiResponse> SetEncryptionAsync(Guid vmId, bool enabled) =>
+            ApplySecurityAsync(vmId, Setting.Encryption, enabled);
 
-        /// <summary>启用屏蔽时先确保 TPM，再启用加密与屏蔽；关闭时只清除屏蔽标记。</summary>
+        /// <summary>启用防护时先确保本机密钥、安全启动和控制台设置，再提交 TPM、加密与防护。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <param name="enabled">是否启用屏蔽。</param>
-        /// <returns>最终写入结果；Steps 记录按需执行的 Guardian、GenerateKeyProtector、SetKeyProtector、Tpm 和 Shielding。后续失败保留此前已完成的设置。</returns>
-        public static async Task<ApiResponse> SetShieldingAsync(Guid vmId, bool enabled)
-        {
-            var validation = await ValidateSettingAsync(vmId, Setting.Shielding);
-            if (!validation.Success) return validation;
-            if (!enabled) return await RecordSecurityStepAsync("Shielding", ModifySecurityFlagAsync(vmId, s => s["ShieldingRequested"] = false));
-            var tpm = await EnsureVtpmEnabledAsync(vmId);
-            if (!tpm.Success) return tpm;
-            return await RecordSecurityStepAsync("Shielding", ModifySecurityFlagAsync(vmId, s => { s["EncryptStateAndVmMigrationTraffic"] = true; s["ShieldingRequested"] = true; }), tpm.Steps);
-        }
+        /// <param name="enabled">请求的开关值。</param>
+        /// <returns>屏蔽设置及已经执行的前置步骤的结果。</returns>
+        public static Task<ApiResponse> SetShieldingAsync(Guid vmId, bool enabled) =>
+            ApplySecurityAsync(vmId, Setting.Shielding, enabled);
 
-        /// <summary>配置虚拟 TPM，启用前按需建立本地密钥保护器。</summary>
+        /// <summary>启用虚拟 TPM 时准备本机密钥。关闭时同时关闭状态加密。</summary>
         /// <param name="vmId">目标虚拟机的稳定 GUID。</param>
-        /// <param name="enabled">是否启用虚拟 TPM。</param>
-        /// <returns>写入结果；Steps 记录按需执行的 Guardian、GenerateKeyProtector、SetKeyProtector 和 Tpm。失败保留已完成步骤；OutcomeUnknown 表示最终状态尚未确认。不需要或未开始的步骤不列出。</returns>
-        public static async Task<ApiResponse> SetTpmAsync(Guid vmId, bool enabled)
-        {
-            var validation = await ValidateSettingAsync(vmId, Setting.Tpm);
-            if (!validation.Success) return validation;
-            return enabled ? await EnsureVtpmEnabledAsync(vmId) : await RecordSecurityStepAsync("Tpm", ModifySecurityFlagAsync(vmId, s => s["TpmEnabled"] = false));
-        }
+        /// <param name="enabled">请求的开关值。</param>
+        /// <returns>虚拟 TPM 设置及已经执行的前置步骤的结果。</returns>
+        public static Task<ApiResponse> SetTpmAsync(Guid vmId, bool enabled) =>
+            ApplySecurityAsync(vmId, Setting.Tpm, enabled);
 
-        private static async Task<ApiResponse> EnsureVtpmEnabledAsync(Guid vmId)
-        {
-            var length = await GetKeyProtectorLenAsync(vmId.ToString("D"));
-            if (!length.HasData) return Failure(length);
-            if (length.Data > 4) return await RecordSecurityStepAsync("Tpm", ModifySecurityFlagAsync(vmId, s => s["TpmEnabled"] = true));
-            return await EnableTpmAsync(vmId.ToString("D"));
-        }
+        private static Task<ApiResponse> ApplySecurityAsync(Guid vmId, Setting setting, bool enabled) =>
+            VmSettingsWriteLock.RunAsync(vmId, async () =>
+            {
+                var validation = await ValidateSettingAsync(vmId, setting);
+                if (!validation.Success) return validation;
+                var steps = new List<OperationStepResult>();
+                if (enabled)
+                {
+                    var key = await PrepareLocalKeyAsync(vmId, reissue: false);
+                    steps.AddRange(key.Steps);
+                    if (!key.Success) return key;
+                    if (setting == Setting.Shielding)
+                    {
+                        var boot = await WmiApi.WithObjectAsync(SystemSettingWql(vmId), s => s["SecureBootEnabled"] = true,
+                            submitMethod: "ModifySystemSettings", submitParamName: "SystemSettings", wrapInArray: false);
+                        steps.Add(OperationStepResult.From("SecureBoot", boot));
+                        if (!boot.Success) return boot.WithSteps(steps);
+                        var console = await VmConsoleSupportService.SetConsoleUnderLockAsync(vmId, false);
+                        steps.Add(OperationStepResult.From("Console", console));
+                        if (!console.Success) return console.WithSteps(steps);
+                    }
+                }
+                return await RecordSecurityStepAsync(setting.ToString(), ModifySecurityFlagAsync(vmId, s =>
+                {
+                    if (enabled || setting == Setting.Tpm) s["TpmEnabled"] = enabled;
+                    if (setting == Setting.Encryption || (setting == Setting.Shielding && enabled) || (setting == Setting.Tpm && !enabled))
+                        s["EncryptStateAndVmMigrationTraffic"] = enabled;
+                    if (setting == Setting.Shielding) s["ShieldingRequested"] = enabled;
+                }), steps);
+            });
 
         internal static async Task<ApiResponse> RecordSecurityStepAsync(string name, Task<ApiResponse> operation, IEnumerable<OperationStepResult>? previous = null)
         {
@@ -276,123 +283,5 @@ namespace ExHyperV.Services
         internal static Task<(bool Success, string Message)> SetTpmAsync(string vmName, bool enabled) => ByNameAsync(vmName, id => SetTpmAsync(id, enabled));
         internal static Task<(bool Success, string Message)> SetSecureBootTemplateAsync(string vmName, string templateGuid)
             => ByNameAsync(vmName, id => SetSecureBootTemplateAsync(id, Guid.TryParse(templateGuid, out Guid templateId) ? templateId : Guid.Empty));
-        // 读当前 KeyProtector 字节数：4 字节=占位(无真 KP)，数千字节=已有真 KP。
-        // GetKeyProtector 返回 byte[]、不适配标准封装，故用只读裸 WMI(Task.Run)。
-        private static Task<ApiResponse<int>> GetKeyProtectorLenAsync(string vmGuid) => Task.Run(() =>
-        {
-            try
-            {
-                var scope = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
-                using var ssSearcher = new ManagementObjectSearcher(scope, new ObjectQuery($"SELECT * FROM Msvm_SecuritySettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'"));
-                using var ss = ssSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
-                if (ss == null) return ApiResponse<int>.Fail(Properties.Resources.Error_VmCreate_NoSecuritySettings, kind: ApiErrorKind.NotFound);
-                using var svcSearcher = new ManagementObjectSearcher(scope, new ObjectQuery("SELECT * FROM Msvm_SecurityService"));
-                using var svc = svcSearcher.Get().Cast<ManagementObject>().FirstOrDefault();
-                if (svc == null) return ApiResponse<int>.Fail(Properties.Resources.Error_VmCreate_NoSecurityService, kind: ApiErrorKind.NotFound);
-                using var p = svc.GetMethodParameters("GetKeyProtector");
-                p["SecuritySettingData"] = ss.GetText(TextFormat.CimDtd20);
-                using var o = svc.InvokeMethod("GetKeyProtector", p, null);
-                if (o["ReturnValue"] == null)
-                    return ApiResponse<int>.Fail("密钥保护器查询未返回执行状态。", kind: ApiErrorKind.OperationFailed);
-                int code = Convert.ToInt32(o["ReturnValue"]);
-                return code == 0 ? ApiResponse<int>.Ok((o["KeyProtector"] as byte[])?.Length ?? 0)
-                    : ApiResponse<int>.Fail("读取密钥保护器失败。", code, ApiErrorSource.Wmi, kind: ApiErrorKind.OperationFailed);
-            }
-            catch (Exception error) { return ApiResponse<int>.Fail(error.Message, exception: error, kind: ApiErrorKind.OperationFailed); }
-        });
-
-        // 启用 TPM：HGS guardian + 本地 KeyProtector + SetKeyProtector + TpmEnabled=true。
-        // HGS 使用嵌入的 cmdletOutput；Hyper-V 写入复用统一作业等待，不把停止等待当作作业失败。
-        private static Task<ApiResponse> EnableTpmAsync(string vmGuid) => Task.Run(async () =>
-        {
-            bool submitted = false;
-            var steps = new List<OperationStepResult>();
-            string? step = null;
-            try
-            {
-                var hyperVScope = WmiConnectionCache.GetManagementScope(WmiScope.HyperV, WmiContext.Local);
-                const string hgsScope = @"root\microsoft\windows\hgs";
-                var hgsMs = WmiConnectionCache.GetManagementScope(hgsScope, WmiContext.Local);
-
-                // Step 1: 取或创建 UntrustedGuardian
-                using var guardianSearcher = new ManagementObjectSearcher(
-                    hgsMs, new ObjectQuery("SELECT * FROM MSFT_HgsGuardian WHERE Name = 'UntrustedGuardian'"));
-                using var guardianCol = guardianSearcher.Get();
-                var guardian = guardianCol.Cast<ManagementObject>().FirstOrDefault();
-                if (guardian == null)
-                {
-                    using var guardianClass = new ManagementClass(hgsMs, new ManagementPath("MSFT_HgsGuardian"), null);
-                    using var createParams = guardianClass.GetMethodParameters("NewByGenerateCertificates");
-                    createParams["Name"] = "UntrustedGuardian";
-                    createParams["GenerateCertificates"] = true;
-                    step = "Guardian";
-                    submitted = true;
-                    using var createResult = guardianClass.InvokeMethod("NewByGenerateCertificates", createParams, null);
-                    guardian = createResult?["cmdletOutput"] as ManagementObject;
-                    if (guardian is not null)
-                    {
-                        submitted = false;
-                        steps.Add(new(step, OperationStepState.Succeeded));
-                        step = null;
-                    }
-                }
-                if (guardian == null)
-                    throw new InvalidOperationException(Properties.Resources.Error_VmCreate_NoGuardian);
-                using var ownedGuardian = guardian;
-
-                // Step 2: 生成本地 KeyProtector
-                using var kpClass = new ManagementClass(hgsMs, new ManagementPath("MSFT_HgsKeyProtector"), null);
-                using var kpParams = kpClass.GetMethodParameters("NewByGuardians");
-                kpParams["AllowUntrustedRoot"] = true;
-                kpParams.Properties["Owner"].Value = guardian;   // 通过 Properties[].Value 写入嵌入对象
-                step = "GenerateKeyProtector";
-                submitted = true;
-                using var kpResult = kpClass.InvokeMethod("NewByGuardians", kpParams, null);
-                using var kpInstance = kpResult?["cmdletOutput"] as ManagementBaseObject;
-                byte[]? rawData = kpInstance?["RawData"] as byte[];
-                if (rawData == null || rawData.Length == 0)
-                    throw new InvalidOperationException(Properties.Resources.Error_VmCreate_NoKeyProtector);
-                submitted = false;
-                steps.Add(new(step, OperationStepState.Succeeded));
-                step = null;
-
-                // Step 3: 取 Msvm_SecuritySettingData 序列化
-                using var secSettingSearcher = new ManagementObjectSearcher(
-                    hyperVScope, new ObjectQuery($"SELECT * FROM Msvm_SecuritySettingData WHERE InstanceID LIKE 'Microsoft:{vmGuid}%'"));
-                using var secSettingCol = secSettingSearcher.Get();
-                using var secSetting = secSettingCol.Cast<ManagementObject>().FirstOrDefault();
-                if (secSetting == null)
-                    throw new InvalidOperationException(Properties.Resources.Error_VmCreate_NoSecuritySettings);
-                string secXml = secSetting.GetText(TextFormat.CimDtd20);
-
-                // Step 4: Msvm_SecurityService.SetKeyProtector
-                using var secSvcSearcher = new ManagementObjectSearcher(hyperVScope, new ObjectQuery("SELECT * FROM Msvm_SecurityService"));
-                using var secSvcCol = secSvcSearcher.Get();
-                using var secSvc = secSvcCol.Cast<ManagementObject>().FirstOrDefault();
-                if (secSvc == null)
-                    throw new InvalidOperationException(Properties.Resources.Error_VmCreate_NoSecurityService);
-
-                var setProtector = await WmiApi.InvokeOnObjectAsync(secSvc, "SetKeyProtector", parameters =>
-                {
-                    parameters["SecuritySettingData"] = secXml;
-                    parameters["KeyProtector"] = rawData;
-                }, timeout: TimeSpan.FromMinutes(2));
-                steps.Add(OperationStepResult.From("SetKeyProtector", setProtector));
-                if (!setProtector.Success) return setProtector.WithSteps(steps);
-
-                // Step 5: 仅 TpmEnabled=true(加密是独立开关，开 TPM 不连带开加密)
-                secSetting["TpmEnabled"] = true;
-                string updatedXml = secSetting.GetText(TextFormat.CimDtd20);
-
-                return await RecordSecurityStepAsync("Tpm", WmiApi.InvokeOnObjectAsync(secSvc, "ModifySecuritySettings",
-                    parameters => parameters["SecuritySettingData"] = updatedXml, timeout: TimeSpan.FromMinutes(2)), steps);
-            }
-            catch (Exception error)
-            {
-                var failure = WmiJobWaiter.FromException(error, submitted);
-                if (step != null) steps.Add(OperationStepResult.From(step, failure));
-                return failure.WithSteps(steps);
-            }
-        });
     }
 }

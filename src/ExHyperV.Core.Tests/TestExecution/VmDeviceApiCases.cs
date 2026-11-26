@@ -33,6 +33,15 @@ internal static class VmDeviceApiCases
             var actual = VmSettingsApiCases.ReadMany(vm.Id, nicClass);
             c.Equal(1, actual.Count, "系统清单恰好增加一张网卡");
             c.Require(result.DeviceId.HasValue && Convert.ToString(actual[0]["InstanceID"])!.Contains(result.DeviceId.Value.ToString("D"), StringComparison.OrdinalIgnoreCase), "返回设备身份与实际网卡相符");
+            var additional = await c.CallAsync(() => VmNetworkService.AddNetworkAdapterAsync(vm.Id, null, isConnected: false,
+                staticMacAddress: "00155D123457", isLegacy: false));
+            c.RequireSettled(additional.AdapterState == VmNetworkAdapterCreationState.Unknown, additional.Error ?? "等待创建回执");
+            c.Require(additional.Success && additional.DeviceId.HasValue, "参数化创建返回独立设备身份");
+            var configured = await VmNetworkService.GetNetworkAdaptersAsync(vm.Id);
+            c.Require(configured.HasData, configured.Error);
+            var nic = configured.Data.Single(a => a.DeviceId == additional.DeviceId);
+            c.Require(!nic.IsConnected && nic.IsStaticMac && VmNetworkService.NormalizeStaticMac(nic.MacAddress) == "00155D123457",
+                "参数化创建保留断开状态和静态 MAC");
             return;
         }
         var adapters = await VmNetworkService.GetNetworkAdaptersAsync(vm.Id);

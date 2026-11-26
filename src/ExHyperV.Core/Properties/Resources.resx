@@ -18,13 +18,8 @@
     <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
     <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
     <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
     <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
         <value>[base64 mime encoded serialized .NET Framework object]</value>
-    </data>
-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-        <comment>This is a comment</comment>
     </data>
                 
     There are any number of "resheader" rows that contain simple 
@@ -504,9 +499,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_CheckForUpdateFailed" xml:space="preserve">
     <value>Failed to check for updates. Please check your network connection.</value>
   </data>
-  <data name="Error_SshCommandFailed" xml:space="preserve">
-    <value>[X] Command execution failed.Exit code: {0}): {1}</value>
-  </data>
   <data name="Error_LocalDirectoryNotFound" xml:space="preserve">
     <value>[X] Local directory not found: {0}</value>
   </data>
@@ -522,15 +514,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Button_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
-  <data name="Label_ConnectToLinuxVm" xml:space="preserve">
-    <value>Connect to Linux Virtual Machine</value>
-  </data>
-  <data name="Label_HostIpAddress" xml:space="preserve">
-    <value>Host IP Address:</value>
-  </data>
-  <data name="Placeholder_IpAddressExample" xml:space="preserve">
-    <value>e.g., 192.168.1.100</value>
-  </data>
   <data name="Label_Port" xml:space="preserve">
     <value>Port:</value>
   </data>
@@ -543,20 +526,8 @@ The existing NAT switch is: '{0}'</value>
   <data name="CheckBox_InstallGraphicsDrivers" xml:space="preserve">
     <value>Install OpenGL/Vulkan graphics drivers (Need more time)</value>
   </data>
-  <data name="GroupBox_HttpProxyOptional" xml:space="preserve">
-    <value>HTTP Proxy (Optional)</value>
-  </data>
-  <data name="Info_UseProxyForGitHub" xml:space="preserve">
-    <value>If you cannot connect directly to GitHub.com, please use a stable and reliable proxy.</value>
-  </data>
-  <data name="Label_ProxyIpAddress" xml:space="preserve">
-    <value>Proxy IP Address:</value>
-  </data>
   <data name="Button_Connect" xml:space="preserve">
     <value>Connect</value>
-  </data>
-  <data name="Validation_ProxyIpAndPortMismatch" xml:space="preserve">
-    <value>Proxy IP and Port must be either both filled or both empty.</value>
   </data>
   <data name="ComputeResources" xml:space="preserve">
     <value>Compute Resources</value>
@@ -844,7 +815,7 @@ The existing NAT switch is: '{0}'</value>
     <value>Assigning temp drive letter (Disk {0}, Partition {1})...</value>
   </data>
   <data name="Error_Gpu_BitLocker" xml:space="preserve">
-    <value>Target partition is BitLocker protected. Please disable BitLocker first.</value>
+    <value>Target partition is BitLocker protected. Please unlock or disable BitLocker first.</value>
   </data>
   <data name="Error_Gpu_InvalidSystemPart" xml:space="preserve">
     <value>Installation aborted: ({0}) is not a valid system partition.</value>
@@ -914,15 +885,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Error_Common_NoPartitionSelected" xml:space="preserve">
     <value>No partition selected</value>
-  </data>
-  <data name="Msg_Gpu_LinuxWaitingIp" xml:space="preserve">
-    <value>Waiting for VM network readiness and IP...</value>
-  </data>
-  <data name="Error_Gpu_SshTimeout" xml:space="preserve">
-    <value>SSH connection timed out. Check VM networking.</value>
-  </data>
-  <data name="Msg_Gpu_LinuxRemoteInit" xml:space="preserve">
-    <value>Remote environment initialized. Temp: {0}</value>
   </data>
   <data name="Status_Running" xml:space="preserve">
     <value>Running</value>
@@ -1330,25 +1292,25 @@ The existing NAT switch is: '{0}'</value>
     <value>Preparing host environment...</value>
   </data>
   <data name="Task_Gpu_Power" xml:space="preserve">
-    <value>Power Check</value>
+    <value>Shut down VM</value>
   </data>
   <data name="Msg_Gpu_CheckingPower" xml:space="preserve">
     <value>Checking VM power status...</value>
   </data>
   <data name="Task_Gpu_Opt" xml:space="preserve">
-    <value>Optimization</value>
+    <value>Adjust parameters</value>
   </data>
   <data name="Msg_Gpu_Mmio" xml:space="preserve">
     <value>Configuring MMIO space...</value>
   </data>
   <data name="Task_Gpu_Assign" xml:space="preserve">
-    <value>Assign GPU</value>
+    <value>Add GPU</value>
   </data>
   <data name="Msg_Gpu_Creating" xml:space="preserve">
     <value>Creating GPU partition...</value>
   </data>
   <data name="Task_Gpu_Driver" xml:space="preserve">
-    <value>Driver Install</value>
+    <value>Install drivers</value>
   </data>
   <data name="Msg_Gpu_WaitingScan" xml:space="preserve">
     <value>Waiting for partition scan...</value>
@@ -1409,45 +1371,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="Error_Gpu_Rollback" xml:space="preserve">
     <value>[Rollback] Driver sync failed: {0}</value>
-  </data>
-  <data name="Msg_Gpu_LinuxVm" xml:space="preserve">
-    <value>Linux partition detected. Waiting for VM to start...</value>
-  </data>
-  <data name="Msg_Gpu_IpSniff" xml:space="preserve">
-    <value>Auto-starting VM to initialize network...</value>
-  </data>
-  <data name="Msg_Gpu_IpScanning" xml:space="preserve">
-    <value>Sniffing VM IP address...</value>
-  </data>
-  <data name="Msg_Gpu_IpOk" xml:space="preserve">
-    <value>Successfully got IP: {0}</value>
-  </data>
-  <data name="Error_Gpu_IpManual" xml:space="preserve">
-    <value>Failed to auto-get IP. Enter manually.</value>
-  </data>
-  <data name="Msg_Gpu_SshConfirm" xml:space="preserve">
-    <value>Confirm SSH credentials to start...</value>
-  </data>
-  <data name="Error_Gpu_EnvFail" xml:space="preserve">
-    <value>Env fetch failed</value>
-  </data>
-  <data name="Warn_Gpu_EnvExc" xml:space="preserve">
-    <value>[Warning] Env exception: {0}</value>
-  </data>
-  <data name="Msg_Gpu_DeployStart" xml:space="preserve">
-    <value>&gt;&gt;&gt; Starting Linux deployment</value>
-  </data>
-  <data name="Msg_Gpu_UsingProxy" xml:space="preserve">
-    <value>Using Proxy: {0}:{1}</value>
-  </data>
-  <data name="Msg_Gpu_LinuxDeployDone" xml:space="preserve">
-    <value>&gt;&gt;&gt; Linux deployment complete.</value>
-  </data>
-  <data name="Error_Gpu_LinuxRollback" xml:space="preserve">
-    <value>[Rollback] Linux deploy failed. Removing GPU...</value>
-  </data>
-  <data name="Error_Gpu_DeployFatal" xml:space="preserve">
-    <value>&gt;&gt;&gt; [Fatal Error] Linux deploy failed: {0}</value>
   </data>
   <data name="Msg_Gpu_SelectPart" xml:space="preserve">
     <value>Select target partition...</value>
@@ -2388,137 +2311,119 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmBootService_SystemBuiltinBootEntry" xml:space="preserve">
     <value>System Built-in Boot Entry</value>
   </data>
-  <data name="VmSpacetimeService_NodeLabelOrigin" xml:space="preserve">
+  <data name="VmCheckpointService_NodeLabelOrigin" xml:space="preserve">
     <value>Origin</value>
   </data>
-  <data name="VmSpacetimeService_NodeLabelCurrent" xml:space="preserve">
+  <data name="VmCheckpointService_NodeLabelCurrent" xml:space="preserve">
     <value>Current</value>
   </data>
-  <data name="VmSpacetimeService_ErrLookupFailed" xml:space="preserve">
-    <value>Spacetime lookup failed: {0}</value>
+  <data name="VmCheckpointService_ErrLookupFailed" xml:space="preserve">
+    <value>Snapshot lookup failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeDisk" xml:space="preserve">
-    <value>[Wormhole] Wormhole disk: {0}</value>
+  <data name="VmCheckpointService_LogHistoricalDisk" xml:space="preserve">
+    <value>[Snapshot] Mounted historical disk: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeMarkedOk" xml:space="preserve">
-    <value>[Wormhole] Marked successfully: {0}</value>
+  <data name="VmCheckpointService_LogHistoricalDiskMarkedOk" xml:space="preserve">
+    <value>[Snapshot] Marked historical mount: {0}</value>
   </data>
-  <data name="VmSpacetimeService_LogWormholeDetectFailed" xml:space="preserve">
-    <value>[Wormhole] Detection failed: {0}</value>
+  <data name="VmCheckpointService_LogHistoricalDiskDetectFailed" xml:space="preserve">
+    <value>[Snapshot] Historical mount detection failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrWormholeAlreadyExists" xml:space="preserve">
-    <value>A wormhole already exists in the current spacetime. Please close the existing wormhole before opening a new one, or a spacetime paradox will occur.</value>
+  <data name="VmCheckpointService_ErrHistoricalDiskAlreadyExists" xml:space="preserve">
+    <value>A historical disk mount is already active. Unmount it before mounting another one.</value>
   </data>
-  <data name="VmSpacetimeService_ErrParentChainNode" xml:space="preserve">
-    <value>This node is a parent-chain node of the current spacetime. Opening a wormhole would cause a spacetime paradox.</value>
+  <data name="VmCheckpointService_ErrParentChainNode" xml:space="preserve">
+    <value>This node is on the active chain and cannot be mounted as a secondary disk.</value>
   </data>
-  <data name="VmSpacetimeService_ErrOnlySnapshotNode" xml:space="preserve">
-    <value>Wormholes can only be opened on snapshot nodes.</value>
+  <data name="VmCheckpointService_ErrOnlySnapshotNode" xml:space="preserve">
+    <value>Only historical snapshot disks can be mounted.</value>
   </data>
-  <data name="VmSpacetimeService_ErrSnapshotPathInvalid" xml:space="preserve">
+  <data name="VmCheckpointService_ErrSnapshotPathInvalid" xml:space="preserve">
     <value>Snapshot disk path is invalid.</value>
   </data>
-  <data name="VmSpacetimeService_ErrNodeHasWormhole" xml:space="preserve">
-    <value>This node already has an active wormhole.</value>
+  <data name="VmCheckpointService_ErrNodeHasHistoricalDisk" xml:space="preserve">
+    <value>This snapshot already has an active disk mount.</value>
   </data>
-  <data name="VmSpacetimeService_ErrCannotDetermineDiskDir" xml:space="preserve">
+  <data name="VmCheckpointService_ErrCannotDetermineDiskDir" xml:space="preserve">
     <value>Unable to determine the disk directory.</value>
   </data>
-  <data name="VmSpacetimeService_ErrNoScsiSlot" xml:space="preserve">
+  <data name="VmCheckpointService_ErrNoScsiSlot" xml:space="preserve">
     <value>No available SCSI slots.</value>
   </data>
-  <data name="VmSpacetimeService_ErrCreateDiffDiskFailed" xml:space="preserve">
+  <data name="VmCheckpointService_ErrCreateDiffDiskFailed" xml:space="preserve">
     <value>Failed to create temporary differencing disk: {0}</value>
   </data>
-  <data name="VmSpacetimeService_MsgWormholeOpened" xml:space="preserve">
-    <value>Wormhole opened</value>
+  <data name="VmCheckpointService_MsgHistoricalDiskMounted" xml:space="preserve">
+    <value>Historical disk mounted</value>
   </data>
-  <data name="VmSpacetimeService_ErrSpacetimeException" xml:space="preserve">
-    <value>Spacetime exception: {0}</value>
+  <data name="VmCheckpointService_ErrNoActiveHistoricalDisk" xml:space="preserve">
+    <value>This snapshot has no active disk mount.</value>
   </data>
-  <data name="VmSpacetimeService_ErrNoActiveWormhole" xml:space="preserve">
-    <value>This node has no active wormhole.</value>
+  <data name="VmCheckpointService_MsgHistoricalDiskDismounted" xml:space="preserve">
+    <value>Historical disk unmounted.</value>
   </data>
-  <data name="VmSpacetimeService_MsgWormholeClosed" xml:space="preserve">
-    <value>Wormhole closed. Timeline restored to normal.</value>
+  <data name="VmCheckpointService_ErrDismountHistoricalDiskException" xml:space="preserve">
+    <value>Exception while unmounting historical disk: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrCloseWormholeException" xml:space="preserve">
-    <value>Exception while closing wormhole: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
+  <data name="VmCheckpointService_ErrWmiMgmtSvcNotFound" xml:space="preserve">
     <value>WMI management service not found</value>
   </data>
-  <data name="VmSpacetimeService_MsgNameUpdated" xml:space="preserve">
+  <data name="VmCheckpointService_MsgNameUpdated" xml:space="preserve">
     <value>Name updated successfully</value>
   </data>
-  <data name="VmSpacetimeService_ErrUpdateWmiCode" xml:space="preserve">
+  <data name="VmCheckpointService_ErrUpdateWmiCode" xml:space="preserve">
     <value>Update failed: WMI error code: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrRenameException" xml:space="preserve">
+  <data name="VmCheckpointService_ErrRenameException" xml:space="preserve">
     <value>Rename service exception: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOnlyHistoricalNode" xml:space="preserve">
-    <value>Can only travel to historical snapshot points.</value>
+  <data name="VmCheckpointService_ErrOnlyHistoricalNode" xml:space="preserve">
+    <value>This action only applies to historical snapshots.</value>
   </data>
-  <data name="VmSpacetimeService_MsgTravelInitiated" xml:space="preserve">
-    <value>Travel initiated, restoring running state...</value>
+  <data name="VmCheckpointService_ErrVmCarrierNotFound" xml:space="preserve">
+    <value>Specified virtual machine not found.</value>
   </data>
-  <data name="VmSpacetimeService_MsgTravelSucceeded" xml:space="preserve">
-    <value>Travel succeeded. VM has returned to the specified spacetime point (powered off).</value>
+  <data name="VmCheckpointService_ErrCreateFailed" xml:space="preserve">
+    <value>Create snapshot failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrTravelFailed" xml:space="preserve">
-    <value>Travel failed: {0}</value>
+  <data name="VmCheckpointService_MsgCreated" xml:space="preserve">
+    <value>Snapshot created.</value>
   </data>
-  <data name="VmSpacetimeService_ErrVmCarrierNotFound" xml:space="preserve">
-    <value>Specified VM carrier not found.</value>
+  <data name="VmCheckpointService_ErrOriginCurrentNoDelete" xml:space="preserve">
+    <value>Origin and current nodes cannot be deleted.</value>
   </data>
-  <data name="VmSpacetimeService_ErrSpacetimeCollapse" xml:space="preserve">
-    <value>Spacetime collapse: {0}</value>
+  <data name="VmCheckpointService_MsgDeleted" xml:space="preserve">
+    <value>Snapshot branch deleted.</value>
   </data>
-  <data name="VmSpacetimeService_MsgAnchorSet" xml:space="preserve">
-    <value>Spacetime anchor set.</value>
+  <data name="VmCheckpointService_ErrDeleteFailed" xml:space="preserve">
+    <value>Delete snapshot failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOriginCurrentNoAnnihilate" xml:space="preserve">
-    <value>Origin and current nodes cannot be annihilated.</value>
+  <data name="VmCheckpointService_ErrCannotMerge" xml:space="preserve">
+    <value>Cannot merge into the origin node or a parent node with other branches.</value>
   </data>
-  <data name="VmSpacetimeService_MsgAnnihilated" xml:space="preserve">
-    <value>Spacetime branch fully annihilated.</value>
+  <data name="VmCheckpointService_MsgMerged" xml:space="preserve">
+    <value>Snapshots merged.</value>
   </data>
-  <data name="VmSpacetimeService_ErrAnnihilateFailed" xml:space="preserve">
-    <value>Annihilation failed: {0}</value>
+  <data name="VmCheckpointService_ErrMergeFailed" xml:space="preserve">
+    <value>Merge snapshots failed: {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOriginCurrentNoConverge" xml:space="preserve">
-    <value>Origin and current nodes cannot be converged.</value>
+  <data name="VmCheckpointService_LogReadCheckpointFailed" xml:space="preserve">
+    <value>[Snapshot] Failed to read snapshot state: {0}</value>
   </data>
-  <data name="VmSpacetimeService_MsgConverging" xml:space="preserve">
-    <value>Converging spacetime...</value>
-  </data>
-  <data name="VmSpacetimeService_ErrConvergeFailed" xml:space="preserve">
-    <value>Convergence failed: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogReadCheckpointFailed" xml:space="preserve">
-    <value>[Spacetime] Failed to read checkpoint state: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_ErrVmNotFound" xml:space="preserve">
+  <data name="VmCheckpointService_ErrVmNotFound" xml:space="preserve">
     <value>Virtual machine not found</value>
   </data>
-  <data name="VmSpacetimeService_MsgCheckpointEnabled" xml:space="preserve">
-    <value>Checkpoint enabled</value>
+  <data name="VmCheckpointService_MsgCheckpointEnabled" xml:space="preserve">
+    <value>Snapshot enabled</value>
   </data>
-  <data name="VmSpacetimeService_MsgCheckpointDisabled" xml:space="preserve">
-    <value>Checkpoint disabled</value>
+  <data name="VmCheckpointService_MsgCheckpointDisabled" xml:space="preserve">
+    <value>Snapshot disabled</value>
   </data>
-  <data name="VmSpacetimeService_ErrOperationWmiCode" xml:space="preserve">
+  <data name="VmCheckpointService_ErrOperationWmiCode" xml:space="preserve">
     <value>Operation failed: WMI error code {0}</value>
   </data>
-  <data name="VmSpacetimeService_ErrOperationException" xml:space="preserve">
+  <data name="VmCheckpointService_ErrOperationException" xml:space="preserve">
     <value>Operation exception: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogSnapshotScreenCleaned" xml:space="preserve">
-    <value>[Spacetime] Snapshot screenshot cleaned: {0}</value>
-  </data>
-  <data name="VmSpacetimeService_LogCleanScreenFailed" xml:space="preserve">
-    <value>[Spacetime] Failed to clean screenshot: {0}</value>
   </data>
   <data name="VmMmio_LogFinalResult" xml:space="preserve">
     <value>[MMIO] Final calculation result:</value>
@@ -2637,29 +2542,11 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmPage_ErrRetrieveFailed2" xml:space="preserve">
     <value>Retrieval failed</value>
   </data>
-  <data name="VmPage_MsgSpacetimeCreated2" xml:space="preserve">
-    <value>Spacetime created successfully</value>
-  </data>
-  <data name="VmPage_MsgTraveledTo2" xml:space="preserve">
-    <value>Traveled to spacetime: {0}</value>
-  </data>
-  <data name="VmPage_MsgSpacetimeAnnihilated2" xml:space="preserve">
-    <value>This spacetime has been annihilated.</value>
-  </data>
-  <data name="VmPage_MsgConnectedTo2" xml:space="preserve">
-    <value>Connected to spacetime "{0}"</value>
-  </data>
   <data name="VmPage_ErrOpenFailed4" xml:space="preserve">
     <value>Failed to open</value>
   </data>
-  <data name="VmPage_MsgTimelineRestored2" xml:space="preserve">
-    <value>Timeline restored to normal</value>
-  </data>
   <data name="VmPage_ErrCloseFailed2" xml:space="preserve">
     <value>Failed to close</value>
-  </data>
-  <data name="VmPage_MsgSpacetimeConverged2" xml:space="preserve">
-    <value>Spacetime converged to the previous node</value>
   </data>
   <data name="VmPage_MsgRollingBackGpu2" xml:space="preserve">
     <value>Rolling back GPU allocation...</value>
@@ -2693,15 +2580,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="VmDashboard_DescBoot" xml:space="preserve">
     <value>Boot</value>
-  </data>
-  <data name="VmDashboard_TabSpacetime" xml:space="preserve">
-    <value>Boot Order and Device List</value>
-  </data>
-  <data name="VmDashboard_DescSpacetime" xml:space="preserve">
-    <value>Spacetime</value>
-  </data>
-  <data name="VmDashboardView_SnapshotAndSpacetime" xml:space="preserve">
-    <value>Snapshot Management and Spacetime Travel</value>
   </data>
   <data name="VmRAMSettings_LabelMemMappingMode" xml:space="preserve">
     <value>Memory Mapping Mode</value>
@@ -2810,69 +2688,6 @@ The existing NAT switch is: '{0}'</value>
   </data>
   <data name="VmRAMSettings_DescGpaPinning" xml:space="preserve">
     <value>Allow the VM operating system to request pinning or unpinning of GPA ranges at runtime</value>
-  </data>
-  <data name="VmSpacetimeSettings_TitleMgmt" xml:space="preserve">
-    <value>Spacetime Management</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelCheckpoint" xml:space="preserve">
-    <value>Checkpoint</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnExportTopology" xml:space="preserve">
-    <value>Export Topology Map</value>
-  </data>
-  <data name="VmSpacetimeSettings_MsgSyncing" xml:space="preserve">
-    <value>Syncing...</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelDetails" xml:space="preserve">
-    <value>Spacetime Details</value>
-  </data>
-  <data name="VmSpacetimeSettings_MsgNoAnchor" xml:space="preserve">
-    <value>No anchor selected</value>
-  </data>
-  <data name="VmSpacetimeSettings_LabelAction" xml:space="preserve">
-    <value>Action</value>
-  </data>
-  <data name="VmSpacetimeSettings_TypeContinuous" xml:space="preserve">
-    <value>Continuous Spacetime</value>
-  </data>
-  <data name="VmSpacetimeSettings_DescContinuous" xml:space="preserve">
-    <value>Save disk and memory state</value>
-  </data>
-  <data name="VmSpacetimeSettings_TypeStatic" xml:space="preserve">
-    <value>Static Spacetime</value>
-  </data>
-  <data name="VmSpacetimeSettings_DescStatic" xml:space="preserve">
-    <value>Save disk state</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnCreate" xml:space="preserve">
-    <value>Create Spacetime</value>
-  </data>
-  <data name="VmSpacetimeSettings_StateWormholeActive" xml:space="preserve">
-    <value>Wormhole Interfering</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnCloseWormhole" xml:space="preserve">
-    <value>Close Wormhole</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnTravel" xml:space="preserve">
-    <value>Travel</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnOpenWormhole" xml:space="preserve">
-    <value>Open Wormhole</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnConverge" xml:space="preserve">
-    <value>Spacetime Convergence</value>
-  </data>
-  <data name="VmSpacetimeSettings_BtnDelete" xml:space="preserve">
-    <value>Delete</value>
-  </data>
-  <data name="VmSpacetimeSettings_DlgExportTitle" xml:space="preserve">
-    <value>Export Spacetime Topology Map</value>
-  </data>
-  <data name="VmSpacetimeSettings_DlgExportFilter" xml:space="preserve">
-    <value>PNG Image|*.png</value>
-  </data>
-  <data name="VmSpacetimeSettings_LogAbnormalDelta" xml:space="preserve">
-    <value>[DRAG] !!! Abnormal displacement delta=({0},{1}) discarded</value>
   </data>
   <data name="VmStorageSettings_BtnOptimizeDisk" xml:space="preserve">
     <value>Optimize Disk</value>
@@ -2985,12 +2800,6 @@ The existing NAT switch is: '{0}'</value>
   <data name="Error_Gpu_PowerOffTimeout" xml:space="preserve">
     <value>Timed out waiting for the virtual machine to power off.</value>
   </data>
-  <data name="Msg_Gpu_LinuxDetected" xml:space="preserve">
-    <value>Detecting Linux system, jumping to SSH setup...</value>
-  </data>
-  <data name="Msg_Gpu_LinuxAutoPrep" xml:space="preserve">
-    <value>Detected single Linux partition. Automating environment preparation...</value>
-  </data>
   <data name="VmSecurity_Title" xml:space="preserve">
     <value>Security</value>
   </data>
@@ -3027,53 +2836,11 @@ The existing NAT switch is: '{0}'</value>
   <data name="VmSecurity_ShieldingDesc" xml:space="preserve">
     <value>Mark the VM as shielded; forces TPM and encryption on</value>
   </data>
-  <data name="Log_Gpu_SelectedScript" xml:space="preserve">
-    <value>[Info] Selected script: {0}</value>
-  </data>
   <data name="Log_Gpu_Syncing" xml:space="preserve">
     <value>Syncing: {0} -&gt; {1}</value>
   </data>
-  <data name="Log_Gpu_StartingVm" xml:space="preserve">
-    <value>[ExHyperV] Starting VM...</value>
-  </data>
-  <data name="Log_Gpu_UploadingDriverWsl" xml:space="preserve">
-    <value>Uploading driver and WSL libraries...</value>
-  </data>
-  <data name="Log_Gpu_DownloadingScript" xml:space="preserve">
-    <value>Downloading remote script inside VM: {0}</value>
-  </data>
-  <data name="Log_Gpu_ExecutingAttempt" xml:space="preserve">
-    <value>[Attempt {0}] Executing script...</value>
-  </data>
-  <data name="Log_Gpu_RebootRequired" xml:space="preserve">
-    <value>VM reboot required. Restarting now...</value>
-  </data>
-  <data name="Log_Gpu_VmBackOnline" xml:space="preserve">
-    <value>VM is back online. Resuming deployment...</value>
-  </data>
-  <data name="Error_Gpu_NoMac" xml:space="preserve">
-    <value>Failed to get VM MAC address.</value>
-  </data>
-  <data name="Error_Gpu_NoIpv4" xml:space="preserve">
-    <value>No valid IPv4 address found.</value>
-  </data>
-  <data name="Msg_Gpu_Cancelled" xml:space="preserve">
-    <value>Cancelled</value>
-  </data>
-  <data name="Error_Gpu_RebootNoResponse" xml:space="preserve">
-    <value>VM failed to come back online after reboot.</value>
-  </data>
-  <data name="Error_Gpu_ScriptNoSuccess" xml:space="preserve">
-    <value>Script execution failed (no success signal).</value>
-  </data>
-  <data name="Error_Gpu_MaxReboots" xml:space="preserve">
-    <value>Maximum reboot attempts reached.</value>
-  </data>
-  <data name="Error_Gpu_LinuxGeneric" xml:space="preserve">
-    <value>Error: {0}</value>
-  </data>
-  <data name="VmSpacetimeSettings_HintCloseWormholeFirst" xml:space="preserve">
-    <value>A wormhole is open — close it before you can create / delete / converge spacetimes.</value>
+  <data name="VmCheckpointService_HintDismountHistoricalDiskFirst" xml:space="preserve">
+    <value>A historical disk mount is open. Unmount it before creating, deleting, or merging snapshots.</value>
   </data>
   <data name="Cpu_ApicMode" xml:space="preserve">
     <value>APIC Mode</value>
@@ -3727,10 +3494,10 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>Export the virtual hard disks attached to the virtual machine</value>
   </data>
   <data name="VmExport_Checkpoints" xml:space="preserve">
-    <value>Include Checkpoints</value>
+    <value>Include Snapshots</value>
   </data>
   <data name="VmExport_CheckpointsDescription" xml:space="preserve">
-    <value>Export checkpoints of the virtual machine</value>
+    <value>Export snapshots of the virtual machine</value>
   </data>
   <data name="VmExport_CheckpointModeAll" xml:space="preserve">
     <value>All</value>
@@ -3778,19 +3545,19 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
     <value>A ZIP file named “{0}” already exists in the selected location.</value>
   </data>
   <data name="VmExport_DiskSelectionCheckpointsConflict" xml:space="preserve">
-    <value>All virtual hard disks must be included when checkpoints are exported.</value>
+    <value>All virtual hard disks must be included when snapshots are exported.</value>
   </data>
   <data name="VmExport_SelectDisksUnsupported" xml:space="preserve">
     <value>This system does not support exporting selected virtual hard disks.</value>
   </data>
   <data name="VmExport_CheckpointSelectionRequired" xml:space="preserve">
-    <value>Select a checkpoint to export.</value>
+    <value>Select a snapshot to export.</value>
   </data>
   <data name="VmExport_CheckpointUnavailable" xml:space="preserve">
-    <value>The selected checkpoint no longer exists or does not belong to this virtual machine.</value>
+    <value>The selected snapshot no longer exists or does not belong to this virtual machine.</value>
   </data>
   <data name="VmExport_CheckpointSelectionUnsupported" xml:space="preserve">
-    <value>This system does not support exporting a selected checkpoint.</value>
+    <value>This system does not support exporting a selected snapshot.</value>
   </data>
   <data name="VmExport_PackageSection" xml:space="preserve">
     <value>Packaging</value>
@@ -3863,7 +3630,7 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="VmImport_No" xml:space="preserve"><value>No</value></data>
   <data name="VmImport_Disks" xml:space="preserve"><value>Virtual disks</value></data>
   <data name="VmImport_Networks" xml:space="preserve"><value>Network adapters</value></data>
-  <data name="VmImport_Checkpoints" xml:space="preserve"><value>Checkpoints</value></data>
+  <data name="VmImport_Checkpoints" xml:space="preserve"><value>Snapshots</value></data>
   <data name="VmImport_CountFormat" xml:space="preserve"><value> · {0}</value></data>
   <data name="VmImport_Slot" xml:space="preserve"><value>Controller</value></data>
   <data name="VmImport_Format" xml:space="preserve"><value>Format</value></data>
@@ -3926,11 +3693,18 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Network_PortStateUnavailable" xml:space="preserve"><value>Port configuration is unavailable. Refresh to retry.</value></data>
   <data name="Gpu_ConfirmPowerOff" xml:space="preserve"><value>GPU driver deployment requires the virtual machine to be off. Turn it off now? Unsaved guest data may be lost.</value></data>
   <data name="Gpu_ConfirmWindowsInstall" xml:space="preserve"><value>Install GPU drivers to {0}? This will write files to the selected Windows partition.</value></data>
-  <data name="Gpu_ConfirmLinuxStart" xml:space="preserve"><value>Start this virtual machine to continue GPU driver installation over SSH?</value></data>
   <data name="Gpu_DecisionExpired" xml:space="preserve"><value>This action is not available for the current deployment state. Read the latest state and try again.</value></data>
-  <data name="Gpu_InvalidPartition" xml:space="preserve"><value>The selected partition is unavailable, changed, or is not a supported Windows/Linux system partition.</value></data>
-  <data name="Gpu_InvalidSshPort" xml:space="preserve"><value>The SSH port must be between 1 and 65535.</value></data>
+  <data name="Gpu_InvalidPartition" xml:space="preserve"><value>The selected partition is unavailable, changed, or is not a supported Windows system partition.</value></data>
   <data name="Gpu_CleanupRequired" xml:space="preserve"><value>The GPU assignment added by this deployment could not be removed. Retry cleanup before starting another deployment.</value></data>
+  <data name="Msg_Gpu_DriverSkipped" xml:space="preserve"><value>Skipped</value></data>
+  <data name="Error_Gpu_LinuxUnsupported" xml:space="preserve"><value>Linux partition detected. GPU driver deployment is not supported yet.</value></data>
+  <data name="Msg_Gpu_LinuxUnsupported" xml:space="preserve"><value>Linux partition detected. GPU driver deployment is not supported yet. You can skip drivers or cancel deployment.</value></data>
+  <data name="Msg_Gpu_BitLockerRequired" xml:space="preserve"><value>BitLocker protection detected on the target partition. Unlock or disable BitLocker first, or skip drivers.</value></data>
+  <data name="Msg_Gpu_LinuxAndBitLockerUnsupported" xml:space="preserve"><value>Detected Linux partition (not supported yet) and BitLocker partition (unlock or disable BitLocker first). No writable Windows partition is available.</value></data>
+  <data name="Msg_Gpu_SelectPartWithLinuxAndBitLocker" xml:space="preserve"><value>Select an unencrypted Windows system partition. Linux partitions are not supported yet, and BitLocker partitions require disabling BitLocker first.</value></data>
+  <data name="Msg_Gpu_SelectPartWithLinux" xml:space="preserve"><value>Select the target Windows system partition. Detected Linux partitions are not supported yet.</value></data>
+  <data name="Msg_Gpu_SelectPartWithBitLocker" xml:space="preserve"><value>Select an unencrypted Windows system partition. BitLocker-protected partitions require disabling BitLocker first.</value></data>
+  <data name="Msg_Gpu_NoUsableWindowsPart" xml:space="preserve"><value>No usable Windows system partition was detected. Check the disk or skip drivers.</value></data>
   <data name="ConsoleWindow_FrameStatistics" xml:space="preserve"><value>Frame statistics</value></data>
   <data name="ConsoleWindow_FrameStatisticsHint" xml:space="preserve"><value>Toggle received FPS and completed window bitmap updates. Maximum interval and intervals ≥50 ms cover the last 5 seconds, including the ongoing interval. A static desktop produces few updates. These are not monitor or remote-desktop FPS.</value></data>
   <data name="ConsoleWindow_FrameStatisticsFormat" xml:space="preserve"><value>UPDATE {0:F1} FPS · RECEIVE {1:F1} FPS
@@ -3938,4 +3712,19 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="PCIePage_Msg_ConfirmMmioUpdate" xml:space="preserve">
     <value>Updating MMIO will turn off virtual machine “{0}”. If this host has no saved limit, the operation will also change MMIO settings and start and turn off the VM to probe the limit. The VM will remain off. Declining a later device confirmation will not undo these changes. Continue?</value>
   </data>
+  <data name="GenerationUpgradePrerequisites" xml:space="preserve"><value>Generation upgrade requires a valid VM identifier and an x64 Hyper-V host.</value></data>
+  <data name="GenerationUpgrade_Preflight" xml:space="preserve"><value>The original VM could not pass preflight.</value></data>
+  <data name="GenerationUpgrade_PrepareStorage" xml:space="preserve"><value>Could not convert the VHD containers.</value></data>
+  <data name="GenerationUpgrade_ExportRecovery" xml:space="preserve"><value>Could not verify the recovery package.</value></data>
+  <data name="GenerationUpgrade_CreateCandidate" xml:space="preserve"><value>Could not prepare the generation 2 VM.</value></data>
+  <data name="GenerationUpgrade_VerifyStaged" xml:space="preserve"><value>The staged VM configuration failed readback.</value></data>
+  <data name="GenerationUpgrade_RecheckSource" xml:space="preserve"><value>The original configuration could not be confirmed.</value></data>
+  <data name="GenerationUpgrade_DestroySource" xml:space="preserve"><value>Could not confirm unregistration of the original VM.</value></data>
+  <data name="GenerationUpgrade_PublishStorage" xml:space="preserve"><value>Could not publish the converted disks.</value></data>
+  <data name="GenerationUpgrade_RestoreDevices" xml:space="preserve"><value>Could not restore the original device settings.</value></data>
+  <data name="GenerationUpgrade_VerifyFinal" xml:space="preserve"><value>Could not confirm the final configuration.</value></data>
+  <data name="GenerationUpgrade_Cleanup" xml:space="preserve"><value>The upgrade was committed. Recovery files still need attention.</value></data>
+  <data name="GenerationUpgrade_Rollback" xml:space="preserve"><value>Could not confirm restoration of the original VM.</value></data>
+  <data name="GenerationUpgrade_Complete" xml:space="preserve"><value>The completed upgrade receipt could not be verified.</value></data>
+  <data name="GenerationUpgrade_Journal" xml:space="preserve"><value>Could not open or lock the upgrade journal.</value></data>
 </root>

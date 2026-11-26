@@ -1,17 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <TargetFramework>net11.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <!-- Source-only inspection: use the compiler shipped with the SDK, without loading Core. -->
     <Reference Include="Microsoft.CodeAnalysis">
-      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath>
+      <HintPath>$(NetCoreRoot)sdk/$(NETCoreSdkVersion)/Roslyn/bincore/Microsoft.CodeAnalysis.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.CodeAnalysis.CSharp">
-      <HintPath>$(MSBuildSDKsPath)/../Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+      <HintPath>$(NetCoreRoot)sdk/$(NETCoreSdkVersion)/Roslyn/bincore/Microsoft.CodeAnalysis.CSharp.dll</HintPath>
     </Reference>
   </ItemGroup>
 </Project>

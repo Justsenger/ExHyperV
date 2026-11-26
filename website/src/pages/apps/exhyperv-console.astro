@@ -1,0 +1,248 @@
+---
+import VmConsoleView from '../../../../src/ExHyperV.WoW/components/VmConsoleView.astro';
+import '../../../../src/ExHyperV.WoW/styles/ui-design.css';
+import '../../shells/win11/win11-tokens.css';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>虚拟机控制台</title>
+    <script is:inline>
+      (function () {
+        var theme = new URLSearchParams(window.location.search).get('theme');
+        if (theme === 'light' || theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', theme);
+          document.documentElement.style.background = theme === 'light' ? '#F3F3F3' : '#202020';
+          document.documentElement.style.colorScheme = theme;
+        }
+      })();
+    </script>
+  </head>
+  <body class="console-standalone-host">
+    <VmConsoleView />
+
+    <script>
+      import { createWowClient } from '../../wow/runtime/protocol';
+      import { createConsoleController } from '../../../../src/ExHyperV.WoW/scripts/ui-design-console.js';
+
+      let currentTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      let accentHex = '#4CC2FF';
+      let vmSnapshot = {
+        id: 'vm-1',
+        name: 'Windows 11',
+        running: true,
+        osIcon: 'Windows.svg',
+        generation: 2
+      };
+      let advSnapshot = {
+        consoleSupport: true,
+        shielding: false
+      };
+      let availableVms: Array<Record<string, unknown>> = [vmSnapshot];
+      let openVmIds = new Set<string>();
+
+      const ctrl = createConsoleController({
+        getVm: () => vmSnapshot,
+        getAllVms: () => availableVms,
+        getAdvSettings: () => advSnapshot,
+        getTheme: () => currentTheme,
+        getAccentHex: () => accentHex,
+        getOpenVmIds: () => openVmIds,
+        isHostedInWinOnWeb: true,
+        onVmPowerChanged: (changedVm: { id?: string; running?: boolean } | undefined) => {
+          const target = changedVm || vmSnapshot;
+          if (client.isEmbedded) {
+            void client.request('app.event', {
+              channel: 'exhyperv:console-power',
+              payload: { id: target.id, running: Boolean(target.running) }
+            }).catch(() => {});
+          }
+        },
+        onActiveVmChanged: (vmId: string) => {
+          if (client.isEmbedded) {
+            void client.request('app.event', {
+              channel: 'exhyperv:console-active-vm',
+              payload: { vmId }
+            }).catch(() => {});
+          }
+        },
+        onFocusExistingWindow: (vmId: string) => {
+          if (client.isEmbedded) {
+            void client.request('app.event', {
+              channel: 'exhyperv:console-focus-vm',
+              payload: { vmId }
+            }).catch(() => {});
+          }
+        },
+        onOpenNewWindow: (tabPayload: Record<string, unknown>) => {
+          if (client.isEmbedded) {
+            void client.request('app.event', {
+              channel: 'exhyperv:console-new-window',
+              payload: { ...tabPayload, availableVms }
+            }).catch(() => {});
+          }
+        },
+        onDragSpacerRect: (rect: { left: number; width: number }) => {
+          if (client.isEmbedded) {
+            void client.request('app.event', {
+              channel: 'exhyperv:console-drag-rect',
+              payload: rect
+            }).catch(() => {});
+          }
+        },
+        onRequestClose: () => {
+          if (client.isEmbedded) {
+            void client.windowControl('close').catch(() => {});
+          }
+        }
+      });
+
+      function applyTheme(nextTheme: string) {
+        currentTheme = nextTheme === 'light' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        document.documentElement.style.background = currentTheme === 'light' ? '#F3F3F3' : '#202020';
+        document.documentElement.style.colorScheme = currentTheme;
+        if (document.body) {
+          document.body.style.background = currentTheme === 'light' ? '#F3F3F3' : '#202020';
+        }
+        ctrl.syncTheme();
+      }
+
+      function applyLaunchPayload(raw: Record<string, unknown> | undefined) {
+        if (!raw || typeof raw !== 'object') return;
+        const nextVm: Record<string, unknown> = { ...vmSnapshot };
+        if (typeof raw.id === 'string') nextVm.id = raw.id;
+        if (typeof raw.name === 'string') nextVm.name = raw.name;
+        if (typeof raw.running === 'boolean') nextVm.running = raw.running;
+        if (typeof raw.osIcon === 'string') nextVm.osIcon = raw.osIcon;
+        if (typeof raw.generation === 'number') nextVm.generation = raw.generation;
+        if (typeof raw.mode === 'string') nextVm.mode = raw.mode;
+        if (typeof raw.scaleMode === 'string') nextVm.scaleMode = raw.scaleMode;
+        if (typeof raw.resolution === 'string') nextVm.resolution = raw.resolution;
+        if (typeof raw.clipboardEnabled === 'boolean') nextVm.clipboardEnabled = raw.clipboardEnabled;
+        vmSnapshot = nextVm as typeof vmSnapshot;
+
+        const nextAdv = { ...advSnapshot };
+        if (typeof raw.consoleSupport === 'boolean') nextAdv.consoleSupport = raw.consoleSupport;
+        if (typeof raw.shielding === 'boolean') nextAdv.shielding = raw.shielding;
+        advSnapshot = nextAdv;
+
+        if (Array.isArray(raw.availableVms) && raw.availableVms.length > 0) {
+          availableVms = raw.availableVms as Array<Record<string, unknown>>;
+        }
+        if (typeof raw.accentHex === 'string') accentHex = raw.accentHex;
+        document.title = `${vmSnapshot.name} - 控制台`;
+      }
+
+      const client = createWowClient({
+        onInit: (info) => {
+          applyTheme(info.theme);
+          applyLaunchPayload(info.launchArgs);
+          ctrl.openTab(vmSnapshot, advSnapshot);
+        },
+        onThemeChange: applyTheme,
+        onEvent: (name, value) => {
+          if (name === 'message' && value && typeof value === 'object') {
+            const msg = value as { channel?: string; payload?: Record<string, unknown> };
+            if ((msg.channel === 'exhyperv:console-add-tab' || msg.channel === 'exhyperv:console-sync') && msg.payload) {
+              applyLaunchPayload(msg.payload);
+              ctrl.openTab(vmSnapshot, advSnapshot);
+            } else if (msg.channel === 'exhyperv:console-open-vms' && msg.payload && Array.isArray(msg.payload.vmIds)) {
+              openVmIds = new Set(msg.payload.vmIds.filter((id): id is string => typeof id === 'string'));
+            } else if (msg.channel === 'exhyperv:console-focus-self') {
+              if (client.isEmbedded) void client.windowControl('focus').catch(() => {});
+            }
+          }
+        }
+      });
+
+      window.addEventListener(
+        'pointerdown',
+        () => {
+          if (client.isEmbedded) void client.windowControl('focus').catch(() => {});
+        },
+        { passive: true },
+      );
+
+      window.addEventListener(
+        'contextmenu',
+        (e) => {
+          const target = e.target;
+          if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
+          e.preventDefault();
+        },
+        { capture: true },
+      );
+
+      if (!client.isEmbedded) {
+        ctrl.openTab(vmSnapshot, advSnapshot);
+      } else {
+        window.addEventListener('pagehide', () => {
+          void client.request('app.event', { channel: 'exhyperv:console-closed', payload: {} }).catch(() => {});
+        });
+      }
+    </script>
+
+    <style is:global>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html,
+      body.console-standalone-host {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #202020;
+        font-family: var(--win-font-sans);
+        font-size: 14px;
+      }
+
+      body.console-standalone-host .vm-console-window {
+        position: fixed !important;
+        inset: 0 !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        grid-template-rows: 40px 1fr !important;
+      }
+
+      body.console-standalone-host .vm-console-window.is-fullscreen {
+        grid-template-rows: 1fr !important;
+      }
+
+      /* WinOnWeb seamlessTitlebar provides top-right window caption buttons */
+      body.console-standalone-host .console-titlebar {
+        padding-right: 138px;
+        cursor: default;
+      }
+
+      body.console-standalone-host .console-titlebar .caption-buttons {
+        display: none !important;
+      }
+
+      html[data-theme='light'],
+      html[data-theme='light'] body.console-standalone-host {
+        background: #F3F3F3;
+      }
+    </style>
+  </body>
+</html>

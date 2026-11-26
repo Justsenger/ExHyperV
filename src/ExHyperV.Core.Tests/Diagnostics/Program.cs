@@ -94,7 +94,7 @@ await QueryNetworkRuleChecks.Run(Check);
 await SerialPortRuleChecks.RunAsync(Check);
 MemoryBackingRuleChecks.Run(Check);
 IpAddressRuleChecks.Run(Check);
-await SpacetimeWorkflowChecks.Run(Check);
+await CheckpointWorkflowChecks.Run(Check);
 await PowerWorkflowChecks.Run(Check);
 await DeviceWorkflowChecks.RunAsync(Check);
 ModelIsolationChecks.Run(Check);

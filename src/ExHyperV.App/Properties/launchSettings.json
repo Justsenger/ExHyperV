@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "ExHyperV.App": {
+      "commandName": "Project"
+    }
+  }
+}

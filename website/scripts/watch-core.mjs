@@ -18,9 +18,10 @@ export async function sourceFingerprint(root) {
   const hash = createHash('sha256');
   for (const file of files.sort()) {
     const relative = path.relative(roots.find(directory => file.startsWith(path.resolve(directory) + path.sep)) || roots[0], file).replaceAll('\\', '/');
-    if (Array.isArray(root) && ['API.md', 'API.json', 'FieldHelp.json'].includes(relative)) continue;
+    const name = path.basename(file);
+    if (Array.isArray(root) && ['API.md', 'API.json', 'FieldHelp.json'].includes(name)) continue;
     let content = await readFile(file);
-    if (relative === 'API.md' || relative === 'guide.md') content = Buffer.from(content.toString('utf8').replace(/\r\n/g, '\n')
+    if (name === 'API.md' || name === 'guide.md') content = Buffer.from(content.toString('utf8').replace(/\r\n/g, '\n')
       .replace(/<!-- api-(reference|examples|example-[\w-]+):start -->[\s\S]*?<!-- api-\1:end -->/g, ''));
     hash.update((Array.isArray(root) ? roots.findIndex(directory => file.startsWith(path.resolve(directory) + path.sep)) + '/' : '') + relative + '\0' + content.length + '\0');
     hash.update(content);

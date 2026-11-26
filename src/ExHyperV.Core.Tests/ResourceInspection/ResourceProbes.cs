@@ -18,12 +18,12 @@ internal static partial class ResourceProbes
         new("identity", "宿主与权限", "当前执行身份", "记录实际账户及管理员令牌", "权限与宿主设置测试"),
         new("vmms", "宿主与权限", "Hyper-V 管理服务", "VMMS 已启动", "虚拟机管理"),
         new("hyperv", "宿主与权限", "Hyper-V 管理接口", "当前身份能读取管理服务", "虚拟机查询与配置"),
-        new("dotnet", "编译环境", ".NET 10 SDK", "当前进程可找到 .NET 10 SDK", "编译 Core 与测试程序"),
+        new("dotnet", "编译环境", ".NET 11 SDK", "当前进程可找到 .NET 11 SDK", "编译 Core 与测试程序"),
         new("msbuild", "编译环境", "Visual Studio MSBuild", "VS 2026 MSBuild 与 .NET 桌面构建组件已安装", "编译 Core 的 COM 引用"),
         new("powershell", "编译环境", "PowerShell 启动环境", "Windows PowerShell 5.1 即可启动资源检查", "资源检查启动脚本"),
         new("iso-support", "编译环境", "ISO 生成与挂载组件", "IMAPI 组件与 Windows 映像挂载命令可用", "ISO 生成与内容核验"),
         new("memory", "容量与目录", "处理器与可用内存", "读取当前容量，执行时按测试需要分配", "临时虚拟机与并行测试"),
-        new("volumes", "容量与目录", "磁盘可用空间", "读取测试目录所在磁盘的剩余空间", "磁盘、导入导出、检查点"),
+        new("volumes", "容量与目录", "磁盘可用空间", "读取测试目录所在磁盘的剩余空间", "磁盘、导入导出、快照"),
         new("workspace", "容量与目录", "测试缓存目录", "自动创建并检查文件读写", "临时磁盘、导出包及日志"),
         new("resource-selection", "容量与目录", "资源选择记录", "保存后按固定身份复用", "后续自动化测试"),
         new("vms", "虚拟机", "现有虚拟机", "能读取虚拟机身份和当前状态", "选择测试资源"),
@@ -91,7 +91,7 @@ internal static partial class ResourceProbes
             case "dotnet":
                 var sdk = await CommandAsync(FindExecutable("dotnet.exe", Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "dotnet", "dotnet.exe")), "--list-sdks");
                 var sdkLines = Lines(sdk);
-                return sdkLines.Any(l => l.StartsWith("10.", StringComparison.Ordinal)) ? Ready("已安装", sdkLines) : Missing("未安装 .NET 10 SDK");
+                return sdkLines.Any(l => l.StartsWith("11.", StringComparison.Ordinal)) ? Ready("已安装", sdkLines) : Missing("未安装 .NET 11 SDK");
             case "msbuild":
                 var vswhere = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "Microsoft Visual Studio", "Installer", "vswhere.exe");
                 if (!File.Exists(vswhere)) return Missing("未找到 VS 安装器");

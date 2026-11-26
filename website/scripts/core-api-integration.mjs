@@ -15,7 +15,7 @@ export default function coreApi() {
           && existsSync(path.join(websiteRoot, 'public/api/index.html'));
         let initialSync = true;
         stop = await watchCore({
-          root: [coreRoot, path.resolve(websiteRoot, '../doc/api'), path.resolve(websiteRoot, '../tools/api-docs'), path.join(websiteRoot, 'src/api')],
+          root: [coreRoot, path.join(websiteRoot, 'src/api')],
           generate: async () => {
             try {
               await syncCoreApi({ updateMarkdown: true });

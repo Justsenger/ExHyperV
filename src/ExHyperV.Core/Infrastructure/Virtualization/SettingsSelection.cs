@@ -1,9 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace ExHyperV.Services;
 
 // 保存调用者明确选择的值，不持有可继续编辑的模型；不比较旧值或版本。
-internal sealed class SettingsSelection<T> where T : class, new()
+internal sealed class SettingsSelection<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T> where T : class, new()
 {
     private static readonly IReadOnlyDictionary<string, PropertyInfo> Writable = typeof(T).GetProperties()
         .Where(p => p.SetMethod?.IsPublic == true && p.GetMethod?.IsPublic == true)
