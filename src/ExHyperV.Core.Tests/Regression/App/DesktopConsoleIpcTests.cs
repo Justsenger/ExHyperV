@@ -16,6 +16,24 @@ public sealed class DesktopConsoleIpcTests
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(6);
 
+    [TestMethod, DataRow(1), DataRow(2)]
+    public void UnchangedSnapshotKeepsGrantUntilControlChanges(int role)
+    {
+        using var peer = new ConsoleIpcTestPeer(true);
+        using var client = new ConsoleIpcClient(peer, role);
+        Guid vm = Guid.NewGuid();
+        var original = Inspect(client, vm);
+        var refreshed = client.Inspect(vm, "viewer", wait: true, fresh: true);
+        Assert.AreEqual(original.Revoked, refreshed.Revoked);
+        Assert.IsFalse(original.Revoked.IsCancellationRequested);
+
+        peer.Control = new(true, true, original.Snapshot.Control.Generation + 1);
+        var changed = client.Inspect(vm, "viewer", wait: true, fresh: true);
+        Assert.AreEqual(peer.Control.Generation, changed.Snapshot.Control.Generation);
+        Assert.IsTrue(original.Revoked.IsCancellationRequested);
+        Assert.IsFalse(changed.Revoked.IsCancellationRequested);
+    }
+
     [TestMethod]
     public void InvalidRegistrationsDenyBeforeOpeningAndPathsUseDirectoryBoundaries()
     {
@@ -194,6 +212,7 @@ public sealed class DesktopConsoleIpcTests
         session.Start();
         await loggedIn.Task.WaitAsync(Timeout);
         Assert.AreEqual(2, peer.Verified);
+        Assert.AreEqual(access.Revoked, client.Inspect(vm, "viewer", wait: true, fresh: true).Revoked);
         await CheckClipboardAndAudio(peer, session, vm);
         Assert.IsTrue(session.SetMode("desktop-1").Accepted);
         Assert.IsTrue(session.SendKey(42, false, true));
