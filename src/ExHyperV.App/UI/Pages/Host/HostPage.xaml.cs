@@ -21,12 +21,15 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
     private readonly DispatcherTimer successToastTimer = new() { Interval = TimeSpan.FromMilliseconds(2600) };
 
     private HostInventorySnapshot inventory = HostTelemetrySampler.CreateInitialSnapshot();
+    private CancellationTokenSource? inventoryCts;
+    private Task inventoryTask = Task.CompletedTask;
+    private HostInventorySlices inFlightSlices = HostInventorySlices.None;
+    private HostInventorySnapshot? pendingStatusInventory;
+    private bool statusViewNeedsApply = true;
     private CancellationTokenSource? processorCts;
     private CancellationTokenSource? deviceCts;
-    private CancellationTokenSource? inventoryCts;
     private Task processorTask = Task.CompletedTask;
     private Task deviceTask = Task.CompletedTask;
-    private Task inventoryTask = Task.CompletedTask;
     private bool pageActive;
     private bool windowVisible = true;
     private bool stopping;
@@ -79,6 +82,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
         TabBodyHost.Children.Add(overviewView);
         TabBodyHost.Children.Add(statusView);
         overviewView.ApplyInventory(inventory);
+        pendingStatusInventory = inventory;
         UpdateVisibleTab();
 
         successToastTimer.Tick += (_, _) => HideSuccessToast();
@@ -180,14 +184,20 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
         _ => HostInventorySlices.None
     };
 
-    private HostInventorySlices PerfSlices =>
+    private const HostInventorySlices AllPreloadSlices =
         HostInventorySlices.Environment | HostInventorySlices.Compute | HostInventorySlices.Gpu | HostInventorySlices.Storage | HostInventorySlices.Network | HostInventorySlices.Settings;
+
+    private HostInventorySlices PerfSlices => AllPreloadSlices;
 
     private void UpdateVisibleTab()
     {
         overviewView.Visibility = activeTabIndex == 0 ? Visibility.Visible : Visibility.Collapsed;
-        bool hasPerf = inventory.HasSlices(PerfSlices);
-        statusView.Visibility = activeTabIndex == 1 && hasPerf ? Visibility.Visible : Visibility.Collapsed;
+        if (activeTabIndex == 1 && statusViewNeedsApply && pendingStatusInventory != null)
+        {
+            statusViewNeedsApply = false;
+            statusView.ApplyInventory(pendingStatusInventory);
+        }
+        statusView.Visibility = activeTabIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
 
         bool hasSettings = inventory.HasSlices(HostInventorySlices.Settings);
         if (activeTabIndex == 2 && hasSettings && settingsView == null)
@@ -214,7 +224,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
         bool bodyReady = activeTabIndex switch
         {
             0 => true,
-            1 => hasPerf,
+            1 => true,
             2 => hasSettings,
             3 => hasNetwork,
             _ => false
@@ -238,31 +248,53 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
             LogicalProcessorCount = inventory.LogicalProcessorCount,
             TotalMemoryGiB = inventory.TotalMemoryGiB
         };
+        pendingStatusInventory = inventory;
+        statusViewNeedsApply = true;
         return EnsureRequiredSlicesAsync(activeSlices);
     }
 
-    private Task EnsureRequiredSlicesAsync(HostInventorySlices? explicitSlices = null)
+    private Task EnsureRequiredSlicesAsync(HostInventorySlices? explicitSlices = null, bool showProgress = true)
     {
         if (!pageActive || stopping) return Task.CompletedTask;
         var required = explicitSlices ?? RequiredSlicesForActiveView();
         var missing = explicitSlices ?? (required & ~inventory.LoadedSlices);
         if (missing == HostInventorySlices.None)
         {
-            LoadingBar.Visibility = Visibility.Collapsed;
+            if ((RequiredSlicesForActiveView() & ~inventory.LoadedSlices) == HostInventorySlices.None)
+                LoadingBar.Visibility = Visibility.Collapsed;
             UpdateVisibleTab();
             EnsureTelemetryState();
+            ScheduleBackgroundPreload();
             return Task.CompletedTask;
         }
 
+        if (inventoryCts is { IsCancellationRequested: false } && (missing & ~inFlightSlices) == HostInventorySlices.None)
+        {
+            if (showProgress)
+                LoadingBar.Visibility = Visibility.Visible;
+            return inventoryTask;
+        }
+
+        var combined = missing | (inFlightSlices & ~inventory.LoadedSlices);
         inventoryCts?.Cancel();
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
         inventoryCts = cts;
-        var nextTask = RunSliceLoadAsync(inventoryTask, cts, missing);
+        inFlightSlices = combined;
+        var nextTask = RunSliceLoadAsync(inventoryTask, cts, combined, showProgress);
         inventoryTask = nextTask;
         return nextTask;
     }
 
-    private async Task RunSliceLoadAsync(Task previous, CancellationTokenSource cts, HostInventorySlices slicesToLoad)
+    private void ScheduleBackgroundPreload()
+    {
+        if (!pageActive || stopping) return;
+        var remaining = AllPreloadSlices & ~inventory.LoadedSlices;
+        if (remaining == HostInventorySlices.None) return;
+        if (inventoryCts is { IsCancellationRequested: false }) return;
+        _ = EnsureRequiredSlicesAsync(remaining, showProgress: false);
+    }
+
+    private async Task RunSliceLoadAsync(Task previous, CancellationTokenSource cts, HostInventorySlices slicesToLoad, bool showProgress)
     {
         var token = cts.Token;
         try
@@ -275,7 +307,8 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
             var remaining = slicesToLoad & ~inventory.LoadedSlices;
             if (remaining != HostInventorySlices.None)
             {
-                LoadingBar.Visibility = Visibility.Visible;
+                if (showProgress && (RequiredSlicesForActiveView() & ~inventory.LoadedSlices) != HostInventorySlices.None)
+                    LoadingBar.Visibility = Visibility.Visible;
                 var baseSnapshot = inventory;
                 var updated = await Task.Run(() => sampler.LoadSlicesAsync(baseSnapshot, remaining, token), token);
                 token.ThrowIfCancellationRequested();
@@ -283,8 +316,13 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
                 inventory = updated;
 
                 overviewView.ApplyInventory(updated);
-                if (updated.HasSlices(PerfSlices) && (activeTabIndex == 1 || (remaining & PerfSlices) != 0))
+                pendingStatusInventory = updated;
+                statusViewNeedsApply = true;
+                if (activeTabIndex == 1)
+                {
+                    statusViewNeedsApply = false;
                     statusView.ApplyInventory(updated);
+                }
                 if (updated.HasSlices(HostInventorySlices.Settings))
                     settingsView?.ApplyInventory(updated);
                 if (updated.HasSlices(HostInventorySlices.Network))
@@ -314,13 +352,20 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
             {
                 LoadingBar.Visibility = Visibility.Collapsed;
                 UpdateVisibleTab();
-                ShowSettingsNotice(CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error);
+                if (showProgress)
+                    ShowSettingsNotice(CoreMessageResolver.ResolveException(ex), InfoBarSeverity.Error);
             }
         }
         finally
         {
-            if (ReferenceEquals(inventoryCts, cts)) inventoryCts = null;
+            if (ReferenceEquals(inventoryCts, cts))
+            {
+                inventoryCts = null;
+                inFlightSlices = HostInventorySlices.None;
+            }
             cts.Dispose();
+            if (pageActive && !stopping)
+                ScheduleBackgroundPreload();
         }
     }
 
@@ -328,10 +373,7 @@ public sealed partial class HostPage : Page, IDashboardFeedbackHost
     {
         if (!pageActive || !windowVisible || stopping) return default;
         if (activeTabIndex == 1)
-        {
-            if (!inventory.HasSlices(PerfSlices)) return default;
             return new HostTelemetryScope(IncludeProcessor: true, IncludeDevices: true, IncludeVmMemory: true, IncludeVmGpu: false, IncludeVmStorage: false, IncludeVmNetwork: false);
-        }
         if (activeTabIndex == 0)
         {
             var scope = overviewView.GetTelemetryScope();

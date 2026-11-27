@@ -30,6 +30,72 @@ internal sealed class DriverInfFile : IDisposable
 
     public void Dispose() => _handle.Dispose();
 
+    /// <summary>枚举 INF 中所有节的名称。</summary>
+    internal IReadOnlyList<string> ReadSectionNames()
+    {
+        ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+        var sections = new List<string>();
+        for (uint index = 0; ; index++)
+        {
+            string? section = ReadSectionName(index);
+            if (section == null) break;
+            sections.Add(section);
+        }
+        return sections;
+    }
+
+    /// <summary>按键和值字段读取指定节中的全部行；缺少该节时返回空列表。</summary>
+    internal IReadOnlyList<(string Key, string[] Fields)> ReadKeyValueSection(string section)
+    {
+        ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+        var rows = new List<(string Key, string[] Fields)>();
+        if (!Native.SetupFindFirstLineW(_handle, section, null, out InfContext context))
+        {
+            int error = Marshal.GetLastPInvokeError();
+            if (error is ErrorSectionNotFound or ErrorLineNotFound) return rows;
+            throw ReadError("SetupFindFirstLineW", error);
+        }
+
+        while (true)
+        {
+            rows.Add((ReadField(ref context, 0), ReadFields(ref context)));
+            if (!Native.SetupFindNextLine(ref context, out InfContext next))
+            {
+                int error = Marshal.GetLastPInvokeError();
+                if (error is ErrorLineNotFound or ErrorNoMoreItems) break;
+                throw ReadError("SetupFindNextLine", error);
+            }
+            context = next;
+        }
+        return rows;
+    }
+
+    /// <summary>按顺序读取指定节中每行的所有字段；缺少该节时返回空列表。</summary>
+    internal IReadOnlyList<string[]> ReadListSection(string section)
+    {
+        ObjectDisposedException.ThrowIf(_handle.IsClosed, this);
+        var rows = new List<string[]>();
+        if (!Native.SetupFindFirstLineW(_handle, section, null, out InfContext context))
+        {
+            int error = Marshal.GetLastPInvokeError();
+            if (error is ErrorSectionNotFound or ErrorLineNotFound) return rows;
+            throw ReadError("SetupFindFirstLineW", error);
+        }
+
+        while (true)
+        {
+            rows.Add(ReadFields(ref context));
+            if (!Native.SetupFindNextLine(ref context, out InfContext next))
+            {
+                int error = Marshal.GetLastPInvokeError();
+                if (error is ErrorLineNotFound or ErrorNoMoreItems) break;
+                throw ReadError("SetupFindNextLine", error);
+            }
+            context = next;
+        }
+        return rows;
+    }
+
     /// <summary>读取指定节的第一条指令；缺少节或键返回 null，解析错误保留原生诊断。</summary>
     internal string[]? ReadFields(string section, string key)
     {
@@ -96,18 +162,25 @@ internal sealed class DriverInfFile : IDisposable
             uint count = Native.SetupGetFieldCount(ref context);
             var fields = new string[checked((int)count)];
             for (uint index = 1; index <= count; index++)
-            {
-                if (!Native.SetupGetStringFieldW(ref context, index, null, 0, out uint needed))
-                    throw ReadError("SetupGetStringFieldW", Marshal.GetLastPInvokeError());
-
-                var buffer = new StringBuilder(checked((int)needed));
-                if (!Native.SetupGetStringFieldW(ref context, index, buffer, needed, out _))
-                    throw ReadError("SetupGetStringFieldW", Marshal.GetLastPInvokeError());
-                fields[index - 1] = buffer.ToString();
-            }
+                fields[index - 1] = ReadField(ref context, index);
             return fields;
         }
         finally { GC.KeepAlive(_handle); }
+    }
+
+    private string ReadField(ref InfContext context, uint index)
+    {
+        if (!Native.SetupGetStringFieldW(ref context, index, null, 0, out uint needed))
+        {
+            int error = Marshal.GetLastPInvokeError();
+            if (index == 0 && error == ErrorLineNotFound) return string.Empty;
+            throw ReadError("SetupGetStringFieldW", error);
+        }
+
+        var buffer = new StringBuilder(checked((int)needed));
+        if (!Native.SetupGetStringFieldW(ref context, index, buffer, needed, out _))
+            throw ReadError("SetupGetStringFieldW", Marshal.GetLastPInvokeError());
+        return buffer.ToString();
     }
 
     private InvalidOperationException ReadError(string operation, int error, uint line = 0) =>
@@ -147,7 +220,11 @@ internal sealed class DriverInfFile : IDisposable
 
         [DllImport("setupapi.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        internal static extern bool SetupFindFirstLineW(SafeInfHandle inf, string section, string key, out InfContext context);
+        internal static extern bool SetupFindFirstLineW(SafeInfHandle inf, string section, string? key, out InfContext context);
+
+        [DllImport("setupapi.dll", ExactSpelling = true, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool SetupFindNextLine(ref InfContext contextIn, out InfContext contextOut);
 
         [DllImport("setupapi.dll", CharSet = CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]

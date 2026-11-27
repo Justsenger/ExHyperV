@@ -12,11 +12,21 @@
         <Border x:Name="VmListPanel" Background="{ThemeResource VmListBrush}" BorderBrush="{ThemeResource VmStrokeBrush}" BorderThickness="1" CornerRadius="8">
             <Grid>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-                <Grid Margin="8">
-                    <TextBox x:Name="SearchBox" MinHeight="28" Padding="10,0,32,0" VerticalContentAlignment="Center"
-                        Text="{x:Bind ViewModel.Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    <FontIcon Glyph="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0"
-                        IsHitTestVisible="False" Visibility="{x:Bind ViewModel.IsFilterEmpty, Mode=OneWay}" />
+                <Grid Margin="8" ColumnSpacing="6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid Grid.Column="0">
+                        <TextBox x:Name="SearchBox" MinHeight="28" Padding="10,0,32,0" VerticalContentAlignment="Center"
+                            Text="{x:Bind ViewModel.Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        <FontIcon Glyph="&#xE721;" FontFamily="Segoe Fluent Icons" FontSize="20" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0"
+                            IsHitTestVisible="False" Visibility="{x:Bind ViewModel.IsFilterEmpty, Mode=OneWay}" />
+                    </Grid>
+                    <Button x:Name="AddVmButton" Grid.Column="1" Width="30" Height="28" Padding="0" CornerRadius="4"
+                            Click="OnAddVmClick">
+                        <FontIcon Glyph="&#xE710;" FontSize="13" />
+                    </Button>
                 </Grid>
                 <TextBlock Grid.Row="1" Text="{x:Bind ViewModel.Error, Mode=OneWay}" Visibility="{x:Bind ViewModel.HasError, Mode=OneWay}"
                     TextWrapping="Wrap" Margin="8,0,8,4" MaxHeight="96" ToolTipService.ToolTip="{x:Bind ViewModel.Error, Mode=OneWay}"
@@ -36,6 +46,9 @@
                 </ListView>
             </Grid>
         </Border>
-        <dashboard:VmDashboardView x:Name="Dashboard" Grid.Column="1" />
+        <Grid Grid.Column="1">
+            <dashboard:VmDashboardView x:Name="Dashboard" />
+            <local:VmAddView x:Name="AddVmView" Visibility="Collapsed" />
+        </Grid>
     </Grid>
 </Page>

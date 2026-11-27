@@ -67,12 +67,12 @@ function createCanvasTex(size) {
  */
 export function createOsIconPack() {
   const presets = [
-    { id: 'Windows', scale: 0.68, shadow: 'rgba(6, 26, 62, 0.42)', glow: 'rgba(185, 238, 255, 0.45)' },
-    { id: 'Ubuntu', scale: 0.70, shadow: 'rgba(8, 18, 42, 0.40)', glow: null },
-    { id: 'ArchLinux', scale: 0.70, shadow: 'rgba(8, 18, 42, 0.40)', glow: 'rgba(205, 240, 255, 0.28)' },
-    { id: 'Debian', scale: 0.72, shadow: 'rgba(255, 240, 246, 0.62)', glow: 'rgba(255, 255, 255, 0.55)' },
-    { id: 'openSUSE', scale: 0.70, shadow: 'rgba(6, 26, 42, 0.40)', glow: 'rgba(135, 235, 165, 0.35)' },
-    { id: 'FnOS', scale: 0.68, shadow: 'rgba(6, 26, 62, 0.42)', glow: 'rgba(185, 224, 255, 0.35)' },
+    { id: 'Windows', scale: 0.68 },
+    { id: 'Ubuntu', scale: 0.70 },
+    { id: 'ArchLinux', scale: 0.70 },
+    { id: 'Debian', scale: 0.72 },
+    { id: 'openSUSE', scale: 0.70 },
+    { id: 'FnOS', scale: 0.68 },
   ];
 
   const S = 1024;
@@ -89,22 +89,7 @@ export function createOsIconPack() {
       const dx = (S - drawW) / 2;
       const dy = (S - drawH) / 2;
 
-      if (cfg.glow) {
-        ctx.save();
-        ctx.shadowColor = cfg.glow;
-        ctx.shadowBlur = 28;
-        ctx.shadowOffsetY = 0;
-        ctx.drawImage(img, dx, dy, drawW, drawH);
-        ctx.restore();
-      }
-
-      ctx.save();
-      ctx.shadowColor = cfg.shadow;
-      ctx.shadowBlur = 18;
-      ctx.shadowOffsetY = 8;
       ctx.drawImage(img, dx, dy, drawW, drawH);
-      ctx.restore();
-
       texture.needsUpdate = true;
     });
 

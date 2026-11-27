@@ -379,7 +379,7 @@ public static partial class VmStorageService
         {
             if (!t.Access.CanMerge) return Denied(t.Access.Message);
             int depth = MergeDepth(t.Chain!, FullPath(targetAncestorPath));
-            if (depth < 1) return Invalid("目标必须是当前完整差分链上的祖先。");
+            if (depth < 1) return Invalid("目标必须是当前完整差异链上的祖先。");
             var nodes = t.Chain!.Nodes;
             string target = nodes[depth].Path;
             string targetId = HostDiskResource.Image(target);

@@ -28,7 +28,7 @@ public sealed partial class ConsoleWindow
     private readonly ConsoleSessionState sessionState = new();
     private static ConsoleExtensionCatalog Catalog => ConsoleExtensionCatalog.Local;
     private bool IsEnhanced => sessionState.ActiveBackend == ConsoleService.RdpEnhancedBackendId;
-    private bool enhancedAvailable, reconnect, busyPower, muted, retryPending;
+    private bool enhancedAvailable, reconnect, busyPower, muted, retryPending, userResizePending;
     private bool? firstGenKnown;
     private bool extensionStatus;
     private Guid connectedVmId;
@@ -59,6 +59,14 @@ public sealed partial class ConsoleWindow
 
     private void RememberDisplay() => Preferences[vm.Id] = new(requestedSize, zoom, desktopScale, muted, sessionState.Preference);
 
+    private void ResetWindowFit(bool preserveManual = false)
+    {
+        if (!preserveManual) manualWindowSize = false;
+        suppressAutoGuestResize = false;
+        userResizePending = false;
+        autoResizeTimer.Stop();
+    }
+
     private void BeginMonitoring()
     {
         powerState = null;
@@ -79,11 +87,12 @@ public sealed partial class ConsoleWindow
         reconnect = true;
         retryPending = false;
         sessionState.ResetFallback();
-        manualWindowSize = false;
+        ResetWindowFit();
         retryBudget = StartupRetryLimit;
         Notice.Visibility = Visibility.Collapsed;
         SetView(View.Connecting);
-        FitWindowToAspect();
+        if (viewportReady) FitWindowToAspect();
+        else verifyFit = true;
         pollLifetime = new();
         monitor = MonitorAsync(vm.Id, pollLifetime.Token);
     }
@@ -93,7 +102,7 @@ public sealed partial class ConsoleWindow
         var lifetime = pollLifetime;
         if (lifetime == null) return;
         lifetime.Cancel();
-        SetView(View.Disconnected);
+        if (!closing) SetView(View.Disconnected);
         await monitor;
         lifetime.Dispose();
         pollLifetime = null;
@@ -146,6 +155,7 @@ public sealed partial class ConsoleWindow
                             enhancedAvailable = true;
                             reconnect = true;
                             retryBudget = StartupRetryLimit;
+                            DispatcherQueue.TryEnqueue(() => { if (!closing) ResetWindowFit(); });
                             await DropConnectionAsync();
                             token.ThrowIfCancellationRequested();
                             continue;
@@ -357,6 +367,7 @@ public sealed partial class ConsoleWindow
             SetView(View.Connected);
             frames?.Start();
             UpdateCursor();
+            if (!FocusGuestSurface()) DispatcherQueue.TryEnqueue(() => FocusGuestSurface());
         });
         void Login() => Post(() => { if (Surface.FocusState != FocusState.Unfocused) SyncLocks(); });
         void Disconnected(ConsoleDisconnectInfo info) => Post(() =>
@@ -376,6 +387,7 @@ public sealed partial class ConsoleWindow
             {
                 retryPending = false;
                 reconnect = true;
+                ResetWindowFit();
                 SetView(View.Connecting);
             }
             else
@@ -490,6 +502,7 @@ public sealed partial class ConsoleWindow
     private void SetView(View value)
     {
         if (value != View.Connected) StopInput();
+        if (closing) return;
         view = value;
         if (value != View.Connected) { ClearFrame(); Surface.ResetCursor(); }
         Render();
@@ -503,9 +516,9 @@ public sealed partial class ConsoleWindow
         sessionState.ResetFallback();
         sessionState.Preference = mode;
         RememberDisplay();
-        if (sessionState.ActiveBackend == mode.ToString() && view == View.Connected) { Render(); return; }
+        if (sessionState.ActiveBackend == mode.ToString() && view == View.Connected) { Render(); FocusGuestSurface(); return; }
         extensionStatus = false;
-        manualWindowSize = false;
+        ResetWindowFit();
         retryPending = false;
         retryBudget = StartupRetryLimit;
         reconnect = true;
@@ -519,9 +532,11 @@ public sealed partial class ConsoleWindow
 
     private void ResizeRejected()
     {
+        bool notifyUser = userResizePending;
+        userResizePending = false;
         if (liveSize is { } size) requestedSize = size;
         RememberDisplay();
-        Notify(L10n.Get("Console_ResizeRejected"));
+        if (notifyUser) Notify(L10n.Get("Console_ResizeRejected"));
         Render();
     }
 }

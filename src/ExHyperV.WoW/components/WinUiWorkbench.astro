@@ -43,7 +43,7 @@ const swatches = [
             <span class="nav-label">虚拟机</span>
           </div>
           <div class="nav-item" data-nav-target="host">
-            <span class="fi fi-fluent" style="font-size:16px;">&#xE90F;</span>
+            <span class="fi fi-fluent" style="font-size:16px;">&#xE977;</span>
             <span class="nav-label">宿主</span>
           </div>
         </div>
@@ -65,9 +65,14 @@ const swatches = [
         <div class="vm-page-grid" id="pageVirtualMachines">
           <!-- Column 0: VM List (Width="216") -->
           <div class="vm-list-pane">
-            <div class="vm-search-grid">
-              <input type="text" class="vm-search-input" id="vmSearchBox" placeholder="搜索虚拟机..." />
-              <span class="fi vm-search-icon">&#xE721;</span>
+            <div class="vm-search-row">
+              <div class="vm-search-grid">
+                <input type="text" class="vm-search-input" id="vmSearchBox" placeholder="搜索虚拟机..." />
+                <span class="fi vm-search-icon">&#xE721;</span>
+              </div>
+              <button class="vm-add-btn" id="vmAddBtn" type="button" title="新增虚拟机" aria-label="新增虚拟机">
+                <span class="fi">&#xE710;</span>
+              </button>
             </div>
             <div class="vm-listview" id="vmListContainer"></div>
           </div>
@@ -123,15 +128,15 @@ const swatches = [
 
                   <!-- State & Uptime + Gen + Version Badges -->
                   <div class="vm-state-row">
-                    <div class="vm-badge">
+                    <div class="vm-badge" id="vmStateBadge">
                       <span class="fi fi-fluent vm-badge-icon">&#xE9DD;</span>
                       <span class="vm-badge-text" id="vmStateText">已关机</span>
                     </div>
-                    <div class="vm-badge">
+                    <div class="vm-badge" id="vmUptimeBadge">
                       <span class="fi fi-fluent vm-badge-icon">&#xF827;</span>
                       <span class="vm-badge-text" id="vmUptimeText">00:00:00</span>
                     </div>
-                    <button class="vm-badge" id="vmGenSwitchBtn" type="button" title="点击切换 1代 / 2代 预览">
+                    <button class="vm-badge" id="vmGenSwitchBtn" type="button">
                       <span class="fi vm-badge-icon" id="vmGenIcon">&#xF54C;</span>
                       <span class="vm-badge-text" id="vmGenText">2代</span>
                     </button>
@@ -160,7 +165,7 @@ const swatches = [
                   <!-- Badge Row 2: OsText -->
                   <div class="vm-os-picker-anchor">
                     <div class="vm-badges-row row-2" id="vmBadgeRow2">
-                      <button class="vm-badge" id="vmOsBadgeBtn" title="点击切换系统标志">
+                      <button class="vm-badge" id="vmOsBadgeBtn">
                         <span class="fi vm-badge-icon">&#xE74C;</span>
                         <span class="vm-badge-text" id="vmOsBadgeText">Windows</span>
                         <span class="fi vm-os-badge-chevron">&#xE70D;</span>
@@ -269,6 +274,8 @@ const swatches = [
               </div>
             </div>
           </div>
+
+          <div class="vm-add-view" id="vmAddView" hidden></div>
         </div>
 
         <!-- ==================== Page 2: HostPage.xaml ==================== -->

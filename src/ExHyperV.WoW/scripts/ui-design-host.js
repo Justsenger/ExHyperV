@@ -1032,6 +1032,147 @@ const CPU_DETAIL_STYLES = [
   'art-blocks'
 ];
 const HIGHLIGHT_STYLES = ['fluent-tint', 'pill-accent', 'elevated-card', 'focus-ring', 'top-accent'];
+const TOPOLOGY_CARD_STYLES = ['baseline-polished', 'legacy'];
+const MOCK_EXTRA_GPUS = [
+  {
+    id: 'gpu-1',
+    name: 'NVIDIA GeForce RTX 4070 Laptop GPU',
+    manu: 'NVIDIA',
+    vendor: 'NVIDIA',
+    vram: '8 GB',
+    driver: '566.14',
+    instanceId: 'PCI\\VEN_10DE&DEV_2820\\1',
+    partitionable: true,
+    assignedVms: ['win11-arm64'],
+    pct: 38,
+    pts3d: [30, 34, 41, 36, 39, 38],
+    ptsCopy: [9, 12, 11, 14, 10, 12],
+    ptsEnc: [14, 16, 15, 18, 17, 16],
+    ptsDec: [5, 6, 8, 6, 7, 6],
+    mockHost: { d3: 6, copy: 2, enc: 1, dec: 2 },
+    mockVmProfiles: [{ d3: 32, copy: 10, enc: 15, dec: 4 }]
+  },
+  {
+    id: 'gpu-2',
+    name: 'AMD Radeon PRO W7800',
+    manu: 'Advanced Micro Devices, Inc.',
+    vendor: 'AMD',
+    vram: '32 GB',
+    driver: '32.0.12019.1028',
+    instanceId: 'PCI\\VEN_1002&DEV_7448\\2',
+    partitionable: true,
+    assignedVms: ['test', 'win11-arm64'],
+    pct: 28,
+    pts3d: [22, 25, 29, 26, 31, 28],
+    ptsCopy: [7, 8, 10, 8, 9, 9],
+    ptsEnc: [3, 4, 5, 4, 4, 4],
+    ptsDec: [9, 10, 12, 11, 10, 11],
+    mockHost: { d3: 3, copy: 1, enc: 0, dec: 1 },
+    mockVmProfiles: [
+      { d3: 16, copy: 5, enc: 4, dec: 3 },
+      { d3: 9, copy: 3, enc: 0, dec: 7 }
+    ]
+  },
+  {
+    id: 'gpu-3',
+    name: 'Intel(R) Arc(TM) Pro B60',
+    manu: 'Intel Corporation',
+    vendor: 'Intel',
+    vram: '24 GB',
+    driver: '32.0.101.6647',
+    instanceId: 'PCI\\VEN_8086&DEV_E211\\3',
+    partitionable: true,
+    assignedVms: ['test'],
+    pct: 22,
+    pts3d: [10, 12, 14, 11, 15, 13],
+    ptsCopy: [5, 6, 8, 6, 7, 7],
+    ptsEnc: [18, 20, 24, 21, 23, 22],
+    ptsDec: [12, 14, 16, 13, 15, 15],
+    mockHost: { d3: 2, copy: 1, enc: 0, dec: 1 },
+    mockVmProfiles: [{ d3: 11, copy: 6, enc: 22, dec: 14 }]
+  },
+  {
+    id: 'gpu-4',
+    name: 'NVIDIA GeForce RTX 5090',
+    manu: 'NVIDIA',
+    vendor: 'NVIDIA',
+    vram: '32 GB',
+    driver: '572.42',
+    instanceId: 'PCI\\VEN_10DE&DEV_2B85\\4',
+    partitionable: true,
+    assignedVms: ['win11-arm64', 'Windows11-Enterprise-Dev-ARM64'],
+    pct: 46,
+    pts3d: [38, 42, 49, 44, 47, 46],
+    ptsCopy: [12, 14, 16, 13, 15, 15],
+    ptsEnc: [8, 10, 11, 9, 12, 10],
+    ptsDec: [6, 8, 9, 7, 8, 8],
+    mockHost: { d3: 4, copy: 2, enc: 0, dec: 1 },
+    mockVmProfiles: [
+      { d3: 28, copy: 8, enc: 7, dec: 5 },
+      { d3: 14, copy: 5, enc: 3, dec: 2 }
+    ]
+  },
+  {
+    id: 'gpu-5',
+    name: 'NVIDIA RTX 6000 Ada Generation',
+    manu: 'NVIDIA',
+    vendor: 'NVIDIA',
+    vram: '48 GB',
+    driver: '566.14',
+    instanceId: 'PCI\\VEN_10DE&DEV_26B1\\5',
+    partitionable: true,
+    assignedVms: ['test', 'win11-arm64'],
+    pct: 34,
+    pts3d: [28, 31, 35, 33, 36, 34],
+    ptsCopy: [14, 16, 18, 15, 17, 16],
+    ptsEnc: [4, 5, 6, 4, 6, 5],
+    ptsDec: [7, 9, 10, 8, 9, 9],
+    mockHost: { d3: 3, copy: 1, enc: 0, dec: 1 },
+    mockVmProfiles: [
+      { d3: 19, copy: 9, enc: 5, dec: 4 },
+      { d3: 12, copy: 6, enc: 0, dec: 4 }
+    ]
+  },
+  {
+    id: 'gpu-6',
+    name: 'Intel(R) Arc(TM) B580 Graphics',
+    manu: 'Intel Corporation',
+    vendor: 'Intel',
+    vram: '12 GB',
+    driver: '32.0.101.6559',
+    instanceId: 'PCI\\VEN_8086&DEV_E20B\\6',
+    partitionable: true,
+    assignedVms: ['test', 'ubuntu-build-runner-01'],
+    pct: 19,
+    pts3d: [15, 17, 21, 18, 20, 19],
+    ptsCopy: [4, 5, 6, 5, 6, 5],
+    ptsEnc: [11, 13, 15, 12, 14, 13],
+    ptsDec: [9, 10, 12, 9, 11, 10],
+    mockHost: { d3: 3, copy: 1, enc: 1, dec: 1 },
+    mockVmProfiles: [
+      { d3: 9, copy: 3, enc: 8, dec: 5 },
+      { d3: 7, copy: 1, enc: 4, dec: 4 }
+    ]
+  },
+  {
+    id: 'gpu-7',
+    name: 'AMD Radeon RX 7900 XTX',
+    manu: 'Advanced Micro Devices, Inc.',
+    vendor: 'AMD',
+    vram: '24 GB',
+    driver: '32.0.12019.1028',
+    instanceId: 'PCI\\VEN_1002&DEV_744C\\7',
+    partitionable: true,
+    assignedVms: ['win11-arm64'],
+    pct: 12,
+    pts3d: [9, 11, 14, 10, 13, 12],
+    ptsCopy: [2, 3, 4, 2, 3, 3],
+    ptsEnc: [0, 0, 0, 0, 0, 0],
+    ptsDec: [4, 5, 7, 5, 6, 5],
+    mockHost: { d3: 2, copy: 1, enc: 0, dec: 1 },
+    mockVmProfiles: [{ d3: 10, copy: 2, enc: 0, dec: 4 }]
+  }
+];
 
 const HOST_LED_HOST_COLOR = 'var(--VmAccentBrush, #4CC2FF)';
 const HOST_LED_GUEST_COLOR = '#60CDFF';
@@ -1082,14 +1223,17 @@ const hostState = {
   cardStyle: 'compact-2row', // 'vm-3row' | 'compact-2row' | 'kpi-matrix' | 'merged-tabs' | 'slim-bar'
   cardContent: 'ops-summary', // 'identity-ready' | 'ops-summary' | 'full-workstation'
   cpuDetailStyle: 'art-ring',
+  cpuDenseMode: 'paged-8x4',
   highlightStyle: 'elevated-card', // 'fluent-tint' | 'pill-accent' | 'elevated-card' | 'focus-ring' | 'top-accent'
   legendPlacement: 'right', // 'right' | 'bottom'
   mockThreads: '12',
+  mockNumaCount: '2',
   mockVmCount: '2',
   overviewResource: 'env',
   selectedLedVm: null,
   hoveredLedVm: null,
   hoveredLedLp: null,
+  selectedLedLp: null,
   selectedMemKey: null,
   hoveredMemKey: null,
   hoveredMemSeg: null,
@@ -1105,6 +1249,10 @@ const hostState = {
   topoZoom: 1,
   topoAutoFit: true,
   topoFullscreen: false,
+  topoCardStyle: 'baseline-polished',
+  mockGpuCount: '4',
+  selectedGpuEngine: null,
+  hoveredGpuEngine: null,
   activeTab: 'overview',
   policySub: 'scheduler',
   powerComboOpen: false,
@@ -1461,102 +1609,267 @@ function getSwitchRailCopy(sw, layout = hostState.railSwitchLayout) {
 // Host Memory Object Model (Step 1: Pure Object Ownership without Diagrams)
 // ============================================================================
 function buildHostMemoryBreakdown() {
-  const totalGb = Math.max(1, Number(HOST_SYS.memoryGb) || 16);
-  const rawUsed = hostState.isLive ? Number(HOST_SYS.usedMemoryGb || 0) : Number(HOST_SYS.usedMemoryGb) || totalGb * 0.55;
-  const inUseGb = Number(Math.min(totalGb - 0.1, Math.max(0.1, rawUsed)).toFixed(1));
-  const freeGb = Number(Math.max(0.1, totalGb - inUseGb).toFixed(1));
-
-  let sortedVms = [];
-  let vmSumGb = 0;
-
   if (hostState.isLive) {
+    const totalGb = Math.max(1, Number(HOST_SYS.memoryGb) || 16);
+    const rawUsed = Number(HOST_SYS.usedMemoryGb || 0);
+    const inUseGb = Number(Math.min(totalGb - 0.1, Math.max(0.1, rawUsed)).toFixed(1));
+    const freeGb = Number(Math.max(0.1, totalGb - inUseGb).toFixed(1));
+
     const liveRunning = (hostState.liveVms || []).filter((v) => v.running);
-    sortedVms = liveRunning
+    const sortedVms = liveRunning
       .map((vm) => {
         const assignedGb = Number(Math.max(0.1, vm.memoryGb || 0).toFixed(1));
         const isDyn = Boolean(vm.memoryRaw?.DynamicMemoryEnabled);
+        const pressureRaw = vm.memoryRaw?.CurrentPressure ?? vm.pressurePct;
+        const pressurePct = Number.isFinite(Number(pressureRaw)) && Number(pressureRaw) > 0
+          ? Math.round(Number(pressureRaw))
+          : null;
+        const smartPagingMb = Number(vm.memoryRaw?.SmartPagingWorkingSetSize) || 0;
+        const remoteMb = Number(vm.remoteMb) || 0;
         return {
           key: `vm:${vm.name}`,
           name: vm.name,
-          modeText: vm.memoryRaw ? (isDyn ? '动态内存' : '固定内存') : '已分配内存',
-          locked: !isDyn,
-          dynamic: isDyn,
-          assignedGb,
+          modeText: vm.memoryRaw ? (isDyn ? '动态' : '固定') : '已分配',
           gb: assignedGb,
+          pressurePct,
+          smartPagingMb,
+          remoteMb,
           sharePct: Math.max(1, Math.round((assignedGb / totalGb) * 100))
         };
       })
-      .sort((a, b) => b.assignedGb - a.assignedGb)
+      .sort((a, b) => b.gb - a.gb)
       .map((item, idx) => ({
         ...item,
         kind: 'vm',
-        tag: item.modeText,
         color: idx < HOST_LED_VM_PALETTE.length ? HOST_LED_VM_PALETTE[idx] : HOST_LED_OTHER_COLOR
       }));
-    vmSumGb = Number(sortedVms.reduce((s, item) => s + item.assignedGb, 0).toFixed(1));
-  } else {
-    const vmCount = Math.max(1, Number(hostState.mockVmCount) || HOST_SYS.runningVmCount || 2);
-    const vmShareOfUsed = vmCount >= 12 ? 0.78 : vmCount >= 4 ? 0.68 : 0.54;
-    const vmBudgetGb = inUseGb * vmShareOfUsed;
-    const weightTable = Array.from({ length: vmCount }, (_, i) => {
-      const baseName = HOST_LED_MOCK_NAMES[i] || `vm-node-${String(i + 1).padStart(2, '0')}`;
-      const isDynamic = i % 2 === 1;
-      const weight = Math.max(0.35, 1.4 - i * 0.05);
-      return {
-        name: baseName,
-        dynamic: isDynamic,
-        locked: !isDynamic,
-        modeText: isDynamic ? '动态内存' : '固定内存',
-        weight
-      };
-    });
-    const totalWeight = weightTable.reduce((s, item) => s + item.weight, 0) || 1;
-    sortedVms = weightTable
-      .map((item) => {
-        const assignedGb = Number(Math.max(0.1, vmBudgetGb * (item.weight / totalWeight)).toFixed(1));
-        vmSumGb += assignedGb;
-        return {
-          key: `vm:${item.name}`,
-          name: item.name,
-          modeText: item.modeText,
-          locked: item.locked,
-          dynamic: item.dynamic,
-          assignedGb,
-          gb: assignedGb,
-          sharePct: Math.max(1, Math.round((assignedGb / totalGb) * 100))
-        };
-      })
-      .sort((a, b) => b.assignedGb - a.assignedGb)
-      .map((item, idx) => ({
-        ...item,
-        kind: 'vm',
-        tag: item.modeText,
-        color: idx < HOST_LED_VM_PALETTE.length ? HOST_LED_VM_PALETTE[idx] : HOST_LED_OTHER_COLOR
-      }));
-    vmSumGb = Number(vmSumGb.toFixed(1));
+    const vmSumGb = Number(sortedVms.reduce((s, item) => s + item.gb, 0).toFixed(1));
+    const hostGb = Number(Math.max(0, inUseGb - vmSumGb).toFixed(1));
+    const hostSharePct = hostGb > 0 ? Math.max(1, Math.round((hostGb / totalGb) * 100)) : 0;
+    const freePct = Math.max(1, Math.round((freeGb / totalGb) * 100));
+
+    const hostItem = {
+      key: '__host__',
+      name: '宿主',
+      gb: hostGb,
+      sharePct: hostSharePct,
+      color: HOST_LED_HOST_COLOR,
+      kind: 'host',
+      modeText: '系统',
+      nodeIndices: [0]
+    };
+    const freeItem = {
+      key: '__free__',
+      name: '空闲',
+      gb: freeGb,
+      sharePct: freePct,
+      color: 'rgba(128, 136, 148, 0.32)',
+      kind: 'free',
+      modeText: '可用',
+      nodeIndices: [0]
+    };
+    const consumers = [
+      ...(hostGb > 0 ? [hostItem] : []),
+      ...sortedVms.map((v) => ({ ...v, nodeIndices: [0] }))
+    ];
+    const node = {
+      nodeIdx: 0,
+      label: 'NUMA 0',
+      hasRemote: sortedVms.some((v) => v.remoteMb > 0),
+      totalGb,
+      inUseGb,
+      inUsePct: Math.max(1, Math.round((inUseGb / totalGb) * 100)),
+      freeGb,
+      freePct,
+      consumers,
+      freeItem,
+      barItems: [...consumers, freeItem]
+    };
+    const vmsOut = sortedVms.map((v) => ({ ...v, nodeIndices: [0] }));
+    return {
+      totalGb,
+      inUseGb,
+      inUsePct: node.inUsePct,
+      hostGb,
+      vmSumGb,
+      freeGb,
+      nodes: [node],
+      vms: vmsOut,
+      hostItem,
+      freeItem,
+      orderedItems: [hostItem, ...vmsOut, freeItem]
+    };
   }
 
-  const hostGb = Number(Math.max(0, inUseGb - vmSumGb).toFixed(1));
-  const hostSharePct = hostGb > 0 ? Math.max(1, Math.round((hostGb / totalGb) * 100)) : 0;
-  const freePct = Math.max(1, Math.round((freeGb / totalGb) * 100));
+  const numaCount = Math.max(1, Math.min(8, Number(hostState.mockNumaCount) || 2));
+  const vmCount = Math.max(1, Number(hostState.mockVmCount) || HOST_SYS.runningVmCount || 2);
+  const vmsBase = Array.from({ length: vmCount }, (_, i) => {
+    const name = HOST_LED_MOCK_NAMES[i] || `vm-node-${String(i + 1).padStart(2, '0')}`;
+    const isDynamic = i % 2 === 1;
+    const pressurePct = [78, 54, 86, 62, 71, 45][i % 6];
+    return {
+      key: `vm:${name}`,
+      name,
+      idx: i,
+      kind: 'vm',
+      modeText: isDynamic ? '动态' : '固定',
+      pressurePct,
+      remoteMb: numaCount >= 2 && i === 2 ? 384 : 0,
+      smartPagingMb: i === 3 && vmCount >= 4 ? 128 : 0,
+      color: i < HOST_LED_VM_PALETTE.length ? HOST_LED_VM_PALETTE[i] : HOST_LED_OTHER_COLOR,
+      weight: Math.max(0.45, 1.5 - i * 0.055)
+    };
+  });
+
+  // Assign each VM to either one local NUMA node or spanning 2 nodes
+  const vmTargetsPerVm = vmsBase.map((v) => {
+    if (numaCount === 1) return [{ nodeIdx: 0, ratio: 1 }];
+    if (v.idx === 0) return [{ nodeIdx: 0, ratio: 1 }];
+    if (v.idx === 1) return [{ nodeIdx: 0, ratio: 0.42 }, { nodeIdx: 1, ratio: 0.58 }];
+    if (v.idx % 3 === 1) {
+      const a = v.idx % numaCount;
+      const b = (a + 1) % numaCount;
+      return [{ nodeIdx: a, ratio: 0.48 }, { nodeIdx: b, ratio: 0.52 }];
+    }
+    return [{ nodeIdx: v.idx % numaCount, ratio: 1 }];
+  });
+
+  const rawNodes = Array.from({ length: numaCount }, (_, nIdx) => {
+    const totalGb = numaCount === 1 ? 15.6 : nIdx === 1 && numaCount === 2 ? 48.0 : 64.0;
+    const hostBase = numaCount === 1 ? 6.2 : nIdx === 0 ? Math.min(totalGb * 0.22, 8.2) : Math.min(totalGb * 0.14, 4.4);
+    const hostGb = Number(hostBase.toFixed(1));
+
+    const nodeVmSpecs = [];
+    vmsBase.forEach((vm, idx) => {
+      const hit = vmTargetsPerVm[idx].find((t) => t.nodeIdx === nIdx);
+      if (hit) nodeVmSpecs.push({ vm, relWeight: vm.weight * hit.ratio });
+    });
+
+    const maxVmBudget = Math.max(0.5, totalGb * 0.86 - hostGb);
+    const weightSum = nodeVmSpecs.reduce((s, x) => s + x.relWeight, 0) || 1;
+    const targetVmFill = numaCount === 1
+      ? Math.min(maxVmBudget, Math.max(3.6, nodeVmSpecs.length * 2.8))
+      : Math.min(maxVmBudget, Math.max(totalGb * 0.25, nodeVmSpecs.length * 4.8));
+
+    const vmConsumers = nodeVmSpecs.map(({ vm, relWeight }) => {
+      const raw = targetVmFill * (relWeight / weightSum);
+      const gb = Number(Math.max(0.4, Math.min(maxVmBudget / Math.max(1, nodeVmSpecs.length * 0.55), raw)).toFixed(1));
+      return {
+        key: vm.key,
+        name: vm.name,
+        kind: 'vm',
+        modeText: vm.modeText,
+        pressurePct: vm.pressurePct,
+        remoteMb: vm.remoteMb,
+        smartPagingMb: vm.smartPagingMb,
+        color: vm.color,
+        gb,
+        sharePct: Math.max(1, Math.round((gb / totalGb) * 100))
+      };
+    });
+
+    let vmUsed = vmConsumers.reduce((s, c) => s + c.gb, 0);
+    if (hostGb + vmUsed > totalGb * 0.92 && vmUsed > 0) {
+      const scale = (totalGb * 0.88 - hostGb) / vmUsed;
+      vmConsumers.forEach((c) => {
+        c.gb = Number(Math.max(0.2, c.gb * scale).toFixed(1));
+        c.sharePct = Math.max(1, Math.round((c.gb / totalGb) * 100));
+      });
+      vmUsed = vmConsumers.reduce((s, c) => s + c.gb, 0);
+    }
+
+    const inUseGb = Number((hostGb + vmUsed).toFixed(1));
+    const freeGb = Number(Math.max(0.5, totalGb - inUseGb).toFixed(1));
+    const inUsePct = Math.max(1, Math.min(99, Math.round((inUseGb / totalGb) * 100)));
+    const freePct = Math.max(1, 100 - inUsePct);
+
+    const hostNodeItem = {
+      key: '__host__',
+      name: '宿主',
+      kind: 'host',
+      modeText: '系统',
+      color: HOST_LED_HOST_COLOR,
+      gb: hostGb,
+      sharePct: Math.max(1, Math.round((hostGb / totalGb) * 100))
+    };
+    const freeNodeItem = {
+      key: '__free__',
+      name: '空闲',
+      kind: 'free',
+      modeText: '可用',
+      color: 'rgba(128, 136, 148, 0.32)',
+      gb: freeGb,
+      sharePct: freePct
+    };
+
+    const consumers = [hostNodeItem, ...vmConsumers.sort((a, b) => b.gb - a.gb)];
+    return {
+      nodeIdx: nIdx,
+      label: `NUMA ${nIdx}`,
+      hasRemote: vmConsumers.some((v) => v.remoteMb > 0),
+      totalGb,
+      inUseGb,
+      inUsePct,
+      freeGb,
+      freePct,
+      consumers,
+      freeItem: freeNodeItem,
+      barItems: [...consumers, freeNodeItem]
+    };
+  });
+
+  const totalGb = Number(rawNodes.reduce((s, n) => s + n.totalGb, 0).toFixed(1));
+  const inUseGb = Number(rawNodes.reduce((s, n) => s + n.inUseGb, 0).toFixed(1));
+  const freeGb = Number(rawNodes.reduce((s, n) => s + n.freeGb, 0).toFixed(1));
+  const hostGb = Number(rawNodes.reduce((s, n) => s + (n.consumers.find((c) => c.key === '__host__')?.gb || 0), 0).toFixed(1));
+
+  const vmMap = new Map();
+  rawNodes.forEach((n) => {
+    n.consumers
+      .filter((c) => c.kind === 'vm')
+      .forEach((c) => {
+        const prev = vmMap.get(c.key);
+        if (!prev) {
+          vmMap.set(c.key, {
+            key: c.key,
+            name: c.name,
+            kind: 'vm',
+            modeText: c.modeText,
+            pressurePct: c.pressurePct,
+            remoteMb: c.remoteMb || 0,
+            smartPagingMb: c.smartPagingMb || 0,
+            color: c.color,
+            gb: c.gb,
+            nodeIndices: [n.nodeIdx]
+          });
+        } else {
+          prev.gb = Number((prev.gb + c.gb).toFixed(1));
+          if (!prev.nodeIndices.includes(n.nodeIdx)) prev.nodeIndices.push(n.nodeIdx);
+        }
+      });
+  });
+  const sortedVms = Array.from(vmMap.values())
+    .sort((a, b) => b.gb - a.gb)
+    .map((v) => ({ ...v, sharePct: Math.max(1, Math.round((v.gb / totalGb) * 100)) }));
 
   const hostItem = {
     key: '__host__',
     name: '宿主',
     gb: hostGb,
-    sharePct: hostSharePct,
+    sharePct: Math.max(1, Math.round((hostGb / totalGb) * 100)),
     color: HOST_LED_HOST_COLOR,
     kind: 'host',
-    tag: '宿主系统与进程占用'
+    modeText: '系统',
+    nodeIndices: rawNodes.map((n) => n.nodeIdx)
   };
   const freeItem = {
     key: '__free__',
-    name: '空闲内存',
+    name: '空闲',
     gb: freeGb,
-    sharePct: freePct,
+    sharePct: Math.max(1, Math.round((freeGb / totalGb) * 100)),
     color: 'rgba(128, 136, 148, 0.32)',
     kind: 'free',
-    tag: ''
+    nodeIndices: rawNodes.map((n) => n.nodeIdx)
   };
 
   return {
@@ -1564,10 +1877,8 @@ function buildHostMemoryBreakdown() {
     inUseGb,
     inUsePct: Math.max(1, Math.round((inUseGb / totalGb) * 100)),
     hostGb,
-    hostSharePct,
-    vmSumGb,
     freeGb,
-    freePct,
+    nodes: rawNodes,
     vms: sortedVms,
     hostItem,
     freeItem,
@@ -1576,17 +1887,20 @@ function buildHostMemoryBreakdown() {
 }
 
 function renderHostMemoryLegendSidebar(mem, focusKey) {
-  const makeChip = (it, extraCls = '') => `
-    <button type="button"
-      class="host-led-chip host-mem-side-chip ${extraCls} ${hostState.selectedMemKey === it.key ? 'is-selected' : ''} ${focusKey === it.key ? 'is-hovered' : ''}"
-      data-mem-key="${esc(it.key)}"
-      title="${esc(it.name)} (${it.gb.toFixed(1)} GB)"
-      style="--led-color:${it.color};">
-      <span class="host-led-swatch"></span>
-      <span class="host-led-chip-name">${esc(it.name)}</span>
-      <span class="host-mem-chip-gb">${it.gb.toFixed(1)}G</span>
-    </button>
-  `;
+  const makeChip = (it, extraCls = '') => {
+    const nodeSummary = (it.nodeIndices || []).map((idx) => `NUMA ${idx}`).join(' / ');
+    const tipText = nodeSummary ? `${it.name} (${it.gb.toFixed(1)} GB / ${nodeSummary})` : `${it.name} (${it.gb.toFixed(1)} GB)`;
+    return `
+      <button type="button"
+        class="host-led-chip ${extraCls} ${hostState.selectedMemKey === it.key ? 'is-selected' : ''} ${focusKey === it.key ? 'is-hovered' : ''}"
+        data-mem-key="${esc(it.key)}"
+        title="${esc(tipText)}"
+        style="--led-color:${it.color};">
+        <span class="host-led-swatch"></span>
+        <span class="host-led-chip-name">${esc(it.name)}</span>
+      </button>
+    `;
+  };
 
   return `
     <div class="host-rel-summary-box">
@@ -1600,84 +1914,143 @@ function renderHostMemoryLegendSidebar(mem, focusKey) {
   `;
 }
 
-function renderHostMemoryPieView(mem, focusKey, hlCls) {
-  const focusItem = focusKey ? mem.orderedItems.find((it) => it.key === focusKey) : null;
-  const cx = 180;
-  const cy = 180;
-  const rIn = 96;
-  const rOutBase = 152;
-  const rMid = (rIn + rOutBase) / 2;
-  const ringW = rOutBase - rIn;
+function renderHostMemoryOverview(mem, focusKey, hlCls) {
+  const focusMeta = focusKey ? mem.orderedItems.find((it) => it.key === focusKey) : null;
+  const nodeCount = mem.nodes.length;
+  const countCls = nodeCount <= 4 ? `is-mem-count-${nodeCount}` : 'is-mem-count-many';
 
-  const positive = mem.orderedItems.filter((it) => it.gb > 0);
-  const sumGb = positive.reduce((s, it) => s + it.gb, 0) || 1;
-  const nonFreeCount = positive.filter((it) => it.kind !== 'free').length;
-  const gapDeg = nonFreeCount > 14 ? 0.85 : nonFreeCount > 6 ? 1.4 : 2.1;
+  const cardsHtml = mem.nodes
+    .map((node) => {
+      const focusedNodeItem = focusKey ? node.barItems.find((it) => it.key === focusKey) : null;
+      const nodeHasFocus = !focusKey || Boolean(focusedNodeItem);
+      const headReading = focusMeta
+        ? `${focusedNodeItem ? focusedNodeItem.gb.toFixed(1) : '0.0'} / ${node.totalGb.toFixed(1)} GB`
+        : `${node.inUseGb.toFixed(1)} / ${node.totalGb.toFixed(1)} GB`;
+      const headColor = focusMeta && focusedNodeItem && focusMeta.kind !== 'free' ? focusMeta.color : '';
 
-  let curDeg = -90;
-  const slicesHtml = positive
-    .map((it) => {
-      const spanDeg = (it.gb / sumGb) * 360;
-      const isFree = it.kind === 'free';
-      const isFocused = focusKey === it.key;
-      const isDimmed = Boolean(focusKey) && !isFocused;
-      const effGap = spanDeg > gapDeg * 2.2 ? gapDeg : spanDeg > 1.2 ? 0.35 : 0;
-      const aStart = curDeg + effGap / 2;
-      const aEnd = curDeg + spanDeg - effGap / 2;
-      curDeg += spanDeg;
+      const poolTipJson = JSON.stringify({
+        kind: 'pool',
+        title: node.label,
+        sub: `${node.inUseGb.toFixed(1)} / ${node.totalGb.toFixed(1)} GB`,
+        slices: [
+          ...node.consumers.map((c) => ({
+            key: c.key,
+            name: c.name,
+            value: `${c.gb.toFixed(1)} GB`,
+            color: c.color
+          })),
+          {
+            key: '__free__',
+            name: '空闲',
+            value: `${node.freeGb.toFixed(1)} GB`,
+            color: 'rgba(128, 136, 148, 0.55)'
+          }
+        ]
+      });
 
-      const rOut = isFocused ? rOutBase + 5 : rOutBase;
-      const d = annularSectorPath(cx, cy, rIn, rOut, aStart, aEnd, spanDeg >= 6 ? 5 : 2.5);
-      if (!d) return '';
+      const segmentsHtml = node.barItems
+        .map((c) => {
+          const isFree = c.kind === 'free';
+          const isFocused = !isFree && focusKey === c.key;
+          const isDimmed = Boolean(focusKey) && !isFocused;
+          const pct = node.totalGb > 0 ? (c.gb / node.totalGb) * 100 : 0;
+          const segId = `${node.nodeIdx}:${c.key}`;
+          const cls = [
+            'host-share-seg',
+            isFree ? 'is-free' : '',
+            isFocused ? 'is-focused' : '',
+            isDimmed ? 'is-dimmed' : ''
+          ].filter(Boolean).join(' ');
+          const bgStyle = isFree ? '' : `background:${c.color};`;
+          const keyAttr = isFree ? '' : ` data-mem-key="${esc(c.key)}"`;
+          return `<div class="${cls}"${keyAttr} data-mem-seg="${esc(segId)}" data-mem-tip="${esc(poolTipJson)}" style="width:${Math.max(1.5, pct).toFixed(2)}%;${bgStyle}"></div>`;
+        })
+        .join('');
 
-      if (isFree) {
-        const freeCls = ['host-mem-pie-slice', 'is-free', isFocused ? 'is-focused' : ''].filter(Boolean).join(' ');
-        return `<path class="${freeCls}" d="${d}" data-mem-key="${esc(it.key)}" />`;
-      }
+      return `
+        <div class="host-share-card host-mem-node-card ${nodeHasFocus ? '' : 'is-dimmed'}" data-mem-node="${node.nodeIdx}">
+          <div class="host-share-card-head">
+            <div class="host-share-card-title-wrap">
+              <div class="host-share-icon-box"><span class="fi">&#xEEA0;</span></div>
+              <div class="host-share-title-line">
+                <span class="host-share-title">${esc(node.label)}</span>
+                ${node.hasRemote ? '<span class="vm-badge is-mini"><span class="vm-badge-text">跨节点</span></span>' : ''}
+              </div>
+            </div>
+            <div class="host-share-reading-col">
+              <span class="host-share-reading" style="${headColor ? `color:${headColor};` : ''}">${esc(headReading)}</span>
+            </div>
+          </div>
 
-      const op = isDimmed ? 0.16 : 1;
-      const sliceCls = ['host-mem-pie-slice', isFocused ? 'is-focused' : ''].filter(Boolean).join(' ');
-      return `<path class="${sliceCls}" d="${d}" fill="${it.color}" opacity="${op}" data-mem-key="${esc(it.key)}" />`;
+          <div class="host-share-bar is-hero">${segmentsHtml}</div>
+        </div>
+      `;
     })
     .join('');
 
-  const centerTitle = focusItem ? focusItem.name : '物理内存已用';
-  const centerPct = focusItem ? focusItem.sharePct : mem.inUsePct;
-  const centerColor = focusItem && focusItem.kind !== 'free' ? focusItem.color : '';
-  const centerGb = `${(focusItem ? focusItem.gb : mem.inUseGb).toFixed(1)} / ${mem.totalGb.toFixed(1)} GB`;
-  const centerSub = focusItem ? (focusItem.tag || '') : `空闲 ${mem.freeGb.toFixed(1)} GB`;
-
   return `
     <div class="host-rel-wrap is-legend-right ${hlCls}">
-      <div class="host-mem-pie-card">
-        <div class="host-mem-pie-stage-box">
-          <svg class="host-mem-pie-svg" viewBox="0 0 360 360">
-            <circle cx="${cx}" cy="${cy}" r="${rMid}" fill="none" stroke="color-mix(in srgb, var(--TextFillColorPrimaryBrush) 6%, transparent)" stroke-width="${ringW}" />
-            ${slicesHtml}
-          </svg>
-          <div class="host-mem-pie-center">
-            <span class="host-mem-pie-label" title="${esc(centerTitle)}">${esc(centerTitle)}</span>
-            <span class="host-mem-pie-pct" style="${centerColor ? `color:${centerColor};` : ''}">${centerPct}%</span>
-            <span class="host-mem-pie-gb">${esc(centerGb)}</span>
-            ${centerSub ? `<span class="host-mem-pie-sub" title="${esc(centerSub)}">${esc(centerSub)}</span>` : ''}
-          </div>
-        </div>
-      </div>
+      <div class="host-share-stage is-mem-stage ${countCls}">${cardsHtml}</div>
       ${renderHostMemoryLegendSidebar(mem, focusKey)}
     </div>
   `;
 }
 
+const CPU_PERF_BOLT_PATH = 'M9.5 1.5L3.8 8.8h3.7L6.5 14.5l5.7-7.3H8.5l1-5.7z';
+const CPU_EFF_LEAF_PATH = 'M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.3c.48.17.98.3 1.34.3C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z';
+
+function getCpuCoreTypeMeta(lp, totalThreads, rawType) {
+  let resolved = null;
+  if (rawType === 1 || (typeof rawType === 'string' && /^(performance|p)$/i.test(rawType))) {
+    resolved = 'performance';
+  } else if (rawType === 2 || (typeof rawType === 'string' && /^(efficient|e)$/i.test(rawType))) {
+    resolved = 'efficient';
+  } else if (rawType === 0 || (typeof rawType === 'string' && rawType.trim().toLowerCase() === 'unknown')) {
+    resolved = 'unknown';
+  } else if (rawType == null && totalThreads > 4 && totalThreads < 48) {
+    const effCount = totalThreads <= 12 ? 4 : Math.floor(totalThreads / 3);
+    resolved = lp < effCount ? 'efficient' : 'performance';
+  } else {
+    resolved = 'unknown';
+  }
+
+  if (resolved === 'unknown') {
+    return { isEff: false, label: '', badgeHtml: '' };
+  }
+
+  const isEff = resolved === 'efficient';
+  const vb = isEff ? 24 : 16;
+  const path = isEff ? CPU_EFF_LEAF_PATH : CPU_PERF_BOLT_PATH;
+  const color = isEff ? '#6CCB5F' : '#FAA146';
+  return {
+    isEff,
+    label: isEff ? '能效核' : '性能核',
+    badgeHtml: `<svg class="host-led-core-badge" viewBox="0 0 ${vb} ${vb}" aria-hidden="true"><path d="${path}" fill="${color}"/></svg>`
+  };
+}
+
 // ============================================================================
-// Host GPU Overview (Per-GPU Total vs Host & VM 4-Engine Breakdown)
+// Host GPU Overview (3 Redesign Candidates + Legacy Comparison)
 // ============================================================================
+function getEffectiveHostGpus() {
+  const base = Array.isArray(hostState.gpus) && hostState.gpus.length ? hostState.gpus : INITIAL_GPUS;
+  if (hostState.isLive) return base;
+  const targetCount = Math.max(1, Math.min(8, Number(hostState.mockGpuCount) || 4));
+  const pool = [...base, ...MOCK_EXTRA_GPUS.map((g) => structuredClone(g))];
+  return pool.slice(0, targetCount);
+}
+
 function buildHostGpuBreakdown() {
+  const gpus = getEffectiveHostGpus();
+  const multiGpu = gpus.length > 1;
+  const singleGpu = !multiGpu;
+
   if (hostState.isLive) {
     const runningVms = (hostState.liveVms || []).filter((v) => v.running);
     const vmColorByName = new Map(
       runningVms.map((v, i) => [v.name, i < HOST_LED_VM_PALETTE.length ? HOST_LED_VM_PALETTE[i] : HOST_LED_OTHER_COLOR])
     );
-    const cards = (hostState.gpus || []).map((gpu, gpuIdx) => {
+    const cards = gpus.map((gpu, gpuIdx) => {
       const totalD3 = Math.round(gpu.pts3d?.at(-1) ?? gpu.pct ?? 0);
       const totalCopy = Math.round(gpu.ptsCopy?.at(-1) ?? 0);
       const totalEnc = Math.round(gpu.ptsEnc?.at(-1) ?? 0);
@@ -1690,8 +2063,8 @@ function buildHostGpuBreakdown() {
       let vmDecSum = 0;
 
       assignedList.forEach((vmName, idx) => {
-        const v = (hostState.liveVms || []).find((x) => x.name === vmName);
-        if (!v || !v.running) return;
+        const v = runningVms.find((x) => x.name === vmName);
+        if (!v) return;
         const tel = v.telemetry || {};
         const d3 = Math.round(tel.gpu3dPct || 0);
         const copy = Math.round(tel.gpuCopyPct || 0);
@@ -1706,6 +2079,7 @@ function buildHostGpuBreakdown() {
           name: vmName,
           kind: 'vm',
           roleTag: 'GPU-PV 分区',
+          shortRole: 'GPU-PV',
           color: vmColorByName.get(vmName) || (idx < HOST_LED_VM_PALETTE.length ? HOST_LED_VM_PALETTE[idx] : HOST_LED_OTHER_COLOR),
           engines: { d3, copy, enc, dec },
           peakPct: Math.max(d3, copy, enc, dec),
@@ -1713,20 +2087,23 @@ function buildHostGpuBreakdown() {
         });
       });
 
+      const attributable = singleGpu || assignedList.length === 0 || (vmD3Sum + vmCopySum + vmEncSum + vmDecSum > 0);
       const hostEngines = {
         d3: Math.max(0, totalD3 - vmD3Sum),
         copy: Math.max(0, totalCopy - vmCopySum),
         enc: Math.max(0, totalEnc - vmEncSum),
         dec: Math.max(0, totalDec - vmDecSum)
       };
+
       consumers.unshift({
         key: '__host__',
         name: '宿主',
         kind: 'host',
         roleTag: '宿主桌面与系统合成',
+        shortRole: '桌面合成',
         color: HOST_LED_HOST_COLOR,
         engines: hostEngines,
-        peakPct: Math.max(hostEngines.d3, hostEngines.copy, hostEngines.enc, hostEngines.dec),
+        peakPct: Math.max(hostEngines.d3 || 0, hostEngines.copy || 0, hostEngines.enc || 0, hostEngines.dec || 0),
         active: true
       });
 
@@ -1743,24 +2120,49 @@ function buildHostGpuBreakdown() {
       }));
 
       const totalPct = Math.max(...engines.map((e) => e.total), 0);
-      const totalWeight = consumers.reduce((s, c) => s + c.peakPct, 0) || 1;
+      const totalWeight = consumers.reduce((s, c) => s + (c.peakPct || 0), 0) || 1;
       const shareBar = consumers.map((c) => ({
         key: c.key,
         name: c.name,
         color: c.color,
-        pctOfCard: c.peakPct,
-        shareRatio: (c.peakPct / totalWeight) * totalPct
+        pctOfCard: c.peakPct || 0,
+        shareRatio: ((c.peakPct || 0) / totalWeight) * totalPct
       }));
 
-      return { gpuIdx, gpu, totalPct, consumers, engines, shareBar };
+      return { gpuIdx, gpu, totalPct, attributable, consumers, engines, shareBar };
     });
 
-    const primary = cards[0];
-    const hostItem = primary
-      ? primary.consumers.find((c) => c.key === '__host__')
-      : { key: '__host__', name: '宿主', color: HOST_LED_HOST_COLOR, peakPct: 0 };
-    const vmItems = primary ? primary.consumers.filter((c) => c.kind === 'vm') : [];
-    return { cards, hostItem, vmItems, orderedItems: [hostItem, ...vmItems] };
+    const hostItem = {
+      key: '__host__',
+      name: '宿主',
+      color: HOST_LED_HOST_COLOR,
+      peakPct: cards.reduce((m, c) => Math.max(m, c.consumers.find((x) => x.key === '__host__')?.peakPct || 0), 0),
+      gpuIndices: cards.map((c) => c.gpuIdx)
+    };
+    const vmByKey = new Map();
+    cards.forEach((c) => {
+      c.consumers
+        .filter((x) => x.kind === 'vm')
+        .forEach((x) => {
+          const prev = vmByKey.get(x.key);
+          if (!prev) {
+            vmByKey.set(x.key, {
+              key: x.key,
+              name: x.name,
+              color: x.color,
+              peakPct: x.peakPct ?? 0,
+              gpuIndices: [c.gpuIdx]
+            });
+          } else {
+            prev.peakPct = Math.max(prev.peakPct, x.peakPct ?? 0);
+            if (!prev.gpuIndices.includes(c.gpuIdx)) prev.gpuIndices.push(c.gpuIdx);
+          }
+        });
+    });
+    const vmItems = Array.from(vmByKey.values());
+    const activeIdx = Math.min(cards.length - 1, Math.max(0, Number(hostState.selectedGpuIdx) || 0));
+    const activeCard = cards[activeIdx] || cards[0];
+    return { cards, activeCard, multiGpu, hostItem, vmItems, orderedItems: [hostItem, ...vmItems] };
   }
 
   const vmCount = Math.max(1, Number(hostState.mockVmCount) || HOST_SYS.runningVmCount || 2);
@@ -1770,33 +2172,49 @@ function buildHostGpuBreakdown() {
     color: i < HOST_LED_VM_PALETTE.length ? HOST_LED_VM_PALETTE[i] : HOST_LED_OTHER_COLOR
   }));
 
-  const cards = (hostState.gpus || []).map((gpu, gpuIdx) => {
-    const hostEngines = { d3: 4, copy: 1, enc: 0, dec: 1 };
+  const cards = gpus.map((gpu, gpuIdx) => {
+    const baseD3 = Math.round(gpu.pts3d?.at(-1) ?? gpu.pct ?? 14);
+    const baseCopy = Math.round(gpu.ptsCopy?.at(-1) ?? 4);
+    const baseEnc = Math.round(gpu.ptsEnc?.at(-1) ?? 2);
+    const baseDec = Math.round(gpu.ptsDec?.at(-1) ?? 8);
+
+    const assignedNames = Array.isArray(gpu.assignedVms) ? gpu.assignedVms : [];
+    const matched = assignedNames.length ? vms.filter((vm) => assignedNames.includes(vm.name)) : [];
+    const extraPool = vms.slice(2).filter((_, exIdx) => exIdx % Math.max(1, gpus.length) === gpuIdx);
+    const activePool = [...matched, ...extraPool];
+    if (!activePool.length && gpu.partitionable && vms.length) {
+      activePool.push(vms[gpuIdx % vms.length]);
+    }
+
+    const hostEngines = gpu.mockHost || { d3: 4, copy: 1, enc: 0, dec: 1 };
+
     const consumers = [
       {
         key: '__host__',
         name: '宿主',
         kind: 'host',
         roleTag: '宿主桌面与系统合成',
+        shortRole: '桌面合成',
         color: HOST_LED_HOST_COLOR,
         engines: hostEngines,
-        peakPct: Math.max(hostEngines.d3, hostEngines.copy, hostEngines.enc, hostEngines.dec),
+        peakPct: Math.max(hostEngines.d3 || 0, hostEngines.copy || 0, hostEngines.enc || 0, hostEngines.dec || 0),
         active: true
       }
     ];
 
     if (gpu.partitionable) {
-      const activePool = vms.slice(0, Math.min(vms.length, Math.max(2, vmCount)));
       activePool.forEach((vm, idx) => {
-        const d3 = idx === 0 ? 6 : idx === 1 ? 4 : Math.max(0, 3 - (idx % 3));
-        const copy = idx === 0 ? 2 : idx === 1 ? 1 : idx % 2 === 0 ? 1 : 0;
-        const enc = idx === 0 ? 2 : 0;
-        const dec = idx === 0 ? 2 : idx === 1 ? 5 : idx % 2 === 1 ? 2 : 0;
+        const profile = Array.isArray(gpu.mockVmProfiles) && gpu.mockVmProfiles[idx];
+        const d3 = profile ? profile.d3 : (idx === 0 ? 6 : idx === 1 ? 4 : Math.max(1, 3 - (idx % 3)));
+        const copy = profile ? profile.copy : (idx === 0 ? 2 : idx === 1 ? 1 : (idx % 2 === 0 ? 1 : 0));
+        const enc = profile ? profile.enc : (idx === 0 ? 2 : 0);
+        const dec = profile ? profile.dec : (idx === 0 ? 2 : idx === 1 ? 5 : (idx % 2 === 1 ? 2 : 0));
         consumers.push({
           key: vm.key,
           name: vm.name,
           kind: 'vm',
           roleTag: 'GPU-PV 分区',
+          shortRole: 'GPU-PV',
           color: vm.color,
           engines: { d3, copy, enc, dec },
           peakPct: Math.max(d3, copy, enc, dec),
@@ -1805,12 +2223,14 @@ function buildHostGpuBreakdown() {
       });
     }
 
-    const sumEngine = (prop) => Math.min(100, consumers.reduce((s, c) => s + (c.engines[prop] || 0), 0));
+    const sumOrBase = (prop, fallback) =>
+      Math.min(100, consumers.reduce((s, c) => s + (c.engines[prop] || 0), 0) || fallback);
+
     const engines = [
-      { id: 'd3', label: '3D 渲染', total: sumEngine('d3') },
-      { id: 'copy', label: '数据复制', total: sumEngine('copy') },
-      { id: 'enc', label: '视频编码', total: sumEngine('enc') },
-      { id: 'dec', label: '视频解码', total: sumEngine('dec') }
+      { id: 'd3', label: '3D 渲染', total: sumOrBase('d3', baseD3) },
+      { id: 'copy', label: '数据复制', total: sumOrBase('copy', baseCopy) },
+      { id: 'enc', label: '视频编码', total: sumOrBase('enc', baseEnc) },
+      { id: 'dec', label: '视频解码', total: sumOrBase('dec', baseDec) }
     ].map((eng) => ({
       ...eng,
       slices: consumers
@@ -1824,33 +2244,61 @@ function buildHostGpuBreakdown() {
     }));
 
     const totalPct = Math.max(...engines.map((e) => e.total), 0);
-    const totalWeight = consumers.reduce((s, c) => s + c.peakPct, 0) || 1;
+    const totalWeight = consumers.reduce((s, c) => s + (c.peakPct || 0), 0) || 1;
     const shareBar = consumers.map((c) => ({
       key: c.key,
       name: c.name,
       color: c.color,
-      pctOfCard: c.peakPct,
-      shareRatio: (c.peakPct / totalWeight) * totalPct
+      pctOfCard: c.peakPct || 0,
+      shareRatio: ((c.peakPct || 0) / totalWeight) * totalPct
     }));
 
     return {
       gpuIdx,
       gpu,
       totalPct,
+      attributable: true,
       consumers,
       engines,
       shareBar
     };
   });
 
-  const primary = cards[0];
-  const hostItem = primary
-    ? primary.consumers.find((c) => c.key === '__host__')
-    : { key: '__host__', name: '宿主', color: HOST_LED_HOST_COLOR, peakPct: 0 };
-  const vmItems = primary ? primary.consumers.filter((c) => c.kind === 'vm') : [];
+  const activeCard = cards[0] || null;
+  const hostPeakGlobal = cards.reduce((m, c) => Math.max(m, c.consumers.find((x) => x.key === '__host__')?.peakPct || 0), 0);
+  const hostItem = {
+    key: '__host__',
+    name: '宿主',
+    color: HOST_LED_HOST_COLOR,
+    peakPct: hostPeakGlobal,
+    gpuIndices: cards.map((c) => c.gpuIdx)
+  };
+  const vmByKey = new Map();
+  cards.forEach((c) => {
+    c.consumers
+      .filter((x) => x.kind === 'vm')
+      .forEach((x) => {
+        const prev = vmByKey.get(x.key);
+        if (!prev) {
+          vmByKey.set(x.key, {
+            key: x.key,
+            name: x.name,
+            color: x.color,
+            peakPct: x.peakPct ?? 0,
+            gpuIndices: [c.gpuIdx]
+          });
+        } else {
+          prev.peakPct = Math.max(prev.peakPct, x.peakPct ?? 0);
+          if (!prev.gpuIndices.includes(c.gpuIdx)) prev.gpuIndices.push(c.gpuIdx);
+        }
+      });
+  });
+  const vmItems = Array.from(vmByKey.values());
 
   return {
     cards,
+    activeCard,
+    multiGpu,
     hostItem,
     vmItems,
     orderedItems: [hostItem, ...vmItems]
@@ -1858,17 +2306,22 @@ function buildHostGpuBreakdown() {
 }
 
 function renderHostGpuLegendSidebar(gpuData, focusKey) {
-  const makeChip = (it) => `
-    <button type="button"
-      class="host-led-chip host-mem-side-chip ${hostState.selectedGpuKey === it.key ? 'is-selected' : ''} ${focusKey === it.key ? 'is-hovered' : ''}"
-      data-gpu-key="${esc(it.key)}"
-      title="${esc(it.name)} (峰值引擎 ${it.peakPct}%)"
-      style="--led-color:${it.color};">
-      <span class="host-led-swatch"></span>
-      <span class="host-led-chip-name">${esc(it.name)}</span>
-      <span class="host-mem-chip-gb">${it.peakPct}%</span>
-    </button>
-  `;
+  const makeChip = (it) => {
+    const gList = (it.gpuIndices || []).map((idx) => `GPU ${idx}`).join(' / ');
+    const tipText = it.key === '__host__'
+      ? `${it.name} (${gpuData.cards.length} 张显卡)`
+      : (gList ? `${it.name} (${gList})` : it.name);
+    return `
+      <button type="button"
+        class="host-led-chip ${hostState.selectedGpuKey === it.key ? 'is-selected' : ''} ${focusKey === it.key ? 'is-hovered' : ''}"
+        data-gpu-key="${esc(it.key)}"
+        title="${esc(tipText)}"
+        style="--led-color:${it.color};">
+        <span class="host-led-swatch"></span>
+        <span class="host-led-chip-name">${esc(it.name)}</span>
+      </button>
+    `;
+  };
 
   return `
     <div class="host-rel-summary-box">
@@ -1882,123 +2335,161 @@ function renderHostGpuLegendSidebar(gpuData, focusKey) {
   `;
 }
 
+function renderHostGpuHeaderHtml(card) {
+  return `
+    <div class="host-gpu-head">
+      <div class="host-gpu-head-left">
+        <div class="host-gpu-head-icon"><span class="fi">&#xF211;</span></div>
+        <div class="host-gpu-head-title-row">
+          <span class="host-gpu-head-idx">GPU ${card.gpuIdx}</span>
+          <span class="host-gpu-head-model">${esc(card.gpu.name)}</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderHostConsumerRingSvgHtml({
+  slices,
+  focusKey = null,
+  rIn = 12,
+  rOut = 24,
+  attrName = 'data-gpu-key',
+  getKey = (s) => s.key,
+  getVal = (s) => s.val,
+  getName = (s) => s.name
+}) {
+  const rMid = (rIn + rOut) / 2;
+  const ringW = rOut - rIn;
+  const positiveSlices = (slices || []).filter((s) => (getVal(s) || 0) > 0);
+  const keptArcs = [];
+  let otherArcPct = 0;
+
+  positiveSlices.forEach((s) => {
+    const key = getKey(s);
+    const val = getVal(s) || 0;
+    const isHost = key === '__host__';
+    const isFocused = Boolean(focusKey && key === focusKey);
+    if (isHost || isFocused || (keptArcs.length < 5 && val >= 2)) {
+      keptArcs.push({ key, val, color: s.color, name: getName(s) });
+    } else {
+      otherArcPct += val;
+    }
+  });
+  if (otherArcPct > 0) {
+    keptArcs.push({ key: '__other__', val: otherArcPct, color: HOST_LED_OTHER_COLOR, name: '其他' });
+  }
+
+  let curDeg = -90;
+  const arcsHtml = keptArcs
+    .map((s) => {
+      const spanDeg = (s.val / 100) * 360;
+      const gap = spanDeg > 5 ? 2.4 : 0;
+      const isSelectable = Boolean(s.key) && s.key !== '__other__';
+      const isFocused = isSelectable && Boolean(focusKey) && s.key === focusKey;
+      const sliceROut = isFocused ? rOut + 2 : rOut;
+      const d = annularSectorPath(29, 29, rIn, sliceROut, curDeg + gap / 2, curDeg + spanDeg - gap / 2, 2.5);
+      curDeg += spanDeg;
+      if (!d) return '';
+      const op = focusKey && s.key !== focusKey ? 0.16 : 1;
+      const cls = ['host-ring-slice', isSelectable ? 'is-selectable' : '', isFocused ? 'is-focused' : ''].filter(Boolean).join(' ');
+      const hitAttr = isSelectable ? ` ${attrName}="${esc(s.key)}"` : '';
+      return `<path class="${cls}" d="${d}" fill="${s.color}" opacity="${op}"${hitAttr} />`;
+    })
+    .join('');
+
+  return `
+    <svg class="host-led-ring-svg" viewBox="0 0 58 58">
+      <circle cx="29" cy="29" r="${rMid}" fill="none" stroke="color-mix(in srgb, var(--TextFillColorPrimaryBrush) 6%, transparent)" stroke-width="${ringW}" />
+      ${arcsHtml}
+    </svg>
+  `;
+}
+
 function renderHostGpuOverview(gpuData, focusKey) {
-  const focusItem = focusKey ? gpuData.orderedItems.find((it) => it.key === focusKey) : null;
+  const hlCls = `is-hl-${hostState.highlightStyle || 'elevated-card'}`;
+  const activeEngKey = hostState.selectedGpuEngine;
+  const hasEngSelection = Boolean(activeEngKey);
 
-  const cardsHtml = gpuData.cards
+  const sectionsHtml = gpuData.cards
     .map((card) => {
-      const focusedConsumer = focusKey ? card.consumers.find((c) => c.key === focusKey) : null;
-      const headVal = focusedConsumer ? `${focusedConsumer.peakPct}%` : `${card.totalPct}%`;
-      const headSub = focusedConsumer ? `${focusedConsumer.name} 峰值引擎` : '物理总负载';
-      const headColor = focusedConsumer ? focusedConsumer.color : '';
+      const assignedOnCard = !focusKey || card.consumers.some((c) => c.key === focusKey);
+      const sectionDimmed = !hasEngSelection && Boolean(focusKey) && !assignedOnCard;
 
-      const composeSegs = card.shareBar
-        .filter((s) => s.shareRatio > 0)
-        .map((s) => {
-          const isFocused = focusKey === s.key;
-          const isDimmed = Boolean(focusKey) && !isFocused;
-          return `<div class="host-share-seg ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}" data-gpu-key="${esc(s.key)}" style="width:${Math.max(1.5, s.shareRatio).toFixed(2)}%;background:${s.color};" title="${esc(s.name)} ${s.pctOfCard}%"></div>`;
-        })
-        .join('');
-
-      const enginesHtml = card.engines
+      const tilesHtml = card.engines
         .map((eng) => {
-          const focusedSlice = focusKey ? eng.slices.find((s) => s.key === focusKey) : null;
-          const engDisplayPct = focusKey ? (focusedSlice ? focusedSlice.val : 0) : eng.total;
-          const engBars = eng.slices
-            .map((s) => {
-              const isFocused = focusKey === s.key;
-              const isDimmed = Boolean(focusKey) && !isFocused;
-              return `<div class="host-share-seg ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}" data-gpu-key="${esc(s.key)}" style="width:${Math.max(1.5, s.val).toFixed(2)}%;background:${s.color};" title="${esc(s.name)} ${s.val}%"></div>`;
-            })
-            .join('');
-          const miniTags = eng.slices.length
-            ? eng.slices
-                .map((s) => {
-                  const isFocused = focusKey === s.key;
-                  const isDimmed = Boolean(focusKey) && !isFocused;
-                  return `<span class="host-engine-tag ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}" data-gpu-key="${esc(s.key)}"><span class="host-engine-dot" style="background:${s.color};"></span><span>${esc(s.name)}</span><span class="host-engine-num">${s.val}%</span></span>`;
-                })
-                .join('')
-            : '<span class="host-engine-empty">当前空闲 (0%)</span>';
+          const engFullKey = `${card.gpuIdx}:${eng.id}`;
+          const isCardSelected = activeEngKey === engFullKey;
+          const focusedSlice = focusKey && card.attributable ? eng.slices.find((s) => s.key === focusKey) : null;
+          const displayPct = focusKey && card.attributable ? (focusedSlice ? focusedSlice.val : 0) : eng.total;
+          const activeColor = focusKey && card.attributable
+            ? (displayPct > 0 ? focusedSlice?.color || '' : 'var(--TextFillColorTertiaryBrush)')
+            : '';
+
+          const positiveSlices = eng.slices.filter((s) => s.val > 0);
+          const ringSvgHtml = renderHostConsumerRingSvgHtml({
+            slices: positiveSlices,
+            focusKey: card.attributable ? focusKey : null,
+            rIn: 12,
+            rOut: 24,
+            attrName: 'data-gpu-key',
+            getKey: (s) => s.key,
+            getVal: (s) => s.val,
+            getName: (s) => s.name
+          });
+
+          const isTileHighlighted = hasEngSelection
+            ? isCardSelected
+            : Boolean(focusKey && card.attributable && focusedSlice && focusedSlice.val > 0);
+          const isTileDimmed = hasEngSelection
+            ? !isCardSelected
+            : Boolean(focusKey && card.attributable && (!focusedSlice || focusedSlice.val === 0));
+
+          const tipJson = JSON.stringify({
+            gpuIdx: card.gpuIdx,
+            id: eng.id,
+            label: eng.label,
+            slices: positiveSlices.map((s) => ({ key: s.key, name: s.name, pct: s.val, color: s.color }))
+          });
+
+          const cls = [
+            'host-led-tile',
+            'is-art',
+            'is-ring',
+            'host-gpu-eng-card',
+            isTileDimmed ? 'is-dimmed' : '',
+            isTileHighlighted ? 'is-highlighted' : '',
+            isCardSelected ? 'is-core-selected' : ''
+          ].filter(Boolean).join(' ');
 
           return `
-            <div class="host-engine-tile">
-              <div class="host-engine-head">
-                <span class="host-engine-name">${esc(eng.label)}</span>
-                <span class="host-engine-val" style="${focusedSlice ? `color:${focusedSlice.color};` : ''}">${engDisplayPct}%</span>
+            <div class="${cls}" data-gpu-eng-card="${engFullKey}" data-gpu-tip="${esc(tipJson)}" style="--led-color:${focusedSlice?.color || HOST_LED_HOST_COLOR};">
+              <div class="host-led-ring-wrap">
+                ${ringSvgHtml}
+                <div class="host-led-ring-meta">
+                  <span class="host-led-lp-wrap">
+                    <span class="host-led-lp">${esc(eng.label)}</span>
+                  </span>
+                  <span class="host-led-pct" style="${activeColor ? `color:${activeColor};` : ''}">${displayPct}%</span>
+                </div>
               </div>
-              <div class="host-share-bar is-engine">${engBars}</div>
-              <div class="host-engine-tags">${miniTags}</div>
             </div>
-          `;
-        })
-        .join('');
-
-      const consumerRows = card.consumers
-        .map((c) => {
-          const isFocused = focusKey === c.key;
-          const isDimmed = Boolean(focusKey) && !isFocused;
-          return `
-            <button type="button" class="host-share-row ${isFocused ? 'is-focused' : ''} ${isDimmed ? 'is-dimmed' : ''}" data-gpu-key="${esc(c.key)}">
-              <div class="host-share-row-left">
-                <span class="host-share-bar-swatch" style="background:${c.color};"></span>
-                <span class="host-share-row-name">${esc(c.name)}</span>
-                <span class="vm-badge is-mini"><span class="vm-badge-text">${esc(c.roleTag)}</span></span>
-              </div>
-              <div class="host-share-row-metrics">
-                <span class="host-io-pill">3D <b>${c.engines.d3}%</b></span>
-                <span class="host-io-pill">复制 <b>${c.engines.copy}%</b></span>
-                <span class="host-io-pill">编码 <b>${c.engines.enc}%</b></span>
-                <span class="host-io-pill">解码 <b>${c.engines.dec}%</b></span>
-              </div>
-            </button>
           `;
         })
         .join('');
 
       return `
-        <div class="host-share-card">
-          <div class="host-share-card-head">
-            <div class="host-share-card-title-wrap">
-              <div class="host-share-icon-box"><span class="fi">&#xF211;</span></div>
-              <div class="host-share-title-col">
-                <div class="host-share-title-line">
-                  <span class="host-share-title">GPU ${card.gpuIdx}</span>
-                  <span class="host-share-model">${esc(card.gpu.name)}</span>
-                </div>
-                <div class="host-share-badges">
-                  <span class="vm-badge is-mini"><span class="vm-badge-text">${card.gpu.partitionable ? 'GPU-PV 可分区' : '不支持分区'}</span></span>
-                  <span class="vm-badge is-mini"><span class="vm-badge-text">专用显存 ${esc(card.gpu.vram)}</span></span>
-                  ${card.gpu.partitionable ? `<span class="vm-badge is-mini"><span class="vm-badge-text">${card.consumers.length - 1} 台共享 VM</span></span>` : ''}
-                </div>
-              </div>
-            </div>
-            <div class="host-share-reading-col">
-              <span class="host-share-reading" style="${headColor ? `color:${headColor};` : ''}">${headVal}</span>
-              <span class="host-share-reading-sub">${esc(headSub)}</span>
-            </div>
-          </div>
-
-          <div class="host-share-bar-section">
-            <div class="host-share-bar-label">
-              <span>物理显卡能力分摊（0 - 100%）</span>
-              <span>${focusItem ? `${esc(focusItem.name)} 占用 ${focusedConsumer ? focusedConsumer.peakPct : 0}%` : `总占用 ${card.totalPct}%`}</span>
-            </div>
-            <div class="host-share-bar is-hero">${composeSegs}</div>
-          </div>
-
-          <div class="host-engine-grid">${enginesHtml}</div>
-
-          <div class="host-share-rows">${consumerRows}</div>
-        </div>
+        <section class="host-gpu-section ${sectionDimmed ? 'is-dimmed' : ''}" data-gpu-section="${card.gpuIdx}">
+          ${renderHostGpuHeaderHtml(card)}
+          <div class="host-gpu-ring-grid">${tilesHtml}</div>
+        </section>
       `;
     })
     .join('');
 
   return `
-    <div class="host-rel-wrap is-legend-right">
-      <div class="host-share-stage">${cardsHtml}</div>
+    <div class="host-rel-wrap is-legend-right ${hlCls}">
+      <div class="host-gpu-stage">${sectionsHtml}</div>
       ${renderHostGpuLegendSidebar(gpuData, focusKey)}
     </div>
   `;
@@ -2368,63 +2859,9 @@ function buildHostNetworkTopology() {
     });
   });
 
-  const colW = 252;
-  const col1X = 32;
-  const col2X = 440;
-  const col3X = 848;
-  const topPad = 24;
-  const bottomPad = 24;
-
-  const nicH = 88;
-  const nicGap = 14;
-  const swH = 92;
-  const swGap = 18;
-  const vmGap = 14;
-
-  const hostPorts = switches
-    .filter((sw) => sw.allowManagementOs)
-    .map((sw) => ({
-      id: `hostport:${sw.id}`,
-      switchId: sw.id,
-      switchName: sw.name,
-      name: `vEthernet (${sw.name})`,
-      ip: sw.ipv4 && sw.ipv4 !== '---' ? sw.ipv4 : '仅二层共享',
-      active: true
-    }));
-
-  const rightEntries = [
-    {
-      nodeId: 'host-os',
-      kind: 'host',
-      name: '宿主 OS 端口',
-      running: true,
-      color: HOST_LED_HOST_COLOR,
-      ports: hostPorts
-    },
-    ...Array.from(vmPortsByName.entries()).map(([vmName, ports]) => {
-      const vmInfo = vmMetaByName.get(vmName) || { running: true, color: '#6CCB5F' };
-      return {
-        nodeId: `vm:${vmName}`,
-        kind: 'vm',
-        name: vmName,
-        running: Boolean(vmInfo.running),
-        color: vmInfo.color,
-        ports
-      };
-    })
-  ];
-
-  rightEntries.forEach((entry) => {
-    entry.height = 38 + Math.max(1, entry.ports.length) * 30 + 8;
-  });
-
-  const col1Total = nics.length * nicH + Math.max(0, nics.length - 1) * nicGap;
-  const col2Total = switches.length * swH + Math.max(0, switches.length - 1) * swGap;
-  const col3Total =
-    rightEntries.reduce((s, r) => s + r.height, 0) + Math.max(0, rightEntries.length - 1) * vmGap;
-  const stageSpan = Math.max(360, col1Total, col2Total, col3Total);
-  const canvasW = 1132;
-  const canvasH = topPad + stageSpan + bottomPad;
+  const cardStyle = TOPOLOGY_CARD_STYLES.includes(hostState.topoCardStyle)
+    ? hostState.topoCardStyle
+    : 'baseline-polished';
 
   const mediaIcons = {
     wired: '&#xE839;',
@@ -2438,53 +2875,121 @@ function buildHostNetworkTopology() {
     cellular: '蜂窝 5G',
     tunnel: '三层隧道'
   };
+  const mediaColors = {
+    wired: '#4CC2FF',
+    wifi: '#38BDF8',
+    cellular: '#F59E0B',
+    tunnel: '#10B981'
+  };
 
-  let curY = topPad + Math.round((stageSpan - col1Total) / 2);
+  const hostPorts = switches
+    .filter((sw) => sw.allowManagementOs)
+    .map((sw) => ({
+      id: `hostport:${sw.id}`,
+      switchId: sw.id,
+      switchName: sw.name,
+      name: `vEthernet (${sw.name})`,
+      ip: sw.ipv4 && sw.ipv4 !== '---' ? sw.ipv4 : '仅二层共享',
+      active: true
+    }));
+
+  const vmEntries = Array.from(vmPortsByName.entries()).map(([vmName, ports]) => {
+    const vmInfo = vmMetaByName.get(vmName) || { running: true, color: '#6CCB5F' };
+    return {
+      nodeId: `vm:${vmName}`,
+      kind: 'vm',
+      name: vmName,
+      running: Boolean(vmInfo.running),
+      color: vmInfo.color,
+      ports
+    };
+  });
+
+  const rightEntries = [
+    {
+      nodeId: 'host-os',
+      kind: 'host',
+      name: '宿主 OS 端口',
+      running: true,
+      color: HOST_LED_HOST_COLOR,
+      ports: hostPorts
+    },
+    ...vmEntries
+  ];
+
+  const getSwitchShortBadge = (sw) =>
+    sw.mode === 'Bridge' ? '外部桥接' : sw.mode === 'NAT' ? 'NAT (HCN)' : '仅内网隔离';
+
+  const layoutPresets = {
+    'baseline-polished': { colW: 256, col1X: 30, col2X: 438, col3X: 846, canvasW: 1132, nicH: 94, swH: 98, vmHeadH: 40, portH: 27, portGap: 4, vmPadBottom: 9 },
+    legacy: { colW: 252, col1X: 32, col2X: 440, col3X: 848, canvasW: 1132, nicH: 88, swH: 92, vmHeadH: 38, portH: 26, portGap: 4, vmPadBottom: 8 }
+  };
+  const preset = layoutPresets[cardStyle] || layoutPresets['baseline-polished'];
+  const { colW, col1X, col2X, col3X, canvasW, nicH, swH, vmHeadH, portH, portGap, vmPadBottom } = preset;
+  const topPad = 24;
+  const bottomPad = 24;
+  const nicGap = 14;
+  const swGap = 18;
+  const vmGap = 14;
+
+  rightEntries.forEach((entry) => {
+    const portCount = Math.max(1, entry.ports.length);
+    entry.height = vmHeadH + portCount * portH + (portCount - 1) * portGap + vmPadBottom;
+  });
+
+  const nicTotal = nics.length * nicH + Math.max(0, nics.length - 1) * nicGap;
+  const swTotal = switches.length * swH + Math.max(0, switches.length - 1) * swGap;
+  const vmTotal = rightEntries.reduce((s, r) => s + r.height, 0) + Math.max(0, rightEntries.length - 1) * vmGap;
+  const stageSpan = Math.max(360, nicTotal, swTotal, vmTotal);
+  const canvasH = topPad + stageSpan + bottomPad;
+
+  let curY = topPad + Math.round((stageSpan - nicTotal) / 2);
   const nicNodes = nics.map((nic) => {
     const node = {
       nodeId: `nic:${nic.id}`,
       nic,
       icon: mediaIcons[nic.media] || '&#xE774;',
       mediaLabel: mediaLabels[nic.media] || '网卡',
+      mediaColor: mediaColors[nic.media] || '#4CC2FF',
       x: col1X,
       y: curY,
       w: colW,
       h: nicH,
-      portRightX: col1X + colW,
-      portRightY: curY + Math.round(nicH / 2)
+      portAnchorX: col1X + colW,
+      portAnchorY: curY + Math.round(nicH / 2)
     };
     curY += nicH + nicGap;
     return node;
   });
 
-  curY = topPad + Math.round((stageSpan - col2Total) / 2);
+  curY = topPad + Math.round((stageSpan - swTotal) / 2);
   const switchNodes = switches.map((sw) => {
     const modeColor = sw.mode === 'Bridge' ? '#3898EC' : sw.mode === 'NAT' ? '#00B7C3' : '#9D5CE6';
     const node = {
       nodeId: `sw:${sw.id}`,
       sw,
-      modeLabel: sw.mode === 'Bridge' ? '外部桥接' : sw.mode === 'NAT' ? 'NAT (HCN)' : '仅内网隔离',
+      modeLabel: getSwitchShortBadge(sw),
       modeColor,
       x: col2X,
       y: curY,
       w: colW,
       h: swH,
-      portLeftX: col2X,
-      portLeftY: curY + Math.round(swH / 2),
-      portRightX: col2X + colW,
-      portRightY: curY + Math.round(swH / 2)
+      portInX: col2X,
+      portInY: curY + Math.round(swH / 2),
+      portOutX: col2X + colW,
+      portOutY: curY + Math.round(swH / 2)
     };
     curY += swH + swGap;
     return node;
   });
 
-  curY = topPad + Math.round((stageSpan - col3Total) / 2);
+  curY = topPad + Math.round((stageSpan - vmTotal) / 2);
   const rightNodes = rightEntries.map((entry) => {
     const ports = entry.ports.length
       ? entry.ports.map((p, idx) => ({
           ...p,
           anchorX: col3X,
-          anchorY: curY + 38 + idx * 30 + 15
+          anchorY: curY + vmHeadH + idx * (portH + portGap) + Math.round(portH / 2)
         }))
       : [];
     const node = {
@@ -2502,7 +3007,7 @@ function buildHostNetworkTopology() {
   const edges = [];
   const primaryNic = nicNodes.find((n) => n.nic.media === 'wired') || nicNodes[0];
 
-  // Upstream NIC -> Virtual Switch edges
+  // Physical NIC -> Virtual Switch
   switchNodes.forEach((swNode) => {
     const { sw } = swNode;
     if (sw.mode === 'Bridge') {
@@ -2513,10 +3018,10 @@ function buildHostNetworkTopology() {
           id: `edge:${matchedNic.nodeId}:${swNode.nodeId}`,
           fromId: matchedNic.nodeId,
           toId: swNode.nodeId,
-          x1: matchedNic.portRightX,
-          y1: matchedNic.portRightY,
-          x2: swNode.portLeftX,
-          y2: swNode.portLeftY,
+          x1: matchedNic.portAnchorX,
+          y1: matchedNic.portAnchorY,
+          x2: swNode.portInX,
+          y2: swNode.portInY,
           kind: 'bridge',
           color: swNode.modeColor,
           active: true,
@@ -2526,15 +3031,15 @@ function buildHostNetworkTopology() {
     } else if (sw.mode === 'NAT') {
       const natSources = nicNodes.filter((n) => n === primaryNic || n.nic.media === 'tunnel' || n.nic.media === 'cellular');
       natSources.forEach((nicNode, i) => {
-        const yOffset = (i - (natSources.length - 1) / 2) * 14;
+        const spread = (i - (natSources.length - 1) / 2) * 14;
         edges.push({
           id: `edge:${nicNode.nodeId}:${swNode.nodeId}`,
           fromId: nicNode.nodeId,
           toId: swNode.nodeId,
-          x1: nicNode.portRightX,
-          y1: nicNode.portRightY,
-          x2: swNode.portLeftX,
-          y2: swNode.portLeftY + yOffset,
+          x1: nicNode.portAnchorX,
+          y1: nicNode.portAnchorY,
+          x2: swNode.portInX,
+          y2: swNode.portInY + spread,
           kind: 'nat',
           color: swNode.modeColor,
           active: nicNode === primaryNic,
@@ -2544,7 +3049,7 @@ function buildHostNetworkTopology() {
     }
   });
 
-  // Switch -> Right Host OS / VM Port edges (distribute switch right anchors smoothly)
+  // Virtual Switch -> Host OS / VM Port
   switchNodes.forEach((swNode) => {
     const targets = [];
     rightNodes.forEach((rNode) => {
@@ -2563,8 +3068,9 @@ function buildHostNetworkTopology() {
         id: `edge:${swNode.nodeId}:${t.port.id}`,
         fromId: swNode.nodeId,
         toId: t.rightNode.nodeId,
-        x1: swNode.portRightX,
-        y1: Math.round(swNode.portRightY + spread),
+        portId: t.port.id,
+        x1: swNode.portOutX,
+        y1: Math.round(swNode.portOutY + spread),
         x2: t.port.anchorX,
         y2: t.port.anchorY,
         kind: isHostEdge ? 'host' : isActive ? 'vm-live' : 'vm-off',
@@ -2587,49 +3093,25 @@ function buildHostNetworkTopology() {
         minY: Math.min(...allBounds.map((n) => n.y)),
         maxY: Math.max(...allBounds.map((n) => n.y + n.h))
       }
-    : {
-        minX: col1X,
-        maxX: col3X + colW,
-        minY: topPad,
-        maxY: canvasH - bottomPad
-      };
+    : { minX: 24, maxX: canvasW - 24, minY: 20, maxY: canvasH - 20 };
 
   return {
+    cardStyle,
     canvasW,
     canvasH,
     bounds,
-    col1X,
-    col2X,
-    col3X,
-    colW,
     nicNodes,
     switchNodes,
     rightNodes,
     edges
   };
 }
-
 function computeHostTopoFocusSets(topo, focusId) {
   if (!focusId) return null;
   const activeNodes = new Set([focusId]);
   const activeEdges = new Set();
 
-  if (focusId.startsWith('nic:')) {
-    const adjSwitches = new Set();
-    topo.edges.forEach((e) => {
-      if (e.fromId === focusId) {
-        activeEdges.add(e.id);
-        activeNodes.add(e.toId);
-        adjSwitches.add(e.toId);
-      }
-    });
-    topo.edges.forEach((e) => {
-      if (adjSwitches.has(e.fromId)) {
-        activeEdges.add(e.id);
-        activeNodes.add(e.toId);
-      }
-    });
-  } else if (focusId.startsWith('sw:')) {
+  if (focusId.startsWith('sw:')) {
     topo.edges.forEach((e) => {
       if (e.fromId === focusId || e.toId === focusId) {
         activeEdges.add(e.id);
@@ -2637,19 +3119,38 @@ function computeHostTopoFocusSets(topo, focusId) {
         activeNodes.add(e.toId);
       }
     });
-  } else {
+  } else if (focusId.startsWith('nic:')) {
     const adjSwitches = new Set();
     topo.edges.forEach((e) => {
-      if (e.toId === focusId) {
+      const other = e.fromId === focusId ? e.toId : e.toId === focusId ? e.fromId : null;
+      if (other && other.startsWith('sw:')) {
         activeEdges.add(e.id);
-        activeNodes.add(e.fromId);
-        adjSwitches.add(e.fromId);
+        activeNodes.add(other);
+        adjSwitches.add(other);
       }
     });
     topo.edges.forEach((e) => {
-      if (adjSwitches.has(e.toId)) {
+      const swEnd = adjSwitches.has(e.fromId) ? e.toId : adjSwitches.has(e.toId) ? e.fromId : null;
+      if (swEnd && !swEnd.startsWith('nic:')) {
         activeEdges.add(e.id);
-        activeNodes.add(e.fromId);
+        activeNodes.add(swEnd);
+      }
+    });
+  } else {
+    const adjSwitches = new Set();
+    topo.edges.forEach((e) => {
+      const other = e.fromId === focusId ? e.toId : e.toId === focusId ? e.fromId : null;
+      if (other && other.startsWith('sw:')) {
+        activeEdges.add(e.id);
+        activeNodes.add(other);
+        adjSwitches.add(other);
+      }
+    });
+    topo.edges.forEach((e) => {
+      const swEnd = adjSwitches.has(e.fromId) ? e.toId : adjSwitches.has(e.toId) ? e.fromId : null;
+      if (swEnd && swEnd.startsWith('nic:')) {
+        activeEdges.add(e.id);
+        activeNodes.add(swEnd);
       }
     });
   }
@@ -2700,20 +3201,20 @@ function syncHostTopoViewport(page, forceAutoFit = false) {
   const zoomBtn = page?.querySelector?.('#hostTopoZoomResetBtn');
   if (!stage || !panLayer) return;
 
-  const canvasW = Number(panLayer.getAttribute('data-topo-w')) || 1132;
-  const canvasH = Number(panLayer.getAttribute('data-topo-h')) || 420;
-  const minX = Number(panLayer.getAttribute('data-topo-minx') ?? 32);
-  const maxX = Number(panLayer.getAttribute('data-topo-maxx') ?? 1100);
-  const minY = Number(panLayer.getAttribute('data-topo-miny') ?? 24);
-  const maxY = Number(panLayer.getAttribute('data-topo-maxy') ?? Math.max(24, canvasH - 24));
+  const canvasW = Number(panLayer.getAttribute('data-topo-w')) || 1136;
+  const canvasH = Number(panLayer.getAttribute('data-topo-h')) || 440;
+  const minX = Number(panLayer.getAttribute('data-topo-minx') ?? 24);
+  const maxX = Number(panLayer.getAttribute('data-topo-maxx') ?? canvasW - 24);
+  const minY = Number(panLayer.getAttribute('data-topo-miny') ?? 20);
+  const maxY = Number(panLayer.getAttribute('data-topo-maxy') ?? Math.max(20, canvasH - 20));
   const sw = stage.clientWidth || 0;
   const sh = stage.clientHeight || 0;
 
   if ((hostState.topoAutoFit || forceAutoFit) && sw > 60 && sh > 60) {
     const boundsW = Math.max(1, maxX - minX);
     const boundsH = Math.max(1, maxY - minY);
-    const fitZoom = Math.min((sw - 48) / boundsW, (sh - 48) / boundsH);
-    const nextZoom = boundsW <= sw - 48 && boundsH <= sh - 48
+    const fitZoom = Math.min((sw - 40) / boundsW, (sh - 40) / boundsH);
+    const nextZoom = boundsW <= sw - 40 && boundsH <= sh - 40
       ? 1
       : Math.floor(Math.min(1, Math.max(0.45, fitZoom)) * 100) / 100;
     const centerX = (minX + maxX) / 2;
@@ -2741,6 +3242,8 @@ function syncHostTopoViewport(page, forceAutoFit = false) {
 
 function renderHostNetworkOverview() {
   const topo = buildHostNetworkTopology();
+  const cardStyle = topo.cardStyle || 'baseline-polished';
+  const styleCls = `is-style-${cardStyle}`;
   const focusId = getHostTopoFocusId();
   const focusSets = computeHostTopoFocusSets(topo, focusId);
   const isFullscreen = Boolean(hostState.topoFullscreen);
@@ -2753,16 +3256,17 @@ function renderHostNetworkOverview() {
 
   const wiresSvg = orderedEdges
     .map((e) => {
-      const dx = Math.max(48, Math.abs(e.x2 - e.x1) * 0.48);
+      const dx = Math.max(44, Math.abs(e.x2 - e.x1) * 0.48);
       const d = `M ${e.x1} ${e.y1} C ${e.x1 + dx} ${e.y1}, ${e.x2 - dx} ${e.y2}, ${e.x2} ${e.y2}`;
       const isFocused = Boolean(focusSets) && focusSets.activeEdges.has(e.id);
       const isDimmed = Boolean(focusSets) && !isFocused;
       const cls = ['host-topo-edge', `is-${e.kind}`, isFocused ? 'is-focused' : '', isDimmed ? 'is-dimmed' : '']
         .filter(Boolean)
         .join(' ');
+      const dashAttr = e.kind === 'nat' || e.kind === 'vm-off' ? 'stroke-dasharray="4 3"' : '';
       return `
         <g class="${cls}" data-topo-edge="${esc(e.id)}">
-          <path class="host-topo-path" d="${d}" stroke="${e.color}" ${e.kind === 'nat' || e.kind === 'vm-off' ? 'stroke-dasharray="5 4"' : ''} />
+          <path class="host-topo-path" d="${d}" stroke="${e.color}" ${dashAttr} />
           <circle class="host-topo-dot" cx="${e.x1}" cy="${e.y1}" r="3.5" fill="${e.color}" />
           <circle class="host-topo-dot" cx="${e.x2}" cy="${e.y2}" r="3.5" fill="${e.color}" />
         </g>
@@ -2780,11 +3284,11 @@ function renderHostNetworkOverview() {
       const cls = ['host-topo-edge-pill', `is-${e.kind}`, isFocused ? 'is-focused' : '', isDimmed ? 'is-dimmed' : '']
         .filter(Boolean)
         .join(' ');
-      const pillW = Math.min(114, Math.max(76, Math.round(e.label.length * 5.2 + 16)));
+      const pillW = Math.min(114, Math.max(72, Math.round(e.label.length * 5.2 + 14)));
       const pillX = (-pillW / 2).toFixed(1);
       return `
         <g class="${cls}" data-topo-edge="${esc(e.id)}" transform="translate(${mx}, ${my})">
-          <rect x="${pillX}" y="-10" width="${pillW}" height="20" rx="10" />
+          <rect x="${pillX}" y="-9.5" width="${pillW}" height="19" rx="10" />
           <text x="0" y="3.5" text-anchor="middle">${esc(e.label)}</text>
         </g>
       `;
@@ -2802,20 +3306,21 @@ function renderHostNetworkOverview() {
       const isSelected = hostState.selectedTopoNode === n.nodeId;
       const isFocused = Boolean(focusSets) && focusSets.activeNodes.has(n.nodeId);
       const isDimmed = Boolean(focusSets) && !isFocused;
-      const cls = ['host-topo-node', 'is-nic', isSelected ? 'is-selected' : '', isFocused ? 'is-focused' : '', isDimmed ? 'is-dimmed' : '']
+      const cls = ['host-topo-node', styleCls, 'is-nic', isSelected ? 'is-selected' : '', isFocused ? 'is-focused' : '', isDimmed ? 'is-dimmed' : '']
         .filter(Boolean)
         .join(' ');
+      const rateStr = formatCompactRate(nic.sendRate, nic.recvRate, 'arrow-compact');
       return `
-        <div class="${cls}" data-topo-node="${esc(n.nodeId)}" style="left:${n.x}px;top:${n.y}px;width:${n.w}px;height:${n.h}px;">
+        <div class="${cls}" data-topo-node="${esc(n.nodeId)}" style="left:${n.x}px;top:${n.y}px;width:${n.w}px;height:${n.h}px;--topo-accent:${n.mediaColor};">
           <div class="host-topo-node-head">
             <span class="host-topo-node-icon"><span class="fi">${n.icon}</span></span>
             <span class="host-topo-node-title">${esc(nic.name)}</span>
             <span class="vm-badge is-mini"><span class="vm-badge-text">${esc(n.mediaLabel)}</span></span>
           </div>
-          <div class="host-topo-node-sub">${esc(nic.description)}</div>
+          <div class="host-topo-node-sub" title="${esc(nic.description)}">${esc(nic.description)}</div>
           <div class="host-topo-node-foot">
             <span class="host-topo-meta">${esc(nic.ipv4)}</span>
-            <span class="host-topo-rate">${esc(formatCompactRate(nic.sendRate, nic.recvRate, 'arrow-compact'))}</span>
+            <span class="host-topo-rate">${esc(rateStr)}</span>
           </div>
         </div>
       `;
@@ -2828,9 +3333,11 @@ function renderHostNetworkOverview() {
       const isSelected = hostState.selectedTopoNode === s.nodeId;
       const isFocused = Boolean(focusSets) && focusSets.activeNodes.has(s.nodeId);
       const isDimmed = Boolean(focusSets) && !isFocused;
-      const cls = ['host-topo-node', 'is-switch', isSelected ? 'is-selected' : '', isFocused ? 'is-focused' : '', isDimmed ? 'is-dimmed' : '']
+      const cls = ['host-topo-node', styleCls, 'is-switch', isSelected ? 'is-selected' : '', isFocused ? 'is-focused' : '', isDimmed ? 'is-dimmed' : '']
         .filter(Boolean)
         .join(' ');
+      const footLeft = sw.ipv4 && sw.ipv4 !== '---' ? sw.ipv4 : '仅二层交换';
+      const rateStr = formatCompactRate(sw.sendRate, sw.recvRate, 'arrow-compact');
       return `
         <div class="${cls}" data-topo-node="${esc(s.nodeId)}" style="left:${s.x}px;top:${s.y}px;width:${s.w}px;height:${s.h}px;--topo-accent:${s.modeColor};">
           <div class="host-topo-node-head">
@@ -2838,10 +3345,10 @@ function renderHostNetworkOverview() {
             <span class="host-topo-node-title">${esc(sw.name)}</span>
             <span class="vm-badge is-mini"><span class="vm-badge-text">${esc(s.modeLabel)}</span></span>
           </div>
-          <div class="host-topo-node-sub">${esc(sw.upstream)}</div>
+          <div class="host-topo-node-sub" title="${esc(sw.upstream)}">${esc(sw.upstream)}</div>
           <div class="host-topo-node-foot">
-            <span class="host-topo-meta">${sw.ipv4 && sw.ipv4 !== '---' ? esc(sw.ipv4) : '二层交换'}</span>
-            <span class="host-topo-rate">${esc(formatCompactRate(sw.sendRate, sw.recvRate, 'arrow-compact'))}</span>
+            <span class="host-topo-meta" title="${esc(footLeft)}">${esc(footLeft)}</span>
+            <span class="host-topo-rate">${esc(rateStr)}</span>
           </div>
         </div>
       `;
@@ -2853,7 +3360,7 @@ function renderHostNetworkOverview() {
       const isSelected = hostState.selectedTopoNode === r.nodeId;
       const isFocused = Boolean(focusSets) && focusSets.activeNodes.has(r.nodeId);
       const isDimmed = Boolean(focusSets) && !isFocused;
-      const cls = ['host-topo-node', r.kind === 'host' ? 'is-host' : 'is-vm', !r.running ? 'is-off' : '', isSelected ? 'is-selected' : '', isFocused ? 'is-focused' : '', isDimmed ? 'is-dimmed' : '']
+      const cls = ['host-topo-node', styleCls, r.kind === 'host' ? 'is-host' : 'is-vm', !r.running ? 'is-off' : '', isSelected ? 'is-selected' : '', isFocused ? 'is-focused' : '', isDimmed ? 'is-dimmed' : '']
         .filter(Boolean)
         .join(' ');
       const portsHtml = r.ports.length
@@ -2861,13 +3368,13 @@ function renderHostNetworkOverview() {
             .map(
               (p) => `
           <div class="host-topo-port-row ${p.active ? '' : 'is-off'}">
-            <span class="host-topo-port-name">${esc(p.name)}</span>
+            <span class="host-topo-port-name" title="${esc(p.name)}">${esc(p.name)}</span>
             <span class="host-topo-port-rate">${p.active ? (p.ip ? esc(p.ip) : esc(formatCompactRate(p.tx, p.rx, 'arrow-compact'))) : '已关机'}</span>
           </div>
         `
             )
             .join('')
-        : '<div class="host-topo-port-row is-off"><span class="host-topo-port-name">未开启宿主共享</span></div>';
+        : `<div class="host-topo-port-row is-off"><span class="host-topo-port-name">未开启宿主共享</span></div>`;
 
       return `
         <div class="${cls}" data-topo-node="${esc(r.nodeId)}" style="left:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;--topo-accent:${r.color};">
@@ -2888,7 +3395,7 @@ function renderHostNetworkOverview() {
   const zoomVal = Number(hostState.topoZoom) || 1;
 
   return `
-    <div class="host-topo-stage" id="hostTopoStage">
+    <div class="host-topo-stage ${styleCls}" id="hostTopoStage">
       <div class="host-topo-pan-layer" id="hostTopoPanLayer" data-topo-w="${topo.canvasW}" data-topo-h="${topo.canvasH}" data-topo-minx="${topo.bounds.minX}" data-topo-maxx="${topo.bounds.maxX}" data-topo-miny="${topo.bounds.minY}" data-topo-maxy="${topo.bounds.maxY}" style="width:${topo.canvasW}px;height:${topo.canvasH}px;transform:translate3d(${panX}px, ${panY}px, 0) scale(${zoomVal});">
         <svg class="host-topo-svg" width="${topo.canvasW}" height="${topo.canvasH}">${pathsSvg}</svg>
         ${nicsHtml}
@@ -2905,7 +3412,6 @@ function renderHostNetworkOverview() {
     </div>
   `;
 }
-
 // ============================================================================
 // Tab 1: 状态 (Task Manager-style Left Rail + Host Telemetry & Inventory)
 // ============================================================================
@@ -3130,7 +3636,7 @@ function renderResourceTab(overview = false) {
             vmUsed += unattrGuest;
           }
           const dominant = slices.slice().sort((a, b) => b.pct - a.pct)[0] || { vm: '__host__', label: '宿主', pct: totalPct, color: HOST_LED_HOST_COLOR };
-          return { lp, totalPct, vmUsed, hostPct, slices, dominant };
+          return { lp, totalPct, vmUsed, hostPct, slices, dominant, coreMeta: getCpuCoreTypeMeta(lp, hostThreads, snap.coreType) };
         });
       } else if (hostState.isLive) {
         runningVms = (hostState.liveVms || [])
@@ -3146,7 +3652,7 @@ function renderResourceTab(overview = false) {
           const hist = HOST_SYS.coreHistories[lp] || [0];
           const totalPct = Math.max(0, Math.min(100, Math.round(hist[hist.length - 1] ?? 0)));
           const slices = [{ vm: '__host__', label: '宿主', pct: totalPct, color: HOST_LED_HOST_COLOR }];
-          return { lp, totalPct, vmUsed: 0, hostPct: totalPct, slices, dominant: slices[0] };
+          return { lp, totalPct, vmUsed: 0, hostPct: totalPct, slices, dominant: slices[0], coreMeta: getCpuCoreTypeMeta(lp, hostThreads, null) };
         });
       } else {
         runningVms = getRunningLedVms(hostThreads);
@@ -3174,22 +3680,28 @@ function renderResourceTab(overview = false) {
           slices.push({ vm: '__host__', label: '宿主', pct: hostPct, color: HOST_LED_HOST_COLOR }, ...vmSlices);
           const totalPct = Math.min(100, vmUsed + hostPct);
           const dominant = slices.slice().sort((a, b) => b.pct - a.pct)[0];
-          return { lp, totalPct, vmUsed, hostPct, slices, dominant };
+          return { lp, totalPct, vmUsed, hostPct, slices, dominant, coreMeta: getCpuCoreTypeMeta(lp, hostThreads, null) };
         });
       }
 
     const hovered = hostState.hoveredLedVm || hostState.selectedLedVm;
     const isRightLegend = hostState.legendPlacement !== 'bottom';
+    const hlCls = `is-hl-${hostState.highlightStyle || 'elevated-card'}`;
+    if (hostState.selectedLedLp !== null && !lpRows.some((r) => r.lp === hostState.selectedLedLp)) {
+      hostState.selectedLedLp = null;
+    }
+
+    const hasUnattributedGuest = lpRows.some((r) => r.slices.some((s) => s.vm === '__guest__' && s.pct > 0));
     const hostChipHtml = `
       <button type="button" class="host-led-chip ${hostState.selectedLedVm === '__host__' ? 'is-selected' : ''} ${hovered === '__host__' ? 'is-hovered' : ''}" data-host-led-vm="__host__" style="--led-color:${HOST_LED_HOST_COLOR};">
         <span class="host-led-swatch"></span>
         <span class="host-led-chip-name">宿主</span>
       </button>
     `;
-    const guestChipHtml = isClassicDegraded ? `
+    const guestChipHtml = hasUnattributedGuest ? `
       <button type="button" class="host-led-chip ${hostState.selectedLedVm === '__guest__' ? 'is-selected' : ''} ${hovered === '__guest__' ? 'is-hovered' : ''}" data-host-led-vm="__guest__" style="--led-color:${HOST_LED_GUEST_COLOR};">
         <span class="host-led-swatch"></span>
-        <span class="host-led-chip-name">虚拟机</span>
+        <span class="host-led-chip-name">未归属来宾</span>
       </button>
     ` : '';
     const vmChipsHtml = runningVms.map((v) => `
@@ -3217,236 +3729,80 @@ function renderResourceTab(overview = false) {
         </div>
       `;
 
-    const artStyle = hostState.cpuDetailStyle || 'art-winui-bar';
+    const coreFocused = hostState.selectedLedLp !== null;
     const tiles = lpRows.map((row) => {
+      const isCoreSelected = hostState.selectedLedLp === row.lp;
       const hasHovered = !hovered || row.slices.some((s) => s.vm === hovered && s.pct > 0);
+      const isTileHighlighted = coreFocused ? isCoreSelected : (Boolean(hovered) && hasHovered);
+      const isTileDimmed = coreFocused ? !isCoreSelected : (Boolean(hovered) && !hasHovered);
       const focusSlice = hovered ? row.slices.find((s) => s.vm === hovered) : row.dominant;
       const focusColor = focusSlice?.color || row.dominant.color;
       const cls = [
         'host-led-tile',
         'is-art',
-        hovered && !hasHovered ? 'is-dimmed' : '',
-        hovered && hasHovered ? 'is-highlighted' : ''
+        isTileDimmed ? 'is-dimmed' : '',
+        isTileHighlighted ? 'is-highlighted' : '',
+        isCoreSelected ? 'is-core-selected' : ''
       ].filter(Boolean).join(' ');
-      const fullTip = row.slices.map((s) => `${s.label}  ${s.pct}%`).join('\n');
 
-      if (artStyle === 'art-winui-bar') {
-        const activeSlice = hovered ? row.slices.find((s) => s.vm === hovered) : null;
-        const displayPct = hovered ? (activeSlice ? activeSlice.pct : 0) : row.totalPct;
-        const activeColor = hovered
-          ? (hovered === '__host__'
-              ? HOST_LED_HOST_COLOR
-              : (runningVms.find((v) => v.name === hovered)?.color || HOST_LED_GUEST_COLOR))
-          : '';
-        const segsHtml = row.slices.map((s) => {
-          const op = hovered && s.vm !== hovered ? 0.2 : 1;
-          return `<div class="host-led-winui-seg" style="width:${s.pct}%;background:${s.color};opacity:${op};"></div>`;
-        }).join('');
-        return `
-          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
-            <div class="host-led-tile-head">
-              <span class="host-led-lp">线程 ${row.lp}</span>
+      const fullTipJson = JSON.stringify({
+        lp: row.lp,
+        totalPct: row.totalPct,
+        coreTypeLabel: row.coreMeta.label,
+        slices: row.slices.filter((s) => s.pct > 0).map((s) => ({ key: s.vm, label: s.label, pct: s.pct, color: s.color }))
+      });
+      const ringSvgHtml = renderHostConsumerRingSvgHtml({
+        slices: row.slices,
+        focusKey: hovered,
+        rIn: 12,
+        rOut: 23,
+        attrName: 'data-host-led-vm',
+        getKey: (s) => s.vm,
+        getVal: (s) => s.pct,
+        getName: (s) => s.label
+      });
+      const activeSlice = hovered ? row.slices.find((s) => s.vm === hovered) : null;
+      const displayPct = hovered ? (activeSlice ? activeSlice.pct : 0) : row.totalPct;
+      const activeColor = hovered
+        ? (displayPct > 0
+            ? (hovered === '__host__'
+                ? HOST_LED_HOST_COLOR
+                : (runningVms.find((v) => v.name === hovered)?.color || HOST_LED_GUEST_COLOR))
+            : 'var(--TextFillColorTertiaryBrush)')
+        : '';
+      return `
+        <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(fullTipJson)}">
+          <div class="host-led-ring-wrap">
+            ${ringSvgHtml}
+            <div class="host-led-ring-meta">
+              <span class="host-led-lp-wrap">
+                <span class="host-led-lp">线程 ${row.lp}</span>
+                ${row.coreMeta.badgeHtml}
+              </span>
               <span class="host-led-pct" style="${activeColor ? `color:${activeColor};` : ''}">${displayPct}%</span>
             </div>
-            <div class="host-led-winui-bar">${segsHtml}</div>
           </div>
-        `;
-      }
-
-      if (artStyle === 'art-fill-x' || artStyle === 'art-fill-y') {
-        const isVert = artStyle === 'art-fill-y';
-        const fillSlices = row.slices.map((s) => {
-          const dimOp = hovered && s.vm !== hovered ? 0.14 : 0.34;
-          const dimProp = isVert ? `height:${s.pct}%;` : `width:${s.pct}%;`;
-          return `<div class="host-led-fill-slice" style="${dimProp}--slice-color:${s.color};background:color-mix(in srgb, ${s.color} ${Math.round(dimOp * 100)}%, transparent);"></div>`;
-        }).join('');
-        return `
-          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
-            <div class="host-led-fill-bg ${isVert ? 'is-vertical' : ''}">${fillSlices}</div>
-            <div class="host-led-tile-head">
-              <span class="host-led-lp">线程 ${row.lp}</span>
-              <span class="host-led-pct">${row.totalPct}%</span>
-            </div>
-          </div>
-        `;
-      }
-
-      if (artStyle === 'art-history-bars') {
-        const hist = HOST_SYS.coreHistories[row.lp] || [12];
-        const colsHtml = Array.from({ length: 12 }, (_, ci) => {
-          const base = Math.max(4, Math.min(95, Math.round(hist[ci % hist.length] ?? row.totalPct)));
-          const segsHtml = row.slices.map((s) => {
-            const ratioShare = Math.max(1, Math.round((s.pct / Math.max(1, row.totalPct)) * base));
-            const op = hovered && s.vm !== hovered ? 0.18 : 0.92;
-            return `<div class="host-led-hist-seg" style="height:${ratioShare}%;background:${s.color};opacity:${op};"></div>`;
-          }).join('');
-          return `<div class="host-led-hist-col">${segsHtml}</div>`;
-        }).join('');
-        return `
-          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
-            <div class="host-led-tile-head">
-              <span class="host-led-lp">线程 ${row.lp}</span>
-              <span class="host-led-pct">${row.totalPct}%</span>
-            </div>
-            <div class="host-led-hist">${colsHtml}</div>
-          </div>
-        `;
-      }
-
-      if (artStyle === 'art-micro-leds') {
-        const dotSlots = [];
-        row.slices.forEach((s) => {
-          const count = Math.round((s.pct / 100) * 20);
-          for (let i = 0; i < count && dotSlots.length < 20; i++) {
-            dotSlots.push({ color: s.color, vm: s.vm });
-          }
-        });
-        while (dotSlots.length < 20) dotSlots.push(null);
-        const dotsHtml = dotSlots.map((d) => {
-          if (!d) return '<div class="host-led-microdot"></div>';
-          const op = hovered && d.vm !== hovered ? 0.16 : 1;
-          return `<div class="host-led-microdot is-lit" style="--dot-color:${d.color};background:${d.color};opacity:${op};"></div>`;
-        }).join('');
-        return `
-          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
-            <div class="host-led-tile-head">
-              <span class="host-led-lp">线程 ${row.lp}</span>
-              <span class="host-led-pct">${row.totalPct}%</span>
-            </div>
-            <div class="host-led-microgrid">${dotsHtml}</div>
-          </div>
-        `;
-      }
-
-      if (artStyle === 'art-chunky-bar') {
-        const segsHtml = row.slices.map((s) => {
-          const op = hovered && s.vm !== hovered ? 0.2 : 0.92;
-          return `<div class="host-led-chunky-seg" style="width:${s.pct}%;background:${s.color};opacity:${op};">${s.pct >= 14 ? `${s.pct}%` : ''}</div>`;
-        }).join('');
-        return `
-          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
-            <div class="host-led-tile-head">
-              <span class="host-led-lp">线程 ${row.lp}</span>
-              <span class="host-led-pct">${row.totalPct}%</span>
-            </div>
-            <div class="host-led-chunky">${segsHtml}</div>
-          </div>
-        `;
-      }
-
-      if (artStyle === 'art-ring') {
-        const rIn = 12;
-        const rOut = 23;
-        const rMid = (rIn + rOut) / 2;
-        const ringW = rOut - rIn;
-        const fullTipJson = JSON.stringify({
-          lp: row.lp,
-          slices: row.slices.filter((s) => s.pct > 0).map((s) => ({ label: s.label, pct: s.pct, color: s.color }))
-        });
-        // Aggregate tiny tail slices (< 2% or beyond top 5) into one clean "other" arc
-        const sortedForArc = row.slices.filter((s) => s.pct > 0);
-        const keptArcs = [];
-        let otherArcPct = 0;
-        sortedForArc.forEach((s) => {
-          const isHost = s.vm === '__host__';
-          const isFocused = hovered && s.vm === hovered;
-          if (isHost || isFocused || (keptArcs.length < 5 && s.pct >= 2)) {
-            keptArcs.push(s);
-          } else {
-            otherArcPct += s.pct;
-          }
-        });
-        if (otherArcPct > 0) {
-          keptArcs.push({ vm: '__other__', label: '其他', pct: otherArcPct, color: HOST_LED_OTHER_COLOR });
-        }
-        let curDeg = -90;
-        const arcsHtml = keptArcs.map((s) => {
-          const spanDeg = (s.pct / 100) * 360;
-          const gap = spanDeg > 5 ? 2.4 : 0;
-          const d = annularSectorPath(29, 29, rIn, rOut, curDeg + gap / 2, curDeg + spanDeg - gap / 2, 2.5);
-          curDeg += spanDeg;
-          if (!d) return '';
-          const op = hovered && s.vm !== hovered ? 0.16 : 1;
-          return `<path d="${d}" fill="${s.color}" opacity="${op}" />`;
-        }).join('');
-        const activeSlice = hovered ? row.slices.find((s) => s.vm === hovered) : null;
-        const displayPct = hovered ? (activeSlice ? activeSlice.pct : 0) : row.totalPct;
-        const activeColor = hovered
-          ? (displayPct > 0
-              ? (hovered === '__host__'
-                  ? HOST_LED_HOST_COLOR
-                  : (runningVms.find((v) => v.name === hovered)?.color || HOST_LED_GUEST_COLOR))
-              : 'var(--TextFillColorTertiaryBrush)')
-          : '';
-        return `
-          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(fullTipJson)}">
-            <div class="host-led-ring-wrap">
-              <svg class="host-led-ring-svg" viewBox="0 0 58 58">
-                <circle cx="29" cy="29" r="${rMid}" fill="none" stroke="color-mix(in srgb, var(--TextFillColorPrimaryBrush) 6%, transparent)" stroke-width="${ringW}" />
-                ${arcsHtml}
-              </svg>
-              <div class="host-led-ring-meta">
-                <span class="host-led-lp">线程 ${row.lp}</span>
-                <span class="host-led-pct" style="${activeColor ? `color:${activeColor};` : ''}">${displayPct}%</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      if (artStyle === 'art-aurora') {
-        const bgStops = row.slices
-          .filter((s) => s.pct > 0)
-          .map((s, idx) => {
-            const x = idx === 0 ? '20% 80%' : idx === 1 ? '75% 75%' : '50% 25%';
-            const alpha = Math.max(12, Math.min(48, Math.round(s.pct * 0.9 + 10)));
-            return `radial-gradient(circle at ${x}, color-mix(in srgb, ${s.color} ${alpha}%, transparent) 0%, transparent 72%)`;
-          })
-          .join(', ');
-        const stripHtml = row.slices.map((s) => `<div class="host-led-seg" style="width:${s.pct}%;background:${s.color};opacity:${hovered && s.vm !== hovered ? 0.2 : 1};"></div>`).join('');
-        return `
-          <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}\n${fullTip}`)}">
-            <div class="host-led-aurora-bg" style="background:${bgStops};"></div>
-            <div class="host-led-tile-head">
-              <span class="host-led-lp">线程 ${row.lp}</span>
-            </div>
-            <div class="host-led-aurora-center">
-              <span class="host-led-aurora-pct">${row.totalPct}%</span>
-              <div class="host-led-aurora-strip">${stripHtml}</div>
-            </div>
-          </div>
-        `;
-      }
-
-      // 8. art-blocks: Proportional Rounded Blocks
-      const idlePct = Math.max(0, 100 - row.totalPct);
-      const blocksHtml = [
-        ...row.slices.map((s) => {
-          const op = hovered && s.vm !== hovered ? 0.2 : 0.9;
-          return `<div class="host-led-block" style="flex:${Math.max(2, s.pct)} 1 0;background:${s.color};opacity:${op};">${s.pct >= 18 ? `${s.pct}%` : ''}</div>`;
-        }),
-        idlePct > 0 ? `<div class="host-led-block is-idle" style="flex:${idlePct} 1 0;"></div>` : ''
-      ].join('');
-      return `
-        <div class="${cls}" style="--led-color:${focusColor};" data-led-lp="${row.lp}" data-led-tip="${esc(`线程 ${row.lp}：${fullTip}`)}">
-          <div class="host-led-tile-head">
-            <span class="host-led-lp">线程 ${row.lp}</span>
-            <span class="host-led-pct">${row.totalPct}%</span>
-          </div>
-          <div class="host-led-blocks">${blocksHtml}</div>
         </div>
       `;
     }).join('');
 
+    const denseMode = hostState.cpuDenseMode === 'compact-8x8' ? 'compact-8x8' : 'paged-8x4';
     const gridDensityCls =
-      !isRightLegend && hostThreads <= 4
-        ? 'is-cols-2'
-        : hostThreads > 32
-          ? 'is-cols-8'
-          : hostThreads > 16
-            ? 'is-cols-6'
-            : '';
-    const hlCls = `is-hl-${hostState.highlightStyle || 'elevated-card'}`;
+      hostThreads <= 4
+        ? 'is-cpu-cols-2'
+        : hostThreads <= 8
+          ? 'is-cpu-cols-4 is-cpu-rows-2'
+          : hostThreads <= 12
+            ? 'is-cpu-cols-4 is-cpu-rows-3'
+            : hostThreads <= 16
+              ? 'is-cpu-cols-4 is-cpu-rows-4'
+              : hostThreads <= 24
+                ? 'is-cpu-cols-6'
+                : hostThreads <= 32
+                  ? 'is-cpu-cols-8'
+                  : denseMode === 'compact-8x8'
+                    ? 'is-cpu-cols-8 is-cpu-dense8'
+                    : 'is-cpu-cols-8 is-cpu-paged';
       bodyHtml = `
         <div class="host-rel-wrap ${isRightLegend ? 'is-legend-right' : ''} ${hlCls}">
           <div class="host-led-tile-grid ${gridDensityCls}">${tiles}</div>
@@ -3483,7 +3839,7 @@ function renderResourceTab(overview = false) {
       const focusKey = rawFocusKey && mem.orderedItems.some((it) => it.key === rawFocusKey) ? rawFocusKey : null;
       const hlCls = `is-hl-${hostState.highlightStyle || 'elevated-card'}`;
 
-      bodyHtml = renderHostMemoryPieView(mem, focusKey, hlCls);
+      bodyHtml = renderHostMemoryOverview(mem, focusKey, hlCls);
     }
   } else if (sel.kind === 'nic') {
     const nic = hostState.nics[sel.idx] || hostState.nics[0];
@@ -4476,15 +4832,40 @@ function renderBodyByActiveTab() {
 
 let onHostRenderCallback = null;
 
+export function isHostNetworkTopologyActive() {
+  return hostState.activeTab === 'overview' && hostState.overviewResource === 'net';
+}
+
+const HOST_MOCK_PRESETS = {
+  'desktop-std': { threads: '12', gpuCount: '1', numaCount: '1', vmCount: '2' },
+  'workstation-dual': { threads: '24', gpuCount: '2', numaCount: '2', vmCount: '4' },
+  'quad-multi-vm': { threads: '32', gpuCount: '4', numaCount: '2', vmCount: '6' },
+  'dense-6gpu': { threads: '64', gpuCount: '6', numaCount: '4', vmCount: '8' },
+  'cluster-8gpu': { threads: '128', gpuCount: '8', numaCount: '4', vmCount: '12' },
+  'heavy-20vm': { threads: '96', gpuCount: '4', numaCount: '2', vmCount: '20' }
+};
+
 export function getHostOverviewCandidate() {
+  const curThreads = String(hostState.mockThreads || '12');
+  const curGpuCount = String(hostState.mockGpuCount || '4');
+  const curNumaCount = String(hostState.mockNumaCount || '2');
+  const curVmCount = String(hostState.mockVmCount || '2');
+  const mockPreset = Object.entries(HOST_MOCK_PRESETS).find(
+    ([, p]) => p.threads === curThreads && p.gpuCount === curGpuCount && p.numaCount === curNumaCount && p.vmCount === curVmCount
+  )?.[0] || 'custom';
   return {
     cardStyle: hostState.cardStyle,
     cardContent: hostState.cardContent,
     cpuDetailStyle: hostState.cpuDetailStyle,
+    cpuDenseMode: hostState.cpuDenseMode === 'compact-8x8' ? 'compact-8x8' : 'paged-8x4',
     highlightStyle: hostState.highlightStyle || 'elevated-card',
     legendPlacement: hostState.legendPlacement || 'right',
-    mockThreads: String(hostState.mockThreads || '12'),
-    mockVmCount: String(hostState.mockVmCount || '2')
+    topoCardStyle: hostState.topoCardStyle || 'baseline-polished',
+    mockThreads: curThreads,
+    mockGpuCount: curGpuCount,
+    mockNumaCount: curNumaCount,
+    mockVmCount: curVmCount,
+    mockPreset
   };
 }
 
@@ -4492,12 +4873,23 @@ export function setHostOverviewCandidate(payloadOrPlacement) {
   if (typeof payloadOrPlacement === 'string') {
     if (CARD_STYLE_CANDIDATES.includes(payloadOrPlacement)) {
       hostState.cardStyle = payloadOrPlacement;
+    } else if (TOPOLOGY_CARD_STYLES.includes(payloadOrPlacement)) {
+      hostState.topoCardStyle = payloadOrPlacement;
+      hostState.topoAutoFit = true;
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'net';
     } else if (CPU_DETAIL_STYLES.includes(payloadOrPlacement)) {
       hostState.cpuDetailStyle = payloadOrPlacement;
       hostState.activeTab = 'overview';
       hostState.overviewResource = 'cpu';
     }
   } else if (payloadOrPlacement && typeof payloadOrPlacement === 'object') {
+    if (TOPOLOGY_CARD_STYLES.includes(payloadOrPlacement.topoCardStyle)) {
+      hostState.topoCardStyle = payloadOrPlacement.topoCardStyle;
+      hostState.topoAutoFit = true;
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'net';
+    }
     if (CARD_STYLE_CANDIDATES.includes(payloadOrPlacement.cardStyle)) {
       hostState.cardStyle = payloadOrPlacement.cardStyle;
     }
@@ -4506,6 +4898,11 @@ export function setHostOverviewCandidate(payloadOrPlacement) {
     }
     if (CPU_DETAIL_STYLES.includes(payloadOrPlacement.cpuDetailStyle)) {
       hostState.cpuDetailStyle = payloadOrPlacement.cpuDetailStyle;
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'cpu';
+    }
+    if (payloadOrPlacement.cpuDenseMode === 'paged-8x4' || payloadOrPlacement.cpuDenseMode === 'compact-8x8') {
+      hostState.cpuDenseMode = payloadOrPlacement.cpuDenseMode;
       hostState.activeTab = 'overview';
       hostState.overviewResource = 'cpu';
     }
@@ -4523,8 +4920,47 @@ export function setHostOverviewCandidate(payloadOrPlacement) {
         hostState.selectedLedVm = firstVm ? firstVm.name : '__host__';
       }
     }
+    if (payloadOrPlacement.mockPreset && HOST_MOCK_PRESETS[payloadOrPlacement.mockPreset]) {
+      const p = HOST_MOCK_PRESETS[payloadOrPlacement.mockPreset];
+      hostState.mockThreads = p.threads;
+      hostState.mockGpuCount = p.gpuCount;
+      hostState.mockNumaCount = p.numaCount;
+      hostState.mockVmCount = p.vmCount;
+      hostState.selectedLedLp = null;
+      hostState.selectedLedVm = null;
+      hostState.hoveredLedVm = null;
+      hostState.selectedGpuKey = null;
+      hostState.hoveredGpuKey = null;
+      hostState.selectedGpuEngine = null;
+      hostState.hoveredGpuEngine = null;
+      hostState.selectedMemKey = null;
+      hostState.hoveredMemKey = null;
+      hostState.hoveredMemSeg = null;
+      hostState.activeTab = 'overview';
+      if (!['cpu', 'mem', 'gpu'].includes(hostState.overviewResource)) {
+        hostState.overviewResource = 'gpu';
+      }
+    }
+    if (payloadOrPlacement.mockGpuCount) {
+      hostState.mockGpuCount = String(Math.max(1, Math.min(8, Number(payloadOrPlacement.mockGpuCount) || 4)));
+      hostState.selectedGpuKey = null;
+      hostState.hoveredGpuKey = null;
+      hostState.selectedGpuEngine = null;
+      hostState.hoveredGpuEngine = null;
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'gpu';
+    }
+    if (payloadOrPlacement.mockNumaCount) {
+      hostState.mockNumaCount = String(Math.max(1, Math.min(8, Number(payloadOrPlacement.mockNumaCount) || 2)));
+      hostState.selectedMemKey = null;
+      hostState.hoveredMemKey = null;
+      hostState.hoveredMemSeg = null;
+      hostState.activeTab = 'overview';
+      hostState.overviewResource = 'mem';
+    }
     if (payloadOrPlacement.mockThreads) {
       hostState.mockThreads = String(payloadOrPlacement.mockThreads);
+      hostState.selectedLedLp = null;
       hostState.activeTab = 'overview';
       hostState.overviewResource = 'cpu';
     }
@@ -4532,8 +4968,14 @@ export function setHostOverviewCandidate(payloadOrPlacement) {
       hostState.mockVmCount = String(payloadOrPlacement.mockVmCount);
       hostState.selectedLedVm = null;
       hostState.hoveredLedVm = null;
+      hostState.selectedGpuKey = null;
+      hostState.hoveredGpuKey = null;
+      hostState.selectedMemKey = null;
+      hostState.hoveredMemKey = null;
       hostState.activeTab = 'overview';
-      hostState.overviewResource = 'cpu';
+      if (!['cpu', 'mem', 'gpu'].includes(hostState.overviewResource)) {
+        hostState.overviewResource = 'cpu';
+      }
     }
   } else {
     return;
@@ -4548,7 +4990,7 @@ export function renderHostPage() {
   const page = document.getElementById('pageHost');
   if (!page) return;
 
-  const scrollSelectors = ['.tc-left-rail', '.tc-right-card', '.tc-canvas-body', '.vm-overview-scroll', '.settings-host-scroll', '.host-flat-scroll', '.host-led-legend', '.host-led-vm-scroll', '.host-led-tile-grid', '.host-share-stage'];
+  const scrollSelectors = ['.tc-left-rail', '.tc-right-card', '.tc-canvas-body', '.vm-overview-scroll', '.settings-host-scroll', '.host-flat-scroll', '.host-led-legend', '.host-led-vm-scroll', '.host-led-tile-grid', '.host-share-stage', '.host-gpu-stage'];
   const savedScrolls = scrollSelectors.map((sel) => {
     const el = page.querySelector?.(sel);
     return el ? { sel, top: el.scrollTop, left: el.scrollLeft } : null;
@@ -4556,6 +4998,9 @@ export function renderHostPage() {
 
   const isTopoActive = hostState.activeTab === 'overview' && hostState.overviewResource === 'net';
   const isTopoFullscreen = Boolean(hostState.topoFullscreen) && isTopoActive;
+  if (!isTopoActive) {
+    hostState.topoFullscreen = false;
+  }
   const winEl = typeof document !== 'undefined' ? document.getElementById('winuiWindow') : null;
   if (winEl && typeof winEl.classList?.toggle === 'function') {
     winEl.classList.toggle('is-host-topo-fullscreen', isTopoFullscreen);
@@ -4663,11 +5108,81 @@ function getHostLedTooltipEl() {
   return tip;
 }
 
+function renderLedTooltipRowsHtml(slices, activeKey = null, labelProp = 'name', emptyText = '暂无负载') {
+  if (!slices.length) return `<div class="host-led-tip-empty">${esc(emptyText)}</div>`;
+  return slices
+    .map((s) => {
+      const rowKey = s.key ?? s.vm ?? null;
+      const isActive = Boolean(activeKey && rowKey && rowKey === activeKey);
+      const name = s[labelProp] ?? s.label ?? s.name ?? '';
+      const dotHtml = s.color ? `<span class="host-led-tip-dot" style="background:${s.color};"></span>` : '';
+      const valText = s.value !== undefined ? String(s.value) : `${s.pct}%`;
+      return `
+        <div class="host-led-tip-row${isActive ? ' is-active' : ''}">
+          <span class="host-led-tip-left">
+            ${dotHtml}
+            <span class="host-led-tip-name">${esc(name)}</span>
+          </span>
+          <span class="host-led-tip-pct">${esc(valText)}</span>
+        </div>
+      `;
+    })
+    .join('');
+}
+
 function syncHostLedTooltip(page) {
   const tip = getHostLedTooltipEl();
   if (!tip) return;
-  if (hostState.activeTab !== 'overview' || !['cpu', 'mem'].includes(hostState.overviewResource)) {
+  if (hostState.activeTab !== 'overview' || !['cpu', 'mem', 'gpu'].includes(hostState.overviewResource)) {
     tip.hidden = true;
+    tip.classList.remove('is-pinned');
+    return;
+  }
+
+  if (hostState.overviewResource === 'gpu') {
+    const activeEng = hostState.hoveredGpuEngine !== null ? hostState.hoveredGpuEngine : hostState.selectedGpuEngine;
+    if (!activeEng) {
+      tip.hidden = true;
+      tip.classList.remove('is-pinned');
+      return;
+    }
+    const escEng = CSS?.escape ? CSS.escape(activeEng) : activeEng;
+    const engCard = page?.querySelector?.(`[data-gpu-eng-card="${escEng}"]`);
+    const rawGpuTip = engCard?.getAttribute?.('data-gpu-tip');
+    if (!engCard || !rawGpuTip) {
+      tip.hidden = true;
+      tip.classList.remove('is-pinned');
+      return;
+    }
+    const rect = engCard.getBoundingClientRect?.();
+    const stageRect = page?.querySelector?.('.host-gpu-stage')?.getBoundingClientRect?.();
+    if (rect && stageRect && (rect.bottom < stageRect.top || rect.top > stageRect.bottom)) {
+      tip.hidden = true;
+      tip.classList.remove('is-pinned');
+      return;
+    }
+    if (typeof getComputedStyle === 'function') {
+      const accent = getComputedStyle(engCard).getPropertyValue('--VmAccentBrush').trim();
+      if (accent) tip.style.setProperty('--VmAccentBrush', accent);
+    }
+    tip.classList.toggle('is-pinned', hostState.hoveredGpuEngine === null && hostState.selectedGpuEngine !== null);
+    const activeGpuConsumer = hostState.hoveredGpuKey || hostState.selectedGpuKey;
+    try {
+      const parsed = JSON.parse(rawGpuTip);
+      const slices = Array.isArray(parsed.slices) ? parsed.slices : [];
+      const rowsHtml = renderLedTooltipRowsHtml(slices, activeGpuConsumer, 'name');
+      tip.innerHTML = `<div class="host-led-tip-head is-split${slices.length === 0 ? ' is-empty' : ''}"><span>${esc(parsed.label)}</span><span class="host-led-tip-core">GPU ${parsed.gpuIdx}</span></div>${rowsHtml}`;
+    } catch {
+      tip.textContent = rawGpuTip;
+    }
+    tip.hidden = false;
+    if (rect) {
+      const tipRect = tip.getBoundingClientRect();
+      const left = Math.max(8, Math.min(window.innerWidth - tipRect.width - 8, rect.left + rect.width / 2 - tipRect.width / 2));
+      const top = rect.top - tipRect.height - 6 >= 8 ? rect.top - tipRect.height - 6 : rect.bottom + 6;
+      tip.style.left = `${Math.round(left)}px`;
+      tip.style.top = `${Math.round(top)}px`;
+    }
     return;
   }
 
@@ -4680,28 +5195,32 @@ function syncHostLedTooltip(page) {
         const accent = getComputedStyle(anchorEl).getPropertyValue('--VmAccentBrush').trim();
         if (accent) tip.style.setProperty('--VmAccentBrush', accent);
       }
+      let posEl = anchorEl;
+      const segConsumer = hostState.hoveredMemSeg && !hostState.hoveredMemSeg.startsWith('dimm:')
+        ? hostState.hoveredMemSeg.slice(hostState.hoveredMemSeg.indexOf(':') + 1)
+        : null;
+      const activeMemConsumer = segConsumer || hostState.hoveredMemKey || hostState.selectedMemKey;
       try {
         const parsed = JSON.parse(rawMemTip);
-        const rowsHtml = (parsed.rows || [])
-          .map(
-            (r) => `
-              <div class="host-led-tip-row">
-                <span class="host-led-tip-left">
-                  <span class="host-led-tip-dot" style="background:${r.color};"></span>
-                  <span class="host-led-tip-name">${esc(r.label)}</span>
-                </span>
-                <span class="host-led-tip-pct">${esc(r.value)}</span>
-              </div>
-            `
-          )
-          .join('');
-        const noteHtml = parsed.note ? `<div class="host-mem-tip-note">${esc(parsed.note)}</div>` : '';
-        tip.innerHTML = `<div class="host-led-tip-head">${esc(parsed.title)}</div>${rowsHtml}${noteHtml}`;
+        const slices = Array.isArray(parsed.slices) ? parsed.slices : [];
+        if (parsed.kind === 'pool') {
+          posEl = anchorEl.closest?.('.host-share-bar') || anchorEl;
+        }
+        const rowsHtml = renderLedTooltipRowsHtml(
+          slices,
+          parsed.kind === 'pool' ? activeMemConsumer : null,
+          'name',
+          parsed.emptyText || '暂无负载'
+        );
+        const headHtml = parsed.sub
+          ? `<div class="host-led-tip-head is-split${slices.length === 0 ? ' is-empty' : ''}"><span>${esc(parsed.title)}</span><span class="host-led-tip-core">${esc(parsed.sub)}</span></div>`
+          : `<div class="host-led-tip-head${slices.length === 0 ? ' is-empty' : ''}">${esc(parsed.title)}</div>`;
+        tip.innerHTML = `${headHtml}${rowsHtml}`;
       } catch {
         tip.textContent = rawMemTip;
       }
       tip.hidden = false;
-      const rect = anchorEl.getBoundingClientRect?.();
+      const rect = posEl.getBoundingClientRect?.();
       if (rect) {
         const tipRect = tip.getBoundingClientRect();
         const left = Math.max(8, Math.min(window.innerWidth - tipRect.width - 8, rect.left + rect.width / 2 - tipRect.width / 2));
@@ -4713,41 +5232,49 @@ function syncHostLedTooltip(page) {
     }
   }
 
-  if (hostState.hoveredLedLp === null) {
+  const activeLp = hostState.hoveredLedLp !== null
+    ? hostState.hoveredLedLp
+    : (hostState.selectedLedLp !== null ? String(hostState.selectedLedLp) : null);
+  if (activeLp === null) {
     tip.hidden = true;
+    tip.classList.remove('is-pinned');
     return;
   }
-  const tile = page?.querySelector?.(`[data-led-lp="${hostState.hoveredLedLp}"]`);
+  const tile = page?.querySelector?.(`[data-led-lp="${activeLp}"]`);
   const rawTip = tile?.getAttribute?.('data-led-tip');
   if (!tile || !rawTip) {
     tip.hidden = true;
+    tip.classList.remove('is-pinned');
+    return;
+  }
+  const rect = tile.getBoundingClientRect?.();
+  const gridRect = page?.querySelector?.('.host-led-tile-grid')?.getBoundingClientRect?.();
+  if (rect && gridRect && (rect.bottom < gridRect.top || rect.top > gridRect.bottom)) {
+    tip.hidden = true;
+    tip.classList.remove('is-pinned');
     return;
   }
   if (typeof getComputedStyle === 'function') {
     const accent = getComputedStyle(tile).getPropertyValue('--VmAccentBrush').trim();
     if (accent) tip.style.setProperty('--VmAccentBrush', accent);
   }
+  tip.classList.toggle('is-pinned', hostState.hoveredLedLp === null && hostState.selectedLedLp !== null);
+  const activeCpuConsumer = hostState.hoveredLedVm || hostState.selectedLedVm;
   try {
     const parsed = JSON.parse(rawTip);
-    const rowsHtml = (parsed.slices || [])
-      .map(
-        (s) => `
-          <div class="host-led-tip-row">
-            <span class="host-led-tip-left">
-              <span class="host-led-tip-dot" style="background:${s.color};"></span>
-              <span class="host-led-tip-name">${esc(s.label)}</span>
-            </span>
-            <span class="host-led-tip-pct">${s.pct}%</span>
-          </div>
-        `
-      )
-      .join('');
-    tip.innerHTML = `<div class="host-led-tip-head">线程 ${parsed.lp}</div>${rowsHtml}`;
+    const slices = Array.isArray(parsed.slices) ? parsed.slices : [];
+    const rowsHtml = renderLedTooltipRowsHtml(slices, activeCpuConsumer, 'label');
+    const leftMeta = parsed.coreTypeLabel
+      ? `<span class="host-led-tip-left"><span>线程 ${parsed.lp}</span><span class="host-led-tip-core">${esc(parsed.coreTypeLabel)}</span></span>`
+      : `<span>线程 ${parsed.lp}</span>`;
+    const rightMeta = Number.isFinite(parsed.totalPct)
+      ? `<span class="host-led-tip-total">${parsed.totalPct}%</span>`
+      : '';
+    tip.innerHTML = `<div class="host-led-tip-head is-split${slices.length === 0 ? ' is-empty' : ''}">${leftMeta}${rightMeta}</div>${rowsHtml}`;
   } catch {
     tip.textContent = rawTip;
   }
   tip.hidden = false;
-  const rect = tile.getBoundingClientRect?.();
   if (rect) {
     const tipRect = tip.getBoundingClientRect();
     const left = Math.max(8, Math.min(window.innerWidth - tipRect.width - 8, rect.left + rect.width / 2 - tipRect.width / 2));
@@ -4890,32 +5417,71 @@ export function initHostPage(options = {}) {
     syncHostTopoViewport(page, true);
   });
 
+  page.addEventListener(
+    'scroll',
+    () => {
+      if (
+        hostState.hoveredLedLp !== null ||
+        hostState.selectedLedLp !== null ||
+        hostState.hoveredMemSeg !== null ||
+        hostState.hoveredGpuEngine !== null ||
+        hostState.selectedGpuEngine !== null
+      ) {
+        syncHostLedTooltip(page);
+      }
+    },
+    true
+  );
+
   page.addEventListener('mouseover', (e) => {
     if (topoDragging) return;
+    let tipDirty = false;
+    let pageDirty = false;
+
+    const memSeg = e.target.closest?.('[data-mem-seg]');
+    const nextMemSeg = memSeg ? memSeg.getAttribute('data-mem-seg') : null;
+    if (hostState.hoveredMemSeg !== nextMemSeg) {
+      hostState.hoveredMemSeg = nextMemSeg;
+      tipDirty = true;
+    }
+    const lpTile = e.target.closest?.('[data-led-lp]');
+    const nextLp = lpTile ? lpTile.getAttribute('data-led-lp') : null;
+    if (hostState.hoveredLedLp !== nextLp) {
+      hostState.hoveredLedLp = nextLp;
+      tipDirty = true;
+    }
+    const gpuEngCard = e.target.closest?.('[data-gpu-eng-card]');
+    const nextGpuEng = gpuEngCard ? gpuEngCard.getAttribute('data-gpu-eng-card') : null;
+    if (hostState.hoveredGpuEngine !== nextGpuEng) {
+      hostState.hoveredGpuEngine = nextGpuEng;
+      tipDirty = true;
+    }
+
     const target = e.target.closest?.('[data-host-led-vm]');
     const nextVm = target ? target.getAttribute('data-host-led-vm') : null;
     if (hostState.hoveredLedVm !== nextVm) {
       hostState.hoveredLedVm = nextVm;
-      renderHostPage();
+      pageDirty = true;
     }
     const memTarget = e.target.closest?.('[data-mem-key]');
     const nextMem = memTarget ? memTarget.getAttribute('data-mem-key') : null;
     if (hostState.hoveredMemKey !== nextMem) {
       hostState.hoveredMemKey = nextMem;
-      renderHostPage();
+      pageDirty = true;
     }
     const gpuTarget = e.target.closest?.('[data-gpu-key]');
     const nextGpu = gpuTarget ? gpuTarget.getAttribute('data-gpu-key') : null;
     if (hostState.hoveredGpuKey !== nextGpu) {
       hostState.hoveredGpuKey = nextGpu;
-      renderHostPage();
+      pageDirty = true;
     }
     const storageTarget = e.target.closest?.('[data-storage-key]');
     const nextStorage = storageTarget ? storageTarget.getAttribute('data-storage-key') : null;
     if (hostState.hoveredStorageKey !== nextStorage) {
       hostState.hoveredStorageKey = nextStorage;
-      renderHostPage();
+      pageDirty = true;
     }
+
     const topoTarget = e.target.closest?.('[data-topo-node]');
     const nextTopo = topoTarget ? topoTarget.getAttribute('data-topo-node') : null;
     if (hostState.suppressedHoverTopoNode && nextTopo !== hostState.suppressedHoverTopoNode) {
@@ -4925,16 +5491,10 @@ export function initHostPage(options = {}) {
       hostState.hoveredTopoNode = nextTopo;
       applyHostTopoFocusDom(page);
     }
-    const memSeg = e.target.closest?.('[data-mem-seg]');
-    const nextMemSeg = memSeg ? memSeg.getAttribute('data-mem-seg') : null;
-    if (hostState.hoveredMemSeg !== nextMemSeg) {
-      hostState.hoveredMemSeg = nextMemSeg;
-      syncHostLedTooltip(page);
-    }
-    const lpTile = e.target.closest?.('[data-led-lp]');
-    const nextLp = lpTile ? lpTile.getAttribute('data-led-lp') : null;
-    if (hostState.hoveredLedLp !== nextLp) {
-      hostState.hoveredLedLp = nextLp;
+
+    if (pageDirty) {
+      renderHostPage();
+    } else if (tipDirty) {
       syncHostLedTooltip(page);
     }
   });
@@ -4968,6 +5528,10 @@ export function initHostPage(options = {}) {
     }
     if (hostState.hoveredLedLp !== null) {
       hostState.hoveredLedLp = null;
+      syncHostLedTooltip(page);
+    }
+    if (hostState.hoveredGpuEngine !== null) {
+      hostState.hoveredGpuEngine = null;
       syncHostLedTooltip(page);
     }
     if (changed) renderHostPage();
@@ -5071,6 +5635,35 @@ export function initHostPage(options = {}) {
     if (ledChip) {
       const vmKey = ledChip.getAttribute('data-host-led-vm');
       hostState.selectedLedVm = hostState.selectedLedVm === vmKey ? null : vmKey;
+      hostState.selectedLedLp = null;
+      if (hostState.hoveredLedVm !== vmKey) hostState.hoveredLedVm = null;
+      renderHostPage();
+      return;
+    }
+
+    const lpTile = e.target.closest('[data-led-lp]');
+    if (lpTile) {
+      const lpNum = Number(lpTile.getAttribute('data-led-lp'));
+      if (Number.isFinite(lpNum)) {
+        hostState.selectedLedLp = hostState.selectedLedLp === lpNum ? null : lpNum;
+        hostState.selectedLedVm = null;
+        renderHostPage();
+        return;
+      }
+    }
+
+    if (
+      hostState.activeTab === 'overview' &&
+      hostState.overviewResource === 'cpu' &&
+      (hostState.selectedLedLp !== null || hostState.selectedLedVm !== null) &&
+      !e.target.closest('button') &&
+      !e.target.closest('[data-led-lp]') &&
+      !e.target.closest('[data-host-led-vm]')
+    ) {
+      hostState.selectedLedLp = null;
+      hostState.selectedLedVm = null;
+      hostState.hoveredLedVm = null;
+      hostState.hoveredLedLp = null;
       renderHostPage();
       return;
     }
@@ -5079,6 +5672,21 @@ export function initHostPage(options = {}) {
     if (memChip) {
       const memKey = memChip.getAttribute('data-mem-key');
       hostState.selectedMemKey = hostState.selectedMemKey === memKey ? null : memKey;
+      if (hostState.hoveredMemKey !== memKey) hostState.hoveredMemKey = null;
+      renderHostPage();
+      return;
+    }
+
+    if (
+      hostState.activeTab === 'overview' &&
+      hostState.overviewResource === 'mem' &&
+      hostState.selectedMemKey !== null &&
+      !e.target.closest('button') &&
+      !e.target.closest('[data-mem-key]') &&
+      !e.target.closest('[data-mem-seg]')
+    ) {
+      hostState.selectedMemKey = null;
+      hostState.hoveredMemKey = null;
       renderHostPage();
       return;
     }
@@ -5087,6 +5695,33 @@ export function initHostPage(options = {}) {
     if (gpuChip) {
       const gpuKey = gpuChip.getAttribute('data-gpu-key');
       hostState.selectedGpuKey = hostState.selectedGpuKey === gpuKey ? null : gpuKey;
+      hostState.selectedGpuEngine = null;
+      if (hostState.hoveredGpuKey !== gpuKey) hostState.hoveredGpuKey = null;
+      renderHostPage();
+      return;
+    }
+
+    const gpuEngCard = e.target.closest('[data-gpu-eng-card]');
+    if (gpuEngCard) {
+      const engId = gpuEngCard.getAttribute('data-gpu-eng-card');
+      hostState.selectedGpuEngine = hostState.selectedGpuEngine === engId ? null : engId;
+      hostState.selectedGpuKey = null;
+      renderHostPage();
+      return;
+    }
+
+    if (
+      hostState.activeTab === 'overview' &&
+      hostState.overviewResource === 'gpu' &&
+      (hostState.selectedGpuEngine !== null || hostState.selectedGpuKey !== null) &&
+      !e.target.closest('button') &&
+      !e.target.closest('[data-gpu-key]') &&
+      !e.target.closest('[data-gpu-eng-card]')
+    ) {
+      hostState.selectedGpuEngine = null;
+      hostState.selectedGpuKey = null;
+      hostState.hoveredGpuKey = null;
+      hostState.hoveredGpuEngine = null;
       renderHostPage();
       return;
     }
@@ -5095,6 +5730,20 @@ export function initHostPage(options = {}) {
     if (storageChip) {
       const storageKey = storageChip.getAttribute('data-storage-key');
       hostState.selectedStorageKey = hostState.selectedStorageKey === storageKey ? null : storageKey;
+      if (hostState.hoveredStorageKey !== storageKey) hostState.hoveredStorageKey = null;
+      renderHostPage();
+      return;
+    }
+
+    if (
+      hostState.activeTab === 'overview' &&
+      hostState.overviewResource === 'storage' &&
+      hostState.selectedStorageKey !== null &&
+      !e.target.closest('button') &&
+      !e.target.closest('[data-storage-key]')
+    ) {
+      hostState.selectedStorageKey = null;
+      hostState.hoveredStorageKey = null;
       renderHostPage();
       return;
     }
@@ -5110,11 +5759,14 @@ export function initHostPage(options = {}) {
     const resourceButton = e.target.closest('[data-overview-resource]');
     if (resourceButton) {
       hostState.overviewResource = resourceButton.dataset.overviewResource;
+      hostState.selectedLedLp = null;
       hostState.hoveredLedVm = null;
       hostState.hoveredLedLp = null;
       hostState.hoveredMemKey = null;
       hostState.hoveredMemSeg = null;
       hostState.hoveredGpuKey = null;
+      hostState.hoveredGpuEngine = null;
+      if (hostState.overviewResource !== 'gpu') hostState.selectedGpuEngine = null;
       hostState.hoveredStorageKey = null;
       hostState.hoveredTopoNode = null;
       hostState.suppressedHoverTopoNode = null;
@@ -5678,7 +6330,10 @@ export function resetHostToDemo() {
   hostState.iommuOk = DEMO_HOST_SNAPSHOT.iommuOk;
   hostState.isWindowsServer = DEMO_HOST_SNAPSHOT.isWindowsServer;
   hostState.liveHostThreadReport = null;
+  hostState.cpuDenseMode = 'paged-8x4';
   hostState.mockThreads = '12';
+  hostState.mockGpuCount = '4';
+  hostState.mockNumaCount = '2';
   hostState.mockVmCount = '2';
   hostState.notice = null;
 

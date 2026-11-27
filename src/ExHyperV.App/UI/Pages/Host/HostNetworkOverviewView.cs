@@ -102,21 +102,30 @@ internal sealed partial class HostNetworkOverviewView : UserControl
         public required Border Card { get; init; }
     }
 
-    private const double ColW = 252;
-    private const double Col1X = 32;
-    private const double Col2X = 440;
-    private const double Col3X = 848;
+    private const double ColW = 256;
+    private const double Col1X = 30;
+    private const double Col2X = 438;
+    private const double Col3X = 846;
     private const double TopPad = 24;
     private const double BottomPad = 24;
-    private const double NicH = 88;
+    private const double NicH = 94;
     private const double NicGap = 14;
-    private const double SwH = 92;
+    private const double SwH = 98;
     private const double SwGap = 18;
+    private const double VmHeadH = 40;
+    private const double PortH = 27;
+    private const double PortGap = 4;
+    private const double VmPadBottom = 10;
     private const double VmGap = 14;
     private const double CanvasW = 1132;
     private const double MinZoom = 0.45;
     private const double MaxZoom = 1.85;
 
+    private readonly Border stageBorder = new()
+    {
+        CornerRadius = new CornerRadius(8),
+        BorderThickness = new Thickness(1)
+    };
     private readonly Grid stageGrid = new() { Background = new SolidColorBrush(Colors.Transparent) };
     private readonly Canvas panCanvas = new()
     {
@@ -209,7 +218,8 @@ internal sealed partial class HostNetworkOverviewView : UserControl
         controlsBar.Child = ctrlRow;
         stageGrid.Children.Add(controlsBar);
 
-        Content = stageGrid;
+        stageBorder.Child = stageGrid;
+        Content = stageBorder;
 
         zoomOutBtn.Click += (_, _) => ZoomStep(-0.15);
         zoomInBtn.Click += (_, _) => ZoomStep(0.15);
@@ -241,7 +251,7 @@ internal sealed partial class HostNetworkOverviewView : UserControl
         stageGrid.PointerCanceled += OnStagePointerReleased;
         stageGrid.PointerWheelChanged += OnStagePointerWheelChanged;
         PreviewKeyDown += OnPreviewKeyDown;
-        ActualThemeChanged += (_, _) => Rebuild(forceStructure: true);
+        ActualThemeChanged += (_, _) => RefreshTheme();
 
         UpdateControlsTheme();
         UpdateFullscreenVisual();
@@ -254,6 +264,8 @@ internal sealed partial class HostNetworkOverviewView : UserControl
         if (isFullscreen == value) return;
         isFullscreen = value;
         autoFit = true;
+        stageBorder.CornerRadius = new CornerRadius(value ? 0 : 8);
+        stageBorder.BorderThickness = new Thickness(value ? 0 : 1);
         UpdateFullscreenVisual();
         FullscreenChanged?.Invoke(value);
         ApplyAutoFit();
@@ -307,7 +319,7 @@ internal sealed partial class HostNetworkOverviewView : UserControl
         Point cur = e.GetCurrentPoint(stageGrid).Position;
         double dx = cur.X - dragStart.X;
         double dy = cur.Y - dragStart.Y;
-        if (Math.Abs(dx) > 3 || Math.Abs(dy) > 3) dragged = true;
+        if (dx * dx + dy * dy > 16.0) dragged = true;
         if (!dragged) return;
         autoFit = false;
         panX = panStart.X + dx;
@@ -458,6 +470,12 @@ internal sealed partial class HostNetworkOverviewView : UserControl
             .ToList();
 
         // Compute vertical layout heights
+        static double CalcRightCardHeight(int portCount)
+        {
+            int count = Math.Max(1, portCount);
+            return VmHeadH + count * PortH + (count - 1) * PortGap + VmPadBottom;
+        }
+
         var rightPre = new List<(string NodeId, bool IsHost, string Name, bool Running, Color Color, double H, List<(string SwitchName, string PortName, string RightText, string EdgeRate, bool Active)> Ports)>
         {
             (
@@ -466,14 +484,14 @@ internal sealed partial class HostNetworkOverviewView : UserControl
                 L10n.Get("Host_Net_HostOsNode"),
                 true,
                 hostColor,
-                38 + Math.Max(1, hostPorts.Count) * 30 + 8,
+                CalcRightCardHeight(hostPorts.Count),
                 hostPorts.Select(p => (p.SwitchName, p.PortName, p.RightText, string.Empty, true)).ToList()
             )
         };
         foreach (var kv in vmMap.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
         {
             var vm = kv.Value;
-            double h = 38 + Math.Max(1, vm.Ports.Count) * 30 + 8;
+            double h = CalcRightCardHeight(vm.Ports.Count);
             rightPre.Add(($"vm:{vm.Name}", false, vm.Name, vm.Running, GetVmColor(vm.Id, vm.Name), h, vm.Ports));
         }
 
@@ -546,7 +564,7 @@ internal sealed partial class HostNetworkOverviewView : UserControl
             for (int pIdx = 0; pIdx < entry.Ports.Count; pIdx++)
             {
                 var p = entry.Ports[pIdx];
-                double ay = curY + 38 + pIdx * 30 + 15;
+                double ay = curY + VmHeadH + pIdx * (PortH + PortGap) + PortH / 2.0;
                 builtPorts.Add(new RightPortData($"port:{entry.NodeId}:{p.SwitchName}:{pIdx}", p.SwitchName, p.PortName, p.RightText, p.EdgeRate, p.Active, ay));
             }
             rightNodes.Add(new RightNodeData(entry.NodeId, entry.IsHost, entry.Name, entry.Running, entry.Color, Col3X, curY, ColW, entry.H, builtPorts));
@@ -695,27 +713,63 @@ internal sealed partial class HostNetworkOverviewView : UserControl
         ApplyFocusVisuals();
     }
 
+    private (ElementTheme Theme, Brush RestBg, Brush HoverBg, Brush SelectedBg, Brush RestStroke)? cachedNodeSurfaceBrushes;
+    private (ElementTheme Theme, Brush DefaultPillStroke)? cachedPillStroke;
+    private (ElementTheme Theme, string? Focus, string? SelectedNode)? lastFocusVisualState;
+    private readonly SolidColorBrush pillFocusedBorderBrush = new();
+    private readonly SolidColorBrush pillFocusedTextBrush = new();
+    private readonly SolidColorBrush pillNormalTextBrush = new();
+    private readonly Dictionary<Color, SolidColorBrush> accentNodeBorderBrushes = [];
+
+    private (Brush RestBg, Brush HoverBg, Brush SelectedBg, Brush RestStroke) GetNodeSurfaceBrushes(bool light)
+    {
+        ElementTheme theme = ActualTheme;
+        if (cachedNodeSurfaceBrushes is { } cached && cached.Theme == theme)
+            return (cached.RestBg, cached.HoverBg, cached.SelectedBg, cached.RestStroke);
+
+        Brush restBg = ThemeHelper.ThemeBrush(this, "ControlFillColorDefaultBrush",
+            light ? Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x0F, 0xFF, 0xFF, 0xFF));
+        Brush hoverBg = ThemeHelper.ThemeBrush(this, "ControlFillColorSecondaryBrush",
+            light ? Color.FromArgb(0xE0, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x16, 0xFF, 0xFF, 0xFF));
+        Brush selectedBg = light ? new SolidColorBrush(Colors.White) : hoverBg;
+        Brush restStroke = ThemeHelper.ThemeBrush(this, "ControlStrokeColorDefaultBrush",
+            light ? Color.FromArgb(0x14, 0, 0, 0) : Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF));
+        cachedNodeSurfaceBrushes = (theme, restBg, hoverBg, selectedBg, restStroke);
+        return (restBg, hoverBg, selectedBg, restStroke);
+    }
+
+    private SolidColorBrush GetAccentBorderBrush(Color color)
+    {
+        if (!accentNodeBorderBrushes.TryGetValue(color, out var brush))
+            accentNodeBorderBrushes[color] = brush = new SolidColorBrush(color);
+        return brush;
+    }
+
     private void RenderTopologyCanvas(
         IReadOnlyList<NicNodeData> nicNodes,
         IReadOnlyList<SwitchNodeData> switchNodes,
         IReadOnlyList<RightNodeData> rightNodes,
         IReadOnlyList<EdgeData> edges)
     {
+        lastFocusVisualState = null;
         bool light = ActualTheme == ElementTheme.Light;
         Color primary = ThemeHelper.ThemeColor(ActualTheme, "TextFillColorPrimaryBrush",
             light ? Color.FromArgb(0xE4, 0, 0, 0) : Colors.White);
         Color secondary = ThemeHelper.ThemeColor(ActualTheme, "TextFillColorSecondaryBrush",
             light ? Color.FromArgb(0x9E, 0, 0, 0) : Color.FromArgb(0xC5, 0xFF, 0xFF, 0xFF));
-        Brush nodeBg = new SolidColorBrush(light ? Colors.White : ThemeHelper.ThemeColor(ActualTheme, "CardBackgroundFillColorDefaultBrush", Color.FromArgb(0xFF, 0x24, 0x24, 0x24)));
-        Brush nodeStroke = ThemeHelper.TryResourceBrush(ActualTheme, "CardStrokeColorDefaultBrush",
-            light ? Color.FromArgb(0x18, 0, 0, 0) : Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF));
-        Brush subBg = ThemeHelper.TryResourceBrush(ActualTheme, "SubtleFillColorSecondaryBrush",
-            light ? Color.FromArgb(0x0A, 0, 0, 0) : Color.FromArgb(0x12, 0xFF, 0xFF, 0xFF));
-        Brush divider = ThemeHelper.TryResourceBrush(ActualTheme, "DividerStrokeColorDefaultBrush", Color.FromArgb(0x22, 0x80, 0x80, 0x80));
-        Brush pillBg = new SolidColorBrush(light ? Colors.White : Color.FromArgb(255, 0x28, 0x28, 0x28));
-        Brush pillStroke = ThemeHelper.TryResourceBrush(ActualTheme, "ControlStrokeColorDefaultBrush",
+        var (nodeBg, _, _, nodeStroke) = GetNodeSurfaceBrushes(light);
+        Brush iconBg = ThemeHelper.ThemeBrush(this, "SubtleFillColorSecondaryBrush",
+            light ? Color.FromArgb(0x0A, 0, 0, 0) : Color.FromArgb(0x0F, 0xFF, 0xFF, 0xFF));
+        Brush divider = ThemeHelper.ThemeBrush(this, "DividerStrokeColorDefaultBrush",
+            light ? Color.FromArgb(14, 0, 0, 0) : Color.FromArgb(22, 0xFF, 0xFF, 0xFF));
+        Brush wellBg = ThemeHelper.ThemeBrush(this, "VmKvWellBrush");
+        Brush wellBorder = ThemeHelper.ThemeBrush(this, "VmKvWellBorderBrush");
+        Brush pillBg = ThemeHelper.ThemeBrush(this, "SolidBackgroundFillColorTertiaryBrush",
+            light ? Colors.White : Color.FromArgb(255, 0x28, 0x28, 0x28));
+        Brush pillStroke = ThemeHelper.ThemeBrush(this, "ControlStrokeColorDefaultBrush",
             Color.FromArgb(0x28, 0x80, 0x80, 0x80));
-
+        Brush primaryBrush = new SolidColorBrush(primary);
+        Brush secondaryBrush = new SolidColorBrush(secondary);
         panCanvas.Children.Clear();
         panCanvas.Width = CanvasW;
         panCanvas.Height = canvasH;
@@ -817,145 +871,120 @@ internal sealed partial class HostNetworkOverviewView : UserControl
 
         Color nicAccent = ThemeHelper.ThemeColor(ActualTheme, "VmAccentBrush", Color.FromArgb(255, 0x4C, 0xC2, 0xFF));
 
-        // NIC cards
-        foreach (var n in nicNodes)
+        Grid BuildSummaryCard(string nodeId, string glyph, Color glyphAccent, string title, string badgeText, string subText, string metaText, string rateText)
         {
-            var stack = new Grid { RowSpacing = 3 };
+            var stack = new Grid { RowSpacing = 4 };
             stack.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             stack.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             stack.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var head = new Grid { ColumnSpacing = 7 };
+            var head = new Grid { ColumnSpacing = 7, Height = 24 };
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             head.Children.Add(new Border
             {
-                Width = 22,
-                Height = 22,
+                Width = 24,
+                Height = 24,
                 CornerRadius = new CornerRadius(5),
-                Background = subBg,
-                Child = new FontIcon { Glyph = n.Glyph, FontSize = 12, Foreground = new SolidColorBrush(nicAccent) }
+                BorderThickness = new Thickness(1),
+                BorderBrush = divider,
+                Background = iconBg,
+                Child = new FontIcon { FontFamily = AppFonts.SegoeFluent, Glyph = glyph, FontSize = 13, Foreground = new SolidColorBrush(glyphAccent) }
             });
-            var titleTb = new TextBlock { Text = n.Adapter.Name, FontSize = 12.5, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(primary), TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1, Padding = new Thickness(0, 1, 0, 1), VerticalAlignment = VerticalAlignment.Center };
+            var titleTb = new TextBlock
+            {
+                Text = title,
+                FontSize = 12.5,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = primaryBrush,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxLines = 1,
+                VerticalAlignment = VerticalAlignment.Center
+            };
             Grid.SetColumn(titleTb, 1);
             head.Children.Add(titleTb);
-            var badge = HostUiHelpers.BuildMiniBadge(ActualTheme, n.MediaLabel);
+            var badge = HostUiHelpers.BuildMiniBadge(ActualTheme, badgeText);
             Grid.SetColumn(badge, 2);
             head.Children.Add(badge);
             stack.Children.Add(head);
 
             var subTb = new TextBlock
             {
-                Text = n.Adapter.Description,
+                Text = subText,
                 FontSize = 11.5,
-                LineHeight = 16,
-                LineStackingStrategy = LineStackingStrategy.MaxHeight,
                 MaxLines = 1,
-                Padding = new Thickness(0, 1, 0, 2),
-                Foreground = new SolidColorBrush(secondary),
+                Foreground = secondaryBrush,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            ToolTipService.SetToolTip(subTb, n.Adapter.Description);
+            ToolTipService.SetToolTip(subTb, subText);
             Grid.SetRow(subTb, 1);
             stack.Children.Add(subTb);
 
             var foot = new Grid { ColumnSpacing = 8 };
             foot.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             foot.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var ipTb = new TextBlock { Text = n.Ipv4Text, FontSize = 11.5, MaxLines = 1, Padding = new Thickness(0, 0, 0, 1), Foreground = new SolidColorBrush(secondary), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
-            Typography.SetNumeralAlignment(ipTb, FontNumeralAlignment.Tabular);
-            foot.Children.Add(ipTb);
-            var rateTb = new TextBlock { Text = n.RateText, FontSize = 11.5, FontWeight = FontWeights.Medium, Foreground = new SolidColorBrush(primary), VerticalAlignment = VerticalAlignment.Center };
+            var metaTb = new TextBlock
+            {
+                Text = metaText,
+                FontSize = 11.5,
+                MaxLines = 1,
+                Foreground = secondaryBrush,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            ToolTipService.SetToolTip(metaTb, metaText);
+            Typography.SetNumeralAlignment(metaTb, FontNumeralAlignment.Tabular);
+            foot.Children.Add(metaTb);
+            var rateTb = new TextBlock
+            {
+                Text = rateText,
+                FontSize = 11.5,
+                FontWeight = FontWeights.Medium,
+                Foreground = primaryBrush,
+                VerticalAlignment = VerticalAlignment.Center
+            };
             Typography.SetNumeralAlignment(rateTb, FontNumeralAlignment.Tabular);
             Grid.SetColumn(rateTb, 1);
             foot.Children.Add(rateTb);
-            liveRateLabels[n.NodeId] = rateTb;
+            liveRateLabels[nodeId] = rateTb;
             Grid.SetRow(foot, 2);
             stack.Children.Add(foot);
+            return stack;
+        }
 
-            PlaceTopoNode(n.NodeId, n.X, n.Y, n.W, n.H, nicAccent, dimWhenOff: false, stack, nodeBg, nodeStroke);
+        // NIC cards
+        foreach (var n in nicNodes)
+        {
+            var content = BuildSummaryCard(n.NodeId, n.Glyph, nicAccent, n.Adapter.Name, n.MediaLabel, n.Adapter.Description, n.Ipv4Text, n.RateText);
+            PlaceTopoNode(n.NodeId, n.X, n.Y, n.W, n.H, nicAccent, dimWhenOff: false, content, nodeBg, nodeStroke);
         }
 
         // Switch cards
         foreach (var s in switchNodes)
         {
-            var stack = new Grid { RowSpacing = 3 };
-            stack.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            stack.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            stack.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var head = new Grid { ColumnSpacing = 7 };
-            head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            head.Children.Add(new Border
-            {
-                Width = 22,
-                Height = 22,
-                CornerRadius = new CornerRadius(5),
-                Background = subBg,
-                Child = new FontIcon { Glyph = "\uE774", FontSize = 12, Foreground = new SolidColorBrush(s.ModeColor) }
-            });
-            var titleTb = new TextBlock { Text = s.Switch.SwitchName, FontSize = 12.5, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(primary), TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1, Padding = new Thickness(0, 1, 0, 1), VerticalAlignment = VerticalAlignment.Center };
-            Grid.SetColumn(titleTb, 1);
-            head.Children.Add(titleTb);
-            var badge = HostUiHelpers.BuildMiniBadge(ActualTheme, s.ModeLabel);
-            Grid.SetColumn(badge, 2);
-            head.Children.Add(badge);
-            stack.Children.Add(head);
-
-            var subTb = new TextBlock
-            {
-                Text = s.UpstreamText,
-                FontSize = 11.5,
-                LineHeight = 16,
-                LineStackingStrategy = LineStackingStrategy.MaxHeight,
-                MaxLines = 1,
-                Padding = new Thickness(0, 1, 0, 2),
-                Foreground = new SolidColorBrush(secondary),
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            ToolTipService.SetToolTip(subTb, s.UpstreamText);
-            Grid.SetRow(subTb, 1);
-            stack.Children.Add(subTb);
-
-            var foot = new Grid { ColumnSpacing = 8 };
-            foot.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            foot.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            var metaTb = new TextBlock { Text = s.MetaText, FontSize = 11.5, MaxLines = 1, Padding = new Thickness(0, 0, 0, 1), Foreground = new SolidColorBrush(secondary), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
-            Typography.SetNumeralAlignment(metaTb, FontNumeralAlignment.Tabular);
-            foot.Children.Add(metaTb);
-            var rateTb = new TextBlock { Text = s.RateText, FontSize = 11.5, FontWeight = FontWeights.Medium, Foreground = new SolidColorBrush(primary), VerticalAlignment = VerticalAlignment.Center };
-            Typography.SetNumeralAlignment(rateTb, FontNumeralAlignment.Tabular);
-            Grid.SetColumn(rateTb, 1);
-            foot.Children.Add(rateTb);
-            liveRateLabels[s.NodeId] = rateTb;
-            Grid.SetRow(foot, 2);
-            stack.Children.Add(foot);
-
-            PlaceTopoNode(s.NodeId, s.X, s.Y, s.W, s.H, s.ModeColor, dimWhenOff: false, stack, nodeBg, nodeStroke);
+            var content = BuildSummaryCard(s.NodeId, "\uE774", s.ModeColor, s.Switch.SwitchName, s.ModeLabel, s.UpstreamText, s.MetaText, s.RateText);
+            PlaceTopoNode(s.NodeId, s.X, s.Y, s.W, s.H, s.ModeColor, dimWhenOff: false, content, nodeBg, nodeStroke);
         }
 
         // Right Host & VM cards
         foreach (var r in rightNodes)
         {
             var stack = new StackPanel { Spacing = 6 };
-            var head = new Grid { ColumnSpacing = 7 };
+            var head = new Grid { ColumnSpacing = 7, Height = 24 };
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             head.Children.Add(new Border
             {
-                Width = 9,
-                Height = 9,
-                CornerRadius = new CornerRadius(2),
+                Width = 3,
+                Height = 14,
+                CornerRadius = new CornerRadius(1.5),
                 Background = new SolidColorBrush(r.Color),
                 VerticalAlignment = VerticalAlignment.Center
             });
-            var titleTb = new TextBlock { Text = r.Name, FontSize = 12.5, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(primary), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+            var titleTb = new TextBlock { Text = r.Name, FontSize = 12.5, FontWeight = FontWeights.SemiBold, Foreground = primaryBrush, TextTrimming = TextTrimming.CharacterEllipsis, MaxLines = 1, VerticalAlignment = VerticalAlignment.Center };
             Grid.SetColumn(titleTb, 1);
             head.Children.Add(titleTb);
             string badgeStr = r.IsHost ? L10n.Format("Host_Net_PortsCount", r.Ports.Count) : L10n.Get(r.Running ? "Host_Net_VmRunning" : "Host_Net_VmStopped");
@@ -964,17 +993,19 @@ internal sealed partial class HostNetworkOverviewView : UserControl
             head.Children.Add(badge);
             stack.Children.Add(head);
 
-            var portsStack = new StackPanel { Spacing = 4 };
+            var portsStack = new StackPanel { Spacing = PortGap };
             if (r.Ports.Count == 0)
             {
                 portsStack.Children.Add(new Border
                 {
-                    Height = 26,
+                    Height = PortH,
                     Padding = new Thickness(8, 0, 8, 0),
                     CornerRadius = new CornerRadius(4),
-                    Background = subBg,
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = wellBorder,
+                    Background = wellBg,
                     Opacity = 0.65,
-                    Child = new TextBlock { Text = L10n.Get("Host_Net_NoHostShare"), FontSize = 11, Foreground = new SolidColorBrush(secondary), VerticalAlignment = VerticalAlignment.Center }
+                    Child = new TextBlock { Text = L10n.Get("Host_Net_NoHostShare"), FontSize = 11, Foreground = secondaryBrush, VerticalAlignment = VerticalAlignment.Center }
                 });
             }
             else
@@ -989,8 +1020,7 @@ internal sealed partial class HostNetworkOverviewView : UserControl
                         Text = p.PortName,
                         FontSize = 11.5,
                         MaxLines = 1,
-                        Padding = new Thickness(0, 1, 0, 1),
-                        Foreground = new SolidColorBrush(primary),
+                        Foreground = primaryBrush,
                         TextTrimming = TextTrimming.CharacterEllipsis,
                         VerticalAlignment = VerticalAlignment.Center
                     });
@@ -998,7 +1028,7 @@ internal sealed partial class HostNetworkOverviewView : UserControl
                     {
                         Text = p.RightText,
                         FontSize = 11.5,
-                        Foreground = new SolidColorBrush(secondary),
+                        Foreground = secondaryBrush,
                         VerticalAlignment = VerticalAlignment.Center
                     };
                     Typography.SetNumeralAlignment(pRate, FontNumeralAlignment.Tabular);
@@ -1008,10 +1038,12 @@ internal sealed partial class HostNetworkOverviewView : UserControl
 
                     portsStack.Children.Add(new Border
                     {
-                        Height = 26,
+                        Height = PortH,
                         Padding = new Thickness(8, 0, 8, 0),
                         CornerRadius = new CornerRadius(4),
-                        Background = subBg,
+                        BorderThickness = new Thickness(1),
+                        BorderBrush = wellBorder,
+                        Background = wellBg,
                         Opacity = p.Active ? 1.0 : 0.65,
                         Child = pRow
                     });
@@ -1043,11 +1075,10 @@ internal sealed partial class HostNetworkOverviewView : UserControl
             BorderThickness = new Thickness(1),
             BorderBrush = nodeStroke,
             Background = nodeBg,
-            Padding = new Thickness(11, 8, 11, 8),
+            Padding = new Thickness(12, 9, 12, 9),
             Opacity = dimWhenOff ? 0.72 : 1.0,
             Child = content
         };
-
         card.PointerEntered += (_, _) =>
         {
             if (hoverSuppressedNodeId != null && hoverSuppressedNodeId != nodeId)
@@ -1187,19 +1218,37 @@ internal sealed partial class HostNetworkOverviewView : UserControl
     {
         string? activeHover = hoveredNodeId != null && hoveredNodeId != hoverSuppressedNodeId ? hoveredNodeId : null;
         string? focus = selectedNodeId ?? activeHover;
+        ElementTheme theme = ActualTheme;
+        var nextFocusState = (theme, focus, selectedNodeId);
+        if (lastFocusVisualState == nextFocusState)
+            return;
+        lastFocusVisualState = nextFocusState;
+
         var focusSets = ComputeFocusSets(focus);
         bool hasFocus = focusSets.HasValue;
 
-        bool light = ActualTheme == ElementTheme.Light;
-        Brush defaultNodeStroke = ThemeHelper.TryResourceBrush(ActualTheme, "CardStrokeColorDefaultBrush",
-            light ? Color.FromArgb(0x18, 0, 0, 0) : Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF));
-        Brush defaultPillStroke = ThemeHelper.TryResourceBrush(ActualTheme, "ControlStrokeColorDefaultBrush",
-            Color.FromArgb(0x28, 0x80, 0x80, 0x80));
-        Color primary = ThemeHelper.ThemeColor(ActualTheme, "TextFillColorPrimaryBrush",
+        bool light = theme == ElementTheme.Light;
+        var (restBgBrush, hoverBgBrush, selectedBgBrush, defaultNodeStroke) = GetNodeSurfaceBrushes(light);
+        Brush defaultPillStroke;
+        if (cachedPillStroke is { } pillCache && pillCache.Theme == theme)
+        {
+            defaultPillStroke = pillCache.DefaultPillStroke;
+        }
+        else
+        {
+            defaultPillStroke = ThemeHelper.ThemeBrush(this, "ControlStrokeColorDefaultBrush",
+                Color.FromArgb(0x28, 0x80, 0x80, 0x80));
+            cachedPillStroke = (theme, defaultPillStroke);
+        }
+        Color primary = ThemeHelper.ThemeColor(theme, "TextFillColorPrimaryBrush",
             light ? Color.FromArgb(0xE4, 0, 0, 0) : Colors.White);
-        Color secondary = ThemeHelper.ThemeColor(ActualTheme, "TextFillColorSecondaryBrush",
+        Color secondary = ThemeHelper.ThemeColor(theme, "TextFillColorSecondaryBrush",
             light ? Color.FromArgb(0x9E, 0, 0, 0) : Color.FromArgb(0xC5, 0xFF, 0xFF, 0xFF));
-        Color accent = ThemeHelper.ThemeColor(ActualTheme, "VmAccentBrush", Color.FromArgb(255, 0x4C, 0xC2, 0xFF));
+        Color accent = ThemeHelper.ThemeColor(theme, "VmAccentBrush", Color.FromArgb(255, 0x4C, 0xC2, 0xFF));
+
+        if (pillFocusedBorderBrush.Color != accent) pillFocusedBorderBrush.Color = accent;
+        if (pillFocusedTextBrush.Color != primary) pillFocusedTextBrush.Color = primary;
+        if (pillNormalTextBrush.Color != secondary) pillNormalTextBrush.Color = secondary;
 
         foreach (var node in nodeVisuals)
         {
@@ -1208,8 +1257,10 @@ internal sealed partial class HostNetworkOverviewView : UserControl
             bool isDimmed = hasFocus && !isFocused;
 
             node.Card.Opacity = isDimmed ? (node.DimWhenOff ? 0.16 : 0.22) : (node.DimWhenOff ? 0.72 : 1.0);
-            node.Card.BorderBrush = isSelected || isFocused ? new SolidColorBrush(node.AccentColor) : defaultNodeStroke;
-            node.Card.BorderThickness = new Thickness(isSelected ? 1.8 : 1.0);
+            node.Card.Background = isSelected ? selectedBgBrush : isFocused ? hoverBgBrush : restBgBrush;
+            node.Card.BorderBrush = isSelected || isFocused ? GetAccentBorderBrush(node.AccentColor) : defaultNodeStroke;
+            node.Card.BorderThickness = new Thickness(isSelected ? 1.5 : 1.0);
+            node.Card.Padding = isSelected ? new Thickness(11.5, 8.5, 11.5, 8.5) : new Thickness(12, 9, 12, 9);
         }
 
         foreach (var edge in edgeVisuals)
@@ -1229,8 +1280,8 @@ internal sealed partial class HostNetworkOverviewView : UserControl
             if (edge.PillBorder != null && edge.PillLabel != null)
             {
                 edge.PillBorder.Opacity = isDimmed ? 0.15 : 1.0;
-                edge.PillBorder.BorderBrush = isFocused ? new SolidColorBrush(accent) : defaultPillStroke;
-                edge.PillLabel.Foreground = new SolidColorBrush(isFocused ? primary : secondary);
+                edge.PillBorder.BorderBrush = isFocused ? pillFocusedBorderBrush : defaultPillStroke;
+                edge.PillLabel.Foreground = isFocused ? pillFocusedTextBrush : pillNormalTextBrush;
                 edge.PillLabel.FontWeight = isFocused ? FontWeights.SemiBold : FontWeights.Normal;
                 Canvas.SetZIndex(edge.PillBorder, isFocused ? 15 : 8);
             }
@@ -1240,13 +1291,30 @@ internal sealed partial class HostNetworkOverviewView : UserControl
     private void UpdateControlsTheme()
     {
         bool light = ActualTheme == ElementTheme.Light;
-        controlsBar.Background = ThemeHelper.TryResourceBrush(ActualTheme, "ControlFillColorDefaultBrush",
+        Color accent = ThemeHelper.ThemeColor(ActualTheme, "VmAccentBrush", Color.FromArgb(255, 0x4C, 0xC2, 0xFF));
+        stageBorder.Background = ThemeHelper.ThemeBrush(this, "ControlFillColorTertiaryBrush",
+            light ? Color.FromArgb(0x4D, 0xF9, 0xF9, 0xF9) : Color.FromArgb(0x08, 0xFF, 0xFF, 0xFF));
+        stageBorder.BorderBrush = ThemeHelper.ThemeBrush(this, "VmStrokeBrush",
+            light ? Color.FromArgb(0x0F, 0, 0, 0) : Color.FromArgb(0x19, 0, 0, 0));
+
+        var stageGlow = new RadialGradientBrush
+        {
+            Center = new Point(0.5, 0.42),
+            GradientOrigin = new Point(0.5, 0.42),
+            RadiusX = 0.72,
+            RadiusY = 0.72
+        };
+        stageGlow.GradientStops.Add(new GradientStop { Color = Color.FromArgb(light ? (byte)0x08 : (byte)0x0C, accent.R, accent.G, accent.B), Offset = 0.0 });
+        stageGlow.GradientStops.Add(new GradientStop { Color = Color.FromArgb(0, accent.R, accent.G, accent.B), Offset = 1.0 });
+        stageGrid.Background = stageGlow;
+
+        controlsBar.Background = ThemeHelper.ThemeBrush(this, "ControlFillColorDefaultBrush",
             light ? Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF));
-        controlsBar.BorderBrush = ThemeHelper.TryResourceBrush(ActualTheme, "ControlStrokeColorDefaultBrush",
+        controlsBar.BorderBrush = ThemeHelper.ThemeBrush(this, "ControlStrokeColorDefaultBrush",
             Color.FromArgb(0x28, 0x80, 0x80, 0x80));
-        ctrlSep.Background = ThemeHelper.TryResourceBrush(ActualTheme, "DividerStrokeColorDefaultBrush",
+        ctrlSep.Background = ThemeHelper.ThemeBrush(this, "DividerStrokeColorDefaultBrush",
             Color.FromArgb(0x28, 0x80, 0x80, 0x80));
-        var fg = ThemeHelper.TryResourceBrush(ActualTheme, "TextFillColorPrimaryBrush",
+        var fg = ThemeHelper.ThemeBrush(this, "TextFillColorPrimaryBrush",
             light ? Color.FromArgb(0xE4, 0, 0, 0) : Colors.White);
         zoomResetBtn.Background = new SolidColorBrush(Colors.Transparent);
         zoomResetBtn.Foreground = fg;

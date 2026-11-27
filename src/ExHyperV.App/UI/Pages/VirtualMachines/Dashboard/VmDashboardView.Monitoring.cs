@@ -95,6 +95,8 @@ public sealed partial class VmDashboardView
         => !source.IsCancellationRequested && ReferenceEquals(cancellation, source) && current?.Id == id
             && stateVerified && state == VmState.Running && runtimeVersion == version;
 
+    private byte[]? lastPreviewJpeg;
+
     private async Task RunPreviewAsync(Guid id, CancellationTokenSource source)
     {
         Diagnostics.AppDiagnostics.Write("VmPreview", "Started", $"vmId={id:D}");
@@ -104,6 +106,8 @@ public sealed partial class VmDashboardView
         {
             while (!token.IsCancellationRequested)
             {
+                if (await WaitWhileHiddenAsync(token))
+                    nextPoll = Stopwatch.GetTimestamp();
                 int version = runtimeVersion;
                 if (IsCurrentPreview(id, source, version))
                 {
@@ -117,21 +121,30 @@ public sealed partial class VmDashboardView
                         {
                             var jpeg = await Task.Run(image.EncodeJpeg, token);
                             token.ThrowIfCancellationRequested();
-                            using var stream = new InMemoryRandomAccessStream();
-                            using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+                            if (lastPreviewJpeg != null && jpeg.AsSpan().SequenceEqual(lastPreviewJpeg))
                             {
-                                writer.WriteBytes(jpeg);
-                                await writer.StoreAsync();
+                                if (PreviewBorder.Visibility != Visibility.Visible)
+                                    PreviewBorder.Visibility = Visibility.Visible;
                             }
-                            token.ThrowIfCancellationRequested();
-                            stream.Seek(0);
-                            var bitmap = new BitmapImage();
-                            await bitmap.SetSourceAsync(stream);
-                            token.ThrowIfCancellationRequested();
-                            if (IsCurrentPreview(id, source, version))
+                            else
                             {
-                                Preview.Source = bitmap;
-                                PreviewBorder.Visibility = Visibility.Visible;
+                                using var stream = new InMemoryRandomAccessStream();
+                                using (var writer = new DataWriter(stream.GetOutputStreamAt(0)))
+                                {
+                                    writer.WriteBytes(jpeg);
+                                    await writer.StoreAsync();
+                                }
+                                token.ThrowIfCancellationRequested();
+                                stream.Seek(0);
+                                var bitmap = new BitmapImage();
+                                await bitmap.SetSourceAsync(stream);
+                                token.ThrowIfCancellationRequested();
+                                if (IsCurrentPreview(id, source, version))
+                                {
+                                    lastPreviewJpeg = jpeg;
+                                    Preview.Source = bitmap;
+                                    PreviewBorder.Visibility = Visibility.Visible;
+                                }
                             }
                         }
                     }

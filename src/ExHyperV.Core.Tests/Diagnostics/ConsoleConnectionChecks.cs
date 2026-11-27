@@ -782,6 +782,10 @@ internal static class ConsoleConnectionChecks
             && (int)((sd >> 16) & 0xFFFFu) == 1280
             && (int)((sd >> 32) & 0xFFFFu) == 720,
             "GPU bridge forwards availability signals and latest shared handle tuple intact");
+        check(connection.SendPointer(640, 360, ConsolePointerButton.Left, true)
+            && connection.SendPointer(640, 360, ConsolePointerButton.Left, false)
+            && !connection.SendPointer(1280, 360),
+            "GPU frame dimensions enable pointer input within the reported desktop bounds");
 
         backend.Native.NextGpuCpuEpoch = 0;
         ulong epoch1 = bridge.RequestCpu();

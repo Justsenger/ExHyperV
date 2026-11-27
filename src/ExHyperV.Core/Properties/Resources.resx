@@ -3697,14 +3697,14 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="Gpu_InvalidPartition" xml:space="preserve"><value>The selected partition is unavailable, changed, or is not a supported Windows system partition.</value></data>
   <data name="Gpu_CleanupRequired" xml:space="preserve"><value>The GPU assignment added by this deployment could not be removed. Retry cleanup before starting another deployment.</value></data>
   <data name="Msg_Gpu_DriverSkipped" xml:space="preserve"><value>Skipped</value></data>
-  <data name="Error_Gpu_LinuxUnsupported" xml:space="preserve"><value>Linux partition detected. GPU driver deployment is not supported yet.</value></data>
-  <data name="Msg_Gpu_LinuxUnsupported" xml:space="preserve"><value>Linux partition detected. GPU driver deployment is not supported yet. You can skip drivers or cancel deployment.</value></data>
+  <data name="Error_Gpu_LinuxUnsupported" xml:space="preserve"><value>Linux partition detected. Select a Linux GPU-PV bundle to continue.</value></data>
+  <data name="Msg_Gpu_LinuxUnsupported" xml:space="preserve"><value>Detected Linux partition. Continue to choose a Linux GPU-PV deployment bundle.</value></data>
   <data name="Msg_Gpu_BitLockerRequired" xml:space="preserve"><value>BitLocker protection detected on the target partition. Unlock or disable BitLocker first, or skip drivers.</value></data>
-  <data name="Msg_Gpu_LinuxAndBitLockerUnsupported" xml:space="preserve"><value>Detected Linux partition (not supported yet) and BitLocker partition (unlock or disable BitLocker first). No writable Windows partition is available.</value></data>
-  <data name="Msg_Gpu_SelectPartWithLinuxAndBitLocker" xml:space="preserve"><value>Select an unencrypted Windows system partition. Linux partitions are not supported yet, and BitLocker partitions require disabling BitLocker first.</value></data>
-  <data name="Msg_Gpu_SelectPartWithLinux" xml:space="preserve"><value>Select the target Windows system partition. Detected Linux partitions are not supported yet.</value></data>
+  <data name="Msg_Gpu_LinuxAndBitLockerUnsupported" xml:space="preserve"><value>Detected BitLocker partition (unlock or disable BitLocker first) and Linux partition.</value></data>
+  <data name="Msg_Gpu_SelectPartWithLinuxAndBitLocker" xml:space="preserve"><value>Select an unencrypted Windows or Linux system partition. BitLocker partitions require disabling BitLocker first.</value></data>
+  <data name="Msg_Gpu_SelectPartWithLinux" xml:space="preserve"><value>Select the target Windows or Linux system partition.</value></data>
   <data name="Msg_Gpu_SelectPartWithBitLocker" xml:space="preserve"><value>Select an unencrypted Windows system partition. BitLocker-protected partitions require disabling BitLocker first.</value></data>
-  <data name="Msg_Gpu_NoUsableWindowsPart" xml:space="preserve"><value>No usable Windows system partition was detected. Check the disk or skip drivers.</value></data>
+  <data name="Msg_Gpu_NoUsableWindowsPart" xml:space="preserve"><value>No usable system partition was detected. Check the disk or skip drivers.</value></data>
   <data name="ConsoleWindow_FrameStatistics" xml:space="preserve"><value>Frame statistics</value></data>
   <data name="ConsoleWindow_FrameStatisticsHint" xml:space="preserve"><value>Toggle received FPS and completed window bitmap updates. Maximum interval and intervals ≥50 ms cover the last 5 seconds, including the ongoing interval. A static desktop produces few updates. These are not monitor or remote-desktop FPS.</value></data>
   <data name="ConsoleWindow_FrameStatisticsFormat" xml:space="preserve"><value>UPDATE {0:F1} FPS · RECEIVE {1:F1} FPS
@@ -3727,4 +3727,49 @@ Remove them from storage and retry? Cancel to re-plug the device and try again.<
   <data name="GenerationUpgrade_Rollback" xml:space="preserve"><value>Could not confirm restoration of the original VM.</value></data>
   <data name="GenerationUpgrade_Complete" xml:space="preserve"><value>The completed upgrade receipt could not be verified.</value></data>
   <data name="GenerationUpgrade_Journal" xml:space="preserve"><value>Could not open or lock the upgrade journal.</value></data>
+  <data name="Task_Gpu_SelectPartition" xml:space="preserve"><value>Select partition</value></data>
+  <data name="Task_Gpu_SelectBundle" xml:space="preserve"><value>Select deployment bundle</value></data>
+  <data name="Task_Gpu_DownloadBundle" xml:space="preserve"><value>Download drivers</value></data>
+  <data name="Task_Gpu_SynthesizeBundle" xml:space="preserve"><value>Synthesize drivers</value></data>
+  <data name="Task_Gpu_MountIso" xml:space="preserve"><value>Mount disc</value></data>
+  <data name="Label_SelectLinuxBundle" xml:space="preserve"><value>Select Linux deployment bundle</value></data>
+  <data name="Msg_Gpu_SelectLinuxBundle" xml:space="preserve"><value>Download the latest Linux GPU-PV bundle online or select a local .zip archive.</value></data>
+  <data name="Msg_Gpu_LinuxBundleOnline" xml:space="preserve"><value>Online download</value></data>
+  <data name="Msg_Gpu_FetchingBundleInfo" xml:space="preserve"><value>Fetching latest bundle metadata...</value></data>
+  <data name="Msg_Gpu_DownloadingBundlePct" xml:space="preserve"><value>Downloading bundle ({0}%)</value></data>
+  <data name="Msg_Gpu_VerifyingBundlePct" xml:space="preserve"><value>Verifying bundle ({0}%)</value></data>
+  <data name="Msg_Gpu_SynthesizingIsoPct" xml:space="preserve"><value>Synthesizing drivers ({0}%)</value></data>
+  <data name="Msg_Gpu_LinuxSynthesizing" xml:space="preserve"><value>Extracting host GPU Linux runtime libraries and building driver disc...</value></data>
+  <data name="Msg_Gpu_LinuxMountingIso" xml:space="preserve"><value>Attaching driver disc to virtual machine DVD drive...</value></data>
+  <data name="Msg_Gpu_LinuxIsoMounted" xml:space="preserve"><value>Driver disc attached. Run the setup command inside the guest VM.</value></data>
+  <data name="Error_Gpu_LinuxArchUnsupported" xml:space="preserve"><value>Host architecture {0} is not supported for Linux GPU-PV.</value></data>
+  <data name="Error_Gpu_LinuxBundleNotFound" xml:space="preserve"><value>The specified Linux deployment bundle ZIP file does not exist.</value></data>
+  <data name="Error_Gpu_LinuxBundleNotZip" xml:space="preserve"><value>The deployment bundle must be a .zip archive.</value></data>
+  <data name="Error_Gpu_LinuxBundleInvalidZip" xml:space="preserve"><value>The selected file is not a valid ZIP archive: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleUnsafePath" xml:space="preserve"><value>The bundle archive contains a disallowed path: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleDuplicateEntry" xml:space="preserve"><value>The bundle archive contains a duplicate entry: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleMissingCoreFiles" xml:space="preserve"><value>The archive is missing required Linux GPU-PV guest or kernel files.</value></data>
+  <data name="Error_Gpu_LinuxBundleMissingMember" xml:space="preserve"><value>The bundle archive is missing a required member: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleBadJson" xml:space="preserve"><value>Unable to parse bundle metadata file: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleBadManifest" xml:space="preserve"><value>The bundle manifest.json version or format is invalid.</value></data>
+  <data name="Error_Gpu_LinuxBundleArchMismatch" xml:space="preserve"><value>Bundle architecture mismatch: expected {0}, found {1}.</value></data>
+  <data name="Error_Gpu_LinuxBundleBadChecksumSpec" xml:space="preserve"><value>Invalid SHA-256 declaration in bundle manifest: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleBadKernelIndex" xml:space="preserve"><value>The bundle prebuilt kernel index does not match manifest.json.</value></data>
+  <data name="Error_Gpu_LinuxBundleBadKernelMeta" xml:space="preserve"><value>Invalid prebuilt kernel module metadata: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleBadElf" xml:space="preserve"><value>ELF64 binary type or architecture validation failed: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleChecksumMismatch" xml:space="preserve"><value>SHA-256 checksum verification failed: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleOnlineEmpty" xml:space="preserve"><value>No release information was returned by the online bundle source.</value></data>
+  <data name="Error_Gpu_LinuxBundleOnlineFetchFailed" xml:space="preserve"><value>Failed to fetch online bundle metadata: {0}</value></data>
+  <data name="Error_Gpu_LinuxBundleArchAssetMissing" xml:space="preserve"><value>No online bundle asset was found for architecture {0}.</value></data>
+  <data name="Error_Gpu_LinuxBundleSumsMissing" xml:space="preserve"><value>The online release is missing SHA256SUMS verification metadata.</value></data>
+  <data name="Error_Gpu_LinuxBundleSumEntryMissing" xml:space="preserve"><value>SHA256SUMS does not contain a checksum entry for {0}.</value></data>
+  <data name="Error_Gpu_LinuxBundleDownloadFailed" xml:space="preserve"><value>Failed to download bundle package: {0}</value></data>
+  <data name="Error_Gpu_LinuxPackageReparse" xml:space="preserve"><value>Driver package directory cannot be a reparse point: {0}</value></data>
+  <data name="Error_Gpu_LinuxOutsideStore" xml:space="preserve"><value>Registered Linux runtime library resides outside DriverStore: {0}</value></data>
+  <data name="Error_Gpu_LinuxAmbiguousCompanion" xml:space="preserve"><value>Multiple conflicting companion driver packages matched {0}.</value></data>
+  <data name="Error_Gpu_LinuxNoHostUmd" xml:space="preserve"><value>No Linux user-mode runtime library (.so) was found in the host driver for {0}.</value></data>
+  <data name="Error_Gpu_LinuxInvalidInfEntry" xml:space="preserve"><value>Unsupported lxss file mapping in {0}: {1}</value></data>
+  <data name="Error_Gpu_LinuxAliasConflict" xml:space="preserve"><value>Conflicting Linux driver runtime file detected: {0}</value></data>
+  <data name="Error_Gpu_LinuxMissingMappedFile" xml:space="preserve"><value>Mapped Linux runtime file {0} was not found in package {1}.</value></data>
+  <data name="Error_Gpu_LinuxInvalidBundleDecision" xml:space="preserve"><value>Choose online download or provide a valid local .zip deployment bundle.</value></data>
 </root>

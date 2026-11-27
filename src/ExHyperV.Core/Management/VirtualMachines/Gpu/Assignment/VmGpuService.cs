@@ -682,6 +682,30 @@ namespace ExHyperV.Services
         #endregion
 
         #region Windows 驱动环境注入
+        /// <summary>检查并校验本地 Linux GPU-PV 部署包压缩文件（.zip）。</summary>
+        /// <param name="bundlePath">本地 .zip 部署包文件路径。</param>
+        /// <param name="cancellationToken">取消令牌。</param>
+        /// <returns>包含版本、架构、预编译内核数量和文件大小的校验结果。</returns>
+        public static async Task<ApiResponse<LinuxGpuPvBundleInfo>> InspectLinuxGpuPvBundleAsync(
+            string bundlePath,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var info = await LinuxGpuPvBundleService.InspectAsync(bundlePath, null, null, cancellationToken).ConfigureAwait(false);
+                return ApiResponse<LinuxGpuPvBundleInfo>.Ok(info);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<LinuxGpuPvBundleInfo>.Fail(ex.Message, exception: ex,
+                    kind: ex is LinuxBundleException or FileNotFoundException ? ApiErrorKind.InvalidArgument : ApiErrorKind.OperationFailed);
+            }
+        }
+
         /// <summary>向指定离线 Windows 系统分区同步宿主 GPU 驱动包及相关文件。</summary>
         /// <param name="vmId">已关闭的目标虚拟机的稳定 GUID。</param>
         /// <param name="gpuInstancePath">宿主 GPU 设备实例或分区资源路径。</param>

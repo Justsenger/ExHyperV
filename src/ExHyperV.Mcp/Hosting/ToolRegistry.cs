@@ -113,6 +113,7 @@ public static class ToolRegistry
             "vm_delete_preview" => ("VmDeleteService", "PreviewPurgeAsync"), "vm_unregister" => ("VmDeleteService", "DeleteVmAsync"), "vm_purge" => ("VmDeleteService", "PurgeVmAsync"),
             "vm_network_adapters" => ("VmNetworkService", "GetNetworkAdaptersAsync"), "vm_checkpoints" => ("VmCheckpointService", "GetCheckpointNodesAsync"),
             "vm_query" => ("VmQueryService", "QueryAsync"), "vm_gpu_assignments" => ("VmGpuService", "GetVmGpuAssignmentsAsync"),
+            "gpu_linux_bundle_inspect" => ("VmGpuService", "InspectLinuxGpuPvBundleAsync"),
             "host_disks" => ("HostDiskService", "GetHostDisksAsync"), "host_optical_drives" => ("HostDiskService", "GetHostOpticalDrivesAsync"),
             "host_gpus" => ("HostGpuService", "GetHostGpusAsync"), "host_switches" => ("VmNetworkService", "GetAvailableSwitchesAsync"), _ => default
         };

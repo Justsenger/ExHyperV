@@ -33,7 +33,9 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     private readonly StackPanel hostGpuList = new() { Spacing = 8 };
     private readonly StackPanel deployment = new() { Spacing = 8, Visibility = Visibility.Collapsed };
     private readonly ToggleSwitch installDrivers = Switch();
+    private readonly Button backListBtn = new() { Content = L10n.Get("Pcie_Back") };
     private readonly Button beginSelectBtn = new() { Content = L10n.Get("Gpu_StartSetup"), IsEnabled = false };
+    private readonly StackPanel selectionHeaderActions;
     private readonly SemaphoreSlim stopGate = new(1, 1);
 
     private bool closing;
@@ -50,8 +52,8 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         installDrivers.IsEnabled = true;
         installDrivers.IsOn = true;
         beginSelectBtn.Style = (Style)Microsoft.UI.Xaml.Application.Current.Resources["AccentButtonStyle"];
+        selectionHeaderActions = DeviceWorkbench.Actions(backListBtn, beginSelectBtn);
 
-        var backListBtn = new Button { Content = L10n.Get("Pcie_Back") };
         backListBtn.Click += (_, _) => ShowOverview();
         beginSelectBtn.Click += async (_, _) =>
         {
@@ -64,16 +66,27 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
                 installDrivers.IsOn ? GpuDeploymentMode.AddWithDrivers : GpuDeploymentMode.AddWithoutDrivers));
         };
 
-        var driverToggleCard = Card(Row(L10n.Get("Gpu_InstallDrivers"), L10n.Get("Gpu_InstallDriversHelp"), installDrivers));
-        driverToggleCard.Margin = new Thickness(0);
+        var driverToggleRow = new Grid { Margin = new Thickness(24, 16, 24, 16), ColumnSpacing = 24 };
+        driverToggleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        driverToggleRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        driverToggleRow.Children.Add(new TextBlock
+        {
+            Text = L10n.Get("Gpu_InstallDrivers"),
+            FontSize = 14,
+            TextWrapping = TextWrapping.Wrap,
+            VerticalAlignment = VerticalAlignment.Center,
+            Foreground = Brush("TextFillColorPrimaryBrush")
+        });
+        installDrivers.VerticalAlignment = VerticalAlignment.Center;
+        Grid.SetColumn(installDrivers, 1);
+        driverToggleRow.Children.Add(installDrivers);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(installDrivers, L10n.Get("Gpu_InstallDrivers"));
 
-        var selectActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
-        selectActions.Children.Add(backListBtn);
-        selectActions.Children.Add(beginSelectBtn);
+        var driverToggleCard = Card(driverToggleRow);
+        driverToggleCard.Margin = new Thickness(0);
 
         selectionContent.Children.Add(driverToggleCard);
         selectionContent.Children.Add(hostGpuList);
-        selectionContent.Children.Add(selectActions);
         selection.Content = selectionContent;
 
         overview.Content = assignedList;
@@ -496,6 +509,7 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         UpdateBeginSelectionState();
         overview.Visibility = deployment.Visibility = Visibility.Collapsed;
         selection.Visibility = Visibility.Visible;
+        SetHeaderTrailingAction(selectionHeaderActions);
     }
 
     private UIElement BuildHostGpuPickerRow(HostGpuInfo gpu, bool alreadyAdded, bool canSelect)
@@ -655,7 +669,12 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
         return rowCard;
     }
 
-    private void UpdateBeginSelectionState() => beginSelectBtn.IsEnabled = selectedHostGpuIds.Count > 0;
+    private void UpdateBeginSelectionState()
+    {
+        bool busy = working || closing || IsBusy;
+        backListBtn.IsEnabled = !busy;
+        beginSelectBtn.IsEnabled = !busy && selectedHostGpuIds.Count > 0;
+    }
 
     private async Task UpdateDriversAsync(VmGpuAssignment assignment)
     {
@@ -702,6 +721,7 @@ public sealed partial class VmGpuSettingsView : VmSettingsView
     private void ShowOverview()
     {
         if (working || closing) return;
+        SetHeaderTrailingAction(null);
         overview.Visibility = Visibility.Visible;
         selection.Visibility = deployment.Visibility = Visibility.Collapsed;
     }

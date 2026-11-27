@@ -24,12 +24,17 @@ public sealed partial class ConsoleWindow : Window
     private Task switchWork = Task.CompletedTask;
     private Task? closeWork;
     private volatile bool closing;
-    private bool active, fullscreen, pinned = true, manualWindowSize, verifyFit;
+    private bool active, fullscreen, updatingFullscreen, updatingWindowSize, pinned = true, manualWindowSize, verifyFit, viewportReady;
     private double layoutScale;
-    private RectInt32 interactiveRect;
-    private readonly List<SizeInt32> pendingAutoResizes = [];
+    private RectInt32[] interactiveRects = [];
+    private readonly List<PendingAutoResize> pendingAutoResizes = [];
     private AppWindowPresenterKind lastPresenterKind = AppWindowPresenterKind.Overlapped;
     private OverlappedPresenterState lastPresenterState = OverlappedPresenterState.Restored;
+    private readonly DispatcherTimer autoResizeTimer = new() { Interval = TimeSpan.FromMilliseconds(220) };
+    private readonly DispatcherTimer fpsTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
+    private int autoResizeAttempts;
+    private bool suppressAutoGuestResize;
+    private readonly record struct PendingAutoResize(SizeInt32 From, SizeInt32 To, long ExpiresAt);
     private static AppAppearance Appearance => ((App)Application.Current).Appearance;
 
     private ConsoleWindow(VmListItem target)
@@ -49,6 +54,7 @@ public sealed partial class ConsoleWindow : Window
         Appearance.Changed += OnAppearance;
         L10n.LanguageChanged += OnLanguage;
         Root.RequestedTheme = Appearance.Settings.Theme;
+        SyncNativeTheme();
         Root.Loaded += OnLoaded;
         TitleStrip.LayoutUpdated += OnTitleLayout;
         AppWindow.Closing += OnClosing;
@@ -59,6 +65,8 @@ public sealed partial class ConsoleWindow : Window
         GpuScreen.CompositionScaleChanged += OnGpuScreenScaleChanged;
         capsuleTimer.Tick += (_, _) => { capsuleTimer.Stop(); Capsule.Visibility = Visibility.Collapsed; };
         noticeTimer.Tick += (_, _) => { noticeTimer.Stop(); Notice.Visibility = Visibility.Collapsed; };
+        autoResizeTimer.Tick += (_, _) => OnAutoResizeTick();
+        fpsTimer.Tick += (_, _) => UpdateFpsReadout();
         Localize();
         Render();
     }
@@ -127,11 +135,15 @@ public sealed partial class ConsoleWindow : Window
     private async Task CloseConsoleAsync()
     {
         closing = true;
+        Volatile.Write(ref fpsTracking, 0);
+        fpsTimer.Stop();
         ++powerGeneration;
         busyPower = false;
         activePowerAction = null;
         confirmation?.Hide();
         Root.IsHitTestVisible = false;
+        if (fullscreen) AppWindow.SetPresenter(windowed);
+        AppWindow.Hide();
         pollLifetime?.Cancel();
         await switchWork;
         await StopMonitoringAsync();
@@ -153,6 +165,10 @@ public sealed partial class ConsoleWindow : Window
         DisposeDisplay();
         capsuleTimer.Stop();
         noticeTimer.Stop();
+        autoResizeTimer.Stop();
+        fpsTimer.Stop();
+        if (WindowsByVm.Count == 0)
+            GC.Collect(2, GCCollectionMode.Optimized, false);
     }
 
     private void OnLoaded(object sender, RoutedEventArgs args)
@@ -162,7 +178,12 @@ public sealed partial class ConsoleWindow : Window
         AppWindow.Changed += OnAppWindowChanged;
         UpdateLayoutMetrics();
         verifyFit = true;
-        FitWindowToAspect();
+        if (Viewport.ActualWidth > 0 && Viewport.ActualHeight > 0)
+        {
+            viewportReady = true;
+            verifyFit = false;
+            FitWindowToAspect();
+        }
         OnActualTheme(Root, EventArgs.Empty);
     }
 
@@ -173,17 +194,38 @@ public sealed partial class ConsoleWindow : Window
     {
         var kind = sender.Presenter.Kind;
         var state = windowed.State;
+        if (fullscreen && !updatingFullscreen && !closing && kind != AppWindowPresenterKind.FullScreen)
+        {
+            SetFullscreen(false);
+            return;
+        }
         bool stateChanged = kind != lastPresenterKind || state != lastPresenterState;
         lastPresenterKind = kind;
         lastPresenterState = state;
-        if (!args.DidSizeChange || closing || fullscreen || state != OverlappedPresenterState.Restored || stateChanged)
+        if (updatingWindowSize) return;
+        if (stateChanged && state == OverlappedPresenterState.Restored && !closing && !fullscreen && viewportReady)
         {
-            if (args.DidSizeChange) pendingAutoResizes.Clear();
+            pendingAutoResizes.Clear();
+            suppressAutoGuestResize = false;
+            if (!manualWindowSize)
+            {
+                FitWindowToAspect();
+                if (IsEnhanced) RestoreEnhancedGuestSizeIfNeeded();
+            }
+            else ScheduleAutoGuestResize();
             return;
         }
-        int matched = pendingAutoResizes.FindIndex(expected =>
-            Math.Abs(sender.Size.Width - expected.Width) <= 2 &&
-            Math.Abs(sender.Size.Height - expected.Height) <= 2);
+        if (!args.DidSizeChange || closing || fullscreen || !viewportReady || state != OverlappedPresenterState.Restored || stateChanged)
+        {
+            if (args.DidSizeChange && viewportReady)
+            {
+                pendingAutoResizes.Clear();
+                if (!closing && !fullscreen) ScheduleAutoGuestResize();
+            }
+            return;
+        }
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        int matched = pendingAutoResizes.FindIndex(expected => MatchesPendingAutoResize(expected, sender.Size, now));
         if (matched >= 0)
         {
             pendingAutoResizes.RemoveRange(0, matched + 1);
@@ -191,13 +233,33 @@ public sealed partial class ConsoleWindow : Window
         }
         pendingAutoResizes.Clear();
         manualWindowSize = true;
+        suppressAutoGuestResize = false;
+        ScheduleAutoGuestResize();
+    }
+
+    private static bool MatchesPendingAutoResize(PendingAutoResize expected, SizeInt32 actual, long now)
+    {
+        const int Tolerance = 12;
+        if (Math.Abs(actual.Width - expected.To.Width) <= Tolerance &&
+            Math.Abs(actual.Height - expected.To.Height) <= Tolerance)
+            return true;
+        if (now > expected.ExpiresAt) return false;
+        int minW = Math.Min(expected.From.Width, expected.To.Width) - Tolerance;
+        int maxW = Math.Max(expected.From.Width, expected.To.Width) + Tolerance;
+        int minH = Math.Min(expected.From.Height, expected.To.Height) - Tolerance;
+        int maxH = Math.Max(expected.From.Height, expected.To.Height) + Tolerance;
+        return actual.Width >= minW && actual.Width <= maxW && actual.Height >= minH && actual.Height <= maxH;
     }
 
     private void FitWindowToAspect(int? frameWidth = null, int? frameHeight = null)
     {
-        if (closing || fullscreen || (!IsEnhanced && zoom != 0) || windowed.State != OverlappedPresenterState.Restored ||
-            Root.XamlRoot is not { } root)
+        if (closing || fullscreen || (!IsEnhanced && zoom != 0) || windowed.State != OverlappedPresenterState.Restored)
             return;
+        if (!viewportReady || Root.XamlRoot is not { } root)
+        {
+            verifyFit = true;
+            return;
+        }
 
         (int w, int h) = frameWidth is > 0 && frameHeight is > 0
             ? (frameWidth.Value, frameHeight.Value)
@@ -211,12 +273,18 @@ public sealed partial class ConsoleWindow : Window
 
         var work = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest).WorkArea;
         var outer = AppWindow.Size;
-        int frameW = Viewport.ActualWidth > 0 && outer.Width > 0
-            ? Math.Max(0, outer.Width - (int)Math.Round(Viewport.ActualWidth * scale))
-            : (int)Math.Round(16 * scale);
-        int frameAndTitleH = Viewport.ActualHeight > 0 && outer.Height > 0
-            ? Math.Max(0, outer.Height - (int)Math.Round(Viewport.ActualHeight * scale))
-            : (int)Math.Round((titleDip + 8) * scale);
+        var client = AppWindow.ClientSize;
+        int frameW = outer.Width > 0 && client.Width > 0 && outer.Width >= client.Width
+            ? outer.Width - client.Width
+            : Viewport.ActualWidth > 0 && outer.Width > 0
+                ? Math.Max(0, outer.Width - (int)Math.Round(Viewport.ActualWidth * scale))
+                : (int)Math.Round(16 * scale);
+        int titlePx = (int)Math.Round(titleDip * scale);
+        int frameAndTitleH = outer.Height > 0 && client.Height > 0 && outer.Height >= client.Height
+            ? (outer.Height - client.Height) + titlePx
+            : Viewport.ActualHeight > 0 && outer.Height > 0
+                ? Math.Max(0, outer.Height - (int)Math.Round(Viewport.ActualHeight * scale))
+                : (int)Math.Round((titleDip + 8) * scale);
 
         int minOuterW = windowed.PreferredMinimumWidth ?? (int)Math.Ceiling(760 * scale);
         int minOuterH = windowed.PreferredMinimumHeight ?? (int)Math.Ceiling(440 * scale);
@@ -243,14 +311,27 @@ public sealed partial class ConsoleWindow : Window
         int targetOuterH = viewH + frameAndTitleH;
         if (outer.Width == targetOuterW && outer.Height == targetOuterH) return;
 
-        pendingAutoResizes.Add(new SizeInt32(targetOuterW, targetOuterH));
-        AppWindow.Resize(new SizeInt32(targetOuterW, targetOuterH));
+        var requested = new SizeInt32(targetOuterW, targetOuterH);
+        long grace = System.Diagnostics.Stopwatch.GetTimestamp() + (long)(0.6 * System.Diagnostics.Stopwatch.Frequency);
+        pendingAutoResizes.Add(new(outer, requested, grace));
+        if (pendingAutoResizes.Count > 16) pendingAutoResizes.RemoveRange(0, pendingAutoResizes.Count - 8);
+        updatingWindowSize = true;
+        try
+        {
+            AppWindow.Resize(requested);
 
-        var updated = AppWindow.Size;
-        var pos = AppWindow.Position;
-        int nextX = Math.Clamp(pos.X, work.X, Math.Max(work.X, work.X + work.Width - updated.Width));
-        int nextY = Math.Clamp(pos.Y, work.Y, Math.Max(work.Y, work.Y + work.Height - updated.Height));
-        if (nextX != pos.X || nextY != pos.Y) AppWindow.Move(new PointInt32(nextX, nextY));
+            var updated = AppWindow.Size;
+            if (updated.Width != requested.Width || updated.Height != requested.Height)
+                pendingAutoResizes.Add(new(outer, updated, grace));
+            var pos = AppWindow.Position;
+            int nextX = Math.Clamp(pos.X, work.X, Math.Max(work.X, work.X + work.Width - updated.Width));
+            int nextY = Math.Clamp(pos.Y, work.Y, Math.Max(work.Y, work.Y + work.Height - updated.Height));
+            if (nextX != pos.X || nextY != pos.Y) AppWindow.Move(new PointInt32(nextX, nextY));
+        }
+        finally
+        {
+            updatingWindowSize = false;
+        }
     }
 
     private void UpdateLayoutMetrics()
@@ -269,26 +350,42 @@ public sealed partial class ConsoleWindow : Window
         double limit = Math.Clamp(Root.ActualWidth - inset - Actions.ActualWidth - 44, 96, 248);
         if (Switcher.MaxWidth != limit) Switcher.MaxWidth = limit;
         var end = Actions.TransformToVisual(Root).TransformPoint(new Windows.Foundation.Point(Actions.ActualWidth, 0));
-        RectInt32 rect = fullscreen ? default : new(0, 0, (int)Math.Ceiling(end.X * scale), (int)Math.Ceiling(TitleStrip.ActualHeight * scale));
-        if (!rect.Equals(interactiveRect))
+        RectInt32[] rects = !fullscreen && end.X > 0 && TitleStrip.ActualHeight > 0
+            ? [new RectInt32(0, 0, (int)Math.Ceiling(end.X * scale), (int)Math.Ceiling(TitleStrip.ActualHeight * scale))]
+            : [];
+        if (!interactiveRects.SequenceEqual(rects))
         {
-            interactiveRect = rect;
+            interactiveRects = rects;
             var nonClient = InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
-            nonClient.SetRegionRects(NonClientRegionKind.Passthrough, rect.Width > 0 && rect.Height > 0 ? [rect] : []);
+            nonClient.SetRegionRects(NonClientRegionKind.Passthrough, rects);
+        }
+        if (fullscreen)
+        {
+            var nonClient = InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
+            nonClient.SetRegionRects(NonClientRegionKind.Caption, []);
         }
     }
 
     private void OnAppearance(object? sender, EventArgs e)
     {
         Root.RequestedTheme = Appearance.Settings.Theme;
+        SyncNativeTheme();
         Render();
     }
 
     private void OnSystemTheme(ThemeSettings sender, object args) =>
         DispatcherQueue.TryEnqueue(() => { if (!closing) OnActualTheme(Root, args); });
 
-    private void OnActualTheme(FrameworkElement sender, object args) =>
+    private void OnActualTheme(FrameworkElement sender, object args)
+    {
         Appearance.UpdatePalette(Root.ActualTheme, theme.HighContrast);
+        SyncNativeTheme();
+    }
+
+    private void SyncNativeTheme() => NativeTheme.Sync(
+        WinRT.Interop.WindowNative.GetWindowHandle(this),
+        Appearance.Settings.Theme,
+        theme.HighContrast);
 
     private void OnLanguage(object? sender, EventArgs e) { Localize(); Render(); }
 
@@ -300,11 +397,12 @@ public sealed partial class ConsoleWindow : Window
         else
         {
             clipboard?.Activated();
-            if (Surface.FocusState != FocusState.Unfocused)
+            if (Surface.FocusState != FocusState.Unfocused && Input != null && confirmation == null)
             {
-                keyboardCaptured = Input != null;
+                keyboardCaptured = true;
                 SyncLocks();
             }
+            SyncKeyboardHook();
         }
     }
 
@@ -314,11 +412,54 @@ public sealed partial class ConsoleWindow : Window
     {
         ReleaseInput();
         fullscreen = value;
-        if (value) AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
-        else AppWindow.SetPresenter(windowed);
-        TitleStrip.Visibility = ShowWhen(!value);
-        Capsule.Visibility = ShowWhen(value);
-        if (!value && (IsEnhanced || zoom == 0) && !manualWindowSize) FitWindowToAspect();
+        suppressAutoGuestResize = false;
+        updatingFullscreen = true;
+        try
+        {
+            var nonClient = InputNonClientPointerSource.GetForWindowId(AppWindow.Id);
+            if (value)
+            {
+                TitleStrip.Visibility = Visibility.Collapsed;
+                Capsule.Visibility = Visibility.Visible;
+                if (AppWindow.Presenter.Kind != AppWindowPresenterKind.FullScreen)
+                    AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
+                SetTitleBar(null);
+                ExtendsContentIntoTitleBar = false;
+                interactiveRects = [];
+                nonClient.SetRegionRects(NonClientRegionKind.Passthrough, []);
+                nonClient.SetRegionRects(NonClientRegionKind.Caption, []);
+            }
+            else
+            {
+                ExtendsContentIntoTitleBar = true;
+                SetTitleBar(DragSpace);
+                TitleStrip.Visibility = Visibility.Visible;
+                Capsule.Visibility = Visibility.Collapsed;
+                if (AppWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen)
+                    AppWindow.SetPresenter(windowed);
+                interactiveRects = [];
+                UpdateLayoutMetrics();
+            }
+        }
+        finally
+        {
+            updatingFullscreen = false;
+        }
+        if (!value && (IsEnhanced || zoom == 0) && !manualWindowSize)
+        {
+            FitWindowToAspect();
+            if (IsEnhanced) RestoreEnhancedGuestSizeIfNeeded();
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                if (!closing && !fullscreen && windowed.State == OverlappedPresenterState.Restored &&
+                    (IsEnhanced || zoom == 0) && !manualWindowSize)
+                {
+                    FitWindowToAspect();
+                    SizeSurface();
+                }
+            });
+        }
+        else ScheduleAutoGuestResize();
         if (value) Pin.Focus(FocusState.Programmatic);
         else Fullscreen.Focus(FocusState.Programmatic);
         capsuleTimer.Stop();

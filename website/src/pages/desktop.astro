@@ -58,7 +58,7 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
           {HOST_CANDIDATE_PANEL.sections.map((sec) => (
             <>
               <div class="w11-dcp-subhead">{sec.subhead}</div>
-              <div class="w11-dcp-list">
+              <div class={`w11-dcp-list ${sec.columns === 2 ? 'is-grid-2' : ''}`}>
                 {sec.items.map((item) => (
                   <button
                     type="button"
@@ -452,7 +452,7 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
     position: absolute;
     right: 14px;
     top: 82px;
-    width: 242px;
+    width: 262px;
     z-index: 900;
     background: rgba(30, 31, 34, 0.92);
     -webkit-backdrop-filter: saturate(1.4) blur(18px);
@@ -526,6 +526,12 @@ const cleanMode = import.meta.env.PUBLIC_CLEAN_DESKTOP === '1';
     padding: 0 8px 4px 8px;
     display: flex;
     flex-direction: column;
+    gap: 4px;
+  }
+
+  .w11-dcp-list.is-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px;
   }
 

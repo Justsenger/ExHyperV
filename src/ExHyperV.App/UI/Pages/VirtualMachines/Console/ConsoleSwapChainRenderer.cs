@@ -9,7 +9,7 @@ namespace ExHyperV.App.UI.Pages.VirtualMachines.Console;
 internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bindSwapChain,
     Func<(float X, float Y)> compositionScale, Action<string, string> log) : IDisposable
 {
-    private const int BufferCount = 3;
+    private const int BufferCount = 2;
     private const int DriverHardware = 1;
     private const int DriverWarp = 5;
     private const uint CreateDeviceBgraSupport = 0x20;
@@ -467,6 +467,11 @@ internal sealed unsafe partial class ConsoleSwapChainRenderer(Func<nint, int> bi
         Array.Clear(dirtyHistory);
         ReleaseSwapChainResources();
         Release(ref factory);
+        if (context != 0)
+        {
+            ((delegate* unmanaged[Stdcall]<nint, void>)Slot(context, 110))(context);
+            ((delegate* unmanaged[Stdcall]<nint, void>)Slot(context, 111))(context);
+        }
         Release(ref context);
         Release(ref device);
     }

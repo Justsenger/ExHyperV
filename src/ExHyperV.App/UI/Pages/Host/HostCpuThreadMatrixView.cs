@@ -71,12 +71,6 @@ internal sealed partial class HostCpuThreadMatrixView : UserControl
         HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
     };
     private readonly Grid legendGrid = new() { ColumnSpacing = 6, RowSpacing = 6, VerticalAlignment = VerticalAlignment.Top };
-    private readonly TextBlock attributionBanner = new()
-    {
-        FontSize = 11.5,
-        TextWrapping = TextWrapping.Wrap,
-        Visibility = Visibility.Collapsed
-    };
 
     private readonly List<HostCpuRingTile> tiles = [];
     private readonly Dictionary<Guid, int> vmColorSlots = new();
@@ -103,7 +97,6 @@ internal sealed partial class HostCpuThreadMatrixView : UserControl
 
         legendContainer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         legendContainer.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        legendContainer.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
         Grid.SetRow(hostPinBox, 0);
         legendContainer.Children.Add(hostPinBox);
@@ -112,9 +105,6 @@ internal sealed partial class HostCpuThreadMatrixView : UserControl
         legendScroll.AttachScrollbarClearance(legendGrid, bottomSpacing: 0);
         Grid.SetRow(legendScroll, 1);
         legendContainer.Children.Add(legendScroll);
-
-        Grid.SetRow(attributionBanner, 2);
-        legendContainer.Children.Add(attributionBanner);
 
         legendBox.Child = legendContainer;
 
@@ -162,7 +152,6 @@ internal sealed partial class HostCpuThreadMatrixView : UserControl
             RebuildTiles(targetCount, lp => new HostCpuRingTile(lp, typeLookup.TryGetValue(lp, out var t) ? t : HyperVCpuMonitorService.GetCoreType(lp)));
         }
 
-        UpdateAttributionBanner(report);
         RenderThreadReadings();
     }
 
@@ -597,44 +586,12 @@ internal sealed partial class HostCpuThreadMatrixView : UserControl
         }
     }
 
-    private void UpdateAttributionBanner(HostCpuThreadReport report)
-    {
-        if (report.Sample.State == PerformanceSampleState.WarmingUp)
-        {
-            attributionBanner.Text = L10n.Get("Host_Cpu_WarmingUp");
-            attributionBanner.Visibility = Visibility.Visible;
-            return;
-        }
-        if (!report.Sample.IsValid || report.Threads.Any(t => !t.Sample.IsValid))
-        {
-            attributionBanner.Text = L10n.Get("Host_Cpu_Incomplete");
-            attributionBanner.Visibility = Visibility.Visible;
-            return;
-        }
-        if (report.AttributionSource == HostCpuAttributionSource.KernelContextSwitch)
-        {
-            attributionBanner.Visibility = Visibility.Collapsed;
-            return;
-        }
-        if (!string.IsNullOrWhiteSpace(report.AttributionNote))
-        {
-            attributionBanner.Text = report.AttributionNote;
-            attributionBanner.Visibility = Visibility.Visible;
-            return;
-        }
-        attributionBanner.Text = L10n.Format("Host_Cpu_AttributionCounter", HostUiHelpers.FormatSchedulerLabel(report.SchedulerType, true));
-        attributionBanner.Visibility = Visibility.Visible;
-    }
-
     private void ApplyThemeBrushes()
     {
-        bool light = ActualTheme == ElementTheme.Light;
         Brush divider = ThemeHelper.TryResourceBrush(ActualTheme, "DividerStrokeColorDefaultBrush",
             Color.FromArgb(0x22, 0x80, 0x80, 0x80));
         legendBox.BorderBrush = divider;
         hostPinBox.BorderBrush = divider;
-        attributionBanner.Foreground = ThemeHelper.TryResourceBrush(ActualTheme, "TextFillColorSecondaryBrush",
-            light ? Color.FromArgb(0x9E, 0, 0, 0) : Color.FromArgb(0xC5, 0xFF, 0xFF, 0xFF));
     }
 
     private void RefreshVisuals()

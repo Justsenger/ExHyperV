@@ -79,6 +79,9 @@
                 <Button x:Name="Audio" Style="{StaticResource Tool}" Width="28" Click="OnMute"><FontIcon x:Name="AudioIcon" Style="{StaticResource Regular}"/></Button>
                 <Button x:Name="Mic" Style="{StaticResource Tool}" Width="28" Click="OnMicToggle"><FontIcon x:Name="MicIcon" Style="{StaticResource SegoeIcon}" Glyph="&#xF781;"/></Button>
                 <Button x:Name="Sas" Style="{StaticResource Tool}" Width="28" Click="OnSas"><FontIcon Style="{StaticResource Filled}" Glyph="&#xF4C3;"/></Button>
+                <Button x:Name="Fps" Style="{StaticResource Tool}" Padding="6,0" Click="OnFpsToggle">
+                    <TextBlock x:Name="FpsButtonLabel" FontSize="12" VerticalAlignment="Center"/>
+                </Button>
                 <Button x:Name="Screenshot" Style="{StaticResource Tool}" Width="28" Click="OnScreenshot"><FontIcon Style="{StaticResource Regular}" Glyph="&#xF331;"/></Button>
                 <Button x:Name="Fullscreen" Style="{StaticResource Tool}" Width="28" Click="OnFullscreen"><FontIcon x:Name="FullscreenIcon" Style="{StaticResource Regular}"/></Button>
             </StackPanel>
@@ -116,10 +119,16 @@
                     <TextBlock x:Name="ConnectingText" HorizontalAlignment="Center" Foreground="White"/>
                 </StackPanel>
             </Grid>
-            <Border x:Name="AccessBadge" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Padding="8,3"
-                    Background="#DF222222" CornerRadius="5" IsHitTestVisible="False" Visibility="Collapsed">
-                <TextBlock x:Name="AccessText" Foreground="White" FontSize="12"/>
-            </Border>
+            <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8" Spacing="6" Orientation="Horizontal" IsHitTestVisible="False">
+                <Border x:Name="FpsBadge" Padding="8,3"
+                        Background="#DF222222" BorderBrush="#28FFFFFF" BorderThickness="1" CornerRadius="5" Visibility="Collapsed">
+                    <TextBlock x:Name="FpsText" Foreground="White" FontSize="12" Typography.NumeralAlignment="Tabular"/>
+                </Border>
+                <Border x:Name="AccessBadge" Padding="8,3"
+                        Background="#DF222222" CornerRadius="5" Visibility="Collapsed">
+                    <TextBlock x:Name="AccessText" Foreground="White" FontSize="12"/>
+                </Border>
+            </StackPanel>
             <Border x:Name="Notice" Visibility="Collapsed" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="12,12" Padding="14,6"
                     CornerRadius="16" Background="#EF222222" IsHitTestVisible="False">
                 <TextBlock x:Name="NoticeText" TextWrapping="Wrap" FontSize="12" Foreground="White"/>

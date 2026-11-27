@@ -25,8 +25,9 @@ public sealed partial class MainWindow : Window
     private bool initialPaneClosed;
     private bool isImmersive;
     private bool paneOpenBeforeImmersive;
-    private bool? pendingImmersiveExitPaneOpen;
-    private double compactPaneLengthBeforeImmersive = 48;
+    private bool updatingNavigationImmersive;
+    private SplitView? rootSplitView;
+    private Grid? paneToggleGrid;
     private XamlRoot? titleBarRoot;
     private readonly ThemeSettings themeSettings;
 
@@ -34,11 +35,13 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         Navigation.DisplayModeChanged += OnNavigationDisplayModeChanged;
+        Navigation.SizeChanged += OnNavigationSizeChanged;
         UpdateNavigationContentInset();
         AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
         themeSettings = ThemeSettings.CreateForWindowId(AppWindow.Id);
         themeSettings.Changed += OnSystemThemeChanged;
         Root.RequestedTheme = ((App)Application.Current).Appearance.Settings.Theme;
+        SyncNativeTheme();
         ((App)Application.Current).Appearance.Changed += OnAppearanceChanged;
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
@@ -102,6 +105,7 @@ public sealed partial class MainWindow : Window
     private void OnRootLoaded(object sender, RoutedEventArgs args)
     {
         ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast);
+        SyncNativeTheme();
         if (titleBarRoot == null && Root.XamlRoot != null)
         {
             titleBarRoot = Root.XamlRoot;
@@ -126,15 +130,25 @@ public sealed partial class MainWindow : Window
     private void OnThemeChanged(FrameworkElement sender, object args)
     {
         ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast);
+        SyncNativeTheme();
         UpdateTitleBar();
     }
     private void OnAppearanceChanged(object? sender, EventArgs args)
     {
         Root.RequestedTheme = ((App)Application.Current).Appearance.Settings.Theme;
         ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast);
+        SyncNativeTheme();
     }
     private void OnSystemThemeChanged(ThemeSettings sender, object args) => Root.DispatcherQueue.TryEnqueue(() =>
-        ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast));
+    {
+        ((App)Application.Current).Appearance.UpdatePalette(Root.ActualTheme, themeSettings.HighContrast);
+        SyncNativeTheme();
+    });
+
+    private void SyncNativeTheme() => NativeTheme.Sync(
+        WinRT.Interop.WindowNative.GetWindowHandle(this),
+        ((App)Application.Current).Appearance.Settings.Theme,
+        themeSettings.HighContrast);
     private void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args) => UpdateTitleBar();
     private bool ContentVisible => AppWindow.IsVisible &&
         AppWindow.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized };
@@ -143,68 +157,125 @@ public sealed partial class MainWindow : Window
     {
         UpdateTitleBar();
         if (PageContent.Content is HostPage host) host.SetWindowVisible(ContentVisible);
+        else if (PageContent.Content is VirtualMachinesPage vms) vms.SetWindowVisible(ContentVisible);
     }
     private void OnActivated(object sender, WindowActivatedEventArgs args)
         => TitleContent.Opacity = args.WindowActivationState == WindowActivationState.Deactivated ? .55 : 1;
 
     private void OnNavigationDisplayModeChanged(NavigationView sender, NavigationViewDisplayModeChangedEventArgs args)
     {
-        if (!isImmersive && pendingImmersiveExitPaneOpen is bool restore)
-        {
-            sender.IsPaneOpen = restore;
-        }
-        else if (!initialPaneClosed && args.DisplayMode == NavigationViewDisplayMode.Expanded)
+        if (!initialPaneClosed && args.DisplayMode == NavigationViewDisplayMode.Expanded)
         {
             initialPaneClosed = true;
             sender.IsPaneOpen = false;
         }
-        UpdateNavigationContentInset();
+        if (isImmersive)
+            EnforceImmersiveNavigation();
+        else
+            UpdateNavigationContentInset();
+    }
+
+    private void OnNavigationSizeChanged(object sender, SizeChangedEventArgs args) => EnforceImmersiveNavigation();
+
+    private void EnsureNavigationParts()
+    {
+        if (rootSplitView != null && paneToggleGrid != null) return;
+        Navigation.ApplyTemplate();
+        if (rootSplitView == null)
+        {
+            rootSplitView = FindDescendantByName<SplitView>(Navigation, "RootSplitView");
+            if (rootSplitView != null)
+                rootSplitView.RegisterPropertyChangedCallback(SplitView.DisplayModeProperty, (_, _) => EnforceImmersiveNavigation());
+        }
+        if (paneToggleGrid == null)
+        {
+            paneToggleGrid = FindDescendantByName<Grid>(Navigation, "PaneToggleButtonGrid");
+            if (paneToggleGrid != null)
+                paneToggleGrid.RegisterPropertyChangedCallback(UIElement.VisibilityProperty, (_, _) => EnforceImmersiveNavigation());
+        }
+    }
+
+    private static T? FindDescendantByName<T>(DependencyObject root, string name) where T : FrameworkElement
+    {
+        int count = VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T target && string.Equals(target.Name, name, StringComparison.Ordinal))
+                return target;
+            var nested = FindDescendantByName<T>(child, name);
+            if (nested != null) return nested;
+        }
+        return null;
+    }
+
+    private void EnforceImmersiveNavigation()
+    {
+        if (!isImmersive || updatingNavigationImmersive) return;
+        ApplyNavigationImmersiveVisuals(immersive: true);
     }
 
     private void UpdateNavigationContentInset()
     {
         // Minimal mode puts the toggle above the content instead of reserving a left rail.
-        PageContent.Margin = new Thickness(0, Navigation.IsPaneVisible && Navigation.DisplayMode == NavigationViewDisplayMode.Minimal ? 48 : 0, 0, 0);
+        PageContent.Margin = new Thickness(0, !isImmersive && Navigation.IsPaneVisible && Navigation.DisplayMode == NavigationViewDisplayMode.Minimal ? 48 : 0, 0, 0);
     }
 
     internal void SetImmersiveMode(bool immersive)
     {
         if (isImmersive == immersive) return;
+        EnsureNavigationParts();
         if (immersive)
         {
             paneOpenBeforeImmersive = Navigation.IsPaneOpen;
-            compactPaneLengthBeforeImmersive = Navigation.CompactPaneLength > 0 ? Navigation.CompactPaneLength : 48;
-            pendingImmersiveExitPaneOpen = null;
             isImmersive = true;
-            Navigation.IsPaneVisible = false;
-            Navigation.IsPaneOpen = false;
-            Navigation.CompactPaneLength = 0;
-            Navigation.PaneDisplayMode = NavigationViewPaneDisplayMode.LeftMinimal;
-            UpdateNavigationContentInset();
+            ApplyNavigationImmersiveVisuals(immersive: true);
             return;
         }
 
-        bool restoreOpen = paneOpenBeforeImmersive;
-        pendingImmersiveExitPaneOpen = restoreOpen;
         isImmersive = false;
-        Navigation.CompactPaneLength = compactPaneLengthBeforeImmersive;
-        Navigation.PaneDisplayMode = NavigationViewPaneDisplayMode.Auto;
-        Navigation.IsPaneVisible = true;
-        Navigation.IsPaneOpen = restoreOpen;
-        UpdateNavigationContentInset();
-        Root.DispatcherQueue.TryEnqueue(() =>
+        ApplyNavigationImmersiveVisuals(immersive: false);
+    }
+
+    private void ApplyNavigationImmersiveVisuals(bool immersive)
+    {
+        updatingNavigationImmersive = true;
+        try
         {
-            if (!isImmersive && !closed && pendingImmersiveExitPaneOpen is bool pending)
-                Navigation.IsPaneOpen = pending;
-        });
-        Root.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
-        {
-            if (!isImmersive && !closed && pendingImmersiveExitPaneOpen is bool pending)
+            if (immersive)
             {
-                Navigation.IsPaneOpen = pending;
-                pendingImmersiveExitPaneOpen = null;
+                Navigation.IsPaneOpen = false;
+                if (paneToggleGrid != null)
+                    paneToggleGrid.Visibility = Visibility.Collapsed;
+                if (rootSplitView != null)
+                {
+                    rootSplitView.IsPaneOpen = false;
+                    rootSplitView.CompactPaneLength = 0;
+                    rootSplitView.DisplayMode = SplitViewDisplayMode.Overlay;
+                }
             }
-        });
+            else
+            {
+                if (paneToggleGrid != null)
+                    paneToggleGrid.ClearValue(UIElement.VisibilityProperty);
+                if (rootSplitView != null)
+                {
+                    rootSplitView.ClearValue(SplitView.CompactPaneLengthProperty);
+                    rootSplitView.DisplayMode = Navigation.DisplayMode switch
+                    {
+                        NavigationViewDisplayMode.Minimal => SplitViewDisplayMode.Overlay,
+                        NavigationViewDisplayMode.Compact => SplitViewDisplayMode.CompactOverlay,
+                        _ => SplitViewDisplayMode.CompactInline
+                    };
+                }
+                Navigation.IsPaneOpen = paneOpenBeforeImmersive;
+            }
+            UpdateNavigationContentInset();
+        }
+        finally
+        {
+            updatingNavigationImmersive = false;
+        }
     }
 
     private void UpdateTitleBar()
@@ -262,6 +333,7 @@ public sealed partial class MainWindow : Window
         }
         SetImmersiveMode(false);
         if (page is HostPage host) host.SetWindowVisible(ContentVisible);
+        else if (page is VirtualMachinesPage vms) vms.SetWindowVisible(ContentVisible);
         Diagnostics.AppDiagnostics.Write("Navigation", "PageSelected", $"page={page.GetType().Name}");
         PageContent.Content = page;
     }
@@ -271,7 +343,13 @@ public sealed partial class MainWindow : Window
         if (tray != null) return true;
         tray = new WindowTrayIcon(WinRT.Interop.WindowNative.GetWindowHandle(this),
             () => DispatcherQueue.TryEnqueue(RestoreWindow),
-            () => DispatcherQueue.TryEnqueue(async () => { RestoreWindow(); await CloseAfterCleanupAsync(); }));
+            () => DispatcherQueue.TryEnqueue(async () => await UiEvent.RunAsync(async () =>
+            {
+                if (closed) return;
+                RestoreWindow();
+                await CloseAfterCleanupAsync();
+            })),
+            SyncNativeTheme);
         if (!tray.Show())
         {
             tray.Dispose();
@@ -325,36 +403,46 @@ public sealed partial class MainWindow : Window
         tray?.Dispose();
         tray = null;
         L10n.LanguageChanged -= OnLanguageChanged;
-        // Window.Close() can bypass AppWindow.Closing; normal title-bar closure already stopped active pages above.
-        if (!closeAfterCleanup)
+        try
         {
-            await ConsoleWindow.CloseAllAsync();
-            foreach (var page in pages.Values.OfType<VirtualMachinesPage>().ToArray())
+            // Window.Close() can bypass AppWindow.Closing; normal title-bar closure already stopped active pages above.
+            if (!closeAfterCleanup)
             {
-                try { await page.StopAsync(); }
-                catch (Exception error) { System.Diagnostics.Trace.TraceError("VM page cleanup failed: {0}", error); }
+                await ConsoleWindow.CloseAllAsync();
+                foreach (var page in pages.Values.OfType<VirtualMachinesPage>().ToArray())
+                {
+                    try { await page.StopAsync(); }
+                    catch (Exception error) { System.Diagnostics.Trace.TraceError("VM page cleanup failed: {0}", error); }
+                }
+                foreach (var page in pages.Values.OfType<HostPage>().ToArray())
+                {
+                    try { await page.StopAsync(); }
+                    catch (Exception error) { System.Diagnostics.Trace.TraceError("Host page cleanup failed: {0}", error); }
+                }
             }
-            foreach (var page in pages.Values.OfType<HostPage>().ToArray())
-            {
-                try { await page.StopAsync(); }
-                catch (Exception error) { System.Diagnostics.Trace.TraceError("Host page cleanup failed: {0}", error); }
-            }
+            ((App)Application.Current).Appearance.Changed -= OnAppearanceChanged;
+            themeSettings.Changed -= OnSystemThemeChanged;
+            if (titleBarRoot != null) titleBarRoot.Changed -= OnXamlRootChanged;
+            Root.Loaded -= OnRootLoaded;
+            Root.ActualThemeChanged -= OnThemeChanged;
+            AppWindow.Changed -= OnAppWindowChanged;
+            AppWindow.Closing -= OnClosing;
+            Activated -= OnActivated;
+            Navigation.DisplayModeChanged -= OnNavigationDisplayModeChanged;
+        Navigation.SizeChanged -= OnNavigationSizeChanged;
+            foreach (var page in pages.Values.OfType<VirtualMachinesPage>()) page.ViewModel.Cancel();
+            PageContent.Content = null;
+            pages.Clear();
         }
-        ((App)Application.Current).Appearance.Changed -= OnAppearanceChanged;
-        themeSettings.Changed -= OnSystemThemeChanged;
-        if (titleBarRoot != null) titleBarRoot.Changed -= OnXamlRootChanged;
-        Root.Loaded -= OnRootLoaded;
-        Root.ActualThemeChanged -= OnThemeChanged;
-        AppWindow.Changed -= OnAppWindowChanged;
-        Activated -= OnActivated;
-        Navigation.DisplayModeChanged -= OnNavigationDisplayModeChanged;
-        foreach (var page in pages.Values.OfType<VirtualMachinesPage>()) page.ViewModel.Cancel();
-        pages.Clear();
+        finally
+        {
+            ((App)Application.Current).Shutdown();
+        }
     });
 
     private async void OnClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args) => await UiEvent.RunAsync(async () =>
     {
-        if (closeAfterCleanup) return;
+        if (closed || closeAfterCleanup) return;
         args.Cancel = true;
         if (cleanupInProgress) return;
         if (((App)Application.Current).Appearance.Settings.CloseBehavior == WindowCloseBehavior.Tray)
@@ -379,6 +467,7 @@ public sealed partial class MainWindow : Window
             await Task.WhenAll(hostPages.Select(page => page.StopAsync()));
             await ConsoleWindow.CloseAllAsync();
             closeAfterCleanup = true;
+            AppWindow.Closing -= OnClosing;
             if (!Root.DispatcherQueue.TryEnqueue(Close)) Close();
         }
         catch (OperationCanceledException)

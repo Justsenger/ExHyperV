@@ -32,7 +32,11 @@ export function initUiDesignWorkbench() {
     cpuDetailStyle: 'art-ring',
     highlightStyle: 'elevated-card',
     legendPlacement: 'right',
+    topoCardStyle: 'baseline-polished',
+    cpuDenseMode: 'paged-8x4',
     mockThreads: '12',
+    mockGpuCount: '4',
+    mockNumaCount: '2',
     mockVmCount: '2'
   };
 
@@ -146,7 +150,13 @@ export function initUiDesignWorkbench() {
     if (!hostModPromise) {
       hostModPromise = import('./ui-design-host.js').then((mod) => {
         hostMod = mod;
-        mod.initHostPage({ onRender: layoutDynamicGrids });
+        mod.initHostPage({
+          onRender: () => {
+            layoutDynamicGrids();
+            syncDesignCandidatesPanel();
+            notifyParentHostState();
+          }
+        });
         return mod;
       });
     }
@@ -167,6 +177,34 @@ export function initUiDesignWorkbench() {
   const state = {
     navTarget: 'vm',
     selectedVmId: VM_ITEMS[0].id,
+    vmAddOpen: false,
+    vmAddMode: 'create',
+    vmAddLevel: 'basic', // 'basic' | 'advanced'
+    vmAddDraft: {
+      osKey: 'win11', // 'win11' | 'win10' | 'linux' | 'other'
+      tier: 'balanced', // 'light' | 'balanced' | 'high'
+      name: 'Windows 11',
+      path: 'D:\\Hyper-V\\VMs',
+      diskMode: 'iso', // 'iso' | 'existing' | 'empty'
+      isoPath: '',
+      diskSizeGb: 128,
+      existingDiskPath: '',
+      createDiffDisk: true,
+      cpuCount: 4,
+      memoryGb: 8,
+      switchName: 'Default Switch',
+      startAfterCreate: true,
+      quantity: 1,
+      generation: 2,
+      version: '12.3',
+      secureBoot: true,
+      tpm: true,
+      dynamicMemory: true,
+      isolation: 'Disabled',
+      storeDisksWithVm: true,
+      separateDiskPath: 'D:\\Hyper-V\\Virtual Hard Disks',
+      importSource: ''
+    },
     searchQuery: '',
     activeTabKey: 'overview',
     deviceSubKey: 'gpu',
@@ -252,6 +290,13 @@ export function initUiDesignWorkbench() {
     selectedHostGpuId: HOST_GPUS[0].id,
     installGpuDrivers: true,
     gpuDeployMode: 'add-with-drivers',
+    gpuDeployTargetOs: null,
+    gpuLinuxBundleSource: 'online',
+    gpuLinuxLocalBundlePath: '',
+    gpuLinuxLocalFile: null,
+    gpuLinuxBundleInspect: null,
+    gpuDeployBundleError: '',
+    gpuDeployProgressPhase: null,
     gpuDeployDecision: 'SelectPartition',
     gpuSelectedPartitionId: INITIAL_GPU_PARTITIONS[0].id,
     gpuLogExpanded: false,
@@ -1240,6 +1285,8 @@ export function initUiDesignWorkbench() {
 
     container.querySelectorAll('[data-vm-id]').forEach((el) => {
       el.addEventListener('click', () => {
+        state.vmAddOpen = false;
+        syncVmAddVisibility();
         state.selectedVmId = el.getAttribute('data-vm-id');
         state.selectedGpuIdx = 0;
         state.selectedDiskIdx = 0;
@@ -1270,6 +1317,98 @@ export function initUiDesignWorkbench() {
         }
       });
     });
+  }
+
+  let activeVmTipTarget = null;
+  let activeVmTipId = null;
+
+  function getVmBadgeTooltipEl() {
+    if (typeof document === 'undefined' || !document.body) return null;
+    let tip = document.getElementById('vmBadgeTooltip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'vmBadgeTooltip';
+      tip.className = 'vm-badge-tooltip';
+      tip.hidden = true;
+      document.body.appendChild(tip);
+    }
+    return tip;
+  }
+
+  function hideVmBadgeTooltip() {
+    activeVmTipTarget = null;
+    activeVmTipId = null;
+    const tip = document.getElementById('vmBadgeTooltip');
+    if (tip) tip.hidden = true;
+  }
+
+  function syncVmBadgeTooltip(targetEl = activeVmTipTarget) {
+    const tip = getVmBadgeTooltipEl();
+    if (!tip) return;
+    if (!targetEl || !targetEl.isConnected) {
+      tip.hidden = true;
+      activeVmTipTarget = null;
+      return;
+    }
+    const osFlyout = document.getElementById('osPickerFlyout');
+    if (osFlyout && !osFlyout.hidden) {
+      tip.hidden = true;
+      return;
+    }
+    const raw = targetEl.getAttribute('data-vm-tip');
+    if (!raw) {
+      tip.hidden = true;
+      return;
+    }
+    activeVmTipTarget = targetEl;
+    activeVmTipId = targetEl.getAttribute('data-vm-tip-id') || null;
+    tip.textContent = raw;
+    tip.hidden = false;
+    const rect = targetEl.getBoundingClientRect?.();
+    if (rect) {
+      const tipRect = tip.getBoundingClientRect();
+      const left = Math.max(8, Math.min(window.innerWidth - tipRect.width - 8, rect.left + rect.width / 2 - tipRect.width / 2));
+      const fitsBelow = rect.bottom + 8 + tipRect.height <= window.innerHeight - 8;
+      const top = fitsBelow ? rect.bottom + 8 : Math.max(8, rect.top - tipRect.height - 8);
+      tip.style.left = `${Math.round(left)}px`;
+      tip.style.top = `${Math.round(top)}px`;
+    }
+  }
+
+  function applyVmBadgeTipAttr(el, tipText, tipId = '') {
+    if (!el) return;
+    if (!tipText) {
+      el.removeAttribute('data-vm-tip');
+      el.removeAttribute('data-vm-tip-id');
+      return;
+    }
+    el.removeAttribute('title');
+    if (tipId) el.setAttribute('data-vm-tip-id', tipId);
+    el.setAttribute('data-vm-tip', String(tipText));
+  }
+
+  if (!winEl.dataset.vmBadgeTipBound) {
+    winEl.dataset.vmBadgeTipBound = '1';
+    winEl.addEventListener('mouseover', (e) => {
+      const target = e.target.closest?.('[data-vm-tip]');
+      if (target !== activeVmTipTarget) {
+        activeVmTipTarget = target || null;
+        syncVmBadgeTooltip(activeVmTipTarget);
+      }
+    });
+    winEl.addEventListener('focusin', (e) => {
+      const target = e.target.closest?.('[data-vm-tip]');
+      if (target) syncVmBadgeTooltip(target);
+    });
+    winEl.addEventListener('focusout', () => {
+      hideVmBadgeTooltip();
+    });
+    winEl.addEventListener('mouseleave', () => {
+      hideVmBadgeTooltip();
+    });
+    winEl.addEventListener('scroll', () => {
+      if (activeVmTipTarget) syncVmBadgeTooltip(activeVmTipTarget);
+    }, true);
   }
 
   // 2. Render Summary Card (VmDashboardView.xaml lines 11-54 & Presentation.cs)
@@ -1312,14 +1451,23 @@ export function initUiDesignWorkbench() {
     const connectBtn = document.getElementById('vmConnectBtn');
     if (connectBtn) connectBtn.disabled = Boolean(vm._empty);
 
+    const stateBadge = document.getElementById('vmStateBadge');
+    const uptimeBadge = document.getElementById('vmUptimeBadge');
+    const stateVerWrap = document.getElementById('vmStateVersionWrap');
+    const configBadgeBox = document.getElementById('vmConfigBadgeBox');
     const stateText = document.getElementById('vmStateText');
     const uptimeText = document.getElementById('vmUptimeText');
     const genTextEl = document.getElementById('vmGenText');
-    if (stateText) stateText.textContent = serverAdapter.isLive ? (vm.stateText || (vm.running ? '运行中' : '已关机')) : (vm.running ? '运行中' : '已关机');
-    if (uptimeText) uptimeText.textContent = vm.running ? vm.liveUptime : '00:00:00';
-    if (genTextEl) {
-      genTextEl.textContent = `${vm.gen || 2}代`;
-    }
+    const displayStateText = serverAdapter.isLive
+      ? (vm.stateText || (vm.running ? '运行中' : '已关机'))
+      : (vm.running ? '运行中' : '已关机');
+    const displayUptimeText = vm.running ? vm.liveUptime : '00:00:00';
+    const genNum = Number(vm.gen || vm.generation || 2) === 1 ? 1 : 2;
+    const verLabel = vm.versionText || '版本 11.0';
+
+    if (stateText) stateText.textContent = displayStateText;
+    if (uptimeText) uptimeText.textContent = displayUptimeText;
+    if (genTextEl) genTextEl.textContent = `${genNum}代`;
 
     const genSwitchBtn = document.getElementById('vmGenSwitchBtn');
     if (genSwitchBtn && !genSwitchBtn.dataset.bound) {
@@ -1331,6 +1479,18 @@ export function initUiDesignWorkbench() {
       });
     }
 
+    applyVmBadgeTipAttr(stateBadge, vm.running
+      ? '虚拟机当前正在运行，可通过右侧按钮关机或重启。'
+      : '虚拟机当前处于关机状态，点击右侧“启动”即可开机。', 'state');
+    applyVmBadgeTipAttr(uptimeBadge, vm.running
+      ? '自上次启动或从已保存状态恢复以来的连续运行时长。'
+      : '关机状态下不累计运行时长，开机后自动开始计时。', 'uptime');
+    applyVmBadgeTipAttr(genSwitchBtn, genNum === 2
+      ? '第 2 代采用 UEFI 固件，支持安全启动与 vTPM（点击切换预览）。'
+      : '第 1 代采用传统 BIOS 固件，适配旧版系统（点击切换预览）。', 'gen');
+    applyVmBadgeTipAttr(stateVerWrap, '决定虚拟硬件功能与宿主兼容性的配置版本，支持升级但不支持降级。', 'state-ver');
+    applyVmBadgeTipAttr(configBadgeBox, '汇总当前分配的虚拟处理器、内存与磁盘规格。', 'config');
+
     const cfgBadge = document.getElementById('vmConfigBadgeText');
     if (cfgBadge) cfgBadge.textContent = vm.configText;
 
@@ -1339,6 +1499,7 @@ export function initUiDesignWorkbench() {
     if (genBadge && genText) {
       genBadge.hidden = !vm.generationText;
       genText.textContent = vm.generationText;
+      applyVmBadgeTipAttr(genBadge, '当前虚拟机的硬件固件代数（第 1 代 BIOS 或第 2 代 UEFI）。', 'gen-alt');
     }
 
     const verBadge = document.getElementById('vmVersionBadge');
@@ -1346,6 +1507,7 @@ export function initUiDesignWorkbench() {
     if (verBadge && verText) {
       verBadge.hidden = !vm.versionText;
       verText.textContent = vm.versionText;
+      applyVmBadgeTipAttr(verBadge, '决定虚拟硬件功能与宿主兼容性的配置版本，支持升级但不支持降级。', 'ver-alt');
     }
 
     const ipVal = vm.running ? vm.ipWhenRunning : '---';
@@ -1363,41 +1525,52 @@ export function initUiDesignWorkbench() {
     const t = state.activeTags;
 
     const stateVerText = document.getElementById('vmStateVersionText');
-    if (stateVerText) stateVerText.textContent = vm.versionText || '版本 11.0';
+    if (stateVerText) stateVerText.textContent = verLabel;
+
+    const escapeTipAttr = (text) => escapeHtmlText(String(text || ''));
 
     const badgeRow2 = document.getElementById('vmBadgeRow2');
     if (badgeRow2) {
       const chips = [];
       if (t.os) {
         const osName = vm.osText || 'Windows';
+        const osTip = escapeTipAttr('点击切换系统图标标识，仅用于外观显示，不影响实际来宾系统。');
         chips.push(
-          `<button class="vm-badge" data-open-os-picker="true" title="点击切换系统标志"><span class="fi vm-badge-icon">&#xE74C;</span><span class="vm-badge-text">${osName}</span><span class="fi vm-os-badge-chevron">&#xE70D;</span></button>`
+          `<button class="vm-badge" data-open-os-picker="true" data-vm-tip-id="os" data-vm-tip="${osTip}"><span class="fi vm-badge-icon">&#xE74C;</span><span class="vm-badge-text">${osName}</span><span class="fi vm-os-badge-chevron">&#xE70D;</span></button>`
         );
       }
       if (t.guid !== false) {
         const guidVal = vm.guid || '7A9C4E12-8B3F-4D21-9E6A-0F1B2C3D4E5F';
+        const guidTip = escapeTipAttr('Hyper-V 分配的虚拟机全局唯一标识，点击即可复制。');
         chips.push(
-          `<button class="vm-badge" data-copy-guid="${guidVal}" title="点击复制虚拟机 GUID"><span class="vm-badge-text vm-guid-text">${guidVal}</span><span class="fi vm-os-badge-chevron">&#xE8C8;</span></button>`
+          `<button class="vm-badge" data-copy-guid="${guidVal}" data-vm-tip-id="guid" data-vm-tip="${guidTip}"><span class="vm-badge-text vm-guid-text">${guidVal}</span><span class="fi vm-os-badge-chevron">&#xE8C8;</span></button>`
         );
       }
       if (t.spec) {
+        const specTip = escapeTipAttr(`已分配 ${vm.cores} 个虚拟处理器核心与 ${vm.memoryGb} GB 内存。`);
         chips.push(
-          `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE81E;</span><span class="vm-badge-text">${vm.cores} 核 / ${vm.memoryGb} GB</span></div>`
+          `<div class="vm-badge" data-vm-tip-id="spec" data-vm-tip="${specTip}"><span class="fi vm-badge-icon">&#xE81E;</span><span class="vm-badge-text">${vm.cores} 核 / ${vm.memoryGb} GB</span></div>`
         );
       }
       if (t.ip) {
+        const ipTip = escapeTipAttr(ipVal === '---'
+          ? '当前暂未获取到经由 KVP 采集的来宾 IP 地址。'
+          : '当前采集到的来宾网络 IP 地址，点击即可复制。');
         chips.push(
-          `<button class="vm-badge" data-copy-ip="${ipVal}" title="点击复制完整 IP 地址"><span class="fi vm-badge-icon">&#xE839;</span><span class="vm-badge-text">${ipVal}</span></button>`
+          `<button class="vm-badge" data-copy-ip="${ipVal}" data-vm-tip-id="ip" data-vm-tip="${ipTip}"><span class="fi vm-badge-icon">&#xE839;</span><span class="vm-badge-text">${ipVal}</span></button>`
         );
       }
       if (t.version) {
+        const verRow2Tip = escapeTipAttr('决定虚拟硬件功能与宿主兼容性的配置版本，支持升级但不支持降级。');
         chips.push(
-          `<div class="vm-badge"><span class="fi vm-badge-icon">&#xE946;</span><span class="vm-badge-text">版本 11.0</span></div>`
+          `<div class="vm-badge" data-vm-tip-id="ver-row2" data-vm-tip="${verRow2Tip}"><span class="fi vm-badge-icon">&#xE946;</span><span class="vm-badge-text">${escapeHtmlText(verLabel)}</span></div>`
         );
       }
       if (t.folder) {
+        const cfgPath = `D:\\Hyper-V\\Virtual Machines\\${vm.name}.vmcx`;
+        const cfgTip = escapeTipAttr(`在资源管理器中定位配置文件（${cfgPath}）。`);
         chips.push(
-          `<button class="vm-badge" data-open-cfg="true" title="D:\\Hyper-V\\Virtual Machines\\${vm.name}.vmcx"><span class="fi fi-fluent vm-badge-icon">&#xF6B0;</span><span class="vm-badge-text">配置目录</span></button>`
+          `<button class="vm-badge" data-open-cfg="true" data-vm-tip-id="folder" data-vm-tip="${cfgTip}"><span class="fi fi-fluent vm-badge-icon">&#xF6B0;</span><span class="vm-badge-text">配置目录</span></button>`
         );
       }
       badgeRow2.innerHTML = chips.join('');
@@ -1405,6 +1578,7 @@ export function initUiDesignWorkbench() {
       badgeRow2.querySelectorAll('[data-open-os-picker]').forEach((btn) => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
+          hideVmBadgeTooltip();
           toggleOsPickerFlyout();
         });
       });
@@ -1445,6 +1619,18 @@ export function initUiDesignWorkbench() {
     if (matrixOs) matrixOs.textContent = vm.osText;
     if (matrixSpec) matrixSpec.textContent = `${vm.cores} 核 / ${vm.memoryGb} GB`;
     if (matrixIp) matrixIp.textContent = ipVal;
+    if (activeVmTipTarget && activeVmTipTarget.isConnected) {
+      syncVmBadgeTooltip(activeVmTipTarget);
+    } else if (activeVmTipId) {
+      const nextTarget = winEl.querySelector?.(`[data-vm-tip-id="${activeVmTipId}"]`);
+      if (nextTarget) {
+        syncVmBadgeTooltip(nextTarget);
+      } else {
+        hideVmBadgeTooltip();
+      }
+    } else if (activeVmTipTarget) {
+      hideVmBadgeTooltip();
+    }
   }
 
   function closeOsPickerFlyout() {
@@ -7100,6 +7286,7 @@ export function initUiDesignWorkbench() {
       dyn.innerHTML = '';
       return;
     }
+
     panel.querySelectorAll(':scope > .dcp-subheader, :scope > .dcp-list').forEach((el) => {
       const scope = el.getAttribute('data-dcp-scope');
       el.hidden = Boolean(scope && scope !== 'checkpoints');
@@ -7292,6 +7479,503 @@ export function initUiDesignWorkbench() {
     item.addEventListener('click', () => {
       switchNavigationTarget(item.getAttribute('data-nav-target'));
     });
+  });
+
+  function syncVmAddVisibility() {
+    const dash = document.getElementById('vmDashboardBorder');
+    const addView = document.getElementById('vmAddView');
+    const addBtn = document.getElementById('vmAddBtn');
+    if (dash) dash.hidden = state.vmAddOpen;
+    if (addView) addView.hidden = !state.vmAddOpen;
+    if (addBtn) addBtn.classList.toggle('active', state.vmAddOpen);
+  }
+
+  function renderVmAddView() {
+    const root = document.getElementById('vmAddView');
+    if (!root) return;
+    const isCreate = state.vmAddMode === 'create';
+    const isBasic = state.vmAddLevel === 'basic';
+    const d = state.vmAddDraft;
+
+    const osChoices = [
+      { key: 'win11', label: 'Windows 11', icon: '/ui-design/os/Windows.svg' },
+      { key: 'win10', label: 'Windows 10', icon: '/ui-design/os/Windows.svg' },
+      { key: 'linux', label: 'Linux', icon: '/ui-design/os/Linux.svg' },
+      { key: 'other', label: '其他系统', icon: '/ui-design/os/Other.svg' }
+    ];
+
+    const tierChoices = [
+      { key: 'light', title: '轻量', spec: '2 核 / 4 GB 内存 / 64 GB 硬盘', cpu: 2, mem: 4, disk: 64 },
+      { key: 'balanced', title: '均衡（推荐）', spec: '4 核 / 8 GB 内存 / 128 GB 硬盘', cpu: 4, mem: 8, disk: 128 },
+      { key: 'high', title: '高性能', spec: '8 核 / 16 GB 内存 / 256 GB 硬盘', cpu: 8, mem: 16, disk: 256 }
+    ];
+
+    const basicBody = `
+      <div class="vm-add-scroll">
+        <div class="vm-add-container">
+          <div class="vm-add-card">
+            <div class="vm-add-card-title">1. 要装什么系统</div>
+            <div class="vm-add-os-grid">
+              ${osChoices.map((item) => `
+                <button type="button" class="vm-add-os-btn ${d.osKey === item.key ? 'active' : ''}" data-add-os="${item.key}">
+                  <img class="vm-add-os-icon" src="${item.icon}" alt="" />
+                  <span class="vm-add-os-name">${item.label}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="vm-add-card">
+            <div class="vm-add-card-head">
+              <div class="vm-add-card-title">2. 安装包在哪里</div>
+              <button type="button" class="vm-add-text-btn" id="vmBasicToggleSource">
+                ${d.diskMode === 'existing' ? '改回选择 ISO 镜像' : '改用已有硬盘文件 (.vhdx)'}
+              </button>
+            </div>
+            ${d.diskMode === 'existing' ? `
+              <div class="vm-add-field">
+                <div class="vm-add-input-row">
+                  <input type="text" class="vm-add-input" id="vmAddExistingDisk" value="${escapeHtmlText(d.existingDiskPath)}" placeholder="选择已有的 .vhdx / .vhd 虚拟硬盘文件" />
+                  <button type="button" class="vm-add-btn-sm" id="vmAddPickDisk">选择文件...</button>
+                </div>
+                <label class="vm-add-radio" style="margin-top:4px;">
+                  <input type="checkbox" id="vmAddDiffDisk" ${d.createDiffDisk ? 'checked' : ''} />
+                  保留原盘不变（推荐，独立保存新修改）
+                </label>
+              </div>
+            ` : `
+              <div class="vm-add-field">
+                <div class="vm-add-input-row">
+                  <input type="text" class="vm-add-input" id="vmAddIsoPath" value="${escapeHtmlText(d.isoPath)}" placeholder="选择 .iso 安装镜像文件（留空则先建空机）" />
+                  <button type="button" class="vm-add-btn-sm" id="vmAddPickIso">选择镜像...</button>
+                </div>
+                <a class="vm-add-link" href="/" target="_blank" rel="noopener noreferrer">还没有镜像？前往系统图鉴下载 ↗</a>
+              </div>
+            `}
+          </div>
+
+          <div class="vm-add-card">
+            <div class="vm-add-card-title">3. 给多少性能</div>
+            <div class="vm-add-tier-grid">
+              ${tierChoices.map((t) => `
+                <button type="button" class="cpu-affinity-quick-btn vm-add-tier-btn ${d.tier === t.key ? 'active' : ''}" data-add-tier="${t.key}">
+                  <span class="vm-add-tier-title">${t.title}</span>
+                  <span class="vm-add-tier-spec">${t.spec}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="vm-add-card">
+            <div class="vm-add-card-title">4. 名称与存放位置</div>
+            <div class="vm-add-basic-meta">
+              <div class="vm-add-field">
+                <span class="vm-add-label">虚拟机名称</span>
+                <input type="text" class="vm-add-input" id="vmAddName" value="${escapeHtmlText(d.name)}" />
+              </div>
+              <div class="vm-add-field">
+                <span class="vm-add-label">保存位置</span>
+                <div class="vm-add-input-row">
+                  <input type="text" class="vm-add-input" id="vmAddPath" value="${escapeHtmlText(d.path)}" />
+                  <button type="button" class="vm-add-btn-sm" id="vmAddPickPath">更改</button>
+                </div>
+              </div>
+            </div>
+            <span class="vm-add-hint">网络将自动连接默认网络（开机即可上网），如需微调详细参数可切换右上角「高级」</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const advancedBody = `
+      <div class="vm-add-scroll">
+        <div class="vm-add-container">
+          <div class="vm-add-card">
+            <div class="vm-add-card-title">基本信息</div>
+            <div class="vm-add-basic-meta">
+              <div class="vm-add-field">
+                <span class="vm-add-label">虚拟机名称</span>
+                <input type="text" class="vm-add-input" id="vmAddName" value="${escapeHtmlText(d.name)}" />
+              </div>
+              <div class="vm-add-field">
+                <span class="vm-add-label">批量创建数量</span>
+                <input type="number" class="vm-add-input" id="vmAddQty" min="1" max="16" value="${d.quantity}" style="width:110px;" />
+              </div>
+            </div>
+            <div class="vm-add-field">
+              <span class="vm-add-label">配置存放位置</span>
+              <div class="vm-add-input-row">
+                <input type="text" class="vm-add-input" id="vmAddPath" value="${escapeHtmlText(d.path)}" />
+                <button type="button" class="vm-add-btn-sm" id="vmAddPickPath">浏览...</button>
+              </div>
+            </div>
+            <label class="vm-add-radio">
+              <input type="checkbox" id="vmAddSameDir" ${d.storeDisksWithVm ? 'checked' : ''} />
+              将新建虚拟磁盘存放在虚拟机同一目录内
+            </label>
+            ${d.storeDisksWithVm ? '' : `
+              <div class="vm-add-input-row">
+                <input type="text" class="vm-add-input" id="vmAddSepDiskPath" value="${escapeHtmlText(d.separateDiskPath)}" />
+                <button type="button" class="vm-add-btn-sm" id="vmAddPickSepDisk">浏览...</button>
+              </div>
+            `}
+          </div>
+
+          <div class="vm-add-card">
+            <div class="vm-add-card-title">安装来源与存储</div>
+            <div class="vm-add-radios">
+              <label class="vm-add-radio"><input type="radio" name="vmAddDiskMode" value="iso" ${d.diskMode === 'iso' ? 'checked' : ''} />从 ISO 镜像安装</label>
+              <label class="vm-add-radio"><input type="radio" name="vmAddDiskMode" value="existing" ${d.diskMode === 'existing' ? 'checked' : ''} />使用已有虚拟磁盘</label>
+              <label class="vm-add-radio"><input type="radio" name="vmAddDiskMode" value="empty" ${d.diskMode === 'empty' ? 'checked' : ''} />暂不附加磁盘</label>
+            </div>
+            ${d.diskMode === 'iso' ? `
+              <div class="vm-add-field">
+                <div class="vm-add-input-row">
+                  <input type="text" class="vm-add-input" id="vmAddIsoPath" value="${escapeHtmlText(d.isoPath)}" placeholder="选择 .iso 安装镜像文件（可选）" />
+                  <button type="button" class="vm-add-btn-sm" id="vmAddPickIso">选择 ISO...</button>
+                </div>
+                <a class="vm-add-link" href="/" target="_blank" rel="noopener noreferrer">还没有镜像？前往系统图鉴下载 ↗</a>
+              </div>
+              <div class="vm-add-field">
+                <span class="vm-add-label">新建虚拟磁盘容量 (GB)</span>
+                <div class="vm-add-input-row">
+                  <input type="number" class="vm-add-input" id="vmAddDiskSize" min="8" max="65536" value="${d.diskSizeGb}" style="width:120px;flex:none;" />
+                  ${[64, 128, 256, 512].map((gb) => `<button type="button" class="cpu-affinity-quick-btn ${d.diskSizeGb === gb ? 'active' : ''}" data-disk-gb="${gb}">${gb} GB</button>`).join('')}
+                </div>
+              </div>
+            ` : d.diskMode === 'existing' ? `
+              <div class="vm-add-field">
+                <div class="vm-add-input-row">
+                  <input type="text" class="vm-add-input" id="vmAddExistingDisk" value="${escapeHtmlText(d.existingDiskPath)}" placeholder="选择 .vhdx / .vhd 虚拟磁盘文件" />
+                  <button type="button" class="vm-add-btn-sm" id="vmAddPickDisk">选择磁盘...</button>
+                </div>
+                <label class="vm-add-radio" style="margin-top:4px;">
+                  <input type="checkbox" id="vmAddDiffDisk" ${d.createDiffDisk ? 'checked' : ''} />
+                  基于此盘创建差异磁盘（不修改原盘）
+                </label>
+              </div>
+            ` : `<div class="vm-add-hint">将创建不含虚拟磁盘的空虚拟机，创建后可在「设备 / 存储」中添加。</div>`}
+          </div>
+
+          <div class="vm-add-card">
+            <div class="vm-add-card-title">计算与网络</div>
+            <div class="vm-add-field">
+              <div class="vm-add-slider-head">
+                <span class="vm-add-label">处理器核心数</span>
+                <span class="vm-add-slider-val" id="vmAddCpuVal">${d.cpuCount} 核（宿主机共 12 核）</span>
+              </div>
+              <input type="range" class="vm-add-slider" id="vmAddCpuSlider" min="1" max="12" value="${d.cpuCount}" />
+            </div>
+            <div class="vm-add-field">
+              <div class="vm-add-slider-head">
+                <span class="vm-add-label">启动内存</span>
+                <span class="vm-add-slider-val" id="vmAddMemVal">${d.memoryGb} GB</span>
+              </div>
+              <input type="range" class="vm-add-slider" id="vmAddMemSlider" min="1" max="32" value="${d.memoryGb}" />
+            </div>
+            <div class="vm-add-inline-row">
+              <div>
+                <div class="vm-add-inline-title">动态内存</div>
+                <div class="vm-add-inline-sub">允许 Hyper-V 按来宾实际负载动态分配内存</div>
+              </div>
+              <input type="checkbox" id="vmAddDynMem" ${d.dynamicMemory ? 'checked' : ''} />
+            </div>
+            <div class="vm-add-field">
+              <span class="vm-add-label">虚拟交换机</span>
+              <select class="vm-add-select" id="vmAddSwitch">
+                <option value="Default Switch" ${d.switchName === 'Default Switch' ? 'selected' : ''}>Default Switch</option>
+                <option value="External-LAN" ${d.switchName === 'External-LAN' ? 'selected' : ''}>External-LAN</option>
+                <option value="" ${d.switchName === '' ? 'selected' : ''}>不连接虚拟交换机</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="vm-add-card">
+            <div class="vm-add-card-title">固件与安全隔离</div>
+            <div class="vm-add-inline-row">
+              <div>
+                <div class="vm-add-inline-title">虚拟机代数</div>
+                <div class="vm-add-inline-sub">第 2 代支持 UEFI、安全启动与虚拟 TPM</div>
+              </div>
+              <div class="vm-add-radios">
+                <label class="vm-add-radio"><input type="radio" name="vmAddGen" value="2" ${d.generation === 2 ? 'checked' : ''} />第 2 代</label>
+                <label class="vm-add-radio"><input type="radio" name="vmAddGen" value="1" ${d.generation === 1 ? 'checked' : ''} />第 1 代</label>
+              </div>
+            </div>
+            <div class="vm-add-inline-row">
+              <div>
+                <div class="vm-add-inline-title">Hyper-V 配置版本</div>
+                <div class="vm-add-inline-sub">默认使用宿主机支持的最新稳定版本</div>
+              </div>
+              <select class="vm-add-select" id="vmAddVer" style="width:120px;">
+                <option value="12.3" ${d.version === '12.3' ? 'selected' : ''}>12.3</option>
+                <option value="11.0" ${d.version === '11.0' ? 'selected' : ''}>11.0</option>
+                <option value="10.0" ${d.version === '10.0' ? 'selected' : ''}>10.0</option>
+              </select>
+            </div>
+            <div class="vm-add-inline-row">
+              <div>
+                <div class="vm-add-inline-title">安全启动 (Secure Boot)</div>
+                <div class="vm-add-inline-sub">Windows 11 建议保持开启</div>
+              </div>
+              <input type="checkbox" id="vmAddSecureBoot" ${d.secureBoot ? 'checked' : ''} />
+            </div>
+            <div class="vm-add-inline-row">
+              <div>
+                <div class="vm-add-inline-title">虚拟 TPM</div>
+                <div class="vm-add-inline-sub">Windows 11 与 BitLocker 所需</div>
+              </div>
+              <input type="checkbox" id="vmAddTpm" ${d.tpm ? 'checked' : ''} />
+            </div>
+            <div class="vm-add-inline-row">
+              <div>
+                <div class="vm-add-inline-title">硬件隔离模式</div>
+                <div class="vm-add-inline-sub">机密计算或 VBS 隔离要求宿主机硬件支持</div>
+              </div>
+              <select class="vm-add-select" id="vmAddIsolation" style="width:160px;">
+                <option value="Disabled" ${d.isolation === 'Disabled' ? 'selected' : ''}>Disabled</option>
+                <option value="TrustedLaunch" ${d.isolation === 'TrustedLaunch' ? 'selected' : ''}>TrustedLaunch</option>
+                <option value="VBS" ${d.isolation === 'VBS' ? 'selected' : ''}>VBS</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const importBody = `
+      <div class="vm-add-scroll">
+        <div class="vm-add-import-box">
+          <span class="fi" style="font-size:32px;opacity:0.85;">&#xE896;</span>
+          <div style="font-size:18px;font-weight:600;">导入现有虚拟机</div>
+          <div style="font-size:13px;color:var(--TextFillColorSecondaryBrush);">
+            从导出的虚拟机文件夹或 .zip 导出包快速恢复，支持预览配置、检查点与磁盘位置
+          </div>
+          <div class="vm-add-input-row" style="justify-content:center;margin-top:4px;">
+            <button type="button" class="vm-add-btn-sm" id="vmImportPickFolder">选择导出文件夹...</button>
+            <button type="button" class="vm-add-btn-sm" id="vmImportPickZip">选择 .zip 导出包...</button>
+          </div>
+          ${d.importSource ? `
+            <div class="vm-add-import-preview">
+              <div><strong>已选择来源：</strong>${escapeHtmlText(d.importSource)}</div>
+              <div><strong>虚拟机名称：</strong>Ubuntu-Backup（2 代，4 核 / 4 GB）</div>
+              <div><strong>磁盘文件：</strong>ubuntu_root.vhdx（32.4 GiB）</div>
+              <div class="vm-add-input-row" style="justify-content:flex-end;margin-top:8px;">
+                <button type="button" class="vm-add-primary" id="vmImportConfirmBtn">确认导入</button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+
+    const footerHtml = isCreate ? `
+      <div class="vm-add-footer">
+        <label class="vm-add-radio">
+          <input type="checkbox" id="vmAddStartAfter" ${d.startAfterCreate ? 'checked' : ''} />
+          创建后直接开机并打开画面
+        </label>
+        <div class="vm-add-footer-actions">
+          <button type="button" class="vm-add-btn-sm" id="vmAddCancel">取消</button>
+          <button type="button" class="vm-add-primary" id="vmAddSubmit">立即创建</button>
+        </div>
+      </div>
+    ` : '<div></div>';
+
+    root.innerHTML = `
+      <div class="vm-add-header">
+        <div class="vm-add-tabs">
+          <button type="button" class="vm-add-tab ${isCreate ? 'active' : ''}" data-add-tab="create">
+            <span class="fi">&#xE7F4;</span><span>新建虚拟机</span>
+          </button>
+          <button type="button" class="vm-add-tab ${!isCreate ? 'active' : ''}" data-add-tab="import">
+            <span class="fi">&#xE896;</span><span>导入虚拟机</span>
+          </button>
+        </div>
+        <div class="vm-add-header-right">
+          ${isCreate ? `
+            <div class="vm-add-mode-switch" role="group" aria-label="创建模式">
+              <button type="button" class="cpu-affinity-quick-btn ${isBasic ? 'active' : ''}" data-add-level="basic">基础</button>
+              <button type="button" class="cpu-affinity-quick-btn ${!isBasic ? 'active' : ''}" data-add-level="advanced">高级</button>
+            </div>
+          ` : ''}
+          <button type="button" class="vm-add-close" id="vmAddCloseBtn" title="返回虚拟机视图">
+            <span class="fi">&#xE711;</span>
+          </button>
+        </div>
+      </div>
+      ${isCreate ? (isBasic ? basicBody : advancedBody) : importBody}
+      ${footerHtml}
+    `;
+
+    root.querySelectorAll('[data-add-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.vmAddMode = btn.getAttribute('data-add-tab') || 'create';
+        renderVmAddView();
+      });
+    });
+
+    root.querySelectorAll('[data-add-level]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.vmAddLevel = btn.getAttribute('data-add-level') || 'basic';
+        renderVmAddView();
+      });
+    });
+
+    const closeAdd = () => {
+      state.vmAddOpen = false;
+      syncVmAddVisibility();
+    };
+    document.getElementById('vmAddCloseBtn')?.addEventListener('click', closeAdd);
+    document.getElementById('vmAddCancel')?.addEventListener('click', closeAdd);
+
+    root.querySelectorAll('[data-add-os]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-add-os');
+        d.osKey = key;
+        if (key === 'win11') {
+          d.name = 'Windows 11';
+          d.secureBoot = true;
+          d.tpm = true;
+          d.generation = 2;
+        } else if (key === 'win10') {
+          d.name = 'Windows 10';
+          d.secureBoot = true;
+          d.tpm = false;
+          d.generation = 2;
+        } else if (key === 'linux') {
+          d.name = 'Linux';
+          d.secureBoot = false;
+          d.tpm = false;
+          d.generation = 2;
+        } else {
+          d.name = 'NewVM';
+        }
+        renderVmAddView();
+      });
+    });
+
+    root.querySelectorAll('[data-add-tier]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-add-tier');
+        const chosen = tierChoices.find((t) => t.key === key);
+        if (!chosen) return;
+        d.tier = chosen.key;
+        d.cpuCount = chosen.cpu;
+        d.memoryGb = chosen.mem;
+        d.diskSizeGb = chosen.disk;
+        renderVmAddView();
+      });
+    });
+
+    document.getElementById('vmBasicToggleSource')?.addEventListener('click', () => {
+      d.diskMode = d.diskMode === 'existing' ? 'iso' : 'existing';
+      renderVmAddView();
+    });
+
+    document.getElementById('vmAddName')?.addEventListener('input', (e) => { d.name = e.target.value; });
+    document.getElementById('vmAddPath')?.addEventListener('input', (e) => { d.path = e.target.value; });
+    document.getElementById('vmAddPickPath')?.addEventListener('click', () => {
+      d.path = 'D:\\Hyper-V\\VMs';
+      renderVmAddView();
+    });
+
+    root.querySelectorAll('input[name="vmAddDiskMode"]').forEach((r) => {
+      r.addEventListener('change', (e) => {
+        d.diskMode = e.target.value;
+        renderVmAddView();
+      });
+    });
+    document.getElementById('vmAddIsoPath')?.addEventListener('input', (e) => { d.isoPath = e.target.value; });
+    document.getElementById('vmAddPickIso')?.addEventListener('click', () => {
+      d.isoPath = 'D:\\ISOs\\Win11_24H2_Chinese_Simplified_arm64.iso';
+      renderVmAddView();
+    });
+    document.getElementById('vmAddDiskSize')?.addEventListener('input', (e) => {
+      d.diskSizeGb = Math.max(8, Number(e.target.value) || 128);
+    });
+    root.querySelectorAll('[data-disk-gb]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        d.diskSizeGb = Number(btn.getAttribute('data-disk-gb')) || 128;
+        renderVmAddView();
+      });
+    });
+    document.getElementById('vmAddExistingDisk')?.addEventListener('input', (e) => { d.existingDiskPath = e.target.value; });
+    document.getElementById('vmAddPickDisk')?.addEventListener('click', () => {
+      d.existingDiskPath = 'D:\\Hyper-V\\Base\\Win11_24H2_Base.vhdx';
+      renderVmAddView();
+    });
+    document.getElementById('vmAddDiffDisk')?.addEventListener('change', (e) => { d.createDiffDisk = e.target.checked; });
+
+    document.getElementById('vmAddCpuSlider')?.addEventListener('input', (e) => {
+      d.cpuCount = Number(e.target.value) || 4;
+      const el = document.getElementById('vmAddCpuVal');
+      if (el) el.textContent = `${d.cpuCount} 核（宿主机共 12 核）`;
+    });
+    document.getElementById('vmAddMemSlider')?.addEventListener('input', (e) => {
+      d.memoryGb = Number(e.target.value) || 8;
+      const el = document.getElementById('vmAddMemVal');
+      if (el) el.textContent = `${d.memoryGb} GB`;
+    });
+    document.getElementById('vmAddSwitch')?.addEventListener('change', (e) => { d.switchName = e.target.value; });
+    document.getElementById('vmAddQty')?.addEventListener('input', (e) => { d.quantity = Math.max(1, Number(e.target.value) || 1); });
+    root.querySelectorAll('input[name="vmAddGen"]').forEach((r) => {
+      r.addEventListener('change', (e) => { d.generation = Number(e.target.value) || 2; });
+    });
+    document.getElementById('vmAddVer')?.addEventListener('change', (e) => { d.version = e.target.value; });
+    document.getElementById('vmAddSecureBoot')?.addEventListener('change', (e) => { d.secureBoot = e.target.checked; });
+    document.getElementById('vmAddTpm')?.addEventListener('change', (e) => { d.tpm = e.target.checked; });
+    document.getElementById('vmAddDynMem')?.addEventListener('change', (e) => { d.dynamicMemory = e.target.checked; });
+    document.getElementById('vmAddIsolation')?.addEventListener('change', (e) => { d.isolation = e.target.value; });
+    document.getElementById('vmAddSameDir')?.addEventListener('change', (e) => {
+      d.storeDisksWithVm = e.target.checked;
+      renderVmAddView();
+    });
+    document.getElementById('vmAddStartAfter')?.addEventListener('change', (e) => { d.startAfterCreate = e.target.checked; });
+
+    document.getElementById('vmAddSubmit')?.addEventListener('click', () => {
+      const base = activeVms[0] ? JSON.parse(JSON.stringify(activeVms[0])) : { id: 'new-vm', name: 'NewVM', running: false };
+      base.id = `demo-${Date.now().toString(16)}`;
+      base.name = d.name.trim() || 'NewVM';
+      base.running = Boolean(d.startAfterCreate);
+      base.osType = d.osKey === 'linux' ? 'Linux' : d.osKey === 'other' ? 'Other' : 'Windows';
+      activeVms.unshift(base);
+      state.selectedVmId = base.id;
+      state.vmAddOpen = false;
+      syncVmAddVisibility();
+      renderVmList();
+      renderDashboardSummary();
+      renderActiveWorkspace();
+    });
+
+    document.getElementById('vmImportPickFolder')?.addEventListener('click', () => {
+      d.importSource = 'D:\\Hyper-V\\Exports\\Ubuntu-Backup';
+      renderVmAddView();
+    });
+    document.getElementById('vmImportPickZip')?.addEventListener('click', () => {
+      d.importSource = 'D:\\Hyper-V\\Exports\\Ubuntu-Backup.zip';
+      renderVmAddView();
+    });
+    document.getElementById('vmImportConfirmBtn')?.addEventListener('click', () => {
+      const base = activeVms[0] ? JSON.parse(JSON.stringify(activeVms[0])) : { id: 'import-vm', name: 'Ubuntu-Backup', running: false };
+      base.id = `import-${Date.now().toString(16)}`;
+      base.name = 'Ubuntu-Backup';
+      base.running = false;
+      base.osType = 'Linux';
+      activeVms.unshift(base);
+      state.selectedVmId = base.id;
+      state.vmAddOpen = false;
+      syncVmAddVisibility();
+      renderVmList();
+      renderDashboardSummary();
+      renderActiveWorkspace();
+    });
+  }
+
+  document.getElementById('vmAddBtn')?.addEventListener('click', () => {
+    state.vmAddOpen = !state.vmAddOpen;
+    if (state.vmAddOpen) renderVmAddView();
+    syncVmAddVisibility();
   });
 
   document.getElementById('vmSearchBox')?.addEventListener('input', (e) => {
@@ -8601,6 +9285,8 @@ export function initUiDesignWorkbench() {
           state.gpuAssignmentsByVm[vm.id] = structuredClone(INITIAL_GPU_ASSIGNMENTS);
         }
         state.gpuDeployMode = 'add-with-drivers';
+        state.gpuDeployTargetOs = null;
+        state.gpuDeployProgressPhase = null;
         state.gpuDeployDecision = vm.running ? 'PowerOff' : 'SelectPartition';
       }
     }

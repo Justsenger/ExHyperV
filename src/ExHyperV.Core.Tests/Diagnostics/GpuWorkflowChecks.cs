@@ -86,25 +86,39 @@ internal static class GpuWorkflowChecks
             && manual.MetadataRecordedCount == 0,
             "Selecting Windows executes sync immediately. Driver failure removes this deployment's adapter without recording metadata");
 
-        foreach (var os in new[] { OperatingSystemType.Unknown, OperatingSystemType.EFI, OperatingSystemType.Linux })
+        foreach (var os in new[] { OperatingSystemType.Unknown, OperatingSystemType.EFI })
         {
             var unsupported = new GpuDeploymentSession(new Backend { Os = os });
             var choice = await unsupported.StartAsync();
             check(choice.State == GpuDeploymentState.WaitingForDecision
-                && (os != OperatingSystemType.Linux || choice.PendingDecision?.Message == R.Msg_Gpu_LinuxUnsupported)
-                && (os == OperatingSystemType.Linux || choice.PendingDecision?.Message == R.Msg_Gpu_NoUsableWindowsPart)
+                && choice.PendingDecision?.Kind == GpuDecisionKind.SelectPartition
+                && choice.PendingDecision?.Message == R.Msg_Gpu_NoUsableWindowsPart
                 && await Rejected(() => unsupported.SubmitDecisionAsync(new GpuPartitionSelection(choice.PendingDecision!.Id, choice.PendingDecision.Partitions[0].Id))),
-                "Unsupported partition cannot be reported as successful: " + os);
-            if (os == OperatingSystemType.Linux)
-            {
-                string? linuxError = null;
-                try { await unsupported.SubmitDecisionAsync(new GpuPartitionSelection(choice.PendingDecision!.Id, choice.PendingDecision.Partitions[0].Id)); }
-                catch (ArgumentException ex) { linuxError = ex.Message; }
-                check(linuxError == R.Error_Gpu_LinuxUnsupported,
-                    "Selecting a Linux partition reports Linux is not supported yet");
-            }
+                "Unsupported non-OS partition cannot be reported as successful: " + os);
             await unsupported.CancelAsync();
         }
+        var singleLinuxAuto = new GpuDeploymentSession(new Backend { Os = OperatingSystemType.Linux });
+        var singleLinuxDecision = await singleLinuxAuto.StartAsync();
+        check(singleLinuxDecision.State == GpuDeploymentState.WaitingForDecision
+            && singleLinuxDecision.PendingDecision?.Kind == GpuDecisionKind.SelectLinuxBundle
+            && singleLinuxDecision.PendingDecision.CanGoBack,
+            "Single Linux partition automatically advances to Linux bundle source selection");
+        var linuxOnline = await singleLinuxAuto.SubmitDecisionAsync(
+            new GpuLinuxBundleSelection(singleLinuxDecision.PendingDecision!.Id, GpuLinuxBundleSource.Online));
+        check(linuxOnline.State == GpuDeploymentState.Completed
+            && linuxOnline.GuestSetupCommand == LinuxGpuPvBundleService.GuestSetupCommand
+            && linuxOnline.LinuxDriverVersion == "32.0.15.6636"
+            && linuxOnline.Steps.Select(s => s.Type).SequenceEqual([
+                GpuDeploymentStepKind.PowerCheck,
+                GpuDeploymentStepKind.Optimization,
+                GpuDeploymentStepKind.Assign,
+                GpuDeploymentStepKind.Driver,
+                GpuDeploymentStepKind.SelectBundle,
+                GpuDeploymentStepKind.DownloadBundle,
+                GpuDeploymentStepKind.SynthesizeBundle,
+                GpuDeploymentStepKind.MountIso]),
+            "Online Linux deployment downloads, synthesizes, mounts ISO and records guest driver version");
+
         var encryptedSession = new GpuDeploymentSession(new Backend { BitLocker = true });
         var encrypted = await encryptedSession.StartAsync();
         string? bitlockerError = null;
@@ -123,7 +137,15 @@ internal static class GpuWorkflowChecks
         var mixedLinuxWaiting = await mixedLinuxSession.StartAsync();
         check(mixedLinuxWaiting.PendingDecision?.Kind == GpuDecisionKind.SelectPartition
             && mixedLinuxWaiting.PendingDecision.Message == R.Msg_Gpu_SelectPartWithLinux,
-            "Mixed Windows and Linux partitions prompt clearly that Linux is not supported yet");
+            "Mixed Windows and Linux partitions prompt clearly to choose target partition");
+        var mixedLinuxPick = await mixedLinuxSession.SubmitDecisionAsync(
+            new GpuPartitionSelection(mixedLinuxWaiting.PendingDecision!.Id, mixedLinuxWaiting.PendingDecision.Partitions[0].Id));
+        check(mixedLinuxPick.PendingDecision?.Kind == GpuDecisionKind.SelectLinuxBundle
+            && mixedLinuxPick.PendingDecision.CanGoBack,
+            "Choosing Linux partition enters Linux bundle selection with go-back support");
+        var mixedBackToPart = await mixedLinuxSession.SubmitDecisionAsync(new GpuBackToPartitions(mixedLinuxPick.PendingDecision!.Id));
+        check(mixedBackToPart.PendingDecision?.Kind == GpuDecisionKind.SelectPartition,
+            "Linux bundle selection can return cleanly to partition selection");
         await mixedLinuxSession.CancelAsync();
 
         var mixedLinuxAndBitlocker = new Backend { Os = OperatingSystemType.Linux, BitLocker = true, ExtraWindowsPartition = false };
@@ -131,7 +153,7 @@ internal static class GpuWorkflowChecks
         var mixedAllWaiting = await mixedAllSession.StartAsync();
         check(mixedAllWaiting.PendingDecision?.Kind == GpuDecisionKind.SelectPartition
             && mixedAllWaiting.PendingDecision.Message == R.Msg_Gpu_LinuxAndBitLockerUnsupported,
-            "Linux and BitLocker partitions without usable Windows prompt both unsupported reasons");
+            "Linux and BitLocker partitions without usable Windows prompt both reasons cleanly");
         await mixedAllSession.CancelAsync();
 
         var mountTimeBitlocker = new Backend { BitLockerAtSync = true };
@@ -263,19 +285,35 @@ internal static class GpuWorkflowChecks
         check(updating.Steps.Select(s => s.Type).SequenceEqual([GpuDeploymentStepKind.PowerCheck, GpuDeploymentStepKind.Driver])
             && !update.Calls.Contains("Assign") && update.Removed.Count == 0, "Driver-only update neither adds nor rolls back an existing GPU");
 
-        var linux = new Backend { Os = OperatingSystemType.Linux, GpuCount = 2 };
+        var linux = new Backend { Os = OperatingSystemType.Linux, GpuCount = 2, FailNextBundleOnce = true };
         var linuxSession = new GpuDeploymentSession(linux);
         var linuxPending = await linuxSession.StartAsync();
-        check(linuxPending.PendingDecision?.Kind == GpuDecisionKind.SelectPartition
-            && linuxPending.PendingDecision.Message == R.Msg_Gpu_LinuxUnsupported
-            && await Rejected(() => linuxSession.SubmitDecisionAsync(new GpuPartitionSelection(linuxPending.PendingDecision!.Id, linuxPending.PendingDecision.Partitions[0].Id)))
-            && !linux.Calls.Contains("Windows"),
-            "Linux partitions prompt that Linux is unsupported and cannot proceed with direct driver sync");
-        var linuxSkipped = await linuxSession.SubmitDecisionAsync(
-            new GpuDriverFallbackSelection(linuxPending.PendingDecision!.Id, GpuDriverFallbackAction.SkipDriver));
-        check(linuxSkipped.State == GpuDeploymentState.Completed && linuxSkipped.IsDriverSkipped
-            && !linux.Calls.Contains("Windows") && linux.MetadataRecordedCount == 0,
-            "Linux partition uses SkipDriver fallback cleanly without guest driver metadata writes");
+        check(linuxPending.PendingDecision?.Kind == GpuDecisionKind.SelectLinuxBundle
+            && linuxPending.PendingDecision.CanGoBack,
+            "Linux VM proceeds cleanly to Linux bundle source selection with multi-GPU support");
+        check(await Rejected(() => linuxSession.SubmitDecisionAsync(new GpuLinuxBundleSelection(linuxPending.PendingDecision!.Id, GpuLinuxBundleSource.LocalFile, @"C:\not-a-zip.txt"))),
+            "Non-.zip local bundle path is rejected cleanly");
+        var recoveredPause = await linuxSession.SubmitDecisionAsync(
+            new GpuLinuxBundleSelection(linuxPending.PendingDecision!.Id, GpuLinuxBundleSource.LocalFile, @"C:\dummy\bad-once.zip"));
+        check(recoveredPause.State == GpuDeploymentState.WaitingForDecision
+            && recoveredPause.PendingDecision?.Kind == GpuDecisionKind.SelectLinuxBundle
+            && !string.IsNullOrWhiteSpace(recoveredPause.BundleError)
+            && linux.Removed.Count == 0,
+            "Recoverable Linux bundle error returns to bundle selection without removing GPU adapters");
+        var linuxLocalDone = await linuxSession.SubmitDecisionAsync(
+            new GpuLinuxBundleSelection(recoveredPause.PendingDecision!.Id, GpuLinuxBundleSource.LocalFile, @"C:\dummy\linuxpv-bundle.zip"));
+        check(linuxLocalDone.State == GpuDeploymentState.Completed
+            && linux.MetadataRecordedCount == 1
+            && linuxLocalDone.GuestSetupCommand == LinuxGpuPvBundleService.GuestSetupCommand
+            && linuxLocalDone.Steps.Select(s => s.Type).SequenceEqual([
+                GpuDeploymentStepKind.PowerCheck,
+                GpuDeploymentStepKind.Optimization,
+                GpuDeploymentStepKind.Assign,
+                GpuDeploymentStepKind.Driver,
+                GpuDeploymentStepKind.SelectBundle,
+                GpuDeploymentStepKind.SynthesizeBundle,
+                GpuDeploymentStepKind.MountIso]),
+            "Retry with valid local bundle skips download step, synthesizes ISO, mounts disc and records metadata");
 
         var assigned = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -388,6 +426,7 @@ internal static class GpuWorkflowChecks
         public int FailAssignAtIndex { get; set; } = -1;
         public int MetadataRecordedCount { get; private set; }
         public bool FailDrivers, MultiplePartitions, IncludeEfiPartition, UnidentifiedAssignment, TargetChanged, FailRemoval, BitLocker, BitLockerAtSync, InvalidSystemPartAtSync;
+        public bool FailNextBundleOnce;
         public bool ExtraWindowsPartition { get; set; } = true;
         public bool ConcurrentAssignment, FailAssignmentBeforeCreation, FailAssignmentAfterCreation, ThrowAssignment;
         public bool OmitCreatedIdentity, OutcomeUnknown;
@@ -460,6 +499,30 @@ internal static class GpuWorkflowChecks
         public Task RecordGuestDriverVersionsAsync()
         {
             MetadataRecordedCount++;
+            return Task.CompletedTask;
+        }
+        public string? GetPrimaryDriverVersion() => "32.0.15.6636";
+        public Task<string> DownloadLinuxBundleAsync(Action<int, string> progress, CancellationToken cancellationToken)
+        {
+            Calls.Add("LinuxDownload");
+            progress(50, "Downloading 50%");
+            progress(100, "Downloading 100%");
+            return Task.FromResult(@"C:\cache\linuxpv-bundle-v0.1.1.zip");
+        }
+        public Task<string> SynthesizeLinuxIsoAsync(string? bundlePath, Action<int, string> progress, CancellationToken cancellationToken)
+        {
+            Calls.Add("LinuxSynthesize");
+            if (FailNextBundleOnce)
+            {
+                FailNextBundleOnce = false;
+                throw new LinuxBundleException("Controlled invalid bundle error");
+            }
+            progress(100, "Synthesizing 100%");
+            return Task.FromResult(@"C:\vms\exhyperv-gpupv.iso");
+        }
+        public Task MountLinuxIsoAsync(string isoPath, CancellationToken cancellationToken)
+        {
+            Calls.Add("LinuxMountIso");
             return Task.CompletedTask;
         }
     }

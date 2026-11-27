@@ -18,6 +18,47 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
 {
     private enum NoticeOrigin { Dashboard, Settings }
     private CancellationTokenSource? cancellation;
+    private bool windowVisible = true;
+    private readonly object visibilityGate = new();
+    private TaskCompletionSource? resumeWait;
+
+    internal void SetWindowVisible(bool visible)
+    {
+        TaskCompletionSource? toComplete = null;
+        lock (visibilityGate)
+        {
+            if (windowVisible == visible) return;
+            windowVisible = visible;
+            if (visible)
+            {
+                toComplete = resumeWait;
+                resumeWait = null;
+            }
+            else
+            {
+                resumeWait ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            }
+        }
+        toComplete?.TrySetResult();
+        if (!visible) FreezeUptimeClock();
+    }
+
+    private async Task<bool> WaitWhileHiddenAsync(CancellationToken token)
+    {
+        bool waited = false;
+        while (true)
+        {
+            Task? pending;
+            lock (visibilityGate)
+            {
+                if (windowVisible) return waited;
+                resumeWait ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                pending = resumeWait.Task;
+            }
+            waited = true;
+            await pending.WaitAsync(token);
+        }
+    }
     private readonly SemaphoreSlim queryGate = new(1, 1);
     private readonly Dictionary<int, VmUsageChart> charts = new();
     private readonly List<Task> work = new();
@@ -112,6 +153,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
     public async Task StopAsync()
     {
         ++powerGeneration;
+        ++selectionVersion;
         activePowerVmId = null;
         activePowerAction = null;
         await CloseSettings();
@@ -185,6 +227,9 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         GpuCharts.Visibility = Visibility.Collapsed;
         GpuMessage.Text = "";
         Preview.Source = null;
+        lastPreviewJpeg = null;
+        lastPowerAppearance = null;
+        lastMemoryKvState = null;
         PreviewBorder.Visibility = Visibility.Collapsed;
         if (vm.OsIconName is { } knownOs) ApplyOperatingSystem(knownOs);
         else OsImage.Source = null;
@@ -263,6 +308,8 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
             int consecutiveEmptyVmList = 0;
             while (!token.IsCancellationRequested)
             {
+                if (await WaitWhileHiddenAsync(token))
+                    nextPoll = Stopwatch.GetTimestamp();
                 long queryStarted = Stopwatch.GetTimestamp();
                 var fields = activeTopKey != "overview" || (stateVerified && state == VmState.PoweredOff)
                     ? IdentityFields : MetricFields;
@@ -486,6 +533,7 @@ public sealed partial class VmDashboardView : UserControl, IDashboardFeedbackHos
         if (!running)
         {
             Preview.Source = null;
+            lastPreviewJpeg = null;
             PreviewBorder.Visibility = Visibility.Collapsed;
         }
     }

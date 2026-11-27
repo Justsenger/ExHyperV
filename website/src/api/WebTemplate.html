@@ -789,35 +789,48 @@
     return `<nav class="category-grid" aria-label="${escape(label)}">${items.map(item =>
       link(item.id,`<span class="category-card-heading"><span>${escape(item.label)}</span><span class="category-arrow" aria-hidden="true">→</span></span>${item.description ? `<span class="category-card-description">${escape(item.description)}</span>` : ''}`,'category-card')).join('')}</nav>`;
   }
-  function overviewEntries(items, label) {
-    const icons = {
-      '虚拟机':'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
-      '宿主':'<rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M11 6.5h6M11 17.5h6"/>',
-      '工具':'<path d="M15 3a6 6 0 0 0-6 7L3 16a3 3 0 0 0 5 5l6-6a6 6 0 0 0 7-6l-4 3-4-4 2-5Z"/>',
-      '连接':'<path d="m9 15 6-6M8 17l-1 1a4 4 0 0 1-6-6l5-5a4 4 0 0 1 6 0M16 7l1-1a4 4 0 0 1 6 6l-5 5a4 4 0 0 1-6 0" transform="translate(1 0) scale(.92)"/>',
-      '视频':'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>',
-      '控制':'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/>',
-      '剪贴板':'<path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2M8 12h8M8 16h6"/><rect x="8" y="2" width="8" height="5" rx="1.5"/>',
-      '音频':'<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/>'
-    };
-    return `<nav class="overview-entries" aria-label="${escape(label)}">${items.map(item => {
-      const iconPath = icons[item.label] || '';
-      const desc = item.description ? `<span class="overview-entry-description">${escape(item.description)}</span>` : '';
-      return link(item.id,
-        `<span class="overview-entry-badge"><svg class="overview-entry-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${iconPath}</svg></span>`
-        + `<span class="overview-entry-body"><span class="overview-entry-name">${escape(item.label)}</span>${desc}</span>`
-        + `<span class="overview-entry-arrow" aria-hidden="true">→</span>`,
-        'overview-entry');
-    }).join('')}</nav>`;
+  function findType(name) {
+    return types.find(type => shortName(type) === name);
+  }
+  function symbolRef(typeName, memberName = '') {
+    const owner = findType(typeName);
+    const label = memberName ? `${typeName}.${memberName}` : typeName;
+    if (!owner) return `<code>${escape(label)}</code>`;
+    if (!memberName) return typeLink(owner);
+    const target = (owner.members || []).find(item => item.name === memberName);
+    return target ? link(target.id, `<code>${escape(label)}</code>`) : typeLink(owner);
+  }
+  function extractExamplePre(key) {
+    const marker = `<section class="member-example" data-example="${key}">`;
+    for (const type of types) {
+      for (const member of type.members || []) {
+        const html = member.presentation?.examplesHtml || '';
+        const start = html.indexOf(marker);
+        if (start < 0) continue;
+        const preStart = html.indexOf('<pre>', start);
+        const preEnd = html.indexOf('</pre>', preStart);
+        if (preStart >= 0 && preEnd >= 0) return html.slice(preStart, preEnd + '</pre>'.length);
+      }
+    }
+    return '';
   }
   function renderOverview() {
     currentType = null;
     main.className = 'article overview-page';
-    const business = referenceGroups.filter(group => group.path[0] === '业务层面')
-      .map(group => ({id:group.id,label:group.path[1],description:businessDescriptions[group.path[1]] || ''}));
-    main.innerHTML = `<div class="overview-shell" id="overview"><header class="overview-hero"><div class="overview-title-row"><h1>ExHyperV.Core API</h1>${data.version ? `<span class="overview-version">${escape(data.version)}</span>` : ''}</div><p class="overview-lead">直接嵌入 Windows 应用进程的 Hyper-V 核心类库，涵盖虚拟机配置与调度管理，以及控制台实时连接交互。</p></header>`
-      + `<div class="overview-columns"><section class="overview-domain overview-domain--management" aria-labelledby="overview-management"><header class="overview-domain-heading"><h2 id="overview-management">管理层面</h2><p class="overview-domain-subtitle">虚拟机生命周期、配置读写与宿主工具</p></header>${overviewEntries(categoryHubs,'管理分类')}</section>`
-      + `<section class="overview-domain overview-domain--business" aria-labelledby="overview-business"><header class="overview-domain-heading"><h2 id="overview-business">业务层面</h2><p class="overview-domain-subtitle">控制台连接会话、实时音视频与键鼠剪贴板交互</p></header>${overviewEntries(business,'业务分类')}</section></div></div>`;
+    const examplePre = extractExamplePre('list');
+    main.innerHTML = `<div class="overview-shell" id="overview">`
+      + `<header class="overview-hero"><div class="overview-title-row"><h1>ExHyperV.Core API</h1>${data.version ? `<span class="overview-version">${escape(data.version)}</span>` : ''}</div></header>`
+      + (examplePre ? `<section class="overview-quick" aria-labelledby="overview-quickstart" data-example="list"><h2 id="overview-quickstart">快速开始</h2>`
+        + `<p class="overview-quick-note">先用 ${symbolRef('VmQueryService')} 列出本机虚拟机拿到 <code>vm.Key</code>（<code>Guid</code>）。后续开关机、修改配置与连接桌面均以 <code>Guid</code> 为准。</p>${examplePre}</section>` : '')
+      + `<section class="overview-tasks" aria-labelledby="overview-tasks-heading"><h2 id="overview-tasks-heading">常用入口</h2>`
+      + `<div class="overview-rows">`
+      + `<div class="overview-row"><span class="overview-row-desc">查虚拟机列表、状态与硬件信息</span><span class="overview-row-links">${symbolRef('VmQueryService','QueryAsync')}${symbolRef('VmQueryRequest')}</span></div>`
+      + `<div class="overview-row"><span class="overview-row-desc">开关机、调整内存与处理器设置</span><span class="overview-row-links">${symbolRef('VmPowerService')}${symbolRef('VmMemoryService')}${symbolRef('VmProcessorService')}</span></div>`
+      + `<div class="overview-row"><span class="overview-row-desc">新建、导入、导出与删除虚拟机</span><span class="overview-row-links">${link('instances','<code>实例操作</code>')}${symbolRef('VmCreateService')}</span></div>`
+      + `<div class="overview-row"><span class="overview-row-desc">配置 GPU-PV 显卡分区与驱动</span><span class="overview-row-links">${symbolRef('GpuDeploymentSession')}</span></div>`
+      + `<div class="overview-row"><span class="overview-row-desc">连接控制台画面、音视频与键鼠</span><span class="overview-row-links">${symbolRef('ConsoleService')}${symbolRef('VmScreenshotSource')}</span></div>`
+      + `</div></section>`
+      + `</div>`;
     setBreadcrumb('概览');
   }
   function summarizeManagementGroup(group) {

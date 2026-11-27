@@ -28,6 +28,7 @@
     <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Settings/Network/VmNetworkPolicyDraft.cs" Link="Scenarios/VmNetworkPolicyDraft.cs" />
     <Compile Include="../ExHyperV.App/DesktopJson.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.App/UI/Shared/Appearance/AppearancePreferences.cs" Link="Scenarios/%(Filename)%(Extension)" />
+    <Compile Include="../ExHyperV.App/UI/Shared/Appearance/NativeTheme.Shared.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.App/UI/Shared/Appearance/ConsoleSessionModeConverter.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.App/UI/Shared/ConsoleHost/ConsoleExtensionCatalog.cs" Link="Scenarios/%(Filename)%(Extension)" />
     <Compile Include="../ExHyperV.App/UI/Pages/VirtualMachines/Console/ConsoleFrameDamage.cs" Link="Scenarios/%(Filename)%(Extension)" />

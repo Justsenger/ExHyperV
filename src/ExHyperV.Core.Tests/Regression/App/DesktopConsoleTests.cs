@@ -244,6 +244,22 @@ public sealed class DesktopConsoleTests
         Assert.IsTrue(merge.Take().Full);
     }
 
+    [TestMethod]
+    public void NativeMenuThemeFollowsAppThemeAndHighContrast()
+    {
+        Assert.AreEqual((NativeTheme.PreferredAppMode.ForceDark, true),
+            NativeTheme.ResolvePreferredAppMode(2, highContrast: false, systemDark: false));
+        Assert.AreEqual((NativeTheme.PreferredAppMode.ForceLight, false),
+            NativeTheme.ResolvePreferredAppMode(1, highContrast: false, systemDark: true));
+        Assert.AreEqual((NativeTheme.PreferredAppMode.ForceDark, true),
+            NativeTheme.ResolvePreferredAppMode(0, highContrast: false, systemDark: true));
+        Assert.AreEqual((NativeTheme.PreferredAppMode.ForceLight, false),
+            NativeTheme.ResolvePreferredAppMode(0, highContrast: false, systemDark: false));
+        Assert.AreEqual((NativeTheme.PreferredAppMode.Default, false),
+            NativeTheme.ResolvePreferredAppMode(2, highContrast: true, systemDark: true));
+        NativeTheme.SyncResolved(0, 0, highContrast: true, systemDark: false);
+    }
+
     private sealed class DelayedConnection : IConsoleConnection
     {
         internal readonly TaskCompletionSource Disconnecting = new(TaskCreationOptions.RunContinuationsAsynchronously);

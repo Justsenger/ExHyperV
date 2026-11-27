@@ -3,7 +3,7 @@
   "version": "2.0.0-Alpha",
   "source": {
     "revision": null,
-    "contentSha256": "7892da0c35fb44d3977b3c65022b0c2b24b2a2c56ee5255ee7cfd0b47c04ed99"
+    "contentSha256": "472e42780b19283f75d58380616ca3c5ab707d23126ad8ceb78f8a60263cd59d"
   },
   "defaultTypeId": "overview",
   "queryPath": [
@@ -2884,7 +2884,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 212,
+          "order": 251,
           "signature": "public GpuBackToPartitions(Guid RequestId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-11fbc96797a74b58\u0022\u003EGpuBackToPartitions\u003C/a\u003E(Guid RequestId);",
           "presentation": {
@@ -2975,7 +2975,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 201,
+          "order": 232,
           "signature": "public GpuConfirmation(Guid RequestId, bool Accepted);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-b72fad7f37732b94\u0022\u003EGpuConfirmation\u003C/a\u003E(Guid RequestId, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E Accepted);",
           "presentation": {
@@ -3032,7 +3032,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 201,
+          "order": 232,
           "signature": "public bool Accepted { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E Accepted { get; init; }",
           "presentation": {
@@ -3123,7 +3123,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 45,
+          "order": 47,
           "signature": "Confirmation = 0",
           "signatureHtml": "Confirmation = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
           "presentation": {
@@ -3182,7 +3182,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 49,
+          "order": 51,
           "signature": "DriverFallback = 2",
           "signatureHtml": "DriverFallback = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
           "presentation": {
@@ -3217,6 +3217,65 @@
           "summaryText": "\u4F7F\u7528 GpuDriverFallbackSelection \u63D0\u4EA4\u8DF3\u8FC7\u9A71\u52A8\u3002"
         },
         {
+          "id": "api-1818bf77e8c2a97a",
+          "uid": "F:ExHyperV.Models.GpuDecisionInput.LinuxBundle",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "LinuxBundle",
+          "displayName": "LinuxBundle",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 53,
+          "signature": "LinuxBundle = 3",
+          "signatureHtml": "LinuxBundle = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
+          "presentation": {
+            "expression": "GpuDecisionInput.LinuxBundle",
+            "valueType": "GpuDecisionInput",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-e1c07ac7b4a8d65a\u0022\u003EGpuDecisionInput\u003C/a\u003E",
+            "enumTypeId": "api-e1c07ac7b4a8d65a",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4F7F\u7528 GpuLinuxBundleSelection \u63D0\u4EA4\u5728\u7EBF\u6216\u672C\u5730\u90E8\u7F72\u5305\u9009\u62E9\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-e1c07ac7b4a8d65a"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4F7F\u7528 GpuLinuxBundleSelection \u63D0\u4EA4\u5728\u7EBF\u6216\u672C\u5730\u90E8\u7F72\u5305\u9009\u62E9\u3002",
+          "summaryText": "\u4F7F\u7528 GpuLinuxBundleSelection \u63D0\u4EA4\u5728\u7EBF\u6216\u672C\u5730\u90E8\u7F72\u5305\u9009\u62E9\u3002"
+        },
+        {
           "id": "api-20f31cbd82caa987",
           "uid": "F:ExHyperV.Models.GpuDecisionInput.Partition",
           "toolGroup": "devices",
@@ -3241,7 +3300,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 47,
+          "order": 49,
           "signature": "Partition = 1",
           "signatureHtml": "Partition = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
           "presentation": {
@@ -3344,7 +3403,7 @@
             "enumTypeId": "api-16bfedc8ae936ed7",
             "callable": false,
             "valuesHtml": "",
-            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u65E0\u6CD5\u76F4\u63A5\u5411\u5206\u533A\u5199\u5165\u9A71\u52A8\uFF08\u5982\u542F\u7528 BitLocker\u3001Linux \u5206\u533A\u6216\u975E\u7CFB\u7EDF\u5206\u533A\uFF09\uFF0C\u9009\u62E9\u8DF3\u8FC7\u9A71\u52A8\u3002\u003C/div\u003E",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u65E0\u6CD5\u76F4\u63A5\u5411\u5206\u533A\u5199\u5165\u9A71\u52A8\uFF08\u5982\u542F\u7528 BitLocker \u6216\u975E\u7CFB\u7EDF\u5206\u533A\uFF09\uFF0C\u9009\u62E9\u8DF3\u8FC7\u9A71\u52A8\u3002\u003C/div\u003E",
             "notesHtml": "",
             "parametersHtml": "",
             "returnsHtml": "",
@@ -3365,8 +3424,8 @@
           "editEntry": null,
           "queryEntry": null,
           "instanceEntry": null,
-          "summaryHtml": "\u65E0\u6CD5\u76F4\u63A5\u5411\u5206\u533A\u5199\u5165\u9A71\u52A8\uFF08\u5982\u542F\u7528 BitLocker\u3001Linux \u5206\u533A\u6216\u975E\u7CFB\u7EDF\u5206\u533A\uFF09\uFF0C\u9009\u62E9\u8DF3\u8FC7\u9A71\u52A8\u3002",
-          "summaryText": "\u65E0\u6CD5\u76F4\u63A5\u5411\u5206\u533A\u5199\u5165\u9A71\u52A8\uFF08\u5982\u542F\u7528 BitLocker\u3001Linux \u5206\u533A\u6216\u975E\u7CFB\u7EDF\u5206\u533A\uFF09\uFF0C\u9009\u62E9\u8DF3\u8FC7\u9A71\u52A8\u3002"
+          "summaryHtml": "\u65E0\u6CD5\u76F4\u63A5\u5411\u5206\u533A\u5199\u5165\u9A71\u52A8\uFF08\u5982\u542F\u7528 BitLocker \u6216\u975E\u7CFB\u7EDF\u5206\u533A\uFF09\uFF0C\u9009\u62E9\u8DF3\u8FC7\u9A71\u52A8\u3002",
+          "summaryText": "\u65E0\u6CD5\u76F4\u63A5\u5411\u5206\u533A\u5199\u5165\u9A71\u52A8\uFF08\u5982\u542F\u7528 BitLocker \u6216\u975E\u7CFB\u7EDF\u5206\u533A\uFF09\uFF0C\u9009\u62E9\u8DF3\u8FC7\u9A71\u52A8\u3002"
         },
         {
           "id": "api-0484eb23f552e201",
@@ -3426,6 +3485,65 @@
           "instanceEntry": null,
           "summaryHtml": "\u786E\u8BA4\u5F3A\u5236\u5173\u95ED\u865A\u62DF\u673A\uFF08TurnOff\uFF09\u3002",
           "summaryText": "\u786E\u8BA4\u5F3A\u5236\u5173\u95ED\u865A\u62DF\u673A\uFF08TurnOff\uFF09\u3002"
+        },
+        {
+          "id": "api-fbf2ba0265d0ae45",
+          "uid": "F:ExHyperV.Models.GpuDecisionKind.SelectLinuxBundle",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "SelectLinuxBundle",
+          "displayName": "SelectLinuxBundle",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 41,
+          "signature": "SelectLinuxBundle = 3",
+          "signatureHtml": "SelectLinuxBundle = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
+          "presentation": {
+            "expression": "GpuDecisionKind.SelectLinuxBundle",
+            "valueType": "GpuDecisionKind",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-16bfedc8ae936ed7\u0022\u003EGpuDecisionKind\u003C/a\u003E",
+            "enumTypeId": "api-16bfedc8ae936ed7",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4E3A Linux \u6765\u5BBE\u9009\u62E9\u5728\u7EBF\u83B7\u53D6\u6216\u672C\u5730 .zip GPU-PV \u90E8\u7F72\u5305\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-16bfedc8ae936ed7"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4E3A Linux \u6765\u5BBE\u9009\u62E9\u5728\u7EBF\u83B7\u53D6\u6216\u672C\u5730 .zip GPU-PV \u90E8\u7F72\u5305\u3002",
+          "summaryText": "\u4E3A Linux \u6765\u5BBE\u9009\u62E9\u5728\u7EBF\u83B7\u53D6\u6216\u672C\u5730 .zip GPU-PV \u90E8\u7F72\u5305\u3002"
         },
         {
           "id": "api-8f7d20f374dc3012",
@@ -3545,7 +3663,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 135,
+          "order": 155,
           "signature": "public GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Title, string Message, IReadOnlyList\u003CGpuDeploymentPartition\u003E Partitions, bool CanGoBack = false);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-640fbb80511f3d56\u0022\u003EGpuDecisionRequest\u003C/a\u003E(Guid Id, \u003Ca href=\u0022#api-16bfedc8ae936ed7\u0022\u003EGpuDecisionKind\u003C/a\u003E Kind, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Title, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message, IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-3b253a4b4e7b8932\u0022\u003EGpuDeploymentPartition\u003C/a\u003E\u0026gt; Partitions, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E CanGoBack = \u003Cspan class=\u0022keyword\u0022\u003Efalse\u003C/span\u003E);",
           "presentation": {
@@ -3602,7 +3720,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 136,
+          "order": 156,
           "signature": "public bool CanGoBack { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E CanGoBack { get; init; }",
           "presentation": {
@@ -3659,7 +3777,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 135,
+          "order": 155,
           "signature": "public Guid Id { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Guid Id { get; init; }",
           "presentation": {
@@ -3716,7 +3834,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 139,
+          "order": 159,
           "signature": "public GpuDecisionInput Input { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-e1c07ac7b4a8d65a\u0022\u003EGpuDecisionInput\u003C/a\u003E Input { get; }",
           "presentation": {
@@ -3775,7 +3893,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 146,
+          "order": 167,
           "signature": "public bool IsDestructive { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsDestructive { get; }",
           "presentation": {
@@ -3832,7 +3950,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 135,
+          "order": 155,
           "signature": "public GpuDecisionKind Kind { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-16bfedc8ae936ed7\u0022\u003EGpuDecisionKind\u003C/a\u003E Kind { get; init; }",
           "presentation": {
@@ -3891,7 +4009,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 135,
+          "order": 155,
           "signature": "public string Message { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Message { get; init; }",
           "presentation": {
@@ -3948,7 +4066,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 136,
+          "order": 156,
           "signature": "public IReadOnlyList\u003CGpuDeploymentPartition\u003E Partitions { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-3b253a4b4e7b8932\u0022\u003EGpuDeploymentPartition\u003C/a\u003E\u0026gt; Partitions { get; init; }",
           "presentation": {
@@ -4007,7 +4125,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 135,
+          "order": 155,
           "signature": "public string Title { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Title { get; init; }",
           "presentation": {
@@ -4098,7 +4216,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 65,
+          "order": 77,
           "signature": "BackToPartitions = 2",
           "signatureHtml": "BackToPartitions = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
           "presentation": {
@@ -4157,7 +4275,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 67,
+          "order": 79,
           "signature": "Cancel = 3",
           "signatureHtml": "Cancel = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
           "presentation": {
@@ -4216,7 +4334,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 71,
+          "order": 83,
           "signature": "Reconcile = 5",
           "signatureHtml": "Reconcile = \u003Cspan class=\u0022literal\u0022\u003E5\u003C/span\u003E",
           "presentation": {
@@ -4275,7 +4393,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 69,
+          "order": 81,
           "signature": "RetryCleanup = 4",
           "signatureHtml": "RetryCleanup = \u003Cspan class=\u0022literal\u0022\u003E4\u003C/span\u003E",
           "presentation": {
@@ -4334,7 +4452,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 61,
+          "order": 73,
           "signature": "Start = 0",
           "signatureHtml": "Start = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
           "presentation": {
@@ -4393,7 +4511,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 63,
+          "order": 75,
           "signature": "SubmitDecision = 1",
           "signatureHtml": "SubmitDecision = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
           "presentation": {
@@ -4452,7 +4570,7 @@
       "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eabstract\u003C/span\u003E record \u003Ca href=\u0022#api-c5617284cebe0629\u0022\u003EGpuDeploymentDecision\u003C/a\u003E(Guid RequestId)",
       "baseTypeHtml": "",
       "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;GpuDeploymentDecision\u0026gt;\u003C/code\u003E",
-      "derivedTypesHtml": "\u003Ca href=\u0022#api-11fbc96797a74b58\u0022\u003E\u003Ccode\u003EGpuBackToPartitions\u003C/code\u003E\u003C/a\u003E, \u003Ca href=\u0022#api-b72fad7f37732b94\u0022\u003E\u003Ccode\u003EGpuConfirmation\u003C/code\u003E\u003C/a\u003E, \u003Ca href=\u0022#api-1b34235597c26248\u0022\u003E\u003Ccode\u003EGpuDriverFallbackSelection\u003C/code\u003E\u003C/a\u003E, \u003Ca href=\u0022#api-bb8b2e9014baee53\u0022\u003E\u003Ccode\u003EGpuPartitionSelection\u003C/code\u003E\u003C/a\u003E",
+      "derivedTypesHtml": "\u003Ca href=\u0022#api-11fbc96797a74b58\u0022\u003E\u003Ccode\u003EGpuBackToPartitions\u003C/code\u003E\u003C/a\u003E, \u003Ca href=\u0022#api-b72fad7f37732b94\u0022\u003E\u003Ccode\u003EGpuConfirmation\u003C/code\u003E\u003C/a\u003E, \u003Ca href=\u0022#api-1b34235597c26248\u0022\u003E\u003Ccode\u003EGpuDriverFallbackSelection\u003C/code\u003E\u003C/a\u003E, \u003Ca href=\u0022#api-326a75b5df0c00c6\u0022\u003E\u003Ccode\u003EGpuLinuxBundleSelection\u003C/code\u003E\u003C/a\u003E, \u003Ca href=\u0022#api-bb8b2e9014baee53\u0022\u003E\u003Ccode\u003EGpuPartitionSelection\u003C/code\u003E\u003C/a\u003E",
       "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
       "sources": [
         "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs"
@@ -4486,7 +4604,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 197,
+          "order": 228,
           "signature": "public GpuDeploymentDecision(Guid RequestId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-c5617284cebe0629\u0022\u003EGpuDeploymentDecision\u003C/a\u003E(Guid RequestId);",
           "presentation": {
@@ -4543,7 +4661,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 197,
+          "order": 228,
           "signature": "public Guid RequestId { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Guid RequestId { get; init; }",
           "presentation": {
@@ -4845,7 +4963,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 118,
+          "order": 138,
           "signature": "public GpuDeploymentPartition(string Id, int PartitionNumber, ulong SizeInBytes, OperatingSystemType OsType, string TypeDescription, string DiskPath, string DiskDisplayName, bool IsPhysicalDisk, bool IsBitLocker);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-3b253a4b4e7b8932\u0022\u003EGpuDeploymentPartition\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Id, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E PartitionNumber, \u003Cspan class=\u0022keyword\u0022\u003Eulong\u003C/span\u003E SizeInBytes, \u003Ca href=\u0022#api-f9be4f964cd193ac\u0022\u003EOperatingSystemType\u003C/a\u003E OsType, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E TypeDescription, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DiskPath, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DiskDisplayName, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsPhysicalDisk, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsBitLocker);",
           "presentation": {
@@ -4902,7 +5020,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 119,
+          "order": 139,
           "signature": "public string DiskDisplayName { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DiskDisplayName { get; init; }",
           "presentation": {
@@ -4959,7 +5077,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 119,
+          "order": 139,
           "signature": "public string DiskPath { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DiskPath { get; init; }",
           "presentation": {
@@ -5016,7 +5134,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 125,
+          "order": 145,
           "signature": "public string DisplayName { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E DisplayName { get; }",
           "presentation": {
@@ -5073,7 +5191,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 118,
+          "order": 138,
           "signature": "public string Id { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Id { get; init; }",
           "presentation": {
@@ -5130,7 +5248,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 120,
+          "order": 140,
           "signature": "public bool IsBitLocker { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsBitLocker { get; init; }",
           "presentation": {
@@ -5187,7 +5305,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 120,
+          "order": 140,
           "signature": "public bool IsPhysicalDisk { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsPhysicalDisk { get; init; }",
           "presentation": {
@@ -5244,7 +5362,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 119,
+          "order": 139,
           "signature": "public OperatingSystemType OsType { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-f9be4f964cd193ac\u0022\u003EOperatingSystemType\u003C/a\u003E OsType { get; init; }",
           "presentation": {
@@ -5303,7 +5421,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 118,
+          "order": 138,
           "signature": "public int PartitionNumber { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E PartitionNumber { get; init; }",
           "presentation": {
@@ -5360,7 +5478,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 123,
+          "order": 143,
           "signature": "public double SizeGiB { get; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Edouble\u003C/span\u003E SizeGiB { get; }",
           "presentation": {
@@ -5417,7 +5535,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 118,
+          "order": 138,
           "signature": "public ulong SizeInBytes { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eulong\u003C/span\u003E SizeInBytes { get; init; }",
           "presentation": {
@@ -5474,7 +5592,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 119,
+          "order": 139,
           "signature": "public string TypeDescription { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E TypeDescription { get; init; }",
           "presentation": {
@@ -6116,7 +6234,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 161,
+          "order": 182,
           "signature": "public GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDeploymentState State, IReadOnlyList\u003CGpuDeploymentStep\u003E Steps, GpuDecisionRequest? PendingDecision, IReadOnlyList\u003CGpuDeploymentAction\u003E AllowedActions, bool HasAddedAdapter, bool HasPendingCleanup, string? Error = null, string? CleanupError = null, string? LastLog = null);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E(Guid SessionId, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E Revision, \u003Ca href=\u0022#api-b4fe6c09c7a1b03c\u0022\u003EGpuDeploymentState\u003C/a\u003E State, IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-456c5ce4936ed611\u0022\u003EGpuDeploymentStep\u003C/a\u003E\u0026gt; Steps, \u003Ca href=\u0022#api-640fbb80511f3d56\u0022\u003EGpuDecisionRequest\u003C/a\u003E? PendingDecision, IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-ab1e60fe73d6e64d\u0022\u003EGpuDeploymentAction\u003C/a\u003E\u0026gt; AllowedActions, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasAddedAdapter, \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasPendingCleanup, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Error = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? CleanupError = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LastLog = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E);",
           "presentation": {
@@ -6173,7 +6291,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 169,
+          "order": 190,
           "signature": "public string? AddedAdapterId { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? AddedAdapterId { get; init; }",
           "presentation": {
@@ -6230,7 +6348,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 171,
+          "order": 192,
           "signature": "public IReadOnlyList\u003Cstring\u003E AddedAdapterIds { get; init; } = Array.Empty\u003Cstring\u003E();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; AddedAdapterIds { get; init; } = Array.Empty\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt;();",
           "presentation": {
@@ -6287,7 +6405,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 163,
+          "order": 184,
           "signature": "public IReadOnlyList\u003CGpuDeploymentAction\u003E AllowedActions { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-ab1e60fe73d6e64d\u0022\u003EGpuDeploymentAction\u003C/a\u003E\u0026gt; AllowedActions { get; init; }",
           "presentation": {
@@ -6322,6 +6440,63 @@
           "summaryText": "\u5F53\u524D\u72B6\u6001\u5141\u8BB8\u7684\u8C03\u7528\u52A8\u4F5C\u3002"
         },
         {
+          "id": "api-5c1304e23e278d6d",
+          "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.BundleError",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "BundleError",
+          "displayName": "\u90E8\u7F72\u5305\u9519\u8BEF",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 208,
+          "signature": "public string? BundleError { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? BundleError { get; init; }",
+          "presentation": {
+            "expression": "GpuDeploymentSnapshot.BundleError",
+            "valueType": "string?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4E0B\u8F7D\u6216\u6821\u9A8C Linux \u90E8\u7F72\u5305\u5931\u8D25\u4F46\u53EF\u91CD\u9009\u6062\u590D\u65F6\u7684\u9519\u8BEF\u4FE1\u606F\uFF1B\u65E0\u9519\u8BEF\u65F6\u4E3A null\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4E0B\u8F7D\u6216\u6821\u9A8C Linux \u90E8\u7F72\u5305\u5931\u8D25\u4F46\u53EF\u91CD\u9009\u6062\u590D\u65F6\u7684\u9519\u8BEF\u4FE1\u606F\uFF1B\u65E0\u9519\u8BEF\u65F6\u4E3A null\u3002",
+          "summaryText": "\u4E0B\u8F7D\u6216\u6821\u9A8C Linux \u90E8\u7F72\u5305\u5931\u8D25\u4F46\u53EF\u91CD\u9009\u6062\u590D\u65F6\u7684\u9519\u8BEF\u4FE1\u606F\uFF1B\u65E0\u9519\u8BEF\u65F6\u4E3A null\u3002"
+        },
+        {
           "id": "api-58374e828624fe3d",
           "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.CleanupError",
           "toolGroup": "devices",
@@ -6346,7 +6521,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 164,
+          "order": 185,
           "signature": "public string? CleanupError { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? CleanupError { get; init; }",
           "presentation": {
@@ -6403,7 +6578,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 164,
+          "order": 185,
           "signature": "public string? Error { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? Error { get; init; }",
           "presentation": {
@@ -6436,6 +6611,63 @@
           "summaryText": "\u90E8\u7F72\u9519\u8BEF\u8BF4\u660E\uFF1B\u65E0\u9519\u8BEF\u65F6\u4E3A null\u3002"
         },
         {
+          "id": "api-64f4435ca15f5526",
+          "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.GuestSetupCommand",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "GuestSetupCommand",
+          "displayName": "\u6765\u5BBE\u5B89\u88C5\u547D\u4EE4",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 202,
+          "signature": "public string? GuestSetupCommand { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? GuestSetupCommand { get; init; }",
+          "presentation": {
+            "expression": "GpuDeploymentSnapshot.GuestSetupCommand",
+            "valueType": "string?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003ELinux \u9A71\u52A8\u5149\u76D8\u6302\u8F7D\u5B8C\u6210\u540E\u9700\u5728\u6765\u5BBE\u865A\u62DF\u673A\u4E2D\u6267\u884C\u7684\u5355\u884C\u5B89\u88C5\u547D\u4EE4\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "Linux \u9A71\u52A8\u5149\u76D8\u6302\u8F7D\u5B8C\u6210\u540E\u9700\u5728\u6765\u5BBE\u865A\u62DF\u673A\u4E2D\u6267\u884C\u7684\u5355\u884C\u5B89\u88C5\u547D\u4EE4\u3002",
+          "summaryText": "Linux \u9A71\u52A8\u5149\u76D8\u6302\u8F7D\u5B8C\u6210\u540E\u9700\u5728\u6765\u5BBE\u865A\u62DF\u673A\u4E2D\u6267\u884C\u7684\u5355\u884C\u5B89\u88C5\u547D\u4EE4\u3002"
+        },
+        {
           "id": "api-3b95afd42de013fb",
           "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.HasAddedAdapter",
           "toolGroup": "devices",
@@ -6460,7 +6692,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 163,
+          "order": 184,
           "signature": "public bool HasAddedAdapter { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasAddedAdapter { get; init; }",
           "presentation": {
@@ -6517,7 +6749,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 163,
+          "order": 184,
           "signature": "public bool HasPendingCleanup { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E HasPendingCleanup { get; init; }",
           "presentation": {
@@ -6574,7 +6806,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 177,
+          "order": 198,
           "signature": "public bool IsDriverSkipped { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E IsDriverSkipped { get; init; }",
           "presentation": {
@@ -6631,7 +6863,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 164,
+          "order": 185,
           "signature": "public string? LastLog { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LastLog { get; init; }",
           "presentation": {
@@ -6664,6 +6896,120 @@
           "summaryText": "\u6700\u8FD1\u4E00\u6761\u6B65\u9AA4\u65E5\u5FD7\uFF1B\u5C1A\u65E0\u65E5\u5FD7\u65F6\u4E3A null\u3002"
         },
         {
+          "id": "api-410d6705e3cdaa7b",
+          "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.LinuxDriverVersion",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "LinuxDriverVersion",
+          "displayName": "Linux \u9A71\u52A8\u7248\u672C",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 206,
+          "signature": "public string? LinuxDriverVersion { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LinuxDriverVersion { get; init; }",
+          "presentation": {
+            "expression": "GpuDeploymentSnapshot.LinuxDriverVersion",
+            "valueType": "string?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u672C\u6B21\u4E3A Linux \u6765\u5BBE\u5408\u6210\u5149\u76D8\u65F6\u8BB0\u5F55\u7684\u5BBF\u4E3B GPU \u9A71\u52A8\u7248\u672C\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u672C\u6B21\u4E3A Linux \u6765\u5BBE\u5408\u6210\u5149\u76D8\u65F6\u8BB0\u5F55\u7684\u5BBF\u4E3B GPU \u9A71\u52A8\u7248\u672C\u3002",
+          "summaryText": "\u672C\u6B21\u4E3A Linux \u6765\u5BBE\u5408\u6210\u5149\u76D8\u65F6\u8BB0\u5F55\u7684\u5BBF\u4E3B GPU \u9A71\u52A8\u7248\u672C\u3002"
+        },
+        {
+          "id": "api-14fe40f27089c2e9",
+          "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.LinuxIsoPath",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "LinuxIsoPath",
+          "displayName": "Linux \u5149\u76D8\u8DEF\u5F84",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 204,
+          "signature": "public string? LinuxIsoPath { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LinuxIsoPath { get; init; }",
+          "presentation": {
+            "expression": "GpuDeploymentSnapshot.LinuxIsoPath",
+            "valueType": "string?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u672C\u6B21\u90E8\u7F72\u751F\u6210\u5E76\u6302\u8F7D\u5230\u865A\u62DF\u673A\u7684 GPUPV \u5149\u76D8 ISO \u8DEF\u5F84\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u672C\u6B21\u90E8\u7F72\u751F\u6210\u5E76\u6302\u8F7D\u5230\u865A\u62DF\u673A\u7684 GPUPV \u5149\u76D8 ISO \u8DEF\u5F84\u3002",
+          "summaryText": "\u672C\u6B21\u90E8\u7F72\u751F\u6210\u5E76\u6302\u8F7D\u5230\u865A\u62DF\u673A\u7684 GPUPV \u5149\u76D8 ISO \u8DEF\u5F84\u3002"
+        },
+        {
           "id": "api-293632a781a3d836",
           "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.OutcomeUnknown",
           "toolGroup": "devices",
@@ -6688,7 +7034,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 167,
+          "order": 188,
           "signature": "public bool OutcomeUnknown { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Ebool\u003C/span\u003E OutcomeUnknown { get; init; }",
           "presentation": {
@@ -6745,7 +7091,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 173,
+          "order": 194,
           "signature": "public string? PendingCleanupAdapterId { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? PendingCleanupAdapterId { get; init; }",
           "presentation": {
@@ -6802,7 +7148,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 175,
+          "order": 196,
           "signature": "public IReadOnlyList\u003Cstring\u003E PendingCleanupAdapterIds { get; init; } = Array.Empty\u003Cstring\u003E();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; PendingCleanupAdapterIds { get; init; } = Array.Empty\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt;();",
           "presentation": {
@@ -6859,7 +7205,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 162,
+          "order": 183,
           "signature": "public GpuDecisionRequest? PendingDecision { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-640fbb80511f3d56\u0022\u003EGpuDecisionRequest\u003C/a\u003E? PendingDecision { get; init; }",
           "presentation": {
@@ -6918,7 +7264,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 179,
+          "order": 210,
           "signature": "public GpuDeploymentRecovery? Recovery { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-b1a5a2f6f23a3554\u0022\u003EGpuDeploymentRecovery\u003C/a\u003E? Recovery { get; init; }",
           "presentation": {
@@ -6977,7 +7323,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 161,
+          "order": 182,
           "signature": "public long Revision { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E Revision { get; init; }",
           "presentation": {
@@ -7034,7 +7380,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 161,
+          "order": 182,
           "signature": "public Guid SessionId { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Guid SessionId { get; init; }",
           "presentation": {
@@ -7091,7 +7437,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 161,
+          "order": 182,
           "signature": "public GpuDeploymentState State { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-b4fe6c09c7a1b03c\u0022\u003EGpuDeploymentState\u003C/a\u003E State { get; init; }",
           "presentation": {
@@ -7126,6 +7472,63 @@
           "summaryText": "\u90E8\u7F72\u5F53\u524D\u72B6\u6001\u3002"
         },
         {
+          "id": "api-0073ac85b5fbd226",
+          "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.StepProgressPercent",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "StepProgressPercent",
+          "displayName": "\u6B65\u9AA4\u8FDB\u5EA6\u767E\u5206\u6BD4",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 200,
+          "signature": "public int? StepProgressPercent { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E? StepProgressPercent { get; init; }",
+          "presentation": {
+            "expression": "GpuDeploymentSnapshot.StepProgressPercent",
+            "valueType": "int?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5F53\u524D\u6B65\u9AA4\u6267\u884C\u767E\u5206\u6BD4\uFF080\u2013100\uFF09\uFF0C\u7528\u4E8E\u4E0B\u8F7D\u9A71\u52A8\u4E0E\u5408\u6210\u9A71\u52A8\u8FDB\u5EA6\u5C55\u793A\uFF1B\u65E0\u767E\u5206\u6BD4\u8FDB\u5EA6\u65F6\u4E3A null\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5F53\u524D\u6B65\u9AA4\u6267\u884C\u767E\u5206\u6BD4\uFF080\u2013100\uFF09\uFF0C\u7528\u4E8E\u4E0B\u8F7D\u9A71\u52A8\u4E0E\u5408\u6210\u9A71\u52A8\u8FDB\u5EA6\u5C55\u793A\uFF1B\u65E0\u767E\u5206\u6BD4\u8FDB\u5EA6\u65F6\u4E3A null\u3002",
+          "summaryText": "\u5F53\u524D\u6B65\u9AA4\u6267\u884C\u767E\u5206\u6BD4\uFF080\u2013100\uFF09\uFF0C\u7528\u4E8E\u4E0B\u8F7D\u9A71\u52A8\u4E0E\u5408\u6210\u9A71\u52A8\u8FDB\u5EA6\u5C55\u793A\uFF1B\u65E0\u767E\u5206\u6BD4\u8FDB\u5EA6\u65F6\u4E3A null\u3002"
+        },
+        {
           "id": "api-091d68578048fd7c",
           "uid": "P:ExHyperV.Models.GpuDeploymentSnapshot.Steps",
           "toolGroup": "devices",
@@ -7150,7 +7553,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 162,
+          "order": 183,
           "signature": "public IReadOnlyList\u003CGpuDeploymentStep\u003E Steps { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-456c5ce4936ed611\u0022\u003EGpuDeploymentStep\u003C/a\u003E\u0026gt; Steps { get; init; }",
           "presentation": {
@@ -7690,7 +8093,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 105,
+          "order": 125,
           "signature": "public GpuDeploymentStep(GpuDeploymentStepKind Type, string Name, string Description, GpuDeploymentStepStatus Status);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-456c5ce4936ed611\u0022\u003EGpuDeploymentStep\u003C/a\u003E(\u003Ca href=\u0022#api-6beb4e13dec8c4b8\u0022\u003EGpuDeploymentStepKind\u003C/a\u003E Type, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Name, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Description, \u003Ca href=\u0022#api-499dc8bdf05041ca\u0022\u003EGpuDeploymentStepStatus\u003C/a\u003E Status);",
           "presentation": {
@@ -7747,7 +8150,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 105,
+          "order": 125,
           "signature": "public string Description { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Description { get; init; }",
           "presentation": {
@@ -7804,7 +8207,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 105,
+          "order": 125,
           "signature": "public string Name { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Name { get; init; }",
           "presentation": {
@@ -7861,7 +8264,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 105,
+          "order": 125,
           "signature": "public GpuDeploymentStepStatus Status { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-499dc8bdf05041ca\u0022\u003EGpuDeploymentStepStatus\u003C/a\u003E Status { get; init; }",
           "presentation": {
@@ -7920,7 +8323,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 105,
+          "order": 125,
           "signature": "public GpuDeploymentStepKind Type { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-6beb4e13dec8c4b8\u0022\u003EGpuDeploymentStepKind\u003C/a\u003E Type { get; init; }",
           "presentation": {
@@ -8013,7 +8416,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 82,
+          "order": 94,
           "signature": "Assign = 2",
           "signatureHtml": "Assign = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
           "presentation": {
@@ -8048,6 +8451,65 @@
           "summaryText": "\u65B0\u589E\u865A\u62DF GPU \u5206\u533A\u9002\u914D\u5668\u3002"
         },
         {
+          "id": "api-c407ac3b94e8c6da",
+          "uid": "F:ExHyperV.Models.GpuDeploymentStepKind.DownloadBundle",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "DownloadBundle",
+          "displayName": "DownloadBundle",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 100,
+          "signature": "DownloadBundle = 5",
+          "signatureHtml": "DownloadBundle = \u003Cspan class=\u0022literal\u0022\u003E5\u003C/span\u003E",
+          "presentation": {
+            "expression": "GpuDeploymentStepKind.DownloadBundle",
+            "valueType": "GpuDeploymentStepKind",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-6beb4e13dec8c4b8\u0022\u003EGpuDeploymentStepKind\u003C/a\u003E",
+            "enumTypeId": "api-6beb4e13dec8c4b8",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4ECE\u53D1\u5E03\u6E20\u9053\u4E0B\u8F7D\u6700\u65B0 Linux \u90E8\u7F72\u5305\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-6beb4e13dec8c4b8"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4ECE\u53D1\u5E03\u6E20\u9053\u4E0B\u8F7D\u6700\u65B0 Linux \u90E8\u7F72\u5305\u3002",
+          "summaryText": "\u4ECE\u53D1\u5E03\u6E20\u9053\u4E0B\u8F7D\u6700\u65B0 Linux \u90E8\u7F72\u5305\u3002"
+        },
+        {
           "id": "api-1dcdb18560bd523b",
           "uid": "F:ExHyperV.Models.GpuDeploymentStepKind.Driver",
           "toolGroup": "devices",
@@ -8072,7 +8534,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 84,
+          "order": 96,
           "signature": "Driver = 3",
           "signatureHtml": "Driver = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
           "presentation": {
@@ -8082,7 +8544,7 @@
             "enumTypeId": "api-6beb4e13dec8c4b8",
             "callable": false,
             "valuesHtml": "",
-            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5B89\u88C5\u6216\u8DF3\u8FC7\u90E8\u7F72\u6765\u5BBE GPU \u9A71\u52A8\u3002\u003C/div\u003E",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u9009\u62E9\u7CFB\u7EDF\u5206\u533A\uFF0C\u6216\u5728 Windows \u5206\u533A\u6CE8\u5165\u6765\u5BBE GPU \u9A71\u52A8\u3002\u003C/div\u003E",
             "notesHtml": "",
             "parametersHtml": "",
             "returnsHtml": "",
@@ -8103,8 +8565,67 @@
           "editEntry": null,
           "queryEntry": null,
           "instanceEntry": null,
-          "summaryHtml": "\u5B89\u88C5\u6216\u8DF3\u8FC7\u90E8\u7F72\u6765\u5BBE GPU \u9A71\u52A8\u3002",
-          "summaryText": "\u5B89\u88C5\u6216\u8DF3\u8FC7\u90E8\u7F72\u6765\u5BBE GPU \u9A71\u52A8\u3002"
+          "summaryHtml": "\u9009\u62E9\u7CFB\u7EDF\u5206\u533A\uFF0C\u6216\u5728 Windows \u5206\u533A\u6CE8\u5165\u6765\u5BBE GPU \u9A71\u52A8\u3002",
+          "summaryText": "\u9009\u62E9\u7CFB\u7EDF\u5206\u533A\uFF0C\u6216\u5728 Windows \u5206\u533A\u6CE8\u5165\u6765\u5BBE GPU \u9A71\u52A8\u3002"
+        },
+        {
+          "id": "api-5452829f912f0a43",
+          "uid": "F:ExHyperV.Models.GpuDeploymentStepKind.MountIso",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "MountIso",
+          "displayName": "MountIso",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 104,
+          "signature": "MountIso = 7",
+          "signatureHtml": "MountIso = \u003Cspan class=\u0022literal\u0022\u003E7\u003C/span\u003E",
+          "presentation": {
+            "expression": "GpuDeploymentStepKind.MountIso",
+            "valueType": "GpuDeploymentStepKind",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-6beb4e13dec8c4b8\u0022\u003EGpuDeploymentStepKind\u003C/a\u003E",
+            "enumTypeId": "api-6beb4e13dec8c4b8",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5C06\u751F\u6210\u7684 GPUPV \u5149\u76D8\u6302\u8F7D\u5230\u76EE\u6807\u865A\u62DF\u673A\u5149\u9A71\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-6beb4e13dec8c4b8"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5C06\u751F\u6210\u7684 GPUPV \u5149\u76D8\u6302\u8F7D\u5230\u76EE\u6807\u865A\u62DF\u673A\u5149\u9A71\u3002",
+          "summaryText": "\u5C06\u751F\u6210\u7684 GPUPV \u5149\u76D8\u6302\u8F7D\u5230\u76EE\u6807\u865A\u62DF\u673A\u5149\u9A71\u3002"
         },
         {
           "id": "api-66a3170a736ca7ef",
@@ -8131,7 +8652,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 80,
+          "order": 92,
           "signature": "Optimization = 1",
           "signatureHtml": "Optimization = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
           "presentation": {
@@ -8190,7 +8711,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 78,
+          "order": 90,
           "signature": "PowerCheck = 0",
           "signatureHtml": "PowerCheck = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
           "presentation": {
@@ -8223,6 +8744,124 @@
           "instanceEntry": null,
           "summaryHtml": "\u68C0\u67E5\u5E76\u6309\u7528\u6237\u51B3\u5B9A\u5904\u7406\u865A\u62DF\u673A\u7535\u6E90\u72B6\u6001\u3002",
           "summaryText": "\u68C0\u67E5\u5E76\u6309\u7528\u6237\u51B3\u5B9A\u5904\u7406\u865A\u62DF\u673A\u7535\u6E90\u72B6\u6001\u3002"
+        },
+        {
+          "id": "api-4d7e5d0ecdff42fc",
+          "uid": "F:ExHyperV.Models.GpuDeploymentStepKind.SelectBundle",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "SelectBundle",
+          "displayName": "SelectBundle",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 98,
+          "signature": "SelectBundle = 4",
+          "signatureHtml": "SelectBundle = \u003Cspan class=\u0022literal\u0022\u003E4\u003C/span\u003E",
+          "presentation": {
+            "expression": "GpuDeploymentStepKind.SelectBundle",
+            "valueType": "GpuDeploymentStepKind",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-6beb4e13dec8c4b8\u0022\u003EGpuDeploymentStepKind\u003C/a\u003E",
+            "enumTypeId": "api-6beb4e13dec8c4b8",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u9009\u62E9 Linux \u90E8\u7F72\u5305\u6765\u6E90\uFF08\u5728\u7EBF\u83B7\u53D6\u6216\u672C\u5730\u6587\u4EF6\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-6beb4e13dec8c4b8"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u9009\u62E9 Linux \u90E8\u7F72\u5305\u6765\u6E90\uFF08\u5728\u7EBF\u83B7\u53D6\u6216\u672C\u5730\u6587\u4EF6\uFF09\u3002",
+          "summaryText": "\u9009\u62E9 Linux \u90E8\u7F72\u5305\u6765\u6E90\uFF08\u5728\u7EBF\u83B7\u53D6\u6216\u672C\u5730\u6587\u4EF6\uFF09\u3002"
+        },
+        {
+          "id": "api-d374a0c0ce2d4b86",
+          "uid": "F:ExHyperV.Models.GpuDeploymentStepKind.SynthesizeBundle",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "SynthesizeBundle",
+          "displayName": "SynthesizeBundle",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 102,
+          "signature": "SynthesizeBundle = 6",
+          "signatureHtml": "SynthesizeBundle = \u003Cspan class=\u0022literal\u0022\u003E6\u003C/span\u003E",
+          "presentation": {
+            "expression": "GpuDeploymentStepKind.SynthesizeBundle",
+            "valueType": "GpuDeploymentStepKind",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-6beb4e13dec8c4b8\u0022\u003EGpuDeploymentStepKind\u003C/a\u003E",
+            "enumTypeId": "api-6beb4e13dec8c4b8",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u6821\u9A8C\u90E8\u7F72\u5305\u3001\u63D0\u53D6\u5BBF\u4E3B GPU \u8FD0\u884C\u5E93\u5E76\u6784\u5EFA GPUPV \u7EAF UDF \u5149\u76D8\u955C\u50CF\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-6beb4e13dec8c4b8"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u6821\u9A8C\u90E8\u7F72\u5305\u3001\u63D0\u53D6\u5BBF\u4E3B GPU \u8FD0\u884C\u5E93\u5E76\u6784\u5EFA GPUPV \u7EAF UDF \u5149\u76D8\u955C\u50CF\u3002",
+          "summaryText": "\u6821\u9A8C\u90E8\u7F72\u5305\u3001\u63D0\u53D6\u5BBF\u4E3B GPU \u8FD0\u884C\u5E93\u5E76\u6784\u5EFA GPUPV \u7EAF UDF \u5149\u76D8\u955C\u50CF\u3002"
         }
       ]
     },
@@ -8283,7 +8922,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 97,
+          "order": 117,
           "signature": "Failed = 3",
           "signatureHtml": "Failed = \u003Cspan class=\u0022literal\u0022\u003E3\u003C/span\u003E",
           "presentation": {
@@ -8342,7 +8981,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 91,
+          "order": 111,
           "signature": "Pending = 0",
           "signatureHtml": "Pending = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
           "presentation": {
@@ -8401,7 +9040,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 93,
+          "order": 113,
           "signature": "Running = 1",
           "signatureHtml": "Running = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
           "presentation": {
@@ -8460,7 +9099,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 95,
+          "order": 115,
           "signature": "Success = 2",
           "signatureHtml": "Success = \u003Cspan class=\u0022literal\u0022\u003E2\u003C/span\u003E",
           "presentation": {
@@ -8553,7 +9192,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u679A\u4E3E\u503C",
           "group": "\u679A\u4E3E\u503C",
-          "order": 55,
+          "order": 67,
           "signature": "SkipDriver = 0",
           "signatureHtml": "SkipDriver = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
           "presentation": {
@@ -8646,7 +9285,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 209,
+          "order": 240,
           "signature": "public GpuDriverFallbackSelection(Guid RequestId, GpuDriverFallbackAction Action);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-1b34235597c26248\u0022\u003EGpuDriverFallbackSelection\u003C/a\u003E(Guid RequestId, \u003Ca href=\u0022#api-ef78e8b1f703128b\u0022\u003EGpuDriverFallbackAction\u003C/a\u003E Action);",
           "presentation": {
@@ -8703,7 +9342,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 209,
+          "order": 240,
           "signature": "public GpuDriverFallbackAction Action { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-ef78e8b1f703128b\u0022\u003EGpuDriverFallbackAction\u003C/a\u003E Action { get; init; }",
           "presentation": {
@@ -8736,6 +9375,365 @@
           "instanceEntry": null,
           "summaryHtml": "\u8981\u6267\u884C\u7684\u66FF\u4EE3\u52A8\u4F5C\u3002",
           "summaryText": "\u8981\u6267\u884C\u7684\u66FF\u4EE3\u52A8\u4F5C\u3002"
+        }
+      ]
+    },
+    {
+      "id": "api-326a75b5df0c00c6",
+      "uid": "T:ExHyperV.Models.GpuLinuxBundleSelection",
+      "name": "ExHyperV.Models.GpuLinuxBundleSelection",
+      "toolGroup": "devices",
+      "displayName": "\u9009\u62E9 Linux \u90E8\u7F72\u5305",
+      "role": "contract",
+      "shortName": "GpuLinuxBundleSelection",
+      "namespace": "ExHyperV.Models",
+      "kind": "record",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u865A\u62DF\u673A / \u4FEE\u6539 / GPU",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u865A\u62DF\u673A",
+          "\u4FEE\u6539",
+          "GPU"
+        ]
+      ],
+      "signature": "public sealed record GpuLinuxBundleSelection(\n    Guid RequestId,\n    GpuLinuxBundleSource Source,\n    string? LocalBundlePath = null) : GpuDeploymentDecision(RequestId)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-326a75b5df0c00c6\u0022\u003EGpuLinuxBundleSelection\u003C/a\u003E(\n    Guid RequestId,\n    \u003Ca href=\u0022#api-8b901521391226ef\u0022\u003EGpuLinuxBundleSource\u003C/a\u003E Source,\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LocalBundlePath = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E) : \u003Ca href=\u0022#api-c5617284cebe0629\u0022\u003EGpuDeploymentDecision\u003C/a\u003E(RequestId)",
+      "baseTypeHtml": "\u003Ca href=\u0022#api-c5617284cebe0629\u0022\u003E\u003Ccode\u003EGpuDeploymentDecision\u003C/code\u003E\u003C/a\u003E",
+      "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;GpuLinuxBundleSelection\u0026gt;\u003C/code\u003E",
+      "derivedTypesHtml": "",
+      "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+      "sources": [
+        "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs"
+      ],
+      "summaryHtml": "\u4E3A Linux \u7CFB\u7EDF\u5206\u533A\u9009\u62E9\u5728\u7EBF\u83B7\u53D6\u6216\u672C\u5730 .zip GPU-PV \u90E8\u7F72\u5305\u3002",
+      "descriptionHtml": "",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-d0cddd67a678f3f3",
+          "uid": "C:ExHyperV.Models.GpuLinuxBundleSelection",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "GpuLinuxBundleSelection",
+          "displayName": "\u521B\u5EFA Linux \u90E8\u7F72\u5305\u9009\u62E9",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u4E3B\u6784\u9020\u5668",
+          "group": "\u6784\u9020\u51FD\u6570",
+          "order": 245,
+          "signature": "public GpuLinuxBundleSelection(Guid RequestId, GpuLinuxBundleSource Source, string? LocalBundlePath = null);",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-326a75b5df0c00c6\u0022\u003EGpuLinuxBundleSelection\u003C/a\u003E(Guid RequestId, \u003Ca href=\u0022#api-8b901521391226ef\u0022\u003EGpuLinuxBundleSource\u003C/a\u003E Source, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LocalBundlePath = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E);",
+          "presentation": {
+            "expression": "GpuLinuxBundleSelection",
+            "valueType": "GpuLinuxBundleSelection",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-326a75b5df0c00c6\u0022\u003EGpuLinuxBundleSelection\u003C/a\u003E",
+            "enumTypeId": "api-326a75b5df0c00c6",
+            "callable": true,
+            "valuesHtml": "",
+            "descriptionHtml": "",
+            "notesHtml": "",
+            "parametersHtml": "\u003Ctable class=\u0022parameter-table\u0022\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth\u003E\u53C2\u6570\u003C/th\u003E\u003Cth\u003E\u8BF4\u660E\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003ERequestId\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u5F53\u524D PendingDecision.Id\uFF1B\u8FC7\u671F\u6216\u4E0D\u5339\u914D\u7684 ID \u4F1A\u88AB\u62D2\u7EDD\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003ESource\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u90E8\u7F72\u5305\u6765\u6E90\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003ELocalBundlePath\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u5F53 Source \u4E3A LocalFile \u65F6\u5FC5\u987B\u63D0\u4F9B\u7684\u672C\u5730 .zip \u90E8\u7F72\u5305\u8DEF\u5F84\uFF1BOnline \u65F6\u4E3A null\u3002\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "",
+          "summaryText": ""
+        },
+        {
+          "id": "api-90b3ca8abb9eb840",
+          "uid": "P:ExHyperV.Models.GpuLinuxBundleSelection.LocalBundlePath",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "LocalBundlePath",
+          "displayName": "\u672C\u5730\u90E8\u7F72\u5305\u8DEF\u5F84",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "record \u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 248,
+          "signature": "public string? LocalBundlePath { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E? LocalBundlePath { get; init; }",
+          "presentation": {
+            "expression": "GpuLinuxBundleSelection.LocalBundlePath",
+            "valueType": "string?",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E?",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5F53 Source \u4E3A LocalFile \u65F6\u5FC5\u987B\u63D0\u4F9B\u7684\u672C\u5730 .zip \u90E8\u7F72\u5305\u8DEF\u5F84\uFF1BOnline \u65F6\u4E3A null\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5F53 Source \u4E3A LocalFile \u65F6\u5FC5\u987B\u63D0\u4F9B\u7684\u672C\u5730 .zip \u90E8\u7F72\u5305\u8DEF\u5F84\uFF1BOnline \u65F6\u4E3A null\u3002",
+          "summaryText": "\u5F53 Source \u4E3A LocalFile \u65F6\u5FC5\u987B\u63D0\u4F9B\u7684\u672C\u5730 .zip \u90E8\u7F72\u5305\u8DEF\u5F84\uFF1BOnline \u65F6\u4E3A null\u3002"
+        },
+        {
+          "id": "api-591416774501b6b0",
+          "uid": "P:ExHyperV.Models.GpuLinuxBundleSelection.Source",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "Source",
+          "displayName": "\u90E8\u7F72\u5305\u6765\u6E90",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "record \u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 247,
+          "signature": "public GpuLinuxBundleSource Source { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-8b901521391226ef\u0022\u003EGpuLinuxBundleSource\u003C/a\u003E Source { get; init; }",
+          "presentation": {
+            "expression": "GpuLinuxBundleSelection.Source",
+            "valueType": "GpuLinuxBundleSource",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-8b901521391226ef\u0022\u003EGpuLinuxBundleSource\u003C/a\u003E",
+            "enumTypeId": "api-8b901521391226ef",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u90E8\u7F72\u5305\u6765\u6E90\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-8b901521391226ef"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u90E8\u7F72\u5305\u6765\u6E90\u3002",
+          "summaryText": "\u90E8\u7F72\u5305\u6765\u6E90\u3002"
+        }
+      ]
+    },
+    {
+      "id": "api-8b901521391226ef",
+      "uid": "T:ExHyperV.Models.GpuLinuxBundleSource",
+      "name": "ExHyperV.Models.GpuLinuxBundleSource",
+      "toolGroup": "devices",
+      "displayName": "Linux \u90E8\u7F72\u5305\u6765\u6E90",
+      "role": "contract",
+      "shortName": "GpuLinuxBundleSource",
+      "namespace": "ExHyperV.Models",
+      "kind": "\u679A\u4E3E",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u865A\u62DF\u673A / \u4FEE\u6539 / GPU",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u865A\u62DF\u673A",
+          "\u4FEE\u6539",
+          "GPU"
+        ]
+      ],
+      "signature": "public enum GpuLinuxBundleSource",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eenum\u003C/span\u003E \u003Ca href=\u0022#api-8b901521391226ef\u0022\u003EGpuLinuxBundleSource\u003C/a\u003E",
+      "baseTypeHtml": "",
+      "interfacesHtml": "",
+      "derivedTypesHtml": "",
+      "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+      "sources": [
+        "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs"
+      ],
+      "summaryHtml": "Linux GPU-PV \u90E8\u7F72\u5305\u83B7\u53D6\u65B9\u5F0F\u3002",
+      "descriptionHtml": "",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-c28d87cb72ae37e9",
+          "uid": "F:ExHyperV.Models.GpuLinuxBundleSource.LocalFile",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "LocalFile",
+          "displayName": "LocalFile",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 61,
+          "signature": "LocalFile = 1",
+          "signatureHtml": "LocalFile = \u003Cspan class=\u0022literal\u0022\u003E1\u003C/span\u003E",
+          "presentation": {
+            "expression": "GpuLinuxBundleSource.LocalFile",
+            "valueType": "GpuLinuxBundleSource",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-8b901521391226ef\u0022\u003EGpuLinuxBundleSource\u003C/a\u003E",
+            "enumTypeId": "api-8b901521391226ef",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u4F7F\u7528\u672C\u5730\u78C1\u76D8\u4E0A\u5DF2\u6709\u7684 linuxpv .zip \u90E8\u7F72\u5305\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-8b901521391226ef"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u4F7F\u7528\u672C\u5730\u78C1\u76D8\u4E0A\u5DF2\u6709\u7684 linuxpv .zip \u90E8\u7F72\u5305\u3002",
+          "summaryText": "\u4F7F\u7528\u672C\u5730\u78C1\u76D8\u4E0A\u5DF2\u6709\u7684 linuxpv .zip \u90E8\u7F72\u5305\u3002"
+        },
+        {
+          "id": "api-753554f992b220c5",
+          "uid": "F:ExHyperV.Models.GpuLinuxBundleSource.Online",
+          "toolGroup": "devices",
+          "readOnly": false,
+          "name": "Online",
+          "displayName": "Online",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
+          "kind": "\u679A\u4E3E\u503C",
+          "group": "\u679A\u4E3E\u503C",
+          "order": 59,
+          "signature": "Online = 0",
+          "signatureHtml": "Online = \u003Cspan class=\u0022literal\u0022\u003E0\u003C/span\u003E",
+          "presentation": {
+            "expression": "GpuLinuxBundleSource.Online",
+            "valueType": "GpuLinuxBundleSource",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-8b901521391226ef\u0022\u003EGpuLinuxBundleSource\u003C/a\u003E",
+            "enumTypeId": "api-8b901521391226ef",
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u81EA\u52A8\u4E0B\u8F7D\u5E76\u6821\u9A8C\u6700\u65B0\u5B98\u65B9\u90E8\u7F72\u5305\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [
+              "api-8b901521391226ef"
+            ],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u81EA\u52A8\u4E0B\u8F7D\u5E76\u6821\u9A8C\u6700\u65B0\u5B98\u65B9\u90E8\u7F72\u5305\u3002",
+          "summaryText": "\u81EA\u52A8\u4E0B\u8F7D\u5E76\u6821\u9A8C\u6700\u65B0\u5B98\u65B9\u90E8\u7F72\u5305\u3002"
         }
       ]
     },
@@ -8796,7 +9794,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "\u4E3B\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 205,
+          "order": 236,
           "signature": "public GpuPartitionSelection(Guid RequestId, string PartitionId);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-bb8b2e9014baee53\u0022\u003EGpuPartitionSelection\u003C/a\u003E(Guid RequestId, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E PartitionId);",
           "presentation": {
@@ -8853,7 +9851,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs",
           "kind": "record \u5C5E\u6027",
           "group": "\u5C5E\u6027",
-          "order": 205,
+          "order": 236,
           "signature": "public string PartitionId { get; init; }",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E PartitionId { get; init; }",
           "presentation": {
@@ -13220,6 +14218,439 @@
           "instanceEntry": null,
           "summaryHtml": "\u6309\u5C0F\u5230\u5927\u987A\u5E8F\u586B\u5145\u5206\u5E03\u57DF\u3002",
           "summaryText": "\u6309\u5C0F\u5230\u5927\u987A\u5E8F\u586B\u5145\u5206\u5E03\u57DF\u3002"
+        }
+      ]
+    },
+    {
+      "id": "api-61c57998e1e6b170",
+      "uid": "T:ExHyperV.Models.LinuxGpuPvBundleInfo",
+      "name": "ExHyperV.Models.LinuxGpuPvBundleInfo",
+      "toolGroup": "devices",
+      "displayName": "Linux \u90E8\u7F72\u5305\u6458\u8981",
+      "role": "contract",
+      "shortName": "LinuxGpuPvBundleInfo",
+      "namespace": "ExHyperV.Models",
+      "kind": "record",
+      "area": "\u7BA1\u7406\u5C42\u9762 / \u865A\u62DF\u673A / \u4FEE\u6539 / GPU",
+      "navigationPaths": [
+        [
+          "\u7BA1\u7406\u5C42\u9762",
+          "\u865A\u62DF\u673A",
+          "\u4FEE\u6539",
+          "GPU"
+        ]
+      ],
+      "signature": "public sealed record LinuxGpuPvBundleInfo(\n    string FilePath,\n    string FileName,\n    string Version,\n    string Architecture,\n    int KernelCount,\n    long FileSizeBytes)",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E record \u003Ca href=\u0022#api-61c57998e1e6b170\u0022\u003ELinuxGpuPvBundleInfo\u003C/a\u003E(\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E FilePath,\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E FileName,\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Version,\n    \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Architecture,\n    \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E KernelCount,\n    \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E FileSizeBytes)",
+      "baseTypeHtml": "",
+      "interfacesHtml": "\u003Ccode\u003EIEquatable\u0026lt;LinuxGpuPvBundleInfo\u0026gt;\u003C/code\u003E",
+      "derivedTypesHtml": "",
+      "source": "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs",
+      "sources": [
+        "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs"
+      ],
+      "summaryHtml": "\u5DF2\u6821\u9A8C\u7684 Linux GPU-PV \u90E8\u7F72\u5305\u6458\u8981\u4FE1\u606F\u3002",
+      "descriptionHtml": "",
+      "examplesHtml": "",
+      "members": [
+        {
+          "id": "api-d21cb43162334d5a",
+          "uid": "C:ExHyperV.Models.LinuxGpuPvBundleInfo",
+          "toolGroup": "devices",
+          "readOnly": true,
+          "name": "LinuxGpuPvBundleInfo",
+          "displayName": "\u521B\u5EFA Linux \u90E8\u7F72\u5305\u6458\u8981",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs",
+          "kind": "\u4E3B\u6784\u9020\u5668",
+          "group": "\u6784\u9020\u51FD\u6570",
+          "order": 10,
+          "signature": "public LinuxGpuPvBundleInfo(string FilePath, string FileName, string Version, string Architecture, int KernelCount, long FileSizeBytes);",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-61c57998e1e6b170\u0022\u003ELinuxGpuPvBundleInfo\u003C/a\u003E(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E FilePath, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E FileName, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Version, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Architecture, \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E KernelCount, \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E FileSizeBytes);",
+          "presentation": {
+            "expression": "LinuxGpuPvBundleInfo",
+            "valueType": "LinuxGpuPvBundleInfo",
+            "valueTypeHtml": "\u003Ca href=\u0022#api-61c57998e1e6b170\u0022\u003ELinuxGpuPvBundleInfo\u003C/a\u003E",
+            "enumTypeId": "api-61c57998e1e6b170",
+            "callable": true,
+            "valuesHtml": "",
+            "descriptionHtml": "",
+            "notesHtml": "",
+            "parametersHtml": "\u003Ctable class=\u0022parameter-table\u0022\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth\u003E\u53C2\u6570\u003C/th\u003E\u003Cth\u003E\u8BF4\u660E\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EFilePath\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u90E8\u7F72\u5305 ZIP \u6587\u4EF6\u7684\u5B8C\u6574\u8DEF\u5F84\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EFileName\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u90E8\u7F72\u5305\u6587\u4EF6\u540D\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EVersion\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u90E8\u7F72\u5305\u58F0\u660E\u7684\u53D1\u884C\u7248\u672C\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EArchitecture\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u90E8\u7F72\u5305\u76EE\u6807 CPU \u67B6\u6784\uFF08x86_64 \u6216 aarch64\uFF09\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EKernelCount\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u5305\u5185\u5305\u542B\u7684\u9884\u7F16\u8BD1 dxgkrnl \u6A21\u5757\u6570\u91CF\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EFileSizeBytes\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u90E8\u7F72\u5305 ZIP \u6587\u4EF6\u5927\u5C0F\uFF0C\u5355\u4F4D\u4E3A\u5B57\u8282\u3002\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "",
+          "summaryText": ""
+        },
+        {
+          "id": "api-08d0c2ac81157ca1",
+          "uid": "P:ExHyperV.Models.LinuxGpuPvBundleInfo.Architecture",
+          "toolGroup": "devices",
+          "readOnly": true,
+          "name": "Architecture",
+          "displayName": "\u76EE\u6807\u67B6\u6784",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs",
+          "kind": "record \u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 14,
+          "signature": "public string Architecture { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Architecture { get; init; }",
+          "presentation": {
+            "expression": "LinuxGpuPvBundleInfo.Architecture",
+            "valueType": "string",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u90E8\u7F72\u5305\u76EE\u6807 CPU \u67B6\u6784\uFF08x86_64 \u6216 aarch64\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u90E8\u7F72\u5305\u76EE\u6807 CPU \u67B6\u6784\uFF08x86_64 \u6216 aarch64\uFF09\u3002",
+          "summaryText": "\u90E8\u7F72\u5305\u76EE\u6807 CPU \u67B6\u6784\uFF08x86_64 \u6216 aarch64\uFF09\u3002"
+        },
+        {
+          "id": "api-573c6bdc72055a8e",
+          "uid": "P:ExHyperV.Models.LinuxGpuPvBundleInfo.FileName",
+          "toolGroup": "devices",
+          "readOnly": true,
+          "name": "FileName",
+          "displayName": "\u6587\u4EF6\u540D",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs",
+          "kind": "record \u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 12,
+          "signature": "public string FileName { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E FileName { get; init; }",
+          "presentation": {
+            "expression": "LinuxGpuPvBundleInfo.FileName",
+            "valueType": "string",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u90E8\u7F72\u5305\u6587\u4EF6\u540D\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u90E8\u7F72\u5305\u6587\u4EF6\u540D\u3002",
+          "summaryText": "\u90E8\u7F72\u5305\u6587\u4EF6\u540D\u3002"
+        },
+        {
+          "id": "api-e6938f7304094d0a",
+          "uid": "P:ExHyperV.Models.LinuxGpuPvBundleInfo.FilePath",
+          "toolGroup": "devices",
+          "readOnly": true,
+          "name": "FilePath",
+          "displayName": "\u6587\u4EF6\u8DEF\u5F84",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs",
+          "kind": "record \u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 11,
+          "signature": "public string FilePath { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E FilePath { get; init; }",
+          "presentation": {
+            "expression": "LinuxGpuPvBundleInfo.FilePath",
+            "valueType": "string",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u90E8\u7F72\u5305 ZIP \u6587\u4EF6\u7684\u5B8C\u6574\u8DEF\u5F84\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u90E8\u7F72\u5305 ZIP \u6587\u4EF6\u7684\u5B8C\u6574\u8DEF\u5F84\u3002",
+          "summaryText": "\u90E8\u7F72\u5305 ZIP \u6587\u4EF6\u7684\u5B8C\u6574\u8DEF\u5F84\u3002"
+        },
+        {
+          "id": "api-a15743d5501dd7a0",
+          "uid": "P:ExHyperV.Models.LinuxGpuPvBundleInfo.FileSizeBytes",
+          "toolGroup": "devices",
+          "readOnly": true,
+          "name": "FileSizeBytes",
+          "displayName": "\u6587\u4EF6\u5927\u5C0F",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs",
+          "kind": "record \u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 16,
+          "signature": "public long FileSizeBytes { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E FileSizeBytes { get; init; }",
+          "presentation": {
+            "expression": "LinuxGpuPvBundleInfo.FileSizeBytes",
+            "valueType": "long",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Elong\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u90E8\u7F72\u5305 ZIP \u6587\u4EF6\u5927\u5C0F\uFF0C\u5355\u4F4D\u4E3A\u5B57\u8282\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u90E8\u7F72\u5305 ZIP \u6587\u4EF6\u5927\u5C0F\uFF0C\u5355\u4F4D\u4E3A\u5B57\u8282\u3002",
+          "summaryText": "\u90E8\u7F72\u5305 ZIP \u6587\u4EF6\u5927\u5C0F\uFF0C\u5355\u4F4D\u4E3A\u5B57\u8282\u3002"
+        },
+        {
+          "id": "api-b40170fcd380947e",
+          "uid": "P:ExHyperV.Models.LinuxGpuPvBundleInfo.KernelCount",
+          "toolGroup": "devices",
+          "readOnly": true,
+          "name": "KernelCount",
+          "displayName": "\u9884\u7F16\u8BD1\u5185\u6838\u6570\u91CF",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs",
+          "kind": "record \u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 15,
+          "signature": "public int KernelCount { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E KernelCount { get; init; }",
+          "presentation": {
+            "expression": "LinuxGpuPvBundleInfo.KernelCount",
+            "valueType": "int",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Eint\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5305\u5185\u5305\u542B\u7684\u9884\u7F16\u8BD1 dxgkrnl \u6A21\u5757\u6570\u91CF\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u5305\u5185\u5305\u542B\u7684\u9884\u7F16\u8BD1 dxgkrnl \u6A21\u5757\u6570\u91CF\u3002",
+          "summaryText": "\u5305\u5185\u5305\u542B\u7684\u9884\u7F16\u8BD1 dxgkrnl \u6A21\u5757\u6570\u91CF\u3002"
+        },
+        {
+          "id": "api-5b88cb9dbccf6949",
+          "uid": "P:ExHyperV.Models.LinuxGpuPvBundleInfo.Version",
+          "toolGroup": "devices",
+          "readOnly": true,
+          "name": "Version",
+          "displayName": "\u53D1\u884C\u7248\u672C",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs",
+          "kind": "record \u5C5E\u6027",
+          "group": "\u5C5E\u6027",
+          "order": 13,
+          "signature": "public string Version { get; init; }",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E Version { get; init; }",
+          "presentation": {
+            "expression": "LinuxGpuPvBundleInfo.Version",
+            "valueType": "string",
+            "valueTypeHtml": "\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E",
+            "enumTypeId": null,
+            "callable": false,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u90E8\u7F72\u5305\u58F0\u660E\u7684\u53D1\u884C\u7248\u672C\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "",
+            "returnsHtml": "",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [],
+            "returns": [],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u90E8\u7F72\u5305\u58F0\u660E\u7684\u53D1\u884C\u7248\u672C\u3002",
+          "summaryText": "\u90E8\u7F72\u5305\u58F0\u660E\u7684\u53D1\u884C\u7248\u672C\u3002"
         }
       ]
     },
@@ -61393,13 +62824,14 @@
           "GPU"
         ]
       ],
-      "signature": "public sealed class GpuDeploymentSession",
-      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Eclass\u003C/span\u003E \u003Ca href=\u0022#api-daf38b34353e49be\u0022\u003EGpuDeploymentSession\u003C/a\u003E",
+      "signature": "public sealed partial class GpuDeploymentSession",
+      "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Esealed\u003C/span\u003E partial \u003Cspan class=\u0022keyword\u0022\u003Eclass\u003C/span\u003E \u003Ca href=\u0022#api-daf38b34353e49be\u0022\u003EGpuDeploymentSession\u003C/a\u003E",
       "baseTypeHtml": "",
       "interfacesHtml": "",
       "derivedTypesHtml": "",
-      "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
+      "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.Linux.cs",
       "sources": [
+        "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.Linux.cs",
         "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs"
       ],
       "summaryHtml": "\u7BA1\u7406\u4E00\u6B21\u8FDB\u7A0B\u5185 GPU \u90E8\u7F72\uFF1BCore \u63A8\u8FDB\u5404\u6B65\u9AA4\uFF0C\u5E76\u5728\u9700\u8981\u786E\u8BA4\u65F6\u6682\u505C\uFF0C\u7B49\u5F85\u5E26\u7248\u672C\u6807\u8BC6\u7684\u660E\u786E\u51B3\u5B9A\u3002",
@@ -61431,7 +62863,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 46,
+          "order": 48,
           "signature": "public GpuDeploymentSession(Guid vmId, string vmName, HostGpuInfo gpu, VmGpuService gpuService, VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-daf38b34353e49be\u0022\u003EGpuDeploymentSession\u003C/a\u003E(Guid vmId, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E vmName, \u003Ca href=\u0022#api-7e834c339070727a\u0022\u003EHostGpuInfo\u003C/a\u003E gpu, \u003Ca href=\u0022#api-491dd675104b9ad1\u0022\u003EVmGpuService\u003C/a\u003E gpuService, \u003Ca href=\u0022#api-043fe4f6d9c1db33\u0022\u003EVmQueryService\u003C/a\u003E queryService, \u003Ca href=\u0022#api-a5310e5188c13124\u0022\u003EGpuDeploymentMode\u003C/a\u003E mode = \u003Ca href=\u0022#api-a5310e5188c13124\u0022\u003EGpuDeploymentMode\u003C/a\u003E.AddWithDrivers);",
           "presentation": {
@@ -61521,7 +62953,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u6784\u9020\u5668",
           "group": "\u6784\u9020\u51FD\u6570",
-          "order": 60,
+          "order": 62,
           "signature": "public GpuDeploymentSession(Guid vmId, string vmName, IReadOnlyList\u003CHostGpuInfo\u003E gpus, VmGpuService gpuService, VmQueryService queryService, GpuDeploymentMode mode = GpuDeploymentMode.AddWithDrivers);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-daf38b34353e49be\u0022\u003EGpuDeploymentSession\u003C/a\u003E(Guid vmId, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E vmName, IReadOnlyList\u0026lt;\u003Ca href=\u0022#api-7e834c339070727a\u0022\u003EHostGpuInfo\u003C/a\u003E\u0026gt; gpus, \u003Ca href=\u0022#api-491dd675104b9ad1\u0022\u003EVmGpuService\u003C/a\u003E gpuService, \u003Ca href=\u0022#api-043fe4f6d9c1db33\u0022\u003EVmQueryService\u003C/a\u003E queryService, \u003Ca href=\u0022#api-a5310e5188c13124\u0022\u003EGpuDeploymentMode\u003C/a\u003E mode = \u003Ca href=\u0022#api-a5310e5188c13124\u0022\u003EGpuDeploymentMode\u003C/a\u003E.AddWithDrivers);",
           "presentation": {
@@ -61611,7 +63043,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 167,
+          "order": 177,
           "signature": "public async Task\u003CGpuDeploymentSnapshot\u003E CancelAsync();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;\u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E\u0026gt; CancelAsync();",
           "presentation": {
@@ -61670,7 +63102,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 87,
+          "order": 89,
           "signature": "public GpuDeploymentSnapshot GetStatus();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E GetStatus();",
           "presentation": {
@@ -61729,7 +63161,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 214,
+          "order": 224,
           "signature": "public async Task\u003CGpuDeploymentSnapshot\u003E ReconcileAsync();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;\u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E\u0026gt; ReconcileAsync();",
           "presentation": {
@@ -61788,7 +63220,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 89,
+          "order": 91,
           "signature": "public void RequestCancellation();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Evoid\u003C/span\u003E RequestCancellation();",
           "presentation": {
@@ -61845,7 +63277,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 186,
+          "order": 196,
           "signature": "public async Task\u003CGpuDeploymentSnapshot\u003E RetryCleanupAsync();",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;\u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E\u0026gt; RetryCleanupAsync();",
           "presentation": {
@@ -61904,7 +63336,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 96,
+          "order": 98,
           "signature": "public async Task\u003CGpuDeploymentSnapshot\u003E StartAsync(Action\u003CGpuDeploymentSnapshot\u003E? progress = null);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;\u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E\u0026gt; StartAsync(Action\u0026lt;\u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E\u0026gt;? progress = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E);",
           "presentation": {
@@ -61975,7 +63407,7 @@
           "source": "Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 115,
+          "order": 117,
           "signature": "public async Task\u003CGpuDeploymentSnapshot\u003E SubmitDecisionAsync(GpuDeploymentDecision decision);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E async Task\u0026lt;\u003Ca href=\u0022#api-3abc49fee5f8e4b6\u0022\u003EGpuDeploymentSnapshot\u003C/a\u003E\u0026gt; SubmitDecisionAsync(\u003Ca href=\u0022#api-c5617284cebe0629\u0022\u003EGpuDeploymentDecision\u003C/a\u003E decision);",
           "presentation": {
@@ -62001,6 +63433,7 @@
                   "api-11fbc96797a74b58",
                   "api-b72fad7f37732b94",
                   "api-1b34235597c26248",
+                  "api-326a75b5df0c00c6",
                   "api-bb8b2e9014baee53"
                 ]
               }
@@ -102481,6 +103914,75 @@
           "summaryText": "\u6309\u7A33\u5B9A\u8EAB\u4EFD\u8BFB\u53D6\u865A\u62DF\u673A GPU \u5206\u914D\uFF1B\u67E5\u8BE2\u5931\u8D25\u4E0D\u4F2A\u88C5\u4E3A\u7A7A\u6E05\u5355\u3002"
         },
         {
+          "id": "api-e44289dd0bda4893",
+          "uid": "M:ExHyperV.Services.VmGpuService.InspectLinuxGpuPvBundleAsync(System.String,System.Threading.CancellationToken)",
+          "toolGroup": "devices",
+          "readOnly": true,
+          "name": "InspectLinuxGpuPvBundleAsync",
+          "displayName": "\u6821\u9A8C Linux \u90E8\u7F72\u5305",
+          "isPrimary": false,
+          "navigationPath": [
+            "\u7BA1\u7406\u5C42\u9762",
+            "\u865A\u62DF\u673A",
+            "\u4FEE\u6539",
+            "GPU"
+          ],
+          "navigationPaths": [
+            [
+              "\u7BA1\u7406\u5C42\u9762",
+              "\u865A\u62DF\u673A",
+              "\u4FEE\u6539",
+              "GPU"
+            ]
+          ],
+          "source": "Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs",
+          "kind": "\u65B9\u6CD5",
+          "group": "\u9759\u6001\u65B9\u6CD5",
+          "order": 689,
+          "signature": "public static async Task\u003CApiResponse\u003CLinuxGpuPvBundleInfo\u003E\u003E InspectLinuxGpuPvBundleAsync(string bundlePath, CancellationToken cancellationToken = default);",
+          "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E \u003Cspan class=\u0022keyword\u0022\u003Estatic\u003C/span\u003E async Task\u0026lt;ApiResponse\u0026lt;\u003Ca href=\u0022#api-61c57998e1e6b170\u0022\u003ELinuxGpuPvBundleInfo\u003C/a\u003E\u0026gt;\u0026gt; InspectLinuxGpuPvBundleAsync(\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E bundlePath, CancellationToken cancellationToken = \u003Cspan class=\u0022keyword\u0022\u003Edefault\u003C/span\u003E);",
+          "presentation": {
+            "expression": "VmGpuService.InspectLinuxGpuPvBundleAsync",
+            "valueType": "Task\u003CApiResponse\u003CLinuxGpuPvBundleInfo\u003E\u003E",
+            "valueTypeHtml": "Task\u0026lt;ApiResponse\u0026lt;\u003Ca href=\u0022#api-61c57998e1e6b170\u0022\u003ELinuxGpuPvBundleInfo\u003C/a\u003E\u0026gt;\u0026gt;",
+            "enumTypeId": null,
+            "callable": true,
+            "valuesHtml": "",
+            "descriptionHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u68C0\u67E5\u5E76\u6821\u9A8C\u672C\u5730 Linux GPU-PV \u90E8\u7F72\u5305\u538B\u7F29\u6587\u4EF6\uFF08.zip\uFF09\u3002\u003C/div\u003E",
+            "notesHtml": "",
+            "parametersHtml": "\u003Ctable class=\u0022parameter-table\u0022\u003E\u003Cthead\u003E\u003Ctr\u003E\u003Cth\u003E\u53C2\u6570\u003C/th\u003E\u003Cth\u003E\u8BF4\u660E\u003C/th\u003E\u003C/tr\u003E\u003C/thead\u003E\u003Ctbody\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EbundlePath\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u672C\u5730 .zip \u90E8\u7F72\u5305\u6587\u4EF6\u8DEF\u5F84\u3002\u003C/td\u003E\u003C/tr\u003E\u003Ctr\u003E\u003Ctd\u003E\u003Ccode\u003EcancellationToken\u003C/code\u003E\u003C/td\u003E\u003Ctd\u003E\u53D6\u6D88\u4EE4\u724C\u3002\u003C/td\u003E\u003C/tr\u003E\u003C/tbody\u003E\u003C/table\u003E",
+            "returnsHtml": "\u003Cdiv class=\u0022doc-paragraph\u0022\u003E\u5305\u542B\u7248\u672C\u3001\u67B6\u6784\u3001\u9884\u7F16\u8BD1\u5185\u6838\u6570\u91CF\u548C\u6587\u4EF6\u5927\u5C0F\u7684\u6821\u9A8C\u7ED3\u679C\u3002\u003C/div\u003E",
+            "exceptionsHtml": "",
+            "examplesHtml": ""
+          },
+          "usage": {
+            "parameters": [
+              {
+                "name": "bundlePath",
+                "types": []
+              },
+              {
+                "name": "cancellationToken",
+                "types": []
+              }
+            ],
+            "returns": [
+              "api-dd3269fca7449cd0",
+              "api-61c57998e1e6b170"
+            ],
+            "value": [],
+            "exceptions": []
+          },
+          "queryField": null,
+          "hostEntry": null,
+          "modification": null,
+          "editEntry": null,
+          "queryEntry": null,
+          "instanceEntry": null,
+          "summaryHtml": "\u68C0\u67E5\u5E76\u6821\u9A8C\u672C\u5730 Linux GPU-PV \u90E8\u7F72\u5305\u538B\u7F29\u6587\u4EF6\uFF08.zip\uFF09\u3002",
+          "summaryText": "\u68C0\u67E5\u5E76\u6821\u9A8C\u672C\u5730 Linux GPU-PV \u90E8\u7F72\u5305\u538B\u7F29\u6587\u4EF6\uFF08.zip\uFF09\u3002"
+        },
+        {
           "id": "api-dd4d875bda997af8",
           "uid": "M:ExHyperV.Services.VmGpuService.OptimizeVmForGpuAsync(System.Guid)",
           "toolGroup": "devices",
@@ -102722,7 +104224,7 @@
           "source": "Management/VirtualMachines/Gpu/Assignment/VmGpuService.cs",
           "kind": "\u65B9\u6CD5",
           "group": "\u65B9\u6CD5",
-          "order": 694,
+          "order": 718,
           "signature": "public Task\u003CApiResponse\u003E SyncWindowsDriversAsync(Guid vmId, string gpuInstancePath, string gpuManu, DiskPartitionInfo selectedPartition, Action\u003Cstring\u003E progressCallback = null);",
           "signatureHtml": "\u003Cspan class=\u0022keyword\u0022\u003Epublic\u003C/span\u003E Task\u0026lt;ApiResponse\u0026gt; SyncWindowsDriversAsync(Guid vmId, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E gpuInstancePath, \u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E gpuManu, \u003Ca href=\u0022#api-c2f9b2df9da28fb2\u0022\u003EDiskPartitionInfo\u003C/a\u003E selectedPartition, Action\u0026lt;\u003Cspan class=\u0022keyword\u0022\u003Estring\u003C/span\u003E\u0026gt; progressCallback = \u003Cspan class=\u0022keyword\u0022\u003Enull\u003C/span\u003E);",
           "presentation": {

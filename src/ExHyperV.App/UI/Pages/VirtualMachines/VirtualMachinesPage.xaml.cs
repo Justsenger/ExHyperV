@@ -13,25 +13,34 @@ public sealed partial class VirtualMachinesPage : Page
     public VirtualMachinesPageViewModel ViewModel { get; } = new();
     private bool loadedOnce;
     private bool restoringSelection;
+    private bool stopped;
     private int selectionVersion;
 
     internal event Action<bool>? ImmersiveRequested;
+
+    internal void SetWindowVisible(bool visible) => Dashboard.SetWindowVisible(visible);
 
     public VirtualMachinesPage()
     {
         InitializeComponent();
         SearchBox.PlaceholderText = L10n.Get("VmList_SearchPlaceholder");
         AutomationProperties.SetName(SearchBox, L10n.Get("VmList_SearchAria"));
+        AutomationProperties.SetName(AddVmButton, L10n.Get("VmList_AddVmButton"));
+        ToolTipService.SetToolTip(AddVmButton, L10n.Get("VmList_AddVmButton"));
         AutomationProperties.SetName(VmList, L10n.Get("VmList_ListAria"));
         Dashboard.SetCache(ViewModel.Cache);
         Dashboard.ImmersiveRequested += SetImmersiveMode;
+        AddVmView.Closed += CloseAddVmView;
+        AddVmView.Created += OnVmCreatedAsync;
         Loaded += OnLoaded;
         Unloaded += (_, _) => { ViewModel.Cancel(); Dashboard.Stop(); };
         ViewModel.PropertyChanged += async (_, args) => await UiEvent.RunAsync(async () =>
         {
-            if (args.PropertyName != nameof(ViewModel.Selected) || !IsLoaded || restoringSelection) return;
+            if (stopped || args.PropertyName != nameof(ViewModel.Selected) || !IsLoaded || restoringSelection) return;
+            if (AddVmView.Visibility == Visibility.Visible)
+                CloseAddVmView();
             int version = ++selectionVersion;
-            if (!await Dashboard.SelectAsync(ViewModel.Selected) && version == selectionVersion)
+            if (!await Dashboard.SelectAsync(ViewModel.Selected) && version == selectionVersion && !stopped)
             {
                 restoringSelection = true;
                 try { ViewModel.Selected = Dashboard.SelectedVm; }
@@ -40,8 +49,38 @@ public sealed partial class VirtualMachinesPage : Page
         }, ViewModel.ReportError);
     }
 
+    private async void OnAddVmClick(object sender, RoutedEventArgs e) => await UiEvent.RunAsync(async () =>
+    {
+        if (stopped) return;
+        Dashboard.Stop();
+        Dashboard.Visibility = Visibility.Collapsed;
+        AddVmView.Visibility = Visibility.Visible;
+        await AddVmView.ActivateAsync();
+    }, ViewModel.ReportError);
+
+    private void CloseAddVmView()
+    {
+        if (AddVmView.Visibility != Visibility.Visible) return;
+        AddVmView.Visibility = Visibility.Collapsed;
+        Dashboard.Visibility = Visibility.Visible;
+        if (ViewModel.Selected is { } vm)
+            Dashboard.StartMonitoring(vm.Id);
+    }
+
+    private async Task OnVmCreatedAsync(Guid? createdVmId)
+    {
+        AddVmView.Visibility = Visibility.Collapsed;
+        Dashboard.Visibility = Visibility.Visible;
+        await ViewModel.RefreshCommand.ExecuteAsync(null);
+        if (createdVmId is { } id && ViewModel.Items.FirstOrDefault(x => x.Id == id) is { } createdItem)
+            ViewModel.Selected = createdItem;
+        else if (ViewModel.Selected is { } currentVm)
+            Dashboard.StartMonitoring(currentVm.Id);
+    }
+
     private async void OnLoaded(object sender, RoutedEventArgs args) => await UiEvent.RunAsync(async () =>
     {
+        if (stopped) return;
         if (loadedOnce)
         {
             if (ViewModel.Selected is { } vm && ReferenceEquals(vm, Dashboard.SelectedVm))
@@ -66,8 +105,10 @@ public sealed partial class VirtualMachinesPage : Page
     {
         // 设置页可能因待核实或待清理的操作拒绝离开，此前不能终止仍需使用的查询缓存。
         await Dashboard.StopAsync();
+        stopped = true;
         ViewModel.Cancel();
         await (ViewModel.RefreshCommand.ExecutionTask ?? Task.CompletedTask);
+        Dashboard.Stop();
     }
     internal void SetImmersiveMode(bool immersive)
     {

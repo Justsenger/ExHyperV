@@ -88,6 +88,7 @@ internal sealed partial class HostStatusView : UserControl
 
     private readonly List<RailEntry> railEntries = [];
     private readonly Dictionary<string, DetailPanelEntry> detailPanels = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Func<DetailPanelEntry>> detailFactories = new(StringComparer.Ordinal);
     private string selectedKey = "cpu";
     private HostInventorySnapshot? currentInventory;
     private HostLiveSample? lastSample;
@@ -178,6 +179,7 @@ internal sealed partial class HostStatusView : UserControl
         railEntries.Clear();
         detailBodyHost.Children.Clear();
         detailPanels.Clear();
+        detailFactories.Clear();
 
         // 1. CPU
         AddCpuRailItem(inventory);
@@ -204,11 +206,24 @@ internal sealed partial class HostStatusView : UserControl
         foreach (var sw in inventory.Switches)
             AddSwitchItem(inventory, sw);
 
-        if (!detailPanels.ContainsKey(selectedKey))
+        if (!detailFactories.ContainsKey(selectedKey))
             selectedKey = "cpu";
 
         SelectRailKey(selectedKey);
         railScroll.ChangeView(null, savedRailScroll, null, disableAnimation: true);
+    }
+
+    private DetailPanelEntry? EnsureDetailPanel(string key)
+    {
+        if (detailPanels.TryGetValue(key, out var existing)) return existing;
+        if (!detailFactories.TryGetValue(key, out var factory)) return null;
+        var created = factory();
+        detailPanels[key] = created;
+        detailBodyHost.Children.Add(created.Root);
+        if (lastSample != null)
+            created.ApplySample(lastSample);
+        created.RefreshTheme?.Invoke();
+        return created;
     }
 
     public void ApplyProcessorAndMemory(HostLiveSample sample)
@@ -218,10 +233,11 @@ internal sealed partial class HostStatusView : UserControl
             if (entry.Category is RailCategory.Cpu or RailCategory.Memory)
                 entry.UpdateSample?.Invoke(lastSample);
 
-        if (detailPanels.TryGetValue("cpu", out var cpuDetail)) cpuDetail.ApplySample(lastSample);
-        if (detailPanels.TryGetValue("mem", out var memDetail)) memDetail.ApplySample(lastSample);
         if (selectedKey is "cpu" or "mem" && detailPanels.TryGetValue(selectedKey, out var active))
+        {
+            active.ApplySample(lastSample);
             detailReading.Text = active.FormatReading(lastSample);
+        }
     }
 
     public void ApplyDeviceSample(HostLiveSample sample)
@@ -273,6 +289,7 @@ internal sealed partial class HostStatusView : UserControl
         detailBodyScroll.Visibility = Visibility.Visible;
         detailRoot.RowSpacing = 10;
 
+        var activePanel = EnsureDetailPanel(key);
         foreach (var pair in detailPanels)
             pair.Value.Root.Visibility = pair.Key == key ? Visibility.Visible : Visibility.Collapsed;
 
@@ -284,10 +301,8 @@ internal sealed partial class HostStatusView : UserControl
             detailTitle.Text = selectedEntry.DetailTitle;
             detailSubtitle.Text = selectedEntry.DetailSubtitle;
             detailSubtitle.Visibility = string.IsNullOrWhiteSpace(selectedEntry.DetailSubtitle) ? Visibility.Collapsed : Visibility.Visible;
-            if (lastSample != null && detailPanels.TryGetValue(key, out var panel))
-                detailReading.Text = panel.FormatReading(lastSample);
-            else if (detailPanels.TryGetValue(key, out var fallbackPanel))
-                detailReading.Text = fallbackPanel.FormatReading(new HostLiveSample());
+            if (activePanel != null)
+                detailReading.Text = activePanel.FormatReading(lastSample ?? new HostLiveSample());
         }
 
         UpdateTheme();

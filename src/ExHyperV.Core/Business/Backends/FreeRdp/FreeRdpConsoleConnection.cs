@@ -573,7 +573,26 @@ internal sealed class FreeRdpConsoleConnection : IConsoleConnection, IConsoleVid
                 if (disposed || switchedToCpu || owner.gpuSession != this || owner.stopping || owner.gpuCpuForced) return null;
                 n = owner.native;
             }
-            return n?.TakeGpuLatest();
+            var frame = n?.TakeGpuLatest();
+            if (frame is { SlotDims: var dims })
+            {
+                int width = (int)((dims >> 16) & 0xFFFFu);
+                int height = (int)((dims >> 32) & 0xFFFFu);
+                if (width is > 0 and <= 8192 && height is > 0 and <= 8192)
+                {
+                    lock (owner.gate)
+                    {
+                        if (!disposed && !switchedToCpu && owner.gpuSession == this && !owner.stopping && !owner.gpuCpuForced)
+                        {
+                            owner.desktopWidth = width;
+                            owner.desktopHeight = height;
+                            owner.inputs.Width = width;
+                            owner.inputs.Height = height;
+                        }
+                    }
+                }
+            }
+            return frame;
         }
 
         internal ulong RequestCpu()

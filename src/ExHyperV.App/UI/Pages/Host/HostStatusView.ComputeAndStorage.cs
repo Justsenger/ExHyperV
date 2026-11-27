@@ -36,95 +36,97 @@ internal sealed partial class HostStatusView
             tooltip: cpuHeaderTitle);
 
         int lpCount = Math.Max(1, inventory.LogicalProcessorCount);
-        int cols = lpCount <= 4 ? 2 : lpCount > 32 ? 8 : lpCount > 16 ? 6 : 4;
-        var coreCharts = new VmUsageChart[lpCount];
-        var coreGrid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
-        for (int c = 0; c < cols; c++)
-            coreGrid.ColumnDefinitions.Add(new ColumnDefinition());
-        int rows = (int)Math.Ceiling(lpCount / (double)cols);
-        for (int r = 0; r < rows; r++)
-            coreGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-        for (int i = 0; i < lpCount; i++)
+        detailFactories["cpu"] = () =>
         {
-            var chart = new VmUsageChart(i.ToString(), VmUsageChartKind.Processor, chartHeight: VmUsageChart.ProcessorHeight);
-            coreCharts[i] = chart;
-            Grid.SetRow(chart, i / cols);
-            Grid.SetColumn(chart, i % cols);
-            coreGrid.Children.Add(chart);
-        }
+            int cols = lpCount <= 4 ? 2 : lpCount > 32 ? 8 : lpCount > 16 ? 6 : 4;
+            var coreCharts = new VmUsageChart[lpCount];
+            var coreGrid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
+            for (int c = 0; c < cols; c++)
+                coreGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            int rows = (int)Math.Ceiling(lpCount / (double)cols);
+            for (int r = 0; r < rows; r++)
+                coreGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-        string? lastFreqRendered = null;
-        string currentFreqText = "---";
-        HostCpuThreadReport? lastCpuReportRef = null;
-        var kvBorder = new Border();
-        var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
-        panel.Children.Add(coreGrid);
-        panel.Children.Add(kvBorder);
-        detailBodyHost.Children.Add(panel);
-
-        void RenderCpuKv()
-        {
-            string virtText = L10n.Get(inventory.CpuVirtOk ? "Host_Perf_Enabled" : "Host_Perf_Disabled");
-            bool hvReady = inventory.Diagnostics?.IsReady == true;
-            string hvText = L10n.Get(hvReady ? "Host_HyperVReady" : "Host_HyperVNotReady");
-            string schedText = HostUiHelpers.FormatSchedulerLabel(inventory.RunningScheduler, full: true);
-            string numaText = L10n.Get(inventory.NumaSpanningEnabled switch
+            for (int i = 0; i < lpCount; i++)
             {
-                true => "Common_On",
-                false => "Common_Off",
-                null => "Common_Unavailable"
-            });
-            string archText = inventory.Arch.ToString().ToUpperInvariant();
-            string osText = string.IsNullOrWhiteSpace(inventory.OsCaption) ? "---" : inventory.OsCaption;
+                var chart = new VmUsageChart(i.ToString(), VmUsageChartKind.Processor, chartHeight: VmUsageChart.ProcessorHeight);
+                coreCharts[i] = chart;
+                Grid.SetRow(chart, i / cols);
+                Grid.SetColumn(chart, i % cols);
+                coreGrid.Children.Add(chart);
+            }
 
-            kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
-            (HostUiHelpers.KvTileSpec[])[
-                new(L10n.Get("Host_Perf_LogicalProcessors"), L10n.Format("Host_Perf_ThreadsVal", lpCount)),
-                new(L10n.Get("Host_Perf_CurFreq"), currentFreqText),
-                new(L10n.Get("Host_Env_CpuVirt"), virtText, Caution: !inventory.CpuVirtOk),
-                new(L10n.Get("Host_Perf_Platform"), hvText, Caution: !hvReady),
-                new(L10n.Get("Host_Perf_Scheduler"), schedText),
-                new(L10n.Get("Host_Mem_NumaSpanning"), numaText),
-                new(L10n.Get("Host_Arch"), archText),
-                new(L10n.Get("Host_Os"), osText, CopyValue: string.IsNullOrWhiteSpace(inventory.OsCaption) ? null : inventory.OsCaption)
-            ], CopySuccessToast, CopyErrorBanner);
-        }
+            string? lastFreqRendered = null;
+            string currentFreqText = "---";
+            HostCpuThreadReport? lastCpuReportRef = null;
+            var kvBorder = new Border();
+            var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
+            panel.Children.Add(coreGrid);
+            panel.Children.Add(kvBorder);
 
-        detailPanels["cpu"] = new DetailPanelEntry
-        {
-            Key = "cpu",
-            Category = RailCategory.Cpu,
-            Root = panel,
-            ApplySample = sample =>
+            void RenderCpuKv()
             {
-                if (sample.CpuReport is { Sample.IsValid: true } report && !ReferenceEquals(report, lastCpuReportRef))
+                string virtText = L10n.Get(inventory.CpuVirtOk ? "Host_Perf_Enabled" : "Host_Perf_Disabled");
+                bool hvReady = inventory.Diagnostics?.IsReady == true;
+                string hvText = L10n.Get(hvReady ? "Host_HyperVReady" : "Host_HyperVNotReady");
+                string schedText = HostUiHelpers.FormatSchedulerLabel(inventory.RunningScheduler, full: true);
+                string numaText = L10n.Get(inventory.NumaSpanningEnabled switch
                 {
-                    lastCpuReportRef = report;
-                    foreach (var t in report.Threads)
+                    true => "Common_On",
+                    false => "Common_Off",
+                    null => "Common_Unavailable"
+                });
+                string archText = inventory.Arch.ToString().ToUpperInvariant();
+                string osText = string.IsNullOrWhiteSpace(inventory.OsCaption) ? "---" : inventory.OsCaption;
+
+                kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
+                (HostUiHelpers.KvTileSpec[])[
+                    new(L10n.Get("Host_Perf_LogicalProcessors"), L10n.Format("Host_Perf_ThreadsVal", lpCount)),
+                    new(L10n.Get("Host_Perf_CurFreq"), currentFreqText),
+                    new(L10n.Get("Host_Env_CpuVirt"), virtText, Caution: !inventory.CpuVirtOk),
+                    new(L10n.Get("Host_Perf_Platform"), hvText, Caution: !hvReady),
+                    new(L10n.Get("Host_Perf_Scheduler"), schedText),
+                    new(L10n.Get("Host_Mem_NumaSpanning"), numaText),
+                    new(L10n.Get("Host_Arch"), archText),
+                    new(L10n.Get("Host_Os"), osText, CopyValue: string.IsNullOrWhiteSpace(inventory.OsCaption) ? null : inventory.OsCaption)
+                ], CopySuccessToast, CopyErrorBanner);
+            }
+
+            return new DetailPanelEntry
+            {
+                Key = "cpu",
+                Category = RailCategory.Cpu,
+                Root = panel,
+                ApplySample = sample =>
+                {
+                    if (sample.CpuReport is { Sample.IsValid: true } report && !ReferenceEquals(report, lastCpuReportRef))
                     {
-                        if (t.LogicalProcessorIndex >= 0 && t.LogicalProcessorIndex < coreCharts.Length && t.Sample.IsValid)
+                        lastCpuReportRef = report;
+                        foreach (var t in report.Threads)
                         {
-                            double clamped = Math.Clamp(t.TotalUsagePercent, 0, 100);
-                            coreCharts[t.LogicalProcessorIndex].Add(clamped, $"{Math.Round(clamped):0}%");
+                            if (t.LogicalProcessorIndex >= 0 && t.LogicalProcessorIndex < coreCharts.Length && t.Sample.IsValid)
+                            {
+                                double clamped = Math.Clamp(t.TotalUsagePercent, 0, 100);
+                                coreCharts[t.LogicalProcessorIndex].Add(clamped, $"{Math.Round(clamped):0}%");
+                            }
                         }
                     }
-                }
-                string nextFreq = sample.CpuFreqGHz is { } gz and > 0 ? $"{gz:0.00} GHz" : "---";
-                if (!string.Equals(nextFreq, lastFreqRendered, StringComparison.Ordinal))
+                    string nextFreq = sample.CpuFreqGHz is { } gz and > 0 ? $"{gz:0.00} GHz" : "---";
+                    if (!string.Equals(nextFreq, lastFreqRendered, StringComparison.Ordinal))
+                    {
+                        currentFreqText = nextFreq;
+                        lastFreqRendered = nextFreq;
+                        RenderCpuKv();
+                    }
+                },
+                FormatReading = sample => sample.CpuPercent is { } pct ? $"{Math.Round(pct):0}%" : "---%",
+                RefreshTheme = () =>
                 {
-                    currentFreqText = nextFreq;
-                    lastFreqRendered = nextFreq;
+                    Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Cpu);
+                    foreach (var ch in coreCharts) ch.SetAccentColor(custom);
                     RenderCpuKv();
                 }
-            },
-            FormatReading = sample => sample.CpuPercent is { } pct ? $"{Math.Round(pct):0}%" : "---%",
-            RefreshTheme = () =>
-            {
-                Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Cpu);
-                foreach (var ch in coreCharts) ch.SetAccentColor(custom);
-                RenderCpuKv();
-            }
+            };
         };
 
         item.UpdateSample = sample =>
@@ -161,68 +163,70 @@ internal sealed partial class HostStatusView
             statText: stat,
             tooltip: initialStat);
 
-        var trendChart = new VmUsageChart(L10n.Get("Host_Mem_Trend"), VmUsageChartKind.Memory, chartHeight: 136);
-        string usedStr = "---";
-        string availStr = "---";
-        string totalStr = initialStat;
-        string? lastKvSig = null;
-        HostMemoryUsage? lastMemRef = null;
-
-        var kvBorder = new Border();
-        var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
-        panel.Children.Add(trendChart);
-        panel.Children.Add(kvBorder);
-        detailBodyHost.Children.Add(panel);
-
-        void RenderMemKv()
+        detailFactories[key] = () =>
         {
-            string numaText = L10n.Get(inventory.NumaSpanningEnabled switch
-            {
-                true => "Common_On",
-                false => "Common_Off",
-                null => "Common_Unavailable"
-            });
-            string planText = string.IsNullOrWhiteSpace(inventory.ActivePowerPlanName) ? "---" : inventory.ActivePowerPlanName;
+            var trendChart = new VmUsageChart(L10n.Get("Host_Mem_Trend"), VmUsageChartKind.Memory, chartHeight: 136);
+            string usedStr = "---";
+            string availStr = "---";
+            string totalStr = initialStat;
+            string? lastKvSig = null;
+            HostMemoryUsage? lastMemRef = null;
 
-            kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
-            (HostUiHelpers.KvTileSpec[])[
-                new(L10n.Get("Host_Mem_InUse"), usedStr),
-                new(L10n.Get("Host_Mem_Available"), availStr),
-                new(L10n.Get("Host_Mem_PhysicalCap"), totalStr),
-                new(L10n.Get("Host_Mem_NumaSpanning"), numaText),
-                new(L10n.Get("Host_Mem_PowerPlan"), planText)
-            ], CopySuccessToast, CopyErrorBanner);
-        }
+            var kvBorder = new Border();
+            var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
+            panel.Children.Add(trendChart);
+            panel.Children.Add(kvBorder);
 
-        detailPanels[key] = new DetailPanelEntry
-        {
-            Key = key,
-            Category = RailCategory.Memory,
-            Root = panel,
-            ApplySample = sample =>
+            void RenderMemKv()
             {
-                if (sample.Memory is not { } m || ReferenceEquals(m, lastMemRef)) return;
-                lastMemRef = m;
-                trendChart.Add(m.Percent, $"{m.Percent}%");
-                usedStr = $"{m.UsedGiB:0.0} GB";
-                availStr = $"{m.AvailableGiB:0.0} GB";
-                totalStr = $"{m.TotalGiB:0.0} GB";
-                string sig = $"{usedStr}|{availStr}|{totalStr}";
-                if (!string.Equals(sig, lastKvSig, StringComparison.Ordinal))
+                string numaText = L10n.Get(inventory.NumaSpanningEnabled switch
                 {
-                    lastKvSig = sig;
+                    true => "Common_On",
+                    false => "Common_Off",
+                    null => "Common_Unavailable"
+                });
+                string planText = string.IsNullOrWhiteSpace(inventory.ActivePowerPlanName) ? "---" : inventory.ActivePowerPlanName;
+
+                kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
+                (HostUiHelpers.KvTileSpec[])[
+                    new(L10n.Get("Host_Mem_InUse"), usedStr),
+                    new(L10n.Get("Host_Mem_Available"), availStr),
+                    new(L10n.Get("Host_Mem_PhysicalCap"), totalStr),
+                    new(L10n.Get("Host_Mem_NumaSpanning"), numaText),
+                    new(L10n.Get("Host_Mem_PowerPlan"), planText)
+                ], CopySuccessToast, CopyErrorBanner);
+            }
+
+            return new DetailPanelEntry
+            {
+                Key = key,
+                Category = RailCategory.Memory,
+                Root = panel,
+                ApplySample = sample =>
+                {
+                    if (sample.Memory is not { } m || ReferenceEquals(m, lastMemRef)) return;
+                    lastMemRef = m;
+                    trendChart.Add(m.Percent, $"{m.Percent}%");
+                    usedStr = $"{m.UsedGiB:0.0} GB";
+                    availStr = $"{m.AvailableGiB:0.0} GB";
+                    totalStr = $"{m.TotalGiB:0.0} GB";
+                    string sig = $"{usedStr}|{availStr}|{totalStr}";
+                    if (!string.Equals(sig, lastKvSig, StringComparison.Ordinal))
+                    {
+                        lastKvSig = sig;
+                        RenderMemKv();
+                    }
+                },
+                FormatReading = sample => sample.Memory is { } m
+                    ? $"{m.UsedGiB:0.0} / {m.TotalGiB:0.0} GB"
+                    : initialStat,
+                RefreshTheme = () =>
+                {
+                    Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Memory);
+                    trendChart.SetAccentColor(custom);
                     RenderMemKv();
                 }
-            },
-            FormatReading = sample => sample.Memory is { } m
-                ? $"{m.UsedGiB:0.0} / {m.TotalGiB:0.0} GB"
-                : initialStat,
-            RefreshTheme = () =>
-            {
-                Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Memory);
-                trendChart.SetAccentColor(custom);
-                RenderMemKv();
-            }
+            };
         };
 
         item.UpdateSample = sample =>
@@ -257,105 +261,111 @@ internal sealed partial class HostStatusView
             statText: stat,
             tooltip: gpu.Name);
 
-        var chart3d = new VmUsageChart(L10n.Get("Overview_Gpu3d"), VmUsageChartKind.Gpu, chartHeight: 82);
-        var chartCopy = new VmUsageChart(L10n.Get("Overview_GpuCopy"), VmUsageChartKind.Gpu, chartHeight: 82);
-        var chartEnc = new VmUsageChart(L10n.Get("Overview_GpuEncode"), VmUsageChartKind.Gpu, chartHeight: 82);
-        var chartDec = new VmUsageChart(L10n.Get("Overview_GpuDecode"), VmUsageChartKind.Gpu, chartHeight: 82);
-
-        var chartsGrid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
-        chartsGrid.ColumnDefinitions.Add(new ColumnDefinition());
-        chartsGrid.ColumnDefinitions.Add(new ColumnDefinition());
-        chartsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        chartsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        Grid.SetRow(chart3d, 0); Grid.SetColumn(chart3d, 0);
-        Grid.SetRow(chartCopy, 0); Grid.SetColumn(chartCopy, 1);
-        Grid.SetRow(chartEnc, 1); Grid.SetColumn(chartEnc, 0);
-        Grid.SetRow(chartDec, 1); Grid.SetColumn(chartDec, 1);
-        chartsGrid.Children.Add(chart3d);
-        chartsGrid.Children.Add(chartCopy);
-        chartsGrid.Children.Add(chartEnc);
-        chartsGrid.Children.Add(chartDec);
-
-        var noCounterNote = new TextBlock
+        detailFactories[key] = () =>
         {
-            Text = L10n.Get("Host_Gpu_UnavailableNote"),
-            FontSize = 12,
-            Opacity = 0.68,
-            TextWrapping = TextWrapping.Wrap,
-            Visibility = Visibility.Collapsed
-        };
+            var chart3d = new VmUsageChart(L10n.Get("Overview_Gpu3d"), VmUsageChartKind.Gpu, chartHeight: 82);
+            var chartCopy = new VmUsageChart(L10n.Get("Overview_GpuCopy"), VmUsageChartKind.Gpu, chartHeight: 82);
+            var chartEnc = new VmUsageChart(L10n.Get("Overview_GpuEncode"), VmUsageChartKind.Gpu, chartHeight: 82);
+            var chartDec = new VmUsageChart(L10n.Get("Overview_GpuDecode"), VmUsageChartKind.Gpu, chartHeight: 82);
 
-        string vramText = gpu.MemoryBytes is { } bytes
-            ? (bytes >= 1024UL * 1024 * 1024 ? $"{bytes / 1073741824.0:0.#} GB" : $"{bytes / 1048576.0:0} MB")
-            : "---";
-        string partText = L10n.Get(gpu.IsPartitionable ? "Host_Gpu_Supported" : "Host_Gpu_Unsupported");
-        string policyText = L10n.Get(inventory.GpuRestrictionsRelaxed switch { true => "Host_Gpu_PolicyUnlocked", false => "Host_Gpu_PolicyDefault", null => "Common_Unavailable" });
+            var chartsGrid = new Grid { ColumnSpacing = 8, RowSpacing = 8 };
+            chartsGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            chartsGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            chartsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            chartsGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetRow(chart3d, 0); Grid.SetColumn(chart3d, 0);
+            Grid.SetRow(chartCopy, 0); Grid.SetColumn(chartCopy, 1);
+            Grid.SetRow(chartEnc, 1); Grid.SetColumn(chartEnc, 0);
+            Grid.SetRow(chartDec, 1); Grid.SetColumn(chartDec, 1);
+            chartsGrid.Children.Add(chart3d);
+            chartsGrid.Children.Add(chartCopy);
+            chartsGrid.Children.Add(chartEnc);
+            chartsGrid.Children.Add(chartDec);
 
-        var kvBorder = new Border();
-        var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
-        var scaleHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-        panel.Children.Add(noCounterNote);
-        panel.Children.Add(scaleHost);
-        panel.Children.Add(chartsGrid);
-        panel.Children.Add(kvBorder);
-        detailBodyHost.Children.Add(panel);
-
-        void RenderGpuKv()
-        {
-            scaleHost.Content = HostUiHelpers.BuildScaleBar(ActualTheme, L10n.Get("Host_Gpu_Scale"), "100%");
-            kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
-            (HostUiHelpers.KvTileSpec[])[
-                new(L10n.Get("Overview_GpuChipVendor"), gpu.Manu, CopyValue: string.IsNullOrWhiteSpace(gpu.Manu) ? null : gpu.Manu),
-                new(L10n.Get("Overview_GpuBoardVendor"), gpu.Vendor, CopyValue: string.IsNullOrWhiteSpace(gpu.Vendor) ? null : gpu.Vendor),
-                new(L10n.Get("Overview_GpuDedicatedVram"), vramText),
-                new(L10n.Get("Overview_GpuDriverVersion"), gpu.DriverVersion, CopyValue: string.IsNullOrWhiteSpace(gpu.DriverVersion) ? null : gpu.DriverVersion),
-                new(L10n.Get("Host_Gpu_Partition"), partText),
-                new(L10n.Get("Host_Gpu_Policy"), policyText),
-                new(L10n.Get("Overview_GpuDevicePath"), gpu.InstanceId, Wide: true, CopyValue: string.IsNullOrWhiteSpace(gpu.InstanceId) ? null : gpu.InstanceId)
-            ], CopySuccessToast, CopyErrorBanner);
-        }
-
-        void AddReading(VmUsageChart chart, double? value)
-        {
-            if (value is double pct && double.IsFinite(pct))
+            var noCounterNote = new TextBlock
             {
-                double clamped = Math.Clamp(pct, 0, 100);
-                chart.Add(clamped, $"{clamped:0}%");
-            }
-        }
-        chartsGrid.Visibility = scaleHost.Visibility = Visibility.Collapsed;
-        noCounterNote.Visibility = Visibility.Visible;
-        detailPanels[key] = new DetailPanelEntry
-        {
-            Key = key,
-            Category = RailCategory.Gpu,
-            Root = panel,
-            ApplySample = _ => { },
-            FormatReading = _ => stat.Text,
-            RefreshTheme = () =>
+                Text = L10n.Get("Host_Gpu_UnavailableNote"),
+                FontSize = 12,
+                Opacity = 0.68,
+                TextWrapping = TextWrapping.Wrap,
+                Visibility = Visibility.Visible
+            };
+
+            string vramText = gpu.MemoryBytes is { } bytes
+                ? (bytes >= 1024UL * 1024 * 1024 ? $"{bytes / 1073741824.0:0.#} GB" : $"{bytes / 1048576.0:0} MB")
+                : "---";
+            string partText = L10n.Get(gpu.IsPartitionable ? "Host_Gpu_Supported" : "Host_Gpu_Unsupported");
+            string policyText = L10n.Get(inventory.GpuRestrictionsRelaxed switch { true => "Host_Gpu_PolicyUnlocked", false => "Host_Gpu_PolicyDefault", null => "Common_Unavailable" });
+
+            var kvBorder = new Border();
+            var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
+            var scaleHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+            panel.Children.Add(noCounterNote);
+            panel.Children.Add(scaleHost);
+            panel.Children.Add(chartsGrid);
+            panel.Children.Add(kvBorder);
+            chartsGrid.Visibility = scaleHost.Visibility = Visibility.Collapsed;
+
+            void RenderGpuKv()
             {
-                Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Gpu);
-                chart3d.SetAccentColor(custom);
-                chartCopy.SetAccentColor(custom);
-                chartEnc.SetAccentColor(custom);
-                chartDec.SetAccentColor(custom);
-                RenderGpuKv();
+                scaleHost.Content = HostUiHelpers.BuildScaleBar(ActualTheme, L10n.Get("Host_Gpu_Scale"), "100%");
+                kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
+                (HostUiHelpers.KvTileSpec[])[
+                    new(L10n.Get("Overview_GpuChipVendor"), gpu.Manu, CopyValue: string.IsNullOrWhiteSpace(gpu.Manu) ? null : gpu.Manu),
+                    new(L10n.Get("Overview_GpuBoardVendor"), gpu.Vendor, CopyValue: string.IsNullOrWhiteSpace(gpu.Vendor) ? null : gpu.Vendor),
+                    new(L10n.Get("Overview_GpuDedicatedVram"), vramText),
+                    new(L10n.Get("Overview_GpuDriverVersion"), gpu.DriverVersion, CopyValue: string.IsNullOrWhiteSpace(gpu.DriverVersion) ? null : gpu.DriverVersion),
+                    new(L10n.Get("Host_Gpu_Partition"), partText),
+                    new(L10n.Get("Host_Gpu_Policy"), policyText),
+                    new(L10n.Get("Overview_GpuDevicePath"), gpu.InstanceId, Wide: true, CopyValue: string.IsNullOrWhiteSpace(gpu.InstanceId) ? null : gpu.InstanceId)
+                ], CopySuccessToast, CopyErrorBanner);
             }
+
+            static void AddReading(VmUsageChart chart, double? value)
+            {
+                if (value is double pct && double.IsFinite(pct))
+                {
+                    double clamped = Math.Clamp(pct, 0, 100);
+                    chart.Add(clamped, $"{clamped:0}%");
+                }
+            }
+
+            return new DetailPanelEntry
+            {
+                Key = key,
+                Category = RailCategory.Gpu,
+                Root = panel,
+                ApplySample = sample =>
+                {
+                    if (!sample.Gpus.TryGetValue(gpu.InstanceId, out var g))
+                    {
+                        chartsGrid.Visibility = scaleHost.Visibility = Visibility.Collapsed;
+                        noCounterNote.Visibility = Visibility.Visible;
+                        return;
+                    }
+                    chartsGrid.Visibility = scaleHost.Visibility = Visibility.Visible;
+                    noCounterNote.Visibility = Visibility.Collapsed;
+                    AddReading(chart3d, g.Pct3D);
+                    AddReading(chartCopy, g.PctCopy);
+                    AddReading(chartEnc, g.PctEnc);
+                    AddReading(chartDec, g.PctDec);
+                },
+                FormatReading = _ => stat.Text,
+                RefreshTheme = () =>
+                {
+                    Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Gpu);
+                    chart3d.SetAccentColor(custom);
+                    chartCopy.SetAccentColor(custom);
+                    chartEnc.SetAccentColor(custom);
+                    chartDec.SetAccentColor(custom);
+                    RenderGpuKv();
+                }
+            };
         };
 
         item.UpdateSample = sample =>
         {
-            if (!sample.Gpus.TryGetValue(gpu.InstanceId, out var g))
-            {
-                noCounterNote.Visibility = Visibility.Visible;
-                return;
-            }
-            chartsGrid.Visibility = scaleHost.Visibility = Visibility.Visible;
-            noCounterNote.Visibility = Visibility.Collapsed;
-            AddReading(chart3d, g.Pct3D);
-            AddReading(chartCopy, g.PctCopy);
-            AddReading(chartEnc, g.PctEnc);
-            AddReading(chartDec, g.PctDec);
+            if (!sample.Gpus.TryGetValue(gpu.InstanceId, out var g)) return;
             if (new[] { g.Pct3D, g.PctCopy, g.PctEnc, g.PctDec }.Max() is double peak)
             {
                 spark.Add(peak);
@@ -390,87 +400,89 @@ internal sealed partial class HostStatusView
             statText: stat,
             tooltip: $"{disk.FriendlyName}\n\\\\.\\PhysicalDrive{disk.Number}");
 
-        var readChart = new VmUsageChart(L10n.Get("Host_Disk_Read"), VmUsageChartKind.Transfer, chartHeight: 136);
-        var writeChart = new VmUsageChart(L10n.Get("Host_Disk_Write"), VmUsageChartKind.Transfer, chartHeight: 136);
-
-        var transferGrid = new Grid { ColumnSpacing = 10 };
-        transferGrid.ColumnDefinitions.Add(new ColumnDefinition());
-        transferGrid.ColumnDefinitions.Add(new ColumnDefinition());
-        Grid.SetColumn(readChart, 0);
-        Grid.SetColumn(writeChart, 1);
-        transferGrid.Children.Add(readChart);
-        transferGrid.Children.Add(writeChart);
-
         string sizeText = $"{disk.SizeGiB:0.##} GB";
-        string autoMountText = inventory.VolumeAutoMountEnabled switch
+        detailFactories[key] = () =>
         {
-            true => L10n.Get("Common_On"),
-            false => L10n.Get("Common_Off"),
-            _ => "---"
-        };
-        string nvmeText = inventory.NativeNvmeEnabled switch
-        {
-            true => L10n.Get("Common_On"),
-            false => L10n.Get("Common_Off"),
-            _ => "---"
-        };
+            var readChart = new VmUsageChart(L10n.Get("Host_Disk_Read"), VmUsageChartKind.Transfer, chartHeight: 136);
+            var writeChart = new VmUsageChart(L10n.Get("Host_Disk_Write"), VmUsageChartKind.Transfer, chartHeight: 136);
 
-        var kvBorder = new Border();
-        var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
-        var scaleHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-        panel.Children.Add(scaleHost);
-        panel.Children.Add(transferGrid);
-        panel.Children.Add(kvBorder);
-        detailBodyHost.Children.Add(panel);
+            var transferGrid = new Grid { ColumnSpacing = 10 };
+            transferGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            transferGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            Grid.SetColumn(readChart, 0);
+            Grid.SetColumn(writeChart, 1);
+            transferGrid.Children.Add(readChart);
+            transferGrid.Children.Add(writeChart);
 
-        void RenderDiskKv()
-        {
-            scaleHost.Content = HostUiHelpers.BuildScaleBar(ActualTheme, L10n.Get("Host_Disk_Scale"), sizeText);
-            kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
-            (HostUiHelpers.KvTileSpec[])[
-                new(L10n.Get("Host_Disk_Status"), disk.Status, Caution: isOffline),
-                new(L10n.Get("Host_Disk_Capacity"), sizeText),
-                new(L10n.Get("Host_Disk_Passthrough"), L10n.Get(disk.CanPassthrough ? "Host_Disk_PassthroughOk" : "Host_Disk_PassthroughNo")),
-                new(L10n.Get("Host_Disk_AutoMount"), autoMountText),
-                new(L10n.Get("Host_Disk_NativeNvme"), nvmeText),
-                new(L10n.Get("Host_Disk_Serial"), disk.SerialNumber, CopyValue: string.IsNullOrWhiteSpace(disk.SerialNumber) ? null : disk.SerialNumber),
-                new(L10n.Get("Host_Disk_Path"), string.IsNullOrWhiteSpace(disk.UniqueId) ? $"\\\\.\\PhysicalDrive{disk.Number}" : disk.UniqueId, Wide: true,
-                    CopyValue: string.IsNullOrWhiteSpace(disk.UniqueId) ? $"\\\\.\\PhysicalDrive{disk.Number}" : disk.UniqueId)
-            ], CopySuccessToast, CopyErrorBanner);
-        }
+            string autoMountText = inventory.VolumeAutoMountEnabled switch
+            {
+                true => L10n.Get("Common_On"),
+                false => L10n.Get("Common_Off"),
+                _ => "---"
+            };
+            string nvmeText = inventory.NativeNvmeEnabled switch
+            {
+                true => L10n.Get("Common_On"),
+                false => L10n.Get("Common_Off"),
+                _ => "---"
+            };
 
-        detailPanels[key] = new DetailPanelEntry
-        {
-            Key = key,
-            Category = RailCategory.Disk,
-            Root = panel,
-            ApplySample = sample =>
+            var kvBorder = new Border();
+            var panel = new StackPanel { Spacing = 10, Visibility = Visibility.Collapsed };
+            var scaleHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
+            panel.Children.Add(scaleHost);
+            panel.Children.Add(transferGrid);
+            panel.Children.Add(kvBorder);
+
+            void RenderDiskKv()
             {
-                if (!isOffline && sample.Disks.TryGetValue(disk.Number, out var m))
-                {
-                    readChart.Add(m.ReadBytesPerSec, HostUiHelpers.FormatBytesPerSec(m.ReadBytesPerSec));
-                    writeChart.Add(m.WriteBytesPerSec, HostUiHelpers.FormatBytesPerSec(m.WriteBytesPerSec));
-                }
-                else if (isOffline)
-                {
-                    readChart.SetInactive();
-                    writeChart.SetInactive();
-                }
-            },
-            FormatReading = sample =>
-            {
-                if (isOffline) return L10n.Get("Host_Disk_Offline");
-                return sample.Disks.TryGetValue(disk.Number, out var m)
-                    ? $"{Math.Round(m.ActivePercent):0}% / {sizeText}"
-                    : sizeText;
-            },
-            RefreshTheme = () =>
-            {
-                Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Disk);
-                readChart.SetAccentColor(custom);
-                writeChart.SetAccentColor(custom);
-                RenderDiskKv();
+                scaleHost.Content = HostUiHelpers.BuildScaleBar(ActualTheme, L10n.Get("Host_Disk_Scale"), sizeText);
+                kvBorder.Child = HostUiHelpers.BuildTitleFirstKvGrid(ActualTheme,
+                (HostUiHelpers.KvTileSpec[])[
+                    new(L10n.Get("Host_Disk_Status"), disk.Status, Caution: isOffline),
+                    new(L10n.Get("Host_Disk_Capacity"), sizeText),
+                    new(L10n.Get("Host_Disk_Passthrough"), L10n.Get(disk.CanPassthrough ? "Host_Disk_PassthroughOk" : "Host_Disk_PassthroughNo")),
+                    new(L10n.Get("Host_Disk_AutoMount"), autoMountText),
+                    new(L10n.Get("Host_Disk_NativeNvme"), nvmeText),
+                    new(L10n.Get("Host_Disk_Serial"), disk.SerialNumber, CopyValue: string.IsNullOrWhiteSpace(disk.SerialNumber) ? null : disk.SerialNumber),
+                    new(L10n.Get("Host_Disk_Path"), string.IsNullOrWhiteSpace(disk.UniqueId) ? $"\\\\.\\PhysicalDrive{disk.Number}" : disk.UniqueId, Wide: true,
+                        CopyValue: string.IsNullOrWhiteSpace(disk.UniqueId) ? $"\\\\.\\PhysicalDrive{disk.Number}" : disk.UniqueId)
+                ], CopySuccessToast, CopyErrorBanner);
             }
+
+            return new DetailPanelEntry
+            {
+                Key = key,
+                Category = RailCategory.Disk,
+                Root = panel,
+                ApplySample = sample =>
+                {
+                    if (!isOffline && sample.Disks.TryGetValue(disk.Number, out var m))
+                    {
+                        readChart.Add(m.ReadBytesPerSec, HostUiHelpers.FormatBytesPerSec(m.ReadBytesPerSec));
+                        writeChart.Add(m.WriteBytesPerSec, HostUiHelpers.FormatBytesPerSec(m.WriteBytesPerSec));
+                    }
+                    else if (isOffline)
+                    {
+                        readChart.SetInactive();
+                        writeChart.SetInactive();
+                    }
+                },
+                FormatReading = sample =>
+                {
+                    if (isOffline) return L10n.Get("Host_Disk_Offline");
+                    return sample.Disks.TryGetValue(disk.Number, out var m)
+                        ? $"{Math.Round(m.ActivePercent):0}% / {sizeText}"
+                        : sizeText;
+                },
+                RefreshTheme = () =>
+                {
+                    Color? custom = HostUiHelpers.IsAccentEnabled ? null : ColorForCategory(RailCategory.Disk);
+                    readChart.SetAccentColor(custom);
+                    writeChart.SetAccentColor(custom);
+                    RenderDiskKv();
+                }
+            };
         };
 
         item.UpdateSample = sample =>
@@ -485,11 +497,6 @@ internal sealed partial class HostStatusView
             {
                 spark.Add(m.ReadBytesPerSec + m.WriteBytesPerSec);
                 stat.Text = $"{Math.Round(m.ActivePercent):0}%";
-                if (selectedKey != key)
-                {
-                    readChart.Add(m.ReadBytesPerSec, HostUiHelpers.FormatBytesPerSec(m.ReadBytesPerSec));
-                    writeChart.Add(m.WriteBytesPerSec, HostUiHelpers.FormatBytesPerSec(m.WriteBytesPerSec));
-                }
             }
         };
     }

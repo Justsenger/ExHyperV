@@ -5,6 +5,7 @@ using ExHyperV.App.UI.Shared.Appearance;
 using ExHyperV.App.UI.Shared.ConsoleHost;
 using ExHyperV.ConsoleIpc;
 using ExHyperV.App.UI.Shell;
+using ExHyperV.Services;
 using Microsoft.UI.Xaml;
 
 namespace ExHyperV.App;
@@ -22,6 +23,8 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     private MainWindow? window;
     private readonly AppearanceSettings settings;
+    private readonly ConsoleIpcClient ipcClient;
+    private int shutdownRequested;
     internal Microsoft.UI.WindowId MainWindowId => window?.AppWindow.Id
         ?? throw new InvalidOperationException(L10n.Get("Main_WindowNotCreated"));
 
@@ -29,7 +32,8 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public App()
     {
-        ConsoleExtensionCatalog.Local.Register(new ConsoleIpcHostConnector(new ConsoleIpcClient(new ConsoleIpcDiscovery(), 1)));
+        ipcClient = new ConsoleIpcClient(new ConsoleIpcDiscovery(), 1);
+        ConsoleExtensionCatalog.Local.Register(new ConsoleIpcHostConnector(ipcClient));
         settings = AppearanceSettings.Load();
         AppDiagnostics.Start(settings);
         UnhandledException += (_, args) => AppDiagnostics.Crash("WinUIUnhandledException", args.Exception);
@@ -42,11 +46,31 @@ public partial class App : Microsoft.UI.Xaml.Application
     {
         // Application.Current's resource projection is available once application construction has finished.
         bool login = Environment.GetCommandLineArgs().Contains(StartupRegistration.LoginArgument, StringComparer.Ordinal);
-        if (login && settings.AutoStart == StartupMode.Off) { Exit(); return; }
+        if (login && settings.AutoStart == StartupMode.Off) { Shutdown(); return; }
         Appearance = new AppAppearance(settings);
+        NativeTheme.Sync(0, settings.Theme);
         window = new MainWindow();
         if (!login || settings.AutoStart != StartupMode.Silent || !window.TryHideToTray())
             window.Activate();
         if (Appearance.Settings.AutoCheckUpdate) window.CheckForStartupUpdate();
+    }
+
+    internal void Shutdown()
+    {
+        if (Interlocked.Exchange(ref shutdownRequested, 1) != 0) return;
+        try { ipcClient.Dispose(); } catch (Exception) { }
+        try { SharedBackgroundServices.ShutdownAsync().GetAwaiter().GetResult(); } catch (Exception) { }
+        try { Exit(); } catch (Exception) { }
+        var watchdog = new Thread(() =>
+        {
+            Thread.Sleep(2500);
+            AppDiagnostics.Shutdown();
+            Environment.Exit(0);
+        })
+        {
+            IsBackground = true,
+            Name = "ExHyperV shutdown guard"
+        };
+        watchdog.Start();
     }
 }

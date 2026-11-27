@@ -6,7 +6,7 @@ namespace ExHyperV.Services;
 
 /// <summary>管理一次进程内 GPU 部署；Core 推进各步骤，并在需要确认时暂停，等待带版本标识的明确决定。</summary>
 /// <remarks>每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前状态。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器，已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场，按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。</remarks>
-public sealed class GpuDeploymentSession
+public sealed partial class GpuDeploymentSession
 {
     private readonly IGpuDeploymentBackend backend;
     private readonly GpuDeploymentMode mode;
@@ -33,6 +33,8 @@ public sealed class GpuDeploymentSession
     private bool isDriverSkipped;
     private bool outcomeUnknown;
     private bool assignmentNeedsReconciliation;
+    private int? stepProgressPercent;
+    private string? guestSetupCommand, linuxIsoPath, linuxDriverVersion, bundleError;
 
     /// <summary>创建尚未开始执行的单张 GPU 部署会话。</summary>
     /// <param name="vmId">目标虚拟机 GUID；后续会按身份核对目标。</param>
@@ -141,7 +143,16 @@ public sealed class GpuDeploymentSession
                         break;
                     case GpuPartitionSelection choice:
                         selected = ClonePartition(partitions[choice.PartitionId]);
-                        await PrepareSelectedPartitionAsync();
+                        if (selected.OsType == OperatingSystemType.Linux)
+                            EnterLinuxBundleSelection();
+                        else
+                        {
+                            SetDriverStepAsWindowsInstall();
+                            await PrepareSelectedPartitionAsync();
+                        }
+                        break;
+                    case GpuLinuxBundleSelection bundleChoice:
+                        await ExecuteLinuxBundleAsync(bundleChoice);
                         break;
                     case GpuDriverFallbackSelection fallback:
                         await VerifyTargetAsync();
@@ -152,8 +163,7 @@ public sealed class GpuDeploymentSession
                         CompleteDrivers(R.Msg_Gpu_DriverSkipped);
                         break;
                     case GpuBackToPartitions:
-                        selected = null;
-                        Ask(GpuDecisionKind.SelectPartition, R.Label_SelectPart, R.Msg_Gpu_ManualSelect);
+                        HandleBackToPartitions();
                         break;
                 }
             });
@@ -403,10 +413,16 @@ public sealed class GpuDeploymentSession
         var usable = found.Where(IsSupported).ToList();
         bool hasBitLocker = found.Any(p => p.IsBitLocker);
         bool hasLinux = found.Any(p => p.OsType == OperatingSystemType.Linux);
-        if (usable.Count == 1 && !hasBitLocker && !hasLinux)
+        if (usable.Count == 1 && !hasBitLocker)
         {
             selected = ClonePartition(usable[0]);
-            await PrepareSelectedPartitionAsync();
+            if (selected.OsType == OperatingSystemType.Linux)
+                EnterLinuxBundleSelection();
+            else
+            {
+                SetDriverStepAsWindowsInstall();
+                await PrepareSelectedPartitionAsync();
+            }
         }
         else Ask(GpuDecisionKind.SelectPartition, R.Label_SelectPart, BuildPartitionSelectMessage(usable.Count, hasLinux, hasBitLocker));
     }
@@ -425,6 +441,7 @@ public sealed class GpuDeploymentSession
 
     private async Task PrepareSelectedPartitionAsync()
     {
+        SetDriverStepAsWindowsInstall();
         await VerifyTargetAsync();
         if (!(await ReadPowerAsync()).IsOff) AskPowerOff(AfterPowerOff.Windows);
         else await ExecuteWindowsDriverSyncAsync();
@@ -487,6 +504,7 @@ public sealed class GpuDeploymentSession
             GpuConfirmation => pending.Input == GpuDecisionInput.Confirmation,
             GpuPartitionSelection => pending.Input == GpuDecisionInput.Partition,
             GpuDriverFallbackSelection => pending.Input is GpuDecisionInput.Partition or GpuDecisionInput.DriverFallback,
+            GpuLinuxBundleSelection => pending.Input == GpuDecisionInput.LinuxBundle,
             GpuBackToPartitions => pending.CanGoBack,
             _ => false
         };
@@ -495,8 +513,19 @@ public sealed class GpuDeploymentSession
         {
             if (!partitions.TryGetValue(choice.PartitionId, out var partition)) throw new ArgumentException(R.Gpu_InvalidPartition);
             if (partition.IsBitLocker) throw new ArgumentException(R.Error_Gpu_BitLocker);
-            if (partition.OsType == OperatingSystemType.Linux) throw new ArgumentException(R.Error_Gpu_LinuxUnsupported);
             if (!IsSupported(partition)) throw new ArgumentException(R.Gpu_InvalidPartition);
+        }
+        if (decision is GpuLinuxBundleSelection bundleChoice)
+        {
+            if (!Enum.IsDefined(bundleChoice.Source))
+                throw new ArgumentException(R.Error_Gpu_LinuxInvalidBundleDecision);
+            if (bundleChoice.Source == GpuLinuxBundleSource.LocalFile)
+            {
+                string? localPath = bundleChoice.LocalBundlePath?.Trim();
+                if (string.IsNullOrWhiteSpace(localPath)
+                    || !localPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    throw new ArgumentException(R.Error_Gpu_LinuxInvalidBundleDecision);
+            }
         }
         if (decision is GpuDriverFallbackSelection fallback && !Enum.IsDefined(fallback.Action))
         {
@@ -505,7 +534,7 @@ public sealed class GpuDeploymentSession
     }
 
     private static bool IsSupported(DiskPartitionInfo p) =>
-        !p.IsBitLocker && p.OsType == OperatingSystemType.Windows;
+        !p.IsBitLocker && p.OsType is OperatingSystemType.Windows or OperatingSystemType.Linux;
 
     private static bool IsPartitionFallbackReason(string? message)
     {
@@ -540,6 +569,7 @@ public sealed class GpuDeploymentSession
 
     private void SetStep(GpuDeploymentStepStatus status, string? description, string? log = null)
     {
+        stepProgressPercent = null;
         if (index < steps.Count)
             steps[index] = steps[index] with { Status = status, Description = description ?? steps[index].Description };
         Publish(log);
@@ -605,6 +635,11 @@ public sealed class GpuDeploymentSession
             PendingCleanupAdapterId = cleanupAdapterIds.FirstOrDefault(),
             PendingCleanupAdapterIds = Array.AsReadOnly(cleanupAdapterIds.ToArray()),
             IsDriverSkipped = isDriverSkipped,
+            StepProgressPercent = stepProgressPercent,
+            GuestSetupCommand = guestSetupCommand,
+            LinuxIsoPath = linuxIsoPath,
+            LinuxDriverVersion = linuxDriverVersion,
+            BundleError = bundleError,
             Recovery = backend.GetRecovery()
         };
         Volatile.Write(ref snapshot, next);
@@ -627,7 +662,7 @@ public sealed class GpuDeploymentSession
             Add(GpuDeploymentStepKind.Assign, R.Task_Gpu_Assign, R.Msg_Gpu_Creating);
         }
         if (mode != GpuDeploymentMode.AddWithoutDrivers)
-            Add(GpuDeploymentStepKind.Driver, R.Task_Gpu_Driver, R.Msg_Gpu_WaitingScan);
+            Add(GpuDeploymentStepKind.Driver, R.Task_Gpu_SelectPartition, R.Msg_Gpu_WaitingScan);
         return result;
     }
 }
@@ -655,6 +690,13 @@ internal interface IGpuDeploymentBackend
     Task<List<DiskPartitionInfo>> GetPartitionsAsync();
     Task<(bool Success, string Message)> SyncWindowsAsync(DiskPartitionInfo partition, Action<string> log);
     Task RecordGuestDriverVersionsAsync() => Task.CompletedTask;
+    string? GetPrimaryDriverVersion() => null;
+    Task<string> DownloadLinuxBundleAsync(Action<int, string> progress, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+    Task<string> SynthesizeLinuxIsoAsync(string? bundlePath, Action<int, string> progress, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+    Task MountLinuxIsoAsync(string isoPath, CancellationToken cancellationToken)
+        => throw new NotSupportedException();
 }
 
 internal sealed class GpuDeploymentCleanupException(string message) : Exception(message);
@@ -807,4 +849,24 @@ internal sealed class NativeGpuDeploymentBackend(
         if (!result.Success) throw new CoreOperationException(result);
         return true;
     });
+
+    public string? GetPrimaryDriverVersion() => selectedGpus
+        .Select(g => g.DriverVersion)
+        .FirstOrDefault(v => !string.IsNullOrWhiteSpace(v))
+        ?.Trim();
+
+    public Task<string> DownloadLinuxBundleAsync(Action<int, string> progress, CancellationToken cancellationToken) =>
+        recovery.RunAsync("LinuxBundleDownload",
+            () => LinuxGpuPvBundleService.DownloadLatestAsync(progress, cancellationToken));
+
+    public Task<string> SynthesizeLinuxIsoAsync(string? bundlePath, Action<int, string> progress, CancellationToken cancellationToken) =>
+        recovery.RunAsync("LinuxIsoSynthesize",
+            () => LinuxGpuPvRuntimeService.SynthesizeIsoAsync(vmId, selectedGpus, bundlePath ?? string.Empty, progress, cancellationToken));
+
+    public Task MountLinuxIsoAsync(string isoPath, CancellationToken cancellationToken) =>
+        recovery.RunAsync("LinuxMountIso", async () =>
+        {
+            await LinuxGpuPvRuntimeService.MountIsoToVmAsync(vmId, isoPath, cancellationToken).ConfigureAwait(false);
+            return true;
+        });
 }

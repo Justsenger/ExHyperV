@@ -139,10 +139,24 @@ public sealed partial class VmDashboardView
         ]);
     }
 
+    private (ElementTheme Theme, bool? DynamicEnabled, long? MinMiB, long? MaxMiB, bool Running, int? Pressure, long? Demand, long? SmartPaging)? lastMemoryKvState;
+
     private void RenderMemoryKvCard()
     {
         bool running = stateVerified && state == VmState.Running;
         bool dynamicOn = memDynamicEnabled == true;
+        var nextState = (
+            ActualTheme,
+            memDynamicEnabled,
+            dynamicOn ? memMinMiB : null,
+            dynamicOn ? memMaxMiB : null,
+            running,
+            dynamicOn && running ? memPressurePercent : null,
+            dynamicOn && running ? memDemandMiB : null,
+            dynamicOn && running && memSmartPagingMiB is > 0 ? memSmartPagingMiB : null);
+        if (lastMemoryKvState == nextState && MemoryKvCard.Child != null) return;
+        lastMemoryKvState = nextState;
+
         string dynText = memDynamicEnabled switch { true => L10n.Get("Common_On"), false => L10n.Get("Common_Off"), _ => "---" };
 
         var items = new List<(string Title, string StateText, string? Tooltip, bool Caution)>

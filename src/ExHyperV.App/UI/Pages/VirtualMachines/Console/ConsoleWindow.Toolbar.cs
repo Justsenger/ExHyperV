@@ -43,7 +43,9 @@ public sealed partial class ConsoleWindow
         Tip(Sas, L10n.Get("Console_SendSas"));
         Tip(CapsuleSas, L10n.Get("Console_SendSas"));
         Tip(Screenshot, L10n.Get("Console_Capture"));
+        Tip(Fps, L10n.Get("Console_FpsTip"));
         Tip(Pin, L10n.Get("Console_Pin"));
+        FpsButtonLabel.Text = L10n.Get("Console_Fps");
         SasLabel.Text = L10n.Get("Console_Sas");
         ExitLabel.Text = L10n.Get("Console_ExitFullscreen");
         ConnectingText.Text = L10n.Get("Console_Connecting");
@@ -52,6 +54,7 @@ public sealed partial class ConsoleWindow
 
     private void Render()
     {
+        if (closing) return;
         bool running = powerState == VmState.Running;
         bool disabled = view == View.Disabled;
         bool connected = view == View.Connected && connection != null;
@@ -105,12 +108,8 @@ public sealed partial class ConsoleWindow
                     : micLive ? "Console_MicMute" : "Console_MicUnmute"));
         Sas.IsEnabled = CapsuleSas.IsEnabled = connected && sessionState.CanInput;
         Screenshot.IsEnabled = connected && sessionState.Allows(ConsoleCapabilities.Video);
-        var status = new List<string>();
-        if (connected && !sessionState.CanInput) status.Add(L10n.Get("Console_ViewOnly"));
-        if (connected && sessionState.Transport is ConsoleTransportKind.GpuShared or ConsoleTransportKind.CpuShared)
-            status.Add(sessionState.Transport.ToString());
-        AccessText.Text = string.Join(" / ", status);
-        AccessBadge.Visibility = ShowWhen(status.Count != 0);
+        AccessText.Text = connected && !sessionState.CanInput ? L10n.Get("Console_ViewOnly") : "";
+        AccessBadge.Visibility = ShowWhen(connected && !sessionState.CanInput);
         Surface.IsTabStop = Sas.IsEnabled;
         ExtensionDetails.Visibility = ShowWhen(extensionStatus && view == View.Disconnected);
         if (ExtensionDetails.Visibility == Visibility.Visible)
@@ -118,6 +117,8 @@ public sealed partial class ConsoleWindow
         else ExtensionDetails.Content = null;
         FullscreenIcon.Glyph = fullscreen ? "\uE688" : "\uE685";
         Tip(Fullscreen, L10n.Get(fullscreen ? "Console_ExitFullscreen" : "Console_Fullscreen"));
+        SyncFpsTracking();
+        UpdateFpsOverlay(connected);
         Pin.Background = pinned ? SelectedFill : null;
         Scroll.Visibility = ShowWhen(connected);
         Overlay.Visibility = ShowWhen(!connected);
@@ -132,6 +133,88 @@ public sealed partial class ConsoleWindow
         StateAction.Visibility = ShowWhen((!extensionStatus && view == View.Disconnected) || view == View.Stopped);
         StateAction.Content = L10n.Get(view == View.Stopped ? "Console_StartConnect" : "Console_Reconnect");
         StateAction.IsEnabled = view != View.Stopped || Power.IsEnabled;
+    }
+
+    private int fpsTracking;
+    private int presentedFrameCounter;
+    private int prevFpsCount;
+    private double prevFpsDt;
+    private long fpsSampleTimestamp;
+    private bool fpsVisible;
+    private int? displayedFps;
+
+    internal void RecordPresentedFrame()
+    {
+        if (Volatile.Read(ref fpsTracking) != 0)
+            Interlocked.Increment(ref presentedFrameCounter);
+    }
+
+    private void OnFpsToggle(object sender, RoutedEventArgs e)
+    {
+        fpsVisible = !fpsVisible;
+        SyncFpsTracking();
+        UpdateFpsOverlay(view == View.Connected && connection != null);
+        if (view == View.Connected) FocusGuestSurface();
+    }
+
+    private void SyncFpsTracking()
+    {
+        bool shouldTrack = !closing && fpsVisible && view == View.Connected && connection != null;
+        if (shouldTrack)
+        {
+            Volatile.Write(ref fpsTracking, 1);
+            if (!fpsTimer.IsEnabled)
+            {
+                Interlocked.Exchange(ref presentedFrameCounter, 0);
+                fpsSampleTimestamp = System.Diagnostics.Stopwatch.GetTimestamp();
+                prevFpsCount = 0;
+                prevFpsDt = 0;
+                displayedFps = null;
+                fpsTimer.Start();
+            }
+        }
+        else
+        {
+            Volatile.Write(ref fpsTracking, 0);
+            if (fpsTimer.IsEnabled) fpsTimer.Stop();
+            prevFpsCount = 0;
+            prevFpsDt = 0;
+            displayedFps = null;
+        }
+    }
+
+    private void UpdateFpsReadout()
+    {
+        if (closing || !fpsVisible || view != View.Connected || connection == null)
+        {
+            SyncFpsTracking();
+            UpdateFpsOverlay(false);
+            return;
+        }
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        int count = Interlocked.Exchange(ref presentedFrameCounter, 0);
+        double dt = System.Diagnostics.Stopwatch.GetElapsedTime(fpsSampleTimestamp, now).TotalSeconds;
+        fpsSampleTimestamp = now;
+        if (dt > 0.05)
+        {
+            double totalDt = prevFpsDt + dt;
+            int totalFrames = prevFpsCount + count;
+            displayedFps = totalDt > 0 ? Math.Max(0, (int)Math.Round(totalFrames / totalDt)) : 0;
+            prevFpsCount = count;
+            prevFpsDt = dt;
+        }
+        UpdateFpsOverlay(true);
+    }
+
+    private void UpdateFpsOverlay(bool connected)
+    {
+        Fps.Background = fpsVisible ? SelectedFill : null;
+        FpsBadge.Visibility = ShowWhen(!closing && fpsVisible);
+        FpsText.Text = !fpsVisible
+            ? ""
+            : connected && displayedFps is { } fps
+                ? L10n.Format("Console_FpsReadout", fps)
+                : L10n.Get("Console_FpsIdle");
     }
 
     private static string ZoomText(int value) => value == 0 ? L10n.Get("Common_Auto") : L10n.Format("Console_Percent", value);
@@ -208,9 +291,12 @@ public sealed partial class ConsoleWindow
                     if (!result.Accepted || result.ActiveMode is not { } applied) { ResizeRejected(); return; }
                     appliedModeId = applied.Id;
                     requestedSize = (applied.Width, applied.Height);
+                    ResetWindowFit();
+                    suppressAutoGuestResize = fullscreen || windowed.State != Microsoft.UI.Windowing.OverlappedPresenterState.Restored;
                     SetFrameSize(applied.Width, applied.Height);
                     RememberDisplay();
                     Render();
+                    FocusGuestSurface();
                 })));
             return;
         }
@@ -221,11 +307,15 @@ public sealed partial class ConsoleWindow
             () =>
             {
                 if (!CanChangeDisplay || source != connection) return;
+                userResizePending = true;
                 if (connection?.Video?.Resize(size.Width, size.Height, EffectiveDesktopScale(size.Width)) != true) { ResizeRejected(); return; }
                 requestedSize = size;
-                manualWindowSize = false;
+                ResetWindowFit();
+                suppressAutoGuestResize = fullscreen || windowed.State != Microsoft.UI.Windowing.OverlappedPresenterState.Restored;
+                if (!suppressAutoGuestResize) FitWindowToAspect(size.Width, size.Height);
                 RememberDisplay();
                 Render();
+                FocusGuestSurface();
             })));
     }
 
@@ -241,15 +331,19 @@ public sealed partial class ConsoleWindow
                 {
                     if (!CanChangeDisplay) return;
                     desktopScale = value;
+                    if (value == 0) suppressAutoGuestResize = false;
                     RememberDisplay();
                     if (zoom != 0) { zoom = 0; SizeSurface(); }
                     var current = liveSize ?? requestedSize;
+                    userResizePending = true;
                     if (connection?.Video?.SupportsResize == true
                         && !connection.Video.Resize(current.Width, current.Height, EffectiveDesktopScale(current.Width)))
                     {
                         ResizeRejected();
                     }
+                    if (value == 0) ScheduleAutoGuestResize();
                     Render();
+                    FocusGuestSurface();
                 },
                 SeparatorAfter: value == 0)));
             return;
@@ -258,7 +352,7 @@ public sealed partial class ConsoleWindow
             ZoomText(value),
             value == zoom,
             true,
-            () => { zoom = value; RememberDisplay(); if (value == 0 && !manualWindowSize) FitWindowToAspect(); SizeSurface(); Render(); },
+            () => { zoom = value; RememberDisplay(); if (value == 0) { ResetWindowFit(); FitWindowToAspect(); } SizeSurface(); Render(); FocusGuestSurface(); },
             SeparatorAfter: value == 0)));
     }
 
@@ -315,6 +409,7 @@ public sealed partial class ConsoleWindow
             retryPending = false;
             retryBudget = StartupRetryLimit;
             sessionState.ResetFallback();
+            ResetWindowFit();
             SetView(View.Connecting);
             RefreshSoon();
         }
@@ -391,6 +486,7 @@ public sealed partial class ConsoleWindow
                 retryPending = false;
                 retryBudget = StartupRetryLimit;
                 sessionState.ResetFallback();
+                ResetWindowFit();
                 SetView(View.Connecting);
                 if (escalatedRestart) Notify(L10n.Get("Dash_Power_RestartEscalated"));
             }
@@ -414,6 +510,7 @@ public sealed partial class ConsoleWindow
         RememberDisplay();
         playback?.SetMuted(muted);
         Render();
+        FocusGuestSurface();
     }
 
     private bool CanSendMicrophone => sessionState.CanInput && Granted(ConsoleCapabilities.AudioInput) && Granted(ConsoleCapabilities.Input);
@@ -423,6 +520,7 @@ public sealed partial class ConsoleWindow
         if (!CanSendMicrophone || capture is not { IsAvailable: true }) return;
         capture.SetEnabled(!capture.IsCapturing);
         Render();
+        FocusGuestSurface();
     }
 
     private async void OnSwitcher(object sender, RoutedEventArgs args) => await UiEvent.RunAsync(async () =>

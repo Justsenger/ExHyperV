@@ -195,6 +195,7 @@ struct ConsoleGfx {
     UINT32 uploadW, uploadH;
 
     rdpCodecs* codecs;
+    UINT32 preparedCodecFlags;
 
     GfxSurface** surfaces;
     UINT32 surfaceCount, surfaceCap;
@@ -897,10 +898,9 @@ static UINT gfx_ResetGraphics(RdpgfxClientContext* context, const RDPGFX_RESET_G
     gfx->outputWidth = pdu->width;
     gfx->outputHeight = pdu->height;
     gfx->inFrame = FALSE;
-    if (gfx->codecs) {
+    if (gfx->codecs && gfx->preparedCodecFlags) {
         (void)freerdp_client_codecs_reset(gfx->codecs,
-            FREERDP_CODEC_CLEARCODEC | FREERDP_CODEC_PROGRESSIVE | FREERDP_CODEC_PLANAR |
-            FREERDP_CODEC_REMOTEFX | FREERDP_CODEC_NSCODEC | FREERDP_CODEC_INTERLEAVED,
+            gfx->preparedCodecFlags,
             u32_max(1u, pdu->width), u32_max(1u, pdu->height));
     }
     LeaveCriticalSection(&gfx->lock);
@@ -1185,6 +1185,26 @@ static UINT gfx_EvictCacheEntry(RdpgfxClientContext* context, const RDPGFX_EVICT
     return CHANNEL_RC_OK;
 }
 
+static BOOL gfx_ensure_codec(ConsoleGfx* gfx, UINT32 codecFlag) {
+    if (!gfx) return FALSE;
+    if (!gfx->codecs) {
+        gfx->codecs = freerdp_client_codecs_new(0);
+        if (!gfx->codecs) return FALSE;
+    }
+    if ((gfx->preparedCodecFlags & codecFlag) == codecFlag) return TRUE;
+    UINT32 w = u32_max(1920u, gfx->outputWidth);
+    UINT32 h = u32_max(1080u, gfx->outputHeight);
+    if (!freerdp_client_codecs_prepare(gfx->codecs, codecFlag, w, h)) return FALSE;
+    gfx->preparedCodecFlags |= codecFlag;
+    if (codecFlag == FREERDP_CODEC_PROGRESSIVE && gfx->codecs->progressive) {
+        for (UINT32 i = 0; i < gfx->surfaceCount; i++) {
+            GfxSurface* sf = gfx->surfaces[i];
+            if (sf) (void)progressive_create_surface_context(gfx->codecs->progressive, sf->surfaceId, sf->width, sf->height);
+        }
+    }
+    return TRUE;
+}
+
 static UINT gfx_MapSurfaceToOutput(RdpgfxClientContext* context, const RDPGFX_MAP_SURFACE_TO_OUTPUT_PDU* pdu) {
     ConsoleGfx* gfx = context ? (ConsoleGfx*)context->custom : NULL;
     if (!gfx || !pdu) return ERROR_INVALID_PARAMETER;
@@ -1379,7 +1399,7 @@ static UINT gfx_SurfaceCommand(RdpgfxClientContext* context, const RDPGFX_SURFAC
             break;
         }
         case RDPGFX_CODECID_CLEARCODEC: {
-            if (!gfx->codecs || !gfx->codecs->clear || !cmd->data || cmd->right <= cmd->left || cmd->bottom <= cmd->top) break;
+            if (!gfx_ensure_codec(gfx, FREERDP_CODEC_CLEARCODEC) || !gfx->codecs->clear || !cmd->data || cmd->right <= cmd->left || cmd->bottom <= cmd->top) break;
             ConsoleRect cr = { i32_max(0, (INT32)cmd->left), i32_max(0, (INT32)cmd->top),
                                i32_min((INT32)s->width, (INT32)cmd->right), i32_min((INT32)s->height, (INT32)cmd->bottom) };
             if (cr.right <= cr.left || cr.bottom <= cr.top) break;
@@ -1394,7 +1414,7 @@ static UINT gfx_SurfaceCommand(RdpgfxClientContext* context, const RDPGFX_SURFAC
         }
         case RDPGFX_CODECID_CAPROGRESSIVE:
         case RDPGFX_CODECID_CAPROGRESSIVE_V2: {
-            if (!gfx->codecs || !gfx->codecs->progressive || !cmd->data) break;
+            if (!gfx_ensure_codec(gfx, FREERDP_CODEC_PROGRESSIVE) || !gfx->codecs->progressive || !cmd->data) break;
             ConsoleRect fullR = { 0, 0, (INT32)s->width, (INT32)s->height };
             if (!surface_ensure_cpu_mirror(gfx, s, fullR, TRUE)) break;
             REGION16 invalid;
@@ -1416,7 +1436,7 @@ static UINT gfx_SurfaceCommand(RdpgfxClientContext* context, const RDPGFX_SURFAC
             break;
         }
         case RDPGFX_CODECID_PLANAR: {
-            if (!gfx->codecs || !gfx->codecs->planar || !cmd->data) break;
+            if (!gfx_ensure_codec(gfx, FREERDP_CODEC_PLANAR) || !gfx->codecs->planar || !cmd->data) break;
             ConsoleRect cr = { i32_max(0, (INT32)cmd->left), i32_max(0, (INT32)cmd->top),
                                i32_min((INT32)s->width, (INT32)cmd->right), i32_min((INT32)s->height, (INT32)cmd->bottom) };
             if (cr.right <= cr.left || cr.bottom <= cr.top) break;
@@ -1431,7 +1451,7 @@ static UINT gfx_SurfaceCommand(RdpgfxClientContext* context, const RDPGFX_SURFAC
             break;
         }
         case RDPGFX_CODECID_CAVIDEO: {
-            if (!gfx->codecs || !gfx->codecs->rfx || !cmd->data) break;
+            if (!gfx_ensure_codec(gfx, FREERDP_CODEC_REMOTEFX) || !gfx->codecs->rfx || !cmd->data) break;
             ConsoleRect cr = { i32_max(0, (INT32)cmd->left), i32_max(0, (INT32)cmd->top),
                                i32_min((INT32)s->width, (INT32)cmd->right), i32_min((INT32)s->height, (INT32)cmd->bottom) };
             if (cr.right <= cr.left || cr.bottom <= cr.top) break;
@@ -1558,14 +1578,7 @@ BOOL console_gfx_init(ConsoleContext* c) {
     D3D11_BUFFER_DESC cbd = { sizeof(GfxParamsCB), D3D11_USAGE_DEFAULT, D3D11_BIND_CONSTANT_BUFFER, 0, 0, 0 };
     hr |= ID3D11Device_CreateBuffer(gfx->dev, &cbd, NULL, &gfx->paramsCb);
 
-    gfx->codecs = freerdp_client_codecs_new(0);
-    if (gfx->codecs) {
-        (void)freerdp_client_codecs_prepare(gfx->codecs,
-            FREERDP_CODEC_CLEARCODEC | FREERDP_CODEC_PROGRESSIVE | FREERDP_CODEC_PLANAR |
-            FREERDP_CODEC_REMOTEFX | FREERDP_CODEC_NSCODEC | FREERDP_CODEC_INTERLEAVED, 1920, 1080);
-    }
-
-    if (FAILED(hr) || !gfx->codecs) {
+    if (FAILED(hr)) {
         c->gfx = gfx;
         console_gfx_free(c);
         return FALSE;
@@ -1651,6 +1664,10 @@ void console_gfx_free(ConsoleContext* c) {
     if (gfx->codecs) freerdp_client_codecs_free(gfx->codecs);
     safe_release(gfx->dxgiMgr);
     if (gfx->mfStarted && g_apis.pMFShutdown) (void)g_apis.pMFShutdown();
+    if (gfx->ctx) {
+        ID3D11DeviceContext_ClearState(gfx->ctx);
+        ID3D11DeviceContext_Flush(gfx->ctx);
+    }
     safe_release(gfx->ctx);
     safe_release(gfx->dev);
     LeaveCriticalSection(&gfx->lock);

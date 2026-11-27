@@ -35,8 +35,10 @@ public enum GpuDecisionKind
     PowerOff,
     /// <summary>选择目标系统分区，或选择跳过驱动。</summary>
     SelectPartition,
-    /// <summary>无法直接向分区写入驱动（如启用 BitLocker、Linux 分区或非系统分区），选择跳过驱动。</summary>
-    DriverFallback
+    /// <summary>无法直接向分区写入驱动（如启用 BitLocker 或非系统分区），选择跳过驱动。</summary>
+    DriverFallback,
+    /// <summary>为 Linux 来宾选择在线获取或本地 .zip GPU-PV 部署包。</summary>
+    SelectLinuxBundle
 }
 /// <summary>一个待确认事项所接受的输入结构。</summary>
 public enum GpuDecisionInput
@@ -46,7 +48,17 @@ public enum GpuDecisionInput
     /// <summary>使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。</summary>
     Partition,
     /// <summary>使用 GpuDriverFallbackSelection 提交跳过驱动。</summary>
-    DriverFallback
+    DriverFallback,
+    /// <summary>使用 GpuLinuxBundleSelection 提交在线或本地部署包选择。</summary>
+    LinuxBundle
+}
+/// <summary>Linux GPU-PV 部署包获取方式。</summary>
+public enum GpuLinuxBundleSource
+{
+    /// <summary>自动下载并校验最新官方部署包。</summary>
+    Online,
+    /// <summary>使用本地磁盘上已有的 linuxpv .zip 部署包。</summary>
+    LocalFile
 }
 /// <summary>无法直接写入离线驱动或用户选择不直接注入时的回退动作。</summary>
 public enum GpuDriverFallbackAction
@@ -75,13 +87,21 @@ public enum GpuDeploymentAction
 public enum GpuDeploymentStepKind
 {
     /// <summary>检查并按用户决定处理虚拟机电源状态。</summary>
-    PowerCheck,     // 关闭虚拟机
+    PowerCheck,       // 关闭虚拟机
     /// <summary>放宽宿主限制并调整 GPU 所需的缓存和 MMIO 设置。</summary>
-    Optimization,   // 参数调整
+    Optimization,     // 参数调整
     /// <summary>新增虚拟 GPU 分区适配器。</summary>
-    Assign,         // 添加显卡
-    /// <summary>安装或跳过部署来宾 GPU 驱动。</summary>
-    Driver          // 安装驱动
+    Assign,           // 添加显卡
+    /// <summary>选择系统分区，或在 Windows 分区注入来宾 GPU 驱动。</summary>
+    Driver,           // 选择分区 / 安装驱动
+    /// <summary>选择 Linux 部署包来源（在线获取或本地文件）。</summary>
+    SelectBundle,     // 选择部署包
+    /// <summary>从发布渠道下载最新 Linux 部署包。</summary>
+    DownloadBundle,   // 下载驱动
+    /// <summary>校验部署包、提取宿主 GPU 运行库并构建 GPUPV 纯 UDF 光盘镜像。</summary>
+    SynthesizeBundle, // 合成驱动
+    /// <summary>将生成的 GPUPV 光盘挂载到目标虚拟机光驱。</summary>
+    MountIso          // 挂载光盘
 }
 
 /// <summary>单个 GPU 部署步骤的执行状态。</summary>
@@ -140,6 +160,7 @@ public sealed record GpuDecisionRequest(Guid Id, GpuDecisionKind Kind, string Ti
     {
         GpuDecisionKind.SelectPartition => GpuDecisionInput.Partition,
         GpuDecisionKind.DriverFallback => GpuDecisionInput.DriverFallback,
+        GpuDecisionKind.SelectLinuxBundle => GpuDecisionInput.LinuxBundle,
         _ => GpuDecisionInput.Confirmation
     };
     /// <summary>是否为直接关闭虚拟机等具有破坏性的确认；其他步骤仍可能有配置副作用。</summary>
@@ -175,6 +196,16 @@ public sealed record GpuDeploymentSnapshot(Guid SessionId, long Revision, GpuDep
     public IReadOnlyList<string> PendingCleanupAdapterIds { get; init; } = Array.Empty<string>();
     /// <summary>本次部署是否因用户选择而跳过了驱动安装。</summary>
     public bool IsDriverSkipped { get; init; }
+    /// <summary>当前步骤执行百分比（0–100），用于下载驱动与合成驱动进度展示；无百分比进度时为 null。</summary>
+    public int? StepProgressPercent { get; init; }
+    /// <summary>Linux 驱动光盘挂载完成后需在来宾虚拟机中执行的单行安装命令。</summary>
+    public string? GuestSetupCommand { get; init; }
+    /// <summary>本次部署生成并挂载到虚拟机的 GPUPV 光盘 ISO 路径。</summary>
+    public string? LinuxIsoPath { get; init; }
+    /// <summary>本次为 Linux 来宾合成光盘时记录的宿主 GPU 驱动版本。</summary>
+    public string? LinuxDriverVersion { get; init; }
+    /// <summary>下载或校验 Linux 部署包失败但可重选恢复时的错误信息；无错误时为 null。</summary>
+    public string? BundleError { get; init; }
     /// <summary>本次部署与恢复的任务、资源、原状态及核实结果；无记录时为 null，可保存用于排查。</summary>
     public GpuDeploymentRecovery? Recovery { get; init; }
 
@@ -207,6 +238,14 @@ public sealed record GpuPartitionSelection(Guid RequestId, string PartitionId) :
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 /// <param name="Action">要执行的替代动作。</param>
 public sealed record GpuDriverFallbackSelection(Guid RequestId, GpuDriverFallbackAction Action) : GpuDeploymentDecision(RequestId);
+/// <summary>为 Linux 系统分区选择在线获取或本地 .zip GPU-PV 部署包。</summary>
+/// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
+/// <param name="Source">部署包来源。</param>
+/// <param name="LocalBundlePath">当 Source 为 LocalFile 时必须提供的本地 .zip 部署包路径；Online 时为 null。</param>
+public sealed record GpuLinuxBundleSelection(
+    Guid RequestId,
+    GpuLinuxBundleSource Source,
+    string? LocalBundlePath = null) : GpuDeploymentDecision(RequestId);
 /// <summary>请求从允许返回的待确认事项回到系统分区选择。</summary>
 /// <param name="RequestId">当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。</param>
 public sealed record GpuBackToPartitions(Guid RequestId) : GpuDeploymentDecision(RequestId);

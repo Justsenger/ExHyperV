@@ -985,7 +985,7 @@ public static partial class VmImportService
         while (visited.Add(current))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!File.Exists(current)) throw new FileNotFoundException("差分磁盘链不完整。", current);
+            if (!File.Exists(current)) throw new FileNotFoundException("差异磁盘链不完整。", current);
             paths.Add(current);
             VhdMetadata metadata = await ReadLocalVhdMetadataAsync(current, cancellationToken);
             if (string.IsNullOrWhiteSpace(metadata.ParentPath)) return;
@@ -993,7 +993,7 @@ public static partial class VmImportService
             parents[current] = parent;
             current = parent;
         }
-        throw new InvalidDataException("检测到循环差分磁盘链。");
+        throw new InvalidDataException("检测到循环差异磁盘链。");
     }
 
     private static Task SetParentAsync(VmImportSession session, string child, string parent, CancellationToken cancellationToken)

@@ -158,23 +158,251 @@ function renderAddGpuRowCardHtml(btnStyle = 'secondary-icon-text', isEmpty = fal
   `;
 }
 
+function getVmExpectedLinuxArch(vm) {
+  const hint = `${vm?.id || ''} ${vm?.name || ''}`;
+  return /arm64|aarch64/i.test(hint) ? 'aarch64' : 'x86_64';
+}
+
+async function decompressDeflateRaw(slice) {
+  if (typeof DecompressionStream === 'undefined') {
+    throw new Error('当前浏览器不支持解析压缩包内容');
+  }
+  const stream = new Blob([slice]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  const buf = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buf);
+}
+
+async function parseZipEntries(buffer) {
+  const len = buffer.byteLength;
+  if (len < 22) throw new Error('文件大小异常，不是有效的 ZIP 压缩包');
+  const view = new DataView(buffer);
+  const minOffset = Math.max(0, len - 65557);
+  let eocdPos = -1;
+  for (let i = len - 22; i >= minOffset; i -= 1) {
+    if (view.getUint32(i, true) === 0x06054b50) {
+      eocdPos = i;
+      break;
+    }
+  }
+  if (eocdPos < 0) throw new Error('文件损坏或不是有效的 ZIP 压缩包');
+  const totalEntries = view.getUint16(eocdPos + 10, true);
+  const cdSize = view.getUint32(eocdPos + 12, true);
+  const cdOffset = view.getUint32(eocdPos + 16, true);
+  if (cdOffset + cdSize > len) throw new Error('ZIP 目录索引超出文件范围');
+
+  const entries = new Map();
+  const decoder = new TextDecoder('utf-8');
+  let cursor = cdOffset;
+  for (let i = 0; i < totalEntries && cursor + 46 <= cdOffset + cdSize; i += 1) {
+    if (view.getUint32(cursor, true) !== 0x02014b50) {
+      throw new Error('ZIP 中央目录记录损坏');
+    }
+    const method = view.getUint16(cursor + 10, true);
+    const compSize = view.getUint32(cursor + 20, true);
+    const uncompSize = view.getUint32(cursor + 24, true);
+    const nameLen = view.getUint16(cursor + 28, true);
+    const extraLen = view.getUint16(cursor + 30, true);
+    const commentLen = view.getUint16(cursor + 32, true);
+    const localHeaderOffset = view.getUint32(cursor + 42, true);
+    if (compSize === 0xffffffff || uncompSize === 0xffffffff) {
+      throw new Error('不支持超限 ZIP64 分卷条目');
+    }
+    const rawName = decoder.decode(new Uint8Array(buffer, cursor + 46, nameLen));
+    const name = rawName.replace(/\\/g, '/').replace(/^\.\//, '');
+    entries.set(name, {
+      name,
+      method,
+      compSize,
+      uncompSize,
+      localHeaderOffset,
+      async readBytes() {
+        if (localHeaderOffset + 30 > len || view.getUint32(localHeaderOffset, true) !== 0x04034b50) {
+          throw new Error(`条目头损坏：${name}`);
+        }
+        const lfNameLen = view.getUint16(localHeaderOffset + 26, true);
+        const lfExtraLen = view.getUint16(localHeaderOffset + 28, true);
+        const dataStart = localHeaderOffset + 30 + lfNameLen + lfExtraLen;
+        if (dataStart + compSize > len) {
+          throw new Error(`条目数据截断：${name}`);
+        }
+        const rawSlice = new Uint8Array(buffer, dataStart, compSize);
+        if (method === 0) return rawSlice;
+        if (method === 8) return decompressDeflateRaw(rawSlice);
+        throw new Error(`不支持的压缩算法 (${method})：${name}`);
+      }
+    });
+    cursor += 46 + nameLen + extraLen + commentLen;
+  }
+  if (entries.size === 0) throw new Error('压缩包内没有任何文件');
+  return entries;
+}
+
+async function computeSha256Hex(bytes) {
+  if (typeof crypto === 'undefined' || !crypto.subtle?.digest) return null;
+  const hashBuf = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function assertElfArch(bytes, expectedArch, allowedTypes, label) {
+  if (bytes.length < 64 || bytes[0] !== 0x7f || bytes[1] !== 0x45 || bytes[2] !== 0x4c || bytes[3] !== 0x46 || bytes[4] !== 2 || bytes[5] !== 1) {
+    throw new Error(`二进制格式异常：${label}`);
+  }
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const eType = view.getUint16(16, true);
+  const eMachine = view.getUint16(18, true);
+  const expectedMachine = expectedArch === 'aarch64' ? 183 : 62;
+  if (!allowedTypes.includes(eType) || eMachine !== expectedMachine) {
+    throw new Error(`ELF 架构不匹配：${label}`);
+  }
+}
+
+async function inspectLocalLinuxPvBundle(file, expectedArch) {
+  try {
+    const buffer = await file.arrayBuffer();
+    const entries = await parseZipEntries(buffer);
+    const required = [
+      'manifest.json',
+      'prebuilt/index.json',
+      'LICENSE',
+      'guest/setup',
+      'guest/gpupv-guest',
+      'guest/d3d12-compute',
+      'lib/libdxcore.so',
+      'lib/libd3d12.so',
+      'lib/libd3d12core.so'
+    ];
+    const missing = required.filter((req) => !entries.has(req));
+    const hasKernelTree = Array.from(entries.keys()).some((k) => k.startsWith('kernel/') && !k.endsWith('/'));
+    if (!hasKernelTree) missing.push('kernel/');
+    if (missing.length > 0) {
+      return { ok: false, error: `非有效的 linuxpv 部署包，缺少：${missing.slice(0, 3).join('、')}` };
+    }
+
+    const decoder = new TextDecoder('utf-8');
+    let meta;
+    try {
+      meta = JSON.parse(decoder.decode(await entries.get('manifest.json').readBytes()));
+    } catch {
+      return { ok: false, error: 'manifest.json 解析失败，文件可能已损坏' };
+    }
+    if (meta?.schemaVersion !== 1) {
+      return { ok: false, error: `不支持的部署包格式版本 (${meta?.schemaVersion ?? '未知'})` };
+    }
+    if (meta.arch !== 'x86_64' && meta.arch !== 'aarch64') {
+      return { ok: false, error: `部署包架构标识无效 (${meta.arch || '空'})` };
+    }
+    if (expectedArch && meta.arch !== expectedArch) {
+      return { ok: false, error: `部署包架构为 ${meta.arch}，与当前虚拟机 (${expectedArch}) 不匹配` };
+    }
+    if (!Array.isArray(meta.kernels) || meta.kernels.length === 0) {
+      return { ok: false, error: 'manifest.json 缺少预编译内核索引 (kernels)' };
+    }
+
+    let indexList;
+    try {
+      indexList = JSON.parse(decoder.decode(await entries.get('prebuilt/index.json').readBytes()));
+    } catch {
+      return { ok: false, error: 'prebuilt/index.json 解析失败，文件可能已损坏' };
+    }
+    if (!Array.isArray(indexList) || indexList.length === 0) {
+      return { ok: false, error: 'prebuilt/index.json 内容为空' };
+    }
+
+    for (const libName of ['libdxcore.so', 'libd3d12.so', 'libd3d12core.so']) {
+      const libBytes = await entries.get(`lib/${libName}`).readBytes();
+      assertElfArch(libBytes, meta.arch, [3], `lib/${libName}`);
+      const expectedHash = meta.libraries?.[libName];
+      const actualHash = await computeSha256Hex(libBytes);
+      if (expectedHash && actualHash && actualHash !== expectedHash) {
+        return { ok: false, error: `运行库校验和失败：${libName}` };
+      }
+    }
+
+    const probeBytes = await entries.get('guest/d3d12-compute').readBytes();
+    assertElfArch(probeBytes, meta.arch, [2, 3], 'guest/d3d12-compute');
+    const probeHash = await computeSha256Hex(probeBytes);
+    if (meta.probeSha256 && probeHash && probeHash !== meta.probeSha256) {
+      return { ok: false, error: '计算探针校验和失败：guest/d3d12-compute' };
+    }
+
+    const sampleKernels = meta.kernels.slice(0, 3);
+    for (const kernelEntry of sampleKernels) {
+      const modPath = `prebuilt/${meta.arch}/${kernelEntry.release}/dxgkrnl.ko`;
+      const modItem = entries.get(modPath);
+      if (!modItem) {
+        return { ok: false, error: `缺少预编译内核模块：${modPath}` };
+      }
+      const modBytes = await modItem.readBytes();
+      assertElfArch(modBytes, meta.arch, [1], modPath);
+      const modHash = await computeSha256Hex(modBytes);
+      if (kernelEntry.sha256 && modHash && modHash !== kernelEntry.sha256) {
+        return { ok: false, error: `内核模块校验和失败：${kernelEntry.release}` };
+      }
+    }
+
+    return {
+      ok: true,
+      arch: meta.arch,
+      version: meta.version || '',
+      kernelCount: meta.kernels.length
+    };
+  } catch (err) {
+    return { ok: false, error: err?.message || '部署包校验失败，请确认压缩包完整有效' };
+  }
+}
+
+function inspectLocalBundlePathOnly(pathStr, expectedArch) {
+  const trimmed = String(pathStr || '').trim();
+  const fileName = trimmed.split(/[\\/]/).pop() || '';
+  if (!trimmed || !/\.zip$/i.test(fileName)) {
+    return { ok: false, error: '部署包文件需为 .zip 压缩包' };
+  }
+  const lower = fileName.toLowerCase();
+  if (!lower.includes('linuxpv') && !lower.includes('gpupv')) {
+    return { ok: false, error: '无法识别为 linuxpv 部署包，请使用“浏览”选择有效 .zip 并核验内容' };
+  }
+  const hasArmHint = /(aarch64|arm64)/i.test(lower);
+  const hasX64Hint = /(x86_64|amd64|x64)/i.test(lower);
+  if (expectedArch === 'x86_64' && hasArmHint && !hasX64Hint) {
+    return { ok: false, error: '部署包架构为 aarch64，与当前虚拟机 (x86_64) 不匹配' };
+  }
+  if (expectedArch === 'aarch64' && hasX64Hint && !hasArmHint) {
+    return { ok: false, error: '部署包架构为 x86_64，与当前虚拟机 (aarch64) 不匹配' };
+  }
+  if (/(invalid|corrupt|broken|bad)/i.test(lower)) {
+    return { ok: false, error: '部署包摘要校验失败或文件已损坏' };
+  }
+  return { ok: true };
+}
+
 function getDriverStepLabel(deployMode) {
   return deployMode === 'update-drivers' ? '升级驱动' : '安装驱动';
 }
 
-function getDeployStepsForMode(deployMode) {
-  if (deployMode === 'update-drivers') {
-    return ['关闭虚拟机', getDriverStepLabel(deployMode)];
-  }
+function getDeployStepsForMode(deployMode, targetOs, bundleSource = 'online') {
   if (deployMode === 'assign-only') {
     return ['参数调整', '添加显卡'];
   }
-  return ['关闭虚拟机', '参数调整', '添加显卡', getDriverStepLabel(deployMode)];
+  const baseSteps =
+    deployMode === 'update-drivers'
+      ? ['关闭虚拟机', '选择分区']
+      : ['关闭虚拟机', '参数调整', '添加显卡', '选择分区'];
+  if (targetOs === 'windows') {
+    return [...baseSteps, getDriverStepLabel(deployMode)];
+  }
+  if (targetOs === 'linux') {
+    return bundleSource === 'local'
+      ? [...baseSteps, '选择部署包', '合成驱动', '挂载光盘']
+      : [...baseSteps, '选择部署包', '下载驱动', '合成驱动', '挂载光盘'];
+  }
+  return baseSteps;
 }
 
-function getDeployActiveStepIdx(deployMode, decision, simIdx) {
-  const steps = getDeployStepsForMode(deployMode);
-  if (decision === 'Completed' || decision === 'CompletedSkipped') {
+function getDeployActiveStepIdx(deployMode, decision, simIdx, targetOs, bundleSource = 'online') {
+  const steps = getDeployStepsForMode(deployMode, targetOs, bundleSource);
+  if (decision === 'Completed' || decision === 'CompletedSkipped' || decision === 'CompletedLinuxMount') {
     return steps.length;
   }
   if (Number.isInteger(simIdx) && simIdx >= 0) return Math.min(simIdx, steps.length - 1);
@@ -236,9 +464,10 @@ export function renderGpuWorkbench(host, ctx) {
     }
     if (INITIAL_GPU_PARTITIONS.length === 1) {
       const only = INITIAL_GPU_PARTITIONS[0];
-      if (!only.locked && only.osType === 'Windows') {
+      if (!only.locked && (only.osType === 'Windows' || only.osType === 'Linux')) {
         state.gpuSelectedPartitionId = only.id;
-        return 'AutoWindows';
+        state.gpuDeployTargetOs = only.osType === 'Linux' ? 'linux' : 'windows';
+        return only.osType === 'Linux' ? 'SelectBundle' : 'AutoWindows';
       }
     }
     return 'SelectPartition';
@@ -248,7 +477,8 @@ export function renderGpuWorkbench(host, ctx) {
     clearDeployTimer();
     const mode = state.gpuDeployMode || 'add-with-drivers';
     const driverStepLabel = getDriverStepLabel(mode);
-    const steps = getDeployStepsForMode(mode);
+    const bundleSource = state.gpuLinuxBundleSource || 'online';
+    const steps = getDeployStepsForMode(mode, state.gpuDeployTargetOs, bundleSource);
     const curIdx = Number.isInteger(state.gpuDeploySimIdx) ? state.gpuDeploySimIdx : 0;
     const curLabel = steps[curIdx];
 
@@ -257,7 +487,7 @@ export function renderGpuWorkbench(host, ctx) {
       rerender();
       return;
     }
-    if (curLabel === driverStepLabel && !state.gpuDeployPartitionResolved) {
+    if (curLabel === '选择分区' && !state.gpuDeployPartitionResolved) {
       const nextDec = resolveAfterScanDecision();
       if (nextDec === 'SelectPartition' || nextDec === 'FallbackOptions') {
         state.gpuDeployDecision = nextDec;
@@ -265,6 +495,74 @@ export function renderGpuWorkbench(host, ctx) {
         return;
       }
       state.gpuDeployPartitionResolved = true;
+      if (nextDec === 'SelectBundle') {
+        const linuxSteps = getDeployStepsForMode(mode, 'linux', bundleSource);
+        state.gpuDeploySimIdx = linuxSteps.indexOf('选择部署包');
+        state.gpuDeployDecision = 'SelectBundle';
+        rerender();
+        return;
+      }
+      const winSteps = getDeployStepsForMode(mode, 'windows');
+      state.gpuDeploySimIdx = winSteps.indexOf(driverStepLabel);
+      state.gpuDeployDecision = 'Running';
+      rerender();
+      advanceDeploySimulation();
+      return;
+    }
+
+    if (curLabel === '下载驱动') {
+      const curPct = Number.isFinite(state.gpuDeployProgressPct) ? state.gpuDeployProgressPct : 0;
+      if (curPct < 100) {
+        state.gpuDeployProgressPhase = 'download';
+        state.gpuDeployTimer = setTimeout(() => {
+          if (state.gpuMode !== 'deploy') return;
+          state.gpuDeployProgressPct = Math.min(100, curPct + 25);
+          rerender();
+          advanceDeploySimulation();
+        }, 160);
+        return;
+      }
+    }
+
+    if (curLabel === '合成驱动') {
+      const curPct = Number.isFinite(state.gpuDeployProgressPct) ? state.gpuDeployProgressPct : 0;
+      const isOnline = bundleSource === 'online';
+      if (curPct < 100) {
+        if (!state.gpuDeployProgressPhase) {
+          state.gpuDeployProgressPhase = 'verify';
+        }
+        state.gpuDeployTimer = setTimeout(async () => {
+          if (state.gpuMode !== 'deploy') return;
+          if (!isOnline && state.gpuDeployProgressPhase === 'verify' && curPct >= 20) {
+            const expectedArch = getVmExpectedLinuxArch(vm);
+            const verifyRes = state.gpuLinuxLocalFile
+              ? await inspectLocalLinuxPvBundle(state.gpuLinuxLocalFile, expectedArch)
+              : inspectLocalBundlePathOnly(state.gpuLinuxLocalBundlePath, expectedArch);
+            if (state.gpuMode !== 'deploy') return;
+            if (!verifyRes.ok) {
+              clearDeployTimer();
+              state.gpuDeployProgressPct = null;
+              state.gpuDeployProgressPhase = null;
+              state.gpuDeployBundleError = verifyRes.error || '部署包校验失败';
+              state.gpuDeployDecision = 'BundleVerifyFailed';
+              rerender();
+              return;
+            }
+          }
+          let nextPct = curPct;
+          if (curPct < 36) {
+            state.gpuDeployProgressPhase = 'verify';
+            nextPct = Math.min(36, curPct + 18);
+          } else {
+            state.gpuDeployProgressPhase = 'merge';
+            nextPct = Math.min(100, (curPct < 40 ? 40 : curPct) + 20);
+          }
+          state.gpuDeployProgressPct = nextPct;
+          rerender();
+          advanceDeploySimulation();
+        }, 160);
+        return;
+      }
     }
 
     state.gpuDeployTimer = setTimeout(() => {
@@ -277,12 +575,23 @@ export function renderGpuWorkbench(host, ctx) {
           markVmGpuDriversDeployed(state.gpuAssignmentsByVm[vm.id], HOST_GPUS);
           state.gpuDriverMismatch = false;
         }
+        if (state.gpuDeployTargetOs === 'linux') {
+          clearDeployTimer();
+          state.gpuDeployPendingFinish = null;
+          state.gpuDeployProgressPct = null;
+          state.gpuDeployProgressPhase = null;
+          state.gpuDeployDecision = 'CompletedLinuxMount';
+          rerender();
+          return;
+        }
         const finalDecision = state.gpuDeployPendingFinish || 'Completed';
         state.gpuDeployPendingFinish = null;
         state.gpuDeployDecision = finalDecision;
         if (finalDecision === 'Completed') {
           clearDeployTimer();
           state.gpuDeployProgressPct = null;
+          state.gpuDeployProgressPhase = null;
+          state.gpuDeployTargetOs = null;
           state.gpuMode = 'list';
           renderDashboardSummary();
           rerender();
@@ -298,6 +607,10 @@ export function renderGpuWorkbench(host, ctx) {
         rerender();
         return;
       }
+      const nextStepLabel = steps[nextIdx];
+      state.gpuDeployProgressPct = nextStepLabel === '下载驱动' || nextStepLabel === '合成驱动' ? 0 : null;
+      state.gpuDeployProgressPhase =
+        nextStepLabel === '下载驱动' ? 'download' : nextStepLabel === '合成驱动' ? 'verify' : null;
       state.gpuDeploySimIdx = nextIdx;
       state.gpuDeployDecision = 'Running';
       rerender();
@@ -370,7 +683,7 @@ export function renderGpuWorkbench(host, ctx) {
       <div class="dev-stack">
         <div class="winui-card" style="margin-bottom:0;">
           <div class="winui-card-row">
-            ${renderSettingLabelHtml('安装驱动', '为 Windows 虚拟机离线注入驱动')}
+            ${renderSettingLabelHtml('安装驱动')}
             <div class="winui-switch ${state.installGpuDrivers ? 'on' : ''}" id="gpuInstallDrvSwitch" data-custom-switch="true" role="switch" aria-checked="${state.installGpuDrivers}">
               <div class="winui-switch-track"><div class="winui-switch-thumb"></div></div>
             </div>
@@ -432,9 +745,12 @@ export function renderGpuWorkbench(host, ctx) {
       state.gpuAssignmentsByVm[vm.id] = existing;
       state.gpuScenario = 'normal';
       state.gpuDeployMode = state.installGpuDrivers ? 'add-with-drivers' : 'assign-only';
+      state.gpuDeployTargetOs = null;
       state.gpuDeployPartitionResolved = false;
       state.gpuDeployPendingFinish = null;
       state.gpuDeployProgressPct = null;
+      state.gpuDeployProgressPhase = null;
+      state.gpuDeployBundleError = '';
       state.gpuDeploySimIdx = 0;
       state.gpuDeployDecision = 'Running';
       state.gpuMode = 'deploy';
@@ -453,17 +769,20 @@ export function renderGpuWorkbench(host, ctx) {
   // =========================================================================
   if (state.gpuMode === 'deploy') {
     ctx.setPageTabsTrailingAction?.('', null);
+    const LINUX_GPUPV_SETUP_CMD = 'sudo mount -L GPUPV /mnt && sudo sh /mnt/setup';
     const deployMode = state.gpuDeployMode || 'add-with-drivers';
     const driverStepLabel = getDriverStepLabel(deployMode);
     const decision = state.gpuDeployDecision || 'Running';
-    const steps = getDeployStepsForMode(deployMode);
-    const activeIdx = getDeployActiveStepIdx(deployMode, decision, state.gpuDeploySimIdx);
-    const isDone = decision === 'Completed' || decision === 'CompletedSkipped';
+    const activeBundleSource = state.gpuLinuxBundleSource || 'online';
+    const steps = getDeployStepsForMode(deployMode, state.gpuDeployTargetOs, activeBundleSource);
+    const activeIdx = getDeployActiveStepIdx(deployMode, decision, state.gpuDeploySimIdx, state.gpuDeployTargetOs, activeBundleSource);
+    const isDone = decision === 'Completed' || decision === 'CompletedSkipped' || decision === 'CompletedLinuxMount';
 
     let inlineActionsStep = '';
     let inlineActionsHtml = '';
     let inlineDecisionTargetStep = '';
     let decisionBoxHtml = '';
+    let completionBoxHtml = '';
 
     if (decision === 'PowerOff') {
       inlineActionsStep = '关闭虚拟机';
@@ -474,32 +793,22 @@ export function renderGpuWorkbench(host, ctx) {
         </div>
       `;
     } else if (decision === 'FallbackOptions') {
-      inlineActionsStep = driverStepLabel;
+      inlineActionsStep = '选择分区';
       inlineActionsHtml = `
         <div class="dev-action-row" style="margin-top:0;">
           <button class="winui-btn" id="gpuDecisionCancelBtn" type="button">返回</button>
-          <button class="winui-btn" id="gpuDecisionSkipDriverBtn" type="button">跳过驱动</button>
         </div>
       `;
     } else if (decision === 'SelectPartition') {
-      inlineDecisionTargetStep = driverStepLabel;
+      inlineDecisionTargetStep = '选择分区';
       const selectedPart = INITIAL_GPU_PARTITIONS.find((p) => p.id === state.gpuSelectedPartitionId) || INITIAL_GPU_PARTITIONS[0];
       const partRows = INITIAL_GPU_PARTITIONS.map((p) => {
         const sel = (selectedPart?.id || '') === p.id;
-        const isLinux = p.osType === 'Linux';
-        const helpText = p.locked
-          ? '已开启 BitLocker 保护，请先解除 BitLocker 后再注入驱动。'
-          : isLinux
-            ? '检测到 Linux 分区，当前暂不支持为其部署驱动。'
-            : '';
+        const helpText = p.locked ? '已开启 BitLocker 保护，请先解除 BitLocker 后再继续部署驱动。' : '';
         const infoBtnHtml = helpText
           ? `<button class="setting-info-btn" style="width:18px;height:18px;padding:0;" data-info-desc="${escapeDeviceHtml(helpText)}" title="${escapeDeviceHtml(helpText)}" type="button"><span class="fi" style="font-size:14px;">&#xE946;</span></button>`
           : '';
-        const statusTag = p.locked
-          ? '<span class="dev-picker-tag">需先解除 BitLocker</span>'
-          : isLinux
-            ? '<span class="dev-picker-tag">暂不支持</span>'
-            : '';
+        const statusTag = p.locked ? '<span class="dev-picker-tag">需先解除 BitLocker</span>' : '';
         return `
           <div class="dev-picker-row ${sel ? 'is-selected' : ''}" data-gpu-part="${p.id}">
             <span class="dev-radio"></span>
@@ -516,14 +825,13 @@ export function renderGpuWorkbench(host, ctx) {
         `;
       }).join('');
 
-      const isUnsupported = !selectedPart || selectedPart.locked || selectedPart.osType !== 'Windows';
+      const isUnsupported =
+        !selectedPart || selectedPart.locked || (selectedPart.osType !== 'Windows' && selectedPart.osType !== 'Linux');
       const noticeText = !isUnsupported
         ? ''
         : selectedPart?.locked
           ? '解除 BitLocker 后才能继续安装驱动。'
-          : selectedPart?.osType === 'Linux'
-            ? '暂不支持为 Linux 安装 GPU 驱动。'
-            : '所选分区不支持注入驱动，请选择未加密的 Windows 系统分区或跳过驱动。';
+          : '所选分区不支持部署驱动，请选择未加密的 Windows 或 Linux 系统分区。';
       const noticeHtml = noticeText
         ? `<div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);margin-top:2px;">${escapeDeviceHtml(noticeText)}</div>`
         : '';
@@ -534,8 +842,100 @@ export function renderGpuWorkbench(host, ctx) {
           ${noticeHtml}
           <div class="dev-action-row" style="justify-content:flex-end;">
             <button class="winui-btn" id="gpuBackListFromDeployBtn" type="button">返回</button>
-            <button class="winui-btn" id="gpuDecisionSkipDriverBtn" type="button">跳过驱动</button>
             <button class="winui-btn accent" id="gpuDecisionPartNextBtn" type="button" ${isUnsupported ? 'disabled' : ''}>继续</button>
+          </div>
+        </div>
+      `;
+    } else if (decision === 'SelectBundle') {
+      inlineDecisionTargetStep = '选择部署包';
+      const bundleSource = state.gpuLinuxBundleSource || 'online';
+      const localPath = String(state.gpuLinuxLocalBundlePath || '').trim();
+      const hasZipExt = localPath.length > 0 && /\.zip$/i.test(localPath);
+      const inspectState = state.gpuLinuxLocalFile ? state.gpuLinuxBundleInspect : null;
+      let inspectBannerHtml = '';
+      if (bundleSource === 'local') {
+        if (localPath && !hasZipExt) {
+          inspectBannerHtml = renderStorageInlineBannerHtml({ severity: 'error', text: '部署包文件需为 .zip 压缩包' });
+        } else if (inspectState?.status === 'checking') {
+          inspectBannerHtml = renderStorageInlineBannerHtml({ severity: 'info', text: '正在校验部署包...' });
+        } else if (inspectState?.status === 'error') {
+          inspectBannerHtml = renderStorageInlineBannerHtml({ severity: 'error', text: inspectState.error });
+        } else if (inspectState?.status === 'valid') {
+          const verSuffix = inspectState.version ? `，${inspectState.version}` : '';
+          inspectBannerHtml = renderStorageInlineBannerHtml({
+            severity: 'success',
+            text: `部署包校验通过（${inspectState.arch}${verSuffix}）`
+          });
+        }
+      }
+      const bundleNextDisabled =
+        bundleSource === 'local' &&
+        (!hasZipExt || inspectState?.status === 'checking' || inspectState?.status === 'error');
+
+      const sourceRowsHtml = `
+        <div class="dev-picker-row ${bundleSource === 'online' ? 'is-selected' : ''}" data-gpu-bundle-src="online">
+          <span class="dev-radio"></span>
+          <span class="fi" style="font-size:18px;color:var(--TextFillColorPrimaryBrush);">&#xE753;</span>
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--TextFillColorPrimaryBrush);">在线获取</div>
+            <div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);margin-top:2px;">自动下载最新部署包</div>
+          </div>
+        </div>
+        <div class="dev-picker-row ${bundleSource === 'local' ? 'is-selected' : ''}" data-gpu-bundle-src="local">
+          <span class="dev-radio"></span>
+          <span class="fi" style="font-size:18px;color:var(--TextFillColorPrimaryBrush);">&#xE8B7;</span>
+          <div style="min-width:0;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;color:var(--TextFillColorPrimaryBrush);">本地文件</div>
+            <div style="font-size:12px;color:var(--TextFillColorSecondaryBrush);margin-top:2px;">选择本地 .zip 部署包</div>
+          </div>
+        </div>
+      `;
+
+      const detailHtml =
+        bundleSource === 'local'
+          ? `
+            <div class="dev-bundle-picker-sub">
+              <div class="st-input-group">
+                <input type="text" class="winui-textbox is-mono" id="gpuBundleLocalPathInput" value="${escapeDeviceHtml(state.gpuLinuxLocalBundlePath || '')}" placeholder="D:\\Downloads\\linuxpv-bundle-x86_64-v0.1.0.zip" />
+                <button class="winui-btn" id="gpuBundleBrowseBtn" type="button">浏览</button>
+                <input type="file" id="gpuBundleFileInput" accept=".zip" hidden />
+              </div>
+              <div id="gpuBundleInspectHost">${inspectBannerHtml}</div>
+            </div>
+          `
+          : '';
+
+      decisionBoxHtml = `
+        <div class="dev-inline-decision">
+          <div class="dev-picker-list">${sourceRowsHtml}</div>
+          ${detailHtml}
+          <div class="dev-action-row" style="justify-content:flex-end;">
+            <button class="winui-btn" id="gpuBackPartitionFromBundleBtn" type="button">返回</button>
+            <button class="winui-btn accent" id="gpuBundleNextBtn" type="button" ${bundleNextDisabled ? 'disabled' : ''}>继续</button>
+          </div>
+        </div>
+      `;
+    } else if (decision === 'BundleVerifyFailed') {
+      inlineDecisionTargetStep = '合成驱动';
+      decisionBoxHtml = `
+        <div class="dev-inline-decision">
+          ${renderStorageInlineBannerHtml({ severity: 'error', text: state.gpuDeployBundleError || '部署包校验失败，请重新选择有效的 linuxpv 部署包' })}
+          <div class="dev-action-row" style="justify-content:flex-end;">
+            <button class="winui-btn" id="gpuBackListFromDeployBtn" type="button">返回列表</button>
+            <button class="winui-btn accent" id="gpuBundleRetryFromErrorBtn" type="button">返回重选</button>
+          </div>
+        </div>
+      `;
+    } else if (decision === 'CompletedLinuxMount') {
+      completionBoxHtml = `
+        <div class="dev-inline-decision">
+          <div style="font-size:12.5px;color:var(--TextFillColorSecondaryBrush);">在虚拟机中运行来完成驱动安装</div>
+          <div class="dev-cmd-row">
+            <div class="dev-cmd-box">
+              <code class="dev-cmd-code">${escapeDeviceHtml(LINUX_GPUPV_SETUP_CMD)}</code>
+              <button class="dt-kv-head-copy" data-copy="${escapeDeviceHtml(LINUX_GPUPV_SETUP_CMD)}" title="复制命令" aria-label="复制命令" type="button"><span class="fi" style="font-size:13px;">&#xE8C8;</span></button>
+            </div>
+            <button class="winui-btn accent" id="gpuLinuxFinishBtn" type="button" style="margin-left:auto;flex-shrink:0;">返回</button>
           </div>
         </div>
       `;
@@ -544,27 +944,47 @@ export function renderGpuWorkbench(host, ctx) {
     const taskListHtml = steps
       .map((label, idx) => {
         const isSkipped = label === driverStepLabel && decision === 'CompletedSkipped';
+        const isRowError = label === '合成驱动' && decision === 'BundleVerifyFailed';
         const displayLabel = label;
-        const done = !isSkipped && (isDone || idx < activeIdx);
-        const active = !isDone && idx === activeIdx;
+        const done = !isSkipped && !isRowError && (isDone || idx < activeIdx);
+        const active = !isDone && !isRowError && idx === activeIdx;
+        const showStepProgress =
+          active && (label === '下载驱动' || label === '合成驱动') && Number.isFinite(state.gpuDeployProgressPct);
+        const stepPct = showStepProgress ? Math.max(0, Math.min(100, Math.round(state.gpuDeployProgressPct))) : 0;
+        const stepPhaseLabel =
+          label === '下载驱动'
+            ? `${stepPct}%`
+            : state.gpuDeployProgressPhase === 'verify'
+              ? `校验部署包 ${stepPct}%`
+              : `合成驱动 ${stepPct}%`;
         const iconHtml = isSkipped
           ? '<span class="fi" style="font-size:15px;color:var(--TextFillColorTertiaryBrush);">&#xE738;</span>'
-          : done
-            ? '<span class="fi" style="font-size:18px;color:#3CCB5F;">&#xEC61;</span>'
-            : active
-              ? '<span class="dev-spinner" aria-hidden="true"></span>'
-              : '<span class="fi" style="font-size:17px;color:var(--TextFillColorTertiaryBrush);">&#xEA3A;</span>';
+          : isRowError
+            ? '<span class="fi" style="font-size:18px;color:#FF6B6B;">&#xEB90;</span>'
+            : done
+              ? '<span class="fi" style="font-size:18px;color:#3CCB5F;">&#xEC61;</span>'
+              : active
+                ? '<span class="dev-spinner" aria-hidden="true"></span>'
+                : '<span class="fi" style="font-size:17px;color:var(--TextFillColorTertiaryBrush);">&#xEA3A;</span>';
         const rowRightHtml = isSkipped
           ? '<span class="dev-status-muted">已跳过</span>'
-          : active && label === inlineActionsStep
-            ? inlineActionsHtml
-            : '';
+          : isRowError
+            ? '<span class="dev-task-pct" style="color:#FF8A8A;">校验失败</span>'
+            : showStepProgress
+              ? `<span class="dev-task-pct">${escapeDeviceHtml(stepPhaseLabel)}</span>`
+              : active && label === inlineActionsStep
+                ? inlineActionsHtml
+                : '';
+        const progressBarHtml = showStepProgress
+          ? `<div class="dev-task-progress"><div class="dev-task-progress-fill" style="width:${stepPct}%"></div></div>`
+          : '';
         const inlineHtml = label === inlineDecisionTargetStep ? decisionBoxHtml : '';
         return `
-          <div class="dev-task-row ${active ? 'is-active' : done ? 'is-done' : 'is-pending'}">
+          <div class="dev-task-row ${isRowError ? 'is-error' : active ? 'is-active' : done ? 'is-done' : 'is-pending'}">
             <div class="dev-task-icon">${iconHtml}</div>
             <div style="font-size:14.5px;font-weight:600;color:var(--TextFillColorPrimaryBrush);min-width:0;">${escapeDeviceHtml(displayLabel)}</div>
             ${rowRightHtml}
+            ${progressBarHtml}
           </div>
           ${inlineHtml}
         `;
@@ -572,33 +992,44 @@ export function renderGpuWorkbench(host, ctx) {
       .join('');
 
     const hasInlineBackBtn = Boolean(
-      inlineActionsStep || decision === 'SelectPartition'
+      inlineActionsStep ||
+        decision === 'SelectPartition' ||
+        decision === 'SelectBundle' ||
+        decision === 'BundleVerifyFailed' ||
+        decision === 'CompletedLinuxMount'
     );
-    const footerHtml = isDone
-      ? `
+    const footerHtml =
+      decision === 'CompletedLinuxMount'
+        ? ''
+        : isDone
+          ? `
         <div class="dev-action-row" style="justify-content:flex-end;">
           <button class="winui-btn accent" id="gpuDecisionDoneBtn" type="button">返回</button>
         </div>
       `
-      : !hasInlineBackBtn
-        ? `
+          : !hasInlineBackBtn
+            ? `
           <div class="dev-action-row" style="justify-content:flex-end;">
             <button class="winui-btn" id="gpuBackListFromDeployBtn" type="button">返回</button>
           </div>
         `
-        : '';
+            : '';
 
     host.innerHTML = `
       <div class="dev-stack">
         <div class="dev-task-list">${taskListHtml}</div>
+        ${completionBoxHtml}
         ${footerHtml}
       </div>
     `;
 
     const backToList = () => {
       clearDeployTimer();
+      state.gpuDeployTargetOs = null;
       state.gpuDeployPendingFinish = null;
       state.gpuDeployProgressPct = null;
+      state.gpuDeployProgressPhase = null;
+      state.gpuDeployBundleError = '';
       state.gpuMode = 'list';
       renderDashboardSummary();
       rerender();
@@ -606,6 +1037,10 @@ export function renderGpuWorkbench(host, ctx) {
     host.querySelector('#gpuBackListFromDeployBtn')?.addEventListener('click', backToList);
     host.querySelector('#gpuDecisionCancelBtn')?.addEventListener('click', backToList);
     host.querySelector('#gpuDecisionDoneBtn')?.addEventListener('click', backToList);
+    host.querySelector('#gpuLinuxFinishBtn')?.addEventListener('click', () => {
+      backToList();
+      showNotice?.('已为 Linux 虚拟机挂载 GPUPV 光盘');
+    });
     host.querySelector('#gpuDecisionPowerOffBtn')?.addEventListener('click', () => {
       vm.running = false;
       ctx.renderVmList?.();
@@ -622,19 +1057,113 @@ export function renderGpuWorkbench(host, ctx) {
       });
     });
     host.querySelector('#gpuDecisionPartNextBtn')?.addEventListener('click', () => {
+      const selectedPart = INITIAL_GPU_PARTITIONS.find((p) => p.id === state.gpuSelectedPartitionId) || INITIAL_GPU_PARTITIONS[0];
       state.gpuDeployPartitionResolved = true;
+      if (selectedPart?.osType === 'Linux') {
+        state.gpuDeployTargetOs = 'linux';
+        state.gpuDeployBundleError = '';
+        const linuxSteps = getDeployStepsForMode(deployMode, 'linux', state.gpuLinuxBundleSource || 'online');
+        state.gpuDeploySimIdx = linuxSteps.indexOf('选择部署包');
+        state.gpuDeployDecision = 'SelectBundle';
+        rerender();
+        return;
+      }
+      state.gpuDeployTargetOs = 'windows';
+      const winSteps = getDeployStepsForMode(deployMode, 'windows');
       state.gpuDeployDecision = 'Running';
-      state.gpuDeploySimIdx = steps.indexOf(driverStepLabel);
+      state.gpuDeploySimIdx = winSteps.indexOf(driverStepLabel);
       rerender();
       advanceDeploySimulation();
     });
-    host.querySelector('#gpuDecisionSkipDriverBtn')?.addEventListener('click', () => {
+    host.querySelectorAll('[data-gpu-bundle-src]').forEach((row) => {
+      row.addEventListener('click', () => {
+        state.gpuLinuxBundleSource = row.getAttribute('data-gpu-bundle-src') || 'online';
+        state.gpuDeployBundleError = '';
+        rerender();
+      });
+    });
+    const localInput = host.querySelector('#gpuBundleLocalPathInput');
+    localInput?.addEventListener('input', (e) => {
+      const val = e.target.value;
+      state.gpuLinuxLocalBundlePath = val;
+      state.gpuLinuxLocalFile = null;
+      state.gpuLinuxBundleInspect = null;
+      state.gpuDeployBundleError = '';
+      const trimmed = val.trim();
+      const valid = trimmed.length > 0 && /\.zip$/i.test(trimmed);
+      const nextBtn = host.querySelector('#gpuBundleNextBtn');
+      const inspectHost = host.querySelector('#gpuBundleInspectHost');
+      if (nextBtn) nextBtn.disabled = !valid;
+      if (inspectHost) {
+        inspectHost.innerHTML =
+          trimmed && !valid
+            ? renderStorageInlineBannerHtml({ severity: 'error', text: '部署包文件需为 .zip 压缩包' })
+            : '';
+      }
+    });
+    host.querySelector('#gpuBundleBrowseBtn')?.addEventListener('click', () => {
+      host.querySelector('#gpuBundleFileInput')?.click();
+    });
+    host.querySelector('#gpuBundleFileInput')?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const inspectToken = `${file.name}:${file.size}:${file.lastModified}`;
+      state.gpuLinuxLocalFile = file;
+      state.gpuLinuxLocalBundlePath = file.name;
+      state.gpuDeployBundleError = '';
+      state.gpuLinuxBundleInspect = { status: 'checking', token: inspectToken };
+      rerender();
+      inspectLocalLinuxPvBundle(file, getVmExpectedLinuxArch(vm)).then((res) => {
+        if (state.gpuLinuxBundleInspect?.token !== inspectToken) return;
+        state.gpuLinuxBundleInspect = res.ok
+          ? {
+              status: 'valid',
+              token: inspectToken,
+              arch: res.arch,
+              version: res.version,
+              kernelCount: res.kernelCount
+            }
+          : { status: 'error', token: inspectToken, error: res.error };
+        rerender();
+      });
+    });
+    host.querySelector('#gpuBackPartitionFromBundleBtn')?.addEventListener('click', () => {
       clearDeployTimer();
-      state.gpuDriverMismatch = true;
-      state.gpuDeployDecision = 'CompletedSkipped';
+      state.gpuDeployTargetOs = null;
+      state.gpuDeployPartitionResolved = false;
+      state.gpuDeployProgressPct = null;
+      state.gpuDeployProgressPhase = null;
+      state.gpuDeployBundleError = '';
+      const baseSteps = getDeployStepsForMode(deployMode, null);
+      state.gpuDeploySimIdx = baseSteps.indexOf('选择分区');
+      state.gpuDeployDecision = 'SelectPartition';
       rerender();
     });
+    host.querySelector('#gpuBundleRetryFromErrorBtn')?.addEventListener('click', () => {
+      clearDeployTimer();
+      state.gpuDeployProgressPct = null;
+      state.gpuDeployProgressPhase = null;
+      state.gpuDeployBundleError = '';
+      const linuxSteps = getDeployStepsForMode(deployMode, 'linux', state.gpuLinuxBundleSource || 'online');
+      state.gpuDeploySimIdx = linuxSteps.indexOf('选择部署包');
+      state.gpuDeployDecision = 'SelectBundle';
+      rerender();
+    });
+    host.querySelector('#gpuBundleNextBtn')?.addEventListener('click', () => {
+      const source = state.gpuLinuxBundleSource || 'online';
+      const linuxSteps = getDeployStepsForMode(deployMode, 'linux', source);
+      const nextStep = source === 'online' ? '下载驱动' : '合成驱动';
+      state.gpuDeployBundleError = '';
+      state.gpuDeployDecision = 'Running';
+      state.gpuDeploySimIdx = linuxSteps.indexOf(nextStep);
+      state.gpuDeployProgressPct = 0;
+      state.gpuDeployProgressPhase = source === 'online' ? 'download' : 'verify';
+      rerender();
+      advanceDeploySimulation();
+    });
     host.querySelector('#gpuDecisionBackPartBtn')?.addEventListener('click', () => {
+      state.gpuDeployTargetOs = null;
+      state.gpuDeployPartitionResolved = false;
       state.gpuDeployDecision = 'SelectPartition';
       rerender();
     });
@@ -914,9 +1443,12 @@ export function renderGpuWorkbench(host, ctx) {
   host.querySelectorAll('[data-gpu-update]').forEach((btn) => {
     btn.addEventListener('click', () => {
       state.gpuDeployMode = 'update-drivers';
+      state.gpuDeployTargetOs = null;
       state.gpuDeployPartitionResolved = false;
       state.gpuDeployPendingFinish = null;
       state.gpuDeployProgressPct = null;
+      state.gpuDeployProgressPhase = null;
+      state.gpuDeployBundleError = '';
       state.gpuDeploySimIdx = 0;
       state.gpuDeployDecision = 'Running';
       state.gpuMode = 'deploy';

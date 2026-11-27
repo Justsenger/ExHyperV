@@ -94,11 +94,18 @@ internal static class WorkflowSessionApiCases
         c.Equal(GpuDecisionKind.SelectPartition, bitlocker.PendingDecision!.Kind, "BitLocker 分区提供回退选择");
         var skipped = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(bitlocker.PendingDecision.Id, GpuDriverFallbackAction.SkipDriver)));
         c.Equal(GpuDeploymentState.Completed, skipped.State, "跳过驱动可结束会话"); c.Require(skipped.IsDriverSkipped, "标记已跳过驱动");
-        backend = new() { Os = OperatingSystemType.Linux }; session = new(backend); var nonWindows = await session.StartAsync();
-        c.Equal(GpuDecisionKind.SelectPartition, nonWindows.PendingDecision!.Kind, "非 Windows 分区提供回退选择");
-        c.Throws<ArgumentException>(() => session.SubmitDecisionAsync(new GpuPartitionSelection(nonWindows.PendingDecision.Id, nonWindows.PendingDecision.Partitions[0].Id)).GetAwaiter().GetResult(), "非 Windows 分区不能直接写入驱动");
-        var linuxSkipped = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(nonWindows.PendingDecision.Id, GpuDriverFallbackAction.SkipDriver)));
-        c.Equal(GpuDeploymentState.Completed, linuxSkipped.State, "Linux 分区可通过跳过驱动结束会话"); c.Require(linuxSkipped.IsDriverSkipped, "标记已跳过驱动");
+        backend = new() { Os = OperatingSystemType.Unknown }; session = new(backend); var nonOs = await session.StartAsync();
+        c.Equal(GpuDecisionKind.SelectPartition, nonOs.PendingDecision!.Kind, "未知分区提供回退选择");
+        c.Throws<ArgumentException>(() => session.SubmitDecisionAsync(new GpuPartitionSelection(nonOs.PendingDecision.Id, nonOs.PendingDecision.Partitions[0].Id)).GetAwaiter().GetResult(), "未知分区不能直接写入驱动");
+        var nonOsSkipped = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuDriverFallbackSelection(nonOs.PendingDecision.Id, GpuDriverFallbackAction.SkipDriver)));
+        c.Equal(GpuDeploymentState.Completed, nonOsSkipped.State, "未知分区可通过跳过驱动结束会话"); c.Require(nonOsSkipped.IsDriverSkipped, "标记已跳过驱动");
+        backend = new() { Os = OperatingSystemType.Linux, MultiplePartitions = true }; session = new(backend); var linuxPick = await session.StartAsync();
+        c.Equal(GpuDecisionKind.SelectPartition, linuxPick.PendingDecision!.Kind, "混合分区提供选择");
+        var bundleWait = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuPartitionSelection(linuxPick.PendingDecision.Id, linuxPick.PendingDecision.Partitions[0].Id)));
+        c.Equal(GpuDecisionKind.SelectLinuxBundle, bundleWait.PendingDecision!.Kind, "选择 Linux 分区进入部署包选择");
+        var linuxDone = await c.CallAsync(() => session.SubmitDecisionAsync(new GpuLinuxBundleSelection(bundleWait.PendingDecision.Id, GpuLinuxBundleSource.LocalFile, @"C:\dummy\linuxpv-bundle.zip")));
+        c.Equal(GpuDeploymentState.Completed, linuxDone.State, "本地部署包完成 Linux 驱动光盘合成与挂载");
+        c.Equal(LinuxGpuPvBundleService.GuestSetupCommand, linuxDone.GuestSetupCommand, "暴露来宾终端安装命令");
     }
 
     private static async Task PowerAsync(CatalogTest p, ApiCaseContext c)

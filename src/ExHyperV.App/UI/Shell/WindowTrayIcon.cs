@@ -12,15 +12,17 @@ internal sealed unsafe partial class WindowTrayIcon : IDisposable
     private readonly nint window;
     private readonly Action restore;
     private readonly Action exit;
+    private readonly Action? syncTheme;
     private readonly uint taskbarCreated;
     private GCHandle handle;
     private IconData data;
 
-    internal WindowTrayIcon(nint window, Action restore, Action exit)
+    internal WindowTrayIcon(nint window, Action restore, Action exit, Action? syncTheme = null)
     {
         this.window = window;
         this.restore = restore;
         this.exit = exit;
+        this.syncTheme = syncTheme;
         taskbarCreated = RegisterWindowMessage("TaskbarCreated");
         data.Size = (uint)sizeof(IconData);
         data.Window = window;
@@ -76,6 +78,7 @@ internal sealed unsafe partial class WindowTrayIcon : IDisposable
 
     private void ShowMenu()
     {
+        syncTheme?.Invoke();
         nint menu = CreatePopupMenu();
         if (menu == 0) { restore(); return; }
         try
@@ -85,6 +88,7 @@ internal sealed unsafe partial class WindowTrayIcon : IDisposable
             GetCursorPos(out var point);
             SetForegroundWindow(window);
             uint command = TrackPopupMenu(menu, 0x100 | 2, point.X, point.Y, 0, window, 0);
+            PostMessage(window, 0, 0, 0);
             if (command == 1) restore();
             if (command == 2) exit();
         }
@@ -148,6 +152,8 @@ internal sealed unsafe partial class WindowTrayIcon : IDisposable
     private static partial int GetCursorPos(out Point point);
     [LibraryImport("user32.dll")]
     private static partial int SetForegroundWindow(nint hwnd);
+    [LibraryImport("user32.dll", EntryPoint = "PostMessageW")]
+    private static partial int PostMessage(nint hwnd, uint message, nuint wParam, nint lParam);
     [LibraryImport("user32.dll")]
     private static partial uint TrackPopupMenu(nint menu, uint flags, int x, int y, int reserved, nint hwnd, nint rect);
 }

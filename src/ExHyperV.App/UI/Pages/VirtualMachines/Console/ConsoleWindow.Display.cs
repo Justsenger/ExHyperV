@@ -26,6 +26,7 @@ public sealed partial class ConsoleWindow
     private double renderDipWidth, renderDipHeight;
     private float renderScaleX = 1f, renderScaleY = 1f;
     private int renderDispatchedWidth, renderDispatchedHeight;
+    private long frameEpoch;
     private bool renderUiSwapChain;
     private ConsoleTransportKind renderPath;
     private WriteableBitmap? bitmap;
@@ -33,7 +34,9 @@ public sealed partial class ConsoleWindow
     private long sequence;
     private long bitmapSequence;
     private uint? capturedPointer;
+    private ConsolePointerButton pressedButtons;
     private bool keyboardCaptured;
+    private ConsoleKeyboardHook? keyboardHook;
     private IConsoleInput? Input => active && view == View.Connected && sessionState.CanInput && Granted(ConsoleCapabilities.Input) ? connection?.Input : null;
 
     private ConsoleSwapChainRenderer CreateRenderer() => new(BindSwapChain, ReadCompositionScale,
@@ -87,7 +90,10 @@ public sealed partial class ConsoleWindow
     {
         if (liveSize == (width, height)) return;
         liveSize = (width, height);
-        if ((IsEnhanced || zoom == 0) && !manualWindowSize) FitWindowToAspect(width, height);
+        if ((IsEnhanced || zoom == 0) && !manualWindowSize && !fullscreen && windowed.State == Microsoft.UI.Windowing.OverlappedPresenterState.Restored)
+            FitWindowToAspect(width, height);
+        else if (ShouldAutoResizeGuest() && ViewportNeedsGuestResize(width, height))
+            ScheduleAutoGuestResize();
         SizeSurface();
         Render();
     }
@@ -95,8 +101,10 @@ public sealed partial class ConsoleWindow
     private (double DipWidth, double DipHeight) PrepareRenderTarget(int frameWidth, int frameHeight, out bool notifySize)
     {
         double dipWidth, dipHeight;
+        long epoch;
         lock (renderMetricsGate)
         {
+            epoch = frameEpoch;
             notifySize = renderDispatchedWidth != frameWidth || renderDispatchedHeight != frameHeight;
             if (notifySize)
             {
@@ -106,7 +114,12 @@ public sealed partial class ConsoleWindow
             dipWidth = renderDipWidth > 0 ? renderDipWidth : frameWidth;
             dipHeight = renderDipHeight > 0 ? renderDipHeight : frameHeight;
         }
-        if (notifySize) DispatcherQueue.TryEnqueue(() => { if (!closing) SetFrameSize(frameWidth, frameHeight); });
+        if (notifySize) DispatcherQueue.TryEnqueue(() =>
+        {
+            if (closing || view != View.Connected) return;
+            lock (renderMetricsGate) if (epoch != frameEpoch) return;
+            SetFrameSize(frameWidth, frameHeight);
+        });
         return (dipWidth, dipHeight);
     }
 
@@ -125,6 +138,7 @@ public sealed partial class ConsoleWindow
         gpuRenderer ??= CreateRenderer();
         if (!gpuRenderer.IsDisabled && gpuRenderer.TryPresent(frame, damage, dipWidth, dipHeight))
         {
+            RecordPresentedFrame();
             if (!renderUiSwapChain)
             {
                 renderUiSwapChain = true;
@@ -150,6 +164,7 @@ public sealed partial class ConsoleWindow
         var (dipWidth, dipHeight) = PrepareRenderTarget(frame.Width, frame.Height, out _);
         gpuRenderer ??= CreateRenderer();
         if (!gpuRenderer.TryPresent(frame, dipWidth, dipHeight)) return false;
+        RecordPresentedFrame();
         if (!renderUiSwapChain)
         {
             renderUiSwapChain = true;
@@ -232,6 +247,7 @@ public sealed partial class ConsoleWindow
 
         if (!ReferenceEquals(Screen.Source, bitmap)) Screen.Source = bitmap;
         bitmapSequence = frame.Sequence;
+        RecordPresentedFrame();
     }
 
     private void ClearFrame()
@@ -246,6 +262,7 @@ public sealed partial class ConsoleWindow
         liveSize = null;
         lock (renderMetricsGate)
         {
+            frameEpoch++;
             renderDispatchedWidth = 0;
             renderDispatchedHeight = 0;
             renderUiSwapChain = false;
@@ -260,6 +277,8 @@ public sealed partial class ConsoleWindow
 
     private void DisposeDisplay()
     {
+        keyboardHook?.Dispose();
+        keyboardHook = null;
         ClearFrame();
         var worker = renderWorker;
         renderWorker = null;
@@ -271,17 +290,86 @@ public sealed partial class ConsoleWindow
 
     private void OnGpuScreenScaleChanged(SwapChainPanel sender, object args)
     {
-        if (!closing) { UpdateCompositionScale(); SizeSurface(); }
+        if (!closing) { UpdateCompositionScale(); SizeSurface(); ScheduleAutoGuestResize(); }
     }
 
     private void OnViewportSizeChanged(object sender, SizeChangedEventArgs args)
     {
+        if (Viewport.ActualWidth > 0 && Viewport.ActualHeight > 0) viewportReady = true;
         SizeSurface();
         if (verifyFit && Viewport.ActualWidth > 0 && Viewport.ActualHeight > 0)
         {
             verifyFit = false;
             FitWindowToAspect();
         }
+        else ScheduleAutoGuestResize();
+    }
+
+    private bool ShouldAutoResizeGuest() =>
+        !closing && view == View.Connected && IsEnhanced && CanChangeDisplay && DisplayModes == null &&
+        !suppressAutoGuestResize && connection?.Video?.SupportsResize == true &&
+        (manualWindowSize || fullscreen || windowed.State == Microsoft.UI.Windowing.OverlappedPresenterState.Maximized);
+
+    private bool TryGetViewportPixelSize(out int width, out int height)
+    {
+        width = height = 0;
+        if (Root.XamlRoot is not { } root || Viewport.ActualWidth <= 0 || Viewport.ActualHeight <= 0) return false;
+        double scale = layoutScale > 0 ? layoutScale : root.RasterizationScale;
+        if (scale <= 0) scale = 1.0;
+        int rawW = (int)Math.Round(Viewport.ActualWidth * scale);
+        int rawH = (int)Math.Round(Viewport.ActualHeight * scale);
+        if (rawW <= 0 || rawH <= 0) return false;
+        const ulong MaxBufferBytes = 64UL * 1024 * 1024 - 64;
+        if ((ulong)rawW * (ulong)rawH * 4UL > MaxBufferBytes)
+        {
+            double shrink = Math.Sqrt(MaxBufferBytes / ((double)rawW * rawH * 4.0));
+            rawW = (int)Math.Floor(rawW * shrink);
+            rawH = (int)Math.Floor(rawH * shrink);
+        }
+        width = Math.Clamp(rawW & ~1, 320, 8192);
+        height = Math.Clamp(rawH & ~1, 200, 8192);
+        return true;
+    }
+
+    private bool ViewportNeedsGuestResize(int frameW, int frameH) =>
+        TryGetViewportPixelSize(out int targetW, out int targetH) &&
+        (Math.Abs(frameW - targetW) > 4 || Math.Abs(frameH - targetH) > 4);
+
+    private void ScheduleAutoGuestResize(bool resetAttempts = true)
+    {
+        if (!ShouldAutoResizeGuest())
+        {
+            autoResizeTimer.Stop();
+            return;
+        }
+        if (resetAttempts) autoResizeAttempts = 0;
+        autoResizeTimer.Stop();
+        autoResizeTimer.Start();
+    }
+
+    private void OnAutoResizeTick()
+    {
+        autoResizeTimer.Stop();
+        if (!ShouldAutoResizeGuest() || !TryGetViewportPixelSize(out int targetW, out int targetH)) return;
+        if (liveSize is { } live && Math.Abs(live.Width - targetW) <= 4 && Math.Abs(live.Height - targetH) <= 4) return;
+        userResizePending = false;
+        if (connection?.Video?.Resize(targetW, targetH, EffectiveDesktopScale(targetW)) == true) return;
+        if (++autoResizeAttempts < 6)
+        {
+            autoResizeTimer.Interval = TimeSpan.FromMilliseconds(400);
+            autoResizeTimer.Start();
+            return;
+        }
+        autoResizeTimer.Interval = TimeSpan.FromMilliseconds(220);
+    }
+
+    private void RestoreEnhancedGuestSizeIfNeeded()
+    {
+        if (closing || view != View.Connected || !IsEnhanced || !CanChangeDisplay || DisplayModes != null ||
+            connection?.Video?.SupportsResize != true || liveSize == requestedSize)
+            return;
+        userResizePending = false;
+        connection.Video.Resize(requestedSize.Width, requestedSize.Height, EffectiveDesktopScale(requestedSize.Width));
     }
 
     private void SizeSurface()
@@ -436,10 +524,55 @@ public sealed partial class ConsoleWindow
         if (Input?.SendKeys((ConsoleKeyEvent[])[new(0x1D, false, true), new(0x38, false, true), new(0x53, true, true),
             new(0x53, true, false), new(0x38, false, false), new(0x1D, false, false)]) != true)
             Notify(L10n.Get("Console_InputRejected"));
+        else FocusGuestSurface();
     }
 
-    private void OnSurfaceFocus(object sender, RoutedEventArgs e) { keyboardCaptured = Input != null; SyncLocks(); }
+    private void OnSurfaceFocus(object sender, RoutedEventArgs e)
+    {
+        keyboardCaptured = Input != null && confirmation == null;
+        SyncLocks();
+        SyncKeyboardHook();
+    }
+
     private void OnSurfaceBlur(object sender, RoutedEventArgs e) => ReleaseInput();
+
+    private bool FocusGuestSurface()
+    {
+        if (closing || !active || view != View.Connected || Input == null || confirmation != null || !Surface.IsTabStop)
+            return false;
+        bool focused = Surface.FocusState != FocusState.Unfocused || Surface.Focus(FocusState.Programmatic);
+        if (focused)
+        {
+            keyboardCaptured = Input != null;
+            SyncLocks();
+        }
+        SyncKeyboardHook();
+        return focused;
+    }
+
+    private void SyncKeyboardHook()
+    {
+        if (closing || view != View.Connected || !active || !keyboardCaptured || Input == null || confirmation != null ||
+            Surface.FocusState == FocusState.Unfocused)
+        {
+            keyboardHook?.SetEnabled(false);
+            return;
+        }
+        keyboardHook ??= new(
+            WinRT.Interop.WindowNative.GetWindowHandle(this),
+            (scanCode, extended, down) => Input?.SendKey(scanCode, extended, down) ?? false,
+            () => Input?.SendPause() ?? false,
+            () => DispatcherQueue.TryEnqueue(ReleaseInputAndFocusToolbar));
+        keyboardHook.SetEnabled(true);
+    }
+
+    private void ReleaseInputAndFocusToolbar()
+    {
+        if (closing) return;
+        ReleaseInput();
+        if (fullscreen) { Capsule.Visibility = Visibility.Visible; Pin.Focus(FocusState.Programmatic); }
+        else Switcher.Focus(FocusState.Programmatic);
+    }
 
     private void SyncLocks()
     {
@@ -473,20 +606,15 @@ public sealed partial class ConsoleWindow
     {
         keyboardCaptured = false;
         capturedPointer = null;
+        pressedButtons = ConsolePointerButton.None;
+        keyboardHook?.SetEnabled(false);
         Surface.ReleasePointerCaptures();
     }
 
     private void OnRootKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key != VirtualKey.Escape) return;
-        if (keyboardCaptured)
-        {
-            ReleaseInput();
-            if (fullscreen) { Capsule.Visibility = Visibility.Visible; Pin.Focus(FocusState.Programmatic); }
-            else Switcher.Focus(FocusState.Programmatic);
-        }
-        else if (fullscreen) SetFullscreen(false);
-        else return;
+        if (e.Key != VirtualKey.Escape || keyboardCaptured || !fullscreen) return;
+        SetFullscreen(false);
         e.Handled = true;
     }
 
@@ -496,6 +624,7 @@ public sealed partial class ConsoleWindow
     private void GuestKey(KeyRoutedEventArgs e, bool down)
     {
         if (!keyboardCaptured || Input is not { } input) return;
+        if ((uint)e.OriginalKey is >= 0xA6 and <= 0xB7) return;
         var status = e.KeyStatus;
         bool accepted = e.OriginalKey == VirtualKey.Pause ? !down || input.SendPause()
             : input.SendKey((ushort)status.ScanCode, status.IsExtendedKey, down);
@@ -549,13 +678,22 @@ public sealed partial class ConsoleWindow
         var properties = e.GetCurrentPoint(Surface).Properties;
         var button = PointerButton(properties.PointerUpdateKind);
         if (button == ConsolePointerButton.None) return;
+        // Deduplicate WinUI's repeated PointerUpdateKind transitions across PointerPressed and PointerMoved.
+        if (((pressedButtons & button) != 0) == down) { e.Handled = true; return; }
+        if (down) pressedButtons |= button;
+        else pressedButtons &= ~button;
         if (down)
         {
             Surface.Focus(FocusState.Programmatic);
             if (!keyboardCaptured) { keyboardCaptured = true; SyncLocks(); }
+            SyncKeyboardHook();
             if (Surface.CapturePointer(e.Pointer)) capturedPointer = e.Pointer.PointerId;
         }
-        if (!input.SendPointer(x, y, button, down) && !down) Input?.ReleaseAllInputs();
+        if (!input.SendPointer(x, y, button, down) && !down)
+        {
+            pressedButtons = ConsolePointerButton.None;
+            Input?.ReleaseAllInputs();
+        }
         if (!down && !properties.IsLeftButtonPressed && !properties.IsRightButtonPressed && !properties.IsMiddleButtonPressed)
         {
             capturedPointer = null;
@@ -566,7 +704,12 @@ public sealed partial class ConsoleWindow
 
     private void OnCaptureLost(object sender, PointerRoutedEventArgs e)
     {
-        if (capturedPointer == e.Pointer.PointerId) { capturedPointer = null; Input?.ReleaseAllInputs(); }
+        if (capturedPointer == e.Pointer.PointerId)
+        {
+            capturedPointer = null;
+            pressedButtons = ConsolePointerButton.None;
+            Input?.ReleaseAllInputs();
+        }
     }
 
     private void OnWheel(object sender, PointerRoutedEventArgs e)

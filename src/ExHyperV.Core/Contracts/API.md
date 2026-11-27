@@ -654,7 +654,7 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 
 <!-- api-reference:start -->
 
-<!-- source-sha256: 7892da0c35fb44d3977b3c65022b0c2b24b2a2c56ee5255ee7cfd0b47c04ed99 -->
+<!-- source-sha256: 472e42780b19283f75d58380616ca3c5ab707d23126ad8ceb78f8a60263cd59d -->
 
 程序集：`ExHyperV.Core.dll`，版本：`2.0.0-Alpha`。
 
@@ -815,9 +815,12 @@ public static async Task<ConsoleDisconnectInfo> ObserveConsoleAsync(
 | [` GpuDeploymentStepStatus `](#api-499dc8bdf05041ca) | ` ExHyperV.Models ` | 单个 GPU 部署步骤的执行状态。 |
 | [` GpuDriverFallbackAction `](#api-ef78e8b1f703128b) | ` ExHyperV.Models ` | 无法直接写入离线驱动或用户选择不直接注入时的回退动作。 |
 | [` GpuDriverFallbackSelection `](#api-1b34235597c26248) | ` ExHyperV.Models ` | 当分区已启用 BitLocker、不受支持或无法直接写入时，提交跳过驱动的回退决定。 |
+| [` GpuLinuxBundleSelection `](#api-326a75b5df0c00c6) | ` ExHyperV.Models ` | 为 Linux 系统分区选择在线获取或本地 .zip GPU-PV 部署包。 |
+| [` GpuLinuxBundleSource `](#api-8b901521391226ef) | ` ExHyperV.Models ` | Linux GPU-PV 部署包获取方式。 |
 | [` GpuPartitionSelection `](#api-bb8b2e9014baee53) | ` ExHyperV.Models ` | 通过 PartitionId 从当前候选列表中选择分区。 |
 | [` GpuRecoveryOperation `](#api-f73dbd0a3968b7df) | ` ExHyperV.Models ` | 部署发起的一个原生操作及核实结果；原生引用只用于诊断。 |
 | [` GpuRecoveryResource `](#api-04b306b383532708) | ` ExHyperV.Models ` | 本次部署需要恢复的一个临时资源，不包含驱动文件回滚。 |
+| [` LinuxGpuPvBundleInfo `](#api-61c57998e1e6b170) | ` ExHyperV.Models ` | 已校验的 Linux GPU-PV 部署包摘要信息。 |
 | [` OperatingSystemType `](#api-f9be4f964cd193ac) | ` ExHyperV.Models ` | 扫描磁盘分区得到的系统或分区用途分类。 |
 | [` VmGpuAssignment `](#api-51ff6610dbb72a26) | ` ExHyperV.Models ` | 虚拟机已分配 GPU 的可变查询模型。 |
 | [` GpuDeploymentSession `](#api-daf38b34353e49be) | ` ExHyperV.Services ` | 管理一次进程内 GPU 部署；Core 推进各步骤，并在需要确认时暂停，等待带版本标识的明确决定。 |
@@ -2274,6 +2277,7 @@ true 继续确认的步骤；false 取消部署。
 | --- | --- |
 | [` Confirmation = 0 `](#api-7db0f9d1f503457d) | 使用 GpuConfirmation 接受或拒绝。 |
 | [` DriverFallback = 2 `](#api-6ae6562adc948908) | 使用 GpuDriverFallbackSelection 提交跳过驱动。 |
+| [` LinuxBundle = 3 `](#api-1818bf77e8c2a97a) | 使用 GpuLinuxBundleSelection 提交在线或本地部署包选择。 |
 | [` Partition = 1 `](#api-20f31cbd82caa987) | 使用 GpuPartitionSelection 提交分区 ID，或提交 GpuDriverFallbackSelection。 |
 
 #### 详细说明
@@ -2303,6 +2307,16 @@ DriverFallback = 2
 ```
 
 使用 GpuDriverFallbackSelection 提交跳过驱动。
+
+<a id="api-1818bf77e8c2a97a"></a>
+
+##### LinuxBundle（枚举值）
+
+```csharp
+LinuxBundle = 3
+```
+
+使用 GpuLinuxBundleSelection 提交在线或本地部署包选择。
 
 <a id="api-20f31cbd82caa987"></a>
 
@@ -2334,8 +2348,9 @@ GPU 部署暂停时需要用户处理的具体事项。
 
 | 成员 | 说明 |
 | --- | --- |
-| [` DriverFallback = 2 `](#api-c6c1cc6ce5ea5f32) | 无法直接向分区写入驱动（如启用 BitLocker、Linux 分区或非系统分区），选择跳过驱动。 |
+| [` DriverFallback = 2 `](#api-c6c1cc6ce5ea5f32) | 无法直接向分区写入驱动（如启用 BitLocker 或非系统分区），选择跳过驱动。 |
 | [` PowerOff = 0 `](#api-0484eb23f552e201) | 确认强制关闭虚拟机（TurnOff）。 |
+| [` SelectLinuxBundle = 3 `](#api-fbf2ba0265d0ae45) | 为 Linux 来宾选择在线获取或本地 .zip GPU-PV 部署包。 |
 | [` SelectPartition = 1 `](#api-8f7d20f374dc3012) | 选择目标系统分区，或选择跳过驱动。 |
 
 #### 详细说明
@@ -2354,7 +2369,7 @@ public enum GpuDecisionKind
 DriverFallback = 2
 ```
 
-无法直接向分区写入驱动（如启用 BitLocker、Linux 分区或非系统分区），选择跳过驱动。
+无法直接向分区写入驱动（如启用 BitLocker 或非系统分区），选择跳过驱动。
 
 <a id="api-0484eb23f552e201"></a>
 
@@ -2365,6 +2380,16 @@ PowerOff = 0
 ```
 
 确认强制关闭虚拟机（TurnOff）。
+
+<a id="api-fbf2ba0265d0ae45"></a>
+
+##### SelectLinuxBundle（枚举值）
+
+```csharp
+SelectLinuxBundle = 3
+```
+
+为 Linux 来宾选择在线获取或本地 .zip GPU-PV 部署包。
 
 <a id="api-8f7d20f374dc3012"></a>
 
@@ -3120,12 +3145,16 @@ public Guid VmId { get; init; }
 | [` public string? AddedAdapterId { get; init; } `](#api-9c68cb08f048daa9) | 本次原生回执返回且已核对属于目标 VM 的最后一个 GPU 适配器身份；未确认时为 null。 |
 | [` public IReadOnlyList<string> AddedAdapterIds { get; init; } = Array.Empty<string>() `](#api-7da2cde5acf338d3) | 本次部署批量新增且已确认属于目标 VM 的全部 GPU 适配器标识。 |
 | [` public IReadOnlyList<GpuDeploymentAction> AllowedActions { get; init; } `](#api-a30b434db3c93a67) | 当前状态允许的调用动作。 |
+| [` public string? BundleError { get; init; } `](#api-5c1304e23e278d6d) | 下载或校验 Linux 部署包失败但可重选恢复时的错误信息；无错误时为 null。 |
 | [` public string? CleanupError { get; init; } `](#api-58374e828624fe3d) | 清理失败说明；没有清理错误时为 null。 |
 | [` public string? Error { get; init; } `](#api-2a031d092e685776) | 部署错误说明；无错误时为 null。 |
+| [` public string? GuestSetupCommand { get; init; } `](#api-64f4435ca15f5526) | Linux 驱动光盘挂载完成后需在来宾虚拟机中执行的单行安装命令。 |
 | [` public bool HasAddedAdapter { get; init; } `](#api-3b95afd42de013fb) | 本次部署是否新增并识别到至少一个适配器。 |
 | [` public bool HasPendingCleanup { get; init; } `](#api-5db4fba4b5816944) | 是否有已识别且尚待清理的适配器；false 时仍应检查 State 和 CleanupError。 |
 | [` public bool IsDriverSkipped { get; init; } `](#api-30699f5036b255e7) | 本次部署是否因用户选择而跳过了驱动安装。 |
 | [` public string? LastLog { get; init; } `](#api-d51e4de7fc4a52ae) | 最近一条步骤日志；尚无日志时为 null。 |
+| [` public string? LinuxDriverVersion { get; init; } `](#api-410d6705e3cdaa7b) | 本次为 Linux 来宾合成光盘时记录的宿主 GPU 驱动版本。 |
+| [` public string? LinuxIsoPath { get; init; } `](#api-14fe40f27089c2e9) | 本次部署生成并挂载到虚拟机的 GPUPV 光盘 ISO 路径。 |
 | [` public bool OutcomeUnknown { get; init; } `](#api-293632a781a3d836) | 底层操作结果尚未确认；此状态不允许重试清理。 |
 | [` public string? PendingCleanupAdapterId { get; init; } `](#api-5d5aecaca834bbb0) | 已确认归属且待清理的第一个适配器标识；清理时机由 AllowedActions 指示。 |
 | [` public IReadOnlyList<string> PendingCleanupAdapterIds { get; init; } = Array.Empty<string>() `](#api-0c151f0ef3385700) | 已确认归属且待清理的全部适配器标识。 |
@@ -3134,6 +3163,7 @@ public Guid VmId { get; init; }
 | [` public long Revision { get; init; } `](#api-da1d46719893e43e) | 同一会话中递增的状态修订号。 |
 | [` public Guid SessionId { get; init; } `](#api-bea533855f89f637) | 部署会话的稳定标识。 |
 | [` public GpuDeploymentState State { get; init; } `](#api-1987d6fea8c8ad21) | 部署当前状态。 |
+| [` public int? StepProgressPercent { get; init; } `](#api-0073ac85b5fbd226) | 当前步骤执行百分比（0–100），用于下载驱动与合成驱动进度展示；无百分比进度时为 null。 |
 | [` public IReadOnlyList<GpuDeploymentStep> Steps { get; init; } `](#api-091d68578048fd7c) | 当前各步骤的状态列表。 |
 
 #### 详细说明
@@ -3215,6 +3245,16 @@ public IReadOnlyList<GpuDeploymentAction> AllowedActions { get; init; }
 
 当前状态允许的调用动作。
 
+<a id="api-5c1304e23e278d6d"></a>
+
+##### 部署包错误（属性）
+
+```csharp
+public string? BundleError { get; init; }
+```
+
+下载或校验 Linux 部署包失败但可重选恢复时的错误信息；无错误时为 null。
+
 <a id="api-58374e828624fe3d"></a>
 
 ##### 清理错误（record 属性）
@@ -3234,6 +3274,16 @@ public string? Error { get; init; }
 ```
 
 部署错误说明；无错误时为 null。
+
+<a id="api-64f4435ca15f5526"></a>
+
+##### 来宾安装命令（属性）
+
+```csharp
+public string? GuestSetupCommand { get; init; }
+```
+
+Linux 驱动光盘挂载完成后需在来宾虚拟机中执行的单行安装命令。
 
 <a id="api-3b95afd42de013fb"></a>
 
@@ -3274,6 +3324,26 @@ public string? LastLog { get; init; }
 ```
 
 最近一条步骤日志；尚无日志时为 null。
+
+<a id="api-410d6705e3cdaa7b"></a>
+
+##### Linux 驱动版本（属性）
+
+```csharp
+public string? LinuxDriverVersion { get; init; }
+```
+
+本次为 Linux 来宾合成光盘时记录的宿主 GPU 驱动版本。
+
+<a id="api-14fe40f27089c2e9"></a>
+
+##### Linux 光盘路径（属性）
+
+```csharp
+public string? LinuxIsoPath { get; init; }
+```
+
+本次部署生成并挂载到虚拟机的 GPUPV 光盘 ISO 路径。
 
 <a id="api-293632a781a3d836"></a>
 
@@ -3354,6 +3424,16 @@ public GpuDeploymentState State { get; init; }
 ```
 
 部署当前状态。
+
+<a id="api-0073ac85b5fbd226"></a>
+
+##### 步骤进度百分比（属性）
+
+```csharp
+public int? StepProgressPercent { get; init; }
+```
+
+当前步骤执行百分比（0–100），用于下载驱动与合成驱动进度展示；无百分比进度时为 null。
 
 <a id="api-091d68578048fd7c"></a>
 
@@ -3595,9 +3675,13 @@ GPU 部署流程中的步骤类别。
 | 成员 | 说明 |
 | --- | --- |
 | [` Assign = 2 `](#api-141329c91b53c21f) | 新增虚拟 GPU 分区适配器。 |
-| [` Driver = 3 `](#api-1dcdb18560bd523b) | 安装或跳过部署来宾 GPU 驱动。 |
+| [` DownloadBundle = 5 `](#api-c407ac3b94e8c6da) | 从发布渠道下载最新 Linux 部署包。 |
+| [` Driver = 3 `](#api-1dcdb18560bd523b) | 选择系统分区，或在 Windows 分区注入来宾 GPU 驱动。 |
+| [` MountIso = 7 `](#api-5452829f912f0a43) | 将生成的 GPUPV 光盘挂载到目标虚拟机光驱。 |
 | [` Optimization = 1 `](#api-66a3170a736ca7ef) | 放宽宿主限制并调整 GPU 所需的缓存和 MMIO 设置。 |
 | [` PowerCheck = 0 `](#api-d17eb32c160bde76) | 检查并按用户决定处理虚拟机电源状态。 |
+| [` SelectBundle = 4 `](#api-4d7e5d0ecdff42fc) | 选择 Linux 部署包来源（在线获取或本地文件）。 |
+| [` SynthesizeBundle = 6 `](#api-d374a0c0ce2d4b86) | 校验部署包、提取宿主 GPU 运行库并构建 GPUPV 纯 UDF 光盘镜像。 |
 
 #### 详细说明
 
@@ -3617,6 +3701,16 @@ Assign = 2
 
 新增虚拟 GPU 分区适配器。
 
+<a id="api-c407ac3b94e8c6da"></a>
+
+##### DownloadBundle（枚举值）
+
+```csharp
+DownloadBundle = 5
+```
+
+从发布渠道下载最新 Linux 部署包。
+
 <a id="api-1dcdb18560bd523b"></a>
 
 ##### Driver（枚举值）
@@ -3625,7 +3719,17 @@ Assign = 2
 Driver = 3
 ```
 
-安装或跳过部署来宾 GPU 驱动。
+选择系统分区，或在 Windows 分区注入来宾 GPU 驱动。
+
+<a id="api-5452829f912f0a43"></a>
+
+##### MountIso（枚举值）
+
+```csharp
+MountIso = 7
+```
+
+将生成的 GPUPV 光盘挂载到目标虚拟机光驱。
 
 <a id="api-66a3170a736ca7ef"></a>
 
@@ -3646,6 +3750,26 @@ PowerCheck = 0
 ```
 
 检查并按用户决定处理虚拟机电源状态。
+
+<a id="api-4d7e5d0ecdff42fc"></a>
+
+##### SelectBundle（枚举值）
+
+```csharp
+SelectBundle = 4
+```
+
+选择 Linux 部署包来源（在线获取或本地文件）。
+
+<a id="api-d374a0c0ce2d4b86"></a>
+
+##### SynthesizeBundle（枚举值）
+
+```csharp
+SynthesizeBundle = 6
+```
+
+校验部署包、提取宿主 GPU 运行库并构建 GPUPV 纯 UDF 光盘镜像。
 
 <a id="api-499dc8bdf05041ca"></a>
 
@@ -3825,6 +3949,139 @@ public GpuDriverFallbackAction Action { get; init; }
 ```
 
 要执行的替代动作。
+
+<a id="api-326a75b5df0c00c6"></a>
+
+### `GpuLinuxBundleSelection` record 类
+
+为 Linux 系统分区选择在线获取或本地 .zip GPU-PV 部署包。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / GPU |
+| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public GpuLinuxBundleSelection(Guid RequestId, GpuLinuxBundleSource Source, string? LocalBundlePath = null) `](#api-d0cddd67a678f3f3) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public string? LocalBundlePath { get; init; } `](#api-90b3ca8abb9eb840) | 当 Source 为 LocalFile 时必须提供的本地 .zip 部署包路径；Online 时为 null。 |
+| [` public GpuLinuxBundleSource Source { get; init; } `](#api-591416774501b6b0) | 部署包来源。 |
+
+#### 详细说明
+
+```csharp
+public sealed record GpuLinuxBundleSelection(
+    Guid RequestId,
+    GpuLinuxBundleSource Source,
+    string? LocalBundlePath = null) : GpuDeploymentDecision(RequestId)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `RequestId` | 当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。 |
+| `Source` | 部署包来源。 |
+| `LocalBundlePath` | 当 Source 为 LocalFile 时必须提供的本地 .zip 部署包路径；Online 时为 null。 |
+
+#### 构造函数说明
+
+<a id="api-d0cddd67a678f3f3"></a>
+
+##### 创建 Linux 部署包选择（主构造器）
+
+```csharp
+public GpuLinuxBundleSelection(Guid RequestId, GpuLinuxBundleSource Source, string? LocalBundlePath = null);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `RequestId` | 当前 PendingDecision.Id；过期或不匹配的 ID 会被拒绝。 |
+| `Source` | 部署包来源。 |
+| `LocalBundlePath` | 当 Source 为 LocalFile 时必须提供的本地 .zip 部署包路径；Online 时为 null。 |
+
+#### 属性说明
+
+<a id="api-90b3ca8abb9eb840"></a>
+
+##### 本地部署包路径（record 属性）
+
+```csharp
+public string? LocalBundlePath { get; init; }
+```
+
+当 Source 为 LocalFile 时必须提供的本地 .zip 部署包路径；Online 时为 null。
+
+<a id="api-591416774501b6b0"></a>
+
+##### 部署包来源（record 属性）
+
+```csharp
+public GpuLinuxBundleSource Source { get; init; }
+```
+
+部署包来源。
+
+<a id="api-8b901521391226ef"></a>
+
+### `GpuLinuxBundleSource` 枚举
+
+Linux GPU-PV 部署包获取方式。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | 枚举 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / GPU |
+| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/GpuDeploymentModels.cs ` |
+
+#### 成员概览
+
+**枚举值**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` LocalFile = 1 `](#api-c28d87cb72ae37e9) | 使用本地磁盘上已有的 linuxpv .zip 部署包。 |
+| [` Online = 0 `](#api-753554f992b220c5) | 自动下载并校验最新官方部署包。 |
+
+#### 详细说明
+
+```csharp
+public enum GpuLinuxBundleSource
+```
+
+#### 枚举值说明
+
+<a id="api-c28d87cb72ae37e9"></a>
+
+##### LocalFile（枚举值）
+
+```csharp
+LocalFile = 1
+```
+
+使用本地磁盘上已有的 linuxpv .zip 部署包。
+
+<a id="api-753554f992b220c5"></a>
+
+##### Online（枚举值）
+
+```csharp
+Online = 0
+```
+
+自动下载并校验最新官方部署包。
 
 <a id="api-bb8b2e9014baee53"></a>
 
@@ -5263,6 +5520,141 @@ SmallToLarge = 0
 ```
 
 按小到大顺序填充分布域。
+
+<a id="api-61c57998e1e6b170"></a>
+
+### `LinuxGpuPvBundleInfo` record 类
+
+已校验的 Linux GPU-PV 部署包摘要信息。
+
+| 项目 | 内容 |
+| --- | --- |
+| 类型 | record 类 |
+| 命名空间 | ` ExHyperV.Models ` |
+| 程序集 | `ExHyperV.Core.dll` |
+| 功能归属 | 管理层面 / 虚拟机 / GPU |
+| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/Linux/LinuxGpuPvModels.cs ` |
+
+#### 成员概览
+
+**构造函数**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public LinuxGpuPvBundleInfo(string FilePath, string FileName, string Version, string Architecture, int KernelCount, long FileSizeBytes) `](#api-d21cb43162334d5a) |  |
+
+**属性**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public string Architecture { get; init; } `](#api-08d0c2ac81157ca1) | 部署包目标 CPU 架构（x86\_64 或 aarch64）。 |
+| [` public string FileName { get; init; } `](#api-573c6bdc72055a8e) | 部署包文件名。 |
+| [` public string FilePath { get; init; } `](#api-e6938f7304094d0a) | 部署包 ZIP 文件的完整路径。 |
+| [` public long FileSizeBytes { get; init; } `](#api-a15743d5501dd7a0) | 部署包 ZIP 文件大小，单位为字节。 |
+| [` public int KernelCount { get; init; } `](#api-b40170fcd380947e) | 包内包含的预编译 dxgkrnl 模块数量。 |
+| [` public string Version { get; init; } `](#api-5b88cb9dbccf6949) | 部署包声明的发行版本。 |
+
+#### 详细说明
+
+```csharp
+public sealed record LinuxGpuPvBundleInfo(
+    string FilePath,
+    string FileName,
+    string Version,
+    string Architecture,
+    int KernelCount,
+    long FileSizeBytes)
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `FilePath` | 部署包 ZIP 文件的完整路径。 |
+| `FileName` | 部署包文件名。 |
+| `Version` | 部署包声明的发行版本。 |
+| `Architecture` | 部署包目标 CPU 架构（x86_64 或 aarch64）。 |
+| `KernelCount` | 包内包含的预编译 dxgkrnl 模块数量。 |
+| `FileSizeBytes` | 部署包 ZIP 文件大小，单位为字节。 |
+
+#### 构造函数说明
+
+<a id="api-d21cb43162334d5a"></a>
+
+##### 创建 Linux 部署包摘要（主构造器）
+
+```csharp
+public LinuxGpuPvBundleInfo(string FilePath, string FileName, string Version, string Architecture, int KernelCount, long FileSizeBytes);
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `FilePath` | 部署包 ZIP 文件的完整路径。 |
+| `FileName` | 部署包文件名。 |
+| `Version` | 部署包声明的发行版本。 |
+| `Architecture` | 部署包目标 CPU 架构（x86_64 或 aarch64）。 |
+| `KernelCount` | 包内包含的预编译 dxgkrnl 模块数量。 |
+| `FileSizeBytes` | 部署包 ZIP 文件大小，单位为字节。 |
+
+#### 属性说明
+
+<a id="api-08d0c2ac81157ca1"></a>
+
+##### 目标架构（record 属性）
+
+```csharp
+public string Architecture { get; init; }
+```
+
+部署包目标 CPU 架构（x86_64 或 aarch64）。
+
+<a id="api-573c6bdc72055a8e"></a>
+
+##### 文件名（record 属性）
+
+```csharp
+public string FileName { get; init; }
+```
+
+部署包文件名。
+
+<a id="api-e6938f7304094d0a"></a>
+
+##### 文件路径（record 属性）
+
+```csharp
+public string FilePath { get; init; }
+```
+
+部署包 ZIP 文件的完整路径。
+
+<a id="api-a15743d5501dd7a0"></a>
+
+##### 文件大小（record 属性）
+
+```csharp
+public long FileSizeBytes { get; init; }
+```
+
+部署包 ZIP 文件大小，单位为字节。
+
+<a id="api-b40170fcd380947e"></a>
+
+##### 预编译内核数量（record 属性）
+
+```csharp
+public int KernelCount { get; init; }
+```
+
+包内包含的预编译 dxgkrnl 模块数量。
+
+<a id="api-5b88cb9dbccf6949"></a>
+
+##### 发行版本（record 属性）
+
+```csharp
+public string Version { get; init; }
+```
+
+部署包声明的发行版本。
 
 <a id="api-331bc806004b3c0a"></a>
 
@@ -19129,7 +19521,7 @@ VmStopped = 2
 | 命名空间 | ` ExHyperV.Services ` |
 | 程序集 | `ExHyperV.Core.dll` |
 | 功能归属 | 管理层面 / 虚拟机 / GPU |
-| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.cs ` |
+| 源文件 | ` Management/VirtualMachines/Gpu/Deployment/GpuDeploymentSession.Linux.cs ` |
 
 #### 成员概览
 
@@ -19155,7 +19547,7 @@ VmStopped = 2
 #### 详细说明
 
 ```csharp
-public sealed class GpuDeploymentSession
+public sealed partial class GpuDeploymentSession
 ```
 
 调用约定：每个实例管理一次 GPU 部署，写操作依次执行，GetStatus 返回当前状态。失败或取消后恢复临时磁盘资源，清理已确认属于本次操作的 GPU 适配器，已完成的策略、MMIO、文件及电源变化保留。结果或归属待确认时保留现场，按 AllowedActions 调用 ReconcileAsync 核实、RetryCleanupAsync 清理。恢复材料由当前进程中的会话实例持有。
@@ -32024,6 +32416,12 @@ public StaleGpuPartition SelectCandidate(string candidateId);
 | --- | --- |
 | [` public VmGpuService(VmQueryService queryService) `](#api-a41e3bd35586bfde) | 建立 GPU 服务，复用传入的虚拟机查询服务。 |
 
+**静态方法**
+
+| 成员 | 说明 |
+| --- | --- |
+| [` public static async Task<ApiResponse<LinuxGpuPvBundleInfo>> InspectLinuxGpuPvBundleAsync(string bundlePath, CancellationToken cancellationToken = default) `](#api-e44289dd0bda4893) | 检查并校验本地 Linux GPU-PV 部署包压缩文件（.zip）。 |
+
 **方法**
 
 | 成员 | 说明 |
@@ -32059,6 +32457,27 @@ public VmGpuService(VmQueryService queryService);
 | 参数 | 说明 |
 | --- | --- |
 | `queryService` | 用于虚拟机身份和来宾网络等查询的服务。 |
+
+#### 静态方法说明
+
+<a id="api-e44289dd0bda4893"></a>
+
+##### 校验 Linux 部署包（方法）
+
+```csharp
+public static async Task<ApiResponse<LinuxGpuPvBundleInfo>> InspectLinuxGpuPvBundleAsync(string bundlePath, CancellationToken cancellationToken = default);
+```
+
+功能归属：管理层面 / 虚拟机 / GPU。
+
+检查并校验本地 Linux GPU-PV 部署包压缩文件（.zip）。
+
+| 参数 | 说明 |
+| --- | --- |
+| `bundlePath` | 本地 .zip 部署包文件路径。 |
+| `cancellationToken` | 取消令牌。 |
+
+返回：包含版本、架构、预编译内核数量和文件大小的校验结果。
 
 #### 方法说明
 

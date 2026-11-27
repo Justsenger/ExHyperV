@@ -47,6 +47,11 @@ internal sealed partial class HostMemoryRingView : UserControl
         public required Border SwatchBar { get; init; }
         public required TextBlock NameText { get; init; }
         public required TextBlock SizeText { get; init; }
+        public SolidColorBrush BgBrush { get; } = new();
+        public SolidColorBrush BorderBrush { get; } = new();
+        public SolidColorBrush SwatchBrush { get; } = new();
+        public SolidColorBrush NameBrush { get; } = new();
+        public SolidColorBrush SizeBrush { get; } = new();
         public bool IsHovered { get; set; }
         public double GiB { get; set; }
     }
@@ -92,6 +97,15 @@ internal sealed partial class HostMemoryRingView : UserControl
         Visibility = Visibility.Collapsed
     };
     private readonly List<ShapePath> arcPool = [];
+    private readonly List<(SolidColorBrush Fill, SolidColorBrush Stroke)> arcBrushes = [];
+    private readonly List<(int ROutQ, int StartQ, int EndQ, int CornerQ)> arcGeomKeys = [];
+    private readonly SolidColorBrush trackBrush = new();
+    private readonly SolidColorBrush fullSliceBrush = new();
+    private readonly SolidColorBrush transparentBrush = new(Colors.Transparent);
+    private readonly SolidColorBrush centerTitleBrush = new();
+    private readonly SolidColorBrush centerPctBrush = new();
+    private readonly SolidColorBrush centerGbBrush = new();
+    private readonly SolidColorBrush centerSubBrush = new();
 
     private readonly StackPanel centerPanel = new()
     {
@@ -173,10 +187,16 @@ internal sealed partial class HostMemoryRingView : UserControl
         Canvas.SetTop(trackRing, Cy - ROutBase);
         Canvas.SetLeft(fullSliceRing, Cx - ROutBase);
         Canvas.SetTop(fullSliceRing, Cy - ROutBase);
+        trackRing.Stroke = trackBrush;
+        fullSliceRing.Stroke = fullSliceBrush;
         pieCanvas.Children.Add(trackRing);
         pieCanvas.Children.Add(fullSliceRing);
         pieViewbox.Child = pieCanvas;
 
+        centerTitle.Foreground = centerTitleBrush;
+        centerPct.Foreground = centerPctBrush;
+        centerGb.Foreground = centerGbBrush;
+        centerSub.Foreground = centerSubBrush;
         centerPanel.Children.Add(centerTitle);
         centerPanel.Children.Add(centerPct);
         centerPanel.Children.Add(centerGb);
@@ -382,7 +402,9 @@ internal sealed partial class HostMemoryRingView : UserControl
         bool light = ActualTheme == ElementTheme.Light;
         Color primary = ThemeHelper.ThemeColor(ActualTheme, "TextFillColorPrimaryBrush",
             light ? Color.FromArgb(0xE4, 0, 0, 0) : Colors.White);
-        trackRing.Stroke = new SolidColorBrush(Color.FromArgb(16, primary.R, primary.G, primary.B));
+        Color nextTrack = Color.FromArgb(16, primary.R, primary.G, primary.B);
+        if (trackBrush.Color != nextTrack)
+            trackBrush.Color = nextTrack;
 
         double sumGiB = 0;
         int nonFreeCount = 0;
@@ -405,7 +427,8 @@ internal sealed partial class HostMemoryRingView : UserControl
         {
             var single = slices[0];
             bool dimmed = focused != null && !string.Equals(single.Key, focused, StringComparison.Ordinal);
-            fullSliceRing.Stroke = new SolidColorBrush(single.Color);
+            if (fullSliceBrush.Color != single.Color)
+                fullSliceBrush.Color = single.Color;
             fullSliceRing.Opacity = dimmed ? 0.16 : 1.0;
             fullSliceRing.Visibility = Visibility.Visible;
             for (int i = 0; i < arcPool.Count; i++)
@@ -418,7 +441,6 @@ internal sealed partial class HostMemoryRingView : UserControl
         double gapDeg = nonFreeCount > 14 ? 0.85 : nonFreeCount > 6 ? 1.4 : 2.1;
         Color freeFocusFill = Color.FromArgb(31, primary.R, primary.G, primary.B);
         Color freeFocusStroke = Color.FromArgb(72, primary.R, primary.G, primary.B);
-        var transparentBrush = new SolidColorBrush(Colors.Transparent);
 
         double curDeg = -90;
         int used = 0;
@@ -438,24 +460,43 @@ internal sealed partial class HostMemoryRingView : UserControl
             double rOut = isFocused ? ROutBase + ROutFocusOffset : ROutBase;
             double cornerR = spanDeg >= 6.0 ? 5.0 : 2.5;
 
-            var geom = AnnularRingCanvas.BuildAnnularSector(Cx, Cy, RIn, rOut, aStart, aEnd, cornerR);
-            if (geom == null) continue;
+            int rOutQ = (int)Math.Round(rOut * 10.0);
+            int startQ = (int)Math.Round(aStart * 10.0);
+            int endQ = (int)Math.Round(aEnd * 10.0);
+            int cornerQ = (int)Math.Round(cornerR * 10.0);
+            if (endQ - startQ <= 1) continue;
 
-            ShapePath path = GetOrCreateArcPath(used++);
+            int slot = used;
+            ShapePath path = GetOrCreateArcPath(slot);
+            var geomKey = (rOutQ, startQ, endQ, cornerQ);
+            if (arcGeomKeys[slot] != geomKey)
+            {
+                var geom = AnnularRingCanvas.BuildAnnularSector(Cx, Cy, RIn, rOutQ / 10.0, startQ / 10.0, endQ / 10.0, cornerQ / 10.0);
+                if (geom == null)
+                {
+                    path.Visibility = Visibility.Collapsed;
+                    continue;
+                }
+                path.Data = geom;
+                arcGeomKeys[slot] = geomKey;
+            }
+            used++;
+
             path.Tag = s.Key;
-            path.Data = geom;
-
+            var (fillBrush, strokeBrush) = arcBrushes[slot];
             if (s.IsFree)
             {
-                path.Fill = isFocused ? new SolidColorBrush(freeFocusFill) : transparentBrush;
-                path.Stroke = isFocused ? new SolidColorBrush(freeFocusStroke) : transparentBrush;
+                Color targetFill = isFocused ? freeFocusFill : Colors.Transparent;
+                Color targetStroke = isFocused ? freeFocusStroke : Colors.Transparent;
+                if (fillBrush.Color != targetFill) fillBrush.Color = targetFill;
+                if (strokeBrush.Color != targetStroke) strokeBrush.Color = targetStroke;
                 path.StrokeThickness = isFocused ? 1.2 : 0;
                 path.Opacity = 1.0;
             }
             else
             {
-                path.Fill = new SolidColorBrush(s.Color);
-                path.Stroke = transparentBrush;
+                if (fillBrush.Color != s.Color) fillBrush.Color = s.Color;
+                if (strokeBrush.Color != Colors.Transparent) strokeBrush.Color = Colors.Transparent;
                 path.StrokeThickness = 0;
                 path.Opacity = isDimmed ? 0.16 : 1.0;
             }
@@ -472,7 +513,13 @@ internal sealed partial class HostMemoryRingView : UserControl
         if (index < arcPool.Count)
             return arcPool[index];
 
-        var path = new ShapePath();
+        var fillBrush = new SolidColorBrush();
+        var strokeBrush = new SolidColorBrush();
+        var path = new ShapePath
+        {
+            Fill = fillBrush,
+            Stroke = strokeBrush
+        };
         path.PointerEntered += (sender, _) =>
         {
             if (sender is ShapePath p && p.Tag is string key && hoveredKey != key)
@@ -498,6 +545,8 @@ internal sealed partial class HostMemoryRingView : UserControl
             }
         };
         arcPool.Add(path);
+        arcBrushes.Add((fillBrush, strokeBrush));
+        arcGeomKeys.Add((int.MinValue, int.MinValue, int.MinValue, int.MinValue));
         pieCanvas.Children.Add(path);
         return path;
     }
@@ -522,15 +571,15 @@ internal sealed partial class HostMemoryRingView : UserControl
             ? slices.FirstOrDefault(s => string.Equals(s.Key, focused, StringComparison.Ordinal))
             : null;
 
-        centerTitle.Foreground = new SolidColorBrush(secondary);
-        centerGb.Foreground = new SolidColorBrush(primary);
-        centerSub.Foreground = new SolidColorBrush(tertiary);
+        if (centerTitleBrush.Color != secondary) centerTitleBrush.Color = secondary;
+        if (centerGbBrush.Color != primary) centerGbBrush.Color = primary;
+        if (centerSubBrush.Color != tertiary) centerSubBrush.Color = tertiary;
 
         if (focusItem == null)
         {
             centerTitle.Text = L10n.Get("Host_Mem_RingInUseTitle");
             centerPct.Text = $"{inUsePct}%";
-            centerPct.Foreground = new SolidColorBrush(primary);
+            if (centerPctBrush.Color != primary) centerPctBrush.Color = primary;
             centerGb.Text = $"{usedGiB:0.0} / {totalGiB:0.0} GB";
             centerSub.Text = L10n.Format("Host_Mem_IdleSubFmt", $"{freeGiB:0.0}");
             centerSub.Visibility = Visibility.Visible;
@@ -539,7 +588,8 @@ internal sealed partial class HostMemoryRingView : UserControl
 
         centerTitle.Text = focusItem.Label;
         centerPct.Text = $"{focusItem.SharePct}%";
-        centerPct.Foreground = new SolidColorBrush(focusItem.IsFree ? primary : focusItem.Color);
+        Color targetPctClr = focusItem.IsFree ? primary : focusItem.Color;
+        if (centerPctBrush.Color != targetPctClr) centerPctBrush.Color = targetPctClr;
         centerGb.Text = $"{focusItem.GiB:0.0} / {totalGiB:0.0} GB";
 
         if (string.IsNullOrWhiteSpace(focusItem.Tag))
@@ -647,6 +697,11 @@ internal sealed partial class HostMemoryRingView : UserControl
                 SizeText = size,
                 GiB = c.GiB
             };
+            border.Background = chip.BgBrush;
+            border.BorderBrush = chip.BorderBrush;
+            swatch.Background = chip.SwatchBrush;
+            name.Foreground = chip.NameBrush;
+            size.Foreground = chip.SizeBrush;
 
             border.PointerEntered += (_, _) =>
             {
@@ -736,21 +791,23 @@ internal sealed partial class HostMemoryRingView : UserControl
             if (active)
             {
                 Color fg = ThemeHelper.ReadableForeground(chip.Color);
-                chip.ButtonBorder.Background = new SolidColorBrush(chip.Color);
-                chip.ButtonBorder.BorderBrush = new SolidColorBrush(chip.Color);
-                chip.NameText.Foreground = new SolidColorBrush(fg);
+                Color swatchClr = Color.FromArgb(115, 0, 0, 0);
+                if (chip.BgBrush.Color != chip.Color) chip.BgBrush.Color = chip.Color;
+                if (chip.BorderBrush.Color != chip.Color) chip.BorderBrush.Color = chip.Color;
+                if (chip.NameBrush.Color != fg) chip.NameBrush.Color = fg;
                 chip.NameText.FontWeight = FontWeights.SemiBold;
-                chip.SizeText.Foreground = new SolidColorBrush(fg);
-                chip.SwatchBar.Background = new SolidColorBrush(Color.FromArgb(115, 0, 0, 0));
+                if (chip.SizeBrush.Color != fg) chip.SizeBrush.Color = fg;
+                if (chip.SwatchBrush.Color != swatchClr) chip.SwatchBrush.Color = swatchClr;
             }
             else
             {
-                chip.ButtonBorder.Background = new SolidColorBrush(chip.IsHovered ? hoverBg : defaultBg);
-                chip.ButtonBorder.BorderBrush = new SolidColorBrush(defaultBorder);
-                chip.NameText.Foreground = new SolidColorBrush(primaryFg);
+                Color targetBg = chip.IsHovered ? hoverBg : defaultBg;
+                if (chip.BgBrush.Color != targetBg) chip.BgBrush.Color = targetBg;
+                if (chip.BorderBrush.Color != defaultBorder) chip.BorderBrush.Color = defaultBorder;
+                if (chip.NameBrush.Color != primaryFg) chip.NameBrush.Color = primaryFg;
                 chip.NameText.FontWeight = FontWeights.Normal;
-                chip.SizeText.Foreground = new SolidColorBrush(secondaryFg);
-                chip.SwatchBar.Background = new SolidColorBrush(chip.Color);
+                if (chip.SizeBrush.Color != secondaryFg) chip.SizeBrush.Color = secondaryFg;
+                if (chip.SwatchBrush.Color != chip.Color) chip.SwatchBrush.Color = chip.Color;
             }
         }
     }

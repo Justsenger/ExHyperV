@@ -28,6 +28,9 @@ public sealed partial class VmDashboardView
     ];
     private readonly double?[] gpuValues = new double?[4];
     private readonly Dictionary<string, SolidColorBrush> themedBrushes = new();
+    private readonly SolidColorBrush powerRunningBackground = new(Windows.UI.Color.FromArgb(255, 244, 67, 54));
+    private readonly SolidColorBrush powerRunningForeground = new(Colors.White);
+    private (VmState? State, bool DefaultSave, bool Pending, VmPowerAction? PendingAction, ElementTheme Theme)? lastPowerAppearance;
 
     private Windows.UI.Color ThemeColor(string key) => ThemeHelper.ThemeColor(ActualTheme, key);
 
@@ -40,6 +43,7 @@ public sealed partial class VmDashboardView
     private void UpdateDeviceTheme()
     {
         foreach (var pair in themedBrushes) pair.Value.Color = ThemeColor(pair.Key);
+        lastPowerAppearance = null;
         if (state != null) UpdatePowerAppearance();
     }
 
@@ -156,32 +160,37 @@ public sealed partial class VmDashboardView
         }
         catch (Exception error)
         {
+            Diagnostics.AppDiagnostics.Failure("Console", "OpenFailed", error);
             ShowError(L10n.Format("Dash_ConnectFailed", CoreMessageResolver.ResolveException(error)));
         }
     }
 
     private void UpdatePowerAppearance()
     {
-        bool running = state is VmState.Running or VmState.Starting or VmState.Resuming;
         bool defaultSave = string.Equals(
             ((App)Application.Current).Appearance?.Settings.DefaultPowerAction,
             "Save",
             StringComparison.OrdinalIgnoreCase);
+        bool pending = IsPowerPending;
+        var nextState = (state, defaultSave, pending, pending ? activePowerAction : null, ActualTheme);
+        if (lastPowerAppearance == nextState) return;
+        lastPowerAppearance = nextState;
+
+        bool running = state is VmState.Running or VmState.Starting or VmState.Resuming;
         PowerText.Text = running
             ? L10n.Get(defaultSave ? "Dash_Power_SaveState" : "Dash_Power_ShutDown")
             : state == VmState.Suspended ? L10n.Get("Dash_Power_Resume")
             : L10n.Get("Dash_Power_Start");
         PowerButton.Padding = running ? new Thickness(20, 0, 20, 0) : new Thickness(24, 6, 24, 6);
         PowerButton.Background = running
-            ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 244, 67, 54))
+            ? powerRunningBackground
             : (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
         PowerButton.Foreground = running
-            ? new SolidColorBrush(Colors.White)
+            ? powerRunningForeground
             : (Brush)Application.Current.Resources["TextOnAccentFillColorPrimaryBrush"];
         PowerButton.BorderThickness = new Thickness(0);
         PowerButton.CornerRadius = state == VmState.Running ? new CornerRadius(8, 0, 0, 8) : new CornerRadius(8);
         bool actionable = state is VmState.Running or VmState.PoweredOff or VmState.Saved or VmState.Suspended;
-        bool pending = IsPowerPending;
         bool turnOffPending = pending && activePowerAction == VmPowerAction.TurnOff;
         PowerButton.IsEnabled = actionable && !pending;
         PowerMenu.Background = PowerButton.Background;

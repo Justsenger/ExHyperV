@@ -66,20 +66,32 @@ const members = data.types.flatMap(type=>type.members.map(member=>({type,member}
 const member = (owner,name) => data.types.find(type=>type.shortName===owner).members.find(item=>item.name===name);
 const stripLinks = value => value.replace(/<\/?a\b[^>]*>/g,'');
 
-test('the API home is a concise overview with eight working category buttons', () => {
+test('the API home is a minimal quickstart overview without duplicating sidebar category cards', () => {
   const view = page();
   assert.equal(view.breadcrumb, '概览');
   const content = view.content;
   assert.match(content, /id="overview"/);
-  assert.doesNotMatch(content, /管理虚拟机，连接来宾。|虚拟机、宿主与文件工具|连接、画面与输入交互/);
-  assert.match(content, /class="overview-columns"/);
-  assert.match(content, /id="overview-management">管理层面/);
-  assert.match(content, /id="overview-business">业务层面/);
+  assert.match(content, /id="overview-quickstart">快速开始/);
+  assert.match(content, /id="overview-tasks-heading">常用入口/);
+  assert.match(content, /data-example="list"/);
+  assert.doesNotMatch(content, /class="overview-entry"/);
   assert.doesNotMatch(content, /<table|member-card|type-overview|使用说明/);
-  const buttons = [...content.matchAll(/href="#([^"]+)" class="overview-entry"/g)].map(match => match[1]);
-  assert.equal(buttons.length, 8);
-  assert.equal(new Set(buttons).size, 8);
-  for (const id of buttons) {
+  const inlineLinks = [...content.matchAll(/href="#([^"]+)"/g)].map(match => match[1]);
+  assert.ok(inlineLinks.length >= 6);
+  for (const id of new Set(inlineLinks)) {
+    const destination = view.open(id);
+    assert.notEqual(view.breadcrumb, '概览', id);
+    assert.doesNotMatch(destination, /未找到文档/, id);
+    assert.ok(destination.includes(`id="${view.target || id}"`), id);
+  }
+  for (const label of ['虚拟机', '宿主', '工具']) {
+    assert.ok(view.navigation.includes(`<summary>${label}</summary>`), `missing sidebar group: ${label}`);
+  }
+  const hubIds = ['category-vm', 'category-host', 'category-tools',
+    ...data.categories.filter(c => c.path[0] === '业务层面' && c.path.length === 2).map(c => c.id)];
+  assert.equal(new Set(hubIds).size, 8);
+  for (const id of hubIds) {
+    if (!id.startsWith('category-')) assert.ok(view.navigation.includes(`href="#${id}"`), `missing sidebar category: ${id}`);
     const destination = view.open(id);
     assert.notEqual(view.breadcrumb, '概览', id);
     assert.doesNotMatch(destination, /未找到文档/, id);

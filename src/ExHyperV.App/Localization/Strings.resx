@@ -3366,7 +3366,51 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_SelectUnsupportedNotice" xml:space="preserve">
-    <value>所选分区不支持注入驱动，请选择未加密的 Windows 系统分区或跳过驱动。</value>
+    <value>所选分区不支持部署驱动，请选择未加密的 Windows 或 Linux 系统分区。</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BundleOnline" xml:space="preserve">
+    <value>在线获取</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BundleOnlineDesc" xml:space="preserve">
+    <value>自动下载最新部署包</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BundleLocal" xml:space="preserve">
+    <value>本地文件</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BundleLocalDesc" xml:space="preserve">
+    <value>选择本地 .zip 部署包</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BundleBrowse" xml:space="preserve">
+    <value>浏览</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BundleMustBeZip" xml:space="preserve">
+    <value>部署包文件需为 .zip 压缩包</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BundleChecking" xml:space="preserve">
+    <value>正在校验部署包...</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_BundleValidFormat" xml:space="preserve">
+    <value>部署包校验通过（{0}，{1}，含 {2} 个内核模块）</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_LinuxGuestRunHint" xml:space="preserve">
+    <value>在虚拟机中运行来完成驱动安装</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_CopyCommand" xml:space="preserve">
+    <value>复制命令</value>
+    <comment>TODO: en</comment>
+  </data>
+  <data name="Gpu_CommandLabel" xml:space="preserve">
+    <value>安装命令</value>
     <comment>TODO: en</comment>
   </data>
   <data name="Gpu_CancelDeployment" xml:space="preserve">
@@ -5023,4 +5067,76 @@ Replacing the key may require the BitLocker recovery key on the next boot. The p
   <data name="Settings_ShowExtensionEntriesHelp" xml:space="preserve"><value>Show extension entries such as Super session in console and settings views. Turn off to hide them without affecting active connections</value></data>
   <data name="Console_ViewOnly" xml:space="preserve"><value>View only</value></data>
   <data name="Console_DisplayMode" xml:space="preserve"><value>{0} × {1} / {2:0.##} Hz</value></data>
+  <data name="Console_Fps" xml:space="preserve"><value>FPS</value></data>
+  <data name="Console_FpsTip" xml:space="preserve"><value>Show or hide console output frame rate</value></data>
+  <data name="Console_FpsReadout" xml:space="preserve"><value>{0} FPS</value></data>
+  <data name="Console_FpsIdle" xml:space="preserve"><value>-- FPS</value></data>
+  <data name="VmList_AddVmButton" xml:space="preserve"><value>New virtual machine</value></data>
+  <data name="VmAdd_PresetWin11Desc" xml:space="preserve"><value>Recommended with Secure Boot and TPM enabled</value></data>
+  <data name="VmAdd_PresetLinuxTitle" xml:space="preserve"><value>Linux / General</value></data>
+  <data name="VmAdd_PresetLinuxDesc" xml:space="preserve"><value>Compatibility mode with Secure Boot and TPM disabled</value></data>
+  <data name="VmAdd_PresetCustomTitle" xml:space="preserve"><value>Custom</value></data>
+  <data name="VmAdd_PresetCustomDesc" xml:space="preserve"><value>Customize all configuration options</value></data>
+  <data name="VmAdd_NamePlaceholder" xml:space="preserve"><value>For example, Windows11 or Ubuntu-Dev</value></data>
+  <data name="VmAdd_Browse" xml:space="preserve"><value>Browse...</value></data>
+  <data name="VmAdd_DiskModeIso" xml:space="preserve"><value>Install from ISO image</value></data>
+  <data name="VmAdd_DiskModeExisting" xml:space="preserve"><value>Use existing virtual disk</value></data>
+  <data name="VmAdd_DiskModeEmpty" xml:space="preserve"><value>Install later (empty VM)</value></data>
+  <data name="VmAdd_IsoPlaceholder" xml:space="preserve"><value>Select .iso installation image file (optional)</value></data>
+  <data name="VmAdd_BrowseIso" xml:space="preserve"><value>Select ISO...</value></data>
+  <data name="VmAdd_CatalogLink" xml:space="preserve"><value>Need an image? Browse System Catalog ↗</value></data>
+  <data name="VmAdd_ExistingDiskPlaceholder" xml:space="preserve"><value>Select .vhdx / .vhd virtual disk file</value></data>
+  <data name="VmAdd_BrowseDisk" xml:space="preserve"><value>Select disk...</value></data>
+  <data name="VmAdd_DiffDisk" xml:space="preserve"><value>Create differencing disk from this disk (leave parent unmodified)</value></data>
+  <data name="VmAdd_BatchDiskError" xml:space="preserve"><value>Batch creation cannot reuse the same non-differencing disk across multiple VMs. Enable differencing disk or create new disks instead.</value></data>
+  <data name="VmAdd_EmptyDiskHint" xml:space="preserve"><value>Creates an empty virtual machine without a virtual disk or installation media. You can add storage later in Settings.</value></data>
+  <data name="VmAdd_Gen2" xml:space="preserve"><value>Generation 2 (UEFI, recommended)</value></data>
+  <data name="VmAdd_Gen1" xml:space="preserve"><value>Generation 1 (Legacy BIOS)</value></data>
+  <data name="VmAdd_IgvmPlaceholder" xml:space="preserve"><value>Select OpenHCL IGVM firmware file</value></data>
+  <data name="VmAdd_StoreDisksWithVm" xml:space="preserve"><value>Store new virtual disks in the same folder as the VM</value></data>
+  <data name="VmAdd_SeparateDiskPathPlaceholder" xml:space="preserve"><value>Root folder for storing virtual disks separately</value></data>
+  <data name="VmAdd_StartAfterCreate" xml:space="preserve"><value>Start immediately after creation</value></data>
+  <data name="VmAdd_CreateButton" xml:space="preserve"><value>Create VM</value></data>
+  <data name="VmAdd_CreatingBusy" xml:space="preserve"><value>Creating virtual machine...</value></data>
+  <data name="VmAdd_CreatingBatchBusy" xml:space="preserve"><value>Creating {0} virtual machines...</value></data>
+  <data name="VmAdd_TabCreate" xml:space="preserve"><value>New VM</value></data>
+  <data name="VmAdd_TabImport" xml:space="preserve"><value>Import VM</value></data>
+  <data name="VmAdd_CloseAria" xml:space="preserve"><value>Close add VM view</value></data>
+  <data name="VmAdd_CloseTooltip" xml:space="preserve"><value>Return to virtual machine view</value></data>
+  <data name="VmAdd_FieldVmName" xml:space="preserve"><value>Virtual machine name</value></data>
+  <data name="VmAdd_FieldLocation" xml:space="preserve"><value>Storage location</value></data>
+  <data name="VmAdd_LocationHint" xml:space="preserve"><value>Configuration files and new virtual disks are stored in the same folder by default</value></data>
+  <data name="VmAdd_SectionBasic" xml:space="preserve"><value>Basic information</value></data>
+  <data name="VmAdd_FieldDiskSize" xml:space="preserve"><value>New virtual disk size (GB)</value></data>
+  <data name="VmAdd_SectionSource" xml:space="preserve"><value>Installation source and disk</value></data>
+  <data name="VmAdd_FieldCpu" xml:space="preserve"><value>Processor cores</value></data>
+  <data name="VmAdd_FieldMemory" xml:space="preserve"><value>Startup memory</value></data>
+  <data name="VmAdd_SectionResources" xml:space="preserve"><value>Compute resources</value></data>
+  <data name="VmAdd_FieldSwitch" xml:space="preserve"><value>Virtual switch</value></data>
+  <data name="VmAdd_SwitchHint" xml:space="preserve"><value>The Default Switch lets the virtual machine access the network out of the box</value></data>
+  <data name="VmAdd_SectionNetwork" xml:space="preserve"><value>Network connection</value></data>
+  <data name="VmAdd_AdvQuantityTitle" xml:space="preserve"><value>Batch creation count</value></data>
+  <data name="VmAdd_AdvQuantityDesc" xml:space="preserve"><value>Create multiple virtual machines with the same configuration at once</value></data>
+  <data name="VmAdd_AdvGenerationTitle" xml:space="preserve"><value>VM generation</value></data>
+  <data name="VmAdd_AdvVersionTitle" xml:space="preserve"><value>Hyper-V configuration version</value></data>
+  <data name="VmAdd_AdvVersionDesc" xml:space="preserve"><value>Uses the latest stable version supported by the host by default</value></data>
+  <data name="VmAdd_AdvSecureBootTitle" xml:space="preserve"><value>Secure Boot</value></data>
+  <data name="VmAdd_AdvSecureBootDesc" xml:space="preserve"><value>Enabled by default for Generation 2 VMs, recommended for Windows 11</value></data>
+  <data name="VmAdd_AdvTpmTitle" xml:space="preserve"><value>Virtual TPM</value></data>
+  <data name="VmAdd_AdvTpmDesc" xml:space="preserve"><value>Required for Windows 11 Secure Boot and BitLocker</value></data>
+  <data name="VmAdd_AdvDynMemTitle" xml:space="preserve"><value>Dynamic memory</value></data>
+  <data name="VmAdd_AdvDynMemDesc" xml:space="preserve"><value>Allows Hyper-V to allocate memory dynamically based on guest workload</value></data>
+  <data name="VmAdd_AdvIsolationTitle" xml:space="preserve"><value>Hardware isolation mode</value></data>
+  <data name="VmAdd_AdvIsolationDesc" xml:space="preserve"><value>Confidential computing or VBS isolation requires host hardware support</value></data>
+  <data name="VmAdd_AdvIgvmTitle" xml:space="preserve"><value>OpenHCL IGVM image</value></data>
+  <data name="VmAdd_AdvancedHeader" xml:space="preserve"><value>Advanced options (generation, config version, isolation, and separate disk path)</value></data>
+  <data name="VmAdd_Arm64NoGen1Hint" xml:space="preserve"><value>The current ARM64 host does not support Generation 1 VMs (no IDE controller)</value></data>
+  <data name="VmAdd_ImportTitle" xml:space="preserve"><value>Import existing virtual machine</value></data>
+  <data name="VmAdd_ImportDesc" xml:space="preserve"><value>Import virtual machines from an export folder or .zip package with configuration preview, disk validation, and conflict handling.</value></data>
+  <data name="VmAdd_ImportPickFolder" xml:space="preserve"><value>Select export folder...</value></data>
+  <data name="VmAdd_ImportPickZip" xml:space="preserve"><value>Select .zip package...</value></data>
+  <data name="VmAdd_ImportPendingNotice" xml:space="preserve"><value>The import UI will be connected to VmImportService preview and import workflows next.</value></data>
+  <data name="VmAdd_CpuReadoutFormat" xml:space="preserve"><value>{0} cores ({1} total on host)</value></data>
+  <data name="VmAdd_NoSwitch" xml:space="preserve"><value>Not connected</value></data>
+  <data name="VmAdd_CreateFailed" xml:space="preserve"><value>Failed to create virtual machine.</value></data>
 </root>

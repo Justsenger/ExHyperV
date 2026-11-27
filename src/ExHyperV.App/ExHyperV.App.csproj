@@ -80,6 +80,7 @@
     </ItemGroup>
   </Target>
   <ItemGroup>
+    <TrimmerRootDescriptor Include="TrimmerRoots.xml" />
     <BrotliResource Include="../ExHyperV.Core/Contracts/FieldHelp.json" LogicalName="ExHyperV.ApiFieldHelp.json.br" Kind="json" />
   </ItemGroup>
   <Import Project="../../.github/build/winui-publish/CompressedResources.targets" />

@@ -1,0 +1,7 @@
+<linker>
+  <assembly fullname="Microsoft.InteractiveExperiences.Projection">
+    <type fullname="Microsoft.UI.Windowing.OverlappedPresenter" preserve="all" />
+    <type fullname="ABI.Microsoft.UI.Windowing.OverlappedPresenter" preserve="all" />
+    <type fullname="ABI.Microsoft.UI.Windowing.OverlappedPresenterRcwFactoryAttribute" preserve="all" />
+  </assembly>
+</linker>

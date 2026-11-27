@@ -50,12 +50,54 @@ internal sealed partial class HostGpuOverviewView : UserControl
         public required TextBlock ReadoutText { get; init; }
     }
 
+    private sealed class StackedBarSegmentRef
+    {
+        public required Border Segment { get; init; }
+        public required SolidColorBrush Brush { get; init; }
+        public string Key { get; set; } = string.Empty;
+    }
+
+    private sealed class StackedBarView
+    {
+        public Border Root { get; }
+        public Grid Track { get; } = new() { ColumnSpacing = 2 };
+        public List<StackedBarSegmentRef> Segments { get; } = [];
+
+        public StackedBarView(double height)
+        {
+            Root = new Border
+            {
+                Height = height,
+                CornerRadius = new CornerRadius(4),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(1),
+                Child = Track
+            };
+        }
+    }
+
+    private sealed class EngineTagRef
+    {
+        public required StackPanel Panel { get; init; }
+        public required SolidColorBrush SwatchBrush { get; init; }
+        public required TextBlock NameText { get; init; }
+        public required SolidColorBrush NameBrush { get; init; }
+        public required TextBlock ValText { get; init; }
+        public required SolidColorBrush ValBrush { get; init; }
+        public string Key { get; set; } = string.Empty;
+    }
+
     private sealed class EngineTileRefs
     {
         public required Func<GpuEngineValues, double?> Selector { get; init; }
         public required TextBlock ValText { get; init; }
-        public required ContentControl BarHost { get; init; }
+        public required SolidColorBrush ValBrush { get; init; }
+        public required StackedBarView ShareBar { get; init; }
         public required Shared.Controls.WrapPanel TagsWrap { get; init; }
+        public required TextBlock IdleText { get; init; }
+        public required SolidColorBrush IdleBrush { get; init; }
+        public List<EngineTagRef> TagPool { get; } = [];
+        public string LastTagSignature { get; set; } = string.Empty;
     }
 
     private sealed class ConsumerRowRefs
@@ -71,9 +113,10 @@ internal sealed partial class HostGpuOverviewView : UserControl
     {
         public required TextBlock SharedBadgeText { get; init; }
         public required TextBlock ReadingVal { get; init; }
+        public required SolidColorBrush ReadingValBrush { get; init; }
         public required TextBlock ReadingSub { get; init; }
         public required TextBlock BarRight { get; init; }
-        public required ContentControl ShareBarHost { get; init; }
+        public required StackedBarView ShareBar { get; init; }
         public required TextBlock NoCounterNote { get; init; }
         public required List<EngineTileRefs> Engines { get; init; }
         public required List<ConsumerRowRefs> Rows { get; init; }
@@ -113,7 +156,9 @@ internal sealed partial class HostGpuOverviewView : UserControl
     private readonly List<GpuCardRefs> cardRefs = [];
     private readonly List<LegendChipRef> legendChips = [];
     private readonly List<(string Key, FrameworkElement Element, Action<bool, bool>? OnFocus)> staticFocusTargets = [];
-    private readonly List<(string Key, FrameworkElement Element)> dynamicBarFocusTargets = [];
+    private readonly List<FrameworkElement> dynamicBarFocusTargets = [];
+    private readonly SolidColorBrush focusBorderBrush = new();
+    private readonly SolidColorBrush transparentBrush = new(Colors.Transparent);
     private readonly Dictionary<Guid, int> vmColorSlots = new();
     private int nextColorSlot;
 
@@ -480,11 +525,12 @@ internal sealed partial class HostGpuOverviewView : UserControl
         headGrid.Children.Add(titleCol);
 
         var readingCol = new StackPanel { Spacing = 1, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+        var readingValBrush = new SolidColorBrush(primary);
         var readingVal = new TextBlock
         {
             FontSize = 22,
             FontWeight = FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(primary),
+            Foreground = readingValBrush,
             HorizontalAlignment = HorizontalAlignment.Right
         };
         Typography.SetNumeralAlignment(readingVal, FontNumeralAlignment.Tabular);
@@ -511,8 +557,8 @@ internal sealed partial class HostGpuOverviewView : UserControl
         Grid.SetColumn(barRight, 1);
         barLabelRow.Children.Add(barRight);
         barSection.Children.Add(barLabelRow);
-        var shareBarHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-        barSection.Children.Add(shareBarHost);
+        var shareBar = new StackedBarView(14);
+        barSection.Children.Add(shareBar.Root);
         body.Children.Add(barSection);
 
         var noCounterNote = new TextBlock
@@ -547,14 +593,15 @@ internal sealed partial class HostGpuOverviewView : UserControl
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             head.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             head.Children.Add(new TextBlock { Text = spec.Label, FontSize = 12, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(primary) });
-            var valBlock = new TextBlock { FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = new SolidColorBrush(primary) };
+            var valBrush = new SolidColorBrush(primary);
+            var valBlock = new TextBlock { FontSize = 13, FontWeight = FontWeights.SemiBold, Foreground = valBrush };
             Typography.SetNumeralAlignment(valBlock, FontNumeralAlignment.Tabular);
             Grid.SetColumn(valBlock, 1);
             head.Children.Add(valBlock);
             stack.Children.Add(head);
 
-            var engBarHost = new ContentControl { HorizontalContentAlignment = HorizontalAlignment.Stretch };
-            stack.Children.Add(engBarHost);
+            var engBar = new StackedBarView(8);
+            stack.Children.Add(engBar.Root);
 
             var tagsWrap = new Shared.Controls.WrapPanel { Spacing = 8 };
             stack.Children.Add(tagsWrap);
@@ -571,7 +618,17 @@ internal sealed partial class HostGpuOverviewView : UserControl
             Grid.SetRow(tileBorder, spec.Row);
             Grid.SetColumn(tileBorder, spec.Col);
             engGrid.Children.Add(tileBorder);
-            engineRefs.Add(new EngineTileRefs { Selector = spec.Selector, ValText = valBlock, BarHost = engBarHost, TagsWrap = tagsWrap });
+            var idleBrush = new SolidColorBrush(secondary);
+            engineRefs.Add(new EngineTileRefs
+            {
+                Selector = spec.Selector,
+                ValText = valBlock,
+                ValBrush = valBrush,
+                ShareBar = engBar,
+                TagsWrap = tagsWrap,
+                IdleText = new TextBlock { FontSize = 11, Foreground = idleBrush },
+                IdleBrush = idleBrush
+            });
         }
         body.Children.Add(engGrid);
 
@@ -590,9 +647,10 @@ internal sealed partial class HostGpuOverviewView : UserControl
         {
             SharedBadgeText = (TextBlock)sharedBadge.Child,
             ReadingVal = readingVal,
+            ReadingValBrush = readingValBrush,
             ReadingSub = readingSub,
             BarRight = barRight,
-            ShareBarHost = shareBarHost,
+            ShareBar = shareBar,
             NoCounterNote = noCounterNote,
             Engines = engineRefs,
             Rows = rowRefs
@@ -678,36 +736,57 @@ internal sealed partial class HostGpuOverviewView : UserControl
         });
     }
 
-    private Border BuildStackedBar(IReadOnlyList<(string Key, Color Color, double Pct)> slices, double height, Brush barBg, Brush wellBorder)
+    private void UpdateStackedBar(StackedBarView view, IReadOnlyList<(string Key, Color Color, double Pct)> slices, Brush barBg, Brush wellBorder)
     {
-        var trackGrid = new Grid { ColumnSpacing = 2 };
+        view.Root.Background = barBg;
+        view.Root.BorderBrush = wellBorder;
+
+        var track = view.Track;
+        track.ColumnDefinitions.Clear();
+
         double used = 0;
+        int activeCount = 0;
         foreach (var slice in slices)
         {
             double pct = Math.Clamp(slice.Pct, 0, Math.Max(0, 100 - used));
             if (pct <= 0.1) continue;
             used += pct;
-            int colIdx = trackGrid.ColumnDefinitions.Count;
-            trackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(1.5, pct), GridUnitType.Star) });
-            var seg = new Border { CornerRadius = new CornerRadius(2), Background = new SolidColorBrush(slice.Color) };
-            Grid.SetColumn(seg, colIdx);
-            AttachDynamicInteraction(seg, slice.Key);
-            trackGrid.Children.Add(seg);
-        }
-        double remaining = Math.Max(0, 100 - used);
-        if (remaining > 0.1 || trackGrid.ColumnDefinitions.Count == 0)
-            trackGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(1, remaining), GridUnitType.Star) });
 
-        return new Border
+            StackedBarSegmentRef segRef;
+            if (activeCount < view.Segments.Count)
+            {
+                segRef = view.Segments[activeCount];
+            }
+            else
+            {
+                var brush = new SolidColorBrush();
+                var border = new Border { CornerRadius = new CornerRadius(2), Background = brush };
+                segRef = new StackedBarSegmentRef { Segment = border, Brush = brush };
+                view.Segments.Add(segRef);
+                track.Children.Add(border);
+                RegisterDynamicFocusElement(border);
+            }
+
+            segRef.Key = slice.Key;
+            segRef.Segment.Tag = slice.Key;
+            if (segRef.Brush.Color != slice.Color) segRef.Brush.Color = slice.Color;
+            segRef.Segment.Visibility = Visibility.Visible;
+
+            int colIdx = track.ColumnDefinitions.Count;
+            track.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(1.5, pct), GridUnitType.Star) });
+            Grid.SetColumn(segRef.Segment, colIdx);
+            activeCount++;
+        }
+
+        for (int i = activeCount; i < view.Segments.Count; i++)
         {
-            Height = height,
-            CornerRadius = new CornerRadius(4),
-            BorderThickness = new Thickness(1),
-            BorderBrush = wellBorder,
-            Background = barBg,
-            Padding = new Thickness(1),
-            Child = trackGrid
-        };
+            view.Segments[i].Segment.Visibility = Visibility.Collapsed;
+            view.Segments[i].Segment.Tag = null;
+        }
+
+        double remaining = Math.Max(0, 100 - used);
+        if (remaining > 0.1 || track.ColumnDefinitions.Count == 0)
+            track.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(Math.Max(1, remaining), GridUnitType.Star) });
     }
 
     private Border BuildLegendChip((string Key, string Name, Color Color, double? Peak) item, Color primary, Color secondary)
@@ -774,7 +853,6 @@ internal sealed partial class HostGpuOverviewView : UserControl
         Brush barBg = ThemeHelper.TryResourceBrush(ActualTheme, "ControlFillColorTertiaryBrush",
             light ? Color.FromArgb(0x0A, 0, 0, 0) : Color.FromArgb(0x0F, 0xFF, 0xFF, 0xFF));
 
-        dynamicBarFocusTargets.Clear();
         string? focus = hoveredKey ?? selectedKey;
 
         for (int i = 0; i < currentCards.Count && i < cardRefs.Count; i++)
@@ -788,13 +866,15 @@ internal sealed partial class HostGpuOverviewView : UserControl
             if (focusedConsumer != null)
             {
                 r.ReadingVal.Text = FormatPctOrDash(focusedConsumer.Engines.Peak);
-                r.ReadingVal.Foreground = new SolidColorBrush(focusedConsumer.Color);
+                if (r.ReadingValBrush.Color != focusedConsumer.Color)
+                    r.ReadingValBrush.Color = focusedConsumer.Color;
                 r.ReadingSub.Text = L10n.Format("Host_Gpu_PeakEngine", focusedConsumer.Name);
             }
             else
             {
                 r.ReadingVal.Text = FormatPctOrDash(card.TotalPeakPct);
-                r.ReadingVal.Foreground = new SolidColorBrush(primary);
+                if (r.ReadingValBrush.Color != primary)
+                    r.ReadingValBrush.Color = primary;
                 r.ReadingSub.Text = L10n.Get("Host_Gpu_PhysTotalLoad");
             }
 
@@ -803,62 +883,109 @@ internal sealed partial class HostGpuOverviewView : UserControl
             else
                 r.BarRight.Text = card.TotalPeakPct is { } p ? L10n.Format("Host_Gpu_ShareTotal", Math.Round(p)) : "---";
 
-            r.ShareBarHost.Content = BuildStackedBar(
-                card.Consumers.Where(c => c.Engines.Peak is > 0).Select(c => (c.Key, c.Color, Math.Min(100, c.Engines.Peak!.Value))).ToArray(),
-                14, barBg, wellBorder);
+            var peakSlices = new List<(string Key, Color Color, double Pct)>(card.Consumers.Count);
+            foreach (var c in card.Consumers)
+            {
+                if (c.Engines.Peak is > 0)
+                    peakSlices.Add((c.Key, c.Color, Math.Min(100, c.Engines.Peak.Value)));
+            }
+            UpdateStackedBar(r.ShareBar, peakSlices, barBg, wellBorder);
 
             r.NoCounterNote.Visibility = card.TotalPeakPct.HasValue ? Visibility.Collapsed : Visibility.Visible;
 
             foreach (var er in r.Engines)
             {
                 double? total = er.Selector(card.CardTotal);
-                var activeSlices = card.Consumers
-                    .Select(c => (c.Key, c.Name, c.Color, Val: er.Selector(c.Engines)))
-                    .Where(x => x.Val is > 0)
-                    .Select(x => (x.Key, x.Name, x.Color, Val: x.Val!.Value))
-                    .ToArray();
-                var focusedSlice = focus != null ? activeSlices.FirstOrDefault(s => s.Key == focus) : default;
-                bool hasFocusedSlice = !string.IsNullOrEmpty(focusedSlice.Key);
+                var activeSlices = new List<(string Key, string Name, Color Color, double Val)>(card.Consumers.Count);
+                (string Key, Color Color, double Val)? focusedSlice = null;
+                foreach (var c in card.Consumers)
+                {
+                    if (er.Selector(c.Engines) is > 0 and double v)
+                    {
+                        activeSlices.Add((c.Key, c.Name, c.Color, v));
+                        if (focus == c.Key) focusedSlice = (c.Key, c.Color, v);
+                    }
+                }
 
                 er.ValText.Text = focus != null
-                    ? (hasFocusedSlice ? $"{Math.Round(focusedSlice.Val):0}%" : (total.HasValue ? "0%" : "---"))
+                    ? (focusedSlice is { } fs ? $"{Math.Round(fs.Val):0}%" : (total.HasValue ? "0%" : "---"))
                     : FormatPctOrDash(total);
-                er.ValText.Foreground = new SolidColorBrush(hasFocusedSlice ? focusedSlice.Color : primary);
+                Color valColor = focusedSlice is { } fsc ? fsc.Color : primary;
+                if (er.ValBrush.Color != valColor)
+                    er.ValBrush.Color = valColor;
 
-                er.BarHost.Content = BuildStackedBar(
-                    activeSlices.Select(s => (s.Key, s.Color, Math.Min(100, s.Val))).ToArray(),
-                    8, barBg, wellBorder);
+                var engSlices = new List<(string Key, Color Color, double Pct)>(activeSlices.Count);
+                foreach (var s in activeSlices)
+                    engSlices.Add((s.Key, s.Color, Math.Min(100, s.Val)));
+                UpdateStackedBar(er.ShareBar, engSlices, barBg, wellBorder);
 
-                er.TagsWrap.Children.Clear();
-                if (activeSlices.Length == 0)
+                if (activeSlices.Count == 0)
                 {
-                    er.TagsWrap.Children.Add(new TextBlock
+                    if (er.IdleBrush.Color != secondary) er.IdleBrush.Color = secondary;
+                    er.IdleText.Text = total.HasValue ? L10n.Get("Host_Gpu_EngineIdle") : "---";
+                    if (er.LastTagSignature != "idle")
                     {
-                        Text = total.HasValue ? L10n.Get("Host_Gpu_EngineIdle") : "---",
-                        FontSize = 11,
-                        Foreground = new SolidColorBrush(secondary)
-                    });
+                        er.TagsWrap.Children.Clear();
+                        er.TagsWrap.Children.Add(er.IdleText);
+                        er.LastTagSignature = "idle";
+                    }
                 }
                 else
                 {
-                    foreach (var slice in activeSlices)
+                    while (er.TagPool.Count < activeSlices.Count)
                     {
-                        var tag = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 };
-                        tag.Children.Add(new Border
+                        var swatchBrush = new SolidColorBrush();
+                        var nameBrush = new SolidColorBrush();
+                        var valBrush = new SolidColorBrush();
+                        var nameBlock = new TextBlock { FontSize = 11, Foreground = nameBrush };
+                        var valBlock = new TextBlock { FontSize = 11, Foreground = valBrush };
+                        Typography.SetNumeralAlignment(valBlock, FontNumeralAlignment.Tabular);
+                        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5 };
+                        panel.Children.Add(new Border
                         {
                             Width = 7,
                             Height = 7,
                             CornerRadius = new CornerRadius(2),
-                            Background = new SolidColorBrush(slice.Color),
+                            Background = swatchBrush,
                             VerticalAlignment = VerticalAlignment.Center
                         });
-                        tag.Children.Add(new TextBlock { Text = slice.Name, FontSize = 11, Foreground = new SolidColorBrush(secondary) });
-                        var num = new TextBlock { Text = $"{Math.Round(slice.Val):0}%", FontSize = 11, Foreground = new SolidColorBrush(primary) };
-                        Typography.SetNumeralAlignment(num, FontNumeralAlignment.Tabular);
-                        tag.Children.Add(num);
-                        AttachDynamicInteraction(tag, slice.Key);
-                        er.TagsWrap.Children.Add(tag);
+                        panel.Children.Add(nameBlock);
+                        panel.Children.Add(valBlock);
+                        RegisterDynamicFocusElement(panel);
+                        er.TagPool.Add(new EngineTagRef
+                        {
+                            Panel = panel,
+                            SwatchBrush = swatchBrush,
+                            NameText = nameBlock,
+                            NameBrush = nameBrush,
+                            ValText = valBlock,
+                            ValBrush = valBrush
+                        });
                     }
+
+                    string nextSig = string.Join("|", activeSlices.Select(s => s.Key));
+                    if (!string.Equals(er.LastTagSignature, nextSig, StringComparison.Ordinal))
+                    {
+                        er.TagsWrap.Children.Clear();
+                        for (int idx = 0; idx < activeSlices.Count; idx++)
+                            er.TagsWrap.Children.Add(er.TagPool[idx].Panel);
+                        er.LastTagSignature = nextSig;
+                    }
+
+                    for (int idx = 0; idx < activeSlices.Count; idx++)
+                    {
+                        var slice = activeSlices[idx];
+                        var tagRef = er.TagPool[idx];
+                        tagRef.Key = slice.Key;
+                        tagRef.Panel.Tag = slice.Key;
+                        if (tagRef.SwatchBrush.Color != slice.Color) tagRef.SwatchBrush.Color = slice.Color;
+                        if (tagRef.NameBrush.Color != secondary) tagRef.NameBrush.Color = secondary;
+                        if (tagRef.ValBrush.Color != primary) tagRef.ValBrush.Color = primary;
+                        tagRef.NameText.Text = slice.Name;
+                        tagRef.ValText.Text = $"{Math.Round(slice.Val):0}%";
+                    }
+                    for (int idx = activeSlices.Count; idx < er.TagPool.Count; idx++)
+                        er.TagPool[idx].Panel.Tag = null;
                 }
             }
 
@@ -880,33 +1007,35 @@ internal sealed partial class HostGpuOverviewView : UserControl
     private void AttachStaticInteraction(FrameworkElement el, string key, Action<bool, bool>? onFocus)
     {
         staticFocusTargets.Add((key, el, onFocus));
-        BindPointerHandlers(el, key);
+        el.Tag = key;
+        BindDynamicFocusHandlers(el);
     }
 
-    private void AttachDynamicInteraction(FrameworkElement el, string key)
+    private void RegisterDynamicFocusElement(FrameworkElement el)
     {
-        dynamicBarFocusTargets.Add((key, el));
-        BindPointerHandlers(el, key);
+        dynamicBarFocusTargets.Add(el);
+        BindDynamicFocusHandlers(el);
     }
 
-    private void BindPointerHandlers(FrameworkElement el, string key)
+    private void BindDynamicFocusHandlers(FrameworkElement el)
     {
-        el.PointerEntered += (_, _) =>
+        el.PointerEntered += (sender, _) =>
         {
-            if (hoveredKey == key) return;
+            if (sender is not FrameworkElement fe || fe.Tag is not string key || hoveredKey == key) return;
             hoveredKey = key;
             UpdateLiveValues();
             ApplyFocusVisuals();
         };
-        el.PointerExited += (_, _) =>
+        el.PointerExited += (sender, _) =>
         {
-            if (hoveredKey != key) return;
+            if (sender is not FrameworkElement fe || fe.Tag is not string key || hoveredKey != key) return;
             hoveredKey = null;
             UpdateLiveValues();
             ApplyFocusVisuals();
         };
-        el.PointerPressed += (_, e) =>
+        el.PointerPressed += (sender, e) =>
         {
+            if (sender is not FrameworkElement fe || fe.Tag is not string key) return;
             e.Handled = true;
             selectedKey = selectedKey == key ? null : key;
             UpdateLiveValues();
@@ -927,22 +1056,26 @@ internal sealed partial class HostGpuOverviewView : UserControl
             onFocus?.Invoke(isFocused, isDimmed);
         }
 
-        foreach (var (key, element) in dynamicBarFocusTargets)
-            element.Opacity = hasFocus && key != focus ? 0.25 : 1.0;
+        foreach (var element in dynamicBarFocusTargets)
+        {
+            string? key = element.Tag as string;
+            element.Opacity = hasFocus && key != null && key != focus ? 0.25 : 1.0;
+        }
 
         bool light = ActualTheme == ElementTheme.Light;
         Brush selectedBg = ThemeHelper.TryResourceBrush(ActualTheme, "SubtleFillColorSecondaryBrush",
             light ? Color.FromArgb(0x10, 0, 0, 0) : Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
         Color accent = HostUiHelpers.GetHostConsumerColor(ActualTheme);
-        var focusBorder = new SolidColorBrush(Color.FromArgb(170, accent.R, accent.G, accent.B));
-        var transparent = new SolidColorBrush(Colors.Transparent);
+        Color targetBorder = Color.FromArgb(170, accent.R, accent.G, accent.B);
+        if (focusBorderBrush.Color != targetBorder)
+            focusBorderBrush.Color = targetBorder;
 
         foreach (var chip in legendChips)
         {
             bool isSelected = selectedKey == chip.Key;
             bool isHovered = hoveredKey == chip.Key;
-            chip.ButtonBorder.Background = isSelected || isHovered ? selectedBg : transparent;
-            chip.ButtonBorder.BorderBrush = isSelected || isHovered ? focusBorder : transparent;
+            chip.ButtonBorder.Background = isSelected || isHovered ? selectedBg : transparentBrush;
+            chip.ButtonBorder.BorderBrush = isSelected || isHovered ? focusBorderBrush : transparentBrush;
             chip.NameText.FontWeight = isSelected || isHovered ? FontWeights.SemiBold : FontWeights.Normal;
             chip.ButtonBorder.Opacity = hasFocus && focus != chip.Key ? 0.35 : 1.0;
         }

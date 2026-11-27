@@ -13,8 +13,8 @@ internal static class AppDiagnostics
     internal static string DataDirectory { get; } = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ExHyperV");
     internal static string DirectoryPath => Path.Combine(DataDirectory, "Logs");
     private static RollingLog? log;
-
     private static LocalTraceListener? recorder;
+    private static int shutdownOnce;
 
     internal static void Start(AppearanceSettings settings)
     {
@@ -24,11 +24,14 @@ internal static class AppDiagnostics
         Trace.Listeners.Add(recorder);
         AppDomain.CurrentDomain.UnhandledException += (_, args) => Crash("UnhandledException", args.ExceptionObject as Exception);
         TaskScheduler.UnobservedTaskException += (_, args) => Crash("UnobservedTaskException", args.Exception);
-        AppDomain.CurrentDomain.ProcessExit += (_, _) =>
-        {
-            Write("App", "ProcessExit");
-            log.Dispose();
-        };
+        AppDomain.CurrentDomain.ProcessExit += (_, _) => Shutdown();
+    }
+
+    internal static void Shutdown()
+    {
+        if (Interlocked.Exchange(ref shutdownOnce, 1) != 0) return;
+        Write("App", "ProcessExit");
+        log?.Dispose();
     }
 
     internal static void Configure(AppearanceSettings settings)

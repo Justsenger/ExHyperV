@@ -262,6 +262,27 @@ internal static class Win32Api
         return result;
     }
 
+    /// <summary>读取指定设备当前子设备的实例 ID 列表。</summary>
+    internal static IReadOnlyList<string> GetDeviceChildren(string instanceId)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId)) return [];
+        if (NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_NORMAL) != NativeMethods.CR_SUCCESS)
+            return [];
+        return GetDevNodeStringListProperty(devInst, instanceId, new Guid("4340A6C5-93FA-4706-972C-7B648008A5A7"), 9); // DEVPKEY_Device_Children
+    }
+
+    /// <summary>当在位设备属于 SoftwareComponent 类时返回其驱动 INF 名称，否则返回空字符串。</summary>
+    internal static string GetPresentSoftwareComponentInfPath(string instanceId)
+    {
+        if (string.IsNullOrWhiteSpace(instanceId)) return string.Empty;
+        if (NativeMethods.CM_Locate_DevNode(out uint devInst, instanceId, NativeMethods.CM_LOCATE_DEVNODE_NORMAL) != NativeMethods.CR_SUCCESS)
+            return string.Empty;
+        string pnpClass = GetDevNodeStringProperty(devInst, instanceId, new Guid("A45C254E-DF1C-4EFD-8020-67D146A850E0"), 9); // DEVPKEY_Device_Class
+        if (!string.Equals(pnpClass, "SoftwareComponent", StringComparison.OrdinalIgnoreCase))
+            return string.Empty;
+        return GetDevNodeStringProperty(devInst, instanceId, new Guid("A8B865DD-2E3D-4094-AD97-E593A70C75D6"), 5); // DEVPKEY_Device_DriverInfPath
+    }
+
     // CM_Get_Device_ID_List 两步式枚举在"取大小"与"取列表"之间存在竞态：空隙中设备树膨胀会返回
     // CR_BUFFER_SMALL——本应用的 DDA 操作本身就触发设备重枚举，故按微软推荐循环重试而非放弃返回空。
     private static List<string> GetDeviceIdList(uint filterFlags)

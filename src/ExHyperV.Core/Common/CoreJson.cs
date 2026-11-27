@@ -35,6 +35,10 @@ namespace ExHyperV;
 [JsonSerializable(typeof(string[]))]
 [JsonSerializable(typeof(UpgradeSource))]
 [JsonSerializable(typeof(UpgradeExtras))]
+[JsonSerializable(typeof(LinuxBundleManifest))]
+[JsonSerializable(typeof(List<LinuxBundleKernelEntry>))]
+[JsonSerializable(typeof(LinuxIsoDeviceManifest))]
+[JsonSerializable(typeof(GitHubReleaseDto))]
 internal sealed partial class CoreJson : JsonSerializerContext;
 
 // Incoming HCS responses historically accept mixed case.

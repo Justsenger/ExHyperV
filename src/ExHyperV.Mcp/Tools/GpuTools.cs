@@ -93,6 +93,18 @@ public sealed class GpuTools(GpuSessions sessions, VmGpuService gpu, VmQueryServ
     public Task<CallToolResult> Back(Guid sessionId, Guid requestId, CancellationToken cancellationToken = default) =>
         Change(sessionId, session => session.SubmitDecisionAsync(new GpuBackToPartitions(requestId)), cancellationToken);
 
+    [McpServerTool(Name = "gpu_deployment_linux_bundle", Title = "选择 Linux GPU-PV 部署包", Destructive = true, OpenWorld = false)]
+    [Description("在等待 SelectLinuxBundle 时提交在线获取或本地 .zip 部署包路径，由 Core 完成校验、驱动提取、光盘合成与挂载。")]
+    public Task<CallToolResult> LinuxBundle(Guid sessionId, Guid requestId, GpuLinuxBundleSource source,
+        [Description("当 source 为 LocalFile 时必须提供的本地 .zip 部署包路径；Online 时传 null。")] string? localBundlePath = null,
+        CancellationToken cancellationToken = default) =>
+        Change(sessionId, session => session.SubmitDecisionAsync(new GpuLinuxBundleSelection(requestId, source, localBundlePath)), cancellationToken);
+
+    [McpServerTool(Name = "gpu_linux_bundle_inspect", Title = "校验本地 Linux GPU-PV 部署包", ReadOnly = true, OpenWorld = false)]
+    [Description("只读校验本地 .zip 部署包的清单、架构、ELF64 与 SHA-256 完整性。")]
+    public Task<CallToolResult> InspectLinuxBundle(string bundlePath, CancellationToken cancellationToken = default) =>
+        ToolReply.Run(async () => ToolReply.From(await VmGpuService.InspectLinuxGpuPvBundleAsync(bundlePath, cancellationToken)));
+
     [McpServerTool(Name = "gpu_deployment_cancel", Title = "取消 GPU 部署", Destructive = true, OpenWorld = false)]
     [Description("请求取消并等待 Core 收尾。已完成的策略、配置和驱动修改依照 Core 规则保留；结果中仍可能需要核对清理状态。")]
     public Task<CallToolResult> Cancel(Guid sessionId, CancellationToken cancellationToken = default) =>

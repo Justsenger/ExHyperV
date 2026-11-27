@@ -248,10 +248,10 @@ public static partial class VmStorageService
             if (request.VhdType == "Differencing")
             {
                 if (request.SizeGiB != null || string.IsNullOrWhiteSpace(request.ParentPath))
-                    return Invalid("差分磁盘必须提供父磁盘，容量由父磁盘决定。");
+                    return Invalid("差异磁盘必须提供父磁盘，容量由父磁盘决定。");
             }
             else if (request.SizeGiB is not > 0 || !string.IsNullOrEmpty(request.ParentPath))
-                return Invalid("新虚拟磁盘必须提供正数 GiB 容量，只有差分磁盘允许父磁盘路径。");
+                return Invalid("新虚拟磁盘必须提供正数 GiB 容量，只有差异磁盘允许父磁盘路径。");
         }
         bool physicalDisk = request.IsPhysical && request.DriveType == "HardDisk";
         if (physicalDisk)

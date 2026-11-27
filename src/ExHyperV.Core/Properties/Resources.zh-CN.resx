@@ -2351,7 +2351,7 @@
     <value>没有可用的 SCSI 插槽</value>
   </data>
   <data name="VmCheckpointService_ErrCreateDiffDiskFailed" xml:space="preserve">
-    <value>创建临时差分盘失败: {0}</value>
+    <value>创建临时差异盘失败: {0}</value>
   </data>
   <data name="VmCheckpointService_MsgHistoricalDiskMounted" xml:space="preserve">
     <value>历史磁盘已挂接</value>
@@ -3655,7 +3655,7 @@
   <data name="VmImport_ZipFilter" xml:space="preserve"><value>ZIP 文件 (*.zip)|*.zip</value></data>
   <data name="VmImport_DiskFixed" xml:space="preserve"><value>固定</value></data>
   <data name="VmImport_DiskDynamic" xml:space="preserve"><value>动态</value></data>
-  <data name="VmImport_DiskDifferencing" xml:space="preserve"><value>差分</value></data>
+  <data name="VmImport_DiskDifferencing" xml:space="preserve"><value>差异</value></data>
   <data name="VmImport_StaticMemoryFormat" xml:space="preserve"><value>{0:N0} MB</value></data>
   <data name="VmImport_DynamicMemoryFormat" xml:space="preserve"><value>{0:N0} MB（{1:N0}–{2:N0} MB）</value></data>
   <data name="VmImport_NetworkAdapter" xml:space="preserve"><value>网络适配器</value></data>
@@ -3697,14 +3697,14 @@
   <data name="Gpu_InvalidPartition" xml:space="preserve"><value>所选分区不可用、已经变化，或不是支持的 Windows 系统分区。</value></data>
   <data name="Gpu_CleanupRequired" xml:space="preserve"><value>无法移除本次部署新增的 GPU 分配。请重试清理后再开始新的部署。</value></data>
   <data name="Msg_Gpu_DriverSkipped" xml:space="preserve"><value>已跳过</value></data>
-  <data name="Error_Gpu_LinuxUnsupported" xml:space="preserve"><value>检测到 Linux 分区，当前暂不支持为其部署驱动。</value></data>
-  <data name="Msg_Gpu_LinuxUnsupported" xml:space="preserve"><value>检测到 Linux 分区，当前暂不支持为其部署驱动。可选择跳过驱动，或取消部署。</value></data>
+  <data name="Error_Gpu_LinuxUnsupported" xml:space="preserve"><value>检测到 Linux 分区，请选择 Linux GPU-PV 部署包继续配置。</value></data>
+  <data name="Msg_Gpu_LinuxUnsupported" xml:space="preserve"><value>检测到 Linux 分区，继续后可选择在线获取或本地部署包。</value></data>
   <data name="Msg_Gpu_BitLockerRequired" xml:space="preserve"><value>检测到目标分区已开启 BitLocker 保护，请先解除 BitLocker 后再继续，或选择跳过驱动。</value></data>
-  <data name="Msg_Gpu_LinuxAndBitLockerUnsupported" xml:space="preserve"><value>检测到 Linux 分区（暂不支持）与 BitLocker 分区（需先解除 BitLocker），没有可直接写入驱动的 Windows 系统分区。</value></data>
-  <data name="Msg_Gpu_SelectPartWithLinuxAndBitLocker" xml:space="preserve"><value>请选择未加密的 Windows 系统分区。Linux 分区暂不支持，BitLocker 分区需先解除 BitLocker。</value></data>
-  <data name="Msg_Gpu_SelectPartWithLinux" xml:space="preserve"><value>请选择目标 Windows 系统分区。已检出的 Linux 分区暂不支持部署驱动。</value></data>
+  <data name="Msg_Gpu_LinuxAndBitLockerUnsupported" xml:space="preserve"><value>检测到 Linux 分区与 BitLocker 分区（BitLocker 分区需先解除保护）。</value></data>
+  <data name="Msg_Gpu_SelectPartWithLinuxAndBitLocker" xml:space="preserve"><value>请选择未加密的 Windows 或 Linux 系统分区。BitLocker 分区需先解除保护。</value></data>
+  <data name="Msg_Gpu_SelectPartWithLinux" xml:space="preserve"><value>请选择目标 Windows 或 Linux 系统分区。</value></data>
   <data name="Msg_Gpu_SelectPartWithBitLocker" xml:space="preserve"><value>请选择未加密的 Windows 系统分区。已开启 BitLocker 的分区需先解除 BitLocker。</value></data>
-  <data name="Msg_Gpu_NoUsableWindowsPart" xml:space="preserve"><value>未检测到可用的 Windows 系统分区。请检查分区或选择跳过驱动。</value></data>
+  <data name="Msg_Gpu_NoUsableWindowsPart" xml:space="preserve"><value>未检测到可用的系统分区。请检查分区或选择跳过驱动。</value></data>
   <data name="ConsoleWindow_FrameStatistics" xml:space="preserve"><value>帧率统计</value></data>
   <data name="ConsoleWindow_FrameStatisticsHint" xml:space="preserve"><value>切换接收帧率与窗口位图更新帧率。最大间隔和 ≥50 ms 间隔次数统计最近 5 秒，也包含仍在持续的间隔；静止画面更新少是正常现象。这不是显示器或远程桌面链路的实际帧率。</value></data>
   <data name="ConsoleWindow_FrameStatisticsFormat" xml:space="preserve"><value>更新 {0:F1} FPS · 接收 {1:F1} FPS
@@ -3727,4 +3727,49 @@
   <data name="GenerationUpgrade_Rollback" xml:space="preserve"><value>原机恢复结果尚待核实。</value></data>
   <data name="GenerationUpgrade_Complete" xml:space="preserve"><value>已完成的升级回执与宿主现状未能核对。</value></data>
   <data name="GenerationUpgrade_Journal" xml:space="preserve"><value>未能读取或独占升级事务日志。</value></data>
+  <data name="Task_Gpu_SelectPartition" xml:space="preserve"><value>选择分区</value></data>
+  <data name="Task_Gpu_SelectBundle" xml:space="preserve"><value>选择部署包</value></data>
+  <data name="Task_Gpu_DownloadBundle" xml:space="preserve"><value>下载驱动</value></data>
+  <data name="Task_Gpu_SynthesizeBundle" xml:space="preserve"><value>合成驱动</value></data>
+  <data name="Task_Gpu_MountIso" xml:space="preserve"><value>挂载光盘</value></data>
+  <data name="Label_SelectLinuxBundle" xml:space="preserve"><value>选择 Linux 部署包</value></data>
+  <data name="Msg_Gpu_SelectLinuxBundle" xml:space="preserve"><value>选择在线获取最新部署包，或浏览本地 .zip 部署包</value></data>
+  <data name="Msg_Gpu_LinuxBundleOnline" xml:space="preserve"><value>在线获取</value></data>
+  <data name="Msg_Gpu_FetchingBundleInfo" xml:space="preserve"><value>正在获取最新部署包信息...</value></data>
+  <data name="Msg_Gpu_DownloadingBundlePct" xml:space="preserve"><value>正在下载部署包 ({0}%)</value></data>
+  <data name="Msg_Gpu_VerifyingBundlePct" xml:space="preserve"><value>校验部署包 {0}%</value></data>
+  <data name="Msg_Gpu_SynthesizingIsoPct" xml:space="preserve"><value>合成驱动 {0}%</value></data>
+  <data name="Msg_Gpu_LinuxSynthesizing" xml:space="preserve"><value>正在提取宿主显卡运行库并生成驱动光盘...</value></data>
+  <data name="Msg_Gpu_LinuxMountingIso" xml:space="preserve"><value>正在将驱动光盘挂载到虚拟机光驱...</value></data>
+  <data name="Msg_Gpu_LinuxIsoMounted" xml:space="preserve"><value>驱动光盘已挂载，请在虚拟机中运行安装命令</value></data>
+  <data name="Error_Gpu_LinuxArchUnsupported" xml:space="preserve"><value>当前宿主架构 {0} 暂不支持 Linux GPU-PV。</value></data>
+  <data name="Error_Gpu_LinuxBundleNotFound" xml:space="preserve"><value>指定的 Linux 部署包文件不存在。</value></data>
+  <data name="Error_Gpu_LinuxBundleNotZip" xml:space="preserve"><value>部署包文件必须为 .zip 压缩包。</value></data>
+  <data name="Error_Gpu_LinuxBundleInvalidZip" xml:space="preserve"><value>所选文件不是有效的 ZIP 压缩包：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleUnsafePath" xml:space="preserve"><value>部署包包含不允许的成员路径：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleDuplicateEntry" xml:space="preserve"><value>部署包包含重复成员：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleMissingCoreFiles" xml:space="preserve"><value>压缩包缺少必要的 Linux GPU-PV 来宾脚本或内核源码文件。</value></data>
+  <data name="Error_Gpu_LinuxBundleMissingMember" xml:space="preserve"><value>部署包缺少必要成员：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleBadJson" xml:space="preserve"><value>无法解析部署包元数据文件：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleBadManifest" xml:space="preserve"><value>部署包 manifest.json 版本或格式无效。</value></data>
+  <data name="Error_Gpu_LinuxBundleArchMismatch" xml:space="preserve"><value>部署包架构不匹配：当前需要 {0}，压缩包为 {1}。</value></data>
+  <data name="Error_Gpu_LinuxBundleBadChecksumSpec" xml:space="preserve"><value>部署包清单中的校验声明无效：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleBadKernelIndex" xml:space="preserve"><value>部署包预编译内核索引与 manifest.json 不一致。</value></data>
+  <data name="Error_Gpu_LinuxBundleBadKernelMeta" xml:space="preserve"><value>预编译内核模块元数据无效：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleBadElf" xml:space="preserve"><value>ELF64 二进制类型或架构校验失败：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleChecksumMismatch" xml:space="preserve"><value>SHA-256 校验失败：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleOnlineEmpty" xml:space="preserve"><value>未能从在线源获取到有效的发布信息。</value></data>
+  <data name="Error_Gpu_LinuxBundleOnlineFetchFailed" xml:space="preserve"><value>获取在线部署包失败：{0}</value></data>
+  <data name="Error_Gpu_LinuxBundleArchAssetMissing" xml:space="preserve"><value>在线发布中未找到适用于 {0} 架构的部署包。</value></data>
+  <data name="Error_Gpu_LinuxBundleSumsMissing" xml:space="preserve"><value>在线发布缺少 SHA256SUMS 校验文件。</value></data>
+  <data name="Error_Gpu_LinuxBundleSumEntryMissing" xml:space="preserve"><value>SHA256SUMS 中未找到 {0} 的校验记录。</value></data>
+  <data name="Error_Gpu_LinuxBundleDownloadFailed" xml:space="preserve"><value>下载部署包失败：{0}</value></data>
+  <data name="Error_Gpu_LinuxPackageReparse" xml:space="preserve"><value>宿主驱动包目录不能为重解析点：{0}</value></data>
+  <data name="Error_Gpu_LinuxOutsideStore" xml:space="preserve"><value>宿主注册的 Linux 运行库位于 DriverStore 之外：{0}</value></data>
+  <data name="Error_Gpu_LinuxAmbiguousCompanion" xml:space="preserve"><value>为 {0} 匹配到多个冲突的伴随驱动包。</value></data>
+  <data name="Error_Gpu_LinuxNoHostUmd" xml:space="preserve"><value>未能从宿主显卡 {0} 的驱动包中找到 Linux 用户态运行库（.so）。</value></data>
+  <data name="Error_Gpu_LinuxInvalidInfEntry" xml:space="preserve"><value>驱动 INF（{0}）中的 Linux 映射项不受支持：{1}</value></data>
+  <data name="Error_Gpu_LinuxAliasConflict" xml:space="preserve"><value>显卡运行库存在同名内容冲突：{0}</value></data>
+  <data name="Error_Gpu_LinuxMissingMappedFile" xml:space="preserve"><value>驱动包 {1} 中缺少映射文件：{0}</value></data>
+  <data name="Error_Gpu_LinuxInvalidBundleDecision" xml:space="preserve"><value>请选择在线获取或提供有效的本地 .zip 部署包。</value></data>
 </root>

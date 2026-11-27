@@ -43,9 +43,15 @@ internal sealed partial class AnnularRingCanvas : UserControl
         Visibility = Visibility.Collapsed
     };
     private readonly List<ShapePath> arcPool = [];
+    private readonly List<SolidColorBrush> arcBrushes = [];
+    private readonly List<(int StartQ, int EndQ, int CornerQ)> arcGeometryKeys = [];
+    private readonly SolidColorBrush trackBrush = new();
+    private readonly SolidColorBrush fullSliceBrush = new();
 
     public AnnularRingCanvas()
     {
+        trackRing.Stroke = trackBrush;
+        fullSliceRing.Stroke = fullSliceBrush;
         Canvas.SetLeft(trackRing, Cx - ROut);
         Canvas.SetTop(trackRing, Cy - ROut);
         Canvas.SetLeft(fullSliceRing, Cx - ROut);
@@ -61,7 +67,8 @@ internal sealed partial class AnnularRingCanvas : UserControl
         IReadOnlyList<CpuRingSlice> keptArcs,
         string? focusedConsumerKey)
     {
-        trackRing.Stroke = new SolidColorBrush(trackColor);
+        if (trackBrush.Color != trackColor)
+            trackBrush.Color = trackColor;
 
         double totalSweep = 0;
         foreach (var s in keptArcs) totalSweep += s.Percent;
@@ -70,7 +77,8 @@ internal sealed partial class AnnularRingCanvas : UserControl
         {
             var single = keptArcs[0];
             bool dimmed = focusedConsumerKey != null && !string.Equals(single.ConsumerKey, focusedConsumerKey, StringComparison.Ordinal);
-            fullSliceRing.Stroke = new SolidColorBrush(single.Color);
+            if (fullSliceBrush.Color != single.Color)
+                fullSliceBrush.Color = single.Color;
             fullSliceRing.Opacity = dimmed ? 0.16 : 1.0;
             fullSliceRing.Visibility = Visibility.Visible;
             for (int i = 0; i < arcPool.Count; i++)
@@ -91,24 +99,41 @@ internal sealed partial class AnnularRingCanvas : UserControl
             double end = curDeg + spanDeg - gap / 2.0;
             curDeg += spanDeg;
 
-            var geom = BuildAnnularSector(Cx, Cy, RIn, ROut, start, end, SliceCornerRadius);
-            if (geom == null) continue;
+            int startQ = (int)Math.Round(start * 10.0);
+            int endQ = (int)Math.Round(end * 10.0);
+            int cornerQ = (int)Math.Round(SliceCornerRadius * 10.0);
+
+            if (end - start <= 0.15) continue;
 
             ShapePath path;
+            SolidColorBrush brush;
             if (used < arcPool.Count)
             {
                 path = arcPool[used];
+                brush = arcBrushes[used];
             }
             else
             {
-                path = new ShapePath();
+                brush = new SolidColorBrush();
+                path = new ShapePath { Fill = brush };
                 arcPool.Add(path);
+                arcBrushes.Add(brush);
+                arcGeometryKeys.Add((int.MinValue, int.MinValue, int.MinValue));
                 canvas.Children.Add(path);
             }
 
+            var geomKey = (startQ, endQ, cornerQ);
+            if (arcGeometryKeys[used] != geomKey)
+            {
+                var geom = BuildAnnularSector(Cx, Cy, RIn, ROut, startQ / 10.0, endQ / 10.0, SliceCornerRadius);
+                if (geom == null) continue;
+                path.Data = geom;
+                arcGeometryKeys[used] = geomKey;
+            }
+
             bool dimmed = focusedConsumerKey != null && !string.Equals(s.ConsumerKey, focusedConsumerKey, StringComparison.Ordinal);
-            path.Data = geom;
-            path.Fill = new SolidColorBrush(s.Color);
+            if (brush.Color != s.Color)
+                brush.Color = s.Color;
             path.Opacity = dimmed ? 0.16 : 1.0;
             path.Visibility = Visibility.Visible;
             used++;
@@ -256,6 +281,15 @@ internal sealed partial class HostCpuRingTile : UserControl
     private readonly StackPanel tipRows = new() { Spacing = 3 };
     private readonly TextBlock tipTitle = new() { FontSize = 12, FontWeight = FontWeights.SemiBold };
     private readonly TextBlock tipCoreType = new() { FontSize = 11 };
+    private readonly SolidColorBrush cardBgBrush = new();
+    private readonly SolidColorBrush cardBorderBrush = new();
+    private readonly SolidColorBrush lpLabelBrush = new();
+    private readonly SolidColorBrush pctLabelBrush = new();
+    private readonly SolidColorBrush tipCoreTypeBrush = new();
+    private IReadOnlyList<CpuRingSlice> lastTipSlices = [];
+    private Color lastTipPrimary;
+    private Color lastTipSecondary;
+    private bool tipDirty;
 
     private enum TileFocusState { None, Elevated, Dimmed }
 
@@ -293,6 +327,11 @@ internal sealed partial class HostCpuRingTile : UserControl
 
         pctLabel.Text = "—";
         pctLabel.FontWeight = FontWeights.SemiBold;
+        pctLabel.Foreground = pctLabelBrush;
+        lpLabel.Foreground = lpLabelBrush;
+        tipCoreType.Foreground = tipCoreTypeBrush;
+        card.Background = cardBgBrush;
+        card.BorderBrush = cardBorderBrush;
         Typography.SetNumeralAlignment(pctLabel, FontNumeralAlignment.Tabular);
 
         card.Child = contentRoot;
@@ -316,6 +355,7 @@ internal sealed partial class HostCpuRingTile : UserControl
         tipPanel.Children.Add(divider);
         tipPanel.Children.Add(tipRows);
         tip.Content = tipPanel;
+        tip.Opened += (_, _) => RebuildTooltipIfDirty();
         ToolTipService.SetToolTip(this, tip);
 
         PointerEntered += (_, _) => { pointerOver = true; ApplyBorderBrush(); };
@@ -330,7 +370,10 @@ internal sealed partial class HostCpuRingTile : UserControl
         pctLabel.Text = "—";
         var trackColor = ActualTheme == ElementTheme.Light ? Colors.Black : Colors.White;
         ring.Update(Color.FromArgb(24, trackColor.R, trackColor.G, trackColor.B), [], null);
-        tipRows.Children.Clear();
+        lastTipSlices = [];
+        tipDirty = true;
+        if (tip.IsOpen) RebuildTooltipIfDirty();
+        else tipRows.Children.Clear();
     }
 
     public int LogicalProcessorIndex => lpIndex;
@@ -466,28 +509,43 @@ internal sealed partial class HostCpuRingTile : UserControl
             : (int)Math.Round(Math.Clamp(totalPercent, 0, 100));
 
         pctLabel.Text = $"{displayPct}%";
+        Color targetPctColor = hasFocus
+            ? (hasFocusedContribution ? primaryText : tertiaryText)
+            : primaryText;
+        if (pctLabelBrush.Color != targetPctColor)
+            pctLabelBrush.Color = targetPctColor;
+
         if (hasFocus)
         {
-            // Candidate #3 (Elevated Surface): keep percentages calm neutral primary; ring arc carries color.
-            pctLabel.Foreground = new SolidColorBrush(hasFocusedContribution ? primaryText : tertiaryText);
             Opacity = hasFocusedContribution ? 1.0 : 0.28;
             focusState = hasFocusedContribution ? TileFocusState.Elevated : TileFocusState.Dimmed;
         }
         else
         {
-            pctLabel.Foreground = new SolidColorBrush(primaryText);
             Opacity = 1.0;
             focusState = TileFocusState.None;
         }
 
-        lpLabel.Foreground = new SolidColorBrush(secondaryText);
-        tipCoreType.Foreground = new SolidColorBrush(secondaryText);
+        if (lpLabelBrush.Color != secondaryText)
+            lpLabelBrush.Color = secondaryText;
+        if (tipCoreTypeBrush.Color != secondaryText)
+            tipCoreTypeBrush.Color = secondaryText;
         ApplyBorderBrush();
 
-        // Update structured tooltip rows cleanly.
+        lastTipSlices = fullSlices;
+        lastTipPrimary = primaryText;
+        lastTipSecondary = secondaryText;
+        tipDirty = true;
+        if (tip.IsOpen) RebuildTooltipIfDirty();
+    }
+
+    private void RebuildTooltipIfDirty()
+    {
+        if (!tipDirty) return;
+        tipDirty = false;
         tipRows.Children.Clear();
         bool anyTip = false;
-        foreach (var slice in fullSlices)
+        foreach (var slice in lastTipSlices)
         {
             int pct = (int)Math.Round(slice.Percent);
             if (pct <= 0 && slice.Percent < 0.5) continue;
@@ -510,7 +568,7 @@ internal sealed partial class HostCpuRingTile : UserControl
                 FontSize = 12,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 MaxWidth = 190,
-                Foreground = new SolidColorBrush(primaryText),
+                Foreground = new SolidColorBrush(lastTipPrimary),
                 VerticalAlignment = VerticalAlignment.Center
             };
             var val = new TextBlock
@@ -518,7 +576,7 @@ internal sealed partial class HostCpuRingTile : UserControl
                 Text = $"{Math.Max(1, pct)}%",
                 FontSize = 12,
                 FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(primaryText),
+                Foreground = new SolidColorBrush(lastTipPrimary),
                 VerticalAlignment = VerticalAlignment.Center
             };
             Typography.SetNumeralAlignment(val, FontNumeralAlignment.Tabular);
@@ -538,7 +596,7 @@ internal sealed partial class HostCpuRingTile : UserControl
             {
                 Text = $"{L10n.Get("Host_Cpu_HostOwner")}  0%",
                 FontSize = 12,
-                Foreground = new SolidColorBrush(secondaryText)
+                Foreground = new SolidColorBrush(lastTipSecondary)
             });
         }
     }
@@ -553,39 +611,37 @@ internal sealed partial class HostCpuRingTile : UserControl
         Color bgHover = ThemeHelper.ThemeColor(ActualTheme, "ControlFillColorSecondaryBrush",
             light ? Color.FromArgb(0xE0, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x16, 0xFF, 0xFF, 0xFF));
 
+        Color bgColor;
+        Color borderColor;
         if (focusState == TileFocusState.Elevated)
         {
-            Color bgElevated = light
+            bgColor = light
                 ? Colors.White
                 : Color.FromArgb(pointerOver ? (byte)0x20 : (byte)0x18, 0xFF, 0xFF, 0xFF);
-            Color borderElevated = light
+            borderColor = light
                 ? Color.FromArgb(pointerOver ? (byte)0x38 : (byte)0x29, 0x00, 0x00, 0x00)
                 : Color.FromArgb(pointerOver ? (byte)0x48 : (byte)0x38, 0xFF, 0xFF, 0xFF);
-            card.Background = new SolidColorBrush(bgElevated);
-            card.BorderBrush = new SolidColorBrush(borderElevated);
         }
         else if (focusState == TileFocusState.Dimmed)
         {
-            card.Background = new SolidColorBrush(pointerOver ? bgHover : Colors.Transparent);
-            card.BorderBrush = new SolidColorBrush(Color.FromArgb(
+            bgColor = pointerOver ? bgHover : Colors.Transparent;
+            borderColor = Color.FromArgb(
                 (byte)Math.Round(strokeDefault.A * 0.45),
                 strokeDefault.R,
                 strokeDefault.G,
-                strokeDefault.B));
+                strokeDefault.B);
         }
         else
         {
-            card.Background = new SolidColorBrush(pointerOver ? bgHover : bgDefault);
-            if (pointerOver)
-            {
-                Color subtle = ThemeHelper.ThemeColor(ActualTheme, "ControlStrokeColorSecondaryBrush",
-                    Color.FromArgb(0x40, 0x88, 0x88, 0x88));
-                card.BorderBrush = new SolidColorBrush(subtle);
-            }
-            else
-            {
-                card.BorderBrush = new SolidColorBrush(strokeDefault);
-            }
+            bgColor = pointerOver ? bgHover : bgDefault;
+            borderColor = pointerOver
+                ? ThemeHelper.ThemeColor(ActualTheme, "ControlStrokeColorSecondaryBrush", Color.FromArgb(0x40, 0x88, 0x88, 0x88))
+                : strokeDefault;
         }
+
+        if (cardBgBrush.Color != bgColor)
+            cardBgBrush.Color = bgColor;
+        if (cardBorderBrush.Color != borderColor)
+            cardBorderBrush.Color = borderColor;
     }
 }

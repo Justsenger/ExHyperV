@@ -1476,3 +1476,243 @@ test('console client negotiates scoped v2 and preserves requested rights when co
   client.issueWsTicket = async () => { throw Error('denied'); };
   await assert.rejects(requestConsoleConnection(client, 'vm', 'basic'), /denied/);
 });
+
+test('console controller resets frame dimensions across Basic to Enhanced switch and blocks pre-first-frame guest inputs', async () => {
+  const {
+    createConsoleController,
+    hasSessionFrame,
+    isSessionDisplayReady,
+    resetSessionStreamState
+  } = await viteServer.ssrLoadModule(path.join(exhypervWowRoot, 'scripts/ui-design-console.js'));
+
+  const unitSession = { liveMode: true, connState: 'connected', liveStreamActive: true, frameWidth: 1024, frameHeight: 768 };
+  assert.equal(isSessionDisplayReady(unitSession), true);
+  resetSessionStreamState(unitSession);
+  assert.equal(unitSession.frameWidth, 0);
+  assert.equal(unitSession.frameHeight, 0);
+  assert.equal(unitSession.liveStreamActive, false);
+  unitSession.connState = 'connected';
+  unitSession.liveStreamActive = true;
+  assert.equal(hasSessionFrame(unitSession), false);
+  assert.equal(isSessionDisplayReady(unitSession), false);
+  assert.equal(isSessionDisplayReady({ liveMode: false, vm: { serverMode: 'demo' }, connState: 'connected', liveStreamActive: true, frameWidth: 0, frameHeight: 0 }), true);
+
+  const prevDocument = globalThis.document;
+  const prevWindow = globalThis.window;
+  const prevWebSocket = globalThis.WebSocket;
+  const prevRaf = globalThis.requestAnimationFrame;
+  const prevCancelRaf = globalThis.cancelAnimationFrame;
+
+  const elements = new Map();
+  const docListeners = new Map();
+  const winListeners = new Map();
+  const sockets = [];
+  let rafSeq = 0;
+
+  function makeClassList() {
+    const set = new Set();
+    return {
+      toggle(name, force) { if (force === undefined) { if (set.has(name)) set.delete(name); else set.add(name); } else if (force) set.add(name); else set.delete(name); },
+      add(name) { set.add(name); },
+      remove(name) { set.delete(name); },
+      contains(name) { return set.has(name); }
+    };
+  }
+
+  function makeElement(id = '') {
+    const listeners = new Map();
+    const attrs = new Map();
+    const el = {
+      id,
+      hidden: false,
+      disabled: false,
+      style: { setProperty() {} },
+      dataset: {},
+      textContent: '',
+      innerHTML: '',
+      value: '',
+      classList: makeClassList(),
+      parentElement: { hidden: false },
+      addEventListener(type, fn) {
+        if (!listeners.has(type)) listeners.set(type, []);
+        listeners.get(type).push(fn);
+      },
+      dispatch(type, event = {}) {
+        const ev = { target: el, preventDefault() {}, stopPropagation() {}, ...event };
+        for (const fn of listeners.get(type) || []) fn(ev);
+      },
+      click() { this.dispatch('click'); },
+      focus() {},
+      hasAttribute(name) { return attrs.has(name); },
+      setAttribute(name, val) { attrs.set(name, String(val)); },
+      getAttribute(name) { return attrs.get(name) ?? null; },
+      closest() { return null; },
+      replaceChildren() {},
+      getBoundingClientRect() { return { left: 0, top: 0, width: 1280, height: 720 }; },
+      querySelector() { return makeElement(`${id}:child`); },
+      querySelectorAll() { return []; }
+    };
+    if (id === 'consoleLiveCanvas') {
+      el.width = 0;
+      el.height = 0;
+      el.getContext = () => ({
+        createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
+        putImageData(_img) { el.width = el.width || 1024; },
+        clearRect() {}
+      });
+    }
+    return el;
+  }
+
+  function elById(id) {
+    if (!elements.has(id)) elements.set(id, makeElement(id));
+    return elements.get(id);
+  }
+
+  const basicModeItem = makeElement('mode-basic');
+  basicModeItem.setAttribute('data-console-session', 'basic');
+  const enhancedModeItem = makeElement('mode-enhanced');
+  enhancedModeItem.setAttribute('data-console-session', 'enhanced');
+  elById('consoleModeFlyout').querySelectorAll = (sel) => (sel === '[data-console-session]' ? [basicModeItem, enhancedModeItem] : []);
+
+  class MockWebSocket {
+    static OPEN = 1;
+    static CLOSED = 3;
+    constructor(url) {
+      this.url = url;
+      this.readyState = MockWebSocket.OPEN;
+      this.bufferedAmount = 0;
+      this.sent = [];
+      this._listeners = new Map();
+      sockets.push(this);
+    }
+    addEventListener(type, fn) {
+      if (!this._listeners.has(type)) this._listeners.set(type, []);
+      this._listeners.get(type).push(fn);
+    }
+    send(data) { this.sent.push(JSON.parse(String(data))); }
+    close() {
+      this.readyState = MockWebSocket.CLOSED;
+      for (const fn of this._listeners.get('close') || []) fn({});
+    }
+    emitJson(obj) { this.onmessage?.({ data: JSON.stringify(obj) }); }
+    emitFrame(width, height, seq) {
+      const buf = new ArrayBuffer(34 + width * height * 4);
+      const view = new DataView(buf);
+      const u8 = new Uint8Array(buf);
+      u8[0] = 0x45; u8[1] = 0x58; u8[2] = 1; u8[3] = 1; u8[4] = 0; u8[5] = 0;
+      view.setBigInt64(6, BigInt(seq), true);
+      view.setBigInt64(14, 0n, true);
+      view.setUint16(22, width, true);
+      view.setUint16(24, height, true);
+      view.setUint16(30, width, true);
+      view.setUint16(32, height, true);
+      this.onmessage?.({ data: buf });
+    }
+  }
+
+  globalThis.document = {
+    getElementById: elById,
+    addEventListener(type, fn) {
+      if (!docListeners.has(type)) docListeners.set(type, []);
+      docListeners.get(type).push(fn);
+    }
+  };
+  globalThis.window = {
+    devicePixelRatio: 1,
+    innerWidth: 1920,
+    innerHeight: 1080,
+    addEventListener(type, fn) {
+      if (!winListeners.has(type)) winListeners.set(type, []);
+      winListeners.get(type).push(fn);
+    }
+  };
+  globalThis.WebSocket = MockWebSocket;
+  globalThis.requestAnimationFrame = () => ++rafSeq;
+  globalThis.cancelAnimationFrame = () => {};
+
+  const dispatchDoc = (type, ev) => {
+    for (const fn of docListeners.get(type) || []) fn({ preventDefault() {}, ...ev });
+  };
+
+  let controller;
+  try {
+    controller = createConsoleController({
+      getVm: () => ({ id: 'vm-1', name: 'Win11', running: true, generation: 2, mode: 'basic', serverMode: 'live', serverUrl: 'http://127.0.0.1:5191' }),
+      getAllVms: () => [],
+      getAdvSettings: () => ({ consoleSupport: true }),
+      getServerConnection: async (_vm, mode) => ({
+        mode: 'live',
+        serverUrl: 'http://127.0.0.1:5191',
+        backendId: mode === 'enhanced' ? 'RdpEnhanced' : 'RdpBasic',
+        protocol: 1
+      })
+    });
+
+    controller.open();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(sockets.length, 1);
+
+    const basicWs = sockets[0];
+    basicWs.emitJson({ type: 'state', state: 'Connected' });
+    basicWs.emitFrame(1024, 768, 1);
+
+    const surface = elById('consoleScreenSurface');
+    const cadBtn = elById('consoleCadBtn');
+    const shotBtn = elById('consoleShotBtn');
+    const emptyState = elById('consoleEmptyState');
+    const emptyTitle = elById('consoleEmptyTitle');
+    const liveCanvas = elById('consoleLiveCanvas');
+
+    surface.dispatch('mousedown', { button: 0, clientX: 500, clientY: 300 });
+    dispatchDoc('keydown', { code: 'Space', key: ' ' });
+    assert.ok(basicWs.sent.some((m) => m.type === 'pointer' && m.down === true));
+    assert.ok(basicWs.sent.some((m) => m.type === 'key' && m.down === true));
+
+    // Switch Basic -> Enhanced: old frame dimensions must reset and pre-first-frame inputs must stay gated.
+    enhancedModeItem.click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(sockets.length, 2);
+    const enhancedWs = sockets[1];
+    assert.match(enhancedWs.url, /backend=RdpEnhanced/);
+
+    enhancedWs.emitJson({ type: 'state', state: 'Connected' });
+    assert.equal(emptyState.hidden, false);
+    assert.equal(emptyTitle.textContent, '正在等待显示画面...');
+    assert.equal(liveCanvas.hidden, true);
+    assert.equal(cadBtn.disabled, true);
+    assert.equal(shotBtn.disabled, true);
+
+    surface.dispatch('mousedown', { button: 0, clientX: 600, clientY: 400 });
+    surface.dispatch('mouseup', { button: 0, clientX: 600, clientY: 400 });
+    surface.dispatch('wheel', { deltaX: 0, deltaY: -120, clientX: 600, clientY: 400 });
+    cadBtn.click();
+    dispatchDoc('keydown', { code: 'Space', key: ' ' });
+    dispatchDoc('keyup', { code: 'Space', key: ' ' });
+    dispatchDoc('keydown', { code: 'Pause', key: 'Pause' });
+    const rejectedCandidates = enhancedWs.sent.filter((m) => ['pointer', 'click', 'key', 'keys', 'pause'].includes(m.type));
+    assert.deepEqual(rejectedCandidates, []);
+
+    // Once the first Enhanced video frame (1280x720) arrives, the canvas and inputs become active.
+    enhancedWs.emitFrame(1280, 720, 1);
+    assert.equal(emptyState.hidden, true);
+    assert.equal(liveCanvas.hidden, false);
+    assert.equal(cadBtn.disabled, false);
+    assert.equal(shotBtn.disabled, false);
+
+    surface.dispatch('mousedown', { button: 0, clientX: 1100, clientY: 500 });
+    dispatchDoc('keydown', { code: 'Space', key: ' ' });
+    cadBtn.click();
+    const afterFrame = enhancedWs.sent.filter((m) => ['pointer', 'key', 'keys'].includes(m.type));
+    assert.equal(afterFrame[0].type, 'pointer');
+    assert.equal(afterFrame[1].type, 'key');
+    assert.equal(afterFrame[2].type, 'keys');
+  } finally {
+    controller?.close();
+    globalThis.document = prevDocument;
+    globalThis.window = prevWindow;
+    globalThis.WebSocket = prevWebSocket;
+    globalThis.requestAnimationFrame = prevRaf;
+    globalThis.cancelAnimationFrame = prevCancelRaf;
+  }
+});

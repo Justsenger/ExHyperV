@@ -45,6 +45,15 @@ namespace ExHyperV.Services
             string volumeLabel,
             Action<int>? progressPercent = null,
             CancellationToken cancellationToken = default)
+            => BuildUdfIso(sources, targetIsoPath, volumeLabel, progressPercent, forceUdfOnly: false, cancellationToken);
+
+        internal static void BuildUdfIso(
+            IReadOnlyList<IsoDirectorySource> sources,
+            string targetIsoPath,
+            string volumeLabel,
+            Action<int>? progressPercent,
+            bool forceUdfOnly,
+            CancellationToken cancellationToken = default)
         {
             if (sources == null || sources.Count == 0)
                 throw new ArgumentException("至少需要一个 ISO 源目录。", nameof(sources));
@@ -57,7 +66,7 @@ namespace ExHyperV.Services
                 (long totalBytes, long maxFileBytes) = MeasureSources(sources, cancellationToken);
 
                 using var apartment = new NativeComApartment(sta: false);
-                using var image = ImapiImage.Create(SanitizeVolumeLabel(volumeLabel), ShouldUseUdfOnly(totalBytes, maxFileBytes));
+                using var image = ImapiImage.Create(SanitizeVolumeLabel(volumeLabel), forceUdfOnly || ShouldUseUdfOnly(totalBytes, maxFileBytes));
                 using var root = image.GetInterface(7); // IFileSystemImage::get_Root
 
                 foreach (var source in sources)

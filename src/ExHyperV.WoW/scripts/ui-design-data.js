@@ -696,7 +696,7 @@ export const INITIAL_GPU_PARTITIONS = [
     sizeText: '96.0 GB',
     osType: 'Linux',
     locked: false,
-    desc: '检测到 Linux 分区，当前暂不支持为其部署驱动'
+    desc: '识别到 Linux 根分区，将通过 linuxpv 部署包与宿主驱动合成 GPUPV 光盘'
   },
   {
     id: 'part-bitlocker',

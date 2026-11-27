@@ -14,6 +14,33 @@ import {
   CTRL_ALT_DEL_SEQUENCE
 } from './console-wire.js';
 
+export function isSessionLiveMode(session) {
+  return Boolean(session && (session.liveMode || session.vm?.serverMode === 'live'));
+}
+
+export function hasSessionFrame(session) {
+  return !isSessionLiveMode(session) || Boolean(session && session.frameWidth > 0 && session.frameHeight > 0);
+}
+
+export function isSessionDisplayReady(session) {
+  return Boolean(
+    session &&
+    session.connState === 'connected' &&
+    session.liveStreamActive &&
+    hasSessionFrame(session)
+  );
+}
+
+export function resetSessionStreamState(session) {
+  if (!session) return;
+  session.liveStreamActive = false;
+  session.frameWidth = 0;
+  session.frameHeight = 0;
+  session.cursorStyle = 'default';
+  session.cursorReceived = false;
+  session.cursorToken = (session.cursorToken || 0) + 1;
+}
+
 export function createConsoleController({
   getVm,
   getAllVms,
@@ -168,7 +195,7 @@ export function createConsoleController({
     pendingPointerMove = null;
     if (!move) return;
     const { session, clientX, clientY } = move;
-    if (!session || session !== activeSession() || session.connState !== 'connected' || !session.liveStreamActive || !session.inputCaptured) return;
+    if (!session || session !== activeSession() || !isSessionDisplayReady(session) || !session.inputCaptured) return;
     const coords = mapPointerCoords(session, clientX, clientY);
     if (coords) {
       sendSocketJson(session, {
@@ -374,16 +401,18 @@ export function createConsoleController({
     }
     const ws = session.ws;
     session.ws = null;
-    session.liveStreamActive = false;
-    session.cursorStyle = 'default';
-    session.cursorReceived = false;
-    session.cursorToken = (session.cursorToken || 0) + 1;
+    resetSessionStreamState(session);
     if (ws) {
       if (ws.readyState !== WebSocket.CLOSED) {
         session.closing = new Promise(resolve => ws.addEventListener('close', resolve, { once: true }));
       }
       try {
-        if (ws.readyState === WebSocket.OPEN && session.connState === 'connected' && session.inputCaptured) {
+        if (
+          ws.readyState === WebSocket.OPEN &&
+          session.connState === 'connected' &&
+          session.inputCaptured &&
+          (session.protocol !== 2 || session.control?.hasControl)
+        ) {
           ws.send(JSON.stringify({ type: 'releaseAllInputs', generation: session.control?.generation, inputSequence: ++session.inputSequence }));
         }
         ws.close(1000, 'client closed');
@@ -442,7 +471,7 @@ export function createConsoleController({
   }
 
   function isSessionLive(session) {
-    return Boolean(session && (session.liveMode || session.vm?.serverMode === 'live'));
+    return isSessionLiveMode(session);
   }
 
   function activeSession() {
@@ -522,11 +551,13 @@ export function createConsoleController({
 
   function startSessionConnecting(session, targetMode) {
     closeSessionSocket(session);
+    resetSessionStreamState(session);
     session.mode = targetMode;
     session.connState = 'connecting';
     session.inputCaptured = false;
     session.liveError = '';
     session.capabilities = null;
+    session.lastGuestClipboardText = '';
     session.remotePosition = null; session.remoteShape = null; session.control = null; session.extension = null;
     const token = session.connectToken;
     render();
@@ -786,7 +817,7 @@ export function createConsoleController({
         ws.onclose = (ev) => {
           if (token !== session.connectToken || session.ws !== ws) return;
           session.ws = null;
-          session.liveStreamActive = false;
+          resetSessionStreamState(session);
           session.inputCaptured = false;
           if (session.connState === 'connecting' || session.connState === 'connected') {
             session.connState = session.vm.running ? 'disconnected' : 'stopped';
@@ -868,7 +899,9 @@ export function createConsoleController({
       }
     }
     const connected = session.connState === 'connected';
-    const showLiveCanvas = Boolean(connected && session.liveStreamActive);
+    const hasLiveFrame = hasSessionFrame(session);
+    const waitingFirstFrame = Boolean(connected && isSessionLive(session) && !hasLiveFrame);
+    const showLiveCanvas = Boolean(connected && session.liveStreamActive && hasLiveFrame);
     const canChangeRes =
       isRunning && !external && control?.hasControl !== false &&
       isEnhanced &&
@@ -966,13 +999,13 @@ export function createConsoleController({
 
     if (cadBtn) {
       cadBtn.hidden = false;
-      cadBtn.disabled = !connected || control?.hasControl === false;
+      cadBtn.disabled = !connected || !hasLiveFrame || control?.hasControl === false;
     }
     if (fsCadBtn) {
       fsCadBtn.hidden = false;
-      fsCadBtn.disabled = !connected || control?.hasControl === false;
+      fsCadBtn.disabled = !connected || !hasLiveFrame || control?.hasControl === false;
     }
-    if (shotBtn) shotBtn.disabled = !connected;
+    if (shotBtn) shotBtn.disabled = !connected || !hasLiveFrame;
 
     const features = resolveSessionConsoleFeatures(session);
     const caps = session.capabilities;
@@ -1069,16 +1102,16 @@ export function createConsoleController({
     if (liveCanvas) liveCanvas.classList.toggle('is-crisp', crispCanvas);
 
     if (emptyState && emptySpinner && emptyOs && emptyTitle && emptyDesc && primaryActionBtn) {
-      if (connected) {
+      if (connected && !waitingFirstFrame) {
         emptyState.hidden = true;
       } else {
         emptyState.hidden = false;
-        const isConnecting = session.connState === 'connecting';
+        const isConnecting = session.connState === 'connecting' || waitingFirstFrame;
         emptyCard?.classList.toggle('is-minimal', isConnecting);
         if (isConnecting) {
           emptySpinner.hidden = false;
           emptyOs.hidden = true;
-          emptyTitle.textContent = '正在连接...';
+          emptyTitle.textContent = waitingFirstFrame ? '正在等待显示画面...' : '正在连接...';
           emptyDesc.hidden = true;
           emptyDesc.textContent = '';
           primaryActionBtn.hidden = true;
@@ -1600,6 +1633,10 @@ export function createConsoleController({
     closeAllFlyouts();
     const session = activeSession();
     if (session?.liveStreamActive) {
+      if (!isSessionDisplayReady(session)) {
+        showToast('正在等待虚拟机显示画面就绪，请稍后再试', 'warning');
+        return;
+      }
       sendSocketJson(session, { type: 'keys', events: CTRL_ALT_DEL_SEQUENCE });
     }
     showToast('已发送 Ctrl + Alt + Del');
@@ -1610,8 +1647,9 @@ export function createConsoleController({
   function takeScreenshot() {
     const session = activeSession();
     if (!session || session.connState !== 'connected') return;
+    if (isSessionLive(session) && !isSessionDisplayReady(session)) return;
     closeAllFlyouts();
-    if (session.liveStreamActive && liveCanvas && liveCanvas.width > 0 && liveCanvas.height > 0) {
+    if (isSessionDisplayReady(session) && session.liveStreamActive && liveCanvas && liveCanvas.width > 0 && liveCanvas.height > 0) {
       liveCanvas.toBlob((blob) => {
         if (!blob) return;
         const url = URL.createObjectURL(blob);
@@ -1806,6 +1844,7 @@ export function createConsoleController({
     const session = activeSession();
     if (!session || session.connState !== 'connected') return;
     if (session.control?.hasControl === false) return;
+    if (isSessionLive(session) && !isSessionDisplayReady(session)) return;
     session.inputCaptured = true;
     screenSurface.focus({ preventScroll: true });
     render();
@@ -1814,12 +1853,14 @@ export function createConsoleController({
   screenSurface?.addEventListener('mousedown', (e) => {
     const session = activeSession();
     if (!session || session.connState !== 'connected') return;
+    if (session.control?.hasControl === false) return;
+    if (isSessionLive(session) && !isSessionDisplayReady(session)) return;
     clearPendingPointerMove();
     const button = mapPointerButton(e.button);
     session.inputCaptured = true;
     screenSurface.focus({ preventScroll: true });
     if (button === 'None') return;
-    if (session.liveStreamActive) {
+    if (isSessionDisplayReady(session)) {
       const coords = mapPointerCoords(session, e.clientX, e.clientY);
       if (coords) {
         sendSocketJson(session, {
@@ -1837,7 +1878,7 @@ export function createConsoleController({
 
   screenSurface?.addEventListener('mouseup', (e) => {
     const session = activeSession();
-    if (!session || session.connState !== 'connected' || !session.liveStreamActive) return;
+    if (!isSessionDisplayReady(session)) return;
     clearPendingPointerMove();
     const button = mapPointerButton(e.button);
     if (button === 'None') return;
@@ -1856,7 +1897,7 @@ export function createConsoleController({
 
   screenSurface?.addEventListener('mousemove', (e) => {
     const session = activeSession();
-    if (!session || session.connState !== 'connected' || !session.liveStreamActive || !session.inputCaptured) return;
+    if (!isSessionDisplayReady(session) || !session.inputCaptured) return;
     pendingPointerMove = { session, clientX: e.clientX, clientY: e.clientY };
     if (!pointerMoveRafId) {
       pointerMoveRafId = typeof requestAnimationFrame === 'function'
@@ -1876,7 +1917,7 @@ export function createConsoleController({
     'wheel',
     (e) => {
       const session = activeSession();
-      if (!session || session.connState !== 'connected' || !session.liveStreamActive) return;
+      if (!isSessionDisplayReady(session)) return;
       clearPendingPointerMove();
       e.preventDefault();
       if (e.deltaY === 0 || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
@@ -1924,7 +1965,7 @@ export function createConsoleController({
         return;
       }
     }
-    if (session && session.connState === 'connected' && session.inputCaptured && session.liveStreamActive) {
+    if (session && session.inputCaptured && isSessionDisplayReady(session)) {
       if (e.code === 'Pause') {
         e.preventDefault();
         if (!e.repeat) {
@@ -1948,7 +1989,7 @@ export function createConsoleController({
   document.addEventListener('keyup', (e) => {
     if (!consoleState.isOpen || isEditableKeyboardTarget(e.target)) return;
     const session = activeSession();
-    if (session && session.connState === 'connected' && session.inputCaptured && session.liveStreamActive) {
+    if (session && session.inputCaptured && isSessionDisplayReady(session)) {
       if (e.code === 'Pause') {
         e.preventDefault();
         return;
